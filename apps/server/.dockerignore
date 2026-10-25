@@ -1,0 +1,22 @@
+# Evaluated from the repo root (the build context). The Dockerfile uses explicit
+# COPYs, so this just keeps the uploaded context small.
+**/build/
+**/.gradle/
+**/.kotlin/
+.git/
+.idea/
+*.iml
+.DS_Store
+local.properties
+
+# Client-only trees — excluded from the serverOnly build graph, not needed here.
+apps/compose/
+apps/ios/
+features/
+libraries/
+docs/
+scripts/
+pages/
+
+# Never bake local secrets into the image.
+apps/server/.env

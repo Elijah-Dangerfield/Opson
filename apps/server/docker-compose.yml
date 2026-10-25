@@ -1,0 +1,21 @@
+# Local Postgres for development. Start it with:
+#   docker compose -f apps/server/docker-compose.yml up -d
+# Then in apps/server/.env set:
+#   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+# and run: ./gradlew :apps:server:run
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - template_pgdata:/var/lib/postgresql/data
+      # Seed a minimal auth.users stub so the V2 FK resolves on plain Postgres.
+      - ./docker/init-auth.sql:/docker-entrypoint-initdb.d/init-auth.sql:ro
+
+volumes:
+  template_pgdata:

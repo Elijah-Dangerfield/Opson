@@ -1,0 +1,48 @@
+# Fly.io configuration for the DEV server. Hand-written (not `fly launch`).
+#
+# Deploy from the repo root:  fly deploy --config apps/server/fly.toml
+# Set secrets:                fly secrets set KEY=VALUE -a opson-server-dev
+# Logs:                       fly logs -a opson-server-dev
+#
+# Production (opson-server-prod) lives in fly.prod.toml — same shape,
+# its own app name + secrets. The `-dev`/`-prod` suffix convention is
+# load-bearing: the server derives its environment tag from FLY_APP_NAME.
+#
+# Rename `app` to your own Fly app before the first deploy.
+
+app = 'opson-server-dev'
+primary_region = 'iad'   # pick the region closest to your database
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  SERVER_HOST = '0.0.0.0'
+  SERVER_PORT = '8080'
+  LOG_LEVEL = 'INFO'
+  # JVM heap tuned for a 512MB machine. The Ktor + Exposed + Hikari + OTel set
+  # has a ~150-200MB off-heap floor (metaspace, thread stacks, JIT, Netty direct
+  # buffers) before the heap counts at all, so a naive 256MB total OOM-loops.
+  # 256m heap + 96m metaspace leaves ~150MB headroom on the 512MB box.
+  JAVA_OPTS = '-Xms64m -Xmx256m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC -XX:+UnlockExperimentalVMOptions'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # One machine kept warm; idle machines past the first still auto-stop. JVM
+  # cold-start (6+s) is slow enough that scale-to-zero hurts the first request.
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/_health'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "include-component-in-tag": false,
+  "packages": {
+    ".": {
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        "versions.properties",
+        "apps/ios/Configuration/Config.xcconfig"
+      ],
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": false,
+      "draft": false,
+      "prerelease": false
+    }
+  },
+  "separate-pull-requests": false,
+  "pull-request-header": "\ud83d\udc49 **This PR is the next release.** Merging it ships the app to production.\n\nWhat merging does:\n\n1. `versionName` in [`versions.properties`](../blob/main/versions.properties) and `MARKETING_VERSION` in [`Config.xcconfig`](../blob/main/apps/ios/Configuration/Config.xcconfig) bump to the version below.\n2. [`CHANGELOG.md`](../blob/main/CHANGELOG.md) gets the entries below appended.\n3. A git tag `vX.Y.Z` and a matching GitHub Release are created.\n4. [`release.yml`](../actions/workflows/release.yml) fires:\n   - Android \u2192 Play Console production (10% staged rollout)\n   - iOS \u2192 TestFlight external group `main` \u2192 submitted to App Store review with phased release\n   - Sentry release created + mappings/dSYMs uploaded\n\n**Confirm before merging.** This body is a fixed template: it is generated from commit history and cannot see the state of either store, so nothing below is a claim about what Play or App Store Connect currently say. Check them.\n\n- [ ] No staged Play rollout from the previous release is still in progress. Merging starts a second one, and the first stops receiving users mid-rollout.\n- [ ] No build is already `WAITING_FOR_REVIEW` or `IN_REVIEW` on App Store Connect. Submitting over a version in review replaces it and restarts the clock \u2014 this is the case where merging is most clearly wrong, and the one a fixed release note is least able to warn you about.\n- [ ] If this is the first production release, expect the store-side steps to need manual setup that the pipeline does not do for you.\n- [ ] Everything in the changelog below is meant to ship.\n\nNot ready? Land a revert on `main` and this PR updates within a minute.\n\nSee [docs/release-automation.md](../blob/main/docs/release-automation.md) for the full pipeline, secrets, and runbook."
+}

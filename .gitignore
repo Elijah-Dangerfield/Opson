@@ -1,0 +1,54 @@
+*.iml
+.kotlin
+.gradle
+**/build/
+xcuserdata
+!src/**/build/
+local.properties
+.idea
+.DS_Store
+captures
+.externalNativeBuild
+.cxx
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
+node_modules/
+
+# Prebuilt admin console bundle staged for the server Docker image (CI-built)
+apps/server/admin-web/*
+!apps/server/admin-web/.gitkeep
+
+# Server runtime secrets. Real values live in apps/server/.env locally
+# and in Fly.io secrets in production. Only .env.example is committed.
+apps/server/.env
+apps/server/.env.local
+apps/server/.env.*.local
+
+# Local TestFlight-build credentials (ASC API key etc.). Auto-loaded by
+# fastlane; only .env.example is committed.
+apps/ios/fastlane/.env
+apps/ios/fastlane/.env.local
+
+# Admin tool: local-only dev/prod admin tokens (baked into the bundle at build time)
+apps/admin/admin-tokens.local.properties
+
+# Android signing keystores. If this repo is public, a committed keystore is a
+# permanent, world-readable leak of the app signing key. Keystores live outside
+# the repo (a password manager or key vault); CI reads them from the
+# ANDROID_KEYSTORE_BASE64 secret. Never commit one.
+*.jks
+*.keystore
+*.p12
+
+# Agent scratch: machine-local settings and temporary git worktrees.
+# Worktrees here are whole second checkouts of this repo — left untracked they
+# show up in every recursive grep and status, which is how a stray nested
+# project has confused this repo's own smoke test before.
+.claude/
+
+# Scratch explainers written by the /explain skill. Not repo content.
+explain-*.md

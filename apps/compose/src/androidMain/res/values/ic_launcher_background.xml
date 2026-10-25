@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The adaptive icon's background layer, referenced as
+      @color/ic_launcher_background from mipmap-anydpi-v26/ic_launcher*.xml.
+
+      There is deliberately no drawable of this name. There used to be, and the
+      pair resolved by resource type rather than by name: the adaptive XML asked
+      for @drawable and got Android Studio's stock green grid, while this value
+      sat unread. Swapping one prefix for the other in either XML changed the
+      icon and broke nothing, so neither spelling looked wrong. If you want art
+      here rather than a flat colour, give it its own name.
+    -->
+    <color name="ic_launcher_background">#262627</color>
+</resources>

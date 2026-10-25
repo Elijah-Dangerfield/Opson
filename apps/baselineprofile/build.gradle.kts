@@ -1,0 +1,85 @@
+plugins {
+    // No versions: AGP and the Kotlin plugin already sit on the build classpath
+    // via build-logic's includeBuild, and re-declaring a version there is an
+    // error. The baseline-profile plugin is declared `apply false` at the root
+    // for the same reason.
+    id("com.android.test")
+    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.baselineProfile)
+}
+
+/**
+ * Generates the Baseline Profile shipped with the app.
+ *
+ * A profile is a list of classes and methods to compile ahead of time, so the
+ * first run of a code path is not interpreted. It is captured by driving the
+ * real installed app through a journey and recording what executed.
+ *
+ * Deliberately NOT a Kotlin Multiplatform module and deliberately not using the
+ * `opson.*` convention plugins: this is a `com.android.test` module that
+ * ships nothing, exists only at build time, and has no iOS counterpart.
+ *
+ * A generated project inherits this module but NOT the committed profile itself
+ * — the init script skips `generated/` directories. That is the behaviour you
+ * want: a profile AOT-compiles the code paths a particular app actually walks,
+ * so inheriting the template's would optimise for screens the new app does not
+ * have. Run `./gradlew :apps:compose:generateBaselineProfile` once the app has a
+ * journey worth capturing.
+ */
+android {
+    namespace = "com.opson.baselineprofile"
+    compileSdk = 36
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        // 28 is the floor for profile capture; the app itself still ships lower.
+        minSdk = 28
+        targetSdk = 36
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    targetProjectPath = ":apps:compose"
+
+    // An emulator the build starts and throws away, so generating a profile
+    // needs no physical device and no device farm. This is the difference
+    // between a profile and a frame-timing benchmark: a profile records *which*
+    // code ran, which an emulator answers exactly as well as real hardware.
+    testOptions.managedDevices.allDevices {
+        create<com.android.build.api.dsl.ManagedVirtualDevice>("pixel6Api34") {
+            device = "Pixel 6"
+            apiLevel = 34
+            systemImageSource = "aosp"
+        }
+    }
+}
+
+baselineProfile {
+    // `-Popson.benchmark.useConnectedDevice=true` runs against an emulator
+    // or phone you started yourself, so you can WATCH the journey instead of
+    // inferring it from a failure string. The managed device is headless, which
+    // is right for CI and miserable for debugging.
+    //
+    // Off by default: a profile captured on whatever happened to be plugged in
+    // is not reproducible, and that is not a mistake worth making silently.
+    val useConnected =
+        providers.gradleProperty("opson.benchmark.useConnectedDevice").orNull == "true"
+
+    if (!useConnected) managedDevices += "pixel6Api34"
+    useConnectedDevices = useConnected
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.testExt.junit)
+    implementation(libs.androidx.uiautomator)
+    implementation(libs.androidx.benchmark.macroJunit4)
+}

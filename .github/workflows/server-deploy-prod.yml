@@ -1,0 +1,150 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Server deploy to Fly.io — PRODUCTION (opson-server-prod).
+#
+# Release model: the server is continuously deployed, INDEPENDENT of the mobile
+# app release (release-please / release.yml). Coordinate breaking client⇄server
+# changes with config flags, not lockstep deploys. See
+# docs/branching-and-release-strategy.md.
+#
+# Fires on:    push to main (server-affecting paths) — auto-QUEUES a prod deploy
+#              that PAUSES on the `production` GitHub Environment until a human
+#              approves it (Actions → the run → "Review deployments"). Dev has
+#              already auto-deployed by then, so the approver verifies dev looks
+#              good, then one-click approves prod. Also `workflow_dispatch` as a
+#              break-glass / redeploy button, with a `dry_run` input that builds
+#              the image (`fly deploy --build-only`) without shipping it.
+# Auth:        FLY_API_TOKEN_PROD secret, created via
+#                `fly tokens create deploy -a opson-server-prod --expiry 8760h`.
+#
+# See apps/server/DEPLOY.md for the two-environment setup walkthrough.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Deploy server (prod)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/server/**'
+      # The hosted admin console ships inside the server image, so console
+      # changes redeploy the server too.
+      - 'apps/admin/**'
+      - 'build-logic/**'
+      - 'gradle/libs.versions.toml'
+      - 'settings.gradle.kts'
+      - 'build.gradle.kts'
+      - '.github/workflows/server-deploy-prod.yml'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "prod" to confirm you mean to deploy production.'
+        required: true
+        default: ''
+      dry_run:
+        description: 'Build the image only (fly deploy --build-only) — no deploy, no smoke test.'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deploy:
+    name: Deploy to Fly (prod)
+    runs-on: ubuntu-latest
+    # The gate: this Environment requires a reviewer's approval, so the job
+    # pauses here until a human approves. Both push and manual runs go through it.
+    environment: production
+    # Concurrency lives on the JOB, not the workflow, on purpose. A run parked
+    # at the approval gate above hasn't started this job, so it doesn't hold
+    # the slot — an unapproved deploy can sit there forever without blocking
+    # newer runs from reaching the gate. (Workflow-level concurrency is exactly
+    # how a first-ever prod run that never gets approved silently plugs the
+    # queue: every later run stays jobless-"pending" and each new push cancels
+    # the previous one.) Approved deploys still serialize here, and a prod
+    # deploy is never cancelled mid-flight.
+    concurrency:
+      group: server-deploy-prod
+      cancel-in-progress: false
+    steps:
+      - name: Guard — require explicit confirmation (manual deploys only)
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.dry_run && inputs.confirm != 'prod' }}
+        run: |
+          echo "Refusing to deploy: type 'prod' in the confirm input to proceed."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      # Same belt-and-suspenders as dev: run the suite and refuse to deploy on
+      # failure. Postgres comes up via testcontainers, so Docker is required.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run server tests
+        run: ./gradlew :apps:server:test
+
+      # Build the admin console bundle on this runner and stage it where the
+      # Dockerfile's runtime COPY picks it up. Deliberately NOT part of the
+      # in-container Gradle build — that build runs serverOnly on a tight
+      # memory budget and must not grow a Node/webpack toolchain.
+      - name: Build admin console bundle
+        run: |
+          ./gradlew :apps:admin:jsBrowserDistribution
+          cp -R apps/admin/build/dist/js/productionExecutable/. apps/server/admin-web/
+          ls apps/server/admin-web/
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        # --local-only: build the image on this runner (16GB, isolated) instead
+        # of Fly's shared remote builder — dev + prod deploying together on one
+        # builder can OOM-kill both Gradle builds. On dry_run, --build-only
+        # builds the image and stops: no machines are touched.
+        run: |
+          flyctl deploy \
+            --config apps/server/fly.prod.toml \
+            --local-only \
+            ${{ inputs.dry_run && '--build-only' || '' }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PROD }}
+
+      - name: Smoke test
+        if: ${{ !inputs.dry_run }}
+        run: |
+          sleep 5
+          curl --fail --silent --show-error \
+               --max-time 20 \
+               https://opson-server-prod.fly.dev/_health
+          echo
+
+      # Record this build's in-code config defaults (see the dev workflow).
+      # Skips without failing the deploy when ADMIN_API_TOKEN_PROD isn't set.
+      - name: Upload config manifest
+        if: ${{ !inputs.dry_run }}
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_API_TOKEN_PROD }}
+        run: |
+          if [ -z "$ADMIN_TOKEN" ]; then
+            echo "::warning::ADMIN_API_TOKEN_PROD not set — skipping manifest upload"
+            exit 0
+          fi
+          ./gradlew :apps:admin:exportConfigManifest
+          status=$(curl --silent --show-error --max-time 30 \
+            -o /tmp/manifest-response.json -w "%{http_code}" \
+            -X PUT https://opson-server-prod.fly.dev/v1/admin/config/manifest \
+            -H "X-Admin-Token: $ADMIN_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data @apps/admin/build/config-manifest.json)
+          echo "Manifest upload → HTTP $status"
+          cat /tmp/manifest-response.json; echo
+          if [ "$status" != "200" ]; then
+            # Don't fail an otherwise-healthy server deploy over the manifest (a
+            # secondary record). Most likely the GH secret and the server's
+            # ADMIN_API_TOKEN don't match — re-upload manually, or rotate both.
+            echo "::warning::Config manifest upload failed (HTTP $status) — server deploy still succeeded."
+          fi

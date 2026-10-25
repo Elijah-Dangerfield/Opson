@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.opson.maintenance</string>
+	</array>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<!--
+	  The app's name is NOT here, and putting it back here does not work.
+
+	  GENERATE_INFOPLIST_FILE is YES, and a key Xcode synthesizes silently
+	  overrides the same key in this file. A CFBundleName set here loses to the
+	  generated $(PRODUCT_NAME). This file used to carry one with a comment
+	  saying it was load-bearing; it never reached a single build, and a
+	  downstream app shipped under its old name because of it.
+	  INFOPLIST_KEY_CFBundleName does not rescue it either: Xcode accepts the
+	  setting and then ignores it, verified against the built plist.
+
+	  So PRODUCT_NAME in Configuration/Config.xcconfig is the only lever, and it
+	  is the name App Store delivery checks for uniqueness (ITMS-90129). Rename
+	  the app there. CFBundleDisplayName, the home-screen name, is separate and
+	  is INFOPLIST_KEY_CFBundleDisplayName in the target's build settings.
+	-->
+	<!--
+	  There is deliberately no NSUserNotificationsUsageDescription here, and
+	  adding one back needs a reason.
+
+	  The template used to ship it with the string "We'd like to send you
+	  notifications." in an app that posts none. It cost nothing while unused
+	  and was invisible while wrong, because iOS does not display it: the
+	  notification prompt is system-written, and the permission comes from
+	  UNUserNotificationCenter.requestAuthorization at runtime, not from a
+	  purpose string. So the first reader of that sentence is a reviewer
+	  comparing declared intent against the App Privacy answers, by which point
+	  it is a question to answer rather than a line to edit.
+
+	  If you add notifications, ask for authorization in code and say what you
+	  send in the App Store Connect listing. Reach for this key only if you have
+	  something specific to declare; a placeholder is worse than its absence.
+	-->
+	<!--
+	  The export compliance answer, stated once here instead of by hand on every
+	  upload. Without it a build finishes processing and then sits in TestFlight
+	  as "Missing Compliance", installable by nobody, until someone opens App
+	  Store Connect and answers the encryption question. Nothing warns you: the
+	  upload succeeds, the build goes VALID, and the testers just never get it.
+	  Two downstream apps were sitting in that state at once on 2026-09-25.
+
+	  False is correct for an app whose only encryption is HTTPS through the
+	  system's own TLS, which Apple exempts (Category 5 Part 2). That covers
+	  crash reporting, telemetry and ad networks. An app that implements or
+	  bundles a cipher, or that ships its own TLS, has to change this key and
+	  file the paperwork behind it. Check before assuming you inherited the
+	  right answer.
+
+	  It does not reach back. The key only affects builds made after it, so any
+	  build already sitting in "Missing Compliance" still needs answering by
+	  hand in App Store Connect, or a PATCH of usesNonExemptEncryption onto that
+	  build through the API.
+
+	  If you ever do have to answer the dialog by hand, the honest-looking
+	  option is the wrong one. "Standard encryption algorithms instead of, or in
+	  addition to, using or accessing the encryption within Apple's operating
+	  system" reads like a description of any app that makes HTTPS calls, but
+	  HTTPS through NSURLSession *is* the encryption within Apple's operating
+	  system, which that option exists to exclude. Picking it commits you to a
+	  CCATS filing and an annual self-classification report. "None of the
+	  algorithms mentioned above" is the answer that matches this key.
+	-->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!--
+	  There is deliberately no NSCameraUsageDescription here, and adding one
+	  back needs a reason.
+
+	  The template used to ship a CameraPreview across all three source sets
+	  with AVFoundation imported to serve it, which forced this key: App Store
+	  delivery scans the binary for *API references*, not call sites, so the
+	  upload was rejected with ITMS-90683 whether or not any screen showed a
+	  preview. The camera came out wholesale, so the key went with it. Declaring
+	  access to a sensor the app never touches contradicts the App Privacy
+	  answers and PrivacyInfo.xcprivacy.
+
+	  If you add camera code, add this key with a purpose string that says what
+	  you use it for; a vague one is its own rejection. If you are not using the
+	  camera and an upload is still rejected for it, something reintroduced an
+	  AVFoundation reference. `otool -L` on the built .app will tell you.
+	-->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>processing</string>
+	</array>
+	<!--
+	  Custom-scheme deep links. `opson://login-callback` is the browser
+	  OAuth return trip and `opson://auth/confirmed` the verify-email
+	  redirect — .onOpenURL in iOSApp.swift forwards both to DeepLinkBridge.
+
+	  Universal Links (https://...) require an `Associated Domains`
+	  entitlement (`applinks:example.com`) plus an
+	  apple-app-site-association file at https://example.com/.well-known/.
+	-->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.opson</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>opson</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

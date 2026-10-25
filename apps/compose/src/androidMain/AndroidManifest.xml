@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:name=".OpsonApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Opson">
+        <activity
+            android:exported="true"
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|uiMode|keyboardHidden|smallestScreenSize|density|fontScale|locale">
+            <!--
+              configChanges: handle these changes inside Compose instead of
+              letting Android recreate the Activity. Without this, the
+              FloatingWindowNavigator instance passed to rememberNavController
+              changes on recreation, which causes nav-compose to discard its
+              saved back stack and pop the user to the start destination.
+              All listed config changes are reactive in Compose (orientation,
+              font scale, dark mode, density, locale), so the Activity does
+              not need to recreate for them.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              Custom-scheme deep links. Consumers:
+              - `opson://auth/confirmed` — Supabase verify-email redirect.
+              - `opson://login-callback` — browser OAuth return trip;
+                NOT a nav route. MainActivity forwards it to the DeepLinkBridge
+                so supabase-kt can capture the session (see App.kt).
+              Per-route mapping happens via the `deepLinks` parameter on
+              `screen<Route>` in the relevant FeatureEntryPoint; Compose
+              NavHost reads `Activity.intent.data` automatically when a
+              filter here matches.
+
+              When adding App Links (https://, requires assetlinks.json on
+              the host) sit them alongside this filter as a separate
+              <intent-filter android:autoVerify="true"> block.
+            -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="opson" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+</manifest>

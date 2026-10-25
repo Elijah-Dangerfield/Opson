@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Every user-facing string in the template's own screens, so `VerifyStrings`
+  has something to point at and a generated app starts out already following
+  the rule rather than inheriting a baseline that suspends it.
+
+  Two things this file is not like Android's `res/values/strings.xml`:
+  backslash escapes are NOT unescaped by Compose Multiplatform's converter, so
+  write an apostrophe directly and a newline as a real one (the
+  `verifyComposeResourceStrings` task in the root build fails on any
+  backslash); and the format specifiers are positional `%1$s` / `%1$d`, read by
+  `stringResource(Res.string.x, arg)`.
+
+  Keys are prefixed by the screen that owns them. `common_` is for copy that
+  really is the same string in more than one place — split it the moment two
+  callers want to word it differently.
+-->
+<resources>
+
+    <!-- Splash -->
+    <string name="splash_title">Opson</string>
+
+    <!-- Shared -->
+    <string name="common_back">Back</string>
+    <string name="common_send">Send</string>
+    <string name="common_sending">Sending…</string>
+    <string name="common_message_label">Message</string>
+    <string name="common_message_placeholder">Describe what happened…</string>
+    <string name="common_error_code">Error code: %1$s</string>
+    <string name="common_report_to_developers">Report to developers</string>
+    <string name="common_report_to_developers_aside">(which is me cause I wrote myself)</string>
+
+    <!-- Home -->
+    <string name="home_title">Welcome to Opson</string>
+    <string name="home_greeting">Hello, %1$s!</string>
+    <string name="home_subtitle">This is your starting point.
+Build something amazing!</string>
+    <string name="home_send_feedback">Send Feedback</string>
+    <string name="home_report_bug">Report a Bug</string>
+
+    <!-- Bug report -->
+    <string name="bug_report_title">Report a Bug</string>
+    <string name="bug_report_captured_details">Captured details</string>
+    <string name="bug_report_error_code_label">Error code</string>
+    <string name="bug_report_id_label">Report id</string>
+    <string name="bug_report_prompt">Help us understand what went wrong. We would love to fix it!</string>
+
+    <!-- Feedback -->
+    <string name="feedback_title">Share Your Feedback</string>
+    <string name="feedback_prompt">We'd love to hear from you</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome</string>
+    <string name="onboarding_welcome_subtitle">Jump right in as a guest, or sign in to pick up where you left off.</string>
+    <string name="onboarding_continue_as_guest">Continue as guest</string>
+    <string name="onboarding_opening_browser">Opening browser…</string>
+    <string name="onboarding_waiting_for_apple">Waiting for Apple…</string>
+    <string name="onboarding_sign_in_with_email">Sign in with email</string>
+    <string name="onboarding_create_an_account">Create an account</string>
+    <string name="onboarding_pick_display_name_title">Pick a display name</string>
+    <string name="onboarding_pick_display_name_subtitle">This is how you'll show up in the app. You can change it later.</string>
+    <string name="onboarding_display_name_label">Display name</string>
+    <string name="onboarding_display_name_taken">That name is taken — try another.</string>
+    <string name="onboarding_display_name_invalid">That name won't work — try another.</string>
+    <string name="onboarding_suggest_another">Suggest another</string>
+    <string name="onboarding_finishing">Setting things up…</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_oauth_failed">Sign-in didn't go through. Please try again.</string>
+
+    <!-- Sign in / sign up / password reset / email verification -->
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_confirm_password_label">Confirm password</string>
+    <string name="auth_continue_with_google">Continue with Google</string>
+    <string name="auth_sign_in_with_apple">Sign in with Apple</string>
+    <string name="auth_or_use_email">or use your email</string>
+
+    <string name="auth_sign_in_title">Welcome back</string>
+    <string name="auth_sign_in_subtitle">Sign in to pick up where you left off.</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_signing_in">Signing in…</string>
+    <string name="auth_sign_in">Sign in</string>
+    <string name="auth_no_account_create_one">Don't have an account? Create one</string>
+
+    <string name="auth_forgot_password_title">Forgot your password?</string>
+    <string name="auth_forgot_password_body">Enter your email and we'll send you a reset link.</string>
+    <string name="auth_forgot_password_sent_title">Check your inbox</string>
+    <string name="auth_forgot_password_sent_body">We sent a password reset link to %1$s.</string>
+    <string name="auth_back_to_sign_in">Back to sign in</string>
+    <string name="auth_send_reset_link">Send reset link</string>
+
+    <string name="auth_sign_up_title">Create your account</string>
+    <string name="auth_sign_up_subtitle">Save your progress and sign in from any device.</string>
+    <string name="auth_password_min_length_helper">At least %1$d characters</string>
+    <string name="auth_passwords_do_not_match">Passwords don't match</string>
+    <string name="auth_creating_account">Creating account…</string>
+    <string name="auth_create_account">Create account</string>
+    <string name="auth_have_account_sign_in">Already have an account? Sign in</string>
+
+    <string name="auth_verify_email_title">Verify your email</string>
+    <string name="auth_verify_email_body">We sent a verification link to %1$s. Tap it, then come back here.</string>
+    <string name="auth_verify_email_body_no_address">We sent you a verification link. Tap it, then come back here.</string>
+    <string name="auth_verify_still_pending">Not confirmed yet — check your inbox and tap the link.</string>
+    <string name="auth_verify_resent">Verification email sent.</string>
+    <string name="auth_checking">Checking…</string>
+    <string name="auth_i_clicked_the_link">I clicked the link</string>
+    <string name="auth_resending">Resending…</string>
+    <string name="auth_resend_email">Resend email</string>
+
+    <string name="auth_error_invalid_credentials">That email and password don't match. Try again.</string>
+    <string name="auth_error_email_already_registered">That email is already registered. Try signing in instead.</string>
+    <string name="auth_error_weak_password">Password must be at least %1$d characters.</string>
+    <string name="auth_error_invalid_email">That doesn't look like a valid email address.</string>
+    <string name="auth_error_provider_not_enabled">That sign-in method isn't available right now.</string>
+    <string name="auth_error_network">Couldn't reach the server. Check your connection and try again.</string>
+    <string name="auth_error_rate_limited">Too many requests — give it a minute and try again.</string>
+    <string name="auth_error_timeout">That's taking longer than usual. Please try again.</string>
+    <string name="auth_error_generic">Something went wrong. Please try again.</string>
+
+    <!-- Access denied (the locked 403 envelope) -->
+    <string name="access_denied_title">Access denied</string>
+    <string name="access_denied_message">This account can't access the app right now.</string>
+    <string name="access_denied_banned_title">Account banned</string>
+    <string name="access_denied_banned_message">This account has been permanently banned for violating our terms.</string>
+    <string name="access_denied_suspended_title">Account suspended</string>
+    <string name="access_denied_suspended_message">This account has been temporarily suspended.</string>
+    <string name="access_denied_until">Access is restored on %1$s.</string>
+    <string name="access_denied_appeal">Appeal this decision</string>
+
+    <!-- Session expired -->
+    <string name="session_expired_title">Session expired</string>
+    <string name="session_expired_message">For your security you've been signed out. Sign in again to pick up where you left off.</string>
+    <string name="session_lost_title">Session lost</string>
+    <string name="session_lost_message">Your guest session can't be recovered. Start fresh to keep using the app.</string>
+    <string name="session_start_fresh_failed">Couldn't start a new session. Check your connection and try again.</string>
+    <string name="session_working">Working…</string>
+    <string name="session_start_fresh">Start fresh</string>
+    <string name="session_sign_in_again">Sign in again</string>
+
+    <!-- Shake-to-report dialog -->
+    <string name="shake_report_a_bug">Report a bug</string>
+    <string name="shake_dismiss">Dismiss</string>
+
+</resources>

@@ -1,0 +1,20 @@
+# detekt config for the project's custom ruleset.
+#
+# detekt's built-in rule sets are turned off in build.gradle.kts
+# (disableDefaultRuleSets = true) — this file only configures the custom
+# `opson` rules from :detekt-rules. Adding a rule = a new entry here plus
+# a constructor reference in OpsonRuleSetProvider.
+opson:
+  active: true
+  VerifyStrings:
+    active: true
+    # The config admin tool (:apps:admin) is a local-only, English-only dev
+    # utility with no :libraries:resources dependency — the i18n rule doesn't
+    # apply. Its `Text(...)` is Compose HTML's, not the DS composable anyway.
+    excludes: ['**/apps/admin/**']
+  AnimatedStateReadInComposition:
+    active: true
+  ClassNameInTelemetryAttribute:
+    active: true
+  ScrollInsideBottomSheet:
+    active: true

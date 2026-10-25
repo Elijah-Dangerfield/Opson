@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Logback config for the server. Two appenders:
+      - STDOUT — human-readable line format. What your host captures via stdout
+        (e.g. `flyctl logs`). Always active.
+      - OPEN_TELEMETRY — bridges every log record through the OpenTelemetry logs
+        SDK so records ship to the configured OTLP endpoint (or stdout in dev)
+        with the active span's trace_id attached. It buffers on JVM boot and is
+        wired to the live SDK by OpenTelemetryAppender.install(...) in
+        plugins/Telemetry.kt; if OTel is never installed the records age out of
+        a bounded queue without crashing.
+
+    INFO floor; Ktor's noisy io.netty is pinned to WARN.
+-->
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="OPEN_TELEMETRY"
+              class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <captureExperimentalAttributes>false</captureExperimentalAttributes>
+        <captureCodeAttributes>true</captureCodeAttributes>
+        <captureMarkerAttribute>true</captureMarkerAttribute>
+        <captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>
+        <!--
+            Forward SLF4J MDC entries as log attributes. CallLogging seeds
+            session_id / install_id / call_id per request (plugins/Observability.kt),
+            so every record is filterable in Loki by the same session_id the
+            client tags its Sentry events and request spans with. `*` = all keys.
+        -->
+        <captureMdcAttributes>*</captureMdcAttributes>
+    </appender>
+
+    <logger name="io.netty" level="WARN"/>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="OPEN_TELEMETRY"/>
+    </root>
+</configuration>

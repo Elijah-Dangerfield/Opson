@@ -1,0 +1,262 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PR gate. Compiles both platforms and runs unit tests.
+#
+# Fires on:     PRs and pushes to main (ignores docs-only changes and
+#               CHANGELOG.md, since release-please commits to CHANGELOG.md).
+# Skips:        release-please's PR and its merge commit — bumps-only
+#               changes can't break the build.
+# Side effects: uploads JUnit/HTML test reports as artifacts (14 days,
+#               always — green or red, so post-mortem on a failed test
+#               doesn't require re-running locally) and the debug APK
+#               on push-to-main only (30 days). PR runs upload reports
+#               but not APKs. Each test job publishes its own JUnit XML as an
+#               inline check via dorny/test-reporter ("Unit test results",
+#               "Server test results", "Integration test results") with
+#               pass/fail counts + click-through to failures. Ship by
+#               cutting a release via the release-please PR → release.yml.
+# Edit to change: compile commands or the test task below.
+# See: docs/release-automation.md
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Each test job's dorny/test-reporter step posts an inline check with pass/fail
+# counts and failing-test detail, so a red run doesn't require downloading the
+# artifact zip. checks:write is needed to publish those checks.
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build-and-test:
+    name: Build + test
+    # release-please's PR only changes versionName + CHANGELOG — it can't break
+    # the build. Skip the expensive macOS run on that branch AND on its merge
+    # commit into main (squash = "chore: release …", merge commit = "Merge
+    # pull request #N from …/release-please--branches--main").
+    if: >
+      github.head_ref != 'release-please--branches--main' &&
+      !startsWith(github.event.head_commit.message, 'chore: release') &&
+      !contains(github.event.head_commit.message, 'release-please--branches')
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select runner's default Xcode
+        run: |
+          if [ ! -d /Applications/Xcode.app ]; then
+            echo "::error::/Applications/Xcode.app is missing on runner"
+            find /Applications -maxdepth 1 -iname '*xcode*' || true
+            exit 1
+          fi
+          sudo xcode-select -s /Applications/Xcode.app
+          echo "Using /Applications/Xcode.app"
+          xcodebuild -version
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Cache Kotlin/Native (~/.konan)
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-xcode26-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            konan-${{ runner.os }}-xcode26-
+
+      - name: Compile Android + iOS Kotlin targets
+        run: ./gradlew :apps:compose:compileDebugKotlinAndroid :apps:compose:compileKotlinIosSimulatorArm64
+
+      - name: Assemble Android debug
+        run: ./gradlew :apps:compose:assembleDebug
+
+      - name: Lint with the custom ruleset
+        # `:check` is the ROOT project's check only — detekt plus the
+        # composeResources string-escape guard — not a full `check` across every
+        # module, which would re-run every test. Anything wired into the root
+        # `check` later is picked up here for free.
+        #
+        # Before this existed the only thing running detekt was
+        # .githooks/pre-push: per-machine, requires install_hooks.sh to have
+        # been run, and skippable with SKIP_DETEKT=1. These are not style rules
+        # — VerifyStrings guards a crash on a missing key, and
+        # AnimatedStateReadInComposition guards a per-frame recomposition that
+        # has caused production ANRs. A gate only the author runs is not a gate.
+        #
+        # :detekt-rules:test is a JVM module, so `testDebugUnitTest` never
+        # touches it. A rule that silently stops matching otherwise leaves the
+        # build green, which is worse than having no rule at all: the team
+        # believes something is guarded when it is not.
+        run: ./gradlew :check :detekt-rules:test
+
+      - name: Run unit tests
+        # The end-to-end :apps:integration tests run in their own job (cheaper
+        # Ubuntu runner with Docker for testcontainers, no Xcode/iOS needed) so
+        # a slower e2e can't blur the unit-test signal — exclude them from this
+        # sweep to avoid running twice.
+        run: ./gradlew testDebugUnitTest -x :apps:integration:testDebugUnitTest
+
+      - name: Publish unit test results
+        # Parses the JUnit XML and posts an inline "Unit test results" check
+        # with pass/fail counts + click-through to failing assertions, so a red
+        # run doesn't require downloading the artifact zip. Informational only —
+        # `Build + test` is the gating check.
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Unit test results
+          path: '**/build/test-results/testDebugUnitTest/*.xml'
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-unit-test-reports
+          path: |
+            **/build/test-results/testDebugUnitTest/*.xml
+            **/build/reports/tests/testDebugUnitTest/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload debug APK
+        # PR runs skip — keeps artifact storage focused on green main builds
+        # that someone might actually want to sideload for repro.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: apps/compose/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+  server-test:
+    name: Server tests
+    # Runs in parallel with build-and-test on a cheap Ubuntu runner so the
+    # testcontainers Postgres can spin up — macOS runners don't ship with
+    # the Docker daemon.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Run server tests
+        run: ./gradlew :apps:server:test
+
+      - name: Publish server test results
+        # Inline "Server test results" check with pass/fail counts +
+        # failing-test detail. Informational only — `Server tests` gates.
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Server test results
+          path: 'apps/server/build/test-results/test/*.xml'
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload server test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-test-reports
+          path: |
+            apps/server/build/test-results/test/*.xml
+            apps/server/build/reports/tests/test/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+  integration-test:
+    name: Integration tests
+    # End-to-end tests: the real client stack (real view models, real HTTP
+    # client) driven against a real in-process Ktor server over a
+    # testcontainers Postgres. Runs as Android unit tests on the host JVM, so
+    # it needs the Android SDK (preinstalled on the runner) and Docker (also
+    # preinstalled) but no Xcode/iOS — hence a cheap Ubuntu runner, separate
+    # from the macOS client build.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Run integration tests
+        run: ./gradlew :apps:integration:testDebugUnitTest
+
+      - name: Publish integration test results
+        # Inline "Integration test results" check with pass/fail counts +
+        # failing-test detail. Informational only — `Integration tests` gates.
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Integration test results
+          path: 'apps/integration/build/test-results/testDebugUnitTest/*.xml'
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload integration test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-reports
+          path: |
+            apps/integration/build/test-results/testDebugUnitTest/*.xml
+            apps/integration/build/reports/tests/testDebugUnitTest/**
+          if-no-files-found: ignore
+          retention-days: 14

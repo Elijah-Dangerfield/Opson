@@ -1,0 +1,890 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# The production ship. Builds both platforms and submits to the stores.
+#
+# Fires on:     Push of a tag matching `v*` (release-please creates these
+#               when you merge the release PR). Also workflow_dispatch with
+#               an explicit tag for re-runs after partial failures.
+#
+# Jobs (in order):
+#   resolve-tag           — normalizes tag + version from trigger input.
+#   android               — signs AAB, renders release notes, uploads to
+#                           Play Console production track (full rollout),
+#                           creates Sentry release + uploads mappings.
+#                           Uploads AAB/APK artifacts to the GitHub Release.
+#   ios                   — builds IPA, uploads to TestFlight external group
+#                           "main", submits to App Store review with Apple's
+#                           phased release enabled, creates Sentry release +
+#                           uploads dSYMs. Uploads IPA artifact.
+#   attach-artifacts      — attaches all platform binaries to the GH Release.
+#
+# Side effects: HUGE. Real builds go to TestFlight external testers and into
+#               the App Store review queue; Android goes to every Play
+#               production user at once. Only trigger this with intention.
+# Escape hatches: `skip_app_store` and `skip_play_store` inputs on
+#                 workflow_dispatch if one platform needs re-running.
+# Edit to change: apps/ios/fastlane/Fastfile (iOS submission details),
+#                 this file's Play upload step (track, status).
+# See: docs/release-automation.md → "Cutting a release"
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.2.3). Required if not triggered by a tag push. Builds the commit the tag points at, NOT main — to ship current main under an existing version, use the Retag release workflow instead.'
+        required: false
+        type: string
+      skip_app_store:
+        description: 'Skip App Store submission (external TestFlight only)'
+        required: false
+        default: false
+        type: boolean
+      skip_play_store:
+        description: 'Skip Play Store submission (Android AAB artifact only)'
+        required: false
+        default: false
+        type: boolean
+      skip_ios:
+        description: 'Skip the iOS job entirely — re-run Android alone after a partial failure without the ~90m iOS build'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-tag:
+    name: Resolve tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${GITHUB_REF_NAME}"
+          else
+            TAG="${{ inputs.tag }}"
+            if [ -z "$TAG" ]; then
+              echo "::error::workflow_dispatch requires 'tag' input"
+              exit 1
+            fi
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  build-number:
+    name: Resolve build number + preflight
+    needs: resolve-tag
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.n.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-tag.outputs.tag }}
+          fetch-depth: 0
+      - id: n
+        # Commit count at the release tag — the SAME monotonic value beta.yml
+        # and the iOS Fastfile already use for the in-app BuildInfo.versionCode,
+        # so min-version / force-upgrade config compares like-for-like across
+        # iOS and Android. It also keeps Android's store versionCode above the
+        # beta builds already on the Play internal track (which use this same
+        # count); github.run_number regressed below them and Play rejected the
+        # rollout. Needs fetch-depth: 0 or the count is 1 on a shallow clone.
+        run: echo "value=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Guard — a store build must not ship dark
+        # A blank Sentry DSN is a SUPPORTED value meaning "reporting is off",
+        # so shipping without one produces no warning, no failed build and no
+        # odd log line. That silence is exactly how an app reaches the App
+        # Store with no crash reporting and nothing to debug a rejection with.
+        # Fail here instead, before either platform builds.
+        #
+        # This job is a dependency of both `android` and `ios`, and both gate
+        # on it succeeding, so one check covers the whole ship.
+        #
+        # Fix: run ./scripts/setup_sentry.main.kts and commit telemetry.properties.
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          COMMITTED=""
+          if [ -f telemetry.properties ]; then
+            COMMITTED=$(grep -E '^sentry\.dsn=' telemetry.properties | cut -d= -f2- | tr -d '[:space:]')
+          fi
+          if [ -z "$SENTRY_DSN" ] && [ -z "$COMMITTED" ]; then
+            echo "::error::No Sentry DSN. A release build with crash reporting disabled ships blind. Run ./scripts/setup_sentry.main.kts and commit telemetry.properties (or set the SENTRY_DSN secret)."
+            exit 1
+          fi
+          echo "Sentry DSN present — crash reporting will be live in this build."
+
+  android:
+    name: Android AAB + Play submit
+    # Gate on iOS so a "Google shipped, Apple didn't" split can't happen by
+    # accident: Android runs only when iOS SUCCEEDED or was intentionally
+    # skipped (skip_ios). To re-run Android alone after a partial failure,
+    # dispatch with skip_ios:true (skips the ~90m iOS build); to retry iOS
+    # alone, use skip_play_store:true.
+    #
+    # It depends on the iOS **upload**, not on the App Store submission, and
+    # that boundary is the whole reason `ios-submit` is a separate job. The
+    # gate exists to stop the two stores drifting apart, which is a reason to
+    # wait for a binary and not a reason to wait for a review queue. When the
+    # two were one job, a submission that tripped over App Store Connect state
+    # skipped Android even though the iOS binary had already uploaded. Drop2048
+    # lost a release to that on 2026-10-02.
+    needs: [resolve-tag, build-number, ios]
+    if: ${{ always() && needs.resolve-tag.result == 'success' && needs.build-number.result == 'success' && (needs.ios.result == 'success' || needs.ios.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      play_track: ${{ steps.play_track.outputs.track }}
+      play_status: ${{ steps.play_track.outputs.status }}
+
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+      VERSION_CODE_OVERRIDE: ${{ needs.build-number.outputs.value }}
+      BUILD_NUMBER_OVERRIDE: ${{ needs.build-number.outputs.value }}
+      RELEASE_CHANNEL_OVERRIDE: store
+      GRAFANA_OTLP_BASE_URL: ${{ secrets.GRAFANA_OTLP_BASE_URL }}
+      GRAFANA_OTLP_INSTANCE_ID: ${{ secrets.GRAFANA_OTLP_INSTANCE_ID }}
+      GRAFANA_LOGS_WRITE_TOKEN: ${{ secrets.GRAFANA_LOGS_WRITE_TOKEN }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-tag.outputs.tag }}
+
+      - name: Read applicationId from versions.properties
+        id: app_id
+        run: |
+          APP_ID=$(grep '^applicationId=' versions.properties | cut -d= -f2 | tr -d ' ')
+          if [ -z "$APP_ID" ]; then
+            echo "::error::Could not read applicationId from versions.properties"
+            exit 1
+          fi
+          echo "Using applicationId: $APP_ID"
+          echo "value=$APP_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Android signing secrets
+        run: |
+          missing=0
+          for var in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Secret $var is not set"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Bundle release AAB
+        run: ./gradlew :apps:compose:bundleRelease -Prelease.signing=true
+
+      - name: Build release APK (for sideload verification)
+        run: ./gradlew :apps:compose:assembleRelease -Prelease.signing=true
+
+      - name: Locate AAB
+        id: aab
+        run: |
+          AAB=$(find apps/compose/build/outputs/bundle/release -name '*.aab' | head -n 1)
+          echo "path=$AAB" >> "$GITHUB_OUTPUT"
+
+      - name: Detect first-release vs subsequent (Play Console)
+        id: play_track
+        if: ${{ !inputs.skip_play_store && env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PACKAGE_NAME: ${{ steps.app_id.outputs.value }}
+        run: |
+          # Ask Play whether there's already a production release. On HTTP 404,
+          # or if the production track is empty, this is a first release — route
+          # to the `internal` track (Play won't accept an automated production
+          # upload without a manually-promoted draft first).
+          set -e
+          SA_JSON="$(mktemp)"
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > "$SA_JSON"
+          # Exported so the inline python can read it via os.environ['SA_JSON']
+          # (same KeyError trap as the iOS job's KEY_PATH).
+          export SA_JSON
+          TOKEN=$(python3 - <<'PY'
+          import base64, json, os, time, urllib.request, urllib.parse, hmac, hashlib
+          sa=json.load(open(os.environ['SA_JSON']))
+          header=base64.urlsafe_b64encode(json.dumps({"alg":"RS256","typ":"JWT"}).encode()).rstrip(b'=')
+          now=int(time.time())
+          claim={"iss":sa['client_email'],"scope":"https://www.googleapis.com/auth/androidpublisher","aud":"https://oauth2.googleapis.com/token","iat":now,"exp":now+3600}
+          payload=base64.urlsafe_b64encode(json.dumps(claim).encode()).rstrip(b'=')
+          unsigned=header+b'.'+payload
+          from cryptography.hazmat.primitives import hashes, serialization
+          from cryptography.hazmat.primitives.asymmetric import padding
+          key=serialization.load_pem_private_key(sa['private_key'].encode(), password=None)
+          sig=key.sign(unsigned, padding.PKCS1v15(), hashes.SHA256())
+          jwt=unsigned+b'.'+base64.urlsafe_b64encode(sig).rstrip(b'=')
+          data=urllib.parse.urlencode({"grant_type":"urn:ietf:params:oauth:grant-type:jwt-bearer","assertion":jwt.decode()}).encode()
+          resp=urllib.request.urlopen(urllib.request.Request("https://oauth2.googleapis.com/token", data=data))
+          print(json.loads(resp.read())['access_token'])
+          PY
+          )
+          PKG=$(printf '%s' "$PACKAGE_NAME" | python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.stdin.read().strip(),safe=""))')
+          EDIT_JSON=$(curl -fsS -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Length: 0" "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$PKG/edits" || true)
+          EDIT_ID=$(echo "$EDIT_JSON" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("id",""))' 2>/dev/null || true)
+          if [ -z "$EDIT_ID" ]; then
+            echo "Could not create edit (new app or missing permission) — treating as first release"
+            {
+              echo "track=internal"
+              echo "status=completed"
+              echo "is_first_release=true"
+            } >> "$GITHUB_OUTPUT"
+            rm -f "$SA_JSON"
+            exit 0
+          fi
+          TRACK_JSON=$(curl -fsS -H "Authorization: Bearer $TOKEN" "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$PKG/edits/$EDIT_ID/tracks/production" || echo '{}')
+          HAS_RELEASE=$(echo "$TRACK_JSON" | python3 -c 'import json,sys;d=json.load(sys.stdin);print("yes" if d.get("releases") else "no")' 2>/dev/null || echo "no")
+          curl -fsS -X DELETE -H "Authorization: Bearer $TOKEN" "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$PKG/edits/$EDIT_ID" || true
+          rm -f "$SA_JSON"
+          if [ "$HAS_RELEASE" = "yes" ]; then
+            echo "Existing production track found — using production (full rollout)"
+            {
+              echo "track=production"
+              echo "status=completed"
+              echo "is_first_release=false"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No production release found on Play — first release. Routing to internal track. Manually promote in Play Console before the next release."
+            {
+              echo "track=internal"
+              echo "status=completed"
+              echo "is_first_release=true"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Render release notes for Play
+        run: |
+          # Never the GitHub release body. That is release-please's changelog:
+          # markdown headings the stores do not render, bullet syntax, commit
+          # shas, repo links, and subjects written for whoever maintains the
+          # app rather than for a player. Moving Eyes shipped it verbatim to
+          # the App Store on 2026-09-25 and the listing showed literal "##".
+          #
+          # release-notes/<version>.txt is the override, written by a human for
+          # the releases that deserve real notes. Keyed by version so a
+          # forgotten file ships the generic line rather than the previous
+          # release's text.
+          mkdir -p apps/compose/build/play-release-notes/en-US
+          NOTES_FILE="release-notes/${{ needs.resolve-tag.outputs.version }}.txt"
+          if [ -f "$NOTES_FILE" ]; then
+            head -c 500 "$NOTES_FILE" > apps/compose/build/play-release-notes/en-US/default.txt
+          else
+            echo "Small fixes." > apps/compose/build/play-release-notes/en-US/default.txt
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve R8 mapping (upload only if minify produced one)
+        # Release builds ship with minify off (see ApplicationConventionPlugin),
+        # so no mapping.txt exists and there is nothing to de-obfuscate. Pass the
+        # path only when the file is actually there; otherwise leave it empty so
+        # the Play upload skips the mapping instead of failing with ENOENT. When
+        # R8 is enabled later this starts uploading the mapping automatically.
+        id: mapping
+        run: |
+          MF=apps/compose/build/outputs/mapping/release/mapping.txt
+          if [ -f "$MF" ]; then
+            echo "path=$MF" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No R8 mapping.txt (minify is off) — skipping mapping upload."
+            echo "path=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Submit to Play Console
+        # Track + status are resolved above: `internal` + `completed` on the
+        # very first release (Play won't accept an automated production upload
+        # without a pre-existing draft); `production` + `completed` on every
+        # release after that.
+        #
+        # No userFraction. A staged rollout only pays off if someone is
+        # watching the crash rate and willing to halt it. Moving Eyes dropped
+        # it on 2026-10-02 after a security fix sat at 10% while the other 90%
+        # stayed on the build it fixed, and every follow-up release silently
+        # restarted the rollout at 10% so the fraction never climbed. On
+        # Android a bad release is answered by shipping another one, which
+        # argues for a fast pipeline rather than a slow rollout.
+        if: ${{ !inputs.skip_play_store && env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        uses: r0adkll/upload-google-play@v1
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ steps.app_id.outputs.value }}
+          releaseFiles: ${{ steps.aab.outputs.path }}
+          track: ${{ steps.play_track.outputs.track || 'internal' }}
+          status: ${{ steps.play_track.outputs.status || 'completed' }}
+          whatsNewDirectory: apps/compose/build/play-release-notes
+          mappingFile: ${{ steps.mapping.outputs.path }}
+          # debugSymbols omitted — no native (.so) libraries are shipped.
+
+      - name: Warn on missing Play credentials
+        if: ${{ !inputs.skip_play_store && env.PLAY_SERVICE_ACCOUNT_JSON == '' }}
+        run: echo "::warning::PLAY_SERVICE_ACCOUNT_JSON secret is not set — skipping Play Store submission. See docs/release-automation.md to configure."
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+
+      - name: Create Sentry release + upload mapping/debug files
+        # Post-upload metadata only (Sentry release + mappings/dSYMs). By the
+        # time this runs the AAB is already committed to Play, so a Sentry
+        # hiccup (bad org/project, API blip) must NOT mark a shipped release as
+        # failed. continue-on-error surfaces it as a warning instead.
+        if: env.SENTRY_AUTH_TOKEN != ''
+        continue-on-error: true
+        run: |
+          set -e
+          RELEASE="opson@${{ needs.resolve-tag.outputs.version }}+${{ needs.build-number.outputs.value }}"
+          npx --yes @sentry/cli releases new "$RELEASE"
+          npx --yes @sentry/cli releases set-commits "$RELEASE" --auto || true
+          if [ -f apps/compose/build/outputs/mapping/release/mapping.txt ]; then
+            npx --yes @sentry/cli upload-proguard \
+              --android-manifest apps/compose/build/intermediates/merged_manifests/release/AndroidManifest.xml \
+              apps/compose/build/outputs/mapping/release/mapping.txt || true
+          fi
+          npx --yes @sentry/cli debug-files upload apps/compose/build/intermediates/merged_native_libs/release/out/lib || true
+          npx --yes @sentry/cli releases finalize "$RELEASE"
+
+      - name: Upload AAB artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: apps/compose/build/outputs/bundle/release/*.aab
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload APK artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: apps/compose/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
+          retention-days: 90
+
+  ios:
+    name: iOS build + TestFlight external
+    needs: [resolve-tag, build-number]
+    outputs:
+      # Handed to ios-submit, which cannot derive them. The build number is a
+      # timestamp minted during the build, so recomputing it would address a
+      # build that was never uploaded.
+      build_number: ${{ steps.ios_build.outputs.build_number }}
+      lane: ${{ steps.lane.outputs.lane }}
+      phased_release: ${{ steps.ios_first_release.outputs.phased_release }}
+    if: ${{ !inputs.skip_ios }}
+    # Standard runner (7GB) with a 10g daemon heap: the K/N release-LTO link
+    # spills into macOS swap instead of OOMing. See beta.yml's ios job for the
+    # sizing history; macos-26-xlarge (14GB) works but bills per minute even on
+    # public repos.
+    runs-on: macos-26
+    timeout-minutes: 90
+
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+      APPLE_DIST_CERT_P12_BASE64: ${{ secrets.APPLE_DIST_CERT_P12_BASE64 }}
+      APPLE_DIST_CERT_PASSWORD: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+      TESTFLIGHT_EXTERNAL_GROUP: External Testers
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
+      FASTLANE_HIDE_CHANGELOG: "1"
+      # Link the zero-overhead Wiretap noop instead of the real network
+      # inspector (dead weight + debug UI code in a store binary). Env var,
+      # not -P, so the pre-build link and the xcodebuild-driven embedAndSign
+      # agree — see libraries/networking/impl/build.gradle.kts.
+      OPSON_WIRETAP_IOS: "false"
+      # In-app BuildInfo.* only (the store CFBundleVersion is a timestamp set by
+      # fastlane). Without these the KMP framework bakes in versions.properties'
+      # buildNumber=1 / channel=dev, so prod iOS would show "(1) · dev" in
+      # Settings. Read by loadVersionMetadata during the framework build.
+      VERSION_CODE_OVERRIDE: ${{ needs.build-number.outputs.value }}
+      BUILD_NUMBER_OVERRIDE: ${{ needs.build-number.outputs.value }}
+      RELEASE_CHANNEL_OVERRIDE: store
+      GRAFANA_OTLP_BASE_URL: ${{ secrets.GRAFANA_OTLP_BASE_URL }}
+      GRAFANA_OTLP_INSTANCE_ID: ${{ secrets.GRAFANA_OTLP_INSTANCE_ID }}
+      GRAFANA_LOGS_WRITE_TOKEN: ${{ secrets.GRAFANA_LOGS_WRITE_TOKEN }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-tag.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Select runner's default Xcode
+        # Don't try to out-clever the runner image. /Applications/Xcode.app
+        # is the default stable that GitHub's macos-26 image explicitly
+        # picks (26.2 as of April 2026), and the image team guarantees its
+        # iOS platform support is installed. Prerelease Xcodes like
+        # /Applications/Xcode_26.5.0.app ship as separate bundles with
+        # platform support missing, so `xcodebuild archive` fails with
+        # "iOS 26.5 is not installed". The 'beta' suffix on prerelease
+        # Xcode path names went away mid-2026 — a naive "pick the highest
+        # Xcode_*" script now picks exactly the broken bundle. Using the
+        # runner's default sidesteps the whole pick-a-version problem.
+        run: |
+          if [ ! -d /Applications/Xcode.app ]; then
+            echo "::error::/Applications/Xcode.app is missing on runner"
+            find /Applications -maxdepth 1 -iname '*xcode*' || true
+            exit 1
+          fi
+          sudo xcode-select -s /Applications/Xcode.app
+          echo "Using /Applications/Xcode.app"
+          xcodebuild -version
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          # Release fires on tag push (not a branch), so setup-gradle would
+          # otherwise restore-only and not save the Gradle build cache. The
+          # iOS release path is the only job that exercises KMP link tasks,
+          # so if we don't let this run save, the next release starts cold.
+          cache-read-only: false
+
+      # Cache keys below are prefixed with `xcode26-` so the Xcode-16 caches
+      # from before this workflow moved to macos-26 don't get restored and
+      # poison the new SDK's toolchain state. Drop the prefix (or bump it) on
+      # the next major Xcode upgrade.
+      - name: Cache Kotlin/Native (~/.konan)
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-xcode26-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            konan-${{ runner.os }}-xcode26-
+
+      - name: Cache SwiftPM global store
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-xcode26-${{ hashFiles('apps/ios/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-xcode26-
+
+      - name: Cache Xcode DerivedData
+        # Holds KMP framework outputs, resolved SwiftPM packages, Swift .o and
+        # .swiftmodule files, and the precompiled module cache. Combined with
+        # clean: false in the Fastfile, this is what lets incremental builds
+        # actually be incremental on CI. SHA-keyed so each release captures a
+        # fresh snapshot; restore-keys lets fresh runs warm-start from any
+        # prior release.
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: deriveddata-${{ runner.os }}-xcode26-${{ github.sha }}
+          restore-keys: |
+            deriveddata-${{ runner.os }}-xcode26-
+
+      - name: Set up Ruby / Bundler
+        uses: ruby/setup-ruby@v1
+        with:
+          # fastlane resolves excon, which needs >= 3.3. A runner on 3.2 dies
+          # in bundler before fastlane starts.
+          ruby-version: "3.4"
+          bundler-cache: true
+          working-directory: apps/ios
+
+      - name: Populate TEAM_ID in xcconfig
+        working-directory: apps/ios/Configuration
+        run: |
+          tmpfile=$(mktemp)
+          awk -v team="${APPLE_TEAM_ID}" '
+            /^TEAM_ID[[:space:]]*=/ { print "TEAM_ID=" team; next }
+            { print }
+          ' Config.xcconfig > "$tmpfile"
+          mv "$tmpfile" Config.xcconfig
+
+      - name: Detect first-release vs subsequent (App Store Connect)
+        id: ios_first_release
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          # Ask App Store Connect whether any build has ever been uploaded for
+          # the bundle ID. If none, this is a first release and the App Store
+          # submission step must be skipped (Apple rejects automated submission
+          # of an app with no manually-created app record).
+          set -e
+          if [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_KEY_P8_BASE64" ]; then
+            echo "ASC credentials missing — assuming first release"
+            echo "is_first_release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BUNDLE_ID=$(grep -E '^\s*app_identifier' apps/ios/fastlane/Appfile | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ -z "$BUNDLE_ID" ]; then
+            echo "Could not read bundle id — assuming first release"
+            echo "is_first_release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          KEY_PATH=$(mktemp)
+          printf '%s' "$ASC_KEY_P8_BASE64" | base64 --decode > "$KEY_PATH"
+          # Exported (not just a shell var) so the inline python below can read
+          # it via os.environ['KEY_PATH'] — a bare assignment isn't in the
+          # subprocess environment and fails with KeyError.
+          export KEY_PATH
+          TOKEN=$(python3 - <<PY
+          import base64, json, os, time
+          from cryptography.hazmat.primitives import hashes, serialization
+          from cryptography.hazmat.primitives.asymmetric import ec, utils
+          key=serialization.load_pem_private_key(open(os.environ['KEY_PATH'],'rb').read(), password=None)
+          header={"alg":"ES256","kid":os.environ['ASC_KEY_ID'],"typ":"JWT"}
+          now=int(time.time())
+          payload={"iss":os.environ['ASC_ISSUER_ID'],"iat":now,"exp":now+1000,"aud":"appstoreconnect-v1"}
+          def b64(x): return base64.urlsafe_b64encode(x).rstrip(b'=').decode()
+          unsigned=(b64(json.dumps(header,separators=(',',':')).encode())+'.'+b64(json.dumps(payload,separators=(',',':')).encode())).encode()
+          der=key.sign(unsigned, ec.ECDSA(hashes.SHA256()))
+          r,s=utils.decode_dss_signature(der)
+          sig=r.to_bytes(32,'big')+s.to_bytes(32,'big')
+          print(unsigned.decode()+'.'+b64(sig))
+          PY
+          )
+          rm -f "$KEY_PATH"
+          # -g is load-bearing. curl treats [ and ] in a URL as glob syntax, so
+          # without it this request never leaves the machine: it aborts with
+          # "bad range in URL", the fallback below substitutes an empty result
+          # set, and an app that plainly exists reads as "no app record, first
+          # release". The job then skips the App Store submission and reports
+          # success. Moving Eyes shipped four releases that way before anyone
+          # noticed the submission was never happening.
+          if ! RESP=$(curl -g -fsS -H "Authorization: Bearer $TOKEN" "https://api.appstoreconnect.apple.com/v1/apps?filter[bundleId]=$BUNDLE_ID&limit=1"); then
+            echo "::error::Could not ask App Store Connect whether $BUNDLE_ID exists."
+            echo "A failed query is not evidence of a first release. Refusing to"
+            echo "guess, because guessing wrong silently downgrades a production"
+            echo "release to a TestFlight upload."
+            exit 1
+          fi
+          # Every failure below is fatal, and that is the whole point. Only a
+          # query that succeeded and parsed may answer "first release", because
+          # that answer routes to the beta lane and silently turns a production
+          # release into a TestFlight upload. `|| echo '{"data":[]}'` and
+          # `|| echo "0"` both read as harmless defaults and are the exact
+          # shape of the bug: they convert "could not tell" into "no app".
+          if ! APP_COUNT=$(printf '%s' "$RESP" | python3 -c 'import json,sys;print(len(json.load(sys.stdin).get("data",[])))'); then
+            echo "::error::App Store Connect returned a body this step could not parse."
+            echo "Refusing to treat an unreadable answer as 'no app record'."
+            exit 1
+          fi
+          if [ "$APP_COUNT" = "0" ]; then
+            echo "::warning::No app record found on App Store Connect for $BUNDLE_ID — first release. TestFlight internal only; skipping App Store submission."
+            echo "is_first_release=true" >> "$GITHUB_OUTPUT"
+          else
+            if ! APP_ID=$(printf '%s' "$RESP" | python3 -c 'import json,sys;print(json.load(sys.stdin)["data"][0]["id"])'); then
+              echo "::error::App Store Connect listed an app for $BUNDLE_ID with no id."
+              exit 1
+            fi
+            if ! BUILDS=$(curl -fsS -H "Authorization: Bearer $TOKEN" "https://api.appstoreconnect.apple.com/v1/apps/$APP_ID/builds?limit=1"); then
+              echo "::error::Could not ask App Store Connect whether $APP_ID has builds."
+              echo "A failed query is not evidence of a first release, for the same"
+              echo "reason the app lookup above refuses to guess. An expired token"
+              echo "or a 5xx here used to read as 'zero builds' and skip the"
+              echo "submission while the run stayed green."
+              exit 1
+            fi
+            if ! BUILD_COUNT=$(printf '%s' "$BUILDS" | python3 -c 'import json,sys;print(len(json.load(sys.stdin).get("data",[])))'); then
+              echo "::error::App Store Connect returned a builds body this step could not parse."
+              exit 1
+            fi
+            if [ "$BUILD_COUNT" = "0" ]; then
+              echo "::warning::App exists on ASC but has zero builds — first release. TestFlight internal only; skipping App Store submission."
+              echo "is_first_release=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Existing builds found on ASC — full release lane"
+              echo "is_first_release=false" >> "$GITHUB_OUTPUT"
+            fi
+
+            # Whether the App Store has ever *released* a version, which is a
+            # different question from whether TestFlight has builds and the one
+            # phased release actually depends on.
+            #
+            # A phased release throttles an update to people who already have
+            # the app. On a first version there is nobody to throttle it to, so
+            # Apple has no phased-release resource to create and the API answers
+            # with no body at all. fastlane's spaceship raises a bare
+            # "[!] No data" from `model.rb:parse`, naming neither the call nor
+            # the reason; the only clue is the preceding log line, "Creating
+            # phased release on App Store Connect".
+            #
+            # Drop2048 lost a release to this. The binary had already uploaded,
+            # so TestFlight got the build, the App Store submission never
+            # happened, and the Android job was skipped behind the failed iOS
+            # one. The release shipped nothing.
+            RELEASED=$(curl -g -fsS -H "Authorization: Bearer $TOKEN" \
+              "https://api.appstoreconnect.apple.com/v1/apps/$APP_ID/appStoreVersions?filter[appStoreState]=READY_FOR_SALE&limit=1" \
+              || echo '')
+            if [ -z "$RELEASED" ]; then
+              echo "::warning::Could not ask App Store Connect for released versions. Not requesting a phased release."
+              echo "phased_release=false" >> "$GITHUB_OUTPUT"
+            else
+              RELEASED_COUNT=$(printf '%s' "$RELEASED" | python3 -c 'import json,sys;print(len(json.load(sys.stdin).get("data",[])))' 2>/dev/null || echo "0")
+              if [ "$RELEASED_COUNT" = "0" ]; then
+                echo "No released App Store version yet — first release, so no phased rollout."
+                echo "phased_release=false" >> "$GITHUB_OUTPUT"
+              else
+                echo "A released version exists — phased rollout applies."
+                echo "phased_release=true" >> "$GITHUB_OUTPUT"
+              fi
+            fi
+          fi
+
+      - name: Resolve release lane
+        id: lane
+        run: |
+          if [ "${{ inputs.skip_app_store }}" = "true" ] || [ "${{ steps.ios_first_release.outputs.is_first_release }}" = "true" ]; then
+            echo "lane=beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "lane=release" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch release notes for TestFlight changelog
+        id: notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Same rule as the Play step above: the release body is developer
+          # changelog markdown and goes nowhere near a store listing. This
+          # feeds both the TestFlight changelog and the App Store "What's New",
+          # and neither can be edited once a version reaches review.
+          NOTES_FILE="release-notes/${{ needs.resolve-tag.outputs.version }}.txt"
+          if [ -f "$NOTES_FILE" ]; then
+            BODY=$(cat "$NOTES_FILE")
+          else
+            BODY="Small fixes."
+          fi
+          {
+            echo "notes<<EOF"
+            printf "%s\n" "$BODY" | head -c 3000
+            echo
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Must be exported BEFORE the pre-build link so both Gradle invocations
+      # (pre-build + xcodebuild's embedAndSign) bake identical metadata — a
+      # mismatch re-links the framework from scratch. The Fastfile fills this
+      # via ||= for local runs.
+      - name: Export version name for the KMP framework
+        run: |
+          V=$(grep '^MARKETING_VERSION' apps/ios/Configuration/Config.xcconfig | cut -d= -f2 | tr -d ' ')
+          echo "VERSION_NAME_OVERRIDE=$V" >> "$GITHUB_ENV"
+
+      - name: Pre-build KMP release framework
+        # Runs the same Kotlin/Native link task Xcode will invoke during the
+        # archive (via embedAndSignAppleFrameworkForXcode). Running it first
+        # from a plain Gradle invocation means the Gradle build cache + daemon
+        # are populated by the time xcodebuild delegates to `./gradlew`, so
+        # the Xcode build phase finds the framework UP-TO-DATE instead of
+        # re-linking (the longest step on a cold run). The K/N compiler runs
+        # inside the Gradle daemon, so the daemon heap IS the compiler heap —
+        # see beta.yml's identical step for the OOM history that sized this.
+        run: ./gradlew :apps:compose:linkReleaseFrameworkIosArm64 -Dorg.gradle.jvmargs=-Xmx10g
+
+      - name: Build + release iOS
+        working-directory: apps/ios
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_REF_NAME: ${{ needs.resolve-tag.outputs.tag }}
+          TESTFLIGHT_CHANGELOG: ${{ steps.notes.outputs.notes }}
+          # Empty on the beta lane, which never reaches `deliver`. The Fastfile
+          # treats anything but "true" as false, so a missing value cannot ask
+          # Apple for a phased release that does not exist.
+          PHASED_RELEASE: ${{ steps.ios_first_release.outputs.phased_release }}
+        run: bundle exec fastlane ${{ steps.lane.outputs.lane }}
+
+      - name: Publish the build number the upload used
+        id: ios_build
+        if: success()
+        working-directory: apps/ios
+        run: |
+          if [ -f build/build_number.txt ]; then
+            echo "build_number=$(cat build/build_number.txt)" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::build/build_number.txt is missing; ios-submit will have nothing to address."
+          fi
+
+      - name: Upload ipa artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: apps/ios/build/*.ipa
+          if-no-files-found: ignore
+          retention-days: 90
+
+  ios-submit:
+    name: iOS App Store submit
+    needs: [resolve-tag, ios]
+    # Only the release lane submits, and only if the upload actually happened.
+    # `needs.ios.result == 'success'` rather than `always()`: there is no build
+    # on App Store Connect to address if the upload failed.
+    if: ${{ needs.ios.result == 'success' && needs.ios.outputs.lane == 'release' }}
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-tag.outputs.tag }}
+
+      - name: Set up Ruby / Bundler
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: apps/ios
+
+      - name: Fetch release notes for the submission
+        id: notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY=$(gh release view "${{ needs.resolve-tag.outputs.tag }}" --json body -q .body 2>/dev/null || true)
+          if [ -z "$BODY" ]; then
+            BODY="v${{ needs.resolve-tag.outputs.version }}"
+          fi
+          {
+            echo "notes<<EOF"
+            printf "%s\n" "$BODY" | head -c 3000
+            echo
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Submit for App Store review
+        working-directory: apps/ios
+        env:
+          TESTFLIGHT_CHANGELOG: ${{ steps.notes.outputs.notes }}
+          PHASED_RELEASE: ${{ needs.ios.outputs.phased_release }}
+          # The build the previous job uploaded. The Fastfile refuses to guess:
+          # recomputing the timestamp would submit a build that does not exist.
+          SUBMIT_BUILD_NUMBER: ${{ needs.ios.outputs.build_number }}
+        run: bundle exec fastlane submit
+
+  attach-artifacts:
+    name: Attach artifacts to GitHub Release
+    needs: [resolve-tag, android, ios]
+    if: always() && needs.resolve-tag.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Android AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: android-aab
+          path: artifacts/android-aab
+        continue-on-error: true
+
+      - name: Download Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: artifacts/android-apk
+        continue-on-error: true
+
+      - name: Download iOS IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa
+          path: artifacts/ios-ipa
+        continue-on-error: true
+
+      - name: Attach artifacts
+        # Plain `gh release upload` rather than softprops/action-gh-release,
+        # which 403s here. That action PATCHes the release before uploading any
+        # asset, and it echoes the release's existing `target_commitish` back
+        # into the PATCH. release-please creates releases with `target_commitish`
+        # set to the release COMMIT SHA, and GITHUB_TOKEN may not set a raw SHA
+        # there. The update is rejected with "Resource not accessible by
+        # integration" even though this job has contents: write. Reproduced
+        # against a real release: the identical PATCH succeeds with
+        # `target_commitish` omitted, and succeeds with a branch name; only the
+        # SHA form is refused.
+        #
+        # The action's own error text sends you the wrong way. It prints
+        # "error fetching GitHub release for tag refs/heads/main" because the
+        # catch block interpolates `github.ref`, which on release-please's
+        # workflow_dispatch is the branch, not the tag. The lookup by tag had
+        # already SUCCEEDED ("Found release v0.2.0"); the failure is the write
+        # that follows, and nothing here is keyed off `github.ref`.
+        #
+        # Uploading assets needs only contents: write and mutates no release
+        # metadata, which is also what we want: release-please owns the body.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.resolve-tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          FILES=()
+          while IFS= read -r -d '' f; do
+            FILES+=("$f")
+          done < <(find artifacts -type f \( -name '*.aab' -o -name '*.apk' -o -name '*.ipa' \) -print0 2>/dev/null)
+
+          # A platform job that failed earlier leaves its artifact unpublished,
+          # so the download step above 404s and there is simply nothing to
+          # attach. That is already reported by the job that failed, so do not
+          # fail the release a second time over it.
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "::warning::No release artifacts were produced, nothing to attach to $TAG."
+            exit 0
+          fi
+
+          # release-please normally creates the release before dispatching this
+          # workflow. A hand-pushed tag has no release yet; --verify-tag keeps
+          # that path from inventing a tag if the name is wrong.
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::notice::No GitHub Release for $TAG yet, creating one from the existing tag."
+            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          fi
+
+          printf 'Attaching to %s:\n' "$TAG"
+          printf '  %s\n' "${FILES[@]}"
+          gh release upload "$TAG" "${FILES[@]}" --clobber

@@ -1,0 +1,428 @@
+require "base64"
+require "fileutils"
+require "securerandom"
+require "shellwords"
+require "tmpdir"
+
+default_platform(:ios)
+
+CI_KEYCHAIN_NAME = "opson_build_keychain"
+
+XCODEPROJ = "iosApp.xcodeproj"
+SCHEME = "iosApp"
+CONFIGURATION = "Release"
+OUTPUT_DIR = "build"
+# Also names the gym archive. The beta/release workflows glob
+# apps/ios/build/*.ipa, so the name is free to change.
+OUTPUT_NAME = "Opson.ipa"
+# Written by :release, read by :submit. See the :submit lane for why the build
+# number cannot simply be recomputed.
+BUILD_NUMBER_FILE = "build_number.txt"
+# Effective bundle id (the pbxproj hardcodes it; the xcconfig's $(TEAM_ID)
+# suffix never applies). Must match the ASC app record.
+APP_IDENTIFIER = "com.opson.Opson"
+
+platform :ios do
+  before_all do
+    setup_ci if ENV["CI"]
+    # Store builds link the zero-overhead Wiretap noop (the CI workflows set
+    # this too; ||= keeps local `fastlane beta` runs consistent with CI while
+    # still allowing an explicit override). Env var, not
+    # -Popson.wiretap.ios, so every Gradle invocation in the build
+    # agrees — see libraries/networking/impl/build.gradle.kts.
+    ENV["OPSON_WIRETAP_IOS"] ||= "false"
+  end
+
+  desc "Preview: upload to TestFlight internal only (used on pushes to main)"
+  lane :beta do
+    build_and_upload(distribute_external: false)
+  end
+
+  desc "Production: build, TestFlight external group. Does NOT submit — see :submit"
+  lane :release do
+    build_and_upload(distribute_external: true)
+  end
+
+  # Its own lane so the App Store submission is its own CI job.
+  #
+  # These used to be one lane and one job, so a submission that tripped over
+  # App Store Connect state looked identical to a build that would not
+  # compile. The Android job gates on the iOS job, correctly, to stop the two
+  # stores drifting apart — and it was therefore skipped by a failure that
+  # happened *after* the iOS binary had already uploaded. Drop2048 lost a whole
+  # release to that on 2026-10-02: TestFlight had the build, Play had nothing.
+  #
+  # Splitting them means Android depends on the upload rather than on the
+  # submission, so the gate still stops a broken build and no longer stops a
+  # good one.
+  #
+  # `deliver` runs with `skip_binary_upload: true`, so this needs no artifact:
+  # it addresses the build by number on ASC. That number is a timestamp minted
+  # during the build, so it is written out by [release] and passed back in here
+  # rather than recomputed, which would submit a build that does not exist.
+  desc "Production: submit an already-uploaded build for App Store review"
+  lane :submit do
+    submit_for_app_store_review
+  end
+
+  desc "Local-only: build without uploading (smoke-test the Fastfile)"
+  lane :build_only do
+    # Timestamp build number (YYYYMMDDHHMM, 12 digits, well under CFBundleVersion's
+    # 18-digit cap). Always unique and strictly increasing, which App Store Connect
+    # requires within a marketing version. Using GITHUB_RUN_NUMBER caused collisions
+    # when rerunning release.yml after an earlier upload had already reached ASC —
+    # ASC keeps the rejected-binary record and rejects the next upload with the
+    # same build number as "Redundant Binary Upload".
+    build_number = Time.now.strftime("%Y%m%d%H%M")
+    build_app(
+      project: XCODEPROJ,
+      scheme: SCHEME,
+      configuration: CONFIGURATION,
+      export_method: "app-store",
+      output_directory: OUTPUT_DIR,
+      output_name: OUTPUT_NAME,
+      skip_package_ipa: true,
+      clean: true,
+      xcargs: "CURRENT_PROJECT_VERSION=#{build_number}",
+    )
+  end
+end
+
+# The App Store submission, standalone.
+#
+# Everything it needs it can derive or is handed: the key from the environment,
+# the marketing version from the xcconfig, and the build number from the file
+# :release wrote. No IPA, because `deliver` runs with `skip_binary_upload: true`
+# and addresses the build by number on App Store Connect.
+def submit_for_app_store_review
+  api_key = asc_api_key
+  marketing_version = read_marketing_version || "1.0"
+
+  number_path = File.join(OUTPUT_DIR, BUILD_NUMBER_FILE)
+  build_number = ENV["SUBMIT_BUILD_NUMBER"].to_s.strip
+  build_number = File.read(number_path).strip if build_number.empty? && File.exist?(number_path)
+  if build_number.empty?
+    UI.user_error!(
+      "No build number to submit. :release writes #{number_path}; CI passes it " \
+      "back as SUBMIT_BUILD_NUMBER. Recomputing it here would submit a build " \
+      "that was never uploaded."
+    )
+  end
+
+  changelog = build_changelog(build_number, marketing_version)
+
+  # App Store review requires a non-empty "What's New" on every submission
+  # past the first. `skip_metadata: true` skips the entire metadata upload
+  # path, so whatsNew stays blank on ASC and `submit_for_review` errors
+  # with: "You must provide a value for the attribute 'whatsNew'". Build
+  # a minimal metadata folder containing only release_notes.txt for each
+  # ASC locale — deliver uploads what's in the folder and leaves all other
+  # fields untouched. Cleaned up in the ensure block below.
+  metadata_path = build_release_notes_metadata(changelog)
+
+  deliver(
+    api_key: api_key,
+    app_version: marketing_version,
+    build_number: build_number.to_s,
+    submit_for_review: true,
+    automatic_release: true,
+    # Only when a released version already exists.
+    #
+    # A phased release throttles an update to people who already have the
+    # app, so on a first version there is nobody to throttle it to and Apple
+    # has no resource to create. The API answers with no body and spaceship
+    # raises a bare "[!] No data" naming neither the call nor the reason.
+    # Drop2048 lost a release to this *after* the binary had uploaded.
+    #
+    # The workflow decides, because answering it needs an App Store Connect
+    # query and this file should not grow one. Anything but "true" is false,
+    # so an unset value fails closed.
+    phased_release: ENV["PHASED_RELEASE"] == "true",
+    force: true,
+    skip_binary_upload: true,
+    metadata_path: metadata_path,
+    skip_screenshots: true,
+    precheck_include_in_app_purchases: false,
+    submission_information: {
+      export_compliance_uses_encryption: false,
+      add_id_info_uses_idfa: false,
+    },
+  )
+ensure
+  if defined?(metadata_path) && metadata_path && File.directory?(metadata_path)
+    FileUtils.rm_rf(metadata_path)
+  end
+end
+
+# One definition, because :release and :submit both need it and a second copy
+# would be a second place for the key duration to drift.
+def asc_api_key
+  app_store_connect_api_key(
+    key_id: ENV.fetch("ASC_KEY_ID"),
+    issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+    key_content: ENV.fetch("ASC_KEY_P8_BASE64"),
+    is_key_content_base64: true,
+    duration: 1200,
+    in_house: false,
+  )
+end
+
+def build_and_upload(distribute_external:)
+  team_id = ENV.fetch("APPLE_TEAM_ID")
+  key_id = ENV.fetch("ASC_KEY_ID")
+  issuer_id = ENV.fetch("ASC_ISSUER_ID")
+  key_content_b64 = ENV.fetch("ASC_KEY_P8_BASE64")
+
+  # In CI, import the Apple Distribution cert from a stored .p12 so Xcode
+  # reuses it instead of creating a new cert on every run (Apple caps
+  # distribution certs at 2–3 per team; ephemeral runners blow through them).
+  # Locally this block is a no-op — developers use their own keychain.
+  keychain_created = false
+  if ENV["CI"] && ENV["APPLE_DIST_CERT_P12_BASE64"] && !ENV["APPLE_DIST_CERT_P12_BASE64"].empty?
+    keychain_password = SecureRandom.hex(16)
+    create_keychain(
+      name: CI_KEYCHAIN_NAME,
+      password: keychain_password,
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      add_to_search_list: true,
+      lock_when_sleeps: false,
+    )
+    keychain_created = true
+    p12_path = File.join(Dir.tmpdir, "apple_dist.p12")
+    File.binwrite(p12_path, Base64.decode64(ENV.fetch("APPLE_DIST_CERT_P12_BASE64")))
+    import_certificate(
+      certificate_path: p12_path,
+      certificate_password: ENV.fetch("APPLE_DIST_CERT_PASSWORD"),
+      keychain_name: CI_KEYCHAIN_NAME,
+      keychain_password: keychain_password,
+    )
+    File.delete(p12_path) if File.exist?(p12_path)
+  elsif ENV["CI"]
+    UI.important(
+      "APPLE_DIST_CERT_P12_BASE64 is not set — Xcode will create a new " \
+      "Apple Distribution cert on this run. Eventually hits the team cap. " \
+      "See docs/release-automation.md → Apple signing."
+    )
+  end
+
+  api_key = asc_api_key
+
+  # Write .p8 to a temp file so xcodebuild's -authenticationKeyPath can read it.
+  # Without this, -allowProvisioningUpdates can't talk to App Store Connect and
+  # signing fails with "No Accounts" / "No profiles found".
+  asc_key_path = File.join(Dir.tmpdir, "AuthKey_#{key_id}.p8")
+  File.binwrite(asc_key_path, Base64.decode64(key_content_b64))
+
+  # The EXPORT signs manually with the imported distribution cert plus an App
+  # Store profile fetched (or created) through the ASC API. Letting xcodebuild
+  # cloud-sign the export keeps failing ("Cloud signing permission error"):
+  # cloud signing insists on a cloud-managed distribution certificate — it
+  # won't use the imported .p12 — and creating one trips the team cert cap /
+  # key permissions. sigh only needs the App Manager API key and reuses the
+  # existing cert. The ARCHIVE stays on automatic signing, which works.
+  get_provisioning_profile(
+    api_key: api_key,
+    app_identifier: APP_IDENTIFIER,
+    output_path: Dir.tmpdir,
+    readonly: false,
+  )
+  app_store_profile_name = lane_context[SharedValues::SIGH_NAME]
+
+  # Timestamp build number (YYYYMMDDHHMM, 12 digits, well under CFBundleVersion's
+  # 18-digit cap). Always unique and strictly increasing, which App Store Connect
+  # requires within a marketing version. Using GITHUB_RUN_NUMBER caused collisions
+  # when rerunning release.yml after an earlier upload had already reached ASC —
+  # ASC keeps the rejected-binary record and rejects the next upload with the
+  # same build number as "Redundant Binary Upload".
+  build_number = Time.now.strftime("%Y%m%d%H%M")
+  marketing_version = read_marketing_version || "1.0"
+
+  # Bake correct in-app metadata (Settings "About", telemetry channel tag)
+  # into the KMP framework. On CI the workflows export these before the
+  # pre-build link and ||= preserves them; locally nothing else sets them, so
+  # without this a local beta bakes versions.properties' defaults and ships
+  # "0.1.0 (1) · dev". The in-app build number is the commit count (traceable
+  # to a commit) — the store CFBundleVersion timestamp above is deliberately a
+  # different number.
+  meta_build_number = `git rev-list --count HEAD`.strip
+  ENV["VERSION_NAME_OVERRIDE"] ||= marketing_version
+  ENV["VERSION_CODE_OVERRIDE"] ||= meta_build_number
+  ENV["BUILD_NUMBER_OVERRIDE"] ||= meta_build_number
+  ENV["RELEASE_CHANNEL_OVERRIDE"] ||= distribute_external ? "store" : "beta"
+
+  # clean: false on CI so DerivedData (KMP framework, SwiftPM builds, Swift
+  # .o/.swiftmodule) survives between runs and the cached DerivedData actually
+  # gets reused. Kotlin/Native link is the long pole — avoiding a full rebuild
+  # of ComposeApp.xcframework saves several minutes per release.
+  build_app(
+    project: XCODEPROJ,
+    scheme: SCHEME,
+    configuration: CONFIGURATION,
+    export_method: "app-store",
+    output_directory: OUTPUT_DIR,
+    output_name: OUTPUT_NAME,
+    clean: false,
+    silent: false,
+    xcargs: [
+      "-allowProvisioningUpdates",
+      "-authenticationKeyPath", asc_key_path,
+      "-authenticationKeyID", key_id,
+      "-authenticationKeyIssuerID", issuer_id,
+      "DEVELOPMENT_TEAM=#{team_id}",
+      "CODE_SIGN_STYLE=Automatic",
+      "CURRENT_PROJECT_VERSION=#{build_number}",
+    ].join(" "),
+    # NOTE: gym forwards xcargs to the -exportArchive invocation too (adding
+    # export_xcargs duplicates them and xcodebuild rejects repeated
+    # -authenticationKeyPath flags).
+    export_options: {
+      method: "app-store",
+      signingStyle: "manual",
+      signingCertificate: "Apple Distribution",
+      teamID: team_id,
+      provisioningProfiles: { APP_IDENTIFIER => app_store_profile_name },
+    },
+  )
+
+  changelog = build_changelog(build_number, marketing_version)
+  ipa_path = File.join(OUTPUT_DIR, OUTPUT_NAME)
+
+  # Handed to the submit job, which cannot derive it: `build_number` is
+  # `Time.now` and a second call would mint a different one and submit a build
+  # that was never uploaded.
+  FileUtils.mkdir_p(OUTPUT_DIR)
+  File.write(File.join(OUTPUT_DIR, BUILD_NUMBER_FILE), build_number)
+
+  # Rescue TestFlight upload/distribute so a fastlane↔ASC API hiccup at the
+  # last step — e.g. the "Cannot add internal group to a build" regression in
+  # fastlane#22051 — doesn't skip the App Store submission below. The binary
+  # reaches ASC before any group-assignment call, so if that's where it
+  # fails, the upload is already durable and `deliver` below can still submit
+  # the build for App Store review.
+  external_group = ENV["TESTFLIGHT_EXTERNAL_GROUP"] || "External Testers"
+  begin
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: ipa_path,
+      skip_waiting_for_build_processing: !distribute_external,
+      changelog: changelog,
+      distribute_external: distribute_external,
+      groups: distribute_external ? [external_group] : nil,
+      notify_external_testers: distribute_external,
+      reject_build_waiting_for_review: false,
+    )
+  rescue => e
+    UI.important("upload_to_testflight raised (non-fatal): #{e.message}")
+    UI.important("If the log above shows the binary reached ASC, distribute manually via TestFlight → External Testing → '#{external_group}'. Continuing to App Store submission.")
+  end
+
+  upload_sentry_release(marketing_version, build_number)
+ensure
+  File.delete(asc_key_path) if defined?(asc_key_path) && asc_key_path && File.exist?(asc_key_path)
+  if defined?(metadata_path) && metadata_path && File.directory?(metadata_path)
+    FileUtils.rm_rf(metadata_path)
+  end
+  if defined?(keychain_created) && keychain_created
+    begin
+      delete_keychain(name: CI_KEYCHAIN_NAME)
+    rescue => e
+      UI.important("Failed to delete keychain #{CI_KEYCHAIN_NAME}: #{e.message}")
+    end
+  end
+end
+
+# Returns a path to a temp directory containing a minimal deliver metadata
+# tree — only release_notes.txt populated — so submit_for_review has a
+# whatsNew value while leaving every other ASC field alone.
+def build_release_notes_metadata(changelog)
+  dir = File.join(Dir.tmpdir, "deliver-metadata-#{SecureRandom.hex(4)}")
+  locale_dir = File.join(dir, "en-US")
+  FileUtils.mkdir_p(locale_dir)
+  File.write(File.join(locale_dir, "release_notes.txt"), changelog.to_s)
+  dir
+end
+
+def read_marketing_version
+  xcconfig = File.expand_path("../Configuration/Config.xcconfig", __dir__)
+  return nil unless File.exist?(xcconfig)
+  File.foreach(xcconfig) do |line|
+    if (m = line.match(/^MARKETING_VERSION\s*=\s*(\S+)/))
+      return m[1]
+    end
+  end
+  nil
+end
+
+def build_changelog(build_number, marketing_version)
+  custom = ENV["TESTFLIGHT_CHANGELOG"]
+  return custom unless custom.nil? || custom.strip.empty?
+
+  ref = ENV["GITHUB_REF_NAME"] || `git rev-parse --abbrev-ref HEAD 2>/dev/null`.strip
+  subject = `git log -1 --pretty=%s 2>/dev/null`.strip
+  sha_short = (ENV["GITHUB_SHA"] || `git rev-parse HEAD 2>/dev/null`.strip)[0, 7]
+
+  [
+    "v#{marketing_version} (#{build_number})",
+    ref.empty? ? nil : "branch: #{ref}",
+    sha_short.empty? ? nil : "commit: #{sha_short}",
+    subject.empty? ? nil : subject,
+  ].compact.join("\n")
+end
+
+def upload_sentry_release(marketing_version, build_number)
+  return unless ENV["SENTRY_AUTH_TOKEN"] && !ENV["SENTRY_AUTH_TOKEN"].empty?
+  org = ENV.fetch("SENTRY_ORG")
+  project = ENV.fetch("SENTRY_PROJECT")
+  # Must match the client's Sentry release name exactly (AppTelemetry.kt,
+  # SentryRuntimeConfig.forApp: "opson@<version>+<build>") or events
+  # won't attach to the release created here.
+  release = "opson@#{marketing_version}+#{build_number}"
+
+  # OUTPUT_DIR is where gym drops its dSYM *zip*, and pointing sentry-cli at
+  # that directory uploads nothing at all. It logs "Found 0 debug information
+  # files", exits zero, and the lane goes green, so not one iOS crash can be
+  # symbolicated and nothing ever says so. The archive is where the actual
+  # .dSYM bundles are.
+  #
+  # Its path contains spaces ("Opson 2026-09-28 14.31.19.xcarchive"),
+  # hence the escaping below. An unquoted path here fails in a way that looks
+  # exactly like the bug being fixed: sentry-cli gets a truncated path, finds
+  # nothing, and says so quietly.
+  archive = lane_context[SharedValues::XCODEBUILD_ARCHIVE]
+  archive_dsyms = archive && File.join(archive, "dSYMs")
+  dsym_path =
+    if archive_dsyms && Dir.exist?(archive_dsyms)
+      archive_dsyms
+    else
+      lane_context[SharedValues::DSYM_OUTPUT_PATH] || OUTPUT_DIR
+    end
+
+  found =
+    if dsym_path.end_with?(".zip")
+      File.exist?(dsym_path)
+    else
+      !Dir.glob(File.join(dsym_path, "**", "*.dSYM")).empty?
+    end
+
+  # Fatal, and deliberately outside the rescue below. Nothing to upload is a
+  # configuration error that repeats on every build; a failed upload is a blip.
+  # Treating the two the same is precisely what hid this.
+  unless found
+    UI.user_error!(
+      "No dSYM under #{dsym_path}. Sentry would receive no symbols and every " \
+      "iOS crash would arrive unreadable. sentry-cli reports this as success, " \
+      "so it has to be checked here."
+    )
+  end
+
+  begin
+    sh("npx @sentry/cli releases new #{release} --org #{org} --project #{project}")
+    sh("npx @sentry/cli releases set-commits #{release} --auto --org #{org} --project #{project} || true")
+    sh("npx @sentry/cli debug-files upload --org #{org} --project #{project} #{Shellwords.escape(dsym_path)}")
+    sh("npx @sentry/cli releases finalize #{release} --org #{org} --project #{project}")
+  rescue => e
+    UI.important("Sentry release upload failed: #{e.message} (non-fatal)")
+  end
+end

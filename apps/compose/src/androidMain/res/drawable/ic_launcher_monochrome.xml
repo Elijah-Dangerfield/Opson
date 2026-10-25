@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The themed-icon layer. Android 13+ tints this with the user's wallpaper
+  colours and drops the background, so it must be one flat colour with real
+  transparency around it: a tinted copy of the colour foreground comes out as a
+  silhouette of its own bounding box.
+
+  Keep the artwork inside the 66dp circle centred in this 108dp canvas. The
+  launcher masks a themed icon exactly as it masks the adaptive one, so
+  anything outside that circle is cut.
+
+  This is a placeholder matching the shape of mipmap/ic_launcher_foreground.
+  Replace it along with the rest of the icon set.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M54,21a33,33 0 1,0 0,66a33,33 0 1,0 0,-66z" />
+</vector>

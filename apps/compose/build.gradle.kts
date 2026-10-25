@@ -1,0 +1,117 @@
+plugins {
+    id("opson.application")
+    id("co.touchlab.skie") version "0.10.12"
+    alias(libs.plugins.sentryAndroid)
+    alias(libs.plugins.baselineProfile)
+}
+
+android {
+    namespace = "com.opson"
+}
+
+/**
+ * Consume the committed Baseline Profile rather than regenerating it on every
+ * release build — generation starts an emulator and walks the app, which is
+ * minutes nobody wants in the release path.
+ *
+ * Regenerate deliberately when the app's shape changes:
+ * `./gradlew :apps:compose:generateBaselineProfile`
+ */
+baselineProfile {
+    automaticGenerationDuringBuild = false
+}
+
+dependencies {
+    baselineProfile(projects.apps.baselineprofile)
+}
+
+/**
+ * Sentry's Android Gradle plugin, for exactly one job: making obfuscated crash
+ * reports readable.
+ *
+ * R8 renames methods, so from the first minified release every Sentry frame
+ * arrives as `a.b.c`. Deobfuscating needs two things — the mapping file
+ * uploaded, and a ProGuard UUID stamped into the build tying that mapping to
+ * this APK. A hand-rolled `sentry-cli upload-proguard` step supplies only the
+ * first: with no UUID to match against, the upload associates with nothing and
+ * still reports success. Confirm this is working by unzipping the APK and
+ * checking `assets/sentry-debug-meta.properties` for `io.sentry.ProguardUuids`,
+ * not by trusting a green upload step.
+ */
+sentry {
+    org.set(providers.environmentVariable("SENTRY_ORG"))
+    projectName.set(providers.environmentVariable("SENTRY_PROJECT"))
+    authToken.set(providers.environmentVariable("SENTRY_AUTH_TOKEN"))
+
+    // This project already uses the Kotlin Multiplatform Sentry SDK.
+    // Auto-installation would add `sentry-android` on top of it, and two SDKs
+    // initialising in one process is not a thing to discover in production.
+    autoInstallation { enabled.set(false) }
+
+    // Always stamp the UUID: it is what makes a mapping associable at all, and
+    // it costs nothing in a build without a token.
+    includeProguardMapping.set(true)
+
+    // Only upload when a token exists, so a contributor can still build a
+    // release locally without one.
+    autoUploadProguardMapping.set(
+        providers.environmentVariable("SENTRY_AUTH_TOKEN").isPresent,
+    )
+
+    // No build-time telemetry to Sentry about our Gradle builds.
+    telemetry.set(false)
+}
+
+kotlin {
+
+    sourceSets {
+        androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.core.splashscreen)
+            implementation(libs.androidx.work.runtime)
+            implementation(compose.uiTooling)
+        }
+
+        commonMain.dependencies {
+            // Project dependencies
+            api(projects.libraries.core)
+            implementation(projects.libraries.ui)
+            implementation(projects.libraries.opson)
+            implementation(projects.libraries.opson.impl)
+            implementation(projects.libraries.flowroutines)
+            implementation(projects.libraries.navigation)
+            implementation(projects.libraries.navigation.impl)
+            implementation(projects.libraries.resources)
+            implementation(projects.libraries.review)
+            implementation(projects.libraries.review.impl)
+
+            implementation(projects.libraries.storage)
+            implementation(projects.libraries.storage.impl)
+            implementation(projects.libraries.opson.storage)
+            implementation(projects.libraries.config)
+            implementation(projects.libraries.config.impl)
+            implementation(projects.libraries.opson.storage)
+            implementation(projects.libraries.networking)
+            implementation(projects.libraries.networking.impl)
+            implementation(projects.libraries.telemetry.impl)
+            implementation(projects.libraries.identity)
+            implementation(projects.libraries.identity.impl)
+
+            implementation(projects.features.home)
+            implementation(projects.features.home.impl)
+            implementation(projects.features.onboarding)
+            implementation(projects.features.onboarding.impl)
+
+            implementation(libs.atomicfu)
+            implementation(libs.androidx.lifecycle.runtimeCompose)
+
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.material3)
+            implementation(compose.ui)
+            implementation(compose.materialIconsExtended)
+            implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
+        }
+    }
+}

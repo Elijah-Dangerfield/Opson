@@ -1,0 +1,141 @@
+package com.opson.plugin
+
+import com.android.build.api.dsl.ApplicationExtension
+import com.opson.ext.ConfigurationExtension
+import com.opson.util.SharedConstants
+import com.opson.util.configureAndroid
+import com.opson.util.configureComposeMetrics
+import com.opson.util.configureKotlinInject
+import com.opson.util.configureKotlinMultiplatform
+import com.opson.util.configureReleaseSigning
+import com.opson.util.enforceModuleBoundaries
+import com.opson.util.libs
+import com.opson.util.loadSupabaseMetadata
+import com.opson.util.verifyGitHooksInstalled
+import com.opson.util.loadVersionMetadata
+import com.opson.util.optInKotlinMarkers
+import com.opson.util.VersionMetadata
+import com.opson.util.writeCommonMetadata
+import com.opson.util.writeSupabaseMetadata
+import com.github.gmazzo.buildconfig.BuildConfigExtension
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.kotlin.dsl.configure
+
+/**
+ * Convention plugin for the main Android application module.
+ *
+ * **When to use this plugin:**
+ * - The main app module that gets installed on devices
+ * - The module that contains MainActivity and app-level configuration
+ * - The module that defines the applicationId and app metadata
+ *
+ * **What this plugin provides:**
+ * - Android application plugin configuration
+ * - Kotlin Multiplatform setup with Android and iOS targets
+ * - Compose and Compose Compiler plugins
+ * - iOS framework configuration for KMP
+ * - Application-specific build configuration (version codes, signing, etc.)
+ * - Activity Compose dependencies
+ *
+ * **Examples of modules that should use this:**
+ * - apps:compose (your main app)
+ * - apps:desktop (if you have a desktop app variant)
+ *
+ * **Don't use this plugin for:**
+ * - Feature modules (use opson.feature instead)
+ * - Library modules (use opson.compose.multiplatform or opson.kotlin.multiplatform)
+ * - Server modules (these wouldn't be Android applications)
+ */
+class ApplicationConventionPlugin : Plugin<Project> {
+    override fun apply(target: Project) {
+        with(target) {
+            val versionMetadata = loadVersionMetadata()
+            with(pluginManager) {
+                apply("org.jetbrains.kotlin.multiplatform")
+                apply("com.android.application")
+                apply("org.jetbrains.compose")
+                apply("org.jetbrains.kotlin.plugin.compose")
+                apply(libs.plugins.kotlinSerialization.get().pluginId)
+                apply(libs.plugins.buildconfig.get().pluginId)
+            }
+
+            configureComposeMetrics()
+
+            project.optInKotlinMarkers("kotlin.time.ExperimentalTime")
+            project.optInKotlinMarkers("kotlin.uuid.ExperimentalUuidApi")
+
+            configureKotlinMultiplatform {
+                binaries.framework {
+                    baseName = "ComposeApp"
+                    isStatic = true
+                    binaryOption("bundleId", "com.opson")
+                    export(project(":libraries:core"))
+                }
+            }
+            configureKotlinInject()
+
+            extensions.configure<ApplicationExtension> {
+                configureAndroid()
+
+                defaultConfig {
+                    applicationId = versionMetadata.applicationId
+                    targetSdk = SharedConstants.targetSdk
+                    versionCode = versionMetadata.versionCode
+                    versionName = versionMetadata.versionName
+                }
+
+                packaging {
+                    resources {
+                        excludes += "/META-INF/{AL2.0,LGPL2.1}"
+                    }
+                }
+
+                val releaseSigning = configureReleaseSigning(this)
+
+                buildTypes {
+                    debug {
+                        applicationIdSuffix = ".debug"
+                    }
+                    release {
+                        // R8 on. Play flags an app under 25% obfuscation as
+                        // below its threshold with a Feb 2027 deadline, and the
+                        // size and startup wins come with it. The keep rules in
+                        // apps/compose/proguard-rules.pro are what make this
+                        // survive: R8 breaks whatever is resolved by name at
+                        // runtime, and every failure mode is at runtime, so a
+                        // release build that merely compiles proves nothing.
+                        isMinifyEnabled = true
+                        isShrinkResources = true
+                        proguardFiles(
+                            getDefaultProguardFile("proguard-android-optimize.txt"),
+                            "proguard-rules.pro",
+                        )
+                        signingConfig = releaseSigning ?: signingConfigs.getByName("debug")
+                    }
+                }
+            }
+
+            if (extensions.findByName("moduleConfig") == null) {
+                extensions.create("moduleConfig", ConfigurationExtension::class.java)
+            }
+            configureAppBuildConfig(versionMetadata)
+
+            verifyGitHooksInstalled()
+            enforceModuleBoundaries()
+        }
+    }
+
+    private fun Project.configureAppBuildConfig(metadata: VersionMetadata) {
+        val supabaseMetadata = loadSupabaseMetadata()
+        extensions.configure(BuildConfigExtension::class.java) {
+            packageName("${metadata.applicationId}.appconfig")
+            className("AppBuildConfig")
+            useKotlinOutput {
+                internalVisibility = false
+            }
+            writeCommonMetadata(metadata)
+            writeSupabaseMetadata(supabaseMetadata)
+        }
+    }
+}

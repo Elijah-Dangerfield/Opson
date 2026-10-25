@@ -1,0 +1,24 @@
+TEAM_ID=
+
+PRODUCT_NAME=Opson
+PRODUCT_BUNDLE_IDENTIFIER=com.opson.Opson$(TEAM_ID)
+
+// Set per build by the pipeline (CURRENT_PROJECT_VERSION=<commit count>), not
+// by release-please. Kept here so a local Xcode build has something valid.
+CURRENT_PROJECT_VERSION=1
+
+// release-please rewrites the line between these two markers on every release.
+//
+// The markers are NOT optional: a file listed in `extra-files` without them is
+// skipped **silently** — no warning, no error, exit 0. That is how a release
+// downstream shipped the new code labelled with the old version to App Store
+// Connect while the tag and CHANGELOG said otherwise.
+//
+// Comment syntax matters to the *file*, not to release-please: its generic
+// updater matches the marker text anywhere on a line, but an xcconfig comments
+// with `//`, not `#`. Three readers parse the value line below with a
+// `^MARKETING_VERSION`-anchored regex (release.yml, beta.yml, the Fastfile's
+// read_marketing_version), so the marker must stay on its own line above it.
+// x-release-please-start-version
+MARKETING_VERSION=0.1.0
+// x-release-please-end

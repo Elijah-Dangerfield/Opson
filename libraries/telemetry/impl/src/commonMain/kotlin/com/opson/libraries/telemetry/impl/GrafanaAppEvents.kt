@@ -1,0 +1,171 @@
+package com.opson.libraries.telemetry.impl
+
+import com.opson.buildinfo.OpsonBuildConfig
+import com.opson.libraries.opson.AppEvent
+import com.opson.libraries.opson.AppEventListener
+import com.opson.libraries.core.AppState
+import com.opson.libraries.core.AutoInit
+import com.opson.libraries.core.logging.KLog
+import com.opson.libraries.core.logging.logEvent
+import com.opson.libraries.networking.InstallIdProvider
+import com.opson.libraries.networking.SessionIdProvider
+import com.opson.libraries.networking.platformHttpEngineFactory
+import com.opson.libraries.storage.FileManager
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.compression.ContentEncoding
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
+import kotlin.io.encoding.Base64
+import me.tatarka.inject.annotations.Inject
+import software.amazon.lastmile.kotlin.inject.anvil.AppScope
+import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
+import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+
+/**
+ * Boot-time wiring for client app events: constructs [GrafanaLogTree] and
+ * plants it at DI init, so the pipe (extension → KLog → tree → batch → disk
+ * buffer → exporter) is live before the user can produce events.
+ * `app.launched` itself is emitted by [AppLaunchedEmitter] on the cold-boot
+ * foreground — see its doc for why emitting from this init orphaned the
+ * event's session_id.
+ *
+ * [AutoInit] because planting must happen before the user can produce
+ * events; a lazily-constructed tree would silently drop everything until
+ * something injected it.
+ */
+@SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = AutoInit::class, multibinding = true)
+@Inject
+class GrafanaAppEvents(
+    sessionIdProvider: SessionIdProvider,
+    installIdProvider: InstallIdProvider,
+    appEventsEnabled: AppEventsEnabled,
+    appEventsSampleRate: AppEventsSampleRate,
+    klogForwardingEnabled: KlogForwardingEnabled,
+    appState: AppState,
+    fileManager: FileManager,
+    backgroundFlusher: TelemetryBackgroundFlusher,
+    installFactsProvider: InstallFactsProvider,
+) : AutoInit {
+
+    private val logger = KLog.withTag("GrafanaAppEvents")
+
+    init {
+        if (GrafanaCloud.isConfigured) {
+            val tree = GrafanaLogTree(
+                exportEnabled = { appEventsEnabled() },
+                sampleRate = { appEventsSampleRate() },
+                klogForwardingEnabled = { klogForwardingEnabled() },
+                currentSessionId = { sessionIdProvider.current() },
+                currentInstallId = { installIdProvider.current() },
+                isOffline = { appState.isOffline.value },
+                installFacts = installFactsProvider::facts,
+                processorFactory = {
+                    durableLogRecordProcessor(
+                        exporter = OtlpJsonLogRecordExporter(GrafanaCloud.OTLP_BASE_URL, grafanaHttpClient()),
+                        bufferDirectory = fileManager.createFile(BUFFER_DIRECTORY),
+                    )
+                },
+            )
+            KLog.plant(tree)
+            backgroundFlusher.tree = tree
+        } else {
+            logger.i { "Grafana app events disabled: no OTLP credentials in this build" }
+        }
+    }
+
+    private companion object {
+        const val BUFFER_DIRECTORY = "telemetry"
+    }
+}
+
+/**
+ * Emits `app.launched` once per cold start — on the boot foreground, NOT at
+ * DI init: init runs before the first foreground, which is when
+ * [AppEvent.ColdBoot] makes the session tracker roll session #1, so an
+ * init-time emission carries the tracker's pre-boot sentinel uuid and every
+ * cold start's launch event lands orphaned from the rest of its session.
+ * [onForeground] with `isColdBoot` is guaranteed to run after every ColdBoot
+ * listener (the dispatcher notifies all listeners per event, in event order),
+ * so the session_id is settled by then.
+ *
+ * A separate class from [GrafanaAppEvents] on purpose: joining the listener
+ * set from a class that (transitively, via the config values → AppConfigMap →
+ * config repository → AppEvents) depends on the dispatcher is a DI cycle.
+ * This emitter depends only on [PreviousExitProvider], which keeps it out of
+ * the loop.
+ */
+@SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = AppEventListener::class, multibinding = true)
+@Inject
+class AppLaunchedEmitter(
+    private val previousExitProvider: PreviousExitProvider,
+) : AppEventListener {
+
+    override fun onForeground(event: AppEvent.OnForeground) {
+        if (event.isColdBoot) {
+            logAppLaunched(previousExitProvider.previousExit())
+        }
+    }
+}
+
+/**
+ * `app.launched` — once per cold start, first event through the freshly
+ * planted tree (warms the SDK and proves the whole pipe). `previous_exit`
+ * says how the last run ended; per-platform caveats live on
+ * [PreviousExitProvider].
+ */
+internal fun logAppLaunched(previousExit: PreviousExit) {
+    KLog.logEvent(
+        "app.launched",
+        "cold_start" to true,
+        "previous_exit" to previousExit.value,
+    )
+}
+
+/**
+ * Grafana Cloud OTLP gateway credentials, injected at build time into
+ * `OpsonBuildConfig` (see `loadTelemetryMetadata` in build-logic): CI reads
+ * GitHub secrets, local builds read `local.properties` `grafana.*` keys. The
+ * repo is public, so the token never lives in source — even though it is
+ * write-only and ships in the binary regardless (any client credential is
+ * extractable; this one can only append logs). Deliberately not routed
+ * through our backend — these events must survive backend outages.
+ *
+ * Unconfigured builds leave [isConfigured] false and the tree is never
+ * planted — events still reach logcat + Sentry through the other trees.
+ */
+internal object GrafanaCloud {
+    val OTLP_BASE_URL: String = OpsonBuildConfig.GRAFANA_OTLP_BASE_URL
+    val INSTANCE_ID: String = OpsonBuildConfig.GRAFANA_OTLP_INSTANCE_ID
+    val LOGS_WRITE_TOKEN: String = OpsonBuildConfig.GRAFANA_LOGS_WRITE_TOKEN
+
+    val isConfigured: Boolean
+        get() = OTLP_BASE_URL.isNotBlank() && INSTANCE_ID.isNotBlank() && LOGS_WRITE_TOKEN.isNotBlank()
+
+    val basicAuthHeader: String
+        get() = "Basic " + Base64.encode("$INSTANCE_ID:$LOGS_WRITE_TOKEN".encodeToByteArray())
+}
+
+/**
+ * Matches the plugin set of the exporter's internal default client
+ * (HttpTimeout + ContentNegotiation + gzip ContentEncoding), which the
+ * library requires when a custom client is supplied — plus the Grafana
+ * basic-auth header, which is the whole reason we supply one:
+ * `otlpHttpLogRecordExporter` has no headers parameter.
+ */
+private fun grafanaHttpClient(): HttpClient = HttpClient(platformHttpEngineFactory) {
+    install(HttpTimeout) {
+        requestTimeoutMillis = 30_000
+    }
+    install(ContentNegotiation)
+    install(ContentEncoding) {
+        gzip()
+    }
+    defaultRequest {
+        header(HttpHeaders.Authorization, GrafanaCloud.basicAuthHeader)
+    }
+}

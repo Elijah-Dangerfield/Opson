@@ -1,0 +1,257 @@
+[versions]
+agp = "8.13.1"
+androidx-activity = "1.12.0"
+androidx-appcompat = "1.7.1"
+androidx-core = "1.17.0"
+androidx-core-splashscreen = "1.0.1"
+androidx-metricsPerformance = "1.0.0"
+androidx-benchmark = "1.4.1"
+androidx-uiautomator = "2.4.0"
+androidx-security-crypto = "1.1.0"
+androidx-espresso = "3.7.0"
+androidx-lifecycle = "2.9.6"
+android-lifecycle-etx = "2.2.0"
+androidx-testExt = "1.3.0"
+androidx-work = "2.9.1"
+atomicfu = "0.29.0"
+composeMultiplatform = "1.9.3"
+compottie="2.0.2"
+configurationAnnotations = "0.10.12"
+detekt = "2.0.0-alpha.6"
+buildconfig = "5.5.0"
+junit = "4.13.2"
+kermit = "2.0.8"
+kotlin = "2.3.21"
+kotlinxSerializationJson = "1.9.0"
+ksp = "2.3.0"
+kotlinInject = "0.8.0"
+kotlinx-serialization = "1.9.0"
+kotlinxCoroutinesCore = "1.10.2"
+kotlinxDatetime = "0.7.1"
+ktor = "3.3.3"
+wiretap = "1.0.0-RC15"
+logback = "1.5.6"
+exposed = "0.56.0"
+postgres = "42.7.4"
+hikari = "5.1.0"
+flyway = "10.20.0"
+testcontainers = "1.20.4"
+auth0Jwt = "4.4.0"
+auth0JwksRsa = "0.22.1"
+sentryJvm = "7.18.1"
+opentelemetry = "1.45.0"
+opentelemetryInstrumentation = "2.11.0-alpha"
+# KMP client-side OTel (io.opentelemetry.kotlin) — experimental, pinned exactly.
+# Distinct from the server's JVM `opentelemetry` entries above.
+opentelemetryKotlin = "0.5.0"
+okio = "3.9.1"
+jetbrainsNavigationCompose = "2.9.1"
+kotlinInjectAnvil = "0.1.6"
+composeIcons = "1.1.1"
+room = "2.8.4"
+sqlite = "2.6.2"
+datastore = "1.2.0"
+roomGradlePlugin = "2.8.4"
+sentryKmp = "0.22.0"
+# Sentry's ANDROID Gradle plugin, distinct from the KMP SDK above. Used only to
+# stamp a ProGuard UUID into the APK and upload the R8 mapping, with its
+# auto-installation turned OFF so it cannot add a second Sentry SDK alongside
+# the KMP one.
+sentryAndroidGradlePlugin = "6.21.0"
+supabaseKt = "3.6.0"
+turbine = "1.2.1"
+lifecycleProcess = "2.10.0"
+# The composition test tier. `androidxComposeUiTest` must track the androidx
+# Compose version that Compose Multiplatform resolves to on the Android target
+# (`./gradlew :libraries:navigation:dependencies --configuration
+# debugCompileClasspath | grep 'androidx.compose.ui:ui:'`). The test harness and
+# the runtime it drives have to be the same generation.
+androidxComposeUiTest = "1.9.4"
+robolectric = "4.16.1"
+# The Android framework jar Robolectric runs against, which is also the SDK its
+# sandbox emulates: 35, one behind this repo's compileSdk. Named here rather than
+# left to Robolectric's own Maven fetch so it lands in Gradle's dependency cache,
+# which CI already caches; otherwise every CI run downloads ~200MB at test time
+# and a Maven Central hiccup turns into a red build.
+#
+# The build number is dictated by the `robolectric` version above, not chosen.
+# Bump one and the tests fail naming the exact artifact the other one wants, and
+# `@Config(sdk = ...)` in the tests moves with it.
+robolectricAndroidAll = "15-robolectric-13954326-i7"
+
+[libraries]
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-security-crypto" }
+anvil-compiler = { module = "software.amazon.lastmile.kotlin.inject.anvil:compiler", version.ref = "kotlinInjectAnvil" }
+atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
+configuration-annotations = { module = "co.touchlab.skie:configuration-annotations", version.ref = "configurationAnnotations" }
+detekt-api = { module = "dev.detekt:detekt-api", version.ref = "detekt" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+kotlin-inject-compiler-ksp = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
+kotlin-inject-runtime-kmp = { module = "me.tatarka.inject:kotlin-inject-runtime-kmp", version.ref = "kotlinInject" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+junit = { module = "junit:junit", version.ref = "junit" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidx-core-splashscreen" }
+# AndroidX JankStats — per-frame timing with a "missed its deadline" flag,
+# aggregated per screen visit by :libraries:telemetry:impl. Android only; iOS
+# has no equivalent API and reports no jank on purpose.
+androidx-metrics-performance = { module = "androidx.metrics:metrics-performance", version.ref = "androidx-metricsPerformance" }
+androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-testExt" }
+# Baseline Profile generation + the minified-release smoke test (:apps:baselineprofile).
+androidx-benchmark-macroJunit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
+androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidx-uiautomator" }
+androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
+# The composition test tier: a real composition driven on the host JVM under
+# Robolectric, the same host-JVM-Android path :apps:integration already uses.
+# `ui-test-manifest` supplies the `ComponentActivity` the rule inflates.
+# `android-all-instrumented` is Robolectric's framework jar, declared so Gradle
+# resolves it instead of Robolectric fetching it at test time; see
+# libraries/navigation/build.gradle.kts.
+androidx-compose-uiTest-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidxComposeUiTest" }
+androidx-compose-uiTest-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidxComposeUiTest" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+robolectric-androidAll = { module = "org.robolectric:android-all-instrumented", version.ref = "robolectricAndroidAll" }
+compose-backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "composeMultiplatform" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-viewmodel-savedstate = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
+androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "androidx-work" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+ktor-serverCore = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
+ktor-serverNetty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
+ktor-serverTestHost = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
+ktor-serverContentNegotiation = { module = "io.ktor:ktor-server-content-negotiation-jvm", version.ref = "ktor" }
+ktor-serverCors = { module = "io.ktor:ktor-server-cors-jvm", version.ref = "ktor" }
+ktor-serverStatusPages = { module = "io.ktor:ktor-server-status-pages-jvm", version.ref = "ktor" }
+ktor-serverCallLogging = { module = "io.ktor:ktor-server-call-logging-jvm", version.ref = "ktor" }
+ktor-serverCallId = { module = "io.ktor:ktor-server-call-id-jvm", version.ref = "ktor" }
+ktor-serverAuth = { module = "io.ktor:ktor-server-auth-jvm", version.ref = "ktor" }
+ktor-serverAuthJwt = { module = "io.ktor:ktor-server-auth-jwt-jvm", version.ref = "ktor" }
+ktor-serverRateLimit = { module = "io.ktor:ktor-server-rate-limit", version.ref = "ktor" }
+ktor-serverWebsockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+# Observability (server): Sentry error reporting + OpenTelemetry traces/logs/metrics.
+# All env-gated — no-op (Sentry) or stdout (OTel) until configured.
+sentry-jvm = { module = "io.sentry:sentry", version.ref = "sentryJvm" }
+opentelemetry-api = { module = "io.opentelemetry:opentelemetry-api", version.ref = "opentelemetry" }
+opentelemetry-sdk = { module = "io.opentelemetry:opentelemetry-sdk", version.ref = "opentelemetry" }
+opentelemetry-sdk-logs = { module = "io.opentelemetry:opentelemetry-sdk-logs", version.ref = "opentelemetry" }
+opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp", version.ref = "opentelemetry" }
+opentelemetry-exporter-logging = { module = "io.opentelemetry:opentelemetry-exporter-logging", version.ref = "opentelemetry" }
+opentelemetry-sdk-testing = { module = "io.opentelemetry:opentelemetry-sdk-testing", version.ref = "opentelemetry" }
+otel-kotlin-api = { module = "io.opentelemetry.kotlin:api", version.ref = "opentelemetryKotlin" }
+otel-kotlin-sdk-api = { module = "io.opentelemetry.kotlin:sdk-api", version.ref = "opentelemetryKotlin" }
+otel-kotlin-implementation = { module = "io.opentelemetry.kotlin:implementation", version.ref = "opentelemetryKotlin" }
+otel-kotlin-exporters-core = { module = "io.opentelemetry.kotlin:exporters-core", version.ref = "opentelemetryKotlin" }
+otel-kotlin-exporters-otlp = { module = "io.opentelemetry.kotlin:exporters-otlp", version.ref = "opentelemetryKotlin" }
+otel-kotlin-exporters-persistence = { module = "io.opentelemetry.kotlin:exporters-persistence", version.ref = "opentelemetryKotlin" }
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
+opentelemetry-extension-kotlin = { module = "io.opentelemetry:opentelemetry-extension-kotlin", version.ref = "opentelemetry" }
+opentelemetry-logback-appender = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0", version.ref = "opentelemetryInstrumentation" }
+opentelemetry-ktor = { module = "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0", version.ref = "opentelemetryInstrumentation" }
+
+# Supabase JWT verification. java-jwt is what ktor-server-auth-jwt sits on; we
+# use it directly to build the verifier. jwks-rsa fetches Supabase's public
+# signing keys from the project JWKS endpoint (cached + rate-limited).
+auth0-jwt = { module = "com.auth0:java-jwt", version.ref = "auth0Jwt" }
+auth0-jwksRsa = { module = "com.auth0:jwks-rsa", version.ref = "auth0JwksRsa" }
+
+# Server persistence: Postgres + HikariCP + Exposed DSL + Flyway migrations.
+postgres-jdbc = { module = "org.postgresql:postgresql", version.ref = "postgres" }
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+exposed-javaTime = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposed" }
+flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+flyway-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
+testcontainers-postgres = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesCore" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+
+coil = { module = "io.coil-kt.coil3:coil-compose", version = "3.3.0" }
+coil-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version = "3.3.0" }
+
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
+ktor-client-contentNegotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+
+# WiretapKMP — debug-only network inspector (HTTP/WS/SSE) with a built-in UI.
+# `wiretap-ktor` is the real plugin + launcher; `wiretap-ktor-noop` is the
+# zero-overhead release stand-in with the identical API surface (so common
+# code compiles against either). Swapped per-build: Android via
+# debug/releaseImplementation, iOS via the `opson.wiretap.ios` property.
+# See libraries/networking/impl/build.gradle.kts.
+wiretap-ktor = { module = "dev.skymansandy:wiretap-ktor", version.ref = "wiretap" }
+wiretap-ktor-noop = { module = "dev.skymansandy:wiretap-ktor-noop", version.ref = "wiretap" }
+ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = "ktor" }
+ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+
+# Supabase auth (client). The server does NOT use this — it verifies JWTs via
+# JWKS (see :apps:server). Only the GoTrue/auth module is needed client-side.
+supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt", version.ref = "supabaseKt" }
+
+google-play-review = { module = "com.google.android.play:review", version = "2.0.2" }
+google-play-review-ktx = { module = "com.google.android.play:review-ktx", version = "2.0.2" }
+
+
+androidx-datastore-core = { module = "androidx.datastore:datastore", version.ref = "datastore" }
+androidx-datastore-core-okio = { module = "androidx.datastore:datastore-core-okio", version.ref = "datastore" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastore" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-room-gradlePlugin = { group = "androidx.room", name = "room-gradle-plugin", version.ref = "roomGradlePlugin" }
+androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
+buildconfig-gradlePlugin = { module = "com.github.gmazzo.buildconfig:plugin", version.ref = "buildconfig" }
+
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "composeMultiplatform" }
+composeCompiler-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
+jetbrains-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "jetbrainsNavigationCompose" }
+anvil-runtime = { module = "software.amazon.lastmile.kotlin.inject.anvil:runtime", version.ref = "kotlinInjectAnvil" }
+anvil-runtime-optional = { module = "software.amazon.lastmile.kotlin.inject.anvil:runtime-optional", version.ref = "kotlinInjectAnvil" }
+
+compottie = { module = "io.github.alexzhirkevich:compottie", version.ref = "compottie" }
+compottie-lite = { module = "io.github.alexzhirkevich:compottie-lite", version.ref = "compottie" }
+compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
+compottie-network = { module = "io.github.alexzhirkevich:compottie-network", version.ref = "compottie" }
+compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
+
+# Cant be defined under plugings because the build logic module needs to depend on them to propagate the version to the convention plugins (which cant specify a version for whatever reason)
+ksp-gradlePlugin = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
+kotlinx-serialization-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
+
+[plugins]
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+androidxRoom = { id = "androidx.room", version.ref = "room" }
+sentryKmp = { id = "io.sentry.kotlin.multiplatform.gradle", version.ref = "sentryKmp" }
+sentryAndroid = { id = "io.sentry.android.gradle", version.ref = "sentryAndroidGradlePlugin" }
+baselineProfile = { id = "androidx.baselineprofile", version.ref = "androidx-benchmark" }
+buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
+kotlinCocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
+
