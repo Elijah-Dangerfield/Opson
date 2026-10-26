@@ -254,4 +254,48 @@ class ModesTest : CoroutineTest() {
 
         assertEquals(listOf<ModesEvent>(ModesEvent.Close), events)
     }
+
+    // --- weight: Numbers, Trend only, Hidden (moved here from the Weight screen) ---
+
+    @Test
+    fun weightsTrendOnlyIsTheSoftColumn_andAChangeIsMarked() {
+        val fuel = ModesStateBuilder.build(NumbersSettings(PresetId.Fuel), TimeZone.UTC)
+        assertEquals(MatrixRow(Metric.Weight, Visibility.Soften), fuel.matrix.single { it.metric == Metric.Weight })
+
+        val hidden = NumbersSettings(PresetId.Fuel, overrides = mapOf(Metric.Weight to Visibility.Hide))
+        val state = ModesStateBuilder.build(hidden, TimeZone.UTC)
+        assertEquals(MatrixRow(Metric.Weight, Visibility.Hide, changedFrom = Visibility.Soften), state.matrix.single { it.metric == Metric.Weight })
+        assertEquals(1, state.presets.single { it.selected }.changes)
+    }
+
+    @Test
+    fun weightBackToNumbersWaitsForThePause_hidingItDoesNot() {
+        val trendOnlyPaused = NumbersSettings(PresetId.Fuel, pauseBeforeMore = true)
+
+        assertTrue(NumbersChange.Override(Metric.Weight, Visibility.Show).needsPause(trendOnlyPaused))
+        assertEquals(false, NumbersChange.Override(Metric.Weight, Visibility.Hide).needsPause(trendOnlyPaused))
+        assertEquals(false, NumbersChange.Override(Metric.Weight, Visibility.Show).needsPause(trendOnlyPaused.copy(pauseBeforeMore = false)))
+    }
+
+    @Test
+    fun hidingWeightAppliesAndSaysFewer() = runUnitTest {
+        val changer = FakeNumbersChanger { NumbersOutcome.Applied(fewer = true) }
+        val vm = viewModel(NumbersSettings(PresetId.Fuel, pauseBeforeMore = true), changer)
+        val events = eventsOf(vm)
+
+        vm.takeAction(ModesAction.LevelTapped(Metric.Weight, Visibility.Hide))
+
+        assertEquals(listOf<NumbersChange>(NumbersChange.Override(Metric.Weight, Visibility.Hide)), changer.requested)
+        assertEquals(listOf<ModesEvent>(ModesEvent.ShowToast(Toast(Res.string.settings_saved_fewer))), events)
+    }
+
+    @Test
+    fun weightAlreadyAtTrendOnlyIsANoOp() = runUnitTest {
+        val changer = FakeNumbersChanger()
+        val vm = viewModel(NumbersSettings(PresetId.Fuel), changer)
+
+        vm.takeAction(ModesAction.LevelTapped(Metric.Weight, Visibility.Soften))
+
+        assertTrue(changer.requested.isEmpty())
+    }
 }

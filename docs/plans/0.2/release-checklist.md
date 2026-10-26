@@ -103,6 +103,23 @@ them as soon as `:libraries:speech:impl` links, like the camera).
 - [ ] Try it on an iPhone and an Android phone: a spoken meal, a refused
       mic, airplane mode, and a phone with no on-device model.
 
+## Find support (`release.findSupport`)
+
+Design sync 2's helpline page, Support's crisis row and the pause sheet's
+"Talk to someone". The list ships in the app (`SupportDirectory`). Nothing
+is held back: the only platform change is `LSApplicationQueriesSchemes`
+(`tel`, `sms`) in the iOS Info.plist, which is not a capability.
+
+- [ ] Someone checks every number, text keyword and source URL in
+      `SupportDirectory` (US, UK, Canada, Australia, Ireland, New Zealand)
+      and removes the `TODO(launch): verify` notes. Then again each quarter.
+- [ ] Point the US "Find a treatment provider" line at the real search page.
+- [ ] Onboarding's statement and the big-day card link to `FindSupportRoute`
+      only with the flag on.
+- [ ] Try Call and Text on an iPhone and an Android phone, and the
+      "couldn't open" line on an iPad or a phone with no SIM.
+- [ ] Flip `release.findSupport` on.
+
 ## Widgets (`release.widgets`)
 
 The shared Kotlin, the Glance UI, the app's link handling and the Swift

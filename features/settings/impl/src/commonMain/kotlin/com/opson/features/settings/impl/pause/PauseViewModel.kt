@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.pause
 
 import androidx.lifecycle.viewModelScope
+import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.impl.Toast
 import com.opson.libraries.diary.NumbersChanger
 import com.opson.libraries.flowroutines.SEAViewModel
@@ -22,8 +23,9 @@ import kotlin.time.Duration.Companion.seconds
 class PauseViewModel(
     @Assisted private val change: NumbersChange,
     private val numbersChanger: NumbersChanger,
+    findSupport: FindSupportEnabled,
 ) : SEAViewModel<PauseState, PauseEvent, PauseAction>(
-    initialStateArg = PauseState(subject = PauseSubject.of(change)),
+    initialStateArg = PauseState(subject = PauseSubject.of(change), talkToSomeone = findSupport()),
 ) {
 
     init {
@@ -53,6 +55,8 @@ class PauseViewModel(
                 if (keep(action)) sendEvent(PauseEvent.Dismiss)
             }
             PauseAction.SheetDismissed -> keep(action)
+            // Opens over the sheet and changes nothing: the wait and the choice are still here after.
+            PauseAction.TalkToSomeoneTapped -> if (state.talkToSomeone) sendEvent(PauseEvent.OpenFindSupport)
         }
     }
 
@@ -67,6 +71,7 @@ class PauseViewModel(
 
 sealed interface PauseEvent {
     data class ShowToast(val toast: Toast) : PauseEvent
+    data object OpenFindSupport : PauseEvent
 
     /** Animate the sheet away; its dismiss callback pops the route. */
     data object Dismiss : PauseEvent
@@ -77,6 +82,7 @@ sealed interface PauseAction {
     data class ReasonPicked(val reason: PauseReason) : PauseAction
     data object ShowThemTapped : PauseAction
     data object KeepAsTheyAreTapped : PauseAction
+    data object TalkToSomeoneTapped : PauseAction
 
     /** A swipe down, a tap on the scrim or back. */
     data object SheetDismissed : PauseAction

@@ -137,5 +137,15 @@
 			</array>
 		</dict>
 	</array>
+	<!--
+	  Find support's Call and Text buttons open tel: and sms: links. The
+	  link launcher checks canOpenURL first, which only answers for schemes
+	  listed here. Not an entitlement or capability.
+	-->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>sms</string>
+	</array>
 </dict>
 </plist>

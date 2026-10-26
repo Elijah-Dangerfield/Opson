@@ -42,10 +42,16 @@ import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_delete_failed
 import opson.libraries.resources.generated.resources.settings_delete_offline
 import opson.libraries.resources.generated.resources.settings_export_offline
+import opson.libraries.resources.generated.resources.settings_find_could_not_open
 import opson.libraries.resources.generated.resources.settings_send_feedback
 import opson.libraries.resources.generated.resources.settings_support_clinician
 import opson.libraries.resources.generated.resources.settings_support_clinician_sub
 import opson.libraries.resources.generated.resources.settings_support_coming_later
+import opson.libraries.resources.generated.resources.settings_support_crisis_call
+import opson.libraries.resources.generated.resources.settings_support_crisis_call_or_text
+import opson.libraries.resources.generated.resources.settings_support_crisis_unknown
+import opson.libraries.resources.generated.resources.settings_support_crisis_unknown_sub
+import opson.libraries.resources.generated.resources.settings_support_crisis_where
 import opson.libraries.resources.generated.resources.settings_support_data_body
 import opson.libraries.resources.generated.resources.settings_support_data_title
 import opson.libraries.resources.generated.resources.settings_support_delete
@@ -53,6 +59,7 @@ import opson.libraries.resources.generated.resources.settings_support_delete_but
 import opson.libraries.resources.generated.resources.settings_support_delete_confirm
 import opson.libraries.resources.generated.resources.settings_support_delete_title
 import opson.libraries.resources.generated.resources.settings_support_export
+import opson.libraries.resources.generated.resources.settings_support_find
 import opson.libraries.resources.generated.resources.settings_support_hard_body
 import opson.libraries.resources.generated.resources.settings_support_hard_title
 import opson.libraries.resources.generated.resources.settings_support_helpline
@@ -94,17 +101,21 @@ fun SupportScreen(
                     color = AppTheme.colors.muted,
                 )
             }
-            val opens = stringResource(Res.string.settings_support_opens_browser)
-            CardButton(
-                text = stringResource(Res.string.settings_support_helpline),
-                trailing = AppIcons.OpenInNew.described(opens),
-                onClick = { onAction(SupportAction.HelplineTapped) },
-            )
-            CardButton(
-                text = stringResource(Res.string.settings_support_provider),
-                trailing = AppIcons.OpenInNew.described(opens),
-                onClick = { onAction(SupportAction.FindProviderTapped) },
-            )
+            if (state.findSupport) {
+                FindSupportButtons(state, onAction)
+            } else {
+                val opens = stringResource(Res.string.settings_support_opens_browser)
+                CardButton(
+                    text = stringResource(Res.string.settings_support_helpline),
+                    trailing = AppIcons.OpenInNew.described(opens),
+                    onClick = { onAction(SupportAction.HelplineTapped) },
+                )
+                CardButton(
+                    text = stringResource(Res.string.settings_support_provider),
+                    trailing = AppIcons.OpenInNew.described(opens),
+                    onClick = { onAction(SupportAction.FindProviderTapped) },
+                )
+            }
         }
         // Trusted person and sharing with a clinician return when they work; 0.1 shows no
         // "Coming later" rows, which App Review can read as placeholder content.
@@ -113,6 +124,49 @@ fun SupportScreen(
     if (state.delete == DeleteStep.Confirming || state.delete == DeleteStep.Deleting) {
         DeleteDialog(working = state.delete == DeleteStep.Deleting, onAction = onAction)
     }
+}
+
+/**
+ * Design sync 2 (`release.findSupport`): "Find support near you" in the accent, then the crisis
+ * line for the phone's country, which dials. With no list for the region the row opens Find
+ * support instead.
+ */
+@Composable
+private fun FindSupportButtons(state: SupportState, onAction: (SupportAction) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 56.dp)
+            .clip(AppTheme.shapes.inputLarge)
+            .background(AppTheme.colors.accent)
+            .semantics { role = Role.Button }
+            .bounceClick(scaleDown = 0.98f) { onAction(SupportAction.FindSupportTapped) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Icon(icon = AppIcons.SupportAgent, size = 24.dp, color = AppTheme.colors.onAccent)
+        Text(
+            text = stringResource(Res.string.settings_support_find),
+            typography = AppTheme.type.cardTitle,
+            color = AppTheme.colors.onAccent,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(icon = AppIcons.ChevronRight, size = 24.dp, color = AppTheme.colors.onAccent)
+    }
+    val crisis = state.crisis
+    CardButton(
+        text = when {
+            crisis == null -> stringResource(Res.string.settings_support_crisis_unknown)
+            crisis.callAndTextShareANumber -> stringResource(Res.string.settings_support_crisis_call_or_text, crisis.call.shown)
+            else -> stringResource(Res.string.settings_support_crisis_call, crisis.call.shown)
+        },
+        subtitle = crisis?.let { stringResource(Res.string.settings_support_crisis_where, stringResource(it.country.label)) }
+            ?: stringResource(Res.string.settings_support_crisis_unknown_sub),
+        leading = AppIcons.Call,
+        onClick = { onAction(SupportAction.CrisisTapped) },
+    )
+    state.couldNotDial?.let { Note(stringResource(Res.string.settings_find_could_not_open, it)) }
 }
 
 @Composable
@@ -143,7 +197,7 @@ private fun DataCard(state: SupportState, onAction: (SupportAction) -> Unit) {
         if (state.export == ExportStatus.Failed) Note(stringResource(Res.string.settings_export_offline))
         CardButton(
             text = stringResource(Res.string.settings_support_delete),
-            leading = AppIcons.Delete,
+            leading = AppIcons.DeleteOutline,
             leadingColor = AppTheme.colors.muted,
             outlined = true,
             onClick = { onAction(SupportAction.DeleteTapped) },
@@ -168,6 +222,7 @@ private fun CardButton(
     trailing: IconResource? = null,
     outlined: Boolean = false,
     enabled: Boolean = true,
+    subtitle: String? = null,
 ) {
     val shape = AppTheme.shapes.inputLarge
     Row(
@@ -185,12 +240,14 @@ private fun CardButton(
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
         if (leading != null) Icon(icon = leading, size = 24.dp, color = leadingColor)
-        Text(
-            text = text,
-            typography = AppTheme.type.cardTitle,
-            color = if (enabled) AppTheme.colors.ink else AppTheme.colors.muted,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = text,
+                typography = AppTheme.type.cardTitle,
+                color = if (enabled) AppTheme.colors.ink else AppTheme.colors.muted,
+            )
+            if (subtitle != null) Text(text = subtitle, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        }
         if (trailing != null) Icon(icon = trailing, size = 24.dp, color = AppTheme.colors.accent)
     }
 }
@@ -211,7 +268,7 @@ private fun DeleteDialog(working: Boolean, onAction: (SupportAction) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            Icon(icon = AppIcons.Delete, size = 26.dp, color = AppTheme.colors.muted)
+            Icon(icon = AppIcons.DeleteOutline, size = 28.dp, color = AppTheme.colors.muted)
             Text(
                 text = stringResource(Res.string.settings_support_delete_title),
                 typography = AppTheme.type.dayLabel,
@@ -221,7 +278,7 @@ private fun DeleteDialog(working: Boolean, onAction: (SupportAction) -> Unit) {
             Text(
                 text = stringResource(Res.string.settings_support_delete_confirm),
                 typography = AppTheme.type.body,
-                color = AppTheme.colors.muted,
+                color = AppTheme.colors.inkSoft,
                 textAlign = TextAlign.Center,
             )
             Row(
@@ -252,16 +309,39 @@ private fun Note(text: String) {
     Text(text = text, typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
 }
 
+/** Design sync 2, `release.findSupport` on, the phone set to the US. */
 @Preview
 @Composable
 private fun SupportPreview() {
+    SettingsPreview { SupportScreen(SupportStateBuilder.build(findSupport = true, SupportCountry.UnitedStates), onAction = {}) }
+}
+
+/** `release.findSupport` off: the 0.1 helpline links. */
+@Preview
+@Composable
+private fun SupportLinksPreview() {
     SettingsPreview { SupportScreen(SupportState(), onAction = {}) }
+}
+
+/** A region with no list: the crisis row opens Find support. */
+@Preview
+@Composable
+private fun SupportNoCountryPreview() {
+    SettingsPreview { SupportScreen(SupportStateBuilder.build(findSupport = true, country = null), onAction = {}) }
+}
+
+/** Find support (10.3), paired with the design's `support-screen__support-find`. */
+@Preview
+@Composable
+private fun SupportFindPreview() {
+    SettingsPreview { FindSupportScreen(FindSupportStateBuilder.build(SupportCountry.UnitedStates), onAction = {}) }
 }
 
 @Preview
 @Composable
 private fun SupportDeletePreview() {
-    SettingsPreview { SupportScreen(SupportState(delete = DeleteStep.Confirming), onAction = {}) }
+    val state = SupportStateBuilder.build(findSupport = true, SupportCountry.UnitedStates).copy(delete = DeleteStep.Confirming)
+    SettingsPreview { SupportScreen(state, onAction = {}) }
 }
 
 @Preview

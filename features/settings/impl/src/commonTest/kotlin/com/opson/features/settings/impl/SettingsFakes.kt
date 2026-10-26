@@ -1,6 +1,8 @@
 package com.opson.features.settings.impl
 
+import com.opson.features.settings.FindSupportEnabled
 import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.diary.DiarySync
 import com.opson.libraries.diary.NumbersChanger
@@ -148,6 +150,23 @@ fun remindersFlag(on: Boolean = false): RemindersEnabled = RemindersEnabled(
         override val map: Map<String, *> = mapOf("release" to mapOf("reminders" to on))
     },
 )
+
+/** `release.findSupport`, on or off. */
+fun findSupportFlag(on: Boolean = false): FindSupportEnabled = FindSupportEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("findSupport" to on))
+    },
+)
+
+/** The dialer, messages and browser: records every URL, and opens it unless [opens] is false. */
+class FakeLinks(var opens: Boolean = true) : WebLinkLauncher {
+    val opened = mutableListOf<String>()
+
+    override fun open(url: String): Result<Unit> {
+        opened += url
+        return if (opens) Result.success(Unit) else Result.failure(IllegalStateException("No handler available"))
+    }
+}
 
 /** `release.widgets`, on or off. */
 fun widgetsFlag(on: Boolean = false): WidgetsEnabled = WidgetsEnabled(

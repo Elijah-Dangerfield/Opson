@@ -59,3 +59,14 @@ class FastingRoute : Route()
  */
 @Serializable
 class WidgetsRoute : Route()
+
+/**
+ * Find support (design sync 2, `release.findSupport`): crisis and eating-disorder lines for the
+ * phone's country, from a list that ships with the app. Opened from Support, the pause sheet,
+ * the onboarding statement and the big-day card. Check [FindSupportEnabled] before linking here.
+ *
+ * Opening it is never logged, synced or shared: no app event, and the app shell keeps this route
+ * out of crash and jank attribution.
+ */
+@Serializable
+class FindSupportRoute : Route()
