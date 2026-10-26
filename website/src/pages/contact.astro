@@ -1,0 +1,46 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { CONTACT_EMAIL, href } from '../consts';
+---
+
+<Layout title="Contact, Opson" description="How to reach the people who make Opson.">
+  <article class="page">
+    <div class="wrap">
+      <header class="page-head">
+        <h1>Contact</h1>
+        <p>Opson is made by Nightjar Labs. Email is the best way to reach us.</p>
+      </header>
+
+      <a class="mail" href={`mailto:${CONTACT_EMAIL}`}>
+        <span class="mail-label">Email</span>
+        <span class="mail-address">{CONTACT_EMAIL}</span>
+      </a>
+
+      <div class="prose notes">
+        <p>Good things to write about: a bug, a food that's missing or wrong, a mode that doesn't fit how you eat, or anything about your data.</p>
+        <p>
+          To come off the waitlist, say so and we'll delete your address. To delete your Opson account and log, you can
+          do it in the app under More, then Support, then Delete everything, or ask us and we'll do it.
+        </p>
+        <p>The <a href={href('/privacy/')}>privacy page</a> has the details on what we keep.</p>
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .mail {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 24px 26px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    text-decoration: none;
+    margin-bottom: 36px;
+  }
+  .mail:hover { border-color: var(--accent); }
+  .mail-label { color: var(--muted); font-weight: 600; font-size: 15px; }
+  .mail-address { color: var(--accent); font-weight: 800; font-size: clamp(20px, 4vw, 26px); overflow-wrap: anywhere; }
+</style>

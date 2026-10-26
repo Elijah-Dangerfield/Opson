@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { href } from '../consts';
+---
+
+<Layout title="Page not found, Opson" description="There's no page at this address." notFound>
+  <article class="page">
+    <div class="wrap">
+      <header class="page-head">
+        <h1>Nothing here.</h1>
+        <p>There's no page at this address. It may have moved, or the link has a typo.</p>
+      </header>
+      <a class="button" href={href('/')}>Go to the home page</a>
+    </div>
+  </article>
+</Layout>

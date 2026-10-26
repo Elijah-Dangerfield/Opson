@@ -1,0 +1,32 @@
+---
+import Layout from '../layouts/Layout.astro';
+// The website's own wording lives here. The app policy is rendered straight
+// from legal/privacy.md, which is also synced to nightjarlabs.llc, so the
+// site-only part stays out of that file.
+import { Content as SitePrivacy } from '../content/site-privacy.md';
+import { Content as AppPrivacy, frontmatter } from '../../../legal/privacy.md';
+import { formatUpdated } from '../lib/dates';
+---
+
+<Layout title="Privacy, Opson" description="What the Opson app and this website collect, where it goes, and how to delete it.">
+  <article class="page">
+    <div class="wrap">
+      <header class="page-head">
+        <h1>Privacy</h1>
+        <p>App policy last updated {formatUpdated(frontmatter.updated)}.</p>
+      </header>
+      <div class="callout prose">
+        <SitePrivacy />
+      </div>
+      <div class="prose app-policy">
+        <h2>The Opson app</h2>
+        <AppPrivacy />
+      </div>
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .app-policy { margin-top: 48px; }
+  .app-policy > :global(h2:first-child) { font-size: 30px; margin-bottom: 16px; }
+</style>
