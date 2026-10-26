@@ -22,6 +22,27 @@ offline changes nothing; anything that changes visibility goes through
 from `:libraries:ui`; events are `Open<Page>`, `OpenPause(change)`,
 `ShowToast` and `Close`.
 
+Built on reality (re-plan, 2026-10-26):
+
+- **`NumbersChanger`** is an interface in `:libraries:diary`
+  (`com.opson.libraries.diary.NumbersChanger`), implemented in
+  `:libraries:diary:impl` over `SettingsRepository.update`:
+  `request(change): NumbersOutcome` (`Applied(fewer)` or `NeedsPause`, decided
+  inside the update transform so the check and the write are one step),
+  `confirm(change)`, `turnOnPause()`, and the two sheet hooks `pauseShown(change)`
+  and `pauseKept(change)`. Every app event about modes (`mode.changed`,
+  `friction.shown`, `friction.completed`) is emitted there, so one class owns
+  the telemetry and a screen only calls it. Picking Sprint from another preset
+  sets `sprintStartedOn` in the same write, on both the direct and the paused
+  path.
+- **Pages share small `:libraries:ui` pieces** added for them: `PageHeader`
+  (the `‹ More` link and the page title), `FlatButton` (the handoff's soft,
+  outlined, ink and accent buttons), `RadioMatrix` (the per-metric grid),
+  `LegendDot`, a `subtitleContent` slot on `ListRow` so a tagged number can sit
+  in a subtitle, and `EdgeCardDefaults.ListPadding` / `InsetPadding`.
+- Each page lists a `LeakSurface` in `SettingsLeakSurfaces.all`, built from
+  `SettingsFixtures` through the page's real `XStateBuilder`.
+
 ---
 
 ## More
@@ -32,7 +53,7 @@ from `:libraries:ui`; events are `Open<Page>`, `OpenPause(change)`,
 data class MoreState(val rows: List<MoreRow>)
 sealed interface MoreRow {
     data class Modes(val preset: PresetId, val adjusted: Boolean) : MoreRow
-    data class Targets(val energy: Display, val macroMode: MacroMode) : MoreRow   // energy Hidden unless level(Calories) == Show
+    data class Targets(val energy: Display, val macroMode: MacroMode) : MoreRow   // energy Hidden unless level(Calories) == Show; bare = false, "2,100 kcal" 
     data object Water : MoreRow
     data object LookAndFeel : MoreRow
     data object Support : MoreRow
@@ -42,8 +63,10 @@ sealed interface MoreRow {
 | Action | Does |
 |---|---|
 | `InputsArrived(settings, policy)` | |
-| `RowTapped(row)` | Event to `ModesRoute`, `TargetsRoute`, `WaterSettingsRoute(from = More)`, `LookAndFeelRoute`, `SupportRoute`. |
-| `TabReselected` | `ScrollToTop`. |
+| `RowTapped(row)` | Event to `ModesRoute`, `TargetsRoute`, `WaterSettingsRoute(fromMore = true)`, `LookAndFeelRoute`, `SupportRoute`. |
+
+`TabReselected` is dropped: the `Router` has no tab reselect stream yet, and
+More fits on one screen.
 
 Visibility: the Targets subtitle `2,100 kcal, ratio macros` resolves
 `Calories` on `Settings` only when `level(Calories) == Show` (configured, as
@@ -70,7 +93,7 @@ data class ModesState(
     val presets: List<PresetRow>,              // Presets.all order
     val matrix: List<MatrixRow>,               // Metric.entries order
     val pauseOn: Boolean,
-    val changedNote: ChangedNote,              // DuringSetup | LastChanged(at: Instant)
+    val changedNote: ChangedNote,              // DuringSetup | LastChanged(timestamp: String), DateCopy.timestamp in the user's zone
 )
 data class PresetRow(val id: PresetId, val selected: Boolean)            // selected: current preset and no overrides
 data class MatrixRow(val metric: Metric, val level: Visibility)         // configured level, Delay included
@@ -78,10 +101,10 @@ data class MatrixRow(val metric: Metric, val level: Visibility)         // confi
 
 | Action | Does |
 |---|---|
-| `InputsArrived(settings)` | |
-| `PresetTapped(id)` | `NumbersChanger.request(PickPreset(id))`. Picking clears overrides. Sprint also sets `sprintStartedOn = today`. |
+| `InputsArrived(settings)` | `ModesStateBuilder.build(settings.numbers, timeZone)`. |
+| `PresetTapped(id)` | `NumbersChanger.request(PickPreset(id))`. Picking clears overrides. Sprint also sets `sprintStartedOn = today` (inside the changer). No-op when the row is already selected. |
 | `LevelTapped(metric, level)` | `NumbersChanger.request(Override(metric, level))`. No-op when already at that level. |
-| `PauseToggled` | Off to on: applies at once (`pauseBeforeMore = true`). On to off: `NumbersChanger.request(TurnOffPause)`, which always goes through the pause. |
+| `PauseToggled` | Off to on: `NumbersChanger.turnOnPause()`, at once. On to off: `NumbersChanger.request(TurnOffPause)`, which always goes through the pause. |
 | `TargetsTapped` | `OpenTargets`. |
 | `BackTapped` | `Close`. |
 
@@ -151,6 +174,7 @@ data class PauseState(
     val subject: PauseSubject,                 // Preset(id) | Metric(metric) | ThePause
     val secondsLeft: Int,                      // starts at 10
     val reason: PauseReason?,                  // Curious | WorkingTowardAGoal | WorriedOffTrack | SomeoneAsked
+    val finished: Boolean,                     // set once Show them or Keep has run, so a later swipe does nothing
 )
 ```
 
@@ -159,10 +183,12 @@ data class PauseState(
 | `CountdownTicked(left)` | From a 1 s `delay` loop started in `init` (virtual time in tests). |
 | `ReasonPicked(reason)` | Selects or clears. Never stored, never logged ("Only you see the answer"). |
 | `ShowThemTapped` | Only at 0: `NumbersChanger.confirm(change)`, toast `Saved. You can hide them again any time.`, `Dismiss`. |
-| `KeepAsTheyAreTapped` | `Dismiss`, nothing changes. A swipe down does the same. |
+| `KeepAsTheyAreTapped` | `NumbersChanger.pauseKept(change)`, `Dismiss`, nothing changes. |
+| `SheetDismissed` | A swipe down or back: the same as Keep, unless the sheet already finished. |
 
-Telemetry: `friction.shown` on open; `friction.completed` with `applied`
-true or false. No reason attribute.
+Telemetry, all through `NumbersChanger`: `friction.shown` (`subject`: preset,
+metric or pause) from `pauseShown` in `init`; `friction.completed` with
+`applied` true from `confirm`, false from `pauseKept`. No reason attribute.
 
 Copy: `Showing more numbers`; `You asked for a pause here. %s will come back
 once the wait is over.` (`%s` is the preset label or metric label); for
@@ -198,7 +224,7 @@ data class TargetMacroRow(val metric: Metric, val share: Display, val grams: Dis
 |---|---|
 | `InputsArrived(settings, policy)` | |
 | `RaiseTapped` | `targets.raise(scaleMacros = macroMode == Ratios)`. Always allowed. |
-| `LowerTapped` | `lower(...)`; null (would cross the floor) shows toast `Going lower needs a floor set with a dietitian first.` |
+| `LowerTapped` | `lower(...)` inside the update transform; null (would cross the floor) writes nothing and shows toast `Going lower needs a floor set with a dietitian first.` |
 | `MacroModePicked(mode)` | `settings.macroMode`. |
 | `ModesTapped` | `OpenModes` (from the hidden card). |
 | `BackTapped` | `Close`. |
@@ -242,8 +268,9 @@ data class WaterSettingsState(
     val backToMore: Boolean,
     val showOnToday: Boolean,                  // level(Water) != Hide
     val glasses: Int,                          // 6, 8, 10, 12
-    val goalText: String,                      // "8 glasses, 2,000 ml a day" via formatter.glassSize
-    val glassMl: Int,                          // 200, 250, 330, 500
+    val goalAmount: String,                    // "2,000 ml", WaterProgress.glassSize; the copy wraps it as "8 glasses, 2,000 ml a day"
+    val glassMl: Int,
+    val sizes: List<GlassSize>,                // GlassSize(ml, label): 200, 250, 330, 500 in the user's unit
     val unit: WaterUnit,
 )
 ```
@@ -280,11 +307,11 @@ data class SupportState(
 |---|---|
 | `HelplineTapped` | `router.openWebLink(HELPLINE_URL)`. |
 | `FindProviderTapped` | `router.openWebLink(PROVIDER_URL)`. |
-| `ExportTapped` | `DiarySyncer.sync()` first so queued rows are included, then `ExportApi.csv()` (`GET /v1/export.csv`), then `router.shareFile("opson-export.csv", "text/csv", bytes)` and toast. Offline: `Failed`. |
+| `ExportTapped` | `DiarySync.syncNow()` first so queued rows are included, then `DataExport.csv()` (new: interface in `:libraries:diary`, `HttpDataExport` in its impl, `GET /v1/export.csv`), then event `ShareExport(bytes)`, which the entry point hands to `router.shareFile("opson-export.csv", "text/csv", bytes)`, and toast. Either call failing: `Failed`. |
 | `SendFeedbackTapped` | `OpenFeedback` (`FeedbackRoute`, home api). New row, the old Home screen was its only entry. |
 | `DeleteTapped` | `Confirming`. |
 | `KeepMyDataTapped` | `Idle`. |
-| `DeleteConfirmed` | `Deleting`, `AuthRepository.deleteAccount()` (`DELETE /v1/me` cascades every table). Success: `hasUserOnboarded = false`, the auth orchestrator's `UserScopedDataReset` wipes Room, the outbox, `BasketStore` and the settings cache, toast, event `GoToOnboarding`. `NetworkError`: `Failed`, nothing deleted. |
+| `DeleteConfirmed` | `Deleting`, `AuthRepository.deleteAccount()` (`DELETE /v1/me` cascades every table). Success: the auth orchestrator's `UserScopedDataReset` wipes Room, the outbox and the settings cache and resets `hasUserOnboarded` (`resetAccountScoped`), all before the signed-out state is emitted; then toast and event `GoToOnboarding` (`OnboardingRoute`, clearing the stack). `NetworkError`: `Failed(offline = true)`. Any other outcome: `Failed(offline = false)`. Nothing is deleted locally on failure. |
 | `BackTapped` | `Close`. |
 
 `HELPLINE_URL` and `PROVIDER_URL` are constants in the impl with
@@ -312,7 +339,8 @@ friendly-tracking.csv); `Everything was deleted.` New: `settings_send_feedback`
 Send feedback (last row of Your data); `settings_export_offline`
 Export needs a connection. Try again when you're online.;
 `settings_delete_offline` We couldn't reach the server, so nothing was deleted.
-Try again when you're online.
+Try again when you're online.; `settings_delete_failed` Something went wrong,
+so nothing was deleted. Try again in a little while.
 
 Visibility: none. Tests: export syncs before fetching, offline paths, delete
 needs the confirm step, success resets onboarding and emits the event, failure
