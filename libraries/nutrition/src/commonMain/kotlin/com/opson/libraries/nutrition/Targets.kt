@@ -97,7 +97,18 @@ data class Targets(
     }
 
     /** Whether moving [end] of the range (or of day group [group]) by one step [up] is allowed. */
-    fun canStep(end: RangeEnd, up: Boolean, group: Int? = null): Boolean = stepped(end, up, group) != null
+    fun canStep(end: RangeEnd, up: Boolean, group: Int? = null): Boolean = stepBlock(end, up, group) == null
+
+    /** Why that step is not allowed, or null when it is. The floor gets a lock; the gap does not. */
+    fun stepBlock(end: RangeEnd, up: Boolean, group: Int? = null): StepBlock? {
+        val (min, max) = ends(group) ?: return StepBlock.Gap
+        val (nextMin, nextMax) = moved(min, max, end, up)
+        return when {
+            !up && (nextMin < lowFloorKcal || (nextMin + nextMax) / 2 < floorKcal) -> StepBlock.Floor
+            nextMax - nextMin < STEP_KCAL -> StepBlock.Gap
+            else -> null
+        }
+    }
 
     /**
      * Moves [end] of the base range, or of day group [group], by 50 kcal. `null` when that would
@@ -198,23 +209,25 @@ data class Targets(
      */
     fun tomorrow(): EnergyRange = EnergyRange(energyKcal, minKcal, maxKcal, activityKcal = 0)
 
+    /** The ends after one step, or null when [stepBlock] says no. */
     private fun stepped(end: RangeEnd, up: Boolean, group: Int?): Pair<Int, Int>? {
-        val (min, max) = if (group == null) {
-            minKcal to maxKcal
-        } else {
-            val g = (style as? TargetStyle.ByDay)?.groups?.getOrNull(group) ?: return null
-            g.minKcal to g.maxKcal
-        }
+        if (stepBlock(end, up, group) != null) return null
+        val (min, max) = ends(group) ?: return null
+        return moved(min, max, end, up)
+    }
+
+    private fun ends(group: Int?): Pair<Int, Int>? {
+        if (group == null) return minKcal to maxKcal
+        val g = (style as? TargetStyle.ByDay)?.groups?.getOrNull(group) ?: return null
+        return g.minKcal to g.maxKcal
+    }
+
+    private fun moved(min: Int, max: Int, end: RangeEnd, up: Boolean): Pair<Int, Int> {
         val delta = if (up) STEP_KCAL else -STEP_KCAL
-        val next = when (end) {
+        return when (end) {
             RangeEnd.Low -> (min + delta) to max
             RangeEnd.High -> min to (max + delta)
         }
-        val (nextMin, nextMax) = next
-        val gapOk = nextMax - nextMin >= STEP_KCAL
-        // Only a step down can cross a floor; a step up is checked for the gap alone.
-        val floorOk = up || (nextMin >= lowFloorKcal && (nextMin + nextMax) / 2 >= floorKcal)
-        return if (gapOk && floorOk) next else null
     }
 
     private fun withEnds(min: Int, max: Int, scaleMacros: Boolean): Targets {

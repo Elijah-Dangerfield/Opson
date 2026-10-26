@@ -48,6 +48,9 @@ data class DayGroup(
 /** Which end of a range a step moves. */
 enum class RangeEnd { Low, High }
 
+/** Why a range step is refused: it would cross the floor, or bring the ends closer than one step. */
+enum class StepBlock { Floor, Gap }
+
 /**
  * The energy goal for one day, whatever the style. Today draws [Range] as the dashed band and
  * [About] as "Goal about 1,870": a result, never the deficit itself.

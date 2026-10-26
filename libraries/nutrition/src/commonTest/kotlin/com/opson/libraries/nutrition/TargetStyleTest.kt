@@ -63,6 +63,16 @@ class TargetStyleTest {
     }
 
     @Test
+    fun aRefusedStep_saysWhetherTheFloorOrTheGapStoppedIt() {
+        assertEquals(StepBlock.Floor, base.stepBlock(RangeEnd.Low, up = false))
+        assertEquals(StepBlock.Floor, base.stepBlock(RangeEnd.High, up = false))
+        assertNull(base.stepBlock(RangeEnd.High, up = true))
+        var narrow = base
+        while (true) narrow = narrow.step(RangeEnd.Low, up = true) ?: break
+        assertEquals(StepBlock.Gap, narrow.stepBlock(RangeEnd.Low, up = true))
+    }
+
+    @Test
     fun theEnds_stayAtLeastOneStepApart() {
         var targets = base
         while (true) targets = targets.step(RangeEnd.Low, up = true) ?: break
