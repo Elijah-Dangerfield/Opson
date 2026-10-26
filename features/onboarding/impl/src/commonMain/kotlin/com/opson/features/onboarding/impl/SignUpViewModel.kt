@@ -63,7 +63,7 @@ class SignUpViewModel(
         when (outcome) {
             is LinkEmailIdentityOutcome.VerificationRequired -> {
                 updateState { it.copy(isSubmitting = false) }
-                sendEvent(SignUpEvent.NavigateToVerifyEmail(outcome.email))
+                sendEvent(SignUpEvent.NavigateToVerifyEmail(outcome.email, guestLink = true))
             }
             is LinkEmailIdentityOutcome.EmailAlreadyRegistered -> updateState {
                 it.copy(isSubmitting = false, error = SignUpError.EmailAlreadyRegistered)
@@ -145,7 +145,8 @@ data class SignUpState(
 }
 
 sealed interface SignUpEvent {
-    data class NavigateToVerifyEmail(val email: String) : SignUpEvent
+    /** [guestLink]: the email was linked onto the anonymous guest, so confirming keeps their account. */
+    data class NavigateToVerifyEmail(val email: String, val guestLink: Boolean = false) : SignUpEvent
 }
 
 /**
