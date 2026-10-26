@@ -49,6 +49,11 @@ interface Colors {
     val bg: ColorResource
     val surface: ColorResource
     val ink: ColorResource
+    /**
+     * Paragraph copy between [ink] and [muted]: screen intros, onboarding leads, dialog text.
+     * Design v3 sets those apart from both titles and secondary lines.
+     */
+    val inkSoft: ColorResource
     val muted: ColorResource
     val line: ColorResource
     val track: ColorResource
@@ -150,7 +155,7 @@ private class AppColors(
     override val palette: Palette,
     override val isDark: Boolean,
 ) : Colors {
-    private val base = if (isDark) DarkBase else LightBase
+    private val base = palette.base(isDark)
     private val brand = palette.brand(isDark)
     private val prefix = if (isDark) "dark" else "light"
 
@@ -159,6 +164,7 @@ private class AppColors(
     override val bg = named(base.bg, "bg")
     override val surface = named(base.surface, "surface")
     override val ink = named(base.ink, "ink")
+    override val inkSoft = named(base.inkSoft, "ink-soft")
     override val muted = named(base.muted, "muted")
     override val line = named(base.line, "line")
     override val track = named(base.track, "track")
