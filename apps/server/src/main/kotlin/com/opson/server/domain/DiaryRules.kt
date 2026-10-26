@@ -24,8 +24,13 @@ object DiaryRules {
 
     val MIN_DAY: LocalDate = LocalDate.of(2000, 1, 1)
 
-    /** Days past today (UTC) a row may be dated. Covers UTC+14 and a little slack. */
-    const val MAX_DAYS_AHEAD = 2L
+    /**
+     * Days past today (UTC) a row may be dated. Today lets someone plan six
+     * days ahead in their own time zone; UTC+14 adds one and the rest is slack.
+     * The client's `SERVER_MAX_DAYS_AHEAD` must match, or planned days sit in
+     * the outbox until they come into range.
+     */
+    const val MAX_DAYS_AHEAD = 8L
 
     /** How far ahead of the server clock a device clock may be before a write is refused. */
     val MAX_CLOCK_SKEW = 24.hours

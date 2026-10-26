@@ -35,8 +35,8 @@ class DiaryRulesTest {
 
     @Test
     fun dayMustBeInASaneRange() {
-        assertNull(DiaryRules.validate(entry(day = today.plusDays(2)), now))
-        assertEquals("day is in the future", DiaryRules.validate(entry(day = today.plusDays(3)), now))
+        assertNull(DiaryRules.validate(entry(day = today.plusDays(8)), now))
+        assertEquals("day is in the future", DiaryRules.validate(entry(day = today.plusDays(9)), now))
         assertEquals("day is too far in the past", DiaryRules.validate(entry(day = LocalDate.of(1999, 12, 31)), now))
         assertNull(DiaryRules.validate(entry(day = DiaryRules.MIN_DAY), now))
     }

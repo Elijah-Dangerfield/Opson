@@ -66,7 +66,7 @@ internal const val MAX_REQUESTS_PER_SYNC = 10
 internal val SYNC_DEBOUNCE: Duration = 2.seconds
 
 /** The server refuses a row dated more than this many days past today, in UTC. */
-internal const val SERVER_MAX_DAYS_AHEAD = 2
+internal const val SERVER_MAX_DAYS_AHEAD = 8
 
 /** Why a sync stopped. Anything but [Drained] left rows queued. */
 internal enum class DrainOutcome {
