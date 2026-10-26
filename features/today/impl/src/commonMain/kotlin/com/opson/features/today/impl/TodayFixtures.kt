@@ -17,10 +17,12 @@ import com.opson.features.today.impl.meal.MealSheetStateBuilder
 import com.opson.features.today.impl.water.WaterSheetState
 import com.opson.features.today.impl.water.WaterSheetStateBuilder
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Mood
@@ -148,6 +150,17 @@ object TodayFixtures {
         ),
     )
 
+    /** What the logger reports after adding [addedDinner] (3.9): two foods, at 6:17 pm. */
+    fun added(): LoggedToMeal = LoggedToMeal(
+        day = today,
+        slot = MealSlot.Dinner,
+        itemIds = addedDinner(today).map { it.id },
+        at = LocalDateTime(today, LocalTime(18, 17)).toInstant(timeZone),
+    )
+
+    /** The usual day, marked untracked (a holiday): logged, but a gap in Trends. */
+    fun untrackedDay(): Day = day().copy(untracked = true)
+
     /** Two days back, closed, with yesterday's kind of meals. */
     fun pastDay(): Day = day(today.minus(DatePeriod(days = 2))).copy(closedAt = noon)
 
@@ -179,6 +192,7 @@ object TodayFixtures {
             NewFoodSeen("Rice pudding", today.minus(DatePeriod(days = 3))),
             NewFoodSeen("Chicken kabsa", today.minus(DatePeriod(days = 5))),
         ),
+        bridge = FoodBridge(from = "Rice", to = "Rice pudding", shared = "rice", foodId = "rice-pudding"),
     )
 
     fun inputs(
@@ -195,7 +209,8 @@ object TodayFixtures {
         menuOpen: Boolean = false,
         clearArmed: Boolean = false,
         highlight: MealSlot? = null,
-    ): TodayState = TodayStateBuilder.build(inputs(day, settings), policy, menuOpen, clearArmed, highlight)
+        added: LoggedToMeal? = null,
+    ): TodayState = TodayStateBuilder.build(inputs(day, settings), policy, menuOpen, clearArmed, highlight, added)
 
     fun dayCloseState(
         policy: VisibilityPolicy,
@@ -204,11 +219,13 @@ object TodayFixtures {
         committed: Boolean = false,
         date: LocalDate = today,
         note: String = "",
+        feeling: DayFeeling? = null,
     ): DayCloseState = DayCloseStateBuilder.build(
         DayCloseInputs(today = today, day = day(date, bigDay = bigDay, dinner = !bigDay), settings = settings),
         policy,
         note = note,
         committed = committed,
+        feeling = feeling,
     )
 
     fun todayCardsState(policy: VisibilityPolicy, settings: Settings = Settings()): TodayCardsState =

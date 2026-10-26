@@ -222,7 +222,9 @@ log_entries (
 day_records (user_id, day date, pk (user_id, day),
   water_ml int, closed_at timestamptz null, note text null,
   ate_no_details jsonb not null default '{}',  -- slot -> true
-  meal_groups boolean null)                    -- null = follow settings
+  meal_groups boolean null,                    -- null = follow settings
+  untracked boolean not null default false,    -- a holiday: a gap in Trends, never a low day (V11)
+  feeling text null)                           -- Day close's "How did today feel?": steady|busy|tired|good|hard (V11)
 
 meal_feelings (user_id, day, slot, pk (user_id, day, slot),
   hunger text null, fullness text null, moods text[] not null default '{}', note text null)
@@ -427,7 +429,10 @@ shared by every app on the stack. This is the Cards rule.
   `preset_distribution`, `search_daily`, `top_zero_result_queries` (30 days,
   only queries searched at least 3 times), `barcode_outcomes_daily`,
   `weekly_retention_cohorts`, `retention_d1_d7_d30`. `DatabaseSchemaTest`
-  fails if any of them grows a user id or a nutrient column.
+  fails if any of them grows a user id, a nutrient or a feeling column.
+  `V11__untracked_days.sql` leaves untracked days out of
+  `meals_per_day_distribution`; the activity views still count them, since
+  logging on a holiday is still using the app.
 
 | Dashboard | Panels (all aggregate) | Source |
 |---|---|---|

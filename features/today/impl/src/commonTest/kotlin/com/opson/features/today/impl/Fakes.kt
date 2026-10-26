@@ -2,15 +2,18 @@ package com.opson.features.today.impl
 
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.NumbersChanger
 import com.opson.libraries.diary.NumbersOutcome
+import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -63,13 +66,15 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
     val ateNoDetails = mutableListOf<Pair<LocalDate, MealSlot>>()
     val feelings = mutableListOf<Triple<LocalDate, MealSlot, MealFeeling?>>()
     val notes = mutableListOf<Pair<LocalDate, String?>>()
+    val untracked = mutableListOf<Pair<LocalDate, Boolean>>()
+    val dayFeelings = mutableListOf<Pair<LocalDate, DayFeeling?>>()
     val closed = mutableListOf<LocalDate>()
     val removed = mutableListOf<String>()
 
     /** Every write, in order, for tests that assert nothing was written. */
     val writes: Int
         get() = water.size + removedWater.size + copiedDays.size + copiedSlots.size + cleared.size + ateNoDetails.size +
-            feelings.size + notes.size + closed.size + removed.size
+            feelings.size + notes.size + closed.size + removed.size + untracked.size + dayFeelings.size
 
     override fun observeDay(date: LocalDate): Flow<Day> = days.map { it[date] ?: Day.empty(date) }
 
@@ -120,6 +125,14 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
 
     override suspend fun setDayNote(day: LocalDate, note: String?) {
         notes += day to note
+    }
+
+    override suspend fun setUntracked(day: LocalDate, untracked: Boolean) {
+        this.untracked += day to untracked
+    }
+
+    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) {
+        dayFeelings += day to feeling
     }
 
     override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) {
@@ -182,4 +195,30 @@ class FakeSelectedDay(day: LocalDate = TodayFixtures.today) : SelectedDay {
     override fun select(day: LocalDate) {
         date.value = day
     }
+}
+
+/** Holds the latest add like the real one, and remembers what was consumed and undone. */
+class FakeRecentLogEvents : RecentLogEvents {
+    override val latest = MutableStateFlow<LoggedToMeal?>(null)
+    val consumed = mutableListOf<LoggedToMeal>()
+    val undone = mutableListOf<LoggedToMeal>()
+
+    override fun logged(event: LoggedToMeal) {
+        latest.value = event
+    }
+
+    override fun consumed(event: LoggedToMeal) {
+        consumed += event
+        latest.compareAndSet(event, null)
+    }
+
+    override suspend fun undo(event: LoggedToMeal) {
+        undone += event
+        consumed(event)
+    }
+}
+
+/** A clock the test moves by hand, alongside the scheduler's virtual time. */
+class FakeClock(var now: Instant = TodayFixtures.noon) : Clock {
+    override fun now(): Instant = now
 }

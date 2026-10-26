@@ -12,6 +12,8 @@ import com.opson.features.today.impl.meal.MealSheetContent
 import com.opson.features.today.impl.water.WaterSheetContent
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Tone
@@ -45,8 +47,9 @@ private fun Today(
     day: Day = TodayFixtures.day(),
     settings: Settings = Settings(),
     highlight: MealSlot? = null,
+    added: LoggedToMeal? = null,
 ) {
-    TodayScreen(state = TodayFixtures.todayState(policy, day = day, settings = settings, highlight = highlight), onAction = {})
+    TodayScreen(state = TodayFixtures.todayState(policy, day = day, settings = settings, highlight = highlight, added = added), onAction = {})
 }
 
 @Preview(widthDp = 390, heightDp = 844)
@@ -67,7 +70,23 @@ private fun TodayEmptyPreview() = Phone { Today(full, day = Day.empty(TodayFixtu
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TodayAddedPreview() = Phone { Today(full, day = TodayFixtures.day(dinner = true), highlight = MealSlot.Dinner) }
+private fun TodayAddedPreview() = Phone {
+    Today(full, day = TodayFixtures.day(dinner = true), highlight = MealSlot.Dinner, added = TodayFixtures.added())
+}
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayAddedDarkPreview() = Phone(dark = true) {
+    Today(full, day = TodayFixtures.day(dinner = true), highlight = MealSlot.Dinner, added = TodayFixtures.added())
+}
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayUntrackedPreview() = Phone { Today(full, day = TodayFixtures.untrackedDay()) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayUntrackedBlindPreview() = Phone { Today(policy(PresetId.Blind), day = TodayFixtures.untrackedDay()) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -104,6 +123,10 @@ private fun TodayRhythmPreview() = Phone { Today(policy(PresetId.Rhythm)) }
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayExplorerPreview() = Phone { Today(policy(PresetId.Explorer)) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayExplorerDarkPreview() = Phone(dark = true) { Today(policy(PresetId.Explorer)) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -215,7 +238,15 @@ private fun DayCloseRevealedPreview() = Phone { DayCloseScreen(TodayFixtures.day
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun DayCloseBlindPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.Blind)), onAction = {}) }
+private fun DayCloseBlindPreview() = Phone {
+    DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.Blind), feeling = DayFeeling.Steady), onAction = {})
+}
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseBlindDarkPreview() = Phone(dark = true) {
+    DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.Blind), feeling = DayFeeling.Steady), onAction = {})
+}
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

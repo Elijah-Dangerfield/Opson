@@ -4,7 +4,9 @@ import androidx.lifecycle.viewModelScope
 import com.opson.features.logger.LogTab
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.ui.sentenceName
@@ -18,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -32,6 +35,7 @@ import opson.libraries.resources.generated.resources.today_toast_added_to
 import opson.libraries.resources.generated.resources.today_toast_cleared
 import opson.libraries.resources.generated.resources.today_toast_copied_previous
 import opson.libraries.resources.generated.resources.today_toast_copied_tomorrow
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -40,7 +44,9 @@ import kotlin.time.Duration.Companion.seconds
  * diary writes and navigation events.
  *
  * When food lands on the day being shown (from the logger, or copied here), the meal it went
- * into is outlined for a moment and scrolled to (design v3, 3.9).
+ * into is outlined for a moment and scrolled to (design v3, 3.9). When the logger says what it
+ * added ([RecentLogEvents]), Today also offers Undo for what is left of its six seconds,
+ * measured on [clock] from when the logger wrote, not from when Today noticed.
  *
  * [model] holds what was read and whether the menu is open; only [handleAction] changes it.
  */
@@ -52,11 +58,14 @@ class TodayViewModel(
     policySource: VisibilityPolicySource,
     private val selectedDay: SelectedDay,
     private val calendar: LocalCalendar,
+    private val recentLogEvents: RecentLogEvents,
+    private val clock: Clock,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value),
 ) {
     private var model = Model(policy = policySource.policy.value)
     private var highlightJob: Job? = null
+    private var undoJob: Job? = null
 
     private data class Model(
         val policy: VisibilityPolicy,
@@ -66,6 +75,10 @@ class TodayViewModel(
         val highlight: MealSlot? = null,
         /** The items already on screen for this date, to tell new ones apart. */
         val seen: Pair<LocalDate, Set<String>>? = null,
+        /** What the logger just added, while its Undo is open. */
+        val added: LoggedToMeal? = null,
+        /** "Not today" or "I tried it" on the food bridge, for this date. Kept nowhere else. */
+        val bridgeSkippedOn: LocalDate? = null,
     )
 
     init {
@@ -74,6 +87,12 @@ class TodayViewModel(
         }
         viewModelScope.launch {
             policySource.policy.collect { takeAction(TodayAction.PolicyArrived(it)) }
+        }
+        viewModelScope.launch {
+            // Paired with the date so an add for another day is offered when that day comes up.
+            combine(recentLogEvents.latest, selectedDay.date) { event, shown -> event?.let { TodayAction.LoggedArrived(it, shown) } }
+                .filterNotNull()
+                .collect { takeAction(it) }
         }
     }
 
@@ -104,6 +123,27 @@ class TodayViewModel(
             TodayAction.WaterPlusTapped -> sendEvent(TodayEvent.OpenWaterSheet(day()))
             is TodayAction.AlreadyAteTapped -> diary.setAteNoDetails(day(), action.slot, ate = true)
             TodayAction.HighlightFaded -> action.rebuild { copy(highlight = null) }
+            is TodayAction.LoggedArrived -> loggedArrived(action)
+            TodayAction.UndoTapped -> model.added?.let { event ->
+                undoJob?.cancel()
+                action.rebuild { copy(added = null) }
+                recentLogEvents.undo(event)
+            }
+            is TodayAction.UndoExpired -> if (model.added == action.event) action.rebuild { copy(added = null) }
+            TodayAction.TrackAgainTapped -> diary.setUntracked(day(), untracked = false)
+            TodayAction.BridgeTriedTapped -> {
+                val bridge = model.inputs?.explorer?.bridge
+                action.rebuild { copy(bridgeSkippedOn = day()) }
+                val foodId = bridge?.foodId ?: bridge?.customFoodId
+                sendEvent(
+                    if (foodId == null) {
+                        TodayEvent.OpenLogger(day(), slot = null)
+                    } else {
+                        TodayEvent.OpenLoggerWithFood(day(), foodId, isCustom = bridge?.foodId == null)
+                    },
+                )
+            }
+            TodayAction.BridgeNotTodayTapped -> action.rebuild { copy(bridgeSkippedOn = day()) }
 
             TodayAction.DayMenuTapped -> action.rebuild { copy(menuOpen = true, clearArmed = false) }
             TodayAction.MenuDismissed -> action.closeMenu()
@@ -120,6 +160,9 @@ class TodayViewModel(
                 }
             }
             TodayAction.DayNoteTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenDayNote(day())) }
+            TodayAction.UntrackedMenuTapped -> action.closeMenuThen {
+                diary.setUntracked(day(), untracked = model.inputs?.day?.untracked != true)
+            }
             TodayAction.EditCardsTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenTodayCards) }
             TodayAction.ClearDayTapped -> if (model.clearArmed) {
                 action.closeMenuThen {
@@ -138,15 +181,47 @@ class TodayViewModel(
         val previous = model.seen
         val added = if (previous != null && previous.first == day.date) day.allItems.filter { it.id !in previous.second } else emptyList()
         val slot = added.maxByOrNull { it.loggedAt }?.slot
+        val sameDate = previous?.first == day.date
         action.rebuild {
-            copy(inputs = action.inputs, seen = day.date to ids, highlight = slot ?: highlight.takeIf { previous?.first == day.date })
+            copy(
+                inputs = action.inputs,
+                seen = day.date to ids,
+                highlight = slot ?: highlight.takeIf { sameDate },
+                // Another date drops the Undo bar (the add stays in the diary), unless the add was for it.
+                added = this.added?.takeIf { it.day == day.date },
+            )
         }
-        if (slot != null) {
-            highlightJob?.cancel()
-            highlightJob = viewModelScope.launch {
-                delay(HIGHLIGHT_FOR)
-                takeAction(TodayAction.HighlightFaded)
-            }
+        if (slot != null) fadeHighlight()
+    }
+
+    /**
+     * Offers Undo for [action]'s add when it is for the day on show and its window is still open;
+     * an add whose window has closed is consumed and shows nothing. An add for another day is
+     * left alone for that day.
+     */
+    private suspend fun loggedArrived(action: TodayAction.LoggedArrived) {
+        val event = action.event
+        val now = clock.now()
+        if (!event.undoOpenAt(now)) {
+            recentLogEvents.consumed(event)
+            return
+        }
+        if (event.day != action.shown) return
+        recentLogEvents.consumed(event)
+        action.rebuild { copy(added = event, highlight = event.slot) }
+        fadeHighlight()
+        undoJob?.cancel()
+        undoJob = viewModelScope.launch {
+            delay(LoggedToMeal.UNDO_WINDOW - (now - event.at))
+            takeAction(TodayAction.UndoExpired(event))
+        }
+    }
+
+    private fun fadeHighlight() {
+        highlightJob?.cancel()
+        highlightJob = viewModelScope.launch {
+            delay(HIGHLIGHT_FOR)
+            takeAction(TodayAction.HighlightFaded)
         }
     }
 
@@ -162,7 +237,17 @@ class TodayViewModel(
         model = model.change()
         val current = model
         val inputs = current.inputs ?: return
-        updateState { TodayStateBuilder.build(inputs, current.policy, current.menuOpen, current.clearArmed, current.highlight) }
+        updateState {
+            TodayStateBuilder.build(
+                inputs = inputs,
+                policy = current.policy,
+                menuOpen = current.menuOpen,
+                clearArmed = current.clearArmed,
+                highlight = current.highlight,
+                added = current.added,
+                bridgeSkipped = current.bridgeSkippedOn == inputs.day.date,
+            )
+        }
     }
 
     private suspend fun TodayAction.closeMenu() = rebuild { copy(menuOpen = false, clearArmed = false) }

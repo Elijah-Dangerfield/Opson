@@ -309,7 +309,7 @@ class TodayStateBuilderTest {
         assertEquals(
             listOf(
                 listOf(DayMenuItem.CloseDay(isToday = true), DayMenuItem.Nutrients),
-                listOf(DayMenuItem.CopyYesterday, DayMenuItem.CopyToTomorrow, DayMenuItem.AddNote),
+                listOf(DayMenuItem.CopyYesterday, DayMenuItem.CopyToTomorrow, DayMenuItem.AddNote, DayMenuItem.Untracked(marked = false)),
                 listOf(DayMenuItem.EditCards, DayMenuItem.ClearDay),
             ),
             today.groups,
@@ -319,6 +319,43 @@ class TodayStateBuilderTest {
         val tomorrow = assertNotNull(build(PresetId.Full, day = TodayFixtures.plannedDay(), menuOpen = true).menu)
         assertTrue(tomorrow.groups.flatten().none { it is DayMenuItem.CloseDay || it == DayMenuItem.CopyToTomorrow })
         assertNull(build(PresetId.Full).menu)
+    }
+
+    @Test
+    fun anUntrackedDayIsCalm_itsMealsStayButNothingReadsItAsADay() {
+        listOf(PresetId.Full, PresetId.Delayed, PresetId.Blind, PresetId.Explorer).forEach { preset ->
+            val state = build(preset, day = TodayFixtures.untrackedDay(), menuOpen = true)
+            assertTrue(state.untracked, "$preset")
+            assertNull(state.summary, "no hero card to measure it by in $preset")
+            assertNull(state.counts)
+            assertNull(state.closeDay)
+            assertNull(state.bridge)
+            val menu = assertNotNull(state.menu).groups.flatten()
+            assertTrue(DayMenuItem.Untracked(marked = true) in menu, "the menu offers to track it again")
+            assertTrue(menu.none { it is DayMenuItem.CloseDay })
+        }
+        val full = build(PresetId.Full, day = TodayFixtures.untrackedDay())
+        assertEquals(MealSlot.meals, full.meals.map { it.slot }, "logging still works")
+        val planned = build(PresetId.Full, day = TodayFixtures.plannedDay().copy(untracked = true))
+        assertTrue(planned.untracked)
+        assertEquals(false, planned.planning)
+    }
+
+    @Test
+    fun anAddShowsItsCountOnItsOwnDayOnly() {
+        val state = TodayFixtures.todayState(policy(PresetId.Blind), day = TodayFixtures.day(dinner = true), added = TodayFixtures.added())
+        assertEquals(AddedNotice(MealSlot.Dinner, count = 2), state.added, "a count of foods, so Blind gets it too")
+        assertNull(TodayFixtures.todayState(policy(PresetId.Full), day = TodayFixtures.pastDay(), added = TodayFixtures.added()).added)
+    }
+
+    @Test
+    fun theFoodBridgeIsExplorersAndGoesWhenSkipped() {
+        val inputs = TodayFixtures.inputs()
+        val explorer = TodayStateBuilder.build(inputs, policy(PresetId.Explorer))
+        assertEquals(FoodBridgeCard(from = "rice", to = "rice pudding", shared = "rice"), explorer.bridge)
+        assertNull(TodayStateBuilder.build(inputs, policy(PresetId.Explorer), bridgeSkipped = true).bridge)
+        assertNull(TodayStateBuilder.build(inputs, policy(PresetId.Full)).bridge)
+        assertNull(TodayStateBuilder.build(inputs.copy(explorer = TodayFixtures.explorer().copy(bridge = null)), policy(PresetId.Explorer)).bridge)
     }
 
     @Test

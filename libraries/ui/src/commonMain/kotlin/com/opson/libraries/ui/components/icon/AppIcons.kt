@@ -44,6 +44,7 @@ import androidx.compose.material.icons.rounded.FileCopy
 import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material.icons.rounded.BakeryDining
+import androidx.compose.material.icons.rounded.BeachAccess
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Bookmark
@@ -65,6 +66,7 @@ import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.HighlightOff
 import androidx.compose.material.icons.rounded.Hiking
+import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.LocalDrink
@@ -223,6 +225,12 @@ object AppIcons {
     val Science get() = icon("science", MaterialIcons.Rounded.Science)
     val FormatListBulleted get() = icon("format_list_bulleted", MaterialIcons.AutoMirrored.Rounded.FormatListBulleted)
 
+    /** A day marked untracked (a holiday), as the Day menu draws it (v3 2.11). */
+    val BeachAccess get() = icon("beach_access", MaterialIcons.Rounded.BeachAccess)
+
+    /** Explorer's food bridge: a small step from one food to the next (v3 2.8). */
+    val Route get() = icon("route", MaterialIcons.Rounded.Route)
+
     // Health
     val Bedtime get() = icon("bedtime", MaterialIcons.Rounded.Bedtime)
     val DirectionsWalk get() = icon("directions_walk", MaterialIcons.AutoMirrored.Rounded.DirectionsWalk)
@@ -249,7 +257,7 @@ object AppIcons {
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
             Visibility, BlurOn, Mail, Group, LockOutlined,
             OpenInNew, Target, Palette, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
-            Star, Favorite, Bolt, Science, FormatListBulleted,
+            Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart,
         )
 

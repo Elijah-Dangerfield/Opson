@@ -38,7 +38,13 @@ object TodayLeakSurfaces {
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.day(bigDay = true, loose = true)), onAction = {})
         },
         LeakSurface(id = "today-added", label = "Today · just added", showsCaloriesInFull = true) { policy ->
-            TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.day(dinner = true), highlight = MealSlot.Dinner), onAction = {})
+            TodayScreen(
+                state = TodayFixtures.todayState(policy, day = TodayFixtures.day(dinner = true), highlight = MealSlot.Dinner, added = TodayFixtures.added()),
+                onAction = {},
+            )
+        },
+        LeakSurface(id = "today-untracked", label = "Today, marked untracked", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.untrackedDay()), onAction = {})
         },
         LeakSurface(id = "today-groups-off", label = "Today, meal groups off", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.day(loose = true), settings = Settings(mealGroups = false)), onAction = {})

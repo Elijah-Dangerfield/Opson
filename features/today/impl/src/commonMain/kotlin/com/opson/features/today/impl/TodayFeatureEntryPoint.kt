@@ -243,6 +243,9 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenDayClose -> router.navigate(DayCloseRoute(event.day.toString()))
             is TodayEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
             is TodayEvent.OpenLogger -> router.navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString()))
+            is TodayEvent.OpenLoggerWithFood -> router.navigate(
+                LoggerRoute(dayIso = event.day.toString(), prePickFoodId = event.foodId, prePickIsCustom = event.isCustom),
+            )
             is TodayEvent.OpenLog -> router.navigate(LogRoute(event.day.toString(), event.slot, event.tab))
             is TodayEvent.OpenMealFeel -> router.navigate(MealFeelRoute(event.day.toString(), event.slot))
             TodayEvent.OpenTodayCards -> router.navigate(TodayCardsRoute())

@@ -2,6 +2,7 @@ package com.opson.features.today.impl
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Tone
@@ -77,6 +78,8 @@ object TodayStateBuilder {
         menuOpen: Boolean = false,
         clearArmed: Boolean = false,
         highlight: MealSlot? = null,
+        added: LoggedToMeal? = null,
+        bridgeSkipped: Boolean = false,
     ): TodayState {
         val day = inputs.day
         val date = day.date
@@ -84,8 +87,10 @@ object TodayStateBuilder {
         val layout = policy.preset.today
         val groupsOn = day.mealGroupsOn(inputs.settings)
         val future = date > today
+        val untracked = day.untracked
         val context = day.formatContext(today)
-        val summary = if (future) null else summary(inputs, policy, context)
+        // An untracked day has no hero card to read it by: the untracked card stands in.
+        val summary = if (future || untracked) null else summary(inputs, policy, context)
 
         return TodayState(
             loading = false,
@@ -94,7 +99,7 @@ object TodayStateBuilder {
             canGoForward = date < today.plus(DatePeriod(days = MAX_DAYS_AHEAD)),
             summary = summary,
             banner = banner(policy, inputs.settings, inputs.timeZone, today),
-            planning = future,
+            planning = future && !untracked,
             counts = if (summary is TodaySummary.Locked) counts(day, inputs.settings, policy) else null,
             mealTiles = if (!future && layout == TodayLayout.Meals && groupsOn) {
                 MealSlot.meals.map { MealTile(it, tileStatus(day, it, inputs.timeZone)) }
@@ -106,11 +111,25 @@ object TodayStateBuilder {
             water = if (!future && layout == TodayLayout.Full && summary !is TodaySummary.Locked) water(day, inputs.settings, policy, context) else null,
             meals = if (future) planned(inputs, policy, context, groupsOn) else meals(inputs, policy, context, layout, groupsOn),
             whatYouHad = if (future) null else whatYouHad(day, layout),
-            closeDay = if (future) null else CloseDayCard(closed = day.isClosed(today)),
+            closeDay = if (future || untracked) null else CloseDayCard(closed = day.isClosed(today)),
             highlight = highlight,
+            added = added?.takeIf { it.day == date }?.let { AddedNotice(it.slot, it.itemIds.size) },
+            untracked = untracked,
+            bridge = if (!future && !untracked && !bridgeSkipped && layout == TodayLayout.Explorer) {
+                inputs.explorer?.bridge?.let(::bridgeCard)
+            } else {
+                null
+            },
             menu = if (menuOpen) menu(inputs, clearArmed) else null,
         )
     }
+
+    private fun bridgeCard(bridge: FoodBridge): FoodBridgeCard =
+        FoodBridgeCard(from = inSentence(bridge.from), to = inSentence(bridge.to), shared = bridge.shared)
+
+    /** "Rice pudding" reads "rice pudding" mid-sentence; "BBQ chips" stays as it is. */
+    private fun inSentence(name: String): String =
+        if (name.length < 2 || name[1].isUpperCase()) name else name.replaceFirstChar { it.lowercaseChar() }
 
     private fun summary(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext): TodaySummary? {
         val layout = policy.preset.today
@@ -409,9 +428,15 @@ object TodayStateBuilder {
         val date = inputs.day.date
         val today = inputs.today
         val past = date <= today
+        val untracked = inputs.day.untracked
         val groups = listOf(
-            listOfNotNull(if (past) DayMenuItem.CloseDay(isToday = date == today) else null, DayMenuItem.Nutrients),
-            listOfNotNull(DayMenuItem.CopyYesterday, if (past) DayMenuItem.CopyToTomorrow else null, DayMenuItem.AddNote),
+            listOfNotNull(if (past && !untracked) DayMenuItem.CloseDay(isToday = date == today) else null, DayMenuItem.Nutrients),
+            listOfNotNull(
+                DayMenuItem.CopyYesterday,
+                if (past) DayMenuItem.CopyToTomorrow else null,
+                DayMenuItem.AddNote,
+                DayMenuItem.Untracked(marked = untracked),
+            ),
             listOf(DayMenuItem.EditCards, DayMenuItem.ClearDay),
         )
         return DayMenu(groups = groups, clearArmed = clearArmed)

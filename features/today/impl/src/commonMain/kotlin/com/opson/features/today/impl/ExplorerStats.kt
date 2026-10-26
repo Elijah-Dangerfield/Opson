@@ -9,14 +9,16 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 
 /**
- * What the Explorer layout shows: the foods someone keeps coming back to, and
- * the ones they tried for the first time this month. Names only, never an
- * amount.
+ * What the Explorer layout shows: the foods someone keeps coming back to, the
+ * ones they tried for the first time this month, and one food bridge between
+ * the two kinds. Names only, never an amount.
  */
 data class ExplorerStats(
     val safeFoods: List<String>,
     /** Newest first. */
     val newFoods: List<NewFoodSeen>,
+    /** A small step from a safe food to one barely tried, or none when nothing pairs. */
+    val bridge: FoodBridge? = null,
 )
 
 data class NewFoodSeen(val name: String, val firstLogged: LocalDate)
@@ -46,6 +48,7 @@ object ExplorerStatsBuilder {
         return ExplorerStats(
             safeFoods = frequent.map { shortName(it.name) }.distinct().take(SAFE_FOOD_COUNT),
             newFoods = newFoods,
+            bridge = FoodBridges.suggest(frequent, days, today),
         )
     }
 

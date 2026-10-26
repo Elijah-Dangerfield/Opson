@@ -2,6 +2,9 @@ package com.opson.features.today.impl.dayclose
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,6 +14,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
+import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.ui.TodayCard
+import com.opson.libraries.ui.components.chip.PillChip
+import com.opson.libraries.ui.components.chip.PillChipSize
+import opson.libraries.resources.generated.resources.today_dayclose_feeling_busy
+import opson.libraries.resources.generated.resources.today_dayclose_feeling_good
+import opson.libraries.resources.generated.resources.today_dayclose_feeling_hard
+import opson.libraries.resources.generated.resources.today_dayclose_feeling_label
+import opson.libraries.resources.generated.resources.today_dayclose_feeling_steady
+import opson.libraries.resources.generated.resources.today_dayclose_feeling_tired
+import org.jetbrains.compose.resources.StringResource
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.BigDayHeroCard
 import com.opson.libraries.diary.ui.LabelValueCard
@@ -93,6 +108,7 @@ class DayCloseViewModel(
         val inputs: DayCloseInputs? = null,
         val policy: VisibilityPolicy? = null,
         val note: String = "",
+        val feeling: DayFeeling? = null,
         val prefilled: Boolean = false,
         val committed: Boolean = false,
     )
@@ -114,12 +130,16 @@ class DayCloseViewModel(
                     return
                 }
                 val note = if (model.prefilled) model.note else action.inputs.day.note.orEmpty()
-                action.rebuild { copy(inputs = action.inputs, policy = action.policy, note = note, prefilled = true) }
+                val feeling = if (model.prefilled) model.feeling else action.inputs.day.feeling
+                action.rebuild { copy(inputs = action.inputs, policy = action.policy, note = note, feeling = feeling, prefilled = true) }
             }
             is DayCloseAction.NoteTyped -> action.rebuild { copy(note = action.text) }
+            is DayCloseAction.FeelingTapped -> action.rebuild { copy(feeling = action.feeling.takeIf { it != feeling }) }
             DayCloseAction.CommitmentTapped -> action.rebuild { copy(committed = true) }
             DayCloseAction.DoneTapped -> {
                 diary.setDayNote(day, model.note.trim().ifEmpty { null })
+                // Only where it was asked: a feeling picked under another mode is left as it was.
+                if (state.feeling != null && model.feeling != model.inputs?.day?.feeling) diary.setDayFeeling(day, model.feeling)
                 diary.closeDay(day)
                 sendEvent(DayCloseEvent.Close)
             }
@@ -132,7 +152,7 @@ class DayCloseViewModel(
         val current = model
         val inputs = current.inputs ?: return
         val policy = current.policy ?: return
-        updateState { DayCloseStateBuilder.build(inputs, policy, current.note, current.committed) }
+        updateState { DayCloseStateBuilder.build(inputs, policy, current.note, current.committed, current.feeling) }
     }
 }
 
@@ -202,6 +222,7 @@ fun DayCloseScreen(
                         done = done,
                     )
                 }
+                state.feeling?.let { choice -> Feeling(choice, onAction) }
                 Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                     SectionLabel(
                         stringResource(if (state.isToday) Res.string.today_dayclose_note_label else Res.string.today_dayclose_note_label_other_day),
@@ -232,6 +253,37 @@ fun DayCloseScreen(
         }
     }
 }
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Feeling(choice: FeelingChoice, onAction: (DayCloseAction) -> Unit) {
+    TodayCard(contentPadding = PaddingValues(AppTheme.spacing.page), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+        SectionLabel(stringResource(Res.string.today_dayclose_feeling_label))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+        ) {
+            choice.options.forEach { feeling ->
+                PillChip(
+                    label = stringResource(feeling.label),
+                    selected = feeling == choice.picked,
+                    onClick = { onAction(DayCloseAction.FeelingTapped(feeling)) },
+                    size = PillChipSize.Compact,
+                    role = Role.RadioButton,
+                )
+            }
+        }
+    }
+}
+
+private val DayFeeling.label: StringResource
+    get() = when (this) {
+        DayFeeling.Steady -> Res.string.today_dayclose_feeling_steady
+        DayFeeling.Busy -> Res.string.today_dayclose_feeling_busy
+        DayFeeling.Tired -> Res.string.today_dayclose_feeling_tired
+        DayFeeling.Good -> Res.string.today_dayclose_feeling_good
+        DayFeeling.Hard -> Res.string.today_dayclose_feeling_hard
+    }
 
 @Composable
 private fun Totals(totals: DayTotals, isToday: Boolean) {

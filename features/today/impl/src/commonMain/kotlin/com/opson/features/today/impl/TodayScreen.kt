@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.opson.libraries.diary.ui.EnergySummaryCard
 import com.opson.libraries.diary.ui.FocusSummaryCard
@@ -57,10 +58,13 @@ import com.opson.libraries.ui.components.MenuPopoverDefaults
 import com.opson.libraries.ui.components.MinTouchTarget
 import com.opson.libraries.ui.components.PillAction
 import com.opson.libraries.ui.components.PopoverMenu
+import com.opson.libraries.ui.components.PromptAction
+import com.opson.libraries.ui.components.PromptCard
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SuggestionButton
 import com.opson.libraries.ui.components.TintTile
 import com.opson.libraries.ui.components.TintTileGrid
+import com.opson.libraries.ui.components.UndoBar
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
@@ -73,6 +77,13 @@ import com.opson.system.color.ToneColors
 import kotlinx.datetime.LocalTime
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_add_to_cd
+import opson.libraries.resources.generated.resources.today_added_one
+import opson.libraries.resources.generated.resources.today_added_other
+import opson.libraries.resources.generated.resources.today_added_undo
+import opson.libraries.resources.generated.resources.today_bridge_body
+import opson.libraries.resources.generated.resources.today_bridge_not_today
+import opson.libraries.resources.generated.resources.today_bridge_title
+import opson.libraries.resources.generated.resources.today_bridge_tried
 import opson.libraries.resources.generated.resources.today_calendar_cd
 import opson.libraries.resources.generated.resources.today_close_body
 import opson.libraries.resources.generated.resources.today_close_title
@@ -116,6 +127,8 @@ import opson.libraries.resources.generated.resources.today_menu_copy_tomorrow
 import opson.libraries.resources.generated.resources.today_menu_copy_yesterday
 import opson.libraries.resources.generated.resources.today_menu_edit_cards
 import opson.libraries.resources.generated.resources.today_menu_nutrients
+import opson.libraries.resources.generated.resources.today_menu_tracked
+import opson.libraries.resources.generated.resources.today_menu_untracked
 import opson.libraries.resources.generated.resources.today_new_count_one
 import opson.libraries.resources.generated.resources.today_new_count_other
 import opson.libraries.resources.generated.resources.today_new_this_month
@@ -145,6 +158,9 @@ import opson.libraries.resources.generated.resources.today_summary_range
 import opson.libraries.resources.generated.resources.today_tile_ate
 import opson.libraries.resources.generated.resources.today_tile_items_one
 import opson.libraries.resources.generated.resources.today_tile_items_other
+import opson.libraries.resources.generated.resources.today_untracked_action
+import opson.libraries.resources.generated.resources.today_untracked_body
+import opson.libraries.resources.generated.resources.today_untracked_title
 import opson.libraries.resources.generated.resources.today_water
 import opson.libraries.resources.generated.resources.today_water_cd
 import opson.libraries.resources.generated.resources.today_what_you_had
@@ -170,13 +186,28 @@ fun TodayScreen(
         if (index >= 0) listState.animateScrollToItem(index)
     }
     Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { insets ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(insets),
-            state = listState,
-            contentPadding = PaddingValues(start = AppTheme.spacing.row, end = AppTheme.spacing.row, bottom = AppTheme.spacing.section * 2),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
-        ) {
-            items(rows, key = { it.key }) { row -> TodayListItem(row, state, onAction) }
+        Box(Modifier.fillMaxSize().padding(insets)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState,
+                contentPadding = PaddingValues(start = AppTheme.spacing.row, end = AppTheme.spacing.row, bottom = AppTheme.spacing.section * 2),
+                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+            ) {
+                items(rows, key = { it.key }) { row -> TodayListItem(row, state, onAction) }
+            }
+            state.added?.let { added ->
+                val meal = stringResource(added.slot.sentenceName)
+                UndoBar(
+                    message = if (added.count == 1) {
+                        stringResource(Res.string.today_added_one, meal)
+                    } else {
+                        stringResource(Res.string.today_added_other, added.count, meal)
+                    },
+                    actionLabel = stringResource(Res.string.today_added_undo),
+                    onAction = { onAction(TodayAction.UndoTapped) },
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(AppTheme.spacing.row),
+                )
+            }
         }
     }
 }
@@ -189,6 +220,8 @@ internal sealed interface TodayRow {
     data class Banner(val banner: TodayBanner) : TodayRow { override val key = "banner" }
     data object Planning : TodayRow { override val key = "planning" }
     data class Summary(val summary: TodaySummary) : TodayRow { override val key = "summary" }
+    data object Untracked : TodayRow { override val key = "untracked" }
+    data class Bridge(val card: FoodBridgeCard) : TodayRow { override val key = "food-bridge" }
     data class CountsRow(val counts: Counts) : TodayRow { override val key = "counts" }
     data class Tiles(val tiles: List<MealTile>) : TodayRow { override val key = "tiles" }
     data class Rhythm(val card: RhythmCard) : TodayRow { override val key = "rhythm" }
@@ -204,10 +237,12 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
     state.banner?.let { add(TodayRow.Banner(it)) }
     if (state.planning) add(TodayRow.Planning)
     state.summary?.let { add(TodayRow.Summary(it)) }
+    if (state.untracked) add(TodayRow.Untracked)
     state.counts?.let { add(TodayRow.CountsRow(it)) }
     state.mealTiles?.let { add(TodayRow.Tiles(it)) }
     state.rhythm?.let { add(TodayRow.Rhythm(it)) }
     state.whatYouHad?.takeIf { state.rhythm == null }?.let { add(TodayRow.Had(it)) }
+    state.bridge?.let { add(TodayRow.Bridge(it)) }
     state.safeFoods?.let { add(TodayRow.SafeFoods(it)) }
     state.water?.let { add(TodayRow.Water(it)) }
     state.meals.forEach { add(TodayRow.Meal(it)) }
@@ -227,6 +262,36 @@ private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayActi
             body = stringResource(Res.string.today_plan_body),
         )
         is TodayRow.Summary -> Summary(row.summary, state.dayLabel, onAction)
+        TodayRow.Untracked -> PromptCard(
+            icon = AppIcons.BeachAccess,
+            tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint),
+            title = stringResource(Res.string.today_untracked_title),
+            body = stringResource(Res.string.today_untracked_body),
+        ) {
+            PromptAction(
+                label = stringResource(Res.string.today_untracked_action),
+                onClick = { onAction(TodayAction.TrackAgainTapped) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        is TodayRow.Bridge -> PromptCard(
+            icon = AppIcons.Route,
+            tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint),
+            title = stringResource(Res.string.today_bridge_title, row.card.from),
+            body = stringResource(Res.string.today_bridge_body, row.card.to, row.card.shared),
+        ) {
+            PromptAction(
+                label = stringResource(Res.string.today_bridge_tried),
+                onClick = { onAction(TodayAction.BridgeTriedTapped) },
+                emphasis = true,
+                modifier = Modifier.weight(1f),
+            )
+            PromptAction(
+                label = stringResource(Res.string.today_bridge_not_today),
+                onClick = { onAction(TodayAction.BridgeNotTodayTapped) },
+                modifier = Modifier.weight(1f),
+            )
+        }
         is TodayRow.CountsRow -> Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
             CountChip(
                 icon = AppIcons.Restaurant,
@@ -603,6 +668,11 @@ fun ColumnScope.DayMenuItems(menu: DayMenu, onAction: (TodayAction) -> Unit) {
                 DayMenuItem.CopyYesterday -> Triple(Res.string.today_menu_copy_yesterday, AppIcons.ContentCopy, TodayAction.CopyYesterdayTapped)
                 DayMenuItem.CopyToTomorrow -> Triple(Res.string.today_menu_copy_tomorrow, AppIcons.FileCopy, TodayAction.CopyToTomorrowTapped)
                 DayMenuItem.AddNote -> Triple(Res.string.today_menu_add_note, AppIcons.EditNote, TodayAction.DayNoteTapped)
+                is DayMenuItem.Untracked -> Triple(
+                    if (item.marked) Res.string.today_menu_tracked else Res.string.today_menu_untracked,
+                    AppIcons.BeachAccess,
+                    TodayAction.UntrackedMenuTapped,
+                )
                 DayMenuItem.EditCards -> Triple(Res.string.today_menu_edit_cards, AppIcons.DashboardCustomize, TodayAction.EditCardsTapped)
                 DayMenuItem.ClearDay -> Triple(
                     if (armed) Res.string.today_menu_clear_confirm else Res.string.today_menu_clear,

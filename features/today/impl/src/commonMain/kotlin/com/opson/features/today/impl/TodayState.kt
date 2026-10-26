@@ -2,6 +2,7 @@ package com.opson.features.today.impl
 
 import com.opson.features.logger.LogTab
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
@@ -46,8 +47,26 @@ data class TodayState(
     val closeDay: CloseDayCard? = null,
     /** The meal that just changed, outlined for a moment and scrolled to. */
     val highlight: MealSlot? = null,
+    /** "Added 2 foods to dinner" with Undo, for six seconds after the logger adds (3.9). */
+    val added: AddedNotice? = null,
+    /**
+     * The day is marked untracked: one calm card stands in for the hero card, the counts, the
+     * planning banner and Close the day. The meals stay, so logging still works.
+     */
+    val untracked: Boolean = false,
+    /** Explorer's food bridge (2.8), until "I tried it" or "Not today". */
+    val bridge: FoodBridgeCard? = null,
     val menu: DayMenu? = null,
 )
+
+/** [count] foods just went into [slot]. A count of foods, never an amount. */
+data class AddedNotice(val slot: MealSlot, val count: Int)
+
+/**
+ * "A small step from [from]" / "You've had [to] before, and it has [shared] in it too." The
+ * names are ready for the middle of a sentence ("rice pudding", but "Thai curry").
+ */
+data class FoodBridgeCard(val from: String, val to: String, val shared: String)
 
 sealed interface TodaySummary {
     /**
@@ -201,6 +220,9 @@ sealed interface DayMenuItem {
     data object CopyYesterday : DayMenuItem
     data object CopyToTomorrow : DayMenuItem
     data object AddNote : DayMenuItem
+
+    /** "Mark as untracked", or "Track this day again" once [marked]. */
+    data class Untracked(val marked: Boolean) : DayMenuItem
     data object EditCards : DayMenuItem
     data object ClearDay : DayMenuItem
 }
@@ -227,6 +249,16 @@ sealed interface TodayAction {
     data object CloseDayCardTapped : TodayAction
     data object HighlightFaded : TodayAction
 
+    /** The logger added food (`RecentLogEvents.latest`) while Today showed [shown]. */
+    data class LoggedArrived(val event: LoggedToMeal, val shown: LocalDate) : TodayAction
+    data object UndoTapped : TodayAction
+
+    /** [event]'s six seconds ran out. */
+    data class UndoExpired(val event: LoggedToMeal) : TodayAction
+    data object TrackAgainTapped : TodayAction
+    data object BridgeTriedTapped : TodayAction
+    data object BridgeNotTodayTapped : TodayAction
+
     // The ⋮ menu
     data object DayMenuTapped : TodayAction
     data object MenuDismissed : TodayAction
@@ -235,6 +267,7 @@ sealed interface TodayAction {
     data object CopyYesterdayTapped : TodayAction
     data object CopyToTomorrowTapped : TodayAction
     data object DayNoteTapped : TodayAction
+    data object UntrackedMenuTapped : TodayAction
     data object EditCardsTapped : TodayAction
     data object ClearDayTapped : TodayAction
 }
@@ -244,6 +277,9 @@ sealed interface TodayEvent {
     data class OpenDayClose(val day: LocalDate) : TodayEvent
     data class OpenNutrients(val day: LocalDate) : TodayEvent
     data class OpenLogger(val day: LocalDate, val slot: MealSlot?) : TodayEvent
+
+    /** The logger with [foodId] already picked (the food bridge's "I tried it"). */
+    data class OpenLoggerWithFood(val day: LocalDate, val foodId: String, val isCustom: Boolean) : TodayEvent
     data class OpenLog(val day: LocalDate, val slot: MealSlot, val tab: LogTab) : TodayEvent
     data class OpenDayNote(val day: LocalDate) : TodayEvent
     data class OpenMealSheet(val day: LocalDate, val slot: MealSlot) : TodayEvent

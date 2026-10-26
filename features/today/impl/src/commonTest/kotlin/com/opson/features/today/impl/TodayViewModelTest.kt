@@ -2,6 +2,7 @@ package com.opson.features.today.impl
 
 import com.opson.features.logger.LogTab
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
@@ -24,6 +25,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * [TodayViewModel], one test per action: what it writes, what it sends, and the outline on a
@@ -37,6 +39,8 @@ class TodayViewModelTest : CoroutineTest() {
     private val settings = FakeSettingsRepository()
     private val policySource = FakePolicySource()
     private val selectedDay = FakeSelectedDay()
+    private val recentLogEvents = FakeRecentLogEvents()
+    private val clock = FakeClock()
 
     private fun vm() = TodayViewModel(
         diary = diary,
@@ -44,6 +48,8 @@ class TodayViewModelTest : CoroutineTest() {
         policySource = policySource,
         selectedDay = selectedDay,
         calendar = FakeCalendar(),
+        recentLogEvents = recentLogEvents,
+        clock = clock,
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -157,6 +163,133 @@ class TodayViewModelTest : CoroutineTest() {
         advanceTimeBy(TodayViewModel.HIGHLIGHT_FOR.inWholeMilliseconds + 1)
         runCurrent()
         assertNull(vm.state.highlight)
+    }
+
+    @Test
+    fun anAddFromTheLoggerOffersUndoForWhatIsLeftOfItsSixSeconds() = runUnitTest {
+        val vm = vm()
+        val event = TodayFixtures.added()
+        clock.now = event.at + 2.seconds
+
+        recentLogEvents.logged(event)
+
+        assertEquals(AddedNotice(MealSlot.Dinner, count = 2), vm.state.added)
+        assertEquals(MealSlot.Dinner, vm.state.highlight, "scrolled to and outlined")
+        assertEquals(listOf(event), recentLogEvents.consumed, "shown once")
+        assertNull(recentLogEvents.latest.value)
+
+        advanceTimeBy(4.seconds.inWholeMilliseconds - 1)
+        runCurrent()
+        assertNotNull(vm.state.added, "four seconds were left, not six")
+        advanceTimeBy(2)
+        runCurrent()
+        assertNull(vm.state.added)
+    }
+
+    @Test
+    fun undoRemovesExactlyWhatTheLoggerAdded() = runUnitTest {
+        val vm = vm()
+        val event = TodayFixtures.added()
+        clock.now = event.at
+        recentLogEvents.logged(event)
+
+        vm.takeAction(TodayAction.UndoTapped)
+
+        assertEquals(listOf(event), recentLogEvents.undone)
+        assertNull(vm.state.added)
+        vm.takeAction(TodayAction.UndoTapped)
+        assertEquals(1, recentLogEvents.undone.size, "a second tap has nothing left to undo")
+    }
+
+    @Test
+    fun anAddWhoseWindowClosedShowsNothing() = runUnitTest {
+        val vm = vm()
+        val event = TodayFixtures.added()
+        clock.now = event.at + LoggedToMeal.UNDO_WINDOW
+
+        recentLogEvents.logged(event)
+
+        assertNull(vm.state.added)
+        assertEquals(listOf(event), recentLogEvents.consumed)
+    }
+
+    @Test
+    fun anAddForAnotherDayWaitsForThatDay() = runUnitTest {
+        val vm = vm()
+        val event = TodayFixtures.added().copy(day = yesterday)
+        clock.now = event.at
+
+        recentLogEvents.logged(event)
+        assertNull(vm.state.added)
+        assertTrue(recentLogEvents.consumed.isEmpty())
+
+        vm.takeAction(TodayAction.PreviousDayTapped)
+        assertEquals(AddedNotice(MealSlot.Dinner, count = 2), vm.state.added)
+    }
+
+    @Test
+    fun goingToAnotherDayDropsTheUndoBar() = runUnitTest {
+        val vm = vm()
+        val event = TodayFixtures.added()
+        clock.now = event.at
+        recentLogEvents.logged(event)
+
+        vm.takeAction(TodayAction.PreviousDayTapped)
+
+        assertNull(vm.state.added)
+        assertTrue(recentLogEvents.undone.isEmpty())
+    }
+
+    @Test
+    fun markAsUntrackedTogglesTheDayAndTrackItAgainUndoesIt() = runUnitTest {
+        val vm = vm()
+
+        vm.takeAction(TodayAction.DayMenuTapped)
+        vm.takeAction(TodayAction.UntrackedMenuTapped)
+        assertNull(vm.state.menu)
+        assertEquals(listOf(today to true), diary.untracked)
+
+        diary.days.value = diary.days.value + (today to TodayFixtures.untrackedDay())
+        assertTrue(vm.state.untracked)
+        vm.takeAction(TodayAction.UntrackedMenuTapped)
+        vm.takeAction(TodayAction.TrackAgainTapped)
+        assertEquals(listOf(today to true, today to false, today to false), diary.untracked)
+    }
+
+    @Test
+    fun iTriedItOpensTheLoggerWithTheBridgeFoodAndPutsTheCardAway() = runUnitTest {
+        explorerWithABridge()
+        val vm = vm()
+        val events = events(vm)
+        assertEquals(FoodBridgeCard(from = "jasmine rice", to = "rice pudding", shared = "rice"), vm.state.bridge)
+
+        vm.takeAction(TodayAction.BridgeTriedTapped)
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenLoggerWithFood(today, "pudding", isCustom = false)), events)
+        assertNull(vm.state.bridge)
+    }
+
+    @Test
+    fun notTodayPutsTheCardAwayAndRecordsNothing() = runUnitTest {
+        explorerWithABridge()
+        val vm = vm()
+
+        vm.takeAction(TodayAction.BridgeNotTodayTapped)
+
+        assertNull(vm.state.bridge)
+        assertEquals(0, diary.writes)
+        vm.takeAction(TodayAction.NextDayTapped)
+        vm.takeAction(TodayAction.PreviousDayTapped)
+        assertNull(vm.state.bridge, "still today, still put away")
+    }
+
+    /** Jasmine rice most days, rice pudding once last week. */
+    private fun explorerWithABridge() {
+        val rice = TodayFixtures.day().items(MealSlot.Lunch).last()
+        val pudding = rice.copy(id = "pudding-1", name = "Rice pudding", foodId = "pudding", day = today.minus(DatePeriod(days = 4)))
+        diary.frequent.value = listOf(rice)
+        diary.days.value = mapOf(today to TodayFixtures.day(), pudding.day to Day(pudding.day, itemsBySlot = mapOf(MealSlot.Snack to listOf(pudding))))
+        policySource.policy.value = policy(PresetId.Explorer)
     }
 
     @Test

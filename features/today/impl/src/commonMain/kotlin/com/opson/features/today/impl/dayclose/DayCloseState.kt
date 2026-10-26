@@ -3,6 +3,7 @@ package com.opson.features.today.impl.dayclose
 import com.opson.features.today.impl.MacroTile
 import com.opson.features.today.impl.TodayStateBuilder
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
@@ -37,9 +38,16 @@ data class DayCloseState(
     val mealsLine: MealsLine? = null,
     /** Calories hidden (Blind, Coast): which meals were logged, as chips. */
     val loggedMeals: Set<MealSlot>? = null,
+    /**
+     * "How did today feel?" (4.5), offered beside [loggedMeals]: the choices and the one picked,
+     * if any. Optional; nothing is asked of anyone who skips it.
+     */
+    val feeling: FeelingChoice? = null,
     val isToday: Boolean = true,
     val note: String = "",
 )
+
+data class FeelingChoice(val options: List<DayFeeling>, val picked: DayFeeling?)
 
 /** [macros] are left out on a big day, where the reset card is the message. */
 data class DayTotals(val eaten: Display, val rangeLine: RangeLine, val macros: List<MacroTile>)
@@ -62,6 +70,9 @@ data class MealsLine(val done: Int, val total: Int)
 sealed interface DayCloseAction {
     data class InputsArrived(val inputs: DayCloseInputs, val policy: VisibilityPolicy) : DayCloseAction
     data class NoteTyped(val text: String) : DayCloseAction
+
+    /** A feeling chip; the picked one again clears it. */
+    data class FeelingTapped(val feeling: DayFeeling) : DayCloseAction
     data object CommitmentTapped : DayCloseAction
     data object DoneTapped : DayCloseAction
     data object BackTapped : DayCloseAction
@@ -80,7 +91,13 @@ data class DayCloseInputs(val today: LocalDate, val day: Day, val settings: Sett
  * comes from `Targets.tomorrow()`, which takes no inputs, so nothing here can move it.
  */
 object DayCloseStateBuilder {
-    fun build(inputs: DayCloseInputs, policy: VisibilityPolicy, note: String, committed: Boolean): DayCloseState {
+    fun build(
+        inputs: DayCloseInputs,
+        policy: VisibilityPolicy,
+        note: String,
+        committed: Boolean,
+        feeling: DayFeeling? = null,
+    ): DayCloseState {
         val day = inputs.day
         val today = inputs.today
         val settings = inputs.settings
@@ -136,6 +153,7 @@ object DayCloseStateBuilder {
             },
             mealsLine = if (revealed) MealsLine(day.doneMealCount, MealSlot.meals.size) else null,
             loggedMeals = if (eatenDisplay is Display.Hidden) MealSlot.meals.filterTo(LinkedHashSet()) { day.isMealDone(it) } else null,
+            feeling = if (eatenDisplay is Display.Hidden) FeelingChoice(DayFeeling.entries, feeling) else null,
             isToday = isToday,
             note = note,
         )

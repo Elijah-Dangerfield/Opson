@@ -5,8 +5,10 @@ import com.opson.features.today.impl.dayclose.DayCloseAction
 import com.opson.features.today.impl.dayclose.DayCloseEvent
 import com.opson.features.today.impl.dayclose.DayCloseState
 import com.opson.features.today.impl.dayclose.DayCloseViewModel
+import com.opson.features.today.impl.dayclose.FeelingChoice
 import com.opson.features.today.impl.dayclose.MealsLine
 import com.opson.features.today.impl.dayclose.RangeLine
+import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
@@ -130,11 +132,14 @@ class DayCloseTest : CoroutineTest() {
 
     private val diary = FakeDiaryRepository(listOf(TodayFixtures.day(dinner = true).copy(note = "Dinner at Lola's")))
 
-    private fun vm(day: kotlinx.datetime.LocalDate = TodayFixtures.today) = DayCloseViewModel(
+    private fun vm(
+        day: kotlinx.datetime.LocalDate = TodayFixtures.today,
+        policySource: FakePolicySource = FakePolicySource(),
+    ) = DayCloseViewModel(
         day = day,
         diary = diary,
         settingsRepository = FakeSettingsRepository(),
-        policySource = FakePolicySource(),
+        policySource = policySource,
         calendar = FakeCalendar(),
     )
 
@@ -185,6 +190,57 @@ class DayCloseTest : CoroutineTest() {
         assertEquals(0, diary.writes)
         assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
     }
+
+    @Test
+    fun howTodayFeltIsOfferedOnlyBesideTheLoggedMeals() {
+        val blind = TodayFixtures.dayCloseState(policy(PresetId.Blind), feeling = DayFeeling.Tired)
+        assertEquals(FeelingChoice(DayFeeling.entries, DayFeeling.Tired), blind.feeling)
+        assertEquals(listOf("steady", "busy", "tired", "good", "hard"), DayFeeling.entries.map { it.wire }, "the design's order")
+        assertNull(build(PresetId.Full).feeling, "with totals on show the screen already has its say")
+        assertNull(build(PresetId.Fuel).feeling)
+    }
+
+    @Test
+    fun aFeelingTapPicksItAndTappingItAgainClearsIt() = runUnitTest {
+        policySourceForFeeling.policy.value = policy(PresetId.Blind)
+        val vm = vm(policySource = policySourceForFeeling)
+
+        vm.takeAction(DayCloseAction.FeelingTapped(DayFeeling.Steady))
+        assertEquals(DayFeeling.Steady, vm.state.feeling?.picked)
+        vm.takeAction(DayCloseAction.FeelingTapped(DayFeeling.Busy))
+        assertEquals(DayFeeling.Busy, vm.state.feeling?.picked)
+        vm.takeAction(DayCloseAction.FeelingTapped(DayFeeling.Busy))
+        assertNull(vm.state.feeling?.picked)
+        assertEquals(0, diary.writes, "nothing is saved until Close the day")
+    }
+
+    @Test
+    fun theFeelingPrefillsAndIsSavedOnDoneButNeverOnBack() = runUnitTest {
+        diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(feeling = DayFeeling.Good))
+        policySourceForFeeling.policy.value = policy(PresetId.Blind)
+        val vm = vm(policySource = policySourceForFeeling)
+        assertEquals(DayFeeling.Good, vm.state.feeling?.picked)
+
+        vm.takeAction(DayCloseAction.FeelingTapped(DayFeeling.Hard))
+        vm.takeAction(DayCloseAction.BackTapped)
+        assertTrue(diary.dayFeelings.isEmpty())
+
+        vm.takeAction(DayCloseAction.DoneTapped)
+        assertEquals(listOf<Pair<kotlinx.datetime.LocalDate, DayFeeling?>>(TodayFixtures.today to DayFeeling.Hard), diary.dayFeelings)
+    }
+
+    @Test
+    fun anUnchangedFeelingIsNotWrittenAgain() = runUnitTest {
+        diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(feeling = DayFeeling.Good))
+        policySourceForFeeling.policy.value = policy(PresetId.Blind)
+        val vm = vm(policySource = policySourceForFeeling)
+
+        vm.takeAction(DayCloseAction.DoneTapped)
+
+        assertTrue(diary.dayFeelings.isEmpty())
+    }
+
+    private val policySourceForFeeling = FakePolicySource()
 
     @Test
     fun aFutureDayClosesItself() = runUnitTest {
