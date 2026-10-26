@@ -63,15 +63,15 @@ is given. *owner*: needs a decision.
 | `patterns`, `patterns--full` | `trends-previews__patterns`, `-below` | Card titles use `sheetTitle` (20 sp); v3's are card titles, the same size as Trends' "Recap". | *fixed* |
 | | | Fact rows and their values as on Trends. | *fixed* |
 | | | Hunger chips and new-food chips are large; v3 uses compact tags. | *fixed* (size); v3's tags are squarer than `PillTag`'s pill, left as the system draws it |
-| `patterns-blind` | `trends-previews__patterns-blind` | v3's Blind timing card has only "Breakfast, usually"; the app also shows "Dinner on Fri and Sat, about 45 min later" and "Longest gap". Both are times, not amounts. | *owner*: drop them in Blind or keep them |
+| `patterns-blind` | `trends-previews__patterns-blind` | v3's Blind timing card has only "Breakfast, usually"; the app also showed "Dinner on Fri and Sat, about 45 min later" and "Longest gap". | *fixed*: owner's call, gaps can feed restriction. `ModePreset.mealGaps` is off in Blind only; `BlindMealGapsTest` in the leak suite asserts no gap or duration text in Blind Patterns, with Full as its control |
 
 ### Nutrients
 
 | v3 | App | Differences | Status |
 |---|---|---|---|
-| `nutrients-day` | `trends-previews__nutrients-day` | Macro values read "53 g of 120 g"; v3 reads "88 of 120 g". The text comes from the shared policy formatter, which Today's tests also pin. | *deferred*: a formatter change for whoever owns `:libraries:nutrition` and Today |
+| `nutrients-day` | `trends-previews__nutrients-day` | Macro values read "53 g of 120 g"; v3 reads "88 of 120 g". | *fixed* in the shared formatter; Nutrients and Today's Fuel lead ("51 of 120 g") checked at 390 dp |
 | | | Energy line has a double space before "· range". | *fixed* |
-| | | The energy bar is about 14 dp thick; v3's is about 8. `RangeBar` is shared with Today's summary. | *deferred* (Today's owner) |
+| | | The energy bar is about 13 dp thick; v3's is about 6 with a 12 pt box. Today's summary bar in v3 is about 11 with an 18 pt box, so the two differ. | *fixed*: `RangeBar(height =)`, `RangeBarDefaults.CompactHeight` (12 dp) on Nutrients, Today unchanged |
 | `nutrients-week`, `--full` | `trends-previews__nutrients-week`, `-below` | Caption ends "than a day."; v3 "than a day does." | *fixed* |
 
 ### Weight
@@ -154,12 +154,13 @@ side by side.
 - **Water settings.** The goal line no longer renders as "0 glasses,  a day"
   before settings load.
 
-## Left for the owner
+## Owner decisions, applied
 
-- **Patterns in Blind**: drop "Dinner on Fri and Sat" and "Longest gap" to
-  match v3, or keep them as times that reveal no amount.
-- **"53 g of 120 g" or "88 of 120 g"** on Nutrients: a change to the shared
-  formatter that Today's tests pin.
-- **Entries logged before the amount fix** keep "0.25 cup". A display-time
-  rewrite with `HouseholdAmount.tidy` on Today's item rows would cover them;
-  Today is outside this pass.
+- **Patterns in Blind** shows only what v3 shows. See the Patterns row.
+- **"88 of 120 g"** is the shared formatter's wording for a macro with a goal.
+- **Entries logged before the amount fix** are tidied when shown:
+  `LogItem.amountLabel` and `LogDraft.amountLabel` run `HouseholdAmount.tidy`
+  over the stored text ("0.25 cup" reads "¼ cup", "1.5 × 1 cup" reads
+  "1½ cups"). Today's item rows and item sheet, Foods' recents and saved-meal
+  items, and the logger's basket and recents all read `amountLabel`. Day close
+  shows no item amounts.
