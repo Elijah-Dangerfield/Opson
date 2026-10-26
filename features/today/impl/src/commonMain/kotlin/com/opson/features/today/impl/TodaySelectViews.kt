@@ -164,6 +164,8 @@ private fun Actions(selection: Selection, onAction: (TodayAction) -> Unit) {
         }
         HorizontalDivider(color = AppTheme.colors.line)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            // TODO(design-sync-2): "Save as meal" from the picks. Create a meal takes a slot today, not a
+            // set of foods, and lives in Foods' module; add a foods-api route that takes entry ids.
             PanelAction(AppIcons.ContentCopy, stringResource(Res.string.today_select_copy)) { onAction(TodayAction.CopyToTapped) }
             PanelAction(AppIcons.Schedule, stringResource(Res.string.today_select_move)) { onAction(TodayAction.MoveTapped) }
             PanelAction(AppIcons.Delete, stringResource(Res.string.today_select_remove)) { onAction(TodayAction.RemoveSelectedTapped) }
@@ -230,6 +232,8 @@ private fun CopyTo(step: SelectStep.CopyTo, onAction: (TodayAction) -> Unit) {
     }
 }
 
+// TODO(design-sync-2): Move also changes the time (2.12). The time picker lives in Settings' module;
+// lift it into :libraries:ui, then add a time row here that rewrites `loggedAt`.
 @Composable
 private fun MoveTo(step: SelectStep.MoveTo, onAction: (TodayAction) -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {

@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -31,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
-import com.opson.libraries.nutrition.GoalStyle
 import com.opson.libraries.nutrition.MacroLineStyle
 import com.opson.libraries.nutrition.MacroPart
 import com.opson.libraries.nutrition.Metric
@@ -46,20 +44,14 @@ import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.nutrition.ui.currentVisibilityPolicy
 import com.opson.libraries.nutrition.ui.separator
-import com.opson.libraries.nutrition.ui.testTag
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HeroCard
-import com.opson.libraries.ui.components.HeroDivider
-import com.opson.libraries.ui.components.HeroLabel
-import com.opson.libraries.ui.components.HeroLink
 import com.opson.libraries.ui.components.HeroWashButton
 import com.opson.libraries.ui.components.HeroWashPanel
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.MinTouchTarget
-import com.opson.libraries.ui.components.PillAction
-import com.opson.libraries.ui.components.RangeBar
 import com.opson.libraries.ui.components.SegmentedBar
 import com.opson.libraries.ui.components.chip.PillTag
 import com.opson.libraries.ui.components.chip.PillTagSize

@@ -195,6 +195,17 @@ carry it.
       phone added), V12 to V14, and the new routes (including
       `POST /v1/describe/photo`, which needs `ANTHROPIC_API_KEY`).
 
+## Today and Day close, design sync 2 (`release.todaySummary`, `release.todaySelect`, `release.checkIn`)
+
+- [ ] Deploy V18 (`day_records.check_in`) before flipping `release.checkIn`.
+      A server without it drops the check-in silently (the row still syncs).
+- [ ] TODO(clinician): approve "Why not cut back?" (`today_dayclose_why_body`)
+      and pick its citation; no study is named until then.
+- [ ] Patterns reading the check-in, and the Reminders switch that turns the
+      check-in card off, are Trends' and Settings' to build before the flag flips.
+- [ ] Try swipe to delete with TalkBack and VoiceOver (the row's Delete action)
+      and Undo on a phone.
+
 ## Search quality
 
 - [ ] After the prod deploy (V15 adds partial indexes; a few seconds of held

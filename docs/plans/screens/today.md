@@ -109,8 +109,9 @@ State gains `selection: Selection?` (ids, count, energy and macro totals as
 
 `Day.checkIn: CheckIn?` (hunger through the day Rarely to Very; energy Low, OK,
 Good; sleep Poor, OK, Good; moods Calm, Social, Stressed, Tired, Low, Happy),
-stored as JSON on the day record, written by `DayCheckIns.setCheckIn(day, checkIn)`
-on Close the day, never on Back. Shown in every mode; Blind's "How did today
+stored as JSON on the day record (Room 9 `day_records.checkIn`, server V18
+`day_records.check_in`, both additive; the server checks length only), written
+by `DayCheckIns.setCheckIn(day, checkIn)` on Close the day, never on Back. Shown in every mode; Blind's "How did today
 feel?" steps aside while the flag is on. A row left blank stays blank. Feeding
 Patterns is Trends' work and the Reminders switch for the card is Settings'
 (TODOs there).
@@ -128,6 +129,15 @@ Patterns is Trends' work and the Reminders switch for the card is Settings'
 - No ⋮ in the select header: it would hold nothing that is built.
 - Deficit goals ("Goal about 1,870") and by-day names ("Training day") on the
   card are Settings' targets work and are not drawn here yet.
+- How it felt keeps the stored moods: "Tired" is not one (the check-in has it),
+  and Anxious and Low stay after the design's five.
+- No "Save as meal" in the select panel and no time in Move (TODOs in
+  `TodaySelectViews.kt`): Create a meal takes a slot and is Foods' module, and
+  the only time picker is Settings'.
+- The snack tile keeps its leaf: Material has no apple, the design's glyph is a
+  Symbols-only one.
+- The sticky bar's tap scrolls to the top inside the screen; it is UI state, not
+  an action.
 
 ### Leak test
 

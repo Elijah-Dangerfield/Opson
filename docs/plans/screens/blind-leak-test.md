@@ -164,6 +164,10 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-reminders` | today | 0.2; Rhythm's reminder line (a time, never an amount) | yes |
 | new | | `today-expended` | today | 0.2, `integrations.md`; the Expended so far line | yes |
 | new | | `today-exercise` | today | 0.2, `integrations.md`; exercise in the range (All of it), energy out drawn | yes |
+| new | | `today-summary`, `today-macros`, `today-sticky`, `today-collapsed`, `today-weight` | today | design sync 2, `release.todaySummary`; the stats row, the macros page, the sticky bar for every page, the collapsed line, the weight row | yes |
+| new | | `today-select`, `today-select-remove`, `today-swipe-delete`, `today-delete-confirm` | today | design sync 2, `release.todaySelect`; the select panel's totals and its confirmation, a row swiped open and its confirmation | yes |
+| new | | `today-cards-summary` | today | design sync 2; Edit Today's cards with the summary section | no |
+| new | | `day-close-check-in` | today | design sync 2, `release.checkIn`; the check-in and the watch's energy | yes |
 | new | | `integrations-leave-out` | settings | 0.2, `integrations.md`; the Leave out a day sheet, dates only | no |
 | new | | `logger-describe-voice` | logger | 0.2, `voice.md`; Describe it while listening, over lines already read | yes |
 | new | | `logger-photo-swap` | logger | 0.2, `photo.md`; swapping a line's food | yes |
