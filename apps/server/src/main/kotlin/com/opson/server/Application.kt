@@ -14,6 +14,7 @@ import com.opson.server.plugins.JwtVerification
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.installAdminWeb
 import com.opson.server.plugins.installAuthentication
+import com.opson.server.plugins.installBodyLimit
 import com.opson.server.plugins.installCors
 import com.opson.server.plugins.installHttpServerTracing
 import com.opson.server.plugins.installObservability
@@ -138,6 +139,7 @@ fun Application.installApp(
     waitlistConfig: WaitlistConfig = WaitlistConfig(),
 ) {
     installSerialization()
+    installBodyLimit()
     installRateLimits()
     installStatusPages()
     installWebSockets()

@@ -61,6 +61,12 @@ fun Application.installStatusPages() {
                 problem("unsupported_media_type", "Send application/json"),
             )
         }
+        exception<RequestTooLargeException> { call, _ ->
+            call.respond(
+                HttpStatusCode.PayloadTooLarge,
+                problem("request_too_large", "The request body is too large"),
+            )
+        }
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,
