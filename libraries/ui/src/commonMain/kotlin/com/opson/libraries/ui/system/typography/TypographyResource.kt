@@ -34,55 +34,19 @@ import com.opson.system.sp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * Typography System Guidelines
+ * The legacy role-named type scale (Display, Heading, Body, Label, Caption, each on the
+ * `Dimension` sizes). It renders in Atkinson Hyperlegible Next like everything else, and stays
+ * so existing screens keep compiling.
  *
- * This system uses Poppins font family with a consistent numerical scale (D400-D1200)
- * where larger numbers indicate larger text. All sizes use consistent line-height ratios
- * for optimal readability.
- *
- * ## Categories & Usage
- *
- * **Display (D800-D1500)** - Hero text, splash screens, marketing
- * - SemiBold weight for impact without being overwhelming
- * - Tight line-height (1.1x) for visual cohesion
- * - Use sparingly for maximum impact
- *
- * **Heading (H400-H900)** - Page titles, section headers, card titles
- * - Bold/ExtraBold for hierarchy and emphasis
- * - Moderate line-height (1.25x) for breathing room
- * - Primary way to establish content hierarchy
- *
- * **Body (B400-B700)** - Paragraphs, descriptions, long-form content
- * - Normal/Regular weight for comfortable reading
- * - Generous line-height (1.5x) for readability
- * - Default choice for most content
- *
- * **Label (L300-L600)** - UI elements, buttons, form labels, chips, tabs
- * - Medium weight for subtle emphasis
- * - Tighter line-height (1.2x) for compact UI elements
- * - Use for interactive and metadata text
- *
- * **Caption (C200-C400)** - Timestamps, legal text, footnotes, helper text
- * - Normal weight for unobtrusiveness
- * - Standard line-height (1.4x) for small text legibility
- * - Smallest text in the system
+ * New code uses `AppTheme.type`, the handoff's em-based scale in [TypeScale], which also grows
+ * with the large-text setting. This one does not.
  *
  * ## Modifiers
- * Use modifiers to adjust typography on-the-fly:
+ * Both scales share [TypographyResource], so the modifiers work on either:
  * ```
- * AppTheme.typography.Body.B500.Bold      // Make body text bold
- * AppTheme.typography.Label.L400.Italic   // Italicize a label
+ * AppTheme.type.secondarySmall.Tabular    // tabular figures
+ * AppTheme.typography.Body.B500.Bold      // legacy, bold
  * ```
- *
- * ## Single Font Consideration
- * Poppins is an excellent choice - highly readable, modern, and works well at all sizes.
- * Having one font family keeps your app consistent and reduces bundle size.
- *
- * If you want visual variety in the future, consider:
- * - Adding a monospace font (e.g., JetBrains Mono, Roboto Mono) for code/data display
- * - Adding a serif font (e.g., Merriweather, Lora) for long-form reading content
- *
- * But for most mobile apps, a single well-chosen sans-serif like Poppins is perfect.
  */
 
 @Suppress("ComplexMethod")
@@ -93,7 +57,9 @@ data class TypographyResource internal constructor(
     internal val lineHeight: TextUnit,
     internal val lineBreak: LineBreak,
     internal val fontStyle: FontStyle = FontStyle.Normal,
-    internal val identifier: String
+    internal val identifier: String,
+    internal val letterSpacing: TextUnit = TextUnit.Unspecified,
+    internal val fontFeatureSettings: String? = null,
 ) {
 
     val style: TextStyle = TextStyle(
@@ -103,84 +69,42 @@ data class TypographyResource internal constructor(
         lineHeight = lineHeight,
         fontStyle = fontStyle,
         lineBreak = lineBreak,
+        letterSpacing = letterSpacing,
+        fontFeatureSettings = fontFeatureSettings,
     )
 
-    fun style(color: Color) = TextStyle(
-        fontFamily = fontFamily,
-        fontWeight = fontWeight,
-        fontSize = fontSize,
-        lineHeight = lineHeight,
-        fontStyle = fontStyle,
-        lineBreak = lineBreak,
-        color = color
-    )
+    fun style(color: Color) = style.copy(color = color)
 
     val Italic: TypographyResource
-        get() = TypographyResource(
-            fontFamily = fontFamily,
-            fontWeight = fontWeight,
-            fontSize = fontSize,
-            lineHeight = lineHeight,
-            lineBreak = lineBreak,
-            fontStyle = FontStyle.Italic,
-            identifier = "${identifier}-italic"
-        )
+        get() = copy(fontStyle = FontStyle.Italic, identifier = "${identifier}-italic")
 
     val Bold: TypographyResource
-        get() = TypographyResource(
-            fontFamily = fontFamily,
-            fontWeight = FontWeight.Bold,
-            fontSize = fontSize,
-            lineHeight = lineHeight,
-            lineBreak = lineBreak,
-            fontStyle = fontStyle,
-            identifier = "${identifier}-bold"
-        )
+        get() = copy(fontWeight = FontWeight.Bold, identifier = "${identifier}-bold")
 
     val ExtraBold: TypographyResource
-        get() = TypographyResource(
-            fontFamily = fontFamily,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = fontSize,
-            lineHeight = lineHeight,
-            lineBreak = lineBreak,
-            fontStyle = fontStyle,
-            identifier = "${identifier}-extrabold"
-        )
+        get() = copy(fontWeight = FontWeight.ExtraBold, identifier = "${identifier}-extrabold")
 
     val SemiBold: TypographyResource
-        get() = TypographyResource(
-            fontFamily = fontFamily,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = fontSize,
-            lineHeight = lineHeight,
-            lineBreak = lineBreak,
-            fontStyle = fontStyle,
-            identifier = "${identifier}-semibold"
-        )
+        get() = copy(fontWeight = FontWeight.SemiBold, identifier = "${identifier}-semibold")
+
+    val Medium: TypographyResource
+        get() = copy(fontWeight = FontWeight.Medium, identifier = "${identifier}-medium")
 
     val Normal: TypographyResource
-        get() = TypographyResource(
-            fontFamily = fontFamily,
-            fontWeight = FontWeight.Normal,
-            fontSize = fontSize,
-            lineHeight = lineHeight,
-            lineBreak = lineBreak,
-            fontStyle = fontStyle,
-            identifier = "${identifier}-normal"
-        )
+        get() = copy(fontWeight = FontWeight.Normal, identifier = "${identifier}-normal")
 
     val Light: TypographyResource
-        get() = TypographyResource(
-            fontFamily = fontFamily,
-            fontWeight = FontWeight.Light,
-            fontSize = fontSize,
-            lineHeight = lineHeight,
-            lineBreak = lineBreak,
-            fontStyle = fontStyle,
-            identifier = "${identifier}-light"
-        )
+        get() = copy(fontWeight = FontWeight.Light, identifier = "${identifier}-light")
+
+    /**
+     * Tabular figures, so digits share one width and a changing number does not shift the
+     * text around it. Every figure in the app uses this; `AppTheme.type.numeric*` already has it.
+     */
+    val Tabular: TypographyResource
+        get() = copy(fontFeatureSettings = TABULAR_FIGURES, identifier = "${identifier}-tnum")
 }
+
+internal const val TABULAR_FIGURES = "tnum"
 
 interface Typography {
     val Brand: BrandTypography
@@ -249,16 +173,19 @@ interface CaptionTypography {
     val C200: TypographyResource
 }
 
+/**
+ * The legacy role-named scale (`AppTheme.typography.Body.B500`, ...). Every group renders in
+ * [AppFontFamily]; only Brand keeps its script face. New code should use `AppTheme.type`.
+ */
 @Composable
 fun rememberTypography(): Typography {
-    val serifFontFamily = SerifFontFamily
-    val sansSerifFontFamily = SansSerifFontFamily
+    val appFontFamily = AppFontFamily
     val brandFontFamily = BrandFontFamily
 
-    return remember(serifFontFamily, sansSerifFontFamily, brandFontFamily) {
+    return remember(appFontFamily, brandFontFamily) {
         DefaultTypography(
-            serifFontFamily = serifFontFamily,
-            sansSerifFontFamily = sansSerifFontFamily,
+            serifFontFamily = appFontFamily,
+            sansSerifFontFamily = appFontFamily,
             brandFontFamily = brandFontFamily
         )
     }

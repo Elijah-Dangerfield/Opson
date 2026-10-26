@@ -387,7 +387,14 @@ theme.
   under. No red or green anywhere for amounts.
 - **Shape:** cards 22, sheets 28 top, sticky Today block 24 bottom, chips pill.
 - **Icons:** Material Symbols Rounded via the Compose Material icons extended
-  Rounded set.
+  Rounded set, reached only through `AppIcons` (named after the Symbols
+  ligatures; `nutrition` and `barcode_scanner` have no Rounded twin and use
+  the closest glyph).
+- **Access:** `AppTheme(palette, darkTheme, largeText)` at the root; tokens
+  through `AppTheme.colors`, `AppTheme.type` (the handoff scale; the older
+  `AppTheme.typography` stays for template screens), `AppTheme.shapes`,
+  `AppTheme.spacing` and `AppTheme.shadows`. Every component and token renders
+  in `DesignSystemGallery` (`:libraries:ui`, `catalog/`).
 
 ---
 

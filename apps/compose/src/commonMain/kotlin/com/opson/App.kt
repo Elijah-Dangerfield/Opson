@@ -52,7 +52,8 @@ import com.opson.libraries.ui.snackbar.showDebugSnackBar
 import com.opson.libraries.ui.system.LocalAppState
 import com.opson.libraries.ui.system.LocalBuildInfo
 import com.opson.libraries.ui.system.LocalClock
-import com.opson.system.AppThemeProvider
+import com.opson.system.AppTheme
+import com.opson.system.color.Palette
 import kotlin.reflect.typeOf
 import kotlin.time.Duration.Companion.seconds
 
@@ -145,7 +146,8 @@ fun App(appComponent: AppComponent) {
         LocalBuildInfo provides BuildInfo,
         LocalDialogHostState provides dialogHostState
     ) {
-        AppThemeProvider {
+        // Palette becomes a user setting once Settings lands; Pine is the handoff default.
+        AppTheme(palette = Palette.Pine) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

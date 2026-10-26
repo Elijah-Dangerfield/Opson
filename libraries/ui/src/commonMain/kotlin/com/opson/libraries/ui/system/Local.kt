@@ -6,6 +6,7 @@ import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.libraries.core.AppState
 import com.opson.libraries.core.BuildInfo
 import com.opson.system.color.Colors
+import com.opson.system.typography.TypeScale
 import com.opson.system.typography.Typography
 import kotlin.time.Clock
 
@@ -20,6 +21,9 @@ val LocalContentColor = compositionLocalOf<ColorResource> {
 val LocalTypography = compositionLocalOf<Typography> {
     error("Theme wasn't applied")
 }
+
+/** Defaults to the system font at the normal base so a composable outside the theme still lays out. */
+val LocalTypeScale = staticCompositionLocalOf<TypeScale> { TypeScale.Fallback }
 
 val LocalBuildInfo = staticCompositionLocalOf<BuildInfo> {
     error("No LocalBuildInfo provided")

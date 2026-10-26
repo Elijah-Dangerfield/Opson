@@ -45,11 +45,13 @@ object Radii {
     val None = Radius(SquareCornerSize)
 
     val Default get() = None
-    val Button get() = Radius(CornerSize(percent = 25))
+    // Handoff values; AppTheme.shapes has the same radii as Shapes for new code.
+    val Button get() = Radius(CornerSize(14.dp))
     val IconButton get() = Round
-    val Banner get() = R400
+    val Banner get() = Radius(CornerSize(14.dp))
     val Header get() = None
-    val Card get() = R400
+    val Card get() = Radius(CornerSize(22.dp))
+    val Input get() = Radius(CornerSize(12.dp))
 }
 
 

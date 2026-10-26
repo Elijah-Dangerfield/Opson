@@ -18,6 +18,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,16 +31,80 @@ import com.opson.system.Dimension
 import com.opson.system.Radii
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * The app's color tokens. Read them through `AppTheme.colors`, never as loose values.
+ *
+ * The first block is the handoff's own vocabulary (`--bg`, `--surface`, `--ink`, ...), which is
+ * what new code should use. The older role names below it (`text`, `surfacePrimary`, ...) are kept
+ * so existing screens keep compiling, and each one points at a handoff token.
+ */
 @Immutable
 @Suppress("LongParameterList")
 interface Colors {
 
+    val palette: Palette
+    val isDark: Boolean
+
+    /* Handoff base tokens */
+    val bg: ColorResource
+    val surface: ColorResource
+    val ink: ColorResource
+    val muted: ColorResource
+    val line: ColorResource
+    val track: ColorResource
+    val soft: ColorResource
+    val onAccent: ColorResource
+
+    /* Brand palette */
+    val hero: ColorResource
+    /** Text and icons on [hero]. White in both themes. */
+    val onHero: ColorResource
+    /** Secondary text on [hero], e.g. ring units and chevrons. */
+    val onHeroMuted: ColorResource
+    /** Ring track on [hero]. */
+    val heroTrack: ColorResource
+    /** Bar track on [hero]. */
+    val heroBarTrack: ColorResource
+    /** The 14% white wash behind round buttons on [hero]. */
+    val heroWash: ColorResource
+    val accent: ColorResource
+    /** Bars and rings that use the brand color. Same value as [accent] in every palette today. */
+    val fill: ColorResource
+    /** The soft accent tint behind round + buttons and selected rows. */
+    val accentTint: ColorResource
+
+    /* Overlays */
+    /** Behind a bottom sheet. */
+    val scrim: ColorResource
+    /** Behind a popover menu, lighter than [scrim]. */
+    val popoverScrim: ColorResource
+
+    /* Nutrients and meals */
+    val nutrients: NutrientColors
+
+    fun nutrient(tone: NutrientTone): ToneColors = when (tone) {
+        NutrientTone.Protein -> nutrients.protein
+        NutrientTone.Carbs -> nutrients.carbs
+        NutrientTone.Fat -> nutrients.fat
+        NutrientTone.Fiber -> nutrients.fiber
+        NutrientTone.Water -> nutrients.water
+    }
+
+    /** Breakfast is carbs, Lunch fat, Snack fiber, Dinner protein, Uncategorized muted on soft. */
+    fun meal(tone: MealTone): ToneColors = when (tone) {
+        MealTone.Breakfast -> nutrients.carbs
+        MealTone.Lunch -> nutrients.fat
+        MealTone.Snack -> nutrients.fiber
+        MealTone.Dinner -> nutrients.protein
+        MealTone.Uncategorized -> ToneColors(content = muted, container = soft)
+    }
+
+    /* Legacy role names, each mapped onto a handoff token */
     val accentPrimary: ColorResource
     val onAccentPrimary: ColorResource
     val accentSecondary: ColorResource
     val onAccentSecondary: ColorResource
 
-    /* Backgrounds */
     val shadow: ColorResource
     val background: ColorResource
     val backgroundOverlay: ColorResource
@@ -49,7 +114,6 @@ interface Colors {
     val borderSecondary: ColorResource
     val borderDisabled: ColorResource
 
-    /* Texts */
     val text: ColorResource
     val textSecondary: ColorResource
     val textDisabled: ColorResource
@@ -57,7 +121,6 @@ interface Colors {
 
     val status: StatusColor
 
-    /* Surfaces */
     val surfacePrimary: ColorResource
     val onSurfacePrimary: ColorResource
     val surfaceSecondary: ColorResource
@@ -76,42 +139,80 @@ interface StatusColor {
     val bad: ColorResource
 }
 
-val defaultColors = object : Colors {
-    // Blue as primary accent - like a clear sky
-    override val accentPrimary = ColorResource.Blue600
-    override val onAccentPrimary = ColorResource.White
-    // Purple as secondary - adds a touch of creativity and calm
-    override val accentSecondary = ColorResource.Purple600
-    override val onAccentSecondary = ColorResource.White
+/** Builds the full token set for one palette in one theme. */
+fun appColors(palette: Palette = Palette.Pine, dark: Boolean = false): Colors = AppColors(palette, dark)
 
-    override val shadow = ColorResource.Black_A30
-    override val textDisabled = ColorResource.Gray400
-    override val danger = ColorResource.Red600
-    // White surfaces for a clean, modern look
-    override val surfacePrimary = ColorResource.White
-    override val surfaceDisabled = ColorResource.Gray200
-    override val onSurfacePrimary = ColorResource.Gray900
-    override val surfaceSecondary = ColorResource.Gray100
-    override val onSurfaceSecondary = ColorResource.Gray800
-    override val surfaceTertiary = ColorResource.Gray200
-    override val onSurfaceTertiary = ColorResource.Gray700
-    override val onSurfaceDisabled = ColorResource.Gray400
-    // Light gray background for a soft, neutral canvas
-    override val background = ColorResource.Gray50
-    override val onBackground = ColorResource.Gray900
-    override val border = ColorResource.Gray300
-    override val borderSecondary = ColorResource.Gray400
-    override val borderDisabled = ColorResource.Gray200
-    // Dark gray text on light backgrounds for high readability
-    override val text = ColorResource.Gray900
-    override val backgroundOverlay = ColorResource.Black_A70
-    override val textSecondary = ColorResource.Gray600
+/** Pine, light. Kept for code that needs colors outside a composition. */
+val defaultColors: Colors = appColors()
+
+@Suppress("MagicNumber")
+private class AppColors(
+    override val palette: Palette,
+    override val isDark: Boolean,
+) : Colors {
+    private val base = if (isDark) DarkBase else LightBase
+    private val brand = palette.brand(isDark)
+    private val prefix = if (isDark) "dark" else "light"
+
+    private fun named(color: Color, name: String) = ColorResource.FromColor(color, "$prefix-$name")
+
+    override val bg = named(base.bg, "bg")
+    override val surface = named(base.surface, "surface")
+    override val ink = named(base.ink, "ink")
+    override val muted = named(base.muted, "muted")
+    override val line = named(base.line, "line")
+    override val track = named(base.track, "track")
+    override val soft = named(base.soft, "soft")
+    override val onAccent = named(base.onAccent, "on-accent")
+
+    override val hero = named(brand.hero, "${palette.name.lowercase()}-hero")
+    override val onHero = named(Color.White, "on-hero")
+    override val onHeroMuted = named(Color.White.copy(alpha = 0.7f), "on-hero-muted")
+    override val heroTrack = named(Color.White.copy(alpha = 0.13f), "hero-track")
+    override val heroBarTrack = named(Color.White.copy(alpha = 0.14f), "hero-bar-track")
+    override val heroWash = named(Color.White.copy(alpha = 0.14f), "hero-wash")
+    override val accent = named(brand.accent, "${palette.name.lowercase()}-accent")
+    override val fill = accent
+    override val accentTint = named(brand.tint, "${palette.name.lowercase()}-tint")
+
+    override val scrim = named(Color(0x730A0C14), "scrim")
+    override val popoverScrim = named(Color(0x330A0C14), "popover-scrim")
+
+    override val nutrients = if (isDark) DarkNutrients else LightNutrients
+
+    override val accentPrimary = accent
+    override val onAccentPrimary = onAccent
+    override val accentSecondary = hero
+    override val onAccentSecondary = onHero
+
+    override val shadow = named(Color(0x241E0F28), "shadow")
+    override val background = bg
+    override val backgroundOverlay = scrim
+    override val onBackground = ink
+    override val border = line
+    override val borderSecondary = line
+    override val borderDisabled = line
+
+    override val text = ink
+    override val textSecondary = muted
+    override val textDisabled = muted
+    // Errors and destructive actions only. Never an amount: amounts have no red or green.
+    override val danger = named(if (isDark) Color(0xFFF2B8B5) else Color(0xFFB3261E), "danger")
 
     override val status = object : StatusColor {
-        override val okay = ColorResource.Green600
-        override val warning = ColorResource.Amber600
-        override val bad = ColorResource.Red600
+        override val okay = accent
+        override val warning = nutrients.carbs.content
+        override val bad = danger
     }
+
+    override val surfacePrimary = surface
+    override val onSurfacePrimary = ink
+    override val surfaceSecondary = soft
+    override val onSurfaceSecondary = ink
+    override val surfaceTertiary = track
+    override val onSurfaceTertiary = muted
+    override val surfaceDisabled = track
+    override val onSurfaceDisabled = muted
 }
 
 @Composable
