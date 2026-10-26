@@ -30,6 +30,7 @@ import com.opson.libraries.ui.components.Surface
 import com.opson.libraries.ui.components.icon.IconButton.Size
 import com.opson.libraries.ui.components.text.Text
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.opson.libraries.ui.system.minTouchTarget
 
 @NonRestartableComposable
 @Composable
@@ -49,7 +50,7 @@ fun IconButton(
     @Composable
     fun Button(modifier: Modifier) {
         Surface(
-            modifier = modifier,
+            modifier = modifier.minTouchTarget(),
             contentPadding = PaddingValues(padding),
             color = backgroundColor,
             contentColor = iconColor,

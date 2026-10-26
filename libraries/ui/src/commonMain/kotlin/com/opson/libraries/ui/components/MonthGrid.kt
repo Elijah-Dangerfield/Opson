@@ -154,7 +154,7 @@ fun MonthGridLegend(text: String, modifier: Modifier = Modifier) {
 }
 
 private const val DAYS_IN_WEEK = 7
-private val CELL_HEIGHT = 46.dp
+private val CELL_HEIGHT = 48.dp
 
 @Preview(widthDp = 390)
 @Composable

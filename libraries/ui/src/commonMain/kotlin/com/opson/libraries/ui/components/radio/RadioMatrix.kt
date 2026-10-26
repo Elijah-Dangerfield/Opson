@@ -17,7 +17,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.opson.system.thenIf
+import com.opson.system.background
+import com.opson.libraries.ui.components.bleedHorizontal
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -33,12 +37,17 @@ data class RadioMatrixRow(
     val label: String,
     val selectedColumn: Int,
     val cellDescriptions: List<String>,
+    /** A short line under the label ("Changed from Hide"), in the accent. */
+    val note: String? = null,
+    /** Tints the row, for a row that differs from its starting point. */
+    val highlighted: Boolean = false,
 )
 
 /**
  * The per-metric grid on Modes and numbers: a label column, then one radio column per choice.
- * Each cell is a 44dp-tall touch target 46dp wide. With large text the label column wraps
- * rather than squeezing the cells.
+ * Each cell is a 48 dp square touch target. With large text the label column wraps rather than
+ * squeezing the cells. A [RadioMatrixRow.highlighted] row's tint reaches [highlightBleed] past
+ * the matrix on each side, so inside a card it can run to the card's edges.
  */
 @Composable
 fun RadioMatrix(
@@ -47,6 +56,7 @@ fun RadioMatrix(
     rows: List<RadioMatrixRow>,
     onSelect: (row: Int, column: Int) -> Unit,
     modifier: Modifier = Modifier,
+    highlightBleed: Dp = 0.dp,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -62,7 +72,7 @@ fun RadioMatrix(
             columns.forEach { column ->
                 Text(
                     text = column,
-                    typography = AppTheme.type.caption,
+                    typography = AppTheme.type.secondarySmallStrong,
                     color = AppTheme.colors.muted,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
@@ -73,15 +83,23 @@ fun RadioMatrix(
         rows.forEachIndexed { rowIndex, row ->
             HorizontalDivider(color = AppTheme.colors.line)
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp).selectableGroup(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .thenIf(row.highlighted) {
+                        bleedHorizontal(highlightBleed)
+                            .background(AppTheme.colors.accentTint)
+                            .padding(horizontal = highlightBleed)
+                    }
+                    .padding(horizontal = 4.dp)
+                    .selectableGroup(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = row.label,
-                    typography = AppTheme.type.secondary,
-                    color = AppTheme.colors.ink,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(modifier = Modifier.weight(1f).padding(vertical = 4.dp)) {
+                    Text(text = row.label, typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
+                    if (row.note != null) {
+                        Text(text = row.note, typography = AppTheme.type.captionStrong, color = AppTheme.colors.accent)
+                    }
+                }
                 columns.indices.forEach { columnIndex ->
                     val selected = row.selectedColumn == columnIndex
                     Box(
@@ -104,8 +122,8 @@ fun RadioMatrix(
     }
 }
 
-private val CellWidth = 46.dp
-private val MatrixDotSize = 18.dp
+private val CellWidth = 48.dp
+private val MatrixDotSize = 20.dp
 
 @Suppress("VerifyStrings")
 @Preview(widthDp = 390)
@@ -119,7 +137,8 @@ private fun RadioMatrixPreview() {
                 columns = columns,
                 rows = listOf("Calories" to 0, "Left in range" to 3, "Vitamins, minerals" to 2).map { (label, picked) ->
                     RadioMatrixRow(label, picked, columns.map { "$label: $it" })
-                },
+                } + RadioMatrixRow("Carbs", 0, columns.map { "Carbs: $it" }, note = "Changed from Hide", highlighted = true),
+                highlightBleed = 20.dp,
                 onSelect = { _, _ -> },
             )
         }

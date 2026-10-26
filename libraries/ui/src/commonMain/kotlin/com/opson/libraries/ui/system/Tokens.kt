@@ -73,7 +73,7 @@ class AppSpacing internal constructor() {
     /** Minimum touch target: 48 dp in design v3, everywhere. Smaller visuals keep this much tappable area. */
     val touchTarget: Dp = 48.dp
 
-    /** Round header and row buttons that the handoff draws at 40. */
+    /** Round header and row buttons drawn at 40. Their tap area is still [touchTarget]. */
     val compactTouchTarget: Dp = 40.dp
 }
 

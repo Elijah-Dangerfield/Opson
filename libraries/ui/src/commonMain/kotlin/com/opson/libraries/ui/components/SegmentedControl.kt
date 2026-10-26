@@ -43,19 +43,25 @@ fun <T> SegmentedControl(
             .fillMaxWidth()
             .clip(AppTheme.shapes.input)
             .background(colors.soft)
-            .padding(3.dp)
             .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        options.forEach { option ->
+        options.forEachIndexed { index, option ->
             val isSelected = option == selected
+            // The track's 3 dp inset is inside each segment's tap area, so a 42 dp thumb still
+            // takes a 48 dp tap; the 1 dp on each inner side draws the 2 dp gap.
             Box(
                 modifier = Modifier
                     .weight(1f)
+                    .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(option) })
+                    .padding(
+                        start = if (index == 0) 3.dp else 1.dp,
+                        end = if (index == options.lastIndex) 3.dp else 1.dp,
+                        top = 3.dp,
+                        bottom = 3.dp,
+                    )
                     .defaultMinSize(minHeight = minHeight)
                     .clip(AppTheme.shapes.segmentThumb)
                     .background(if (isSelected) colors.surface else colors.soft)
-                    .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(option) })
                     .padding(horizontal = 4.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {

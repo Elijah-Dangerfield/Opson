@@ -27,6 +27,7 @@ import com.opson.system.AppTheme
 import com.opson.system.background
 import com.opson.system.thenIf
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.opson.libraries.ui.system.minTouchTarget
 
 /**
  * The handoff's switch: a 50 by 30 track with a 24dp white knob, accent when on and the track
@@ -50,6 +51,7 @@ fun AppSwitch(
 
     Box(
         modifier = modifier
+            .thenIf(onCheckedChange != null) { minTouchTarget() }
             .size(width = SwitchWidth, height = SwitchHeight)
             .thenIf(!enabled) { alpha(DisabledAlpha) }
             .drawBehind {

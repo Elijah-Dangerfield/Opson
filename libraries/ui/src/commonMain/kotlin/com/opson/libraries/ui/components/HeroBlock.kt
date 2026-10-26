@@ -43,6 +43,7 @@ import opson.libraries.resources.generated.resources.ds_previous
 import opson.libraries.resources.generated.resources.Res as SharedRes
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.opson.libraries.ui.system.minTouchTarget
 
 /**
  * Today's colored top block: hero background, bottom corners of 24, the hero shadow, white
@@ -103,6 +104,7 @@ fun PagerDots(
             val description = stringResource(SharedRes.string.ds_page_of, page + 1, pageCount)
             Box(
                 modifier = Modifier
+                    .minTouchTarget()
                     .size(DotsRowHeight)
                     .selectable(selected = page == currentPage, role = Role.Tab, onClick = { onPageSelected(page) })
                     .semantics { contentDescription = description },
@@ -131,6 +133,7 @@ private fun PagerChevron(
 ) {
     Box(
         modifier = Modifier
+            .minTouchTarget()
             .width(40.dp)
             .height(DotsRowHeight)
             .bounceClick(scaleDown = 0.9f, onClick = onClick),

@@ -31,6 +31,13 @@ import com.opson.system.background
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
+ * How much of a bar or ring to fill: 0 to 1, whatever comes in. Design v3: bars stop at 100%,
+ * so a bigger day is a full bar, never an overflow colour or a longer bar, and a missing or
+ * broken value (NaN) is an empty one. Every bar and ring in the app reads its fill through this.
+ */
+fun barFill(fraction: Float): Float = if (fraction.isNaN()) 0f else fraction.coerceIn(0f, 1f)
+
+/**
  * A thin horizontal progress bar, 5dp tall with rounded ends (macro bars, nutrition score bars).
  * [fraction] is clamped to 0..1. Animates between values, reading the animation in the draw
  * phase only.
@@ -43,7 +50,7 @@ fun FillBar(
     trackColor: ColorResource = AppTheme.colors.track,
     height: Dp = 5.dp,
 ) {
-    val animated = animateFloatAsState(fraction.coerceIn(0f, 1f), label = "FillBar")
+    val animated = animateFloatAsState(barFill(fraction), label = "FillBar")
     val fill = color.color
     Box(
         modifier = modifier
@@ -89,7 +96,7 @@ fun SegmentedBar(
                     .fillMaxWidth()
                     .height(height)
                     .clip(AppTheme.shapes.bar)
-                    .background(if (index < filled) color else trackColor)
+                    .background(if (index < filled.coerceIn(0, total)) color else trackColor)
             )
         }
     }
@@ -106,7 +113,7 @@ object RingSegments {
      */
     fun split(filled: Float, parts: List<Pair<Float, ColorResource>>): List<RingSegment> {
         val total = parts.sumOf { it.first.toDouble() }.toFloat().takeIf { it > 0f } ?: 1f
-        val f = filled.coerceIn(0f, 1f)
+        val f = barFill(filled)
         return parts.map { (weight, color) -> RingSegment(fraction = f * weight / total, color = color) }
     }
 }
@@ -142,7 +149,7 @@ fun ProgressRing(
             val gapDegrees = if (closes) GAP / CIRCUMFERENCE * FULL_CIRCLE else 0f
             var start = START_ANGLE
             segments.forEach { segment ->
-                val sweep = segment.fraction.coerceIn(0f, 1f) * FULL_CIRCLE
+                val sweep = barFill(segment.fraction) * FULL_CIRCLE
                 val drawn = sweep - gapDegrees
                 if (drawn > 0f) {
                     drawArc(

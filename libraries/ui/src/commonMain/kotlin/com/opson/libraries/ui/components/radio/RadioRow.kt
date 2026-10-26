@@ -28,6 +28,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /**
  * A full-width row with a title, optional subtitle and a radio dot on the right, as in the
  * Modes preset list. The whole row is the touch target. [showDivider] draws the line under it.
+ * [badge] is a small tinted pill after the title ("1 change").
  */
 @Composable
 fun RadioRow(
@@ -38,6 +39,7 @@ fun RadioRow(
     subtitle: String? = null,
     showDivider: Boolean = true,
     enabled: Boolean = true,
+    badge: String? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -50,7 +52,23 @@ fun RadioRow(
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+                ) {
+                    Text(text = title, typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
+                    if (badge != null) {
+                        Text(
+                            text = badge,
+                            typography = AppTheme.type.captionStrong,
+                            color = AppTheme.colors.accent,
+                            maxLines = 1,
+                            modifier = Modifier
+                                .background(AppTheme.colors.accentTint, AppTheme.shapes.pill)
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
+                    }
+                }
                 if (subtitle != null) {
                     Text(text = subtitle, typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
                 }
@@ -91,7 +109,7 @@ fun RadioDot(
 private fun RadioRowPreview() {
     PreviewLightDark {
         EdgeCard(edgeToEdge = false) {
-            RadioRow(title = "Full numbers", subtitle = "Everything, as numbers", selected = true, onClick = {})
+            RadioRow(title = "Full numbers", subtitle = "Everything, as numbers", selected = true, onClick = {}, badge = "1 change")
             RadioRow(title = "Blind", subtitle = "Log food, see no numbers", selected = false, onClick = {}, showDivider = false)
         }
     }

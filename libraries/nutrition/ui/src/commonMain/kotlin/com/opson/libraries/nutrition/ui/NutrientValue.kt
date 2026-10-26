@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.ui.components.barFill
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
@@ -107,7 +108,7 @@ fun NutrientBar(
         is Display.Soft -> display.fraction
         is Display.Shown -> display.fraction
     } ?: return
-    val fill = fraction.coerceIn(0f, 1f)
+    val fill = barFill(fraction)
     Spacer(
         modifier
             .testTag(metric.testTag())

@@ -46,6 +46,7 @@ import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.text.ProvideTextConfig
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextConfig
+import com.opson.libraries.ui.system.minTouchTarget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,7 +101,7 @@ internal fun BasicButton(
                 // and stretches the button. Default behavior — no width modifier — leaves
                 // minWidth at 0, so the button still wraps content inside weighted Rows.
                 propagateMinConstraints = true,
-                modifier = modifier.thenIf(effectiveOnClick != null) {
+                modifier = modifier.minTouchTarget().thenIf(effectiveOnClick != null) {
                     bounceClick(
                         mutableInteractionSource = interactionSource,
                         onClick = effectiveOnClick!!
@@ -123,7 +124,7 @@ internal fun BasicButton(
             Box(
                 contentAlignment = Alignment.Center,
                 propagateMinConstraints = true,
-                modifier = modifier.clickable(
+                modifier = modifier.minTouchTarget().clickable(
                     interactionSource = interactionSource,
                     indication = null,
                     enabled = effectiveOnClick != null,

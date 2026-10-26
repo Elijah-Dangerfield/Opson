@@ -89,7 +89,7 @@ fun SheetHeader(
             RoundIconButton(
                 icon = AppIcons.Close.described(stringResource(SharedRes.string.ds_close)),
                 onClick = onClose,
-                size = AppTheme.spacing.touchTarget,
+                size = CloseButtonSize,
                 iconSize = 22.dp,
                 containerColor = closeButtonColor,
                 contentColor = AppTheme.colors.ink,
@@ -97,6 +97,9 @@ fun SheetHeader(
         }
     }
 }
+
+/** Drawn at 44 as in the handoff; `RoundIconButton` gives it a 48 dp tap area. */
+private val CloseButtonSize = 44.dp
 
 @Preview(widthDp = 390)
 @Composable

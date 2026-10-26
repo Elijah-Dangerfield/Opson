@@ -30,6 +30,7 @@ import com.opson.system.background
 import com.opson.system.thenIf
 import com.opson.system.typography.TypographyResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.opson.libraries.ui.system.minTouchTarget
 
 /** The handoff's flat button fills. None of them is a warning colour: deleting is [Accent], not red. */
 enum class FlatButtonTone {
@@ -85,6 +86,7 @@ fun FlatButton(
     val bordered = tone == FlatButtonTone.Outlined || tone == FlatButtonTone.SoftOutlined
     Row(
         modifier = modifier
+            .minTouchTarget()
             .defaultMinSize(minHeight = minHeight)
             .clip(shape)
             .thenIf(container != null) { background(container!!) }

@@ -32,6 +32,7 @@ import com.opson.system.background
 import com.opson.system.color.ToneColors
 import com.opson.system.typography.TypographyResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.opson.libraries.ui.system.minTouchTarget
 
 /** Chip density. The handoff uses [Regular] for choices on a page and [Compact] in sheets. */
 enum class PillChipSize(internal val padding: PaddingValues, internal val minHeight: Dp) {
@@ -64,6 +65,7 @@ fun PillChip(
     }
     Row(
         modifier = modifier
+            .minTouchTarget()
             .defaultMinSize(minHeight = size.minHeight)
             .clip(AppTheme.shapes.pill)
             .background(container)

@@ -17,6 +17,7 @@ import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.libraries.ui.components.Surface
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.opson.libraries.ui.system.minTouchTarget
 
 @Composable
 fun CircleIcon(
@@ -37,7 +38,7 @@ fun CircleIcon(
         radius = Radii.Round,
         modifier = modifier
             .thenIf(onClick != null) {
-                clickable { onClick?.invoke() }
+                minTouchTarget().clickable { onClick?.invoke() }
             }
     ) {
         icon?.let {

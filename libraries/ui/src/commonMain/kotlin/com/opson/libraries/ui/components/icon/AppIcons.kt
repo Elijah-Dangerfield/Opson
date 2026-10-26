@@ -9,6 +9,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons as MaterialIcons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.outlined.WaterDrop
+import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.material.icons.rounded.Adjust
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.EventRepeat
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Straighten
+import androidx.compose.material.icons.rounded.Support
 import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.outlined.Edit as OutlinedEdit
@@ -43,7 +54,6 @@ import androidx.compose.material.icons.rounded.DinnerDining
 import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.EditNote
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.HighlightOff
 import androidx.compose.material.icons.rounded.Hiking
@@ -147,18 +157,34 @@ object AppIcons {
     val DashboardCustomize get() = icon("dashboard_customize", MaterialIcons.Rounded.DashboardCustomize)
     val ChevronLeft get() = icon("chevron_left", MaterialIcons.Rounded.ChevronLeft)
     val ChevronRight get() = icon("chevron_right", MaterialIcons.Rounded.ChevronRight)
+    val ArrowBack get() = icon("arrow_back", MaterialIcons.AutoMirrored.Rounded.ArrowBack)
+    val ExpandMore get() = icon("expand_more", MaterialIcons.Rounded.ExpandMore)
+    val OpenInNew get() = icon("open_in_new", MaterialIcons.AutoMirrored.Rounded.OpenInNew)
     val SwapHoriz get() = icon("swap_horiz", MaterialIcons.Rounded.SwapHoriz)
     val Tune get() = icon("tune", MaterialIcons.Rounded.Tune)
     val Search get() = icon("search", MaterialIcons.Rounded.Search)
     val SearchOff get() = icon("search_off", MaterialIcons.Rounded.SearchOff)
     val Cancel get() = icon("cancel", MaterialIcons.Rounded.HighlightOff)
-    val ArrowBack get() = icon("arrow_back", MaterialIcons.AutoMirrored.Rounded.ArrowBack)
-    val ExpandMore get() = icon("expand_more", MaterialIcons.Rounded.ExpandMore)
     val Settings get() = icon("settings", MaterialIcons.Rounded.Settings)
     val CalendarToday get() = icon("calendar_today", MaterialIcons.Rounded.CalendarToday)
     val CalendarMonth get() = icon("calendar_month", MaterialIcons.Rounded.CalendarMonth)
     val Insights get() = icon("insights", MaterialIcons.Rounded.Insights)
     val VisibilityOff get() = icon("visibility_off", MaterialIcons.Rounded.VisibilityOff)
+
+    // More and settings
+    /** The Material Symbols `target`; Rounded has only the ring and dot. */
+    val Target get() = icon("target", MaterialIcons.Rounded.Adjust)
+    val Palette get() = icon("palette", MaterialIcons.Rounded.Palette)
+    val WaterDropOutline get() = icon("water_drop_outline", MaterialIcons.Outlined.WaterDrop)
+    val Support get() = icon("support", MaterialIcons.Rounded.Support)
+    val WorkspacePremium get() = icon("workspace_premium", MaterialIcons.Outlined.WorkspacePremium)
+    val Download get() = icon("download", MaterialIcons.Rounded.Download)
+
+    // Goal styles
+    /** A range, drawn as a ruler. */
+    val Straighten get() = icon("straighten", MaterialIcons.Rounded.Straighten)
+    val TrendingDown get() = icon("trending_down", MaterialIcons.AutoMirrored.Rounded.TrendingDown)
+    val EventRepeat get() = icon("event_repeat", MaterialIcons.Rounded.EventRepeat)
 
     // Misc
     val Star get() = icon("star", MaterialIcons.Rounded.Star)
@@ -191,6 +217,7 @@ object AppIcons {
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             SearchOff, Cancel, ArrowBack, ExpandMore,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
+            OpenInNew, Target, Palette, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat,
             Star, Favorite, Bolt, Science, FormatListBulleted,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart,
         )

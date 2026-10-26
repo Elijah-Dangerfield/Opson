@@ -20,6 +20,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.opson.libraries.ui.bounceClick
 import com.opson.system.AppTheme
 import com.opson.libraries.ui.PreviewContent
+import com.opson.libraries.ui.system.minTouchTarget
 
 @Composable
 fun CircleCheckbox(
@@ -31,6 +32,7 @@ fun CircleCheckbox(
 ) {
     Box(
         modifier = modifier
+            .minTouchTarget()
             .height(IntrinsicSize.Min)
             .aspectRatio(1f)
             .clip(CircleShape)
