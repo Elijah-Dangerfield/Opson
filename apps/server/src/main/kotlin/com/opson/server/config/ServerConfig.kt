@@ -338,6 +338,12 @@ data class HttpConfig(
  * (12-factor) and parse user + password out of it so Hikari can take them as
  * separate fields — some drivers / pools reject JDBC URLs with embedded
  * credentials.
+ *
+ * The two timeouts bound how long a request can wait on the database, so a
+ * phone gets a quick 503 rather than hanging until its own 30 s timeout when
+ * Postgres is saturated (a catalog import building indexes once made search
+ * take 27 s): [poolTimeoutMs] for a free connection, [statementTimeoutMs] for
+ * any one statement. Migrations are exempt (see `Database.connect`).
  */
 data class DatabaseConfig(
     val jdbcUrl: String,
@@ -345,8 +351,13 @@ data class DatabaseConfig(
     val password: String,
     val poolMaxSize: Int,
     val poolMinIdle: Int,
+    val poolTimeoutMs: Long = DEFAULT_POOL_TIMEOUT_MS,
+    val statementTimeoutMs: Long = DEFAULT_STATEMENT_TIMEOUT_MS,
 ) {
     companion object {
+        const val DEFAULT_POOL_TIMEOUT_MS = 3_000L
+        const val DEFAULT_STATEMENT_TIMEOUT_MS = 5_000L
+
         /** Returns null when `DATABASE_URL` is unset — the server then runs in limited mode. */
         fun fromEnv(env: Env): DatabaseConfig? {
             val raw = env["DATABASE_URL"] ?: return null
@@ -357,6 +368,8 @@ data class DatabaseConfig(
                 password = parsed.password,
                 poolMaxSize = env.int("DATABASE_POOL_MAX_SIZE", default = 10),
                 poolMinIdle = env.int("DATABASE_POOL_MIN_IDLE", default = 2),
+                poolTimeoutMs = env.long("DATABASE_POOL_TIMEOUT_MS", default = DEFAULT_POOL_TIMEOUT_MS),
+                statementTimeoutMs = env.long("DATABASE_STATEMENT_TIMEOUT_MS", default = DEFAULT_STATEMENT_TIMEOUT_MS),
             )
         }
     }

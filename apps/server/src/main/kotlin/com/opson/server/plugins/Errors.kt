@@ -1,11 +1,15 @@
 package com.opson.server.plugins
 
+import com.opson.server.db.DatabaseBusyException
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.UnsupportedMediaTypeException
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.httpMethod
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
@@ -37,6 +41,9 @@ fun problem(code: String, message: String): ProblemResponse =
 
 private val logger = LoggerFactory.getLogger("StatusPages")
 
+/** Seconds a client is asked to wait after a 503 `busy`. */
+private const val BUSY_RETRY_AFTER_SECONDS = 2
+
 fun Application.installStatusPages() {
     install(StatusPages) {
         // A body that doesn't decode (`call.receive<T>()`) is the caller's
@@ -57,6 +64,14 @@ fun Application.installStatusPages() {
             call.respond(
                 HttpStatusCode.BadRequest,
                 problem("bad_request", cause.message ?: "Bad request"),
+            )
+        }
+        exception<DatabaseBusyException> { call, _ ->
+            logger.warn("Database busy, answered 503 to {}", call.request.httpMethod.value)
+            call.response.header(HttpHeaders.RetryAfter, BUSY_RETRY_AFTER_SECONDS)
+            call.respond(
+                HttpStatusCode.ServiceUnavailable,
+                problem("busy", "The server is busy. Try again in a moment."),
             )
         }
         exception<Throwable> { call, cause ->

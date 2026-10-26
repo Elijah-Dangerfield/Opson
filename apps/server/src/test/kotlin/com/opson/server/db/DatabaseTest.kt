@@ -81,6 +81,43 @@ abstract class DatabaseTest {
         }
     }
 
+    /**
+     * A config for the shared container with other pool settings, for tests
+     * that need a second [Database] with its own timeouts. [databaseName]
+     * points it at another database in the same container (see
+     * [createEmptyDatabase]).
+     */
+    protected fun configWith(
+        statementTimeoutMs: Long = DatabaseConfig.DEFAULT_STATEMENT_TIMEOUT_MS,
+        poolTimeoutMs: Long = DatabaseConfig.DEFAULT_POOL_TIMEOUT_MS,
+        poolMaxSize: Int = 2,
+        databaseName: String? = null,
+    ): DatabaseConfig {
+        val c = container ?: error("Container not started; @BeforeClass must run")
+        val url = databaseName?.let { c.jdbcUrl.replace("/${c.databaseName}", "/$it") } ?: c.jdbcUrl
+        return DatabaseConfig(
+            jdbcUrl = url,
+            username = c.username,
+            password = c.password,
+            poolMaxSize = poolMaxSize,
+            poolMinIdle = 0,
+            poolTimeoutMs = poolTimeoutMs,
+            statementTimeoutMs = statementTimeoutMs,
+        )
+    }
+
+    /** A new, unmigrated database in the shared container, with the `auth.users` stub, so Flyway can run from V1. */
+    protected fun createEmptyDatabase(name: String) {
+        val c = container ?: error("Container not started; @BeforeClass must run")
+        java.sql.DriverManager.getConnection(c.jdbcUrl, c.username, c.password).use { conn ->
+            conn.createStatement().use { it.execute("CREATE DATABASE $name") }
+        }
+        val script = DatabaseTest::class.java.classLoader.getResource("init-auth.sql")!!.readText()
+        java.sql.DriverManager.getConnection(configWith(databaseName = name).jdbcUrl, c.username, c.password).use { conn ->
+            conn.createStatement().use { it.execute(script) }
+        }
+    }
+
     /** Exposed mapping for the minimal `auth.users` stub (see init-auth.sql). */
     private object AuthUsersTable : Table("auth.users") {
         val id = uuid("id")
