@@ -1,5 +1,26 @@
 # Day close plan
 
+> **Design v3 (4.1 to 4.5) changes, built:** the totals card shows the figure,
+> "Inside your range of {range}" / "Above your range today" / "Your range is
+> {range}", and protein, carbs, fat and fiber in their colours (not on a big
+> day). The big-day reset card sits on the **hero colour**; tomorrow shows the
+> **range** (`resolveRange` of `Targets.tomorrow()`), not a target; either
+> button leads to a committed state with a heart that records nothing; Subtle
+> hides the buttons. Blind and Coast show **"Logged today"** with the four meals
+> as chips (a check on the ones eaten) and never the big-day card. Delayed
+> opened today shows "Your totals are open / They lock again tomorrow morning."
+> and a "Meals 4 of 4" row. The note label is "Anything to remember about
+> today? · optional", placeholder "Dinner at Lola's, a lazy Sunday". "Close the
+> day" is pinned at the bottom with "You can still edit this day afterwards."
+> The header stays `PageHeader` (v3's top app bar is changed once, there) with
+> the long date under it. Not built: "Expended, from your watch" (0.2) and
+> Blind's "How did today feel?" chips (no field stores a day feeling).
+> State: `DayCloseState(loading, title, day, backLabel, revealNote, totals:
+> DayTotals(eaten, rangeLine: Inside | Below | Above, macros), soft, bigDay:
+> BigDayCard(tomorrow, commitment), mealsLine, loggedMeals: Set<MealSlot>?,
+> isToday, note)`. The tables below are the first plan; where they differ, this
+> note wins.
+
 Close a day: totals or a soft line, the range, protein, the big-day card, a
 note, Done. Read `shared.md` first.
 

@@ -126,14 +126,15 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 25 | Water settings | `water-settings` | settings | ported | no |
 | 26 | Calendar | `calendar` | today | ported | no |
 | 27 | Day menu | `today-day-menu` | today | ported | yes (Today under it) |
-| 28 | Add menu | `today-add-menu` | today | ported | yes (Today under it) |
+| 28 | Add menu | none | | dropped in design v3 (no header +) | |
 | 29 | Fasting | none | | 0.2, add when built | |
 | 30 | Logger with picked foods | `logger-picked` | logger | ported | yes |
 | 31 | Create a meal | `create-meal` | foods | ported (demo fixture) | yes |
 | 32 | Custom food | `custom-food` | foods | ported, Energy field holds 190 | yes |
 | 33 | Targets | `targets` | settings | ported | yes |
 | new | | `today-groups-off`, `today-past`, `today-day-menu-armed` | today | | yes |
-| new | | `today-future` | today | | no |
+| new | | `today-future` | today | | yes (a planned day shows planned energy) |
+| new | | `today-added`, `today-cards` | today | | `today-added` yes, `today-cards` no |
 | new | | `day-close` | today | | yes |
 | new | | `item-sheet` | today | | yes |
 | new | | `day-note`, `meal-note` | today | | no |

@@ -1,6 +1,6 @@
 # Today menus and sheets plan
 
-The Add menu, Day menu, Calendar, Meal sheet (with its note and how-it-felt
+Rebuilt to design v3 (`docs/design/v3/`). The Day menu, Edit Today's cards, Calendar, Meal sheet (with its note and how-it-felt
 sheets), Water sheet, and two small sheets the handoff does not have: Item and
 Day note. Read `shared.md` and `today.md` first.
 
@@ -24,37 +24,67 @@ event that pops the sheet; and a sheet whose day or entry no longer exists
 
 ---
 
-## Add menu and Day menu (popovers inside Today)
+## Day menu (⋮, a popover inside Today) and Edit Today's cards
 
-Not nav destinations: they anchor to the header buttons, so they are
-`MenuPopover`s driven by `TodayState.menu` and handled by `TodayViewModel`.
-Closing on outside tap sends `MenuDismissed`.
+Design v3, 2.11. The Add menu and the header + are gone (adding is the nav +
+or a meal's +), so this is the only menu. Not a nav destination: it anchors
+to the ⋮ button, so it is a `PopoverMenu` driven by `TodayState.menu` and
+handled by `TodayViewModel`. Closing on an outside tap sends `MenuDismissed`.
 
 ```kotlin
-enum class MenuKind { Add, Day }
-sealed interface TodayMenu {
-    data class Add(val items: List<AddMenuItem>) : TodayMenu
-    data class Day(val items: List<DayMenuItem>, val clearArmed: Boolean) : TodayMenu
-}
-enum class AddMenuItem { Food, DescribeIt, GlassOfWater, WeighIn, Note }
+data class DayMenu(val groups: List<List<DayMenuItem>>, val clearArmed: Boolean)
 sealed interface DayMenuItem {
-    data class CloseDay(val isToday: Boolean) : DayMenuItem
+    data class CloseDay(val isToday: Boolean) : DayMenuItem   // not on a planned day
     data object Nutrients : DayMenuItem
-    data object CopyPreviousDay : DayMenuItem
-    data object CopyToTomorrow : DayMenuItem
+    data object CopyYesterday : DayMenuItem
+    data object CopyToTomorrow : DayMenuItem                  // not on a planned day
     data object AddNote : DayMenuItem
-    data class MealGroups(val on: Boolean) : DayMenuItem
-    data class Water(val shown: Boolean) : DayMenuItem
+    data object EditCards : DayMenuItem
     data object ClearDay : DayMenuItem
 }
 ```
 
-Built by `TodayStateBuilder`: `GlassOfWater` only when water is not `Hide`;
-`CloseDay` not on a future day; `CopyToTomorrow` not at today + 6. Scan,
-Photo and Start/End fast are not built (0.2 / Later).
+Groups, by what each item affects: the day (Close, This day's nutrients);
+copying and notes (Copy yesterday, Copy this day to tomorrow, Add a note);
+layout (Edit Today's cards, Clear this day). Rows are icon first in the accent
+(layout rows muted), no lines inside a group. **Mark as untracked** is in the
+design but not built: there is no day field for it, and adding one is a diary
+schema and sync change (flagged in the report). Fasting is 0.2.
 
 | Action | Does |
 |---|---|
+| `DayMenuTapped` | Open, `clearArmed = false`. |
+| `MenuDismissed` | Close, disarm. |
+| `DayCloseMenuTapped` | Close menu, `OpenDayClose(day)`. |
+| `DayNutrientsTapped` | Close menu, `OpenNutrients(day)`. |
+| `CopyYesterdayTapped` | `copyDay(from = day − 1, to = day)`, appended, toast. |
+| `CopyToTomorrowTapped` | `copyDay(from = day, to = day + 1)`, appended, toast; nothing on a planned day. |
+| `DayNoteTapped` | Close menu, `OpenDayNote(day)` (not Day close, see `shared.md`). |
+| `EditCardsTapped` | Close menu, `OpenTodayCards`. |
+| `ClearDayTapped` | First tap: `clearArmed = true`, menu stays open, icon in `c-protein`. Second: `clearDay(day)`, close, toast. |
+
+Copy: Close the day / Close this day, This day's nutrients, Copy yesterday,
+Copy this day to tomorrow, Add a note, Edit Today's cards, Clear this day / Tap
+again to clear. Toasts: Copied the previous day in. / Copied. It will be
+waiting on the next day. / Cleared this day.
+
+### Edit Today's cards
+
+`TodayCardsRoute`, `bottomSheet<>`, `TodayCardsViewModel`. Two switches:
+**Meal groups** (`SettingsRepository.update { mealGroups = !mealGroups }`) and
+**Water** (the card that used to be "Hide water"). Turning water off requests
+`Override(Water, Hide)` from `NumbersChanger` (fewer numbers, applies at once,
+or `OpenPause` if the changer says so). Turning it **on** is a change that shows
+more, and v3 keeps those in Modes and numbers ("content screens never get a
+one-tap toggle that shows more numbers"), so the switch opens `ModesRoute`
+instead. Copy: Today's cards; Meal groups / Breakfast, lunch, snack and dinner.
+Off puts everything in one list.; Water / The water card and its glasses.
+
+Tests: groups toggle writes, water off issues the hide override, water on
+writes nothing and opens Modes, `NeedsPause` opens the pause sheet.
+`SURFACES`: `today-day-menu`, `today-day-menu-armed`, `today-cards`.
+
+---|---|
 | `AddTapped` | `menu = Add`. |
 | `DayMenuTapped` | `menu = Day`, `clearArmed = false`. |
 | `MenuDismissed` | `menu = null`, `clearArmed = false`. |
@@ -105,12 +135,12 @@ note entries. `SURFACES`: `today-add-menu`, `today-day-menu`, `today-day-menu-ar
 
 ```kotlin
 data class CalendarState(
-    val month: YearMonth,                  // kotlinx-datetime 0.7
+    val month: LocalDate,                  // the 1st of the month shown
     val title: String,                     // "October 2026", DateCopy.monthYear
     val weekdayInitials: List<StringResource>,   // S M T W T F S, Sunday first as the prototype
     val cells: List<CalendarCell?>,        // null = leading blank
     val canGoPrev: Boolean,                // month > today's month − 12
-    val canGoNext: Boolean,                // month < month of (today + 6)
+    val canGoNext: Boolean,                // month < month of (today + 1)
 )
 data class CalendarCell(val date: LocalDate, val selected: Boolean, val isToday: Boolean, val enabled: Boolean, val logged: Boolean)
 ```
@@ -119,7 +149,7 @@ data class CalendarCell(val date: LocalDate, val selected: Boolean, val isToday:
 |---|---|
 | `LoggedDaysArrived(month, days)` | Sets `logged`. |
 | `PrevMonthTapped` / `NextMonthTapped` | Moves the month within bounds, re-subscribes. |
-| `DayTapped(date)` | Enabled only (up to today + 6): `SelectedDay.select(date)`, event `Dismiss`. |
+| `DayTapped(date)` | Enabled only (up to today + 1, v3 plans one day ahead): `SelectedDay.select(date)`, event `Dismiss`. |
 | `TodayTapped` | `SelectedDay.select(today)`, `Dismiss`. |
 | `DoneTapped` | `Dismiss`. |
 
@@ -131,7 +161,7 @@ Copy: `today_cal_prev_cd` Previous month, `today_cal_next_cd` Next month, cell
 content description `October 25` (month long, day), `today_cal_legend`
 Something logged, `today_cal_today` Today, `today_cal_done` Done.
 
-Edge cases: today + 6 crosses into next month, so Next is enabled for it;
+Edge cases: today + 1 can cross into next month, so Next is enabled for it;
 selected day outside the shown month opens on its month. Visibility: none (a dot
 is "something logged", never an amount).
 
