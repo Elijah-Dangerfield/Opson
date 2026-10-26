@@ -2,7 +2,7 @@ package com.opson.libraries.opson
 
 /**
  * A device-local store whose contents belong to a single signed-in user —
- * Room tables (chips, XP, inventory, …), the profile mirror, account-scoped
+ * Room tables (diary entries, the outbox, …), the profile mirror, account-scoped
  * settings. Implementations wipe the **departing** user's data whenever the
  * active user changes: an account switch (anon → existing account) or a
  * sign-out / delete.

@@ -18,10 +18,8 @@ import kotlin.time.Instant
  *  - Foreground at or above BACKGROUND_ROLLOVER rolls to session #N+1
  *    with reason BackgroundRollover carrying the actual gap.
  *  - Per-process counter — independent of any persisted state.
- *
- * Repository contracts that lean on this (the products catalog being
- * the first one) read [SessionTracker.current.id] and treat a change
- * as the trigger to re-fetch.
+ *  - A background is measured once: a second foreground without a new
+ *    background doesn't roll.
  */
 class SessionTrackerImplTest {
 
