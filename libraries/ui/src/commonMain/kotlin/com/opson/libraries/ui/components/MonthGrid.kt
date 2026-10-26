@@ -140,6 +140,19 @@ private fun DayCell(cell: MonthGridCell, onDayClick: (LocalDate) -> Unit) {
     }
 }
 
+/** The key under a [MonthGrid]: the "something logged" dot and its [text]. */
+@Composable
+fun MonthGridLegend(text: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(Modifier.size(6.dp).clip(CircleShape).background(AppTheme.colors.nutrients.fat.content))
+        Text(text = text, typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
+    }
+}
+
 private const val DAYS_IN_WEEK = 7
 private val CELL_HEIGHT = 46.dp
 

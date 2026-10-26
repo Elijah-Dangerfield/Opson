@@ -11,6 +11,17 @@ import androidx.compose.material.icons.Icons as MaterialIcons
 import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.automirrored.rounded.EventNote
+import androidx.compose.material.icons.rounded.DashboardCustomize
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material.icons.rounded.CheckCircleOutline
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.FileCopy
+import androidx.compose.material.icons.rounded.Mood
+import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material.icons.rounded.BakeryDining
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Bolt
@@ -88,6 +99,15 @@ object AppIcons {
     // Logging
     val Add get() = icon("add", MaterialIcons.Rounded.Add)
     val Remove get() = icon("remove", MaterialIcons.Rounded.Remove)
+    val AddCircle get() = icon("add_circle", MaterialIcons.Rounded.AddCircle)
+    val ContentCopy get() = icon("content_copy", MaterialIcons.Rounded.ContentCopy)
+    val FileCopy get() = icon("file_copy", MaterialIcons.Rounded.FileCopy)
+    val Delete get() = icon("delete", MaterialIcons.Rounded.Delete)
+    val Mood get() = icon("mood", MaterialIcons.Rounded.Mood)
+    val ViewAgenda get() = icon("view_agenda", MaterialIcons.Rounded.ViewAgenda)
+
+    /** Symbols' `monitoring` (a line chart) has no Rounded twin; Insights is the same chart with sparkles. */
+    val Monitoring get() = icon("monitoring", MaterialIcons.Rounded.Insights)
     val WaterDrop get() = icon("water_drop", MaterialIcons.Rounded.WaterDrop)
     val LocalDrink get() = icon("local_drink", MaterialIcons.Rounded.LocalDrink)
 
@@ -109,8 +129,15 @@ object AppIcons {
     val Close get() = icon("close", MaterialIcons.Rounded.Close)
     val Check get() = icon("check", MaterialIcons.Rounded.Check)
     val CheckCircle get() = icon("check_circle", MaterialIcons.Rounded.CheckCircle)
+
+    /** `check_circle` at FILL 0: the open close-day button on Today. */
+    val CheckCircleOutline get() = icon("check_circle_outline", MaterialIcons.Rounded.CheckCircleOutline)
     val RadioButtonUnchecked get() = icon("radio_button_unchecked", MaterialIcons.Rounded.RadioButtonUnchecked)
     val MoreHoriz get() = icon("more_horiz", MaterialIcons.Rounded.MoreHoriz)
+    val MoreVert get() = icon("more_vert", MaterialIcons.Rounded.MoreVert)
+    val EventNote get() = icon("event_note", MaterialIcons.AutoMirrored.Rounded.EventNote)
+    val Lock get() = icon("lock", MaterialIcons.Rounded.Lock)
+    val DashboardCustomize get() = icon("dashboard_customize", MaterialIcons.Rounded.DashboardCustomize)
     val ChevronLeft get() = icon("chevron_left", MaterialIcons.Rounded.ChevronLeft)
     val ChevronRight get() = icon("chevron_right", MaterialIcons.Rounded.ChevronRight)
     val SwapHoriz get() = icon("swap_horiz", MaterialIcons.Rounded.SwapHoriz)
@@ -148,7 +175,7 @@ object AppIcons {
     internal val all: List<IconResource>
         get() = listOf(
             BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant,
-            Add, Remove, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, Mic, EditNote, Edit,
+            Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, Mic, EditNote, Edit,
             Bookmark, BookmarkAdd, History, Dialpad, MonitorWeight, Schedule, LockClock,
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,

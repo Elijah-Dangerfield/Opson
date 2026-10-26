@@ -82,6 +82,44 @@ fun MenuItem(
     }
 }
 
+object MenuPopoverDefaults {
+    /** Today's ⋮ menu, whose longest row is "Copy this day to tomorrow". */
+    val WideWidth: Dp = 320.dp
+}
+
+/**
+ * A menu row with the icon first (design v3, 2.11): the icon in [iconColor], then the label, 56
+ * tall, no line. Groups are split with [MenuGroupDivider].
+ */
+@Composable
+fun MenuIconItem(
+    label: String,
+    icon: IconResource,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconColor: ColorResource = AppTheme.colors.accent,
+    labelColor: ColorResource = AppTheme.colors.ink,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 56.dp)
+            .bounceClick(scaleDown = 0.98f, onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Icon(icon = icon, size = 24.dp, color = iconColor)
+        Text(text = label, typography = AppTheme.type.bodyBold, color = labelColor, modifier = Modifier.weight(1f))
+    }
+}
+
+/** The full-width line between groups of [MenuIconItem]s. */
+@Composable
+fun MenuGroupDivider(modifier: Modifier = Modifier) {
+    HorizontalDivider(modifier = modifier.padding(vertical = 6.dp), color = AppTheme.colors.line)
+}
+
 /**
  * Shows a [MenuPopover] below and end-aligned to the composable that hosts it, so place this
  * inside the same `Box` as the button that opens it. Dismisses on an outside tap or back.

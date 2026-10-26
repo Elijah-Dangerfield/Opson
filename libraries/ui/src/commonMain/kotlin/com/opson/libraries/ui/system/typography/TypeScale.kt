@@ -118,6 +118,21 @@ class TypeScale internal constructor(
     /** A trailing figure on a row. 0.875em, 600, tabular. */
     val numericSmall = style("numeric-small", 0.875f, FontWeight.SemiBold, tabular = true)
 
+    /** The big figure on Day close ("1,245"). 2.5em, 700, tabular, tight. */
+    val figureDisplay = style("figure-display", 2.5f, FontWeight.Bold, 1f, TIGHT_TRACKING, tabular = true)
+
+    /** The word or count on Today's soft card ("Partway through", "2 of 4"). 1.375em, 800, tabular. */
+    val figureHero = style("figure-hero", 1.375f, FontWeight.ExtraBold, tabular = true)
+
+    /** The locked card's title ("Open at 9:00 pm"). 1.1875em, 800. */
+    val heroTitle = style("hero-title", 1.1875f, FontWeight.ExtraBold)
+
+    /** A soft line on a card standing in for a figure (Day close's "Partway through"). 1.25em, 700. */
+    val figureLarge = style("figure-large", 1.25f, FontWeight.Bold, tabular = true)
+
+    /** Day close's meals line ("3 of 4 meals"). 1.125em, 700. */
+    val figureMedium = style("figure-medium", 1.125f, FontWeight.Bold, tabular = true)
+
     /** A figure inside a ring. 0.875em, 800, tabular, tight. */
     val ringValue = style("ring-value", 0.875f, FontWeight.ExtraBold, 1.05f, TIGHT_TRACKING, tabular = true)
 

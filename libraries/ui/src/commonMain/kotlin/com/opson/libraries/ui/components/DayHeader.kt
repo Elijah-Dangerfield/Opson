@@ -1,0 +1,309 @@
+package com.opson.libraries.ui.components
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.opson.libraries.ui.PreviewLightDark
+import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
+import com.opson.libraries.ui.components.icon.IconResource
+import com.opson.libraries.ui.components.icon.described
+import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.system.AppTheme
+import com.opson.system.background
+import com.opson.system.thenIf
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+/**
+ * Today's header (design v3, 2.1): ‹, the day ("Today") over its date ("Sun, Oct 25"), ›, then
+ * [actions] on the right (calendar, ⋮). On the page colour, not the hero. Tapping the day opens
+ * the calendar. Give the chevrons descriptions with `described`.
+ */
+@Composable
+fun DayHeader(
+    title: String,
+    subtitle: String,
+    previousIcon: IconResource,
+    nextIcon: IconResource,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onTitleClick: () -> Unit,
+    titleDescription: String,
+    modifier: Modifier = Modifier,
+    nextEnabled: Boolean = true,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        HeaderIconButton(icon = previousIcon, onClick = onPrevious)
+        Column(
+            modifier = Modifier
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription = titleDescription
+                }
+                .bounceClick(scaleDown = 0.97f, onClick = onTitleClick)
+                .padding(horizontal = 4.dp),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            Text(text = title, typography = AppTheme.type.h1, color = AppTheme.colors.ink, maxLines = 1)
+            Text(text = subtitle, typography = AppTheme.type.secondaryStrong.Tabular, color = AppTheme.colors.muted, maxLines = 1)
+        }
+        HeaderIconButton(icon = nextIcon, onClick = onNext, enabled = nextEnabled)
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically, content = actions)
+    }
+}
+
+/** A 48 round icon button in ink on the page colour: the header's chevrons, calendar and ⋮. */
+@Composable
+fun HeaderIconButton(
+    icon: IconResource,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    selected: Boolean = false,
+) {
+    Box(
+        modifier = modifier
+            .size(MinTouchTarget)
+            .clip(CircleShape)
+            .thenIf(selected) { background(AppTheme.colors.line) }
+            .semantics {
+                role = Role.Button
+                if (!enabled) disabled()
+            }
+            .bounceClick(enabled = enabled, scaleDown = 0.9f, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon = icon, size = 28.dp, color = if (enabled) AppTheme.colors.ink else AppTheme.colors.muted.withAlpha(DISABLED_ALPHA))
+    }
+}
+
+/** An accent-tint card with an icon, a bold accent title and a body: "Planned meals count as logged". */
+@Composable
+fun InfoBanner(
+    icon: IconResource,
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.card)
+            .background(AppTheme.colors.accentTint)
+            .padding(HeroCardPadding),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Icon(icon = icon, size = 28.dp, color = AppTheme.colors.accent)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.accent)
+            Text(text = body, typography = AppTheme.type.body, color = AppTheme.colors.accent)
+        }
+    }
+}
+
+/** A small surface pill with a coloured icon and a bold count: "3 meals logged", "3 glasses". */
+@Composable
+fun CountChip(
+    icon: IconResource,
+    iconColor: ColorResource,
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .defaultMinSize(minHeight = MinTouchTarget)
+            .clip(AppTheme.shapes.inputLarge)
+            .background(AppTheme.colors.surface)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(icon = icon, size = 22.dp, color = iconColor)
+        Text(text = text, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink, maxLines = 1)
+    }
+}
+
+/**
+ * A bar on the hero with a range drawn as a dashed box (design v3 "the dashed box marks your
+ * range"). [fill], [rangeStart] and [rangeEnd] are fractions of the bar; the fill stops at the
+ * end, so going past the range shows nothing new. 14 tall track, 18 tall box.
+ */
+@Composable
+fun RangeBar(
+    fill: Float,
+    rangeStart: Float,
+    rangeEnd: Float,
+    modifier: Modifier = Modifier,
+) {
+    val track = AppTheme.colors.onHero.withAlpha(RANGE_TRACK_ALPHA).color
+    val fillColor = AppTheme.colors.onHero.color
+    val boxColor = AppTheme.colors.onHero.withAlpha(RANGE_BOX_ALPHA).color
+    val dash = remember { PathEffect.dashPathEffect(floatArrayOf(DASH, DASH)) }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(RangeBarHeight)
+            .drawBehind {
+                val trackHeight = size.height * TRACK_SHARE
+                val top = (size.height - trackHeight) / 2
+                val radius = CornerRadius(trackHeight / 2)
+                drawRoundRect(track, topLeft = Offset(0f, top), size = Size(size.width, trackHeight), cornerRadius = radius)
+                val filled = size.width * fill.coerceIn(0f, 1f)
+                if (filled > 0f) {
+                    drawRoundRect(fillColor, topLeft = Offset(0f, top), size = Size(filled, trackHeight), cornerRadius = radius)
+                }
+                val start = size.width * rangeStart.coerceIn(0f, 1f)
+                val end = size.width * rangeEnd.coerceIn(0f, 1f)
+                if (end > start) {
+                    drawRoundRect(
+                        color = boxColor,
+                        topLeft = Offset(start, 1f),
+                        size = Size(end - start, size.height - 2f),
+                        cornerRadius = CornerRadius(BOX_RADIUS),
+                        style = Stroke(width = STROKE, pathEffect = dash),
+                    )
+                }
+            },
+    )
+}
+
+private val RangeBarHeight: Dp = 22.dp
+private const val TRACK_SHARE = 0.6f
+private const val DASH = 8f
+private const val STROKE = 3f
+private const val BOX_RADIUS = 10f
+private const val RANGE_TRACK_ALPHA = 0.16f
+private const val RANGE_BOX_ALPHA = 0.7f
+private const val DISABLED_ALPHA = 0.5f
+
+/** A dashed outline in [color] round the element, with [shape]'s rounding as [radius]. */
+fun Modifier.dashedBorder(color: Color, radius: Dp, strokeWidth: Dp = 1.5.dp): Modifier = drawBehind {
+    val stroke = strokeWidth.toPx()
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(stroke / 2, stroke / 2),
+        size = Size(size.width - stroke, size.height - stroke),
+        cornerRadius = CornerRadius(radius.toPx()),
+        style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(DASH, DASH))),
+    )
+}
+
+/** A soft rounded button with an icon and a label, for suggestions under a meal: "Yesterday's dinner", "Saved meals". */
+@Composable
+fun SuggestionButton(
+    label: String,
+    icon: IconResource,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .defaultMinSize(minHeight = MinTouchTarget)
+            .clip(AppTheme.shapes.inputLarge)
+            .background(AppTheme.colors.soft)
+            .semantics { role = Role.Button }
+            .bounceClick(scaleDown = 0.97f, onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(icon = icon, size = 22.dp, color = AppTheme.colors.ink)
+        Text(text = label, typography = AppTheme.type.menuItem.Bold, color = AppTheme.colors.ink, maxLines = 1)
+    }
+}
+
+/** A pill action: "Plan it" on the accent tint, or "Copy" on the solid accent when [solid]. 48 tall. */
+@Composable
+fun PillAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    solid: Boolean = false,
+) {
+    Box(
+        modifier = modifier
+            .defaultMinSize(minHeight = MinTouchTarget)
+            .clip(AppTheme.shapes.pill)
+            .background(if (solid) AppTheme.colors.accent else AppTheme.colors.accentTint)
+            .semantics { role = Role.Button }
+            .bounceClick(scaleDown = 0.95f, onClick = onClick)
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            typography = AppTheme.type.bodyBold.ExtraBold,
+            color = if (solid) AppTheme.colors.onAccent else AppTheme.colors.accent,
+            maxLines = 1,
+        )
+    }
+}
+
+@Suppress("VerifyStrings")
+@Preview(widthDp = 390)
+@Composable
+private fun DayHeaderPreview() {
+    PreviewLightDark {
+        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+            DayHeader(
+                title = "Today",
+                subtitle = "Sun, Oct 25",
+                previousIcon = AppIcons.ChevronLeft.described("Previous day"),
+                nextIcon = AppIcons.ChevronRight.described("Next day"),
+                onPrevious = {},
+                onNext = {},
+                onTitleClick = {},
+                titleDescription = "Pick a day",
+            ) {
+                HeaderIconButton(icon = AppIcons.CalendarMonth, onClick = {})
+                HeaderIconButton(icon = AppIcons.MoreVert, onClick = {})
+            }
+            InfoBanner(icon = AppIcons.EventNote, title = "Planned meals count as logged", body = "Edit anything tomorrow if plans change.")
+            Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                CountChip(icon = AppIcons.Restaurant, iconColor = AppTheme.colors.accent, text = "3 meals logged")
+                CountChip(icon = AppIcons.WaterDrop, iconColor = AppTheme.colors.nutrients.water.content, text = "3 glasses")
+            }
+            HeroCard { RangeBar(fill = 0.45f, rangeStart = 0.69f, rangeEnd = 0.83f) }
+            Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                SuggestionButton(label = "Yesterday's dinner", icon = AppIcons.ContentCopy, onClick = {})
+                PillAction(label = "Plan it", onClick = {})
+                PillAction(label = "Copy", onClick = {}, solid = true)
+            }
+            Box(Modifier.width(120.dp).height(60.dp).dashedBorder(AppTheme.colors.line.color, 22.dp))
+        }
+    }
+}

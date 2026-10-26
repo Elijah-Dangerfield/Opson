@@ -100,6 +100,12 @@ fun ActionChip(
     }
 }
 
+/** [PillTag] sizes: [Small] for how-it-felt chips on a meal card, [Regular] for Explorer's safe foods. */
+enum class PillTagSize(internal val padding: PaddingValues) {
+    Small(PaddingValues(horizontal = 10.dp, vertical = 5.dp)),
+    Regular(PaddingValues(horizontal = 12.dp, vertical = 7.dp)),
+}
+
 /**
  * A read-only soft pill for things the user already chose (how it felt, a source's status).
  */
@@ -109,6 +115,7 @@ fun PillTag(
     modifier: Modifier = Modifier,
     color: ColorResource = AppTheme.colors.soft,
     typography: TypographyResource = AppTheme.type.secondarySmallStrong,
+    size: PillTagSize = PillTagSize.Small,
 ) {
     Text(
         text = label,
@@ -118,7 +125,7 @@ fun PillTag(
         modifier = modifier
             .clip(AppTheme.shapes.pill)
             .background(color)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .padding(size.padding),
     )
 }
 
