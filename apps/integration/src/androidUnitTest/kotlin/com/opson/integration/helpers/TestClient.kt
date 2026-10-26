@@ -100,6 +100,8 @@ class TestClient(
     newAccount: () -> String,
     val clock: TestClock = TestClock(),
     requestTimeoutMillis: Long = 30_000,
+    /** Wraps the `/v1/sync` client, to make this device speak an older wire format. */
+    wrapSync: (DiarySyncApi) -> DiarySyncApi = { it },
 ) {
     // One app-lifetime scope per client. Every background collector lives here
     // so [close] can quiesce a client's work before the server stops.
@@ -178,7 +180,7 @@ class TestClient(
     // ── Diary, settings, sync ────────────────────────────────────────────────
     private val calendar = SystemLocalCalendar(clock)
     private val settingsStore = SettingsStore(cacheFactory, tables.outbox, transactor, clock, activeUser, appScope)
-    val syncApi: DiarySyncApi = HttpDiarySyncApi(networkClient)
+    val syncApi: DiarySyncApi = wrapSync(HttpDiarySyncApi(networkClient))
     val sync = DiarySyncer(syncApi, tables, settingsStore, activeUser, appScope, clock)
     private val writer = DiaryWriter(tables, clock, sync)
     val settings: SettingsRepository = SettingsRepositoryImpl(settingsStore, sync)
