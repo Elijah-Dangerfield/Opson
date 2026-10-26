@@ -158,9 +158,6 @@ data class Settings(
 @Serializable
 data class FoodUnit(val label: String, val grams: Double)
 
-/** The subset of [Settings] the `VisibilityPolicy` reads. */
-fun Settings.numbers(): NumbersSettings = numbers
-
 @Serializable
 enum class MacroMode {
     /** Grams follow the energy target, so the split stays the same. */

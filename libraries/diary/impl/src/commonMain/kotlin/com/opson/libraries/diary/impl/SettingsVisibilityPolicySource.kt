@@ -2,7 +2,6 @@ package com.opson.libraries.diary.impl
 
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.SettingsRepository
-import com.opson.libraries.diary.numbers
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -77,7 +76,7 @@ internal class LivePolicy(
 
     override val policy: StateFlow<VisibilityPolicy> =
         combine(settingsRepository.settings, settingsRepository.isKnown, tick) { settings, known, _ ->
-            build(if (known) settings.numbers() else BLIND)
+            build(if (known) settings.numbers else BLIND)
         }.stateIn(scope, SharingStarted.Eagerly, build(BLIND))
 
     init {
