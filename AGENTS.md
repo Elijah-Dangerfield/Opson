@@ -191,6 +191,8 @@ navigation<MyGraph>(startDestination = MyRoute()) { screen<...>; bottomSheet<...
    naming a *different* arg than the one you forgot. Use `routeDeepLink<T>`
    for deep links, never bare `navDeepLink`.
 
+**Tabs are `TabRoute`s and go through `router.switchTab(route)`**, or `router.enterTab(route)` from outside the tabs (onboarding, sign-in), which clears the stack. Plain `navigate` of a `TabRoute` is a compile error on purpose: pushed that way it lands on the current tab's stack and every later switch saves and restores the wrong one. Tab roots take no arguments. `router.batch { }` runs several navigation calls as one queued command.
+
 **Use `bottomSheet<>` for transient picker / overlay UIs** (a settings list, a "select an item" sheet) rather than pushing a full screen. The backstack stays one entry deep, the underlying screen is visible under a scrim, and `sheetState.dismiss()` is a clean exit. Reach for full `screen<>` only when the destination is its own context (settings page, detail view).
 
 **Open external URLs via `Router.openWebLink(url)`**, don't roll your own platform `Intent.ACTION_VIEW` / `UIApplication.shared.open` plumbing. The implementation is in `libraries/navigation/impl/.../{Android,Ios,Jvm}WebLinkLauncher.kt` and is already wired into the DI graph and the `Router` interface.

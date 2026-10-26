@@ -14,11 +14,72 @@ interface Router {
 
     fun navigate(route: Route, options: NavigationOptions = NavigationOptions())
 
+    /**
+     * Compile-time guard: a [TabRoute] goes through [switchTab] or [enterTab]. Pushed with plain
+     * [navigate] it lands on top of the current tab's stack, and every tab switch after that saves
+     * and restores the wrong stack.
+     */
+    @Deprecated(
+        message = "A TabRoute goes through switchTab(), or enterTab() from outside the tabs.",
+        replaceWith = ReplaceWith("switchTab(route)"),
+        level = DeprecationLevel.ERROR,
+    )
+    fun navigate(route: TabRoute, options: NavigationOptions = NavigationOptions()): Nothing =
+        throw UnsupportedOperationException("Compile-time guard only, use switchTab(route)")
+
     fun goBack()
 
     fun popBackTo(route: Route, inclusive: Boolean)
 
+    /**
+     * Switch tabs from inside the tab system: saves the current tab's stack and restores the
+     * target's, if it has one. For bottom-bar taps, and for a feature that needs to land on
+     * another tab.
+     */
+    fun switchTab(route: TabRoute)
+
+    /**
+     * Enter the tab system from outside it (onboarding, sign-in, a fresh guest session). Clears
+     * the back stack so Back cannot return to the flow that led here. Once inside, use
+     * [switchTab].
+     */
+    fun enterTab(route: TabRoute)
+
+    /**
+     * Runs several navigation calls as one queued command, so the tail cannot be stranded if
+     * the caller's scope dies between them:
+     * ```
+     * router.batch {
+     *     switchTab(TodayRoute())
+     *     navigate(LoggerRoute(slot = "lunch"))
+     * }
+     * ```
+     */
+    fun batch(block: RouterBatch.() -> Unit)
+
     fun openWebLink(url: String)
+}
+
+/**
+ * The navigation primitives available inside [Router.batch]. Each call runs against the
+ * controller immediately rather than being queued on its own.
+ */
+interface RouterBatch {
+    fun navigate(route: Route, options: NavigationOptions = NavigationOptions())
+
+    @Deprecated(
+        message = "A TabRoute goes through switchTab() inside a batch too.",
+        replaceWith = ReplaceWith("switchTab(route)"),
+        level = DeprecationLevel.ERROR,
+    )
+    fun navigate(route: TabRoute, options: NavigationOptions = NavigationOptions()): Nothing =
+        throw UnsupportedOperationException("Compile-time guard only, use switchTab(route)")
+
+    fun switchTab(route: TabRoute)
+
+    fun goBack()
+
+    fun popBackTo(route: Route, inclusive: Boolean)
 }
 
 fun <T> Catching<T>.blockingScreenOnError(

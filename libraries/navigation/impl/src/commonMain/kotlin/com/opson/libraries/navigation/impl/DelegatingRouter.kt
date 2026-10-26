@@ -23,6 +23,10 @@ import com.opson.libraries.navigation.NavigationTracker
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.NavigationRecovery
 import com.opson.libraries.navigation.Router
+import com.opson.libraries.navigation.RouterBatch
+import com.opson.libraries.navigation.TabRoute
+import com.opson.libraries.navigation.enterTab
+import com.opson.libraries.navigation.switchTab
 import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.navigation.NavigableWhileBlocked
 import com.opson.libraries.navigation.TrackableRoute
@@ -102,17 +106,71 @@ class DelegatingRouter(
             description = "navigate to ${route.nameForLogs()}",
             route = route,
         ) {
-            navigate(route) {
+            executeNavigate(route, options)
+        }
+    }
 
-                if (options.clearBackStack) {
-                    popUpTo(0) { inclusive = true }
+    override fun switchTab(route: TabRoute) {
+        enqueueNavigation(
+            description = "switchTab to ${route.nameForLogs()}",
+            route = route,
+        ) {
+            // `this.`, the controller: unqualified, it could read as this router's own switchTab.
+            this.switchTab(route)
+        }
+    }
+
+    override fun enterTab(route: TabRoute) {
+        enqueueNavigation(
+            description = "enterTab to ${route.nameForLogs()}",
+            route = route,
+        ) {
+            this.enterTab(route)
+        }
+    }
+
+    override fun batch(block: RouterBatch.() -> Unit) {
+        enqueueNavigation("batch") {
+            // Every call in the block runs against this controller inside this one queued
+            // command, so nothing in the block can be left behind in the queue if the caller's
+            // scope dies partway through. Each route still passes the blocking-error gate.
+            val controller = this
+            val scope = object : RouterBatch {
+                override fun navigate(route: Route, options: NavigationOptions) {
+                    if (controller.shouldBlockNavigation(route)) return
+                    if (route is TrackableRoute) {
+                        appScope.launch { navigationTracker.onNavigate(route) }
+                    }
+                    controller.executeNavigate(route, options)
                 }
-                if (options.launchSingleTop) {
-                    launchSingleTop = true
+
+                override fun switchTab(route: TabRoute) {
+                    if (controller.shouldBlockNavigation(route)) return
+                    controller.switchTab(route)
                 }
-                if (options.restoreState) {
-                    restoreState = true
+
+                override fun goBack() {
+                    controller.popBackStack()
                 }
+
+                override fun popBackTo(route: Route, inclusive: Boolean) {
+                    controller.popBackStack(route, inclusive)
+                }
+            }
+            scope.block()
+        }
+    }
+
+    private fun NavHostController.executeNavigate(route: Route, options: NavigationOptions) {
+        navigate(route) {
+            if (options.clearBackStack) {
+                popUpTo(0) { inclusive = true }
+            }
+            if (options.launchSingleTop) {
+                launchSingleTop = true
+            }
+            if (options.restoreState) {
+                restoreState = true
             }
         }
     }

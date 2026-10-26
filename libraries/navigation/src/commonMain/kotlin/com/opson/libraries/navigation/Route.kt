@@ -99,6 +99,27 @@ open class Route(
 
     companion object
 }
+
+/**
+ * A bottom-bar tab root. Still a [Route], so the nav graph registers it with `screen<>` like any
+ * other, but its own type so [Router.switchTab] can be the only way to reach one: plain
+ * [Router.navigate] of a `TabRoute` does not compile, because a tab pushed that way lands on top
+ * of the current tab's stack and every later tab switch saves and restores the wrong stack.
+ *
+ * Tab roots take no arguments. `restoreState` matches a saved stack by destination, so a tab root
+ * with arguments would restore whichever instance was saved last rather than the one asked for.
+ *
+ * `@Serializable` so the cross-fade below travels as nav arguments like every other [Route]'s
+ * animations do. Without it the base-class properties are not serialized, and the host, which
+ * reads animations back off the entry as a plain [Route], would get the slide defaults instead.
+ */
+@Serializable
+abstract class TabRoute : Route(
+    enter = AnimationType.FadeIn,
+    exit = AnimationType.FadeOut,
+    popExit = AnimationType.FadeOut,
+)
+
 inline fun <reified T> NavBackStackEntry.toRouteOrNull(): T? = Catching<T> { toRoute(T::class) }
     .logOnFailure()
     .getOrNull()
