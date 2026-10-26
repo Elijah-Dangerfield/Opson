@@ -175,7 +175,7 @@ private fun WelcomeStep(
             Spacer(Modifier.height(Dimension.D900))
             Text(
                 text = stringResource(Res.string.onboarding_welcome_subtitle),
-                typography = AppTheme.type.display,
+                typography = AppTheme.type.h1,
                 color = AppTheme.colors.ink,
                 modifier = Modifier.semantics { heading() },
             )
@@ -328,7 +328,7 @@ private fun ColumnScope.QuestionStep(
             Spacer(Modifier.height(Dimension.D600))
             Text(
                 text = stringResource(Res.string.onboarding_statement_body),
-                typography = AppTheme.type.secondary,
+                typography = AppTheme.type.body,
                 color = AppTheme.colors.muted,
             )
         }
@@ -350,7 +350,7 @@ private fun ColumnScope.QuestionStep(
             Spacer(Modifier.height(Dimension.D700))
             Text(
                 text = stringResource(Res.string.onboarding_feel_footnote),
-                typography = AppTheme.type.secondary,
+                typography = AppTheme.type.body,
                 color = AppTheme.colors.muted,
             )
         }
@@ -372,7 +372,7 @@ private fun StatementCard() {
     ) {
         Text(
             text = stringResource(Res.string.onboarding_statement_quote),
-            typography = AppTheme.type.sheetTitle,
+            typography = AppTheme.type.heroTitle,
             color = AppTheme.colors.ink,
         )
     }
