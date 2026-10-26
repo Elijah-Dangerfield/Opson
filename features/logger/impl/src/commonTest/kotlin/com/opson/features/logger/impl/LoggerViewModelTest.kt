@@ -1,14 +1,10 @@
 package com.opson.features.logger.impl
 
-import com.opson.features.logger.LogRoute
-import com.opson.features.logger.LogTab
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.fixed
-import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogMethod
-import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SearchSort
@@ -323,16 +319,14 @@ class LoggerViewModelTest : CoroutineTest() {
     fun addingTheBasketWritesOnceTellsTodayAndCloses() = runUnitTest {
         val vm = vm()
         val events = events(vm)
-        LoggerFixtures.pickedBasket().forEachIndexed { index, item ->
-            basket.upsert(if (index == 0) item.copy(hunger = Hunger.Peckish) else item)
-        }
+        LoggerFixtures.pickedBasket().forEach(basket::upsert)
 
         vm.takeAction(LoggerAction.AddToMealTapped)
 
         val added = diary.added.single()
         assertEquals(MealSlot.Dinner, added.slot)
         assertEquals(listOf("Arroz con pollo", "Garlic fried rice (sinangag)"), added.items.map { it.name })
-        assertEquals(Triple(LoggerFixtures.today, MealSlot.Dinner, MealFeeling(hunger = Hunger.Peckish)), diary.feelings.single())
+        assertTrue(diary.feelings.isEmpty(), "how it felt is asked from the meal card, never written by an add")
         assertEquals(listOf(LoggerFixtures.arroz, LoggerFixtures.sinangag), catalog.marked)
         assertTrue(basket.basket.value.isEmpty())
         val logged = recentLogEvents.logged.single()
@@ -548,6 +542,35 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(listOf(LogVia.Yesterday to 2), telemetry.events)
     }
 
+    /** The sheet animates down after a write; a second tap in that time is queued behind the first. */
+    @Test
+    fun aSecondTapWhileTheSheetClosesWritesNothingMore() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+
+        vm.takeAction(LoggerAction.YesterdayTapped)
+        vm.takeAction(LoggerAction.YesterdayTapped)
+        vm.takeAction(LoggerAction.NumberTyped("450"))
+        vm.takeAction(LoggerAction.AddNumberTapped)
+        vm.takeAction(LoggerAction.AteNoDetailsTapped)
+
+        assertEquals(1, diary.copied.size)
+        assertTrue(diary.added.isEmpty())
+        assertTrue(diary.ateNoDetails.isEmpty())
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.Dismiss), events)
+    }
+
+    @Test
+    fun aSecondNumberWhileTheSheetClosesAddsNothingMore() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(LoggerAction.NumberTyped("450"))
+
+        vm.takeAction(LoggerAction.AddNumberTapped)
+        vm.takeAction(LoggerAction.AddNumberTapped)
+
+        assertEquals(1, diary.added.size)
+    }
+
     @Test
     fun ateNoDetailsMarksTheMeal() = runUnitTest {
         val vm = vm()
@@ -589,11 +612,9 @@ class LoggerViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun theOldLogRouteOpensTheMatchingPane() = runUnitTest {
-        val day = LoggerFixtures.today.toString()
-
-        assertEquals(LoggerPane.Saved, vm(LogRoute(day, MealSlot.Lunch, LogTab.Saved).toLoggerRoute()).state.pane)
-        val number = vm(LogRoute(day, MealSlot.Lunch, focusNumber = true).toLoggerRoute())
+    fun eachStartOpensItsPane() = runUnitTest {
+        assertEquals(LoggerPane.Saved, vm(LoggerRoute(slot = MealSlot.Lunch, start = LoggerStart.Saved)).state.pane)
+        val number = vm(LoggerRoute(slot = MealSlot.Lunch, start = LoggerStart.Number))
         assertEquals(LoggerPane.Describe, number.state.pane)
         assertTrue(number.state.describe.focusNumber)
         assertEquals(LoggerPane.Describe, vm(LoggerRoute(start = LoggerStart.Describe)).state.pane)

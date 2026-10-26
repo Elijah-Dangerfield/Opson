@@ -339,6 +339,21 @@ class PhotoEstimateViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aSecondAddWhileTheSheetsCloseLogsNothingMore() = runUnitTest {
+        val vm = reviewing()
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(PhotoEstimateAction.AddToMealTapped)
+        vm.takeAction(PhotoEstimateAction.AddToMealTapped)
+        settle()
+
+        assertEquals(1, diary.added.size)
+        assertTrue(basket.basket.value.isEmpty())
+        assertEquals(1, events.count { it is PhotoEstimateEvent.Logged })
+    }
+
+    @Test
     fun addToMealLogsTheLinesAsEstimatesWithTheRestOfTheBasket() = runUnitTest {
         val vm = reviewing()
         val events = events(vm)

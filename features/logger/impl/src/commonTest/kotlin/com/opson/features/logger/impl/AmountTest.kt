@@ -384,6 +384,21 @@ class AmountTest : CoroutineTest() {
         assertEquals(Committed(MealSlot.Dinner, logged.itemIds), event.committed)
     }
 
+    /** The sheet animates down after Add; a second tap in that time is queued behind the first and must log nothing. */
+    @Test
+    fun aSecondTapOnAddWhileTheSheetClosesLogsNothingMore() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+
+        vm.takeAction(AmountAction.AddToMealTapped)
+        vm.takeAction(AmountAction.AddToMealTapped)
+        vm.takeAction(AmountAction.PickAndKeepGoingTapped)
+
+        assertEquals(1, diary.added.size)
+        assertTrue(basket.basket.value.isEmpty(), "the food is not put back in the basket the add just cleared")
+        assertEquals(1, events.size)
+    }
+
     @Test
     fun editingADescribedLineReplacesThatLine() = runUnitTest {
         val line = LoggerFixtures.parsed.first().toDescribedItem(0).copy(ref = FoodRef.Catalog("banana"), key = "f:banana")
