@@ -91,7 +91,8 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
 
     override fun observeDay(date: LocalDate): Flow<Day> = daysState.map { it[date] ?: Day.empty(date) }
 
-    override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> = flowOf(emptyList())
+    override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> =
+        daysState.map { days -> days.values.filter { it.date in from..to }.sortedBy { it.date } }
 
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = flowOf(emptySet())
 
@@ -111,7 +112,11 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
         }
     }
 
-    override suspend fun updateItem(item: LogItem) = Unit
+    val updated = mutableListOf<LogItem>()
+
+    override suspend fun updateItem(item: LogItem) {
+        updated += item
+    }
 
     override suspend fun removeItem(id: String) = Unit
 

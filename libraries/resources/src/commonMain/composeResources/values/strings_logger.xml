@@ -25,6 +25,7 @@
 
     <!-- Browse and results -->
     <string name="logger_usual_at">Usual at %1$s</string>
+    <string name="logger_usual_around">Usual around %1$s</string>
     <string name="logger_recent">Recent</string>
     <plurals name="logger_matches">
         <item quantity="one">%1$d match</item>
@@ -39,7 +40,7 @@
 
     <!-- No results -->
     <string name="logger_empty_title">No match for "%1$s" yet</string>
-    <string name="logger_empty_body">Describe it in your own words, or save just the name and fill in details later if you want to.</string>
+    <string name="logger_empty_body">Describe it, or save just the name.</string>
     <string name="logger_empty_describe">Describe "%1$s"</string>
     <string name="logger_empty_save">Save the name only</string>
     <string name="logger_empty_caption">Saved names show up in search next time.</string>
@@ -84,23 +85,68 @@
     <string name="logger_amount_sure">How sure are you?</string>
     <string name="logger_precision_weighed">Weighed</string>
     <string name="logger_precision_estimate">Estimate</string>
-    <string name="logger_precision_named">Just the name</string>
-    <string name="logger_amount">Amount</string>
-    <string name="logger_amount_per">%1$s · per %2$s</string>
-    <string name="logger_amount_per_only">per %1$s</string>
+    <string name="logger_precision_named">Name only</string>
     <string name="logger_amount_energy">Energy</string>
     <string name="logger_amount_protein">Protein</string>
     <string name="logger_amount_carbs">Carbs</string>
     <string name="logger_amount_fat">Fat</string>
-    <string name="logger_amount_hunger">Hunger before · optional</string>
-    <string name="logger_hunger_not">Not hungry</string>
     <string name="logger_hunger_bit">Peckish</string>
-    <string name="logger_hunger_hungry">Hungry</string>
-    <string name="logger_hunger_very">Very</string>
-    <string name="logger_amount_stop_asking">Stop asking this</string>
     <string name="logger_amount_keep_going">Pick and keep going</string>
+    <string name="logger_amount_meal">Meal</string>
+    <string name="logger_amount_meal_cd">Meal, %1$s</string>
+    <string name="logger_amount_time">Time</string>
+    <string name="logger_amount_time_cd">Time, %1$s</string>
+    <string name="logger_amount_now">Now</string>
+    <string name="logger_amount_time_title">When did you eat it?</string>
+    <string name="logger_amount_ok">Done</string>
+    <string name="logger_amount_cancel">Cancel</string>
+    <string name="logger_amount_count_cd">How many</string>
+    <string name="logger_amount_less_cd">Less</string>
+    <string name="logger_amount_more_cd">More</string>
+    <string name="logger_amount_unit_cd">Unit, %1$s</string>
+    <string name="logger_amount_this_portion">This portion</string>
+    <string name="logger_amount_kcal">kcal</string>
+    <string name="logger_amount_of_energy">%1$s of energy</string>
+    <string name="logger_amount_fiber">Fiber</string>
+    <string name="logger_amount_day">Your day with this</string>
+    <string name="logger_amount_striped">Striped = this food</string>
+    <string name="logger_amount_day_change">%1$s + %2$s → %3$s</string>
+    <string name="logger_amount_all">All nutrients</string>
+    <string name="logger_amount_all_sub">Vitamins, minerals and more</string>
+    <string name="logger_amount_all_cd">All nutrients, %1$s</string>
+    <string name="logger_amount_open">open</string>
+    <string name="logger_amount_closed">closed</string>
+    <string name="logger_amount_per_source">Per %1$s · Source: %2$s</string>
+    <string name="logger_amount_per_only_source">Source: %1$s</string>
+    <string name="logger_amount_custom">Custom size…</string>
+    <string name="logger_amount_custom_title">A size of your own</string>
+    <string name="logger_amount_custom_body">Name it the way you would say it, and give its weight once. It stays with this food.</string>
+    <string name="logger_amount_custom_name">Name</string>
+    <string name="logger_amount_custom_name_hint">my bowl</string>
+    <string name="logger_amount_custom_grams">Grams</string>
+    <string name="logger_amount_custom_g">g</string>
+    <string name="logger_amount_custom_save">Save size</string>
+    <string name="logger_amount_favorite_cd">Save to favorites</string>
+    <string name="logger_amount_unfavorite_cd">Remove from favorites</string>
+    <string name="logger_amount_close_cd">Close</string>
+    <string name="logger_source_usda">USDA FoodData Central</string>
+    <string name="logger_source_off">Open Food Facts</string>
+    <string name="logger_source_yours">your own food</string>
+    <string name="logger_micro_vitamin_a">Vitamin A</string>
+    <string name="logger_micro_vitamin_b12">Vitamin B12</string>
+    <string name="logger_micro_vitamin_c">Vitamin C</string>
+    <string name="logger_micro_vitamin_d">Vitamin D</string>
+    <string name="logger_micro_vitamin_e">Vitamin E</string>
+    <string name="logger_micro_vitamin_k">Vitamin K</string>
+    <string name="logger_micro_folate">Folate</string>
+    <string name="logger_micro_calcium">Calcium</string>
+    <string name="logger_micro_iron">Iron</string>
+    <string name="logger_micro_magnesium">Magnesium</string>
+    <string name="logger_micro_potassium">Potassium</string>
+    <string name="logger_micro_sodium">Sodium</string>
+    <string name="logger_micro_zinc">Zinc</string>
+    <string name="logger_micro_of_daily">%1$s of a day</string>
     <string name="logger_amount_missing">This food needs a connection to open.</string>
-    <string name="logger_toast_stop_asking">Okay, no more hunger questions. You can turn them back on in More, under Look and feel.</string>
 
     <!-- How it felt -->
     <string name="logger_felt_title">How was %1$s?</string>
