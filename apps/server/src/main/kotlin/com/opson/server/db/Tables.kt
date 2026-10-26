@@ -138,6 +138,38 @@ object FoodsTable : Table("foods") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/**
+ * Open Food Facts products (ODbL), kept apart from [FoodsTable] so the
+ * share-alike licence stays with these rows. Replaced in full every month by
+ * `scripts/import_off_foods.py` through a staging table and a rename swap;
+ * nothing in the server writes it. The generated `search` tsvector is not
+ * mapped, as on [FoodsTable]. See `V12__off_foods.sql`.
+ */
+object OffFoodsTable : Table("off_foods") {
+    val id = uuid("id")
+    val barcode = text("barcode")
+    val name = text("name")
+    val brand = text("brand").nullable()
+    val quantity = text("quantity").nullable()
+    val serving = text("serving").nullable()
+    val kcal100g = float("kcal_100g")
+    val protein100g = float("protein_100g")
+    val carbs100g = float("carbs_100g")
+    val fat100g = float("fat_100g")
+    val fiber100g = float("fiber_100g").nullable()
+    val micros = jsonb("micros")
+    val portions = jsonb("portions")
+    val countriesTags = array<String>("countries_tags")
+    val sourceKind = text("source")
+    val sourceVersion = text("source_version")
+    val tier = short("tier")
+    val verified = bool("verified")
+    val lastModifiedAt = timestamp("last_modified_at").nullable()
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
 /** One row per catalog search, no user id. See `V7__food_catalog.sql`. */
 object FoodSearchEventsTable : Table("food_search_events") {
     val id = long("id").autoIncrement()
