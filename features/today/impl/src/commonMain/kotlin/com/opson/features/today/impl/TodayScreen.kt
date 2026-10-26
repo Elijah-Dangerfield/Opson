@@ -1,8 +1,8 @@
 package com.opson.features.today.impl
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +31,9 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.ui.FastingTodayCard
 import com.opson.libraries.diary.ui.FoodListCard
@@ -88,6 +91,7 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.time.RelativeDay
 import com.opson.system.AppTheme
+import com.opson.system.background
 import com.opson.system.color.ToneColors
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -228,7 +232,8 @@ fun TodayScreen(
             if (state.collapsed && compact != null && selection == null) {
                 CollapsedSummary(compact, onAction, Modifier.padding(start = AppTheme.spacing.row, end = AppTheme.spacing.row, bottom = AppTheme.spacing.section))
             }
-            Box(Modifier.weight(1f).fillMaxWidth()) {
+            // Clipped so the sticky bar slides out from under the header rather than over it.
+            Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     state = listState,
@@ -258,16 +263,25 @@ fun TodayScreen(
     }
 }
 
-/** The sticky bar under the header (2.1c), sliding in once the card has scrolled away. */
+/**
+ * The sticky bar under the header (2.1c), sliding in once the card has scrolled away. Its surface
+ * stays opaque the whole way, so the rows under it never show through; only what is on it fades,
+ * and in the draw phase.
+ */
 @Composable
 private fun StickyLayer(compact: CompactSummary?, visible: Boolean, page: Int, onScrollToTop: () -> Unit, modifier: Modifier = Modifier) {
     AnimatedVisibility(
         visible = compact != null && visible,
-        enter = fadeIn() + slideInVertically { -it / 2 },
-        exit = fadeOut() + slideOutVertically { -it / 2 },
+        enter = slideInVertically { -it / 2 },
+        exit = slideOutVertically { -it / 2 },
         modifier = modifier,
     ) {
-        compact?.let { StickyBar(it, page, onScrollToTop = onScrollToTop) }
+        val contentAlpha = transition.animateFloat(label = "StickyContent") { if (it == EnterExitState.Visible) 1f else 0f }
+        compact?.let {
+            Box(Modifier.clip(AppTheme.shapes.card).background(AppTheme.colors.surface)) {
+                StickyBar(it, page, onScrollToTop = onScrollToTop, modifier = Modifier.graphicsLayer { alpha = contentAlpha.value })
+            }
+        }
     }
 }
 
