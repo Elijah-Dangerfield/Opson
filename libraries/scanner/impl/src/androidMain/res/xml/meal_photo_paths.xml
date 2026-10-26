@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the cache subdirectory the camera writes a meal photo into. The file is deleted once read. -->
+<paths>
+    <cache-path name="meal_photo" path="meal_photo/" />
+</paths>

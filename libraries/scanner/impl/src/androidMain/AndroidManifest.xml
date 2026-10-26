@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- The barcode scanner. Asked for only when someone opens it. -->
+    <!-- The barcode scanner, and Photo estimate's "Take a photo". Asked for only when someone uses one. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Not required: the app works without a camera, and search is always there. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
+
+    <application>
+        <!-- Photo estimate: the camera app writes the meal photo here through a one-off
+             write grant, so no storage permission. The authority must match
+             MealPhotoFileProvider.authority(). -->
+        <provider
+            android:name="com.opson.libraries.scanner.impl.MealPhotoFileProvider"
+            android:authorities="${applicationId}.mealphoto"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/meal_photo_paths" />
+        </provider>
+    </application>
 </manifest>
