@@ -204,3 +204,19 @@ The widget receiver and WidgetKit extension are on branch
 `hold/0.2-widgets-native` (commits `31b4e8a`, `6771fe0`), not on main.
 Cherry-pick them when 0.2 is cut, after the App ID, App Group and profile
 steps above.
+
+## Website go-live (after the waitlist route is on prod)
+
+Pages is enabled (source: GitHub Actions) and the repo variables are set:
+`SITE_URL=https://elijah-dangerfield.github.io`, `SITE_BASE=/Opson`,
+`PUBLIC_API_URL=https://opson-server-prod.fly.dev`, `SITE_ENABLED=false`.
+
+- [ ] Prod deployed with the waitlist migration and `POST /v1/waitlist`.
+- [ ] `WAITLIST_ALLOWED_ORIGINS` on `opson-server-prod` includes
+      `https://elijah-dangerfield.github.io` (and the custom domain later).
+- [ ] A test signup from a curl with that Origin returns 204 and shows in admin.
+- [ ] `gh variable set SITE_ENABLED -R Elijah-Dangerfield/Opson -b true`, then
+      run the "Deploy Pages" workflow. Live at
+      https://elijah-dangerfield.github.io/Opson/
+- [ ] Custom domain later: set `SITE_URL=https://<domain>`, `SITE_BASE=/`, add
+      the domain in Pages settings, add it to `WAITLIST_ALLOWED_ORIGINS`.
