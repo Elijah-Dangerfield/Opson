@@ -100,7 +100,7 @@ fun Application.module(config: ServerConfig) {
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
     // mode simply runs without it — same null-safe degradation as everything
     // else here.
-    val banGate = component?.let { BanGate(it.moderationRepository, config.accessControl.appealUrl) }
+    val banGate = component?.let { BanGate(it.moderationRepository, config.accessControl.appealUrl, it.clock) }
     installApp(
         component = component,
         verification = verification,
