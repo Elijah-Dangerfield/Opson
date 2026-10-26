@@ -73,8 +73,10 @@ Data used to track you: **No**.
 |---|---|---|---|
 | Health & Fitness → Health (food log, weight, how meals felt) | Yes | Yes | App functionality |
 | Identifiers → User ID (anonymous account id) | Yes | Yes | App functionality |
-| Usage Data → Product interaction | Yes | No | Analytics |
-| Diagnostics → Crash data, Performance data | Yes | No | App functionality |
+| Usage Data → Product interaction | Yes | Yes | Analytics |
+| Diagnostics → Crash data, Performance data | Yes | Yes | App functionality |
+
+Usage and diagnostics count as linked because `TelemetryUserBinder` attaches the account id (and email, once claimed) to crash reports and events.
 | Contact info → Email | Only if the user signs in with email | Yes | App functionality |
 
 ## App Review information
