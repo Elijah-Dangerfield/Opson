@@ -86,6 +86,7 @@ if (!serverOnly) {
     include(":libraries:config")
     include(":libraries:config:impl")
     include(":libraries:core")
+    include(":libraries:diary")
     include(":libraries:flowroutines")
     include(":libraries:flowroutines:testing")
     include(":libraries:navigation")
