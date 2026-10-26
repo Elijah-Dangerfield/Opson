@@ -89,8 +89,12 @@ object TrendsFixtures {
         return NutrientsInputs(today, today, range, fromTrends, settings, shown)
     }
 
-    fun weightInputs(settings: Settings = Settings(), weighIns: List<WeighIn> = weighIns()): WeightInputs =
-        WeightInputs(today, settings, weighIns, timeZone)
+    /** With the progress photos flag on and the last set taken today, as the design draws Weight. */
+    fun weightInputs(
+        settings: Settings = Settings(),
+        weighIns: List<WeighIn> = weighIns(),
+        photosReleased: Boolean = true,
+    ): WeightInputs = WeightInputs(today, settings, weighIns, timeZone, photosReleased, photosLastTaken = today)
 
     fun patternsInputs(settings: Settings = Settings(), days: List<Day> = days()): PatternsInputs =
         PatternsInputs(today, settings, days, timeZone)

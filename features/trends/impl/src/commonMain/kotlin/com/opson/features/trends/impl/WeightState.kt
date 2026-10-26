@@ -5,6 +5,7 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -36,7 +37,26 @@ data class WeightInputs(
     /** Oldest first. */
     val weighIns: List<WeighIn>,
     val timeZone: TimeZone,
+    /** `release.progressPhotos`, read when the page opens. */
+    val photosReleased: Boolean = false,
+    /** The day of the newest progress photo, `null` before the first. */
+    val photosLastTaken: LocalDate? = null,
 )
+
+/** The Progress photos row under the log card. */
+data class PhotosRow(val lastTaken: LocalDate?)
+
+/**
+ * Whether the mode shows the Progress photos row. The design puts a Show / Hide
+ * switch for photos in Modes and numbers, defaulting to Hide in Blind, Mindful,
+ * Rhythm and Fuel. Until Settings carries that switch, the default is the rule.
+ * TODO(design-sync-2): read the Modes setting once Settings adds it.
+ */
+object ProgressPhotosVisibility {
+    private val hiddenBy = setOf(PresetId.Blind, PresetId.Mindful, PresetId.Rhythm, PresetId.Fuel)
+
+    fun shown(policy: VisibilityPolicy): Boolean = policy.settings.preset !in hiddenBy
+}
 
 /** The page's own choices, which no repository holds. */
 data class WeightUi(
@@ -67,6 +87,8 @@ data class WeightState(
     val trendOnlyNote: Boolean = false,
     val unit: WeightUnit = WeightUnit.Kg,
     val saved: SavedNote? = null,
+    /** `null` while the release flag is off or the mode hides photos. */
+    val photos: PhotosRow? = null,
 )
 
 /**
@@ -129,6 +151,7 @@ object WeightStateBuilder {
                 level == Visibility.Soften -> SavedNote.TrendOnly
                 else -> SavedNote.OutOfView
             },
+            photos = if (inputs.photosReleased && ProgressPhotosVisibility.shown(policy)) PhotosRow(inputs.photosLastTaken) else null,
         )
     }
 }

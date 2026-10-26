@@ -55,6 +55,8 @@ kotlin {
             implementation(projects.features.logger.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.widgets)
+            // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
+            implementation(projects.libraries.progressphotos)
             implementation(libs.kotlinx.serialization.json)
 
             // Boot a real server on an ephemeral port + verify HS256 test JWTs.

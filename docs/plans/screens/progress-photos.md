@@ -49,18 +49,22 @@ Privacy is the feature. Every line here is load-bearing.
 
 ```kotlin
 enum class PhotoLockState { Locked, Unlocking, Unlocked, NoDeviceLock }
-class PhotoLock(deviceLock: DeviceLock) {
+class PhotoLock(deviceLock: DeviceLock, appLifecycle: AppLifecycle) {
     val state: StateFlow<PhotoLockState>
-    suspend fun unlock(reason: String)   // NoDeviceLock when none is set; ignored while Unlocking
-    fun lock()                           // ignored while Unlocking: the prompt itself can stop the activity
+    suspend fun unlock()   // NoDeviceLock when none is set; ignored while Unlocking or Unlocked
+    fun lock()             // ignored while Unlocking: the prompt itself can stop the activity
 }
 ```
 
 Every photo screen's state carries `lock: PhotoLockState` and renders only a
 lock panel (`Unlock` button) unless it is `Unlocked`. The grid's view model
-locks and asks on creation (each time the screen opens). Every photo screen
-sends `Backgrounded` on `ON_STOP` (lock) and `Foregrounded` on `ON_START`
-(ask again when locked).
+locks and asks on creation (each time the screen opens). `PhotoLock` locks
+itself when the app goes to the background (`AppLifecycle`, the app-wide
+signal; a back stack entry's own `ON_STOP` also fires on a forward
+navigation, which would lock the grid when Compare opens). Every photo
+screen sends `Foregrounded` on `ON_START`, which asks again if locked.
+`DeviceLock.authenticate()` owns its prompt title, so no copy rides through
+the view models.
 
 ## Grid (`ProgressPhotosRoute`)
 
@@ -98,7 +102,6 @@ data class SavedPair(val id: String, val left: PhotoTile, val right: PhotoTile)
 | `PhotosArrived(photos, saved)` | Groups by month, loads thumbnails. |
 | `LockChanged(state)` | |
 | `UnlockTapped`, `Foregrounded` | Ask for the lock. |
-| `Backgrounded` | Lock. |
 | `TileTapped(id)` | Event `OpenPhoto(id)`. |
 | `CompareTapped` | Event `OpenCompare(null, null)`. |
 | `SavedPairTapped(id)` | Event `OpenCompare(left, right)`. |
@@ -120,9 +123,11 @@ pose, today)`).
 Kept on purpose: the "outline" is the previous photo as a faint ghost, not an
 edge-traced outline. `TODO(design-sync-2)` if a traced outline is wanted.
 
-Actions: `LockChanged`, `PermissionAnswered`, `ShutterTapped`, `Captured(result)`,
-`FlipTapped`, `DoneTapped`, `CameraUnavailable`, `Backgrounded`, `Foregrounded`,
-`BackTapped`.
+Actions: `LockChanged`, `PhotosArrived`, `PermissionChecked`,
+`PermissionAnswered`, `AllowCameraTapped`, `OpenSettingsTapped`, `Resumed`,
+`ShutterTapped`, `Captured(result)`, `FlipTapped`, `CameraUnavailable`,
+`UnlockTapped`, `Foregrounded`, `DoneTapped`, `BackTapped`. A set closes on
+its own once the side is saved.
 
 ## Compare (`ProgressPhotosCompareRoute`)
 
@@ -150,15 +155,16 @@ Actions: `PhotosArrived`, `LockChanged`, `PickerTapped(side)`,
 `PickerDismissed`, `PhotoPicked(side, id)`, `ModePicked(mode)`,
 `SliderMoved(at)`, `NoteTyped(text)` (saved to the right photo as typed),
 `MenuTapped`, `MenuDismissed`, `SaveComparisonTapped`,
-`RemoveComparisonTapped`, `Backgrounded`, `Foregrounded`, `UnlockTapped`,
-`BackTapped`. Events: `Close`, `Saved`.
+`RemoveComparisonTapped`, `Foregrounded`, `UnlockTapped`, `BackTapped`.
+Events: `Close`. A saved pair shows under the grid and the menu then offers
+to remove it, so there is no toast.
 
 ## Photo (`ProgressPhotoRoute`)
 
 The photo large with its date tag, title the date, ⋮ `Delete this photo` with
 a confirm. Actions: `PhotosArrived`, `LockChanged`, `MenuTapped`,
 `MenuDismissed`, `DeleteTapped`, `DeleteConfirmed`, `DeleteCancelled`,
-`Backgrounded`, `Foregrounded`, `UnlockTapped`, `BackTapped`.
+`Foregrounded`, `UnlockTapped`, `BackTapped`. Closes when the photo is gone.
 
 ## Visibility surfaces
 
@@ -177,8 +183,7 @@ lock` / `Set a passcode, fingerprint or face unlock in your phone's settings
 to keep these private.`; prompt reason `Unlock your progress photos`;
 capture `Front` / `Side` / `Take photo` / `Switch camera` / `Done` / the
 camera panel copy; compare `Compare`, `Side by side`, `Slider`, `Note on %1$s
-· optional`, `Save comparison`, `Remove saved comparison`, `Comparison
-saved`; photo `Delete this photo`, `Delete this photo?` / `It's only on this
+· optional`, `Save comparison`, `Remove saved comparison`; photo `Delete this photo`, `Delete this photo?` / `It's only on this
 phone, so it can't be brought back.`; Weight row `Last taken %1$s · private`,
 `Private, on this phone only`.
 

@@ -14,8 +14,9 @@ import com.opson.libraries.config.StringConfigValue
 import com.opson.libraries.config.impl.ConfigRefreshThrottleMs
 import com.opson.libraries.config.impl.model.BasicMapAppConfig
 import com.opson.libraries.diary.FastingReleaseFlag
-import com.opson.libraries.reminders.RemindersEnabled
 import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.progressphotos.ProgressPhotosEnabled
+import com.opson.libraries.reminders.RemindersEnabled
 import com.opson.libraries.telemetry.impl.AppEventsEnabled
 import com.opson.libraries.telemetry.impl.AppEventsSampleRate
 import com.opson.libraries.telemetry.impl.KlogForwardingEnabled
@@ -326,6 +327,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     VoiceLogEnabled(appConfigMap),
     PhotoEstimateEnabled(appConfigMap),
     WidgetsEnabled(appConfigMap),
+    ProgressPhotosEnabled(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"

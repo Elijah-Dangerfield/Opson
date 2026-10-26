@@ -171,6 +171,25 @@ carry it.
 - [ ] Leave a phone overnight with the app closed: the widget shows an empty
       day after midnight.
 
+## Progress photos (`release.progressPhotos`)
+
+No entitlement or capability: LocalAuthentication and BiometricPrompt need
+none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
+`NSCameraUsageDescription`, and `USE_BIOMETRIC` (a normal permission).
+
+- [ ] Add a privacy paragraph to `legal/privacy.md`: progress photos stay on
+      the phone, are never uploaded or backed up, and are deleted with the
+      account. Nothing is collected, so the App Store label doesn't change.
+- [ ] Settings: the Show / Hide switch for photos in Modes and numbers
+      (Blind, Mindful, Rhythm and Fuel default to Hide). Until then
+      `ProgressPhotosVisibility` applies those defaults.
+- [ ] Still to build: the optional reminder (off by default, at most every
+      2 weeks); `ReminderKey` has no slot for it yet.
+- [ ] Try it on an iPhone with Face ID, one with a passcode only, and an
+      Android phone on 9 and on 13: the prompt each time the grid opens, again
+      after leaving the app, and the "no lock" panel with the passcode off.
+- [ ] Check an iCloud backup and an Android backup leave the photos out.
+
 ## Server, before any 0.2 build reaches people
 
 - [ ] Deploy the server to prod once 0.1 is through review. It carries the
