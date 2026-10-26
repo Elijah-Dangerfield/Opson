@@ -591,7 +591,12 @@ fun DayTotalsCard(
     macros: List<SummaryMacro>,
     modifier: Modifier = Modifier,
 ) {
-    TodayCard(modifier = modifier, contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 24.dp)) {
+    // The range line sits right under the figure, as v3 draws it. The divider brings its own space.
+    TodayCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             NutrientText(Metric.Calories, eaten, typography = AppTheme.type.figureDisplay, color = AppTheme.colors.ink)
             NutrientVisible(eaten) {
@@ -600,7 +605,7 @@ fun DayTotalsCard(
         }
         rangeLine()
         if (macros.isNotEmpty()) {
-            HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(vertical = 6.dp))
+            HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(vertical = 14.dp))
             Row(Modifier.fillMaxWidth()) {
                 macros.forEach { macro ->
                     NutrientVisible(macro.display) {
@@ -636,14 +641,17 @@ fun BigDayHeroCard(
     modifier: Modifier = Modifier,
 ) {
     HeroCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.page)) {
-        Text(text = body, typography = AppTheme.type.sheetTitle.Bold, color = AppTheme.colors.onHero)
-        NutrientPhrase(
-            metric = Metric.Calories,
-            display = tomorrow,
-            phrase = tomorrowPhrase,
-            typography = AppTheme.type.body.Tabular,
-            color = AppTheme.colors.onHero.withAlpha(LABEL_ALPHA),
-        )
+        Text(text = body, typography = AppTheme.type.heroTitle.Bold, color = AppTheme.colors.onHero)
+        // Once committed, the acknowledgement takes the place of tomorrow's line, as v3 draws it.
+        if (committedText == null) {
+            NutrientPhrase(
+                metric = Metric.Calories,
+                display = tomorrow,
+                phrase = tomorrowPhrase,
+                typography = AppTheme.type.body.Tabular,
+                color = AppTheme.colors.onHero.withAlpha(LABEL_ALPHA),
+            )
+        }
         if (commitLabels.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                 commitLabels.forEach { HeroWashButton(text = it, onClick = onCommit, modifier = Modifier.weight(1f)) }
@@ -678,18 +686,17 @@ fun LoggedMealsCard(
                     Row(
                         modifier = Modifier
                             .weight(1f)
-                            .defaultMinSize(minHeight = MinTouchTarget)
                             .clip(AppTheme.shapes.inputLarge)
                             .background(if (isDone) tone.container else AppTheme.colors.soft)
-                            .padding(horizontal = 12.dp, vertical = 12.dp),
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
                     ) {
                         Box(
-                            Modifier.size(24.dp).clip(CircleShape).background(if (isDone) tone.content else AppTheme.colors.line),
+                            Modifier.size(20.dp).clip(CircleShape).background(if (isDone) tone.content else AppTheme.colors.line),
                             contentAlignment = Alignment.Center,
                         ) {
-                            if (isDone) Icon(icon = AppIcons.Check, size = 16.dp, color = AppTheme.colors.surface)
+                            if (isDone) Icon(icon = AppIcons.Check, size = 14.dp, color = AppTheme.colors.surface)
                         }
                         Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
                     }
