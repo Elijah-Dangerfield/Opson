@@ -23,6 +23,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.PreviewContent
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.ListRow
@@ -48,6 +49,7 @@ import opson.libraries.resources.generated.resources.photos_row_last
 import opson.libraries.resources.generated.resources.photos_row_none
 import opson.libraries.resources.generated.resources.photos_title
 import opson.libraries.resources.generated.resources.trends_back
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_title
 import opson.libraries.resources.generated.resources.trends_weight_caption
 import opson.libraries.resources.generated.resources.trends_weight_chip_1m
@@ -103,6 +105,11 @@ internal fun WeightContent(
             backLabel = stringResource(Res.string.trends_back, stringResource(Res.string.trends_title)),
             onBack = { onAction(WeightAction.BackTapped) },
         )
+        // The log card waits too: until settings arrive it would take a weight in the default unit.
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
+            return@Column
+        }
         when (val trend = state.trend) {
             is Display.Shown -> {
                 SummaryCard(trend, state)

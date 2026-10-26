@@ -138,4 +138,5 @@
     <string name="trends_patterns_hunger_from">From your check-ins</string>
     <string name="trends_patterns_hunger_skipped">Hungrier on days you skipped breakfast (%1$s).</string>
     <string name="trends_patterns_new_foods">New foods</string>
+    <string name="trends_loading_cd">Loading</string>
 </resources>
