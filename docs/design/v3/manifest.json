@@ -1,0 +1,471 @@
+{
+  "source": "Friendly Tracking Screens.dc.html (Opson)",
+  "exported": "2026-10-26",
+  "size": "390x844 pt at 3x (1170x2532 px)",
+  "theme": "Light, Pine palette. Every color is a theme token; dark mode and the Espresso, Clay and Plum palettes exist in the design and swap the same tokens.",
+  "globalNotes": [
+    "All amounts pass through one visibility policy with four levels: Show, Soft (word or fill bar), Later (locked until reveal time), Hide (nothing renders, label included). Blind screens are the same layouts with amounts removed, not greyed out.",
+    "Meal colors only tell things apart (breakfast = carbs/orange, lunch = fat/blue, snack = fiber/brown, dinner = protein/pink). No color means over, under, good or bad. The app uses no red anywhere.",
+    "Bars stop at 100%. Going over a target never shows an overflow color or a warning.",
+    "Bottom nav is one shared component: Today, Trends, center + (opens the logger), Foods, More. The coach role uses a 4-tab bar with no +.",
+    "Touch targets are at least 48 dp. Type is Atkinson Hyperlegible Next, rem-based, scaling with the system font size.",
+    "Visibility choices (number, trend, hidden, vitamins on) live only in Modes and numbers, behind the optional pause. Content screens never get a one-tap toggle that shows more numbers."
+  ],
+  "screens": [
+    {
+      "id": "onboarding-welcome",
+      "file": "onboarding-welcome.png",
+      "title": "Onboarding · Welcome and pricing",
+      "designRef": "1.1",
+      "notes": "Price is shown before any setup. \"Skip and start logging\" drops you on Today in Full numbers."
+    },
+    {
+      "id": "onboarding-why",
+      "file": "onboarding-why.png",
+      "title": "Onboarding · Question · multi-select",
+      "designRef": "1.2",
+      "notes": "Checkbox rows, two of them picked. Skipping a question keeps it skipped. Nothing asks again later.\nChanged from the prototype: A segmented progress bar and a back arrow replace the \"2 of 4\" text on its own.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "onboarding-numbers",
+      "file": "onboarding-numbers.png",
+      "title": "Onboarding · Question · single choice",
+      "designRef": "1.3",
+      "notes": "Radio rows. Question 3, \"What do you want to notice?\", uses this same layout.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "onboarding-statement",
+      "file": "onboarding-statement.png",
+      "title": "Onboarding · Optional statement",
+      "designRef": "1.4",
+      "notes": "It's phrased as a statement you can agree with, so it never asks about a diagnosis. Saying yes unlocks the gentler presets.\nChanged from the prototype: The statement now has its own screen and explains what happens with the answer. Copy needs clinician review.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "onboarding-recommendation",
+      "file": "onboarding-recommendation.png",
+      "title": "Onboarding · Mode preview",
+      "designRef": "1.5",
+      "notes": "Picked from the answers above: eating enough, regular meals, and \"some numbers are fine\".\nChanged from the prototype: The preview now lists what you'll see and what stays out of view. It used to be a single sentence.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "onboarding-account",
+      "file": "onboarding-account.png",
+      "title": "Onboarding · Account · optional, last step",
+      "designRef": "1.6",
+      "notes": "This comes after onboarding, not before. People see what the app is and choose a mode before anything is asked of them. Data stays on the phone by default, so an account is only for backup, a new phone, and v2 coaching. Asking first would add a wall in front of \"a place to record what I already know\".\nNew from the prototype: \"Skip and start logging\" on 1.1 also passes this step. Returning users sign in from the link on 1.1.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "today-full",
+      "file": "today-full.png",
+      "title": "Today · Full numbers · full scroll",
+      "designRef": "2.1",
+      "notes": "The dashed box marks your range. Each item shows its kcal as a plain number, since the meal header already says the unit.\nChanged from the prototype: The three-ring carousel and the Balance ring are gone, and so is the + in the header. Close the day is now a labeled card.\nFrom the prototype changes: the summary is one view with no swiping. It shows what you've eaten as a bar with your range marked (dashed box), and macros below that. The three-ring carousel and the −555 \"Balance\" ring are removed because they framed the day as a deficit.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed.\nFrom the prototype changes: Close the day is a labeled card at the end of the meal list and an item in the ⋮ menu. It replaces the unlabeled check icon.\nFrom the prototype changes: empty meals collapse to one row and offer yesterday's version of that meal.\nFrom the prototype changes: the status-bar clock matches the data. Today reads 6:12 pm because breakfast, lunch and a snack are already logged.\nScrolling screen. today-full.png is the first 844 pt (the fold) with the bottom nav pinned, where present. today-full--full.png shows the whole scroll at 390 pt wide.",
+      "fullScrollFile": "today-full--full.png"
+    },
+    {
+      "id": "today-empty",
+      "file": "today-empty.png",
+      "title": "Today · Empty state · morning",
+      "designRef": "2.2",
+      "notes": "With nothing logged, the macro row hides and the bar shows only your range. The next meal offers yesterday's version.\nChanged from the prototype: Empty meals collapse to one row each. Before, every meal showed a full card that said \"Nothing logged\".\nFrom the prototype changes: the summary is one view with no swiping. It shows what you've eaten as a bar with your range marked (dashed box), and macros below that. The three-ring carousel and the −555 \"Balance\" ring are removed because they framed the day as a deficit.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed.\nFrom the prototype changes: empty meals collapse to one row and offer yesterday's version of that meal."
+    },
+    {
+      "id": "today-delayed-locked",
+      "file": "today-delayed-locked.png",
+      "title": "Today · Delayed reveal · locked",
+      "designRef": "2.3",
+      "notes": "Every amount is set to Later. Counts stay visible. At 9:00 pm the card becomes the reveal in 4.4.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed.\nFrom the prototype changes: the status-bar clock matches the data. Today reads 6:12 pm because breakfast, lunch and a snack are already logged."
+    },
+    {
+      "id": "today-blind",
+      "file": "today-blind.png",
+      "title": "Today · Blind",
+      "designRef": "2.4",
+      "notes": "No calories, macros, water amounts or weight anywhere. Meal and food counts are allowed, pending a clinician's OK. It still feels finished, not emptied out.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed.\nFrom the prototype changes: the status-bar clock matches the data. Today reads 6:12 pm because breakfast, lunch and a snack are already logged."
+    },
+    {
+      "id": "today-nutrient-focus",
+      "file": "today-nutrient-focus.png",
+      "title": "Today · Nutrient focus",
+      "designRef": "2.5",
+      "notes": "Protein and fiber are set to Soft, so they show as a word and a bar. Open question for the brief: can a bar be read as a number?\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed.\nFrom the prototype changes: the status-bar clock matches the data. Today reads 6:12 pm because breakfast, lunch and a snack are already logged."
+    },
+    {
+      "id": "today-fuel",
+      "file": "today-fuel.png",
+      "title": "Today · Fuel",
+      "designRef": "2.6",
+      "notes": "Floors come first. Meal count and protein lead the card, and energy is set to Soft. Meal headers show protein in place of kcal.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed.\nFrom the prototype changes: the status-bar clock matches the data. Today reads 6:12 pm because breakfast, lunch and a snack are already logged."
+    },
+    {
+      "id": "today-rhythm",
+      "file": "today-rhythm.png",
+      "title": "Today · Rhythm · dinner pending",
+      "designRef": "2.7",
+      "notes": "A checklist against the times you planned. \"Already ate\" counts the meal without asking what was in it. Shown at 7:20 pm, after dinner's planned time.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed."
+    },
+    {
+      "id": "today-explorer",
+      "file": "today-explorer.png",
+      "title": "Today · Explorer",
+      "designRef": "2.8",
+      "notes": "Safe foods, new foods and one food bridge, which is a gentle next step from something you already eat. \"Not today\" never counts against you.\nChanged from the prototype: I added the food bridge card from the brief. The prototype only had a \"Log something new\" button.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed.\nFrom the prototype changes: the status-bar clock matches the data. Today reads 6:12 pm because breakfast, lunch and a snack are already logged."
+    },
+    {
+      "id": "today-mindful",
+      "file": "today-mindful.png",
+      "title": "Today · Mindful",
+      "designRef": "2.9",
+      "notes": "A photo journal with hunger and fullness tags, and no nutrition data at all. A meal with no tags gets a light \"How did it feel?\" prompt.\nChanged from the prototype: The grey explainer banner is gone. The meal cards show how the mode works by themselves.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed.\nFrom the prototype changes: the status-bar clock matches the data. Today reads 6:12 pm because breakfast, lunch and a snack are already logged."
+    },
+    {
+      "id": "today-plan-tomorrow",
+      "file": "today-plan-tomorrow.png",
+      "title": "Today · Planning tomorrow",
+      "designRef": "2.10",
+      "notes": "\"Plan, then hide.\" You can go one day ahead. Saved meals are the quickest way to fill it in.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed."
+    },
+    {
+      "id": "today-day-menu",
+      "file": "today-day-menu.png",
+      "title": "Today · Day menu ⋮",
+      "designRef": "2.11",
+      "notes": "Grouped by what each item affects: the day, copying, then layout. \"Clear this day\" asks you to tap twice.\nChanged from the prototype: I added \"Mark as untracked\" for holidays, which is in the brief. \"Hide water\" and \"Fasting\" moved into \"Edit Today's cards\".\nFrom the prototype changes: Close the day is a labeled card at the end of the meal list and an item in the ⋮ menu. It replaces the unlabeled check icon.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed."
+    },
+    {
+      "id": "logger",
+      "file": "logger.png",
+      "title": "Logging · Logger · browse",
+      "designRef": "3.1",
+      "notes": "Opens from the nav + or from a meal's +. The meal is picked from the time of day. Tap a row's name to set the amount, or tap + to add it to your picks.\nChanged from the prototype: The meal chips became a dropdown. The day-totals strip and the Favorites row are gone, which leaves one band less to scan before you get to food.\nFrom the prototype changes: the logger opens on search. The meal picker is a dropdown in the sheet title (preselected from the time of day). The day-totals strip and the Favorites row are removed.\nFrom the prototype changes: Photo, Describe and Scan live inside the logger sheet. The separate Log screen with tabs is removed."
+    },
+    {
+      "id": "logger-picked",
+      "file": "logger-picked.png",
+      "title": "Logging · Logger · two foods picked",
+      "designRef": "3.2",
+      "notes": "Picked rows switch to a filled check. A pinned footer adds them all at once. Tap the check again to unpick.\nFrom the prototype changes: the logger opens on search. The meal picker is a dropdown in the sheet title (preselected from the time of day). The day-totals strip and the Favorites row are removed.\nFrom the prototype changes: Photo, Describe and Scan live inside the logger sheet. The separate Log screen with tabs is removed."
+    },
+    {
+      "id": "logger-amount",
+      "file": "logger-amount.png",
+      "title": "Logging · Amount and precision",
+      "designRef": "3.3",
+      "notes": "This sheet stacks on top of the logger. The precision tag is saved with the entry and shows on Today as Weighed, Estimate or Just the name.\nChanged from the prototype: I added \"Pick and keep going\", so changing an amount doesn't close the logger.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "logger-search",
+      "file": "logger-search.png",
+      "title": "Logging · Search · Full numbers",
+      "designRef": "3.4",
+      "notes": "Regional dishes show their cuisine in the subtitle. The method chips hide while you type, so you can see more results.\nFrom the prototype changes: the logger opens on search. The meal picker is a dropdown in the sheet title (preselected from the time of day). The day-totals strip and the Favorites row are removed."
+    },
+    {
+      "id": "logger-search-blind",
+      "file": "logger-search-blind.png",
+      "title": "Logging · Search · Blind",
+      "designRef": "3.5",
+      "notes": "The same results with no kcal and no macros. This is the surface where other apps leak numbers, and it's covered by the leak test.\nFrom the prototype changes: the logger opens on search. The meal picker is a dropdown in the sheet title (preselected from the time of day). The day-totals strip and the Favorites row are removed."
+    },
+    {
+      "id": "logger-search-empty",
+      "file": "logger-search-empty.png",
+      "title": "Logging · Search · no results",
+      "designRef": "3.6",
+      "notes": "Missing regional dishes are a known complaint. A miss should never be a dead end.\nChanged from the prototype: The one line of grey text became a proper empty state with two actions that carry your search term over.\nFrom the prototype changes: the logger opens on search. The meal picker is a dropdown in the sheet title (preselected from the time of day). The day-totals strip and the Favorites row are removed."
+    },
+    {
+      "id": "logger-photo",
+      "file": "logger-photo.png",
+      "title": "Logging · Photo estimate",
+      "designRef": "3.7",
+      "notes": "Each line item can be edited. The AI never gets the last word: \"About\" and \"Estimate\" stick to the entry. In Blind the kcal column and the total drop out.\nChanged from the prototype: The photo and note are compact up top so the line items are the focus. The Plus badge is honest about what costs money.\nFrom the prototype changes: Photo, Describe and Scan live inside the logger sheet. The separate Log screen with tabs is removed.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "logger-describe",
+      "file": "logger-describe.png",
+      "title": "Logging · Describe it",
+      "designRef": "3.8",
+      "notes": "Type or speak, and it's split into editable lines. \"Just a number\" is hidden whenever calories are hidden, because typing a number is a calorie entry.\nFrom the prototype changes: Photo, Describe and Scan live inside the logger sheet. The separate Log screen with tabs is removed.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "today-added",
+      "file": "today-added.png",
+      "title": "Logging · Added · back on Today",
+      "designRef": "3.9",
+      "notes": "Today scrolls to the meal you changed and outlines it for a moment. Undo lasts 6 seconds. Quiet mode is on by default, so there's no sound or vibration.\nCarbs went past 250 g, and the bar simply stops at full. There's no overflow color and no warning.\nFrom the prototype changes: the summary is one view with no swiping. It shows what you've eaten as a bar with your range marked (dashed box), and macros below that. The three-ring carousel and the −555 \"Balance\" ring are removed because they framed the day as a deficit.\nFrom the prototype changes: Today has one way to add food, the + in the bottom nav or the + on a meal card. The duplicate + in the header is removed."
+    },
+    {
+      "id": "logger-how-it-felt",
+      "file": "logger-how-it-felt.png",
+      "title": "Logging · How it felt · Mindful",
+      "designRef": "3.10",
+      "notes": "Shown after adding a meal in Mindful. In other modes it only appears if hunger and fullness questions are on. Skip is as big as Save."
+    },
+    {
+      "id": "day-close",
+      "file": "day-close.png",
+      "title": "Day close · Full numbers · typical day",
+      "designRef": "4.1",
+      "notes": "This is the same day as 3.9, with dinner logged. \"Inside your range\" is a plain statement and carries no praise.\nFrom the prototype changes: Close the day is a labeled card at the end of the meal list and an item in the ⋮ menu. It replaces the unlabeled check icon.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "day-close-big-day",
+      "file": "day-close-big-day.png",
+      "title": "Day close · Full numbers · big day",
+      "designRef": "4.2",
+      "notes": "There's no compensation plan. Tomorrow's range never drops. The commitment buttons record nothing and never become a streak.\nChanged from the prototype: The reset card moved onto the hero color so it reads as the main message, not a footnote. Tomorrow shows the range, not a single target.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "day-close-big-day-committed",
+      "file": "day-close-big-day-committed.png",
+      "title": "Day close · Big day · after committing",
+      "designRef": "4.3",
+      "notes": "Either button leads here. Nothing gets saved and there's no animation. With the event set to Subtle, the buttons don't show at all.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "day-close-revealed",
+      "file": "day-close-revealed.png",
+      "title": "Day close · Delayed reveal · opened",
+      "designRef": "4.4",
+      "notes": "At 9:00 pm the lock on Today (2.3) changes to \"Your totals are open\" and links here. Weight stays Soft even after the reveal.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "day-close-blind",
+      "file": "day-close-blind.png",
+      "title": "Day close · Blind",
+      "designRef": "4.5",
+      "notes": "Meals only, plus an optional feeling. Blind never shows the big-day card. That card appears only when calories are fully visible, so a big day can't be inferred here.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "trends",
+      "file": "trends.png",
+      "title": "Trends and nutrients · Full numbers · full scroll",
+      "designRef": "5.1",
+      "notes": "Every bar is the same color, inside the band or outside it. Untracked days show up as gaps. The week start (Mon) and which cards appear are set with the tune button.\nChanged from the prototype: The 1W / 1M / 3M range now covers the whole page, where before it sat only on Weight. Today's partial bar is marked so it isn't read as a low day.\nScrolling screen. trends.png is the first 844 pt (the fold) with the bottom nav pinned, where present. trends--full.png shows the whole scroll at 390 pt wide.",
+      "fullScrollFile": "trends--full.png"
+    },
+    {
+      "id": "trends-blind",
+      "file": "trends-blind.png",
+      "title": "Trends and nutrients · Blind",
+      "designRef": "5.2",
+      "notes": "The week as a grid of meal dots, colored by meal, with no amounts. The Nutrients, Expended and Weight cards are removed, not greyed out.\nChanged from the prototype: The recap leads here. In the prototype it sat under an intake chart, which simply disappeared in Blind."
+    },
+    {
+      "id": "trends-coast",
+      "file": "trends-coast.png",
+      "title": "Trends and nutrients · Coast · before the weekly check",
+      "designRef": "5.3",
+      "notes": "Calories are set to Later, and they open once a week. Last week's check stays readable until the next one opens.\nChanged from the prototype: Coast used to show a one-line banner on Today. Its weekly check now has a real home on Trends."
+    },
+    {
+      "id": "nutrients-day",
+      "file": "nutrients-day.png",
+      "title": "Trends and nutrients · Nutrients · this day, default",
+      "designRef": "5.4",
+      "notes": "Opened from the summary card on Today. Progressive disclosure: vitamins and minerals stay off until you turn them on.\nChanged from the prototype: The \"Nutrition scores\" summary page was cut. A score built from hidden data was a number with no source. The one-tap \"Show\" button now goes through Modes and numbers, and the pause applies there.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "nutrients-week",
+      "file": "nutrients-week.png",
+      "title": "Trends and nutrients · Nutrients · week average, vitamins on",
+      "designRef": "5.5",
+      "notes": "Opened from Trends. Macros sit above this, the same as in 5.4. The bars stop at 100%, so being over never looks bigger.\nChanged from the prototype: The week view is now the default when you open it from Trends. A single day of vitamin K is noise.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links.\nScrolling screen. nutrients-week.png is the first 844 pt (the fold) with the bottom nav pinned, where present. nutrients-week--full.png shows the whole scroll at 390 pt wide.",
+      "fullScrollFile": "nutrients-week--full.png"
+    },
+    {
+      "id": "patterns",
+      "file": "patterns.png",
+      "title": "Trends and nutrients · Patterns · Full numbers · full scroll",
+      "designRef": "5.6",
+      "notes": "Opened from Recap on Trends. Each dot is one logged meal, and the tint behind the dots marks your usual window. The text rows are plain facts, not advice.\nNew from the prototype: Shows timing, meal size, hunger before meals and new foods. \"Longest gap\" next to \"Very hungry before dinner\" lets people connect the two for themselves.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links.\nScrolling screen. patterns.png is the first 844 pt (the fold) with the bottom nav pinned, where present. patterns--full.png shows the whole scroll at 390 pt wide.",
+      "fullScrollFile": "patterns--full.png"
+    },
+    {
+      "id": "patterns-blind",
+      "file": "patterns-blind.png",
+      "title": "Trends and nutrients · Patterns · Blind",
+      "designRef": "5.7",
+      "notes": "Timing, how often each meal happens, and new foods. \"How big each meal is\" is removed, because even percentages reveal amounts. Hunger shows up below the fold if tags are on.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "modes",
+      "file": "modes.png",
+      "title": "Modes and visibility · Presets and matrix · full scroll",
+      "designRef": "6.1",
+      "notes": "Fuel, with one change: carbs moved from Hide to Show. The preset shows a \"1 change\" badge, and picking a preset again clears the change.\nChanged from the prototype: Changed rows are marked so a matrix you tweaked a while ago still makes sense. I added a Reveal time setting, since the prototype fixed it at 9:00 pm. Targets moved to More.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links.\nScrolling screen. modes.png is the first 844 pt (the fold) with the bottom nav pinned, where present. modes--full.png shows the whole scroll at 390 pt wide.",
+      "fullScrollFile": "modes--full.png"
+    },
+    {
+      "id": "modes-pause",
+      "file": "modes-pause.png",
+      "title": "Modes and visibility · Pause before showing more",
+      "designRef": "6.2",
+      "notes": "This appears only when you raise a level and the pause is on. The 10-second wait fills in as it counts down. Lowering a level never brings this up.\nChanged from the prototype: \"Keep things as they are\" is now the primary button. The prototype made the countdown the loudest thing on the sheet."
+    },
+    {
+      "id": "reminders",
+      "file": "reminders.png",
+      "title": "Reminders · Settings · full scroll",
+      "designRef": "7.1",
+      "notes": "One row per event. Meal times come from the Rhythm checklist and can be edited here.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links.\nScrolling screen. reminders.png is the first 844 pt (the fold) with the bottom nav pinned, where present. reminders--full.png shows the whole scroll at 390 pt wide.",
+      "fullScrollFile": "reminders--full.png"
+    },
+    {
+      "id": "reminder-notification",
+      "file": "reminder-notification.png",
+      "title": "Reminders · Meal reminder notification",
+      "designRef": "7.2",
+      "notes": "\"Already ate\" checks the meal off right from the lock screen, with no need to open the app. The same copy works in every mode, because it never mentions food amounts.\nChanged from the prototype: This is new. The prototype described the reminder but never showed it."
+    },
+    {
+      "id": "weight",
+      "file": "weight.png",
+      "title": "Weight · Numbers",
+      "designRef": "8.1",
+      "notes": "There's no change readout like \"−1.6 kg\", pending a clinician's view.\nChanged from the prototype: The Numbers / Trend only / Hidden switch moved off this screen into Modes and numbers, behind the pause. Having it one tap away made turning numbers back on too easy. The trend is now the large number and today's scale reading is the small one, which is the same priority as the chart.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "weight-trend",
+      "file": "weight-trend.png",
+      "title": "Weight · Trend only",
+      "designRef": "8.2",
+      "notes": "Weight is set to Soft: a word and a line. The word comes from the slope (steady, rising slowly, falling slowly). Clinicians should review it.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "weight-hidden",
+      "file": "weight-hidden.png",
+      "title": "Weight · Hidden · blind weigh-in",
+      "designRef": "8.3",
+      "notes": "The input masks digits as you type. Sending weigh-ins to a provider is a v2 feature, and it's shown here so the path is visible.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "integrations",
+      "file": "integrations.png",
+      "title": "Integrations and 10 Support · Full numbers · full scroll",
+      "designRef": "9.1",
+      "notes": "In gentle modes the Expended card is replaced by one line: \"Your watch syncs in the background. Nothing from it shows in this mode.\"\nChanged from the prototype: The question now says \"range\", not \"target\", to match everywhere else. The Health card is off by default, which cuts one more card from Today.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links.\nScrolling screen. integrations.png is the first 844 pt (the fold) with the bottom nav pinned, where present. integrations--full.png shows the whole scroll at 390 pt wide.",
+      "fullScrollFile": "integrations--full.png"
+    },
+    {
+      "id": "support",
+      "file": "support.png",
+      "title": "Integrations and 10 Support · Support and sharing",
+      "designRef": "10.1",
+      "notes": "Links open in the browser. TODO: confirm the helpline URL and the provider-finder link before launch.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "support-delete",
+      "file": "support-delete.png",
+      "title": "Integrations and 10 Support · Delete confirmation",
+      "designRef": "10.2",
+      "notes": "A standard Android dialog. The safe choice is in the accent color. \"Delete\" stays neutral, because the app doesn't use red anywhere.\nChanged from the prototype: The inline confirm box became a modal dialog, so it can't be confirmed by accident while scrolling.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "foods",
+      "file": "foods.png",
+      "title": "Foods, targets and more · Foods tab",
+      "designRef": "11.1",
+      "notes": "Saved meals come first because people mostly rotate a few of them. Recent sits below the fold.\nChanged from the prototype: The two create rows became side-by-side tiles. Saved meals now come before Your foods."
+    },
+    {
+      "id": "foods-create-meal",
+      "file": "foods-create-meal.png",
+      "title": "Foods, targets and more · Create a meal",
+      "designRef": "11.2",
+      "notes": "\"Add a food\" opens the logger sheet (3.1) in \"pick for this meal\" mode, so there's only one search UI to build.\nChanged from the prototype: The inline search-and-picks list was replaced by a hand-off to the logger."
+    },
+    {
+      "id": "foods-add-food",
+      "file": "foods-add-food.png",
+      "title": "Foods, targets and more · Add a food · Full numbers",
+      "designRef": "11.3",
+      "notes": "Every nutrition field is optional. In Nutrient focus, only protein and fiber are asked for."
+    },
+    {
+      "id": "foods-add-food-blind",
+      "file": "foods-add-food-blind.png",
+      "title": "Foods, targets and more · Add a food · Blind",
+      "designRef": "11.4",
+      "notes": "No number fields at all, since typing one in would show it. The label photo is processed without ever being displayed back."
+    },
+    {
+      "id": "more",
+      "file": "more.png",
+      "title": "Foods, targets and more · More",
+      "designRef": "13.1",
+      "notes": "Three groups: how the app treats you, optional extras, then help and plan. Row subtitles never show amounts. Targets reads \"Energy range and macro split\", not \"1,900–2,300\".\nChanged from the prototype: The flat list is now grouped, with icons. Fasting is offered only in Full numbers and Sprint, and every other mode hides the row."
+    },
+    {
+      "id": "widgets",
+      "file": "widgets.png",
+      "title": "Foods, targets and more · Widgets and watch",
+      "designRef": "14.1",
+      "notes": "Widgets follow the same policy as the app. Tapping + on a widget opens the logger. Tapping the watch face quick-logs a saved meal.\nChanged from the prototype: The watch face shows what you've eaten, not \"left\". A \"kcal left\" number on the wrist is the evening nudge we promised not to send."
+    },
+    {
+      "id": "fasting",
+      "file": "fasting.png",
+      "title": "Foods, targets and more · Fasting · Full numbers",
+      "designRef": "15.1",
+      "notes": "TODO(clinician): confirm which modes get fasting and the 16-hour cap.\nChanged from the prototype: Status comes first and settings second. The \"Start fast\" button is gone, because a fast starts whenever the window closes.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "targets-goal-style",
+      "file": "targets-goal-style.png",
+      "title": "Goals · Goal style picker",
+      "designRef": "12.1",
+      "notes": "Opens from the top row of Targets. Range is the default for new accounts. \"A set deficit\" only shows up in Full numbers and Sprint. In every other mode the row is hidden, not greyed out."
+    },
+    {
+      "id": "targets",
+      "file": "targets.png",
+      "title": "Goals · Targets · range",
+      "designRef": "12.2",
+      "notes": "Each end has its own stepper, in steps of 50. The lock icon in place of − explains the disabled state. Tap the macro card to edit ratios or grams.\nChanged from the prototype: Replaces the single centered target with \"Lower / Raise\". Each end moves on its own.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "targets-deficit",
+      "file": "targets-deficit.png",
+      "title": "Goals · Targets · set deficit",
+      "designRef": "12.3",
+      "notes": "Today shows the result, \"Goal about 1,870\", and never \"−300\". The word \"deficit\" stays in settings. TODO(dietitian): set GOAL_FLOOR_KCAL and a maximum deficit before launch. The stepper stops at that maximum.\nNew from the prototype: The two rules on the last card are fixed and can't be switched off.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "targets-by-day",
+      "file": "targets-by-day.png",
+      "title": "Goals · Targets · different by day",
+      "designRef": "12.4",
+      "notes": "Each day belongs to exactly one group, and each group has its own range. You can add up to four groups. On Today, a training day's card reads \"Training day · 2,300–2,700\".\nNew from the prototype: The week strip shows each day's band, so a lopsided setup is easy to spot before you save.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "coach-sharing",
+      "file": "coach-sharing.png",
+      "title": "Coaching (v2) · Client · sharing with a coach",
+      "designRef": "16.1",
+      "notes": "This is in the client's app, under More, then Your coach. Every category is opt-in. The \"hidden from me\" switch covers the clinician-view case from the brief.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "coach-clients",
+      "file": "coach-clients.png",
+      "title": "Coaching (v2) · Coach · client list",
+      "designRef": "16.2",
+      "notes": "Clients are sorted by how much they've logged, never by how far they are from a goal. \"Quieter this week\" is the only grouping. Each row shows the client's mode, so the coach knows how to talk to them before opening anything.\nNew from the prototype: The four-tab bar has no +, because coaches don't log food here. Switching back is in More."
+    },
+    {
+      "id": "coach-client",
+      "file": "coach-client.png",
+      "title": "Coaching (v2) · Coach · client overview",
+      "designRef": "16.3",
+      "notes": "Anything the client can't see carries a \"Hidden from Sam\" tag, so the coach doesn't accidentally say a number out loud. Weight follows the client's sharing level, which here is a trend.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    },
+    {
+      "id": "coach-client-settings",
+      "file": "coach-client-settings.png",
+      "title": "Coaching (v2) · Coach · client settings",
+      "designRef": "16.4",
+      "notes": "Read-only. Each row compares what Sam sees with what the coach sees. A suggestion arrives as a message, and Sam applies it in Modes and numbers, where the pause still applies.\nOpen question: phone or web? Coaches with 30 or more clients will want a web table. This phone view covers quick check-ins.\nFrom the prototype changes: sub-screens use the Android top app bar (back arrow and title) instead of \"‹ More\" text links."
+    }
+  ]
+}

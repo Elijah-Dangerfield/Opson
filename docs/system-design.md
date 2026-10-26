@@ -489,6 +489,9 @@ theme.
 
 ## 13. Releases
 
+**Design v3 (2026-10-26) supersedes the handoff** wherever they disagree. What
+changed and what 0.1 builds is in [`docs/design/v3/CHANGES.md`](design/v3/CHANGES.md).
+
 **0.1, the first App Store build.** Enough that a reviewer sees a complete app:
 
 - Onboarding: four questions, recommended mode. No pricing screen (nothing is
