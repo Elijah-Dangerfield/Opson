@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -159,7 +160,7 @@ class TestLifecycle : AppLifecycle {
  */
 internal class InMemoryCacheFactory : CacheFactory {
 
-    private val persistent = java.util.concurrent.ConcurrentHashMap<String, Cache<*>>()
+    private val persistent = ConcurrentHashMap<String, Cache<*>>()
 
     override fun <T : Any> inMemory(defaultValue: () -> T): Cache<T> =
         HarnessCache { defaultValue() }

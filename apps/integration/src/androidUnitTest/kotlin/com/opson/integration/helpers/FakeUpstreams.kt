@@ -18,6 +18,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -41,7 +42,7 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
     var photoFoods: List<PhotoFood> = listOf(PhotoFood("Broccoli, steamed", 1.0, "cup", 150.0))
 
     /** Codes Open Food Facts was asked about, in order. */
-    val openFoodFactsLookups: MutableList<String> = java.util.Collections.synchronizedList(mutableListOf())
+    val openFoodFactsLookups: MutableList<String> = Collections.synchronizedList(mutableListOf())
 
     /** User ids the server asked Supabase to delete. */
     val deletedUsers: MutableSet<String> = ConcurrentHashMap.newKeySet()

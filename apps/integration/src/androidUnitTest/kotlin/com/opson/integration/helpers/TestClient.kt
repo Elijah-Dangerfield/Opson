@@ -71,6 +71,7 @@ import com.opson.libraries.opson.impl.AppEventDispatcher
 import com.opson.libraries.opson.impl.DefaultUserScopedDataReset
 import com.opson.libraries.storage.impl.UserScopedDaoCleaner
 import com.opson.libraries.storage.impl.db.AppDatabase
+import com.opson.libraries.storage.impl.db.AppDatabaseProvider
 import com.opson.libraries.storage.impl.db.RealAppDatabaseProvider
 import com.opson.libraries.storage.impl.db.RoomDatabaseTransactor
 import kotlinx.coroutines.CompletableDeferred
@@ -130,7 +131,7 @@ class TestClient(
     // ── Device database ──────────────────────────────────────────────────────
     val database: AppDatabase = RealAppDatabaseProvider(InMemoryAppDatabase, dispatchers).database
     private val transactor = RoomDatabaseTransactor(
-        object : com.opson.libraries.storage.impl.db.AppDatabaseProvider {
+        object : AppDatabaseProvider {
             override val database: AppDatabase = this@TestClient.database
         },
     )

@@ -13,7 +13,6 @@ import com.opson.libraries.foods.PhotoEstimate
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.http.HttpStatusCode
-import java.net.SocketTimeoutException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -23,9 +22,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
+import java.net.SocketTimeoutException
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
@@ -159,7 +160,7 @@ class ErrorSurfacesTest : IntegrationTest() {
         }
 
         val online = foods.search("$word plum").getOrThrow()
-        assertTrue(!online.fromCache)
+        assertFalse(online.fromCache)
     }
 
     @Test
