@@ -1,0 +1,145 @@
+package com.opson.features.settings.impl
+
+import com.opson.libraries.diary.DataExport
+import com.opson.libraries.diary.DiarySync
+import com.opson.libraries.diary.NumbersChanger
+import com.opson.libraries.diary.NumbersOutcome
+import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.SyncRejection
+import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.identity.auth.AuthRepository
+import com.opson.libraries.identity.auth.AuthState
+import com.opson.libraries.identity.auth.DeleteAccountOutcome
+import com.opson.libraries.identity.auth.LinkEmailIdentityOutcome
+import com.opson.libraries.identity.auth.LinkIdentityOutcome
+import com.opson.libraries.identity.auth.OAuthProvider
+import com.opson.libraries.identity.auth.RefreshOutcome
+import com.opson.libraries.identity.auth.ResendOutcome
+import com.opson.libraries.identity.auth.SendResetOutcome
+import com.opson.libraries.identity.auth.SignInOutcome
+import com.opson.libraries.identity.auth.SignUpOutcome
+import com.opson.libraries.nutrition.NumbersChange
+import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.nutrition.VisibilityPolicySource
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+
+/*
+ * Hand-rolled fakes for the settings view model tests (docs/practices/testing.md).
+ */
+
+class FakeSettingsRepository(initial: Settings = SettingsFixtures.settings()) : SettingsRepository {
+    val state = MutableStateFlow(initial)
+    var writes = 0
+        private set
+
+    override val settings: StateFlow<Settings> = state
+    override val isKnown: StateFlow<Boolean> = MutableStateFlow(true)
+
+    override suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): Settings {
+        val next = transform(state.value)
+        if (next != state.value) writes++
+        state.value = next
+        return next
+    }
+}
+
+/** Answers [outcome] for every request, and records every call. Writes nothing itself. */
+class FakeNumbersChanger(var outcome: (NumbersChange) -> NumbersOutcome = { NumbersOutcome.Applied(fewer = false) }) :
+    NumbersChanger {
+    val requested = mutableListOf<NumbersChange>()
+    val confirmed = mutableListOf<NumbersChange>()
+    val shown = mutableListOf<NumbersChange>()
+    val kept = mutableListOf<NumbersChange>()
+    var pauseTurnedOn = 0
+        private set
+
+    override suspend fun request(change: NumbersChange): NumbersOutcome {
+        requested += change
+        return outcome(change)
+    }
+
+    override suspend fun confirm(change: NumbersChange) {
+        confirmed += change
+    }
+
+    override suspend fun turnOnPause() {
+        pauseTurnedOn++
+    }
+
+    override fun pauseShown(change: NumbersChange) {
+        shown += change
+    }
+
+    override fun pauseKept(change: NumbersChange) {
+        kept += change
+    }
+}
+
+class FakePolicySource(initial: VisibilityPolicy) : VisibilityPolicySource {
+    override val policy = MutableStateFlow(initial)
+}
+
+class FakeDiarySync(var result: Result<Unit> = Result.success(Unit)) : DiarySync {
+    var syncs = 0
+        private set
+
+    override val rejections: Flow<SyncRejection> = emptyFlow()
+
+    override suspend fun syncNow(): Result<Unit> {
+        syncs++
+        return result
+    }
+}
+
+/** Fails if asked before a sync, so a test can prove the export waits for queued changes. */
+class FakeDataExport(private val sync: FakeDiarySync, var result: Result<ByteArray>) : DataExport {
+    var calls = 0
+        private set
+    var syncsBeforeFirstCall: Int? = null
+        private set
+
+    override suspend fun csv(): Result<ByteArray> {
+        calls++
+        if (syncsBeforeFirstCall == null) syncsBeforeFirstCall = sync.syncs
+        return result
+    }
+}
+
+/** Only account deletion is driven; everything else is out of scope for settings. */
+class FakeAuthRepository(var deleteOutcome: DeleteAccountOutcome = DeleteAccountOutcome.Success) : AuthRepository {
+    var deletes = 0
+        private set
+
+    override suspend fun deleteAccount(): DeleteAccountOutcome {
+        deletes++
+        return deleteOutcome
+    }
+
+    override suspend fun current(): AuthState = unused()
+    override fun observe(): Flow<AuthState> = unused()
+    override suspend fun retry(): AuthState = unused()
+    override suspend fun signInWithEmail(email: String, password: String): SignInOutcome = unused()
+    override suspend fun signUpWithEmail(email: String, password: String): SignUpOutcome = unused()
+    override suspend fun refreshSession(): RefreshOutcome = unused()
+    override suspend fun resendVerificationEmail(email: String): ResendOutcome = unused()
+    override suspend fun sendPasswordResetEmail(email: String): SendResetOutcome = unused()
+    override suspend fun signOut() = unused()
+    override suspend fun linkOAuthIdentity(provider: OAuthProvider): LinkIdentityOutcome = unused()
+    override suspend fun signInWithOAuth(provider: OAuthProvider): SignInOutcome = unused()
+    override suspend fun linkEmailIdentity(email: String, password: String): LinkEmailIdentityOutcome = unused()
+
+    private fun unused(): Nothing = error("Settings never calls this")
+}
+
+/** Every event [vm] sends from now on, in order. */
+fun <E : Any> TestScope.eventsOf(vm: SEAViewModel<*, E, *>): List<E> {
+    val events = mutableListOf<E>()
+    backgroundScope.launch { vm.eventFlow.collect { events += it } }
+    return events
+}

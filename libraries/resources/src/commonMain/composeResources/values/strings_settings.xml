@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The More tab and its pages. Verbatim from the handoff where it has the copy
+  (docs/design/handoff/Phone.dc.html), new lines per docs/plans/screens/settings.md.
+  Same rules as strings.xml: no backslash escapes, positional format specifiers.
+-->
+<resources>
+
+    <!-- Shared by the pages -->
+    <string name="settings_back_more">‹ More</string>
+    <string name="settings_back_today">‹ Today</string>
+    <string name="settings_saved">Saved.</string>
+    <string name="settings_saved_fewer">Saved. Fewer numbers from now on.</string>
+
+    <!-- More -->
+    <string name="settings_more_title">More</string>
+    <string name="settings_more_modes">Modes and numbers</string>
+    <string name="settings_more_modes_adjusted">%1$s, adjusted</string>
+    <string name="settings_more_targets">Targets</string>
+    <string name="settings_more_targets_ratio">%1$s, ratio macros</string>
+    <string name="settings_more_targets_grams">%1$s, gram macros</string>
+    <string name="settings_more_targets_hidden">Out of view in this mode</string>
+    <string name="settings_more_water">Water</string>
+    <string name="settings_more_water_sub">Goal, glass size and units</string>
+    <string name="settings_more_look">Look and feel</string>
+    <string name="settings_more_look_sub">Colors, text size and tone</string>
+    <string name="settings_more_support">Support and sharing</string>
+    <string name="settings_more_support_sub">Helpline, export, delete</string>
+
+    <!-- Presets, label and line -->
+    <string name="settings_preset_full">Full numbers</string>
+    <string name="settings_preset_full_line">Everything visible. Watch sync shapes your target.</string>
+    <string name="settings_preset_delayed">Delayed reveal</string>
+    <string name="settings_preset_delayed_line">Log all day. Totals open at a time you pick.</string>
+    <string name="settings_preset_blind">Blind</string>
+    <string name="settings_preset_blind_line">No calories anywhere in the app.</string>
+    <string name="settings_preset_nutrient">Nutrient focus</string>
+    <string name="settings_preset_nutrient_line">Calories hidden. Protein and fiber as fill bars.</string>
+    <string name="settings_preset_rhythm">Rhythm</string>
+    <string name="settings_preset_rhythm_line">A meal checklist with reminders. Amounts optional.</string>
+    <string name="settings_preset_explorer">Explorer</string>
+    <string name="settings_preset_explorer_line">Safe foods, new foods, small wins for trying.</string>
+    <string name="settings_preset_mindful">Mindful</string>
+    <string name="settings_preset_mindful_line">Hunger, fullness and how it felt. No nutrition data.</string>
+    <string name="settings_preset_fuel">Fuel</string>
+    <string name="settings_preset_fuel_line">Eating enough first. Protein and meal count up front.</string>
+    <string name="settings_preset_sprint">Sprint</string>
+    <string name="settings_preset_sprint_line">Track for two weeks to learn, then take a break.</string>
+    <string name="settings_preset_coast">Coast</string>
+    <string name="settings_preset_coast_line">Light logging and one weekly check.</string>
+
+    <!-- Metrics, as the per-number grid names them -->
+    <string name="settings_metric_calories">Calories</string>
+    <string name="settings_metric_remaining">Left in range</string>
+    <string name="settings_metric_energy_out">Energy expended</string>
+    <string name="settings_metric_protein">Protein</string>
+    <string name="settings_metric_carbs">Carbs</string>
+    <string name="settings_metric_fat">Fat</string>
+    <string name="settings_metric_fiber">Fiber</string>
+    <string name="settings_metric_micros">Vitamins, minerals</string>
+    <string name="settings_metric_weight">Weight</string>
+    <string name="settings_metric_water">Water</string>
+
+    <!-- Modes and numbers -->
+    <string name="settings_modes_title">Modes and numbers</string>
+    <string name="settings_modes_intro">Pick a starting point, then change any single number below. Showing fewer numbers applies right away.</string>
+    <string name="settings_modes_matrix_header">Each number</string>
+    <string name="settings_level_show">Show</string>
+    <string name="settings_level_soft">Soft</string>
+    <string name="settings_level_later">Later</string>
+    <string name="settings_level_hide">Hide</string>
+    <string name="settings_modes_cell">%1$s: %2$s</string>
+    <string name="settings_modes_footnote">Soft shows a word or a fill bar instead of an amount. Later keeps it locked until your reveal time.</string>
+    <string name="settings_modes_pause_title">Pause before showing more</string>
+    <string name="settings_modes_pause_body">A short wait and a question before any number comes back.</string>
+    <string name="settings_modes_targets">Targets</string>
+    <string name="settings_modes_targets_sub">Energy range and macro split</string>
+    <string name="settings_modes_changed">Last changed by you, %1$s. App updates never change these.</string>
+    <string name="settings_modes_setup">Set by you during setup. App updates never change these.</string>
+
+    <!-- Pause before showing more (sheet) -->
+    <string name="settings_pause_title">Showing more numbers</string>
+    <string name="settings_pause_body">You asked for a pause here. %1$s will come back once the wait is over.</string>
+    <string name="settings_pause_body_pause">You asked for a pause here. Turning it off takes the same short wait.</string>
+    <string name="settings_pause_reason_prompt">What's prompting this? Only you see the answer.</string>
+    <string name="settings_pause_reason_curious">Curious</string>
+    <string name="settings_pause_reason_goal">Working toward a goal</string>
+    <string name="settings_pause_reason_worried">Worried I'm off track</string>
+    <string name="settings_pause_reason_asked">Someone asked me to</string>
+    <string name="settings_pause_wait">Opens in %1$ds</string>
+    <string name="settings_pause_show">Show them</string>
+    <string name="settings_pause_keep">Keep things as they are</string>
+    <string name="settings_pause_saved">Saved. You can hide them again any time.</string>
+
+    <!-- Targets -->
+    <string name="settings_targets_title">Targets</string>
+    <string name="settings_targets_range_label">Daily energy range</string>
+    <string name="settings_targets_aim">Aim for about %1$s, before activity</string>
+    <string name="settings_targets_lower">Lower</string>
+    <string name="settings_targets_raise">Raise</string>
+    <string name="settings_targets_step_note">Moves 50 kcal at a time.</string>
+    <string name="settings_targets_floor_note">Raising is always open. Going below where you started needs a floor set with a dietitian, so it's off for now.</string>
+    <string name="settings_targets_floor_toast">Going lower needs a floor set with a dietitian first.</string>
+    <string name="settings_targets_macros_title">Set macros using</string>
+    <string name="settings_targets_ratios">Ratios</string>
+    <string name="settings_targets_grams">Grams</string>
+    <string name="settings_targets_ratios_note">Grams follow your energy target, so the split stays the same.</string>
+    <string name="settings_targets_grams_note">Grams stay put when your energy target changes.</string>
+    <string name="settings_targets_hidden_title">Targets work in the background</string>
+    <string name="settings_targets_hidden_body">They're out of view in this mode. To see or change them, show calories in Modes and numbers.</string>
+    <string name="settings_targets_hidden_link">Modes and numbers</string>
+    <string name="settings_targets_footer">No extra credit for coming in under.</string>
+
+    <!-- Water settings -->
+    <string name="settings_water_title">Water</string>
+    <string name="settings_water_show">Show on Today</string>
+    <string name="settings_water_goal_title">Daily goal, in glasses</string>
+    <string name="settings_water_goal">%1$d glasses, %2$s a day</string>
+    <string name="settings_water_size">Glass size</string>
+    <string name="settings_water_units">Units</string>
+    <string name="settings_water_unit_ml">ml</string>
+    <string name="settings_water_unit_floz">fl oz</string>
+
+    <!-- Look and feel -->
+    <string name="settings_look_title">Look and feel</string>
+    <string name="settings_look_colors">Colors</string>
+    <string name="settings_look_palette_pine">Pine</string>
+    <string name="settings_look_palette_espresso">Espresso</string>
+    <string name="settings_look_palette_clay">Clay</string>
+    <string name="settings_look_palette_plum">Plum</string>
+    <string name="settings_look_theme">Theme</string>
+    <string name="settings_look_theme_system">Match phone</string>
+    <string name="settings_look_theme_light">Light</string>
+    <string name="settings_look_theme_dark">Dark</string>
+    <string name="settings_look_text">Text size</string>
+    <string name="settings_look_text_normal">Normal</string>
+    <string name="settings_look_text_large">Large</string>
+    <string name="settings_look_weight">Weight units</string>
+    <string name="settings_look_weight_kg">kg</string>
+    <string name="settings_look_weight_lb">lb</string>
+    <string name="settings_look_tone">How we talk to you</string>
+    <string name="settings_look_tone_plain">Plain</string>
+    <string name="settings_look_tone_warm">Warm</string>
+    <string name="settings_look_tone_example">Example: %1$s</string>
+    <string name="settings_look_tone_plain_sample">“Nothing logged.”</string>
+    <string name="settings_look_tone_warm_sample">“Nothing here yet. Add it whenever.”</string>
+    <string name="settings_look_tags_title">Hunger and fullness questions</string>
+    <string name="settings_look_tags_body">Asked when you add food. Always skippable.</string>
+
+    <!-- Support and sharing -->
+    <string name="settings_support_title">Support and sharing</string>
+    <string name="settings_support_hard_title">If food or numbers feel hard right now</string>
+    <string name="settings_support_hard_body">Free, confidential support from people who understand eating disorders.</string>
+    <string name="settings_support_helpline">National Alliance for Eating Disorders helpline</string>
+    <string name="settings_support_provider">Find a provider</string>
+    <string name="settings_support_trusted">Trusted person</string>
+    <string name="settings_support_trusted_sub">They approve turning numbers back on</string>
+    <string name="settings_support_clinician">Dietitian, therapist or coach</string>
+    <string name="settings_support_clinician_sub">They see what you choose to share</string>
+    <string name="settings_support_coming_later">Coming later</string>
+    <string name="settings_support_data_title">Your data</string>
+    <string name="settings_support_data_body">Saved on this phone and synced to your account. No ad tracking.</string>
+    <string name="settings_support_export">Export everything (CSV)</string>
+    <string name="settings_send_feedback">Send feedback</string>
+    <string name="settings_support_delete">Delete everything</string>
+    <string name="settings_support_delete_confirm">This removes every log and setting from this phone and from our server. It can't be undone.</string>
+    <string name="settings_support_keep">Keep my data</string>
+    <string name="settings_support_delete_button">Delete</string>
+    <string name="settings_export_ready">Export ready: %1$s</string>
+    <string name="settings_export_offline">Export needs a connection. Try again when you're online.</string>
+    <string name="settings_delete_done">Everything was deleted.</string>
+    <string name="settings_delete_offline">We couldn't reach the server, so nothing was deleted. Try again when you're online.</string>
+    <string name="settings_delete_failed">Something went wrong, so nothing was deleted. Try again in a little while.</string>
+
+</resources>

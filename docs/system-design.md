@@ -460,7 +460,8 @@ theme.
   Rounded set, reached only through `AppIcons` (named after the Symbols
   ligatures; `nutrition` and `barcode_scanner` have no Rounded twin and use
   the closest glyph).
-- **Access:** `AppTheme(palette, darkTheme, largeText)` at the root; tokens
+- **Access:** `AppTheme(palette, darkTheme, largeText)` at the root, fed from
+  the user's Look and feel settings by `UserAppTheme` in `apps/compose`; tokens
   through `AppTheme.colors`, `AppTheme.type` (the handoff scale; the older
   `AppTheme.typography` stays for template screens), `AppTheme.shapes`,
   `AppTheme.spacing` and `AppTheme.shadows`. Every component and token renders

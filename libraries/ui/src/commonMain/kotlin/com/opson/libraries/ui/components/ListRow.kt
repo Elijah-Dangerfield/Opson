@@ -104,6 +104,12 @@ fun ListRow(
     }
 }
 
+/** The muted chevron at the end of a row that opens a page (More, Foods' "Create a meal"). */
+@Composable
+fun ListRowChevron(modifier: Modifier = Modifier) {
+    Icon(icon = AppIcons.ChevronRight, size = 22.dp, color = AppTheme.colors.muted, modifier = modifier)
+}
+
 @Preview(widthDp = 390)
 @Composable
 private fun ListRowPreview() {

@@ -38,8 +38,13 @@ Built on reality (re-plan, 2026-10-26):
 - **Pages share small `:libraries:ui` pieces** added for them: `PageHeader`
   (the `‹ More` link and the page title), `FlatButton` (the handoff's soft,
   outlined, ink and accent buttons), `RadioMatrix` (the per-metric grid),
-  `LegendDot`, a `subtitleContent` slot on `ListRow` so a tagged number can sit
-  in a subtitle, and `EdgeCardDefaults.ListPadding` / `InsetPadding`.
+  `LegendDot`, `ListRowChevron`, a `subtitleContent` slot on `ListRow`, and
+  `EdgeCardDefaults.ListPadding` / `InsetPadding` / `SectionGap`. In
+  `:libraries:nutrition:ui`, `NutrientPhrase` renders a resolved number inside a
+  sentence ("Aim for about 2,100 kcal, before activity"), tagged, and renders
+  nothing when the number is hidden.
+- The app root themes from `Settings.palette` / `theme` / `textSize` through
+  `UserAppTheme` in `apps/compose`, which collects only those three fields.
 - Each page lists a `LeakSurface` in `SettingsLeakSurfaces.all`, built from
   `SettingsFixtures` through the page's real `XStateBuilder`.
 

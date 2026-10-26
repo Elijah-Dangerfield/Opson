@@ -49,10 +49,6 @@
     <string name="foods_title">Foods</string>
     <string name="foods_placeholder">Your favorites and saved meals will live here.</string>
 
-    <!-- More -->
-    <string name="more_title">More</string>
-    <string name="more_placeholder">Modes, targets and support will live here.</string>
-
     <!-- Logger -->
     <string name="logger_title">Log food</string>
     <string name="logger_placeholder">Search, favorites and recent foods will show up here.</string>

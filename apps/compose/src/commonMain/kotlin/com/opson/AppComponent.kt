@@ -2,6 +2,7 @@ package com.opson
 
 import com.opson.libraries.core.AppState
 import com.opson.libraries.core.AutoInit
+import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.navigation.DeepLinkBridge
 import com.opson.libraries.navigation.impl.DelegatingRouter
@@ -51,6 +52,9 @@ interface AppComponent {
 
     /** The live numbers policy App.kt provides to every screen as `LocalVisibilityPolicy`. */
     val visibilityPolicySource: VisibilityPolicySource
+
+    /** The user's palette, theme and text size, which App.kt applies to `AppTheme`. */
+    val settingsRepository: SettingsRepository
     
     /**
      * Singletons that need to construct at app boot rather than lazily
