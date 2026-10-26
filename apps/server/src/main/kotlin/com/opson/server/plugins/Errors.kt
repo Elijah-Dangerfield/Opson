@@ -13,6 +13,7 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 
 /**
  * Every error response from this server has this shape. Defining it once means
@@ -75,12 +76,26 @@ fun Application.installStatusPages() {
             )
         }
         exception<Throwable> { call, cause ->
-            logger.error("Unhandled error", cause)
-            captureToSentry(cause, context = "status-pages")
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                problem("internal", cause.message ?: "unknown"),
-            )
+            val reported = cause.withoutSqlDetail()
+            logger.error("Unhandled error", reported)
+            captureToSentry(reported, context = "status-pages")
+            // Never the exception's message: it can quote SQL, row values or a stack detail.
+            call.respond(HttpStatusCode.InternalServerError, problem("internal", "Something went wrong"))
         }
     }
 }
+
+/**
+ * [this], or for a database error a stand-in that carries only the SQLSTATE
+ * and the stack. A JDBC or Exposed exception's message and `toString` quote
+ * the failed statement with its bound values, which here are someone's diary.
+ */
+internal fun Throwable.withoutSqlDetail(): Throwable {
+    val sql = generateSequence(this) { it.cause }.filterIsInstance<SQLException>().firstOrNull() ?: return this
+    val state = generateSequence(this) { it.cause }.filterIsInstance<SQLException>().firstNotNullOfOrNull { it.sqlState }
+    return RedactedSqlException("${sql::class.java.simpleName} sqlState=${state ?: "unknown"}").also {
+        it.stackTrace = stackTrace
+    }
+}
+
+internal class RedactedSqlException(message: String) : RuntimeException(message)

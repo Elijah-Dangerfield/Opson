@@ -57,4 +57,48 @@ class StatusPagesTest {
         assertEquals("2", response.headers[HttpHeaders.RetryAfter])
         assertTrue(response.bodyAsText().contains("\"busy\""))
     }
+
+    @Test
+    fun aDatabaseErrorNeverReachesTheBodyOrTheLogWithItsValues() = testApplication {
+        application {
+            installSerialization()
+            installStatusPages()
+            routing {
+                get("/boom") {
+                    throw RuntimeException(
+                        "wrapped",
+                        SQLException("ERROR: value too long. SQL: INSERT INTO day_records (note) VALUES ('my private note')", "22001"),
+                    )
+                }
+            }
+        }
+
+        val response = client.get("/boom")
+
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        assertFalse(response.bodyAsText().contains("private note"), response.bodyAsText())
+        val log = logged()
+        assertTrue(log.contains("sqlState=22001"), log)
+        assertFalse(log.contains("private note"), log)
+    }
+
+    @Test
+    fun anUnexpectedErrorsMessageStaysOutOfTheBody() = testApplication {
+        application {
+            installSerialization()
+            installStatusPages()
+            routing { get("/boom") { error("token=abc123 for user 42") } }
+        }
+
+        val body = client.get("/boom").bodyAsText()
+
+        assertFalse(body.contains("abc123"), body)
+        assertTrue(body.contains("\"internal\""))
+    }
+
+    @Test
+    fun exposedDoesNotLogStatementsBelowError() {
+        // Exposed logs each failed transaction's statements, bound values included, at WARN.
+        assertFalse(LoggerFactory.getLogger("Exposed").isWarnEnabled)
+    }
 }
