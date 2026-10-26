@@ -1,53 +1,75 @@
 ---
 app: Opson
 title: Privacy Policy
-updated: 2026-10-25
+updated: 2026-10-26
 contact: contact@nightjarlabs.llc
 ---
 
-<!--
-  A STARTING POINT, NOT A POLICY. Every sentence below is a claim about what
-  your binary does, and the template cannot know that. Read it against the code
-  before you file the URL with Apple or Google, and re-read it every time you
-  add an SDK.
+Opson is a food log. What you eat, how meals felt and what you weigh are
+personal, and for some people they are sensitive. This page says what the app
+collects, where it goes, and how to delete it.
 
-  The two claims most likely to be false by the time you ship are "no ad or
-  analytics SDKs" and "no account", because those are the first two things a
-  real app adds. A live policy that denies serving ads while the app serves them
-  is a store problem and a trust problem at once.
+## What you put in
 
-  Delete this comment when the text is yours.
--->
+- **Your food log**: foods, amounts, meal times, water, notes, how meals felt,
+  and weigh-ins if you add them.
+- **Your settings**: which numbers you want to see, your targets, and your
+  answers to the setup questions.
+- **Foods you create**: custom foods and saved meals.
 
-Opson is designed to collect as little information about you as possible. This page explains what is and is not collected.
+## Where it goes
 
-## What stays on your device
+Your log is saved on your phone first, so the app works without a
+connection. It is then copied to our server so it survives a lost phone or a
+reinstall. The server runs on [Fly.io](https://fly.io/legal/privacy-policy) and
+stores data in a database hosted by [Supabase](https://supabase.com/privacy).
 
-The app stores data locally on your phone and nowhere else. Delete the app and that data goes with it.
+You don't need to give us your name or email. The app creates an anonymous
+account for you on first launch. If you later sign in with Apple or an email
+address, your log moves to that account.
 
-## What the app sends
+## What else the app sends
 
-When the app crashes or hits an error, a report goes to [Sentry](https://sentry.io/privacy/) so the bug can be found and fixed. It contains:
+- **Crash reports** go to [Sentry](https://sentry.io/privacy/): what went wrong,
+  your device model, OS version and app version. They never include what you
+  logged.
+- **App usage events** go to our monitoring service (Grafana Cloud): which
+  screens open, which way you added a food (search, saved meal, "ate, no
+  details"), and errors. These events never include amounts, foods or weights.
+- **Food searches** are recorded without your account attached, so we can find
+  foods missing from the database.
+- **Barcode lookups** that our database can't answer are sent to
+  [Open Food Facts](https://world.openfoodfacts.org/privacy). Only the barcode
+  is sent.
 
-- A crash log: what went wrong, and where in the code.
-- Your device model and operating system version.
-- The version of the app you are running.
+## What we look at
 
-This data is not tied to your identity.
+We look at totals across everyone: how many people logged today, which ways of
+adding food get used, which searches find nothing. Our dashboards are built so
+they cannot show one person's log.
 
-## What the app never collects
+## What the app never does
 
-The app does not:
+- No advertising, no ad networks, and nothing is sold or shared with anyone for
+  marketing.
+- No location tracking.
+- No contacts, photos or microphone access unless you choose a feature that
+  needs it, and then only for that feature.
 
-- Use advertising or analytics SDKs. No Google Analytics, no Facebook SDK, no ad networks.
-- Track your location.
-- Sell or share any data.
-- Require an account.
+## Deleting your data
 
-## Permissions
+**More → Support → Delete everything** deletes your account and every row we
+hold about you, on the phone and on the server. It cannot be undone.
+**Export** in the same place gives you a CSV of your log first if you want one.
 
-- **Notifications** (iOS, only if you allow it): occasional updates from the app.
+You can also email the address above and we will delete it for you.
+
+## Children
+
+Opson is not meant for children under 13, and we don't knowingly collect data
+from them.
 
 ## Changes to this policy
 
-If this policy changes, the new version is posted here and the "Last updated" date is revised.
+If this policy changes, the new version is posted here and the date at the top
+changes.
