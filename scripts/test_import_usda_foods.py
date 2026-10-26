@@ -3,9 +3,17 @@
     python3 -I -m unittest discover -s scripts -p 'test_import_usda_foods.py'
 """
 
+import json
+import stat
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 from import_usda_foods import (
+    KEEPALIVES,
+    Psql,
+    PsqlOutput,
     branded_category,
     default_portion_first,
     generic_category,
@@ -13,6 +21,7 @@ from import_usda_foods import (
     normalize_gtin,
     pg_env,
     serving_portion,
+    stream,
     title_case,
     upc_e_to_upc_a,
 )
@@ -274,6 +283,62 @@ class ConnectionTest(unittest.TestCase):
     def test_unknown_parameters_are_refused(self):
         with self.assertRaises(SystemExit):
             pg_env("postgresql://u:p@h/db?sslpassword=x")
+
+
+# A stand-in for psql: records its arguments, environment and stdin, answers a
+# query with one row, and exits with FAKE_PSQL_EXIT. No database is involved.
+FAKE_PSQL = """#!{python}
+import json, os, sys
+record = os.environ["FAKE_PSQL_RECORD"]
+stdin = sys.stdin.read() if "-f" in sys.argv else ""
+with open(record, "w") as f:
+    json.dump({{"argv": sys.argv[1:], "password": os.environ.get("PGPASSWORD"), "stdin": stdin}}, f)
+if "-c" in sys.argv:
+    print("t")
+sys.exit(int(os.environ.get("FAKE_PSQL_EXIT", "0")))
+"""
+
+
+class PsqlTest(unittest.TestCase):
+    """The psql seam both importers stream through, against a fake psql binary."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        self.binary = Path(self.dir.name) / "psql"
+        self.binary.write_text(FAKE_PSQL.format(python=sys.executable))
+        self.binary.chmod(self.binary.stat().st_mode | stat.S_IXUSR)
+        self.record = Path(self.dir.name) / "record.json"
+        env = pg_env("postgresql://importer:s3cret@db.example.com:5432/postgres")
+        self.db = Psql(str(self.binary), {**env, "FAKE_PSQL_RECORD": str(self.record)})
+
+    def recorded(self):
+        return json.loads(self.record.read_text())
+
+    def test_a_query_carries_keepalives_and_keeps_the_password_off_the_command_line(self):
+        self.assertEqual([["t"]], self.db.query("SELECT true"))
+        call = self.recorded()
+        self.assertEqual(KEEPALIVES, call["argv"][call["argv"].index("-d") + 1])
+        self.assertEqual("s3cret", call["password"])
+        self.assertNotIn("s3cret", " ".join(call["argv"]))
+
+    def test_a_stream_carries_keepalives_stops_on_error_and_sends_every_chunk(self):
+        stream([("BEGIN;\n", 0), ("INSERT 1;\n", 1), ("COMMIT;\n", 0)], PsqlOutput(self.db))
+        call = self.recorded()
+        self.assertEqual(KEEPALIVES, call["argv"][call["argv"].index("-d") + 1])
+        self.assertIn("ON_ERROR_STOP=1", call["argv"])
+        self.assertEqual("BEGIN;\nINSERT 1;\nCOMMIT;\n", call["stdin"])
+
+    def test_a_psql_failure_stops_the_import_and_says_to_run_it_again(self):
+        self.db.env["FAKE_PSQL_EXIT"] = "3"
+        with self.assertRaises(SystemExit) as stopped:
+            stream([("INSERT 1;\n", 1)], PsqlOutput(self.db))
+        self.assertIn("re-run to finish", str(stopped.exception))
+
+    def test_a_failed_query_stops_the_import(self):
+        self.db.env["FAKE_PSQL_EXIT"] = "2"
+        with self.assertRaises(SystemExit):
+            self.db.query("SELECT true")
 
 
 if __name__ == "__main__":

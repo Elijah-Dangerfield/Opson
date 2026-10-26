@@ -3,10 +3,14 @@
     python3 -I -m unittest discover -s scripts -p 'test_import_off_foods.py'
 """
 
+import gzip
 import tempfile
 import unittest
+from argparse import Namespace
 from pathlib import Path
+from unittest import mock
 
+import import_off_foods
 from import_off_foods import (
     SCAN_BUCKETS,
     Stats,
@@ -23,6 +27,7 @@ from import_off_foods import (
     parse_number,
     portions_for,
     product_from,
+    reload_sql,
     scan_bucket,
     scan_count,
 )
@@ -273,6 +278,62 @@ class OrderTest(unittest.TestCase):
         self.assertEqual(sorted(products, key=lambda p: p.barcode), sorted(ordered, key=lambda p: p.barcode))
         sevens = [p.barcode for p in ordered if p.scans == 7]
         self.assertEqual([products[1].barcode, products[6].barcode], sevens, "export order within a bucket")
+
+
+class ReloadTest(unittest.TestCase):
+    """The whole reload as SQL chunks, from a small export, with no database."""
+
+    COLUMNS = ["code", "product_name", "energy-kcal_100g", "proteins_100g", "carbohydrates_100g", "fat_100g",
+               "countries_tags", "unique_scans_n", "last_modified_t"]
+
+    def reload(self, rows, batch_size):
+        with tempfile.TemporaryDirectory() as tmp:
+            export = Path(tmp) / "products.csv.gz"
+            with gzip.open(export, "wt", encoding="utf-8") as f:
+                f.write("\t".join(self.COLUMNS) + "\n")
+                for r in rows:
+                    f.write("\t".join(r) + "\n")
+            args = Namespace(maintenance_work_mem="64MB", min_rows=1, allow_shrink=False)
+            stats = Stats()
+            with mock.patch.object(import_off_foods, "BATCH_SIZE", batch_size):
+                chunks = list(reload_sql(export, "2026-10-26", stats, args, Path(tmp)))
+        return chunks, stats
+
+    def test_staging_is_prepared_then_loaded_in_batches_then_swapped_last(self):
+        rows = [
+            ["3017620422003", "Nutella", "539", "6.3", "57.5", "30.9", "en:france", "5", "1781851567"],
+            ["5449000000996", "Coca-Cola", "42", "0", "10.6", "0", "en:spain", "2000", "1781850000"],
+            ["3017620422003", "Nutella old", "530", "6", "57", "31", "en:france", "5", "1781851000"],
+            ["4006381333931", "Pencil fudge", "400", "4", "70", "10", "", "0", "1781800000"],
+            ["8712345678906", "Rice cakes", "380", "8", "80", "3", "", "0", "1781800000"],
+            ["123", "Too short a code", "100", "1", "1", "1", "", "0", ""],
+        ]
+        chunks, stats = self.reload(rows, batch_size=3)
+
+        sql = [text for text, _ in chunks]
+        batches = [(text, n) for text, n in chunks if n]
+        self.assertIn("SET statement_timeout = 0", sql[2])
+        self.assertIn("CREATE TABLE IF NOT EXISTS public.off_foods_next", sql[3])
+        self.assertIn("LOCK TABLE public.off_foods IN ACCESS EXCLUSIVE MODE", sql[-1], "the swap comes last")
+        self.assertTrue(all("COMMIT;" in text for text, _ in batches), "every batch commits on its own")
+        self.assertEqual([3, 1], [n for _, n in batches])
+
+        self.assertLess(sql.index(batches[0][0]), sql.index(batches[1][0]))
+        first = batches[0][0]
+        self.assertLess(first.index("'Coca-Cola'"), first.index("'Nutella'"), "the most-scanned product loads first")
+        self.assertNotIn("Nutella old", "".join(sql), "of a barcode twice in a batch, the newer is kept")
+        self.assertIn("'Rice cakes'", batches[1][0])
+
+        self.assertEqual(6, stats.rows)
+        self.assertEqual(1, stats.bad_barcode)
+        self.assertEqual(1, stats.same_batch_duplicates)
+        self.assertEqual(4, stats.sent)
+
+    def test_an_export_with_nothing_usable_still_ends_in_the_guarded_swap(self):
+        chunks, stats = self.reload([["123", "", "", "", "", "", "", "", ""]], batch_size=2)
+        self.assertEqual(0, stats.sent)
+        self.assertEqual([], [n for _, n in chunks if n])
+        self.assertIn("refusing to swap", chunks[-1][0], "the row-count check refuses an empty staging table")
 
 
 if __name__ == "__main__":
