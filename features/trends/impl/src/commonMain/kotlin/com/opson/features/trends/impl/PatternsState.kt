@@ -19,6 +19,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 
 /** What Patterns is built from: the last four weeks of days, oldest first, with the lookback before them for new foods. */
 data class PatternsInputs(
@@ -96,7 +97,11 @@ object PatternsStateBuilder {
         val from = inputs.today.minus(DAYS - 1, DateTimeUnit.DAY)
         val facts = MealPatterns.of(inputs.days, from, inputs.today, inputs.timeZone)
         val context = FormatContext(day = inputs.today)
-        val sizes = if (policy.effectiveLevel(Metric.Calories, Surface.Week, context) == Visibility.Show) {
+        // On the week view a weekly reveal (Coast) opens with the check on the last day of the
+        // week holding today, by the user's week start, not on whichever day today is.
+        val weekEnd = TrendsCalendar.weekStartOf(inputs.today, inputs.settings.weekStart)
+            .plus(TrendsCalendar.DAYS_IN_WEEK - 1, DateTimeUnit.DAY)
+        val sizes = if (policy.effectiveLevel(Metric.Calories, Surface.Week, FormatContext(day = weekEnd)) == Visibility.Show) {
             // Today counts once its own calories are open. The week view is open in Delayed all
             // day, so before the reveal today's meals would move these averages, and logging one
             // would say roughly how big it was. Trends and Nutrients leave today out the same way.
