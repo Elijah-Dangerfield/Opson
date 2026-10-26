@@ -135,8 +135,9 @@ in Health Connect reads as not connected on the next `refresh()`.
   lower) and an `activity-alias` for `VIEW_PERMISSION_USAGE` +
   `HEALTH_PERMISSIONS` guarded by `START_VIEW_PERMISSION_USAGE` (14+). The
   activity shows the privacy policy. `connect-client` 1.1.0 needs minSdk 26
-  and the app is 24, so the app manifest carries
-  `tools:overrideLibrary` for it and the reader reports Unsupported below
+  and the app is 24, so the health module's manifest carries
+  `tools:overrideLibrary` for it (there, not in the app's, so the screenshot
+  tests' merged manifest gets it too) and the reader reports Unsupported below
   Android 9, where Health Connect does not exist.
 - **iOS**: `com.apple.developer.healthkit` (true) and
   `com.apple.developer.healthkit.access` (empty) in `iosApp.entitlements`;

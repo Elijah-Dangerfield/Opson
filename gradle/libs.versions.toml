@@ -13,7 +13,7 @@ androidx-lifecycle = "2.9.6"
 android-lifecycle-etx = "2.2.0"
 androidx-testExt = "1.3.0"
 androidx-work = "2.9.1"
-# Health Connect. 1.1.0 needs minSdk 26; the app manifest overrides it (Health Connect only exists from Android 9).
+# Health Connect. 1.1.0 needs minSdk 26; libraries/health/impl's manifest overrides it (Health Connect only exists from Android 9).
 androidx-health-connect = "1.1.0"
 atomicfu = "0.29.0"
 composeMultiplatform = "1.9.3"
