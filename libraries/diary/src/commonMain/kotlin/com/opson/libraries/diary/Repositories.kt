@@ -121,6 +121,12 @@ interface DiaryItemEditor {
     suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem>
 }
 
+/** Day close's check-in (design sync 2). Its own interface so the `DiaryRepository` fakes stay as they are. */
+interface DayCheckIns {
+    /** Null, or an empty check-in, clears it. */
+    suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?)
+}
+
 interface WeightRepository {
     /** Weigh-ins oldest first, from [since] when given. */
     fun observeWeighIns(since: Instant? = null): Flow<List<WeighIn>>

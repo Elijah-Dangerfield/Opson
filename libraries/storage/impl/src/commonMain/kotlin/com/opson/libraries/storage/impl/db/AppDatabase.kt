@@ -43,7 +43,7 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
         FoodCacheEntity::class,
         FastEntity::class,
     ],
-    version = 8, // 6: the diary tables, the outbox, sync state and the food cache; 7: day_records.untracked and .feeling; 8: fasts
+    version = 9, // 6: the diary tables, the outbox, sync state and the food cache; 7: day_records.untracked and .feeling; 8: fasts; 9: day_records.checkIn
     /**
      * Every bump from [FIRST_APP_DATA_VERSION] on has to be listed here.
      *
@@ -57,6 +57,7 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
         AutoMigration(from = 5, to = 6),
         AutoMigration(from = 6, to = 7),
         AutoMigration(from = 7, to = 8),
+        AutoMigration(from = 8, to = 9),
     ],
     exportSchema = true
 )

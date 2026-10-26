@@ -273,7 +273,7 @@ class SheetsTest : CoroutineTest() {
         val settings = FakeSettingsRepository()
         val source = FakePolicySource()
         val changer = FakeNumbersChanger(NumbersOutcome.Applied(fewer = true))
-        val vm = TodayCardsViewModel(settings, source, changer, FastingRelease { false })
+        val vm = TodayCardsViewModel(settings, source, changer, FastingRelease { false }, summaryFlag(false))
         val events = collect(vm.eventFlow)
 
         vm.takeAction(TodayCardsAction.MealGroupsToggled)
@@ -291,7 +291,7 @@ class SheetsTest : CoroutineTest() {
 
     @Test
     fun hidingWaterBehindThePauseOpensIt() = runUnitTest {
-        val vm = TodayCardsViewModel(FakeSettingsRepository(), FakePolicySource(), FakeNumbersChanger(NumbersOutcome.NeedsPause), FastingRelease { false })
+        val vm = TodayCardsViewModel(FakeSettingsRepository(), FakePolicySource(), FakeNumbersChanger(NumbersOutcome.NeedsPause), FastingRelease { false }, summaryFlag(false))
         val events = collect(vm.eventFlow)
 
         vm.takeAction(TodayCardsAction.WaterToggled)
@@ -319,7 +319,7 @@ class SheetsTest : CoroutineTest() {
     @Test
     fun theFastingRowTogglesTheTodayCard() = runUnitTest {
         val settings = FakeSettingsRepository(Settings(fasting = true))
-        val vm = TodayCardsViewModel(settings, FakePolicySource(), FakeNumbersChanger(), FastingRelease { true })
+        val vm = TodayCardsViewModel(settings, FakePolicySource(), FakeNumbersChanger(), FastingRelease { true }, summaryFlag(false))
 
         vm.takeAction(TodayCardsAction.FastingToggled)
 

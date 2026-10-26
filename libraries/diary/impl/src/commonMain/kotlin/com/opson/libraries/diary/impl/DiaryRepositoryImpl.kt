@@ -2,7 +2,9 @@ package com.opson.libraries.diary.impl
 
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logging.KLog
+import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.diary.DiaryRepository
@@ -39,6 +41,7 @@ import kotlin.time.Instant
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = DiaryRepository::class)
 @ContributesBinding(AppScope::class, boundType = DiaryItemEditor::class)
+@ContributesBinding(AppScope::class, boundType = DayCheckIns::class)
 @Inject
 class DiaryRepositoryImpl(
     private val tables: DiaryTables,
@@ -46,7 +49,7 @@ class DiaryRepositoryImpl(
     private val settingsRepository: SettingsRepository,
     private val calendar: LocalCalendar,
     private val fastEnder: FastEnder,
-) : DiaryRepository, DiaryItemEditor {
+) : DiaryRepository, DiaryItemEditor, DayCheckIns {
 
     private val logger = KLog.withTag("Diary")
 
@@ -199,6 +202,10 @@ class DiaryRepositoryImpl(
         changeDay(day) { it.copy(feeling = feeling?.wire) }
     }
 
+    override suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?) = writer.write {
+        changeDay(day) { it.copy(checkIn = checkIn.toCheckInJson()) }
+    }
+
     override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) {
         writer.write {
             changeDay(day) { record ->
@@ -346,6 +353,7 @@ class DiaryRepositoryImpl(
             mealGroups = live?.mealGroups,
             untracked = live?.untracked ?: false,
             feeling = DayFeeling.fromWire(live?.feeling),
+            checkIn = live?.checkIn.toCheckIn(),
             feelings = feelings.filterNot { it.deleted }
                 .mapNotNull { row -> MealSlot.fromWire(row.slot)?.let { it to row.toDomain() } }
                 .toMap(),

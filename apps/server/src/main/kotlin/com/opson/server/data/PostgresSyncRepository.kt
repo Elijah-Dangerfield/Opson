@@ -208,6 +208,7 @@ class PostgresSyncRepository(
                 it[mealGroups] = row.mealGroups
                 it[untracked] = row.untracked
                 it[feeling] = row.feeling
+                it[checkIn] = row.checkIn
                 it[clientUpdatedAt] = row.clientUpdatedAt.toJavaInstant()
                 it[deleted] = row.deleted
             }
@@ -404,6 +405,7 @@ class PostgresSyncRepository(
         mealGroups = this[DayRecordsTable.mealGroups],
         untracked = this[DayRecordsTable.untracked],
         feeling = this[DayRecordsTable.feeling],
+        checkIn = this[DayRecordsTable.checkIn],
         clientUpdatedAt = this[DayRecordsTable.clientUpdatedAt].toKotlinInstant(),
         deleted = this[DayRecordsTable.deleted],
     )

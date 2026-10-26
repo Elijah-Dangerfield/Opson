@@ -135,6 +135,7 @@ class DayCloseTest : CoroutineTest() {
     private fun vm(
         day: kotlinx.datetime.LocalDate = TodayFixtures.today,
         policySource: FakePolicySource = FakePolicySource(),
+        checkInOn: Boolean = false,
     ) = DayCloseViewModel(
         day = day,
         diary = diary,
@@ -143,6 +144,8 @@ class DayCloseTest : CoroutineTest() {
         calendar = FakeCalendar(),
         health = FakeHealthRepository(),
         healthFlag = healthFlag(false),
+        checkIns = diary,
+        checkInEnabled = checkInFlag(checkInOn),
     )
 
     @Test

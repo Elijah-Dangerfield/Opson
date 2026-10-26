@@ -144,6 +144,8 @@ data class DayRecordRowDto(
     val untracked: Boolean = false,
     /** "How did today feel?" as a wire value (`steady`, `busy`, …); null when not answered. */
     val feeling: String? = null,
+    /** Day close's check-in as the client's JSON; absent from older clients. */
+    val checkIn: String? = null,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean = false,
 )
@@ -280,6 +282,7 @@ fun DayRecordRowDto.toDomain(): DayRecord = DayRecord(
     mealGroups = mealGroups,
     untracked = untracked,
     feeling = feeling,
+    checkIn = checkIn,
     clientUpdatedAt = instant(clientUpdatedAtEpochMs),
     deleted = deleted,
 )
@@ -381,6 +384,7 @@ fun DayRecord.toRowDto(): DayRecordRowDto = DayRecordRowDto(
     mealGroups = mealGroups,
     untracked = untracked,
     feeling = feeling,
+    checkIn = checkIn,
     clientUpdatedAtEpochMs = clientUpdatedAt.toEpochMilliseconds(),
     deleted = deleted,
 )

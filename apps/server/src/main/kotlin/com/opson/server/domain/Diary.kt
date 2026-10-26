@@ -106,6 +106,8 @@ data class DayRecord(
     val untracked: Boolean = false,
     /** "How did today feel?", a client wire value such as `steady`; null when not answered. */
     val feeling: String? = null,
+    /** Day close's check-in as the client's JSON; null when not answered. Opaque here, length-checked only. */
+    val checkIn: String? = null,
 ) : DiaryRow
 
 data class MealFeeling(

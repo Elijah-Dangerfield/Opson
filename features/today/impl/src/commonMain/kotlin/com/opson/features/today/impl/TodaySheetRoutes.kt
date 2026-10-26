@@ -37,3 +37,7 @@ data class DayNoteRoute(val dayIso: String) : Route()
 /** "Edit Today's cards" from the ⋮ menu: meal groups and the water card. */
 @Serializable
 class TodayCardsRoute : Route()
+
+/** Day close's "Why not cut back?" on the big-day card: a short reason, nothing to do. */
+@Serializable
+class WhyNotCutBackRoute : Route()

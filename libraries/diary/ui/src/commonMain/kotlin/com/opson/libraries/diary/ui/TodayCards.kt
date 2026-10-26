@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.nutrition.Display
@@ -590,9 +591,12 @@ fun RangeSentence(range: Display, phrase: @Composable (String) -> String) {
 }
 
 /**
- * Day close's big-day reset (4.2, 4.3) on the hero: the message, tomorrow's unchanged range,
- * then either the commitment buttons ([onCommit] for both; they save nothing) or [committedText].
+ * Day close's big-day reset (4.2, 4.3) on the hero: the message, tomorrow's unchanged range with
+ * [whyNotLabel] after it ("Why not cut back?"), then either the commitment buttons ([onCommit] for
+ * both; they save nothing) or [committedText], and [supportLabel] ("talk to someone"), which shows
+ * whenever the card does.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BigDayHeroCard(
     body: String,
@@ -602,18 +606,37 @@ fun BigDayHeroCard(
     onCommit: () -> Unit,
     committedText: String?,
     modifier: Modifier = Modifier,
+    whyNotLabel: String? = null,
+    onWhyNot: () -> Unit = {},
+    supportLabel: String? = null,
+    onSupport: () -> Unit = {},
 ) {
     HeroCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.page)) {
         Text(text = body, typography = AppTheme.type.heroTitle.Bold, color = AppTheme.colors.onHero)
         // Once committed, the acknowledgement takes the place of tomorrow's line, as v3 draws it.
         if (committedText == null) {
-            NutrientPhrase(
-                metric = Metric.Calories,
-                display = tomorrow,
-                phrase = tomorrowPhrase,
-                typography = AppTheme.type.body.Tabular,
-                color = AppTheme.colors.onHero.withAlpha(LABEL_ALPHA),
-            )
+            FlowRow(verticalArrangement = Arrangement.Center) {
+                NutrientPhrase(
+                    metric = Metric.Calories,
+                    display = tomorrow,
+                    phrase = tomorrowPhrase,
+                    typography = AppTheme.type.body.Tabular,
+                    color = AppTheme.colors.onHero.withAlpha(LABEL_ALPHA),
+                )
+                if (whyNotLabel != null) {
+                    Text(
+                        text = whyNotLabel,
+                        typography = AppTheme.type.bodyBold,
+                        color = AppTheme.colors.onHero,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier
+                            .semantics { role = Role.Button }
+                            .bounceClick(scaleDown = 0.97f, onClick = onWhyNot)
+                            .defaultMinSize(minHeight = MinTouchTarget)
+                            .padding(start = 4.dp, top = 12.dp, bottom = 12.dp),
+                    )
+                }
+            }
         }
         if (commitLabels.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
@@ -626,6 +649,21 @@ fun BigDayHeroCard(
                     Icon(icon = AppIcons.Favorite, size = 26.dp, color = AppTheme.colors.onHero)
                     Text(text = committedText, typography = AppTheme.type.bodyBold.ExtraBold, color = AppTheme.colors.onHero)
                 }
+            }
+        }
+        if (supportLabel != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { role = Role.Button }
+                    .bounceClick(scaleDown = 0.98f, onClick = onSupport)
+                    .defaultMinSize(minHeight = MinTouchTarget),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Icon(icon = AppIcons.SupportAgent, size = 26.dp, color = AppTheme.colors.onHero)
+                Text(text = supportLabel, typography = AppTheme.type.bodyBold.ExtraBold, color = AppTheme.colors.onHero, modifier = Modifier.weight(1f))
+                Icon(icon = AppIcons.ChevronRight, size = 24.dp, color = AppTheme.colors.onHero)
             }
         }
     }

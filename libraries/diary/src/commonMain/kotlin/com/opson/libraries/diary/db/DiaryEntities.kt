@@ -61,6 +61,8 @@ data class DayRecordEntity(
     val untracked: Boolean = false,
     /** A `DayFeeling` wire value, or null. Schema 7. */
     val feeling: String? = null,
+    /** Day close's check-in as JSON (`CheckInWire`), or null. Schema 9. */
+    val checkIn: String? = null,
 )
 
 @Entity(tableName = "meal_feelings", primaryKeys = ["day", "slot"])

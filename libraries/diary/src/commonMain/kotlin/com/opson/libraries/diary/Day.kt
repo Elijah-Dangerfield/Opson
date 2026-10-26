@@ -30,6 +30,8 @@ data class Day(
     val untracked: Boolean = false,
     /** Day close's "How did today feel?", when answered. Only the user sees it. */
     val feeling: DayFeeling? = null,
+    /** Day close's check-in (design sync 2, `release.checkIn`), when any of it was answered. Only the user sees it. */
+    val checkIn: CheckIn? = null,
 ) {
     val allItems: List<LogItem> get() = MealSlot.entries.flatMap { items(it) }
 
@@ -111,6 +113,70 @@ enum class DayFeeling(val wire: String) {
 
     companion object {
         fun fromWire(value: String?): DayFeeling? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+/**
+ * Day close's once-a-day check-in (design sync 2, 4.1): hunger through the day, energy, last
+ * night's sleep and any moods. Every row is optional and one left blank stays blank. It replaces
+ * the questions that used to follow each food; Patterns reads it as one entry per day.
+ */
+data class CheckIn(
+    val hunger: DayHunger? = null,
+    val energy: Energy? = null,
+    val sleep: Sleep? = null,
+    val moods: Set<CheckInMood> = emptySet(),
+) {
+    val isEmpty: Boolean get() = hunger == null && energy == null && sleep == null && moods.isEmpty()
+}
+
+/** How often hunger came up through the day, least to most. [wire] is what syncs. */
+enum class DayHunger(val wire: String) {
+    Rarely("rarely"),
+    Some("some"),
+    Steady("steady"),
+    Often("often"),
+    Very("very"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): DayHunger? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+enum class Energy(val wire: String) {
+    Low("low"),
+    Ok("ok"),
+    Good("good"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): Energy? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+enum class Sleep(val wire: String) {
+    Poor("poor"),
+    Ok("ok"),
+    Good("good"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): Sleep? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+enum class CheckInMood(val wire: String) {
+    Calm("calm"),
+    Social("social"),
+    Stressed("stressed"),
+    Tired("tired"),
+    Low("low"),
+    Happy("happy"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): CheckInMood? = entries.firstOrNull { it.wire == value }
     }
 }
 

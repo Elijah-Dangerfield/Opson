@@ -10,6 +10,9 @@ import androidx.navigation.toRoute
 import com.opson.features.foods.CreateMealRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.settings.FastingRoute
+import com.opson.features.settings.FindSupportEnabled
+import com.opson.features.settings.FindSupportRoute
+import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.RemindersRoute
 import com.opson.features.settings.WaterSettingsRoute
@@ -26,6 +29,7 @@ import com.opson.features.today.impl.calendar.CalendarViewModel
 import com.opson.features.today.impl.dayclose.DayCloseEvent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.dayclose.DayCloseViewModel
+import com.opson.features.today.impl.dayclose.WhyNotCutBackSheetContent
 import com.opson.features.today.impl.daynote.DayNoteEvent
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.daynote.DayNoteViewModel
@@ -88,6 +92,7 @@ class TodayFeatureEntryPoint(
     private val dayNoteViewModelFactory: (LocalDate) -> DayNoteViewModel,
     private val todayCardsViewModelFactory: () -> TodayCardsViewModel,
     private val tabBar: TabBar,
+    private val findSupportEnabled: FindSupportEnabled,
 ) : FeatureEntryPoint {
 
     @Suppress("LongMethod")
@@ -114,6 +119,9 @@ class TodayFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     DayCloseEvent.Close -> router.goBack()
+                    DayCloseEvent.OpenWhyNotCutBack -> router.navigate(WhyNotCutBackRoute())
+                    // Find support once it is released, the Support page's helpline until then. Never logged.
+                    DayCloseEvent.OpenSupport -> router.navigate(if (findSupportEnabled()) FindSupportRoute() else SupportRoute())
                 }
             }
             DayCloseScreen(state = state, onAction = viewModel::takeAction)
@@ -232,6 +240,10 @@ class TodayFeatureEntryPoint(
                 }
             }
             TodaySheet(router, sheetState) { TodayCardsSheetContent(state = state, onAction = viewModel::takeAction) }
+        }
+
+        bottomSheet<WhyNotCutBackRoute> { _, sheetState ->
+            TodaySheet(router, sheetState) { WhyNotCutBackSheetContent(onClose = { sheetState.dismiss() }) }
         }
 
         bottomSheet<DayNoteRoute> { backStackEntry, sheetState ->

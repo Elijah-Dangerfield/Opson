@@ -57,7 +57,14 @@ class TodayViewModelTest : CoroutineTest() {
     private val fasting = FakeFastingRepository()
     private var fastingReleased = true
 
-    private fun vm(health: FakeHealthRepository = FakeHealthRepository(), healthOn: Boolean = false) = TodayViewModel(
+    private val weights = FakeWeightRepository()
+
+    private fun vm(
+        health: FakeHealthRepository = FakeHealthRepository(),
+        healthOn: Boolean = false,
+        summaryOn: Boolean = false,
+        selectOn: Boolean = false,
+    ) = TodayViewModel(
         diary = diary,
         settingsRepository = settings,
         policySource = policySource,
@@ -75,6 +82,10 @@ class TodayViewModelTest : CoroutineTest() {
                 override val map: Map<String, *> = mapOf("release" to mapOf("reminders" to true))
             },
         ),
+        editor = diary,
+        weights = weights,
+        summaryEnabled = summaryFlag(summaryOn),
+        selectEnabled = selectFlag(selectOn),
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -212,7 +223,6 @@ class TodayViewModelTest : CoroutineTest() {
         vm.takeAction(TodayAction.RhythmLogTapped(MealSlot.Dinner))
         vm.takeAction(TodayAction.PlanItTapped(MealSlot.Snack))
         vm.takeAction(TodayAction.MealPlusTapped(MealSlot.Breakfast))
-        vm.takeAction(TodayAction.SavedMealsTapped(MealSlot.Dinner))
         vm.takeAction(TodayAction.FeelPromptTapped(MealSlot.Snack))
 
         assertEquals(
@@ -221,23 +231,10 @@ class TodayViewModelTest : CoroutineTest() {
                 TodayEvent.OpenLogger(today, MealSlot.Dinner),
                 TodayEvent.OpenLogger(today, MealSlot.Snack),
                 TodayEvent.OpenMealSheet(today, MealSlot.Breakfast),
-                TodayEvent.OpenLog(today, MealSlot.Dinner, LogTab.Saved),
                 TodayEvent.OpenMealFeel(today, MealSlot.Snack),
             ),
             events,
         )
-    }
-
-    @Test
-    fun copyingYesterdaysMealWritesThatSlot() = runUnitTest {
-        val vm = vm()
-        val events = events(vm)
-
-        vm.takeAction(TodayAction.CopyYesterdayMealTapped(MealSlot.Dinner))
-
-        assertEquals(listOf(Triple(yesterday, today, MealSlot.Dinner)), diary.copiedSlots)
-        val toast = (events.single() as TodayEvent.ShowToast).toast
-        assertEquals(Res.string.today_toast_added_to, toast.message)
     }
 
     @Test

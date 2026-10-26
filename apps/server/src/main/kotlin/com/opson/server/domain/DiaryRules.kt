@@ -40,6 +40,9 @@ object DiaryRules {
     const val MAX_UNIT = 32
     const val MAX_NOTE = 2_000
     const val MAX_FEELING = 40
+
+    /** The check-in's JSON: four short wire values and six moods fit well inside this. */
+    const val MAX_CHECK_IN = 400
     const val MAX_MOODS = 20
     const val MAX_MICROS = 100
     const val MAX_MICRO_KEY = 64
@@ -88,6 +91,7 @@ object DiaryRules {
             ?: text("note", row.note, MAX_NOTE)
             ?: text("feeling", row.feeling, MAX_FEELING)
             ?: row.feeling?.let { if (it.isBlank()) "feeling is blank" else null }
+            ?: text("checkIn", row.checkIn, MAX_CHECK_IN)
             ?: row.waterMl?.let { if (it < 0 || it > MAX_WATER_ML) "waterMl is out of range" else null }
 
     private fun validateFeeling(row: MealFeeling, now: Instant): String? =

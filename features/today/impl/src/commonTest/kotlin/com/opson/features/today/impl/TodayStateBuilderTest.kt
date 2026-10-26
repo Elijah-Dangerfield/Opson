@@ -91,41 +91,15 @@ class TodayStateBuilderTest {
     }
 
     @Test
-    fun emptyMealsCollapseAndTheNextOneOffersYesterday() {
+    fun emptyMealsCollapse_theNextOneSaysUsually_andNothingOffersYesterday() {
         val state = build(PresetId.Full, day = Day.empty(TodayFixtures.today))
 
         val breakfast = assertIs<MealEntry.Collapsed>(state.meals.first())
         assertTrue(breakfast.usual)
-        assertEquals("Greek yogurt, plain, banana", breakfast.yesterday?.foods)
-        assertEquals("205 kcal", breakfast.yesterday?.calories?.text())
         val lunch = assertIs<MealEntry.Collapsed>(state.meals[1])
         assertEquals(false, lunch.usual)
-        assertNull(lunch.yesterday)
-    }
-
-    @Test
-    fun delayedBeforeTheReveal_yesterdaysMealOfferShowsNoAmount() {
-        // Yesterday is open in Delayed, but re-adding its dinner would tell part of today's total.
-        val dinner = assertIs<MealEntry.Collapsed>(build(PresetId.Delayed).meals.last())
-        val yesterday = assertNotNull(dinner.yesterday)
-        assertEquals("Arroz con pollo, garlic fried rice (sinangag)", yesterday.foods, "the foods are still offered")
-        assertIs<Display.Hidden>(yesterday.calories)
-
-        val evening = assertIs<MealEntry.Collapsed>(build(PresetId.Delayed, at = Instant.parse("2026-10-25T21:00:00Z")).meals.last())
-        assertEquals("813 kcal", evening.yesterday?.calories?.text(), "once today opens, so does the offer")
-    }
-
-    @Test
-    fun withNoYesterdayTheNextMealOffersSavedMeals() {
-        val dinner = assertIs<MealEntry.Collapsed>(build(PresetId.Full).meals.last())
-
-        assertTrue(dinner.usual)
-        assertNotNull(dinner.yesterday, "yesterday had a dinner")
-        val noYesterday = TodayStateBuilder.build(
-            TodayFixtures.inputs(dayBefore = Day.empty(TodayFixtures.today.plus(DatePeriod(days = -1)))),
-            policy(PresetId.Full),
-        ).meals.last()
-        assertTrue(assertIs<MealEntry.Collapsed>(noYesterday).offerSaved)
+        // Design sync 2, 2.2: copying yesterday's meal happens in the add sheet now.
+        assertNull(state.closeDay, "nothing logged, nothing to close")
     }
 
     @Test
@@ -136,7 +110,7 @@ class TodayStateBuilderTest {
         assertEquals(listOf("13P", "80C", "8F"), breakfast.macros.map { it.text })
         assertEquals("445 kcal", breakfast.calories.text())
         assertEquals("300", breakfast.items.first().calories.text(), "the header carries the unit")
-        assertEquals(3, breakfast.feel.size)
+        assertTrue(breakfast.feel.isEmpty(), "how it felt shows as chips in Mindful only")
     }
 
     @Test
