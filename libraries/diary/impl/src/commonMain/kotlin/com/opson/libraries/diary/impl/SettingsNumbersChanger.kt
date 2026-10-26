@@ -58,7 +58,7 @@ class SettingsNumbersChanger(
             before = current.numbers
             current.applying(change)
         }
-        logger.logEvent(FRICTION_COMPLETED, ATTR_SUBJECT to change.subject(), ATTR_APPLIED to true)
+        logger.logEvent("friction.completed", ATTR_SUBJECT to change.subject(), ATTR_APPLIED to true)
         before?.let { logModeChanged(it, after.numbers, viaPause = true) }
     }
 
@@ -67,11 +67,11 @@ class SettingsNumbersChanger(
     }
 
     override fun pauseShown(change: NumbersChange) {
-        logger.logEvent(FRICTION_SHOWN, ATTR_SUBJECT to change.subject())
+        logger.logEvent("friction.shown", ATTR_SUBJECT to change.subject())
     }
 
     override fun pauseKept(change: NumbersChange) {
-        logger.logEvent(FRICTION_COMPLETED, ATTR_SUBJECT to change.subject(), ATTR_APPLIED to false)
+        logger.logEvent("friction.completed", ATTR_SUBJECT to change.subject(), ATTR_APPLIED to false)
     }
 
     private fun Settings.applying(change: NumbersChange): Settings {
@@ -88,7 +88,7 @@ class SettingsNumbersChanger(
     private fun logModeChanged(before: NumbersSettings, after: NumbersSettings, viaPause: Boolean) {
         if (before.preset == after.preset && before.overrides == after.overrides) return
         logger.logEvent(
-            MODE_CHANGED,
+            "mode.changed",
             "from" to before.preset.key,
             "to" to after.preset.key,
             "adjusted" to after.isAdjusted,
@@ -104,9 +104,6 @@ class SettingsNumbersChanger(
     }
 
     internal companion object {
-        const val MODE_CHANGED = "mode.changed"
-        const val FRICTION_SHOWN = "friction.shown"
-        const val FRICTION_COMPLETED = "friction.completed"
         const val ATTR_SUBJECT = "subject"
         const val ATTR_APPLIED = "applied"
     }
