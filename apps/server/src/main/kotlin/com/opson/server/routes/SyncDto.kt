@@ -4,6 +4,7 @@ import com.opson.server.domain.CustomFood
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryChanges
 import com.opson.server.domain.DiaryRow
+import com.opson.server.domain.Fast
 import com.opson.server.domain.LogEntry
 import com.opson.server.domain.LogMethod
 import com.opson.server.domain.MealFeeling
@@ -37,7 +38,14 @@ import kotlin.time.Instant
 data class SyncRequest(
     val cursor: Long = 0,
     val mutations: List<SyncMutationDto> = emptyList(),
-)
+    /**
+     * Entities added after 0.1 that the client reads from `changes` (today only `fast`). 0.1
+     * clients never send it, and get exactly the 0.1 response.
+     */
+    val accepts: List<String> = emptyList(),
+) {
+    val acceptsFasts: Boolean get() = SyncEntity.Fast.wire in accepts
+}
 
 @Serializable
 data class SyncMutationDto(
@@ -74,6 +82,8 @@ data class SyncChangesDto(
     val customFoods: List<CustomFoodRowDto> = emptyList(),
     val savedMeals: List<SavedMealRowDto> = emptyList(),
     val settings: SettingsRowDto? = null,
+    /** Only for a request that accepts `fast`; absent otherwise (`explicitNulls = false`). */
+    val fasts: List<FastRowDto>? = null,
 )
 
 /** `entity` values a mutation may carry. */
@@ -85,6 +95,9 @@ enum class SyncEntity(val wire: String) {
     CustomFood("custom_food"),
     SavedMeal("saved_meal"),
     Settings("settings"),
+
+    /** 0.2. */
+    Fast("fast"),
     ;
 
     companion object {
@@ -184,6 +197,17 @@ data class SavedMealRowDto(
 )
 
 @Serializable
+data class FastRowDto(
+    /** The local day the fast began; its key. */
+    val day: String,
+    val startedAtEpochMs: Long,
+    val endedAtEpochMs: Long? = null,
+    val goalHours: Int? = null,
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean = false,
+)
+
+@Serializable
 data class SettingsRowDto(
     /** The client's whole Settings object. The server only ever reads `preset`, in aggregate. */
     val settings: JsonObject,
@@ -211,6 +235,7 @@ fun SyncEntity.decodeRow(row: JsonObject): DiaryRow = when (this) {
     SyncEntity.CustomFood -> SyncJson.decodeFromJsonElement(CustomFoodRowDto.serializer(), row).toDomain()
     SyncEntity.SavedMeal -> SyncJson.decodeFromJsonElement(SavedMealRowDto.serializer(), row).toDomain()
     SyncEntity.Settings -> SyncJson.decodeFromJsonElement(SettingsRowDto.serializer(), row).toDomain()
+    SyncEntity.Fast -> SyncJson.decodeFromJsonElement(FastRowDto.serializer(), row).toDomain()
 }
 
 private fun uuid(field: String, value: String): UUID =
@@ -302,6 +327,24 @@ fun SettingsRowDto.toDomain(): UserSettings = UserSettings(
     settingsJson = SyncJson.encodeToString(JsonObject.serializer(), settings),
     changedAt = changedAtEpochMs?.let(::instant),
     clientUpdatedAt = instant(clientUpdatedAtEpochMs),
+    deleted = deleted,
+)
+
+fun FastRowDto.toDomain(): Fast = Fast(
+    day = day(day),
+    startedAt = instant(startedAtEpochMs),
+    endedAt = endedAtEpochMs?.let(::instant),
+    goalHours = goalHours,
+    clientUpdatedAt = instant(clientUpdatedAtEpochMs),
+    deleted = deleted,
+)
+
+fun Fast.toRowDto(): FastRowDto = FastRowDto(
+    day = day.toString(),
+    startedAtEpochMs = startedAt.toEpochMilliseconds(),
+    endedAtEpochMs = endedAt?.toEpochMilliseconds(),
+    goalHours = goalHours,
+    clientUpdatedAtEpochMs = clientUpdatedAt.toEpochMilliseconds(),
     deleted = deleted,
 )
 
@@ -400,6 +443,7 @@ fun DiaryChanges.toDto(): SyncChangesDto = SyncChangesDto(
     customFoods = customFoods.map { it.toRowDto() },
     savedMeals = savedMeals.map { it.toRowDto() },
     settings = settings?.toRowDto(),
+    fasts = fasts?.map { it.toRowDto() },
 )
 
 fun SyncResult.toResponse(rejected: List<SyncRejectionDto>): SyncResponse = SyncResponse(

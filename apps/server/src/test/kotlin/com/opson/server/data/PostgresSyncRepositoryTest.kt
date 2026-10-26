@@ -6,6 +6,7 @@ import com.opson.server.db.LogEntriesTable
 import com.opson.server.domain.CustomFood
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryRules
+import com.opson.server.domain.Fast
 import com.opson.server.domain.MealFeeling
 import com.opson.server.domain.MealSlot
 import com.opson.server.domain.Nutrients
@@ -26,6 +27,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 class PostgresSyncRepositoryTest : DatabaseTest() {
@@ -204,5 +206,50 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
         val row = result.changes.logEntries.single()
         assertEquals("Mystery", row.name)
         assertNull(row.foodId)
+    }
+
+    private val evening = kotlin.time.Instant.parse("2026-10-24T19:00:00Z")
+
+    private fun fast(endedAt: kotlin.time.Instant? = null, updatedAt: kotlin.time.Instant = evening) = Fast(
+        day = DAY.minusDays(1),
+        startedAt = evening,
+        endedAt = endedAt,
+        goalHours = 14,
+        clientUpdatedAt = updatedAt,
+        deleted = false,
+    )
+
+    @Test
+    fun fastsArePulledOnlyByAClientThatAsks() = runTest {
+        val user = seedAuthUser()
+        val pushed = repo.sync(user, 0, listOf(mutation(fast(), "f1")), pullFasts = false)
+        assertEquals(listOf("f1"), pushed.applied)
+        assertNull(pushed.changes.fasts, "a 0.1 client never sees the key")
+
+        val pulled = repo.sync(user, 0, emptyList(), pullFasts = true)
+        assertEquals(listOf(fast()), pulled.changes.fasts)
+    }
+
+    @Test
+    fun aRealEndWinsOverTheSameFastStartedOnAnotherDevice() = runTest {
+        val user = seedAuthUser()
+        val ended = fast(endedAt = evening + 3.hours, updatedAt = evening + 3.hours)
+        repo.sync(user, 0, listOf(mutation(fast())), pullFasts = true)
+        repo.sync(user, 0, listOf(mutation(ended)), pullFasts = true)
+
+        val late = repo.sync(user, 0, listOf(mutation(fast(), "other-device")), pullFasts = true)
+
+        assertEquals(listOf("other-device"), late.applied)
+        assertEquals(listOf(ended), late.changes.fasts)
+    }
+
+    @Test
+    fun twoPeoplesFastsOnTheSameEveningDoNotTouch() = runTest {
+        val a = seedAuthUser()
+        val b = seedAuthUser()
+        repo.sync(a, 0, listOf(mutation(fast())), pullFasts = true)
+        repo.sync(b, 0, listOf(mutation(fast(endedAt = evening + 1.hours, updatedAt = evening + 1.hours))), pullFasts = true)
+
+        assertEquals(listOf(fast()), repo.sync(a, 0, emptyList(), pullFasts = true).changes.fasts)
     }
 }

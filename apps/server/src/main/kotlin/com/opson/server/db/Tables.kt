@@ -276,6 +276,15 @@ object SavedMealsTable : SyncedTable("saved_meals") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** One fast per user per evening (V13). The end a fast reaches on its own is derived, never stored. */
+object FastsTable : SyncedTable("fasts") {
+    val day = date("day")
+    val startedAt = timestamp("started_at")
+    val endedAt = timestamp("ended_at").nullable()
+    val goalHours = short("goal_hours").nullable()
+    override val primaryKey = PrimaryKey(userId, day)
+}
+
 /** The whole client `Settings` object as one jsonb document per user. */
 object UserSettingsTable : SyncedTable("user_settings") {
     val settings = jsonb("settings")

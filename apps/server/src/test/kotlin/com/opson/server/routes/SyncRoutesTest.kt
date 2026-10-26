@@ -2,6 +2,7 @@ package com.opson.server.routes
 
 import com.opson.server.domain.DiaryChanges
 import com.opson.server.domain.DiaryRules
+import com.opson.server.domain.Fast
 import com.opson.server.domain.LogEntry
 import com.opson.server.domain.SyncMutation
 import com.opson.server.domain.SyncRepository
@@ -20,6 +21,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -32,7 +34,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import java.time.LocalDate
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -43,6 +47,17 @@ import kotlin.time.Instant
 
 class SyncRoutesTest {
 
+    private companion object {
+        val FAST = Fast(
+            day = LocalDate.parse("2026-10-24"),
+            startedAt = Instant.parse("2026-10-24T19:00:00Z"),
+            endedAt = null,
+            goalHours = 14,
+            clientUpdatedAt = Instant.parse("2026-10-24T19:00:00Z"),
+            deleted = false,
+        )
+    }
+
     private val userId = UserId(UUID.fromString("11111111-1111-1111-1111-111111111111"))
     private val now = Instant.parse("2026-10-25T12:00:00Z")
     private val clock = object : Clock {
@@ -51,10 +66,22 @@ class SyncRoutesTest {
 
     private class FakeSyncRepository : SyncRepository {
         val calls = mutableListOf<Triple<UserId, Long, List<SyncMutation>>>()
-        override suspend fun sync(userId: UserId, cursor: Long, mutations: List<SyncMutation>): SyncResult {
+        val pulledFasts = mutableListOf<Boolean>()
+        override suspend fun sync(userId: UserId, cursor: Long, mutations: List<SyncMutation>, pullFasts: Boolean): SyncResult {
             calls += Triple(userId, cursor, mutations)
-            return SyncResult(mutations.map { it.outboxId }, DiaryChanges(), cursor = cursor + 7, hasMore = false)
+            pulledFasts += pullFasts
+            val fasts = if (pullFasts) listOf(FAST) else null
+            return SyncResult(mutations.map { it.outboxId }, DiaryChanges(fasts = fasts), cursor = cursor + 7, hasMore = false)
         }
+    }
+
+    private fun fastRow(hours: Long = 14, goalHours: Int = 14): JsonObject = buildJsonObject {
+        val start = Instant.parse("2026-10-24T19:00:00Z")
+        put("day", "2026-10-24")
+        put("startedAtEpochMs", start.toEpochMilliseconds())
+        put("endedAtEpochMs", start.toEpochMilliseconds() + hours * 3_600_000)
+        put("goalHours", goalHours)
+        put("clientUpdatedAtEpochMs", now.toEpochMilliseconds())
     }
 
     private fun entryRow(day: String = "2026-10-25", kcal: Double = 105.0, slot: String = "breakfast"): JsonObject =
@@ -161,6 +188,50 @@ class SyncRoutesTest {
             assertEquals("slot is not a meal slot", body.rejected.first { it.id == "slot" }.message)
             assertTrue(body.rejected.none { it.message.contains("heavy") }, "messages must not echo row values")
             assertEquals(1, repo.calls.single().third.size)
+        }
+    }
+
+    @Test
+    fun aZeroOneRequestGetsTheZeroOneResponse() = runTest {
+        val repo = FakeSyncRepository()
+        withApp(repo) { client ->
+            // Exactly what a 0.1 client sends: no `accepts`.
+            val resp = client.sync("""{"cursor":0,"mutations":[]}""")
+            assertEquals(HttpStatusCode.OK, resp.status)
+            val changes = Json.parseToJsonElement(resp.bodyAsText()).jsonObject.getValue("changes").jsonObject
+            assertEquals(
+                setOf("logEntries", "dayRecords", "mealFeelings", "weighIns", "customFoods", "savedMeals"),
+                changes.keys,
+                "no key a 0.1 client does not know",
+            )
+            assertEquals(listOf(false), repo.pulledFasts)
+        }
+    }
+
+    @Test
+    fun aRequestThatAcceptsFastsGetsThem() = runTest {
+        val repo = FakeSyncRepository()
+        withApp(repo) { client ->
+            val body = client.sync(SyncRequest(accepts = listOf("fast"))).body<SyncResponse>()
+            assertEquals(listOf(FAST.toRowDto()), body.changes.fasts)
+            assertEquals(listOf(true), repo.pulledFasts)
+        }
+    }
+
+    @Test
+    fun aFastIsDecodedAndAFastPast16HoursIsRefused() = runTest {
+        val repo = FakeSyncRepository()
+        val mutations = listOf(
+            SyncMutationDto("ok", "fast", fastRow()),
+            SyncMutationDto("long", "fast", fastRow(hours = 17)),
+            SyncMutationDto("goal", "fast", fastRow(hours = 2, goalHours = 20)),
+        )
+        withApp(repo) { client ->
+            val body = client.sync(SyncRequest(mutations = mutations, accepts = listOf("fast"))).body<SyncResponse>()
+            assertEquals(listOf("ok"), body.applied)
+            assertEquals(mapOf("long" to "invalid_row", "goal" to "invalid_row"), body.rejected.associate { it.id to it.code })
+            val fast = assertIs<Fast>(repo.calls.single().third.single().row)
+            assertEquals(14, fast.goalHours)
         }
     }
 

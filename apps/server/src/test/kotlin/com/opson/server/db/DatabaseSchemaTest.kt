@@ -31,7 +31,7 @@ class DatabaseSchemaTest : DatabaseTest() {
             listOf(
                 FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable,
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable,
-                CustomFoodsTable, SavedMealsTable, UserSettingsTable,
+                CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
@@ -40,7 +40,7 @@ class DatabaseSchemaTest : DatabaseTest() {
     fun rowLevelSecurityIsOnForEveryNewTable() {
         val tables = listOf(
             "foods", "off_foods", "food_search_events", "barcode_lookups", "log_entries", "day_records",
-            "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings",
+            "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts",
         )
         val withRls = strings(
             "SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relrowsecurity",
@@ -51,7 +51,7 @@ class DatabaseSchemaTest : DatabaseTest() {
     @Test
     fun everySyncedTableHasTheCursorTrigger() {
         val triggers = strings("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal")
-        listOf("log_entries", "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings")
+        listOf("log_entries", "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts")
             .forEach { assertTrue("${it}_bump_server_seq" in triggers, "no cursor trigger on $it") }
     }
 
@@ -85,6 +85,34 @@ class DatabaseSchemaTest : DatabaseTest() {
         val migration = checkNotNull(javaClass.getResource("/db/migration/V12__off_foods.sql")).readText()
         database.blockingTransaction { exec(migration) }
         assertEquals(before, strings(indexes))
+    }
+
+    /** V13 is additive and safe to run twice; account deletion still cascades into it. */
+    @Test
+    fun fastsMigrationIsIdempotentAndCascadesFromTheUser() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V13__fasts.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val user = seedAuthUser().value
+        database.blockingTransaction {
+            exec("INSERT INTO fasts (user_id, day, started_at, goal_hours, client_updated_at) VALUES ('$user', '2026-10-25', now(), 14, now())")
+        }
+        assertEquals(listOf("1"), strings("SELECT count(*)::text FROM fasts WHERE user_id = '$user'"))
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM fasts WHERE user_id = '$user'"))
+    }
+
+    /** The cap holds in the table too, not only in DiaryRules. */
+    @Test
+    fun fastsRefuseAGoalOrALengthPast16Hours() {
+        val user = seedAuthUser().value
+        listOf(
+            "INSERT INTO fasts (user_id, day, started_at, goal_hours, client_updated_at) VALUES ('$user', '2026-10-25', now(), 18, now())",
+            "INSERT INTO fasts (user_id, day, started_at, ended_at, client_updated_at) " +
+                "VALUES ('$user', '2026-10-25', now(), now() + interval '17 hours', now())",
+        ).forEach { sql ->
+            assertFailsWith<Exception>(sql) { database.blockingTransaction { exec(sql) } }
+        }
     }
 
     @Test

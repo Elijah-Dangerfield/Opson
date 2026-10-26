@@ -75,7 +75,7 @@ fun Route.syncRoutes(repository: SyncRepository, clock: Clock) {
                 }
             }
 
-            val result = repository.sync(userId, request.cursor, accepted)
+            val result = repository.sync(userId, request.cursor, accepted, pullFasts = request.acceptsFasts)
             if (rejected.isNotEmpty()) {
                 logger.warn("sync user={} applied={} rejected={}", userId, result.applied.size, rejected.size)
             }

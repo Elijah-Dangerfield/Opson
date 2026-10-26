@@ -52,6 +52,9 @@ object DiaryRules {
     const val MAX_WATER_ML = 20_000
     const val MAX_KG = 700.0
 
+    /** The longest a fast may be, and its largest goal. TODO(clinician): confirm the cap. */
+    const val MAX_FAST_HOURS = 16
+
     fun validate(row: DiaryRow, now: Instant): String? {
         notFuture("clientUpdatedAtEpochMs", row.clientUpdatedAt, now)?.let { return it }
         return when (row) {
@@ -62,6 +65,7 @@ object DiaryRules {
             is CustomFood -> validateCustomFood(row)
             is SavedMeal -> validateSavedMeal(row)
             is UserSettings -> jsonSize("settings", row.settingsJson)
+            is Fast -> validateFast(row, now)
         }
     }
 
@@ -96,6 +100,20 @@ object DiaryRules {
                 row.moods.any { it.isBlank() || it.length > MAX_FEELING } -> "moods has an invalid item"
                 else -> null
             }
+
+    private fun validateFast(row: Fast, now: Instant): String? {
+        val goal = row.goalHours
+        val ended = row.endedAt
+        return dayError(row.day, now)
+            ?: notFuture("startedAtEpochMs", row.startedAt, now)
+            ?: when {
+                row.startedAt < MIN_INSTANT -> "startedAtEpochMs is too old"
+                goal != null && goal !in 1..MAX_FAST_HOURS -> "goalHours is out of range"
+                ended != null && ended < row.startedAt -> "endedAtEpochMs is before startedAtEpochMs"
+                ended != null && ended - row.startedAt > MAX_FAST_HOURS.hours -> "endedAtEpochMs is more than $MAX_FAST_HOURS hours after startedAtEpochMs"
+                else -> null
+            }
+    }
 
     private fun validateWeighIn(row: WeighIn, now: Instant): String? = when {
         !row.kg.isFinite() || row.kg <= 0.0 || row.kg > MAX_KG -> "kg is out of range"

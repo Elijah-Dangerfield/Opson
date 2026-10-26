@@ -127,4 +127,36 @@ class DiaryRulesTest {
         assertNotNull(DiaryRules.validate(UserSettings("{\"a\":\"" + "x".repeat(DiaryRules.MAX_JSON_CHARS) + "\"}", null, now, false), now))
         assertNull(DiaryRules.validate(UserSettings("{\"preset\":\"full\"}", null, now, false), now))
     }
+
+    private fun fast(
+        startedAt: Instant = now - 3.hours,
+        endedAt: Instant? = null,
+        goalHours: Int? = 14,
+        day: LocalDate = today,
+    ) = Fast(day = day, startedAt = startedAt, endedAt = endedAt, goalHours = goalHours, clientUpdatedAt = now, deleted = false)
+
+    @Test
+    fun validFastPasses() {
+        assertNull(DiaryRules.validate(fast(), now))
+        assertNull(DiaryRules.validate(fast(endedAt = now - 1.hours), now))
+        assertNull(DiaryRules.validate(fast(goalHours = null), now))
+        assertNull(DiaryRules.validate(fast(startedAt = now - 16.hours, endedAt = now), now), "exactly 16 hours is allowed")
+    }
+
+    @Test
+    fun aFastNeverGoesPast16Hours() {
+        assertEquals(
+            "endedAtEpochMs is more than 16 hours after startedAtEpochMs",
+            DiaryRules.validate(fast(startedAt = now - 17.hours, endedAt = now), now),
+        )
+        assertEquals("goalHours is out of range", DiaryRules.validate(fast(goalHours = 18), now))
+        assertEquals("goalHours is out of range", DiaryRules.validate(fast(goalHours = 0), now))
+    }
+
+    @Test
+    fun aFastCannotEndBeforeItStartsOrStartInTheFuture() {
+        assertEquals("endedAtEpochMs is before startedAtEpochMs", DiaryRules.validate(fast(endedAt = now - 4.hours), now))
+        assertEquals("startedAtEpochMs is in the future", DiaryRules.validate(fast(startedAt = now + 25.hours), now))
+        assertEquals("day is in the future", DiaryRules.validate(fast(day = today.plusDays(9)), now))
+    }
 }

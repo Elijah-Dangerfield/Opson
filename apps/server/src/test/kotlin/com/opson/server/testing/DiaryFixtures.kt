@@ -4,6 +4,7 @@ import com.opson.server.db.BarcodeLookupsTable
 import com.opson.server.db.CustomFoodsTable
 import com.opson.server.db.Database
 import com.opson.server.db.DayRecordsTable
+import com.opson.server.db.FastsTable
 import com.opson.server.db.FoodSearchEventsTable
 import com.opson.server.db.FoodsTable
 import com.opson.server.db.LogEntriesTable
@@ -64,7 +65,7 @@ object DiaryFixtures {
         database.blockingTransaction {
             listOf(
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable, CustomFoodsTable,
-                SavedMealsTable, UserSettingsTable, FoodSearchEventsTable, BarcodeLookupsTable, FoodsTable,
+                SavedMealsTable, UserSettingsTable, FastsTable, FoodSearchEventsTable, BarcodeLookupsTable, FoodsTable,
             ).forEach { it.deleteAll() }
         }
     }
