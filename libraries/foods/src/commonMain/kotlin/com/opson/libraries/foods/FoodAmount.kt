@@ -122,7 +122,7 @@ fun ParsedItem.toLogDraft(): LogDraft = LogDraft(
 private const val GRAMS_PER_100 = 100.0
 
 /** Amounts, never nutrients: up to two decimals, no trailing ".0". */
-private fun formatNumber(value: Double): String {
+internal fun formatNumber(value: Double): String {
     val rounded = round(value * 100) / 100
     return if (rounded == floor(rounded)) rounded.toLong().toString() else rounded.toString()
 }

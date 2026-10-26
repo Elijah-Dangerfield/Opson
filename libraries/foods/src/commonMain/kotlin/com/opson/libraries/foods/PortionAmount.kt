@@ -71,6 +71,23 @@ object PortionAmount {
     private fun tidy(value: Double): Double = round(value * 10) / 10
 }
 
+/**
+ * The unit as a chip on the amount sheet: a portion without its leading count
+ * ("1 cup" is "cup", "1 medium" is "medium"), grams spelled out.
+ */
+val AmountUnit.chipLabel: String
+    get() = when (this) {
+        AmountUnit.Grams -> "grams"
+        is AmountUnit.OfPortion -> label.removePrefix("1 ").trim().ifEmpty { label }
+        is AmountUnit.Serving -> unit
+    }
+
+/** The amount on the stepper: "150 g", "1 plate", "1.5 cup". An amount, not a nutrient, so no policy. */
+fun AmountUnit.amountText(quantity: Double): String = when (this) {
+    AmountUnit.Grams -> "${formatNumber(quantity)} g"
+    else -> "${formatNumber(quantity)} $chipLabel"
+}
+
 /** Units for a catalog food: its portions, then grams. A food with no portions offers grams only. */
 fun Food.amountUnits(): List<AmountUnit> = portions.map(AmountUnit::OfPortion) + AmountUnit.Grams
 

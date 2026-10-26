@@ -29,6 +29,17 @@ class PortionAmountTest {
     )
 
     @Test
+    fun chipsDropTheLeadingCountAndTheStepperPutsItBack() {
+        val medium = AmountUnit.OfPortion(Portion("1 medium", 118.0))
+        assertEquals("medium", medium.chipLabel)
+        assertEquals("cup", cup.chipLabel)
+        assertEquals("grams", AmountUnit.Grams.chipLabel)
+        assertEquals("1.5 medium", medium.amountText(1.5))
+        assertEquals("150 g", AmountUnit.Grams.amountText(150.0))
+        assertEquals("2 bar", AmountUnit.Serving("bar").amountText(2.0))
+    }
+
+    @Test
     fun gramsStepByTenAndStopAtTen() {
         assertEquals(110.0, PortionAmount.more(AmountUnit.Grams, 100.0))
         assertEquals(10.0, PortionAmount.less(AmountUnit.Grams, 15.0))

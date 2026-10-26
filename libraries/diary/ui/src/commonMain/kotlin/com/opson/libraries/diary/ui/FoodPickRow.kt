@@ -44,9 +44,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * A food you can pick: its tile, the name, `amount · 1P 27C 0F`, the energy,
- * and a + that turns into a check once picked. The logger's Favorites, Usual,
- * Recent and search rows, and the Foods tab.
+ * A food you can pick: its tile, the name, `subtitle · amount · 1P 27C 0F`, the
+ * energy, and a + that turns into a check once picked. The logger's Usual,
+ * Recent and search rows, and the Foods tab. [subtitle] is the brand or cuisine
+ * ("Filipino"); pass energy in a bare context so it reads "288", as v3 draws it.
  *
  * [macros] and [calories] come resolved from the policy, so a hidden macro is
  * simply not in the list and hidden energy renders nothing. Tapping the name
@@ -65,12 +66,13 @@ fun FoodPickRow(
     modifier: Modifier = Modifier,
     iconSeed: String = name,
     showDivider: Boolean = true,
+    subtitle: String? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 58.dp)
+                .defaultMinSize(minHeight = 60.dp)
                 .padding(vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
@@ -85,22 +87,25 @@ fun FoodPickRow(
                     text = name,
                     typography = AppTheme.type.bodyBold,
                     color = AppTheme.colors.ink,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 FlowRow {
-                    val sub = AppTheme.type.secondarySmall.Tabular
-                    if (amount.isNotEmpty()) Text(text = amount, typography = sub, color = AppTheme.colors.muted)
-                    if (amount.isNotEmpty() && macros.isNotEmpty()) {
-                        Text(text = MacroLineStyle.Long.separator, typography = sub, color = AppTheme.colors.muted)
+                    val sub = AppTheme.type.secondary.Tabular
+                    val dot = MacroLineStyle.Long.separator
+                    val words = listOfNotNull(subtitle?.takeIf { it.isNotBlank() }, amount.takeIf { it.isNotEmpty() })
+                    words.forEachIndexed { index, word ->
+                        if (index > 0) Text(text = dot, typography = sub, color = AppTheme.colors.muted)
+                        Text(text = word, typography = sub, color = AppTheme.colors.muted)
                     }
+                    if (words.isNotEmpty() && macros.isNotEmpty()) Text(text = dot, typography = sub, color = AppTheme.colors.muted)
                     MacroLine(parts = macros, separator = MacroLineStyle.Compact.separator, typography = sub)
                 }
             }
             NutrientText(
                 metric = Metric.Calories,
                 display = calories,
-                typography = AppTheme.type.secondarySmall.Tabular,
+                typography = AppTheme.type.secondary.Tabular,
                 color = AppTheme.colors.muted,
                 maxLines = 1,
             )
@@ -109,6 +114,7 @@ fun FoodPickRow(
                 icon = (if (picked) AppIcons.Check else AppIcons.Add).described(description),
                 onClick = onToggle,
                 selected = picked,
+                touchTarget = AppTheme.spacing.touchTarget,
             )
         }
         if (showDivider) HorizontalDivider(color = AppTheme.colors.line)

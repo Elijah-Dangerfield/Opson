@@ -39,6 +39,8 @@ data class ModePreset(
     val mealCount: Boolean = false,
     val fastingAllowed: Boolean = false,
     val banner: Boolean = false,
+    /** How it felt follows every add, not only when hunger questions are on (design v3, 3.10). */
+    val asksHowItFelt: Boolean = false,
 ) {
     fun level(metric: Metric): Visibility = vis.getValue(metric)
 }
@@ -105,6 +107,7 @@ object Presets {
         id = PresetId.Mindful,
         today = TodayLayout.Journal,
         banner = true,
+        asksHowItFelt = true,
         vis = gentle(fill(Visibility.Hide)),
     )
 
