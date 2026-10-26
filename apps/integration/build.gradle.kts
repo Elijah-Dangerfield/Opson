@@ -53,6 +53,8 @@ kotlin {
             implementation(projects.libraries.health)
             // `release.barcode` lives next to the logger it gates.
             implementation(projects.features.logger.impl)
+            // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
+            implementation(projects.libraries.widgets)
             implementation(libs.kotlinx.serialization.json)
 
             // Boot a real server on an ephemeral port + verify HS256 test JWTs.

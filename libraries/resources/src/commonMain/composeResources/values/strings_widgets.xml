@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for home screen widgets (docs/plans/screens/widgets.md): the widget
+  itself, the More row and the Widgets page. 0.2, behind release.widgets. Same
+  rules as strings.xml: no backslash escapes, positional %1$s arguments. No
+  string here takes a number: the only number a widget shows comes from the
+  visibility policy.
+-->
+<resources>
+
+    <!-- The More row and the page title. Becomes v3's "Widgets and watch face" once the watch face ships. -->
+    <string name="widgets_title">Widgets</string>
+    <string name="widgets_intro">Widgets follow your mode, same as the app.</string>
+    <string name="widgets_home_screen">Home screen</string>
+    <string name="widgets_how_to_add">Touch and hold an empty spot on your home screen, then add Opson from the widget list.</string>
+
+    <!-- On the widget. -->
+    <string name="widgets_today">Today</string>
+    <string name="widgets_log">Log food</string>
+    <!-- What a screen reader says for a meal circle: "Breakfast, done". -->
+    <string name="widgets_meal_done">%1$s, done</string>
+    <string name="widgets_meal_not_yet">%1$s, not yet</string>
+    <!-- With meal groups off there are no circles to show. -->
+    <string name="widgets_note_log">Tap + to log</string>
+    <string name="widgets_note_untracked">Not tracking today</string>
+
+</resources>

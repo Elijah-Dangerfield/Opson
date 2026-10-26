@@ -130,6 +130,7 @@ if (!serverOnly) {
     include(":libraries:opson:impl")
     include(":libraries:opson:storage")
     include(":libraries:ui")
+    include(":libraries:widgets")
 
     // Custom detekt rules — a standalone JVM jar detekt loads via
     // `detektPlugins`. Dev/CI tooling only, never shipped; gated out of the

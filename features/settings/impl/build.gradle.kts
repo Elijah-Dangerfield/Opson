@@ -26,6 +26,8 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.health)
+            // The Widgets page and its More row, and the widget's leak surface.
+            implementation(projects.libraries.widgets)
 
             implementation(libs.kotlinx.datetime)
 

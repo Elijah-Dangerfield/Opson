@@ -19,7 +19,8 @@ import kotlin.test.assertTrue
  */
 class VisibilityPolicyRevealTest {
 
-    private val closedSurfaces = Surface.entries - Surface.Week - Surface.DayClose
+    /** Every surface that opens on the day's own terms. Widgets never open, see below. */
+    private val closedSurfaces = Surface.entries - Surface.Week - Surface.DayClose - Surface.Widget
 
     private fun delayedCalories(
         surface: Surface,
@@ -58,6 +59,23 @@ class VisibilityPolicyRevealTest {
         closedSurfaces.forEach { surface ->
             assertEquals(Display.Shown("1,245"), delayedCalories(surface, context = FormatContext(day = YESTERDAY)), surface.name)
         }
+    }
+
+    @Test
+    fun delayed_neverOpensOnAWidget_whateverTheDayOrTime() {
+        val contexts = listOf(FormatContext(), FormatContext(dayClosed = true), FormatContext(day = YESTERDAY))
+        listOf(PresetId.Delayed, PresetId.Coast).forEach { preset ->
+            listOf(MORNING, at(21), at(23, 59)).forEach { now ->
+                contexts.forEach { context ->
+                    assertEquals(Display.Hidden, delayedCalories(Surface.Widget, now, context, preset), "$preset $now $context")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun aWidgetStillShowsWhatTheModeShows() {
+        assertEquals(Display.Shown("1,245"), policy(PresetId.Full).resolve(Metric.Calories, 1245.0, Surface.Widget, FormatContext(bare = true)))
     }
 
     @Test

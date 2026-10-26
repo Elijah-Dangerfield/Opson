@@ -105,6 +105,7 @@ class SurfacesCoverageTest {
                 "targets-by-day", "water-settings", "support", "support-delete", "look-and-feel",
                 "reminders", "reminder-notification",
                 "integrations", "fasting",
+                "widget",
             ),
         )
 
@@ -116,6 +117,7 @@ class SurfacesCoverageTest {
             "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day",
             "today-reminders", "today-expended", "integrations",
+            "widget",
         )
     }
 }

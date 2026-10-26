@@ -29,6 +29,12 @@ import com.opson.features.settings.impl.water.WaterSettingsStateBuilder
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
+import com.opson.libraries.widgets.WidgetCard
+import com.opson.libraries.widgets.WidgetFixtures
+import com.opson.libraries.widgets.WidgetSize
+import com.opson.libraries.widgets.WidgetSnapshotBuilder
+import com.opson.libraries.widgets.rememberWidgetCopy
+import kotlinx.datetime.LocalDate
 
 /**
  * The settings pages for `BlindModeLeakTest`. Each builds its state with the page's real
@@ -95,6 +101,19 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "look-and-feel", label = "Look and feel", showsCaloriesInFull = false) { policy ->
             LookAndFeelScreen(LookAndFeelStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})
+        },
+        // 0.2, release.widgets. The home screen widget as the platforms draw it, from the snapshot
+        // the app writes for them: today and tomorrow, both sizes. The snapshot is the leak
+        // surface, since a widget renders it and nothing else.
+        LeakSurface(id = "widget", label = "Home screen widget", showsCaloriesInFull = true) { policy ->
+            val snapshot = WidgetSnapshotBuilder.build(WidgetFixtures.inputs(policy.settings), policy, rememberWidgetCopy())
+            Column {
+                snapshot.days.forEach { day ->
+                    val date = LocalDate.parse(day.day)
+                    WidgetCard(snapshot, date, WidgetSize.Medium)
+                    WidgetCard(snapshot, date, WidgetSize.Small)
+                }
+            }
         },
     )
 }

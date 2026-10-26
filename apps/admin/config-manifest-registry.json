@@ -9,5 +9,6 @@
   { "path": "release.reminders", "type": "boolean", "default": false, "description": "0.2: Reminders page, reminder notifications and the Rhythm reminder line" },
   { "path": "release.health", "type": "boolean", "default": false, "description": "0.2 watch and health apps: the More row, Integrations and Expended so far on Today" },
   { "path": "release.barcode", "type": "boolean", "default": false, "description": "The barcode button in the logger search bar, and the scanner it opens" },
-  { "path": "release.fasting", "type": "boolean", "default": false, "description": "0.2: the Fasting page, its More row, the Today card and the timer" }
+  { "path": "release.fasting", "type": "boolean", "default": false, "description": "0.2: the Fasting page, its More row, the Today card and the timer" },
+  { "path": "release.widgets", "type": "boolean", "default": false, "description": "0.2: home screen widgets, the snapshot the app writes for them, and the More row" }
 ]
