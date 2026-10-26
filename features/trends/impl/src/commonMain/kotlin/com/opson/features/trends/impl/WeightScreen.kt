@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
@@ -63,6 +66,7 @@ import opson.libraries.resources.generated.resources.trends_weight_range_1m
 import opson.libraries.resources.generated.resources.trends_weight_range_1w
 import opson.libraries.resources.generated.resources.trends_weight_range_3m
 import opson.libraries.resources.generated.resources.trends_weight_save
+import opson.libraries.resources.generated.resources.trends_weight_save_failed
 import opson.libraries.resources.generated.resources.trends_weight_saved
 import opson.libraries.resources.generated.resources.trends_weight_saved_hidden
 import opson.libraries.resources.generated.resources.trends_weight_saved_trend
@@ -121,6 +125,14 @@ internal fun WeightContent(
         if (state.hiddenCard) HiddenCard()
         LogCard(state, onAction)
         state.saved?.let { SavedBanner(it) }
+        if (state.saveFailed) {
+            Text(
+                text = stringResource(Res.string.trends_weight_save_failed),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.muted,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
         state.photos?.let { PhotosRowView(it, onAction) }
     }
 }

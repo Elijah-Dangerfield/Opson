@@ -91,6 +91,7 @@
 
     <!-- Weight -->
     <string name="trends_weight_title">Weight</string>
+    <string name="trends_weight_save_failed">That weigh-in didn't save. Try again.</string>
     <string name="trends_weight_trend_label">Trend</string>
     <string name="trends_weight_now">This morning</string>
     <string name="trends_weight_range_1w">Last week</string>
