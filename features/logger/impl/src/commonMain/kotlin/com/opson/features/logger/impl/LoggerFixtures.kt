@@ -299,6 +299,9 @@ object LoggerFixtures {
     val unavailable: ScanModel = scanning.copy(lookup = Lookup.Failed(MISSED_CODE))
     val cameraOff: ScanModel = ScanModel(permission = CameraPermission.Denied(canAskAgain = false))
     val cameraAskAgain: ScanModel = ScanModel(permission = CameraPermission.Denied(canAskAgain = true))
+    val cameraUnavailable: ScanModel = scanning.copy(cameraUnavailable = true)
+    val typing: ScanModel = cameraUnavailable.copy(typed = "40063813")
+    val typingMisread: ScanModel = cameraUnavailable.copy(typed = "4006381333932", typedMisread = true)
 
     /** After lunch in Mindful: very hungry before, full after, rushed, as in 3.10. */
     fun howItFeltState(): HowItFeltState = HowItFeltState(

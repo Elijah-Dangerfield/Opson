@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -55,10 +56,11 @@ class AndroidBarcodeCamera @Inject constructor(
 ) : BarcodeCamera {
 
     @Composable
-    override fun Viewfinder(onCode: (ScannedCode) -> Unit, modifier: Modifier) {
+    override fun Viewfinder(onCode: (ScannedCode) -> Unit, onUnavailable: () -> Unit, modifier: Modifier) {
         val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
         val latestOnCode by rememberUpdatedState(onCode)
+        val latestOnUnavailable by rememberUpdatedState(onUnavailable)
         val previewView = remember(context) {
             PreviewView(context).apply {
                 scaleType = PreviewView.ScaleType.FILL_CENTER
@@ -67,7 +69,13 @@ class AndroidBarcodeCamera @Inject constructor(
             }
         }
         DisposableEffect(lifecycleOwner, previewView) {
-            val session = CameraSession(context, lifecycleOwner, previewView) { code -> latestOnCode(code) }
+            val session = CameraSession(
+                context = context,
+                lifecycleOwner = lifecycleOwner,
+                previewView = previewView,
+                onCode = { code -> latestOnCode(code) },
+                onUnavailable = { latestOnUnavailable() },
+            )
             session.start()
             onDispose { session.stop() }
         }
@@ -98,6 +106,7 @@ private class CameraSession(
     private val lifecycleOwner: LifecycleOwner,
     private val previewView: PreviewView,
     private val onCode: (ScannedCode) -> Unit,
+    private val onUnavailable: () -> Unit,
 ) {
     private val analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val scanner: BarcodeScanner = BarcodeScanning.getClient(
@@ -108,7 +117,9 @@ private class CameraSession(
     private var provider: ProcessCameraProvider? = null
     private var preview: Preview? = null
     private var analysis: ImageAnalysis? = null
+    private var camera: Camera? = null
     private var stopped = false
+    private var reportedUnavailable = false
 
     fun start() {
         val future = ProcessCameraProvider.getInstance(context)
@@ -119,23 +130,39 @@ private class CameraSession(
                 if (stopped) return@addListener
                 Catching {
                     val cameraProvider = future.get()
+                    if (!cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)) {
+                        unavailable()
+                        return@addListener
+                    }
                     val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
                     val analysis = ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
                         .also { it.setAnalyzer(analysisExecutor) { proxy -> read(proxy) { code -> main.execute { if (!stopped) onCode(code) } } } }
-                    cameraProvider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                    val camera = cameraProvider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
                     provider = cameraProvider
                     this.preview = preview
                     this.analysis = analysis
-                }.logOnFailure("Camera could not start")
+                    this.camera = camera
+                    // Bound is not open: another app holding the camera, a policy that disables it
+                    // or a driver fault all arrive later, as an error on the camera's state.
+                    camera.cameraInfo.cameraState.observe(lifecycleOwner) { state -> if (state.error != null) unavailable() }
+                }.logOnFailure("Camera could not start").onFailure { unavailable() }
             },
             main,
         )
     }
 
+    /** Once per session, and never after the screen has gone. Always on the main thread. */
+    private fun unavailable() {
+        if (stopped || reportedUnavailable) return
+        reportedUnavailable = true
+        onUnavailable()
+    }
+
     fun stop() {
         stopped = true
+        camera?.cameraInfo?.cameraState?.removeObservers(lifecycleOwner)
         val bound = listOfNotNull(preview, analysis)
         if (bound.isNotEmpty()) provider?.unbind(*bound.toTypedArray())
         analysis?.clearAnalyzer()

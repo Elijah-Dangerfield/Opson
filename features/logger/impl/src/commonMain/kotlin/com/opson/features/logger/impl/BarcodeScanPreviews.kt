@@ -63,3 +63,21 @@ private fun LoggerScanCameraOffDarkPreview() = Scanner(LoggerFixtures.cameraOff,
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerScanCameraAskPreview() = Scanner(LoggerFixtures.cameraAskAgain)
+
+/** Allowed, but no camera can run: the iOS simulator, or another app holding it. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanCameraUnavailablePreview() = Scanner(LoggerFixtures.cameraUnavailable)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanCameraUnavailableDarkPreview() = Scanner(LoggerFixtures.cameraUnavailable, dark = true)
+
+/** Typing the digits under the barcode, part way through. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanTypingPreview() = Scanner(LoggerFixtures.typing)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanTypingMisreadPreview() = Scanner(LoggerFixtures.typingMisread)

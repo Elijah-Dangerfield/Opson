@@ -576,7 +576,7 @@
     {
       "type": "timeseries",
       "title": "Scanner",
-      "description": "Client events. Loki keeps 31 days. Camera denied counts people who could not scan at all.",
+      "description": "Client events. Loki keeps 31 days. Camera denied and unavailable count people who could not use the camera; they can still type the code.",
       "datasource": {
         "type": "loki",
         "uid": "grafanacloud-logs"
@@ -620,6 +620,16 @@
           },
           "expr": "sum(count_over_time({service_name=\"opson-client\"} | event_name=\"barcode.permission_denied\" [$__interval]))",
           "legendFormat": "camera denied",
+          "queryType": "range"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\"} | event_name=\"barcode.camera_unavailable\" [$__interval]))",
+          "legendFormat": "camera unavailable",
           "queryType": "range"
         }
       ],

@@ -15,9 +15,13 @@ interface BarcodeTelemetry {
     /** The viewfinder went live. [asked] when the system prompt was shown first. */
     fun scanStarted(asked: Boolean)
 
-    fun hit(source: FoodSource, slow: Boolean)
+    /** [typed] when the code was typed by hand rather than read by the camera. */
+    fun hit(source: FoodSource, slow: Boolean, typed: Boolean)
 
-    fun miss()
+    fun miss(typed: Boolean)
+
+    /** Allowed, but the camera could not run. */
+    fun cameraUnavailable()
 
     fun permissionDenied(canAskAgain: Boolean)
 }
@@ -31,12 +35,16 @@ class AppEventsBarcodeTelemetry : BarcodeTelemetry {
         logger.logEvent("barcode.scan_started", "permission" to if (asked) "asked" else "granted")
     }
 
-    override fun hit(source: FoodSource, slow: Boolean) {
-        logger.logEvent("barcode.hit", "source" to source.wire, "slow" to slow)
+    override fun hit(source: FoodSource, slow: Boolean, typed: Boolean) {
+        logger.logEvent("barcode.hit", "source" to source.wire, "slow" to slow, "typed" to typed)
     }
 
-    override fun miss() {
-        logger.logEvent("barcode.miss")
+    override fun miss(typed: Boolean) {
+        logger.logEvent("barcode.miss", "typed" to typed)
+    }
+
+    override fun cameraUnavailable() {
+        logger.logEvent("barcode.camera_unavailable")
     }
 
     override fun permissionDenied(canAskAgain: Boolean) {

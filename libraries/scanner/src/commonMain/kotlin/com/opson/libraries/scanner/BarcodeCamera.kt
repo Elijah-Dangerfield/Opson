@@ -38,10 +38,13 @@ interface BarcodeCamera {
     /**
      * The live camera, reading EAN-13, EAN-8, UPC-A and UPC-E. Calls [onCode]
      * for every read, many times a second for the same pack; the caller
-     * decides which to keep. The camera stops when this leaves composition.
+     * decides which to keep. Calls [onUnavailable] on the main thread when the
+     * camera cannot run even though it is allowed: no back camera (the iOS
+     * simulator), a failed start, or another app holding it. The camera stops
+     * when this leaves composition, and composing it again tries afresh.
      */
     @Composable
-    fun Viewfinder(onCode: (ScannedCode) -> Unit, modifier: Modifier)
+    fun Viewfinder(onCode: (ScannedCode) -> Unit, onUnavailable: () -> Unit, modifier: Modifier)
 
     /** A function that shows the system camera prompt; [onAnswer] gets the result. */
     @Composable

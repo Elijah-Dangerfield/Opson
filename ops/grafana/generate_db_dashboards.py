@@ -235,7 +235,8 @@ b.series("Scanner", [
     loki("B", 'sum(count_over_time({service_name="opson-client"} | event_name="barcode.hit" [$__interval]))', "found"),
     loki("C", 'sum(count_over_time({service_name="opson-client"} | event_name="barcode.miss" [$__interval]))', "not found"),
     loki("D", 'sum(count_over_time({service_name="opson-client"} | event_name="barcode.permission_denied" [$__interval]))', "camera denied"),
-], "Client events. Loki keeps 31 days. Camera denied counts people who could not scan at all.", ds=LOKI)
+    loki("E", 'sum(count_over_time({service_name="opson-client"} | event_name="barcode.camera_unavailable" [$__interval]))', "camera unavailable"),
+], "Client events. Loki keeps 31 days. Camera denied and unavailable count people who could not use the camera; they can still type the code.", ds=LOKI)
 b.write()
 
 # ── Retention ──────────────────────────────────────────────────────────────
