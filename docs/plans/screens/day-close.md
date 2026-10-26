@@ -13,8 +13,15 @@
 > today? · optional", placeholder "Dinner at Lola's, a lazy Sunday". "Close the
 > day" is pinned at the bottom with "You can still edit this day afterwards."
 > The header stays `PageHeader` (v3's top app bar is changed once, there) with
-> the long date under it. Not built: "Expended, from your watch" (0.2) and
-> Blind's "How did today feel?" chips (no field stores a day feeling).
+> the long date under it. Not built: "Expended, from your watch" (0.2).
+> **How did today feel? (4.5)**: with "Logged today" showing (calories hidden
+> on Day close), an optional single-choice row: Steady, Busy, Tired, Good,
+> Hard (`DayFeeling`). Tapping the chosen one clears it. It prefills from
+> `Day.feeling` once, like the note, and is saved on Close the day with
+> `setDayFeeling(day, feeling)`; Back saves nothing. Stored on the day record
+> (`day_records.feeling`, synced): a meal feeling is keyed by meal, and the
+> Uncategorized row already belongs to "All food" with groups off.
+> Actions `FeelingTapped(feeling)`.
 > State: `DayCloseState(loading, title, day, backLabel, revealNote, totals:
 > DayTotals(eaten, rangeLine: Inside | Below | Above, macros), soft, bigDay:
 > BigDayCard(tomorrow, commitment), mealsLine, loggedMeals: Set<MealSlot>?,

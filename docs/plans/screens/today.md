@@ -23,14 +23,37 @@ Day close in `day-close.md`. Read `shared.md` first.
 | Day menu flat list with Hide water | Grouped; Hide water lives in Edit Today's cards (`today-sheets.md`). |
 | (new) | After food lands on the day, its meal is outlined for 2 s and scrolled to. |
 
-Not built, and why: **Expended so far** (0.2, watch data). **Food bridge** on
-Explorer (no source of "a step from a food you eat" exists; needs a curated
-pairing table). **Safe foods "+ Add"** (no way to mark a safe food in the
-domain). **Mark as untracked** (no day field for it; a diary change plus sync
-migration). **Undo for 6 s** after adding: the logger owns the write and its
-toast; it should carry the Undo (remove the returned ids), so Today does the
-scroll and outline only. **Dinner reminder** card on Rhythm (Reminders, 0.2).
-**Photo and voice** on Mindful (0.2).
+Not built, and why: **Expended so far** (0.2, watch data). **Safe foods "+ Add"**
+(no way to mark a safe food in the domain). **Dinner reminder** card on Rhythm
+(Reminders, 0.2). **Photo and voice** on Mindful (0.2).
+
+### Added since (v3 follow-up)
+
+- **Undo for 6 s after adding (3.9).** The logger no longer toasts; it publishes
+  `LoggedToMeal(day, slot, itemIds, at)` on `RecentLogEvents.latest`. Today
+  collects it: for the day it shows and while `undoOpenAt(clock.now())`, it
+  outlines and scrolls to the meal, sets `added = AddedNotice(slot, count)`
+  ("Added 2 foods to dinner" with **Undo**), calls `consumed`, and clears the
+  notice when the six seconds run out (the time left, not a fresh six). Undo is
+  `RecentLogEvents.undo(event)`, which removes exactly those ids. An event for
+  another day is left for that day; an expired one is consumed and shown
+  nothing. Quiet: no sound or vibration. The bar is drawn by Today, not the
+  app snackbar, so it lasts exactly the window and shows in previews.
+- **Mark as untracked (2.11).** `Day.untracked`, written by
+  `DiaryRepository.setUntracked(day, untracked)` (`day_records.untracked`,
+  synced). The menu item reads "Mark as untracked" or "Track this day again".
+  An untracked day keeps its meals but swaps the hero card (and the counts,
+  the planning banner and Close the day) for one calm `untracked` card: "Not
+  tracking this day / Trends leaves a gap here, not a low day." with "Track it
+  again". Trends treats it as a gap.
+- **Food bridge (2.8).** Explorer only. `FoodBridges.suggest(frequent, days,
+  today)` (pure) picks a food the person eats often and one they have had only
+  once or twice that shares a word with it ("A small step from rice / You've
+  had rice pudding before, and it has rice in it too."). Their own foods only,
+  no outside data; no card when nothing pairs. "I tried it" opens the logger
+  with that food picked; "Not today" hides it until tomorrow. Neither records
+  anything (`bridgeSkippedOn` lives in the view model only), so "Not today"
+  never counts against anyone.
 
 ## Route
 `TodayRoute : TabRoute()` in `:features:today`, registered with `screen<TodayRoute>` in `TodayFeatureEntryPoint`. No args; the day comes from `SelectedDay`.
@@ -55,6 +78,9 @@ data class TodayState(
     val whatYouHad: WhatYouHad?,        // PerMeal (Meals layout), Together (Rhythm)
     val closeDay: CloseDayCard?,        // not on a planned day
     val highlight: MealSlot?,           // the meal that just changed
+    val added: AddedNotice?,            // "Added 2 foods to dinner" + Undo, 6 s
+    val untracked: Boolean,             // the calm untracked card instead of the hero
+    val bridge: FoodBridgeCard?,        // Explorer's food bridge
     val menu: DayMenu?,
 )
 sealed interface TodaySummary {
@@ -75,7 +101,7 @@ sealed interface MealEntry {   // keyed by slot
 }
 ```
 
-`TodayStateBuilder.build(inputs, policy, menuOpen, clearArmed, highlight)`, pure.
+`TodayStateBuilder.build(inputs, policy, menuOpen, clearArmed, highlight, added, bridgeSkipped)`, pure.
 `TodayInputs(today, timeZone, day, dayBefore, settings, explorer)`.
 
 ### Which hero card
@@ -124,6 +150,11 @@ Layout is `policy.preset.today`: Full, Meals, Rhythm, Explorer, and **Journal**
 | `ItemTapped(entryId)` | `OpenItemSheet(day, entryId)`. |
 | `WaterPlusTapped` | `OpenWaterSheet(day)`. |
 | `AlreadyAteTapped(slot)` | `setAteNoDetails(day, slot, true)`. |
+| `LoggedArrived(event)` | From `RecentLogEvents.latest`: notice, outline, scroll, `consumed`; `UndoExpired` when the window ends. |
+| `UndoTapped` | `RecentLogEvents.undo(event)`, notice cleared. |
+| `UntrackedMenuTapped` / `TrackAgainTapped` | `setUntracked(day, !untracked)` / `setUntracked(day, false)`. |
+| `BridgeTriedTapped` | `OpenLogger` with the bridge food picked; card hidden for the day. |
+| `BridgeNotTodayTapped` | Card hidden for the day. Nothing written. |
 | Menu actions | `today-sheets.md`. |
 
 ## Copy
@@ -166,4 +197,5 @@ through `NutrientText` / `NutrientBar` / `MacroLine`; the eaten bar is tagged
 - `TodayStateBuilderTest`: each layout and level (Full, empty day, big day, Delayed at noon / 21:00 / past, Coast, warm tone, Blind, Nutrient, Fuel, Rhythm, Explorer, Mindful, Sprint), collapsed meals and yesterday, compact vs long macro line, groups off, planning, past day, name-only meal, ate no details, the grouped menu, hidden water.
 - `TodayViewModelTest`: one per action, day bounds (one ahead), the outline on new food and its fade, copying, the two-tap clear.
 - Previews in `TodayPreviews.kt` named after the v3 screen ids, one theme each at 390.
-- `TodayLeakSurfaces`: `today`, `today-big-day`, `today-added`, `today-groups-off`, `today-past`, `today-future`, `today-day-menu`, `today-day-menu-armed`, `today-cards`.
+- `FoodBridgesTest`: pairs on a shared word, prefers rarer and more recent, skips today's and quick numbers, none when nothing pairs.
+- `TodayLeakSurfaces`: `today`, `today-big-day`, `today-added` (with the Undo bar), `today-untracked`, `today-explorer-bridge`, `today-groups-off`, `today-past`, `today-future`, `today-day-menu`, `today-day-menu-armed`, `today-cards`.

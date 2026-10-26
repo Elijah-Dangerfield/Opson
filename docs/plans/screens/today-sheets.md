@@ -39,17 +39,19 @@ sealed interface DayMenuItem {
     data object CopyYesterday : DayMenuItem
     data object CopyToTomorrow : DayMenuItem                  // not on a planned day
     data object AddNote : DayMenuItem
+    data class Untracked(val marked: Boolean) : DayMenuItem    // "Mark as untracked" / "Track this day again"
     data object EditCards : DayMenuItem
     data object ClearDay : DayMenuItem
 }
 ```
 
 Groups, by what each item affects: the day (Close, This day's nutrients);
-copying and notes (Copy yesterday, Copy this day to tomorrow, Add a note);
-layout (Edit Today's cards, Clear this day). Rows are icon first in the accent
-(layout rows muted), no lines inside a group. **Mark as untracked** is in the
-design but not built: there is no day field for it, and adding one is a diary
-schema and sync change (flagged in the report). Fasting is 0.2.
+copying and notes (Copy yesterday, Copy this day to tomorrow, Add a note,
+Mark as untracked); layout (Edit Today's cards, Clear this day). Rows are icon
+first in the accent (layout rows muted), no lines inside a group. **Mark as
+untracked** writes `day_records.untracked` (see `today.md`); on an untracked
+day it reads "Track this day again", and Close the day leaves the menu.
+Fasting is 0.2.
 
 | Action | Does |
 |---|---|
@@ -60,6 +62,7 @@ schema and sync change (flagged in the report). Fasting is 0.2.
 | `CopyYesterdayTapped` | `copyDay(from = day − 1, to = day)`, appended, toast. |
 | `CopyToTomorrowTapped` | `copyDay(from = day, to = day + 1)`, appended, toast; nothing on a planned day. |
 | `DayNoteTapped` | Close menu, `OpenDayNote(day)` (not Day close, see `shared.md`). |
+| `UntrackedMenuTapped` | Close menu, `setUntracked(day, !untracked)`. |
 | `EditCardsTapped` | Close menu, `OpenTodayCards`. |
 | `ClearDayTapped` | First tap: `clearArmed = true`, menu stays open, icon in `c-protein`. Second: `clearDay(day)`, close, toast. |
 
