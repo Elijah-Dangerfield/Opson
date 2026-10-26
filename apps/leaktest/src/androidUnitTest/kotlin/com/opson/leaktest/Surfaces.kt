@@ -78,10 +78,6 @@ private val weekOpens = Reveal.WholeSurface(
 private val lastCheckOpens = Reveal.WholeSurface(
     "Before this week's check, Coast keeps last week's check readable: its daily average is the number shown.",
 )
-private val yesterdaysDinner = Reveal.Only(
-    setOf("813 kcal"),
-    "Yesterday's dinner, offered again on today's empty dinner row. Yesterday is a past day and open.",
-)
 private val typedLabel = Reveal.Only(
     setOf("120 kcal"),
     "Add a food asks for a field unless the mode hides it outright, so Later and soft modes fill the label in. " +
@@ -99,7 +95,6 @@ internal val REVEALED_BY_DESIGN: Map<Pair<PresetId, String>, Reveal> = buildMap 
     put(PresetId.Delayed to "today-past", pastDayOpens)
     listOf("trends", "trends-blind", "trends-coast", "nutrients-week", "patterns", "patterns-blind")
         .forEach { put(PresetId.Delayed to it, weekOpens) }
-    listOf("today", "today-day-menu", "today-day-menu-armed").forEach { put(PresetId.Delayed to it, yesterdaysDinner) }
 
     listOf("trends", "trends-blind", "trends-coast").forEach { put(PresetId.Coast to it, lastCheckOpens) }
 

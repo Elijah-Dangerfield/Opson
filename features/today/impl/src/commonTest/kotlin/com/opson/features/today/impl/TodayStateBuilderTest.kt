@@ -95,6 +95,18 @@ class TodayStateBuilderTest {
     }
 
     @Test
+    fun delayedBeforeTheReveal_yesterdaysMealOfferShowsNoAmount() {
+        // Yesterday is open in Delayed, but re-adding its dinner would tell part of today's total.
+        val dinner = assertIs<MealEntry.Collapsed>(build(PresetId.Delayed).meals.last())
+        val yesterday = assertNotNull(dinner.yesterday)
+        assertEquals("Arroz con pollo, garlic fried rice (sinangag)", yesterday.foods, "the foods are still offered")
+        assertIs<Display.Hidden>(yesterday.calories)
+
+        val evening = assertIs<MealEntry.Collapsed>(build(PresetId.Delayed, at = Instant.parse("2026-10-25T21:00:00Z")).meals.last())
+        assertEquals("813 kcal", evening.yesterday?.calories?.text(), "once today opens, so does the offer")
+    }
+
+    @Test
     fun withNoYesterdayTheNextMealOffersSavedMeals() {
         val dinner = assertIs<MealEntry.Collapsed>(build(PresetId.Full).meals.last())
 

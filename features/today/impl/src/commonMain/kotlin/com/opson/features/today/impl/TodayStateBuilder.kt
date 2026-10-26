@@ -319,7 +319,9 @@ object TodayStateBuilder {
             before.items(slot).takeIf { it.isNotEmpty() }?.let { items ->
                 Yesterday(
                     foods = foods(items),
-                    calories = policy.resolve(Metric.Calories, items.totals().kcal.value, Surface.Today, before.formatContext(inputs.today)),
+                    // Resolved as the day it would be added to, not the day it came from: in Delayed
+                    // yesterday is open, but re-adding its dinner would tell today's hidden total.
+                    calories = policy.resolve(Metric.Calories, items.totals().kcal.value, Surface.Today, inputs.day.formatContext(inputs.today)),
                 )
             }
         } else {
