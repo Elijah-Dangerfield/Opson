@@ -115,6 +115,43 @@ if (System.getProperty("serverOnly") != "true") {
     }
 
     tasks.named("check") { dependsOn(verifyComposeResourceStrings) }
+
+    // The baseline-profile journey and the R8 smoke test find screens by their
+    // copy (`const val`s in BenchmarkJourney.kt). They run only on an emulator,
+    // monthly or by hand, so a copy change broke them unseen: the Foods tab
+    // dropped the placeholder line the journey waited for, and nothing said so.
+    // This fails `check` the day a string they wait for leaves the app.
+    val benchmarkJourney = file("apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/BenchmarkJourney.kt")
+    val verifyBenchmarkJourneyCopy = tasks.register("verifyBenchmarkJourneyCopy") {
+        group = "verification"
+        description = "Fails when a string the baseline-profile journey waits for is not in the app's strings."
+        val journey = benchmarkJourney
+        val strings = composeResourceStringXml
+        inputs.file(journey).withPropertyName("benchmarkJourney")
+        inputs.files(strings).withPropertyName("composeResourceStringXml")
+        outputs.upToDateWhen { true }
+        doLast {
+            val copy = strings.files.joinToString("\n") { it.readText() }
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'")
+                .replace("&amp;", "&")
+            val missing = Regex("""const val (\w+) = "([^"]+)"""").findAll(journey.readText())
+                .map { it.groupValues[1] to it.groupValues[2] }
+                // The package name is not copy.
+                .filter { (name, text) -> name != "PACKAGE" && text !in copy }
+                .toList()
+            if (missing.isNotEmpty()) {
+                throw org.gradle.api.GradleException(
+                    buildString {
+                        appendLine("BenchmarkJourney waits for copy the app no longer has, so the profile journey")
+                        appendLine("and the R8 smoke test would fail on the emulator. Point them at text the screen still shows:")
+                        missing.forEach { (name, text) -> appendLine("  $name = \"$text\"") }
+                    },
+                )
+            }
+        }
+    }
+
+    tasks.named("check") { dependsOn(verifyBenchmarkJourneyCopy) }
 }
 // Kotlin/Native links run inside the Gradle daemon and are the heaviest step in
 // the build, several GB each for a release framework. `./gradlew build` starts

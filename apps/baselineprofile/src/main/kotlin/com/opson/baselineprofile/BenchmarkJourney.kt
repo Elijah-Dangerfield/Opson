@@ -90,7 +90,7 @@ object BenchmarkJourney {
     fun UiDevice.visitTabs() {
         listOf(
             TRENDS to By.desc(TRENDS_SETTINGS),
-            FOODS to ciText(FOODS_PLACEHOLDER),
+            FOODS to ciText(FOODS_CREATE_MEAL),
             MORE to ciText(MORE_MODES),
             TODAY to todayScreen(),
         ).forEach { (tab, screen) ->
@@ -118,8 +118,10 @@ object BenchmarkJourney {
         }
     }
 
-    // Verbatim from the screens they appear on. If one changes, these tests are
-    // where it surfaces, which is the point.
+    // Verbatim from the screens they appear on. The root build's
+    // verifyBenchmarkJourneyCopy fails `check` when one of these leaves the
+    // app's strings, so a copy change surfaces on the PR rather than in next
+    // month's profile run.
     /** Welcome's one-tap path: Full numbers, no questions and no account step. */
     const val SKIP_AND_START_LOGGING = "Skip and start logging"
     const val SETTING_UP = "Setting things up…"
@@ -133,7 +135,7 @@ object BenchmarkJourney {
     // its tab, so Today and Trends are found by an icon button's spoken label instead.
     const val TODAY_DAY_MENU = "More for this day"
     const val TRENDS_SETTINGS = "Trends settings"
-    const val FOODS_PLACEHOLDER = "Your favorites and saved meals will live here."
+    const val FOODS_CREATE_MEAL = "Create a meal"
     const val MORE_MODES = "Modes and numbers"
     const val LOGGER_SEARCH = "Search foods, dishes, restaurants"
 
