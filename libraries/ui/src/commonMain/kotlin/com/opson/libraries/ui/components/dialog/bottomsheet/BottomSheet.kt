@@ -50,6 +50,12 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * invisible until the first long sheet. Two things that look like the cause and are not, recorded
  * so nobody retries them: it is not overscroll (a null `LocalOverscrollFactory` changed nothing)
  * and it is not navigation (one navigate and one back per reproduction).
+ *
+ * @param heightFraction pins the sheet to this fraction of the available height instead of letting
+ * the content decide, for sheets the design draws at a fixed height (the logger is
+ * [BottomSheetDefaults.FullHeightFraction]). A height that comes from the constraints rather than
+ * the content measures the same on every pass, so it is safe from the snap-back above with or
+ * without [scrollableContent].
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -57,6 +63,7 @@ fun BottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     scrollableContent: Boolean = false,
+    heightFraction: Float? = null,
     showDragHandle: Boolean = false,
     backgroundColor: ColorResource = AppTheme.colors.background,
     contentColor: ColorResource = LocalContentColor.current,
@@ -68,6 +75,9 @@ fun BottomSheet(
     dragHandle: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    require(heightFraction == null || heightFraction in 0f..1f) {
+        "heightFraction is a fraction of the available height, got $heightFraction"
+    }
     val coroutineScope = rememberCoroutineScope()
     val dismissComplete by rememberUpdatedState(onDismissRequest)
 
@@ -104,12 +114,15 @@ fun BottomSheet(
     ) {
         val scrollState = rememberScrollState()
         ProvideContentColor(contentColor) {
+            val height = when {
+                heightFraction != null -> Modifier.fillMaxHeight(heightFraction)
+                scrollableContent -> Modifier.fillMaxHeight()
+                else -> Modifier
+            }
             Column(
-                modifier = if (scrollableContent) {
-                    Modifier.fillMaxHeight().verticalScroll(scrollState).then(modifier)
-                } else {
-                    modifier
-                },
+                modifier = height
+                    .then(if (scrollableContent) Modifier.verticalScroll(scrollState) else Modifier)
+                    .then(modifier),
                 horizontalAlignment = contentAlignment,
                 content = content
             )

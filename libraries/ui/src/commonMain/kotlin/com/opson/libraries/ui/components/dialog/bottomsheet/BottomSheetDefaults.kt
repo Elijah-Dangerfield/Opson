@@ -10,4 +10,7 @@ object BottomSheetDefaults {
     internal val PositionalThreshold = 56.dp
 
     internal val VelocityThreshold = 125.dp
+
+    /** The handoff's full-height sheet (the logger), 93% tall so the screen behind still peeks out. */
+    const val FullHeightFraction = 0.93f
 }
