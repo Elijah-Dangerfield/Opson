@@ -13,14 +13,8 @@ import androidx.navigation.Navigator
 @Navigator.Name("floatingwindow")
 class FloatingWindowNavigator : Navigator<FloatingWindowNavigator.Destination>() {
 
-    /**
-     * Get the back stack from the [state].
-     */
     internal val backStack get() = state.backStack
 
-    /**
-     * Get the entries still waiting on a transition to complete from the [state].
-     */
     internal val transitionsInProgress get() = state.transitionsInProgress
 
     override fun navigate(

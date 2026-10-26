@@ -2,7 +2,7 @@
 
 package com.opson.libraries.navigation
 
-import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.Flow
 import kotlin.experimental.ExperimentalObjCName
 import kotlin.native.ObjCName
 
@@ -21,16 +21,18 @@ import kotlin.native.ObjCName
  * usually unnecessary. iOS has no equivalent — `.onOpenURL` must forward
  * here.
  *
- * Per-route registration uses the `deepLinks` parameter on `screen<Route>`:
+ * Per-route registration uses the `deepLinks` parameter on `screen<Route>`, built with
+ * [routeDeepLink] (a bare `navDeepLink` fails the graph build):
  *
  * ```
  * screen<ProfileRoute>(
- *     deepLinks = listOf(navDeepLink<ProfileRoute>(basePath = "https://example.com/profile"))
+ *     deepLinks = listOf(routeDeepLink<ProfileRoute>(basePath = "opson://profile"))
  * ) { ... }
  * ```
  */
 @ObjCName("DeepLinkBridge", exact = true)
 interface DeepLinkBridge {
-    val urls: SharedFlow<String>
+    /** Each emitted URL, once, to whichever collector takes it first. Emitted before anyone collects, it waits. */
+    val urls: Flow<String>
     fun emit(url: String)
 }
