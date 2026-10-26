@@ -147,6 +147,22 @@ data class ResolvedFlagDto(
 @Serializable
 private data class ResolveResponse(val flags: List<ResolvedFlagDto>)
 
+// ---------- Website waitlist ----------
+
+@Serializable
+data class WaitlistEntryDto(
+    val id: String,
+    val email: String,
+    val source: String? = null,
+    val createdAtEpochMs: Long,
+)
+
+@Serializable
+data class WaitlistPageDto(val total: Long, val entries: List<WaitlistEntryDto>)
+
+@Serializable
+private data class WaitlistRemoveRequest(val email: String)
+
 val adminJson: Json = Json {
     ignoreUnknownKeys = true
     encodeDefaults = true
@@ -217,6 +233,24 @@ class AdminApi(
             contentType(ContentType.Application.Json)
             setBody(request)
         }.require<ResolveResponse>().flags
+
+    suspend fun listWaitlist(limit: Int, offset: Long): WaitlistPageDto =
+        client.get("$base/v1/admin/waitlist?limit=$limit&offset=$offset") { auth() }.require()
+
+    /** The whole list as CSV (`email,source,created_at`), for the operator to download. */
+    suspend fun exportWaitlistCsv(): String =
+        client.get("$base/v1/admin/waitlist/export.csv") { auth() }
+            .also { it.requireOk() }
+            .bodyAsText()
+
+    /** Deletes [email] from the waitlist. The address goes in the body, never the URL. */
+    suspend fun removeFromWaitlist(email: String) {
+        client.post("$base/v1/admin/waitlist/remove") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(WaitlistRemoveRequest(email))
+        }.requireOk()
+    }
 
     private fun io.ktor.client.request.HttpRequestBuilder.auth() {
         header("X-Admin-Token", token)
