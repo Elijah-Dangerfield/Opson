@@ -123,6 +123,7 @@ fun MenuGroupDivider(modifier: Modifier = Modifier) {
 /**
  * Shows a [MenuPopover] below and end-aligned to the composable that hosts it, so place this
  * inside the same `Box` as the button that opens it. Dismisses on an outside tap or back.
+ * [alignment] `TopStart` hangs it from the start instead (the logger's meal dropdown).
  */
 @Composable
 fun PopoverMenu(
@@ -130,17 +131,19 @@ fun PopoverMenu(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     offset: IntOffset = IntOffset.Zero,
+    alignment: Alignment = Alignment.TopEnd,
+    width: Dp = 268.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (!expanded) return
     Popup(
-        alignment = Alignment.TopEnd,
+        alignment = alignment,
         offset = offset,
         onDismissRequest = onDismissRequest,
         properties = PopupProperties(focusable = true),
     ) {
         // Room for the shadow, which a popup window would otherwise clip.
-        MenuPopover(modifier = modifier.padding(start = 24.dp, end = 12.dp, bottom = 40.dp), content = content)
+        MenuPopover(modifier = modifier.padding(start = 24.dp, end = 12.dp, bottom = 40.dp), width = width, content = content)
     }
 }
 

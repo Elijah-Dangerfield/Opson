@@ -1,5 +1,7 @@
 package com.opson.libraries.ui.components.text
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,8 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.VisualTransformation
@@ -39,8 +47,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * The logger's search bar: a search glyph and a single-line field on a surface
- * pill, no border. [trailing] is for a button inside the bar (the barcode
- * button, once scanning ships).
+ * card. Once there is text it takes an accent outline and, with [onClear], a
+ * clear button. [trailing] is for a button inside the empty bar (the barcode
+ * button, once scanning ships); the clear button replaces it while typing.
  *
  * [focusOnOpen] asks for the keyboard the first time the field composes, for
  * "Log something new" opening straight into search.
@@ -52,6 +61,8 @@ fun SearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
     focusOnOpen: Boolean = false,
+    onClear: (() -> Unit)? = null,
+    clearDescription: String? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -70,12 +81,14 @@ fun SearchField(
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Search),
         cursorBrush = SolidColor(AppTheme.colors.accent.color),
         decorationBox = { innerTextField ->
+            val typing = value.isNotEmpty()
             Row(
                 modifier = Modifier
-                    .defaultMinSize(minHeight = 50.dp)
+                    .defaultMinSize(minHeight = 52.dp)
                     .clip(AppTheme.shapes.inputLarge)
                     .background(AppTheme.colors.surface)
-                    .padding(start = 12.dp, end = 5.dp),
+                    .border(1.dp, if (typing) AppTheme.colors.accent.color else Color.Transparent, AppTheme.shapes.inputLarge)
+                    .padding(start = 16.dp, end = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -86,7 +99,19 @@ fun SearchField(
                     }
                     innerTextField()
                 }
-                trailing?.invoke()
+                when {
+                    typing && onClear != null -> Box(
+                        modifier = Modifier
+                            .size(AppTheme.spacing.touchTarget)
+                            .clip(AppTheme.shapes.pill)
+                            .semantics { role = Role.Button; clearDescription?.let { contentDescription = it } }
+                            .clickable(onClick = onClear),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(icon = AppIcons.Cancel, size = 24.dp, color = AppTheme.colors.ink)
+                    }
+                    !typing -> trailing?.invoke()
+                }
             }
         },
     )
@@ -134,7 +159,7 @@ private fun SearchFieldPreview() {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             var query by remember { mutableStateOf("") }
             SearchField(value = query, onValueChange = { query = it }, placeholder = "Search for a food")
-            SearchField(value = "banana", onValueChange = {}, placeholder = "Search for a food")
+            SearchField(value = "banana", onValueChange = {}, placeholder = "Search for a food", onClear = {})
             SingleLineField(value = "", onValueChange = {}, placeholder = "2 eggs and toast")
         }
     }

@@ -56,6 +56,7 @@ internal fun InputBox(
     shape: Shape,
     contentPadding: PaddingValues,
     minHeight: Dp,
+    borderColor: ColorResource = AppTheme.colors.line,
 ) {
     val ink = AppTheme.colors.ink
     BasicTextField(
@@ -77,7 +78,7 @@ internal fun InputBox(
                     .defaultMinSize(minHeight = minHeight)
                     .clip(shape)
                     .background(fill)
-                    .border(1.dp, AppTheme.colors.line.color, shape)
+                    .border(1.dp, borderColor.color, shape)
                     .padding(contentPadding),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,

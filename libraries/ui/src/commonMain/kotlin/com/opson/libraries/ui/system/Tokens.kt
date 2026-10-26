@@ -70,8 +70,8 @@ class AppSpacing internal constructor() {
     /** Gap between chips. */
     val chip: Dp = 6.dp
 
-    /** Minimum touch target. The handoff allows 40dp only where it says so. */
-    val touchTarget: Dp = 44.dp
+    /** Minimum touch target: 48 dp in design v3, everywhere. Smaller visuals keep this much tappable area. */
+    val touchTarget: Dp = 48.dp
 
     /** Round header and row buttons that the handoff draws at 40. */
     val compactTouchTarget: Dp = 40.dp

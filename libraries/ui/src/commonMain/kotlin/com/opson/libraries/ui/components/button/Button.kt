@@ -157,11 +157,14 @@ enum class ButtonSize {
  * - **Filled** — solid background; highest prominence. Filled + enabled + `deep` gets the 3D lip.
  * - **Outlined** — border only, transparent fill; medium prominence, works on any surface.
  * - **Text** — no background or border; minimal weight, reads as a link.
+ * - **Tonal** — the soft accent tint with accent text, design v3's second action beside a primary
+ *   ("Pick and keep going", "Save the name only").
  */
 enum class ButtonStyle {
     Filled,
     Outlined,
     Text,
+    Tonal,
 }
 
 @Composable
@@ -366,7 +369,8 @@ private fun backgroundColor(
     style: ButtonStyle,
     enabled: Boolean,
 ): ColorResource? = when {
-    !enabled && style == ButtonStyle.Filled -> AppTheme.colors.surfaceDisabled
+    !enabled && (style == ButtonStyle.Filled || style == ButtonStyle.Tonal) -> AppTheme.colors.surfaceDisabled
+    style == ButtonStyle.Tonal -> AppTheme.colors.accentTint
     style != ButtonStyle.Filled -> null
     else -> when (type) {
         ButtonType.Primary -> accentSolid(accent)
@@ -423,6 +427,7 @@ private fun contentColor(
     enabled: Boolean
 ): ColorResource = when {
     !enabled -> AppTheme.colors.textDisabled
+    style == ButtonStyle.Tonal -> AppTheme.colors.accent
     style == ButtonStyle.Filled -> when (type) {
         ButtonType.Primary -> onAccent(accent)
         ButtonType.Secondary -> AppTheme.colors.ink

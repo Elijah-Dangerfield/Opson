@@ -2,6 +2,7 @@ package com.opson.libraries.ui.components.chip
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -15,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.PreviewLightDark
@@ -74,8 +77,9 @@ fun PillChip(
 }
 
 /**
- * A pill with a colored icon on a tinted fill, used for the logger's method chips (Photo,
- * Describe it, Water...). Not a selection: it runs an action.
+ * The logger's method chips (Describe, Yesterday's, Saved...): a tinted icon and a bold label on a
+ * surface card, design v3. Not a selection: it runs an action. Drawn 36 dp tall with a 48 dp
+ * touch area.
  */
 @Composable
 fun ActionChip(
@@ -85,18 +89,25 @@ fun ActionChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Box(
         modifier = modifier
-            .defaultMinSize(minHeight = 40.dp)
-            .clip(AppTheme.shapes.pill)
-            .background(tone.container)
-            .bounceClick(scaleDown = 0.95f, onClick = onClick)
-            .padding(start = 9.dp, end = 13.dp, top = 7.dp, bottom = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
+            .semantics { role = Role.Button }
+            .bounceClick(scaleDown = 0.95f, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(icon = icon, size = 20.dp, color = tone.content)
-        Text(text = label, typography = AppTheme.type.sectionLabel, color = AppTheme.colors.ink, maxLines = 1)
+        Row(
+            modifier = Modifier
+                .defaultMinSize(minHeight = ChipVisualHeight)
+                .clip(AppTheme.shapes.inputLarge)
+                .background(AppTheme.colors.surface)
+                .padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(icon = icon, size = 20.dp, color = tone.content)
+            Text(text = label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 1)
+        }
     }
 }
 
@@ -105,6 +116,49 @@ enum class PillTagSize(internal val padding: PaddingValues) {
     Small(PaddingValues(horizontal = 10.dp, vertical = 5.dp)),
     Regular(PaddingValues(horizontal = 12.dp, vertical = 7.dp)),
 }
+
+/**
+ * A v3 choice: a rounded chip with a line border, or a soft accent fill and a check when
+ * selected (amount units, hunger, fullness, mood). Drawn 36 dp tall with a 48 dp touch area.
+ * Pass `role = Role.Checkbox` for a multi-select group such as mood.
+ */
+@Composable
+fun ChoiceChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    role: Role = Role.RadioButton,
+) {
+    val colors = AppTheme.colors
+    Box(
+        modifier = modifier
+            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
+            .selectable(selected = selected, role = role, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            modifier = Modifier
+                .defaultMinSize(minHeight = ChipVisualHeight)
+                .clip(AppTheme.shapes.input)
+                .background(if (selected) colors.accentTint else colors.bg)
+                .border(1.dp, if (selected) colors.accentTint.color else colors.line.color, AppTheme.shapes.input)
+                .padding(start = if (selected) 10.dp else 12.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (selected) Icon(icon = AppIcons.Check, size = 20.dp, color = colors.accent)
+            Text(
+                text = label,
+                typography = AppTheme.type.bodyBold,
+                color = if (selected) colors.accent else colors.ink,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+private val ChipVisualHeight = 36.dp
 
 /**
  * A read-only soft pill for things the user already chose (how it felt, a source's status).
@@ -143,6 +197,10 @@ private fun PillChipPreview() {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
                 ActionChip(label = "Photo", icon = AppIcons.PhotoCamera, tone = AppTheme.colors.nutrients.protein, onClick = {})
                 ActionChip(label = "Water", icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water, onClick = {})
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+                ChoiceChip(label = "plate", selected = true, onClick = {})
+                ChoiceChip(label = "cup", selected = false, onClick = {})
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
                 PillTag(label = "Calm")

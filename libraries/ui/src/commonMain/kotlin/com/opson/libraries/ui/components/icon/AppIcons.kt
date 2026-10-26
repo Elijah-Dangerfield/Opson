@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons as MaterialIcons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
+import androidx.compose.material.icons.outlined.Edit as OutlinedEdit
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.automirrored.rounded.EventNote
 import androidx.compose.material.icons.rounded.DashboardCustomize
@@ -35,12 +37,15 @@ import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Dialpad
 import androidx.compose.material.icons.rounded.DinnerDining
 import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.EditNote
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.HighlightOff
 import androidx.compose.material.icons.rounded.Hiking
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
@@ -58,6 +63,7 @@ import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.SwapHoriz
@@ -117,6 +123,7 @@ object AppIcons {
     val Mic get() = icon("mic", MaterialIcons.Rounded.Mic)
     val EditNote get() = icon("edit_note", MaterialIcons.Rounded.EditNote)
     val Edit get() = icon("edit", MaterialIcons.Rounded.Edit)
+    val EditOutline get() = icon("edit_outline", MaterialIcons.Outlined.OutlinedEdit)
     val Bookmark get() = icon("bookmark", MaterialIcons.Rounded.Bookmark)
     val BookmarkAdd get() = icon("bookmark_add", MaterialIcons.Rounded.BookmarkAdd)
     val History get() = icon("history", MaterialIcons.Rounded.History)
@@ -124,6 +131,7 @@ object AppIcons {
     val MonitorWeight get() = icon("monitor_weight", MaterialIcons.Rounded.MonitorWeight)
     val Schedule get() = icon("schedule", MaterialIcons.Rounded.Schedule)
     val LockClock get() = icon("lock_clock", MaterialIcons.Rounded.LockClock)
+    val ContentCopy get() = icon("content_copy", MaterialIcons.Rounded.ContentCopy)
 
     // Navigation and chrome
     val Close get() = icon("close", MaterialIcons.Rounded.Close)
@@ -143,6 +151,10 @@ object AppIcons {
     val SwapHoriz get() = icon("swap_horiz", MaterialIcons.Rounded.SwapHoriz)
     val Tune get() = icon("tune", MaterialIcons.Rounded.Tune)
     val Search get() = icon("search", MaterialIcons.Rounded.Search)
+    val SearchOff get() = icon("search_off", MaterialIcons.Rounded.SearchOff)
+    val Cancel get() = icon("cancel", MaterialIcons.Rounded.HighlightOff)
+    val ArrowBack get() = icon("arrow_back", MaterialIcons.AutoMirrored.Rounded.ArrowBack)
+    val ExpandMore get() = icon("expand_more", MaterialIcons.Rounded.ExpandMore)
     val Settings get() = icon("settings", MaterialIcons.Rounded.Settings)
     val CalendarToday get() = icon("calendar_today", MaterialIcons.Rounded.CalendarToday)
     val CalendarMonth get() = icon("calendar_month", MaterialIcons.Rounded.CalendarMonth)
@@ -176,8 +188,9 @@ object AppIcons {
         get() = listOf(
             BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant,
             Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, Mic, EditNote, Edit,
-            Bookmark, BookmarkAdd, History, Dialpad, MonitorWeight, Schedule, LockClock,
+            Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight, Schedule, LockClock,
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
+            SearchOff, Cancel, ArrowBack, ExpandMore,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
             Star, Favorite, Bolt, Science, FormatListBulleted,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart,

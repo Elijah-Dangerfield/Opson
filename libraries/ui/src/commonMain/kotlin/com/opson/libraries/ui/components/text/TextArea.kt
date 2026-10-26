@@ -18,7 +18,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.PreviewLightDark
+import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
+import com.opson.system.typography.TypographyResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -36,6 +38,8 @@ fun TextArea(
     minLines: Int = 3,
     enabled: Boolean = true,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    typography: TypographyResource = AppTheme.type.body,
+    borderColor: ColorResource = AppTheme.colors.line,
 ) {
     InputBox(
         value = value,
@@ -50,11 +54,12 @@ fun TextArea(
         keyboardActions = keyboardActions,
         visualTransformation = VisualTransformation.None,
         textAlign = TextAlign.Start,
-        typography = AppTheme.type.body,
+        typography = typography,
         fill = AppTheme.colors.surface,
         shape = AppTheme.shapes.inputLarge,
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
         minHeight = 0.dp,
+        borderColor = borderColor,
     )
 }
 

@@ -31,6 +31,9 @@ enum class IconTileSize(val tile: Dp, val icon: Dp, val corner: Dp) {
 
     /** Touch-size tiles. */
     Large(tile = 44.dp, icon = 24.dp, corner = 12.dp),
+
+    /** The glyph over an empty state ("No match for ... yet"). */
+    Huge(tile = 64.dp, icon = 32.dp, corner = 20.dp),
 }
 
 /**
@@ -89,16 +92,24 @@ fun RoundIconButton(
     containerColor: ColorResource = if (selected) AppTheme.colors.accent else AppTheme.colors.accentTint,
     contentColor: ColorResource = if (selected) AppTheme.colors.onAccent else AppTheme.colors.accent,
     enabled: Boolean = true,
+    touchTarget: Dp = size,
 ) {
+    // The tappable area can be larger than the drawn circle: v3 draws the row + at 40 and asks for 48 to tap.
     Box(
         modifier = modifier
-            .size(size)
-            .clip(AppTheme.shapes.pill)
-            .background(containerColor)
+            .size(maxOf(size, touchTarget))
             .thenIf(enabled) { bounceClick(scaleDown = 0.92f, onClick = onClick) },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon = icon, size = iconSize, color = contentColor)
+        Box(
+            modifier = Modifier
+                .size(size)
+                .clip(AppTheme.shapes.pill)
+                .background(containerColor),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon = icon, size = iconSize, color = contentColor)
+        }
     }
 }
 

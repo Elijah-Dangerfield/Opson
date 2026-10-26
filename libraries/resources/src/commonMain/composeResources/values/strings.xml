@@ -132,6 +132,7 @@
 
     <!-- Design system components (accessibility labels) -->
     <string name="ds_close">Close</string>
+    <string name="ds_back">Back</string>
     <string name="ds_previous">Previous</string>
     <string name="ds_next">Next</string>
     <string name="ds_page_of">Page %1$d of %2$d</string>
