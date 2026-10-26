@@ -117,10 +117,14 @@ Built.
 | Component | Notes |
 |---|---|
 | `MealSlot.icon`, `MealSlot.tileColors()` | Breakfast carbs, Lunch fat, Snack fiber, Dinner protein, Uncategorized muted on soft. Icons `bakery_dining`, `lunch_dining`, `nutrition`, `dinner_dining`, `format_list_bulleted`. |
-| `MealSlot.label`, `sentenceName`, `Precision.rowLabel` (Weighed / Estimate / Named), `Precision.pickerLabel` (Weighed / Estimated / Just the name), `Hunger`, `Fullness`, `Mood` labels | String resources. |
-| `DiaryItemRow(name, sub, calories: Display, onClick)` | Today and Create a meal rows. |
-| `FoodPickRow(icon, name, amount, macros: List<MacroPart>, calories: Display, picked, onOpen, onToggle)` | Logger, Foods. The + toggles to a check; aria "Pick {name}" / "Remove {name}". |
-| `FoodIconTile(foodId)` | The catalog has no category, so the tile is a fork-and-knife icon tinted by a stable hash of the id over the four nutrient tints. |
+| `MealSlot.label`, `sentenceName`, `Precision.rowLabel` (Weighed / Estimate / Named), `Precision.pickerLabel` (Weighed / Estimated / Just the name), `Hunger`, `Fullness`, `Mood` labels | String resources (`strings_diary.xml`, `diary_` prefix). `MealSlot.tone` maps to the design system's `MealTone`. |
+| `DiaryItemRow(name, sub, calories: Display, onClick: (() -> Unit)?, showDivider = true)` | Today and Create a meal rows. |
+| `FoodPickRow(name, amount, macros: List<MacroPart>, calories: Display, picked, onOpen, onToggle, iconSeed = name, showDivider = true)` | Logger, Foods. The + toggles to a check; content description "Pick {name}" / "Remove {name}". Pass the food's key as `iconSeed`. |
+| `FoodIconTile(seed)`, `foodTone(seed)` | The catalog has no category, so the tile is a fork-and-knife icon tinted by a stable hash of the seed (a `FoodRef.key`) over the four nutrient tints. |
+| `FavoriteFoodTile(name, picked, onToggle, fullName, iconSeed)` | The logger's round Favorites tile with the + / check badge. |
+| `NutrientTotalColumn(metric, label, display)`, `MealCheckChip(slot, done)` | A totals strip column (amount, bar, label; nothing when hidden) and the meal check pill shown instead of totals. |
+| `NutrientTile(metric, label, display)` | One number on a surface tile (the amount sheet's Energy, Protein, Fiber, Calcium). |
+| `FoodRowsCard { }`, `FoodRowsNote(text)`, `SectionLabel(text)` | The radius-20 card food rows sit in inside a sheet, a muted line inside it, and the bold muted section heading. |
 
 ## `:libraries:ui` beyond the parallel component set
 
