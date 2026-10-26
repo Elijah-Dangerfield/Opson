@@ -1,74 +1,114 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Copy for the logger: the center + sheet, the amount sheet and the Log
-  screen. Verbatim from the handoff prototype where it has the line. Same
-  rules as strings.xml: no backslash escapes, positional %1$s arguments.
+  Copy for the logger: the center + sheet (search, Describe it, Saved meals),
+  the amount sheet and How it felt. Verbatim from design v3 where it has the
+  line, then the handoff prototype. Same rules as strings.xml: no backslash
+  escapes, positional %1$s arguments.
 -->
 <resources>
 
-    <!-- Logger sheet -->
+    <!-- Logger sheet: title and search -->
     <string name="logger_close_cd">Close</string>
-    <string name="logger_for_day">For %1$s</string>
-    <string name="logger_totals_energy">Energy</string>
-    <string name="logger_totals_protein">Protein</string>
-    <string name="logger_totals_carbs">Carbs</string>
-    <string name="logger_totals_fat">Fat</string>
-    <string name="logger_search_placeholder">Search for a food</string>
-    <string name="logger_method_describe">Describe it</string>
-    <string name="logger_method_water">Water</string>
-    <string name="logger_method_saved">Saved meals</string>
-    <string name="logger_method_yesterday">Yesterday's %1$s</string>
+    <string name="logger_add_to_title">Add to</string>
+    <string name="logger_meal_picker_cd">Change meal, %1$s</string>
+    <string name="logger_search_placeholder">Search foods, dishes, restaurants</string>
+    <string name="logger_search_clear_cd">Clear search</string>
+
+    <!-- Method chips -->
+    <string name="logger_method_describe">Describe</string>
+    <string name="logger_method_yesterday">Yesterday's</string>
+    <string name="logger_method_yesterday_cd">Yesterday's %1$s</string>
+    <string name="logger_method_saved">Saved</string>
     <string name="logger_method_ate">Ate, no details</string>
-    <string name="logger_method_weigh_in">Weigh-in</string>
     <string name="logger_method_number">Just a number</string>
     <string name="logger_method_note">Add a note</string>
-    <string name="logger_favorites">Favorites</string>
+
+    <!-- Browse and results -->
     <string name="logger_usual_at">Usual at %1$s</string>
-    <string name="logger_suggested">Suggested</string>
     <string name="logger_recent">Recent</string>
-    <string name="logger_no_results">Nothing by that name yet. Try Describe, or make it a custom food under Foods.</string>
+    <plurals name="logger_matches">
+        <item quantity="one">%1$d match</item>
+        <item quantity="other">%1$d matches</item>
+    </plurals>
+    <string name="logger_not_here">Not here?</string>
+    <string name="logger_not_here_describe">Describe it</string>
+    <string name="logger_not_here_or">or</string>
+    <string name="logger_not_here_save">save the name</string>
     <string name="logger_offline_results">Search needs a connection. Showing foods you've used before.</string>
     <string name="logger_first_run">Search for anything you ate. Foods you log show up here next time.</string>
-    <string name="logger_basket_count">%1$d picked</string>
+
+    <!-- No results -->
+    <string name="logger_empty_title">No match for "%1$s" yet</string>
+    <string name="logger_empty_body">Describe it in your own words, or save just the name and fill in details later if you want to.</string>
+    <string name="logger_empty_describe">Describe "%1$s"</string>
+    <string name="logger_empty_save">Save the name only</string>
+    <string name="logger_empty_caption">Saved names show up in search next time.</string>
+
+    <!-- Picked footer -->
+    <plurals name="logger_basket_count">
+        <item quantity="one">%1$d food picked</item>
+        <item quantity="other">%1$d foods picked</item>
+    </plurals>
     <string name="logger_add_to">Add to %1$s</string>
-    <string name="logger_toast_added_one">Added %1$s to %2$s.</string>
-    <string name="logger_toast_added_many">Added %1$d foods to %2$s.</string>
-    <string name="logger_toast_water">Glass of water added.</string>
-    <string name="logger_toast_added_to">Added to %1$s.</string>
+
+    <!-- Describe it -->
+    <string name="logger_for_meal">For %1$s</string>
+    <string name="logger_describe_title">Describe it</string>
+    <string name="logger_describe_placeholder">2 eggs and toast</string>
+    <string name="logger_describe_prompt">Say it the way you'd say it</string>
+    <string name="logger_describe_reading">Reading that…</string>
+    <string name="logger_read_as">We read that as</string>
+    <string name="logger_described_sub">%1$s · Estimate</string>
+    <string name="logger_described_estimate">Estimate</string>
+    <string name="logger_edit_line_cd">Change %1$s</string>
+    <string name="logger_or_number">Or just a number</string>
+    <string name="logger_number_placeholder">kcal</string>
+    <string name="logger_number_add">Add</string>
+    <string name="logger_number_caption">Only in modes that show calories.</string>
+    <string name="logger_name_only">Just save the name</string>
+    <string name="logger_describe_offline">Describe needs a connection. You can still save it by name.</string>
+    <string name="logger_describe_failed">That didn't parse. Try fewer words, or save it by name.</string>
+
+    <!-- Saved meals -->
+    <string name="logger_saved_title">Saved meals</string>
+    <string name="logger_saved_add">Add</string>
+    <string name="logger_saved_empty">Saved meals show up here. Make one under Foods.</string>
+
+    <!-- Toasts -->
     <string name="logger_toast_ate">Marked %1$s as eaten.</string>
 
     <!-- Amount sheet -->
     <string name="logger_amount_sure">How sure are you?</string>
+    <string name="logger_precision_weighed">Weighed</string>
+    <string name="logger_precision_estimate">Estimate</string>
+    <string name="logger_precision_named">Just the name</string>
     <string name="logger_amount">Amount</string>
+    <string name="logger_amount_per">%1$s · per %2$s</string>
+    <string name="logger_amount_per_only">per %1$s</string>
     <string name="logger_amount_energy">Energy</string>
     <string name="logger_amount_protein">Protein</string>
-    <string name="logger_amount_fiber">Fiber</string>
-    <string name="logger_amount_calcium">Calcium</string>
-    <string name="logger_amount_before">Before eating (optional)</string>
-    <string name="logger_amount_after">After (optional)</string>
-    <string name="logger_amount_stop_asking">Stop asking these</string>
-    <string name="logger_amount_pick">Pick this amount</string>
+    <string name="logger_amount_carbs">Carbs</string>
+    <string name="logger_amount_fat">Fat</string>
+    <string name="logger_amount_hunger">Hunger before · optional</string>
+    <string name="logger_hunger_not">Not hungry</string>
+    <string name="logger_hunger_bit">A bit</string>
+    <string name="logger_hunger_hungry">Hungry</string>
+    <string name="logger_hunger_very">Very</string>
+    <string name="logger_amount_stop_asking">Stop asking this</string>
+    <string name="logger_amount_keep_going">Pick and keep going</string>
     <string name="logger_amount_missing">This food needs a connection to open.</string>
     <string name="logger_toast_stop_asking">Okay, no more hunger questions. You can turn them back on in More, under Look and feel.</string>
 
-    <!-- Log screen -->
-    <string name="logger_log_adding_to">Adding to</string>
-    <string name="logger_tab_describe">Describe</string>
-    <string name="logger_tab_saved">Saved</string>
-    <string name="logger_describe_prompt">Say it the way you'd say it</string>
-    <string name="logger_describe_placeholder">2 eggs and toast</string>
-    <string name="logger_describe_go">Go</string>
-    <string name="logger_parsed_sub">%1$s · Estimate</string>
-    <string name="logger_or_number">Or just a number</string>
-    <string name="logger_number_placeholder">kcal</string>
-    <string name="logger_number_add">Add</string>
-    <string name="logger_name_only">Just save the name, no details</string>
-    <string name="logger_describe_offline">Describe needs a connection. You can still save it by name.</string>
-    <string name="logger_describe_failed">That didn't parse. Try fewer words, or save it by name.</string>
-    <string name="logger_copy_yesterday">Copy yesterday's %1$s</string>
-    <string name="logger_copy">Copy</string>
-    <string name="logger_saved_add">Add</string>
-    <string name="logger_saved_empty">Saved meals show up here. Make one under Foods.</string>
-    <string name="logger_back_cd">Back</string>
+    <!-- How it felt -->
+    <string name="logger_felt_title">How was %1$s?</string>
+    <string name="logger_felt_subtitle">Everything here is optional, and only you see it.</string>
+    <string name="logger_felt_hunger">Hunger before</string>
+    <string name="logger_felt_hunger_very">Very hungry</string>
+    <string name="logger_felt_fullness">Fullness after</string>
+    <string name="logger_felt_fullness_too">Too full</string>
+    <string name="logger_felt_mood">Mood · pick any</string>
+    <string name="logger_felt_note">Add a note</string>
+    <string name="logger_felt_skip">Skip</string>
+    <string name="logger_felt_save">Save</string>
 
 </resources>

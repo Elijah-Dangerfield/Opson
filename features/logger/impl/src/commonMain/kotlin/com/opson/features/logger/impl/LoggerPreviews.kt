@@ -1,165 +1,140 @@
 package com.opson.features.logger.impl
 
 import androidx.compose.runtime.Composable
-import com.opson.features.logger.LogTab
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.previewVisibilityPolicy
 import com.opson.libraries.ui.PreviewContent
+import com.opson.libraries.ui.components.dialog.bottomsheet.SheetFrame
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // Every state here comes from the real builders over LoggerFixtures, the same path the app and
-// the Blind leak test take.
+// the Blind leak test take. Function names follow design v3's screen ids (logger-search-blind is
+// LoggerSearchBlindPreview), one theme per preview.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
 private val blind = previewVisibilityPolicy(PresetId.Blind)
-private val fuel = previewVisibilityPolicy(PresetId.Fuel)
 private val nutrient = previewVisibilityPolicy(PresetId.Nutrient)
 
 @Composable
-private fun Phone(dark: Boolean = false, content: @Composable () -> Unit) {
-    PreviewContent(darkTheme = dark, content = content)
+private fun Logger(state: LoggerState, dark: Boolean = false) = PreviewContent(darkTheme = dark) {
+    SheetFrame { LoggerSheetContent(state, onAction = {}) }
+}
+
+@Composable
+private fun Amount(state: AmountState, dark: Boolean = false) = PreviewContent(darkTheme = dark) {
+    SheetFrame(heightFraction = AMOUNT_HEIGHT_FRACTION) { AmountSheetContent(state, onAction = {}) }
+}
+
+@Composable
+private fun HowItFelt(dark: Boolean = false) = PreviewContent(darkTheme = dark) {
+    SheetFrame(heightFraction = HOW_IT_FELT_HEIGHT_FRACTION) { HowItFeltSheetContent(LoggerFixtures.howItFeltState(), onAction = {}) }
 }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerFirstRunPreview() = Phone {
-    LoggerSheetContent(LoggerFixtures.loggerState(full, firstRun = true), onAction = {})
-}
+private fun LoggerPreview() = Logger(LoggerFixtures.loggerState(full))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerFirstRunDarkPreview() = Phone(dark = true) {
-    LoggerSheetContent(LoggerFixtures.loggerState(full, firstRun = true), onAction = {})
-}
+private fun LoggerDarkPreview() = Logger(LoggerFixtures.loggerState(full), dark = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerPickedPreview() = Phone {
-    LoggerSheetContent(LoggerFixtures.loggerState(full, basket = LoggerFixtures.pickedBasket()), onAction = {})
-}
+private fun LoggerBlindPreview() = Logger(LoggerFixtures.loggerState(blind))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerPickedDarkPreview() = Phone(dark = true) {
-    LoggerSheetContent(LoggerFixtures.loggerState(full, basket = LoggerFixtures.pickedBasket()), onAction = {})
-}
+private fun LoggerNutrientFocusPreview() = Logger(LoggerFixtures.loggerState(nutrient))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerPickedBlindPreview() = Phone {
-    LoggerSheetContent(LoggerFixtures.loggerState(blind, basket = LoggerFixtures.pickedBasket()), onAction = {})
-}
+private fun LoggerFirstRunPreview() = Logger(LoggerFixtures.loggerState(full, firstRun = true))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerBlindDarkPreview() = Phone(dark = true) {
-    LoggerSheetContent(LoggerFixtures.loggerState(blind), onAction = {})
-}
+private fun LoggerGroupsOffPreview() = Logger(LoggerFixtures.loggerState(full, settings = Settings(mealGroups = false)))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerNutrientFocusPreview() = Phone {
-    LoggerSheetContent(LoggerFixtures.loggerState(nutrient), onAction = {})
-}
+private fun LoggerOtherDayPreview() =
+    Logger(LoggerFixtures.loggerState(full, date = LoggerFixtures.today.minus(1, DateTimeUnit.DAY)))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerFuelPreview() = Phone {
-    LoggerSheetContent(LoggerFixtures.loggerState(fuel), onAction = {})
-}
+private fun LoggerPickedPreview() = Logger(LoggerFixtures.loggerState(full, basket = LoggerFixtures.pickedBasket()))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerResultsPreview() = Phone {
-    LoggerSheetContent(LoggerFixtures.loggerState(full, query = "rice", search = LoggerFixtures.search()), onAction = {})
-}
+private fun LoggerPickedDarkPreview() = Logger(LoggerFixtures.loggerState(full, basket = LoggerFixtures.pickedBasket()), dark = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerNoResultsPreview() = Phone {
-    LoggerSheetContent(
-        LoggerFixtures.loggerState(full, query = "pancit", search = LoggerFixtures.search("pancit").copy(foods = emptyList())),
-        onAction = {},
-    )
-}
+private fun LoggerPickedBlindPreview() = Logger(LoggerFixtures.loggerState(blind, basket = LoggerFixtures.pickedBasket()))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerOfflinePreview() = Phone {
-    LoggerSheetContent(LoggerFixtures.loggerState(full, query = "rice", search = LoggerFixtures.search(offline = true)), onAction = {})
-}
+private fun LoggerSearchPreview() = Logger(LoggerFixtures.searchState(full))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerGroupsOffPreview() = Phone {
-    LoggerSheetContent(LoggerFixtures.loggerState(full, settings = Settings(mealGroups = false)), onAction = {})
-}
+private fun LoggerSearchBlindPreview() = Logger(LoggerFixtures.searchState(blind))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerOtherDayPreview() = Phone {
-    LoggerSheetContent(LoggerFixtures.loggerState(full, date = LoggerFixtures.today.minus(1, DateTimeUnit.DAY)), onAction = {})
-}
+private fun LoggerSearchOfflinePreview() =
+    Logger(LoggerFixtures.loggerState(full, query = "rice", search = LoggerFixtures.search(offline = true)))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun AmountSheetPreview() = Phone {
-    AmountSheetContent(LoggerFixtures.amountState(full), onAction = {})
-}
+private fun LoggerSearchEmptyPreview() = Logger(LoggerFixtures.searchEmptyState(full))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun AmountSheetDarkPreview() = Phone(dark = true) {
-    AmountSheetContent(LoggerFixtures.amountState(full), onAction = {})
-}
+private fun LoggerSearchEmptyDarkPreview() = Logger(LoggerFixtures.searchEmptyState(full), dark = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun AmountSheetBlindPreview() = Phone {
-    AmountSheetContent(LoggerFixtures.amountState(blind), onAction = {})
-}
+private fun LoggerDescribePreview() = Logger(LoggerFixtures.describeState(full))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun AmountSheetTagsOffPreview() = Phone {
-    AmountSheetContent(LoggerFixtures.amountState(full, settings = Settings(askTags = false)), onAction = {})
-}
+private fun LoggerDescribeBlindPreview() = Logger(LoggerFixtures.describeState(blind))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LogDescribeIdlePreview() = Phone {
-    LogScreen(LoggerFixtures.logState(full, LogTab.Describe, parsed = false), onAction = {})
-}
+private fun LoggerDescribeEmptyPreview() = Logger(LoggerFixtures.describeState(full, parsedLines = false))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LogDescribeParsedPreview() = Phone {
-    LogScreen(LoggerFixtures.logState(full, LogTab.Describe), onAction = {})
-}
+private fun LoggerSavedPreview() = Logger(LoggerFixtures.savedState(full))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LogDescribeParsedDarkPreview() = Phone(dark = true) {
-    LogScreen(LoggerFixtures.logState(full, LogTab.Describe), onAction = {})
-}
+private fun LoggerSavedBlindDarkPreview() = Logger(LoggerFixtures.savedState(blind), dark = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LogDescribeBlindPreview() = Phone {
-    LogScreen(LoggerFixtures.logState(blind, LogTab.Describe), onAction = {})
-}
+private fun LoggerAmountPreview() = Amount(LoggerFixtures.amountState(full))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LogSavedPreview() = Phone {
-    LogScreen(LoggerFixtures.logState(full, LogTab.Saved), onAction = {})
-}
+private fun LoggerAmountDarkPreview() = Amount(LoggerFixtures.amountState(full), dark = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LogSavedBlindDarkPreview() = Phone(dark = true) {
-    LogScreen(LoggerFixtures.logState(blind, LogTab.Saved), onAction = {})
-}
+private fun LoggerAmountBlindPreview() = Amount(LoggerFixtures.amountState(blind))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerAmountTagsOffPreview() = Amount(LoggerFixtures.amountState(full, settings = Settings(askTags = false)))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerHowItFeltPreview() = HowItFelt()
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerHowItFeltDarkPreview() = HowItFelt(dark = true)

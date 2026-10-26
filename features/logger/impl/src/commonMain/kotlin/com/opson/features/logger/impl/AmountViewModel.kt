@@ -2,8 +2,8 @@ package com.opson.features.logger.impl
 
 import androidx.lifecycle.viewModelScope
 import com.opson.libraries.diary.CustomFoodRepository
-import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
+import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -16,6 +16,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
@@ -30,21 +31,26 @@ sealed interface AmountAction {
     data object MoreTapped : AmountAction
     data class UnitPicked(val index: Int) : AmountAction
     data class HungerTapped(val hunger: Hunger) : AmountAction
-    data class FullnessTapped(val fullness: Fullness) : AmountAction
     data object StopAskingTapped : AmountAction
-    data object PickTapped : AmountAction
-    data object CloseTapped : AmountAction
+    data object PickAndKeepGoingTapped : AmountAction
+    data object AddToMealTapped : AmountAction
+    data object BackTapped : AmountAction
 }
 
 sealed interface AmountEvent {
     data class ShowToast(val toast: Toast) : AmountEvent
+
+    /** Back to the logger, which stays open. */
     data object Dismiss : AmountEvent
+
+    /** Logged: close this sheet and the logger under it, and open How it felt when [Committed.askHowItFelt]. */
+    data class Logged(val day: LocalDate, val committed: Committed) : AmountEvent
 }
 
 /**
- * The amount sheet: how sure, how much, and optionally how hungry. "Pick this
- * amount" replaces the food's basket entry and goes back to the logger; the
- * logger does the logging.
+ * The amount sheet: how sure, how much, and optionally how hungry. "Pick and
+ * keep going" replaces the food's basket entry and goes back to the logger;
+ * "Add to {meal}" does the same and then logs the whole basket.
  */
 @Inject
 class AmountViewModel(
@@ -54,10 +60,13 @@ class AmountViewModel(
     private val settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
     private val basketStore: BasketStore,
-) : SEAViewModel<AmountState, AmountEvent, AmountAction>(initialStateArg = AmountState()) {
+    private val committer: BasketCommitter,
+) : SEAViewModel<AmountState, AmountEvent, AmountAction>(initialStateArg = AmountState(slot = route.slot)) {
 
     private val ref: FoodRef = route.ref
     private val source: PickSource = route.source
+    private val day: LocalDate = LocalDate.parse(route.dayIso)
+    private val slot: MealSlot = route.slot
 
     private var model = Model(settings = settingsRepository.settings.value, policy = policySource.policy.value)
 
@@ -97,14 +106,14 @@ class AmountViewModel(
             AmountAction.MoreTapped -> action.choose { copy(quantity = PortionAmount.more(unit(), quantity)) }
             is AmountAction.UnitPicked -> unitPicked(action)
             is AmountAction.HungerTapped -> action.choose { copy(hunger = action.hunger.takeIf { it != hunger }) }
-            is AmountAction.FullnessTapped -> action.choose { copy(fullness = action.fullness.takeIf { it != fullness }) }
             AmountAction.StopAskingTapped -> {
                 settingsRepository.update { it.copy(askTags = false) }
-                action.choose { copy(hunger = null, fullness = null) }
+                action.choose { copy(hunger = null) }
                 sendEvent(AmountEvent.ShowToast(Toast(Res.string.logger_toast_stop_asking)))
             }
-            AmountAction.PickTapped -> pick()
-            AmountAction.CloseTapped -> sendEvent(AmountEvent.Dismiss)
+            AmountAction.PickAndKeepGoingTapped -> if (pick()) sendEvent(AmountEvent.Dismiss)
+            AmountAction.AddToMealTapped -> addToMeal()
+            AmountAction.BackTapped -> sendEvent(AmountEvent.Dismiss)
         }
     }
 
@@ -116,21 +125,29 @@ class AmountViewModel(
         action.choose { copy(unitIndex = action.index, quantity = PortionAmount.convert(quantity, unit(), to)) }
     }
 
-    private fun pick() {
-        val food = model.food ?: return
+    /** Puts this food in the basket at the chosen amount, replacing an earlier pick of it. */
+    private fun pick(): Boolean {
+        val food = model.food ?: return false
         val choice = model.choice
+        // An item Describe read keeps its own key, so editing it replaces that line rather than adding one.
+        val key = basketStore.basket.value.firstOrNull { it.ref == ref && it.source == source }?.key ?: ref.key
         basketStore.upsert(
             BasketItem(
-                key = ref.key,
+                key = key,
                 ref = ref,
                 draft = food.draftFor(choice, source, ref),
                 source = source,
                 food = (food as? AmountFood.Catalog)?.food,
                 hunger = choice.hunger.takeIf { model.settings.askTags },
-                fullness = choice.fullness.takeIf { model.settings.askTags },
             ),
         )
-        sendEvent(AmountEvent.Dismiss)
+        return true
+    }
+
+    private suspend fun addToMeal() {
+        if (!pick()) return
+        val committed = committer.commit(day, slot, model.settings) ?: return
+        sendEvent(AmountEvent.Logged(day, committed))
     }
 
     private suspend fun AmountAction.choose(change: AmountChoice.() -> AmountChoice) = rebuild { copy(choice = choice.change()) }
@@ -139,6 +156,6 @@ class AmountViewModel(
         model = model.change()
         val current = model
         val food = current.food ?: return
-        updateState { AmountStateBuilder.build(food, current.choice, current.settings, current.policy, ref, source) }
+        updateState { AmountStateBuilder.build(food, current.choice, current.settings, current.policy, ref, source, slot) }
     }
 }

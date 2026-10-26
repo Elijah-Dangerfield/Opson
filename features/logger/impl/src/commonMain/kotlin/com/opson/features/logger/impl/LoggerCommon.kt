@@ -52,3 +52,9 @@ internal fun LogDraft.nameOnly(): LogDraft =
 /** The sum of the drafts' energy, or null when none of them has any. */
 internal fun List<LogDraft>.totalKcal(): Double? =
     mapNotNull { it.kcal }.takeIf { it.isNotEmpty() }?.sum()
+
+/** The amount sheet stacks on the logger with a strip of it still showing above (3.3). */
+internal const val AMOUNT_HEIGHT_FRACTION = 0.9f
+
+/** How it felt: tall enough for every question and the note without scrolling (3.10). */
+internal const val HOW_IT_FELT_HEIGHT_FRACTION = 0.8f

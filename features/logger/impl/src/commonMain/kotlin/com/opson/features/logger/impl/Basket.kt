@@ -6,6 +6,8 @@ import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.foods.ParsedItem
+import com.opson.libraries.foods.toLogDraft
 import com.opson.libraries.opson.UserScopedClearer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +30,12 @@ enum class PickSource {
 
     /** The Foods tab's + opened the logger with this food already picked. */
     Foods,
+
+    /** A line Describe it read out of free text. */
+    Describe,
+
+    /** "Save the name only": a name-only custom food made on the spot. */
+    Name,
     ;
 
     /**
@@ -36,10 +44,11 @@ enum class PickSource {
      * as Favorite.
      */
     fun methodFor(ref: FoodRef?): LogMethod = when {
-        ref is FoodRef.Custom -> LogMethod.Custom
+        ref is FoodRef.Custom || this == Name -> LogMethod.Custom
         this == Search -> LogMethod.Search
         this == Favorite || this == Usual -> LogMethod.Favorite
         this == Saved -> LogMethod.Saved
+        this == Describe -> LogMethod.Describe
         else -> LogMethod.Recent
     }
 }
@@ -60,9 +69,20 @@ data class BasketItem(
     val fullness: Fullness? = null,
 )
 
+/** A line Describe it read, as a pick. A line with no food behind it is keyed by its position. */
+fun ParsedItem.toDescribedItem(index: Int): BasketItem {
+    val ref = foodId?.let(FoodRef::Catalog)
+    return BasketItem(
+        key = ref?.key ?: "describe:$index",
+        ref = ref,
+        draft = toLogDraft().copy(method = PickSource.Describe.methodFor(ref)),
+        source = PickSource.Describe,
+    )
+}
+
 /**
- * The logger's picks, shared by the logger sheet and the amount sheet so
- * neither needs a navigation result. It outlives a dismissed logger on
+ * The logger's picks, shared by the logger sheet (search, Describe it, Saved
+ * meals) and the amount sheet so none of them needs a navigation result. It outlives a dismissed logger on
  * purpose: a stray swipe should not throw away three picks. Committing clears
  * it, and so does a change of user, since a basket is somebody's meal.
  */
@@ -87,6 +107,10 @@ class BasketStore : UserScopedClearer {
             val index = items.indexOfFirst { it.key == item.key }
             if (index < 0) items + item else items.toMutableList().apply { set(index, item) }
         }
+    }
+
+    fun removeWhere(predicate: (BasketItem) -> Boolean) {
+        state.update { items -> items.filterNot(predicate) }
     }
 
     fun clear() {

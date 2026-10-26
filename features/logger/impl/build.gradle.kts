@@ -10,8 +10,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.features.logger)
-            // Routes the logger opens: Weight (Weigh-in chip) and the meal note sheet (Add a note).
-            implementation(projects.features.trends)
+            // The meal note sheet behind "Add a note".
             implementation(projects.features.today)
 
             implementation(projects.libraries.core)
@@ -33,6 +32,7 @@ kotlin {
 
         commonTest.dependencies {
             implementation(projects.libraries.flowroutines.testing)
+            implementation(projects.libraries.navigation)
             implementation(projects.features.logger)
             implementation(projects.libraries.core)
             implementation(projects.libraries.diary)
