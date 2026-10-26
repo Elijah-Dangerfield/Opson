@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +40,8 @@ import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
 import com.opson.system.background
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.photos_cancel
@@ -80,16 +84,25 @@ internal fun PhotoFrame(
     }
 }
 
-/** The bytes, decoded once per photo; stripes when there are none or they don't decode. */
+/**
+ * The bytes, decoded once per photo off the main thread (a full photo takes long enough to drop
+ * frames); stripes until then, and when there are none or they don't decode. Previews decode
+ * straight away, since a screenshot doesn't wait for a background decode.
+ */
 @Composable
 internal fun PhotoImage(image: PhotoBytes?, modifier: Modifier = Modifier, alpha: Float = 1f) {
-    val bitmap = remember(image) { image?.let { Catching { it.jpeg.decodeToImageBitmap() }.getOrNull() } }
+    val inspecting = LocalInspectionMode.current
+    val bitmap = produceState(initialValue = if (inspecting) image?.decoded() else null, image) {
+        value = image?.let { withContext(Dispatchers.Default) { it.decoded() } }
+    }.value
     if (bitmap != null) {
         Image(bitmap = bitmap, contentDescription = null, contentScale = ContentScale.Crop, alpha = alpha, modifier = modifier)
     } else {
         Stripes(modifier)
     }
 }
+
+private fun PhotoBytes.decoded(): ImageBitmap? = Catching { jpeg.decodeToImageBitmap() }.getOrNull()
 
 @Composable
 private fun Stripes(modifier: Modifier) {
