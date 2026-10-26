@@ -7,8 +7,10 @@ import com.opson.features.settings.impl.FakeLinks
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
 import com.opson.features.settings.impl.findSupportFlag
+import com.opson.libraries.diary.DataExport
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.identity.auth.DeleteAccountOutcome
+import kotlinx.coroutines.CancellationException
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_delete_done
 import opson.libraries.resources.generated.resources.settings_export_ready
@@ -91,6 +93,19 @@ class SupportViewModelTest : CoroutineTest() {
 
         assertEquals(ExportStatus.Failed, rig.vm.state.export)
         assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun aCancelledExport_isNotReportedAsOffline() = runUnitTest {
+        val sync = FakeDiarySync()
+        val cancelled = object : DataExport {
+            override suspend fun csv(): Result<ByteArray> = throw CancellationException("left the page")
+        }
+        val vm = SupportViewModel(sync, cancelled, FakeAuthRepository(), findSupportFlag(false), DeviceRegion { "US" }, FakeLinks())
+
+        vm.takeAction(SupportAction.ExportTapped)
+
+        assertEquals(ExportStatus.Working, vm.state.export, "a cancellation is not a failed export")
     }
 
     @Test

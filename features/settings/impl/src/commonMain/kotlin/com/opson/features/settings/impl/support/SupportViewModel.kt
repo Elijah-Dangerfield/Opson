@@ -2,6 +2,7 @@ package com.opson.features.settings.impl.support
 
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.impl.Toast
+import com.opson.libraries.core.flatMap
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.diary.DiarySync
 import com.opson.libraries.flowroutines.SEAViewModel
@@ -109,7 +110,8 @@ class SupportViewModel(
     private suspend fun export(action: SupportAction) {
         if (state.export == ExportStatus.Working) return
         action.updateState { it.copy(export = ExportStatus.Working) }
-        val bytes = diarySync.syncNow().mapCatching { dataExport.csv().getOrThrow() }.getOrNull()
+        // flatMap, not mapCatching, which would catch the export's cancellation as a failure.
+        val bytes = diarySync.syncNow().flatMap { dataExport.csv() }.getOrNull()
         if (bytes == null) {
             action.updateState { it.copy(export = ExportStatus.Failed) }
             return
