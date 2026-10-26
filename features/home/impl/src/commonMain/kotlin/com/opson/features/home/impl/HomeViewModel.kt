@@ -5,6 +5,12 @@ import com.opson.libraries.identity.profile.ProfileRepository
 import com.opson.libraries.identity.profile.displayNameOrNull
 import me.tatarka.inject.annotations.Inject
 
+/**
+ * No screen shows this any more: the template's Home landing screen gave way to the tab shell.
+ * It stays because it is the worked example the test recipes are written around (the scenario
+ * harness in this module's tests and `TestClient` in `:apps:integration`). Move those to a real
+ * feature view model, then delete this.
+ */
 @Inject
 class HomeViewModel(
     private val profileRepository: ProfileRepository,

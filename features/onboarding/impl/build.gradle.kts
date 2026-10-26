@@ -10,7 +10,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.features.onboarding)
-            implementation(projects.features.home)
+            implementation(projects.features.today)
             implementation(projects.libraries.navigation)
 
             implementation(projects.libraries.core)

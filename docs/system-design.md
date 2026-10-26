@@ -93,7 +93,7 @@ feature api modules never depend on each other).
 | `:features:trends` (+`impl`) | feature | Trends, trends settings, nutrients detail, weight. |
 | `:features:settings` (+`impl`) | feature | More, modes and numbers (+ friction sheet), targets, water, fasting, reminders, health, support. |
 | `:features:onboarding` | existing | Gains the four questions and the mode recommendation. |
-| `:features:home` | existing | Becomes the shell: bottom bar with Today · Trends · + · Foods · More. |
+| `:features:home` | existing | The template's feedback and bug report screens. Its Home landing screen is gone; the shell lives in `apps/compose` (see section 10). |
 
 Room entities from `:libraries:diary` and `:libraries:foods` register in the one
 `AppDatabase` in `:libraries:storage:impl`, which depends on both. Every
@@ -399,10 +399,25 @@ cannot see: `logger.opened`, `logger.method_picked`, `friction.shown`,
 
 ## 10. Navigation and shell
 
-- Port Cards' `TabRoute` and `Router.switchTab` into `:libraries:navigation`,
-  and its bottom bar host. Tab roots take no arguments.
-- Tabs: `TodayRoute`, `TrendsRoute`, `FoodsRoute`, `MoreRoute`. The center +
-  is not a tab. It opens `LoggerRoute(slot)` as a full-height bottom sheet.
+- `TabRoute`, `Router.switchTab`, `Router.enterTab` and `Router.batch` live in
+  `:libraries:navigation`, ported from Cards. Tab roots take no arguments, and
+  plain `navigate` of a `TabRoute` does not compile. `switchTab` pops to the
+  bottom of the back stack, not the graph's start destination, because for a
+  user who onboards this session the start destination is the onboarding
+  screen and is no longer on the stack.
+- The shell is in `apps/compose` (`AppShell.kt`, hosted by `App.kt`), as in
+  Cards: the app module already owns the `NavHost`, and only it may see every
+  tab. The bottom bar shows while the topmost *screen* is a tab root; a sheet
+  or dialog over a tab keeps it.
+- Tabs: `TodayRoute`, `TrendsRoute`, `FoodsRoute`, `MoreRoute` (the last in
+  `:features:settings`). Onboarded users start on Today. The center + is not a
+  tab. It opens `LoggerRoute(slot)` as a bottom sheet at
+  `BottomSheetDefaults.FullHeightFraction` (93%) via `BottomSheet(heightFraction = ...)`.
+  `slot` is the meal slot's string key.
+- `LocalVisibilityPolicy` is provided once at the root from
+  `VisibilityPolicySource` (`:libraries:nutrition`). Until the diary's
+  `SettingsRepository` binds it, `FullNumbersPolicySource` in `apps/compose`
+  serves the Full preset.
 - Sheets (`bottomSheet<>`) for everything the handoff calls a sheet. Full
   screens only for Nutrients, Weight, Day close, Create a meal, Custom food and
   each More page.

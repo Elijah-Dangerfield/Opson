@@ -21,9 +21,9 @@ kotlin {
             // `:features:onboarding` api carries `SignInRoute`, where the
             // session-expired screen's "sign in again" lands.
             implementation(projects.features.onboarding)
-            // `:features:home` api carries `HomeRoute`, where a guest's
+            // `:features:today` api carries `TodayRoute`, where a guest's
             // "start fresh" lands once a new session is minted.
-            implementation(projects.features.home)
+            implementation(projects.features.today)
             api(libs.jetbrains.navigation.compose)
             // Used directly by commonMain (collectAsStateWithLifecycle,
             // viewModel(), LocalLifecycleOwner). The platform compilations get

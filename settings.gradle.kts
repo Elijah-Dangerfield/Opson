@@ -67,10 +67,20 @@ if (!serverOnly) {
     include(":apps:admin")
 
     // Features
+    include(":features:foods")
+    include(":features:foods:impl")
     include(":features:home")
     include(":features:home:impl")
+    include(":features:logger")
+    include(":features:logger:impl")
     include(":features:onboarding")
     include(":features:onboarding:impl")
+    include(":features:settings")
+    include(":features:settings:impl")
+    include(":features:today")
+    include(":features:today:impl")
+    include(":features:trends")
+    include(":features:trends:impl")
 
     // Libraries
     include(":libraries:config")

@@ -30,13 +30,32 @@
     <string name="common_report_to_developers">Report to developers</string>
     <string name="common_report_to_developers_aside">(which is me cause I wrote myself)</string>
 
-    <!-- Home -->
-    <string name="home_title">Welcome to Opson</string>
-    <string name="home_greeting">Hello, %1$s!</string>
-    <string name="home_subtitle">This is your starting point.
-Build something amazing!</string>
-    <string name="home_send_feedback">Send Feedback</string>
-    <string name="home_report_bug">Report a Bug</string>
+    <!-- Shell (bottom bar) -->
+    <string name="shell_tab_today">Today</string>
+    <string name="shell_tab_trends">Trends</string>
+    <string name="shell_tab_foods">Foods</string>
+    <string name="shell_tab_more">More</string>
+    <string name="shell_add">Log food</string>
+
+    <!-- Today -->
+    <string name="today_title">Today</string>
+    <string name="today_placeholder">Your day will show up here.</string>
+
+    <!-- Trends -->
+    <string name="trends_title">Trends</string>
+    <string name="trends_placeholder">How your weeks go will show up here.</string>
+
+    <!-- Foods -->
+    <string name="foods_title">Foods</string>
+    <string name="foods_placeholder">Your favorites and saved meals will live here.</string>
+
+    <!-- More -->
+    <string name="more_title">More</string>
+    <string name="more_placeholder">Modes, targets and support will live here.</string>
+
+    <!-- Logger -->
+    <string name="logger_title">Log food</string>
+    <string name="logger_placeholder">Search, favorites and recent foods will show up here.</string>
 
     <!-- Bug report -->
     <string name="bug_report_title">Report a Bug</string>

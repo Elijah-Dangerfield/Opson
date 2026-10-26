@@ -13,6 +13,7 @@ import me.tatarka.inject.annotations.Provides
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesTo
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlin.time.Clock
 
 @ContributesTo(AppScope::class)
@@ -47,6 +48,9 @@ interface AppComponent {
 
     /** Auth surface for App.kt's deep-link OAuth completion + routing collectors. */
     val authRepository: AuthRepository
+
+    /** The live numbers policy App.kt provides to every screen as `LocalVisibilityPolicy`. */
+    val visibilityPolicySource: VisibilityPolicySource
     
     /**
      * Singletons that need to construct at app boot rather than lazily

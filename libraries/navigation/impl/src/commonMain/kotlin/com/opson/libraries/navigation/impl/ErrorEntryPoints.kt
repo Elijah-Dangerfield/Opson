@@ -8,7 +8,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
-import com.opson.features.home.HomeRoute
+import com.opson.features.today.TodayRoute
 import com.opson.features.onboarding.SignInRoute
 import com.opson.features.profile.BugReportRoute
 import com.opson.libraries.flowroutines.ObserveEvents
@@ -53,11 +53,8 @@ class ErrorEntryPoints(
                         NavigationOptions(launchSingleTop = true, clearBackStack = true),
                     )
                     // Guest: a fresh anonymous session is live — the old stack
-                    // belonged to the dead account, so restart at Home.
-                    SessionExpiredViewModel.Event.StartedFresh -> router.navigate(
-                        HomeRoute(),
-                        NavigationOptions(launchSingleTop = true, clearBackStack = true),
-                    )
+                    // belonged to the dead account, so restart at Today.
+                    SessionExpiredViewModel.Event.StartedFresh -> router.enterTab(TodayRoute())
                 }
             }
 

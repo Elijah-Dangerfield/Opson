@@ -1,7 +1,11 @@
 package com.opson
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +43,8 @@ import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toEnterTransition
 import com.opson.libraries.navigation.toExitTransition
 import com.opson.libraries.navigation.toRouteOrNull
+import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.nutrition.ui.LocalVisibilityPolicy
 import com.opson.libraries.opson.Telemetry
 import com.opson.libraries.telemetry.impl.JankMonitor
 import com.opson.libraries.ui.components.Screen
@@ -147,78 +153,96 @@ fun App(appComponent: AppComponent) {
         LocalDialogHostState provides dialogHostState
     ) {
         // Palette becomes a user setting once Settings lands; Pine is the handoff default.
-        AppTheme(palette = Palette.Pine) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // Detection only, at the root so it sees every press. See
-                    // NavigationQueueWatchdog for why a touch is the one signal
-                    // that a host below STARTED is lying about its visibility.
-                    .navigationQueueWatchdog(onWedgeDetected = router::drainQueuedNavigation)
-            ) {
-                // Stage 1: null until the async AppData read resolves — the
-                // platform splash (keyed on appViewModel.isReady) covers the
-                // gap. Stage 2: the Compose boot gate holds a loading screen
-                // until the remaining boot work (config + profile resolve)
-                // lands, so the first real frame renders authoritative data.
-                val bootComplete by appViewModel.isBootComplete.collectAsState()
-                val startDestination by appViewModel.startDestination.collectAsState()
-                val route = startDestination
-                if (bootComplete && route != null) {
-                    AppNavigation(
-                        navController = navController,
-                        floatingWindowNavigator = floatingWindowNavigator,
-                        featureEntryPoints = appComponent.featureEntryPoints,
-                        startDestination = route,
-                        router = router,
-                        telemetry = appComponent.telemetry,
-                        jankMonitor = appComponent.jankMonitor,
+        AppTheme(palette = Palette.Pine, darkTheme = isSystemInDarkTheme()) {
+            ProvideVisibilityPolicy(appComponent.visibilityPolicySource) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        // Detection only, at the root so it sees every press. See
+                        // NavigationQueueWatchdog for why a touch is the one signal
+                        // that a host below STARTED is lying about its visibility.
+                        .navigationQueueWatchdog(onWedgeDetected = router::drainQueuedNavigation)
+                ) {
+                    // Stage 1: null until the async AppData read resolves — the
+                    // platform splash (keyed on appViewModel.isReady) covers the
+                    // gap. Stage 2: the Compose boot gate holds a loading screen
+                    // until the remaining boot work (config + profile resolve)
+                    // lands, so the first real frame renders authoritative data.
+                    val bootComplete by appViewModel.isBootComplete.collectAsState()
+                    val startDestination by appViewModel.startDestination.collectAsState()
+                    val route = startDestination
+                    if (bootComplete && route != null) {
+                        AppNavigation(
+                            navController = navController,
+                            floatingWindowNavigator = floatingWindowNavigator,
+                            featureEntryPoints = appComponent.featureEntryPoints,
+                            startDestination = route,
+                            router = router,
+                            telemetry = appComponent.telemetry,
+                            jankMonitor = appComponent.jankMonitor,
+                        )
+                    } else {
+                        BootLoadingScreen()
+                    }
+
+                    SplashGate()
+
+                    // The auth server rejected our session mid-run: push a blocking
+                    // SessionExpired screen (kept on top, stack intact) that owns
+                    // "sign in again" (claimed) vs "start fresh" (guest). An ambient
+                    // network event can't present this from a feature screen, so it
+                    // routes here. The screen picks its copy off wasAnonymous.
+                    LaunchedEffect(Unit) {
+                        appViewModel.sessionExpired.collect { event ->
+                            router.navigate(
+                                SessionExpiredRoute(wasAnonymous = event.wasAnonymous),
+                                NavigationOptions(launchSingleTop = true),
+                            )
+                        }
+                    }
+
+                    // Server returned the locked `403` access-denied envelope: push
+                    // the blocking AccessDenied screen. Same launchSingleTop pattern
+                    // as SessionExpired — a burst of denied calls collapses to one
+                    // screen on top. The screen keys title/body off `reason` and
+                    // surfaces the optional lift date + appeal link.
+                    LaunchedEffect(Unit) {
+                        appViewModel.accessDenied.collect { denial ->
+                            router.navigate(
+                                AccessDeniedRoute(
+                                    reason = denial.reason,
+                                    until = denial.until,
+                                    appealUrl = denial.appealUrl,
+                                ),
+                                NavigationOptions(launchSingleTop = true),
+                            )
+                        }
+                    }
+
+                    DialogHost(
+                        modifier = Modifier.matchParentSize(),
+                        hostState = dialogHostState
                     )
-                } else {
-                    BootLoadingScreen()
                 }
-
-                SplashGate()
-
-                // The auth server rejected our session mid-run: push a blocking
-                // SessionExpired screen (kept on top, stack intact) that owns
-                // "sign in again" (claimed) vs "start fresh" (guest). An ambient
-                // network event can't present this from a feature screen, so it
-                // routes here. The screen picks its copy off wasAnonymous.
-                LaunchedEffect(Unit) {
-                    appViewModel.sessionExpired.collect { event ->
-                        router.navigate(
-                            SessionExpiredRoute(wasAnonymous = event.wasAnonymous),
-                            NavigationOptions(launchSingleTop = true),
-                        )
-                    }
-                }
-
-                // Server returned the locked `403` access-denied envelope: push
-                // the blocking AccessDenied screen. Same launchSingleTop pattern
-                // as SessionExpired — a burst of denied calls collapses to one
-                // screen on top. The screen keys title/body off `reason` and
-                // surfaces the optional lift date + appeal link.
-                LaunchedEffect(Unit) {
-                    appViewModel.accessDenied.collect { denial ->
-                        router.navigate(
-                            AccessDeniedRoute(
-                                reason = denial.reason,
-                                until = denial.until,
-                                appealUrl = denial.appealUrl,
-                            ),
-                            NavigationOptions(launchSingleTop = true),
-                        )
-                    }
-                }
-
-                DialogHost(
-                    modifier = Modifier.matchParentSize(),
-                    hostState = dialogHostState
-                )
             }
         }
     }
+}
+
+/**
+ * Provides the live numbers policy to everything below. Its own composable so a policy change
+ * recomposes from here down rather than recomposing [App] (and the boot gate with it).
+ *
+ * Provided once, at the root, so no screen can render outside it. A screen that somehow did would
+ * get `LocalVisibilityPolicy`'s default, which hides every number.
+ */
+@Composable
+private fun ProvideVisibilityPolicy(
+    source: VisibilityPolicySource,
+    content: @Composable () -> Unit,
+) {
+    val policy by source.policy.collectAsState()
+    CompositionLocalProvider(LocalVisibilityPolicy provides policy, content = content)
 }
 
 /**
@@ -226,8 +250,8 @@ fun App(appComponent: AppComponent) {
  *
  * Type-safe nav stores the route as its serializer name — the fully-qualified
  * class name followed by argument placeholders, e.g.
- * `com.opson.features.home.HomeRoute?tab={tab}`. We strip the args and
- * the package to get just `HomeRoute`, keeping the tag low-cardinality and
+ * `com.opson.features.logger.LoggerRoute?slot={slot}`. We strip the args and
+ * the package to get just `LoggerRoute`, keeping the tag low-cardinality and
  * readable. Returns null for unnamed/graph destinations.
  */
 private fun NavDestination.routeClassNameOrNull(): String? =
@@ -280,11 +304,22 @@ private fun AppNavigation(
     }
 
     Screen(
+        containerColor = AppTheme.colors.bg.color,
+        // Each screen owns its own insets. The only padding the host adds is the bottom bar's,
+        // and it marks that consumed so a tab screen does not pad for the navigation bar twice.
+        contentWindowInsets = WindowInsets(0),
+        bottomBar = {
+            ShellBottomBar(navController = navController, router = router)
+        },
         snackbarHost = {
             PresenterSnackbarHost()
         },
-        content = {
+        content = { shellPadding ->
             NavHost(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(shellPadding)
+                    .consumeWindowInsets(shellPadding),
                 navController = navController,
                 startDestination = startDestination,
                 //To make this more readable consider Screens A and B
@@ -294,6 +329,7 @@ private fun AppNavigation(
                     // Enter animation should match B's Enter
                     val targetRoute = targetState.toRouteOrNull<Route>()
                     val (animationType, reason) = when {
+                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
                         targetRoute != null -> targetRoute.enter to "Using target route enter animation"
                         else -> AnimationType.None to "Target destination is not a Route; default to none"
                     }
@@ -308,6 +344,7 @@ private fun AppNavigation(
                     val initialRoute = initialState.toRouteOrNull<Route>()
                     val targetRoute = targetState.toRouteOrNull<Route>()
                     val (animationType, reason) = when {
+                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
                         initialRoute != null -> initialRoute.popExit.opposite() to "Mirroring initial popExit animation"
                         targetRoute != null -> targetRoute.enter to "Fallback to target route enter animation"
                         else -> AnimationType.None to "No route metadata; default to none"
@@ -322,6 +359,7 @@ private fun AppNavigation(
                     // Exit animation should match A's Exit
                     val initialRoute = initialState.toRouteOrNull<Route>()
                     val (animationType, reason) = when {
+                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
                         initialRoute != null -> initialRoute.exit to "Using initial route exit animation"
                         else -> AnimationType.None to "Initial destination is not a Route; default to none"
                     }
@@ -336,6 +374,7 @@ private fun AppNavigation(
                     val initialRoute = initialState.toRouteOrNull<Route>()
 
                     val (animationType, reason) = when {
+                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
                         initialRoute != null -> initialRoute.popExit to "Using initial route popExit animation"
                         else -> AnimationType.None to "Initial destination is not a Route; default to none"
                     }

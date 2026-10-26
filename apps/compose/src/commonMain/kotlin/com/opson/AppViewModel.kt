@@ -2,8 +2,8 @@ package com.opson
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.opson.features.home.HomeRoute
 import com.opson.features.onboarding.OnboardingRoute
+import com.opson.features.today.TodayRoute
 import com.opson.libraries.config.EnsureAppConfigLoaded
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.identity.auth.AuthRepository
@@ -36,7 +36,7 @@ private const val BootConfigTimeoutMillis = 8_000L
 
 /**
  * App-level ViewModel. Resolves the start destination by reading the
- * persistent `AppData` cache — onboarded users land on [HomeRoute];
+ * persistent `AppData` cache — onboarded users land on [TodayRoute];
  * first-launch users land on [OnboardingRoute].
  *
  * Scoped as singleton so Android's splash-screen API can read the same
@@ -129,8 +129,8 @@ class AppViewModel(
     init {
         viewModelScope.launch {
             val onboarded = appCache.get().hasUserOnboarded
-            logger.d { "Resolving start destination: hasUserOnboarded=$onboarded → ${if (onboarded) "Home" else "Onboarding"}" }
-            _startDestination.value = if (onboarded) HomeRoute() else OnboardingRoute()
+            logger.d { "Resolving start destination: hasUserOnboarded=$onboarded → ${if (onboarded) "Today" else "Onboarding"}" }
+            _startDestination.value = if (onboarded) TodayRoute() else OnboardingRoute()
             // Start destination resolved — release the platform splash; the
             // Compose boot gate now covers the rest of the wait.
             _isReady.value = true

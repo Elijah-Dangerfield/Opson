@@ -4,7 +4,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
-import com.opson.features.home.HomeRoute
+import com.opson.features.today.TodayRoute
 import com.opson.features.onboarding.ForgotPasswordRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.onboarding.SignInRoute
@@ -39,10 +39,7 @@ class OnboardingFeatureEntryPoint(
 
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    OnboardingEvent.NavigateToHome -> router.navigate(
-                        HomeRoute(),
-                        NavigationOptions(launchSingleTop = true, clearBackStack = true),
-                    )
+                    OnboardingEvent.NavigateToHome -> router.enterTab(TodayRoute())
                     OnboardingEvent.NavigateToSignIn -> router.navigate(SignInRoute())
                     OnboardingEvent.NavigateToSignUp -> router.navigate(SignUpRoute())
                 }
@@ -60,10 +57,7 @@ class OnboardingFeatureEntryPoint(
 
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    SignInEvent.NavigateToHome -> router.navigate(
-                        HomeRoute(),
-                        NavigationOptions(launchSingleTop = true, clearBackStack = true),
-                    )
+                    SignInEvent.NavigateToHome -> router.enterTab(TodayRoute())
                     is SignInEvent.NavigateToVerifyEmail -> router.navigate(
                         VerifyEmailRoute(event.email),
                     )
@@ -126,10 +120,7 @@ class OnboardingFeatureEntryPoint(
 
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    VerifyEmailEvent.NavigateToHome -> router.navigate(
-                        HomeRoute(),
-                        NavigationOptions(launchSingleTop = true, clearBackStack = true),
-                    )
+                    VerifyEmailEvent.NavigateToHome -> router.enterTab(TodayRoute())
                     VerifyEmailEvent.NavigateBackToSignIn -> router.navigate(
                         SignInRoute(),
                         NavigationOptions(launchSingleTop = true, clearBackStack = true),
@@ -142,12 +133,9 @@ class OnboardingFeatureEntryPoint(
                         NavigationOptions(launchSingleTop = true, clearBackStack = true),
                     )
                     // Anon guest linked email: their account and progress are
-                    // intact, so clear the auth/claim stack and land on Home. A
+                    // intact, so clear the auth/claim stack and land on Today. A
                     // generated project can float a confirmation surface here.
-                    VerifyEmailEvent.NavigateToAccountSaved -> router.navigate(
-                        HomeRoute(),
-                        NavigationOptions(launchSingleTop = true, clearBackStack = true),
-                    )
+                    VerifyEmailEvent.NavigateToAccountSaved -> router.enterTab(TodayRoute())
                 }
             }
 

@@ -18,9 +18,9 @@ import java.util.regex.Pattern
  *
  * ## Replace this with your app's journey
  *
- * What is here walks the template's own shortest meaningful path: onboarding to
- * Home, then Home into a detail screen and back. Swap the constants and the two
- * journey functions for whatever your app's equivalent is. Keep two things:
+ * What is here walks the shortest meaningful path: onboarding to the tab shell,
+ * then every tab and the logger sheet. Swap the constants and the two journey
+ * functions as the screens grow. Keep two things:
  *
  * 1. **The adaptive structure.** [reachHome] walks whatever is on screen rather
  *    than replaying a fixed tap sequence. Onboarding gains and loses steps, and
@@ -56,7 +56,7 @@ object BenchmarkJourney {
     }
 
     /**
-     * Walks whatever onboarding is on screen until Home appears.
+     * Walks whatever onboarding is on screen until the tab shell appears.
      *
      * Adaptive rather than a fixed tap sequence, and that is a correctness
      * choice: the app may show onboarding, may skip it because the device is
@@ -66,36 +66,55 @@ object BenchmarkJourney {
     fun MacrobenchmarkScope.reachHome() {
         val anyOnboardingCta = ciAnyOf(CONTINUE_AS_GUEST, CONTINUE, SETTING_UP)
         repeat(ONBOARDING_MAX_STEPS) {
-            if (device.hasObject(ciText(SEND_FEEDBACK))) return
+            if (device.hasObject(ciText(TODAY_PLACEHOLDER))) return
             device.tapMatching(anyOnboardingCta, ONBOARDING_STEP_TIMEOUT_MS)
         }
-        check(device.wait(Until.hasObject(ciText(SEND_FEEDBACK)), FIRST_SCREEN_TIMEOUT_MS) == true) {
-            "Never reached Home. " + device.describeScreen()
+        check(device.wait(Until.hasObject(ciText(TODAY_PLACEHOLDER)), FIRST_SCREEN_TIMEOUT_MS) == true) {
+            "Never reached Today. " + device.describeScreen()
         }
     }
 
     /**
-     * Home into each detail screen and back.
+     * Every tab, then the logger sheet and back.
      *
      * Deeper than the startup path on purpose: this covers the first run of
-     * navigation, the ViewModel and the form UI, which is where the app spends
-     * its time after launch and which the startup profile must NOT carry.
+     * navigation, each tab's ViewModel and the sheet, which is where the app
+     * spends its time after launch and which the startup profile must NOT carry.
      */
     fun MacrobenchmarkScope.visitDetailScreens() {
-        device.tapRequired(SEND_FEEDBACK)
-        check(device.wait(Until.hasObject(ciText(MESSAGE)), SCREEN_TIMEOUT_MS) == true) {
-            "Tapped $SEND_FEEDBACK but the form never appeared. " + device.describeScreen()
-        }
-        device.pressBack()
+        device.visitTabs()
+        device.openAndCloseLogger()
+    }
 
-        device.tapRequired(REPORT_A_BUG)
-        check(device.wait(Until.hasObject(ciText(MESSAGE)), SCREEN_TIMEOUT_MS) == true) {
-            "Tapped $REPORT_A_BUG but the form never appeared. " + device.describeScreen()
+    /** Switches through every tab, checking each one's own screen rendered. */
+    fun UiDevice.visitTabs() {
+        listOf(
+            TRENDS to TRENDS_PLACEHOLDER,
+            FOODS to FOODS_PLACEHOLDER,
+            MORE to MORE_PLACEHOLDER,
+            TODAY to TODAY_PLACEHOLDER,
+        ).forEach { (tab, placeholder) ->
+            tapRequired(tab)
+            check(wait(Until.hasObject(ciText(placeholder)), SCREEN_TIMEOUT_MS) == true) {
+                "Tapped the $tab tab but its screen never appeared. " + describeScreen()
+            }
         }
-        device.pressBack()
+    }
 
-        check(device.wait(Until.hasObject(ciText(SEND_FEEDBACK)), SCREEN_TIMEOUT_MS) == true) {
-            "Never got back to Home. " + device.describeScreen()
+    /** Opens the logger from the center + and backs out of it to Today. */
+    fun UiDevice.openAndCloseLogger() {
+        val add = wait(Until.findObject(By.desc(LOG_FOOD)), SCREEN_TIMEOUT_MS)
+        checkNotNull(add) { "No \"$LOG_FOOD\" button in the bottom bar. " + describeScreen() }
+        add.click()
+        check(wait(Until.hasObject(ciText(LOGGER_PLACEHOLDER)), SCREEN_TIMEOUT_MS) == true) {
+            "Tapped + but the logger never appeared. " + describeScreen()
+        }
+        pressBack()
+        check(wait(Until.gone(ciText(LOGGER_PLACEHOLDER)), SCREEN_TIMEOUT_MS) == true) {
+            "Back did not close the logger. " + describeScreen()
+        }
+        check(hasObject(ciText(TODAY_PLACEHOLDER))) {
+            "Closing the logger did not leave Today showing. " + describeScreen()
         }
     }
 
@@ -104,9 +123,18 @@ object BenchmarkJourney {
     const val CONTINUE_AS_GUEST = "Continue as guest"
     const val CONTINUE = "Continue"
     const val SETTING_UP = "Setting things up…"
-    const val SEND_FEEDBACK = "Send Feedback"
-    const val REPORT_A_BUG = "Report a Bug"
-    const val MESSAGE = "Message"
+    const val TODAY = "Today"
+    const val TRENDS = "Trends"
+    const val FOODS = "Foods"
+    const val MORE = "More"
+    const val LOG_FOOD = "Log food"
+
+    // The placeholder line on each screen. Each screen's real build replaces its line here.
+    const val TODAY_PLACEHOLDER = "Your day will show up here."
+    const val TRENDS_PLACEHOLDER = "How your weeks go will show up here."
+    const val FOODS_PLACEHOLDER = "Your favorites and saved meals will live here."
+    const val MORE_PLACEHOLDER = "Modes, targets and support will live here."
+    const val LOGGER_PLACEHOLDER = "Search, favorites and recent foods will show up here."
 
     const val FIRST_SCREEN_TIMEOUT_MS = 20_000L
     const val SCREEN_TIMEOUT_MS = 15_000L

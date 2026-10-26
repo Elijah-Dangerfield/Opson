@@ -7,15 +7,14 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.opson.baselineprofile.BenchmarkJourney.CONTINUE
 import com.opson.baselineprofile.BenchmarkJourney.CONTINUE_AS_GUEST
-import com.opson.baselineprofile.BenchmarkJourney.MESSAGE
-import com.opson.baselineprofile.BenchmarkJourney.REPORT_A_BUG
-import com.opson.baselineprofile.BenchmarkJourney.SEND_FEEDBACK
+import com.opson.baselineprofile.BenchmarkJourney.TODAY_PLACEHOLDER
 import com.opson.baselineprofile.BenchmarkJourney.ciAnyOf
 import com.opson.baselineprofile.BenchmarkJourney.ciText
 import com.opson.baselineprofile.BenchmarkJourney.describeScreen
 import com.opson.baselineprofile.BenchmarkJourney.launchIntent
+import com.opson.baselineprofile.BenchmarkJourney.openAndCloseLogger
 import com.opson.baselineprofile.BenchmarkJourney.tapMatching
-import com.opson.baselineprofile.BenchmarkJourney.tapRequired
+import com.opson.baselineprofile.BenchmarkJourney.visitTabs
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -39,7 +38,7 @@ import org.junit.runner.RunWith
  * one breaks type-safe nav with an argument error, not a missing-class error),
  * and the generated DI graph.
  *
- * Walking launch, onboarding, Home and two pushed routes exercises all three:
+ * Walking launch, onboarding, every tab and the logger sheet exercises all three:
  * the graph on launch, routes on every navigation, models on every persisted
  * read and server call. This is also the reason the profile journey should keep
  * hitting a real backend — stub it and this test stops testing what it was
@@ -56,7 +55,7 @@ class MinifiedReleaseSmokeTest {
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
     @Test
-    fun theMinifiedAppReachesHomeAndNavigates() {
+    fun theMinifiedAppReachesTheTabsAndNavigates() {
         device.pressHome()
         InstrumentationRegistry.getInstrumentation().context.startActivity(
             launchIntent().addFlags(
@@ -65,43 +64,29 @@ class MinifiedReleaseSmokeTest {
         )
 
         // Walk onboarding if it is showing. Adaptive for the same reason as the
-        // generators: a device that is already onboarted lands straight on Home.
+        // generators: a device that is already onboarded lands straight on Today.
         val anyOnboardingCta = ciAnyOf(CONTINUE_AS_GUEST, CONTINUE)
         repeat(BenchmarkJourney.ONBOARDING_MAX_STEPS) {
-            if (device.hasObject(ciText(SEND_FEEDBACK))) return@repeat
+            if (device.hasObject(ciText(TODAY_PLACEHOLDER))) return@repeat
             device.tapMatching(anyOnboardingCta, ONBOARDING_STEP_TIMEOUT_MS)
         }
 
-        // Reaching Home means the DI graph built, persisted app state
+        // Reaching Today means the DI graph built, persisted app state
         // deserialized through its generated serializer, and the start
         // destination resolved — the first things R8 could have broken.
-        check(device.wait(Until.hasObject(ciText(SEND_FEEDBACK)), LAUNCH_TIMEOUT_MS) == true) {
-            "Never reached Home. " + device.describeScreen()
+        check(device.wait(Until.hasObject(ciText(TODAY_PLACEHOLDER)), LAUNCH_TIMEOUT_MS) == true) {
+            "Never reached Today. " + device.describeScreen()
         }
 
-        // Each push resolves a @Serializable route by type. If R8 renamed one,
-        // this fails with an argument error rather than a missing class, which
-        // is the failure mode hardest to attribute in the wild.
-        device.tapRequired(SEND_FEEDBACK)
-        check(device.wait(Until.hasObject(ciText(MESSAGE)), SCREEN_TIMEOUT_MS) == true) {
-            "Navigated to feedback but the form never rendered. " + device.describeScreen()
-        }
-        device.pressBack()
-
-        device.tapRequired(REPORT_A_BUG)
-        check(device.wait(Until.hasObject(ciText(MESSAGE)), SCREEN_TIMEOUT_MS) == true) {
-            "Navigated to bug report but the form never rendered. " + device.describeScreen()
-        }
-        device.pressBack()
-
-        check(device.wait(Until.hasObject(ciText(SEND_FEEDBACK)), SCREEN_TIMEOUT_MS) == true) {
-            "Popping back to Home failed. " + device.describeScreen()
-        }
+        // Each tab switch and the logger resolve a @Serializable route by type.
+        // If R8 renamed one, this fails with an argument error rather than a
+        // missing class, which is the failure mode hardest to attribute in the wild.
+        device.visitTabs()
+        device.openAndCloseLogger()
     }
 
     private companion object {
         const val LAUNCH_TIMEOUT_MS = 30_000L
-        const val SCREEN_TIMEOUT_MS = 15_000L
         const val ONBOARDING_STEP_TIMEOUT_MS = 15_000L
     }
 }
