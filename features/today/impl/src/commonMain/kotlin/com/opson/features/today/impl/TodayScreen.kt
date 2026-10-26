@@ -502,7 +502,7 @@ private fun RhythmReminderCard(reminder: RhythmReminder, onAction: (TodayAction)
             stringResource(Res.string.reminders_rhythm_set_up),
         )
     }
-    EdgeCard {
+    EdgeCard(edgeToEdge = false) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)

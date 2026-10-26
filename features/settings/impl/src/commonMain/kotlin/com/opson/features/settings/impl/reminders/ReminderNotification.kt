@@ -65,6 +65,7 @@ fun ReminderNotificationCard(text: ReminderText, modifier: Modifier = Modifier) 
                         modifier = Modifier.weight(1f),
                         centered = true,
                         shape = AppTheme.shapes.pill,
+                        typography = AppTheme.type.secondaryStrong,
                     )
                 }
             }

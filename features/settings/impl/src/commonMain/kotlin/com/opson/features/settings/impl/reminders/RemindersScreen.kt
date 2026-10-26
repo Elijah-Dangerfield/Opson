@@ -29,6 +29,7 @@ import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.button.FlatButton
+import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
@@ -198,6 +199,7 @@ private fun PermissionNote(onOpen: () -> Unit) {
             text = stringResource(Res.string.reminders_permission_open),
             onClick = onOpen,
             modifier = Modifier.fillMaxWidth(),
+            tone = FlatButtonTone.Outlined,
             centered = true,
         )
     }
