@@ -127,6 +127,9 @@ internal fun TrendsContent(
         state.recap?.let { RecapCardView(it, onPatterns = { onAction(TrendsAction.PatternsTapped) }) }
         state.lastCheck?.let { LastCheckCard(it) }
         state.nutrients?.let { NutrientsCardView(it, onClick = { onAction(TrendsAction.NutrientsCardTapped) }) }
+        // TODO(design-sync-2): the design's Expended card ("Daily average from your watch", a line)
+        // goes here behind release.health. :libraries:health reads one day at a time; a span
+        // average needs a range read there first.
         state.weight?.let { WeightCardView(it, onClick = { onAction(TrendsAction.WeightCardTapped) }) }
     }
 }

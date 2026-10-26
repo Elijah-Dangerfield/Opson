@@ -1,6 +1,5 @@
 package com.opson.features.trends.impl
 
-import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Display
@@ -98,11 +97,19 @@ class PatternsStateBuilderTest {
     }
 
     @Test
-    fun hunger_mostCommonTagPerMeal_whenTagsAreOn() {
+    fun hunger_aBarPerWeekday_mondayFirst_whenTagsAreOn() {
         val hunger = assertNotNull(build().hunger)
-        assertEquals(Hunger.VeryHungry, hunger.rows.single { it.slot == MealSlot.Dinner }.hunger)
-        assertEquals(Hunger.Peckish, hunger.rows.single { it.slot == MealSlot.Breakfast }.hunger)
-        assertTrue(hunger.taggedMeals > 0)
+        assertEquals(DayOfWeek.entries, hunger.days.map { it.day })
+        assertTrue(hunger.days.any { it.level != null })
+        assertTrue(hunger.days.mapNotNull { it.level }.all { it in 0f..1f })
+    }
+
+    @Test
+    fun hunger_sitsUnderNewFoodsInBlind_andAboveInFull() {
+        assertEquals(false, build().hungerLast)
+        val blind = build(PresetId.Blind)
+        assertEquals(true, blind.hungerLast)
+        assertNotNull(blind.hunger, "hunger carries no amounts, so Blind keeps it")
     }
 
     @Test
