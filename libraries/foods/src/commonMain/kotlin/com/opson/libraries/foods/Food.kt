@@ -158,7 +158,11 @@ interface FoodCatalog {
     /** One food with portions and micros. Falls back to the cached copy offline. */
     suspend fun detail(id: String): Catching<Food>
 
-    /** The food for a barcode, or null when neither the catalog nor any outside source knows it. */
+    /**
+     * The food for a barcode, or null when neither the catalog nor any outside
+     * source knows it. A found food is kept on the device, unused, so [detail]
+     * can serve it offline; offline, a code scanned before answers from there.
+     */
     suspend fun barcode(code: String): Catching<Food?>
 
     /** "2 eggs and toast" to items. Online only. */
