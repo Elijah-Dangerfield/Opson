@@ -166,7 +166,7 @@ fun Project.loadSupabaseMetadata(): SupabaseMetadata {
             "Supabase is not configured — auth will fail at runtime. Set " +
                 "supabase.projectId and supabase.anonKey in local.properties " +
                 "(or SUPABASE_PROJECT_ID / SUPABASE_ANON_KEY in the environment). " +
-                "See template/SETUP.md."
+                "See SETUP.md."
         )
     }
 

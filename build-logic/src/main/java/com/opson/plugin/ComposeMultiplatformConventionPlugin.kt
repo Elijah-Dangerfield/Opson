@@ -13,33 +13,15 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
- * Convention plugin for library modules that need Compose UI capabilities.
- * 
- * **When to use this plugin:**
- * - UI component libraries that provide reusable Compose components
- * - Libraries that contain Compose UI utilities and extensions
- * - Any library module that needs to create or manipulate Compose UI
- * - Modules that provide design system components
- * 
- * **What this plugin provides:**
- * - Full Kotlin Multiplatform setup (Android, iOS, JVM targets)
- * - Compose Multiplatform and Compose Compiler plugins
- * - Android library configuration
- * - Common KMP dependencies (coroutines, kotlin-test)
- * - Compose runtime test dependencies
- * 
- * **Examples of modules that should use this:**
- * - libraries:ui (your UI component library)
- * - libraries:design-system (if you have one)
- * - Any library that exports @Composable functions
- * 
- * **Don't use this plugin for:**
- * - Feature modules with screens and navigation (use opson.feature instead)
- * - Pure Kotlin libraries without UI (use opson.kotlin.multiplatform instead)
- * - The main application module (use opson.android.application instead)
+ * `opson.compose.multiplatform`: a library that exports `@Composable`s, such as
+ * `:libraries:ui` or `:libraries:diary:ui`.
+ *
+ * Android and iOS targets, Compose Multiplatform and its compiler, kotlin-inject,
+ * the Compose runtime for common tests, and the module-boundary check. Feature
+ * modules use `opson.feature`, which applies this; plain Kotlin uses
+ * `opson.kotlin.multiplatform`; the app uses `opson.application`.
  */
 class ComposeMultiplatformConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -58,7 +40,7 @@ class ComposeMultiplatformConventionPlugin : Plugin<Project> {
             configureKotlinInject()
             configureComposeTestDependencies()
             configureComposeMetrics()
-            
+
             extensions.configure<LibraryExtension> {
                 configureAndroid()
             }
@@ -70,13 +52,12 @@ class ComposeMultiplatformConventionPlugin : Plugin<Project> {
             enforceModuleBoundaries()
         }
     }
-    
+
     private fun Project.configureComposeTestDependencies() {
-        // Add compose runtime dependency for test source sets to satisfy compose compiler
+        // The Compose compiler runs over test sources too and needs the runtime
+        // there. From the catalog, so it moves with the Compose plugin.
         dependencies {
-            add("commonTestImplementation", "org.jetbrains.compose.runtime:runtime:1.9.1")
+            add("commonTestImplementation", libs.compose.runtime)
         }
     }
-    
-
 }
