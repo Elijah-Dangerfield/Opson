@@ -646,7 +646,7 @@ fun LoggedMealsCard(
     done: Set<MealSlot>,
     modifier: Modifier = Modifier,
 ) {
-    TodayCard(modifier = modifier, contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+    TodayCard(modifier = modifier, contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
         Text(text = label, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted)
         meals.chunked(2).forEach { pair ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
@@ -659,7 +659,7 @@ fun LoggedMealsCard(
                             .defaultMinSize(minHeight = MinTouchTarget)
                             .clip(AppTheme.shapes.inputLarge)
                             .background(if (isDone) tone.container else AppTheme.colors.soft)
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 12.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
                     ) {
