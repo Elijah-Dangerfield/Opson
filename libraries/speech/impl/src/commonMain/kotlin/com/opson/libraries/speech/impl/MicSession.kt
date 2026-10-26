@@ -2,9 +2,13 @@ package com.opson.libraries.speech.impl
 
 import com.opson.libraries.speech.Heard
 import com.opson.libraries.speech.SpeechFailure
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlin.coroutines.CoroutineContext
 
 /** The input's format as the engine reports it. Zero in either means there is no usable input. */
 internal data class InputFormat(val sampleRate: Double, val channels: Int) {
@@ -19,7 +23,8 @@ internal data class InputFormat(val sampleRate: Double, val channels: Int) {
  * nothing can catch). So every check that touches no audio hardware comes
  * first, and [inputFormat] is the first call allowed to touch the engine.
  *
- * Every call is made on the main thread.
+ * Every call is made on one serial queue, never the main thread (see
+ * [OneSessionAtATime]).
  */
 internal interface AudioSteps {
     /** A recognizer exists for the phone's language. Touches no audio. */
@@ -95,13 +100,28 @@ internal class MicSession(private val steps: AudioSteps, private val emit: (Hear
     }
 }
 
+/** Runs blocks one at a time, in order, off the main thread: a serial dispatch queue on iOS. */
+fun interface SerialQueue {
+    fun post(block: () -> Unit)
+}
+
+/** Coroutines on a [SerialQueue], so a flow's body runs where the audio work belongs. */
+internal class SerialQueueDispatcher(private val queue: SerialQueue) : CoroutineDispatcher() {
+    override fun dispatch(context: CoroutineContext, block: Runnable) = queue.post { block.run() }
+}
+
 /**
- * At most one session in the process. A second [listen] while one is still
- * open (starting, listening or settling) answers [SpeechFailure.Busy] without
- * touching the platform, so a quick second tap can never start a second
- * engine on top of the first. Main thread only.
+ * At most one session in the process, and every call into the platform made
+ * on [queue], never the caller's thread. A blocking audio call (CoreAudio can
+ * hang for seconds before it gives up) then stalls only the queue: the main
+ * thread keeps drawing, so "Listening" shows and the person can still leave.
+ *
+ * A second [listen] while one is open (starting, listening or settling)
+ * answers [SpeechFailure.Busy] without touching the platform, so a quick
+ * second tap can never start a second engine. [current] is only read and
+ * written on [queue].
  */
-internal class OneSessionAtATime(private val steps: () -> AudioSteps) {
+internal class OneSessionAtATime(private val queue: SerialQueue, private val steps: () -> AudioSteps) {
     private var current: MicSession? = null
 
     fun listen(): Flow<Heard> = callbackFlow {
@@ -111,7 +131,8 @@ internal class OneSessionAtATime(private val steps: () -> AudioSteps) {
             awaitClose()
             return@callbackFlow
         }
-        val session = MicSession(steps()) { heard ->
+        // The recognizer answers on its own queue; the session is only ever touched on this one.
+        val session = MicSession(HoppingSteps(steps(), queue)) { heard ->
             trySend(heard)
             if (heard !is Heard.Partial) close()
         }
@@ -123,9 +144,14 @@ internal class OneSessionAtATime(private val steps: () -> AudioSteps) {
             session.cancel()
             current = null
         }
-    }
+    }.flowOn(SerialQueueDispatcher(queue))
 
     fun finish() {
-        current?.finish()
+        queue.post { current?.finish() }
     }
+}
+
+/** [steps], with what the recognizer hears handed on through [queue] rather than wherever it arrived. */
+private class HoppingSteps(private val steps: AudioSteps, private val queue: SerialQueue) : AudioSteps by steps {
+    override fun start(onHeard: (Heard) -> Unit): Boolean = steps.start { heard -> queue.post { onHeard(heard) } }
 }

@@ -18,9 +18,7 @@ import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.value
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
 import me.tatarka.inject.annotations.Inject
 import platform.AVFAudio.AVAudioApplication
 import platform.AVFAudio.AVAudioApplicationRecordPermissionDenied
@@ -46,14 +44,17 @@ import platform.Speech.SFSpeechRecognitionResult
 import platform.Speech.SFSpeechRecognitionTask
 import platform.Speech.SFSpeechRecognizer
 import platform.Speech.SFSpeechRecognizerAuthorizationStatus
+import platform.AVFAudio.availableInputs
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
+import platform.Foundation.NSProcessInfo
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationDidBecomeActiveNotification
 import platform.UIKit.UIApplicationState
 import platform.darwin.NSObjectProtocol
 import platform.UIKit.UIApplicationOpenSettingsURLString
 import platform.darwin.dispatch_async
+import platform.darwin.dispatch_queue_create
 import platform.darwin.dispatch_get_main_queue
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -69,17 +70,27 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * The order of a session lives in [MicSession]: the audio session is active
  * and has an input before the engine's input node is touched, because
  * reading it without one aborts the process. [OneSessionAtATime] keeps a
- * second tap from starting a second engine. Everything runs on the main
- * thread; the recognizer's callbacks hop back to the main queue.
+ * second tap from starting a second engine, and runs every audio session,
+ * engine and recognizer call on one serial queue, so a CoreAudio call that
+ * hangs never freezes the screen.
+ *
+ * In the simulator CoreAudio can deadlock when the Mac cannot hand it an
+ * input, and it then aborts the app itself, from any thread. So the simulator
+ * reports no microphone unless the scheme sets `OPSON_VOICE_IN_SIMULATOR=1`.
+ * Real devices always take the full path.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class IosSpeechToText @Inject constructor() : SpeechToText {
 
-    private val sessions = OneSessionAtATime { AvAudioSteps() }
+    private val sessions = OneSessionAtATime(AudioQueue) { AvAudioSteps() }
 
     override fun availability(): SpeechAvailability {
-        // No microphone at all (some simulators): say so before asking for permission to use one.
+        if (simulatorWithoutMic()) {
+            log.d("Voice off in the simulator; set OPSON_VOICE_IN_SIMULATOR=1 to try it")
+            return SpeechAvailability.Unavailable(SpeechFailure.NoMicrophone)
+        }
+        // No microphone at all: say so before asking for permission to use one.
         if (!AVAudioSession.sharedInstance().inputAvailable) return SpeechAvailability.Unavailable(SpeechFailure.NoMicrophone)
         val recognizer = SFSpeechRecognizer.new() ?: return SpeechAvailability.Unavailable(SpeechFailure.NoRecognizer)
         return when {
@@ -92,7 +103,7 @@ class IosSpeechToText @Inject constructor() : SpeechToText {
 
     override fun permission(): MicPermission = micPermission()
 
-    override fun listen(): Flow<Heard> = sessions.listen().flowOn(Dispatchers.Main)
+    override fun listen(): Flow<Heard> = sessions.listen()
 
     override fun finishListening() {
         sessions.finish()
@@ -123,11 +134,12 @@ class IosMicPermissionPrompt @Inject constructor() : MicPermissionPrompt {
                         onMain { whenActive { latestOnAnswer(MicPermission.Denied(canAskAgain = false)) } }
                     } else {
                         AVAudioApplication.requestRecordPermissionWithCompletionHandler { granted ->
-                            // Read back rather than trusted: the answer is the state both prompts left behind.
+                            // Trusted, not read back: right after the prompt a read can still say "not determined",
+                            // which used to land as no answer at all. The session checks permission again anyway.
                             onMain {
                                 // The answer can land before the alert has gone and the app is active again; an audio
                                 // session started then is the one that fails, so the answer waits for the app.
-                                whenActive { latestOnAnswer(if (granted) micPermission() else MicPermission.Denied(canAskAgain = false)) }
+                                whenActive { latestOnAnswer(if (granted) MicPermission.Granted else MicPermission.Denied(canAskAgain = false)) }
                             }
                         }
                     }
@@ -170,7 +182,24 @@ private fun whenActive(block: () -> Unit) {
 
 private val log = KLog.withTag("Speech")
 
-/** AVFoundation and Speech behind [AudioSteps]. One instance per session. Main thread only. */
+/** The one serial queue every audio session, engine and recognizer call runs on. */
+private object AudioQueue : SerialQueue {
+    private val queue = dispatch_queue_create("com.opson.speech.audio", null)
+
+    override fun post(block: () -> Unit) = dispatch_async(queue, block)
+}
+
+/** The simulator, unless the scheme opts in to trying its microphone. */
+private fun simulatorWithoutMic(): Boolean {
+    val environment = NSProcessInfo.processInfo.environment
+    return environment["SIMULATOR_DEVICE_NAME"] != null && environment["OPSON_VOICE_IN_SIMULATOR"] != "1"
+}
+
+/**
+ * AVFoundation and Speech behind [AudioSteps]. One instance per session, used
+ * only on [AudioQueue]. Each step logs its result at debug, so a stall in a
+ * retest shows exactly which call it was.
+ */
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 private class AvAudioSteps : AudioSteps {
     private val audio = AVAudioSession.sharedInstance()
@@ -184,35 +213,47 @@ private class AvAudioSteps : AudioSteps {
     private var tapped = false
 
     override fun recognizerReady(): Boolean {
-        recognizer = SFSpeechRecognizer.new()
-        return recognizer != null
+        val made = SFSpeechRecognizer.new()
+        recognizer = made
+        log.d("Speech recognizer: ${made != null}")
+        return made != null
     }
 
-    override fun permitted(): Boolean = micPermission() == MicPermission.Granted
+    override fun permitted(): Boolean {
+        val permitted = micPermission() == MicPermission.Granted
+        log.d("Speech permitted: $permitted")
+        return permitted
+    }
 
+    /** Category, then mode, then active: each checked, and the engine is not made until all three succeeded. */
     override fun activate(): Boolean {
-        val categorised = checked("setCategory") { error ->
-            audio.setCategory(
-                AVAudioSessionCategoryRecord,
-                mode = AVAudioSessionModeMeasurement,
-                options = AVAudioSessionCategoryOptionDuckOthers,
-                error = error,
-            )
-        }
-        activated = categorised && checked("setActive") { error -> audio.setActive(true, error = error) }
+        activated = checked("setCategory(record)") { error ->
+            audio.setCategory(AVAudioSessionCategoryRecord, withOptions = AVAudioSessionCategoryOptionDuckOthers, error = error)
+        } &&
+            checked("setMode(measurement)") { error -> audio.setMode(AVAudioSessionModeMeasurement, error = error) } &&
+            checked("setActive(true)") { error -> audio.setActive(true, error = error) }
         return activated
     }
 
-    override fun inputAvailable(): Boolean =
-        audio.inputAvailable &&
-            audio.currentRoute.inputs.isNotEmpty() &&
-            audio.inputNumberOfChannels > 0 &&
-            audio.sampleRate > 0.0
+    /** Read after activation: an input must be available, offered and on the route, with channels and a rate. */
+    override fun inputAvailable(): Boolean {
+        val available = audio.inputAvailable
+        val offered = audio.availableInputs.orEmpty().size
+        val routed = audio.currentRoute.inputs.size
+        val channels = audio.inputNumberOfChannels
+        val rate = audio.sampleRate
+        log.d("Audio input: available=$available offered=$offered routed=$routed channels=$channels rate=$rate")
+        return !simulatorWithoutMic() && available && offered > 0 && routed > 0 && channels > 0 && rate > 0.0
+    }
 
     override fun inputFormat(): InputFormat {
+        // MicSession only gets here after a successful activate; this keeps it so if that ever changes.
+        if (!activated) return InputFormat(sampleRate = 0.0, channels = 0)
+        log.d("Audio engine: creating")
         val engine = AVAudioEngine().also { engine = it }
         val node = engine.inputNode.also { input = it }
         val format = node.outputFormatForBus(0uL).also { format = it }
+        log.d("Audio input format: rate=${format.sampleRate} channels=${format.channelCount}")
         return InputFormat(format.sampleRate, format.channelCount.toInt())
     }
 
@@ -229,9 +270,9 @@ private class AvAudioSteps : AudioSteps {
         tapped = true
         engine.prepare()
         if (!checked("engine start") { error -> engine.startAndReturnError(error) }) return false
-        task = recognizer.recognitionTaskWithRequest(request) { result, error ->
-            onMain { answered(result, error, onHeard) }
-        }
+        // Answers come on the recognizer's queue; OneSessionAtATime hands them back to the audio queue.
+        task = recognizer.recognitionTaskWithRequest(request) { result, error -> answered(result, error, onHeard) }
+        log.d("Speech recognition: started, on device ${request.requiresOnDeviceRecognition}")
         return true
     }
 
@@ -241,6 +282,7 @@ private class AvAudioSteps : AudioSteps {
     }
 
     override fun tearDown() {
+        log.d("Audio: tearing down")
         task?.cancel()
         task = null
         stopEngine()
@@ -281,7 +323,7 @@ private class AvAudioSteps : AudioSteps {
     private fun checked(step: String, call: (kotlinx.cinterop.CPointer<ObjCObjectVar<NSError?>>) -> Boolean): Boolean = memScoped {
         val error = alloc<ObjCObjectVar<NSError?>>()
         val ok = call(error.ptr)
-        if (!ok) log.w("Audio $step failed: ${error.value?.domain} ${error.value?.code}")
+        if (ok) log.d("Audio $step: ok") else log.w("Audio $step failed: ${error.value?.domain} ${error.value?.code}")
         ok
     }
 

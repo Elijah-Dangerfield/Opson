@@ -5,6 +5,7 @@ import com.opson.libraries.speech.Heard
 import com.opson.libraries.speech.SpeechFailure
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -150,45 +151,116 @@ class MicSessionTest : CoroutineTest() {
         assertEquals(1, steps.calls.count { it == "tearDown" })
     }
 
+    /** A serial queue the test runs by hand, standing in for the audio queue. */
+    private class ManualQueue : SerialQueue {
+        private val blocks = ArrayDeque<() -> Unit>()
+        val pending: Int get() = blocks.size
+
+        override fun post(block: () -> Unit) {
+            blocks.addLast(block)
+        }
+
+        fun drain() {
+            while (blocks.isNotEmpty()) blocks.removeFirst()()
+        }
+    }
+
+    private fun TestScope.settle(queue: ManualQueue) {
+        repeat(4) {
+            runCurrent()
+            queue.drain()
+        }
+        runCurrent()
+    }
+
+    /** The cause of the iOS freeze: nothing audio may run on the thread that asked for it. */
+    @Test
+    fun nothingTouchesTheAudioOnTheCallersThread() = runUnitTest {
+        val queue = ManualQueue()
+        val steps = FakeSteps()
+        val gate = OneSessionAtATime(queue) { steps }
+        val heard = mutableListOf<Heard>()
+
+        val job = launch { gate.listen().toList(heard) }
+        runCurrent()
+        assertTrue(steps.calls.isEmpty(), "the caller only queues the work")
+        assertTrue(queue.pending > 0)
+
+        settle(queue)
+        assertEquals(listOf("recognizer", "permitted", "activate", "inputAvailable", "inputFormat", "start"), steps.calls)
+
+        gate.finish()
+        assertFalse("endAudio" in steps.calls, "finish is queued too")
+        settle(queue)
+        assertTrue("endAudio" in steps.calls)
+
+        // The recognizer answers on its own queue; the session only sees it on the audio queue.
+        steps.onHeard!!(Heard.Final("2 eggs"))
+        assertTrue(heard.isEmpty())
+        settle(queue)
+        assertEquals(listOf<Heard>(Heard.Final("2 eggs")), heard)
+        assertEquals("tearDown", steps.calls.last())
+        job.cancel()
+    }
+
     @Test
     fun aSecondSessionWhileOneIsOpenIsBusyAndTouchesNothing() = runUnitTest {
+        val queue = ManualQueue()
         val created = mutableListOf<FakeSteps>()
-        val gate = OneSessionAtATime { FakeSteps().also { created += it } }
+        val gate = OneSessionAtATime(queue) { FakeSteps().also { created += it } }
         val first = mutableListOf<Heard>()
         val second = mutableListOf<Heard>()
 
         val firstJob = launch { gate.listen().toList(first) }
-        runCurrent()
+        settle(queue)
         launch { gate.listen().toList(second) }
-        runCurrent()
+        settle(queue)
 
         assertEquals(listOf<Heard>(Heard.Failed(SpeechFailure.Busy)), second)
         assertEquals(1, created.size, "no second engine or session")
 
         firstJob.cancel()
-        runCurrent()
+        settle(queue)
         assertEquals("tearDown", created.single().calls.last(), "cancelling the collector tears the first down")
 
         val third = mutableListOf<Heard>()
         launch { gate.listen().toList(third) }
-        runCurrent()
+        settle(queue)
         assertEquals(2, created.size, "once it is down, the next session starts")
         created.last().onHeard!!(Heard.Final("coffee"))
-        runCurrent()
+        settle(queue)
         assertEquals(listOf<Heard>(Heard.Final("coffee")), third)
         assertEquals("tearDown", created.last().calls.last())
     }
 
+    /** A queue still busy with the first session keeps a second tap waiting behind it: never two engines at once. */
     @Test
-    fun finishReachesTheOpenSession() = runUnitTest {
-        val steps = FakeSteps()
-        val gate = OneSessionAtATime { steps }
-        val job = launch { gate.listen().toList(mutableListOf()) }
+    fun aSecondTapWaitsForTheFirstSessionsTeardown() = runUnitTest {
+        val queue = ManualQueue()
+        val log = mutableListOf<String>()
+        var made = 0
+        val gate = OneSessionAtATime(queue) {
+            val id = ++made
+            object : AudioSteps by FakeSteps() {
+                override fun activate(): Boolean = true.also { log += "activate $id" }
+                override fun tearDown() {
+                    log += "tearDown $id"
+                }
+            }
+        }
+
+        val first = backgroundScope.launch { gate.listen().toList(mutableListOf()) }
+        settle(queue)
+        first.cancel()
+        val second = backgroundScope.launch { gate.listen().toList(mutableListOf()) }
         runCurrent()
+        assertEquals(listOf("activate 1"), log, "nothing more runs until the queue does")
 
-        gate.finish()
+        settle(queue)
+        assertEquals(listOf("activate 1", "tearDown 1", "activate 2"), log)
 
-        assertTrue("endAudio" in steps.calls)
-        job.cancel()
+        second.cancel()
+        settle(queue)
+        assertEquals("tearDown 2", log.last())
     }
 }

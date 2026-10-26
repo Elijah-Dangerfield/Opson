@@ -528,6 +528,44 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
         assertEquals(VoiceNotice.Unavailable, vm.voice?.notice)
     }
 
+    /**
+     * The iOS report: after the yes, the pane looked idle and nothing came. The state was Listening,
+     * but the platform call that followed held the main thread, so it was never drawn. Listening is
+     * now state before any platform answer, and a platform that never answers still ends in a notice.
+     */
+    @Test
+    fun aYesShowsListeningAtOnceAndAPlatformThatNeverAnswersEndsInANotice() = runUnitTest {
+        speech.permission = MicPermission.NotAsked
+        val vm = vm()
+        settle()
+        vm.takeAction(VoiceAction.MicTapped)
+
+        vm.takeAction(VoiceAction.MicPermissionAnswered(MicPermission.Granted))
+        assertEquals(VoicePhase.Listening, vm.voice?.phase, "before the recognizer has said anything")
+
+        advanceTimeBy(LoggerViewModel.NOTHING_SAID.inWholeMilliseconds + 1)
+        runCurrent()
+        assertEquals(VoicePhase.Transcribing, vm.voice?.phase)
+        advanceTimeBy(LoggerViewModel.TRANSCRIBE_TIMEOUT.inWholeMilliseconds + 1)
+        runCurrent()
+
+        assertEquals(VoiceNotice.NoSpeech, vm.voice?.notice)
+        assertFalse(speech.listening, "the session is abandoned")
+    }
+
+    @Test
+    fun anAnswerThatIsNeitherYesNorNoStillShowsANotice() = runUnitTest {
+        speech.permission = MicPermission.NotAsked
+        val vm = vm()
+        settle()
+        vm.takeAction(VoiceAction.MicTapped)
+
+        vm.takeAction(VoiceAction.MicPermissionAnswered(MicPermission.NotAsked))
+
+        assertEquals(VoiceNotice.Denied(canAskAgain = true), vm.voice?.notice)
+        assertEquals(0, speech.sessions)
+    }
+
     @Test
     fun telemetryNeverCarriesWhatWasSaid() = runUnitTest {
         val vm = vm()
