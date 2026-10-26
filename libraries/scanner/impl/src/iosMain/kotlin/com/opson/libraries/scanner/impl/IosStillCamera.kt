@@ -166,7 +166,7 @@ private class StillCaptureSession(
                 queue = NSOperationQueue.mainQueue,
             ) { _ -> unavailable() }
         }
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.toLong(), 0uL)) {
+        dispatch_async(captureQueue) {
             if (!session.running) session.startRunning()
             if (!session.running) dispatch_async(dispatch_get_main_queue()) { unavailable() }
         }
@@ -202,7 +202,7 @@ private class StillCaptureSession(
         stopped = true
         observers.forEach { NSNotificationCenter.defaultCenter.removeObserver(it) }
         observers.clear()
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.toLong(), 0uL)) {
+        dispatch_async(captureQueue) {
             if (session.running) session.stopRunning()
         }
     }
