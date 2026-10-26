@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -38,6 +39,7 @@ import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.nutrition.ui.testTag
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
@@ -235,7 +237,7 @@ private fun AmountCard(state: AmountState, onAction: (AmountAction) -> Unit) {
             val countDescription = stringResource(Res.string.logger_amount_count_cd)
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .width(COUNT_WIDTH)
                     .height(AppTheme.spacing.touchTarget)
                     .clip(AppTheme.shapes.inputLarge)
                     .border(2.dp, AppTheme.colors.accent.color, AppTheme.shapes.inputLarge)
@@ -245,7 +247,7 @@ private fun AmountCard(state: AmountState, onAction: (AmountAction) -> Unit) {
                 Text(text = state.count, typography = AppTheme.type.figureMedium, color = AppTheme.colors.ink, maxLines = 1)
             }
             StepButton(AppIcons.Add, stringResource(Res.string.logger_amount_more_cd)) { onAction(AmountAction.MoreTapped) }
-            UnitMenu(state, onAction, modifier = Modifier.weight(UNIT_WEIGHT))
+            UnitMenu(state, onAction, modifier = Modifier.weight(1f))
         }
         if (state.quick.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
@@ -451,7 +453,12 @@ private fun PortionSection(portion: PortionCard) {
                     NutrientText(metric = macro.metric, display = macro.amount, typography = AppTheme.type.figureMedium, color = AppTheme.colors.ink, maxLines = 1)
                     val share = macro.share
                     if (share is Display.Shown) {
-                        Text(text = stringResource(Res.string.logger_amount_of_energy, share.text), typography = AppTheme.type.caption, color = AppTheme.colors.muted)
+                        Text(
+                            text = stringResource(Res.string.logger_amount_of_energy, share.text),
+                            typography = AppTheme.type.caption,
+                            color = AppTheme.colors.muted,
+                            modifier = Modifier.testTag(macro.metric.testTag()),
+                        )
                     }
                 }
             }
@@ -498,12 +505,21 @@ private fun DaySection(day: DayWithThis) {
                     after is Display.Soft -> after.text
                     else -> null
                 }
-                text?.let { Text(text = it, typography = AppTheme.type.secondary.Tabular, color = AppTheme.colors.muted, textAlign = TextAlign.End) }
+                text?.let {
+                    Text(
+                        text = it,
+                        typography = AppTheme.type.secondary.Tabular,
+                        color = AppTheme.colors.muted,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.testTag(row.metric.testTag()),
+                    )
+                }
             }
             StripedBar(
                 before = row.before.fraction() ?: 0f,
                 after = row.after.fraction() ?: 0f,
                 color = if (row.metric == Metric.Calories) AppTheme.colors.ink else macroColor(row.metric),
+                modifier = Modifier.testTag(row.metric.testTag()),
             )
         }
     }
@@ -548,6 +564,7 @@ private fun NutrientsSection(nutrients: AllNutrients, onAction: (AmountAction) -
                             text = stringResource(Res.string.logger_micro_of_daily, shown.text),
                             typography = AppTheme.type.secondary.Tabular,
                             color = AppTheme.colors.muted,
+                            modifier = Modifier.testTag(Metric.Micros.testTag()),
                         )
                         else -> NutrientText(metric = Metric.Micros, display = shown, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
                     }
@@ -647,7 +664,7 @@ private val Micronutrient.label: StringResource
         Micronutrient.Zinc -> Res.string.logger_micro_zinc
     }
 
-private const val UNIT_WEIGHT = 1.6f
+private val COUNT_WIDTH = 64.dp
 private const val UNIT_SEPARATOR = " · "
 private val UNIT_MENU_TOP = 120.dp
 private const val MIN_SEGMENT = 0.02f

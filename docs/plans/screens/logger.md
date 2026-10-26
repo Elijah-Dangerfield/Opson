@@ -34,11 +34,13 @@ Spec: the `logger-previews__*` screens in
 |---|---|---|
 | `MealSlotPicker.pick(days, now, timeZone, mealGroups): MealSlot` and `MealSlotPicker.usualAround(days, now, timeZone, limit): List<LogItem>`, `HISTORY_DAYS = 14` | `:libraries:diary` | The meal auto-pick and "Usual around". Pure, tested. **This is the seam with Today**: there is no new slot type; `MealSlot.Uncategorized` already exists, and Today's Uncategorized group reads items in it. |
 | `Settings.favoriteFoods: List<String>` (food ref keys, newest first) and `Settings.foodUnits: Map<String, List<FoodUnit>>`, `FoodUnit(label, grams)` | `:libraries:diary` | The star, and "Custom size…". New top-level keys, so the shallow settings merge keeps them. |
-| `FoodKind` + `FoodKind.of(name)` | `:libraries:foods` | Row tiles. |
+| `FoodKind` + `FoodKind.of(name)` | `:libraries:diary` (so `:libraries:diary:ui` can draw it without depending on foods) | Row tiles. |
 | `AmountUnit.Saved(unit: FoodUnit)`, `Food.amountUnits(saved)`, `CustomFood.amountUnits(saved)`, `AmountUnit.gramsLabel` | `:libraries:foods` | Saved sizes in the unit menu, with grams. |
 | `FoodIconTile(kind)` | `:libraries:diary:ui` | |
 | Food glyphs in `AppIcons` (`RiceBowl`, `Eco`, `Icecream`, `SetMeal`, `KebabDining`, `LocalCafe`, `Egg`, `SoupKitchen`, `Info`, `StarOutline`) | `:libraries:ui` | |
-| `BottomSheetDefaults.PartialHeightFraction = 0.6f`, `Modifier.expandOnDragUp(enabled, onExpand)` | `:libraries:ui` | The 60% sheet and its drag up. |
+| `BottomSheetDefaults.PartialHeightFraction = 0.6f`, `Modifier.expandOnDragUp(enabled, onExpand)`, `Modifier.sheetHeightFraction { }` | `:libraries:ui` | The 60% sheet, its drag up, and growing it without recomposing every frame. |
+| `NoteBanner(text)` | `:libraries:ui` | The photo estimate's note: an outlined i on the warm tint. |
+| `AppShapes.dialog` | `:libraries:ui` | The time picker and Custom size dialogs. |
 | `StripedBar(before, added, color)` | `:libraries:ui` | "Your day with this": today so far solid, this food striped on top, capped at full. |
 | `TimePickerDialog` | `:libraries:ui` | The amount sheet's time. A public copy of Settings' internal `TimeDialog`; Settings can move to it later. |
 
@@ -91,8 +93,8 @@ leaves amount, meal, time and precision, as the note says.
 | Action | Does |
 |---|---|
 | `FoodArrived` / `FoodMissing` / `InputsArrived(settings, policy, day)` | As before; `day` is today so far for "Your day with this". |
-| `LessTapped` / `MoreTapped` / `QuickAmountPicked(q)` / `CountTyped(text)` | The count. |
-| `UnitMenuTapped` / `UnitPicked(index)` | Switching units keeps the count; only grams converts (to the gram total, and back). |
+| `LessTapped` / `MoreTapped` / `QuickAmountPicked(q)` | The count. The count box is a display, not a field: the stepper and the chips cover it, and "1½" reads better than a decimal to type. |
+| `UnitPicked(index)` (the menu's open state is the composable's) | Switching units keeps the count; only grams converts (to the gram total, and back). |
 | `CustomSizeTapped` / `CustomSizeTyped(name, grams)` / `CustomSizeSaved` / `CustomSizeDismissed` | Saves `FoodUnit(name, grams)` to `Settings.foodUnits[ref.key]` and selects it at the same count. |
 | `FavoriteTapped` | Toggles `ref.key` in `Settings.favoriteFoods`. Favorites (search options tab) lists starred foods first. |
 | `SlotPicked(slot)` | Where Add to logs. |
