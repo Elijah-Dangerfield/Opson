@@ -104,11 +104,11 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 3 | Today | `today` | today | ported | yes |
 | 4 | Today · big day | `today-big-day` | today | ported | yes |
 | 5 | Quick-add sheet | `logger` | logger | ported | yes |
-| 6 | Food search | `logger-results` | logger | search lives in the Logger | yes |
-| 7 | Add-food sheet | `amount-sheet` | logger | ported | yes |
+| 6 | Food search | `logger-search` | logger | search lives in the Logger | yes |
+| 7 | Add-food sheet | `logger-amount` | logger | ported | yes |
 | 8 | Photo estimate | none | | dropped, Photo is Later | |
-| 9 | Describe a meal | `log-describe-parsed` | logger | ported | yes |
-| 10 | Saved meals and copy yesterday | `log-saved` | logger | ported | yes |
+| 9 | Describe a meal | `logger-describe` | logger | a pane of the Logger in v3 | yes |
+| 10 | Saved meals | `logger-saved` | logger | a pane of the Logger in v3; copy yesterday is a chip | yes |
 | 11 | Day close · big day | `day-close-big-day` | today | ported | yes |
 | 12 | Trends (week history) | `trends` | trends | ported | yes |
 | 13 | Foods tab | `foods` | foods | ported | yes |
@@ -138,6 +138,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `day-close` | today | | yes |
 | new | | `item-sheet` | today | | yes |
 | new | | `day-note`, `meal-note` | today | | no |
+| new | | `logger-search-empty`, `logger-how-it-felt` | logger | | no |
 | new | | `nutrients-week` | trends | | yes |
 | new | | `trends-settings` | trends | | no |
 | new | | `pause-sheet` | settings | | no |
