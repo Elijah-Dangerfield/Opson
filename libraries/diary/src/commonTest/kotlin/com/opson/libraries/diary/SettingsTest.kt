@@ -53,6 +53,10 @@ class SettingsTest {
         assertEquals(EventLevel.Subtle, s.remindersEvent)
         // mealRem:{Breakfast:true, Lunch:true, Snack:false, Dinner:true}
         assertEquals(MealReminders(breakfast = true, lunch = true, snack = false, dinner = true), s.mealReminders)
+        // Not in the prototype: the times Today used before they were a setting, and the opt-in.
+        assertEquals(MealTimes(LocalTime(8, 0), LocalTime(12, 30), LocalTime(15, 30), LocalTime(19, 0)), s.mealTimes)
+        assertEquals(false, s.remindersChosen)
+        assertEquals(EventLevel.Off, s.mealReminderLevel)
         // ringMode:'target', trRange:'1W', trCards: all true
         assertEquals(RingMode.Target, s.ringMode)
         assertEquals(TrendsRange.Week, s.trendsRange)
@@ -107,6 +111,8 @@ class SettingsTest {
             fastPlan = FastingPlan.SixteenEight,
             palette = PaletteChoice.Espresso,
             onboarding = OnboardingAnswers(why = listOf("curious"), feel = "rather_not", hard = true),
+            mealTimes = MealTimes(breakfast = LocalTime(7, 15), dinner = LocalTime(18, 45)),
+            remindersChosen = true,
         )
 
         val decoded = SettingsJson.decodeFromString(Settings.serializer(), SettingsJson.encodeToString(Settings.serializer(), s))
@@ -220,5 +226,41 @@ class SettingsTest {
     fun numbersAreTheSettingsThePolicyReads() {
         val s = Settings(numbers = NumbersSettings(preset = PresetId.Mindful))
         assertEquals(s.numbers, s.numbers())
+    }
+
+    @Test
+    fun mealTimesTravelAsHoursAndMinutes_andAnUnreadableOneFallsBackOnItsOwn() {
+        val s = Settings(mealTimes = MealTimes(lunch = LocalTime(13, 5)))
+        val json = SettingsJson.encodeToString(Settings.serializer(), s)
+        assertTrue("\"lunch\":\"13:05\"" in json, json)
+
+        val broken = SettingsJson.decodeFromString(
+            Settings.serializer(),
+            """{"mealTimes":{"breakfast":"brunch","dinner":"18:30"}}""",
+        )
+        assertEquals(MealTimes(dinner = LocalTime(18, 30)), broken.mealTimes)
+    }
+
+    @Test
+    fun settingsFrom01NeverTurnRemindersOn() {
+        // What 0.1 synced for everyone: the prototype defaults, with nobody having chosen them.
+        val old = SettingsJson.decodeFromString(
+            Settings.serializer(),
+            """{"remindersEvent":"subtle","mealReminders":{"breakfast":true,"lunch":true,"snack":false,"dinner":true}}""",
+        )
+        assertEquals(false, old.remindersChosen)
+        assertEquals(EventLevel.Off, old.mealReminderLevel)
+        assertEquals(EventLevel.Full, old.copy(remindersChosen = true, remindersEvent = EventLevel.Full).mealReminderLevel)
+    }
+
+    @Test
+    fun mealHelpersLeaveUncategorizedAlone() {
+        val reminders = MealReminders()
+        assertEquals(reminders, reminders.with(MealSlot.Uncategorized, on = true))
+        assertEquals(false, reminders.isOn(MealSlot.Uncategorized))
+        assertEquals(true, reminders.with(MealSlot.Snack, on = true).isOn(MealSlot.Snack))
+        assertEquals(3, reminders.countOn)
+        assertEquals(MealTimes(), MealTimes().with(MealSlot.Uncategorized, LocalTime(1, 0)))
+        assertEquals(LocalTime(19, 0), MealTimes().at(MealSlot.Dinner))
     }
 }
