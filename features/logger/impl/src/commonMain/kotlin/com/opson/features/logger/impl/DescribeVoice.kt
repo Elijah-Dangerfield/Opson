@@ -34,6 +34,9 @@ sealed interface VoiceCapture {
     data class Transcribing(val prefix: String, val heard: String) : VoiceCapture
 
     data class Notice(val notice: VoiceNotice) : VoiceCapture
+
+    /** The prompt is up, or the mic is open or settling. */
+    val busy: Boolean get() = this == Asking || this is Listening || this is Transcribing
 }
 
 /** Why voice stepped aside for typing. Each one offers "Type instead". */
@@ -102,7 +105,8 @@ sealed interface VoiceAction : LoggerAction {
 data object RequestMicPermission : LoggerEvent
 
 internal fun SpeechFailure.toNotice(): VoiceNotice = when (this) {
-    SpeechFailure.NoRecognizer, SpeechFailure.NoModel -> VoiceNotice.Unavailable
+    SpeechFailure.NoRecognizer, SpeechFailure.NoModel, SpeechFailure.NoMicrophone -> VoiceNotice.Unavailable
+    SpeechFailure.NotAllowed -> VoiceNotice.Denied(canAskAgain = false)
     SpeechFailure.NeedsConnection -> VoiceNotice.NeedsConnection
     SpeechFailure.NoSpeech -> VoiceNotice.NoSpeech
     SpeechFailure.Busy, SpeechFailure.Unknown -> VoiceNotice.Failed

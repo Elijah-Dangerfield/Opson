@@ -19,8 +19,14 @@ enum class SpeechFailure {
     /** The mic ran but nothing was said, or nothing that read as words. */
     NoSpeech,
 
-    /** No recognizer on this phone for its language, or no microphone input at all (the iOS simulator). */
+    /** No recognizer on this phone for its language. */
     NoRecognizer,
+
+    /** No microphone input: none on the device, none on the audio route, or one that reports no format (the iOS simulator). */
+    NoMicrophone,
+
+    /** Speech recognition or the microphone was turned off, found when listening starts. */
+    NotAllowed,
 
     /** The on-device recognizer has no model for the language, and there is nothing to fall back to. */
     NoModel,

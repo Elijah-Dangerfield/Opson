@@ -374,6 +374,9 @@ class FakeSpeechToText(
     var settingsOpened = 0
     val listening: Boolean get() = session != null
 
+    /** Thrown from the session as it opens, as a platform failure no [Heard.Failed] describes. */
+    var failure: Throwable? = null
+
     override fun availability(): SpeechAvailability = availability
 
     override fun permission(): MicPermission = permission
@@ -382,6 +385,7 @@ class FakeSpeechToText(
         val channel = Channel<Heard>(Channel.UNLIMITED)
         session = channel
         sessions++
+        failure?.let { throw it }
         try {
             for (heard in channel) {
                 emit(heard)

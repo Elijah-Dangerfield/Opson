@@ -230,5 +230,6 @@ private fun failureFor(error: Int): SpeechFailure = when (error) {
     -> SpeechFailure.NeedsConnection
     ERROR_LANGUAGE_NOT_SUPPORTED, ERROR_LANGUAGE_UNAVAILABLE -> SpeechFailure.NoModel
     SpeechRecognizer.ERROR_RECOGNIZER_BUSY, SpeechRecognizer.ERROR_AUDIO -> SpeechFailure.Busy
+    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> SpeechFailure.NotAllowed
     else -> SpeechFailure.Unknown
 }

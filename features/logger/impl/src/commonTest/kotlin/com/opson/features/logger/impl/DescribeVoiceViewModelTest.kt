@@ -428,6 +428,107 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun noMicrophoneOnThePhoneFallsBackBeforeAnyPrompt() = runUnitTest {
+        speech.availability = SpeechAvailability.Unavailable(SpeechFailure.NoMicrophone)
+        speech.permission = MicPermission.NotAsked
+        val vm = vm()
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(VoiceAction.MicTapped)
+
+        assertTrue(events.isEmpty())
+        assertEquals(VoiceNotice.Unavailable, vm.voice?.notice)
+        assertEquals(listOf("fallback no_microphone"), telemetry.events)
+    }
+
+    @Test
+    fun aSessionThatFindsNoMicrophoneSaysVoiceIsUnavailable() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(VoiceAction.MicTapped)
+
+        speech.say(Heard.Failed(SpeechFailure.NoMicrophone))
+        runCurrent()
+
+        assertEquals(VoiceNotice.Unavailable, vm.voice?.notice)
+        assertEquals("fallback no_microphone", telemetry.events.last())
+    }
+
+    @Test
+    fun permissionTurnedOffBeforeListeningIsTheDeniedNotice() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(VoiceAction.MicTapped)
+
+        speech.say(Heard.Failed(SpeechFailure.NotAllowed))
+        runCurrent()
+
+        assertEquals(VoiceNotice.Denied(canAskAgain = false), vm.voice?.notice)
+        assertEquals("permission_denied can_ask_again=false", telemetry.events.last())
+    }
+
+    @Test
+    fun aSecondSessionRefusedAsBusyOffersTryAgain() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(VoiceAction.MicTapped)
+
+        speech.say(Heard.Failed(SpeechFailure.Busy))
+        runCurrent()
+
+        assertEquals(VoiceNotice.Failed, vm.voice?.notice)
+        assertEquals("fallback busy", telemetry.events.last())
+    }
+
+    @Test
+    fun aPlatformExceptionStillEndsInANotice() = runUnitTest {
+        speech.failure = IllegalStateException("audio server")
+        val vm = vm()
+        settle()
+
+        vm.takeAction(VoiceAction.MicTapped)
+        runCurrent()
+
+        assertEquals(VoiceNotice.Failed, vm.voice?.notice)
+        assertEquals("fallback error", telemetry.events.last())
+    }
+
+    /** The first tap after granting both permissions listens, whatever happened while the prompts were up. */
+    @Test
+    fun aYesStartsListeningEvenIfTheCaptureMovedOn() = runUnitTest {
+        speech.permission = MicPermission.NotAsked
+        val vm = vm()
+        settle()
+        vm.takeAction(VoiceAction.MicTapped)
+        vm.takeAction(VoiceAction.TypeInsteadTapped)
+
+        vm.takeAction(VoiceAction.MicPermissionAnswered(MicPermission.Granted))
+
+        assertTrue(speech.listening)
+        assertEquals(VoicePhase.Listening, vm.voice?.phase)
+    }
+
+    @Test
+    fun aFieldEchoingItsOwnValueNeitherStopsListeningNorClearsANotice() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(VoiceAction.MicTapped)
+        speech.say(Heard.Partial("2 eggs"))
+
+        vm.takeAction(LoggerAction.DescribeTyped("2 eggs"))
+        assertTrue(speech.listening)
+        assertEquals(VoicePhase.Listening, vm.voice?.phase)
+
+        speech.say(Heard.Failed(SpeechFailure.NeedsConnection))
+        speech.availability = SpeechAvailability.Unavailable(SpeechFailure.NoRecognizer)
+        vm.takeAction(VoiceAction.MicTapped)
+        assertEquals(VoiceNotice.Unavailable, vm.voice?.notice)
+        vm.takeAction(LoggerAction.DescribeTyped(vm.state.describe.text))
+        assertEquals(VoiceNotice.Unavailable, vm.voice?.notice)
+    }
+
+    @Test
     fun telemetryNeverCarriesWhatWasSaid() = runUnitTest {
         val vm = vm()
         settle()

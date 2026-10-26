@@ -38,6 +38,7 @@ import com.opson.libraries.ui.components.text.NumberInput
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -172,8 +173,10 @@ class LoggerViewModel(
                 sendEvent(LoggerEvent.OpenMealNote(day, slot()))
             }
             is LoggerAction.DescribeTyped -> {
-                typedOverVoice(action)
-                describeTyped(action, action.text)
+                // A field can echo its own value back (iOS does around system prompts); only a real edit counts as typing.
+                val edited = action.text != model.choices.describeText
+                if (edited) typedOverVoice(action)
+                if (edited || !model.choices.voice.busy) describeTyped(action, action.text)
             }
             is LoggerAction.DescribeArrived -> describeArrived(action)
             is LoggerAction.DescribeFailed -> {
@@ -426,7 +429,8 @@ class LoggerViewModel(
                 VoiceCapture.Asking, is VoiceCapture.Transcribing -> Unit
                 is VoiceCapture.Idle, is VoiceCapture.Notice -> micTapped(action)
             }
-            is VoiceAction.MicPermissionAnswered -> if (capture == VoiceCapture.Asking) {
+            // A yes starts listening even if something moved the capture on while the prompt was up: the person asked.
+            is VoiceAction.MicPermissionAnswered -> if (capture !is VoiceCapture.Listening && capture !is VoiceCapture.Transcribing) {
                 when (val answer = action.permission) {
                     MicPermission.Granted -> startListening(action, asked = true)
                     is MicPermission.Denied -> denied(action, answer.canAskAgain)
@@ -485,7 +489,10 @@ class LoggerViewModel(
         voice.telemetry.started(onDevice, asked)
         listenJob?.cancel()
         listenJob = viewModelScope.launch {
-            voice.speech.listen().collect { takeAction(VoiceAction.SpeechArrived(it)) }
+            voice.speech.listen()
+                // However the platform fails, the person sees why and can type instead.
+                .catch { emit(Heard.Failed(SpeechFailure.Unknown)) }
+                .collect { takeAction(VoiceAction.SpeechArrived(it)) }
         }
         armQuiet(NOTHING_SAID)
         voiceCap?.cancel()
@@ -547,7 +554,12 @@ class LoggerViewModel(
     /** Voice cannot help this time; typing can. [restore] puts back what was typed before the session, if there was one. */
     private suspend fun fallBack(action: LoggerAction, why: SpeechFailure, restore: String?) {
         endVoice()
-        voice.telemetry.fallback(VoiceFallback.of(why))
+        // Turned off in Settings while the sheet was open: the same notice, and the same event, as a refusal.
+        if (why == SpeechFailure.NotAllowed) {
+            voice.telemetry.permissionDenied(canAskAgain = false)
+        } else {
+            voice.telemetry.fallback(VoiceFallback.of(why))
+        }
         action.choose {
             copy(voice = VoiceCapture.Notice(why.toNotice()), describeText = restore?.trimEnd() ?: describeText)
         }
