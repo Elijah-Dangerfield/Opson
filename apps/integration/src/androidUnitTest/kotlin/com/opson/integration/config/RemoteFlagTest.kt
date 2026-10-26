@@ -49,6 +49,7 @@ class RemoteFlagTest : IntegrationTest() {
         phone.syncNow().getOrThrow()
         phone.settings.isKnown.awaitState { it }
         phone.settings.update { it.copy(fasting = true) }
+        phone.settings.settings.awaitState { it.fasting } // the timer reads the settings flow, as the screens do
         phone.fasting.startDue()
         assertNull(phone.fasting.observeLatest().first(), "flag off: no fast starts")
         assertEquals(false, released(phone.appConfigFlow.first()))

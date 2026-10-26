@@ -8,7 +8,6 @@ import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.flow.first
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -48,7 +47,8 @@ class GuestOnboardingSyncTest : IntegrationTest() {
 
         // The same account on a fresh install: defaults until its first pull.
         val reinstall = client(guest)
-        assertFalse(reinstall.settings.isKnown.value, "a fresh install does not know this user's settings yet")
+        // Once auth says who it is, the defaults on screen are known not to be theirs.
+        reinstall.settings.isKnown.awaitState { !it }
         reinstall.syncNow().getOrThrow()
 
         reinstall.settings.isKnown.awaitState { it }

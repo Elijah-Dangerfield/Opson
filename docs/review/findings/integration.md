@@ -28,6 +28,27 @@ the rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its fate.
   nine or ten days out. Rare enough (a wrong clock and planning that far) not to
   widen this change.
 
+## 2. The first sync after sign-in could leave the user's settings "unknown" — fixed
+
+- **Where:** `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncer.kt:189`
+  and `:225` (before the fix): the user whose pull it was came from the
+  active-user source as it stood when the sync started.
+- **Rule:** §2 "Structured concurrency … right ordering"; §3 a change made
+  while settings are unknown is held back, and an unknown user is treated as
+  Blind.
+- **Failure:** `UserScopedSyncCoordinator` starts the first sync off
+  `AuthRepository.observe()` (`SyncTriggers.kt:62`), and `AuthActiveUserSource`
+  (`ActiveUser.kt:43`) follows the same flow in its own coroutine. When the
+  sync started first, it read `Unresolved` (or `SignedOut`, on a sign-in),
+  skipped `SettingsStore.markPulled`, and the settings it had just pulled stayed
+  "unknown" until some later sync: numbers hidden as Blind, settings edits kept
+  off the outbox, fasting not starting. The integration suite saw it as
+  intermittent `isKnown` timeouts; `DiarySyncerTest.aSyncStartedBeforeTheSignedInUserReachedTheSyncer_stillMakesTheirSettingsKnown`
+  pins it.
+- **Fix:** read the active user after the pull lands (`DiarySyncer.kt:230`).
+  A user change mid-sync cancels the sync before the next user is announced,
+  so the late read can't attribute one user's pull to another.
+
 ## Harness notes (not app bugs)
 
 - `apps/integration` needs `unitTests.isReturnDefaultValues`: OkHttp detects

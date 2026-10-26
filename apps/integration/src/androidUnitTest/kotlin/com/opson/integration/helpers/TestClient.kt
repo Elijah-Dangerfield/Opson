@@ -244,8 +244,15 @@ class TestClient(
 
     fun today(): LocalDate = calendar.today()
 
-    /** Push and pull now, the way pull-to-refresh does. */
-    suspend fun syncNow(): Result<Unit> = sync.syncNow()
+    /**
+     * Push and pull now, the way pull-to-refresh does. Waits for auth to have
+     * resolved first, as the app's sync coordinator does: a phone never syncs
+     * before it knows who is signed in.
+     */
+    suspend fun syncNow(): Result<Unit> {
+        auth.current()
+        return sync.syncNow()
+    }
 
     /** Logs one food the way the logger's amount sheet does. */
     suspend fun log(

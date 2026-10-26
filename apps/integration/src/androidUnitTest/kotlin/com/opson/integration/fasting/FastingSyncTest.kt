@@ -50,6 +50,7 @@ class FastingSyncTest : IntegrationTest() {
         phone.syncNow().getOrThrow()
         phone.settings.isKnown.awaitState { it }
         phone.settings.update { it.copy(fasting = true) }
+        phone.settings.settings.awaitState { it.fasting } // the timer reads the settings flow, as the screens do
         phone.fasting.startDue()
 
         val fast = assertNotNull(phone.fasting.observeLatest().first(), "the evening's fast started")
