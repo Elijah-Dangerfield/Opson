@@ -80,7 +80,6 @@ Downloaded the full CSV export on 2026-10-26 (1.5 GB compressed).
 | CoFID | UK | not stated | Open Government Licence v3.0 ([gov.uk](https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid)) | OGL attribution statement |
 | Frida 5.5 | Denmark | ~1,370 | CC BY 4.0 (from search summaries; the Frida site didn't load) | DTU Food, Frida 5.5 |
 | MEXT 8th edition | Japan | ~2,500 | No standard licence; apps may use it with a citation (from a third-party summary of MEXT's Q&A) | Cite MEXT |
-
 | Fineli | Finland | 4,232 | CC BY 4.0, verified on [fineli.fi Open Data](https://fineli.fi/fineli/en/avoin-data) | "Finnish Institute for Health and Welfare, Fineli" |
 | Matvaretabellen | Norway | ~2,000 | Open API; the [API page](https://www.matvaretabellen.no/api/) invites caching and asks only that Matvaretabellen be cited as the source | "Matvaretabellen" |
 | Korea integrated food nutrient data | South Korea | large (ingredients, dishes, processed foods, chain-restaurant menus) | Government standard dataset on [data.go.kr](https://www.data.go.kr/data/15100064/standard.do); the page features a calorie app built on it, but shows no licence field. **Confirm the licence before importing.** | Ministry of Food and Drug Safety, RDA, NIFS |
@@ -93,10 +92,9 @@ importer as the USDA one.
 
 | Source | Why |
 |---|---|
-| Australia AFCD | Its licence is based on CC BY-SA 3.0 AU, so share-alike would apply to what we build from it. Same containment question as Open Food Facts; decide alongside it. |
 | New Zealand FOODfiles | Its terms say "must not modify any part", and our normalisation is a modification. |
 | Dutch NEVO | Unchanged data only, and no charging users for NEVO data. |
-| Spain BEDCA, FAO regional tables, Italy CREA, Mexico, Korea, China, Open Food Repo | No open licence found or not checked. FAO items are often CC BY-NC-SA, which rules out commercial use. |
+| Spain BEDCA, FAO regional tables, Italy CREA, China | No open licence found or not checked. FAO items are often CC BY-NC-SA, which rules out commercial use. |
 | India IFCT, Philippines PhilFCT | Copyrighted with no open licence. PhilFCT isn't downloadable, and FNRI declined a raw-data request. |
 
 ## Added in the final review (2026-10-26)
@@ -136,4 +134,4 @@ importer as the USDA one.
 2. The Credits screen.
 3. CNF, BLS, Livsmedelsverket, Ciqual, CoFID, Frida, MEXT, Fineli, Matvaretabellen and AFCD importers; Korea once its licence is confirmed.
 4. Before public launch: counsel or Open Food Facts confirms the ODbL
-   containment, and you decide on AFCD.
+   containment, and AFCD gets the same share-alike containment (its own table).
