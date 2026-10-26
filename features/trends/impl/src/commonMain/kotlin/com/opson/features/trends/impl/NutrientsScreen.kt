@@ -186,10 +186,11 @@ private fun EnergyRowView(row: EnergyRow) {
                 color = AppTheme.colors.ink,
                 modifier = Modifier.weight(1f),
             )
-            NutrientText(metric = Metric.Calories, display = row.eaten, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.muted)
-            // "· range" is a label; the range itself renders through the policy's tagged text.
-            NutrientVisible(row.range) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Dimension.D100)) {
+            // One word gap between the amount, "· range" and the range, as in a sentence.
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimension.D100)) {
+                NutrientText(metric = Metric.Calories, display = row.eaten, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.muted)
+                // "· range" is a label; the range itself renders through the policy's tagged text.
+                NutrientVisible(row.range) {
                     Text(text = stringResource(Res.string.trends_nutrients_range), typography = AppTheme.type.body, color = AppTheme.colors.muted, maxLines = 1)
                     NutrientText(metric = Metric.Calories, display = row.range, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.muted, maxLines = 1)
                 }
