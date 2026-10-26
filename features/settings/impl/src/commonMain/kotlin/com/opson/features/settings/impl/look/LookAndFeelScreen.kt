@@ -91,45 +91,47 @@ fun LookAndFeelScreen(
             label = { if (it == WeightUnit.Lb) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg },
             onSelect = { onAction(LookAndFeelAction.WeightUnitPicked(it)) },
         )
-        Choice(
-            title = Res.string.settings_look_tone,
-            options = Tone.entries,
-            selected = state.tone,
-            label = { if (it == Tone.Warm) Res.string.settings_look_tone_warm else Res.string.settings_look_tone_plain },
-            onSelect = { onAction(LookAndFeelAction.TonePicked(it)) },
-        ) {
-            val sample = if (state.tone == Tone.Warm) {
-                Res.string.settings_look_tone_warm_sample
-            } else {
-                Res.string.settings_look_tone_plain_sample
-            }
-            Text(
-                text = stringResource(Res.string.settings_look_tone_example, stringResource(sample)),
-                typography = AppTheme.type.secondary,
-                color = AppTheme.colors.muted,
-            )
-        }
-        EdgeCard(edgeToEdge = false) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+        if (state.showsTalk) {
+            Choice(
+                title = Res.string.settings_look_tone,
+                options = Tone.entries,
+                selected = state.tone,
+                label = { if (it == Tone.Warm) Res.string.settings_look_tone_warm else Res.string.settings_look_tone_plain },
+                onSelect = { onAction(LookAndFeelAction.TonePicked(it)) },
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.settings_look_tags_title),
-                        typography = AppTheme.type.bodyStrong,
-                        color = AppTheme.colors.ink,
-                    )
-                    Text(
-                        text = stringResource(Res.string.settings_look_tags_body),
-                        typography = AppTheme.type.secondarySmall,
-                        color = AppTheme.colors.muted,
+                val sample = if (state.tone == Tone.Warm) {
+                    Res.string.settings_look_tone_warm_sample
+                } else {
+                    Res.string.settings_look_tone_plain_sample
+                }
+                Text(
+                    text = stringResource(Res.string.settings_look_tone_example, stringResource(sample)),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                )
+            }
+            EdgeCard(edgeToEdge = false) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(Res.string.settings_look_tags_title),
+                            typography = AppTheme.type.bodyStrong,
+                            color = AppTheme.colors.ink,
+                        )
+                        Text(
+                            text = stringResource(Res.string.settings_look_tags_body),
+                            typography = AppTheme.type.secondarySmall,
+                            color = AppTheme.colors.muted,
+                        )
+                    }
+                    AppSwitch(
+                        checked = state.askTags,
+                        onCheckedChange = { onAction(LookAndFeelAction.HungerQuestionsToggled) },
                     )
                 }
-                AppSwitch(
-                    checked = state.askTags,
-                    onCheckedChange = { onAction(LookAndFeelAction.HungerQuestionsToggled) },
-                )
             }
         }
     }

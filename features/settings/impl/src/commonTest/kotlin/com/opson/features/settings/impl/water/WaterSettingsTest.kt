@@ -1,10 +1,12 @@
 package com.opson.features.settings.impl.water
 
 import com.opson.features.settings.impl.FakeNumbersChanger
+import com.opson.features.settings.impl.FakeNotificationPermissions
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.remindersFlag
 import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Metric
@@ -83,7 +85,7 @@ class WaterSettingsTest : CoroutineTest() {
     @Test
     fun theSwitchGoesThroughTheChanger() = runUnitTest {
         val changer = FakeNumbersChanger { NumbersOutcome.Applied(fewer = true) }
-        val vm = WaterSettingsViewModel(false, FakeSettingsRepository(SettingsFixtures.settings()), changer)
+        val vm = WaterSettingsViewModel(false, FakeSettingsRepository(SettingsFixtures.settings()), changer, remindersFlag(), FakeNotificationPermissions())
         val events = eventsOf(vm)
 
         vm.takeAction(WaterSettingsAction.ShowOnTodayToggled)
@@ -99,6 +101,8 @@ class WaterSettingsTest : CoroutineTest() {
             false,
             FakeSettingsRepository(SettingsFixtures.settings(hidden)),
             FakeNumbersChanger { NumbersOutcome.NeedsPause },
+            remindersFlag(),
+            FakeNotificationPermissions(),
         )
         val events = eventsOf(vm)
 
@@ -111,7 +115,7 @@ class WaterSettingsTest : CoroutineTest() {
     fun goalSizeAndUnitAreSavedWithoutThePause() = runUnitTest {
         val repository = FakeSettingsRepository(SettingsFixtures.settings())
         val changer = FakeNumbersChanger()
-        val vm = WaterSettingsViewModel(true, repository, changer)
+        val vm = WaterSettingsViewModel(true, repository, changer, remindersFlag(), FakeNotificationPermissions())
 
         vm.takeAction(WaterSettingsAction.GoalPicked(10))
         vm.takeAction(WaterSettingsAction.GlassSizePicked(330))
@@ -128,11 +132,35 @@ class WaterSettingsTest : CoroutineTest() {
 
     @Test
     fun backCloses() = runUnitTest {
-        val vm = WaterSettingsViewModel(false, FakeSettingsRepository(), FakeNumbersChanger())
+        val vm = WaterSettingsViewModel(false, FakeSettingsRepository(), FakeNumbersChanger(), remindersFlag(), FakeNotificationPermissions())
         val events = eventsOf(vm)
 
         vm.takeAction(WaterSettingsAction.BackTapped)
 
         assertEquals(listOf<WaterSettingsEvent>(WaterSettingsEvent.Close), events)
+    }
+
+    @Test
+    fun theRemindersRowShowsOnlyWithTheFlag() {
+        val settings = SettingsFixtures.settings().copy(waterReminders = true)
+        assertEquals(null, WaterSettingsStateBuilder.build(settings, backToMore = true).reminders)
+        assertEquals(true, WaterSettingsStateBuilder.build(settings, backToMore = true, remindersOn = true).reminders)
+    }
+
+    @Test
+    fun turningWaterRemindersOnAsksForNotifications_once_andOffNeverAsks() = runUnitTest {
+        val repository = FakeSettingsRepository(SettingsFixtures.settings())
+        val permissions = FakeNotificationPermissions()
+        val vm = WaterSettingsViewModel(true, repository, FakeNumbersChanger(), remindersFlag(on = true), permissions)
+
+        vm.takeAction(WaterSettingsAction.RemindersToggled)
+        assertEquals(true, repository.state.value.waterReminders)
+        assertEquals(1, permissions.prompts)
+        assertEquals(true, vm.state.reminders)
+
+        vm.takeAction(WaterSettingsAction.RemindersToggled)
+        vm.takeAction(WaterSettingsAction.RemindersToggled)
+        assertEquals(true, repository.state.value.waterReminders)
+        assertEquals(1, permissions.prompts)
     }
 }

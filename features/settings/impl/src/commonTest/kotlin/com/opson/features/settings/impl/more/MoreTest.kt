@@ -3,6 +3,7 @@ package com.opson.features.settings.impl.more
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.remindersFlag
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -47,7 +48,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun settingsArriveAsState() = runUnitTest {
         val settings = FakeSettingsRepository(SettingsFixtures.settings())
-        val vm = MoreViewModel(settings)
+        val vm = MoreViewModel(settings, remindersFlag())
 
         settings.state.value = settings.state.value.copy(waterGlasses = 10)
 
@@ -56,7 +57,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun eachRowOpensItsPage_andPlanOpensNothing() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository())
+        val vm = MoreViewModel(FakeSettingsRepository(), remindersFlag())
         val events = eventsOf(vm)
 
         vm.state.groups.flatten().forEach { vm.takeAction(MoreAction.RowTapped(it)) }
@@ -65,5 +66,19 @@ class MoreTest : CoroutineTest() {
             listOf(MoreEvent.OpenModes, MoreEvent.OpenTargets, MoreEvent.OpenLookAndFeel, MoreEvent.OpenWater, MoreEvent.OpenSupport),
             events,
         )
+    }
+
+    @Test
+    fun withTheRemindersFlagTheFirstCardGainsReminders_sayingWhetherQuietModeIsOn() = runUnitTest {
+        val settings = SettingsFixtures.settings().copy(quiet = false)
+        assertEquals(
+            listOf(MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.Reminders(quiet = false), MoreRow.LookAndFeel),
+            MoreStateBuilder.build(settings, remindersOn = true).groups[0],
+        )
+
+        val vm = MoreViewModel(FakeSettingsRepository(settings), remindersFlag(on = true))
+        val events = eventsOf(vm)
+        vm.takeAction(MoreAction.RowTapped(MoreRow.Reminders(quiet = false)))
+        assertEquals(listOf<MoreEvent>(MoreEvent.OpenReminders), events)
     }
 }

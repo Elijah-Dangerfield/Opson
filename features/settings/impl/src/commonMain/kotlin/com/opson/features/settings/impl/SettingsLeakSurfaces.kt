@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl
 
+import androidx.compose.foundation.layout.Column
 import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelStateBuilder
 import com.opson.features.settings.impl.modes.ModesScreen
@@ -9,6 +10,9 @@ import com.opson.features.settings.impl.more.MoreStateBuilder
 import com.opson.features.settings.impl.pause.PauseSheetContent
 import com.opson.features.settings.impl.pause.PauseState
 import com.opson.features.settings.impl.pause.PauseSubject
+import com.opson.features.settings.impl.reminders.ReminderNotifications
+import com.opson.features.settings.impl.reminders.RemindersScreen
+import com.opson.features.settings.impl.reminders.RemindersStateBuilder
 import com.opson.features.settings.impl.support.DeleteStep
 import com.opson.features.settings.impl.support.SupportScreen
 import com.opson.features.settings.impl.support.SupportState
@@ -18,6 +22,7 @@ import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsStateBuilder
 import com.opson.features.settings.impl.water.WaterSettingsScreen
 import com.opson.features.settings.impl.water.WaterSettingsStateBuilder
+import com.opson.libraries.diary.Tone
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 
@@ -63,6 +68,17 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "support-delete", label = "Support, delete everything", showsCaloriesInFull = false) { _ ->
             SupportScreen(SupportState(delete = DeleteStep.Confirming), onAction = {})
+        },
+        // 0.2, release.reminders. No amounts on the page, and none can reach a notification:
+        // its text is fixed resources (ReminderCopy), scanned here in both tones.
+        LeakSurface(id = "reminders", label = "Reminders and celebrations", showsCaloriesInFull = false) { policy ->
+            RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet.copy(numbers = policy.settings)), onAction = {})
+        },
+        LeakSurface(id = "reminder-notification", label = "Meal and water reminders", showsCaloriesInFull = false) { _ ->
+            Column {
+                ReminderNotifications(Tone.Plain)
+                ReminderNotifications(Tone.Warm)
+            }
         },
         LeakSurface(id = "look-and-feel", label = "Look and feel", showsCaloriesInFull = false) { policy ->
             LookAndFeelScreen(LookAndFeelStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})

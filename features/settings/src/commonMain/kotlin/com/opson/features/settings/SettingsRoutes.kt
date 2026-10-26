@@ -29,3 +29,11 @@ class LookAndFeelRoute : Route()
 /** Helpline, export, delete, and the sharing that is coming later. */
 @Serializable
 class SupportRoute : Route()
+
+/**
+ * Reminders and celebrations (0.2, behind `release.reminders`): quiet mode, the big-day card,
+ * meal reminders and their times, tone and the hunger questions. Opened from More and from the
+ * Rhythm card on Today.
+ */
+@Serializable
+class RemindersRoute : Route()

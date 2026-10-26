@@ -24,6 +24,8 @@ import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.reminders_water_row
+import opson.libraries.resources.generated.resources.reminders_water_row_body
 import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_back_today
 import opson.libraries.resources.generated.resources.settings_water_goal
@@ -105,6 +107,28 @@ fun WaterSettingsScreen(
                     },
                 )
             }
+            state.reminders?.let { on ->
+                HorizontalDivider(color = AppTheme.colors.line)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.section),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(Res.string.reminders_water_row),
+                            typography = AppTheme.type.bodyStrong,
+                            color = AppTheme.colors.ink,
+                        )
+                        Text(
+                            text = stringResource(Res.string.reminders_water_row_body),
+                            typography = AppTheme.type.secondarySmall,
+                            color = AppTheme.colors.muted,
+                        )
+                    }
+                    AppSwitch(checked = on, onCheckedChange = { onAction(WaterSettingsAction.RemindersToggled) })
+                }
+            }
         }
     }
 }
@@ -131,6 +155,16 @@ private fun WaterSettingsFromTodayPreview() {
 private fun WaterSettingsBlindFlOzDarkPreview() {
     val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind)).copy(waterUnit = WaterUnit.FlOz)
     SettingsPreview(dark = true) { WaterSettingsScreen(WaterSettingsStateBuilder.build(settings, backToMore = true), onAction = {}) }
+}
+
+/** With `release.reminders` on: the water reminders row, switched on. */
+@Preview
+@Composable
+private fun WaterSettingsRemindersPreview() {
+    val settings = SettingsFixtures.settings().copy(waterReminders = true)
+    SettingsPreview {
+        WaterSettingsScreen(WaterSettingsStateBuilder.build(settings, backToMore = true, remindersOn = true), onAction = {})
+    }
 }
 
 @Preview
