@@ -108,6 +108,8 @@ fun App(appComponent: AppComponent) {
             if (authRepository.isOAuthRedirect(url)) {
                 Catching { authRepository.completeOAuthRedirect(url) }
                     .logOnFailure { "Failed to complete OAuth redirect" }
+            } else if (appComponent.widgetOpens.opened(url)) {
+                // A home screen widget's +: WidgetOpens answers through its requests, below.
             } else {
                 Catching {
                     val request = NavDeepLinkRequest.Builder.fromUri(NavUri(url)).build()
@@ -123,6 +125,14 @@ fun App(appComponent: AppComponent) {
     LaunchedEffect(router) {
         appComponent.reminderOpens.requests.collect { open ->
             router.navigate(LoggerRoute(slot = open.slot, dayIso = open.date.toString()))
+        }
+    }
+
+    // A home screen widget's + opens the Logger on the next meal, today. Through the router for
+    // the same reason as a reminder: a tap that cold-starts the app still lands.
+    LaunchedEffect(router) {
+        appComponent.widgetOpens.requests.collect { open ->
+            router.navigate(LoggerRoute(slot = open.slot, dayIso = open.day.toString()))
         }
     }
 

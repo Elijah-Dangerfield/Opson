@@ -50,7 +50,10 @@ class MainActivity : ComponentActivity() {
         }
 
         // A recreated activity already handled its intent; only a fresh launch carries a new tap.
-        if (savedInstanceState == null) handleReminderTap(intent)
+        if (savedInstanceState == null) {
+            handleReminderTap(intent)
+            handleWidgetTap(intent)
+        }
 
         reportStartupWhenReady()
     }
@@ -96,6 +99,16 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleReminderTap(intent)
+        handleWidgetTap(intent)
+    }
+
+    /**
+     * A home screen widget's +: its link goes to WidgetOpens, which asks App.kt for the Logger.
+     * Cleared once handled so NavHost, which reads the intent's data as a deep link, never sees it.
+     */
+    private fun handleWidgetTap(intent: Intent?) {
+        val url = intent?.dataString ?: return
+        if (appComponent.widgetOpens.opened(url)) intent.data = null
     }
 
     /** A tapped reminder, or its Log it button: the coordinator asks App.kt for the Logger. */

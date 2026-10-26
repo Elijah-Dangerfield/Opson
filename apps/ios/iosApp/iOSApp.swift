@@ -10,6 +10,8 @@ struct iOSApp: App {
     let appleSignInCoordinator = IOSAppleSignInCoordinator()
     let secureSessionStorage = IOSSecureSessionStorage()
     let fileSharePresenter = IOSFileSharePresenter()
+    // Does nothing until Kotlin calls it, which only happens with release.widgets on.
+    let widgetBridge = IOSWidgetBridge()
     private let nativeViewFactory = IOSNativeViewFactory.shared
     private let iOSAppComponent: IosAppComponent
 
@@ -20,7 +22,8 @@ struct iOSApp: App {
             appleSignInCoordinator: appleSignInCoordinator,
             secureSessionStorage: secureSessionStorage,
             fileSharePresenter: fileSharePresenter,
-            nativeViewFactory: nativeViewFactory
+            nativeViewFactory: nativeViewFactory,
+            widgetBridge: widgetBridge
         )
         iOSAppComponent.telemetry.initialize()
         // Construct every @AutoInit singleton up front — resolving the set is

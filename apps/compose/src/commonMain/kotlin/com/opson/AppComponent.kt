@@ -12,6 +12,7 @@ import com.opson.libraries.opson.Telemetry
 import com.opson.libraries.reminders.ReminderActions
 import com.opson.libraries.reminders.ReminderOpens
 import com.opson.libraries.navigation.FeatureEntryPoint
+import com.opson.libraries.widgets.WidgetOpens
 import me.tatarka.inject.annotations.Provides
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesTo
@@ -63,7 +64,10 @@ interface AppComponent {
 
     /** What a notification's buttons and taps report: Android's activity and receivers reach it here. */
     val reminderActions: ReminderActions
-    
+
+    /** A home screen widget's +: the URL goes in here (App.kt on iOS, MainActivity on Android), the Logger comes out. */
+    val widgetOpens: WidgetOpens
+
     /**
      * Singletons that need to construct at app boot rather than lazily
      * on first injection. Anvil populates this set via the
