@@ -27,6 +27,10 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.automirrored.rounded.EventNote
 import androidx.compose.material.icons.rounded.DashboardCustomize
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.rounded.BlurOn
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material.icons.rounded.CheckCircleOutline
@@ -171,6 +175,16 @@ object AppIcons {
     val Insights get() = icon("insights", MaterialIcons.Rounded.Insights)
     val VisibilityOff get() = icon("visibility_off", MaterialIcons.Rounded.VisibilityOff)
 
+    // Visibility levels, as onboarding's mode preview marks them
+    val Visibility get() = icon("visibility", MaterialIcons.Rounded.Visibility)
+
+    /** A softened number (a word or a fill bar): Symbols' `blur_on`, a field of dots. */
+    val BlurOn get() = icon("blur_on", MaterialIcons.Rounded.BlurOn)
+
+    // Account
+    val Mail get() = icon("mail", MaterialIcons.Outlined.Email)
+    val Group get() = icon("group", MaterialIcons.Outlined.Group)
+
     // More and settings
     /** The Material Symbols `target`; Rounded has only the ring and dot. */
     val Target get() = icon("target", MaterialIcons.Rounded.Adjust)
@@ -217,6 +231,7 @@ object AppIcons {
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             SearchOff, Cancel, ArrowBack, ExpandMore,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
+            Visibility, BlurOn, Mail, Group,
             OpenInNew, Target, Palette, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat,
             Star, Favorite, Bolt, Science, FormatListBulleted,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart,
