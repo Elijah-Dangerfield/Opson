@@ -100,7 +100,7 @@ internal fun InputBox(
                     innerTextField()
                 }
                 if (suffix != null) {
-                    Text(text = suffix, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, maxLines = 1)
+                    Text(text = suffix, typography = AppTheme.type.body, color = AppTheme.colors.muted, maxLines = 1)
                 }
             }
         },
