@@ -1,5 +1,6 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
@@ -240,6 +241,25 @@ class DiaryRepositoryImplTest : CoroutineTest() {
         assertEquals(listOf(22, 23, 24), days.map { it.date.day })
         assertEquals(100.0, days[1].totals().kcal.value)
         assertEquals(0.0, days[0].totals().kcal.value, "an empty day really is zero")
+    }
+
+    @Test
+    fun untrackedAndTheDayFeelingSyncOnTheDayRecord() = runUnitTest {
+        repo.setUntracked(today, true)
+        repo.setDayFeeling(today, DayFeeling.Steady)
+
+        val day = repo.observeDay(today).first()
+        assertTrue(day.untracked)
+        assertEquals(DayFeeling.Steady, day.feeling)
+        val row = WireJson.decodeFromString(DayRecordRowDto.serializer(), db.outbox.rows.single().payload)
+        assertTrue(row.untracked)
+        assertEquals("steady", row.feeling)
+
+        repo.setUntracked(today, false)
+        repo.setDayFeeling(today, null)
+        val cleared = repo.observeDay(today).first()
+        assertEquals(false, cleared.untracked)
+        assertNull(cleared.feeling)
     }
 
     private fun payloadFor(id: String): LogEntryRowDto = decode(db.outbox.rows.single { it.entityId == id }.payload)

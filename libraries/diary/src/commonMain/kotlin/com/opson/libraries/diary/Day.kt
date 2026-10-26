@@ -26,6 +26,10 @@ data class Day(
     /** This day's meal-groups choice; null follows [Settings.mealGroups]. */
     val mealGroups: Boolean? = null,
     val feelings: Map<MealSlot, MealFeeling> = emptyMap(),
+    /** Marked untracked (a holiday): Trends leaves a gap instead of reading it as a low day. */
+    val untracked: Boolean = false,
+    /** Day close's "How did today feel?", when answered. Only the user sees it. */
+    val feeling: DayFeeling? = null,
 ) {
     val allItems: List<LogItem> get() = MealSlot.entries.flatMap { items(it) }
 
@@ -39,6 +43,13 @@ data class Day(
 
     /** Anything at all for the calendar dot: an item or an "ate, no details". */
     val hasLogged: Boolean get() = itemsBySlot.values.any { it.isNotEmpty() } || ateNoDetails.isNotEmpty()
+
+    /**
+     * Whether Trends reads this day at all: something logged, and not marked
+     * [untracked]. An untracked day is a gap in every chart and average, never
+     * a low day.
+     */
+    val countsInTrends: Boolean get() = hasLogged && !untracked
 
     /**
      * The day's totals, or one slot's. A slot marked "ate, no details" adds one
@@ -87,6 +98,20 @@ data class MealFeeling(
     val note: String? = null,
 ) {
     val isEmpty: Boolean get() = hunger == null && fullness == null && moods.isEmpty() && note.isNullOrBlank()
+}
+
+/** Day close's optional "How did today feel?", in the design's order (4.5). [wire] is what syncs. */
+enum class DayFeeling(val wire: String) {
+    Steady("steady"),
+    Busy("busy"),
+    Tired("tired"),
+    Good("good"),
+    Hard("hard"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): DayFeeling? = entries.firstOrNull { it.wire == value }
+    }
 }
 
 /** Hunger before eating, in the Meal sheet's order. [wire] is what syncs. */

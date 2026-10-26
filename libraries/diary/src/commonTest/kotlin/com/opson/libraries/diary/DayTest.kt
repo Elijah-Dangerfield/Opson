@@ -29,6 +29,16 @@ class DayTest {
     }
 
     @Test
+    fun anUntrackedDayIsLoggedButNeverCountsInTrends() {
+        val logged = Day(date, ateNoDetails = setOf(MealSlot.Lunch))
+
+        assertTrue(logged.countsInTrends)
+        assertTrue(logged.copy(untracked = true).hasLogged, "the calendar still shows the dot")
+        assertFalse(logged.copy(untracked = true).countsInTrends)
+        assertFalse(Day.empty(date).countsInTrends)
+    }
+
+    @Test
     fun nameOnlyItemsMakeTheTotalUnknownNotZero() {
         val total = listOf(item(kcal = null), item(kcal = null)).totals().kcal
 

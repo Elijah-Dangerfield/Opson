@@ -1,6 +1,7 @@
 package com.opson.libraries.diary.impl
 
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
@@ -155,6 +156,14 @@ class DiaryRepositoryImpl(
         changeDay(day) { it.copy(note = note?.trim()?.takeIf(String::isNotEmpty)?.take(MAX_NOTE)) }
     }
 
+    override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = writer.write {
+        changeDay(day) { it.copy(untracked = untracked) }
+    }
+
+    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) = writer.write {
+        changeDay(day) { it.copy(feeling = feeling?.wire) }
+    }
+
     override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) = writer.write {
         changeDay(day) { record ->
             val slots = record.ateNoDetailsSlots()
@@ -288,6 +297,8 @@ class DiaryRepositoryImpl(
             note = live?.note,
             ateNoDetails = live?.ateNoDetailsSlots().orEmpty(),
             mealGroups = live?.mealGroups,
+            untracked = live?.untracked ?: false,
+            feeling = DayFeeling.fromWire(live?.feeling),
             feelings = feelings.filterNot { it.deleted }
                 .mapNotNull { row -> MealSlot.fromWire(row.slot)?.let { it to row.toDomain() } }
                 .toMap(),

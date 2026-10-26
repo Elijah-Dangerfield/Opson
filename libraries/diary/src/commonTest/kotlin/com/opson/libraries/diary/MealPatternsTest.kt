@@ -104,6 +104,20 @@ class MealPatternsTest {
     }
 
     @Test
+    fun anUntrackedDayIsLeftOutOfEveryFactAndTheDayCount() {
+        val tracked = day(start, item(start, MealSlot.Breakfast, 8))
+        val holiday = start.plus(1, DateTimeUnit.DAY)
+        val untracked = day(holiday, item(holiday, MealSlot.Breakfast, 11), item(holiday, MealSlot.Dinner, 21)).copy(untracked = true)
+
+        val facts = facts(listOf(tracked, untracked))
+
+        assertEquals(1, facts.frequency.getValue(MealSlot.Breakfast))
+        assertEquals(0, facts.frequency.getValue(MealSlot.Dinner))
+        assertEquals(listOf(8 * 60), facts.times.getValue(MealSlot.Breakfast))
+        assertEquals(27, facts.dayCount, "a holiday is not a day with meals missing")
+    }
+
+    @Test
     fun theLongestGapIsTheBackToBackPairWithTheLongestUsualGap() {
         val days = (0 until 5).map { i ->
             val date = start.plus(i, DateTimeUnit.DAY)

@@ -18,7 +18,7 @@ import kotlin.math.roundToInt
  * through the visibility policy; nothing here is formatted.
  */
 data class MealPatternFacts(
-    /** Days in the span, both ends included. */
+    /** Days in the span, both ends included, less any marked untracked. */
     val dayCount: Int,
     /** When each meal was eaten, one entry per day it has an honest time. */
     val times: Map<MealSlot, List<Int>>,
@@ -64,15 +64,18 @@ object MealPatterns {
 
     /**
      * Facts over [days] between [from] and [to], both included. Days outside are
-     * ignored, and a missing date is an empty day.
+     * ignored, and a missing date is an empty day. A day marked untracked is
+     * left out entirely, from the facts and from [MealPatternFacts.dayCount], so
+     * a holiday never reads as a day with a meal missing.
      *
      * A meal's time is when its first item was logged, and only when that was
      * on the meal's own day: an item back-filled on a later day says nothing
      * about when it was eaten, so it counts for how often and how much, not when.
      */
     fun of(days: List<Day>, from: LocalDate, to: LocalDate, timeZone: TimeZone): MealPatternFacts {
-        val span = days.filter { it.date in from..to }
-        val dayCount = (to.toEpochDays() - from.toEpochDays() + 1).toInt().coerceAtLeast(0)
+        val inRange = days.filter { it.date in from..to }
+        val span = inRange.filterNot { it.untracked }
+        val dayCount = ((to.toEpochDays() - from.toEpochDays() + 1).toInt() - (inRange.size - span.size)).coerceAtLeast(0)
         val timed: List<Pair<Day, Map<MealSlot, Int>>> = span.map { day -> day to mealTimes(day, timeZone) }
 
         val times = MealSlot.meals.associateWith { slot -> timed.mapNotNull { (_, meals) -> meals[slot] } }

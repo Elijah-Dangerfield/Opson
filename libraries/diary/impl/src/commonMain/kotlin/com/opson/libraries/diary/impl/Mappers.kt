@@ -159,6 +159,8 @@ internal fun DayRecordEntity.toRow(): DayRecordRowDto = DayRecordRowDto(
     mealGroups = mealGroups,
     clientUpdatedAtEpochMs = clientUpdatedAtEpochMs,
     deleted = deleted,
+    untracked = untracked,
+    feeling = feeling,
 )
 
 internal fun DayRecordRowDto.toEntity(): DayRecordEntity = DayRecordEntity(
@@ -170,6 +172,8 @@ internal fun DayRecordRowDto.toEntity(): DayRecordEntity = DayRecordEntity(
     mealGroups = mealGroups,
     clientUpdatedAtEpochMs = clientUpdatedAtEpochMs,
     deleted = deleted,
+    untracked = untracked,
+    feeling = feeling,
 )
 
 internal fun emptyDayRecord(day: String): DayRecordEntity = DayRecordEntity(

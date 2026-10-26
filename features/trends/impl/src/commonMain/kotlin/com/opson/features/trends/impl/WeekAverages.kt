@@ -48,12 +48,13 @@ object WeekAverages {
     }
 
     /**
-     * The daily average over the days in [days] with anything logged, or `null`
-     * when none has. Untracked days are left out rather than counted as zero, so
-     * a skipped day never drags the average down.
+     * The daily average over the days in [days] that count in Trends, or `null`
+     * when none does. Days with nothing logged, and days marked untracked, are
+     * left out rather than counted as zero, so a skipped day or a holiday never
+     * drags the average down.
      */
     fun of(days: List<Day>): NutrientDay? {
-        val tracked = days.filter { it.hasLogged }
+        val tracked = days.filter { it.countsInTrends }
         if (tracked.isEmpty()) return null
         val count = tracked.size.toDouble()
         val percents = MicroPercents.of(tracked.flatMap { day -> day.allItems.map { it.micros.orEmpty().toMicronutrients() } })

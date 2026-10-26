@@ -224,7 +224,8 @@ object TrendsStateBuilder {
 
     private fun recapDay(day: Day, today: LocalDate) = RecapDay(
         label = TrendsCalendar.weekdayLabel(day.date),
-        meals = MealSlot.meals.map { slot -> slot.takeIf { day.isMealDone(it) } },
+        // An untracked day is a gap: no dots, and never a day with one meal.
+        meals = MealSlot.meals.map { slot -> slot.takeIf { !day.untracked && day.isMealDone(it) } },
         isToday = day.date == today,
     )
 
@@ -235,9 +236,11 @@ object TrendsStateBuilder {
         leads: Boolean,
         checkPending: Boolean,
     ): RecapCard {
-        val counted = span.days.filter { it <= inputs.today }.map(dayAt)
-        val of = span.dayCount
-        val daysLogged = RecapRow.DaysLogged(counted.count { it.hasLogged }, of)
+        // Untracked days are left out of every count and of the "of", as Patterns does, so a holiday
+        // never reads as a day with nothing logged.
+        val counted = span.days.filter { it <= inputs.today }.map(dayAt).filterNot { it.untracked }
+        val of = span.dayCount - span.days.count { dayAt(it).untracked }
+        val daysLogged = RecapRow.DaysLogged(counted.count { it.countsInTrends }, of)
         if (checkPending) {
             return RecapCard(titled = false, rows = listOf(daysLogged, RecapRow.MealsLogged(counted.sumOf { it.doneMealCount })))
         }

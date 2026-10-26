@@ -99,5 +99,8 @@ object TrendsCalendar {
     private const val LAST_DAY_OFFSET = 5
 }
 
-/** What a day ate in energy, for the chart: `null` when nothing was logged or nothing logged had energy (a gap, not a zero). */
-internal fun Day.intakeKcal(): Double? = if (hasLogged) totals().kcal.value else null
+/**
+ * What a day ate in energy, for the chart: `null` (a gap, not a zero) when nothing was logged,
+ * nothing logged had energy, or the day is marked untracked.
+ */
+internal fun Day.intakeKcal(): Double? = if (countsInTrends) totals().kcal.value else null

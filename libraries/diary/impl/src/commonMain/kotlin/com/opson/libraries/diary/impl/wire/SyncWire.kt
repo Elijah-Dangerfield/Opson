@@ -93,6 +93,10 @@ data class DayRecordRowDto(
     val mealGroups: Boolean? = null,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean = false,
+    /** Marked untracked: Trends shows a gap. */
+    val untracked: Boolean = false,
+    /** A `DayFeeling` wire value, or null. */
+    val feeling: String? = null,
 )
 
 @Serializable

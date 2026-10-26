@@ -1,5 +1,6 @@
 package com.opson.libraries.diary.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -55,6 +56,11 @@ data class DayRecordEntity(
     val mealGroups: Boolean?,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean,
+    /** Marked untracked: Trends shows a gap. Schema 7. */
+    @ColumnInfo(defaultValue = "0")
+    val untracked: Boolean = false,
+    /** A `DayFeeling` wire value, or null. Schema 7. */
+    val feeling: String? = null,
 )
 
 @Entity(tableName = "meal_feelings", primaryKeys = ["day", "slot"])

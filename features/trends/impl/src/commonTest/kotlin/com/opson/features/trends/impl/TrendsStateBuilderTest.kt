@@ -118,6 +118,24 @@ class TrendsStateBuilderTest {
     }
 
     @Test
+    fun aDayMarkedUntracked_isAGapEverywhere_evenWithFoodLogged() {
+        val tuesday = LocalDate(2026, 10, 20)
+        val days = TrendsFixtures.days().map { if (it.date == tuesday) it.copy(untracked = true) else it }
+        val state = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(days = days), TrendsFixtures.policy())
+
+        val intake = assertNotNull(state.intake)
+        assertNull(intake.bars[1].fraction, "a holiday is a gap, never a low day")
+        // (1920 + 1680 + 2015 + 1785) / 4: Tuesday's 1,690 is left out, not counted as zero.
+        assertEquals("1,850 kcal", assertIs<Display.Shown>(intake.average).text)
+        assertEquals(RecapRow.DaysLogged(5, 6), assertNotNull(state.recap).rows.first())
+        assertEquals(RecapRow.Breakfast(5, 6), assertNotNull(state.recap).rows[1])
+        assertNull(WeekAverages.of(days.filter { it.date == tuesday }))
+
+        val blind = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(days = days), TrendsFixtures.policy(PresetId.Blind))
+        assertEquals(List(4) { null }, assertNotNull(blind.week).days[1].meals, "no dots for an untracked day")
+    }
+
+    @Test
     fun nameOnlyDay_isAGapInTheChart_butADayLogged() {
         val nameOnly = dayWith(LocalDate(2026, 10, 22), item(null, "Something at a friend's", null))
         val days = TrendsFixtures.days().filter { it.date != nameOnly.date } + nameOnly

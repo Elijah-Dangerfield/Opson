@@ -40,7 +40,7 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
         SyncStateEntity::class,
         FoodCacheEntity::class,
     ],
-    version = 6, // 6: the diary tables, the outbox, sync state and the food cache
+    version = 7, // 6: the diary tables, the outbox, sync state and the food cache; 7: day_records.untracked and .feeling
     /**
      * Every bump from [FIRST_APP_DATA_VERSION] on has to be listed here.
      *
@@ -52,6 +52,7 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
      */
     autoMigrations = [
         AutoMigration(from = 5, to = 6),
+        AutoMigration(from = 6, to = 7),
     ],
     exportSchema = true
 )

@@ -1,6 +1,7 @@
 package com.opson.features.trends.impl
 
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
@@ -53,6 +54,10 @@ class FakeDiaryRepository(days: List<Day> = TrendsFixtures.days()) : DiaryReposi
     override suspend fun closeDay(day: LocalDate) = unused()
     override suspend fun reopenDay(day: LocalDate) = unused()
     override suspend fun setDayNote(day: LocalDate, note: String?) = unused()
+
+    override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = unused()
+
+    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) = unused()
     override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) = unused()
     override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?) = unused()
     override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = unused()

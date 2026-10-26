@@ -69,6 +69,12 @@ interface DiaryRepository {
     /** A blank note clears it. */
     suspend fun setDayNote(day: LocalDate, note: String?)
 
+    /** Marks [day] untracked (a holiday) or tracked again. Trends shows an untracked day as a gap. */
+    suspend fun setUntracked(day: LocalDate, untracked: Boolean)
+
+    /** Day close's "How did today feel?"; null clears it. */
+    suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?)
+
     suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean)
 
     /** Null, or an empty feeling, clears it. */
