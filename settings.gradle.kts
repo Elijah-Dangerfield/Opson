@@ -60,6 +60,11 @@ if (!serverOnly) {
     // so it is client-side and gated out of the server-only graph.
     include(":apps:baselineprofile")
 
+    // Every @Preview rendered to a PNG under Robolectric (Roborazzi), for
+    // screenshot diffs and for scripts/design_sync.main.kts. Tests only;
+    // depends on every feature and library, impls included.
+    include(":apps:screenshots")
+
     // Compose Multiplatform (web) admin console for remote config. The server
     // serves the prebuilt bundle at /admin; CI builds it — the server build
     // itself stays JS-toolchain-free, so it's gated out of the server-only

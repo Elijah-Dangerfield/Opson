@@ -52,3 +52,8 @@ apps/admin/admin-tokens.local.properties
 
 # Scratch explainers written by the /explain skill. Not repo content.
 explain-*.md
+
+# scripts/design_sync.main.kts output: app renders, imported designs, and the
+# side-by-sides. Regenerated on demand; published to the design-sync branch
+# when shared, never committed here.
+/design-sync/

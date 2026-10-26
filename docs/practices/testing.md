@@ -20,6 +20,13 @@ layer, the cheapest layer that can fail when it breaks.
   composition, driven and asserted on the host JVM. Only for claims that are
   about composition itself: effects running and disposing, recomposition, what
   is on screen. See below.
+- **Preview screenshots** (`:apps:screenshots`): every `@Preview` rendered to a
+  PNG under Robolectric with Roborazzi. Catches what a screen *looks like*
+  changing: record before, verify after. Not part of the plain unit-test sweep;
+  run `./gradlew :apps:screenshots:verifyRoborazziDebug`. The setup, the screen
+  id rule and where the baseline lives are in
+  [design-sync.md](design-sync.md), because the same renders feed the design
+  sync.
 - **Server unit + route tests** (`:apps:server` `src/test`): plugins and
   routes through Ktor's `testApplication`, repositories over Testcontainers
   Postgres (`DatabaseTest` base class).
@@ -133,6 +140,7 @@ and the higher one doesn't get written.
 | SQL, migrations, repository contracts | `:apps:server` Testcontainers tests | not route tests |
 | DI graph constructs against a live DB | `FullStackMeTest` | not per-repository tests |
 | Effects running/disposing, recomposition, what is on screen | composition tests | not VM tests, which cannot see a composition |
+| How a screen looks: layout, spacing, colour, type | preview screenshots | not composition tests, which assert on semantics rather than pixels |
 | Client↔server contract drift (serialization, headers, auth handshake, real HTTP semantics) | `:apps:integration` | not unit tests with canned JSON |
 
 Integration tests aren't a substitute for unit tests, they're slower and

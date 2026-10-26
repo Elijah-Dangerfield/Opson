@@ -69,6 +69,51 @@ starts, so the obvious incantation taps the first frame on every launch. The
 script's docstring has the measured cost and is the reason not to "simplify"
 it back.
 
+## design_sync.main.kts
+
+Moves screen images between the app and Claude Design. The app side is every
+`@Preview` rendered to a PNG by `:apps:screenshots`; screens are paired by
+screen id. The id rule, the render setup and where baselines live are in
+[docs/practices/design-sync.md](../docs/practices/design-sync.md).
+
+```bash
+./scripts/design_sync.main.kts export                  # render, then design-sync/app/ + app.zip
+./scripts/design_sync.main.kts export --publish        # also push to the design-sync branch
+./scripts/design_sync.main.kts export --skip-render    # reuse the last render
+./scripts/design_sync.main.kts import <folder-or-zip>  # pair a Claude Design export with the app
+./scripts/design_sync.main.kts status                  # what is on disk, and when
+```
+
+`export` runs `./gradlew :apps:screenshots:recordRoborazziDebug`, copies the
+PNGs into `design-sync/app/`, writes `design-sync/app/manifest.json` (app,
+commit, `generatedAt`, and per screen its id, file, module, preview function
+and failure if it did not render) and zips the folder to `design-sync/app.zip`.
+A preview that throws is listed as a failure, not fatal:
+
+```
+✓ 126 screens exported to design-sync/app/, zipped to design-sync/app.zip (4323 KB)
+```
+
+`--publish` force-pushes `design-sync/app/` as a single parentless commit to an
+orphan `design-sync` branch on `origin`, through a temporary index, so the
+current branch and working tree are never touched. It prints the raw manifest
+URL to hand Claude Design. That URL needs a public repo; for a private one,
+hand over `app.zip` instead (the script checks with `gh` when it can).
+
+`import` copies the design PNGs into `design-sync/design/`, pairs each with an
+app screen (exact id, then a loose match ignoring case, separators and the word
+"preview"), and writes `design-sync/compare/<id>.png` (app left, design right,
+same height) and `design-sync/compare/README.md`:
+
+```
+✓ 4 design screens imported to design-sync/design/
+✓ 3 paired (1 by a loose match), side-by-sides in design-sync/compare/
+! 1 design screens have no app screen: settings__default
+  123 app screens have no design. Full list in design-sync/compare/README.md
+```
+
+`design-sync/` is gitignored.
+
 ## setup.main.kts
 
 The one entry point. Walks every setup step in the order its dependencies

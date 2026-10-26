@@ -147,6 +147,8 @@ Conventions (hand-rolled fakes only, dispatcher choice, which layer catches whic
 
 Composables can be tested too. `FloatingWindowHostTest` in `:libraries:navigation` is the worked example: a real composition under Robolectric in `androidUnitTest`, driven and asserted on the host JVM, running under the same plain `testDebugUnitTest` sweep. Reach for it only for claims that are *about* composition, an effect that must run or dispose, a recomposition, what is on screen. Anything a view-model or pure-function test can answer stays there, because this layer is slower and much easier to write so that it passes for the wrong reason. The recipe, and why it is not a `jvm()` target, are in [`docs/practices/testing.md`](docs/practices/testing.md).
 
+Every `@Preview` is also a screenshot. `:apps:screenshots` renders them all with Roborazzi (`./gradlew :apps:screenshots:recordRoborazziDebug`, then `verifyRoborazziDebug` after a change to see what moved), and `scripts/design_sync.main.kts` exchanges those renders with Claude Design, paired by screen id. So a preview's file and function name are its id: renaming one unpairs its design. A new screen should get previews for its real states, built from fake state, and they must render without a device (no platform services, loops frozen under `LocalInspectionMode`). Opt a preview out with `@NoScreenshot` and say why. Details in [`docs/practices/design-sync.md`](docs/practices/design-sync.md); the agent workflow is the `skills/design-sync` skill.
+
 ## SEAViewModel Pattern
 
 ```kotlin

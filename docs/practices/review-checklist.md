@@ -27,6 +27,10 @@ produces a specific bug, and the bug is named next to it. Read
 - [ ] **Stateful wrapper, stateless screen.** The entry point collects state
   and passes `state` and `onAction` to `XScreen(state, onAction)`. The screen
   and everything under it takes plain parameters and is previewable.
+- [ ] **A screen preview renders one theme at full phone width.** Use a
+  separate `…Dark` preview, never `PreviewLightDark`, for whole screens and
+  sheets: every preview is also a design-sync screenshot at 390 dp, and two
+  themes side by side squeeze each to half width. Components may pair them.
 - [ ] **A `@Preview` for each meaningful state**: empty, populated, and at
   least one gentle mode (Blind or Nutrient focus). Uses
   `org.jetbrains.compose.ui.tooling.preview.Preview`, never the androidx one

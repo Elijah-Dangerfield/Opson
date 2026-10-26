@@ -226,7 +226,18 @@ if (!awaitProjectReady(token, ref)) {
 val projectUrl = "https://$ref.supabase.co"
 
 bold("\nAuth configuration")
-val bundleId = applicationId ?: prompt("iOS bundle ID (for native Sign in with Apple)")
+// The iOS bundle id, not the applicationId: Apple's identity token carries the
+// bundle id as its audience, and the two differ (`com.x` versus `com.x.X`).
+// Authorizing the applicationId looked right and made every native Apple
+// sign-in fail Supabase's audience check.
+val bundleId = File(root, "apps/ios/fastlane/Appfile").takeIf { it.exists() }?.readLines()
+    ?.firstOrNull { it.trimStart().startsWith("app_identifier") }
+    ?.substringAfter('"')?.substringBefore('"')?.takeIf { it.isNotBlank() }
+    ?: File(root, "apps/ios/iosApp.xcodeproj/project.pbxproj").takeIf { it.exists() }?.readLines()
+        ?.firstOrNull { it.trim().startsWith("PRODUCT_BUNDLE_IDENTIFIER = ") }
+        ?.substringAfter("= ")?.trim()?.removeSuffix(";")?.takeIf { it.isNotBlank() && '$' !in it }
+    ?: applicationId
+    ?: prompt("iOS bundle ID (for native Sign in with Apple)")
 val authBody = jsonObject(
     // The guest flow mints anonymous sessions during onboarding. Without this
     // every first launch fails at the point the user has done nothing wrong.

@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.sentryAndroid) apply false
     alias(libs.plugins.baselineProfile) apply false
     alias(libs.plugins.kotlinCocoapods) apply false
+    alias(libs.plugins.roborazzi) apply false
     // Declared here (version only) so the conditional block below can apply it.
     alias(libs.plugins.detekt) apply false
 }

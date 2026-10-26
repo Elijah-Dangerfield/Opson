@@ -113,7 +113,7 @@ private fun IconPreview() {
             items(IconSize.entries.toTypedArray()) {
                 com.opson.libraries.ui.components.icon.Icon(
                     size = it,
-                    icon = Icons.Check.Outlined("check")
+                    icon = Icons.Home.Outlined("home")
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
