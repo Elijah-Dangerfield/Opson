@@ -373,6 +373,193 @@ class BarcodeScanViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun searchInsteadFromTheDeniedStateGoesBackToTheLoggersSearch() = runUnitTest {
+        permissions.permission = CameraPermission.Denied(canAskAgain = false)
+        val vm = vm()
+        val events = events(vm)
+        settle()
+        assertEquals(ScanStage.NoCamera(canAskAgain = false), vm.state.stage)
+
+        vm.takeAction(BarcodeScanAction.SearchInsteadTapped)
+        settle()
+
+        // Close pops this screen; the logger under it is still on its search pane (LoggerViewModelTest
+        // theScannerOpensOverTheSearchPane), so this lands on search, with nothing picked or opened.
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.Close), events)
+        assertTrue(basket.basket.value.isEmpty())
+        assertTrue(catalog.barcodes.isEmpty())
+    }
+
+    @Test
+    fun searchInsteadWhileScanningGoesBackToTheLogger() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(BarcodeScanAction.SearchInsteadTapped)
+        settle()
+
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.Close), events)
+    }
+
+    @Test
+    fun cameraUnavailableShowsACalmStateOnce() = runUnitTest {
+        val vm = vm()
+        settle()
+
+        vm.takeAction(BarcodeScanAction.CameraUnavailable)
+        vm.takeAction(BarcodeScanAction.CameraUnavailable)
+        settle()
+
+        assertEquals(ScanStage.CameraUnavailable, vm.state.stage)
+        assertEquals(listOf("scan_started asked=false", "camera_unavailable"), telemetry.events)
+    }
+
+    @Test
+    fun cameraUnavailableIsIgnoredWithoutPermission() = runUnitTest {
+        permissions.permission = CameraPermission.Denied(canAskAgain = false)
+        val vm = vm()
+        settle()
+
+        vm.takeAction(BarcodeScanAction.CameraUnavailable)
+        settle()
+
+        assertEquals(ScanStage.NoCamera(canAskAgain = false), vm.state.stage)
+    }
+
+    @Test
+    fun codeReadIsIgnoredWhileTheCameraIsUnavailableOrTheCodeIsBeingTyped() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.CameraUnavailable)
+        vm.takeAction(ean13())
+        vm.takeAction(BarcodeScanAction.RetryCameraTapped)
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+        vm.takeAction(ean13())
+        settle()
+
+        assertTrue(catalog.barcodes.isEmpty())
+    }
+
+    @Test
+    fun retryCameraTappedScansAgain() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.CameraUnavailable)
+
+        vm.takeAction(BarcodeScanAction.RetryCameraTapped)
+        settle()
+
+        assertEquals(ScanStage.Scanning, vm.state.stage)
+    }
+
+    @Test
+    fun typeCodeTappedOpensAnEmptyField() = runUnitTest {
+        val vm = vm()
+        settle()
+
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+        settle()
+
+        assertEquals(ScanStage.Typing("", canLookUp = false, misread = false), vm.state.stage)
+    }
+
+    @Test
+    fun codeTypedKeepsDigitsOnlyUpTo14() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+
+        vm.takeAction(BarcodeScanAction.CodeTyped("0 12345-67890 5 999 1"))
+        settle()
+
+        assertEquals(ScanStage.Typing("01234567890599", canLookUp = true, misread = false), vm.state.stage)
+    }
+
+    @Test
+    fun lookUpTypedTappedRunsTheSameLookupAsAScan() = runUnitTest {
+        catalog.barcodeResult = Catching.success(LoggerFixtures.scannedYogurt)
+        val vm = vm()
+        val events = events(vm)
+        settle()
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+        vm.takeAction(BarcodeScanAction.CodeTyped("036632027627"))
+
+        vm.takeAction(BarcodeScanAction.LookUpTypedTapped)
+        settle()
+
+        assertEquals(listOf("036632027627"), catalog.barcodes)
+        assertEquals(
+            listOf<BarcodeScanEvent>(BarcodeScanEvent.OpenAmount(LoggerFixtures.scannedYogurt.id, LoggerFixtures.today, MealSlot.Dinner)),
+            events,
+        )
+        assertEquals("hit usda_branded slow=false typed", telemetry.events.last())
+    }
+
+    @Test
+    fun lookUpTypedTappedMissesLikeAScanAndIsReported() = runUnitTest {
+        permissions.permission = CameraPermission.Denied(canAskAgain = false)
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+        vm.takeAction(BarcodeScanAction.CodeTyped(LoggerFixtures.MISSED_CODE))
+
+        vm.takeAction(BarcodeScanAction.LookUpTypedTapped)
+        settle()
+
+        assertEquals(ScanStage.Miss(LoggerFixtures.MISSED_CODE, name = "", canSave = false), vm.state.stage)
+        assertEquals(listOf(LoggerFixtures.MISSED_CODE), misses.reported)
+        assertEquals("miss typed", telemetry.events.last())
+    }
+
+    @Test
+    fun lookUpTypedTappedWithABadCheckDigitAsksToCheckTheNumbers() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+        vm.takeAction(BarcodeScanAction.CodeTyped("4006381333932"))
+
+        vm.takeAction(BarcodeScanAction.LookUpTypedTapped)
+        settle()
+        assertEquals(ScanStage.Typing("4006381333932", canLookUp = true, misread = true), vm.state.stage)
+        assertTrue(catalog.barcodes.isEmpty())
+
+        vm.takeAction(BarcodeScanAction.CodeTyped("400638133393"))
+        settle()
+        assertEquals(ScanStage.Typing("400638133393", canLookUp = true, misread = false), vm.state.stage, "editing clears it")
+    }
+
+    @Test
+    fun lookUpTypedTappedWithTooFewDigitsDoesNothing() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+        vm.takeAction(BarcodeScanAction.CodeTyped("1234567"))
+
+        vm.takeAction(BarcodeScanAction.LookUpTypedTapped)
+        settle()
+
+        assertTrue(catalog.barcodes.isEmpty())
+        assertIs<ScanStage.Typing>(vm.state.stage)
+    }
+
+    @Test
+    fun typingCancelledGoesBackToWhatTheCameraCanDo() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+        vm.takeAction(BarcodeScanAction.TypingCancelled)
+        settle()
+        assertEquals(ScanStage.Scanning, vm.state.stage)
+
+        vm.takeAction(BarcodeScanAction.CameraUnavailable)
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+        vm.takeAction(BarcodeScanAction.TypingCancelled)
+        settle()
+        assertEquals(ScanStage.CameraUnavailable, vm.state.stage)
+    }
+
+    @Test
     fun closeTappedCloses() = runUnitTest {
         val vm = vm()
         val events = events(vm)

@@ -30,6 +30,19 @@
     <!-- Lookup failed: offline, or no source answered -->
     <string name="barcode_unavailable">Couldn't look that up right now. Try again in a moment.</string>
 
+    <!-- Typing the code by hand: the digits printed under the barcode -->
+    <string name="barcode_type_code">Type the code</string>
+    <string name="barcode_type_body">Type the numbers printed under the barcode.</string>
+    <string name="barcode_type_placeholder">8 to 14 digits</string>
+    <string name="barcode_type_misread">Those numbers don't match a barcode. Check them against the pack.</string>
+    <string name="barcode_look_up">Look it up</string>
+    <string name="barcode_cancel">Cancel</string>
+
+    <!-- Allowed, but the camera can't run: none on the device, or another app has it -->
+    <string name="barcode_camera_unavailable_title">The camera isn't available</string>
+    <string name="barcode_camera_unavailable_body">Another app may be using it, or this device doesn't have one. You can type the numbers under the barcode instead.</string>
+    <string name="barcode_try_camera">Try the camera again</string>
+
     <!-- Camera permission -->
     <string name="barcode_camera_title">The camera is off for Opson</string>
     <string name="barcode_camera_body">Opson only uses the camera to read barcodes. You can turn it on in Settings, or search by name instead.</string>

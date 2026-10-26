@@ -29,11 +29,24 @@ sealed interface ScanStage {
     /** The permission is being read, or the system prompt is up. */
     data object Starting : ScanStage
 
-    /** The camera is live and the hint is showing. */
+    /** The camera is live and the hint is showing, with typing the code and search as ways out. */
     data object Scanning : ScanStage
 
-    /** A code was read. [slow] after 400 ms: almost certainly a first lookup at an outside source. */
-    data class LookingUp(val slow: Boolean) : ScanStage
+    /**
+     * A code was read or typed. [slow] after 400 ms: almost certainly a first
+     * lookup at an outside source. [camera] when the live camera stays under
+     * the spinner; a typed code with no camera shows the placeholder.
+     */
+    data class LookingUp(val slow: Boolean, val camera: Boolean = true) : ScanStage
+
+    /**
+     * Typing the digits printed under the barcode. [canLookUp] once there are
+     * 8 to 14 of them; [misread] after a look-up whose check digit failed.
+     */
+    data class Typing(val code: String, val canLookUp: Boolean, val misread: Boolean) : ScanStage
+
+    /** Allowed, but the camera cannot run: none on the device, a failed start, or another app has it. */
+    data object CameraUnavailable : ScanStage
 
     /** Found nowhere. [code] is shown so the person can see what was read. */
     data class Miss(val code: String, val name: String, val canSave: Boolean) : ScanStage
@@ -62,6 +75,14 @@ sealed interface BarcodeScanAction {
     data object AllowCameraTapped : BarcodeScanAction
     data object OpenSettingsTapped : BarcodeScanAction
     data object CloseTapped : BarcodeScanAction
+
+    /** The camera reported it cannot run. */
+    data object CameraUnavailable : BarcodeScanAction
+    data object RetryCameraTapped : BarcodeScanAction
+    data object TypeCodeTapped : BarcodeScanAction
+    data class CodeTyped(val text: String) : BarcodeScanAction
+    data object LookUpTypedTapped : BarcodeScanAction
+    data object TypingCancelled : BarcodeScanAction
 }
 
 sealed interface BarcodeScanEvent {
@@ -78,7 +99,7 @@ sealed interface BarcodeScanEvent {
 /** Where a scan stands, as the view model tracks it. */
 sealed interface Lookup {
     data object Idle : Lookup
-    data class Running(val code: String, val slow: Boolean = false) : Lookup
+    data class Running(val code: String, val slow: Boolean = false, val typed: Boolean = false) : Lookup
     data class Missed(val code: String) : Lookup
     data class Failed(val code: String) : Lookup
 }
@@ -88,22 +109,38 @@ data class ScanModel(
     val permission: CameraPermission? = null,
     val lookup: Lookup = Lookup.Idle,
     val name: String = "",
+    /** The code being typed by hand, or null while not typing. */
+    val typed: String? = null,
+    val typedMisread: Boolean = false,
+    val cameraUnavailable: Boolean = false,
 )
 
 /** The scanner's state as a pure function of [ScanModel], like the logger's [LoggerStateBuilder]. */
 object BarcodeScanStateBuilder {
 
-    fun build(slot: MealSlot, model: ScanModel): BarcodeScanState = BarcodeScanState(
-        slot = slot,
-        stage = when (val permission = model.permission) {
-            null, CameraPermission.NotAsked -> ScanStage.Starting
-            is CameraPermission.Denied -> ScanStage.NoCamera(canAskAgain = permission.canAskAgain)
-            CameraPermission.Granted -> when (val lookup = model.lookup) {
-                Lookup.Idle -> ScanStage.Scanning
-                is Lookup.Running -> ScanStage.LookingUp(slow = lookup.slow)
-                is Lookup.Missed -> ScanStage.Miss(code = lookup.code, name = model.name, canSave = model.name.isNotBlank())
-                is Lookup.Failed -> ScanStage.Unavailable
+    /** Typed codes run the same lookup as scanned ones: 8 (EAN-8, UPC-E) to 14 (GTIN-14) digits. */
+    val TYPED_LENGTHS = 8..14
+
+    /**
+     * A lookup in progress or answered wins, since a typed code can be looked
+     * up with no camera at all; then typing; then the camera's own state.
+     */
+    fun build(slot: MealSlot, model: ScanModel): BarcodeScanState {
+        val cameraLive = model.permission == CameraPermission.Granted && !model.cameraUnavailable
+        val typed = model.typed
+        val stage = when (val lookup = model.lookup) {
+            is Lookup.Running -> ScanStage.LookingUp(slow = lookup.slow, camera = cameraLive)
+            is Lookup.Missed -> ScanStage.Miss(code = lookup.code, name = model.name, canSave = model.name.isNotBlank())
+            is Lookup.Failed -> ScanStage.Unavailable
+            Lookup.Idle -> when {
+                typed != null -> ScanStage.Typing(typed, canLookUp = typed.length in TYPED_LENGTHS, misread = model.typedMisread)
+                else -> when (val permission = model.permission) {
+                    null, CameraPermission.NotAsked -> ScanStage.Starting
+                    is CameraPermission.Denied -> ScanStage.NoCamera(canAskAgain = permission.canAskAgain)
+                    CameraPermission.Granted -> if (model.cameraUnavailable) ScanStage.CameraUnavailable else ScanStage.Scanning
+                }
             }
-        },
-    )
+        }
+        return BarcodeScanState(slot = slot, stage = stage)
+    }
 }

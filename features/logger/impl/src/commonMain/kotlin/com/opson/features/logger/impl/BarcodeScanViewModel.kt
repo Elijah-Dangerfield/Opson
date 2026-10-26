@@ -71,14 +71,15 @@ class BarcodeScanViewModel(
                 val lookup = model.lookup
                 if (lookup !is Lookup.Running || lookup.code != action.code) return
                 slowJob?.cancel()
-                telemetry.hit(action.food.source, slow = lookup.slow)
+                telemetry.hit(action.food.source, slow = lookup.slow, typed = lookup.typed)
                 sendEvent(BarcodeScanEvent.OpenAmount(action.food.id, day, slot))
             }
             is BarcodeScanAction.FoodNotFound -> {
-                if (!isRunning(action.code)) return
+                val lookup = model.lookup
+                if (lookup !is Lookup.Running || lookup.code != action.code) return
                 slowJob?.cancel()
                 action.rebuild { copy(lookup = Lookup.Missed(action.code), name = "") }
-                telemetry.miss()
+                telemetry.miss(typed = lookup.typed)
                 viewModelScope.launch { missReporter.report(action.code) }
             }
             is BarcodeScanAction.LookupFailed -> {
@@ -89,11 +90,38 @@ class BarcodeScanViewModel(
             is BarcodeScanAction.MissNameTyped -> action.rebuild { copy(name = action.text) }
             BarcodeScanAction.SaveNameTapped -> saveName()
             BarcodeScanAction.SearchInsteadTapped -> sendEvent(BarcodeScanEvent.Close)
-            BarcodeScanAction.ScanAgainTapped -> action.rebuild { copy(lookup = Lookup.Idle, name = "") }
+            BarcodeScanAction.ScanAgainTapped -> action.rebuild { copy(lookup = Lookup.Idle, name = "", typed = null) }
             BarcodeScanAction.AllowCameraTapped -> sendEvent(BarcodeScanEvent.RequestPermission)
             BarcodeScanAction.OpenSettingsTapped -> permissions.openSettings()
             BarcodeScanAction.CloseTapped -> sendEvent(BarcodeScanEvent.Close)
+            BarcodeScanAction.CameraUnavailable -> if (model.permission == CameraPermission.Granted && !model.cameraUnavailable) {
+                action.rebuild { copy(cameraUnavailable = true) }
+                telemetry.cameraUnavailable()
+            }
+            // Composing the viewfinder again starts a new camera session.
+            BarcodeScanAction.RetryCameraTapped -> action.rebuild { copy(cameraUnavailable = false) }
+            BarcodeScanAction.TypeCodeTapped -> if (model.lookup == Lookup.Idle) {
+                action.rebuild { copy(typed = "", typedMisread = false) }
+            }
+            is BarcodeScanAction.CodeTyped -> if (model.typed != null) {
+                val digits = action.text.filter { it in '0'..'9' }.take(BarcodeScanStateBuilder.TYPED_LENGTHS.last)
+                action.rebuild { copy(typed = digits, typedMisread = false) }
+            }
+            BarcodeScanAction.LookUpTypedTapped -> lookUpTyped(action)
+            BarcodeScanAction.TypingCancelled -> action.rebuild { copy(typed = null, typedMisread = false) }
         }
+    }
+
+    /** The digits under the barcode, through the same lookup as a scan. A wrong check digit is a typo to fix. */
+    private suspend fun lookUpTyped(action: BarcodeScanAction) {
+        val code = model.typed ?: return
+        if (model.lookup != Lookup.Idle || code.length !in BarcodeScanStateBuilder.TYPED_LENGTHS) return
+        if (Gtin.normalize(code) == null) {
+            action.rebuild { copy(typedMisread = true) }
+            return
+        }
+        action.rebuild { copy(typed = null, typedMisread = false) }
+        lookUp(action, code, typed = true)
     }
 
     private suspend fun permissionChecked(action: BarcodeScanAction.PermissionChecked) {
@@ -115,12 +143,17 @@ class BarcodeScanViewModel(
     }
 
     private suspend fun codeRead(action: BarcodeScanAction, read: ScannedCode) {
-        if (model.permission != CameraPermission.Granted || model.lookup != Lookup.Idle) return
+        val scanning = model.permission == CameraPermission.Granted && !model.cameraUnavailable && model.typed == null
+        if (!scanning || model.lookup != Lookup.Idle) return
         // Some decoders report a UPC-E as its six digits alone.
         val code = if (read.format == BarcodeFormat.UpcE) Gtin.completeUpcE(read.value) else read.value
         // A failed check digit is a misread, not a product: keep scanning.
         if (Gtin.normalize(code) == null) return
-        action.rebuild { copy(lookup = Lookup.Running(code)) }
+        lookUp(action, code, typed = false)
+    }
+
+    private suspend fun lookUp(action: BarcodeScanAction, code: String, typed: Boolean) {
+        action.rebuild { copy(lookup = Lookup.Running(code, typed = typed)) }
         slowJob = viewModelScope.launch {
             delay(SLOW_AFTER)
             takeAction(BarcodeScanAction.LookupSlow(code))

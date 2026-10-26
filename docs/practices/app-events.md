@@ -122,8 +122,9 @@ miss are counted server-side instead, in `barcode_misses` with no account attach
 | Event | Attributes | Fires |
 |---|---|---|
 | `barcode.scan_started` | `permission` (`granted`: it already was, `asked`: the prompt was just answered yes) | The viewfinder goes live: on opening with the camera allowed, after a yes, or on coming back from Settings with it turned on |
-| `barcode.hit` | `source` (`usda_branded`, `off`, `nutritionix`, …), `slow` (the lookup took over 400 ms, so an outside source answered) | A lookup found a food, just before the amount sheet opens |
-| `barcode.miss` | | The server had no food for the code (a 404). A lookup that failed, offline or a 503, is not a miss and fires nothing |
+| `barcode.hit` | `source` (`usda_branded`, `off`, `nutritionix`, …), `slow` (the lookup took over 400 ms, so an outside source answered), `typed` (the code was typed by hand, not read by the camera) | A lookup found a food, just before the amount sheet opens |
+| `barcode.miss` | `typed` | The server had no food for the code (a 404). A lookup that failed, offline or a 503, is not a miss and fires nothing |
+| `barcode.camera_unavailable` | | The camera was allowed but could not run: no back camera (the iOS simulator), a failed start, or another app holding it. Once per camera session |
 | `barcode.permission_denied` | `can_ask_again` | The camera prompt was answered no, or the scanner opened with the camera already off. Counts people who could not scan at all |
 
 A pick from a scan logs with `logger.method_picked` `method=barcode`; "Save the name only" after a
