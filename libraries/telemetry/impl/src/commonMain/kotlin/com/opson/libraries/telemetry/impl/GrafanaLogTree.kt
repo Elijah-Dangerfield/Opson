@@ -30,7 +30,7 @@ import io.opentelemetry.kotlin.logging.export.LogRecordProcessor
  *
  * Deliberately direct-to-Grafana rather than through our backend: the
  * reliability events (`net.backend_unreachable`, reconnect failures) must
- * survive a backend outage. See `docs/plans/client-app-events-otel.md`.
+ * survive a backend outage. See `docs/practices/app-events.md`.
  *
  * `session_id` / `install_id` / `is_offline` ride on every record (never as
  * resource attributes — the session rolls over mid-process on a 15-min
@@ -42,8 +42,8 @@ import io.opentelemetry.kotlin.logging.export.LogRecordProcessor
  * init — because they cannot change for the life of the install. That is also
  * what makes them cheap to filter on: resource attributes reach Loki as
  * structured metadata on every record without being restated per event.
- * All OTel types stay confined to this class: if 0.5.0 misbehaves, the tree
- * gets re-backed without touching call sites.
+ * OTel types stay inside this module: call sites only ever see `KLog`, so
+ * if 0.5.0 misbehaves the tree gets re-backed without touching them.
  */
 class GrafanaLogTree(
     private val exportEnabled: () -> Boolean,
