@@ -2,11 +2,11 @@ package com.opson.libraries.ui.components.dialog.bottomsheet
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
  * Two paths, because a sheet has two kinds of content: a list consumes its drags through nested
  * scroll, and anything else (the handle, the title) sees raw pointer moves.
  */
-fun Modifier.expandOnDragUp(enabled: Boolean, onExpand: () -> Unit): Modifier = composed {
+@Composable
+fun Modifier.expandOnDragUp(enabled: Boolean, onExpand: () -> Unit): Modifier {
     val expand by rememberUpdatedState(onExpand)
     val active by rememberUpdatedState(enabled)
     val threshold = with(LocalDensity.current) { ExpandThreshold.toPx() }
@@ -40,7 +41,7 @@ fun Modifier.expandOnDragUp(enabled: Boolean, onExpand: () -> Unit): Modifier = 
             }
         }
     }
-    nestedScroll(connection).pointerInput(enabled) {
+    return nestedScroll(connection).pointerInput(enabled) {
         if (!enabled) return@pointerInput
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)

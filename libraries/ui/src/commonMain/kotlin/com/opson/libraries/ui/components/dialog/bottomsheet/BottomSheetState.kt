@@ -89,8 +89,18 @@ class BottomSheetState(
     }
 
     companion object {
+        /**
+         * Restores with the same skip flags the state was made with. Without them a sheet that may
+         * rest half open would come back with `skipPartiallyExpanded` on, and Material rejects a
+         * PartiallyExpanded initial value under that flag.
+         */
         @Suppress("FunctionNaming")
-        fun Saver(confirmValueChange: (BottomSheetValue) -> Boolean, density: Density): Saver<com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetState, *> =
+        fun Saver(
+            confirmValueChange: (BottomSheetValue) -> Boolean,
+            density: Density,
+            skipPartiallyExpanded: Boolean = true,
+            skipHiddenState: Boolean = false,
+        ): Saver<BottomSheetState, *> =
             Saver(
                 save = { it.currentValue },
                 restore = {
@@ -98,6 +108,8 @@ class BottomSheetState(
                         it,
                         density,
                         confirmValueChange,
+                        skipPartiallyExpanded = skipPartiallyExpanded,
+                        skipHiddenState = skipHiddenState,
                     )
                 }
             )
@@ -112,7 +124,7 @@ fun rememberDestinationBottomSheetState(
     skipPartiallyExpanded: Boolean = initialState != BottomSheetValue.PartiallyExpanded,
     skipHiddenState: Boolean = false,
     density: Density = LocalDensity.current,
-) = rememberSaveable(destinationId, saver = BottomSheetState.Saver(confirmValueChange, density)) {
+) = rememberSaveable(destinationId, saver = BottomSheetState.Saver(confirmValueChange, density, skipPartiallyExpanded, skipHiddenState)) {
     BottomSheetState(
         initialState,
         density,
@@ -130,7 +142,7 @@ fun rememberBottomSheetState(
     skipPartiallyExpanded: Boolean = initialState != BottomSheetValue.PartiallyExpanded,
     skipHiddenState: Boolean = false,
     density: Density = LocalDensity.current,
-) = rememberSaveable(saver = BottomSheetState.Saver(confirmValueChange, density)) {
+) = rememberSaveable(saver = BottomSheetState.Saver(confirmValueChange, density, skipPartiallyExpanded, skipHiddenState)) {
     BottomSheetState(
         initialState,
         density,
