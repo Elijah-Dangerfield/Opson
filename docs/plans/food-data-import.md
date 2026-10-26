@@ -130,6 +130,9 @@ Decided by the user on 2026-10-26. Start only when the user asks.
 
 ### Scan-miss measurement (0.1)
 
+Built with the 0.2 barcode scan: `docs/plans/screens/barcode.md`, `V13__barcode_misses.sql`,
+the Food catalog board's barcode panels.
+
 - When a barcode lookup finds nothing, record the miss server-side: barcode,
   the user's country, timestamp, and the platform. No user ID, no other
   personal data.

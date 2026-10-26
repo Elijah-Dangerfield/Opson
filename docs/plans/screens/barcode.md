@@ -101,14 +101,17 @@ Scanner (`BarcodeScanAction`):
 - `FoodFound(food)`, `FoodNotFound`, `LookupFailed`: the lookup's answer.
 - `MissNameTyped(text)`, `SaveNameTapped`, `SearchInsteadTapped`,
   `ScanAgainTapped`, `AllowCameraTapped`, `OpenSettingsTapped`, `CloseTapped`.
-- `Resumed`: back from Settings; re-checks the permission.
+- `Resumed`: back from Settings. Starts scanning only if the camera was
+  refused and is now allowed; it never asks on its own, because the system
+  prompt itself pauses and resumes the screen on Android.
 
 Logger: `BarcodeTapped` sends `OpenScanner(day, slot)`.
 
 ## Events
-`RequestPermission`, `OpenAmount(foodId, day, slot)`,
-`BackToLogger(focusSearch)`, `Close`. Settings opens through
-`CameraPermissions.openSettings()`, which is not navigation.
+`RequestPermission`, `OpenAmount(foodId, day, slot)`, `Close` (back to the
+logger, after "Save the name only", "Search instead" or the close button).
+Settings opens through `CameraPermissions.openSettings()`, which is not
+navigation.
 
 ## Data
 - Lookup: `FoodCatalog.barcode(code)`, unchanged. The server tries every
@@ -128,7 +131,9 @@ Calm, and offers in this order:
 1. A name field ("What is it?") and **Save the name only** (primary, enabled
    once there is a name). First, as the queued plan asks, because it is the
    recovery path.
-2. **Search instead**: back to the logger with the keyboard up.
+2. **Search instead**: back to the logger's search bar. (Not with the
+   keyboard up: the logger is the screen underneath, so there is no route
+   to pass that through, and a tap on the bar is one step.)
 3. **Scan again**.
 
 The scanned code is shown under the title ("Barcode 0012345678905") so the
@@ -170,10 +175,12 @@ and Search instead, with the existing `barcode_unavailable` copy.
     and no frame is stored.
 
 ## Components
-`SearchField(trailing)`, `RoundIconButton`/`IconTile` with
-`AppIcons.BarcodeScanner`, `ButtonPrimary` (Filled, Tonal), `ButtonGhost`,
-`SingleLineField`, `Text`, `AppTheme` tokens. No new `:libraries:ui`
-component. The viewfinder is a slot (`viewfinder: @Composable (Modifier) -> Unit`),
+`SearchField(trailing)`, `IconTile` with `AppIcons.BarcodeScanner`,
+`SheetHeader`, `Screen`, `ButtonPrimary` (Filled, Tonal), `ButtonGhost`,
+`SingleLineField`, `Text`, `CircularProgressIndicator`, `AppTheme` tokens.
+Added to `:libraries:ui`: `ScanFrame` (corner brackets over the camera, with a
+preview), and `CircularProgressIndicator` now draws still under
+`LocalInspectionMode` so a preview with a spinner can be screenshotted. The viewfinder is a slot (`viewfinder: @Composable (Modifier) -> Unit`),
 so previews pass a plain dark box and never touch a camera.
 
 ## Visibility surfaces
@@ -217,7 +224,7 @@ Never the barcode, a food name or an amount.
 | `barcode.scan_started` | `permission` (`granted`, `asked`) | The viewfinder goes live. |
 | `barcode.hit` | `source` (`usda_branded`, `off`, …), `slow` | A lookup found a food. |
 | `barcode.miss` | | The server had no food for the code. |
-| `barcode.permission_denied` | `can_ask_again` | The camera answer came back denied. |
+| `barcode.permission_denied` | `can_ask_again` | The camera answer came back denied, or the scanner opened with it already off. |
 `logger.method_picked` gains `method=barcode` for a basket item picked by scan.
 
 ## Grafana
