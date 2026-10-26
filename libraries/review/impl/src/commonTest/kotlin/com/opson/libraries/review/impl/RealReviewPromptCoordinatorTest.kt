@@ -100,7 +100,7 @@ class RealReviewPromptCoordinatorTest : CoroutineTest() {
     }
 
     @Test
-    fun concurrentRequests_collapseToOnePrompt() = runUnitTest {
+    fun backToBackRequests_promptOnce() = runUnitTest {
         val clock = MutableClock(at = T0)
         val cache = FakeAppCache(
             initial = AppData(reviewInstallAt = T0_MS - 10.days.inWholeMilliseconds),
@@ -113,7 +113,7 @@ class RealReviewPromptCoordinatorTest : CoroutineTest() {
         val r3 = coordinator.requestPrompt(ReviewTrigger.SessionEnd)
 
         assertTrue(r1)
-        assertFalse(r2, "second concurrent trigger is suppressed by cooldown")
+        assertFalse(r2, "second trigger is suppressed by cooldown")
         assertFalse(r3)
         assertEquals(1, launcher.requestCount)
     }
