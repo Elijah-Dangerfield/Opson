@@ -14,7 +14,23 @@
   },
   "refresh": "1h",
   "templating": {
-    "list": []
+    "list": [
+      {
+        "name": "db",
+        "label": "Database",
+        "type": "datasource",
+        "query": "grafana-postgresql-datasource",
+        "regex": "/^opson-(prod-)?db$/",
+        "current": {
+          "text": "opson-prod-db",
+          "value": "opson-prod-db"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      }
+    ]
   },
   "annotations": {
     "list": []
@@ -26,14 +42,14 @@
       "description": "Search, saved meals, copy, describe, ate with no details, and so on.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -86,14 +102,14 @@
       "description": "Weighed, estimated, or just the name. A healthy mix leans on estimates; it is not a goal to push toward weighing.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -140,14 +156,14 @@
       "description": "Share of entries by how they were added, over the selected range.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -194,14 +210,14 @@
       "description": "Meals marked eaten without details. Rising means logging feels like too much work, or people are using the gentle path as intended.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -254,14 +270,14 @@
       "description": "How many meal slots have something in them on a day with any logging.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",

@@ -13,7 +13,15 @@ show one person's food log.
 import json
 import pathlib
 
-DS = {"type": "grafana-postgresql-datasource", "uid": "opson-db"}
+# Every Postgres panel reads the dashboard's `db` variable, so one dropdown
+# switches all of them between prod (`opson-prod-db`, the default) and dev
+# (`opson-db`). The regex keeps other apps' databases out of the list.
+DS = {"type": "grafana-postgresql-datasource", "uid": "${db}"}
+DB_VARIABLE = {
+    "name": "db", "label": "Database", "type": "datasource", "query": "grafana-postgresql-datasource",
+    "regex": "/^opson-(prod-)?db$/", "current": {"text": "opson-prod-db", "value": "opson-prod-db"},
+    "hide": 0, "refresh": 1, "includeAll": False, "multi": False,
+}
 LOKI = {"type": "loki", "uid": "grafanacloud-logs"}
 HERE = pathlib.Path(__file__).parent
 
@@ -93,7 +101,7 @@ class Board:
             "uid": self.uid, "title": self.title, "description": self.description,
             "tags": ["opson"], "timezone": "browser", "schemaVersion": 39, "editable": True,
             "time": {"from": "now-30d", "to": "now"}, "refresh": "1h",
-            "templating": {"list": []}, "annotations": {"list": []}, "panels": self.panels,
+            "templating": {"list": [DB_VARIABLE]}, "annotations": {"list": []}, "panels": self.panels,
         }
         (HERE / f"{self.uid.removeprefix('opson-')}.json").write_text(json.dumps(doc, indent=2) + "\n")
 

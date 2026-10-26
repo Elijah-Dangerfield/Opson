@@ -273,11 +273,14 @@ private val LOOSE_CONSTRUCTS = listOf(
  * the Loki uid, and those are what the contract checks.
  */
 /**
- * `opson-db` is the Postgres datasource the long-term dashboards read through
+ * `opson-db` (dev) and `opson-prod-db` are the Postgres datasources the long-term
+ * dashboards read, picked by their `${db}` variable, through
  * the read-only `grafana_ro` role (see ops/grafana/README.md). Its panels are
  * SQL over aggregate views, so the event checks here do not apply to them.
  */
-private val ALLOWED_DATASOURCE_UIDS = setOf("grafanacloud-logs", "opson-db", "__expr__", "-- Mixed --", "-- Grafana --")
+private val ALLOWED_DATASOURCE_UIDS = setOf(
+    "grafanacloud-logs", "opson-db", "opson-prod-db", "\${db}", "__expr__", "-- Mixed --", "-- Grafana --",
+)
 
 /**
  * The client exports as [GrafanaLogTree.SERVICE_NAME]; the server as the

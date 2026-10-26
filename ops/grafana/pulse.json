@@ -14,7 +14,23 @@
   },
   "refresh": "1h",
   "templating": {
-    "list": []
+    "list": [
+      {
+        "name": "db",
+        "label": "Database",
+        "type": "datasource",
+        "query": "grafana-postgresql-datasource",
+        "regex": "/^opson-(prod-)?db$/",
+        "current": {
+          "text": "opson-prod-db",
+          "value": "opson-prod-db"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      }
+    ]
   },
   "annotations": {
     "list": []
@@ -26,14 +42,14 @@
       "description": "People with at least one log entry dated today.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -86,14 +102,14 @@
       "description": "Average daily loggers over the last seven days.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -146,14 +162,14 @@
       "description": "Food entries dated today, across everyone.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -206,14 +222,14 @@
       "description": "Share of searches that found nothing. High means the catalog is missing foods people eat.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -266,14 +282,14 @@
       "description": "People with at least one entry on each day.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -326,14 +342,14 @@
       "description": "Every food entry, by the day it was logged for.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -386,14 +402,14 @@
       "description": "Days someone closed with the check at the top of Today.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "opson-db"
+        "uid": "${db}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "opson-db"
+            "uid": "${db}"
           },
           "rawQuery": true,
           "editorMode": "code",
