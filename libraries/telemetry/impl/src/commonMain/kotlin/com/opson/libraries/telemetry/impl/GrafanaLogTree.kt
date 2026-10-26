@@ -56,6 +56,11 @@ class GrafanaLogTree(
     private val processorFactory: LogExportConfigDsl.() -> LogRecordProcessor,
 ) : LogTree() {
 
+    // TODO(review): built on whichever thread forwards first, which on a cold
+    // start is main (`app.launched` from the foreground callback): install
+    // facts do two binder calls and ten file stats on Android, and the disk
+    // buffer creates its directory. Warm it on io from GrafanaAppEvents, or
+    // emit app.launched off main, once a StrictMode run says it is worth it.
     private val openTelemetryLazy: Lazy<OpenTelemetry> = lazy {
         createOpenTelemetry {
             loggerProvider {
