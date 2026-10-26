@@ -90,6 +90,8 @@ if (!serverOnly) {
     include(":libraries:diary:impl")
     include(":libraries:flowroutines")
     include(":libraries:flowroutines:testing")
+    include(":libraries:foods")
+    include(":libraries:foods:impl")
     include(":libraries:navigation")
     include(":libraries:navigation:impl")
     include(":libraries:networking")
