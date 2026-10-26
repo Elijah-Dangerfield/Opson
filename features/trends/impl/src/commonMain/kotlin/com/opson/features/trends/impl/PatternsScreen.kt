@@ -125,7 +125,7 @@ private fun PatternsCard(content: @Composable ColumnScope.() -> Unit) {
 
 @Composable
 private fun CardTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text = text, typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink, modifier = modifier)
+    Text(text = text, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, modifier = modifier)
 }
 
 @Composable
@@ -251,11 +251,11 @@ private fun HungerCardView(card: HungerCard) {
             card.rows.forEach { row ->
                 HorizontalDivider(color = AppTheme.colors.line)
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = Dimension.D300),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Dimension.D200),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(text = stringResource(row.slot.label), typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
-                    PillTag(label = stringResource(row.hunger.label), typography = AppTheme.type.bodyBold, size = PillTagSize.Regular)
+                    PillTag(label = stringResource(row.hunger.label), typography = AppTheme.type.secondaryStrong.Bold, size = PillTagSize.Regular)
                 }
             }
         }

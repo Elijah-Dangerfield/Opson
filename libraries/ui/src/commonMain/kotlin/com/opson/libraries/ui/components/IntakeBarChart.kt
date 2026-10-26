@@ -89,8 +89,9 @@ fun IntakeBarChart(
                     if (fraction != null && fraction > 0f) {
                         Box(
                             Modifier
-                                .fillMaxWidth()
+                                // The cap comes first: after fillMaxWidth the slot's width is fixed and wins.
                                 .widthIn(max = MAX_BAR_WIDTH)
+                                .fillMaxWidth()
                                 .fillMaxHeight(fraction)
                                 .heightIn(min = MIN_BAR_HEIGHT)
                                 .clip(BarShape)
