@@ -26,6 +26,12 @@ class SurfacesCoverageTest {
     }
 
     @Test
+    fun everyEnergyOutSurfaceIsListed() {
+        val missing = EnergyOutHiddenLeakTest.ENERGY_OUT_SURFACES - SURFACES.map { it.id }.toSet()
+        assertTrue(missing.isEmpty(), "EnergyOutHiddenLeakTest names $missing, which no feature lists any more")
+    }
+
+    @Test
     fun idsAreUnique() {
         val duplicates = SURFACES.groupBy { it.id }.filterValues { it.size > 1 }.keys
         assertTrue(duplicates.isEmpty(), "Surface ids listed twice: $duplicates")
@@ -82,6 +88,7 @@ class SurfacesCoverageTest {
                 "today", "today-big-day", "today-added", "today-untracked", "today-groups-off", "today-past", "today-future",
                 "today-day-menu", "today-day-menu-armed", "today-cards", "calendar", "meal-sheet", "meal-note",
                 "meal-feel", "water-sheet", "item-sheet", "day-note", "day-close", "day-close-big-day",
+                "today-expended",
             ),
             "LoggerLeakSurfaces" to listOf(
                 "logger", "logger-picked", "logger-search", "logger-search-empty", "logger-describe",
@@ -95,6 +102,7 @@ class SurfacesCoverageTest {
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
                 "targets-by-day", "water-settings", "support", "support-delete", "look-and-feel",
+                "integrations",
             ),
         )
 
@@ -105,6 +113,7 @@ class SurfacesCoverageTest {
             "foods", "foods-create-meal", "foods-add-food",
             "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day",
+            "today-expended", "integrations",
         )
     }
 }

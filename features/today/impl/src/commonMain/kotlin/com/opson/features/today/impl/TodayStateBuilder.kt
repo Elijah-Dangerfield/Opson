@@ -167,8 +167,17 @@ object TodayStateBuilder {
             rangeStart = (range.minKcal / scaleMax).toFloat(),
             rangeEnd = (range.maxKcal / scaleMax).toFloat(),
             macros = if (empty) emptyList() else macroTiles(day, settings, policy, context, GoalStyle.Slash).filter { it.metric != Metric.Fiber },
+            expended = expended(inputs, policy, context),
         )
     }
+
+    /** "Expended so far" says so far, so it is today's alone; energy out hides at anything short of Show. */
+    private fun expended(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext): Display =
+        if (inputs.day.date != inputs.today) {
+            Display.Hidden
+        } else {
+            policy.resolve(Metric.EnergyOut, inputs.expended?.totalKcal, Surface.Today, context.copy(of = null, bare = false))
+        }
 
     private fun softCard(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, energy: Display): TodaySummary.Soft {
         val macros = macroTiles(inputs.day, inputs.settings, policy, context, GoalStyle.Of)

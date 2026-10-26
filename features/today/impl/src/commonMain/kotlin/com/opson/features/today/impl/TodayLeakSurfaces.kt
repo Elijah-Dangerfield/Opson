@@ -43,6 +43,10 @@ object TodayLeakSurfaces {
                 onAction = {},
             )
         },
+        // 0.2: Expended so far from a connected health app, behind release.health.
+        LeakSurface(id = "today-expended", label = "Today, with a health app connected", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = TodayFixtures.todayState(policy, expended = TodayFixtures.expended), onAction = {})
+        },
         LeakSurface(id = "today-untracked", label = "Today, marked untracked", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.untrackedDay()), onAction = {})
         },
