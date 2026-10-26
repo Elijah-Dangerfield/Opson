@@ -29,6 +29,7 @@ import androidx.compose.material.icons.rounded.DashboardCustomize
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Lock as OutlinedLock
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.MoreVert
@@ -185,6 +186,9 @@ object AppIcons {
     val Mail get() = icon("mail", MaterialIcons.Outlined.Email)
     val Group get() = icon("group", MaterialIcons.Outlined.Group)
 
+    /** The outlined lock, for a reassurance line rather than a locked control. */
+    val LockOutlined get() = icon("lock_outlined", MaterialIcons.Outlined.OutlinedLock)
+
     // More and settings
     /** The Material Symbols `target`; Rounded has only the ring and dot. */
     val Target get() = icon("target", MaterialIcons.Rounded.Adjust)
@@ -231,7 +235,7 @@ object AppIcons {
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             SearchOff, Cancel, ArrowBack, ExpandMore,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
-            Visibility, BlurOn, Mail, Group,
+            Visibility, BlurOn, Mail, Group, LockOutlined,
             OpenInNew, Target, Palette, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat,
             Star, Favorite, Bolt, Science, FormatListBulleted,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart,

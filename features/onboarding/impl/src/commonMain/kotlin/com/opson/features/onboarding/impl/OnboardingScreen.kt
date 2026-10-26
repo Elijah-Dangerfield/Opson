@@ -576,7 +576,7 @@ private fun ColumnScope.AccountStep(
             contentPadding = EdgeCardDefaults.InsetPadding,
             verticalArrangement = Arrangement.spacedBy(Dimension.D300),
         ) {
-            IconLine(AppIcons.Lock, AppTheme.colors.accent, stringResource(Res.string.onboarding_account_private))
+            IconLine(AppIcons.LockOutlined, AppTheme.colors.accent, stringResource(Res.string.onboarding_account_private))
             IconLine(AppIcons.Download, AppTheme.colors.accent, stringResource(Res.string.onboarding_account_export))
             IconLine(AppIcons.Group, AppTheme.colors.accent, stringResource(Res.string.onboarding_account_coach))
         }
