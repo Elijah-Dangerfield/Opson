@@ -5,6 +5,7 @@ import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
@@ -75,6 +76,10 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
     override suspend fun reopenDay(day: LocalDate) = Unit
 
     override suspend fun setDayNote(day: LocalDate, note: String?) = Unit
+
+    override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = Unit
+
+    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) = Unit
 
     override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) = Unit
 
