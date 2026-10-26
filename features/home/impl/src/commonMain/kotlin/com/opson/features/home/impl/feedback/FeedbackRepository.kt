@@ -1,5 +1,6 @@
 package com.opson.features.home.impl.feedback
 
+import com.opson.libraries.core.Catching
 import com.opson.libraries.opson.Telemetry
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -26,7 +27,7 @@ class FeedbackRepositoryImpl @Inject constructor(
         logId: String?,
         errorCode: Int?,
     ): Result<Unit> {
-        return runCatching {
+        return Catching {
             telemetry.captureUserFeedback(
                 message = message,
                 isBugReport = isBugReport,

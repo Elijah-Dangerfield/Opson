@@ -127,7 +127,7 @@ fun FeedbackScreen(
             state.errorMessage?.let {
                 VerticalSpacerD500()
                 Text(
-                    text = it,
+                    text = stringResource(it),
                     color = AppTheme.colors.danger,
                     textAlign = TextAlign.Start
                 )
