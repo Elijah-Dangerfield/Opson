@@ -1,5 +1,6 @@
 package com.opson.libraries.opson.impl
 
+import com.opson.libraries.opson.UserScopedSyncer
 import com.opson.libraries.core.AutoInit
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.logging.KLog

@@ -1,5 +1,6 @@
 package com.opson.libraries.opson.impl
 
+import com.opson.libraries.opson.UserScopedSyncer
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEventBus
 import com.opson.libraries.opson.AppEvents
