@@ -8,4 +8,9 @@
     <!-- PageHeader: the back arrow's spoken label, with the page it goes back to -->
     <string name="ds_back_to">Back to %1$s</string>
 
+    <!-- CyclingLoadingMessage: the captions under the boot spinner when start-up runs long -->
+    <string name="ds_loading_getting_ready">Getting things ready</string>
+    <string name="ds_loading_your_data">Loading your data</string>
+    <string name="ds_loading_almost_there">Almost there</string>
+
 </resources>
