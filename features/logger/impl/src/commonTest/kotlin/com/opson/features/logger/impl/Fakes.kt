@@ -318,12 +318,16 @@ class RecordingBarcodeTelemetry : BarcodeTelemetry {
         events += "scan_started asked=$asked"
     }
 
-    override fun hit(source: FoodSource, slow: Boolean) {
-        events += "hit ${source.wire} slow=$slow"
+    override fun hit(source: FoodSource, slow: Boolean, typed: Boolean) {
+        events += "hit ${source.wire} slow=$slow" + if (typed) " typed" else ""
     }
 
-    override fun miss() {
-        events += "miss"
+    override fun miss(typed: Boolean) {
+        events += "miss" + if (typed) " typed" else ""
+    }
+
+    override fun cameraUnavailable() {
+        events += "camera_unavailable"
     }
 
     override fun permissionDenied(canAskAgain: Boolean) {

@@ -29,6 +29,7 @@ import com.opson.libraries.ui.components.button.ButtonStyle
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.IconTile
 import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.SingleLineField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
@@ -38,8 +39,12 @@ import opson.libraries.resources.generated.resources.barcode_allow_camera
 import opson.libraries.resources.generated.resources.barcode_camera_body
 import opson.libraries.resources.generated.resources.barcode_camera_body_ask
 import opson.libraries.resources.generated.resources.barcode_camera_title
+import opson.libraries.resources.generated.resources.barcode_camera_unavailable_body
+import opson.libraries.resources.generated.resources.barcode_camera_unavailable_title
+import opson.libraries.resources.generated.resources.barcode_cancel
 import opson.libraries.resources.generated.resources.barcode_code
 import opson.libraries.resources.generated.resources.barcode_hint
+import opson.libraries.resources.generated.resources.barcode_look_up
 import opson.libraries.resources.generated.resources.barcode_looking_up
 import opson.libraries.resources.generated.resources.barcode_miss_body
 import opson.libraries.resources.generated.resources.barcode_name_placeholder
@@ -49,6 +54,11 @@ import opson.libraries.resources.generated.resources.barcode_save_name
 import opson.libraries.resources.generated.resources.barcode_scan_again
 import opson.libraries.resources.generated.resources.barcode_search_instead
 import opson.libraries.resources.generated.resources.barcode_title
+import opson.libraries.resources.generated.resources.barcode_try_camera
+import opson.libraries.resources.generated.resources.barcode_type_body
+import opson.libraries.resources.generated.resources.barcode_type_code
+import opson.libraries.resources.generated.resources.barcode_type_misread
+import opson.libraries.resources.generated.resources.barcode_type_placeholder
 import opson.libraries.resources.generated.resources.barcode_unavailable
 import org.jetbrains.compose.resources.stringResource
 
@@ -101,11 +111,13 @@ private fun CameraWindow(stage: ScanStage, viewfinder: @Composable (Modifier) ->
                 viewfinder(Modifier.fillMaxSize())
                 ScanFrame(modifier = Modifier.fillMaxWidth(FRAME_WIDTH).aspectRatio(FRAME_RATIO))
             }
-            is ScanStage.LookingUp -> {
+            is ScanStage.LookingUp -> if (stage.camera) {
                 // The camera keeps running under the scrim; reads are ignored until there is an answer.
                 viewfinder(Modifier.fillMaxSize())
                 Box(modifier = Modifier.fillMaxSize().background(AppTheme.colors.scrim))
                 CircularProgressIndicator(color = AppTheme.colors.onHero.color)
+            } else {
+                CircularProgressIndicator()
             }
             else -> IconTile(
                 icon = AppIcons.BarcodeScanner,
@@ -121,7 +133,16 @@ private fun CameraWindow(stage: ScanStage, viewfinder: @Composable (Modifier) ->
 private fun StageContent(stage: ScanStage, onAction: (BarcodeScanAction) -> Unit) {
     when (stage) {
         ScanStage.Starting -> Unit
-        ScanStage.Scanning -> Caption(stringResource(Res.string.barcode_hint))
+        ScanStage.Scanning -> Scanning(onAction)
+        is ScanStage.Typing -> Typing(stage, onAction)
+        ScanStage.CameraUnavailable -> Options(
+            title = stringResource(Res.string.barcode_camera_unavailable_title),
+            body = stringResource(Res.string.barcode_camera_unavailable_body),
+            primary = stringResource(Res.string.barcode_type_code),
+            onPrimary = { onAction(BarcodeScanAction.TypeCodeTapped) },
+            onAction = onAction,
+            last = stringResource(Res.string.barcode_try_camera) to { onAction(BarcodeScanAction.RetryCameraTapped) },
+        )
         is ScanStage.LookingUp -> if (stage.slow) Caption(stringResource(Res.string.barcode_looking_up))
         is ScanStage.Miss -> Miss(stage, onAction)
         ScanStage.Unavailable -> Options(
@@ -138,6 +159,7 @@ private fun StageContent(stage: ScanStage, onAction: (BarcodeScanAction) -> Unit
                 onAction(if (stage.canAskAgain) BarcodeScanAction.AllowCameraTapped else BarcodeScanAction.OpenSettingsTapped)
             },
             onAction = onAction,
+            last = stringResource(Res.string.barcode_type_code) to { onAction(BarcodeScanAction.TypeCodeTapped) },
         )
     }
 }
@@ -190,7 +212,68 @@ private fun Miss(stage: ScanStage.Miss, onAction: (BarcodeScanAction) -> Unit) {
     }
 }
 
-/** A short message with one way forward, and search as the way around. */
+/** The camera is live: the hint, and the ways out that don't need it. */
+@Composable
+private fun Scanning(onAction: (BarcodeScanAction) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+        Caption(stringResource(Res.string.barcode_hint))
+        ButtonPrimary(
+            onClick = { onAction(BarcodeScanAction.TypeCodeTapped) },
+            style = ButtonStyle.Tonal,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(Res.string.barcode_type_code))
+        }
+        ButtonGhost(onClick = { onAction(BarcodeScanAction.SearchInsteadTapped) }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(Res.string.barcode_search_instead))
+        }
+    }
+}
+
+/** The digits under the barcode, typed by hand. Looked up exactly as a scan is. */
+@Composable
+private fun Typing(stage: ScanStage.Typing, onAction: (BarcodeScanAction) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+        Text(
+            text = stringResource(Res.string.barcode_type_body),
+            typography = AppTheme.type.body,
+            color = AppTheme.colors.inkSoft,
+        )
+        NumberField(
+            value = stage.code,
+            onValueChange = { onAction(BarcodeScanAction.CodeTyped(it)) },
+            placeholder = stringResource(Res.string.barcode_type_placeholder),
+            allowDecimal = false,
+            keyboardActions = KeyboardActions(onDone = { if (stage.canLookUp) onAction(BarcodeScanAction.LookUpTypedTapped) }),
+        )
+        if (stage.misread) {
+            Text(
+                text = stringResource(Res.string.barcode_type_misread),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
+        }
+        ButtonPrimary(
+            onClick = { onAction(BarcodeScanAction.LookUpTypedTapped) },
+            enabled = stage.canLookUp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(Res.string.barcode_look_up))
+        }
+        ButtonPrimary(
+            onClick = { onAction(BarcodeScanAction.SearchInsteadTapped) },
+            style = ButtonStyle.Tonal,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(Res.string.barcode_search_instead))
+        }
+        ButtonGhost(onClick = { onAction(BarcodeScanAction.TypingCancelled) }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(Res.string.barcode_cancel))
+        }
+    }
+}
+
+/** A short message with one way forward, search as the way around, and optionally a [last] quieter option. */
 @Composable
 private fun Options(
     body: String,
@@ -198,6 +281,7 @@ private fun Options(
     onPrimary: () -> Unit,
     onAction: (BarcodeScanAction) -> Unit,
     title: String? = null,
+    last: Pair<String, () -> Unit>? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         title?.let { Text(text = it, typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink) }
@@ -209,6 +293,9 @@ private fun Options(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(Res.string.barcode_search_instead))
+        }
+        last?.let { (label, onClick) ->
+            ButtonGhost(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(label) }
         }
     }
 }

@@ -140,6 +140,25 @@ The scanned code is shown under the title ("Barcode 0012345678905") so the
 person can see what was read. Unavailable (503 or offline) offers Scan again
 and Search instead, with the existing `barcode_unavailable` copy.
 
+## Follow-ups after review (simulator)
+- **Camera unavailable.** Allowed but unable to run (no back camera, as on
+  the iOS simulator; a failed start; another app holding it, or an iOS
+  interruption) is its own calm state, `ScanStage.CameraUnavailable`:
+  "Type the code" first, then "Search instead", then "Try the camera again".
+  `BarcodeCamera.Viewfinder` gained `onUnavailable`: Android reports no back
+  camera, a bind failure, or an error on the camera's state; iOS reports no
+  device or input, a session that does not start, and
+  `AVCaptureSessionRuntimeError` / `WasInterrupted`.
+- **Ways out while scanning.** Under the hint: "Type the code" and "Search
+  instead". Typing takes 8 to 14 digits (the numbers under the barcode) and
+  runs the same lookup as a scan, hit or miss; a failed check digit asks to
+  check the numbers rather than looking anything up. "Type the code" is also
+  offered when the camera is refused. A lookup in progress or answered now
+  wins over the camera's state in the builder, since a typed code needs no
+  camera.
+- Telemetry: `typed` on `barcode.hit` and `barcode.miss`, and
+  `barcode.camera_unavailable`.
+
 ## Server: miss logging
 - `V13__barcode_misses.sql`, additive and idempotent (`IF NOT EXISTS`,
   `CREATE OR REPLACE VIEW`):

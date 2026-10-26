@@ -215,7 +215,11 @@ class LoggerFeatureEntryPoint(
             state = state,
             onAction = viewModel::takeAction,
             viewfinder = { modifier ->
-                barcodeCamera.Viewfinder(onCode = { viewModel.takeAction(BarcodeScanAction.CodeRead(it)) }, modifier = modifier)
+                barcodeCamera.Viewfinder(
+                    onCode = { viewModel.takeAction(BarcodeScanAction.CodeRead(it)) },
+                    onUnavailable = { viewModel.takeAction(BarcodeScanAction.CameraUnavailable) },
+                    modifier = modifier,
+                )
             },
         )
     }

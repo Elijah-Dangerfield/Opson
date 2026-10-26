@@ -105,6 +105,21 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenScanner(LoggerFixtures.today, MealSlot.Dinner)), events)
     }
 
+    /** The scanner is pushed over the sheet, so closing it (or "Search instead") lands back here, on search. */
+    @Test
+    fun theScannerOpensOverTheSearchPane() = runUnitTest {
+        val vm = vm(scanOn = true)
+        events(vm)
+        settle()
+
+        vm.takeAction(LoggerAction.BarcodeTapped)
+        settle()
+
+        assertEquals(LoggerPane.Search, vm.state.pane)
+        assertEquals("", vm.state.query)
+        assertTrue(vm.state.canScan)
+    }
+
     @Test
     fun withTheFlagOffThereIsNoScannerAndTheTapDoesNothing() = runUnitTest {
         val vm = vm(scanOn = false)
