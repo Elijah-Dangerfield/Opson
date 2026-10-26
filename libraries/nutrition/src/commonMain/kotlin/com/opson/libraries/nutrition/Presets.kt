@@ -41,6 +41,12 @@ data class ModePreset(
     val banner: Boolean = false,
     /** How it felt follows every add, not only when hunger questions are on (design v3, 3.10). */
     val asksHowItFelt: Boolean = false,
+    /**
+     * Whether Patterns spells out gaps and shifts between meals ("Longest gap", "Dinner on Fri
+     * and Sat, about 45 min later"). Off in Blind (design v3, 5.7): a gap between meals can feed
+     * restriction for exactly the people who pick it.
+     */
+    val mealGaps: Boolean = true,
 ) {
     fun level(metric: Metric): Visibility = vis.getValue(metric)
 }
@@ -76,6 +82,7 @@ object Presets {
         id = PresetId.Blind,
         today = TodayLayout.Meals,
         vis = gentle(fill(Visibility.Hide)),
+        mealGaps = false,
     )
 
     val Nutrient = ModePreset(

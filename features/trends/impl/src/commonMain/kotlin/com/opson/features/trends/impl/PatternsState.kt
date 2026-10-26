@@ -119,8 +119,10 @@ object PatternsStateBuilder {
                     facts = buildList {
                         val usual = MealSlot.meals.firstOrNull { it in facts.typical }
                         usual?.let { add(TimingFact.Usually(it, facts.typical.getValue(it).toTime())) }
-                        facts.laterOn?.let { add(TimingFact.LaterOn(it.slot, it.days, it.minutes)) }
-                        facts.longestGap?.let { add(TimingFact.LongestGap(it.from, it.to, it.minutes)) }
+                        if (policy.preset.mealGaps) {
+                            facts.laterOn?.let { add(TimingFact.LaterOn(it.slot, it.days, it.minutes)) }
+                            facts.longestGap?.let { add(TimingFact.LongestGap(it.from, it.to, it.minutes)) }
+                        }
                     },
                 )
             },
