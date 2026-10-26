@@ -137,6 +137,20 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(OnboardingStep.Welcome, vm.state.step)
     }
 
+    @Test
+    fun signIn_onAPhoneWithNoWayToSignIn_goesNowhere() = runUnitTest {
+        // Android in 0.1: no Apple, and Google and email are off. Sign-in would open a page
+        // with nothing on it, so Welcome hides the link and the action is refused.
+        val vm = newVm(appleSignIn = false)
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.SignInTapped)
+        runCurrent()
+
+        assertFalse(vm.state.canSignIn)
+        assertTrue(received.isEmpty())
+    }
+
     // ---------- Answers ----------
 
     @Test
@@ -522,6 +536,26 @@ class OnboardingViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun start_onAPhoneWithNoWayToClaim_goesToToday_pastTheAccountStep() = runUnitTest {
+        // The account step would offer only "Keep it on this phone" under a promise to back up.
+        val creator = FakeGuestAccountCreator()
+        val cache = FakeAppCache()
+        val vm = newVm(creator = creator, cache = cache, appleSignIn = false)
+        val received = collectEvents(vm)
+        vm.takeAction(OnboardingAction.GetStartedTapped)
+        repeat(SetupQuestion.Count) { vm.takeAction(OnboardingAction.ContinueTapped) }
+        runCurrent()
+
+        vm.takeAction(OnboardingAction.StartTapped)
+        runCurrent()
+
+        assertEquals(1, creator.startCalls, "the guest is still created, so logs sync")
+        assertTrue(cache.get().hasUserOnboarded)
+        assertEquals(OnboardingEvent.NavigateToToday, received.single())
+        assertEquals(OnboardingStep.Recommendation, vm.state.step)
+    }
+
+    @Test
     fun start_guestCreationFails_goesToToday_flaggedDegraded_withNoAccountStep() = runUnitTest {
         val cache = FakeAppCache()
         val vm = atRecommendation(cache = cache, creator = FakeGuestAccountCreator(failCreation = true))
@@ -795,6 +829,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         creator: FakeGuestAccountCreator = FakeGuestAccountCreator(),
         appleCoordinator: FakeAppleSignInCoordinator = FakeAppleSignInCoordinator(),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
+        appleSignIn: Boolean = true,
     ): OnboardingViewModel = OnboardingViewModel(
         appCache = cache,
         authRepository = auth,
@@ -802,6 +837,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         appleSignInCoordinator = appleCoordinator,
         settingsRepository = settings,
         clock = fixedClock,
+        appleSignIn = appleSignIn,
     )
 
     private fun TestScope.collectEvents(vm: OnboardingViewModel): MutableList<OnboardingEvent> {

@@ -28,7 +28,8 @@ object OnboardingFixtures {
         statement = StatementAnswer.Agree,
     )
 
-    fun welcome(): OnboardingState = OnboardingState().withRecommendation()
+    /** On iOS, where Sign in with Apple puts "Have an account? Sign in" under the buttons. */
+    fun welcome(): OnboardingState = OnboardingState(appleEnabled = true).withRecommendation()
 
     fun question(question: SetupQuestion, answers: SetupAnswers = SetupAnswers()): OnboardingState =
         OnboardingState(step = OnboardingStep.Question(question), answers = answers).withRecommendation()
