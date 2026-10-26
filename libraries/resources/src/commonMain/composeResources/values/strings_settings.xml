@@ -312,5 +312,6 @@
     <string name="settings_find_about_young">For young people, any worry</string>
     <string name="settings_find_about_text_keyword">Text %1$s to %2$s</string>
     <string name="settings_find_about_provider">Search for eating disorder care near you</string>
+    <string name="settings_loading_cd">Loading</string>
 
 </resources>

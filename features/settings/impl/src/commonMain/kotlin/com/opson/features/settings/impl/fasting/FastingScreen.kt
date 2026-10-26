@@ -22,6 +22,7 @@ import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.ui.components.AppSwitch
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
@@ -43,6 +44,7 @@ import opson.libraries.resources.generated.resources.fasting_title
 import opson.libraries.resources.generated.resources.fasting_window
 import opson.libraries.resources.generated.resources.fasting_window_range
 import opson.libraries.resources.generated.resources.settings_back_more
+import opson.libraries.resources.generated.resources.settings_loading_cd
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Instant
@@ -67,7 +69,8 @@ fun FastingScreen(
         when (val page = state.page) {
             is FastingPage.Offered -> Offered(page, onAction)
             FastingPage.NotInThisMode -> NotInThisMode()
-            FastingPage.Hidden, null -> Unit
+            null -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
+            FastingPage.Hidden -> Unit
         }
     }
 }

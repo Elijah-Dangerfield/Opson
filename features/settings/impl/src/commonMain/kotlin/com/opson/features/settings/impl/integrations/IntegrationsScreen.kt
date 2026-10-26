@@ -24,6 +24,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.button.ButtonGhost
 import com.opson.libraries.ui.components.button.ButtonPrimary
@@ -66,6 +67,7 @@ import opson.libraries.resources.generated.resources.integrations_title
 import opson.libraries.resources.generated.resources.integrations_total
 import opson.libraries.resources.generated.resources.integrations_unsupported
 import opson.libraries.resources.generated.resources.settings_back_more
+import opson.libraries.resources.generated.resources.settings_loading_cd
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -82,7 +84,11 @@ fun IntegrationsScreen(
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(IntegrationsAction.BackTapped) },
         )
-        if (state.loading) return@SettingsPage
+        if (state.loading) {
+            // The store answers the connection check first, which can take a moment.
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
+            return@SettingsPage
+        }
         SourceCard(state, onAction)
         state.expended?.let { ExpendedCard(it, state.source) }
         state.exercise?.let { ExerciseCard(it, onAction) }
