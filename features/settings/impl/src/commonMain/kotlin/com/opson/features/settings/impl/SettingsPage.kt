@@ -148,6 +148,6 @@ data class Toast(val message: StringResource, val args: List<Any> = emptyList())
 
 /** One theme per screen preview (every preview is also a 390 dp design-sync screenshot). */
 @Composable
-internal fun SettingsPreview(dark: Boolean = false, content: @Composable () -> Unit) {
-    PreviewContent(darkTheme = dark) { content() }
+internal fun SettingsPreview(dark: Boolean = false, largeText: Boolean = false, content: @Composable () -> Unit) {
+    PreviewContent(darkTheme = dark, largeText = largeText) { content() }
 }
