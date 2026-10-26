@@ -183,9 +183,20 @@ carry it.
 - [ ] After the prod deploy (V15 adds partial indexes; a few seconds of held
       writes), run the default-portions backfill on prod. Command in
       `docs/plans/search-quality.md`; it prompts for the URL, dry-runs first.
-- [ ] Open Food Facts: grow prod's disk (2 GB now; the table is 2.3 GB and a
-      reload holds two copies), load it, credit Open Food Facts wherever its
-      foods appear, then set `FOOD_SEARCH_OFF_ENABLED=true`.
+- [x] Grow prod's disk: 2 GB to 12 GB on 2026-10-26 (it was 83% used before
+      any Open Food Facts data). Supabase allows one resize per 6 hours and
+      never shrinks.
+- [ ] Open Food Facts on prod, after 0.1 clears review and prod is deployed
+      (V12 creates `off_foods`, V15 adds its search indexes):
+      1. Check prod's disk is under 40% used (Supabase API
+         `GET /v1/projects/qmftnivpklhhozthpxej/config/disk/util`).
+      2. `scripts/load_off_watched.sh qmftnivpklhhozthpxej apps/server/.env.prod`
+         (the same watched load dev got). It stops itself above 75%.
+      3. Ship the app's Open Food Facts credit wherever its foods appear
+         (ODbL requires it), then set `FOOD_SEARCH_OFF_ENABLED=true` on
+         `opson-server-prod`.
+      4. Set `OFF_IMPORT_ENABLED=true` and the `CATALOG_DATABASE_URL` secret
+         so the monthly reload keeps it current.
 
 ## Held native commits
 
