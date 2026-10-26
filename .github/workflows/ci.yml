@@ -110,9 +110,10 @@ jobs:
         # Before this existed the only thing running detekt was
         # .githooks/pre-push: per-machine, requires install_hooks.sh to have
         # been run, and skippable with SKIP_DETEKT=1. These are not style rules
-        # — VerifyStrings guards a crash on a missing key, and
-        # AnimatedStateReadInComposition guards a per-frame recomposition that
-        # has caused production ANRs. A gate only the author runs is not a gate.
+        # — VerifyStrings keeps copy out of Kotlin literals, where translation
+        # never reaches it, and AnimatedStateReadInComposition guards a
+        # per-frame recomposition that has caused production ANRs. A gate only
+        # the author runs is not a gate.
         #
         # :detekt-rules:test is a JVM module, so `testDebugUnitTest` never
         # touches it. A rule that silently stops matching otherwise leaves the
@@ -260,3 +261,18 @@ jobs:
             apps/integration/build/reports/tests/testDebugUnitTest/**
           if-no-files-found: ignore
           retention-days: 14
+
+  script-tests:
+    name: Script tests
+    # The food importers, their helpers and the review ledger have unit tests
+    # that only need the standard library and never touch a database. Before
+    # this job nothing ran them, so the monthly import could break unseen.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run script tests
+        run: python3 -I -m unittest discover -s scripts -p 'test_*.py' -v
