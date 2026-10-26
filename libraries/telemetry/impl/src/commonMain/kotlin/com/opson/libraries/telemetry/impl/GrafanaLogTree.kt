@@ -23,10 +23,10 @@ import io.opentelemetry.kotlin.logging.export.LogRecordProcessor
  * trees regardless of what this one does.
  *
  * Second mode ([klogForwardingEnabled], `telemetry.klogForwardingEnabled`):
- * plain Warn+ entries are forwarded too, as ordinary OTLP logs — body only,
- * no event name — so client errors land in Loki without waiting on a Sentry
- * crash. Events are never gated by that flag; both modes sit behind the
- * kill switch and per-session sampling.
+ * plain Warn+ entries are forwarded too, as ordinary OTLP logs (the message,
+ * tag and exception type, no event name) so client errors land in Loki
+ * without waiting on a Sentry crash. Events are never gated by that flag;
+ * both modes sit behind the kill switch and per-session sampling.
  *
  * Deliberately direct-to-Grafana rather than through our backend: the
  * reliability events (`net.backend_unreachable`, reconnect failures) must
@@ -123,7 +123,7 @@ class GrafanaLogTree(
         if (!isSessionSampledIn(sessionId)) return
 
         eventLogger.emit(
-            body = entry.message ?: entry.throwable?.toString(),
+            body = entry.ownMessage() ?: entry.throwable?.typeName(),
             eventName = eventName,
             severityNumber = entry.level.toSeverityNumber(),
             attributes = {
@@ -132,10 +132,7 @@ class GrafanaLogTree(
                 setBooleanAttribute(IS_OFFLINE_KEY, isOffline())
                 if (eventName == null) {
                     entry.tag?.let { setStringAttribute(TAG_KEY, it) }
-                    entry.throwable?.let {
-                        setStringAttribute(EXCEPTION_TYPE_KEY, it::class.simpleName ?: "Throwable")
-                        it.message?.let { m -> setStringAttribute(EXCEPTION_MESSAGE_KEY, m) }
-                    }
+                    entry.throwable?.let { setStringAttribute(EXCEPTION_TYPE_KEY, it.typeName()) }
                 }
                 entry.context.tags.forEach { (key, value) -> setStringAttribute(key, value) }
                 entry.context.extras.forEach { (key, value) ->
@@ -169,6 +166,20 @@ class GrafanaLogTree(
         return bucket < rate
     }
 
+    /**
+     * The type and never the message. Exception messages are payloads: Ktor's
+     * name the full request URL, query included (`foods.search` puts the
+     * search text in `q`), and a `ResponseException` appends the response
+     * body. `NetworkCall` logs every failed call at warn with its throwable,
+     * so forwarding the message shipped what people search for to Loki.
+     * Sentry still gets the whole throwable for debugging.
+     */
+    private fun Throwable.typeName(): String = this::class.simpleName ?: "Throwable"
+
+    /** The caller's message, not the one `KLog` borrows from the throwable when there is none. */
+    private fun LogEntry.ownMessage(): String? =
+        message?.takeUnless { throwable.let { t -> t != null && it == t.message } }
+
     private fun LogLevel.toSeverityNumber(): SeverityNumber = when (this) {
         LogLevel.Verbose -> SeverityNumber.TRACE
         LogLevel.Debug -> SeverityNumber.DEBUG
@@ -185,7 +196,6 @@ class GrafanaLogTree(
         private const val IS_OFFLINE_KEY = "is_offline"
         private const val TAG_KEY = "tag"
         private const val EXCEPTION_TYPE_KEY = "exception_type"
-        private const val EXCEPTION_MESSAGE_KEY = "exception_message"
         internal const val GENUINE_INSTALL_KEY = "genuine_install"
         internal const val IS_EMULATOR_KEY = "is_emulator"
         internal const val IS_SIDELOADED_KEY = "is_sideloaded"

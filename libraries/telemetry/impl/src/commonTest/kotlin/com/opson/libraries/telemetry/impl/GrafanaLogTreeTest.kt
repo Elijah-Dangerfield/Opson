@@ -6,6 +6,7 @@ import io.opentelemetry.kotlin.logging.SeverityNumber
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GrafanaLogTreeTest {
@@ -96,7 +97,27 @@ class GrafanaLogTreeTest {
         assertEquals("send after close", record.body)
         assertEquals(SeverityNumber.ERROR, record.severityNumber)
         assertEquals("IllegalStateException", record.attributes["exception_type"])
-        assertEquals("socket already closed", record.attributes["exception_message"])
+    }
+
+    @Test
+    fun klogForwardingOn_aFailedSearch_doesNotShipTheSearchText() {
+        klogForwardingEnabled = true
+        plantTree()
+        // The shape of Ktor's ClientRequestException message, which NetworkCall
+        // logs at warn for every failed call.
+        val failure = IllegalStateException(
+            "Client request(GET https://api.example/v1/foods/search?q=chicken%20korma&limit=20) " +
+                "invalid: 429 Too Many Requests. Text: \"slow down\"",
+        )
+
+        KLog.w(failure, "foods.search failed (http 429)")
+        KLog.w(failure)
+
+        val shipped = processor.records.joinToString { "${it.body} ${it.attributes.values}" }
+        assertFalse("chicken" in shipped, shipped)
+        assertFalse("slow down" in shipped, shipped)
+        assertEquals("foods.search failed (http 429)", processor.records[0].body)
+        assertEquals("IllegalStateException", processor.records[1].body)
     }
 
     @Test
