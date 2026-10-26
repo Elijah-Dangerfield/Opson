@@ -38,7 +38,8 @@ class DiaryRepositoryImplTest : CoroutineTest() {
     private val scheduler = FakeScheduler()
     private val settings = FakeSettingsRepository()
     private val calendar = FakeCalendar()
-    private val repo = DiaryRepositoryImpl(db.tables, DiaryWriter(db.tables, clock, scheduler), settings, calendar)
+    private val fastEnder = FakeFastEnder()
+    private val repo = DiaryRepositoryImpl(db.tables, DiaryWriter(db.tables, clock, scheduler), settings, calendar, fastEnder)
 
     private val today = LocalDate(2026, 10, 25)
     private val yesterday = LocalDate(2026, 10, 24)
@@ -272,7 +273,8 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 class FakeSettingsRepository(initial: Settings = Settings()) : SettingsRepository {
     val state = MutableStateFlow(initial)
     override val settings: StateFlow<Settings> = state
-    override val isKnown: StateFlow<Boolean> = MutableStateFlow(true)
+    val known = MutableStateFlow(true)
+    override val isKnown: StateFlow<Boolean> = known
 
     override suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): Settings =
         transform(state.value).also { state.value = it }

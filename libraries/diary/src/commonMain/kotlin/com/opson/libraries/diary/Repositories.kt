@@ -197,6 +197,9 @@ enum class SyncEntity(val wire: String) {
     CustomFood("custom_food"),
     SavedMeal("saved_meal"),
     Settings("settings"),
+
+    /** 0.2. A server that predates it refuses it as `unknown_entity`. */
+    Fast("fast"),
     ;
 
     companion object {

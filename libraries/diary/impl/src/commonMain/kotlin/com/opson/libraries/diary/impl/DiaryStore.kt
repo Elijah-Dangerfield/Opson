@@ -4,6 +4,7 @@ import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.db.CustomFoodDao
 import com.opson.libraries.diary.db.DayRecordDao
+import com.opson.libraries.diary.db.FastDao
 import com.opson.libraries.diary.db.LogEntryDao
 import com.opson.libraries.diary.db.MealFeelingDao
 import com.opson.libraries.diary.db.OutboxDao
@@ -23,7 +24,7 @@ import kotlin.math.max
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
-/** Every diary table and the transactor that writes them together. One parameter instead of nine. */
+/** Every diary table and the transactor that writes them together. One parameter instead of ten. */
 @Inject
 class DiaryTables(
     val entries: LogEntryDao,
@@ -32,6 +33,7 @@ class DiaryTables(
     val weighIns: WeighInDao,
     val customFoods: CustomFoodDao,
     val savedMeals: SavedMealDao,
+    val fasts: FastDao,
     val outbox: OutboxDao,
     val syncState: SyncStateDao,
     val transactor: DatabaseTransactor,

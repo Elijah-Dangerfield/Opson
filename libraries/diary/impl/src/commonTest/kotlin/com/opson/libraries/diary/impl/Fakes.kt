@@ -9,6 +9,8 @@ import com.opson.libraries.diary.db.CustomFoodDao
 import com.opson.libraries.diary.db.CustomFoodEntity
 import com.opson.libraries.diary.db.DayRecordDao
 import com.opson.libraries.diary.db.DayRecordEntity
+import com.opson.libraries.diary.db.FastDao
+import com.opson.libraries.diary.db.FastEntity
 import com.opson.libraries.diary.db.LogEntryDao
 import com.opson.libraries.diary.db.LogEntryEntity
 import com.opson.libraries.diary.db.MealFeelingDao
@@ -73,6 +75,7 @@ class FakeDiaryDb {
     val weighIns = FakeTable<String, WeighInEntity>()
     val customFoods = FakeTable<String, CustomFoodEntity>()
     val savedMeals = FakeTable<String, SavedMealEntity>()
+    val fasts = FakeTable<String, FastEntity>()
     val outbox = FakeTable<String, OutboxEntity>()
     val syncState = FakeTable<Int, SyncStateEntity>()
 
@@ -108,6 +111,7 @@ class FakeDiaryDb {
     private fun snapshot() = listOf(
         entries.state.value, days.state.value, feelings.state.value, weighIns.state.value,
         customFoods.state.value, savedMeals.state.value, outbox.state.value, syncState.state.value,
+        fasts.state.value,
     )
 
     @Suppress("UNCHECKED_CAST")
@@ -120,6 +124,7 @@ class FakeDiaryDb {
         savedMeals.state.value = s[5] as Map<String, SavedMealEntity>
         outbox.state.value = s[6] as Map<String, OutboxEntity>
         syncState.state.value = s[7] as Map<Int, SyncStateEntity>
+        fasts.state.value = s[8] as Map<String, FastEntity>
     }
 
     val entryDao = object : LogEntryDao {
@@ -258,6 +263,29 @@ class FakeDiaryDb {
         override suspend fun deleteAll() = savedMeals.clear()
     }
 
+    val fastDao = object : FastDao {
+        override suspend fun upsert(rows: List<FastEntity>) {
+            recordWrite("fasts")
+            rows.forEach { fasts.put(it.day, it) }
+        }
+
+        override suspend fun get(day: String) = fasts.state.value[day]
+
+        override suspend fun latest() = latestOf(fasts.state.value)
+
+        override fun observeLatest() = fasts.observe().map { latestOf(it) }
+
+        override suspend fun delete(day: String) {
+            recordWrite("fasts")
+            fasts.remove(day)
+        }
+
+        override suspend fun deleteAll() = fasts.clear()
+
+        private fun latestOf(rows: Map<String, FastEntity>) =
+            rows.values.filter { !it.deleted }.maxWithOrNull(compareBy<FastEntity> { it.startedAtEpochMs }.thenBy { it.day })
+    }
+
     val outboxDao = object : OutboxDao {
         override suspend fun insert(row: OutboxEntity) {
             recordWrite("outbox")
@@ -318,10 +346,21 @@ class FakeDiaryDb {
         weighIns = weighInDao,
         customFoods = customFoodDao,
         savedMeals = savedMealDao,
+        fasts = fastDao,
         outbox = outboxDao,
         syncState = syncStateDao,
         transactor = transactor,
     )
+}
+
+/** Counts "food was logged" calls instead of ending fasts. */
+class FakeFastEnder : FastEnder {
+    var foodLogged = 0
+        private set
+
+    override suspend fun foodLogged() {
+        foodLogged++
+    }
 }
 
 class FakeClock(var now: Instant = Instant.parse("2026-10-25T12:00:00Z")) : Clock {

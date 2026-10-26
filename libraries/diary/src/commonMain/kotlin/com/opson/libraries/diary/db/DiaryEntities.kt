@@ -113,6 +113,21 @@ data class SavedMealEntity(
 )
 
 /**
+ * One fast, keyed by the local day it began (one per evening). Schema 8.
+ * [goalHours] is at most 16; the end a fast reaches on its own is derived from
+ * it, never stored.
+ */
+@Entity(tableName = "fasts", indices = [Index("startedAtEpochMs")])
+data class FastEntity(
+    @PrimaryKey val day: String,
+    val startedAtEpochMs: Long,
+    val endedAtEpochMs: Long?,
+    val goalHours: Int?,
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean,
+)
+
+/**
  * A change waiting to reach the server. There is at most one per
  * (`entity`, `entityId`): a newer change to the same row replaces the older
  * mutation under a fresh [id], so the server's `applied` list for the old id

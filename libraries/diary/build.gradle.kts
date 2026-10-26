@@ -19,6 +19,8 @@ kotlin {
             api(libs.kotlinx.coroutines.core)
             // api: SettingsJson is part of the surface.
             api(libs.kotlinx.serialization.json)
+            // FastingReleaseFlag, the release.fasting flag.
+            implementation(projects.libraries.config)
         }
     }
 }

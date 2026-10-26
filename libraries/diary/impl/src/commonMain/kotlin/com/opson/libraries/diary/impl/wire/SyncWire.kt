@@ -19,7 +19,16 @@ import kotlinx.serialization.json.JsonObject
 data class SyncRequestDto(
     val cursor: Long = 0,
     val mutations: List<SyncMutationDto> = emptyList(),
+    /**
+     * Entities added after 0.1 that this client can take in `changes` ([SYNC_ACCEPTS]). The
+     * server leaves them out for a request that does not name them, so a 0.1 client gets the
+     * 0.1 payload.
+     */
+    val accepts: List<String> = emptyList(),
 )
+
+/** Every entity past the 0.1 set this client reads from `changes`. */
+internal val SYNC_ACCEPTS: List<String> = listOf("fast")
 
 @Serializable
 data class SyncMutationDto(
@@ -54,6 +63,8 @@ data class SyncChangesDto(
     val customFoods: List<CustomFoodRowDto> = emptyList(),
     val savedMeals: List<SavedMealRowDto> = emptyList(),
     val settings: SettingsRowDto? = null,
+    /** Present only when the request accepts `fast`. */
+    val fasts: List<FastRowDto>? = null,
 )
 
 @Serializable
@@ -142,6 +153,17 @@ data class SavedMealRowDto(
     val name: String,
     val usualSlot: String? = null,
     val items: JsonArray = JsonArray(emptyList()),
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean = false,
+)
+
+@Serializable
+data class FastRowDto(
+    /** The local day the fast began; its key. */
+    val day: String,
+    val startedAtEpochMs: Long,
+    val endedAtEpochMs: Long? = null,
+    val goalHours: Int? = null,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean = false,
 )

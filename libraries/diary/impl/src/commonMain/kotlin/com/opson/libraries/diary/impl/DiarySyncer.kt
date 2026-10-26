@@ -9,8 +9,10 @@ import com.opson.libraries.diary.db.OutboxEntity
 import com.opson.libraries.diary.db.SyncStateEntity
 import com.opson.libraries.diary.impl.wire.CustomFoodRowDto
 import com.opson.libraries.diary.impl.wire.DayRecordRowDto
+import com.opson.libraries.diary.impl.wire.FastRowDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.MealFeelingRowDto
+import com.opson.libraries.diary.impl.wire.SYNC_ACCEPTS
 import com.opson.libraries.diary.impl.wire.SavedMealRowDto
 import com.opson.libraries.diary.impl.wire.SyncChangesDto
 import com.opson.libraries.diary.impl.wire.SyncMutationDto
@@ -205,8 +207,8 @@ class DiarySyncer(
             }
             previousKeys = keys
 
-            val response = api.sync(SyncRequestDto(cursor = cursor, mutations = page.mapNotNull { it.toMutation() }))
-                .getOrThrow()
+            val request = SyncRequestDto(cursor = cursor, mutations = page.mapNotNull { it.toMutation() }, accepts = SYNC_ACCEPTS)
+            val response = api.sync(request).getOrThrow()
             pulledSettings = pulledSettings || response.changes.settings != null
             apply(response)
             cursor = response.cursor
@@ -321,6 +323,12 @@ class DiarySyncer(
             changes.savedMeals.filter { it.id !in waiting }.map { it.toEntity() }
                 .takeIf { it.isNotEmpty() }?.let { tables.savedMeals.upsert(it) }
         }
+        val fasts = changes.fasts.orEmpty()
+        if (fasts.isNotEmpty()) {
+            val waiting = pending(SyncEntity.Fast)
+            fasts.filter { it.day !in waiting }.map { it.toEntity() }
+                .takeIf { it.isNotEmpty() }?.let { tables.fasts.upsert(it) }
+        }
     }
 
     /** Puts a refused row back as it was before the change, or removes it if it was new. */
@@ -353,6 +361,10 @@ class DiarySyncer(
                 SyncEntity.SavedMeal ->
                     if (base == null) tables.savedMeals.delete(row.entityId)
                     else tables.savedMeals.upsert(listOf(decode(SavedMealRowDto.serializer(), base).toEntity()))
+
+                SyncEntity.Fast ->
+                    if (base == null) tables.fasts.delete(row.entityId)
+                    else tables.fasts.upsert(listOf(decode(FastRowDto.serializer(), base).toEntity()))
 
                 SyncEntity.Settings -> Unit
             }

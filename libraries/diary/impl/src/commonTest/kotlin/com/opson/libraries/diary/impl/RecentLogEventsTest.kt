@@ -23,6 +23,7 @@ class RecentLogEventsTest : CoroutineTest() {
         DiaryWriter(db.tables, FakeClock(), FakeScheduler()),
         FakeSettingsRepository(),
         FakeCalendar(),
+        FakeFastEnder(),
     )
     private val events = RecentLogEventsImpl(repo)
     private val today = LocalDate(2026, 10, 25)

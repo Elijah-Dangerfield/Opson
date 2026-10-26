@@ -152,6 +152,28 @@ interface SavedMealDao : ClearableDao {
     override suspend fun deleteAll()
 }
 
+/** Fasts. Only the latest is ever read: nothing compares fasts, so there are no streaks or records. */
+@Dao
+interface FastDao : ClearableDao {
+    @Upsert
+    suspend fun upsert(rows: List<FastEntity>)
+
+    @Query("SELECT * FROM fasts WHERE day = :day")
+    suspend fun get(day: String): FastEntity?
+
+    @Query("SELECT * FROM fasts WHERE deleted = 0 ORDER BY startedAtEpochMs DESC, day DESC LIMIT 1")
+    suspend fun latest(): FastEntity?
+
+    @Query("SELECT * FROM fasts WHERE deleted = 0 ORDER BY startedAtEpochMs DESC, day DESC LIMIT 1")
+    fun observeLatest(): Flow<FastEntity?>
+
+    @Query("DELETE FROM fasts WHERE day = :day")
+    suspend fun delete(day: String)
+
+    @Query("DELETE FROM fasts")
+    override suspend fun deleteAll()
+}
+
 @Dao
 interface OutboxDao : ClearableDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)

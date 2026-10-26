@@ -2,6 +2,7 @@ package com.opson.libraries.storage.impl.db
 
 import com.opson.libraries.diary.db.CustomFoodDao
 import com.opson.libraries.diary.db.DayRecordDao
+import com.opson.libraries.diary.db.FastDao
 import com.opson.libraries.diary.db.LogEntryDao
 import com.opson.libraries.diary.db.MealFeelingDao
 import com.opson.libraries.diary.db.OutboxDao
@@ -93,3 +94,10 @@ class ProvideSyncStateDao @Inject constructor(
 class ProvideFoodCacheDao @Inject constructor(
     provider: AppDatabaseProvider
 ) : FoodCacheDao by provider.database.foodCacheDao()
+
+@SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = FastDao::class)
+@ContributesBinding(AppScope::class, boundType = ClearableDao::class, multibinding = true)
+class ProvideFastDao @Inject constructor(
+    provider: AppDatabaseProvider
+) : FastDao by provider.database.fastDao()

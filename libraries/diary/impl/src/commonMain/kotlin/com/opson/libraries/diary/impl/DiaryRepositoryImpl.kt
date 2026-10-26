@@ -1,5 +1,7 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.core.Catching
+import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
@@ -41,7 +43,10 @@ class DiaryRepositoryImpl(
     private val writer: DiaryWriter,
     private val settingsRepository: SettingsRepository,
     private val calendar: LocalCalendar,
+    private val fastEnder: FastEnder,
 ) : DiaryRepository {
+
+    private val logger = KLog.withTag("Diary")
 
     override fun observeDay(date: LocalDate): Flow<Day> {
         val key = date.toString()
@@ -93,6 +98,7 @@ class DiaryRepositoryImpl(
         method: LogMethod,
     ): List<LogItem> {
         if (items.isEmpty()) return emptyList()
+        foodLoggedOn(day)
         return writer.write { insertDrafts(day, items.map { slot to it }, method) }
     }
 
@@ -117,13 +123,13 @@ class DiaryRepositoryImpl(
     override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> = writer.write {
         val source = tables.entries.getDay(from.toString()).mapNotNull { it.toDomain() }
         insertDrafts(to, source.map { it.slot to it.toDraft() }, LogMethod.Copy)
-    }
+    }.also { if (it.isNotEmpty()) foodLoggedOn(to) }
 
     override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> =
         writer.write {
             val source = tables.entries.getDay(fromDay.toString()).mapNotNull { it.toDomain() }.filter { it.slot == slot }
             insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy)
-        }
+        }.also { if (it.isNotEmpty()) foodLoggedOn(toDay) }
 
     override suspend fun clearDay(day: LocalDate) = writer.write {
         tables.entries.getDay(day.toString()).forEach { existing ->
@@ -164,11 +170,23 @@ class DiaryRepositoryImpl(
         changeDay(day) { it.copy(feeling = feeling?.wire) }
     }
 
-    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) = writer.write {
-        changeDay(day) { record ->
-            val slots = record.ateNoDetailsSlots()
-            record.copy(ateNoDetailsJson = (if (ate) slots + slot else slots - slot).toAteJson())
+    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) {
+        writer.write {
+            changeDay(day) { record ->
+                val slots = record.ateNoDetailsSlots()
+                record.copy(ateNoDetailsJson = (if (ate) slots + slot else slots - slot).toAteJson())
+            }
         }
+        if (ate) foodLoggedOn(day)
+    }
+
+    /**
+     * Logging food ends a fast. Only on today or earlier: planning tomorrow's meals is not eating
+     * now. Fasting never gets in the way of logging, so a failure here is logged and dropped.
+     */
+    private suspend fun foodLoggedOn(day: LocalDate) {
+        if (day > calendar.today()) return
+        Catching { fastEnder.foodLogged() }.onFailure { logger.w(it) { "Could not end a fast on logging food" } }
     }
 
     override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?) = writer.write {

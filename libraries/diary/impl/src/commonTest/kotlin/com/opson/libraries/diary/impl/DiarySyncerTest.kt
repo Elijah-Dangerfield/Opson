@@ -9,6 +9,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsJson
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.SyncRejection
+import com.opson.libraries.diary.impl.wire.FastRowDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.SettingsRowDto
 import com.opson.libraries.diary.impl.wire.SyncChangesDto
@@ -60,6 +61,7 @@ class DiarySyncerTest : CoroutineTest() {
         DiaryWriter(db.tables, clock, FakeScheduler()),
         FakeSettingsRepository(),
         FakeCalendar(),
+        FakeFastEnder(),
     )
     private val logs = RecordingTree()
     private val today = LocalDate(2026, 10, 25)
@@ -173,6 +175,69 @@ class DiarySyncerTest : CoroutineTest() {
 
         assertEquals("Rice", repo.observeDay(today).first().allItems.single().name)
         assertTrue(db.outbox.rows.isEmpty())
+    }
+
+    @Test
+    fun everyRequestSaysItAcceptsFasts() = runUnitTest {
+        syncer.sync()
+
+        assertEquals(listOf("fast"), api.requests.single().accepts)
+    }
+
+    @Test
+    fun aPulledFastIsStoredUnlessALocalChangeIsWaiting() = runUnitTest {
+        val pulled = FastRowDto(day = "2026-10-24", startedAtEpochMs = 1_000, goalHours = 14, clientUpdatedAtEpochMs = 1_000)
+        api.respond = { ackEverything(it).copy(changes = SyncChangesDto(fasts = listOf(pulled))) }
+        syncer.sync()
+        assertEquals(pulled.toEntity(), db.fasts.state.value["2026-10-24"])
+
+        val local = pulled.copy(endedAtEpochMs = 5_000, clientUpdatedAtEpochMs = 5_000).toEntity()
+        db.fasts.put(local.day, local)
+        db.outboxDao.enqueue(SyncEntity.Fast, local.day, "{}", base = null, nowEpochMs = 5_000)
+        api.respond = { ackEverything(it).copy(applied = emptyList(), changes = SyncChangesDto(fasts = listOf(pulled))) }
+        syncer.sync()
+        assertEquals(local, db.fasts.state.value["2026-10-24"], "the waiting local end wins")
+    }
+
+    @Test
+    fun aRefusedNewFastIsRemoved() = runUnitTest {
+        val row = FastRowDto(day = "2026-10-25", startedAtEpochMs = 1_000, goalHours = 14, clientUpdatedAtEpochMs = 1_000)
+        db.fasts.put(row.day, row.toEntity())
+        db.outboxDao.enqueue(
+            SyncEntity.Fast,
+            row.day,
+            com.opson.libraries.diary.impl.wire.WireJson.encodeToString(FastRowDto.serializer(), row),
+            base = null,
+            nowEpochMs = 1_000,
+            day = row.day,
+        )
+        api.respond = { request -> refuseEverything(request) }
+
+        syncer.sync()
+
+        assertTrue(db.fasts.rows.isEmpty())
+        assertTrue(db.outbox.rows.isEmpty())
+    }
+
+    @Test
+    fun aRefusedEndRollsTheFastBack() = runUnitTest {
+        val synced = FastRowDto(day = "2026-10-25", startedAtEpochMs = 1_000, goalHours = 14, clientUpdatedAtEpochMs = 1_000)
+        val ended = synced.copy(endedAtEpochMs = 2_000, clientUpdatedAtEpochMs = 2_000)
+        db.fasts.put(ended.day, ended.toEntity())
+        val json = com.opson.libraries.diary.impl.wire.WireJson
+        db.outboxDao.enqueue(
+            SyncEntity.Fast,
+            ended.day,
+            json.encodeToString(FastRowDto.serializer(), ended),
+            base = json.encodeToString(FastRowDto.serializer(), synced),
+            nowEpochMs = 2_000,
+            day = ended.day,
+        )
+        api.respond = { request -> refuseEverything(request) }
+
+        syncer.sync()
+
+        assertEquals(synced.toEntity(), db.fasts.state.value["2026-10-25"])
     }
 
     @Test
