@@ -190,6 +190,18 @@ object BarcodeLookupsTable : Table("barcode_lookups") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** One row per barcode the app reported as found nowhere, no user id. See `V13__barcode_misses.sql`. */
+object BarcodeMissesTable : Table("barcode_misses") {
+    val id = uuid("id")
+    val createdAt = timestamp("created_at")
+    val barcode = text("barcode")
+    val gtin = text("gtin").nullable()
+    val country = text("country").nullable()
+    val platform = text("platform")
+    val appVersion = text("app_version").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
 /**
  * Columns every synced diary table shares (see `V8__diary.sql`). `server_seq`
  * is set by the `bump_server_seq` trigger, so it is `databaseGenerated()` and

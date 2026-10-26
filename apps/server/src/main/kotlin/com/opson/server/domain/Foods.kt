@@ -234,4 +234,26 @@ object Barcodes {
         val upcA = code[0] + body + code[7]
         return upcA.takeIf { checkDigit(it.dropLast(1)) == it.last() - '0' }
     }
+
+    /**
+     * The 14-digit GTIN a scanned code stands for, or null when it has none.
+     * The same rule as `normalize_barcode` in scripts/import_off_foods.py, so
+     * a miss lines up with the rows the importers store: an 8-digit code is
+     * read as a UPC-E first, then any 8, 12, 13 or 14 digit code with a valid
+     * check digit is zero-padded to 14. A code whose check digit fails, or a
+     * placeholder that is mostly zeros, has no GTIN.
+     */
+    fun gtin14(code: String): String? {
+        if (!BarcodeLookup.isValidBarcode(code)) return null
+        val gtin = upcEToUpcA(code)?.padStart(GTIN_LENGTH, '0')
+            ?: code.takeIf { it.length in GTIN_LENGTHS && checkDigit(it.dropLast(1)) == it.last() - '0' }
+                ?.padStart(GTIN_LENGTH, '0')
+        return gtin?.takeIf { it.trimStart('0').length >= MIN_SIGNIFICANT_DIGITS }
+    }
+
+    private const val GTIN_LENGTH = 14
+    private val GTIN_LENGTHS = setOf(8, 12, 13, 14)
+
+    /** As the importers: no assigned GTIN is mostly zeros, so "00000000000000" and friends are placeholders. */
+    private const val MIN_SIGNIFICANT_DIGITS = 7
 }

@@ -36,6 +36,30 @@ class BarcodesTest {
     }
 
     @Test
+    fun gtin14PadsEveryValidFormToFourteenDigits() {
+        assertEquals("00049000028911", Barcodes.gtin14("049000028911"), "UPC-A")
+        assertEquals("00049000028911", Barcodes.gtin14("0049000028911"), "its EAN-13")
+        assertEquals("00049000028911", Barcodes.gtin14("00049000028911"), "its GTIN-14")
+        assertEquals("04006381333931", Barcodes.gtin14("4006381333931"), "EAN-13")
+        assertEquals("00000096385074", Barcodes.gtin14("96385074"), "EAN-8 that is not a UPC-E")
+    }
+
+    @Test
+    fun gtin14ReadsAnEightDigitCodeAsUpcEFirst() {
+        // As scripts/import_off_foods.py: an 8-digit code that expands to a valid UPC-A is that UPC-A.
+        assertEquals("00042100005264", Barcodes.gtin14("04252614"))
+    }
+
+    @Test
+    fun gtin14RejectsBadCheckDigitsPlaceholdersAndJunk() {
+        assertNull(Barcodes.gtin14("4006381333932"), "check digit")
+        assertNull(Barcodes.gtin14("00000000000000"), "placeholder")
+        assertNull(Barcodes.gtin14("00000000123457"), "too few significant digits")
+        assertNull(Barcodes.gtin14("1234567890"), "10 digits is not a scanned GTIN form")
+        assertNull(Barcodes.gtin14("12ab5678"))
+    }
+
+    @Test
     fun anInvalidCodeIsOnlyItself() {
         assertEquals(listOf("12ab"), Barcodes.equivalents("12ab"))
     }

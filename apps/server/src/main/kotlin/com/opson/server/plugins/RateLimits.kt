@@ -23,6 +23,7 @@ const val PROFILE_WRITE_LIMIT = "profile-write"
 const val PLAYER_REPORT_LIMIT = "player-report"
 const val DELETE_ACCOUNT_LIMIT = "delete-account"
 const val BARCODE_LOOKUP_LIMIT = "barcode-lookup"
+const val BARCODE_MISS_LIMIT = "barcode-miss"
 
 fun Application.installRateLimits() {
     install(RateLimit) {
@@ -53,6 +54,14 @@ fun Application.installRateLimits() {
             // product reads per caller IP, and every Opson user shares the
             // server's IP. 60/min per client keeps one hot loop from spending
             // everyone's OFF budget; a person scanning a pantry never hits it.
+            rateLimiter(limit = 60, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(BARCODE_MISS_LIMIT)) {
+            // A miss report follows a barcode lookup that missed, so it can
+            // never legitimately outrun that route's 60/min. Its own bucket,
+            // so a report never spends a lookup.
             rateLimiter(limit = 60, refillPeriod = 1.minutes)
             requestKey { call -> call.clientIp() }
         }
