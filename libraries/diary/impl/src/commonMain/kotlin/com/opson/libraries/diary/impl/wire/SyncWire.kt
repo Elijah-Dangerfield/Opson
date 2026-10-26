@@ -197,6 +197,3 @@ internal val WireJson: Json = Json {
     explicitNulls = false
     encodeDefaults = true
 }
-
-/** The server takes at most 500 mutations per request; the drain stays well under it. */
-internal const val SERVER_MAX_MUTATIONS = 500

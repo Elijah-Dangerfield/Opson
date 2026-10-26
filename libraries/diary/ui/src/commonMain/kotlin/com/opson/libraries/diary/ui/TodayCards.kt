@@ -724,7 +724,6 @@ fun LabelledLineCard(
 }
 
 private const val LABEL_ALPHA = 0.72f
-private const val TRACK_ALPHA = 0.16f
 
 @Suppress("VerifyStrings")
 @Preview(widthDp = 390)
