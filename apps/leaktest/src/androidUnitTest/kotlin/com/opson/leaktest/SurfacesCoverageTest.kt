@@ -11,8 +11,9 @@ import kotlin.test.assertTrue
  * deleting a surface, renaming its id, dropping a feature's list, a preset that quietly starts
  * showing calories, or unmarking a surface's `showsCaloriesInFull` to dodge the control.
  *
- * A new surface is covered the moment its feature lists it; add its id to [REQUIRED_SURFACES] (and
- * the table in docs/plans/screens/blind-leak-test.md) so it stays covered.
+ * A new surface is covered the moment its feature lists it, and this fails until its id is in
+ * [REQUIRED_SURFACES] (and, if it shows calories in Full, [SHOWS_CALORIES_IN_FULL]), so it stays
+ * covered. Add it to the table in docs/plans/screens/blind-leak-test.md too.
  */
 class SurfacesCoverageTest {
 
@@ -23,6 +24,18 @@ class SurfacesCoverageTest {
             val missing = required - ids.toSet()
             assertTrue(missing.isEmpty(), "$list no longer lists $missing, so the leak test stopped covering them")
         }
+    }
+
+    /** The pin is only a pin if a new surface has to join it: two barcode surfaces once did not. */
+    @Test
+    fun everyListedSurfaceIsPinned() {
+        val unpinned = SURFACES.map { it.id }.toSet() - REQUIRED_SURFACES.values.flatten().toSet()
+        assertTrue(unpinned.isEmpty(), "$unpinned are not in REQUIRED_SURFACES, so deleting them would not fail the build")
+        val uncontrolled = SURFACES.filter { it.showsCaloriesInFull }.map { it.id }.toSet() - SHOWS_CALORIES_IN_FULL.toSet()
+        assertTrue(
+            uncontrolled.isEmpty(),
+            "$uncontrolled are not in SHOWS_CALORIES_IN_FULL, so unmarking them would drop them from the control unnoticed",
+        )
     }
 
     @Test
@@ -101,6 +114,7 @@ class SurfacesCoverageTest {
                 "logger-describe-voice",
                 "logger-search-tabs", "logger-search-options",
                 "logger-uncategorized", "logger-amount-units",
+                "logger-scan-amount", "logger-scan-miss",
             ),
             "FoodsLeakSurfaces" to listOf("foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind"),
             "TrendsLeakSurfaces" to listOf(
@@ -128,6 +142,7 @@ class SurfacesCoverageTest {
             "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
             "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
             "logger-describe-voice", "logger-search-tabs", "logger-uncategorized", "logger-amount-units",
+            "logger-scan-amount",
             "widget", "widgets",
         )
     }
