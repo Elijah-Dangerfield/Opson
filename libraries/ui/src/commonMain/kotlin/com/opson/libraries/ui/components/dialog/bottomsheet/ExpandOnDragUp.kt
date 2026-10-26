@@ -13,6 +13,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 
@@ -62,3 +63,14 @@ fun Modifier.expandOnDragUp(enabled: Boolean, onExpand: () -> Unit): Modifier = 
 
 /** Far enough that a tap with a wobble is still a tap. */
 private val ExpandThreshold = 24.dp
+
+/**
+ * [BottomSheet]'s `heightFraction`, read in the layout phase so a sheet that grows (the logger
+ * from [BottomSheetDefaults.PartialHeightFraction] to full) can animate without recomposing its
+ * content on every frame. Pass it as the sheet's `modifier` with `heightFraction` left null.
+ */
+fun Modifier.sheetHeightFraction(fraction: () -> Float): Modifier = layout { measurable, constraints ->
+    val height = if (constraints.hasBoundedHeight) (constraints.maxHeight * fraction().coerceIn(0f, 1f)).toInt() else constraints.minHeight
+    val placeable = measurable.measure(constraints.copy(minHeight = height, maxHeight = height))
+    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+}
