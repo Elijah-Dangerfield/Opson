@@ -64,12 +64,21 @@ class DiaryRulesTest {
     }
 
     @Test
-    fun clientClockMayNotBeFarAhead() {
-        assertNull(DiaryRules.validate(entry(clientUpdatedAt = now + 23.hours), now))
-        assertEquals(
-            "clientUpdatedAtEpochMs is in the future",
-            DiaryRules.validate(entry(clientUpdatedAt = now + 25.hours), now),
-        )
+    fun aClockWithinTheSkewIsTrusted() {
+        val row = entry(clientUpdatedAt = now + 23.hours)
+        assertEquals(row, DiaryRules.clampClock(row, now))
+        assertNull(DiaryRules.validate(row, now))
+    }
+
+    @Test
+    fun aClockDaysAhead_isBroughtBackToNow_ratherThanRefused() {
+        val row = entry(clientUpdatedAt = now + 49.hours).copy(loggedAt = now + 48.hours)
+
+        val clamped = DiaryRules.clampClock(row, now) as LogEntry
+
+        assertEquals(now, clamped.clientUpdatedAt)
+        assertEquals(now, clamped.loggedAt)
+        assertNull(DiaryRules.validate(clamped, now))
     }
 
     @Test
@@ -162,9 +171,9 @@ class DiaryRulesTest {
     }
 
     @Test
-    fun aFastCannotEndBeforeItStartsOrStartInTheFuture() {
+    fun aFastCannotEndBeforeItStarts_andAFutureStartIsBroughtBack() {
         assertEquals("endedAtEpochMs is before startedAtEpochMs", DiaryRules.validate(fast(endedAt = now - 4.hours), now))
-        assertEquals("startedAtEpochMs is in the future", DiaryRules.validate(fast(startedAt = now + 25.hours), now))
+        assertEquals(now, (DiaryRules.clampClock(fast(startedAt = now + 25.hours), now) as Fast).startedAt)
         assertEquals("day is in the future", DiaryRules.validate(fast(day = today.plusDays(9)), now))
     }
 }

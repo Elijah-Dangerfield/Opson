@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.FoodKind
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.IconTile
 import com.opson.libraries.ui.components.icon.IconTileSize
 import com.opson.system.AppTheme
@@ -26,6 +28,46 @@ fun FoodIconTile(
     size: IconTileSize = IconTileSize.Medium,
 ) {
     IconTile(icon = AppIcons.Restaurant, tone = foodTone(seed), modifier = modifier, size = size)
+}
+
+/**
+ * A food's tile as design sync 2 draws it: a picture of the [kind] of food, tinted per kind
+ * (grains and fruit carbs orange, greens and desserts fibre brown, dairy and drinks fat blue,
+ * plates, fish and eggs protein pink). The tints only tell tiles apart; none means good or bad.
+ */
+@Composable
+fun FoodIconTile(
+    kind: FoodKind,
+    modifier: Modifier = Modifier,
+    size: IconTileSize = IconTileSize.Medium,
+) {
+    IconTile(icon = kind.icon, tone = kindTone(kind), modifier = modifier, size = size)
+}
+
+/** The glyph for a kind of food. */
+val FoodKind.icon: IconResource
+    get() = when (this) {
+        FoodKind.Grain -> AppIcons.RiceBowl
+        FoodKind.Salad -> AppIcons.Leaf
+        FoodKind.Fruit -> AppIcons.Fruit
+        FoodKind.Dessert, FoodKind.Dairy -> AppIcons.Icecream
+        FoodKind.Fish -> AppIcons.SetMeal
+        FoodKind.Egg -> AppIcons.Egg
+        FoodKind.Bread -> AppIcons.Bread
+        FoodKind.Soup -> AppIcons.SoupKitchen
+        FoodKind.Drink -> AppIcons.LocalCafe
+        FoodKind.Plate -> AppIcons.DinnerDining
+    }
+
+@Composable
+private fun kindTone(kind: FoodKind): ToneColors {
+    val nutrients = AppTheme.colors.nutrients
+    return when (kind) {
+        FoodKind.Grain, FoodKind.Fruit, FoodKind.Bread -> nutrients.carbs
+        FoodKind.Salad, FoodKind.Dessert, FoodKind.Soup -> nutrients.fiber
+        FoodKind.Dairy, FoodKind.Drink -> nutrients.fat
+        FoodKind.Plate, FoodKind.Fish, FoodKind.Egg -> nutrients.protein
+    }
 }
 
 /** The tint [FoodIconTile] uses for [seed], for anything drawn around it (the favorites' round tile). */
@@ -59,6 +101,16 @@ private fun FoodIconTilePreview() {
     PreviewLightDark {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             listOf("f:banana", "f:rice", "f:yogurt", "c:granola", "f:adobo").forEach { FoodIconTile(seed = it) }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun FoodKindTilePreview() {
+    PreviewLightDark {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FoodKind.entries.forEach { FoodIconTile(kind = it) }
         }
     }
 }

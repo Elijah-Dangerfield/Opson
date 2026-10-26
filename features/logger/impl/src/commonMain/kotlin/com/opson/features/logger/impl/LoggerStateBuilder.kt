@@ -1,9 +1,11 @@
 package com.opson.features.logger.impl
 
 import com.opson.libraries.diary.CustomFood
+import com.opson.libraries.diary.FoodKind
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MealSlotPicker
 import com.opson.libraries.diary.SearchDatabase
 import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.foods.Food
@@ -57,6 +59,13 @@ data class LoggerChoices(
     val voice: VoiceCapture = VoiceCapture.Idle(),
     /** `release.searchOptions`, read once when the sheet opens. */
     val searchOptions: Boolean = false,
+    /** How tall the sheet is; it only ever grows. */
+    val height: SheetHeight = SheetHeight.Partial,
+    /**
+     * The meal was given (a meal's own +) or picked from the dropdown, so the picker's answer
+     * from this person's logging times no longer moves it.
+     */
+    val slotChosen: Boolean = true,
     /** The category tab; the sheet always opens on All. */
     val tab: SearchTab = SearchTab.All,
     /** Whether the server offers Open Food Facts as a database. */
@@ -87,11 +96,18 @@ object LoggerStateBuilder {
             pane = choices.pane,
             query = choices.query,
             focusSearch = choices.focusSearch,
+            height = choices.height,
             pickingForMeal = choices.pickingForMeal,
             // A scan logs into this meal, so a meal being put together has no scanner.
             canScan = choices.scanAvailable && !choices.pickingForMeal,
             // The method chips all log straight to the diary, so pick mode has none.
-            methods = if (typing || choices.pickingForMeal || !onAll) emptyList() else methods(inputs, policy, slot, choices.photoAvailable),
+            methods = if (typing || choices.pickingForMeal || !onAll) emptyList() else methods(inputs, slot, choices.photoAvailable),
+            // Both log at once, which would leave the picks behind, so they wait until nothing is picked.
+            quickMethods = if (typing || choices.pickingForMeal || !onAll || inputs.basket.isNotEmpty()) {
+                emptyList()
+            } else {
+                quickMethods(policy, slot)
+            },
             body = body(inputs, policy, slot, choices, bare),
             describe = DescribeUi(
                 text = choices.describeText,
@@ -153,11 +169,14 @@ object LoggerStateBuilder {
         else -> searchFilterFor(inputs.settings, effective(inputs, choices))
     }
 
-    private fun methods(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot, photo: Boolean): List<LoggerMethod> = buildList {
+    private fun methods(inputs: LoggerInputs, slot: MealSlot, photo: Boolean): List<LoggerMethod> = buildList {
         if (photo) add(LoggerMethod.Photo)
         add(LoggerMethod.DescribeIt)
         if (inputs.dayBefore.items(slot).isNotEmpty()) add(LoggerMethod.Yesterday(slot))
         add(LoggerMethod.SavedMeals)
+    }
+
+    private fun quickMethods(policy: VisibilityPolicy, slot: MealSlot): List<LoggerMethod> = buildList {
         if (slot.isMeal) add(LoggerMethod.AteNoDetails)
         add(if (policy.level(Metric.Calories) != Visibility.Hide) LoggerMethod.JustANumber else LoggerMethod.AddANote)
     }
@@ -188,7 +207,12 @@ object LoggerStateBuilder {
             is Listing.Browse -> if (listing.usual.isEmpty() && listing.recent.isEmpty()) {
                 LoggerBody.FirstRun
             } else {
-                LoggerBody.Browse(slot = slot, usual = rows(listing.usual), recent = rows(listing.recent))
+                LoggerBody.Browse(
+                    slot = slot,
+                    usual = rows(listing.usual),
+                    recent = rows(listing.recent),
+                    usualAround = if (slot.isMeal) null else MealSlotPicker.aroundLabelTime(inputs.now),
+                )
             }
             is Listing.Listed -> when {
                 listing.picks.isNotEmpty() -> LoggerBody.Listed(rows(listing.picks))
@@ -226,7 +250,7 @@ object LoggerStateBuilder {
         val ordered = { picks: List<FoodPick> -> sorted(picks, sort, recency) }
         val filter = searchFilterFor(inputs.settings, choices)
         return when (choices.tab) {
-            SearchTab.Favorites -> own(SearchTab.Favorites, query, ordered(inputs.favorites.mapNotNull { it.toPick(PickSource.Favorite) }))
+            SearchTab.Favorites -> own(SearchTab.Favorites, query, ordered(favoritePicks(inputs)))
             SearchTab.Custom -> own(SearchTab.Custom, query, ordered(inputs.customFoods.map { it.toPick() }))
             SearchTab.Common, SearchTab.Restaurant, SearchTab.Beverages ->
                 if (query.isEmpty()) Listing.Hint(choices.tab) else catalogMatches(query, choices.search, filter, emptyList(), ordered)
@@ -277,11 +301,30 @@ object LoggerStateBuilder {
     }
 
     private fun browse(inputs: LoggerInputs, slot: MealSlot): Listing {
-        val usual = if (slot.isMeal) inputs.usualBySlot[slot].orEmpty().mapNotNull { it.toPick(PickSource.Usual) } else emptyList()
+        // Uncategorized has no usual of its own: what this person logs around now stands in.
+        val usualItems = if (slot.isMeal) {
+            inputs.usualBySlot[slot].orEmpty()
+        } else {
+            MealSlotPicker.usualAround(inputs.recentDays, inputs.now, inputs.timeZone, limit = USUAL_AROUND_LIMIT)
+        }
+        val usual = usualItems.mapNotNull { it.toPick(PickSource.Usual) }
         val usualKeys = usual.mapTo(HashSet()) { it.key }
         // A food already under "Usual at dinner" is not repeated under Recent.
         val recent = inputs.recent.mapNotNull { it.toPick(PickSource.Recent) }.filterNot { it.key in usualKeys }
         return Listing.Browse(usual = usual, recent = recent)
+    }
+
+    /**
+     * The foods starred on the amount sheet, newest star first, then the ones logged most. A star
+     * is found wherever the device already has the food: the diary, the catalog cache or the
+     * person's own foods; one it cannot find yet waits until it can.
+     */
+    private fun favoritePicks(inputs: LoggerInputs): List<FoodPick> {
+        val logged = (inputs.favorites + inputs.history + inputs.recent).mapNotNull { it.toPick(PickSource.Favorite) }.associateBy { it.key }
+        val cached = inputs.known.values.map { it.toPick().copy(source = PickSource.Favorite) }.associateBy { it.key }
+        val own = inputs.customFoods.map { it.toPick().copy(source = PickSource.Favorite) }.associateBy { it.key }
+        val starred = inputs.settings.favoriteFoods.mapNotNull { key -> logged[key] ?: cached[key] ?: own[key] }
+        return (starred + inputs.favorites.mapNotNull { it.toPick(PickSource.Favorite) }).distinctBy { it.key }
     }
 
     private fun history(inputs: LoggerInputs): List<FoodPick> = inputs.history.mapNotNull { it.toPick(PickSource.Recent) }
@@ -343,8 +386,11 @@ object LoggerStateBuilder {
                 else -> catalogFood?.let { SourceBadge.of(it.source) }
             },
             verified = catalogFood?.verified == true,
+            kind = FoodKind.of(draft.name),
         )
     }
+
+    private const val USUAL_AROUND_LIMIT = 3
 
     private fun basket(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot, context: FormatContext): BasketFooter? {
         val items = inputs.basket.ifEmpty { return null }

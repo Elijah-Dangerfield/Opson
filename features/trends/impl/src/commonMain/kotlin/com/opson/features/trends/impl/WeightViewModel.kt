@@ -11,11 +11,14 @@ import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.progressphotos.ProgressPhotoRepository
+import com.opson.libraries.progressphotos.ProgressPhotosEnabled
 import com.opson.libraries.ui.components.text.NumberInput
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -33,6 +36,8 @@ class WeightViewModel(
     settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
     private val clock: Clock,
+    photosEnabled: ProgressPhotosEnabled,
+    progressPhotos: ProgressPhotoRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<WeightState, WeightEvent, WeightAction>(initialStateArg = WeightState()) {
 
@@ -49,8 +54,11 @@ class WeightViewModel(
             .flatMapLatest { day ->
                 weights.observeWeighIns(since = day.minus(HISTORY_DAYS, DateTimeUnit.DAY).atStartOfDayIn(timeZone))
             }
-        combine(settingsRepository.settings, policySource.policy, weighIns) { settings, policy, weighIns ->
-            WeightAction.InputsArrived(WeightInputs(today, settings, weighIns, timeZone), policy)
+        // Read once, as the page opens. Off, the photo index is never touched.
+        val photosReleased = photosEnabled.value
+        val lastPhoto = if (photosReleased) progressPhotos.observeLastTaken() else flowOf(null)
+        combine(settingsRepository.settings, policySource.policy, weighIns, lastPhoto) { settings, policy, weighIns, last ->
+            WeightAction.InputsArrived(WeightInputs(today, settings, weighIns, timeZone, photosReleased, last), policy)
         }.collectIn(viewModelScope) { takeAction(it) }
     }
 
@@ -67,6 +75,7 @@ class WeightViewModel(
             }
             WeightAction.SaveTapped -> save(action)
             WeightAction.BackTapped -> sendEvent(WeightEvent.Close)
+            WeightAction.ProgressPhotosTapped -> if (state.photos != null) sendEvent(WeightEvent.OpenProgressPhotos)
         }
     }
 
@@ -104,8 +113,10 @@ sealed interface WeightAction {
     data class WeightTyped(val text: String) : WeightAction
     data object SaveTapped : WeightAction
     data object BackTapped : WeightAction
+    data object ProgressPhotosTapped : WeightAction
 }
 
 sealed interface WeightEvent {
     data object Close : WeightEvent
+    data object OpenProgressPhotos : WeightEvent
 }

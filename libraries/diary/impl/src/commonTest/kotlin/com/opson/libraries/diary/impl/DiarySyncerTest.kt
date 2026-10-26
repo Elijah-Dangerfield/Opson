@@ -335,6 +335,29 @@ class DiarySyncerTest : CoroutineTest() {
         assertTrue(settingsStore.isKnown.value)
     }
 
+    @Test
+    fun aSyncStartedBeforeTheSignedInUserReachedTheSyncer_stillMakesTheirSettingsKnown() = runUnitTest {
+        // The sync coordinator and the active-user source each follow auth on
+        // their own, so the first sync after sign-in can start while the
+        // source still says Unresolved. By the time the pull lands it has
+        // caught up, and the pull is that user's.
+        user.user.value = ActiveUser.Unresolved
+        val blind = Settings(numbers = NumbersSettings(preset = PresetId.Blind))
+        val row = SettingsRowDto(
+            settings = SettingsJson.encodeToJsonElement(Settings.serializer(), blind).jsonObject,
+            clientUpdatedAtEpochMs = 1,
+        )
+        api.respond = {
+            user.user.value = ActiveUser.SignedIn("user-a")
+            ackEverything(it).copy(changes = SyncChangesDto(settings = row))
+        }
+
+        syncer.sync()
+
+        assertEquals(PresetId.Blind, settingsStore.settings.value.numbers.preset)
+        assertTrue(settingsStore.isKnown.value, "known without waiting for another sync")
+    }
+
     private fun ackEverything(request: SyncRequestDto) = SyncResponseDto(
         applied = request.mutations.map { it.id },
         rejected = emptyList(),

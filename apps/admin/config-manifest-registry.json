@@ -15,6 +15,7 @@
   { "path": "release.widgets", "type": "boolean", "default": false, "description": "0.2: home screen widgets, the snapshot the app writes for them, and the More row" },
   { "path": "release.searchOptions", "type": "boolean", "default": false, "description": "0.2: the Logger's search options sheet, category tabs and source badges" },
   { "path": "release.findSupport", "type": "boolean", "default": false, "description": "Find support: helplines by country, Support's crisis row and the pause sheet's link" },
+  { "path": "release.progressPhotos", "type": "boolean", "default": false, "description": "Progress photos: the Weight row, and the private photo grid, camera and compare it opens" },
   { "path": "release.todaySummary", "type": "boolean", "default": false, "description": "Today's summary pages, stats, collapse and sticky bar, and the weight row" },
   { "path": "release.todaySelect", "type": "boolean", "default": false, "description": "Select foods on Today, swipe a food to delete it, and file Uncategorized foods" },
   { "path": "release.checkIn", "type": "boolean", "default": false, "description": "The once-a-day check-in on Close the day" }

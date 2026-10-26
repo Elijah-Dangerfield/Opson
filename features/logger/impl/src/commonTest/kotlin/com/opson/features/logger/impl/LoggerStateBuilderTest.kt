@@ -20,6 +20,8 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
+import com.opson.libraries.diary.FoodKind
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -157,14 +159,55 @@ class LoggerStateBuilderTest {
 
     @Test
     fun methodsFollowTheCalorieLevelAndTheSlot() {
-        assertEquals(
-            listOf(LoggerMethod.DescribeIt, LoggerMethod.SavedMeals, LoggerMethod.AteNoDetails, LoggerMethod.JustANumber),
-            build().methods,
-        )
+        assertEquals(listOf(LoggerMethod.DescribeIt, LoggerMethod.SavedMeals), build().methods)
+        assertEquals(listOf(LoggerMethod.AteNoDetails, LoggerMethod.JustANumber), build().quickMethods)
 
-        val blind = build(policy = policy(PresetId.Blind)).methods
+        val blind = build(policy = policy(PresetId.Blind)).quickMethods
         assertTrue(LoggerMethod.AddANote in blind)
         assertFalse(LoggerMethod.JustANumber in blind)
+        assertEquals(listOf(LoggerMethod.JustANumber), build(slot = MealSlot.Uncategorized).quickMethods, "Uncategorized is not a meal")
+    }
+
+    @Test
+    fun theQuickChipsStepAsideWhileSomethingIsPicked() {
+        val picked = build(inputs(basket = LoggerFixtures.pickedBasket()))
+
+        assertTrue(picked.quickMethods.isEmpty(), "both log at once, which would leave the picks behind")
+        assertEquals(listOf(LoggerMethod.DescribeIt, LoggerMethod.SavedMeals), picked.methods)
+        assertTrue(build(query = "ri").quickMethods.isEmpty())
+    }
+
+    @Test
+    fun rowsCarryAPictureOfTheirKindOfFood() {
+        val rows = assertIs<LoggerBody.Results>(LoggerFixtures.searchState(policy(PresetId.Full)).body).rows
+
+        assertEquals(
+            listOf(FoodKind.Grain, FoodKind.Grain, FoodKind.Dessert, FoodKind.Plate, FoodKind.Fruit, FoodKind.Plate),
+            rows.map { it.kind },
+        )
+    }
+
+    @Test
+    fun uncategorizedListsWhatIsUsuallyLoggedAroundNow() {
+        val state = LoggerFixtures.uncategorizedState(policy(PresetId.Full))
+
+        assertEquals(MealSlot.Uncategorized, state.slot)
+        val browse = assertIs<LoggerBody.Browse>(state.body)
+        assertEquals(LocalTime(10, 30), browse.usualAround)
+        assertEquals(listOf("Arroz con pollo", "Garlic fried rice (sinangag)", "Side salad"), browse.usual.map { it.name })
+        assertFalse(LoggerMethod.AteNoDetails in state.quickMethods)
+    }
+
+    @Test
+    fun aMealHasNoUsualAround() {
+        assertNull(assertIs<LoggerBody.Browse>(build().body).usualAround)
+    }
+
+    @Test
+    fun theHeightIsWhatTheChoicesSay() {
+        assertEquals(SheetHeight.Partial, build().height)
+        val full = LoggerStateBuilder.build(inputs(), policy(PresetId.Full), LoggerChoices(slot = MealSlot.Dinner, height = SheetHeight.Full))
+        assertEquals(SheetHeight.Full, full.height)
     }
 
     @Test

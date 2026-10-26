@@ -18,6 +18,11 @@ kotlin {
             implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
+            // Progress photos: the repository, the phone's lock, the flag, and the in-app camera.
+            implementation(projects.libraries.progressphotos)
+            implementation(projects.libraries.scanner)
+            // AppLifecycle: the photos lock again when the app goes to the background.
+            implementation(projects.libraries.opson)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -36,6 +41,10 @@ kotlin {
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.ui)
             implementation(projects.libraries.resources)
+            implementation(projects.libraries.progressphotos)
+            implementation(projects.libraries.scanner)
+            implementation(projects.libraries.config)
+            implementation(projects.libraries.opson)
         }
     }
 }

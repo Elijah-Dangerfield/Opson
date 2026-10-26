@@ -1,12 +1,15 @@
 package com.opson.features.trends.impl
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +17,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.diary.ui.sentenceName
@@ -29,28 +35,28 @@ import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.ShareBar
 import com.opson.libraries.ui.components.TimelineAxis
 import com.opson.libraries.ui.components.TimelineTrack
-import com.opson.libraries.ui.components.chip.PillTag
-import com.opson.libraries.ui.components.chip.PillTagSize
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
+import com.opson.system.background
 import kotlinx.datetime.DayOfWeek
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_back
+import opson.libraries.resources.generated.resources.trends_patterns_and
 import opson.libraries.resources.generated.resources.trends_patterns_axis_12p
 import opson.libraries.resources.generated.resources.trends_patterns_axis_3p
 import opson.libraries.resources.generated.resources.trends_patterns_axis_6a
 import opson.libraries.resources.generated.resources.trends_patterns_axis_6p
 import opson.libraries.resources.generated.resources.trends_patterns_axis_9a
 import opson.libraries.resources.generated.resources.trends_patterns_axis_9p
-import opson.libraries.resources.generated.resources.trends_patterns_and
 import opson.libraries.resources.generated.resources.trends_patterns_gap
 import opson.libraries.resources.generated.resources.trends_patterns_gap_value
 import opson.libraries.resources.generated.resources.trends_patterns_hours
 import opson.libraries.resources.generated.resources.trends_patterns_hours_minutes
 import opson.libraries.resources.generated.resources.trends_patterns_hunger
 import opson.libraries.resources.generated.resources.trends_patterns_hunger_from
+import opson.libraries.resources.generated.resources.trends_patterns_hunger_skipped
 import opson.libraries.resources.generated.resources.trends_patterns_later
 import opson.libraries.resources.generated.resources.trends_patterns_later_on
 import opson.libraries.resources.generated.resources.trends_patterns_minutes
@@ -100,16 +106,20 @@ internal fun PatternsContent(
         state.timing?.let { TimingCardView(it) }
         state.sizes?.let { SizesCard(it) }
         state.often?.let { OftenCard(it) }
-        state.hunger?.let { HungerCardView(it) }
-        if (state.newFoods.isNotEmpty()) {
-            PatternsCard {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    CardTitle(stringResource(Res.string.trends_patterns_new_foods), Modifier.weight(1f))
-                    Text(text = state.newFoods.size.toString(), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
-                }
-                FoodChips(state.newFoods)
-            }
+        if (!state.hungerLast) state.hunger?.let { HungerCardView(it) }
+        if (state.newFoods.isNotEmpty()) NewFoodsCard(state.newFoods)
+        if (state.hungerLast) state.hunger?.let { HungerCardView(it) }
+    }
+}
+
+@Composable
+private fun NewFoodsCard(foods: List<String>) {
+    PatternsCard {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            CardTitle(stringResource(Res.string.trends_patterns_new_foods), Modifier.weight(1f))
+            Text(text = foods.size.toString(), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
         }
+        FoodChips(foods)
     }
 }
 
@@ -243,27 +253,52 @@ private fun OftenCard(rows: List<MealFrequency>) {
     }
 }
 
+/** A bar per weekday, as tall as that day's tagged meals were hungry. No amounts, so it stays in Blind. */
 @Composable
 private fun HungerCardView(card: HungerCard) {
     PatternsCard {
-        CardTitle(stringResource(Res.string.trends_patterns_hunger))
-        Column {
-            card.rows.forEach { row ->
-                HorizontalDivider(color = AppTheme.colors.line)
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = Dimension.D200),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(text = stringResource(row.slot.label), typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
-                    PillTag(label = stringResource(row.hunger.label), typography = AppTheme.type.secondaryStrong.Bold, size = PillTagSize.Regular)
-                }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            CardTitle(stringResource(Res.string.trends_patterns_hunger), Modifier.weight(1f))
+            Text(
+                text = stringResource(Res.string.trends_patterns_hunger_from),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+                modifier = Modifier.weight(HUNGER_NOTE_WEIGHT),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().height(HUNGER_CHART).padding(top = Dimension.D200),
+            horizontalArrangement = Arrangement.spacedBy(Dimension.D300),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            card.days.forEach { day ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight((day.level ?: 0f).coerceIn(HUNGER_FLOOR, 1f))
+                        .clip(AppTheme.shapes.inputLarge)
+                        .background(if (day.level == null) AppTheme.colors.track else AppTheme.colors.accentTint),
+                )
             }
         }
-        Text(
-            text = stringResource(Res.string.trends_patterns_hunger_from, card.taggedMeals),
-            typography = AppTheme.type.secondary,
-            color = AppTheme.colors.muted,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimension.D300)) {
+            card.days.forEach { day ->
+                Text(
+                    text = DateCopy.shortWeekday(day.day),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        card.skippedBreakfast?.let { days ->
+            Text(
+                text = stringResource(Res.string.trends_patterns_hunger_skipped, days.joinToString(", ") { DateCopy.shortWeekday(it) }),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.ink,
+            )
+        }
     }
 }
 
@@ -278,5 +313,8 @@ private val AXIS = listOf(
 )
 
 private val SLOT_LABEL_WIDTH = Dimension.D1600
+private val HUNGER_CHART = 96.dp
+private const val HUNGER_FLOOR = 0.08f
+private const val HUNGER_NOTE_WEIGHT = 0.6f
 private const val QUARTER_HOUR = 15
 private const val MINUTES_PER_HOUR = 60

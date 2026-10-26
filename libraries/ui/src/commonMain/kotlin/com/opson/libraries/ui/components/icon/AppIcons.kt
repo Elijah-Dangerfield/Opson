@@ -59,6 +59,16 @@ import androidx.compose.material.icons.rounded.FileCopy
 import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material.icons.rounded.BakeryDining
+import androidx.compose.material.icons.rounded.BreakfastDining
+import androidx.compose.material.icons.rounded.Egg
+import androidx.compose.material.icons.rounded.Icecream
+import androidx.compose.material.icons.rounded.LocalCafe
+import androidx.compose.material.icons.rounded.RiceBowl
+import androidx.compose.material.icons.rounded.SetMeal
+import androidx.compose.material.icons.rounded.SoupKitchen
+import androidx.compose.material.icons.rounded.StarOutline
+import androidx.compose.material.icons.outlined.Info as OutlinedInfo
+import com.opson.libraries.ui.components.icon.icons.Fruit as FruitGlyph
 import androidx.compose.material.icons.rounded.BeachAccess
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Bolt
@@ -105,6 +115,9 @@ import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Compare
+import androidx.compose.material.icons.rounded.Cameraswitch
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.WaterDrop
@@ -142,6 +155,19 @@ object AppIcons {
 
     /** Crossed fork and knife: Foods' "Create a meal". */
     val LocalDining get() = icon("local_dining", MaterialIcons.Rounded.LocalDining)
+
+    // Food tiles (design sync 2): a picture for the kind of food on a row
+    val RiceBowl get() = icon("rice_bowl", MaterialIcons.Rounded.RiceBowl)
+    val Leaf get() = icon("eco", MaterialIcons.Rounded.Eco)
+
+    /** No fruit in the Rounded set; drawn to match ([FruitGlyph]). */
+    val Fruit get() = icon("fruit", FruitGlyph)
+    val Icecream get() = icon("icecream", MaterialIcons.Rounded.Icecream)
+    val SetMeal get() = icon("set_meal", MaterialIcons.Rounded.SetMeal)
+    val Egg get() = icon("egg", MaterialIcons.Rounded.Egg)
+    val Bread get() = icon("breakfast_dining", MaterialIcons.Rounded.BreakfastDining)
+    val SoupKitchen get() = icon("soup_kitchen", MaterialIcons.Rounded.SoupKitchen)
+    val LocalCafe get() = icon("local_cafe", MaterialIcons.Rounded.LocalCafe)
 
     // Logging
     val Add get() = icon("add", MaterialIcons.Rounded.Add)
@@ -260,6 +286,12 @@ object AppIcons {
 
     // Misc
     val Star get() = icon("star", MaterialIcons.Rounded.Star)
+
+    /** The amount sheet's star before the food is saved. */
+    val StarOutline get() = icon("star_outline", MaterialIcons.Rounded.StarOutline)
+
+    /** An outlined "i", for a note that explains rather than warns. */
+    val Info get() = icon("info", MaterialIcons.Outlined.OutlinedInfo)
     val Favorite get() = icon("favorite", MaterialIcons.Rounded.Favorite)
     val Bolt get() = icon("bolt", MaterialIcons.Rounded.Bolt)
     val Science get() = icon("science", MaterialIcons.Rounded.Science)
@@ -302,6 +334,16 @@ object AppIcons {
     /** Targets on More: concentric rings (design sync 2). */
     val TrackChanges get() = icon("track_changes", MaterialIcons.Rounded.TrackChanges)
 
+    // Progress photos (design sync 2, 8.4 and 8.5)
+    /** Two frames split down the middle: progress photos' Compare. */
+    val Compare get() = icon("compare", MaterialIcons.Rounded.Compare)
+
+    /** The front and back camera: the capture screen's switch. */
+    val Cameraswitch get() = icon("cameraswitch", MaterialIcons.Rounded.Cameraswitch)
+
+    /** A filled down triangle: Compare's date pickers. */
+    val ArrowDropDown get() = icon("arrow_drop_down", MaterialIcons.Rounded.ArrowDropDown)
+
     /** The meal's tile icon. Uncategorized uses the list glyph. */
     fun meal(tone: MealTone): IconResource = when (tone) {
         MealTone.Breakfast -> BakeryDining
@@ -315,6 +357,7 @@ object AppIcons {
     internal val all: List<IconResource>
         get() = listOf(
             BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant, LocalDining,
+            RiceBowl, Leaf, Fruit, Icecream, SetMeal, Egg, Bread, SoupKitchen, LocalCafe, StarOutline, Info,
             Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, PhotoLibrary, Mic, Stop, EditNote, PostAdd, Edit,
             Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight, Schedule, LockClock, HourglassTop,
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
@@ -325,6 +368,7 @@ object AppIcons {
             Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch, Widgets,
             Call, Sms, Public, SupportAgent, DeleteOutline, TrackChanges,
+            Compare, Cameraswitch, ArrowDropDown,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

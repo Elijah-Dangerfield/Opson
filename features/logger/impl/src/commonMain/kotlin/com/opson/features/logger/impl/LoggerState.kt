@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.FoodKind
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.SavedMeal
@@ -15,6 +16,9 @@ import com.opson.libraries.nutrition.MacroPart
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 
 /** What the logger sheet draws. Built by [LoggerStateBuilder]; every number in it is policy-resolved. */
 data class LoggerState(
@@ -27,8 +31,15 @@ data class LoggerState(
     val pane: LoggerPane = LoggerPane.Search,
     val query: String = "",
     val focusSearch: Boolean = false,
-    /** Empty while the person is typing, so more results fit. */
+    /** About 60% tall when opened from a +, full once dragged up or searched (design sync 2). */
+    val height: SheetHeight = SheetHeight.Partial,
+    /** The sideways row: Photo, Describe, Yesterday's, Saved. Empty while the person is typing, so more results fit. */
     val methods: List<LoggerMethod> = emptyList(),
+    /**
+     * The second row, Ate no details and Just a number (or Add a note). Both log at once, so they
+     * step aside while something is picked, as well as while typing.
+     */
+    val quickMethods: List<LoggerMethod> = emptyList(),
     val body: LoggerBody = LoggerBody.FirstRun,
     val describe: DescribeUi = DescribeUi(),
     val saved: SavedUi = SavedUi(),
@@ -47,6 +58,9 @@ data class LoggerState(
     /** The search is not blank, so the chips and the day label step aside. */
     val typing: Boolean get() = query.isNotBlank()
 }
+
+/** How tall the logger sheet is. It opens [Partial] from a + and only ever grows. */
+enum class SheetHeight { Partial, Full }
 
 /** The three faces of the sheet. Describe and Saved were the Log screen's tabs before design v3. */
 enum class LoggerPane { Search, Describe, Saved }
@@ -82,14 +96,21 @@ data class FoodRowUi(
     val badge: SourceBadge? = null,
     /** Tiers 1 to 3: someone accountable stands behind the numbers. Never set for the person's own foods. */
     val verified: Boolean = false,
+    /** The tile's picture, read from the name. */
+    val kind: FoodKind = FoodKind.Plate,
 )
 
 sealed interface LoggerBody {
-    /** "Usual at {slot}" (left out when there is nothing usual yet), then Recent. */
+    /**
+     * "Usual at {slot}" (left out when there is nothing usual yet), then Recent. For
+     * Uncategorized the first list is "Usual around {usualAround}": what this person logs near
+     * this time of day, whatever the meal.
+     */
     data class Browse(
         val slot: MealSlot,
         val usual: List<FoodRowUi>,
         val recent: List<FoodRowUi>,
+        val usualAround: LocalTime? = null,
     ) : LoggerBody
 
     /** Nothing logged yet, so no usual picks or recents. */
@@ -182,6 +203,12 @@ sealed interface LoggerAction {
     data object AddToMealTapped : LoggerAction
     data object CloseTapped : LoggerAction
 
+    /** The handle or the list dragged up while the sheet is at 60%. */
+    data object SheetExpanded : LoggerAction
+
+    /** A tap in the search field. */
+    data object SearchFocused : LoggerAction
+
     /** The barcode button in the empty search bar. */
     data object BarcodeTapped : LoggerAction
 
@@ -200,7 +227,6 @@ sealed interface LoggerAction {
 sealed interface LoggerEvent {
     data class OpenAmount(val ref: FoodRef, val source: PickSource, val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenMealNote(val day: LocalDate, val slot: MealSlot) : LoggerEvent
-    data class OpenHowItFelt(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenScanner(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenPhoto(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenSearchOptions(val openFoodFacts: Boolean) : LoggerEvent
@@ -225,7 +251,14 @@ data class LoggerInputs(
     val history: List<LogItem> = emptyList(),
     /** Catalog foods on the device by id, so a row from the diary can still name its source. */
     val known: Map<String, Food> = emptyMap(),
+    /** The last 14 days and today (`MealSlotPicker.HISTORY_DAYS`), which the meal picker and "Usual around" read. */
+    val recentDays: List<Day> = emptyList(),
+    /** When these inputs were read, on the person's clock. */
+    val now: LocalDateTime = LocalDateTime(today, LocalTime(NOON, 0)),
+    val timeZone: TimeZone = TimeZone.UTC,
 )
+
+private const val NOON = 12
 
 /**
  * A catalog search answer for [query] asked with [filter]; [offline] when it came from the device

@@ -3,6 +3,7 @@ package com.opson.features.trends.impl
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,10 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
+import com.opson.libraries.ui.components.ListRow
+import com.opson.libraries.ui.components.ListRowChevron
 import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SegmentedControl
@@ -29,14 +35,18 @@ import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconTile
-import com.opson.system.color.ToneColors
 import com.opson.libraries.ui.components.text.MaskedTextField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.MinTouchTarget
+import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
 import com.opson.system.background
+import com.opson.system.color.ToneColors
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.photos_row_last
+import opson.libraries.resources.generated.resources.photos_row_none
+import opson.libraries.resources.generated.resources.photos_title
 import opson.libraries.resources.generated.resources.trends_back
 import opson.libraries.resources.generated.resources.trends_title
 import opson.libraries.resources.generated.resources.trends_weight_caption
@@ -60,6 +70,7 @@ import opson.libraries.resources.generated.resources.trends_weight_trend_only_no
 import opson.libraries.resources.generated.resources.trends_weight_unit_kg
 import opson.libraries.resources.generated.resources.trends_weight_unit_lb
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /** The weight page. Stateless; what shows and what is masked is decided in [WeightStateBuilder]. */
 @Composable
@@ -103,6 +114,27 @@ internal fun WeightContent(
         if (state.hiddenCard) HiddenCard()
         LogCard(state, onAction)
         state.saved?.let { SavedBanner(it) }
+        state.photos?.let { PhotosRowView(it, onAction) }
+    }
+}
+
+/** Progress photos, private: when the last set was taken, a lock, a chevron. No photo shows here. */
+@Composable
+private fun PhotosRowView(row: PhotosRow, onAction: (WeightAction) -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = PaddingValues(horizontal = AppTheme.spacing.cardHorizontal, vertical = Dimension.D200),
+        onClick = { onAction(WeightAction.ProgressPhotosTapped) },
+    ) {
+        ListRow(
+            title = stringResource(Res.string.photos_title),
+            subtitle = row.lastTaken?.let { stringResource(Res.string.photos_row_last, DateCopy.monthDay(it)) }
+                ?: stringResource(Res.string.photos_row_none),
+            icon = AppIcons.PhotoLibrary,
+        ) {
+            Icon(icon = AppIcons.LockOutlined, size = Dimension.D800, color = AppTheme.colors.muted)
+            ListRowChevron()
+        }
     }
 }
 
@@ -281,3 +313,37 @@ private val WeightUnit.label
         WeightUnit.Kg -> Res.string.trends_weight_unit_kg
         WeightUnit.Lb -> Res.string.trends_weight_unit_lb
     }
+
+// Previews. Their ids are the design's: weight-screen__weight, __weight-trend and __weight-hidden.
+
+@Composable
+private fun Weight(policy: VisibilityPolicy, dark: Boolean = false, inputs: WeightInputs = TrendsFixtures.weightInputs(), ui: WeightUi = WeightUi()) =
+    PreviewContent(darkTheme = dark) { WeightScreen(WeightStateBuilder.build(inputs, ui, policy), onAction = {}) }
+
+/** Numbers, with the progress photos row (its flag on). */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightPreview() = Weight(TrendsFixtures.policy())
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightDarkPreview() = Weight(TrendsFixtures.policy(), dark = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightEmptyPreview() = Weight(TrendsFixtures.policy(), inputs = TrendsFixtures.weightInputs(weighIns = emptyList()))
+
+/** Flag off: as 0.1 shipped, no photos row. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightPhotosOffPreview() = Weight(TrendsFixtures.policy(), inputs = TrendsFixtures.weightInputs(photosReleased = false))
+
+/** Trend only: weight set to Soft in Modes (Fuel does that), which also hides the photos row. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightTrendPreview() = Weight(TrendsFixtures.policy(PresetId.Fuel))
+
+/** Hidden, mid weigh-in and just after one: the digits are dots and the save says it shows nowhere. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightHiddenPreview() = Weight(TrendsFixtures.policy(PresetId.Blind), ui = WeightUi(input = "72.4", saved = true))

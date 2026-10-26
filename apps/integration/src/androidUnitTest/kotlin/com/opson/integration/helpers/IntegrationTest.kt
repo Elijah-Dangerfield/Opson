@@ -1,5 +1,8 @@
 package com.opson.integration.helpers
 
+import com.opson.libraries.diary.impl.DiarySyncApi
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -39,9 +42,10 @@ abstract class IntegrationTest {
 
     /** Boots a real [InProcessServer] and runs [block] against it. */
     protected fun integration(
+        photoEstimates: Boolean = true,
         block: suspend Harness.() -> Unit,
     ) = runBlocking {
-        InProcessServer().use { server ->
+        InProcessServer(photoEstimates).use { server ->
             val harness = Harness(server)
             try {
                 harness.block()
@@ -52,26 +56,43 @@ abstract class IntegrationTest {
     }
 }
 
-/** The per-test surface: the running server plus a factory for real clients. */
+/** The per-test surface: the running server plus factories for real clients. */
 class Harness(val server: InProcessServer) {
 
-    private val clients = mutableListOf<TestClient>()
+    private val closeables = mutableListOf<AutoCloseable>()
+
+    /** A plain HTTP client for callers that are not the app: the website, an admin script. */
+    val http: HttpClient = HttpClient(OkHttp) { expectSuccess = false }.also { closeables += it }
 
     /**
-     * A real client for [userId]. Seeds the stub `auth.users` row by default —
-     * the precondition a real Supabase sign-up establishes and the JWT implies;
-     * pass `seedAuthUser = false` to exercise the unknown-user path.
+     * A real client (a fresh install) signed in as [userId]; null for an install
+     * nobody has signed in on. Seeds the stub `auth.users` row a real Supabase
+     * sign-up would have created. [through] puts a [FaultProxy] between this
+     * client and the server.
      */
     fun client(
-        userId: String = randomUserId(),
-        seedAuthUser: Boolean = true,
+        userId: String? = randomUserId(),
+        through: FaultProxy? = null,
+        clock: TestClock = TestClock(),
+        requestTimeoutMillis: Long = 30_000,
+        wrapSync: (DiarySyncApi) -> DiarySyncApi = { it },
     ): TestClient {
-        if (seedAuthUser) server.seedAuthUser(userId)
-        return TestClient(serverUrl = server.baseUrl, userId = userId).also { clients += it }
+        userId?.let { server.seedAuthUser(it) }
+        return TestClient(
+            serverUrl = through?.baseUrl ?: server.baseUrl,
+            signedInAs = userId,
+            newAccount = { randomUserId().also { server.seedAuthUser(it) } },
+            clock = clock,
+            requestTimeoutMillis = requestTimeoutMillis,
+            wrapSync = wrapSync,
+        ).also { closeables += AutoCloseable(it::close) }
     }
 
+    /** A [FaultProxy] in front of this test's server, closed with the test. */
+    fun faultProxy(): FaultProxy = FaultProxy(server.baseUrl).also { closeables += it }
+
     internal fun close() {
-        clients.forEach { it.close() }
+        closeables.asReversed().forEach { runCatching { it.close() } }
     }
 }
 

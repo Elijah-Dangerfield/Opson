@@ -155,31 +155,3 @@ private fun PatternsBlindPreview() = Phone { Patterns(TrendsFixtures.policy(Pres
 @Composable
 private fun PatternsEmptyPreview() =
     Phone { PatternsScreen(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(days = emptyList()), full), onAction = {}) }
-
-@Composable
-private fun Weight(policy: VisibilityPolicy, inputs: WeightInputs = TrendsFixtures.weightInputs(), ui: WeightUi = WeightUi()) {
-    WeightScreen(WeightStateBuilder.build(inputs, ui, policy), onAction = {})
-}
-
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun WeightPreview() = Phone { Weight(full) }
-
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun WeightDarkPreview() = Phone(dark = true) { Weight(full) }
-
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun WeightEmptyPreview() = Phone { Weight(full, TrendsFixtures.weightInputs(weighIns = emptyList())) }
-
-/** Trend only: weight set to Soft in Modes (Fuel does that). */
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun WeightTrendPreview() = Phone { Weight(TrendsFixtures.policy(PresetId.Fuel)) }
-
-/** Hidden, mid weigh-in and just after one: the digits are dots and the save says it shows nowhere. */
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun WeightHiddenPreview() =
-    Phone { Weight(TrendsFixtures.policy(PresetId.Blind), ui = WeightUi(input = "72.4", saved = true)) }

@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Loads Open Food Facts into a Supabase project, stopping the import if its disk passes 75%.
-# Usage: scripts/load_off_watched.sh <project-ref> <env-file>   (dev: gfmstgbrdwqepmeycyid apps/server/.env)
+# Usage: [OFF_CSV=<downloaded products.csv.gz>] scripts/load_off_watched.sh <project-ref> <env-file>   (dev: gfmstgbrdwqepmeycyid apps/server/.env)
 set -u
 REF=${1:?project ref}
 ENV_FILE=${2:?env file with DATABASE_URL}
@@ -15,7 +15,9 @@ disk_pct() {
 }
 
 echo "start $(date +%T) disk $(disk_pct)%"
-python3 -I scripts/import_off_foods.py --psql --summary /tmp/off-$REF-summary.md > /tmp/off-$REF-import.log 2>&1 &
+csv_args=()
+[[ -n "${OFF_CSV:-}" ]] && csv_args=(--csv "$OFF_CSV")
+python3 -I scripts/import_off_foods.py "${csv_args[@]}" --psql --summary /tmp/off-$REF-summary.md > /tmp/off-$REF-import.log 2>&1 &
 pid=$!
 peak=0
 while kill -0 $pid 2>/dev/null; do

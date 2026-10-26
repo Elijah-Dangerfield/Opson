@@ -25,6 +25,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
+import kotlin.time.Clock
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -81,7 +82,7 @@ class FullStackSyncTest : DatabaseTest() {
     fun twoDevicesConvergeThroughSync() = runTest {
         val user = seedAuthUser()
         val other = seedAuthUser()
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig())
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
         val foodId = DiaryFixtures.insertFood(database, name = "Soup, lentil").toString()
         val entryId = UUID.randomUUID().toString()
 
@@ -143,7 +144,7 @@ class FullStackSyncTest : DatabaseTest() {
     @Test
     fun exportReadsWhatSyncWrote() = runTest {
         val user = seedAuthUser()
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig())
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
         testApplication {
             application { installApp(component, TestJwt.verification) }
             val client = createClient { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }

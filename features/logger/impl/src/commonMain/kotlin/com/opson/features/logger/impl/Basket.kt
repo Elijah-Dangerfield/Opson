@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -75,6 +76,8 @@ data class BasketItem(
     val food: Food? = null,
     val hunger: Hunger? = null,
     val fullness: Fullness? = null,
+    /** When it was eaten, if the amount sheet's Time changed it; null logs it as now. */
+    val loggedAt: Instant? = null,
 )
 
 /** A line Describe it read, as a pick. A line with no food behind it is keyed by its position. */

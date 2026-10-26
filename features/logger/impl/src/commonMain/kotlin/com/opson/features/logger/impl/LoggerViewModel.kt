@@ -12,6 +12,7 @@ import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealPicks
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MealSlotPicker
 import com.opson.libraries.diary.PickedForMeal
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SavedMealRepository
@@ -92,7 +93,12 @@ class LoggerViewModel(
     searchOptionsEnabled: SearchOptionsEnabled,
     private val optionsTelemetry: SearchOptionsTelemetry,
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
-    initialStateArg = LoggerState(focusSearch = route.focusSearch, pane = route.start.pane, pickingForMeal = route.pickForMeal != null),
+    initialStateArg = LoggerState(
+        focusSearch = route.focusSearch,
+        pane = route.start.pane,
+        pickingForMeal = route.pickForMeal != null,
+        height = route.openingHeight,
+    ),
 ) {
     private val pickForMeal: String? = route.pickForMeal
 
@@ -109,6 +115,9 @@ class LoggerViewModel(
             ),
             pane = route.start.pane,
             focusSearch = route.focusSearch,
+            height = route.openingHeight,
+            // The nav + names no meal: the picker chooses from this person's logging times.
+            slotChosen = route.slot != null,
             focusNumber = route.start == LoggerStart.Number,
             pickingForMeal = route.pickForMeal != null,
             scanAvailable = scanEnabled(),
@@ -139,7 +148,7 @@ class LoggerViewModel(
 
     init {
         viewModelScope.launch {
-            inputs(calendar, settingsRepository, model.choices.searchOptions).collect { takeAction(LoggerAction.InputsArrived(it)) }
+            inputs(calendar, settingsRepository, model.choices.searchOptions, clock).collect { takeAction(LoggerAction.InputsArrived(it)) }
         }
         // Only with release.searchOptions on: off, the sheet makes exactly the calls it made in 0.1.
         if (model.choices.searchOptions) {
@@ -157,12 +166,15 @@ class LoggerViewModel(
     override suspend fun handleAction(action: LoggerAction) {
         when (action) {
             is LoggerAction.InputsArrived -> {
-                action.rebuild { copy(inputs = action.inputs) }
+                action.rebuild { copy(inputs = action.inputs, choices = choices.withPickedSlot(action.inputs)) }
                 // A sort or database picked in the options sheet arrives here, with the settings.
                 searchIfStale()
             }
             is LoggerAction.PolicyArrived -> action.rebuild { copy(policy = action.policy) }
-            is LoggerAction.SlotPicked -> action.choose { copy(slot = action.slot) }
+            is LoggerAction.SlotPicked -> action.choose { copy(slot = action.slot, slotChosen = true) }
+            LoggerAction.SheetExpanded, LoggerAction.SearchFocused -> if (model.choices.height != SheetHeight.Full) {
+                action.choose { copy(height = SheetHeight.Full) }
+            }
             is LoggerAction.SearchTyped -> searchTyped(action, action.text)
             LoggerAction.SearchCleared -> searchTyped(action, "")
             is LoggerAction.SearchResultsArrived -> {
@@ -188,18 +200,18 @@ class LoggerViewModel(
                 sendEvent(LoggerEvent.OpenAmount(action.row.ref, action.row.source, day, slot()))
             }
             is LoggerAction.FoodToggleTapped -> toggle(action.row)
-            LoggerAction.DescribeItTapped -> action.choose { copy(pane = LoggerPane.Describe, focusNumber = false) }
+            LoggerAction.DescribeItTapped -> action.choose { copy(pane = LoggerPane.Describe, focusNumber = false, height = SheetHeight.Full) }
             LoggerAction.DescribeTermTapped -> {
                 val term = model.choices.query.trim()
-                action.choose { copy(pane = LoggerPane.Describe, focusNumber = false) }
+                action.choose { copy(pane = LoggerPane.Describe, focusNumber = false, height = SheetHeight.Full) }
                 describeTyped(action, term)
             }
             LoggerAction.SaveNameTapped -> saveName(action)
-            LoggerAction.SavedMealsTapped -> action.choose { copy(pane = LoggerPane.Saved) }
+            LoggerAction.SavedMealsTapped -> action.choose { copy(pane = LoggerPane.Saved, height = SheetHeight.Full) }
             is LoggerAction.SavedMealPicked -> pickSavedMeal(action, action.id)
             LoggerAction.YesterdayTapped -> copyYesterday()
             LoggerAction.AteNoDetailsTapped -> ateNoDetails()
-            LoggerAction.JustANumberTapped -> action.choose { copy(pane = LoggerPane.Describe, focusNumber = true) }
+            LoggerAction.JustANumberTapped -> action.choose { copy(pane = LoggerPane.Describe, focusNumber = true, height = SheetHeight.Full) }
             LoggerAction.AddANoteTapped -> {
                 telemetry.methodPicked(LogVia.Note, items = 0)
                 sendEvent(LoggerEvent.OpenMealNote(day, slot()))
@@ -255,7 +267,10 @@ class LoggerViewModel(
     private suspend fun LoggerAction.choose(change: LoggerChoices.() -> LoggerChoices) = rebuild { copy(choices = choices.change()) }
 
     private suspend fun searchTyped(action: LoggerAction, text: String) {
-        action.choose { copy(query = text, search = null, focusSearch = false) }
+        // Typing goes full height so the results have room; clearing never shrinks it back.
+        action.choose {
+            copy(query = text, search = null, focusSearch = false, height = if (text.isNotBlank()) SheetHeight.Full else height)
+        }
         // Every keystroke restarts the debounce, even back to a query asked for before.
         searchJob?.cancel()
         requested = null
@@ -373,11 +388,12 @@ class LoggerViewModel(
     }
 
     private suspend fun copyYesterday() {
-        val settings = model.inputs?.settings ?: return
+        if (model.inputs == null) return
         val slot = slot()
         val copied = diary.copySlot(day.minus(1, DateTimeUnit.DAY), day, slot)
         telemetry.methodPicked(LogVia.Yesterday, copied.size)
-        finish(committer.announce(day, slot, copied, settings))
+        committer.announce(day, slot, copied)
+        finish()
     }
 
     private suspend fun ateNoDetails() {
@@ -389,7 +405,7 @@ class LoggerViewModel(
     }
 
     private suspend fun addNumber() {
-        val settings = model.inputs?.settings ?: return
+        if (model.inputs == null) return
         // Typing a number is a calorie entry, so the policy has the last word even if the field was showing.
         if (model.policy.level(Metric.Calories) == Visibility.Hide) return
         val kcal = model.choices.number.toIntOrNull()?.takeIf { it > 0 } ?: return
@@ -397,13 +413,14 @@ class LoggerViewModel(
         val draft = LogDraft(name = QUICK_ADD_NAME, precision = Precision.Named, kcal = kcal.toDouble(), method = LogMethod.QuickNumber)
         val items: List<LogItem> = diary.addItems(day, slot, listOf(draft), LogMethod.QuickNumber)
         telemetry.methodPicked(LogVia.QuickNumber, items.size)
-        finish(committer.announce(day, slot, items, settings))
+        committer.announce(day, slot, items)
+        finish()
     }
 
     private suspend fun commit() {
-        val settings = model.inputs?.settings ?: return
-        val committed = committer.commit(day, slot(), settings) ?: return
-        finish(committed)
+        if (model.inputs == null) return
+        committer.commit(day, slot()) ?: return
+        finish()
     }
 
     /** Pick-for-this-meal mode's "Add to this meal": the picks go back to Create a meal, and nothing is logged. */
@@ -414,8 +431,19 @@ class LoggerViewModel(
         sendEvent(LoggerEvent.Dismiss)
     }
 
-    private fun finish(committed: Committed) {
-        sendEvent(if (committed.askHowItFelt) LoggerEvent.OpenHowItFelt(day, committed.slot) else LoggerEvent.Dismiss)
+    /** Logged: the sheet closes and Today takes it from `RecentLogEvents`. How it felt no longer follows (design sync 2). */
+    private fun finish() {
+        sendEvent(LoggerEvent.Dismiss)
+    }
+
+    /**
+     * The meal as this person's logging times pick it, while nobody has chosen one: the nav +
+     * opened the sheet and the dropdown has not been touched.
+     */
+    private fun LoggerChoices.withPickedSlot(inputs: LoggerInputs): LoggerChoices {
+        if (slotChosen) return this
+        val picked = MealSlotPicker.pick(inputs.recentDays, inputs.now, inputs.timeZone, inputs.day.mealGroupsOn(inputs.settings))
+        return copy(slot = picked)
     }
 
     private suspend fun prePick(route: LoggerRoute) {
@@ -449,16 +477,19 @@ class LoggerViewModel(
         )
     }
 
-    private fun inputs(calendar: LocalCalendar, settingsRepository: SettingsRepository, searchOptions: Boolean): Flow<LoggerInputs> {
+    private fun inputs(calendar: LocalCalendar, settingsRepository: SettingsRepository, searchOptions: Boolean, clock: Clock): Flow<LoggerInputs> {
         val usualBySlot: Flow<Map<MealSlot, List<LogItem>>> =
             combine(MealSlot.meals.map { slot -> diary.usualAt(slot, limit = USUAL_LIMIT) }) { lists ->
                 MealSlot.meals.zip(lists.toList()).toMap()
             }
         val days = combine(diary.observeDay(day), diary.observeDay(day.minus(1, DateTimeUnit.DAY))) { d, before -> d to before }
         val lists = combine(usualBySlot, diary.recentFoods(limit = RECENT_LIMIT), ::Pair)
-        val mine = combine(customFoods.observeAll(), savedMeals.observeAll(), ::Pair)
+        val today = calendar.today()
+        val history = diary.observeDays(today.minus(MealSlotPicker.HISTORY_DAYS, DateTimeUnit.DAY), today)
+        val mine = combine(customFoods.observeAll(), savedMeals.observeAll(), history, ::Triple)
         val base = combine(days, settingsRepository.settings, basketStore.basket, lists, mine) {
-                (d, before), settings, basket, (usual, recent), (custom, saved) ->
+                (d, before), settings, basket, (usual, recent), (custom, saved, recentDays) ->
+            val zone = calendar.timeZone()
             LoggerInputs(
                 today = calendar.today(),
                 day = d,
@@ -469,6 +500,9 @@ class LoggerViewModel(
                 recent = recent,
                 customFoods = custom,
                 savedMeals = saved,
+                recentDays = recentDays,
+                now = clock.now().toLocalDateTime(zone),
+                timeZone = zone,
             )
         }
         // The search options read three more lists; with the flag off nothing more is collected.
@@ -708,6 +742,13 @@ class LoggerViewModel(
         const val NAME_ONLY_UNIT = "serving"
     }
 }
+
+/**
+ * How tall the sheet opens. From a + it opens at 60% so Today stays in view; opened to type, on
+ * Describe or Saved, or to pick for Create a meal, it opens full.
+ */
+private val LoggerRoute.openingHeight: SheetHeight
+    get() = if (focusSearch || start != LoggerStart.Search || pickForMeal != null) SheetHeight.Full else SheetHeight.Partial
 
 private val LoggerStart.pane: LoggerPane
     get() = when (this) {
