@@ -256,6 +256,42 @@ Method icons and tints: `mic` (fiber), `water_drop` (fat), `bookmark` (fat),
 
 ---
 
+## Barcode (0.2)
+
+Not built in 0.1. The barcode button opens the camera; a read code calls
+`FoodCatalog.barcode(code)` (`GET /v1/foods/barcode/{code}`). Our own catalog
+holds about 430,000 US products (USDA Branded Foods), so most scans answer in
+well under a second. A code we do not have goes to an outside source (Open
+Food Facts, later a paid one), which can take up to 5 seconds, and the answer
+is kept so the next person's scan is instant.
+
+### Waiting
+- For the first 400 ms show only a quiet spinner under the frozen camera
+  frame. A catalog hit lands inside that and the user never sees more.
+- Past 400 ms the scan has almost certainly missed our catalog and we are
+  asking an outside source. Swap in the first-lookup copy with the spinner.
+  Never a progress bar, never a countdown.
+- A found food opens the Amount sheet in add-directly mode with the label's
+  serving preselected. A serving with no grams (labels in ml) preselects
+  nothing and asks for an amount, the same as a food with no portions.
+
+### Copy
+
+| Key | String |
+|---|---|
+| `barcode_looking_up` | First time anyone's scanned this one. Looking it up now, and it'll be instant for the next person. |
+| `barcode_not_found` | We couldn't find this one anywhere. |
+| `barcode_add_custom` | Add it as a custom food |
+| `barcode_unavailable` | Couldn't look that up right now. Try again in a moment. |
+| `barcode_scan_again` | Scan again |
+
+`barcode_not_found` sits above two buttons: `barcode_add_custom` (opens the
+custom food editor, empty) and `barcode_scan_again`. The
+503 case (`barcode_unavailable`) offers only `barcode_scan_again`. None of
+these name a number, so every mode shows them unchanged.
+
+---
+
 ## Amount sheet
 
 `AmountViewModel(ref, source)`. Only "Pick this amount" in 0.1: the add-directly
