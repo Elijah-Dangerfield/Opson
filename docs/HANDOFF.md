@@ -29,11 +29,11 @@ Each is a git worktree under `.claude/worktrees/` with a `wip`/`chore`
 checkpoint commit as its tip. To resume, start a session and say "resume the
 paused screen reworks from docs/HANDOFF.md".
 
-| Work | Branch | Spec |
+| Work | Branch (also on GitHub) | State |
 |---|---|---|
-| Today, its sheets and Day close, to v3 | `worktree-agent-a773f0e123d7f62d9` | `docs/plans/screens/today*.md`, `day-close.md`, `docs/design/v3/` |
-| Logger to v3 | `worktree-agent-a569e21155a608e60` | `docs/plans/screens/logger.md`, v3 |
-| More, Modes, Targets, Support to v3, plus the shared top app bar, 48 dp targets, bars capped at 100%, configurable reveal time | `worktree-agent-ae25ce58b390844eb` | `docs/plans/screens/settings.md`, v3 |
+| Today, its sheets and Day close, to v3 | `worktree-agent-a773f0e123d7f62d9` (`wip/today-v3`) | **Done and green** (73 tests, both platforms). Not built: Mark as untracked, the Explorer food bridge, Blind's "How did today feel?" chips, and the 6 s Undo, which the Logger's `RecentLogEvents` should feed. Watch for merge clashes on `CreateMealRoute` in `:features:foods` and `TodayLayout.Journal` in nutrition. |
+| Logger to v3 | `worktree-agent-a569e21155a608e60` (`wip/logger-v3`) | Main code done and compiles on Android: search-first sheet, meal dropdown, Describe and Saved inside the sheet (`LogRoute` kept as an alias), Pick and keep going, How it felt, `RecentLogEvents`/`LoggedToMeal`. **Left:** rewrite `AmountTest`, `LoggerStateBuilderTest` and `LoggerViewModelTest` (they don't compile yet), add `HowItFeltTest`, run tests, iOS compile, detekt, screenshots vs v3. |
+| More, Modes, Targets, Support to v3 | `worktree-agent-ae25ce58b390844eb` (`wip/settings-v3`) | Green commits: the v3 plan, the shared ui changes (`PageHeader` is a top app bar with the same signature, 48 dp `minTouchTarget`, bars clamp at 100%), and `revealAt` plus `TargetStyle`/`rangeFor` in nutrition. **The tip WIP commit does not compile**: More, Modes and the pause sheet rewritten, Targets state builder written. **Left:** Targets screen and VM, goal-style sheet and route, the Support delete dialog, Water and Look-and-feel previews (`LightAndDark` was removed), fixtures, leak surfaces, entry point, tests, detekt, screenshots. |
 
 Merge order when they finish: More/Modes/Targets first (it owns the shared
 changes), then Logger, then Today. Each needs a rebase on `main` and the
