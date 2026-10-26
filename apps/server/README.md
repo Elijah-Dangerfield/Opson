@@ -200,7 +200,7 @@ from four tiers of source, best first (`foods.tier`, V10):
 | 1 reference | `usda_foundation`, `usda_sr`, `usda_fndds` | committed seed, `import_usda_foods.py` | true |
 | 2 label | `usda_branded` | `import_usda_foods.py --branded`, monthly workflow | true |
 | 3 licensed | `nutritionix` (later NCCDB) | barcode miss, only with keys and caching on | true |
-| 4 community | `off` (later user submissions) | barcode miss, cached | false |
+| 4 community | `off` (later user submissions) | barcode miss, cached; the full export goes in its own table, `off_foods` | false |
 
 A trigger fills `tier` and `verified` from `source`, so loaders never write
 them; `food_source_tier()` is the one mapping, and `DatabaseSchemaTest`
@@ -286,6 +286,46 @@ python3 -I -m unittest discover -s scripts -p 'test_import_usda_foods.py'   # im
 import on the 3rd of every month (and on demand) against the
 `CATALOG_DATABASE_URL` secret, and posts the counts to the job summary. With
 the secret unset it skips with a notice.
+
+**Loading Open Food Facts.** `scripts/import_off_foods.py` loads the
+monthly CSV export (about 1.5 GB, 4.8 million products) into `off_foods`
+(V12), a table of its own: Open Food Facts is ODbL, share-alike, so its rows
+are never copied into `foods`. Search will read both tables (not wired yet).
+It keeps the 3.3 million products with energy and macros per 100 g that are
+physically possible, an 8 to 14 digit barcode and a name, stores valid
+barcodes as 14-digit GTINs like Branded Foods, and keeps `countries_tags` for
+ranking. Every row is tier 4, not verified, with the export date in
+`source_version`.
+
+Each run is a full reload, because the export's deltas don't record
+deletions. It loads `off_foods_next` (a copy of the table's definition, with
+its RLS and grants) one committed batch at a time, builds the search indexes
+from the live table's definitions, and swaps the two tables in one short
+transaction, so search never sees a half-loaded table. A failed run resumes
+when re-run; a failed swap is retried with `--swap-only`. It refuses to swap
+in fewer than a million rows, or under 80% of the live table (`--allow-shrink`
+overrides). While it runs the database holds both copies, so it needs about
+twice the table's size free. Supabase switches a database to read-only when
+its disk is 95% full, which is what a load too big for the disk ends in
+(`cannot execute INSERT in a read-only transaction`). To recover, drop the
+staging table from a session that opts back into writes, and the platform
+lifts read-only within minutes:
+
+```sql
+SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE;
+DROP TABLE IF EXISTS off_foods_next;
+```
+
+```bash
+CATALOG_DATABASE_URL=postgresql://… python3 -I scripts/import_off_foods.py --psql   # download and reload
+python3 -I scripts/import_off_foods.py --csv products.csv.gz --dry-run              # counts only
+python3 -I scripts/bench_off_search.py                                              # search p50/p95/p99
+python3 -I -m unittest discover -s scripts -p 'test_import_off_foods.py'
+```
+
+The monthly workflow has the same reload as a second job, off until the
+`OFF_IMPORT_ENABLED` repository variable is `true`. Measured size (2.1 GB),
+load time and search latency are in `docs/food-data-sources.md`.
 
 **Nutritionix (off until there is budget).** `NutritionixSource` calls
 `GET https://trackapi.nutritionix.com/v2/search/item?upc=` with the

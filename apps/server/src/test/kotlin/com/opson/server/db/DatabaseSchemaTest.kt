@@ -29,7 +29,7 @@ class DatabaseSchemaTest : DatabaseTest() {
     fun catalogAndDiaryTablesMatchTheirExposedProjections() = runTest {
         database.transaction {
             listOf(
-                FoodsTable, FoodSearchEventsTable, BarcodeLookupsTable,
+                FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable,
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable,
                 CustomFoodsTable, SavedMealsTable, UserSettingsTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
@@ -39,7 +39,7 @@ class DatabaseSchemaTest : DatabaseTest() {
     @Test
     fun rowLevelSecurityIsOnForEveryNewTable() {
         val tables = listOf(
-            "foods", "food_search_events", "barcode_lookups", "log_entries", "day_records",
+            "foods", "off_foods", "food_search_events", "barcode_lookups", "log_entries", "day_records",
             "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings",
         )
         val withRls = strings(
@@ -63,6 +63,28 @@ class DatabaseSchemaTest : DatabaseTest() {
         val sources = CatalogSource.entries.joinToString(",") { "'${it.wire}'" }
         val tiers = strings("SELECT s || '=' || public.food_source_tier(s) FROM unnest(ARRAY[$sources]) AS s")
         assertEquals(CatalogSource.entries.map { "${it.wire}=${it.tier.wire}" }, tiers)
+    }
+
+    /**
+     * V12 was applied to opson-dev by hand before Flyway saw it, so running
+     * it over an existing table must change nothing. The monthly reload's
+     * swap renames indexes by their `off_foods_` prefix, so every index has
+     * to carry it.
+     */
+    @Test
+    fun offFoodsMigrationIsIdempotentAndItsIndexesCarryThePrefix() {
+        val indexes = "SELECT indexname::text FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'off_foods' ORDER BY 1"
+        val before = strings(indexes)
+        assertEquals(
+            listOf(
+                "off_foods_barcode_key", "off_foods_countries_idx", "off_foods_name_trgm_idx",
+                "off_foods_pkey", "off_foods_search_idx",
+            ),
+            before,
+        )
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V12__off_foods.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+        assertEquals(before, strings(indexes))
     }
 
     @Test
@@ -115,7 +137,7 @@ class DatabaseSchemaTest : DatabaseTest() {
             exec("SET LOCAL ROLE grafana_ro")
             ANALYTICS_VIEWS.forEach { exec("SELECT * FROM analytics.$it LIMIT 1") }
         }
-        listOf("log_entries", "user_settings", "weigh_ins", "foods", "food_search_events", "profiles").forEach { table ->
+        listOf("log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "profiles").forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
                     exec("SET LOCAL ROLE grafana_ro")

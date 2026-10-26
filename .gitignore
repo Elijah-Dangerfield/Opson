@@ -63,6 +63,7 @@ explain-*.md
 # to commit, and the monthly refresh regenerates it anyway.
 # The generic usda_foods.sql.gz next to it is committed.
 apps/server/fooddb/usda_branded*.sql.gz*
+apps/server/fooddb/off_foods*.sql.gz*
 
 # Written by `python3 -m unittest` in scripts/.
 __pycache__/

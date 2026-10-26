@@ -15,7 +15,15 @@
 #              its migrations there (V10); the importer checks and stops if not.
 # Writes:      only the `foods` table. Counts and sizes go to the job summary.
 #
-# See apps/server/README.md (Food catalog) for running the same import by hand.
+# A second job reloads Open Food Facts into its own table, `off_foods`, in
+# full (the export's deltas don't record deletions): it loads a staging
+# table and swaps it in, so search never sees a half-loaded table. It only
+# runs when the OFF_IMPORT_ENABLED repository variable is `true`, so it can't
+# load a database before that database has had its first load measured. It
+# needs the server's V12 migration, and about twice the table's size free
+# while both copies exist.
+#
+# See apps/server/README.md (Food catalog) for running the same imports by hand.
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: Food catalog refresh
@@ -71,3 +79,38 @@ jobs:
           # a command line.
           CATALOG_DATABASE_URL: ${{ secrets.CATALOG_DATABASE_URL }}
         run: python3 -I scripts/import_usda_foods.py --branded --psql --summary "$GITHUB_STEP_SUMMARY"
+
+  open-food-facts:
+    # Off until the first load into the database behind CATALOG_DATABASE_URL
+    # has been measured (docs/plans/food-data-import.md, section 1).
+    if: vars.OFF_IMPORT_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Check for the database secret
+        id: secret
+        env:
+          CATALOG_DATABASE_URL: ${{ secrets.CATALOG_DATABASE_URL }}
+        run: |
+          if [ -z "$CATALOG_DATABASE_URL" ]; then
+            echo "::notice title=Open Food Facts reload skipped::CATALOG_DATABASE_URL is not set, so there is no database to load."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secret.outputs.configured == 'true'
+
+      - name: Install psql
+        if: steps.secret.outputs.configured == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          psql --version
+
+      - name: Reload Open Food Facts
+        if: steps.secret.outputs.configured == 'true'
+        env:
+          CATALOG_DATABASE_URL: ${{ secrets.CATALOG_DATABASE_URL }}
+        run: python3 -I scripts/import_off_foods.py --psql --summary "$GITHUB_STEP_SUMMARY"

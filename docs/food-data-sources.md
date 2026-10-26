@@ -46,11 +46,70 @@ Downloaded the full CSV export on 2026-10-26 (1.5 GB compressed).
 - **US overlap:** keep USDA Branded (manufacturer labels, tier 2) as the
   answer for a barcode both sources have. Open Food Facts fills in the rest
   as tier 4.
-- **Size:** an estimate of roughly 1 to 1.5 GB in Postgres with indexes. Pro
-  includes 8 GB per project. Measure on dev before loading prod.
+- **Size:** estimated at 1 to 1.5 GB in Postgres with indexes. Measured at
+  2.1 GB (below). Pro includes 8 GB per project.
 - **Refresh:** a full monthly reload, because the daily deltas don't record
   deletions. Keep the live barcode lookup as a fallback for products newer
   than the last dump.
+
+### Measured, 2026-10-26: dev blocked, so on a dev-sized Postgres
+
+The load into `opson-dev` stopped after 418,000 rows: Supabase switched the
+database to read-only when it reached 679 MB (391 MB before the load). That
+fits the Free plan's 500 MB database cap, or a disk far smaller than the
+table. The staging table was dropped and dev was writable again within
+minutes. **Dev needs a bigger plan or disk before it can hold Open Food
+Facts.** So the numbers below come from a local Postgres 17 with dev's
+settings (1 GB of memory, `shared_buffers` 256 MB, `work_mem` 3.5 MB,
+`random_page_cost` 1.1, JIT off, one parallel worker) on a laptop SSD.
+Sizes carry over exactly. Latency on Supabase's disks will be no better.
+
+- **Rows:** 3,290,890 of the export's 4,837,151. 3,303,905 pass the filter;
+  12,113 of those have a placeholder barcode (mostly zeros) and 902 share a
+  barcode with a newer product.
+- **Size:** 2,123 MB. Table 1,583 MB (about 480 bytes a row), indexes 540 MB:
+  trigram on the name 190, primary key 133, barcode 131, full text 81,
+  countries 6. A monthly reload holds two copies for a while, and Supabase
+  lets WAL grow to 4 GB (`max_wal_size`), so a reload wants about 6 GB free
+  on top of the live table. Size the disk before loading: a load writes
+  faster than disk autoscaling reacts, and at 95% Supabase goes read-only.
+- **Load time:** 229 s locally, of which about 20 s is the index builds and
+  the rest reading the 1.5 GB export. Over dev's session pooler rows went in at about
+  4,600 a second, so a full load there takes about 12 minutes plus the index
+  builds.
+- **Search:** 290 queries (common foods, brands, misspellings, 1 to 3 letter
+  prefixes, French, German, Spanish, Italian, Dutch, Swedish and Japanese
+  names) through the server's search statement aimed at `off_foods`, ranked
+  with the caller's country first, LIMIT 25. Server time from
+  `EXPLAIN ANALYZE`, after a warm-up pass. `scripts/bench_off_search.py` has
+  the list and the statement.
+
+| Country preferred | p50 | p95 | p99 | Slowest |
+|---|---:|---:|---:|---:|
+| United States | 66 ms | 1,251 ms | 5,705 ms | 12.1 s (`b`) |
+| United States, queries of 3+ characters | 61 ms | 543 ms | 2,815 ms | |
+| France | 59 ms | 1,306 ms | 6,655 ms | 11.5 s |
+
+**Too slow for the current search statement.** It fetches and scores every
+row a prefix matches before it sorts, and on 3.3 million rows a common word
+matches tens of thousands: `milk` reaches 44,000 rows on 35,000 heap pages
+and takes 650 to 870 ms, where the index scans themselves take 20 ms. The slow cases:
+
+- **Short prefixes** (`b`, `ch`, `co`, `sa`, `mi`): 1 to 12 s. One or two
+  letters match hundreds of thousands of names. `m&m` is the same problem,
+  two one-letter words.
+- **Common words** (`milk`, `cheese`, `chicken`, `chocolate`, `butter`): 0.6
+  to 1.2 s, and `chocolat` and `mars` 1.6 to 2.9 s because they prefix-match
+  `chocolate` and `marshmallow` too.
+- **Misspellings with no direct match** (`cheeerios`, `parmesan chese`,
+  `bananna`): 0.4 to 1.8 s in the trigram fallback, which rechecks every
+  name sharing a trigram.
+
+Section 3 has to bound the candidates before scoring rather than add
+indexes: a minimum query length for prefix matching, a cap on rows per match
+tier taken in index order, or a smaller hot subset ranked by `scans` (Open
+Food Facts' scan count, kept on every row for this). Re-run the bench after
+that change, and on dev once it has room.
 
 ### Licence: ODbL, kept contained
 
