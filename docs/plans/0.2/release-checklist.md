@@ -45,6 +45,74 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
 - [ ] Try a real scan on an iPhone and an Android phone: a hit, a miss and a
       denied camera.
 
+## Widgets (`release.widgets`)
+
+The shared Kotlin, the Glance UI, the app's link handling and the Swift
+`IOSWidgetBridge` are on `main` and inert while the flag is off. Two commits
+are held back, because each one shows up for people the moment it ships,
+flag or not: the Android widget receiver puts Opson in the launcher's widget
+picker, and the iOS extension needs a new App ID, an App Group and a second
+profile before anything signs.
+
+### Apple, before merging the held iOS commit
+
+Order matters: a profile made before the App Group is on the App ID won't
+carry it.
+
+- [ ] Register the App Group `group.com.opson.Opson` (developer portal ›
+      Identifiers › App Groups, or Xcode with the team signed in). The App
+      Store Connect API can't create App Groups.
+- [ ] On the App ID `com.opson.Opson`, enable **App Groups** and tick
+      `group.com.opson.Opson`.
+- [ ] Register the App ID `com.opson.Opson.Widgets` (explicit, name "Opson
+      Widgets"), with **App Groups** on and `group.com.opson.Opson` ticked.
+      `POST /v1/bundleIds` can create the identifier; ticking the group is
+      portal only.
+- [ ] Regenerate the App Store profile for `com.opson.Opson` (it is invalid
+      once its App ID changes). `fastlane beta` does this itself through
+      `get_provisioning_profile(readonly: false)`; delete the old one in the
+      portal if it doesn't.
+- [ ] Let the first `fastlane beta` create the App Store profile for
+      `com.opson.Opson.Widgets` (same call, second identifier). The ASC API
+      key needs App Manager or Admin.
+- [ ] Merge the held iOS commit. It adds, and nothing else on `main` has:
+  - the `OpsonWidgetsExtension` target in `project.pbxproj` (bundle id
+    `com.opson.Opson.Widgets`, sources in `apps/ios/OpsonWidgets/`, embedded
+    by the app's "Embed Foundation Extensions" phase, a target dependency
+    from `iosApp`), and its shared scheme
+    `xcshareddata/xcschemes/OpsonWidgetsExtension.xcscheme`;
+  - `com.apple.security.application-groups` = [`group.com.opson.Opson`] in
+    `apps/ios/iosApp/iosApp.entitlements` and in
+    `apps/ios/OpsonWidgets/OpsonWidgets.entitlements`;
+  - the Fastfile's `WIDGETS_IDENTIFIER`, its `get_provisioning_profile`
+    call, and its entry in the export's `provisioningProfiles`.
+- [ ] Check one TestFlight build: the widget is in the gallery, the app and
+      the extension report the same version and build, and after logging a
+      meal with the flag on the widget changes within a few seconds.
+- [ ] App Privacy: nothing new leaves the device. The snapshot sits in the
+      App Group container on the phone.
+
+### Android, before merging the held Android commit
+
+- [ ] Merge the held Android commit: the `<receiver>` for
+      `OpsonWidgetReceiver` in
+      `libraries/widgets/impl/src/androidMain/AndroidManifest.xml`,
+      `res/xml/opson_widget_info.xml` and the picker strings.
+- [ ] Nothing to declare in Play Console: no permission, no data leaving
+      the device.
+
+### Both
+
+- [ ] Flip `release.widgets` on. The app writes a snapshot at launch and on
+      every change from then on; until it has, a placed widget says "Open
+      Opson to start."
+- [ ] Try it on a phone in Full and in Blind: Full shows the amount and the
+      bar, Blind the four meal circles and no number. Switch modes in the
+      app and watch the widget follow. Tap + and land in the Logger on the
+      next meal.
+- [ ] Leave a phone overnight with the app closed: the widget shows an empty
+      day after midnight.
+
 ## Server, before any 0.2 build reaches people
 
 - [ ] Deploy the server to prod once 0.1 is through review. It carries the
