@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl.widgets
 
+import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.eventsOf
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.testing.CoroutineTest
@@ -24,6 +25,8 @@ class WidgetsViewModelTest : CoroutineTest() {
         override fun observe(): Flow<WidgetSnapshot> = snapshots
     }
 
+    private val settings = FakeSettingsRepository()
+
     private fun snapshot(preset: PresetId): WidgetSnapshot = WidgetSnapshotBuilder.build(
         WidgetFixtures.inputs(NumbersSettings(preset = preset)),
         WidgetFixtures.policy(preset),
@@ -32,33 +35,36 @@ class WidgetsViewModelTest : CoroutineTest() {
 
     @Test
     fun beforeTheFirstSnapshot_thePageHasNoWidget() = runUnitTest {
-        val vm = WidgetsViewModel(source)
+        val vm = WidgetsViewModel(source, settings)
         assertNull(vm.state.snapshot)
     }
 
     @Test
     fun aSnapshotArrives_andThePageShowsItForItsOwnDay() = runUnitTest {
-        val vm = WidgetsViewModel(source)
+        val vm = WidgetsViewModel(source, settings)
 
         snapshots.emit(snapshot(PresetId.Full))
 
         assertEquals(snapshot(PresetId.Full), vm.state.snapshot)
         assertEquals(WidgetFixtures.today, vm.state.today)
+        assertEquals(PresetId.Full, vm.state.preset)
     }
 
     @Test
     fun aModeChange_reachesThePage() = runUnitTest {
-        val vm = WidgetsViewModel(source)
+        val vm = WidgetsViewModel(source, settings)
         snapshots.emit(snapshot(PresetId.Full))
 
         snapshots.emit(snapshot(PresetId.Blind))
+        settings.state.value = settings.state.value.copy(numbers = NumbersSettings(preset = PresetId.Blind))
 
         assertNull(vm.state.snapshot?.days?.first()?.energy)
+        assertEquals(PresetId.Blind, vm.state.preset)
     }
 
     @Test
     fun back_closes() = runUnitTest {
-        val vm = WidgetsViewModel(source)
+        val vm = WidgetsViewModel(source, settings)
         val events = eventsOf(vm)
 
         vm.takeAction(WidgetsAction.BackTapped)

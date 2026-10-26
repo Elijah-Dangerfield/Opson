@@ -13,6 +13,7 @@ import com.opson.features.settings.impl.SectionLabel
 import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
+import com.opson.features.settings.impl.label
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.components.text.Text
@@ -32,8 +33,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * Widgets (0.2): the handoff's page under More. The person's own widget in both sizes, drawn
- * from the snapshot the real one reads, so what they see here is what their home screen shows.
+ * Widgets (0.2): the page under More. The person's own widget, drawn from the snapshot the real
+ * one reads, so what they see here is what their home screen shows. Design sync 2's board shows
+ * one widget per mode; a page only ever shows the person's own, so it can't show more numbers
+ * than their mode does.
  */
 @Composable
 fun WidgetsScreen(
@@ -57,7 +60,9 @@ fun WidgetsScreen(
         val snapshot = state.snapshot
         val today = state.today
         if (snapshot != null && today != null) {
-            // On the hero colour, as v3 draws them: a widget sits on a wallpaper, not on the page.
+            // On the hero colour, as the design draws them: a widget sits on a wallpaper, not on
+            // the page. Named with the person's mode, since that is what it follows. Design sync 2
+            // also draws the watch face; it is out of scope.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -66,8 +71,15 @@ fun WidgetsScreen(
                     .padding(AppTheme.spacing.cardHorizontal),
                 verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
             ) {
+                state.preset?.let { preset ->
+                    Text(
+                        text = stringResource(preset.label).uppercase(),
+                        typography = AppTheme.type.overline,
+                        color = AppTheme.colors.onHeroMuted,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                    )
+                }
                 WidgetCard(snapshot, today, WidgetSize.Medium)
-                WidgetCard(snapshot, today, WidgetSize.Small)
             }
         }
         Text(
@@ -83,7 +95,7 @@ fun WidgetsScreen(
 @Composable
 internal fun WidgetsFixtureScreen(policy: VisibilityPolicy) {
     val snapshot = WidgetSnapshotBuilder.build(WidgetFixtures.inputs(policy.settings), policy, rememberWidgetCopy())
-    WidgetsScreen(WidgetsStateBuilder.build(snapshot), onAction = {})
+    WidgetsScreen(WidgetsStateBuilder.build(snapshot, policy.settings.preset), onAction = {})
 }
 
 @Preview

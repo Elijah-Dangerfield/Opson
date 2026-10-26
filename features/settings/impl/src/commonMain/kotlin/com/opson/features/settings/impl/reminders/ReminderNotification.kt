@@ -1,6 +1,8 @@
 package com.opson.features.settings.impl.reminders
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,7 +18,6 @@ import com.opson.libraries.reminders.ReminderCopy
 import com.opson.libraries.reminders.ReminderKey
 import com.opson.libraries.reminders.ReminderPlanner
 import com.opson.libraries.reminders.ReminderText
-import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.IconTile
 import com.opson.libraries.ui.components.icon.IconTileSize
@@ -40,9 +41,9 @@ fun ReminderNotificationCard(text: ReminderText, modifier: Modifier = Modifier) 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(AppTheme.colors.surface, AppTheme.shapes.card)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+            .background(AppTheme.colors.bg, AppTheme.shapes.card)
+            .padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
             IconTile(
@@ -51,25 +52,35 @@ fun ReminderNotificationCard(text: ReminderText, modifier: Modifier = Modifier) 
                 containerColor = AppTheme.colors.accent,
                 size = IconTileSize.Small,
             )
-            Text(text = stringResource(Res.string.reminders_note_app), typography = AppTheme.type.secondarySmallStrong, color = AppTheme.colors.muted)
+            Text(text = stringResource(Res.string.reminders_note_app), typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted)
             Text(text = stringResource(Res.string.reminders_note_now), typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
         }
-        Text(text = stringResource(text.title), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
-        Text(text = stringResource(text.body), typography = AppTheme.type.secondary, color = AppTheme.colors.ink)
+        Text(
+            text = stringResource(text.title),
+            typography = AppTheme.type.cardTitle,
+            color = AppTheme.colors.ink,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        Text(text = stringResource(text.body), typography = AppTheme.type.body, color = AppTheme.colors.inkSoft)
         if (text.actions.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-                text.actions.forEach { (_, label) ->
-                    FlatButton(
-                        text = stringResource(label),
-                        onClick = {},
-                        modifier = Modifier.weight(1f),
-                        centered = true,
-                        shape = AppTheme.shapes.pill,
-                        typography = AppTheme.type.secondaryStrong,
-                    )
-                }
+            Row(modifier = Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+                text.actions.forEach { (_, label) -> ActionChip(stringResource(label), Modifier.weight(1f)) }
             }
         }
+    }
+}
+
+/** A notification action as design sync 2 draws it: a tinted pill with accent text. Not tappable here. */
+@Composable
+private fun ActionChip(label: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .defaultMinSize(minHeight = 44.dp)
+            .background(AppTheme.colors.accentTint, AppTheme.shapes.pill)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = label, typography = AppTheme.type.bodyBold.ExtraBold, color = AppTheme.colors.accent, maxLines = 1)
     }
 }
 
@@ -95,12 +106,24 @@ object ReminderNotificationSamples {
         MealSlot.meals.map { ReminderKey.Meal(date, it) } + ReminderPlanner.WATER_TIMES.indices.map { ReminderKey.Water(date, it) }
 }
 
-/** v3: dinner, plain, on the lock screen. */
+/** Design sync 2: dinner, plain, on the lock screen under the clock. */
+@Suppress("VerifyStrings")
 @Preview
 @Composable
 private fun ReminderNotificationPreview() {
-    SettingsPreview(dark = true) {
-        Column(modifier = Modifier.background(AppTheme.colors.bg).padding(AppTheme.spacing.page)) {
+    SettingsPreview {
+        Column(
+            modifier = Modifier.fillMaxWidth().background(AppTheme.colors.hero).padding(AppTheme.spacing.page),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // The lock screen's own clock and date, drawn for the preview only.
+            Text(text = "7:15", typography = AppTheme.type.figureDisplay, color = AppTheme.colors.onHero, modifier = Modifier.padding(top = 48.dp))
+            Text(
+                text = "Sunday, October 25",
+                typography = AppTheme.type.lead,
+                color = AppTheme.colors.onHeroMuted,
+                modifier = Modifier.padding(top = 4.dp, bottom = 40.dp),
+            )
             ReminderNotificationCard(ReminderCopy.text(ReminderKey.Meal(LocalDate(2026, 10, 25), MealSlot.Dinner), Tone.Plain))
         }
     }
