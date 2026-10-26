@@ -25,10 +25,15 @@ internal fun AuditView(ctx: AdminCtx) {
     var filter by remember { mutableStateOf("") }
     var loadedFilter by remember { mutableStateOf<String?>(null) }
     var reloadKey by remember { mutableStateOf(0) }
+    var loadFailed by remember { mutableStateOf(false) }
 
     LaunchedEffect(loadedFilter, reloadKey) {
+        loadFailed = false
         Catching { entries = ctx.api.listAudit(flag = loadedFilter) }
-            .onFailure { ctx.setStatus(Status(false, it.message ?: "Failed to load audit")) }
+            .onFailure {
+                loadFailed = true
+                ctx.setStatus(Status(false, it.message ?: "Failed to load audit"))
+            }
     }
 
     Div(attrs = { classes("row"); style { property("margin-bottom", "10px") } }) {
@@ -47,7 +52,9 @@ internal fun AuditView(ctx: AdminCtx) {
     }
 
     val list = entries ?: run {
-        P(attrs = { classes("muted") }) { Text("Loading audit log…") }
+        P(attrs = { classes("muted") }) {
+            Text(if (loadFailed) "Couldn't load the audit log. Refresh to try again." else "Loading audit log…")
+        }
         return
     }
     if (list.isEmpty()) {

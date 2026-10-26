@@ -173,8 +173,12 @@ internal fun RuleEditor(
                         after = "When ${conditionsSentence(conditions)} → ${element.inline()}",
                         success = "Added rule to ${row.path}",
                         warning = dangerousWarning(row.path, current.value),
-                    ) { ctx.api.upsertRule(randomUuid(), request) }
-                    draft = null
+                    ) {
+                        ctx.api.upsertRule(randomUuid(), request)
+                        // Closed only once it saved: a cancelled confirm or a refused
+                        // write keeps the draft to fix and try again.
+                        draft = null
+                    }
                 }
             }) { Text("Save rule") }
             Button(attrs = { onClick { draft = null } }) { Text("Cancel") }

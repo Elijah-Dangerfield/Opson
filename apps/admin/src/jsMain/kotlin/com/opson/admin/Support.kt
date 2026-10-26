@@ -78,7 +78,6 @@ internal class AdminCtx(
     }
 }
 
-@Suppress("TooGenericExceptionCaught")
 internal fun parseJsonOrNull(raw: String): JsonElement? =
     Catching { adminJson.parseToJsonElement(raw.trim()) }.getOrNull()
 
