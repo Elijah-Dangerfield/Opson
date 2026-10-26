@@ -106,6 +106,7 @@ import opson.libraries.resources.generated.resources.onboarding_skip_all
 import opson.libraries.resources.generated.resources.onboarding_start_with
 import opson.libraries.resources.generated.resources.onboarding_statement_body
 import opson.libraries.resources.generated.resources.onboarding_statement_quote
+import opson.libraries.resources.generated.resources.onboarding_talk_to_someone
 import opson.libraries.resources.generated.resources.onboarding_welcome_body
 import opson.libraries.resources.generated.resources.onboarding_welcome_subtitle
 import opson.libraries.resources.generated.resources.onboarding_welcome_title
@@ -360,7 +361,33 @@ private fun ColumnScope.QuestionStep(
         label = stringResource(if (statement) Res.string.onboarding_see_starting_point else Res.string.onboarding_continue),
         enabled = !state.isFinishing,
         onClick = { onAction(OnboardingAction.ContinueTapped) },
+        above = if (statement) {
+            { TalkToSomeoneLink(enabled = !state.isFinishing, onClick = { onAction(OnboardingAction.TalkToSomeoneTapped) }) }
+        } else {
+            null
+        },
     )
+}
+
+/** "Talk to someone": Find support, whichever answer is picked. One 48 dp target. */
+@Composable
+private fun TalkToSomeoneLink(enabled: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .defaultMinSize(minHeight = MinTouchTarget)
+            .semantics(mergeDescendants = true) { role = Role.Button }
+            .bounceClick(enabled = enabled, scaleDown = 0.97f, onClick = onClick)
+            .padding(horizontal = Dimension.D300),
+        horizontalArrangement = Arrangement.spacedBy(Dimension.D300),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon = AppIcons.SupportAgent, size = IconGlyph, color = AppTheme.colors.accent)
+        Text(
+            text = stringResource(Res.string.onboarding_talk_to_someone),
+            typography = AppTheme.type.bodyBold,
+            color = AppTheme.colors.accent,
+        )
+    }
 }
 
 /** The statement as a quote the person can agree with, never a question about a diagnosis. */
@@ -483,10 +510,10 @@ private fun PreviewCard(title: String, lines: List<PreviewLine>, seen: Boolean) 
 
 private val PreviewMark.icon: IconResource
     get() = when (this) {
-        PreviewMark.Shown -> AppIcons.Visibility
+        PreviewMark.Shown -> AppIcons.VisibilityOutline
         PreviewMark.Softened -> AppIcons.BlurOn
         PreviewMark.Later -> AppIcons.Schedule
-        PreviewMark.Hidden -> AppIcons.VisibilityOff
+        PreviewMark.Hidden -> AppIcons.VisibilityOffOutline
     }
 
 @Composable
@@ -761,6 +788,7 @@ private fun PinnedPrimary(
     enabled: Boolean,
     onClick: () -> Unit,
     footnote: String? = null,
+    above: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
@@ -770,6 +798,7 @@ private fun PinnedPrimary(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Dimension.D500),
     ) {
+        above?.invoke()
         ButtonPrimary(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
             Text(label)
         }

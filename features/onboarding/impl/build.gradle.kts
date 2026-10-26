@@ -11,6 +11,8 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.features.onboarding)
             implementation(projects.features.today)
+            // Find support, from "Talk to someone" on the statement.
+            implementation(projects.features.settings)
             implementation(projects.libraries.navigation)
 
             implementation(projects.libraries.core)

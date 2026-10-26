@@ -99,6 +99,7 @@ class OnboardingViewModel(
             OnboardingAction.GetStartedTapped -> action.handleGetStarted()
             OnboardingAction.SkipAllTapped -> action.handleSkipAll()
             OnboardingAction.SignInTapped -> sendEvent(OnboardingEvent.NavigateToSignIn)
+            OnboardingAction.TalkToSomeoneTapped -> sendEvent(OnboardingEvent.NavigateToSupport)
             is OnboardingAction.OptionTapped -> action.handleOptionTapped(action.option)
             OnboardingAction.ContinueTapped, OnboardingAction.SkipQuestionTapped -> action.advance()
             is OnboardingAction.AlternativeTapped -> action.handleAlternativeTapped(action.preset)
@@ -506,6 +507,9 @@ sealed interface OnboardingEvent {
     data object NavigateToToday : OnboardingEvent
     data object NavigateToSignIn : OnboardingEvent
     data object NavigateToSignUp : OnboardingEvent
+
+    /** Find support (design 10.3), from "Talk to someone" on the statement. */
+    data object NavigateToSupport : OnboardingEvent
 }
 
 /**
@@ -533,6 +537,9 @@ sealed interface OnboardingAction {
     /** "Have an account? Sign in" on Welcome. */
     data object SignInTapped : OnboardingAction
     data class OptionTapped(val option: SetupOption) : OnboardingAction
+
+    /** "Talk to someone" on the statement, shown whichever answer is picked. */
+    data object TalkToSomeoneTapped : OnboardingAction
     /** "Continue", or "See my starting point" on the statement. */
     data object ContinueTapped : OnboardingAction
     data object SkipQuestionTapped : OnboardingAction
