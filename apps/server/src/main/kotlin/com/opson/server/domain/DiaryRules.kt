@@ -10,8 +10,8 @@ import kotlin.time.Instant
  * copy of these rules is the authoritative backstop; the client should never
  * produce a row that breaks them.
  *
- * [validate] returns null for a valid row, otherwise a message naming the
- * field. The route turns a message into a `rejected` entry with code
+ * [clampClock] runs first and [validate] after it. [validate] returns null for
+ * a valid row, otherwise a message naming the field. The route turns a message into a `rejected` entry with code
  * `invalid_row`. Messages name fields, never echo values: they can end up in
  * a log line, and the values are health data.
  */
@@ -32,7 +32,7 @@ object DiaryRules {
      */
     const val MAX_DAYS_AHEAD = 8L
 
-    /** How far ahead of the server clock a device clock may be before a write is refused. */
+    /** How far ahead of the server clock a device clock may be before its times are replaced (see [clampClock]). */
     val MAX_CLOCK_SKEW = 24.hours
 
     const val MAX_NAME = 200
@@ -55,13 +55,35 @@ object DiaryRules {
     /** The longest a fast may be, and its largest goal. TODO(clinician): confirm the cap. */
     const val MAX_FAST_HOURS = 16
 
+    /**
+     * [row] with every time more than [MAX_CLOCK_SKEW] past [now] replaced by
+     * [now]. Such a time comes from a phone whose clock is wrong, not from the
+     * future. Refusing the row, as the server once did, made that phone roll the
+     * change back, so a clock a couple of days fast lost everything the person
+     * logged. Stored as [now], the change is kept, and it cannot outrank a later
+     * edit from a phone that keeps good time.
+     */
+    fun clampClock(row: DiaryRow, now: Instant): DiaryRow {
+        fun Instant.clamped(): Instant = if (this > now + MAX_CLOCK_SKEW) now else this
+        val updatedAt = row.clientUpdatedAt.clamped()
+        return when (row) {
+            is LogEntry -> row.copy(loggedAt = row.loggedAt.clamped(), clientUpdatedAt = updatedAt)
+            is DayRecord -> row.copy(closedAt = row.closedAt?.clamped(), clientUpdatedAt = updatedAt)
+            is MealFeeling -> row.copy(clientUpdatedAt = updatedAt)
+            is WeighIn -> row.copy(measuredAt = row.measuredAt.clamped(), clientUpdatedAt = updatedAt)
+            is CustomFood -> row.copy(clientUpdatedAt = updatedAt)
+            is SavedMeal -> row.copy(clientUpdatedAt = updatedAt)
+            is UserSettings -> row.copy(changedAt = row.changedAt?.clamped(), clientUpdatedAt = updatedAt)
+            is Fast -> row.copy(startedAt = row.startedAt.clamped(), endedAt = row.endedAt?.clamped(), clientUpdatedAt = updatedAt)
+        }
+    }
+
     fun validate(row: DiaryRow, now: Instant): String? {
-        notFuture("clientUpdatedAtEpochMs", row.clientUpdatedAt, now)?.let { return it }
         return when (row) {
             is LogEntry -> validateEntry(row, now)
             is DayRecord -> validateDay(row, now)
             is MealFeeling -> validateFeeling(row, now)
-            is WeighIn -> validateWeighIn(row, now)
+            is WeighIn -> validateWeighIn(row)
             is CustomFood -> validateCustomFood(row)
             is SavedMeal -> validateSavedMeal(row)
             is UserSettings -> jsonSize("settings", row.settingsJson)
@@ -78,10 +100,6 @@ object DiaryRules {
             ?: amount("grams", row.grams, MAX_GRAMS)
             ?: nutrients(row.nutrients)
             ?: micros(row.micros)
-            ?: notFuture("loggedAtEpochMs", row.loggedAt, now)
-
-    private fun notFuture(field: String, value: Instant, now: Instant): String? =
-        if (value > now + MAX_CLOCK_SKEW) "$field is in the future" else null
 
     private fun validateDay(row: DayRecord, now: Instant): String? =
         dayError(row.day, now)
@@ -105,7 +123,6 @@ object DiaryRules {
         val goal = row.goalHours
         val ended = row.endedAt
         return dayError(row.day, now)
-            ?: notFuture("startedAtEpochMs", row.startedAt, now)
             ?: when {
                 row.startedAt < MIN_INSTANT -> "startedAtEpochMs is too old"
                 goal != null && goal !in 1..MAX_FAST_HOURS -> "goalHours is out of range"
@@ -115,10 +132,10 @@ object DiaryRules {
             }
     }
 
-    private fun validateWeighIn(row: WeighIn, now: Instant): String? = when {
+    private fun validateWeighIn(row: WeighIn): String? = when {
         !row.kg.isFinite() || row.kg <= 0.0 || row.kg > MAX_KG -> "kg is out of range"
         row.measuredAt < MIN_INSTANT -> "measuredAtEpochMs is too old"
-        else -> notFuture("measuredAtEpochMs", row.measuredAt, now)
+        else -> null
     }
 
     private val MIN_INSTANT: Instant =
