@@ -131,7 +131,6 @@ object AppIcons {
     val MonitorWeight get() = icon("monitor_weight", MaterialIcons.Rounded.MonitorWeight)
     val Schedule get() = icon("schedule", MaterialIcons.Rounded.Schedule)
     val LockClock get() = icon("lock_clock", MaterialIcons.Rounded.LockClock)
-    val ContentCopy get() = icon("content_copy", MaterialIcons.Rounded.ContentCopy)
 
     // Navigation and chrome
     val Close get() = icon("close", MaterialIcons.Rounded.Close)
