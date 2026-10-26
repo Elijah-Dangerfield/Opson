@@ -87,6 +87,15 @@ class DiaryRulesTest {
     }
 
     @Test
+    fun dayFeelingIsShortAndNotBlank() {
+        val record = DayRecord(today, null, null, null, emptyMap(), null, now, false, untracked = true, feeling = "steady")
+        assertNull(DiaryRules.validate(record, now))
+        assertNull(DiaryRules.validate(record.copy(feeling = null), now))
+        assertNotNull(DiaryRules.validate(record.copy(feeling = " "), now))
+        assertNotNull(DiaryRules.validate(record.copy(feeling = "x".repeat(DiaryRules.MAX_FEELING + 1)), now))
+    }
+
+    @Test
     fun feelingsAreCapped() {
         val feeling = MealFeeling(today, MealSlot.Lunch, "hungry", "full", listOf("calm"), null, now, false)
         assertNull(DiaryRules.validate(feeling, now))

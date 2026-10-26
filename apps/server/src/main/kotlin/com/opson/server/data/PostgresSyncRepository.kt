@@ -203,6 +203,8 @@ class PostgresSyncRepository(
                     row.ateNoDetails.mapKeys { (slot, _) -> slot.wire },
                 )
                 it[mealGroups] = row.mealGroups
+                it[untracked] = row.untracked
+                it[feeling] = row.feeling
                 it[clientUpdatedAt] = row.clientUpdatedAt.toJavaInstant()
                 it[deleted] = row.deleted
             }
@@ -367,6 +369,8 @@ class PostgresSyncRepository(
             .mapNotNull { (key, value) -> MealSlot.fromWire(key)?.let { it to value } }
             .toMap(),
         mealGroups = this[DayRecordsTable.mealGroups],
+        untracked = this[DayRecordsTable.untracked],
+        feeling = this[DayRecordsTable.feeling],
         clientUpdatedAt = this[DayRecordsTable.clientUpdatedAt].toKotlinInstant(),
         deleted = this[DayRecordsTable.deleted],
     )

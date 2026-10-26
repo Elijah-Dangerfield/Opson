@@ -199,6 +199,8 @@ object DayRecordsTable : SyncedTable("day_records") {
     val note = text("note").nullable()
     val ateNoDetails = jsonb("ate_no_details")
     val mealGroups = bool("meal_groups").nullable()
+    val untracked = bool("untracked")
+    val feeling = text("feeling").nullable()
     override val primaryKey = PrimaryKey(userId, day)
 }
 

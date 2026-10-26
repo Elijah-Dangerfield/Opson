@@ -75,12 +75,38 @@ class DatabaseSchemaTest : DatabaseTest() {
     fun noAnalyticsViewExposesAUserOrANutrientAmount() {
         val forbidden = setOf(
             "user_id", "kcal", "protein", "carbs", "fat", "fiber", "micros", "grams", "quantity",
-            "kg", "water_ml", "note", "name", "settings",
+            "kg", "water_ml", "note", "name", "settings", "feeling",
         )
         val columns = strings("SELECT column_name::text FROM information_schema.columns WHERE table_schema = 'analytics'")
         assertTrue(columns.isNotEmpty())
         assertEquals(emptySet(), columns.toSet() intersect forbidden)
         assertEquals(ANALYTICS_VIEWS.toSet(), strings("SELECT table_name::text FROM information_schema.views WHERE table_schema = 'analytics'").toSet())
+    }
+
+    /** V11: a day marked untracked is a gap, so a coffee logged on a holiday is not a one-meal day. */
+    @Test
+    fun untrackedDaysLeaveMealsPerDay() {
+        val tracked = seedAuthUser().value
+        val holiday = seedAuthUser().value
+        val day = "2026-10-25"
+        database.blockingTransaction {
+            listOf(tracked, holiday).forEach { user ->
+                exec(
+                    "INSERT INTO log_entries (id, user_id, day, slot, logged_at, name, precision, method, client_updated_at) " +
+                        "VALUES (gen_random_uuid(), '$user', '$day', 'breakfast', now(), 'Coffee', 'estimate', 'search', now())",
+                )
+            }
+            exec("INSERT INTO day_records (user_id, day, untracked, client_updated_at) VALUES ('$holiday', '$day', TRUE, now())")
+        }
+        try {
+            val rows = strings("SELECT meals_per_day || ':' || person_days FROM analytics.meals_per_day_distribution WHERE day = '$day'")
+            assertEquals(listOf("1:1"), rows)
+        } finally {
+            database.blockingTransaction {
+                exec("DELETE FROM log_entries WHERE day = '$day'")
+                exec("DELETE FROM day_records WHERE day = '$day'")
+            }
+        }
     }
 
     @Test

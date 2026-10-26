@@ -156,7 +156,7 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
     @Test
     fun everyEntityRoundTrips() = runTest {
         val user = seedAuthUser()
-        val day = DayRecord(DAY, 1500, T0, "good day", mapOf(MealSlot.Snack to true), true, T0, false)
+        val day = DayRecord(DAY, 1500, T0, "good day", mapOf(MealSlot.Snack to true), true, T0, false, untracked = true, feeling = "steady")
         val feeling = MealFeeling(DAY, MealSlot.Lunch, "hungry", "satisfied", listOf("calm", "tired"), "ok", T0, false)
         val weighIn = WeighIn(UUID.randomUUID(), T0, 70.4, T0, false)
         val custom = CustomFood(UUID.randomUUID(), "Granola", "Home", 40.0, "g", Nutrients(kcal = 180.0, fat = 7.5), T0, false)

@@ -82,6 +82,8 @@ object DiaryRules {
     private fun validateDay(row: DayRecord, now: Instant): String? =
         dayError(row.day, now)
             ?: text("note", row.note, MAX_NOTE)
+            ?: text("feeling", row.feeling, MAX_FEELING)
+            ?: row.feeling?.let { if (it.isBlank()) "feeling is blank" else null }
             ?: row.waterMl?.let { if (it < 0 || it > MAX_WATER_ML) "waterMl is out of range" else null }
 
     private fun validateFeeling(row: MealFeeling, now: Instant): String? =

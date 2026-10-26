@@ -127,6 +127,10 @@ data class DayRecordRowDto(
     val ateNoDetails: Map<String, Boolean> = emptyMap(),
     /** null = follow the user's setting */
     val mealGroups: Boolean? = null,
+    /** Marked untracked: Trends shows a gap. Absent from older clients, so it defaults to tracked. */
+    val untracked: Boolean = false,
+    /** "How did today feel?" as a wire value (`steady`, `busy`, …); null when not answered. */
+    val feeling: String? = null,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean = false,
 )
@@ -249,6 +253,8 @@ fun DayRecordRowDto.toDomain(): DayRecord = DayRecord(
     note = note,
     ateNoDetails = ateNoDetails.mapKeys { (key, _) -> slot("ateNoDetails", key) },
     mealGroups = mealGroups,
+    untracked = untracked,
+    feeling = feeling,
     clientUpdatedAt = instant(clientUpdatedAtEpochMs),
     deleted = deleted,
 )
@@ -330,6 +336,8 @@ fun DayRecord.toRowDto(): DayRecordRowDto = DayRecordRowDto(
     note = note,
     ateNoDetails = ateNoDetails.mapKeys { (slot, _) -> slot.wire },
     mealGroups = mealGroups,
+    untracked = untracked,
+    feeling = feeling,
     clientUpdatedAtEpochMs = clientUpdatedAt.toEpochMilliseconds(),
     deleted = deleted,
 )

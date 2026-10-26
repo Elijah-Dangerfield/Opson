@@ -102,6 +102,10 @@ data class DayRecord(
     val mealGroups: Boolean?,
     override val clientUpdatedAt: Instant,
     override val deleted: Boolean,
+    /** Marked untracked (a holiday): Trends shows a gap, never a low day. */
+    val untracked: Boolean = false,
+    /** "How did today feel?", a client wire value such as `steady`; null when not answered. */
+    val feeling: String? = null,
 ) : DiaryRow
 
 data class MealFeeling(
