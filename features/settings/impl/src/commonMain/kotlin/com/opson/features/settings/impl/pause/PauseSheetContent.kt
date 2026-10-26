@@ -4,24 +4,32 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.inline
 import com.opson.features.settings.impl.label
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.chip.PillChip
 import com.opson.libraries.ui.components.chip.PillChipStyle
+import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.minTouchTarget
 import com.opson.system.AppTheme
 import kotlinx.datetime.LocalTime
 import opson.libraries.resources.generated.resources.Res
@@ -40,6 +48,7 @@ import opson.libraries.resources.generated.resources.settings_pause_reason_else
 import opson.libraries.resources.generated.resources.settings_pause_reason_planning
 import opson.libraries.resources.generated.resources.settings_pause_reason_prompt
 import opson.libraries.resources.generated.resources.settings_pause_reason_provider
+import opson.libraries.resources.generated.resources.settings_pause_talk
 import opson.libraries.resources.generated.resources.settings_pause_title_number
 import opson.libraries.resources.generated.resources.settings_pause_title_pause
 import opson.libraries.resources.generated.resources.settings_pause_title_preset
@@ -95,6 +104,9 @@ fun PauseSheetContent(
                 }
             }
         }
+        if (state.talkToSomeone) {
+            TalkToSomeone(onClick = { onAction(PauseAction.TalkToSomeoneTapped) })
+        }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
             FlatButton(
                 text = stringResource(Res.string.settings_pause_keep),
@@ -117,6 +129,22 @@ fun PauseSheetContent(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+}
+
+/** Design sync 2: a quiet accent link to Find support, above the buttons. */
+@Composable
+private fun TalkToSomeone(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .minTouchTarget()
+            .semantics { role = Role.Button }
+            .bounceClick(scaleDown = 0.97f, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(icon = AppIcons.SupportAgent, size = 22.dp, color = AppTheme.colors.accent)
+        Text(text = stringResource(Res.string.settings_pause_talk), typography = AppTheme.type.bodyBold.ExtraBold, color = AppTheme.colors.accent)
     }
 }
 
@@ -183,7 +211,12 @@ private val PauseReason.label: StringResource
 private fun ModesPausePreview() {
     SettingsPreview {
         PauseSheetContent(
-            PauseState(subject = PauseSubject.Number(Metric.Calories), secondsLeft = 7, reason = PauseReason.PlanningAMeal),
+            PauseState(
+                subject = PauseSubject.Number(Metric.Calories),
+                secondsLeft = 7,
+                reason = PauseReason.PlanningAMeal,
+                talkToSomeone = true,
+            ),
             onAction = {},
         )
     }
@@ -202,6 +235,15 @@ private fun ModesPauseReadyDarkPreview() {
 private fun ModesPauseTurningItOffPreview() {
     SettingsPreview {
         PauseSheetContent(PauseState(subject = PauseSubject.ThePause, secondsLeft = 3), onAction = {})
+    }
+}
+
+/** Weight back to Numbers from Trend only: the Weight screen's old switch, now in Modes. */
+@Preview
+@Composable
+private fun ModesPauseWeightPreview() {
+    SettingsPreview {
+        PauseSheetContent(PauseState(subject = PauseSubject.Number(Metric.Weight), secondsLeft = 4, talkToSomeone = true), onAction = {})
     }
 }
 

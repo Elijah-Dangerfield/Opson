@@ -19,8 +19,12 @@ import com.opson.features.settings.impl.reminders.ReminderNotifications
 import com.opson.features.settings.impl.reminders.RemindersScreen
 import com.opson.features.settings.impl.reminders.RemindersStateBuilder
 import com.opson.features.settings.impl.support.DeleteStep
+import com.opson.features.settings.impl.support.FindSupportScreen
+import com.opson.features.settings.impl.support.FindSupportStateBuilder
+import com.opson.features.settings.impl.support.SupportCountry
 import com.opson.features.settings.impl.support.SupportScreen
 import com.opson.features.settings.impl.support.SupportState
+import com.opson.features.settings.impl.support.SupportStateBuilder
 import com.opson.features.settings.impl.targets.GoalStyleSheetContent
 import com.opson.features.settings.impl.targets.GoalStyleStateBuilder
 import com.opson.features.settings.impl.targets.TargetsScreen
@@ -80,6 +84,14 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "support-delete", label = "Support, delete everything", showsCaloriesInFull = false) { _ ->
             SupportScreen(SupportState(delete = DeleteStep.Confirming), onAction = {})
+        },
+        // Design sync 2, release.findSupport. Phone numbers and no amounts: listed so a later
+        // line that ever carries a number of the person's own is caught.
+        LeakSurface(id = "support-find", label = "Find support", showsCaloriesInFull = false) { _ ->
+            Column {
+                FindSupportScreen(FindSupportStateBuilder.build(SupportCountry.UnitedStates), onAction = {})
+                SupportScreen(SupportStateBuilder.build(findSupport = true, SupportCountry.UnitedStates), onAction = {})
+            }
         },
         // 0.2. Times and a duration, no nutrition number; in a mode without fasting it says so.
         LeakSurface(id = "fasting", label = "Fasting", showsCaloriesInFull = false) { policy ->

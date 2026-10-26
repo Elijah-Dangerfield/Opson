@@ -72,7 +72,7 @@ class MoreTest : CoroutineTest() {
 
         assertEquals(
             listOf(
-                MoreEvent.OpenModes, MoreEvent.OpenTargets, MoreEvent.OpenLookAndFeel, MoreEvent.OpenHealth,
+                MoreEvent.OpenModes, MoreEvent.OpenTargets, MoreEvent.OpenHealth, MoreEvent.OpenLookAndFeel,
                 MoreEvent.OpenWater, MoreEvent.OpenSupport,
             ),
             events,
@@ -174,11 +174,11 @@ class MoreTest : CoroutineTest() {
     fun healthFlagOn_theRowSaysWhetherItIsConnected() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.NotConnected)
         val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag())
-        assertEquals(MoreRow.Health(connected = false), vm.state.groups[0].last())
+        assertEquals(MoreRow.Health(connected = false), vm.state.groups[0].filterIsInstance<MoreRow.Health>().single())
 
         health.statusFlow.value = HealthStatus.Connected
 
-        assertEquals(MoreRow.Health(connected = true), vm.state.groups[0].last())
+        assertEquals(MoreRow.Health(connected = true), vm.state.groups[0].filterIsInstance<MoreRow.Health>().single())
     }
 
     @Test
@@ -193,18 +193,18 @@ class MoreTest : CoroutineTest() {
     @Test
     fun theHealthRow_carriesNoAmount_inAnyMode() {
         PresetId.entries.forEach { preset ->
-            val row = MoreStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset)), healthConnected = true).groups[0].last()
+            val row = MoreStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset)), healthConnected = true).groups[0].filterIsInstance<MoreRow.Health>().single()
             assertEquals(MoreRow.Health(connected = true), row, "in $preset")
         }
     }
 
     @Test
-    fun withBothFlagsTheFirstCardReadsAsV3() {
+    fun withBothFlagsTheFirstCardReadsAsDesignSync2_withLookAndFeelKeptLast() {
         val rows = MoreStateBuilder.build(SettingsFixtures.settings(), healthConnected = true, remindersOn = true).groups[0]
         assertEquals(
             listOf(
                 MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.Reminders(quiet = true),
-                MoreRow.LookAndFeel, MoreRow.Health(connected = true),
+                MoreRow.Health(connected = true), MoreRow.LookAndFeel,
             ),
             rows,
         )

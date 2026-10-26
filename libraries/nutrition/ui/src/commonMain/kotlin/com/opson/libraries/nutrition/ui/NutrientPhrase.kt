@@ -3,6 +3,9 @@ package com.opson.libraries.nutrition.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
@@ -18,7 +21,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * A resolved [display] inside a sentence: [phrase] wraps its text, as in "Aim for about
  * 2,100 kcal, before activity" or "2,100 kcal, ratio macros". The whole line carries the
  * metric's test tag, and a hidden display renders nothing, sentence included, so hiding the
- * number removes the words around it too.
+ * number removes the words around it too. [numberWeight] sets the number apart from its words
+ * ("**120 g** protein", design sync 2's macro split).
  */
 @Composable
 fun NutrientPhrase(
@@ -29,14 +33,30 @@ fun NutrientPhrase(
     typography: TypographyResource = AppTheme.type.secondary,
     color: ColorResource = AppTheme.colors.muted,
     textAlign: TextAlign? = null,
+    numberWeight: FontWeight? = null,
 ) {
     val text = when (display) {
         Display.Hidden -> null
         is Display.Soft -> display.text
         is Display.Shown -> display.text
     } ?: return
+    val sentence = phrase(text)
+    val start = sentence.indexOf(text)
+    if (numberWeight == null || start < 0) {
+        Text(
+            text = sentence,
+            modifier = modifier.testTag(metric.testTag()),
+            typography = typography,
+            color = color,
+            textAlign = textAlign,
+        )
+        return
+    }
     Text(
-        text = phrase(text),
+        text = buildAnnotatedString {
+            append(sentence)
+            addStyle(SpanStyle(fontWeight = numberWeight), start, start + text.length)
+        },
         modifier = modifier.testTag(metric.testTag()),
         typography = typography,
         color = color,

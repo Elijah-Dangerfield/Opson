@@ -62,6 +62,101 @@ differ):
 - Previews are one theme each at 390 dp, named so their screen ids read next
   to the design ids (`targets-goal-style`, `support-delete`).
 
+Design sync 2 (2026-10-26, `docs/plans/design-sync-2.md`; the export's notes
+are the behaviour spec and win over v3):
+
+| Screen id | Change |
+|---|---|
+| `more-screen__more` | The main preview shows every 0.2 row (flags on), as the design. Support gains the subtitle `Eating disorder helplines`. Targets uses the concentric target glyph. |
+| `modes-screen__modes` | Already matches (badge, re-pick clears, `Changed from`). **Weight's Numbers / Trend only / Hidden lives here**: it is the matrix's Weight row (Show / Soft / Hide, Later too), behind the pause like every other raise, now that the Trends agent removes the switch from Weight. Tests cover it. |
+| `pause-sheet-content__modes-pause` | Already matches (Keep is primary, the countdown fills quietly). Adds `Talk to someone`, a quiet link above the buttons that opens Find support (only with `release.findSupport` on). |
+| `targets-screen__*` | Steppers: the lock is the outlined glyph in muted, numbers one step smaller. Macro split: one bar of flush segments, amounts bold with a regular label. Deficit rules read on one line (smaller type). By day: the first group ("Other days") renders last, week bands are flat bars, the pencil is the outlined glyph. |
+| `goal-style-sheet-content__targets-goal-style` | No change. |
+| `reminders-screen__reminders`, `reminder-notification__…` | The notification lookalike sits on a lock screen (clock and date), light card, tinted action chips. |
+| `integrations-screen__integrations-connected` | In a mode that hides energy the Expended card reads `Your watch syncs in the background. Nothing from it shows in this mode.` Smaller status pill. |
+| `fasting-screen__fasting` | Already status first; no change. |
+| `support-screen__support` | With `release.findSupport` on: `Find support near you` (accent, chevron) and the crisis row for the phone's country, which dials. Off: the 0.1 links stay. Icons outlined. |
+| `support-screen__support-delete` | Outlined trash icon, body in ink. Still a modal with Keep in accent. |
+| `support-screen__support-find` (new) | Find support, below. |
+| `widgets__widgets` | The page labels the widget with the person's mode ("Full numbers") and shows the medium widget on the hero colour. Preview file renamed so the ids pair. **No watch face** (out of scope). |
+
+Kept different on purpose:
+
+- More keeps **Look and feel** (the design drops it): palette, theme and text size
+  have no other home.
+- Modes keeps `Every number visible, all day.` for Full numbers and `A meal
+  checklist. Amounts optional.` for Rhythm. The design's versions advertise watch
+  sync and reminders, which are behind 0.2 flags. No Progress photos row: the
+  feature doesn't exist.
+- Goal style has no **One number** (not built; Today and Trends only know ranges).
+- Targets by day names groups `Day group 2`, not `Training days`: groups have no
+  names yet. `TODO(design-sync-2)`.
+- Deficit has no `My watch` / `Intake and weight` switch: the watch isn't a burn
+  source yet.
+- Integrations lists only the store Opson reads (no Wear OS watch, no Garmin row,
+  no Health card on Today), and keeps Disconnect.
+- Support keeps `Send feedback`, has no Trusted person or clinician rows (App
+  Review), and keeps the true data line (`Saved on this phone and synced…`).
+- `to` in ranges, `PM` from `DateCopy` (shared).
+
+---
+
+## Find support (new, design sync 2)
+
+`FindSupportRoute()` in `:features:settings`, so Onboarding, Today and the
+pause sheet can open it. `FindSupportViewModel`. Behind **`release.findSupport`**
+(`FindSupportEnabled`, a `FlagConfigValue` in `:features:settings`, default
+off, in the config registry): off, nothing links here and Support keeps its 0.1
+links.
+
+```kotlin
+data class FindSupportState(
+    val country: SupportCountry?,             // null: the phone's region has no list
+    val pickingCountry: Boolean,
+    val crisis: CrisisLine?,                  // the country's 24/7 line: call and text
+    val lines: List<SupportLine>,             // the country's eating-disorder lines
+    val elsewhere: List<SupportLine>,         // every other country's first line
+    val couldNotOpen: SupportLine?,           // the phone couldn't open it: say the number
+)
+```
+
+| Action | Does |
+|---|---|
+| (init) | `DeviceRegion.countryCode()` picks the country (`SupportCountry.of`). |
+| `CountryTapped` / `CountryPickerDismissed` | Opens and closes the country menu. |
+| `CountryPicked(country)` | Rebuilds for that country. Not stored: the next visit starts from the region again. |
+| `CallTapped(line)` / `TextTapped(line)` / `OpenTapped(line)` | `tel:`, `sms:` or the web page, straight through `WebLinkLauncher`. A failure sets `couldNotOpen`; it is never logged. |
+| `BackTapped` | `Close`. |
+
+The list (`SupportDirectory`, in the impl) ships with the app and works
+offline: US, UK, Canada, Australia, Ireland and New Zealand, each a crisis line
+and its eating-disorder lines. Every entry carries its source and `TODO(launch):
+verify` the number and hours, then each quarter.
+
+**Never logged, synced or shared**: no app event, the chosen country is not
+saved, the launcher's failures are swallowed, and `App.kt` doesn't report
+`FindSupportRoute` to the crash scope or the jank monitor (the screen beneath
+keeps the attribution). iOS lists `tel` and `sms` in `LSApplicationQueriesSchemes`
+so `canOpenURL` can see them.
+
+Support's crisis row (`SupportState.crisis`) comes from the same region:
+`In crisis? Call or text 988` / `24/7 · United States`, and tapping it dials.
+With no list for the region it reads `In crisis? Find a line near you` and opens
+Find support.
+
+Copy: `Find support`; `Free and confidential. Calls open your phone app.`;
+`In crisis right now`; `24/7 · call or text` (or `24/7 · text SHOUT to
+85258` where the text line wants a keyword); `Call %s` / `Text %s`;
+`Eating disorder support`; `Outside the US` and one per country (`Other
+countries` with no country);
+`Choose a country`; `Call` / `Text` / `Open`; `%1$s · %2$s` rows;
+`Your phone couldn't open this. The number is %s.`; `If you're in danger, call
+your local emergency number.`
+
+Visibility: none, no numbers. Tests: region picks the country, unknown region,
+re-picking, each tap's URL, a failed open, the support row per country.
+Previews: `support-find` (US), UK dark, no country. `SURFACES`: `support-find`.
+
 ---
 
 ## More

@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.opson.features.settings.impl.SettingsDefaults
@@ -56,6 +57,7 @@ import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.system.minTouchTarget
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
+import com.opson.system.typography.TypographyResource
 import com.opson.system.background
 import com.opson.system.color.ToneColors
 import com.opson.system.thenIf
@@ -194,7 +196,7 @@ private fun RangeEndsCard(range: RangeCard, onAction: (TargetsAction) -> Unit) {
 private fun EndSteppers(low: EndStepper, high: EndStepper, group: Int?, onAction: (TargetsAction) -> Unit) {
     val ends = listOf(RangeEnd.Low to low, RangeEnd.High to high)
     val measurer = rememberTextMeasurer()
-    val style = AppTheme.type.numericLarge.style
+    val style = StepperValueType.style
     val widestPx = ends.maxOf { (_, stepper) -> stepper.value.words?.let { measurer.measure(it, style, maxLines = 1).size.width } ?: 0 }
     val widest = with(LocalDensity.current) { widestPx.toDp() }
     val gap = AppTheme.spacing.row
@@ -256,8 +258,8 @@ private fun EndStepperView(stepper: EndStepper, endName: String, onStep: (up: Bo
         when (stepper.down) {
             StepState.Locked -> Box(modifier = Modifier.size(StepSize), contentAlignment = Alignment.Center) {
                 Icon(
-                    icon = AppIcons.Lock.described(stringResource(Res.string.settings_targets_locked)),
-                    size = 24.dp,
+                    icon = AppIcons.LockOutlined.described(stringResource(Res.string.settings_targets_locked)),
+                    size = 22.dp,
                     color = AppTheme.colors.muted,
                 )
             }
@@ -272,7 +274,7 @@ private fun EndStepperView(stepper: EndStepper, endName: String, onStep: (up: Bo
             NutrientText(
                 metric = Metric.Calories,
                 display = stepper.value,
-                typography = AppTheme.type.numericLarge,
+                typography = StepperValueType,
                 color = AppTheme.colors.ink,
                 maxLines = 1,
             )
@@ -446,14 +448,17 @@ private fun LabelledAmount(
 @Composable
 private fun Rule(icon: IconResource, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-        Icon(icon = icon, size = 24.dp, color = AppTheme.colors.accent)
-        Text(text = text, typography = AppTheme.type.body, color = AppTheme.colors.ink)
+        Icon(icon = icon, size = 22.dp, color = AppTheme.colors.accent)
+        Text(text = text, typography = AppTheme.type.secondaryStrong.Normal, color = AppTheme.colors.ink)
     }
 }
 
 @Composable
 private fun ByDayCards(state: TargetsState, onAction: (TargetsAction) -> Unit) {
-    state.groups.forEach { group -> DayGroupCardView(group, onAction) }
+    // Design sync 2: the named groups first, "Other days" (the first group, which takes every
+    // day nobody else has) last. Every day still belongs to exactly one group.
+    val ordered = if (state.groups.size > 1) state.groups.drop(1) + state.groups.first() else state.groups
+    ordered.forEach { group -> DayGroupCardView(group, onAction) }
     if (state.canAddGroup) {
         Row(
             modifier = Modifier
@@ -495,7 +500,7 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
             ) {
                 val editing = group.low != null
                 Icon(
-                    icon = (if (editing) AppIcons.Check else AppIcons.Edit).described(
+                    icon = (if (editing) AppIcons.Check else AppIcons.EditOutline).described(
                         if (editing) {
                             stringResource(Res.string.settings_targets_group_done)
                         } else {
@@ -595,7 +600,7 @@ private fun WeekStrip(week: List<WeekBand>) {
                             .offset(y = (WeekHeight - WeekBarHeight) * (1f - band.position))
                             .fillMaxWidth()
                             .height(WeekBarHeight)
-                            .clip(AppTheme.shapes.input)
+                            .clip(AppTheme.shapes.bar)
                             .background(groupTone(band.groupIndex).container),
                     )
                 }
@@ -646,13 +651,16 @@ private fun MacroCard(state: TargetsState, onAction: (TargetsAction) -> Unit) {
             )
             Text(text = modeLabel, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
         }
-        Row(modifier = Modifier.fillMaxWidth().height(10.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        // One bar of flush segments, rounded only at its ends (design sync 2).
+        Row(
+            modifier = Modifier.fillMaxWidth().height(10.dp).clip(AppTheme.shapes.pill),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             state.macros.forEach { macro ->
                 Box(
                     modifier = Modifier
                         .weight(macro.weight.coerceAtLeast(1f))
                         .fillMaxHeight()
-                        .clip(AppTheme.shapes.pill)
                         .background(macroColor(macro.metric)),
                 )
             }
@@ -665,6 +673,7 @@ private fun MacroCard(state: TargetsState, onAction: (TargetsAction) -> Unit) {
                     phrase = { stringResource(macro.metric.gramsPhrase, it) },
                     typography = AppTheme.type.body.Tabular,
                     color = AppTheme.colors.ink,
+                    numberWeight = FontWeight.ExtraBold,
                 )
             }
         }
@@ -750,7 +759,12 @@ private fun BackgroundCard(onAction: (TargetsAction) -> Unit) {
 }
 
 private val StepSize = 40.dp
-private val WeekHeight = 56.dp
+
+/** The ends' amounts, a step under `numericLarge` (design sync 2). */
+private val StepperValueType: TypographyResource
+    @Composable get() = AppTheme.type.figureLarge
+
+private val WeekHeight = 40.dp
 private val WeekBarHeight = 20.dp
 
 @Preview

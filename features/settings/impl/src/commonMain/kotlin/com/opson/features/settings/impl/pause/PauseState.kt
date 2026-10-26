@@ -13,6 +13,8 @@ data class PauseState(
     val reason: PauseReason? = null,
     /** Show them or Keep has run, so a swipe down afterwards changes and logs nothing. */
     val finished: Boolean = false,
+    /** `release.findSupport`: the quiet "Talk to someone" link to Find support. */
+    val talkToSomeone: Boolean = false,
 ) {
     val canShow: Boolean get() = secondsLeft == 0 && !finished
 

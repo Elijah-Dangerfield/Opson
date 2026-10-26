@@ -1,6 +1,7 @@
 package com.opson.integration.config
 
 import com.opson.features.logger.impl.BarcodeScanEnabled
+import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.logger.impl.PhotoEstimateEnabled
 import com.opson.features.logger.impl.SearchOptionsEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
@@ -328,6 +329,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     PhotoEstimateEnabled(appConfigMap),
     WidgetsEnabled(appConfigMap),
     SearchOptionsEnabled(appConfigMap),
+    FindSupportEnabled(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"

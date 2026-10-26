@@ -33,6 +33,7 @@ import opson.libraries.resources.generated.resources.settings_more_modes_changed
 import opson.libraries.resources.generated.resources.settings_more_plan
 import opson.libraries.resources.generated.resources.settings_more_plan_free
 import opson.libraries.resources.generated.resources.settings_more_support
+import opson.libraries.resources.generated.resources.settings_more_support_sub
 import opson.libraries.resources.generated.resources.settings_more_targets
 import opson.libraries.resources.generated.resources.settings_more_targets_sub
 import opson.libraries.resources.generated.resources.settings_more_title
@@ -94,7 +95,7 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         }
         MoreRow.Targets -> SettingsRow(
             title = stringResource(Res.string.settings_more_targets),
-            icon = AppIcons.Target,
+            icon = AppIcons.TrackChanges,
             subtitle = stringResource(Res.string.settings_more_targets_sub),
             chevron = true,
             showDivider = showDivider,
@@ -150,6 +151,7 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             title = stringResource(Res.string.settings_more_support),
             icon = AppIcons.Support,
             quietIcon = true,
+            subtitle = stringResource(Res.string.settings_more_support_sub),
             showDivider = showDivider,
             onClick = onClick,
         )
@@ -163,9 +165,19 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
     }
 }
 
+/** Every 0.2 row on, as design sync 2 draws More. */
 @Preview
 @Composable
 private fun MorePreview() {
+    val settings = SettingsFixtures.settings().copy(quiet = true)
+    val state = MoreStateBuilder.build(settings, healthConnected = true, remindersOn = true, fastingReleased = true, widgetsOn = true)
+    SettingsPreview { MoreScreen(state, onAction = {}) }
+}
+
+/** Every 0.2 flag off: what 0.1 shows. */
+@Preview
+@Composable
+private fun MoreFlagsOffPreview() {
     SettingsPreview { MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings()), onAction = {}) }
 }
 

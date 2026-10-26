@@ -17,6 +17,12 @@ import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Watch
 import androidx.compose.material.icons.rounded.Widgets
+import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.SupportAgent
+import androidx.compose.material.icons.rounded.TrackChanges
+import androidx.compose.material.icons.outlined.Sms as OutlinedSms
+import androidx.compose.material.icons.outlined.Delete as OutlinedDelete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.EventRepeat
@@ -268,6 +274,25 @@ object AppIcons {
     /** Widgets (More), as v3's "widgets" glyph. */
     val Widgets get() = icon("widgets", MaterialIcons.Rounded.Widgets)
 
+    // Find support (design sync 2)
+    /** Call a line: the phone handset. */
+    val Call get() = icon("call", MaterialIcons.Rounded.Call)
+
+    /** Text a line: the outlined message bubble with dots. */
+    val Sms get() = icon("sms", MaterialIcons.Outlined.OutlinedSms)
+
+    /** The country picker's globe. */
+    val Public get() = icon("public", MaterialIcons.Rounded.Public)
+
+    /** "Find support near you" and "Talk to someone": the headset. */
+    val SupportAgent get() = icon("support_agent", MaterialIcons.Rounded.SupportAgent)
+
+    /** Delete everything, outlined as design sync 2 draws it. */
+    val DeleteOutline get() = icon("delete_outline", MaterialIcons.Outlined.OutlinedDelete)
+
+    /** Targets on More: concentric rings (design sync 2). */
+    val TrackChanges get() = icon("track_changes", MaterialIcons.Rounded.TrackChanges)
+
     /** The meal's tile icon. Uncategorized uses the list glyph. */
     fun meal(tone: MealTone): IconResource = when (tone) {
         MealTone.Breakfast -> BakeryDining
@@ -290,6 +315,7 @@ object AppIcons {
             OpenInNew, Target, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
             Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch, Widgets,
+            Call, Sms, Public, SupportAgent, DeleteOutline, TrackChanges,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

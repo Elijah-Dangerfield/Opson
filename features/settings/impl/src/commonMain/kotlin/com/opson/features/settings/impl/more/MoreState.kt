@@ -65,8 +65,10 @@ object MoreStateBuilder {
                 MoreRow.Modes(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                 MoreRow.Targets,
                 MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
-                MoreRow.LookAndFeel,
                 healthConnected?.let { MoreRow.Health(connected = it) },
+                // Not in design sync 2's More, kept last on purpose: palette, theme and text size
+                // have no other home.
+                MoreRow.LookAndFeel,
             ),
             listOfNotNull(
                 MoreRow.Water(glasses = settings.waterGlasses),
