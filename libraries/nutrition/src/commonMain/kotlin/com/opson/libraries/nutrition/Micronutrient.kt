@@ -43,17 +43,12 @@ enum class Micronutrient(
     }
 }
 
-/** The six scores on the Today scores page and the nutrients detail, in display order. */
-enum class NutritionScore(val micros: List<Micronutrient>) {
-    AllTargets(Micronutrient.entries),
-    Vitamins(Micronutrient.inGroup(MicroGroup.Vitamins)),
-    Minerals(Micronutrient.inGroup(MicroGroup.Minerals)),
-    BoneHealth(listOf(Micronutrient.Calcium, Micronutrient.VitaminD, Micronutrient.VitaminK, Micronutrient.Magnesium)),
-    ImmuneSupport(listOf(Micronutrient.VitaminA, Micronutrient.VitaminC, Micronutrient.VitaminD, Micronutrient.Zinc)),
-    EnergyAndMetabolism(listOf(Micronutrient.VitaminB12, Micronutrient.Iron, Micronutrient.Magnesium, Micronutrient.Folate)),
-}
-
-object NutritionScores {
+/**
+ * Micronutrient amounts as percents of each daily reference. The Nutrients page
+ * shows these per micronutrient; there is no combined score (design v3 cut the
+ * scores page: a score built from hidden data is a number with no source).
+ */
+object MicroPercents {
 
     /**
      * Sums [amounts] per micronutrient and turns each total into a percent of its
@@ -61,24 +56,11 @@ object NutritionScores {
      * (custom foods, name-only items) count as none, which the nutrients caption
      * explains.
      */
-    fun percents(amounts: Iterable<Map<Micronutrient, Double>>): Map<Micronutrient, Double> {
+    fun of(amounts: Iterable<Map<Micronutrient, Double>>): Map<Micronutrient, Double> {
         val totals = mutableMapOf<Micronutrient, Double>()
         for (item in amounts) {
             for ((micro, amount) in item) totals[micro] = (totals[micro] ?: 0.0) + amount
         }
         return Micronutrient.entries.associateWith { it.percentOf(totals[it] ?: 0.0) }
     }
-
-    /**
-     * Each score is the mean of its micronutrients' percents, each capped at 100
-     * first, so a lot of vitamin C cannot make up for no vitamin D. Missing
-     * entries count as 0. Resolve the result through the policy as
-     * [Metric.Micros] with `of = 100`.
-     */
-    fun compute(percentByMicro: Map<Micronutrient, Double>): Map<NutritionScore, Double> =
-        NutritionScore.entries.associateWith { score ->
-            score.micros.sumOf { (percentByMicro[it] ?: 0.0).coerceIn(0.0, MAX_PERCENT) } / score.micros.size
-        }
-
-    private const val MAX_PERCENT = 100.0
 }

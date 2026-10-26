@@ -154,6 +154,9 @@ class FormatTest {
                 "Building", "Getting there", "Plenty today",
                 "Some", "Most", "Plenty",
                 "Trend only",
+                "Steady",
+                "Rising slowly",
+                "Falling slowly",
             ),
             words,
         )

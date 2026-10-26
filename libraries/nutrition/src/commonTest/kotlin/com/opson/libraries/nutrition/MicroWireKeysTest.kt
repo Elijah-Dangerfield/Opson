@@ -6,7 +6,7 @@ import kotlin.test.assertNull
 
 /**
  * The wire keys entries and catalog foods carry, mapped onto the tracked
- * micronutrients. What a percent is made of from there is `NutritionScoresTest`.
+ * micronutrients. What a percent is made of from there is `MicroPercentsTest`.
  */
 class MicroWireKeysTest {
 

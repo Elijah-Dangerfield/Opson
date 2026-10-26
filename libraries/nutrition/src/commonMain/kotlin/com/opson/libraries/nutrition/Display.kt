@@ -28,6 +28,9 @@ sealed interface Display {
  * - [day] / [dayClosed]: which day the number belongs to, for delayed reveal.
  *   `null` means today.
  * - [eaten] / [min] / [max]: only for [Metric.Remaining], to say "On target".
+ * - [trendKgPerWeek]: only for a softened [Metric.Weight], the slope of the
+ *   smoothed line, which picks the word (steady, rising slowly, falling
+ *   slowly). Without it a softened weight says "Trend only".
  * - [goal]: how a shown amount spells [of]. It never changes soften words or
  *   `fraction`, which read [of] in every style.
  */
@@ -42,6 +45,7 @@ data class FormatContext(
     val eaten: Double? = null,
     val min: Double? = null,
     val max: Double? = null,
+    val trendKgPerWeek: Double? = null,
 )
 
 /**

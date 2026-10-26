@@ -137,6 +137,58 @@ class VisibilityPolicyRevealTest {
     }
 
     @Test
+    fun coast_theWeekEndingTodayOpensAtTheRevealTime() {
+        val thisWeek = FormatContext(day = TODAY)
+        assertEquals(Display.Hidden, delayedCalories(Surface.Week, now = MORNING, context = thisWeek, preset = PresetId.Coast))
+        assertEquals(Display.Hidden, delayedCalories(Surface.Week, now = at(20, 59), context = thisWeek, preset = PresetId.Coast))
+        assertEquals(Display.Shown("1,245"), delayedCalories(Surface.Week, now = at(21), context = thisWeek, preset = PresetId.Coast))
+    }
+
+    @Test
+    fun coast_theWeekOpensAtTheUsersOwnRevealTime() {
+        fun coastAt(now: LocalDateTime) =
+            VisibilityPolicy(NumbersSettings(preset = PresetId.Coast, revealAt = LocalTime(19, 0)), clockAt(now), TimeZone.UTC)
+        val thisWeek = FormatContext(day = TODAY)
+        assertEquals(LocalDateTime(TODAY, LocalTime(19, 0)), coastAt(MORNING).weekOpensAt(TODAY))
+        assertEquals(Display.Hidden, coastAt(at(18, 59)).resolve(Metric.Calories, 1245.0, Surface.Week, thisWeek))
+        assertEquals(Display.Shown("1,245 kcal"), coastAt(at(19, 0)).resolve(Metric.Calories, 1245.0, Surface.Week, thisWeek))
+        assertFalse(coastAt(at(18, 59)).isWeekOpen(TODAY))
+        assertTrue(coastAt(at(19, 0)).isWeekOpen(TODAY))
+    }
+
+    @Test
+    fun coast_lastWeekStaysOpen() {
+        val lastWeek = FormatContext(day = YESTERDAY)
+        assertEquals(Display.Shown("1,245"), delayedCalories(Surface.Week, now = MORNING, context = lastWeek, preset = PresetId.Coast))
+        assertTrue(policy(PresetId.Coast, now = MORNING).isWeekOpen(YESTERDAY))
+        assertFalse(policy(PresetId.Coast, now = MORNING).isWeekOpen(TODAY))
+    }
+
+    @Test
+    fun revealsWeekly_isCoastsOwnRule() {
+        assertTrue(policy(PresetId.Coast).revealsWeekly)
+        assertFalse(policy(PresetId.Delayed).revealsWeekly)
+    }
+
+    @Test
+    fun delayed_ignoresTheWeekEndOnTheWeekView() {
+        assertEquals(Display.Shown("1,245"), delayedCalories(Surface.Week, context = FormatContext(day = TODAY)))
+    }
+
+    @Test
+    fun softWeight_saysWhichWayTheLineGoes() {
+        val soft = policy(PresetId.Delayed)
+        fun word(kgPerWeek: Double?) = soft.resolve(Metric.Weight, 72.6, Surface.Weight, FormatContext(trendKgPerWeek = kgPerWeek))
+        assertEquals(Display.Soft("Trend only", null), word(null))
+        assertEquals(Display.Soft("Steady", null), word(0.1))
+        assertEquals(Display.Soft("Steady", null), word(-0.15))
+        assertEquals(Display.Soft("Rising slowly", null), word(0.4))
+        assertEquals(Display.Soft("Falling slowly", null), word(-0.6))
+        // A shown weight is the amount, whatever the slope; no change readout exists.
+        assertEquals(Display.Shown("72.6 kg"), policy(PresetId.Full).resolve(Metric.Weight, 72.6, Surface.Weight, FormatContext(trendKgPerWeek = -0.6)))
+    }
+
+    @Test
     fun coast_staysHiddenOffTheWeekView_whateverTheDayOrTime() {
         val contexts = listOf(
             FormatContext(),

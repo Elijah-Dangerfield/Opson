@@ -37,3 +37,18 @@ fun VisibilityPolicy.share(
     if (effectiveLevel(metric, surface, context) != Visibility.Show || !percent.isFinite()) return Display.Hidden
     return Display.Shown(formatter.percent(percent))
 }
+
+/**
+ * One meal's share of the energy eaten, `21%`, for Patterns.
+ *
+ * Shown only when calories are effectively [Visibility.Show]: a share of energy
+ * is an amount in disguise, so a mode that hides or softens calories hides it.
+ */
+fun VisibilityPolicy.energyShare(
+    percent: Double,
+    surface: Surface,
+    context: FormatContext = FormatContext(),
+): Display {
+    if (effectiveLevel(Metric.Calories, surface, context) != Visibility.Show || !percent.isFinite()) return Display.Hidden
+    return Display.Shown(formatter.percent(percent))
+}

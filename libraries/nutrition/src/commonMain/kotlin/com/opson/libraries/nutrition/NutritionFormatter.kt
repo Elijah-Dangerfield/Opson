@@ -17,6 +17,11 @@ enum class SoftWord {
     Most,
     Plenty,
     TrendOnly,
+
+    // Which way the smoothed weight line is going. TODO(clinician): review the words.
+    Steady,
+    RisingSlowly,
+    FallingSlowly,
 }
 
 /**
@@ -118,6 +123,10 @@ object EnglishNutritionFormatter : NutritionFormatter {
         SoftWord.Most -> "Most"
         SoftWord.Plenty -> "Plenty"
         SoftWord.TrendOnly -> "Trend only"
+        // TODO(clinician): the slope words, reviewed before 1.0.
+        SoftWord.Steady -> "Steady"
+        SoftWord.RisingSlowly -> "Rising slowly"
+        SoftWord.FallingSlowly -> "Falling slowly"
     }
 
     override fun energyOf(kcal: Double, of: Double, bare: Boolean): String =

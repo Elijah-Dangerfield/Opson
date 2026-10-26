@@ -31,7 +31,7 @@ fun Micronutrient.Companion.fromWireKey(key: String): Micronutrient? = byWireKey
 
 /**
  * One entry's micros keyed by [Micronutrient], in each one's own unit, ready
- * for [NutritionScores.percents]. Untracked keys are dropped.
+ * for [MicroPercents.of]. Untracked keys are dropped.
  */
 fun Map<String, Double>.toMicronutrients(): Map<Micronutrient, Double> = buildMap {
     for ((key, amount) in this@toMicronutrients) {

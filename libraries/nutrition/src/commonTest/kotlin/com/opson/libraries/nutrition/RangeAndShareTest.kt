@@ -63,4 +63,12 @@ class RangeAndShareTest {
     fun share_isForMacrosOnly() {
         assertFailsWith<IllegalArgumentException> { showAll().share(Metric.Calories, 100.0, Surface.Settings) }
     }
+
+    @Test
+    fun energyShare_onlyWhenCaloriesShow() {
+        assertEquals(Display.Shown("21%"), policy(PresetId.Full).energyShare(21.2, Surface.Week))
+        assertEquals(Display.Hidden, policy(PresetId.Blind).energyShare(21.2, Surface.Week))
+        assertEquals(Display.Hidden, policy(PresetId.Fuel).energyShare(21.2, Surface.Week))
+        assertEquals(Display.Hidden, policy(PresetId.Full).energyShare(Double.NaN, Surface.Week))
+    }
 }
