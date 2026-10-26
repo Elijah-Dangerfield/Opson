@@ -37,8 +37,7 @@ private fun Trends(policy: VisibilityPolicy, inputs: TrendsInputs = TrendsFixtur
     TrendsScreen(TrendsStateBuilder.build(inputs, policy), onAction = {})
 }
 
-/** The whole scroll, at the design's height. */
-@Preview(widthDp = 390, heightDp = 1175)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TrendsPreview() = Phone { Trends(full) }
 
@@ -109,8 +108,7 @@ private fun NutrientsDayPreview() = Phone { Nutrients(full, TrendsFixtures.nutri
 @Composable
 private fun NutrientsDayDarkPreview() = Phone(dark = true) { Nutrients(full, TrendsFixtures.nutrientsInputs()) }
 
-/** The whole scroll, at the design's height. */
-@Preview(widthDp = 390, heightDp = 1046)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun NutrientsWeekPreview() = Phone { Nutrients(microsOn, TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage)) }
 
@@ -137,8 +135,7 @@ private fun Patterns(policy: VisibilityPolicy, modifier: Modifier? = null) {
     if (modifier == null) PatternsScreen(state, onAction = {}) else PatternsContent(state, onAction = {}, modifier = modifier)
 }
 
-/** The whole scroll, at the design's height. */
-@Preview(widthDp = 390, heightDp = 984)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun PatternsPreview() = Phone { Patterns(full) }
 

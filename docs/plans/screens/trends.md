@@ -34,9 +34,9 @@ Routes in `:features:trends` (`com.opson.features.trends`); impl
 
 What changed against this plan, and the differences kept on purpose.
 
-- **Trends**: already matched. The full-scroll design is 1,175 dp tall, so
-  `TrendsPreview` renders at that height and pairs with the whole page.
-  Kept on purpose: `Patterns ›` stays on the Blind `Your week` hero. The
+- **Trends**: already matched. The design PNGs for Trends, Nutrients week and
+  Patterns are full scrolls; the renderer draws every preview at 844 dp, so
+  the `…Below` previews show the rest. Kept on purpose: `Patterns ›` stays on the Blind `Your week` hero. The
   design drops it, but the Blind Patterns page (`patterns-blind`) is designed
   and this link is its only way in. Expended (`Daily average from your
   watch`) stays unbuilt: Health has a per-day `energy(day)` flow only, and a
@@ -45,7 +45,7 @@ What changed against this plan, and the differences kept on purpose.
 - **Coast**: the design says `7:00 pm`; the reveal is 9:00 pm everywhere
   (`VisibilityPolicy.DAY_CLOSE_REVEAL`, the day-close design), so the app
   keeps 9:00 pm. Ranges keep "to" (`Oct 19 to 25`).
-- **Nutrients day and week**: match. Week renders at the design's 1,046 dp.
+- **Nutrients day and week**: match.
 - **Patterns** (Full): the hunger card is now **Hunger through the day**, a
   bar per weekday (Mon to Sun) of how hungry the tagged meals were, with
   `From your check-ins` beside the title, and one plain fact under it when
@@ -53,7 +53,7 @@ What changed against this plan, and the differences kept on purpose.
   (`MealPatterns.hungerByWeekday` and `hungrierWithoutBreakfast`; the fact
   needs at least two tagged days each way and a gap of half a step or more,
   thresholds `TODO(clinician)`). Bars carry no amounts, so they stay in Blind.
-  Renders at the design's 984 dp.
+  Bars use `accentTint`, a shade lighter than the design's.
 - **Patterns** (Blind): the order is When you eat, How often, New foods, then
   hunger below the fold. Full keeps When you eat, How big, hunger, New foods.
   Blind still drops gaps, later-on lines and durations (`mealGaps`).
