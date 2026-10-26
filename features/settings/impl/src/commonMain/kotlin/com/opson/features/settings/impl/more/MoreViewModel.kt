@@ -9,6 +9,7 @@ import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.reminders.RemindersEnabled
+import com.opson.libraries.widgets.WidgetsEnabled
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
@@ -25,6 +26,7 @@ class MoreViewModel(
     healthFlag: HealthReleaseFlag,
     private val remindersEnabled: RemindersEnabled,
     private val fastingRelease: FastingRelease,
+    private val widgetsEnabled: WidgetsEnabled,
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
     init {
@@ -50,6 +52,7 @@ class MoreViewModel(
                     action.healthConnected,
                     remindersOn = remindersEnabled(),
                     fastingReleased = fastingRelease.isOn(),
+                    widgetsOn = widgetsEnabled(),
                 )
             }
             MoreAction.ScreenResumed -> health.refresh()
@@ -61,6 +64,7 @@ class MoreViewModel(
                 is MoreRow.Reminders -> sendEvent(MoreEvent.OpenReminders)
                 is MoreRow.Water -> sendEvent(MoreEvent.OpenWater)
                 is MoreRow.Fasting -> sendEvent(MoreEvent.OpenFasting)
+                MoreRow.Widgets -> sendEvent(MoreEvent.OpenWidgets)
                 MoreRow.Support -> sendEvent(MoreEvent.OpenSupport)
                 MoreRow.Plan -> Unit
             }
@@ -77,6 +81,7 @@ sealed interface MoreEvent {
     data object OpenReminders : MoreEvent
     data object OpenSupport : MoreEvent
     data object OpenFasting : MoreEvent
+    data object OpenWidgets : MoreEvent
 }
 
 sealed interface MoreAction {

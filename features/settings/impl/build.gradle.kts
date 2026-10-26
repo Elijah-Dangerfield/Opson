@@ -47,6 +47,7 @@ kotlin {
             implementation(projects.libraries.reminders)
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
+            implementation(projects.libraries.widgets)
             implementation(libs.kotlinx.datetime)
             implementation(projects.libraries.resources)
             implementation(compose.components.resources)

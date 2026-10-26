@@ -14,7 +14,8 @@ data class MoreState(val groups: List<List<MoreRow>> = emptyList())
  *
  * Reminders and celebrations shows only with `release.reminders` on, Watch and health apps only
  * with `release.health`. Fasting (0.2, `release.fasting`) sits in the extras card, only where
- * [FastingAccess] offers it. Not built yet, so not here: Widgets and watch face.
+ * [FastingAccess] offers it, and Widgets (0.2, `release.widgets`) after it. v3 calls that row
+ * "Widgets and watch face"; it says "Widgets" until the watch face ships.
  */
 sealed interface MoreRow {
     /** "Fuel", or "Fuel, 1 change" when levels differ from the preset's. */
@@ -36,6 +37,9 @@ sealed interface MoreRow {
     /** "Off", or "On, 14:10". Only where fasting is offered: never in other modes, never after the statement. */
     data class Fasting(val on: Boolean, val plan: FastingPlan) : MoreRow
 
+    /** Home screen widgets. No subtitle and no value, as v3. Only with `release.widgets` on. */
+    data object Widgets : MoreRow
+
     data object Support : MoreRow
 
     /** "Free". There is no purchase flow in 0.1, so it opens nothing. */
@@ -47,13 +51,14 @@ object MoreStateBuilder {
     /**
      * How the app treats you, optional extras, then help and plan. Reminders shows only with
      * [remindersOn]; [healthConnected] is null while `release.health` is off, and then there is
-     * no health row at all. [fastingReleased] is `release.fasting`.
+     * no health row at all. [fastingReleased] is `release.fasting`, [widgetsOn] `release.widgets`.
      */
     fun build(
         settings: Settings,
         healthConnected: Boolean? = null,
         remindersOn: Boolean = false,
         fastingReleased: Boolean = false,
+        widgetsOn: Boolean = false,
     ): MoreState = MoreState(
         groups = listOf(
             listOfNotNull(
@@ -67,6 +72,7 @@ object MoreStateBuilder {
                 MoreRow.Water(glasses = settings.waterGlasses),
                 MoreRow.Fasting(on = settings.fasting, plan = settings.fastPlan)
                     .takeIf { FastingAccess.of(settings, fastingReleased) == FastingAccess.Offered },
+                MoreRow.Widgets.takeIf { widgetsOn },
             ),
             listOf(MoreRow.Support, MoreRow.Plan),
         ),

@@ -26,6 +26,7 @@ import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsStateBuilder
 import com.opson.features.settings.impl.water.WaterSettingsScreen
 import com.opson.features.settings.impl.water.WaterSettingsStateBuilder
+import com.opson.features.settings.impl.widgets.WidgetsFixtureScreen
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
@@ -105,6 +106,9 @@ object SettingsLeakSurfaces {
         // 0.2, release.widgets. The home screen widget as the platforms draw it, from the snapshot
         // the app writes for them: today and tomorrow, both sizes. The snapshot is the leak
         // surface, since a widget renders it and nothing else.
+        LeakSurface(id = "widgets", label = "Widgets", showsCaloriesInFull = true) { policy ->
+            WidgetsFixtureScreen(policy)
+        },
         LeakSurface(id = "widget", label = "Home screen widget", showsCaloriesInFull = true) { policy ->
             val snapshot = WidgetSnapshotBuilder.build(WidgetFixtures.inputs(policy.settings), policy, rememberWidgetCopy())
             Column {
