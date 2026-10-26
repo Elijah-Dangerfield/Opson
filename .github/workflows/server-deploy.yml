@@ -93,10 +93,11 @@ jobs:
 
       - name: Smoke test
         if: ${{ !inputs.dry_run }}
+        # Retried, not slept on: Fly's edge can take a few seconds to route to
+        # the new machine, and one early 502 is not a failed deploy.
         run: |
-          # Give Fly's edge proxy a beat to route to the new machine.
-          sleep 5
           curl --fail --silent --show-error \
+               --retry 6 --retry-delay 5 --retry-all-errors \
                --max-time 20 \
                https://opson-server-dev.fly.dev/_health
           echo

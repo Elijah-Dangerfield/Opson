@@ -72,6 +72,14 @@ jobs:
           echo "Refusing to deploy: type 'prod' in the confirm input to proceed."
           exit 1
 
+      # "Run workflow" offers every branch, and the approval screen shows the
+      # branch in small print. Production only ever runs main.
+      - name: Guard — production deploys main only
+        if: ${{ github.ref != 'refs/heads/main' && !inputs.dry_run }}
+        run: |
+          echo "Refusing to deploy $GITHUB_REF to production: only refs/heads/main ships."
+          exit 1
+
       - uses: actions/checkout@v4
 
       # Same belt-and-suspenders as dev: run the suite and refuse to deploy on
@@ -115,9 +123,11 @@ jobs:
 
       - name: Smoke test
         if: ${{ !inputs.dry_run }}
+        # Retried, not slept on: Fly's edge can take a few seconds to route to
+        # the new machine, and one early 502 is not a failed deploy.
         run: |
-          sleep 5
           curl --fail --silent --show-error \
+               --retry 6 --retry-delay 5 --retry-all-errors \
                --max-time 20 \
                https://opson-server-prod.fly.dev/_health
           echo
