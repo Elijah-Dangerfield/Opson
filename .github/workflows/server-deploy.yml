@@ -61,7 +61,7 @@ jobs:
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
       - name: Run server tests
         run: ./gradlew :apps:server:test
@@ -76,7 +76,7 @@ jobs:
           cp -R apps/admin/build/dist/js/productionExecutable/. apps/server/admin-web/
           ls apps/server/admin-web/
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # 1.6
 
       - name: Deploy
         # --local-only: build the image on this runner (16GB, isolated) instead

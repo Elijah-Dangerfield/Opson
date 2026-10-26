@@ -83,7 +83,7 @@ jobs:
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
@@ -132,7 +132,7 @@ jobs:
         # with pass/fail counts + click-through to failing assertions, so a red
         # run doesn't require downloading the artifact zip. Informational only —
         # `Build + test` is the gating check.
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
         if: always()
         with:
           name: Unit test results
@@ -181,7 +181,7 @@ jobs:
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
@@ -191,7 +191,7 @@ jobs:
       - name: Publish server test results
         # Inline "Server test results" check with pass/fail counts +
         # failing-test detail. Informational only — `Server tests` gates.
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
         if: always()
         with:
           name: Server test results
@@ -232,7 +232,7 @@ jobs:
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
@@ -242,7 +242,7 @@ jobs:
       - name: Publish integration test results
         # Inline "Integration test results" check with pass/fail counts +
         # failing-test detail. Informational only — `Integration tests` gates.
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
         if: always()
         with:
           name: Integration test results

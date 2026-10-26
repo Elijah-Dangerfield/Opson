@@ -120,7 +120,7 @@ jobs:
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
       - name: Bundle release AAB
         run: ./gradlew :apps:compose:bundleRelease -Prelease.signing=true
@@ -142,7 +142,7 @@ jobs:
 
       - name: Upload to Play internal track
         if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
-        uses: r0adkll/upload-google-play@v1
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         with:
@@ -230,7 +230,7 @@ jobs:
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
         with:
           cache-read-only: false
 
@@ -259,7 +259,7 @@ jobs:
             deriveddata-${{ runner.os }}-xcode26-
 
       - name: Set up Ruby / Bundler
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           # fastlane resolves excon, which needs >= 3.3. A runner on 3.2 dies
           # in bundler before fastlane starts.
