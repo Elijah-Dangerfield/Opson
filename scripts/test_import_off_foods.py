@@ -3,9 +3,12 @@
     python3 -I -m unittest discover -s scripts -p 'test_import_off_foods.py'
 """
 
+import tempfile
 import unittest
+from pathlib import Path
 
 from import_off_foods import (
+    SCAN_BUCKETS,
     Stats,
     batch_sql,
     clean_name,
@@ -14,11 +17,13 @@ from import_off_foods import (
     first_brand,
     macro_problem,
     micros_for,
+    most_scanned_first,
     modified_at,
     normalize_barcode,
     parse_number,
     portions_for,
     product_from,
+    scan_bucket,
     scan_count,
 )
 
@@ -245,6 +250,29 @@ class SqlTest(unittest.TestCase):
         a = batch_sql([product_from(row(), Stats())], "2026-10-26")
         b = batch_sql([product_from(row(product_name="Other"), Stats())], "2026-11-26")
         self.assertEqual(a.split("'::uuid")[0][-36:], b.split("'::uuid")[0][-36:])
+
+
+class OrderTest(unittest.TestCase):
+    """The reload writes the most-scanned products first; search's caps rely on it."""
+
+    def test_buckets_run_from_most_scanned(self):
+        self.assertEqual(0, scan_bucket(5000))
+        self.assertEqual(0, scan_bucket(1000))
+        self.assertEqual(1, scan_bucket(999))
+        self.assertEqual(len(SCAN_BUCKETS) - 1, scan_bucket(0))
+        self.assertEqual(sorted(SCAN_BUCKETS, reverse=True), list(SCAN_BUCKETS))
+
+    def test_products_come_back_most_scanned_first_and_intact(self):
+        scans = [0, 7, 1200, 3, 0, 55, 7]
+        products = [product_from(row(code=f"30176204220{i:02d}", unique_scans_n=str(n)), Stats())
+                    for i, n in enumerate(scans)]
+        with tempfile.TemporaryDirectory() as spill:
+            ordered = list(most_scanned_first(iter(products), Path(spill)))
+            self.assertEqual([], list(Path(spill).iterdir()), "spill files are removed once read")
+        self.assertEqual([1200, 55, 7, 7, 3, 0, 0], [p.scans for p in ordered])
+        self.assertEqual(sorted(products, key=lambda p: p.barcode), sorted(ordered, key=lambda p: p.barcode))
+        sevens = [p.barcode for p in ordered if p.scans == 7]
+        self.assertEqual([products[1].barcode, products[6].barcode], sevens, "export order within a bucket")
 
 
 if __name__ == "__main__":

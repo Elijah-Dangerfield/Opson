@@ -111,6 +111,80 @@ tier taken in index order, or a smaller hot subset ranked by `scans` (Open
 Food Facts' scan count, kept on every row for this). Re-run the bench after
 that change, and on dev once it has room.
 
+### Measured again, 2026-10-26: bounded search (0.2)
+
+Same local Postgres 17 with dev's current settings (`shared_buffers` 320 MB,
+`work_mem` 3.5 MB, `effective_cache_size` 960 MB, `random_page_cost` 1.1, JIT
+off, one parallel worker), in Docker with 1 GB of memory and 2 CPUs, on a
+laptop shared with other builds (load average 7 to 30 during the runs, so
+treat single slow queries as noise). Same 290 queries, LIMIT 25.
+
+What changed (`OpenFoodFactsSearch` in the server, mirrored by
+`scripts/bench_off_search.py`):
+
+- **The reload writes rows most-scanned first**, so the table's physical
+  order is popularity, and a capped bitmap scan returns the most-scanned
+  matches first. The load takes 362 s instead of 229 s: the export is
+  spilled to temp files by scan count before anything is sent.
+- **Queries under 3 letters and digits skip Open Food Facts** (16 of the 290;
+  the catalog still answers them).
+- **Candidates are capped before scoring**: exact names up to 100 (a btree
+  on `lower(name)`), word-prefix matches up to 300, both again among products
+  sold in the caller's country (a GIN on `countries_tags, search`), and a
+  typo fallback on trigram word similarity up to 50, only when the rest find
+  fewer than 25. At most about 850 rows are scored, whatever the query.
+- **Two indexes added** (V15): 200 MB, so `off_foods` is 2.3 GB with indexes.
+
+| | p50 | p95 | p99 | Slowest |
+|---|---:|---:|---:|---:|
+| Before: unbounded, United States | 101 ms | 2,180 ms | 7,906 ms | 13.2 s (`m&m`) |
+| Bounded, United States | 25 ms | 56 ms | 87 ms | 241 ms |
+| Bounded, France | 23 ms | 60 ms | 88 ms | 115 ms |
+
+The "before" row is this setup's own measurement of the old statement; it
+reads slower than the earlier table above because this container is
+smaller.
+
+**Quality.** `--compare` runs both statements with the same ranking and
+counts how much of the unbounded top 10 the bounded one keeps: 88.5% for the
+United States, 91.7% for France, with the same first result 89.4% and 95.3%
+of the time. Where they differ the bounded result is usually the more popular
+product: the unbounded statement can reach products nobody scanned, and the
+caps keep the most-scanned. The typo fallback is better bounded than
+unbounded (`cheeerios` now finds Cheerios, not Cheerwine), and the lowest
+overlaps are prefixes still being typed (`cho`, `che`, `chi`).
+
+**In search.** Off by default: `FOOD_SEARCH_OFF_ENABLED=true` adds these
+rows to `/v1/foods/search` with the same response shape (`source: "off"`,
+tier 4, not verified), after every generic food that matched directly and
+after Branded rows of the same match, products sold in the caller's country
+(`X-Country-Code`) first. `/v1/foods/{id}` answers their ids when it is on.
+Describe never uses them.
+
+**Not loaded on dev yet.** A first load writes the 2.3 GB table plus about
+as much WAL again (dev's `max_wal_size` is 4 GB) on top of the 1.4 GB dev
+already uses (392 MB of data, 960 MB of WAL), which could pass 60% of the
+12 GB disk at its peak, and the disk itself can't be read from SQL. Load it
+with the disk graph open in the Supabase dashboard, and stop if it passes
+60%.
+
+## Search ranking and default servings (0.2)
+
+**Ranking.** A relevance suite of 78 queries (staples, dishes, brands,
+misspellings, prefixes typed so far) runs as `SearchRelevanceTest` against the
+generic seed plus a committed Branded fixture. Before the change 67 of 78
+held their expected top 3 (85.9%); after, 78 of 78. A held-out set of 44
+queries written before running it, never used to tune: 40 of 44 before, 42
+of 44 after. On a full local copy of dev's catalog (445,414 foods) search got
+faster too, because Branded rows are only read when they can reach the
+results: p50 52 to 37 ms, p95 281 to 269 ms, slowest 963 to 385 ms.
+
+**Default servings.** The app logs a food's first portion. 1,318 of the
+13,324 generic foods had a crumb or a bulk measure first ("1 berry", "1 fl
+oz" of coffee, "1 cup" of almonds at 828 kcal); they now start with a typical
+serving. The seed is regenerated and dev was backfilled (1,318 rows; a second
+run changes nothing).
+
 ### Licence: ODbL, kept contained
 
 - **Required in the app:** "Contains data from Open Food Facts, available

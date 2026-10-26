@@ -46,13 +46,20 @@ data class ServerConfig(
  * Outside food sources a barcode miss can be sent to (Open Food Facts is
  * always on and needs no config). Each paid source is null, and so never
  * called, until its keys are set.
+ *
+ * [searchOpenFoodFacts] adds the `off_foods` table (the full Open Food Facts
+ * export, V12) to name search. Off unless `FOOD_SEARCH_OFF_ENABLED=true`, so
+ * search answers as it did in 0.1 until someone turns it on, after the table
+ * is loaded and the app credits Open Food Facts where its foods appear.
  */
 data class FoodSourcesConfig(
     val nutritionix: NutritionixConfig? = null,
+    val searchOpenFoodFacts: Boolean = false,
 ) {
     companion object {
         fun fromEnv(env: Env): FoodSourcesConfig = FoodSourcesConfig(
             nutritionix = NutritionixConfig.fromEnv(env),
+            searchOpenFoodFacts = env["FOOD_SEARCH_OFF_ENABLED"]?.trim()?.lowercase() == "true",
         )
     }
 }

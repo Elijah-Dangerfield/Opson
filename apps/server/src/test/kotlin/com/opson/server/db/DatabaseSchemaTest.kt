@@ -77,13 +77,15 @@ class DatabaseSchemaTest : DatabaseTest() {
         val before = strings(indexes)
         assertEquals(
             listOf(
-                "off_foods_barcode_key", "off_foods_countries_idx", "off_foods_name_trgm_idx",
-                "off_foods_pkey", "off_foods_search_idx",
+                "off_foods_barcode_key", "off_foods_countries_idx", "off_foods_country_search_idx", "off_foods_name_idx",
+                "off_foods_name_trgm_idx", "off_foods_pkey", "off_foods_search_idx",
             ),
             before,
         )
-        val migration = checkNotNull(javaClass.getResource("/db/migration/V12__off_foods.sql")).readText()
-        database.blockingTransaction { exec(migration) }
+        listOf("V12__off_foods.sql", "V15__search_quality.sql").forEach { file ->
+            val migration = checkNotNull(javaClass.getResource("/db/migration/$file")).readText()
+            database.blockingTransaction { exec(migration) }
+        }
         assertEquals(before, strings(indexes))
     }
 

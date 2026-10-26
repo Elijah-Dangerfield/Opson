@@ -5,6 +5,7 @@ import com.opson.server.domain.BarcodeLookupResult
 import com.opson.server.domain.DescribeParser
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodDescriber
+import com.opson.server.http.clientContext
 import com.opson.server.plugins.BARCODE_LOOKUP_LIMIT
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.problem
@@ -49,7 +50,12 @@ fun Route.foodRoutes(
             val limit = call.request.queryParameters["limit"]?.toIntOrNull()
                 ?.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
                 ?: FoodCatalogRepository.DEFAULT_LIMIT
-            val matches = catalog.search(query, limit)
+            val matches = catalog.search(
+                query,
+                limit,
+                country = call.clientContext().countryCode,
+                openFoodFacts = true, // still only when the server's FOOD_SEARCH_OFF_ENABLED is on
+            )
             call.respond(FoodSearchResponse(query = query, foods = matches.map { it.food.toResponse() }))
         }
 

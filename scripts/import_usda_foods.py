@@ -359,6 +359,82 @@ def dedupe_portions(portions: list[dict]) -> list[dict]:
     return result
 
 
+# The app logs a food's first portion unless the user picks another, so the
+# first portion is the default. FDC lists portions in its own order, which for
+# small things starts with one of them: "1 berry" (2 g, 1 kcal), "1 grape",
+# "1 nut", "1 fl oz" of coffee. For dense foods it can start with a cup of
+# almonds or butter (800 to 1,600 kcal). default_portion_first moves a typical
+# serving to the front in those two cases and leaves every other list alone.
+MIN_DEFAULT_GRAMS = 20.0
+TINY_KCAL = 40.0
+BULK_KCAL = 500.0
+# Measures that are small on purpose: a teaspoon of sugar, a pat of butter, a
+# slice of bacon, a packet. Never a crumb, whatever they weigh.
+SMALL_ON_PURPOSE = re.compile(r"\b(tsp|teaspoons?|tbsp|tablespoons?|pat|slices?|packets?)\b", re.IGNORECASE)
+SIP = re.compile(r"^1 fl\.? ?oz\b", re.IGNORECASE)
+GUIDELINE = re.compile(r"^guideline\b", re.IGNORECASE)
+BULK = re.compile(r"^1 (cups?|pints?|quarts?|lbs?|pounds?)\b", re.IGNORECASE)
+# What a person logs, best first. A portion matching none of these ranks last.
+TYPICAL = [
+    re.compile(r"^1 (oz|ounce)\b", re.IGNORECASE),
+    re.compile(r"^1 (cup|can|bottle|carton|container|package|packet|pouch|bar|bowl|serving|drink|glass|mug|order)\b"
+               r"|\bsingle serving\b|^1 individual\b", re.IGNORECASE),
+    re.compile(r"\b(medium|regular)\b", re.IGNORECASE),
+    re.compile(r"\bslices?\b", re.IGNORECASE),
+    re.compile(r"\bnlea serving\b", re.IGNORECASE),
+    re.compile(r"^1 (tbsp|tablespoon|tsp|teaspoon)\b", re.IGNORECASE),
+]
+
+
+def default_portion_first(portions: list[dict], kcal_100g: float | None) -> list[dict]:
+    """`portions` with a sensible default first; the others keep their order.
+
+    The first portion stays unless it is a crumb (under MIN_DEFAULT_GRAMS and
+    TINY_KCAL, and not a spoon, slice or packet), a sip (1 fl oz), a USDA
+    "Guideline amount", or a cup or more of something dense (over BULK_KCAL).
+    Then the first portion that is none of those wins, by TYPICAL; failing
+    that, for a crumb, any portion that isn't one. Applying it twice changes
+    nothing, which is what lets the backfill re-run.
+    """
+    if len(portions) < 2:
+        return portions
+
+    def kcal(p: dict) -> float | None:
+        grams = p.get("grams")
+        return None if grams is None or kcal_100g is None else grams * kcal_100g / 100
+
+    def crumb(p: dict) -> bool:
+        grams, label = p.get("grams"), p["label"]
+        if SIP.match(label):
+            return True
+        if grams is None or grams >= MIN_DEFAULT_GRAMS or SMALL_ON_PURPOSE.search(label):
+            return False
+        energy = kcal(p)
+        return energy is None or energy < TINY_KCAL
+
+    def bulk(p: dict) -> bool:
+        energy = kcal(p)
+        return energy is not None and energy > BULK_KCAL and bool(BULK.match(p["label"]))
+
+    def usable(p: dict) -> bool:
+        return not GUIDELINE.match(p["label"]) and not crumb(p) and not bulk(p)
+
+    def rank(p: dict) -> int:
+        return next((i for i, pattern in enumerate(TYPICAL) if pattern.search(p["label"])), len(TYPICAL))
+
+    first = portions[0]
+    if usable(first):
+        return portions
+    candidates = [p for p in portions[1:] if usable(p)]
+    if not candidates and (crumb(first) or GUIDELINE.match(first["label"])):
+        # Better a big default than a crumb.
+        candidates = [p for p in portions[1:] if not GUIDELINE.match(p["label"]) and not crumb(p)]
+    if not candidates:
+        return portions
+    best = min(candidates, key=rank)  # min keeps the first of equals, so FDC's order breaks ties
+    return [best] + [p for p in portions if p is not best]
+
+
 def dedupe_key(name: str) -> str:
     """'Bananas, raw' and 'Banana, raw' are the same food to a person searching."""
     words = re.findall(r"[a-z0-9]+", name.lower())
@@ -1123,6 +1199,8 @@ def main() -> int:
                 files = safe_extract(archive, extracted)
                 all_foods.extend(load_dataset(source, files, data_type).values())
             foods = dedupe(all_foods)
+            for food in foods:
+                food.portions = default_portion_first(food.portions, food.kcal)
             by_source: dict[str, int] = {}
             for food in foods:
                 by_source[food.source] = by_source.get(food.source, 0) + 1
