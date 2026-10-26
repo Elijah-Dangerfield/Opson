@@ -1,15 +1,28 @@
 # Trends plan
 
-Trends and its settings sheet, Nutrients detail (Day and Week average), and
-Weight. Read `shared.md` first.
+Trends and its settings sheet, Nutrients detail (This day and Week average),
+Weight, and Patterns. Read `shared.md` first.
 
 ## Source
-- Handoff: `README.md` sections 4.6, 4.7, 4.8; `PROTOTYPE_NOTES.md` "Week view"; `COMPETITIVE_REVIEW.md` (weight change readouts left out).
-- Prototype markup: `Phone.dc.html` `is.week` (404 to 454), `sheet.trends` (907), `is.nutrients` (455 to 493), `is.weight` (602 to 630).
-- Logic: `phone-logic.js` `wk`, `trs`, `tr`, `trMacros`, `nut`, `nm`, `groups`, `wv`, `WEIGHTS` EMA.
+- **Design v3 is the spec** (`docs/design/v3/CHANGES.md`, `manifest.json` and
+  the images): `trends`, `trends--full`, `trends-blind`, `trends-coast`,
+  `nutrients-day`, `nutrients-week`, `nutrients-week--full`, `patterns`,
+  `patterns--full`, `patterns-blind`, `weight`, `weight-trend`,
+  `weight-hidden`. It supersedes the handoff wherever they disagree.
+- Handoff, for what v3 did not change: `README.md` 4.6 to 4.8,
+  `PROTOTYPE_NOTES.md` "Week view", `phone-logic.js` `wk`, `trs`, `nut`, `wv`,
+  `WEIGHTS`; `COMPETITIVE_REVIEW.md` (no weight change readout).
 
 Routes in `:features:trends` (`com.opson.features.trends`); impl
 `:features:trends:impl` (`com.opson.features.trends.impl`).
+
+### Global v3 rules this feature follows
+- Sub-screens (Nutrients, Weight, Patterns) use `PageHeader`, now an Android
+  top app bar (back arrow and title). A subtitle sits under the title.
+- Touch targets at least 48 dp. Bars stop at 100%; over never looks bigger.
+- No visibility toggle on a content screen. Nutrients and Weight link to Modes
+  and numbers (`ModesRoute`) instead; the pause applies there.
+- Meal colours only tell meals apart.
 
 ---
 
@@ -18,176 +31,191 @@ Routes in `:features:trends` (`com.opson.features.trends`); impl
 ### Route
 `TrendsRoute : TabRoute()`, `screen<>`.
 
+### Layout, top to bottom
+1. Header: the range label (`Oct 19 to 25`, `Last 4 weeks`, `Last 3 months`)
+   over `Trends`, the tune button on the right (week start, which cards show).
+2. **Range control** Week / Month / 3 months. It covers the whole page (the
+   chart, recap, nutrients and weight), not only Weight. Shown only when a card
+   that follows the range is on the page (intake, nutrients or weight); without
+   one (Blind, Coast before its check) the page is the week and the control is
+   not drawn. Picking writes `settings.trendsRange`.
+3. **Weekly check** (Coast before the check opens): hero card, calendar-check
+   tile, `Your weekly check opens tonight`, `Sunday at 9:00 PM. You'll see your
+   weekly average and how weight is trending.`
+4. **Eaten** (calories effectively Show for the span): `Eaten`,
+   `2,122 kcal avg` (the tagged amount, then `avg` as a label), bars over the
+   range band. Every bar is the same colour, in the band or out of it. The
+   in-progress bar (today on Week, this week on Month and 3 months) is striped
+   and left out of the average. Untracked days are gaps. Caption says which.
+5. **Your week** (the recap leads, when there is no Eaten card and no weekly
+   check): hero card `Your week` with `Patterns ›`, one column per day, four
+   dots per day coloured by meal, a dim dot for a meal not logged, and a legend.
+6. **Recap** rows card. With Eaten above it: title `Recap` with `Patterns ›`,
+   then Days logged, Breakfast, New foods. Leading (under Your week): no title,
+   the same rows, and the new foods as chips. Coast before its check: Days
+   logged and Meals logged only.
+7. **Last week's check** (Coast before the check): `Last week's check · Oct 18`,
+   Daily average (calories for the previous week, which is open) and Weight
+   (the slope word).
+8. **Nutrients**: `Nutrients` / `Daily average`, chevron; four macros as
+   `96 / 120 g` with bars. Removed when every macro is hidden.
+9. **Expended** is 0.2: not rendered.
+10. **Weight**: `Weight` / `Smoothed 7-day trend`, the trend value (or the
+    slope word when weight is soft) and chevron, the trend line over the span.
+    Removed when weight is hidden.
+
+Coast before its check shows 3, 6 and 7 only: the check holds the weight
+trend, so the Weight card waits for it too.
+
 ### State
 
 ```kotlin
 data class TrendsState(
     val loading: Boolean = true,
-    val rangeLabel: RangeLabel?,               // Week("Oct 19 to 25", DateCopy.range) | LastFourWeeks | LastThreeMonths; null while loading
-    val intake: IntakeCard?,                   // calories effectively Show on Week and the card is on
-    val recap: RecapCard?,                     // card on
-    val nutrients: NutrientsCard?,             // any macro or micros not Hidden on Week, and the card is on
-    val weight: WeightCard?,                   // card on
+    val rangeLabel: RangeLabel? = null,          // Week(text) | LastFourWeeks | LastThreeMonths
+    val range: TrendsRange? = null,              // the page control; null hides it
+    val weeklyCheck: WeeklyCheck? = null,
+    val intake: IntakeCard? = null,
+    val week: WeekDots? = null,                  // the "Your week" hero
+    val recap: RecapCard? = null,
+    val lastCheck: LastCheck? = null,
+    val nutrients: NutrientsCard? = null,
+    val weight: WeightCard? = null,
 )
+data class WeeklyCheck(val day: DayOfWeek, val at: LocalTime, val tonight: Boolean)
 data class IntakeCard(
-    val title: StringResource,                 // "Daily intake" | "Weekly average intake"
-    val average: Display,                      // resolve(Calories, avg, Week); "Average" is its own label beside it
-    val bars: List<IntakeBar>,                 // :libraries:ui IntakeBar(label, fraction?, isCurrent), reused as is
-    val band: ClosedFloatingPointRange<Float>, // targets.min..max over the chart scale
+    val average: Display,                        // resolve(Calories, avg, Week, day = span end)
+    val bars: List<IntakeBar>,                   // IntakeBar(label, fraction?, isCurrent): isCurrent draws striped
+    val band: ClosedFloatingPointRange<Float>,
+    val caption: IntakeCaption,                  // Plain | TodayInProgress | WeekInProgress
 )
-data class RecapCard(val breakfastDays: Int, val newFoods: Int, val daysLogged: Int, val days: List<RecapDay>)
-data class RecapDay(val label: String, val meals: List<MealSlot?>)   // the four meals in order, null = not done; dots coloured per meal
-data class NutrientsCard(val subtitle: StringResource, val macros: List<MacroTile>)   // GoalStyle.None, of = goal
-data class MacroTile(val metric: Metric, val label: StringResource, val display: Display)
-data class WeightCard(val subtitle: WeightSubtitle, val now: Display?, val trend: List<Float>?)
-// WeightSubtitle: Hidden | NoWeighIns | Trend | Latest(dayText?) where null dayText is "This morning".
-// now: only a Shown display (a soft "Trend only" word never takes the value slot). trend: normalised EMA, null when Hidden.
+data class WeekDots(val days: List<RecapDay>)    // RecapDay(label, meals: List<MealSlot?>, isToday)
+data class RecapCard(val titled: Boolean, val rows: List<RecapRow>)
+sealed interface RecapRow {
+    data class DaysLogged(val days: Int, val of: Int)
+    data class Breakfast(val days: Int, val of: Int)
+    data class MealsLogged(val meals: Int)
+    data class NewFoods(val count: Int, val names: List<String>?)   // names only when the recap leads
+}
+data class LastCheck(val weekEnd: String, val average: Display, val weight: Display)
+data class NutrientsCard(val macros: List<MacroTile>)                // GoalStyle.Slash
+data class WeightCard(val subtitle: WeightSubtitle, val value: Display?, val trend: List<Float>)
+// WeightSubtitle: Trend | NoWeighIns. value: the trend (EMA) shown, or the slope word when soft.
 ```
 
 `TrendsStateBuilder.build(inputs, policy)`, pure, with
-`TrendsInputs(today, settings, days, weighIns, timeZone)`. Chart scale is
-`targets.max × 1.2` rounded up to the next 100, so bar heights come from the
-builder as fractions and the composable only draws them. A day's intake is
-`day.totals().kcal.value` when the day has anything logged; a day of only
-name-only items has no energy and is a gap, like an untracked day.
+`TrendsInputs(today, settings, days, weighIns, timeZone)`.
 
 **The week window** (`PROTOTYPE_NOTES.md`): the last full week ending on or
 before today for the chosen start day. `end` is the latest date on or before
-today whose weekday is `weekStart − 1`; `start = end − 6`. Recap always uses this
-window, whatever the date range.
+today whose weekday is `weekStart − 1`; `start = end − 6`.
 
-**4 weeks and 3 months**: one bar per week, the weekly average of tracked days.
-Weeks run from the chosen start day; the last bar is the current week (the one
-holding today), using its own average so far, drawn in `c-fat`. 4 weeks is 4
-bars, 3 months 12 bars (the prototype's `WEEKLY` length). Labels are the week's
-first day as `M/d`, on every bar for 4 weeks and on every third bar counting
-back from the current week for 3 months. The card's average is over every
-tracked day in the range.
+**The span** each range covers: Week is the window, daily bars. Month is the
+last 4 weeks and 3 months the last 12, from the chosen start day to today,
+weekly bars (each the average of its tracked days); the last bar is the week
+holding today. Labels: weekday initials on Week (`Mon`), `M/d` of the week's
+first day on Month, every third bar on 3 months. Recap counts, nutrients
+averages, new foods and the weight line all use the same span. When the range
+control is hidden the span is the Week window.
 
-**New foods**: there is no "first logged" query, so the builder works it out
-from the days it already has. A food (keyed by catalog id, custom food id, or
-lower-cased name) is new when it is logged in the week window and not in the
-90 days before the window. The VM observes from `min(range start, window start
-− 90 days)` to today so one `observeDays` covers the chart, the recap and the
-lookback.
+Chart scale is `targets.max × 1.2` rounded up to the next 100; heights arrive
+as fractions. A day's intake is `day.totals().kcal.value` when it has anything
+logged; nothing logged, or only name-only items, is a gap.
+
+**New foods**: `NewFoods.between(days, from, to)` in `:libraries:diary`. A food
+(catalog id, custom food id, or lower-cased name; quick numbers never count) is
+new when it is logged in the span and not in the 90 days before it. The VM
+observes from `span start − 90 days` to today so one `observeDays` covers all
+of it, the previous week for Coast's last check included.
+
+**Coast's weekly check** comes from the policy, never from the mode id:
+`policy.revealsWeekly` and `policy.isRevealed(Surface.Week, FormatContext(day =
+window.end))`. A week opens at the reveal time (`VisibilityPolicy.DAY_CLOSE_REVEAL`,
+9:00 pm) on its last day and stays open after. `FormatContext.day` on
+`Surface.Week` is the week's last day; with no day the week view is open, as
+before.
 
 ### Actions
 
 | Action | Does |
 |---|---|
-| `InputsArrived(inputs, policy)` | Days in range, settings, weigh-ins. |
+| `InputsArrived(inputs, policy)` | Days in the span, settings, weigh-ins. |
+| `RangePicked(range)` | Writes `settings.trendsRange`; the span re-subscribes. |
 | `SettingsTapped` | Event `OpenTrendsSettings`. |
-| `NutrientsCardTapped` | `OpenNutrients(today, WeekAverage, fromTrends = true)`. |
-| `WeightCardTapped` | `OpenWeight`. |
-
-`TabReselected` is dropped: the shell has no tab-reselect API on this branch
-(`Router` has no `tabReselects`). Add it with the shell when that lands.
+| `PatternsTapped` | Event `OpenPatterns`. |
+| `NutrientsCardTapped` | Event `OpenNutrients(today)`: Week average, back to Trends. |
+| `WeightCardTapped` | Event `OpenWeight`. |
 
 ### Data
-`DiaryRepository.observeDays(from, to): Flow<List<Day>>` (totals are computed,
-never stored), `WeightRepository.observeWeighIns(since = today − 90 days)` (the
-EMA is seeded from all of them, then the card shows the last 28 days),
-`SettingsRepository.settings`, `VisibilityPolicySource.policy`, `Clock`. The
-range re-subscribes when `trendsRange`, `weekStart` or the date changes.
-Offline: all Room.
+`DiaryRepository.observeDays(from, to)`, `WeightRepository.observeWeighIns(since
+= today − 120 days)`, `SettingsRepository.settings`,
+`VisibilityPolicySource.policy`, `Clock`. All Room, offline.
 
 ### Visibility surfaces
-Surface `Week`. Delayed numbers are revealed on Week, Coast included.
+Surface `Week` (with `day` = the span's last day), weight on `Weight`.
 
 | Number | Metric | Show | Soften | Delay | Hide |
 |---|---|---|---|---|---|
-| Intake chart and average | calories | bars, band, `Average 2,104 kcal` | card hidden (bars read as amounts) | revealed, as Show | card hidden |
-| Nutrients card | protein, carbs, fat, fiber | `96 g` with bar | soft word with bar | revealed | tile and label removed |
-| Recap | none (counts) | always | always | always | always |
-| Expended card | energyOut | 0.2 | | | |
-| Weight value (resolved on `Weight`, as the prototype) | weight | `72.6 kg` | no value, trend line | no value, no line until 9 pm or a past day | no value, no line |
+| Eaten chart and average | calories | bars, band, `2,122 kcal avg` | card removed | Delayed: open on the week view. Coast: weekly check card until the week opens | card removed |
+| Last week's check | calories, weight | `2,140 kcal`, slope word | | Coast only | |
+| Nutrients card | macros | `96 / 120 g` with bar | soft word with bar | as calories | tile removed; card removed when all are |
+| Recap, Your week | none (counts) | always | always | always | always |
+| Weight card | weight | trend `73.4 kg` and line | slope word and line | line | card removed |
 
-### Copy
-
-| Key | String |
-|---|---|
-| `trends_title` | Trends (already in the shared `strings.xml`) |
-| `trends_settings_cd` | Trends settings |
-| Week range | `DateCopy.range(start, end)`: `Oct 19 to 25`, or `Oct 29 to Nov 4` across months |
-| `trends_range_4w` / `_3m` | Last 4 weeks / Last 3 months |
-| `trends_intake_daily` / `_weekly` | Daily intake / Weekly average intake |
-| `trends_average` | Average (a label beside the tagged value, so the tag carries only the number) |
-| `trends_intake_caption` | Shaded band is your range. A gap means a day you left untracked. |
-| `trends_recap` | Recap |
-| `trends_recap_breakfast` / `_value` | Breakfast / %d of 7 days |
-| `trends_recap_new_foods` | New foods |
-| `trends_recap_days` / `_days_value` | Days logged / %d of 7 |
-| `trends_recap_caption` | Each dot is a meal logged. |
-| Day labels | Mo Tu We Th Fr Sa Su (first two letters of the weekday) |
-| `trends_nutrients` | Nutrients |
-| `trends_nutrients_sub` / `_sub_micros` | Daily average this week / Daily average, with vitamins and minerals |
-| `trends_weight` | Weight |
-| `trends_weight_hidden` / `_now` / `_trend` | Hidden. Tap to log a weigh-in. / This morning / Smoothed trend, 4 weeks |
-
-`This morning` becomes the relative day of the latest weigh-in when it is not
-today (`Yesterday`, `Thu, Oct 22`). With no weigh-ins at all and weight not
-Hidden, the subtitle is `trends_weight_none` `No weigh-ins yet. Tap to log
-one.` (new copy). Expended (`Expended`, `Daily average from your watch`) is 0.2
-and not rendered.
-
-Meal dots take each slot's colour from `:libraries:diary:ui`
-(`MealSlot.tileColors()`).
+### Copy (`strings_trends.xml`)
+`Week` / `Month` / `3 months`; `Eaten`; `avg`; captions `The band is your
+range. A gap is a day you left untracked.` / `The band is your range. Today is
+striped because it's still in progress, so it isn't in the average.` / `The
+band is your range. This week is striped because it's still in progress, so it
+isn't in the average.`; `Recap`; `Patterns`; `Days logged` / `%1$d of %2$d`;
+`Breakfast` / `%1$d of %2$d days`; `Meals logged`; `New foods`; `Your week`;
+legend from the meal labels; weekly check `Your weekly check opens tonight` /
+`Your weekly check opens %1$s` and `%1$s at %2$s. You'll see your weekly average
+and how weight is trending.`; `Last week's check · %1$s`; `Daily average`;
+`Weight`; `Nutrients` / `Daily average`; `Smoothed 7-day trend`; `No weigh-ins
+yet. Tap to log one.` Day labels `Mon` to `Sun`.
 
 ### Edge cases
-- **No days tracked in the window**: intake card shows the band and empty bars; average Hidden (value null).
-- **Today inside the window**: its bar uses `c-fat`; other bars accent.
-- **Week starts Saturday**: the window can end before today (prototype behaviour).
-- **No weigh-ins**: Weight card shows the title and `Hidden. Tap to log a weigh-in.` style subtitle for its level, no value, no line.
-- **Fuel** (calories Soft): no intake card at all; the recap still renders.
-- **Large text**: recap rows wrap; the chart keeps its height.
-
-Library additions this needed: `Micronutrient.wireKey` / `fromWireKey`,
-`Map<String, Double>.toMicronutrients()` and `VisibilityPolicy.microReference`
-in `:libraries:nutrition`; `NutrientFillBar` in `:libraries:nutrition:ui`;
-`ColorDot` (which `LegendDot` now draws with) and `DotStrip` in `:libraries:ui`.
-The back links use Settings' `PageHeader` with `trends_back` (`‹ %s`).
+- No days tracked: bars are gaps, average Hidden.
+- Week starts Saturday: the window can end before today (prototype behaviour).
+- Fuel (calories soft): no Eaten card, Your week leads, Nutrients and Weight follow.
+- Large text: recap rows wrap; the chart keeps its height.
 
 ### Tests
-`TrendsCalendarTest` and `TrendsStateBuilderTest`: window for each start day with today on a Sunday and a
-Wednesday; 4 weeks and 3 months bar counts and labels; Blind (recap and weight
-card only); Coast (intake revealed); Fuel (no intake); card toggles off;
-untracked days are gaps not zeros. `TrendsViewModelTest`: events. Previews:
-Full, Blind, Coast, week starts Saturday, 3 months. `SURFACES`: `trends`
-(`showsCaloriesInFull = true`).
+`TrendsCalendarTest` (windows, spans). `TrendsStateBuilderTest`: Full (range
+control, no current bar mid-week, striped today on the window's last day, the
+average leaves today out, gaps), Month and 3 months bar counts and labels,
+Blind (Your week leads, nutrients and weight removed, chips, no range control),
+Coast before and after its check (weekly check, two rows, last week's check;
+afterwards the Eaten card), Fuel, cards off. `TrendsViewModelTest`: each event
+and `RangePicked` writing the setting. Previews: `trends`, `trends-blind`,
+`trends-coast`, Month, empty, dark. `SURFACES`: `trends`, `trends-blind`,
+`trends-coast`.
 
 ---
 
 ## Trends settings sheet
 
-`TrendsSettingsRoute()`, `bottomSheet<>`. `TrendsSettingsViewModel`.
+`TrendsSettingsRoute()`, `bottomSheet<>`. The tune button: week start and which
+cards show. The date range moved onto the page.
 
 ```kotlin
-data class TrendsSettingsState(
-    val range: TrendsRange,
-    val weekStart: DayOfWeek,
-    val toggles: List<CardToggle>,             // only cards that could show
-)
-// Built by TrendsSettingsStateBuilder.build(settings, policy).
-data class CardToggle(val card: TrendsCard, val on: Boolean)   // TrendsCard { Intake, Recap, Nutrients, Weight }
+data class TrendsSettingsState(val weekStart: DayOfWeek, val toggles: List<CardToggle>)
+data class CardToggle(val card: TrendsCard, val on: Boolean)   // Intake, Recap, Nutrients, Weight
 ```
 
-Intake listed only when calories are effectively Show on Week; Nutrients only
-when a macro or micros is not Hidden on Week; Recap and Weight always; Expended
-is 0.2.
+Intake listed only when calories can show on the week view; Nutrients when a
+macro can; Weight when weight is not hidden; Recap always.
 
 | Action | Does |
 |---|---|
 | `InputsArrived(settings, policy)` | |
-| `RangePicked(range)` | `settings.trendsRange`. |
 | `WeekStartPicked(day)` | `settings.weekStart` (Mon, Sat, Sun). |
 | `CardToggled(card)` | Flips it in `settings.trendsCards`. |
 | `CloseTapped` | `Dismiss`. |
 
-None of these change visibility, so no friction. Copy: `Trends settings`;
-`Close`; `Date range`: Week / 4 weeks / 3 months; `Week starts on`: Monday /
-Saturday / Sunday; `Show on Trends`: Intake chart / Recap / Nutrients / Weight.
-Tests: toggles filtered by level; each action writes the right field.
-`SURFACES`: `trends-settings`.
+Copy: `Trends settings`; `Week starts on`: Monday / Saturday / Sunday; `Show on
+Trends`: Eaten chart / Recap / Nutrients / Weight. `SURFACES`: `trends-settings`.
 
 ---
 
@@ -195,182 +223,214 @@ Tests: toggles filtered by level; each action writes the right field.
 
 ### Route
 `NutrientsRoute(dayIso: String, range: NutrientsRange, fromTrends: Boolean = false)`,
-`screen<>`, typeMap for `NutrientsRange { Day, WeekAverage }`.
+`screen<>`, typeMap for `NutrientsRange { Day, WeekAverage }`. **Week average
+is the default from Trends** (a single day of vitamin K is noise); This day is
+the default from Today.
+
+### Layout
+Top app bar `Nutrients` with the subtitle (`Sunday, Oct 25` or `Oct 19 to 25`);
+segmented `This day` / `Week average`; the macros card (no title): Energy
+`2,058 kcal · range 1,900 to 2,300` on a bar with the range as a dashed box, then
+Protein, Carbs, Fat, Fiber `88 g of 120 g` with bars that stop at 100%. Then
+either the Vitamins and Minerals cards and the caption, or the off card.
+
+The **Nutrition scores** page is cut: a score built from hidden data is a
+number with no source. `NutritionScore` and `NutritionScores.compute` are
+removed from `:libraries:nutrition`; the percent sum moves to
+`MicroPercents.of`.
 
 ### State
 
 ```kotlin
 data class NutrientsState(
     val loading: Boolean = true,
-    val backLabel: BackLabel,                  // Trends | Day(DateCopy label)
-    val subtitle: NutrientsSubtitle?,          // Day(text) | WeekAverage(range text)
+    val backLabel: BackLabel,                  // Trends | Day(text); the arrow's spoken label
+    val subtitle: NutrientsSubtitle?,          // Day(text) | WeekAverage(range)
     val range: NutrientsRange,
-    val macros: List<NutrientRow>?,            // null when all five are Hidden
-    val scores: List<ScoreRow>?,               // micros not Hidden: NutritionScores.compute, resolved as Micros of 100
-    val micros: List<MicroGroup>?,             // micros not Hidden
-    val microsOff: MicrosOff?,                 // micros Hidden and some macro shown
-    val nothing: Boolean,                      // everything Hidden
+    val energy: EnergyRow?,                    // calories not hidden
+    val macros: List<NutrientRow>?,            // the four macros not hidden; null when none
+    val micros: List<MicroGroupRows>?,         // micros not hidden
+    val microsOff: Boolean,                    // micros hidden while something else shows: links to Modes
+    val nothing: Boolean,                      // everything hidden
 )
-data class NutrientRow(val metric: Metric, val label: StringResource, val display: Display)   // GoalStyle.Of: "1,245 kcal of 2,100", "47 g of 120 g"
-data class ScoreRow(val score: NutritionScore, val label: StringResource, val display: Display)
-data class MicroGroup(val title: StringResource, val rows: List<MicroRow>)
-data class MicroRow(val micro: Micronutrient, val label: StringResource, val reference: String, val display: Display)    // "62%", fraction of 100
-data class MicrosOff(val canTurnOn: Boolean)   // level(Micros) == Hide
+data class EnergyRow(val eaten: Display, val range: Display, val rangeStart: Float, val rangeEnd: Float)
+data class NutrientRow(val metric: Metric, val label: StringResource, val display: Display)
+data class MicroGroupRows(val group: MicroGroup, val title: StringResource, val rows: List<MicroRow>)
+data class MicroRow(val micro: Micronutrient, val label: StringResource, val reference: String, val isLimit: Boolean, val display: Display)
 ```
 
-`NutrientsStateBuilder.build(inputs, policy)` with
-`NutrientsInputs(today, day, range, settings, days)`.
-
-Surface is `Nutrients` for Day and `Week` for Week average, so Delayed numbers
-open on Week average and at 9 pm or past days on Day. Week average uses the same
-window as Trends and averages tracked days only.
-
-**Nutrition scores** (the brief asks for them here): a card above Vitamins with
-the six `NutritionScore` rows (`All targets`, `Vitamins`, `Minerals`, `Bone
-health`, `Immune support`, `Energy and metabolism`), shown whenever micros are,
-from the same percents as the micro rows.
-
-### Actions
-
-| Action | Does |
-|---|---|
-| `InputsArrived(inputs, policy)` | Day or window, settings. |
-| `RangePicked(range)` | Re-subscribes to the day or the window. |
-| `ShowVitaminsTapped` | Requests `Override(Micros, Show)`; with the pause on, event `OpenPause(change)` and nothing is written. |
-| `BackTapped` | `Close`. |
-
-Both go through `NumbersChanger.request(change)` (`:libraries:diary`):
-`Applied` needs nothing more, since the policy re-emits and the page rebuilds;
-`NeedsPause` wrote nothing, and the entry point navigates to `change.toRoute()`,
-the pause sheet in `:features:settings`.
-
-### Data
-`DiaryRepository.observeDay` (Day) or `observeDays(window)` (Week average);
-entry `micros` (wire keys such as `sodium_mg`) mapped with
-`Micronutrient.fromWireKey`, summed with `NutritionScores.percents`, settings,
-policy. Micro references come from `policy.microReference(micro)`.
-
-### Visibility surfaces
-
-| Number | Metric | Show | Soften | Delay | Hide |
-|---|---|---|---|---|---|
-| Energy | calories | `1,245 kcal of 2,100` with bar | soft word with bar | Day: Hidden until reveal; Week: Show | row removed |
-| Protein, Carbs, Fat, Fiber | macros | `47 g of 120 g` with bar | soft word with bar | as above | row removed |
-| Vitamins and minerals | micros | `62%` with bar, reference shown | `Some / Most / Plenty` | as above | "Vitamins and minerals are off" card |
-
-### Copy
-`‹ %s` (Trends or the day label); `Nutrients`; subtitle `Sunday, Oct 25`
-(today and ±1 use `Weekday, Mon d`, others `Thu, Oct 22`) or `Daily average,
-Oct 19 to 25`; `Day` / `Week average`; `Energy and macros`; group titles
-`Vitamins` / `Minerals`; micro labels and references from the prototype
-`MICROS` table (`Vitamin A`, `700 µg`, ... `Sodium`, `2,300 mg limit`); caption
-`Percent of a typical daily target. Most people land well under on some and over
-on others, and that's fine. A week tells you more than a day.`; off card
-`Vitamins and minerals are off` / `They stay off until you want them, so the
-basics don't get buried. You can turn them on here, or one at a time in Modes
-and numbers.` / `Show vitamins and minerals`; nothing `No nutrient detail in
-this mode. Your meals are all still logged.`
-
-### Edge cases
-Entries without micros (custom foods, name-only) count as zero for micros, so a
-week of mostly custom foods reads low: the caption covers it. No tracked days in
-the window: rows Hidden (value null), shows `nothing` only if levels say so.
-Sodium is a limit, not a target, and keeps the same bar colours (no red).
-
-### Tests
-Builder: Full Day (micros off card with Turn on), Full with micros Show,
-Week average with Delayed (revealed), Fuel (calories soft word), Blind
-(`nothing`). ViewModel: range switch re-subscribes, Show vitamins goes through
-`NumbersChanger`. Previews: the five in the prototype gallery.
-`SURFACES`: `nutrients`, `nutrients-week` (both `showsCaloriesInFull = true`).
-
----
-
-## Weight
-
-### Route
-`WeightRoute()`, `screen<>`. Reached from Trends, the Logger's Weigh-in chip and
-the Add menu.
-
-### State
-
-```kotlin
-data class WeightState(
-    val loading: Boolean = true,
-    val selected: WeightView,                  // Hidden | TrendOnly | Numbers; Delay shows as TrendOnly
-    val now: Display?,                         // Shown only at Show
-    val nowLabel: WeighInDay?,                 // ThisMorning | Day(text), with now
-    val average: Display?,                     // 7-day average, Shown only at Show
-    val range: WeightRange,                    // W1 | M1 | M3, default M1; kept even while the chart is hidden
-    val chart: WeightChart?,                   // null when weight is Hidden
-    val hiddenCard: Boolean,
-    val input: String,
-    val inputMasked: Boolean,                  // true unless weight is Show
-    val unit: WeightUnit,
-    val saved: SavedNote?,                     // Plain | OutOfView
-)
-data class WeightChart(
-    val trend: List<Float>,                    // WeightTrend.ema, normalised to the chart box; empty under two points
-    val dots: List<Float>?,                    // daily weigh-ins, only at Show
-    val caption: StringResource,
-)
-```
-
-`WeightStateBuilder.build(inputs, ui, policy)`: `WeightInputs(today, settings,
-weighIns, timeZone)` from the repositories, `WeightUi(range, input, saved)` the
-screen's own choices, which the VM keeps in state and passes back in.
-
-The y range is min minus 0.3 kg to max plus 0.3 kg of the visible weigh-ins, as
-the prototype. Points are normalised in the builder; no axis labels, so the line
-carries no number at Trend only.
+Surface `Nutrients` for This day, `Week` (day = window end) for Week average.
 
 ### Actions
 
 | Action | Does |
 |---|---|
 | `InputsArrived(inputs, policy)` | |
-| `ViewPicked(view)` | Requests `Override(Weight, Hide / Soften / Show)` through `NumbersChanger`; raising with pause on emits `OpenPause(change)` and writes nothing. Picking the selected view does nothing. |
-| `RangePicked(range)` | 1W (7), 1M (28), 3M (90) days. |
-| `WeightTyped(text)` | `NumberInput.sanitize(text, allowDecimal = true)`; clears `saved`. |
-| `SaveTapped` | Parses in `weightUnit`, converts to kg, `WeightRepository.addWeighIn(kg)`, clears input, `saved` set. Empty, zero or over 700 kg is ignored. |
+| `RangePicked(range)` | Re-subscribes to the day or the window. |
+| `ModesTapped` | Event `OpenModes`: Modes and numbers, where the pause applies. |
 | `BackTapped` | `Close`. |
 
-### Data
-`WeightRepository.observeWeighIns(since = today − 120 days)`, settings, policy.
-EMA over weigh-ins in time order with alpha 0.2 (`WeightTrend.ema`), seeded
-from all of them so the 3-month line starts warm, then sliced to the range
-(`WeightCurves.curve`, shared with the Trends card). Offline: local.
-
 ### Visibility surfaces
-Surface `Weight`.
 
-| Number | Metric | Show | Soften (Trend only) | Delay | Hide |
+| Number | Metric | Show | Soften | Delay | Hide |
 |---|---|---|---|---|---|
-| Latest and 7-day average | weight | `72.6 kg` / `This morning`, `72.8 kg` / `7-day average` | not shown | not shown | not shown |
-| Chart | weight | dots and trend line | trend line only | hidden card until 9 pm (the picker shows Trend only, as the prototype) | hidden card |
-| Input | weight | plain text | masked | masked | masked |
-
-No weight change readout ("−1.6 lbs") anywhere, per `COMPETITIVE_REVIEW.md`.
+| Energy | calories | `2,058 kcal` with range and bar | soft word with bar, no range | Day: hidden until reveal; Week: open | row removed |
+| Macros | macros | `88 g of 120 g` with bar | soft word with bar | as above | row removed |
+| Vitamins, minerals | micros | `78%` with bar, `of 700 µg` | `Some` / `Most` / `Plenty` | as above | off card linking to Modes |
 
 ### Copy
-`‹ Trends`; `Weight`; `Hidden` / `Trend only` / `Numbers`; `This morning`;
-`7-day average`; range label `Last 7 days` / `Last 4 weeks` / `Last 3 months`
-with chips `1W` / `1M` / `3M`; captions `Dots are daily weigh-ins. The line is
-the smoothed trend.` / `Smoothed over about a week, so day-to-day water swings
-barely move the line.`; hidden card `Weight is hidden` / `You can still log it.
-Digits turn to dots as you type and nothing shows afterwards.`; `Log a
-weigh-in`; placeholder `kg` or `lb`; `Save`; saved `Saved.` / `Saved. It stays
-out of view.`
-
-### Edge cases
-Several weigh-ins in a day: all count for the EMA, the latest is "now". Fewer
-than two points: no line, dots only at Show. Back from the pause sheet
-cancelled: selection stays where it was. lb input converts with
-`Units.lbToKg`. Back label is "Trends" whatever opened it (prototype).
+`Nutrients`; `This day` / `Week average`; `· range %1$s`; group titles; `of
+%1$s` (`of a %1$s limit` for sodium); caption `Percent of a typical daily
+target. Most people land under on some and over on others, and that's fine. A
+week tells you more than a day.`; off card `Vitamins and minerals are off` /
+`Turn them on in Modes and numbers.` / `Modes and numbers`; nothing `No nutrient
+detail in this mode. Your meals are all still logged.`
 
 ### Tests
-Builder: three views, a Delay override selects Trend only in the picker and
-hides the chart before 9 pm, dots only at Show, masking, range slicing. ViewModel: save converts lb, invalid input
-ignored, `ViewPicked` raise with pause emits `OpenPause`. Domain:
-`WeightTrend.ema` (exists). Previews: Numbers, Trend only, Hidden.
-`SURFACES`: `weight` (no calories; `showsCaloriesInFull = false`).
+Builder: Full day (off card), micros shown on Week average, Delayed week (open),
+Fuel (soft words, no range), Blind (`nothing`), bars capped by the component.
+ViewModel: range switch re-subscribes, `ModesTapped` emits `OpenModes`.
+`SURFACES`: `nutrients`, `nutrients-week`.
+
+---
+
+## Weight
+
+### Route
+`WeightRoute()`, `screen<>`, from Trends, the logger's Weigh-in chip and More.
+
+The **Numbers / Trend only / Hidden switch is gone** from this screen: it lives
+in Modes and numbers, behind the pause. Sending weigh-ins to a provider is v2
+and not built.
+
+### Layout per level (surface `Weight`)
+- **Show**: summary card `Trend` with the trend as the large number (`73.4 kg`)
+  and `This morning` (or `Yesterday`, `Thu, Oct 22`) with today's reading small
+  on the right. Chart card: `Last month` with `1W` / `1M` / `3M`, weigh-in dots,
+  the trend line, the first and last dates under it, caption `The dots are
+  weigh-ins. The line is a smoothed trend, so a day of water weight doesn't
+  steer you.`
+- **Soften** (Trend only): one card, `Last month`, the slope word large
+  (`Steady`, `Rising slowly`, `Falling slowly`), the line. No numbers, no dots.
+- **Hide**: `Weight is hidden` card with an eye-off tile, `You can still log it.
+  Digits turn into dots as you type, and nothing shows afterwards.`
+- All: `Log a weigh-in`, the input with the unit, `Save`. The input masks digits
+  unless weight is Show. Soften adds `After you save, it only shows up in the
+  trend.` After saving, a confirmation: `Saved.` at Show, `Saved. It won't show
+  anywhere.` otherwise.
+
+No change readout (`−1.6 kg`) anywhere, pending a clinician.
+
+**Slope word**: the policy picks it. `FormatContext.trendKgPerWeek` carries the
+slope of the smoothed line over the shown range; soft weight resolves to
+`SoftWord.Steady` / `RisingSlowly` / `FallingSlowly` (spelled by
+`NutritionFormatter`, thresholds `TODO(clinician)`), or `Trend only` without a
+slope.
+
+### State
+
+```kotlin
+data class WeightState(
+    val loading: Boolean = true,
+    val trend: Display? = null,                // Show: the EMA now. Soften: the slope word
+    val today: Display? = null,                // Show only: the latest reading
+    val todayWhen: WeighInWhen? = null,
+    val range: WeightRange = WeightRange.M1,   // W1 | M1 | M3
+    val chart: WeightChart? = null,            // null when hidden
+    val hiddenCard: Boolean = false,
+    val input: String = "",
+    val inputMasked: Boolean = true,
+    val unit: WeightUnit = WeightUnit.Kg,
+    val saved: SavedNote? = null,              // Plain | OutOfView
+)
+data class WeightChart(val trend: List<Float>, val dots: List<Float>?, val from: String?, val to: String?, val ranges: Boolean)
+```
+
+### Actions
+`InputsArrived`, `RangePicked(range)`, `WeightTyped(text)`, `SaveTapped`,
+`BackTapped` (as before, minus `ViewPicked`).
+
+### Tests
+Builder: three levels, the slope word from the policy, dots and ranges only at
+Show, masking, range slicing, no change readout. ViewModel: save converts lb,
+invalid input ignored. `SURFACES`: `weight`.
+
+---
+
+## Patterns (new)
+
+### Route
+`PatternsRoute()` in `:features:trends`, `screen<>`, opened from `Patterns ›`
+on the Recap card (and on Your week). Top app bar `Patterns`, subtitle `Last 4
+weeks`: the 28 days ending today.
+
+### Layout
+1. **When you eat**: a row per meal, label then a track from 6 am to 9 pm with
+   one dot per logged meal and the usual window tinted behind the dots (meal
+   colour, light). Axis `6a 9a 12p 3p 6p 9p`. Then plain facts, no advice:
+   `Breakfast, usually` / `8:10 AM`; `Dinner on Fri and Sat` / `About 1 h
+   later`; `Longest gap` / `Lunch → dinner, 6 h`.
+2. **How big each meal is** (calories Show): a bar split by each meal's share,
+   then per meal `445 kcal · 21%`. Removed in Blind: even percentages reveal
+   amounts. In its place, **How often**: `Breakfast` / `22 of 28 days` per meal.
+3. **Hunger before meals** (hunger tags on, `settings.askTags`, and some tagged):
+   per meal the most common tag as a chip; `From 31 tagged meals`.
+4. **New foods** with the count and the names as chips.
+
+### Domain (`:libraries:diary`, `MealPatterns.kt`, pure, unit tested)
+
+```kotlin
+object MealPatterns {
+    fun of(days: List<Day>, from: LocalDate, to: LocalDate, timeZone: TimeZone): MealPatternFacts
+}
+data class MealPatternFacts(
+    val dayCount: Int,
+    val times: Map<MealSlot, List<Int>>,            // minute of day per timed meal
+    val usual: Map<MealSlot, IntRange>,             // middle half of the times, 3 or more meals
+    val typical: Map<MealSlot, Int>,                // median minute
+    val frequency: Map<MealSlot, Int>,              // days the meal was done
+    val laterOn: LaterOn?,                          // slot, weekdays, minutes later than usual (45 or more)
+    val longestGap: MealGap?,                       // the consecutive meal pair with the longest median gap
+    val hunger: Map<MealSlot, Hunger>,              // most common tag per meal
+    val taggedMeals: Int,
+    val energyPerMeal: Map<MealSlot, Double>,       // average energy of a done meal; the screen resolves it
+)
+object NewFoods { fun between(days, from, to, lookbackDays = 90): List<String> }
+```
+
+A meal's time is its first item's `loggedAt` when that was on the same day
+(items back-filled on a later day have no honest time and are left out of the
+timing). "Ate, no details" counts for frequency only.
+
+### State
+
+```kotlin
+data class PatternsState(
+    val loading: Boolean = true,
+    val timing: TimingCard? = null,
+    val sizes: List<MealSize>? = null,               // calories Show
+    val often: List<MealFrequency>? = null,          // when sizes is null
+    val hunger: HungerCard? = null,
+    val newFoods: List<String> = emptyList(),
+)
+data class TimelineRow(val slot: MealSlot, val dots: List<Float>, val usual: ClosedFloatingPointRange<Float>?)
+data class TimingCard(val rows: List<TimelineRow>, val facts: List<TimingFact>)
+// TimingFact: Usually(slot, time) | LaterOn(slot, days, minutes) | LongestGap(from, to, minutes)
+data class MealSize(val slot: MealSlot, val energy: Display, val share: Display, val fraction: Float)
+```
+
+Amounts go through the policy: energy with `resolve(Calories, …, Surface.Week,
+day = today)`, the share with `energyShare(percent, …)` (Shown only when
+calories are Show). `PatternsStateBuilder.build(inputs, policy)` with
+`PatternsInputs(today, settings, days, timeZone)`.
+
+### Actions
+`InputsArrived(inputs, policy)`, `BackTapped` (`Close`).
+
+### Tests
+`MealPatternsTest` in `:libraries:diary`: usual window, median, frequency,
+longest gap, later-on days, hunger mode, back-filled items left out, new foods.
+`PatternsStateBuilderTest`: Full (sizes, no often), Blind (often, no sizes, no
+amount anywhere), hunger only with tags on. `PatternsViewModelTest`: back.
+Previews `patterns`, `patterns-blind`, dark. `SURFACES`: `patterns`,
+`patterns-blind`.

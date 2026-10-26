@@ -141,6 +141,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `logger-search-empty`, `logger-how-it-felt` | logger | | no |
 | new | | `nutrients-week` | trends | | yes |
 | new | | `trends-settings` | trends | | no |
+| new | | `trends-blind`, `trends-coast` | trends | design v3 | yes |
+| new | | `patterns`, `patterns-blind` | trends | design v3 | `patterns` yes, `patterns-blind` no |
 | new | | `pause-sheet` | settings | | no |
 | new | | `look-and-feel` | settings | | no |
 | new | | `foods-add-food-blind` | foods | v3 11.4; Add a food with no number fields | no |
