@@ -82,6 +82,7 @@ if (!serverOnly) {
     include(":libraries:navigation:impl")
     include(":libraries:networking")
     include(":libraries:networking:impl")
+    include(":libraries:nutrition")
     include(":libraries:identity")
     include(":libraries:identity:impl")
     include(":libraries:resources")
