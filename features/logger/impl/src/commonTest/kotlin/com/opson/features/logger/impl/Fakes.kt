@@ -21,6 +21,8 @@ import com.opson.libraries.diary.PickedForMeal
 import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SavedMealRepository
+import com.opson.libraries.diary.SearchDatabase
+import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -28,7 +30,9 @@ import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.foods.BarcodeMissReporter
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
+import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSearchResult
+import com.opson.libraries.foods.SearchOptions
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.CameraPermissions
@@ -202,10 +206,26 @@ class FakeFoodCatalog(
     /** Every text sent to be read, typed or spoken. */
     val described = mutableListOf<String>()
 
-    override suspend fun search(query: String, limit: Int): Catching<FoodSearchResult> {
+    /** The filter each search was asked with, in order. */
+    val filters = mutableListOf<FoodSearchFilter>()
+
+    /** What [searchOptions] answers. */
+    var options: Catching<SearchOptions> = Catching.success(SearchOptions(openFoodFacts = false))
+    var optionsAsked = 0
+
+    /** What [observeRecent] holds: catalog foods the device knows. */
+    val recentFoods = MutableStateFlow<List<Food>>(emptyList())
+
+    override suspend fun search(query: String, limit: Int, filter: FoodSearchFilter): Catching<FoodSearchResult> {
         searches += query
+        filters += filter
         val hits = foods.filter { it.name.contains(query, ignoreCase = true) }
         return Catching.success(FoodSearchResult(query = query, foods = hits, fromCache = !online))
+    }
+
+    override suspend fun searchOptions(): Catching<SearchOptions> {
+        optionsAsked++
+        return options
     }
 
     override suspend fun detail(id: String): Catching<Food> =
@@ -231,7 +251,7 @@ class FakeFoodCatalog(
 
     override fun observeFavorites(): Flow<List<Food>> = flowOf(emptyList())
 
-    override fun observeRecent(limit: Int): Flow<List<Food>> = flowOf(emptyList())
+    override fun observeRecent(limit: Int): Flow<List<Food>> = recentFoods
 
     override suspend fun markUsed(food: Food) {
         marked += food
@@ -304,6 +324,33 @@ class RecordingTelemetry : LoggerTelemetry {
 }
 
 /** `release.barcode` as the remote config would set it. */
+/** `release.searchOptions` as the remote config would set it. */
+fun searchOptionsFlag(on: Boolean): SearchOptionsEnabled = SearchOptionsEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("searchOptions" to on))
+    },
+)
+
+class RecordingSearchOptionsTelemetry : SearchOptionsTelemetry {
+    val events = mutableListOf<String>()
+
+    override fun sortPicked(sort: SearchSort) {
+        events += "sort:${sort.wire}"
+    }
+
+    override fun databasePicked(database: SearchDatabase) {
+        events += "database:${database.wire}"
+    }
+
+    override fun tabsToggled(on: Boolean) {
+        events += "tabs:$on"
+    }
+
+    override fun tabPicked(tab: SearchTab) {
+        events += "tab:${tab.wire}"
+    }
+}
+
 fun scanFlag(on: Boolean): BarcodeScanEnabled = BarcodeScanEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("barcode" to on))

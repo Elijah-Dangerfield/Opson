@@ -189,7 +189,10 @@ run changes nothing).
 
 - **Required in the app:** "Contains data from Open Food Facts, available
   under the Open Database License", with a link, on a credits screen and
-  wherever its foods appear.
+  wherever its foods appear. In the Logger (`release.searchOptions`) each of
+  its rows carries an "Open Food Facts" badge and that sentence sits under
+  any results that include one; the Foods tab has the credit line. Still
+  missing: the Credits screen with the link.
 - **Keep it in its own table.** A database built from Open Food Facts is a
   Derivative Database. If it is "publicly used", it has to be offered under
   ODbL. Mixing Open Food Facts rows into the USDA table risks that applying

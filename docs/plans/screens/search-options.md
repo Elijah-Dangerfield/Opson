@@ -97,8 +97,8 @@ to the default (`SettingsJson.coerceInputValues`). The tab picked is not a
 setting: the sheet opens on All every time.
 
 ### `:libraries:foods`
-- `FoodSearchFilter(category: SearchCategory?, source: SearchSource?, sort: SearchOrder)`
-  and `FoodCatalog.search(query, limit, filter = FoodSearchFilter())`; the
+- `FoodSearchFilter(category: SearchCategory?, source: SearchSource?, order: SearchOrder)`
+  and `FoodCatalog.search(query, limit, filter = FoodSearchFilter.None)`; the
   default sends no params. Offline, the cache answers source and Common
   filters from each cached food's source and tier; Restaurant and Beverages
   have no offline answer (the cache has no category), so they come back
@@ -121,6 +121,7 @@ data class SearchOptionsBar(val tabs: List<SearchTab>?, val tab: SearchTab, val 
 data class FoodRowUi(..., val badge: SourceBadge?, val verified: Boolean)
 enum class SourceBadge { Usda, UsdaBranded, OpenFoodFacts, YourFood }
 LoggerBody.Results(..., openFoodFacts: Boolean)   // the ODbL line under results
+LoggerBody.Listed(rows)                           // Favorites, Custom or My foods before typing
 LoggerBody.TabHint(tab)                           // Common, Restaurant, Beverages before typing
 LoggerBody.TabEmpty(tab)                          // Favorites or Custom with nothing in it
 ```
@@ -140,6 +141,10 @@ What the body holds (pure, in `LoggerStateBuilder`):
 The database filter applies to All; every other tab already names where its
 foods come from, so a tab can't contradict it into an empty list. Open Food
 Facts as a database falls back to All if the server stops offering it.
+
+The method chips show on All only: on another tab the person is looking for
+a food, not a way to log. With the Category tabs setting off, a tab picked
+earlier no longer applies and the body is All's.
 
 Then the sort, on every list: Best match keeps the order it came in; Most
 recent puts foods in `history` first, newest first, the rest after in their
@@ -162,7 +167,9 @@ Actions (all named for what happened):
 | (settings change) | `InputsArrived` already carries settings; a changed sort or database re-runs the search. |
 
 Search results are dropped unless both the query and the filter they were
-asked with are still current.
+asked with are still current. The view model searches again only when the
+query or the filter changes (`searchIfStale`), so a basket change or any
+other settings write doesn't re-run it.
 
 ### Options sheet
 `SearchOptionsRoute(openFoodFacts: Boolean)`, `bottomSheet<>` over the
@@ -172,8 +179,8 @@ Logger, `SearchOptionsViewModel` (settings, telemetry).
 data class SearchOptionsState(val sort: SearchSort, val database: SearchDatabase,
     val databases: List<SearchDatabase>, val tabs: Boolean)
 ```
-Actions `SortPicked`, `DatabasePicked`, `TabsToggled(on)`, `DoneTapped`; each
-pick writes the setting at once (`SettingsRepository.update`, no numbers
+Actions `SettingsArrived`, `SortPicked`, `DatabasePicked`, `TabsToggled(on)`,
+`DoneTapped`; each pick writes the setting at once (`SettingsRepository.update`, no numbers
 stamp). Layout: `SheetHeader("Search options", onClose)`, "Sort by" with three
 `RadioRow`s, "Database" with `RadioRow`s, a "Category tabs" row with
 `AppSwitch` and a caption. No numbers anywhere.

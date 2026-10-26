@@ -247,6 +247,14 @@ Ate no details and Stop asking. Meal names inside sentences use
 
 ---
 
+## Search options (0.2)
+
+Sort, database filter, category tabs and source badges, behind
+`release.searchOptions`: see [search-options.md](search-options.md). Off, the
+Search pane above is unchanged.
+
+---
+
 ## Barcode (0.2)
 
 Superseded by [barcode.md](barcode.md), which is what was built. The waiting copy

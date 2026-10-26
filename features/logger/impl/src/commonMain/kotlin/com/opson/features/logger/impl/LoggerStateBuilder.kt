@@ -4,9 +4,12 @@ import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.SearchDatabase
+import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.draftFor
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.foods.initialQuantity
@@ -52,6 +55,12 @@ data class LoggerChoices(
     /** `release.voice`, read once when the sheet opens. */
     val voiceEnabled: Boolean = false,
     val voice: VoiceCapture = VoiceCapture.Idle(),
+    /** `release.searchOptions`, read once when the sheet opens. */
+    val searchOptions: Boolean = false,
+    /** The category tab; the sheet always opens on All. */
+    val tab: SearchTab = SearchTab.All,
+    /** Whether the server offers Open Food Facts as a database. */
+    val openFoodFacts: Boolean = false,
 )
 
 /**
@@ -68,6 +77,8 @@ object LoggerStateBuilder {
         val bare = inputs.day.formatContext(inputs.today, bare = true)
         val typing = choices.query.isNotBlank()
         val canNumber = policy.level(Metric.Calories) != Visibility.Hide && !choices.pickingForMeal
+        // The method chips are ways to log; on a tab other than All the person is looking for a food.
+        val onAll = !choices.searchOptions || !inputs.settings.searchTabs || choices.tab == SearchTab.All
         return LoggerState(
             loading = false,
             day = RelativeDay.of(inputs.day.date, inputs.today),
@@ -80,7 +91,7 @@ object LoggerStateBuilder {
             // A scan logs into this meal, so a meal being put together has no scanner.
             canScan = choices.scanAvailable && !choices.pickingForMeal,
             // The method chips all log straight to the diary, so pick mode has none.
-            methods = if (typing || choices.pickingForMeal) emptyList() else methods(inputs, policy, slot, choices.photoAvailable),
+            methods = if (typing || choices.pickingForMeal || !onAll) emptyList() else methods(inputs, policy, slot, choices.photoAvailable),
             body = body(inputs, policy, slot, choices, bare),
             describe = DescribeUi(
                 text = choices.describeText,
@@ -111,6 +122,7 @@ object LoggerStateBuilder {
                 },
             ),
             basket = if (choices.pane == LoggerPane.Search) basket(inputs, policy, slot, context) else null,
+            options = if (choices.searchOptions) optionsBar(inputs, choices) else null,
         )
     }
 
@@ -119,15 +131,26 @@ object LoggerStateBuilder {
         if (inputs.day.mealGroupsOn(inputs.settings)) slot else MealSlot.Uncategorized
 
     /**
-     * Every food the body can show for this slot and query, in section order.
-     * The view model finds a tapped row's draft here, so the state never has
-     * to carry one.
+     * Every food the body can show for these choices, in order. The view
+     * model finds a tapped row's draft here, so the state never has to carry
+     * one.
      */
-    fun picks(inputs: LoggerInputs, slot: MealSlot, query: String, search: SearchOutcome?): List<FoodPick> {
-        val trimmed = query.trim()
-        if (trimmed.isNotEmpty()) return searchPicks(inputs, trimmed, search).orEmpty()
-        val sections = sections(inputs, effectiveSlot(inputs, slot))
-        return sections.usual + sections.recent
+    fun picks(inputs: LoggerInputs, choices: LoggerChoices): List<FoodPick> =
+        when (val listing = listing(inputs, effectiveSlot(inputs, choices.slot), choices)) {
+            Listing.Searching, is Listing.Hint -> emptyList()
+            is Listing.Browse -> listing.usual + listing.recent
+            is Listing.Matches -> listing.picks
+            is Listing.Listed -> listing.picks
+        }
+
+    /**
+     * What the catalog is asked for with these settings and choices, or null
+     * when what is showing needs no server (Favorites, Custom, My foods). With
+     * the options off it is always [FoodSearchFilter.None], the call 0.1 makes.
+     */
+    fun catalogFilter(inputs: LoggerInputs?, choices: LoggerChoices): FoodSearchFilter? = when {
+        !choices.searchOptions || inputs == null -> FoodSearchFilter.None
+        else -> searchFilterFor(inputs.settings, effective(inputs, choices))
     }
 
     private fun methods(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot, photo: Boolean): List<LoggerMethod> = buildList {
@@ -147,41 +170,137 @@ object LoggerStateBuilder {
         bare: FormatContext,
     ): LoggerBody {
         val picked = inputs.basket.mapTo(HashSet()) { it.key }
-        fun rows(picks: List<FoodPick>) = picks.map { it.toRow(policy, bare, it.key in picked) }
+        val known = if (choices.searchOptions) inputs.known else null
+        fun rows(picks: List<FoodPick>) = picks.map { it.toRow(policy, bare, it.key in picked, known) }
 
-        val trimmed = choices.query.trim()
-        if (trimmed.isNotEmpty()) {
-            val hits = searchPicks(inputs, trimmed, choices.search) ?: return LoggerBody.Searching
-            val offline = choices.search?.offline == true
-            return if (hits.isEmpty()) LoggerBody.NoResults(trimmed, offline) else LoggerBody.Results(rows(hits), offline)
+        return when (val listing = listing(inputs, slot, choices)) {
+            Listing.Searching -> LoggerBody.Searching
+            is Listing.Hint -> LoggerBody.TabHint(listing.tab)
+            is Listing.Matches -> if (listing.picks.isEmpty()) {
+                LoggerBody.NoResults(listing.query, listing.offline)
+            } else {
+                LoggerBody.Results(
+                    rows = rows(listing.picks),
+                    offline = listing.offline,
+                    openFoodFacts = choices.searchOptions && listing.picks.any { it.food?.isOpenFoodFacts == true },
+                )
+            }
+            is Listing.Browse -> if (listing.usual.isEmpty() && listing.recent.isEmpty()) {
+                LoggerBody.FirstRun
+            } else {
+                LoggerBody.Browse(slot = slot, usual = rows(listing.usual), recent = rows(listing.recent))
+            }
+            is Listing.Listed -> when {
+                listing.picks.isNotEmpty() -> LoggerBody.Listed(rows(listing.picks))
+                listing.tab == SearchTab.All -> LoggerBody.FirstRun
+                else -> LoggerBody.TabEmpty(listing.tab)
+            }
         }
-
-        val sections = sections(inputs, slot)
-        if (sections.usual.isEmpty() && sections.recent.isEmpty()) return LoggerBody.FirstRun
-        return LoggerBody.Browse(slot = slot, usual = rows(sections.usual), recent = rows(sections.recent))
     }
 
-    private class Sections(val usual: List<FoodPick>, val recent: List<FoodPick>)
+    /** What the body lists, before it becomes rows. [picks] and [body] both read it, so a tapped row is always found. */
+    private sealed interface Listing {
+        data object Searching : Listing
+        data class Browse(val usual: List<FoodPick>, val recent: List<FoodPick>) : Listing
+        data class Matches(val query: String, val picks: List<FoodPick>, val offline: Boolean) : Listing
 
-    private fun sections(inputs: LoggerInputs, slot: MealSlot): Sections {
+        /** The person's own foods before typing: a Favorites or Custom tab, or My foods on All. */
+        data class Listed(val tab: SearchTab, val picks: List<FoodPick>) : Listing
+        data class Hint(val tab: SearchTab) : Listing
+    }
+
+    /** The choices as they apply: with the tabs turned off in the sheet, the tab is All whatever was picked. */
+    private fun effective(inputs: LoggerInputs, choices: LoggerChoices): LoggerChoices =
+        if (inputs.settings.searchTabs) choices else choices.copy(tab = SearchTab.All)
+
+    private fun listing(inputs: LoggerInputs, slot: MealSlot, given: LoggerChoices): Listing {
+        val query = given.query.trim()
+        if (!given.searchOptions) {
+            // Search as 0.1 shipped it.
+            if (query.isEmpty()) return browse(inputs, slot)
+            return catalogMatches(query, given.search, FoodSearchFilter.None, mine = customPicks(inputs, query))
+        }
+        val choices = effective(inputs, given)
+        val sort = inputs.settings.searchSort
+        val recency = inputs.history.mapNotNull { it.foodRef()?.key }.withIndex().associate { (i, key) -> key to i }
+        val ordered = { picks: List<FoodPick> -> sorted(picks, sort, recency) }
+        val filter = searchFilterFor(inputs.settings, choices)
+        return when (choices.tab) {
+            SearchTab.Favorites -> own(SearchTab.Favorites, query, ordered(inputs.favorites.mapNotNull { it.toPick(PickSource.Favorite) }))
+            SearchTab.Custom -> own(SearchTab.Custom, query, ordered(inputs.customFoods.map { it.toPick() }))
+            SearchTab.Common, SearchTab.Restaurant, SearchTab.Beverages ->
+                if (query.isEmpty()) Listing.Hint(choices.tab) else catalogMatches(query, choices.search, filter, emptyList(), ordered)
+            SearchTab.All -> when {
+                filter == null -> {
+                    // My foods: the person's own and what they have logged, no server call.
+                    val mine = (inputs.customFoods.map { it.toPick() } + history(inputs)).distinctBy { it.key }
+                    own(SearchTab.All, query, ordered(mine))
+                }
+                query.isEmpty() && sort == SearchSort.MostRecent -> Listing.Browse(usual = emptyList(), recent = history(inputs))
+                query.isEmpty() -> browse(inputs, slot)
+                else -> {
+                    // The person's own foods belong among All's results; USDA or Open Food Facts means just that.
+                    val everything = filter.source == null
+                    val logged = if (everything && sort == SearchSort.MostRecent) history(inputs).filter { it.matches(query) } else emptyList()
+                    val mine = if (everything) logged + customPicks(inputs, query) else emptyList()
+                    catalogMatches(query, choices.search, filter, mine, ordered)
+                }
+            }
+        }
+    }
+
+    private fun own(tab: SearchTab, query: String, picks: List<FoodPick>): Listing =
+        if (query.isEmpty()) Listing.Listed(tab, picks) else Listing.Matches(query, picks.filter { it.matches(query) }, offline = false)
+
+    /**
+     * [mine] first, then the catalog's answer, deduplicated by key and put in
+     * order by [order]. Searching while the catalog has not answered this
+     * query with this filter yet.
+     */
+    private fun catalogMatches(
+        query: String,
+        search: SearchOutcome?,
+        filter: FoodSearchFilter?,
+        mine: List<FoodPick>,
+        order: (List<FoodPick>) -> List<FoodPick> = { it },
+    ): Listing {
+        if (search == null || search.query != query || search.filter != filter) return Listing.Searching
+        val picks = (mine + search.foods.map { it.toPick() }).distinctBy { it.key }
+        return Listing.Matches(query, order(picks), search.offline)
+    }
+
+    /** Best match keeps the order things came in; Most recent puts what was logged first, newest first. */
+    private fun sorted(picks: List<FoodPick>, sort: SearchSort, recency: Map<String, Int>): List<FoodPick> = when (sort) {
+        SearchSort.BestMatch -> picks
+        SearchSort.MostRecent -> picks.sortedBy { recency[it.key] ?: Int.MAX_VALUE }
+        SearchSort.AToZ -> picks.sortedBy { it.draft.name.lowercase() }
+    }
+
+    private fun browse(inputs: LoggerInputs, slot: MealSlot): Listing {
         val usual = if (slot.isMeal) inputs.usualBySlot[slot].orEmpty().mapNotNull { it.toPick(PickSource.Usual) } else emptyList()
         val usualKeys = usual.mapTo(HashSet()) { it.key }
         // A food already under "Usual at dinner" is not repeated under Recent.
         val recent = inputs.recent.mapNotNull { it.toPick(PickSource.Recent) }.filterNot { it.key in usualKeys }
-        return Sections(usual = usual, recent = recent)
+        return Listing.Browse(usual = usual, recent = recent)
     }
 
-    /**
-     * The user's own foods whose name or brand matches go first, then the
-     * catalog's. Null while the catalog has not answered this query yet.
-     */
-    private fun searchPicks(inputs: LoggerInputs, query: String, search: SearchOutcome?): List<FoodPick>? {
-        if (search == null || search.query != query) return null
-        val custom = inputs.customFoods
-            .filter { it.name.contains(query, ignoreCase = true) || it.brand?.contains(query, ignoreCase = true) == true }
-            .map { it.toPick() }
-        val catalog = search.foods.map { it.toPick() }
-        return (custom + catalog).distinctBy { it.key }
+    private fun history(inputs: LoggerInputs): List<FoodPick> = inputs.history.mapNotNull { it.toPick(PickSource.Recent) }
+
+    /** The user's own foods whose name or brand matches; they go before the catalog's. */
+    private fun customPicks(inputs: LoggerInputs, query: String): List<FoodPick> =
+        inputs.customFoods.map { it.toPick() }.filter { it.matches(query) }
+
+    private fun FoodPick.matches(query: String): Boolean =
+        draft.name.contains(query, ignoreCase = true) || subtitle?.contains(query, ignoreCase = true) == true
+
+    private fun optionsBar(inputs: LoggerInputs, choices: LoggerChoices): SearchOptionsBar {
+        val settings = inputs.settings
+        return SearchOptionsBar(
+            tabs = if (settings.searchTabs) SearchTab.entries else null,
+            tab = effective(inputs, choices).tab,
+            active = settings.searchSort != SearchSort.BestMatch ||
+                settings.effectiveDatabase(choices.openFoodFacts) != SearchDatabase.All,
+        )
     }
 
     private fun LogItem.toPick(source: PickSource): FoodPick? {
@@ -200,22 +319,32 @@ object LoggerStateBuilder {
         return FoodPick(key = ref.key, ref = ref, draft = draftFor(initialQuantity), source = PickSource.Search, subtitle = brand)
     }
 
-    private fun FoodPick.toRow(policy: VisibilityPolicy, bare: FormatContext, picked: Boolean) = FoodRowUi(
-        key = key,
-        ref = ref,
-        source = source,
-        name = draft.name,
-        shortName = shortName(draft.name),
-        subtitle = subtitle,
-        amount = draft.amountLabel,
-        macros = if (draft.hasMacros) {
-            policy.macroLine(draft.amounts(), Surface.Logger, bare, MacroLineStyle.Compact)
-        } else {
-            emptyList()
-        },
-        calories = policy.resolve(Metric.Calories, draft.kcal, Surface.Logger, bare),
-        picked = picked,
-    )
+    /** [known] is null with the search options off, which draws no badges at all. */
+    private fun FoodPick.toRow(policy: VisibilityPolicy, bare: FormatContext, picked: Boolean, known: Map<String, Food>?): FoodRowUi {
+        val catalogFood = if (known != null && ref is FoodRef.Catalog) food ?: known[ref.id] else null
+        return FoodRowUi(
+            key = key,
+            ref = ref,
+            source = source,
+            name = draft.name,
+            shortName = shortName(draft.name),
+            subtitle = subtitle,
+            amount = draft.amountLabel,
+            macros = if (draft.hasMacros) {
+                policy.macroLine(draft.amounts(), Surface.Logger, bare, MacroLineStyle.Compact)
+            } else {
+                emptyList()
+            },
+            calories = policy.resolve(Metric.Calories, draft.kcal, Surface.Logger, bare),
+            picked = picked,
+            badge = when {
+                known == null -> null
+                ref is FoodRef.Custom -> SourceBadge.YourFood
+                else -> catalogFood?.let { SourceBadge.of(it.source) }
+            },
+            verified = catalogFood?.verified == true,
+        )
+    }
 
     private fun basket(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot, context: FormatContext): BasketFooter? {
         val items = inputs.basket.ifEmpty { return null }
