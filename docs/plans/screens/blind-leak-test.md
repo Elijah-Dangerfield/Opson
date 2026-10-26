@@ -114,7 +114,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 5 | Quick-add sheet | `logger` | logger | ported | yes |
 | 6 | Food search | `logger-search` | logger | search lives in the Logger | yes |
 | 7 | Add-food sheet | `logger-amount` | logger | ported | yes |
-| 8 | Photo estimate | none | | dropped, Photo is Later | |
+| 8 | Photo estimate | `logger-photo` | logger | 0.2, `photo.md`; the review with the stepper open | yes |
 | 9 | Describe a meal | `logger-describe` | logger | a pane of the Logger in v3 | yes |
 | 10 | Saved meals | `logger-saved` | logger | a pane of the Logger in v3; copy yesterday is a chip | yes |
 | 11 | Day close · big day | `day-close-big-day` | today | ported | yes |
@@ -157,6 +157,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `reminder-notification` | settings | 0.2, v3 7.2; every reminder's text, plain and warm, as the system shows it | no |
 | new | | `today-reminders` | today | 0.2; Rhythm's reminder line (a time, never an amount) | yes |
 | new | | `today-expended` | today | 0.2, `integrations.md`; the Expended so far line | yes |
+| new | | `logger-photo-swap` | logger | 0.2, `photo.md`; swapping a line's food | yes |
+| new | | `logger-photo-start` | logger | 0.2, `photo.md`; the note and the two ways to a photo | no |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and

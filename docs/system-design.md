@@ -371,6 +371,7 @@ errors in the `ProblemResponse` envelope.
 | GET | `/v1/foods/barcode/{code}` | Catalog first, in any equivalent form of the code (UPC-A, EAN-13, GTIN-14, UPC-E), then each enabled outside source in tier order (Nutritionix when configured, Open Food Facts); cacheable answers are stored in `foods`. 404 `not_found` when nobody has it, 503 when no source could answer. |
 | POST | `/v1/foods/barcode-misses` | `{id, barcode}` after a 404 from the barcode route. 204, idempotent on the app's id. Region, platform and version from the `X-*` headers, GTIN computed server-side, no user id stored. |
 | POST | `/v1/describe` `{text}` | Parses "2 eggs and toast" into items: quantity + unit + food match. Heuristic, no AI. |
+| POST | `/v1/describe/photo` `{image, note?}` | 0.2, behind `release.photo`. A base64 meal photo (JPEG, PNG or WebP by its bytes, 4 MB) and an optional note go to Anthropic's Messages API (`ANTHROPIC_API_KEY`, model `ANTHROPIC_PHOTO_MODEL`, default `claude-opus-5-5`), which lists the foods; each is matched through the same pipeline as `/v1/describe` and returned in its shape. Per user 10 per 10 minutes and 40 a day (429). 503 `photo_estimate_unavailable` with no key, 502 `photo_estimate_failed` when the model fails. The photo is never stored or logged; the log line is outcome, counts and latency. |
 | GET | `/v1/export.csv` | Every log entry, weigh-in and water day for the caller |
 | GET/DELETE | `/v1/me` | Existing. Delete cascades through every table above. |
 
@@ -423,8 +424,11 @@ by how far their numbers can be trusted (`foods.tier`):
 
 Tiers 1 to 3 are `verified`. A barcode miss asks the enabled outside sources
 in tier order; the first that knows the product answers.
-- **Photo estimates** need a vision model and a key, so they are out of the
-  first release (the handoff's Plus tier).
+- **Photo estimates** (0.2, `release.photo`, `docs/plans/screens/photo.md`)
+  send the photo to Anthropic's vision model and match what it lists through
+  the Describe pipeline. Every line is an estimate the person edits before
+  anything is logged. The handoff puts it in the Plus tier; Plus has no price
+  yet, so nothing gates it beyond the per-user limit.
 
 ---
 
@@ -556,10 +560,10 @@ changed and what 0.1 builds is in [`docs/design/v3/CHANGES.md`](design/v3/CHANGE
 - More: Modes and numbers with friction, Targets, Water, Support (helpline,
   export, delete everything).
 
-**0.2.** Barcode scanning (camera on both platforms), fasting, reminders,
-Health Connect and HealthKit, voice notes.
+**0.2.** Barcode scanning (camera on both platforms), photo estimates,
+fasting, reminders, Health Connect and HealthKit, voice notes.
 
-**Later.** Photo estimates, trusted-person sharing, widgets, the Plus tier.
+**Later.** Trusted-person sharing, widgets, the Plus tier.
 
 Anything not in a release is hidden, not shown as "Coming soon", except where
 the handoff itself says "Coming later".

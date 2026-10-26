@@ -110,7 +110,7 @@ sheet's "What's prompting this?" answer.
 
 | Event | Attributes | Fires |
 |---|---|---|
-| `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details, quick_number, name_only, barcode, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
+| `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details, quick_number, name_only, barcode, photo, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
 
 ### Barcode scan
 
@@ -129,6 +129,22 @@ miss are counted server-side instead, in `barcode_misses` with no account attach
 
 A pick from a scan logs with `logger.method_picked` `method=barcode`; "Save the name only" after a
 miss logs as `name_only`.
+
+### Photo estimate
+
+0.2, behind `release.photo`. All from `PhotoEstimateViewModel` through `PhotoTelemetry`
+(`:features:logger:impl`). **No event carries the photo, the note, a food name or an amount**:
+what someone photographs is what they eat. Counts and reasons only.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `photo.started` | `source` (`camera`, `library`) | A photo came back from the camera or the picker and the estimate was asked for. Backing out of either fires nothing |
+| `photo.estimated` | `items`, `matched` (counts) | The review shows: `items` lines, `matched` of them found in the catalog |
+| `photo.added` | `items` (count) | Add to {meal} wrote the photo's lines |
+| `photo.failed` | `reason` (`unavailable`: no key on the server; `too_many`: the per-user limit; `offline`; `error`: the server or the provider failed, or the photo could not be read; `nothing_found`: the model saw no food) | A calm end instead of the review |
+
+Lines added from a photo log with `logger.method_picked` `method=photo` (stored as method
+`describe`, precision `estimate`, since the server has no `photo` method).
 
 ### Watch and health apps (0.2, behind `release.health`)
 

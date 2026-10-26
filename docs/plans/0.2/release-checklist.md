@@ -45,11 +45,53 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
 - [ ] Try a real scan on an iPhone and an Android phone: a hit, a miss and a
       denied camera.
 
+## Photo estimate (`release.photo`)
+
+- [ ] Create an Anthropic API key for the server, and check the org's data
+      settings match the privacy text below (API inputs not used for
+      training, retention as short as the org allows).
+- [ ] Set it on dev first, try it, then on prod. With no key the route
+      answers 503 and the app shows "Photo estimates aren't available right
+      now", so nothing breaks before this. Each line prompts and refuses an
+      empty value:
+
+      ```bash
+      stty -echo; printf "Anthropic API key: "; read -r AK; stty echo; printf "\n"
+      if [ -n "$AK" ]; then fly secrets set ANTHROPIC_API_KEY="$AK" -a opson-server-dev; else echo "No key entered, nothing set."; fi; unset AK
+      ```
+
+      Then the same with `-a opson-server-prod` once 0.1 is through review.
+      `ANTHROPIC_PHOTO_MODEL` is optional (default `claude-opus-5-5`).
+- [ ] Add to `legal/privacy.md`, under "What else the app sends": "**Meal
+      photos**, only when you use Photo estimate, are sent with your note to
+      [Anthropic](https://www.anthropic.com/legal/privacy), which reads them
+      and returns a list of foods. We don't save the photo or keep a copy on
+      our server, and it is not linked to your account. Anthropic does not
+      use it to train its models." Keep "No contacts, photos or microphone
+      access unless you choose a feature that needs it".
+- [ ] App Store Connect, App Privacy: add **Photos or Videos**, used for
+      **App Functionality**, **not linked** to the user, **not used for
+      tracking**. Play Console Data safety: Photos, collected, not shared
+      for advertising, processed ephemerally, not linked.
+- [ ] `NSCameraUsageDescription` already mentions meal photos (it is on
+      `main`, harmless with the flag off). No `NSPhotoLibraryUsageDescription`
+      is needed: the library side is PHPicker. Android adds no permission;
+      it gains a `FileProvider` (`${applicationId}.mealphoto`) for the
+      camera's output file.
+- [ ] Try it on an iPhone and an Android phone: camera, library, a denied
+      camera, a plate it gets wrong (swap, resize, remove, add), Blind mode,
+      and the 503 with the key unset.
+- [ ] Plus: when it has a price, its gate goes where the code says
+      `Plus gate` (`PhotoEstimateViewModel` before the camera and library,
+      `PhotoEstimateLimiter` on the server), and the design's Plus badge goes
+      on the sheet header.
+
 ## Server, before any 0.2 build reaches people
 
 - [ ] Deploy the server to prod once 0.1 is through review. It carries the
       settings merge (a 0.1 phone saving settings must not erase what a 0.2
-      phone added), V12 to V14, and the new routes.
+      phone added), V12 to V14, and the new routes (including
+      `POST /v1/describe/photo`, which needs `ANTHROPIC_API_KEY`).
 
 ## Search quality
 

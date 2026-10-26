@@ -54,7 +54,8 @@ Calm ends, never dead ends:
   memory), Describe it instead.
 - **Too many** (429, the per-user limit): try later, or describe it.
 - **Nothing found** (an empty list): Try another photo, Describe it instead.
-- **Camera off**: Open Settings, or Choose from library (needs no permission).
+- **Camera off**: Allow camera (when it can still be asked) or Open Settings,
+  and Choose from library (needs no permission).
 
 "Describe it instead" closes this sheet and reopens the logger on Describe
 (`goBack`, `goBack`, `LoggerRoute(start = Describe)`); the basket survives.
@@ -92,19 +93,24 @@ data class PhotoEstimateState(
 )
 sealed interface PhotoStage {
     data object Start; data object Estimating
-    data class Review(val rows: List<PhotoRowUi>, val editing: String?, val usedNote: Boolean, val footer: PhotoFooter)
-    data class Swap(val replacing: String?, val query: String, val results: List<SwapResultUi>, val searching: Boolean)
+    data class Review(val rows: List<PhotoRowUi>, val editor: PhotoAmountEditor?, val usedNote: Boolean,
+        val footer: PhotoFooter?)                     // null when there is nothing to add
+    data class Swap(val replacing: Boolean, val query: String, val results: List<SwapResultUi>?)  // null: searching
     data object NothingFound; data object Unavailable; data object TooMany
     data class Failed(val offline: Boolean)
     data class CameraOff(val canAskAgain: Boolean)
 }
-data class PhotoRowUi(key, name, amount: String /* "about 120 g", "1 tbsp" */, calories: Display /* bare */,
-    matched: Boolean, units: List<String>, unitIndex: Int, canLess: Boolean)
-data class SwapResultUi(food id, name, subtitle: String?, amount: String, calories: Display /* bare */)
-data class PhotoFooter(count: Int, calories: Display /* "379 kcal" */)
+data class PhotoRowUi(key, name, amount: String /* "120 g", "1 tbsp" */, isWeight: Boolean /* reads "about 120 g" */,
+    calories: Display /* bare */, matched: Boolean)
+data class PhotoAmountEditor(key, amount: String, units: List<String>, unitIndex: Int, canLess: Boolean)
+data class SwapResultUi(id, name, subtitle: String?, amount: String, calories: Display /* bare */)
+data class PhotoFooter(count: Int, calories: Display /* "380 kcal" */)  // counts the basket's other picks too
 ```
-Built by `PhotoEstimateStateBuilder.build(model, policy)`, pure. Every energy
-value goes through `VisibilityPolicy.resolve(Calories, …, Surface.Logger)`.
+Built by `PhotoEstimateStateBuilder.build(model: PhotoModel, inputs: PhotoInputs?, policy)`,
+pure. `PhotoModel` is what the view model holds (step, note, photo, `PhotoRow`s,
+the open editor, the swap search); `PhotoRows` holds the amount rules. Every
+energy value goes through `VisibilityPolicy.resolve(Calories, …, Surface.Logger)`
+with the day's context.
 
 ## Amounts
 - Each matched item's food is loaded with `FoodCatalog.detail` before the
@@ -123,30 +129,27 @@ value goes through `VisibilityPolicy.resolve(Calories, …, Surface.Logger)`.
 ## Actions
 | Action | Does |
 |---|---|
-| `PolicyArrived`, `SettingsArrived`, `BasketArrived` | Rebuild. |
+| `InputsArrived(inputs)` | The day (for the policy context) and the basket. Rebuild. |
+| `PolicyArrived(policy)` | Rebuild; with calories now hidden, weighed lines move to their household measure. |
 | `NoteTyped(text)` | Up to 300 characters. |
 | `TakePhotoTapped` | Camera permission: Granted sends `LaunchCamera`; NotAsked sends `RequestCameraPermission`; Denied shows `CameraOff`. Plus gate. |
+| `ChooseFromLibraryTapped` | `LaunchLibrary` (no permission). Plus gate. |
 | `CameraPermissionAnswered(p)` | Granted launches the camera, else `CameraOff`. |
-| `ChooseFromLibraryTapped` | `LaunchLibrary`. Plus gate. |
-| `PhotoPicked(photo, fromCamera)` | Estimating, `photo.started`, calls the estimator. |
-| `PickCancelled` | Back to where it was (Start). |
-| `EstimateArrived(items)` | Loads matched foods, then `FoodsArrived`. Empty is `NothingFound`. |
-| `FoodsArrived(rows)` | Review. `photo.estimated` with the count. |
-| `EstimateUnavailable` / `EstimateTooMany` / `EstimateFailed(offline)` | The calm stages. `photo.failed` with the reason. |
-| `RowAmountTapped(key)` | Opens or closes the stepper under that row (one at a time). |
+| `AllowCameraTapped` / `OpenSettingsTapped` | Ask again / `CameraPermissions.openSettings()`. |
+| `PhotoAnswered(result, fromCamera)` | Picked: Estimating, `photo.started`, the estimate. Cancelled: nothing. Failed: `Failed`. |
+| `EstimateArrived(estimate, foods)` | The answer plus the catalog foods its lines name (loaded in parallel before it is sent). Items: Review and `photo.estimated`; empty: `NothingFound`; the rest: the calm stages and `photo.failed`. Dropped unless still estimating. |
+| `RowAmountTapped(key)` | Opens or closes the stepper under that line (matched lines only; an unmatched line's amount opens the swap). |
 | `LessTapped(key)`, `MoreTapped(key)`, `UnitPicked(key, index)` | `PortionAmount` steps and conversions. |
-| `RowRemoveTapped(key)` | Drops the row; the last one gone leaves an empty list with "Add something it missed". |
-| `RowNameTapped(key)` / `AddMissedTapped` | Swap stage, replacing that row or adding one. |
-| `SwapTyped(text)` | Debounced 250 ms `FoodCatalog.search(q, 15)`, stale answers dropped. |
-| `SwapResultsArrived(query, foods)` | |
-| `SwapPicked(id)` | Replaces the row (keeps the weight where it can) or adds one at its first unit; back to Review. |
-| `SwapClosed` | Back to Review unchanged. |
+| `RowRemoveTapped(key)` | Drops the line. An empty list says so and keeps "Add something it missed". |
+| `RowNameTapped(key)` / `AddMissedTapped` | The swap search, from the line's short name (searched at once) or empty. |
+| `SwapTyped(text)` | Debounced 250 ms `FoodCatalog.search(q, 15)`. |
+| `SwapResultsArrived(query, foods)` | Dropped unless still the current query. |
+| `SwapPicked(id)` | Replaces the line (keeping its weight) or adds one at its first unit; back to Review. |
 | `TryAgainTapped` | Same photo and note, estimate again. |
-| `AnotherPhotoTapped` | Start, photo dropped. |
+| `AnotherPhotoTapped` | Start, photo and lines dropped. |
 | `DescribeInsteadTapped` | `OpenDescribe(day, slot)`. |
-| `OpenSettingsTapped` | `CameraPermissions.openSettings()`. |
-| `BackTapped` | Swap back to Review; otherwise `Dismiss`. |
-| `AddToMealTapped` | Rows into the basket as `PickSource.Photo`, `BasketCommitter.commit`, `photo.added`, then `Logged`. |
+| `BackTapped` | Swap back to Review (system back too); otherwise `Dismiss`. |
+| `AddToMealTapped` | Lines into the basket as `PickSource.Photo`, `BasketCommitter.commit`, `photo.added`, then `Logged`. |
 
 ## Events
 `LaunchCamera`, `LaunchLibrary`, `RequestCameraPermission`,
@@ -164,21 +167,24 @@ still tells them apart (`logger.method_picked` `method=photo`).
 - Body JSON `{image: base64, note?: string}`. The type is read from the bytes
   (JPEG, PNG, WebP), never trusted. Limits: body 6 MB (`Content-Length`
   checked before reading, and the read itself bounded), decoded image 4 MB,
-  note 300 characters. 400 `invalid_image` / `invalid_note`, 413
-  `image_too_large`.
+  note 300 characters. 400 `invalid_body` / `invalid_image` /
+  `invalid_note`, 413 `image_too_large`.
 - Rate limits: per user (from the JWT, after auth) 10 per 10 minutes and 40 per
   day, in memory (`PhotoEstimateLimiter`), 429 `rate_limited`; plus a named
   per-IP bucket (30/min) in front of auth. One Fly machine today; a second
   machine would double the effective limit, noted in the limiter.
 - `EstimateProvider` (domain) returns `Estimated(foods)`, `NotConfigured` or
   `Failed`. `EstimatedFood(name, quantity, unit, grams)`.
-  - `AnthropicEstimateProvider` (data) when `ANTHROPIC_API_KEY` is set, else
-    `UnconfiguredEstimateProvider`. 503 `photo_estimate_unavailable` with no
+  - `ConfiguredEstimateProvider` (data) delegates to
+    `AnthropicEstimateProvider` when `ANTHROPIC_API_KEY` is set
+    (`FoodSourcesConfig.anthropic`), else answers NotConfigured. 503 `photo_estimate_unavailable` with no
     key; 502 `photo_estimate_failed` when the provider fails or refuses.
   - `FakeEstimateProvider` for tests.
 - `PhotoDescriber` (data) turns each `EstimatedFood` into a `ParsedPhrase`
   (household unit or size when the model gave one the parser knows, else
-  grams) and runs it through `CatalogFoodDescriber.describePhrases`, the same
+  grams; the model's weight rides along as `gramsHint` for a household unit
+  the catalog has no portion for) and runs it through
+  `CatalogFoodDescriber.describePhrases`, the same
   matching `/v1/describe` uses. The response is `DescribeResponse`, so photo
   and text return the same row shape.
 - **Never stored, never logged.** The image lives in the request's memory and
@@ -207,9 +213,15 @@ still tells them apart (`logger.method_picked` `method=photo`).
 ## Components
 `SheetHeader(onBack, overline)`, `ButtonPrimary`, `ButtonGhost`, `TextArea`,
 `SearchField`, `Stepper`, `ChoiceChip`, `Banner`, `CircularProgressIndicator`,
-`IconTile`, `RoundIconButton`, `NutrientValue`, `ActionChip` (the chip, with
-`AppIcons.PhotoCamera`). The thumbnail decodes the in-memory bytes with
-`decodeToImageBitmap`; previews pass none and draw the striped placeholder.
+`ListRow`, `RoundIconButton`, `NutrientText`, `ActionChip` (the chip, with
+`AppIcons.PhotoCamera`), `FoodRowsCard`.
+
+Added to `:libraries:ui`: `PhotoThumbnail` (decodes the in-memory bytes with
+`decodeToImageBitmap`; with none, a quiet camera tile, so previews need no
+photo), `TapField` (a filled field that opens an editor when tapped, for a
+line's food and amount), and `AppIcons.PhotoLibrary`. The iOS camera is
+presented over full screen so the Compose host never leaves the window
+(AGENTS.md, the UIKit presentation landmine).
 
 ## Visibility surfaces (surface `Logger`)
 | Number | Metric | Show | Soften | Delay | Hide |
@@ -251,7 +263,11 @@ No mode check: Blind is the calories level at Hide.
 | `photo_failed_title` / `_body` / `_offline` | Couldn't read that photo / Something went wrong on our side. Try again in a moment. / Photo estimates need a connection. |
 | `photo_too_many_title` / `_body` | That's a lot of photos for now / Try again in a little while, or describe this one in your own words. |
 | `photo_camera_title` / `_body` | The camera is off for Opson / You can turn it on in Settings, or choose a photo from your library. |
-| `photo_try_again`, `photo_another`, `photo_describe_instead`, `photo_back_to_search`, `photo_open_settings` | Try again / Try another photo / Describe it instead / Back to search / Open Settings |
+| `photo_camera_body_ask` | Opson uses the camera only when you take a meal photo. You can also choose one from your library. |
+| `photo_try_again`, `photo_another`, `photo_describe_instead`, `photo_back_to_search`, `photo_open_settings`, `photo_allow_camera` | Try again / Try another photo / Describe it instead / Back to search / Open Settings / Allow camera |
+| `photo_list_empty` | Nothing left on the list. Add what you ate, or go back. |
+| `photo_swap_searching` / `photo_swap_none` | Searching / Nothing by that name. Try another word. |
+| `photo_thumbnail_cd`, `photo_food_cd`, `photo_amount_cd` | Your meal photo / Swap %1$s / Change the amount of %1$s |
 
 iOS `NSCameraUsageDescription` (changed): "Opson uses the camera to read
 barcodes on food packs, or to photograph a meal when you ask for an estimate.
