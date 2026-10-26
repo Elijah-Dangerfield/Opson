@@ -1,5 +1,6 @@
 package com.opson
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
@@ -8,6 +9,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.opson.libraries.reminders.impl.ReminderIntents
 import com.opson.libraries.telemetry.impl.AndroidJankMonitor
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -47,6 +49,9 @@ class MainActivity : ComponentActivity() {
             App(appComponent)
         }
 
+        // A recreated activity already handled its intent; only a fresh launch carries a new tap.
+        if (savedInstanceState == null) handleReminderTap(intent)
+
         reportStartupWhenReady()
     }
 
@@ -85,6 +90,19 @@ class MainActivity : ComponentActivity() {
                 },
             )
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleReminderTap(intent)
+    }
+
+    /** A tapped reminder, or its Log it button: the coordinator asks App.kt for the Logger. */
+    private fun handleReminderTap(intent: Intent?) {
+        val (reminder, via) = ReminderIntents.opened(intent) ?: return
+        ReminderIntents.consume(intent)
+        appComponent.reminderActions.opened(reminder, via)
     }
 
     override fun onStop() {

@@ -14,6 +14,7 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.reminders.RemindersEnabled
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -60,6 +61,7 @@ class TodayViewModel(
     private val calendar: LocalCalendar,
     private val recentLogEvents: RecentLogEvents,
     private val clock: Clock,
+    private val remindersEnabled: RemindersEnabled,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value),
 ) {
@@ -122,6 +124,7 @@ class TodayViewModel(
             is TodayAction.ItemTapped -> sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
             TodayAction.WaterPlusTapped -> sendEvent(TodayEvent.OpenWaterSheet(day()))
             is TodayAction.AlreadyAteTapped -> diary.setAteNoDetails(day(), action.slot, ate = true)
+            TodayAction.RemindersTapped -> sendEvent(TodayEvent.OpenReminders)
             TodayAction.HighlightFaded -> action.rebuild { copy(highlight = null) }
             is TodayAction.LoggedArrived -> loggedArrived(action)
             TodayAction.UndoTapped -> model.added?.let { event ->
@@ -273,6 +276,7 @@ class TodayViewModel(
                 dayBefore = before,
                 settings = settings,
                 explorer = stats,
+                remindersOn = remindersEnabled(),
             )
         }
     }

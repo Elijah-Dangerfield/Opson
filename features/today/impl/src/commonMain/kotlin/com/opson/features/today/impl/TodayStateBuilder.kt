@@ -1,9 +1,11 @@
 package com.opson.features.today.impl
 
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.totals
@@ -64,14 +66,6 @@ object TodayStateBuilder {
     private const val BAR_HEADROOM = 1.2
     private const val SPRINT_DAYS = 14
 
-    /** When each meal usually happens, for "Usually around 8:00 AM" and Rhythm. */
-    val usualTimes: Map<MealSlot, LocalTime> = mapOf(
-        MealSlot.Breakfast to LocalTime(8, 0),
-        MealSlot.Lunch to LocalTime(12, 30),
-        MealSlot.Snack to LocalTime(15, 30),
-        MealSlot.Dinner to LocalTime(19, 0),
-    )
-
     fun build(
         inputs: TodayInputs,
         policy: VisibilityPolicy,
@@ -102,11 +96,11 @@ object TodayStateBuilder {
             planning = future && !untracked,
             counts = if (summary is TodaySummary.Locked) counts(day, inputs.settings, policy) else null,
             mealTiles = if (!future && layout == TodayLayout.Meals && groupsOn) {
-                MealSlot.meals.map { MealTile(it, tileStatus(day, it, inputs.timeZone)) }
+                MealSlot.meals.map { MealTile(it, tileStatus(day, it, inputs)) }
             } else {
                 null
             },
-            rhythm = if (!future && layout == TodayLayout.Rhythm && groupsOn) rhythm(day, inputs.timeZone) else null,
+            rhythm = if (!future && layout == TodayLayout.Rhythm && groupsOn) rhythm(day, inputs) else null,
             safeFoods = if (!future && layout == TodayLayout.Explorer) inputs.explorer?.safeFoods.orEmpty() else null,
             water = if (!future && layout == TodayLayout.Full && summary !is TodaySummary.Locked) water(day, inputs.settings, policy, context) else null,
             meals = if (future) planned(inputs, policy, context, groupsOn) else meals(inputs, policy, context, layout, groupsOn),
@@ -150,7 +144,7 @@ object TodayStateBuilder {
             delayed -> locked(policy, settings)
             soft is Display.Soft -> softCard(inputs, policy, context, soft)
             else -> macroTiles(day, settings, policy, context, GoalStyle.Default).takeIf { it.isNotEmpty() }?.let(TodaySummary::Focus)
-                ?: counted(day)
+                ?: counted(day, inputs.settings.mealTimes)
         }
     }
 
@@ -191,9 +185,9 @@ object TodayStateBuilder {
             )
         }
 
-    private fun counted(day: Day): TodaySummary.Counted {
+    private fun counted(day: Day, times: MealTimes): TodaySummary.Counted {
         val next = MealSlot.meals.firstOrNull { !day.isMealDone(it) }
-        return TodaySummary.Counted(done = day.doneMealCount, next = next, nextAround = next?.let(usualTimes::getValue))
+        return TodaySummary.Counted(done = day.doneMealCount, next = next, nextAround = next?.let(times::at))
     }
 
     private fun explorer(inputs: TodayInputs): TodaySummary.NewFoods = TodaySummary.NewFoods(
@@ -241,28 +235,49 @@ object TodayStateBuilder {
         }
     }
 
-    private fun tileStatus(day: Day, slot: MealSlot, timeZone: TimeZone): TileStatus {
+    private fun tileStatus(day: Day, slot: MealSlot, inputs: TodayInputs): TileStatus {
         val items = day.items(slot)
         return when {
-            items.isNotEmpty() -> TileStatus.Items(items.size, items.first().localTime(timeZone))
+            items.isNotEmpty() -> TileStatus.Items(items.size, items.first().localTime(inputs.timeZone))
             slot in day.ateNoDetails -> TileStatus.AteNoDetails
-            else -> TileStatus.Empty(usualTimes.getValue(slot))
+            else -> TileStatus.Empty(inputs.settings.mealTimes.at(slot))
         }
     }
 
-    private fun rhythm(day: Day, timeZone: TimeZone): RhythmCard {
+    private fun rhythm(day: Day, inputs: TodayInputs): RhythmCard {
         val next = MealSlot.meals.firstOrNull { !day.isMealDone(it) }
+        val times = inputs.settings.mealTimes
         val rows = MealSlot.meals.map { slot ->
             val items = day.items(slot)
-            val around = usualTimes.getValue(slot)
+            val around = times.at(slot)
             val status = when {
-                items.isNotEmpty() -> RhythmStatus.Logged(items.first().localTime(timeZone), around)
+                items.isNotEmpty() -> RhythmStatus.Logged(items.first().localTime(inputs.timeZone), around)
                 slot in day.ateNoDetails -> RhythmStatus.AteNoDetails(around)
                 else -> RhythmStatus.Pending(around)
             }
             RhythmRow(slot, status, showActions = slot == next)
         }
-        return RhythmCard(done = day.doneMealCount, total = MealSlot.meals.size, rows = rows)
+        return RhythmCard(
+            done = day.doneMealCount,
+            total = MealSlot.meals.size,
+            rows = rows,
+            reminder = rhythmReminder(day, next, inputs),
+        )
+    }
+
+    /**
+     * v3 `today-rhythm.png`: the next meal's reminder under the checklist, with Change times. Only
+     * today, only with `release.reminders` on, and only while a meal is still to come; "Off" with
+     * Set up while meal reminders are off. A next meal whose own switch is off gets no card.
+     */
+    private fun rhythmReminder(day: Day, next: MealSlot?, inputs: TodayInputs): RhythmReminder? {
+        if (!inputs.remindersOn || day.date != inputs.today || next == null) return null
+        val settings = inputs.settings
+        return when {
+            settings.mealReminderLevel == EventLevel.Off -> RhythmReminder.Off
+            settings.mealReminders.isOn(next) -> RhythmReminder.Next(next, settings.mealTimes.at(next))
+            else -> null
+        }
     }
 
     private fun water(day: Day, settings: Settings, policy: VisibilityPolicy, context: FormatContext): WaterRow? {
@@ -348,7 +363,7 @@ object TodayStateBuilder {
         }
         return MealEntry.Collapsed(
             slot = slot,
-            around = usualTimes[slot] ?: LocalTime(12, 0),
+            around = inputs.settings.mealTimes.at(slot),
             usual = usual,
             yesterday = yesterday,
             offerSaved = usual && yesterday == null,

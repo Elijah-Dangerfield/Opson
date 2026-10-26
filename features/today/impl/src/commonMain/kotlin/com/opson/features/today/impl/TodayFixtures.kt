@@ -18,6 +18,7 @@ import com.opson.features.today.impl.water.WaterSheetState
 import com.opson.features.today.impl.water.WaterSheetStateBuilder
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
@@ -25,6 +26,7 @@ import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
@@ -200,7 +202,16 @@ object TodayFixtures {
         settings: Settings = Settings(),
         explorer: ExplorerStats? = explorer(),
         dayBefore: Day = if (day.date == today) yesterday() else Day.empty(day.date.minus(DatePeriod(days = 1))),
-    ): TodayInputs = TodayInputs(today = today, timeZone = timeZone, day = day, dayBefore = dayBefore, settings = settings, explorer = explorer)
+        remindersOn: Boolean = false,
+    ): TodayInputs = TodayInputs(
+        today = today,
+        timeZone = timeZone,
+        day = day,
+        dayBefore = dayBefore,
+        settings = settings,
+        explorer = explorer,
+        remindersOn = remindersOn,
+    )
 
     fun todayState(
         policy: VisibilityPolicy,
@@ -210,7 +221,8 @@ object TodayFixtures {
         clearArmed: Boolean = false,
         highlight: MealSlot? = null,
         added: LoggedToMeal? = null,
-    ): TodayState = TodayStateBuilder.build(inputs(day, settings), policy, menuOpen, clearArmed, highlight, added)
+        remindersOn: Boolean = false,
+    ): TodayState = TodayStateBuilder.build(inputs(day, settings, remindersOn = remindersOn), policy, menuOpen, clearArmed, highlight, added)
 
     fun dayCloseState(
         policy: VisibilityPolicy,
@@ -250,4 +262,11 @@ object TodayFixtures {
         requireNotNull(ItemSheetStateBuilder.build("adobo-$today", day(), today, policy)) { "The fixture day has the adobo" }
 
     fun dayNoteState(): DayNoteState = DayNoteState(draft = "Dinner at Lola's, a lazy Sunday", isToday = true, loaded = true)
+
+    /** Meal reminders on at Subtle, dinner at 7:15 pm (v3 `today-rhythm.png`). */
+    val remindersSet: Settings = Settings(
+        remindersChosen = true,
+        remindersEvent = EventLevel.Subtle,
+        mealTimes = MealTimes(dinner = LocalTime(19, 15)),
+    )
 }

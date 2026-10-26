@@ -112,6 +112,18 @@ sheet's "What's prompting this?" answer.
 |---|---|---|
 | `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details, quick_number, name_only, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
 
+### Reminders
+
+0.2, behind `release.reminders`. Fired through `ReminderEvents` in `:libraries:reminders`. Kinds,
+levels, counts and permission states only: never a meal name, a meal time or any text.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `reminder.set` | `kind` (`meal` / `water`), `level` (`off` / `subtle` / `full`, the meal level as chosen), `meals_on` (0 to 4), `water_on`, `permission` (`granted` / `denied` / `not_asked`) | A change to what gets scheduled: a meal level, a meal switch or a meal time on Reminders (`RemindersViewModel`), water reminders on Water settings (`WaterSettingsViewModel`) |
+| `reminder.permission` | `granted` | After the system notification prompt answers. Only asked when someone turns a reminder on |
+| `reminder.delivered` | `kind`, `snoozed` | **Android only**, when the alarm posts the notification. iOS has no delivery callback for a backgrounded app, so there is no iOS series to compare |
+| `reminder.tapped` | `kind`, `action` (`open` / `log_it` / `already_ate` / `snooze`) | The notification itself or one of its buttons (`ReminderCoordinator`) |
+
 ## Warn+ log forwarding (not events)
 
 Besides events, `GrafanaLogTree` forwards plain KLog lines at Warn and above to Loki as ordinary

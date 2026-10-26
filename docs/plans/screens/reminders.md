@@ -219,7 +219,9 @@ plan is empty and everything is cancelled); large text (rows wrap).
   reminders row.
 - `:features:today:impl`: the Rhythm reminder card per state and flag; times
   from settings.
-- Previews: `reminders` (configured), `reminders-empty` (never set),
-  `reminders-permission-denied`, `reminders-blind`, `reminders-dark`,
-  `reminder-notification`, Today Rhythm with the card.
-- `SURFACES`: `reminders`, `reminder-notification`.
+- Previews: `RemindersScreen.kt` configured, empty (never set), permission
+  denied, Blind, dark, the time dialog; `ReminderNotification.kt` (dinner as
+  v3, and every reminder warm); More and Water settings with the flag on;
+  `TodayRhythmRemindersPreview`.
+- `SURFACES`: `reminders`, `reminder-notification` (settings), `today-reminders` (Today
+  with the Rhythm line).

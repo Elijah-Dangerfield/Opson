@@ -10,6 +10,7 @@ import com.opson.libraries.config.LongConfigValue
 import com.opson.libraries.config.StringConfigValue
 import com.opson.libraries.config.impl.ConfigRefreshThrottleMs
 import com.opson.libraries.config.impl.model.BasicMapAppConfig
+import com.opson.libraries.reminders.RemindersEnabled
 import com.opson.libraries.telemetry.impl.AppEventsEnabled
 import com.opson.libraries.telemetry.impl.AppEventsSampleRate
 import com.opson.libraries.telemetry.impl.KlogForwardingEnabled
@@ -312,6 +313,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     AppEventsEnabled(appConfigMap),
     AppEventsSampleRate(appConfigMap),
     KlogForwardingEnabled(appConfigMap),
+    RemindersEnabled(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"

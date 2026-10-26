@@ -23,6 +23,7 @@ kotlin {
             implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
+            implementation(projects.libraries.reminders)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -43,6 +44,8 @@ kotlin {
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.resources)
             implementation(projects.libraries.ui)
+            implementation(projects.libraries.reminders)
+            implementation(projects.libraries.config)
         }
     }
 }

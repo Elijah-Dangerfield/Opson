@@ -45,6 +45,8 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.config.impl)
             implementation(projects.libraries.telemetry.impl)
+            // RemindersEnabled, for ConfigManifestRegistryDriftTest.
+            implementation(projects.libraries.reminders)
             implementation(libs.kotlinx.serialization.json)
 
             // Boot a real server on an ephemeral port + verify HS256 test JWTs.

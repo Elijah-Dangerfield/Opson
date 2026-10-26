@@ -122,7 +122,21 @@ sealed interface TileStatus {
     data object AteNoDetails : TileStatus
 }
 
-data class RhythmCard(val done: Int, val total: Int, val rows: List<RhythmRow>)
+data class RhythmCard(
+    val done: Int,
+    val total: Int,
+    val rows: List<RhythmRow>,
+    /** The card under the checklist (0.2, `release.reminders`); none when the flag is off. */
+    val reminder: RhythmReminder? = null,
+)
+
+/** v3 `today-rhythm.png`: "Dinner reminder / 7:00 PM, only if dinner isn't logged / Change times". */
+sealed interface RhythmReminder {
+    data class Next(val slot: MealSlot, val at: LocalTime) : RhythmReminder
+
+    /** Meal reminders are off: "Meal reminders / Off / Set up". */
+    data object Off : RhythmReminder
+}
 
 /** [showActions] only on the next meal still to come, so the card is not a wall of buttons. */
 data class RhythmRow(val slot: MealSlot, val status: RhythmStatus, val showActions: Boolean)
@@ -245,6 +259,9 @@ sealed interface TodayAction {
     data class ItemTapped(val entryId: String) : TodayAction
     data object WaterPlusTapped : TodayAction
     data class AlreadyAteTapped(val slot: MealSlot) : TodayAction
+
+    /** Change times or Set up, on the Rhythm card's reminder line. */
+    data object RemindersTapped : TodayAction
     data class RhythmLogTapped(val slot: MealSlot) : TodayAction
     data object CloseDayCardTapped : TodayAction
     data object HighlightFaded : TodayAction
@@ -287,6 +304,7 @@ sealed interface TodayEvent {
     data class OpenItemSheet(val day: LocalDate, val entryId: String) : TodayEvent
     data class OpenWaterSheet(val day: LocalDate) : TodayEvent
     data object OpenTodayCards : TodayEvent
+    data object OpenReminders : TodayEvent
     data class OpenPause(val change: NumbersChange) : TodayEvent
     data class ShowToast(val toast: Toast) : TodayEvent
 }
@@ -301,6 +319,8 @@ data class TodayInputs(
     val settings: Settings,
     /** Only collected in the Explorer layout. */
     val explorer: ExplorerStats? = null,
+    /** `release.reminders`: the Rhythm card's reminder line. */
+    val remindersOn: Boolean = false,
 )
 
 /**
