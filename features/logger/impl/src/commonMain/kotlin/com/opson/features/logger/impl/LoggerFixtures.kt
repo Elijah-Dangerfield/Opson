@@ -53,7 +53,7 @@ object LoggerFixtures {
 
     /** A catalog food whose first portion has exactly these numbers. */
     @Suppress("LongParameterList")
-    private fun food(
+    fun food(
         id: String,
         name: String,
         portion: String,
