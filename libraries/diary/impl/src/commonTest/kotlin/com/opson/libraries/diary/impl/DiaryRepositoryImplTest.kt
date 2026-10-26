@@ -218,6 +218,20 @@ class DiaryRepositoryImplTest : CoroutineTest() {
     }
 
     @Test
+    fun frequentFoodsRanksAcrossEverySlotWithinTheWindow() = runUnitTest {
+        repo.addItems(LocalDate(2026, 10, 20), MealSlot.Breakfast, listOf(draft("Banana")), LogMethod.Search)
+        repo.addItems(LocalDate(2026, 10, 21), MealSlot.Snack, listOf(draft("Banana")), LogMethod.Search)
+        repo.addItems(LocalDate(2026, 10, 22), MealSlot.Dinner, listOf(draft("Banana")), LogMethod.Search)
+        repo.addItems(LocalDate(2026, 10, 23), MealSlot.Lunch, listOf(draft("Rice"), draft("Rice")), LogMethod.Search)
+        repo.addItems(LocalDate(2026, 10, 24), MealSlot.Lunch, listOf(draft("Adobo")), LogMethod.Search)
+        repo.addItems(LocalDate(2026, 8, 1), MealSlot.Lunch, List(4) { draft("Old soup") }, LogMethod.Search)
+
+        val favorites = repo.frequentFoods(limit = 3).first()
+
+        assertEquals(listOf("Banana", "Rice", "Adobo"), favorites.map { it.name })
+    }
+
+    @Test
     fun observeDaysIncludesEveryDateInTheRange() = runUnitTest {
         repo.addItems(LocalDate(2026, 10, 23), MealSlot.Lunch, listOf(draft("Toast", kcal = 100.0)), LogMethod.Search)
 

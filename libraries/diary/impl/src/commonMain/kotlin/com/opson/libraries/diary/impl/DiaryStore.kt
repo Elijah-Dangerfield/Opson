@@ -1,5 +1,6 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.db.CustomFoodDao
 import com.opson.libraries.diary.db.DayRecordDao
@@ -39,13 +40,6 @@ class DiaryTables(
 /** Asks for a sync soon after a local write. [DiarySyncer] debounces it. */
 interface DiarySyncScheduler {
     fun requestSync()
-}
-
-/** The device's calendar: today, in the zone the user is in right now. */
-interface LocalCalendar {
-    fun timeZone(): TimeZone
-
-    fun today(): LocalDate
 }
 
 @SingleIn(AppScope::class)

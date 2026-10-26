@@ -1,5 +1,6 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.core.logging.LogEntry
 import com.opson.libraries.core.logging.LogId
 import com.opson.libraries.core.logging.LogLevel
@@ -145,6 +146,9 @@ class FakeDiaryDb {
 
         override fun observeSlotSince(slot: String, fromDay: String) =
             entries.observe().map { m -> m.values.filter { !it.deleted && it.slot == slot && it.day >= fromDay } }
+
+        override fun observeSince(fromDay: String) =
+            entries.observe().map { m -> m.values.filter { !it.deleted && it.day >= fromDay } }
 
         override suspend fun delete(id: String) {
             recordWrite("log_entries")

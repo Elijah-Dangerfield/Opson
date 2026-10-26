@@ -85,6 +85,14 @@ interface DiaryRepository {
      * frequent first, each as its latest entry. The logger's "Usual at {meal}".
      */
     fun usualAt(slot: MealSlot, limit: Int = 4, days: Int = 28): Flow<List<LogItem>>
+
+    /**
+     * The foods most often logged in any slot over the last [days] days, most
+     * frequent first, each as its latest entry. The logger's Favorites: the
+     * handoff has no way to star a food, so the foods someone keeps coming
+     * back to stand in for it.
+     */
+    fun frequentFoods(limit: Int = 5, days: Int = 30): Flow<List<LogItem>>
 }
 
 interface WeightRepository {

@@ -45,6 +45,9 @@ interface LogEntryDao : ClearableDao {
     @Query("SELECT * FROM log_entries WHERE slot = :slot AND day >= :fromDay AND deleted = 0")
     fun observeSlotSince(slot: String, fromDay: String): Flow<List<LogEntryEntity>>
 
+    @Query("SELECT * FROM log_entries WHERE day >= :fromDay AND deleted = 0")
+    fun observeSince(fromDay: String): Flow<List<LogEntryEntity>>
+
     /** Hard delete, only for undoing a row the server never had. */
     @Query("DELETE FROM log_entries WHERE id = :id")
     suspend fun delete(id: String)

@@ -2,6 +2,7 @@ package com.opson.libraries.diary.impl
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -196,20 +197,25 @@ class DiaryRepositoryImpl(
 
     override fun usualAt(slot: MealSlot, limit: Int, days: Int): Flow<List<LogItem>> = flow {
         val since = calendar.today().minus(days, DateTimeUnit.DAY)
-        emitAll(
-            tables.entries.observeSlotSince(slot.wire, since.toString()).map { rows ->
-                rows.mapNotNull { it.toDomain() }
-                    .groupBy { it.foodKey() }
-                    .values
-                    .sortedWith(
-                        compareByDescending<List<LogItem>> { it.size }
-                            .thenByDescending { group -> group.maxOf { it.loggedAt } },
-                    )
-                    .map { group -> group.maxBy { it.loggedAt } }
-                    .take(limit)
-            },
-        )
+        emitAll(tables.entries.observeSlotSince(slot.wire, since.toString()).map { it.mostFrequent(limit) })
     }
+
+    override fun frequentFoods(limit: Int, days: Int): Flow<List<LogItem>> = flow {
+        val since = calendar.today().minus(days, DateTimeUnit.DAY)
+        emitAll(tables.entries.observeSince(since.toString()).map { it.mostFrequent(limit) })
+    }
+
+    /** Groups by food, most entries first (ties to the most recent), each as its latest entry. */
+    private fun List<LogEntryEntity>.mostFrequent(limit: Int): List<LogItem> =
+        mapNotNull { it.toDomain() }
+            .groupBy { it.foodKey() }
+            .values
+            .sortedWith(
+                compareByDescending<List<LogItem>> { it.size }
+                    .thenByDescending { group -> group.maxOf { it.loggedAt } },
+            )
+            .map { group -> group.maxBy { it.loggedAt } }
+            .take(limit)
 
     // ---------- writes ----------
 
