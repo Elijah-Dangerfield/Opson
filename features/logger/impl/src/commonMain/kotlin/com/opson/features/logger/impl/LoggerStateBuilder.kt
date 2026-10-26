@@ -88,7 +88,7 @@ object LoggerStateBuilder {
                         key = item.key,
                         ref = item.ref,
                         name = item.draft.name,
-                        amount = item.draft.amountText.orEmpty(),
+                        amount = item.draft.amountLabel,
                         calories = policy.resolve(Metric.Calories, item.draft.kcal, Surface.Logger, bare),
                     )
                 },
@@ -204,7 +204,7 @@ object LoggerStateBuilder {
         name = draft.name,
         shortName = shortName(draft.name),
         subtitle = subtitle,
-        amount = draft.amountText.orEmpty(),
+        amount = draft.amountLabel,
         macros = if (draft.hasMacros) {
             policy.macroLine(draft.amounts(), Surface.Logger, bare, MacroLineStyle.Compact)
         } else {

@@ -83,7 +83,7 @@ object CreateMealStateBuilder {
             items = items.map { item ->
                 MealItemUi(
                     name = item.name,
-                    amount = item.amountText.orEmpty(),
+                    amount = item.amountLabel,
                     calories = policy.resolve(Metric.Calories, item.kcal, Surface.Foods, bare),
                 )
             },

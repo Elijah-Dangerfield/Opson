@@ -93,7 +93,7 @@ object FoodsStateBuilder {
                     key = ref.key,
                     target = FoodsTarget.Food(ref),
                     name = food.name,
-                    sub = listOfNotNull(food.brand?.takeIf { it.isNotBlank() }, food.toDraft().amountText).joinToString(SEPARATOR),
+                    sub = listOfNotNull(food.brand?.takeIf { it.isNotBlank() }, food.toDraft().amountLabel.takeIf { it.isNotEmpty() }).joinToString(SEPARATOR),
                     calories = calories(food.kcal),
                 )
             },
@@ -104,7 +104,7 @@ object FoodsStateBuilder {
                     key = ref.key,
                     target = FoodsTarget.Food(ref),
                     name = item.name,
-                    sub = item.amountText.orEmpty(),
+                    sub = item.amountLabel,
                     calories = calories(item.kcal),
                 )
             }.distinctBy { it.key },
