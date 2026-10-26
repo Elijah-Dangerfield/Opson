@@ -44,7 +44,6 @@ import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Lock as OutlinedLock
 import androidx.compose.material.icons.outlined.Visibility as OutlinedVisibility
 import androidx.compose.material.icons.outlined.VisibilityOff as OutlinedVisibilityOff
-import androidx.compose.material.icons.rounded.SupportAgent
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.MoreVert
@@ -235,8 +234,6 @@ object AppIcons {
     val WaterDropOutline get() = icon("water_drop_outline", MaterialIcons.Outlined.WaterDrop)
     val Support get() = icon("support", MaterialIcons.Rounded.Support)
 
-    /** A person with a headset: "Talk to someone", which opens Find support. */
-    val SupportAgent get() = icon("support_agent", MaterialIcons.Rounded.SupportAgent)
     val WorkspacePremium get() = icon("workspace_premium", MaterialIcons.Outlined.WorkspacePremium)
     val Download get() = icon("download", MaterialIcons.Rounded.Download)
 
@@ -311,7 +308,7 @@ object AppIcons {
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             SearchOff, Cancel, ArrowBack, ExpandMore,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
-            Visibility, VisibilityOutline, VisibilityOffOutline, BlurOn, Mail, Group, LockOutlined, SupportAgent,
+            Visibility, VisibilityOutline, VisibilityOffOutline, BlurOn, Mail, Group, LockOutlined,
             OpenInNew, Target, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
             Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch, Widgets,
