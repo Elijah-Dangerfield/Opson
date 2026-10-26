@@ -355,7 +355,6 @@ class OfflineFirstAppConfigRepositoryTest : CoroutineTest() {
 
     private class FakeConfigOverrideRepository : ConfigOverrideRepository {
         private val flow = MutableStateFlow<List<ConfigOverride<Any>>>(emptyList())
-        override fun getOverrides(): List<ConfigOverride<Any>> = flow.value
         override fun getOverridesFlow(): Flow<List<ConfigOverride<Any>>> = flow
         override suspend fun addOverride(override: ConfigOverride<Any>) {
             flow.value = flow.value.filter { it.path != override.path } + override

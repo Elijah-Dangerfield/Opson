@@ -7,6 +7,7 @@ import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,13 +17,24 @@ import kotlin.test.assertTrue
 class ConfigOverrideRepositoryImplTest : CoroutineTest() {
 
     @Test
+    fun construction_doesNotReadTheCache() = runUnitTest {
+        // Built at app start on the main thread: a blocking read here is disk
+        // I/O before the first frame on every launch.
+        val cache = FakeConfigCache()
+
+        newRepo(cache = cache)
+
+        assertEquals(0, cache.reads)
+    }
+
+    @Test
     fun init_hydratesFromCachedOverridesJson() = runUnitTest {
         val cache = FakeConfigCache().apply {
             seed(overridesJson = """[{"path":"feature.flag","value":true}]""")
         }
         val repo = newRepo(cache = cache)
 
-        val overrides = repo.getOverrides()
+        val overrides = repo.getOverridesFlow().first()
         assertEquals(1, overrides.size)
         assertEquals("feature.flag", overrides.first().path)
         assertEquals(true, overrides.first().value)
@@ -31,7 +43,7 @@ class ConfigOverrideRepositoryImplTest : CoroutineTest() {
     @Test
     fun init_withEmptyCache_returnsNoOverrides() = runUnitTest {
         val repo = newRepo(cache = FakeConfigCache())
-        assertTrue(repo.getOverrides().isEmpty())
+        assertTrue(repo.getOverridesFlow().first().isEmpty())
     }
 
     @Test
@@ -41,7 +53,7 @@ class ConfigOverrideRepositoryImplTest : CoroutineTest() {
         }
         val repo = newRepo(cache = cache)
 
-        assertTrue(repo.getOverrides().isEmpty(), "malformed JSON must not crash; fall back to empty")
+        assertTrue(repo.getOverridesFlow().first().isEmpty(), "malformed JSON must not crash; fall back to empty")
     }
 
     @Test
@@ -53,7 +65,7 @@ class ConfigOverrideRepositoryImplTest : CoroutineTest() {
 
         val stored = cache.get().overridesJson
         assertTrue(stored != null && "ui.theme" in stored, "addOverride writes the new path to cache")
-        assertEquals("dark", repo.getOverrides().single().value)
+        assertEquals("dark", repo.getOverridesFlow().first().single().value)
     }
 
     @Test
@@ -64,7 +76,7 @@ class ConfigOverrideRepositoryImplTest : CoroutineTest() {
         repo.addOverride(ConfigOverride("toggle", false as Any))
         repo.addOverride(ConfigOverride("toggle", true as Any))
 
-        val all = repo.getOverrides()
+        val all = repo.getOverridesFlow().first()
         assertEquals(1, all.size, "same-path adds must dedup, not stack")
         assertEquals(true, all.single().value)
     }
@@ -77,7 +89,7 @@ class ConfigOverrideRepositoryImplTest : CoroutineTest() {
         repo.addOverride(ConfigOverride("a.b", 1 as Any))
         repo.addOverride(ConfigOverride("c.d", 2 as Any))
 
-        val paths = repo.getOverrides().map { it.path }.toSet()
+        val paths = repo.getOverridesFlow().first().map { it.path }.toSet()
         assertEquals(setOf("a.b", "c.d"), paths)
     }
 
@@ -87,11 +99,11 @@ class ConfigOverrideRepositoryImplTest : CoroutineTest() {
             seed(overridesJson = """[{"path":"x","value":1}]""")
         }
         val repo = newRepo(cache = cache)
-        assertEquals(1, repo.getOverrides().size)
+        assertEquals(1, repo.getOverridesFlow().first().size)
 
         repo.clearAll()
 
-        assertTrue(repo.getOverrides().isEmpty())
+        assertTrue(repo.getOverridesFlow().first().isEmpty())
         assertNull(cache.get().overridesJson, "clearAll nulls the persisted JSON, not just an empty array")
     }
 
@@ -145,7 +157,9 @@ class ConfigOverrideRepositoryImplTest : CoroutineTest() {
     private class FakeConfigCache : ConfigCache {
         private val state = MutableStateFlow(ConfigCacheSnapshot())
         override val updates: Flow<ConfigCacheSnapshot> = state
-        override suspend fun get(): ConfigCacheSnapshot = state.value
+        var reads: Int = 0
+            private set
+        override suspend fun get(): ConfigCacheSnapshot = state.value.also { reads++ }
         override suspend fun set(value: ConfigCacheSnapshot) { state.value = value }
         override suspend fun clear() { state.value = ConfigCacheSnapshot() }
         fun seed(configJson: String? = null, overridesJson: String? = null) {
