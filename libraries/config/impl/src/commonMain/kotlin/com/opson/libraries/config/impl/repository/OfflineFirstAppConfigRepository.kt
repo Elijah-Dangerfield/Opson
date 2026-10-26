@@ -62,10 +62,10 @@ private val ConfigRefreshTimeout = 5.seconds
  * snapshot survives launches, and [cachedConfigFlow] starts from the bundled
  * fallback when there isn't one.
  *
- * Failure path: if the network fetch fails AND there's no prior cached snapshot,
- * the bundled fallback config is persisted so a later process starts from disk
- * rather than re-deciding. With a prior snapshot, the failure is logged and the
- * prior snapshot stays in place — the next foreground past the throttle tries
+ * Failure path: a failed fetch is logged and changes nothing. A prior snapshot
+ * stays in place, and with none the stream keeps serving the bundled fallback.
+ * The fallback is never written to disk: a persisted copy would outlive the app
+ * update that ships a newer one. The next foreground past the throttle tries
  * again.
  */
 @ContributesBinding(AppScope::class, boundType = AppConfigRepository::class)
@@ -176,12 +176,7 @@ class OfflineFirstAppConfigRepository @Inject constructor(
                         persistConfig(config)
                     }
                     .onFailure { throwable ->
-                        if (!hasCachedConfig()) {
-                            logger.w(throwable) { "No cached config available, using fallback" }
-                            persistConfig(fallbackConfig)
-                        } else {
-                            logger.w(throwable) { "Falling back to cached config" }
-                        }
+                        logger.w(throwable) { "Config refresh failed; keeping the current config" }
                     }
                     .ignoreValue()
             }.also { job -> refreshJob = job }
@@ -197,8 +192,6 @@ class OfflineFirstAppConfigRepository @Inject constructor(
                 logger.e(error) { "Unable to persist config" }
             }
     }
-
-    private suspend fun hasCachedConfig(): Boolean = configCache.get().configJson != null
 
     private fun decodeConfig(raw: String): AppConfigMap? =
         converter.decodeToMap(raw)

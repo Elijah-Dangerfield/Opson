@@ -51,16 +51,20 @@ class OfflineFirstAppConfigRepositoryTest : CoroutineTest() {
     }
 
     @Test
-    fun refresh_failureWithNoCachedConfig_persistsFallback() = runUnitTest {
+    fun refresh_failureWithNoCachedConfig_servesTheFallbackWithoutPersistingIt() = runUnitTest {
         val fallback = TestFallbackConfigMap(map = mapOf("fallback" to "yes"))
         val source = FakeRemoteDataSource().apply { failNext = RuntimeException("server down") }
+        val cache = FakeConfigCache()
         val events = FakeAppEvents()
-        val repo = newRepo(source = source, fallback = fallback, events = events)
+        val repo = newRepo(source = source, cache = cache, fallback = fallback, events = events)
         events.foreground(isColdBoot = true)
         runCurrent()
 
         val emitted = repo.configStream().first()
-        assertEquals("yes", emitted.map["fallback"], "fallback config persisted when no cache present")
+        assertEquals("yes", emitted.map["fallback"])
+        // A saved copy of this build's fallback would beat the newer one the
+        // next app update ships, until a fetch finally succeeded.
+        assertNull(cache.get().configJson, "the bundled fallback must not be written to disk")
     }
 
     @Test
