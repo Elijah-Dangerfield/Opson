@@ -11,6 +11,7 @@ import com.opson.features.logger.LogRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.ModesRoute
+import com.opson.features.settings.RemindersRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
 import com.opson.features.today.DayCloseRoute
@@ -251,6 +252,7 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenMealFeel -> router.navigate(MealFeelRoute(event.day.toString(), event.slot))
             TodayEvent.OpenTodayCards -> router.navigate(TodayCardsRoute())
             TodayEvent.OpenFasting -> router.navigate(FastingRoute())
+            TodayEvent.OpenReminders -> router.navigate(RemindersRoute())
             is TodayEvent.OpenDayNote -> router.navigate(DayNoteRoute(event.day.toString()))
             is TodayEvent.OpenMealSheet -> router.navigate(MealSheetRoute(event.day.toString(), event.slot))
             is TodayEvent.OpenItemSheet -> router.navigate(ItemSheetRoute(event.day.toString(), event.entryId))

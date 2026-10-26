@@ -22,6 +22,9 @@ import opson.libraries.resources.generated.resources.fasting_title
 import opson.libraries.resources.generated.resources.integrations_more_connected
 import opson.libraries.resources.generated.resources.integrations_more_not_connected
 import opson.libraries.resources.generated.resources.integrations_more_title
+import opson.libraries.resources.generated.resources.reminders_more_quiet_off
+import opson.libraries.resources.generated.resources.reminders_more_quiet_on
+import opson.libraries.resources.generated.resources.reminders_more_row
 import opson.libraries.resources.generated.resources.settings_modes_changes
 import opson.libraries.resources.generated.resources.settings_more_look
 import opson.libraries.resources.generated.resources.settings_more_look_sub
@@ -104,6 +107,14 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             showDivider = showDivider,
             onClick = onClick,
         )
+        is MoreRow.Reminders -> SettingsRow(
+            title = stringResource(Res.string.reminders_more_row),
+            icon = AppIcons.Notifications,
+            subtitle = stringResource(if (row.quiet) Res.string.reminders_more_quiet_on else Res.string.reminders_more_quiet_off),
+            chevron = true,
+            showDivider = showDivider,
+            onClick = onClick,
+        )
         is MoreRow.Health -> SettingsRow(
             title = stringResource(Res.string.integrations_more_title),
             icon = AppIcons.Watch,
@@ -152,6 +163,13 @@ private fun MorePreview() {
 private fun MoreFuelWithAChangeDarkPreview() {
     val settings = SettingsFixtures.settings(SettingsFixtures.fuelWithACarbsChange)
     SettingsPreview(dark = true) { MoreScreen(MoreStateBuilder.build(settings), onAction = {}) }
+}
+
+/** With `release.reminders` on: Reminders and celebrations in the first card. */
+@Preview
+@Composable
+private fun MoreRemindersPreview() {
+    SettingsPreview { MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings(), remindersOn = true), onAction = {}) }
 }
 
 @Preview

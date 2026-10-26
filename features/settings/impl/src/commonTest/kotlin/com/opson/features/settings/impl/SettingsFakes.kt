@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl
 
+import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.diary.DiarySync
 import com.opson.libraries.diary.NumbersChanger
@@ -22,6 +23,9 @@ import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.reminders.NotificationPermission
+import com.opson.libraries.reminders.NotificationPermissions
+import com.opson.libraries.reminders.RemindersEnabled
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -135,6 +139,41 @@ class FakeAuthRepository(var deleteOutcome: DeleteAccountOutcome = DeleteAccount
     override suspend fun linkEmailIdentity(email: String, password: String): LinkEmailIdentityOutcome = unused()
 
     private fun unused(): Nothing = error("Settings never calls this")
+}
+
+/** `release.reminders`, on or off. */
+fun remindersFlag(on: Boolean = false): RemindersEnabled = RemindersEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("reminders" to on))
+    },
+)
+
+/**
+ * Notification permission as the system would answer: [status] until asked, then [answer] once
+ * the prompt is shown. Counts prompts, so a test can prove nothing asked at the wrong moment.
+ */
+class FakeNotificationPermissions(
+    var status: NotificationPermission = NotificationPermission.NotAsked,
+    private val answer: NotificationPermission = NotificationPermission.Granted,
+) : NotificationPermissions {
+    var prompts = 0
+        private set
+    var settingsOpened = 0
+        private set
+
+    override suspend fun status(): NotificationPermission = status
+
+    override suspend fun request(): NotificationPermission {
+        if (status == NotificationPermission.NotAsked) {
+            prompts++
+            status = answer
+        }
+        return status
+    }
+
+    override fun openSettings() {
+        settingsOpened++
+    }
 }
 
 /** Every event [vm] sends from now on, in order. */

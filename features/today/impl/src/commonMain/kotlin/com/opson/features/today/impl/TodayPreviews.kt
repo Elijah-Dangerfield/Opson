@@ -49,8 +49,12 @@ private fun Today(
     settings: Settings = Settings(),
     highlight: MealSlot? = null,
     added: LoggedToMeal? = null,
+    remindersOn: Boolean = false,
 ) {
-    TodayScreen(state = TodayFixtures.todayState(policy, day = day, settings = settings, highlight = highlight, added = added), onAction = {})
+    TodayScreen(
+        state = TodayFixtures.todayState(policy, day = day, settings = settings, highlight = highlight, added = added, remindersOn = remindersOn),
+        onAction = {},
+    )
 }
 
 @Preview(widthDp = 390, heightDp = 844)
@@ -120,6 +124,13 @@ private fun TodayFuelPreview() = Phone { Today(policy(PresetId.Fuel)) }
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayRhythmPreview() = Phone { Today(policy(PresetId.Rhythm)) }
+
+/** v3 `today-rhythm.png` with `release.reminders` on: dinner's reminder under the checklist. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayRhythmRemindersPreview() = Phone {
+    Today(policy(PresetId.Rhythm), settings = TodayFixtures.remindersSet, remindersOn = true)
+}
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

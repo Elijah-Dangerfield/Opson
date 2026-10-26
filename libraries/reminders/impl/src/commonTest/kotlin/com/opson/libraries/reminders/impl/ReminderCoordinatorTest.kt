@@ -1,0 +1,179 @@
+package com.opson.libraries.reminders.impl
+
+import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.EventLevel
+import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.Settings
+import com.opson.libraries.flowroutines.AppCoroutineScope
+import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.opson.AppEvents
+import com.opson.libraries.reminders.MealOpen
+import com.opson.libraries.reminders.Reminder
+import com.opson.libraries.reminders.ReminderAction
+import com.opson.libraries.reminders.ReminderKey
+import com.opson.libraries.reminders.ReminderStyle
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.TestScope
+import kotlinx.datetime.LocalDate
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
+
+/**
+ * The coordinator against a fake platform: what it schedules as the flag, the settings and the
+ * day move, and what it does with a notification's buttons. The rules themselves are
+ * `ReminderPlannerTest`.
+ */
+class ReminderCoordinatorTest : CoroutineTest() {
+
+    private val today = LocalDate(2026, 10, 25)
+    private val now = Instant.parse("2026-10-25T12:00:00Z")
+    private val clock = object : Clock {
+        override fun now(): Instant = now
+    }
+    private val chosen = Settings(remindersChosen = true, remindersEvent = EventLevel.Full, quiet = false)
+
+    private val flag = MutableStateFlow(true)
+    private val platform = FakeLocalNotifications()
+    private val diary = FakeDiary()
+    private lateinit var settings: FakeSettingsRepository
+    private lateinit var appScope: AppCoroutineScope
+
+    private fun coordinator(initial: Settings = chosen, known: Boolean = true): ReminderCoordinator {
+        settings = FakeSettingsRepository(initial, known)
+        appScope = AppCoroutineScope(dispatchers)
+        return ReminderCoordinator(
+            config = configFlow(flag),
+            settingsRepository = settings,
+            diary = diary,
+            calendar = FixedCalendar(today),
+            appEvents = AppEvents(FakeEventBus()),
+            clock = clock,
+            notifications = platform,
+            strings = { it.key },
+            appScope = appScope,
+        )
+    }
+
+    private fun test(block: suspend TestScope.() -> Unit) = runUnitTest {
+        try {
+            block()
+        } finally {
+            appScope.cancel()
+        }
+    }
+
+    private fun meal(slot: MealSlot) = ReminderKey.Meal(today, slot)
+
+    @Test
+    fun withTheFlagOffNothingIsScheduled_andWhatWasShowingGoes() = test {
+        flag.value = false
+        coordinator()
+
+        assertEquals(emptyList(), platform.ids)
+        assertTrue(platform.dismissedAll > 0)
+    }
+
+    @Test
+    fun turningTheFlagOnSchedules_andOffCancels() = test {
+        flag.value = false
+        coordinator()
+        flag.value = true
+
+        assertTrue(meal(MealSlot.Dinner).id in platform.ids)
+        assertTrue(meal(MealSlot.Lunch).id in platform.ids)
+
+        flag.value = false
+        assertEquals(emptyList(), platform.ids)
+    }
+
+    @Test
+    fun settingsThatAreNotTheUsersYetScheduleNothing() = test {
+        coordinator(known = false)
+        assertEquals(0, platform.replaces)
+
+        settings.known.value = true
+        assertTrue(platform.ids.isNotEmpty())
+    }
+
+    @Test
+    fun theTextIsTheCopysResources_inTheChosenTone_andTheLoudnessFollowsTheLevel() = test {
+        coordinator()
+
+        val dinner = platform.scheduled.first { it.reminder.key == meal(MealSlot.Dinner) }
+        assertEquals("reminders_note_dinner", dinner.title)
+        assertEquals("reminders_note_meal_body", dinner.body)
+        assertEquals(listOf("reminders_note_already_ate", "reminders_note_log_it", "reminders_note_snooze"), dinner.actions.map { it.second })
+        assertEquals(ReminderStyle.Full, dinner.style)
+
+        settings.update { it.copy(tone = com.opson.libraries.diary.Tone.Warm, quiet = true) }
+        val warm = platform.scheduled.first { it.reminder.key == meal(MealSlot.Dinner) }
+        assertEquals("reminders_note_dinner_warm", warm.title)
+        assertEquals(ReminderStyle.FullQuiet, warm.style)
+    }
+
+    @Test
+    fun loggingAMealDropsItsNudge_andTakesADeliveredOneOffTheScreen() = test {
+        coordinator()
+        assertTrue(meal(MealSlot.Dinner).id in platform.ids)
+
+        diary.days.value = mapOf(today to Day.empty(today).copy(ateNoDetails = setOf(MealSlot.Dinner)))
+
+        assertTrue(meal(MealSlot.Dinner).id !in platform.ids)
+        assertTrue(meal(MealSlot.Dinner) in platform.dismissed)
+        assertTrue(ReminderKey.Meal(LocalDate(2026, 10, 26), MealSlot.Dinner).id in platform.ids, "tomorrow's stays")
+    }
+
+    @Test
+    fun alreadyAteMarksTheMeal_withNoDetails() = test {
+        val coordinator = coordinator()
+        val dinner = Reminder(meal(MealSlot.Dinner), Instant.parse("2026-10-25T19:00:00Z"))
+
+        coordinator.alreadyAte(dinner)
+
+        assertEquals(setOf(MealSlot.Dinner), diary.days.value.getValue(today).ateNoDetails)
+        assertTrue(meal(MealSlot.Dinner) in platform.dismissed)
+        assertTrue(meal(MealSlot.Dinner).id !in platform.ids)
+    }
+
+    @Test
+    fun aSnoozeComesBackInThirtyMinutes_andSurvivesAReplan() = test {
+        val coordinator = coordinator()
+        val lunch = Reminder(meal(MealSlot.Lunch), Instant.parse("2026-10-25T12:00:00Z"))
+
+        coordinator.snooze(lunch)
+
+        val snoozed = platform.scheduled.single { it.reminder.snoozed }
+        assertEquals(now + 30.minutes, snoozed.reminder.at)
+        assertEquals(meal(MealSlot.Lunch), snoozed.reminder.key)
+
+        settings.update { it.copy(quiet = true) } // any replan
+        assertTrue(snoozed.reminder.id in platform.ids)
+    }
+
+    @Test
+    fun aTapOpensTheLoggerForThatMealOnce() = test {
+        val coordinator = coordinator()
+        val dinner = Reminder(meal(MealSlot.Dinner), Instant.parse("2026-10-25T19:00:00Z"))
+
+        coordinator.opened(dinner, ReminderAction.LogIt)
+
+        assertEquals(MealOpen(MealSlot.Dinner, today), coordinator.requests.first())
+        assertTrue(meal(MealSlot.Dinner) in platform.dismissed)
+    }
+
+    @Test
+    fun aRefreshReappliesAnUnchangedPlan_asAfterAReboot() = test {
+        val coordinator = coordinator()
+        val before = platform.replaces
+
+        coordinator.refresh()
+
+        assertTrue(platform.replaces > before)
+    }
+}

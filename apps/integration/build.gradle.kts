@@ -47,6 +47,8 @@ kotlin {
             // FastingReleaseFlag (release.fasting), for the config manifest drift test.
             implementation(projects.libraries.diary)
             implementation(projects.libraries.telemetry.impl)
+            // RemindersEnabled, for ConfigManifestRegistryDriftTest.
+            implementation(projects.libraries.reminders)
             // HealthReleaseFlag, for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.health)
             // `release.barcode` lives next to the logger it gates.

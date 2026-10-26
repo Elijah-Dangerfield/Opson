@@ -2,6 +2,10 @@ package com.opson.server.db
 
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.ColumnType
+import org.jetbrains.exposed.sql.Expression
+import org.jetbrains.exposed.sql.ExpressionWithColumnType
+import org.jetbrains.exposed.sql.IColumnType
+import org.jetbrains.exposed.sql.QueryBuilder
 import org.jetbrains.exposed.sql.Table
 import org.postgresql.util.PGobject
 
@@ -37,3 +41,21 @@ private class JsonbColumnType : ColumnType<String>() {
  * because there's no text→jsonb implicit cast.
  */
 fun Table.jsonb(name: String): Column<String> = registerColumn(name, JsonbColumnType())
+
+/**
+ * `stored || incoming`: Postgres's shallow JSONB merge. Keys in [incoming]
+ * win; keys only in [stored] are kept. Used where an older client may send
+ * an object without fields a newer client added (see the settings upsert).
+ */
+fun jsonbMerge(stored: Column<String>, incoming: Expression<String>): Expression<String> =
+    object : ExpressionWithColumnType<String>() {
+        override val columnType: IColumnType<String> = stored.columnType
+
+        override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+            queryBuilder.append("(")
+            queryBuilder.append(stored)
+            queryBuilder.append(" || ")
+            queryBuilder.append(incoming)
+            queryBuilder.append(")")
+        }
+    }

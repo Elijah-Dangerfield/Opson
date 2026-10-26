@@ -44,3 +44,9 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
       `docs/plans/screens/barcode.md` to `legal/privacy.md`.
 - [ ] Try a real scan on an iPhone and an Android phone: a hit, a miss and a
       denied camera.
+
+## Server, before any 0.2 build reaches people
+
+- [ ] Deploy the server to prod once 0.1 is through review. It carries the
+      settings merge (a 0.1 phone saving settings must not erase what a 0.2
+      phone added), V12 to V14, and the new routes.

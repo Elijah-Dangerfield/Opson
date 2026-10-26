@@ -2,6 +2,7 @@ package com.opson.features.settings.impl.look
 
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.remindersFlag
 import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.diary.TextSize
 import com.opson.libraries.diary.ThemeMode
@@ -21,7 +22,7 @@ class LookAndFeelViewModelTest : CoroutineTest() {
     @Test
     fun eachPickWritesItsField() = runUnitTest {
         val repository = FakeSettingsRepository()
-        val vm = LookAndFeelViewModel(repository)
+        val vm = LookAndFeelViewModel(repository, remindersFlag())
 
         vm.takeAction(LookAndFeelAction.PalettePicked(PaletteChoice.Clay))
         vm.takeAction(LookAndFeelAction.ThemePicked(ThemeMode.Dark))
@@ -45,7 +46,7 @@ class LookAndFeelViewModelTest : CoroutineTest() {
     @Test
     fun theHungerQuestionsSwitchFlipsBack() = runUnitTest {
         val repository = FakeSettingsRepository()
-        val vm = LookAndFeelViewModel(repository)
+        val vm = LookAndFeelViewModel(repository, remindersFlag())
 
         vm.takeAction(LookAndFeelAction.HungerQuestionsToggled)
         assertFalse(repository.state.value.askTags)
@@ -56,11 +57,17 @@ class LookAndFeelViewModelTest : CoroutineTest() {
 
     @Test
     fun backCloses() = runUnitTest {
-        val vm = LookAndFeelViewModel(FakeSettingsRepository())
+        val vm = LookAndFeelViewModel(FakeSettingsRepository(), remindersFlag())
         val events = eventsOf(vm)
 
         vm.takeAction(LookAndFeelAction.BackTapped)
 
         assertEquals(listOf<LookAndFeelEvent>(LookAndFeelEvent.Close), events)
+    }
+
+    @Test
+    fun toneAndHungerQuestionsMoveToRemindersWithTheFlag() = runUnitTest {
+        assertEquals(true, LookAndFeelViewModel(FakeSettingsRepository(), remindersFlag(on = false)).state.showsTalk)
+        assertEquals(false, LookAndFeelViewModel(FakeSettingsRepository(), remindersFlag(on = true)).state.showsTalk)
     }
 }

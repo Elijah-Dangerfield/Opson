@@ -8,6 +8,7 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.reminders.RemindersEnabled
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
@@ -22,6 +23,7 @@ class MoreViewModel(
     settingsRepository: SettingsRepository,
     private val health: HealthRepository,
     healthFlag: HealthReleaseFlag,
+    private val remindersEnabled: RemindersEnabled,
     private val fastingRelease: FastingRelease,
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
@@ -43,7 +45,12 @@ class MoreViewModel(
     override suspend fun handleAction(action: MoreAction) {
         when (action) {
             is MoreAction.InputsArrived -> action.updateState {
-                MoreStateBuilder.build(action.settings, action.healthConnected, fastingRelease.isOn())
+                MoreStateBuilder.build(
+                    action.settings,
+                    action.healthConnected,
+                    remindersOn = remindersEnabled(),
+                    fastingReleased = fastingRelease.isOn(),
+                )
             }
             MoreAction.ScreenResumed -> health.refresh()
             is MoreAction.RowTapped -> when (action.row) {
@@ -51,6 +58,7 @@ class MoreViewModel(
                 MoreRow.Targets -> sendEvent(MoreEvent.OpenTargets)
                 MoreRow.LookAndFeel -> sendEvent(MoreEvent.OpenLookAndFeel)
                 is MoreRow.Health -> sendEvent(MoreEvent.OpenHealth)
+                is MoreRow.Reminders -> sendEvent(MoreEvent.OpenReminders)
                 is MoreRow.Water -> sendEvent(MoreEvent.OpenWater)
                 is MoreRow.Fasting -> sendEvent(MoreEvent.OpenFasting)
                 MoreRow.Support -> sendEvent(MoreEvent.OpenSupport)
@@ -66,6 +74,7 @@ sealed interface MoreEvent {
     data object OpenWater : MoreEvent
     data object OpenLookAndFeel : MoreEvent
     data object OpenHealth : MoreEvent
+    data object OpenReminders : MoreEvent
     data object OpenSupport : MoreEvent
     data object OpenFasting : MoreEvent
 }

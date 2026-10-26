@@ -17,6 +17,7 @@ import com.opson.features.settings.LookAndFeelRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.MoreRoute
 import com.opson.features.settings.PauseBeforeMoreRoute
+import com.opson.features.settings.RemindersRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.TargetsRoute
 import com.opson.features.settings.WaterSettingsRoute
@@ -41,6 +42,10 @@ import com.opson.features.settings.impl.pause.PauseAction
 import com.opson.features.settings.impl.pause.PauseEvent
 import com.opson.features.settings.impl.pause.PauseSheetContent
 import com.opson.features.settings.impl.pause.PauseViewModel
+import com.opson.features.settings.impl.reminders.RemindersAction
+import com.opson.features.settings.impl.reminders.RemindersEvent
+import com.opson.features.settings.impl.reminders.RemindersScreen
+import com.opson.features.settings.impl.reminders.RemindersViewModel
 import com.opson.features.settings.impl.support.EXPORT_MIME_TYPE
 import com.opson.features.settings.impl.support.SupportEvent
 import com.opson.features.settings.impl.support.SupportScreen
@@ -84,6 +89,7 @@ class SettingsFeatureEntryPoint(
     private val lookAndFeelViewModel: () -> LookAndFeelViewModel,
     private val supportViewModel: () -> SupportViewModel,
     private val fastingViewModel: () -> FastingViewModel,
+    private val remindersViewModel: () -> RemindersViewModel,
     private val integrationsViewModel: () -> IntegrationsViewModel,
 ) : FeatureEntryPoint {
 
@@ -100,6 +106,7 @@ class SettingsFeatureEntryPoint(
                         MoreEvent.OpenLookAndFeel -> LookAndFeelRoute()
                         MoreEvent.OpenSupport -> SupportRoute()
                         MoreEvent.OpenFasting -> FastingRoute()
+                        MoreEvent.OpenReminders -> RemindersRoute()
                         MoreEvent.OpenHealth -> IntegrationsRoute()
                     },
                 )
@@ -219,6 +226,22 @@ class SettingsFeatureEntryPoint(
                 }
             }
             LookAndFeelScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        screen<RemindersRoute> {
+            val viewModel: RemindersViewModel = viewModel { remindersViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            // Back from the system's notification settings, permission may have changed.
+            LifecycleResumeEffect(viewModel) {
+                viewModel.takeAction(RemindersAction.ScreenResumed)
+                onPauseOrDispose { }
+            }
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    RemindersEvent.Close -> router.goBack()
+                }
+            }
+            RemindersScreen(state = state, onAction = viewModel::takeAction)
         }
 
         screen<SupportRoute> {

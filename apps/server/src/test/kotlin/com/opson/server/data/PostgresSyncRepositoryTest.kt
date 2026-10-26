@@ -176,6 +176,28 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
     }
 
     @Test
+    fun anOlderClientsSettingsKeepKeysItDoesNotKnow() = runTest {
+        val user = seedAuthUser()
+        // A newer client adds mealTimes; an older one, unaware of it, later changes the preset.
+        repo.sync(user, 0, listOf(mutation(UserSettings("""{"preset":"full","mealTimes":{"lunch":"12:30"}}""", T0, T0, false))))
+        repo.sync(user, 0, listOf(mutation(UserSettings("""{"preset":"blind"}""", T0, T0 + 1.minutes, false))))
+
+        val stored = repo.sync(user, 0, emptyList()).changes.settings!!.settingsJson
+        assertTrue(stored.contains("\"preset\": \"blind\""), stored)
+        assertTrue(stored.contains("\"mealTimes\": {\"lunch\": \"12:30\"}"), stored)
+    }
+
+    @Test
+    fun anOlderSettingsWriteStillLoses() = runTest {
+        val user = seedAuthUser()
+        repo.sync(user, 0, listOf(mutation(UserSettings("""{"preset":"full"}""", T0, T0 + 1.minutes, false))))
+        repo.sync(user, 0, listOf(mutation(UserSettings("""{"preset":"blind","extra":1}""", T0, T0, false))))
+
+        val stored = repo.sync(user, 0, emptyList()).changes.settings!!.settingsJson
+        assertTrue(stored.contains("\"preset\": \"full\"") && !stored.contains("extra"), stored)
+    }
+
+    @Test
     fun perDayRowsUpsertOnTheirNaturalKey() = runTest {
         val user = seedAuthUser()
         val first = DayRecord(DAY, 500, null, null, emptyMap(), null, T0, false)

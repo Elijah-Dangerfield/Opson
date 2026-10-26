@@ -1,6 +1,9 @@
 package com.opson.features.settings.impl
 
+import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MacroMode
+import com.opson.libraries.diary.MealReminders
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.Metric
@@ -11,6 +14,7 @@ import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -90,5 +94,18 @@ object SettingsFixtures {
         overrides = mapOf(Metric.Carbs to Visibility.Show),
         pauseBeforeMore = true,
         changedAt = Instant.parse("2026-10-25T20:14:00Z"),
+    )
+
+    /**
+     * v3 `reminders`: quiet mode on, the big-day card at Full, meal reminders Subtle with
+     * breakfast at 8:30, lunch at 1:00 and dinner at 7:15 on and the snack off.
+     */
+    val remindersSet: Settings = settings().copy(
+        quiet = true,
+        bigDayEvent = EventLevel.Full,
+        remindersChosen = true,
+        remindersEvent = EventLevel.Subtle,
+        mealReminders = MealReminders(breakfast = true, lunch = true, snack = false, dinner = true),
+        mealTimes = MealTimes(breakfast = LocalTime(8, 30), lunch = LocalTime(13, 0), dinner = LocalTime(19, 15)),
     )
 }

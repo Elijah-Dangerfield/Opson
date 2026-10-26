@@ -9,6 +9,8 @@ import com.opson.libraries.navigation.impl.DelegatingRouter
 import com.opson.libraries.telemetry.impl.JankMonitor
 import com.opson.libraries.telemetry.impl.StartupReporter
 import com.opson.libraries.opson.Telemetry
+import com.opson.libraries.reminders.ReminderActions
+import com.opson.libraries.reminders.ReminderOpens
 import com.opson.libraries.navigation.FeatureEntryPoint
 import me.tatarka.inject.annotations.Provides
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -55,6 +57,12 @@ interface AppComponent {
 
     /** The user's palette, theme and text size, which App.kt applies to `AppTheme`. */
     val settingsRepository: SettingsRepository
+
+    /** Tapped reminders asking for the Logger, which App.kt routes. */
+    val reminderOpens: ReminderOpens
+
+    /** What a notification's buttons and taps report: Android's activity and receivers reach it here. */
+    val reminderActions: ReminderActions
     
     /**
      * Singletons that need to construct at app boot rather than lazily

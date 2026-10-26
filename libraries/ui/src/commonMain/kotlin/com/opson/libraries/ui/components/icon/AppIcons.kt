@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons as MaterialIcons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material.icons.rounded.Adjust
@@ -209,6 +210,8 @@ object AppIcons {
     /** The Material Symbols `target`; Rounded has only the ring and dot. */
     val Target get() = icon("target", MaterialIcons.Rounded.Adjust)
     val Palette get() = icon("palette", MaterialIcons.Rounded.Palette)
+    /** More's Reminders and celebrations row (v3: an outlined bell). */
+    val Notifications get() = icon("notifications", MaterialIcons.Outlined.Notifications)
     val WaterDropOutline get() = icon("water_drop_outline", MaterialIcons.Outlined.WaterDrop)
     val Support get() = icon("support", MaterialIcons.Rounded.Support)
     val WorkspacePremium get() = icon("workspace_premium", MaterialIcons.Outlined.WorkspacePremium)
@@ -264,7 +267,7 @@ object AppIcons {
             SearchOff, Cancel, ArrowBack, ExpandMore,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
             Visibility, BlurOn, Mail, Group, LockOutlined,
-            OpenInNew, Target, Palette, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
+            OpenInNew, Target, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
             Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch,
         )

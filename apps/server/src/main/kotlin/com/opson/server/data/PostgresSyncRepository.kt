@@ -10,6 +10,7 @@ import com.opson.server.db.MealFeelingsTable
 import com.opson.server.db.SavedMealsTable
 import com.opson.server.db.SyncedTable
 import com.opson.server.db.UserSettingsTable
+import com.opson.server.db.jsonbMerge
 import com.opson.server.db.WeighInsTable
 import com.opson.server.db.toJavaInstant
 import com.opson.server.db.toKotlinInstant
@@ -286,8 +287,19 @@ class PostgresSyncRepository(
                 it[deleted] = row.deleted
             }
 
+            // Settings is one object per user, last write wins, but merged rather than replaced:
+            // a client drops keys it doesn't know, so without the merge a 0.1 phone saving its
+            // settings would erase what a 0.2 phone added. Shallow, so new settings go in new
+            // top-level keys; a key is never removed by leaving it out.
             is UserSettings -> UserSettingsTable.upsert(
                 UserSettingsTable.userId,
+                onUpdate = {
+                    it[UserSettingsTable.settings] =
+                        jsonbMerge(UserSettingsTable.settings, insertValue(UserSettingsTable.settings))
+                    it[UserSettingsTable.changedAt] = insertValue(UserSettingsTable.changedAt)
+                    it[UserSettingsTable.clientUpdatedAt] = insertValue(UserSettingsTable.clientUpdatedAt)
+                    it[UserSettingsTable.deleted] = insertValue(UserSettingsTable.deleted)
+                },
                 where = { UserSettingsTable.newerThanStored(userId, row) },
             ) {
                 it[this.userId] = userId.value

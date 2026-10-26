@@ -6,6 +6,7 @@
   { "path": "telemetry.appEventsEnabled", "type": "boolean", "default": true, "description": "Kill switch for shipping app events and forwarded logs to Grafana" },
   { "path": "telemetry.klogForwardingEnabled", "type": "boolean", "default": true, "description": "Forward Warn+ KLog lines to Grafana as plain OTLP logs" },
   { "path": "telemetry.appEventsSampleRate", "type": "double", "default": 1.0, "description": "Per-session sampling rate for app events, 0.0..1.0" },
+  { "path": "release.reminders", "type": "boolean", "default": false, "description": "0.2: Reminders page, reminder notifications and the Rhythm reminder line" },
   { "path": "release.health", "type": "boolean", "default": false, "description": "0.2 watch and health apps: the More row, Integrations and Expended so far on Today" },
   { "path": "release.barcode", "type": "boolean", "default": false, "description": "The barcode button in the logger search bar, and the scanner it opens" },
   { "path": "release.fasting", "type": "boolean", "default": false, "description": "0.2: the Fasting page, its More row, the Today card and the timer" }

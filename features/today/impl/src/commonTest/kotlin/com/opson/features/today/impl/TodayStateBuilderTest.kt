@@ -22,6 +22,9 @@ import opson.libraries.resources.generated.resources.today_banner_sprint_done
 import opson.libraries.resources.generated.resources.today_locked_day_body_warm
 import opson.libraries.resources.generated.resources.today_locked_day_title
 import opson.libraries.resources.generated.resources.today_locked_week_title
+import com.opson.libraries.diary.MealTimes
+import com.opson.libraries.diary.MealReminders
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -46,7 +49,13 @@ class TodayStateBuilderTest {
         overrides: Map<Metric, Visibility> = emptyMap(),
         menuOpen: Boolean = false,
         clearArmed: Boolean = false,
-    ): TodayState = TodayStateBuilder.build(TodayFixtures.inputs(day, settings), policy(preset, at, overrides), menuOpen, clearArmed)
+        remindersOn: Boolean = false,
+    ): TodayState = TodayStateBuilder.build(
+        TodayFixtures.inputs(day, settings, remindersOn = remindersOn),
+        policy(preset, at, overrides),
+        menuOpen,
+        clearArmed,
+    )
 
     @Test
     fun fullShowsEatenAgainstTheRangeAndEveryMeal() {
@@ -165,7 +174,7 @@ class TodayStateBuilderTest {
     fun blindCountsMealsAndListsWhatWasEaten() {
         val state = build(PresetId.Blind)
 
-        assertEquals(TodaySummary.Counted(done = 3, next = MealSlot.Dinner, nextAround = TodayStateBuilder.usualTimes.getValue(MealSlot.Dinner)), state.summary)
+        assertEquals(TodaySummary.Counted(done = 3, next = MealSlot.Dinner, nextAround = MealTimes().dinner), state.summary)
         assertEquals(TileStatus.Items(3, kotlinx.datetime.LocalTime(8, 10)), state.mealTiles?.first()?.status)
         assertIs<TileStatus.Empty>(state.mealTiles?.last()?.status)
         val had = assertIs<WhatYouHad.PerMeal>(state.whatYouHad)
@@ -207,6 +216,33 @@ class TodayStateBuilderTest {
         assertEquals(listOf(false, false, false, true), rhythm.rows.map { it.showActions })
         assertIs<WhatYouHad.Together>(state.whatYouHad)
         assertTrue(state.meals.isEmpty())
+    }
+
+    @Test
+    fun rhythmPlansAroundTheMealTimesInSettings() {
+        val settings = Settings(mealTimes = MealTimes(dinner = LocalTime(18, 30)))
+        val dinner = assertNotNull(build(PresetId.Rhythm, settings = settings).rhythm).rows.last()
+        assertEquals(RhythmStatus.Pending(LocalTime(18, 30)), dinner.status)
+    }
+
+    @Test
+    fun rhythmShowsTheNextReminder_onlyWithTheFlag() {
+        assertNull(assertNotNull(build(PresetId.Rhythm, settings = TodayFixtures.remindersSet).rhythm).reminder)
+
+        val on = build(PresetId.Rhythm, settings = TodayFixtures.remindersSet, remindersOn = true)
+        assertEquals(RhythmReminder.Next(MealSlot.Dinner, LocalTime(19, 15)), assertNotNull(on.rhythm).reminder)
+    }
+
+    @Test
+    fun rhythmOffersSetUpWhileMealRemindersAreOff_andNothingOnceEveryMealIsDone() {
+        // Never chosen: the synced defaults are not reminders.
+        assertEquals(RhythmReminder.Off, assertNotNull(build(PresetId.Rhythm, remindersOn = true).rhythm).reminder)
+
+        val allDone = build(PresetId.Rhythm, day = TodayFixtures.day(dinner = true), settings = TodayFixtures.remindersSet, remindersOn = true)
+        assertNull(assertNotNull(allDone.rhythm).reminder)
+
+        val dinnerOff = TodayFixtures.remindersSet.copy(mealReminders = MealReminders(dinner = false))
+        assertNull(assertNotNull(build(PresetId.Rhythm, settings = dinnerOff, remindersOn = true).rhythm).reminder)
     }
 
     @Test

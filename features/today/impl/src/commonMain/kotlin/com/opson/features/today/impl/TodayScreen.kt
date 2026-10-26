@@ -2,6 +2,7 @@ package com.opson.features.today.impl
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -45,6 +46,7 @@ import com.opson.libraries.ui.components.ChecklistAction
 import com.opson.libraries.ui.components.ChecklistRow
 import com.opson.libraries.ui.components.CountChip
 import com.opson.libraries.ui.components.DayHeader
+import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HeaderIconButton
 import com.opson.libraries.ui.components.HeroListCard
 import com.opson.libraries.ui.components.HeroStatementCard
@@ -78,6 +80,14 @@ import com.opson.system.AppTheme
 import com.opson.system.color.ToneColors
 import kotlinx.datetime.LocalTime
 import opson.libraries.resources.generated.resources.Res
+import com.opson.libraries.ui.components.button.FlatButtonTone
+import com.opson.libraries.ui.components.button.FlatButton
+import opson.libraries.resources.generated.resources.reminders_rhythm_set_up
+import opson.libraries.resources.generated.resources.reminders_rhythm_off_body
+import opson.libraries.resources.generated.resources.reminders_rhythm_off
+import opson.libraries.resources.generated.resources.reminders_rhythm_next_body
+import opson.libraries.resources.generated.resources.reminders_rhythm_next
+import opson.libraries.resources.generated.resources.reminders_rhythm_change
 import opson.libraries.resources.generated.resources.integrations_today_expended
 import opson.libraries.resources.generated.resources.today_add_to_cd
 import opson.libraries.resources.generated.resources.today_added_one
@@ -228,6 +238,7 @@ internal sealed interface TodayRow {
     data class CountsRow(val counts: Counts) : TodayRow { override val key = "counts" }
     data class Tiles(val tiles: List<MealTile>) : TodayRow { override val key = "tiles" }
     data class Rhythm(val card: RhythmCard) : TodayRow { override val key = "rhythm" }
+    data class RhythmReminderLine(val reminder: RhythmReminder) : TodayRow { override val key = "rhythm-reminder" }
     data class SafeFoods(val foods: List<String>) : TodayRow { override val key = "safe-foods" }
     data class Fasting(val status: FastingStatus) : TodayRow { override val key = "fasting" }
     data class Water(val water: WaterRow) : TodayRow { override val key = "water" }
@@ -245,6 +256,7 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
     state.counts?.let { add(TodayRow.CountsRow(it)) }
     state.mealTiles?.let { add(TodayRow.Tiles(it)) }
     state.rhythm?.let { add(TodayRow.Rhythm(it)) }
+    state.rhythm?.reminder?.let { add(TodayRow.RhythmReminderLine(it)) }
     state.whatYouHad?.takeIf { state.rhythm == null }?.let { add(TodayRow.Had(it)) }
     state.bridge?.let { add(TodayRow.Bridge(it)) }
     state.safeFoods?.let { add(TodayRow.SafeFoods(it)) }
@@ -313,6 +325,7 @@ private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayActi
         }
         is TodayRow.Tiles -> MealTiles(row.tiles, onAction)
         is TodayRow.Rhythm -> Rhythm(row.card, onAction)
+        is TodayRow.RhythmReminderLine -> RhythmReminderCard(row.reminder, onAction)
         is TodayRow.SafeFoods -> SafeFoodsCard(
             title = stringResource(Res.string.today_explorer_safe),
             foods = row.foods,
@@ -483,6 +496,32 @@ private fun MealTiles(tiles: List<MealTile>, onAction: (TodayAction) -> Unit) {
             onClick = { onAction(TodayAction.MealTileTapped(tile.slot)) },
             modifier = tileModifier,
         )
+    }
+}
+
+/** v3 `today-rhythm.png`, under the checklist: when the next nudge comes, and where to change it. */
+@Composable
+private fun RhythmReminderCard(reminder: RhythmReminder, onAction: (TodayAction) -> Unit) {
+    val (title, body, action) = when (reminder) {
+        is RhythmReminder.Next -> Triple(
+            stringResource(Res.string.reminders_rhythm_next, stringResource(reminder.slot.label)),
+            stringResource(Res.string.reminders_rhythm_next_body, reminder.at.clock(), stringResource(reminder.slot.sentenceName)),
+            stringResource(Res.string.reminders_rhythm_change),
+        )
+        RhythmReminder.Off -> Triple(
+            stringResource(Res.string.reminders_rhythm_off),
+            stringResource(Res.string.reminders_rhythm_off_body),
+            stringResource(Res.string.reminders_rhythm_set_up),
+        )
+    }
+    EdgeCard(edgeToEdge = false) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+                Text(text = body, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            }
+            FlatButton(text = action, onClick = { onAction(TodayAction.RemindersTapped) }, tone = FlatButtonTone.AccentText)
+        }
     }
 }
 
