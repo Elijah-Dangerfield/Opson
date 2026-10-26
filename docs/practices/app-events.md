@@ -93,6 +93,18 @@ been hard for me before" is close to a clinical disclosure.
 | `onboarding.completed` | `duration_sec`, `account_ready`, `preset` (key), `took_recommendation`, `skipped_all` | Once, when Start or Skip all finishes and before the move to Today. `account_ready` false means guest creation had not landed in time. `took_recommendation` is false on skip all, where nothing was recommended on screen |
 | `onboarding.abandoned` | `step` | `onCleared` without ever reaching Today. A process kill never gets here |
 
+### Modes and the pause
+
+All three fire from `SettingsNumbersChanger` (`:libraries:diary:impl`), the only writer of the
+numbers settings, so no screen emits them itself. None carries a level, an amount or the pause
+sheet's "What's prompting this?" answer.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `mode.changed` | `from`, `to` (preset keys), `adjusted` (overrides remain), `fewer` (the user now sees fewer numbers), `via_pause` | When a change moved the preset or an override, directly or after the pause. The pause switch on its own does not fire it |
+| `friction.shown` | `subject` (`preset` / `metric` / `pause`) | The "Pause before showing more" sheet opened |
+| `friction.completed` | `subject`, `applied` | The sheet closed: `applied=true` from "Show them" after the wait, `false` from "Keep things as they are", a swipe down or back |
+
 ## Warn+ log forwarding (not events)
 
 Besides events, `GrafanaLogTree` forwards plain KLog lines at Warn and above to Loki as ordinary
