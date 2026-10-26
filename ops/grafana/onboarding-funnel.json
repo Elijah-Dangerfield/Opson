@@ -243,7 +243,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "`onboarding.completed` with `account_ready=false`: the user is on Home and guest creation did not land in time. They are not signed in and nothing on Home says so.\n\nAnything but zero here deserves a look.",
+      "description": "`onboarding.completed` with `account_ready=false`: the user is on Today and guest creation did not land in time. They are not signed in and nothing on Today says so.\n\nAnything but zero here deserves a look.",
       "fieldConfig": {
         "defaults": {
           "decimals": 0,
@@ -293,7 +293,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "`step` is the step's own name (`welcome`, `pick_identity`), never an index \u2014 the flow will gain a step and a funnel keyed on position would silently start comparing two different screens.",
+      "description": "`step` is the step's own name (`welcome`, `question_1` to `question_4`, `recommendation`), never an index \u2014 the flow will gain a step and a funnel keyed on position would silently start comparing two different screens.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -375,7 +375,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "Where the back-out happened, over the whole window. `welcome` is a bounce; `pick_identity` is someone who chose a path and then thought better of it, which is the more expensive one.",
+      "description": "Where the back-out happened, over the whole window. `welcome` is a bounce; a `question_n` or `recommendation` is someone who chose a path and then thought better of it, which is the more expensive one.",
       "fieldConfig": {
         "defaults": {
           "color": {

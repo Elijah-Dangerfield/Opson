@@ -18,7 +18,7 @@ import me.tatarka.inject.annotations.Inject
  * Drives the sign-in screen. On submit:
  *  - validate inputs locally (non-empty email + ≥ 6 char password)
  *  - call `authRepository.signInWithEmail(...)`
- *  - on success: mark onboarded + emit [SignInEvent.NavigateToHome]
+ *  - on success: mark onboarded + emit [SignInEvent.NavigateToToday]
  *  - on failure: surface a specific error message
  *
  * No try/catch — the repository returns sealed outcome types so we just
@@ -107,11 +107,11 @@ class SignInViewModel(
         logger.i { "Received SignInOutcome=${outcome::class.simpleName}" }
         when (outcome) {
             is SignInOutcome.Success -> {
-                // Signing in is "I have an account" → straight to Home.
+                // Signing in is "I have an account" → straight to Today.
                 appCache.update { it.copy(hasUserOnboarded = true) }
                 updateState { it.copy(isSubmitting = false) }
-                logger.i { "Success → marked onboarded, NavigateToHome" }
-                sendEvent(SignInEvent.NavigateToHome)
+                logger.i { "Success → marked onboarded, NavigateToToday" }
+                sendEvent(SignInEvent.NavigateToToday)
             }
             is SignInOutcome.InvalidCredentials -> updateState {
                 it.copy(isSubmitting = false, error = SignInError.InvalidCredentials)
@@ -155,7 +155,7 @@ data class SignInState(
 }
 
 sealed interface SignInEvent {
-    data object NavigateToHome : SignInEvent
+    data object NavigateToToday : SignInEvent
     data class NavigateToVerifyEmail(val email: String) : SignInEvent
 }
 

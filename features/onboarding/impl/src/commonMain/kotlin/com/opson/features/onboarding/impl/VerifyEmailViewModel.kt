@@ -152,12 +152,12 @@ class VerifyEmailViewModel(
      * Where to go once the email is confirmed. Three outcomes:
      *  - an anonymous guest who linked an email identity keeps their existing
      *    account + progress, so they're already onboarded — mark the flag and
-     *    land on Home ([VerifyEmailEvent.NavigateToAccountSaved], so the app
+     *    land on Today ([VerifyEmailEvent.NavigateToAccountSaved], so the app
      *    can float a confirmation surface if it has one);
-     *  - a brand-new signup still needs to pick a name, so it re-enters
-     *    onboarding at the identity step;
-     *  - a returning account (its email was merely unconfirmed) already has a
-     *    profile, so it skips straight to Home.
+     *  - a brand-new signup has not set up yet, so it re-enters onboarding at
+     *    the first question;
+     *  - a returning account (its email was merely unconfirmed) already has
+     *    its settings, so it skips straight to Today.
      * The guest-link case is known statically from the route ([guestLink]);
      * new-vs-returning uses the same server signal the OAuth path does.
      */
@@ -170,7 +170,7 @@ class VerifyEmailViewModel(
             AuthOutcome.SignedUp -> sendEvent(VerifyEmailEvent.NavigateToOnboarding)
             AuthOutcome.SignedIn -> {
                 appCache.update { it.copy(hasUserOnboarded = true) }
-                sendEvent(VerifyEmailEvent.NavigateToHome)
+                sendEvent(VerifyEmailEvent.NavigateToToday)
             }
         }
     }
@@ -192,11 +192,11 @@ data class VerifyEmailState(
 }
 
 sealed interface VerifyEmailEvent {
-    data object NavigateToHome : VerifyEmailEvent
+    data object NavigateToToday : VerifyEmailEvent
     data object NavigateBackToSignIn : VerifyEmailEvent
-    /** Brand-new signup confirmed → re-enter onboarding at the identity step. */
+    /** Brand-new signup confirmed → re-enter onboarding at the first question. */
     data object NavigateToOnboarding : VerifyEmailEvent
-    /** Anon guest's email link confirmed → account is saved; land on Home. */
+    /** Anon guest's email link confirmed → account is saved; land on Today. */
     data object NavigateToAccountSaved : VerifyEmailEvent
 }
 

@@ -2,6 +2,8 @@
 
 package com.opson.features.onboarding.impl
 
+import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.identity.auth.AccountCreationState
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.AppleSignInCredential
@@ -174,11 +176,17 @@ internal val sampleAppleCredential = AppleSignInCredential(
  * In-memory [AppCache] that records writes — used to assert the
  * `hasUserOnboarded = true` side effect on successful sign-in / link.
  */
-internal class FakeAppCache(initial: AppData = AppData()) : AppCache {
+internal class FakeAppCache(
+    initial: AppData = AppData(),
+    private val onSet: (AppData) -> Unit = {},
+) : AppCache {
     private val state = MutableStateFlow(initial)
     override val updates: Flow<AppData> = state
     override suspend fun get(): AppData = state.value
-    override suspend fun set(value: AppData) { state.value = value }
+    override suspend fun set(value: AppData) {
+        state.value = value
+        onSet(value)
+    }
     override suspend fun clear() { state.value = AppData() }
 }
 
@@ -189,6 +197,7 @@ internal class FakeGuestAccountCreator(
     // start() parks in InProgress and awaitTerminal() never returns. The finish
     // path must time out and proceed Home anyway rather than trap the user.
     private val hangInProgress: Boolean = false,
+    private val onStart: () -> Unit = {},
 ) : GuestAccountCreator {
     private val _state = MutableStateFlow<AccountCreationState>(AccountCreationState.Idle)
     override val state: StateFlow<AccountCreationState> = _state
@@ -201,6 +210,7 @@ internal class FakeGuestAccountCreator(
     override fun start(identity: PendingIdentity) {
         startCalls++
         lastIdentity = identity
+        onStart()
         _state.value = when {
             hangInProgress -> AccountCreationState.InProgress
             failCreation -> AccountCreationState.Failed(identity, failureCause)
@@ -275,3 +285,26 @@ internal val sampleAuthenticated = AuthState.Authenticated(
 )
 
 internal val sampleAnonymousGuest = sampleAuthenticated.copy(userId = "anon-1", isAnonymous = true)
+
+/**
+ * In-memory [SettingsRepository] that records each write's stamp flag, so a
+ * test can assert onboarding saved its preset without stamping `changedAt`.
+ */
+internal class FakeSettingsRepository(
+    initial: Settings = Settings(),
+    private val onUpdate: (Settings) -> Unit = {},
+) : SettingsRepository {
+    private val state = MutableStateFlow(initial)
+    override val settings: StateFlow<Settings> = state
+    override val isKnown: StateFlow<Boolean> = MutableStateFlow(true)
+
+    /** `stampNumbersChange` of every update, in order. */
+    val stampFlags = mutableListOf<Boolean>()
+
+    override suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): Settings {
+        stampFlags += stampNumbersChange
+        state.value = transform(state.value)
+        onUpdate(state.value)
+        return state.value
+    }
+}

@@ -3,9 +3,9 @@ package com.opson.features.onboarding.impl
 import kotlin.random.Random
 
 /**
- * Fallback-only display name generator. Yields names like "QuietFox72",
- * "BoldOtter41". Used on the PickIdentity step to prefill the name field so
- * the user never lands on a blank input.
+ * Display names like "QuietFox72", "BoldOtter41". Opson has no social surface,
+ * so onboarding never asks for a name: the guest account is created with one
+ * of these and nobody sees it.
  */
 internal object DisplayNameSuggester {
     private val adjectives = listOf(

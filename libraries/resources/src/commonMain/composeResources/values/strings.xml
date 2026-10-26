@@ -68,24 +68,6 @@
     <string name="feedback_title">Share Your Feedback</string>
     <string name="feedback_prompt">We'd love to hear from you</string>
 
-    <!-- Onboarding -->
-    <string name="onboarding_welcome_title">Welcome</string>
-    <string name="onboarding_welcome_subtitle">Jump right in as a guest, or sign in to pick up where you left off.</string>
-    <string name="onboarding_continue_as_guest">Continue as guest</string>
-    <string name="onboarding_opening_browser">Opening browser…</string>
-    <string name="onboarding_waiting_for_apple">Waiting for Apple…</string>
-    <string name="onboarding_sign_in_with_email">Sign in with email</string>
-    <string name="onboarding_create_an_account">Create an account</string>
-    <string name="onboarding_pick_display_name_title">Pick a display name</string>
-    <string name="onboarding_pick_display_name_subtitle">This is how you'll show up in the app. You can change it later.</string>
-    <string name="onboarding_display_name_label">Display name</string>
-    <string name="onboarding_display_name_taken">That name is taken — try another.</string>
-    <string name="onboarding_display_name_invalid">That name won't work — try another.</string>
-    <string name="onboarding_suggest_another">Suggest another</string>
-    <string name="onboarding_finishing">Setting things up…</string>
-    <string name="onboarding_continue">Continue</string>
-    <string name="onboarding_oauth_failed">Sign-in didn't go through. Please try again.</string>
-
     <!-- Sign in / sign up / password reset / email verification -->
     <string name="auth_email_label">Email</string>
     <string name="auth_password_label">Password</string>

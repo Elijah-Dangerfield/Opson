@@ -16,14 +16,14 @@ import kotlinx.coroutines.test.runCurrent
  * Pins [VerifyEmailViewModel]'s outcome → banner mapping + side-effect
  * gates. Verify-email is the branch point on confirmation:
  *  - a **returning** account (email was merely unconfirmed) already has a
- *    profile, so it marks onboarded and goes Home;
+ *    profile, so it marks onboarded and goes to Today;
  *  - a **brand-new** signup still needs identity setup, so it re-enters
  *    onboarding and does NOT mark onboarded (the flow's finish step does).
  *    New-vs-returning is read off the authoritative server new-account
  *    signal via the [com.opson.libraries.identity.auth.AuthOutcomeClassifier].
  *
  * What we pin:
- *  - IClickedTheLink → EmailConfirmed (returning) marks onboarded + NavigateToHome
+ *  - IClickedTheLink → EmailConfirmed (returning) marks onboarded + NavigateToToday
  *  - IClickedTheLink → EmailConfirmed (brand-new) → NavigateToOnboarding, not onboarded
  *  - IClickedTheLink → StillPending stays put, sets StillPending banner
  *  - IClickedTheLink → SessionExpired (brand-new signup) stays put on StillPending;
@@ -41,9 +41,9 @@ class VerifyEmailViewModelTest : CoroutineTest() {
     private val sampleEmail = "ok@example.com"
 
     @Test
-    fun iClickedTheLink_emailConfirmed_returning_marksOnboarded_andNavigatesHome() = runUnitTest {
+    fun iClickedTheLink_emailConfirmed_returning_marksOnboarded_andNavigatesToToday() = runUnitTest {
         // isNewAccount stays false → the server reports a pre-existing account,
-        // so it's a returning user whose email was merely unconfirmed: Home.
+        // so it's a returning user whose email was merely unconfirmed: Today.
         val cache = FakeAppCache()
         val identity = FakeAuthRepository(refreshOutcome = RefreshOutcome.EmailConfirmed)
         val profile = FakeProfileRepository().apply { isNewAccount = false }
@@ -51,7 +51,7 @@ class VerifyEmailViewModelTest : CoroutineTest() {
         vm.takeAction(VerifyEmailAction.IClickedTheLink)
 
         vm.eventFlow.test {
-            assertIs<VerifyEmailEvent.NavigateToHome>(awaitItem())
+            assertIs<VerifyEmailEvent.NavigateToToday>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(true, cache.get().hasUserOnboarded)
@@ -220,7 +220,7 @@ class VerifyEmailViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun appResumed_emailConfirmed_returning_marksOnboarded_andNavigatesHome() = runUnitTest {
+    fun appResumed_emailConfirmed_returning_marksOnboarded_andNavigatesToToday() = runUnitTest {
         val cache = FakeAppCache()
         val identity = FakeAuthRepository(refreshOutcome = RefreshOutcome.EmailConfirmed)
         val profile = FakeProfileRepository().apply { isNewAccount = false }
@@ -228,7 +228,7 @@ class VerifyEmailViewModelTest : CoroutineTest() {
         vm.takeAction(VerifyEmailAction.AppResumed)
 
         vm.eventFlow.test {
-            assertIs<VerifyEmailEvent.NavigateToHome>(awaitItem())
+            assertIs<VerifyEmailEvent.NavigateToToday>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(true, cache.get().hasUserOnboarded)

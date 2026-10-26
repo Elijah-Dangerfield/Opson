@@ -19,6 +19,9 @@ kotlin {
             implementation(projects.libraries.resources)
             implementation(projects.libraries.opson)
             implementation(projects.libraries.identity)
+            implementation(projects.libraries.diary)
+            implementation(projects.libraries.nutrition)
+            implementation(projects.libraries.nutrition.ui)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -35,6 +38,8 @@ kotlin {
             implementation(projects.libraries.core)
             implementation(projects.libraries.identity)
             implementation(projects.libraries.opson)
+            implementation(projects.libraries.diary)
+            implementation(projects.libraries.nutrition)
             implementation(libs.turbine)
         }
     }

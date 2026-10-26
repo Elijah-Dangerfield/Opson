@@ -39,7 +39,7 @@ class OnboardingFeatureEntryPoint(
 
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    OnboardingEvent.NavigateToHome -> router.enterTab(TodayRoute())
+                    OnboardingEvent.NavigateToToday -> router.enterTab(TodayRoute())
                     OnboardingEvent.NavigateToSignIn -> router.navigate(SignInRoute())
                     OnboardingEvent.NavigateToSignUp -> router.navigate(SignUpRoute())
                 }
@@ -57,7 +57,7 @@ class OnboardingFeatureEntryPoint(
 
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    SignInEvent.NavigateToHome -> router.enterTab(TodayRoute())
+                    SignInEvent.NavigateToToday -> router.enterTab(TodayRoute())
                     is SignInEvent.NavigateToVerifyEmail -> router.navigate(
                         VerifyEmailRoute(event.email),
                     )
@@ -120,12 +120,12 @@ class OnboardingFeatureEntryPoint(
 
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    VerifyEmailEvent.NavigateToHome -> router.enterTab(TodayRoute())
+                    VerifyEmailEvent.NavigateToToday -> router.enterTab(TodayRoute())
                     VerifyEmailEvent.NavigateBackToSignIn -> router.navigate(
                         SignInRoute(),
                         NavigationOptions(launchSingleTop = true, clearBackStack = true),
                     )
-                    // Brand-new signup: drop into onboarding at the identity step
+                    // Brand-new signup: drop into onboarding at the first question
                     // (the VM detects the authenticated-but-not-onboarded session).
                     // Clear the auth back stack so Back can't return to verify/signup.
                     VerifyEmailEvent.NavigateToOnboarding -> router.navigate(

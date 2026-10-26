@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Onboarding: the welcome, the four setup questions and the starting mode.
+  Copy is the handoff's (README 4.11, the is.onb block in Phone.dc.html) word
+  for word where it has it. Preset labels and lines repeat the Modes table in
+  docs/plans/screens/settings.md until a shared preset resource exists.
+-->
+<resources>
+    <!-- Welcome -->
+    <string name="onboarding_welcome_title">Opson</string>
+    <string name="onboarding_welcome_subtitle">Write down what you eat. See as many numbers as you want, or none.</string>
+    <string name="onboarding_welcome_questions">Four short questions. You can skip all of them.</string>
+    <string name="onboarding_set_it_up">Set it up</string>
+    <string name="onboarding_skip_all">Skip, start logging</string>
+
+    <!-- Sign-in options on Welcome -->
+    <string name="onboarding_opening_browser">Opening browser…</string>
+    <string name="onboarding_waiting_for_apple">Waiting for Apple…</string>
+    <string name="onboarding_sign_in_with_email">Sign in with email</string>
+    <string name="onboarding_create_an_account">Create an account</string>
+    <string name="onboarding_oauth_failed">Sign-in didn't go through. Please try again.</string>
+
+    <!-- Questions -->
+    <string name="onboarding_progress">%1$d of 4</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_pick_any">Pick any.</string>
+
+    <string name="onboarding_q_why">Why are you tracking?</string>
+    <string name="onboarding_why_curious">Curious</string>
+    <string name="onboarding_why_performance">Performance</string>
+    <string name="onboarding_why_eating_enough">Eating enough</string>
+    <string name="onboarding_why_eating_regularly">Eating regularly</string>
+    <string name="onboarding_why_medical_need">A medical need</string>
+    <string name="onboarding_why_changing_weight">Changing my weight</string>
+    <string name="onboarding_why_working_with_provider">Working with a provider</string>
+
+    <string name="onboarding_q_feel">How do you feel about seeing numbers?</string>
+    <string name="onboarding_feel_love_them">Love them</string>
+    <string name="onboarding_feel_some_are_fine">Some are fine</string>
+    <string name="onboarding_feel_rather_not">Rather not</string>
+    <string name="onboarding_feel_not_sure">Not sure</string>
+
+    <string name="onboarding_q_notice">What do you want to notice?</string>
+    <string name="onboarding_notice_amounts">Amounts</string>
+    <string name="onboarding_notice_nutrients">Nutrients</string>
+    <string name="onboarding_notice_patterns">Patterns</string>
+    <string name="onboarding_notice_how_eating_feels">How eating feels</string>
+
+    <string name="onboarding_q_hard">One optional question</string>
+    <string name="onboarding_q_hard_sub">This only unlocks gentler starting points. We never ask for a diagnosis.</string>
+    <string name="onboarding_hard_before">Numbers or tracking have been hard for me before</string>
+
+    <!-- Recommendation -->
+    <string name="onboarding_reco_kicker">A starting point, not a recommendation</string>
+    <string name="onboarding_reco_see">What you'll see</string>
+    <string name="onboarding_reco_or">Or start with</string>
+    <string name="onboarding_reco_change">Change it any time under More, then Modes and numbers.</string>
+    <string name="onboarding_start_with">Start with %1$s</string>
+    <string name="onboarding_finishing">Setting things up…</string>
+
+    <!-- Preset labels and lines -->
+    <string name="onboarding_preset_full">Full numbers</string>
+    <string name="onboarding_preset_full_line">Everything visible. Watch sync shapes your target.</string>
+    <string name="onboarding_preset_delayed">Delayed reveal</string>
+    <string name="onboarding_preset_delayed_line">Log all day. Totals open at a time you pick.</string>
+    <string name="onboarding_preset_blind">Blind</string>
+    <string name="onboarding_preset_blind_line">No calories anywhere in the app.</string>
+    <string name="onboarding_preset_nutrient">Nutrient focus</string>
+    <string name="onboarding_preset_nutrient_line">Calories hidden. Protein and fiber as fill bars.</string>
+    <string name="onboarding_preset_rhythm">Rhythm</string>
+    <string name="onboarding_preset_rhythm_line">A meal checklist with reminders. Amounts optional.</string>
+    <string name="onboarding_preset_explorer">Explorer</string>
+    <string name="onboarding_preset_explorer_line">Safe foods, new foods, small wins for trying.</string>
+    <string name="onboarding_preset_mindful">Mindful</string>
+    <string name="onboarding_preset_mindful_line">Hunger, fullness and how it felt. No nutrition data.</string>
+    <string name="onboarding_preset_fuel">Fuel</string>
+    <string name="onboarding_preset_fuel_line">Eating enough first. Protein and meal count up front.</string>
+    <string name="onboarding_preset_sprint">Sprint</string>
+    <string name="onboarding_preset_sprint_line">Track for two weeks to learn, then take a break.</string>
+    <string name="onboarding_preset_coast">Coast</string>
+    <string name="onboarding_preset_coast_line">Light logging and one weekly check.</string>
+</resources>

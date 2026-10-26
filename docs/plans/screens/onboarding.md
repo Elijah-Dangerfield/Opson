@@ -35,7 +35,7 @@ state inside it, as now.
 // com.opson.features.onboarding.impl
 sealed interface OnboardingStep {
     data object Welcome : OnboardingStep
-    data class Question(val number: Int) : OnboardingStep      // 1..4
+    data class Question(val question: SetupQuestion) : OnboardingStep
     data object Recommendation : OnboardingStep
 }
 
@@ -67,7 +67,7 @@ data class SetupAnswers(
     val hard: Boolean = false,
 ) { fun toSettings(): OnboardingAnswers }      // option keys, for Settings.onboarding
 
-enum class SetupQuestion(val number: Int) { Why(1), Feel(2), Notice(3), Hard(4) }
+enum class SetupQuestion(val number: Int, val multiSelect: Boolean) { Reason(1), Feeling(2), Focus(3), Hard(4) }
 sealed interface SetupOption                    // Why, NumbersFeel and Notice entries, plus HardBefore
 data class SetupChoice(val option: SetupOption, val selected: Boolean)
 ```

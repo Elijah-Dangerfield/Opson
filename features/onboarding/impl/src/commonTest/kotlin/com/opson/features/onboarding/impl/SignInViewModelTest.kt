@@ -22,11 +22,11 @@ import kotlin.test.assertNull
  *  - InvalidCredentials surfaces a specific error + clears isSubmitting
  *  - NetworkError surfaces a network-specific message
  *  - EmailNotConfirmed emits NavigateToVerifyEmail and does NOT mark onboarded
- *  - Success marks onboarded and emits NavigateToHome
+ *  - Success marks onboarded and emits NavigateToToday
  *  - SignInWithOAuth threads through; ProviderNotEnabled surfaces an error
  *  - Email is trimmed before the network call
  *  - typing on email after an error clears the error
- *  - OAuth Success marks onboarded and emits NavigateToHome
+ *  - OAuth Success marks onboarded and emits NavigateToToday
  *  - Apple: a credential runs signInWithApple; a dismissed sheet is silent
  */
 class SignInViewModelTest : CoroutineTest() {
@@ -136,7 +136,7 @@ class SignInViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun submit_success_marksOnboarded_andEmitsNavigateToHome() = runUnitTest {
+    fun submit_success_marksOnboarded_andEmitsNavigateToToday() = runUnitTest {
         val cache = FakeAppCache()
         val identity = FakeAuthRepository(signInOutcome = SignInOutcome.Success)
         val vm = buildVm(identity = identity, appCache = cache)
@@ -145,7 +145,7 @@ class SignInViewModelTest : CoroutineTest() {
         vm.takeAction(SignInAction.Submit)
 
         vm.eventFlow.test {
-            assertIs<SignInEvent.NavigateToHome>(awaitItem())
+            assertIs<SignInEvent.NavigateToToday>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(true, cache.get().hasUserOnboarded)
@@ -162,7 +162,7 @@ class SignInViewModelTest : CoroutineTest() {
         vm.takeAction(SignInAction.Submit)
 
         vm.eventFlow.test {
-            awaitItem() // NavigateToHome
+            awaitItem() // NavigateToToday
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(
@@ -222,7 +222,7 @@ class SignInViewModelTest : CoroutineTest() {
         vm.takeAction(SignInAction.SignInWithOAuth(OAuthProvider.Apple))
 
         vm.eventFlow.test {
-            assertIs<SignInEvent.NavigateToHome>(awaitItem())
+            assertIs<SignInEvent.NavigateToToday>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(true, cache.get().hasUserOnboarded)
@@ -258,7 +258,7 @@ class SignInViewModelTest : CoroutineTest() {
         vm.takeAction(SignInAction.SignInWithApple)
 
         vm.eventFlow.test {
-            assertIs<SignInEvent.NavigateToHome>(awaitItem())
+            assertIs<SignInEvent.NavigateToToday>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(1, identity.appleSignInCalls)

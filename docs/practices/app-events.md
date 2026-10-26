@@ -76,10 +76,22 @@ The events that motivated shipping direct-to-Grafana: what never reaches the bac
 
 ## Product funnels
 
-Seed your own here as features land, the onboarding feature already emits
-`onboarding.step_viewed` / `onboarding.auth_selected` / `onboarding.completed` /
-`onboarding.abandoned` (see `OnboardingViewModel`). Keep the pattern: one row per event, name the
-attributes and the exact fire site.
+Seed your own here as features land. Keep the pattern: one row per event, name the attributes and
+the exact fire site.
+
+### Onboarding
+
+All from `OnboardingViewModel`, read by `ops/grafana/onboarding-funnel.json`. `step` is always the
+step's own name, never an index: `welcome`, `question_1` to `question_4`, `recommendation`. **No
+event carries an answer to the setup questions**, not even as a count: "numbers or tracking have
+been hard for me before" is close to a clinical disclosure.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `onboarding.step_viewed` | `step` | Each step shown: Welcome on a fresh entry, and every move forward or back between steps |
+| `onboarding.auth_selected` | `method` (guest/google/apple), `returning` | Set it up and Skip, start logging (`guest`, false); a stranded anonymous session adopted at entry (`guest`, true); an OAuth or Apple sign-in, with `returning` from the auth outcome classifier |
+| `onboarding.completed` | `duration_sec`, `account_ready`, `preset` (key), `took_recommendation`, `skipped_all` | Once, when Start or Skip all finishes and before the move to Today. `account_ready` false means guest creation had not landed in time. `took_recommendation` is false on skip all, where nothing was recommended on screen |
+| `onboarding.abandoned` | `step` | `onCleared` without ever reaching Today. A process kill never gets here |
 
 ## Warn+ log forwarding (not events)
 

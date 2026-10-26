@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 /**
  * Email-password sign-in entry. Reachable from onboarding's "Sign in"
  * affordance. After a successful sign-in the onboarding flag flips and we
- * navigate to home.
+ * go to Today.
  */
 @Serializable
 class SignInRoute : Route(
@@ -44,10 +44,10 @@ class SignUpRoute : Route(
  * linking an email identity (the claim-account flow), as opposed to a
  * brand-new sign-up or a returning user's unconfirmed-email sign-in. On
  * confirmation the guest keeps their existing progress and account, so
- * they land back on Home instead of re-entering onboarding. The
+ * they land back on Today instead of re-entering onboarding. The
  * cold-launch deep-link (`opson://auth/confirmed`) can't carry it,
  * so a guest who kills the app between requesting and tapping the link
- * falls back to the plain Home route — never the wrong one.
+ * falls back to the plain Today route, never the wrong one.
  */
 @Serializable
 data class VerifyEmailRoute(
