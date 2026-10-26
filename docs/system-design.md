@@ -108,7 +108,7 @@ The prototype's logic block (`docs/design/handoff/phone-logic.js`, functions
 executable spec. Port it exactly, with tests for every branch.
 
 ```kotlin
-enum class Metric { Calories, Remaining, EnergyOut, Protein, Carbs, Fat, Fiber, Micros, Weight, Water }
+enum class Metric(val key: String) { Calories, Remaining, EnergyOut, Protein, Carbs, Fat, Fiber, Micros, Weight, Water }
 enum class Visibility(val score: Int) { Show(3), Soften(2), Delay(1), Hide(0) }
 enum class TodayLayout { Full, Meals, Rhythm, Explorer }
 enum class RevealOn { DayClose, Week }
@@ -117,25 +117,35 @@ enum class Surface { Today, Logger, DayClose, Week, Nutrients, Trends, Foods, Se
 data class ModePreset(
     val id: PresetId, val today: TodayLayout, val vis: Map<Metric, Visibility>,
     val revealOn: RevealOn? = null, val mealCount: Boolean = false, val fastingAllowed: Boolean = false,
+    val banner: Boolean = false,                   // copy lives in the UI, keyed by id
 )
-enum class PresetId { Full, Delayed, Blind, Nutrient, Rhythm, Explorer, Mindful, Fuel, Sprint, Coast }
+enum class PresetId(val key: String) { Full, Delayed, Blind, Nutrient, Rhythm, Explorer, Mindful, Fuel, Sprint, Coast }
 
 sealed interface Display {
     data object Hidden : Display
-    data class Soft(val text: String, val fraction: Float?) : Display   // fraction drives fill bars
-    data class Shown(val text: String) : Display
-}
+    data class Soft(val text: String?, val fraction: Float?) : Display   // text is null for water (bar only)
+    data class Shown(val text: String, val fraction: Float? = null) : Display
+}   // fraction = value / goal, unclamped, null when there is no goal; drives fill bars
 
-class VisibilityPolicy(settings: NumbersSettings, clock: Clock, timeZone: TimeZone) {
-    fun level(metric: Metric): Visibility          // overrides[m] ?: preset.vis[m], Delay resolved
+class VisibilityPolicy(settings: NumbersSettings, clock: Clock, timeZone: TimeZone,
+                       formatter: NutritionFormatter = EnglishNutritionFormatter) {
+    fun level(metric: Metric): Visibility          // overrides[m] ?: preset.vis[m], Delay NOT resolved
+    fun effectiveLevel(metric: Metric, surface: Surface, context: FormatContext = FormatContext()): Visibility
+    fun isRevealed(surface: Surface, context: FormatContext = FormatContext()): Boolean
     fun resolve(metric: Metric, value: Double?, surface: Surface, context: FormatContext = FormatContext()): Display
     fun score(): Int                               // sum of Visibility.score over metrics
     fun isRaise(next: NumbersSettings): Boolean    // friction trigger
 }
 data class FormatContext(val of: Double? = null, val bare: Boolean = false, val unit: WaterUnit = WaterUnit.Ml,
+                         val weightUnit: WeightUnit = WeightUnit.Kg,
                          val day: LocalDate? = null, val dayClosed: Boolean = false,
                          val eaten: Double? = null, val min: Double? = null, val max: Double? = null)
 ```
+
+The policy picks soften words as `SoftWord` values and a `NutritionFormatter`
+spells them and every shown amount, so copy can be localized without touching
+a rule. `EnglishNutritionFormatter` is the prototype's strings, with
+thousands separators done by hand so the JVM and iOS agree.
 
 Rules to port, each with a test:
 
@@ -149,7 +159,11 @@ Rules to port, each with a test:
   Getting there / Plenty today; micros: Some / Most / Plenty; weight: Trend
   only; water: no text, bar only).
 - `Remaining` is "On target" inside the range, "Above your range today" over
-  it, otherwise "N left". It never says "0 left".
+  it, otherwise "N left". It never says "0 left", and with no range passed a
+  remainder that rounds to zero or below is "On target" too.
+- `Remaining` and `EnergyOut` have no soften word, so softened they hide. (The
+  prototype falls through to the macro words, and "Plenty today" for energy
+  expended reads as praise for exercise.)
 - Formatting: `1,245` bare, `1,245 kcal`, `47 g`, `47 g of 120 g`, `72.6 kg`,
   `62%`, `750 of 2,000 ml`, fl oz at 29.57 ml.
 - `Targets.raise/lower` in 50 kcal steps; `lower` refuses to go under
