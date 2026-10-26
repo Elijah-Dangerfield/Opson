@@ -33,7 +33,9 @@ class UserScopedDaoCleaner(
     override suspend fun clear(previousUserId: String) {
         clearableDaos.forEach { dao ->
             Catching { dao.deleteAll() }
-                .onFailure { logger.w(it) { "deleteAll failed for ${dao::class.simpleName ?: dao::class}" } }
+                // Error, not warn: a table left behind still holds the previous
+                // user's rows, so this has to reach someone as an event.
+                .onFailure { logger.e(it) { "deleteAll failed for ${dao::class.simpleName ?: dao::class}" } }
         }
     }
 }
