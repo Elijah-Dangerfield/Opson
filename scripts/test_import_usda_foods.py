@@ -294,7 +294,7 @@ stdin = sys.stdin.read() if "-f" in sys.argv else ""
 with open(record, "w") as f:
     json.dump({{"argv": sys.argv[1:], "password": os.environ.get("PGPASSWORD"), "stdin": stdin}}, f)
 if "-c" in sys.argv:
-    print("t")
+    print(os.environ.get("FAKE_PSQL_OUTPUT", "t"))
 sys.exit(int(os.environ.get("FAKE_PSQL_EXIT", "0")))
 """
 
@@ -334,6 +334,28 @@ class PsqlTest(unittest.TestCase):
         with self.assertRaises(SystemExit) as stopped:
             stream([("INSERT 1;\n", 1)], PsqlOutput(self.db))
         self.assertIn("re-run to finish", str(stopped.exception))
+
+    def test_a_started_session_gets_its_sql_on_stdin_with_keepalives(self):
+        proc = self.db.start("CREATE INDEX x ON t (c);\n")
+        self.assertEqual(0, proc.wait())
+        call = self.recorded()
+        self.assertEqual(KEEPALIVES, call["argv"][call["argv"].index("-d") + 1])
+        self.assertIn("ON_ERROR_STOP=1", call["argv"])
+        self.assertEqual("CREATE INDEX x ON t (c);\n", call["stdin"])
+
+    def test_the_watchdog_asks_pg_stat_activity_for_other_sessions_running_the_statement(self):
+        self.db.env["FAKE_PSQL_OUTPUT"] = "1"
+        self.assertTrue(self.db.statement_running("INDEX off_foods_next_search_idx ON"))
+        query = self.recorded()["argv"][-1]
+        self.assertIn("pg_stat_activity", query)
+        self.assertIn("pid <> pg_backend_pid()", query)
+        self.assertIn("'INDEX off_foods_next_search_idx ON'", query)
+        self.db.env["FAKE_PSQL_OUTPUT"] = "0"
+        self.assertFalse(self.db.statement_running("INDEX x ON"))
+
+    def test_the_watchdog_counts_a_failed_look_as_not_seen(self):
+        self.db.env["FAKE_PSQL_EXIT"] = "2"
+        self.assertFalse(self.db.statement_running("INDEX x ON"))
 
     def test_a_failed_query_stops_the_import(self):
         self.db.env["FAKE_PSQL_EXIT"] = "2"
