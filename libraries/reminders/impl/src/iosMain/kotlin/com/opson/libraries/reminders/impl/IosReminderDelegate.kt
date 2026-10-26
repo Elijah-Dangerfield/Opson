@@ -1,5 +1,6 @@
 package com.opson.libraries.reminders.impl
 
+import com.opson.libraries.config.AppConfigFlow
 import com.opson.libraries.core.AutoInit
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.reminders.ReminderAction
@@ -7,7 +8,14 @@ import com.opson.libraries.reminders.ReminderActions
 import com.opson.libraries.reminders.ReminderCopy
 import com.opson.libraries.reminders.impl.IosLocalNotifications.Companion.wire
 import com.opson.libraries.reminders.ReminderStyle
+import com.opson.libraries.reminders.RemindersEnabled
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.compose.resources.getString
 import platform.UserNotifications.UNNotification
@@ -46,6 +54,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 class IosReminderDelegate(
     actions: ReminderActions,
     appScope: AppCoroutineScope,
+    config: AppConfigFlow,
 ) : AutoInit {
 
     /** Held here: the center keeps only a weak reference. A Kotlin class cannot also be an NSObject. */
@@ -54,7 +63,12 @@ class IosReminderDelegate(
     init {
         val center = UNUserNotificationCenter.currentNotificationCenter()
         center.delegate = delegate
-        appScope.launch { center.setNotificationCategories(setOf(delegate.mealCategory())) }
+        // Only once reminders are released: nothing reminder-related runs in a build that hides them.
+        appScope.launch {
+            config.map(RemindersEnabled::isOn).distinctUntilChanged().filter { it }.first()
+            val category = delegate.mealCategory()
+            withContext(Dispatchers.Main) { center.setNotificationCategories(setOf(category)) }
+        }
     }
 }
 
@@ -112,10 +126,17 @@ private class ReminderCenterDelegate(
     }
 
     suspend fun mealCategory(): UNNotificationCategory {
-        val buttons = ReminderCopy.mealActions.map { (action, label) ->
+        // Strings first (getString suspends and may resume on a worker thread), then build the
+        // UserNotifications objects on the main thread, where they were crashing off it at launch.
+        val titles = ReminderCopy.mealActions.map { (action, label) -> action to getString(label) }
+        return withContext(Dispatchers.Main) { category(titles) }
+    }
+
+    private fun category(titles: List<Pair<ReminderAction, String>>): UNNotificationCategory {
+        val buttons = titles.map { (action, title) ->
             UNNotificationAction.actionWithIdentifier(
                 identifier = action.wire,
-                title = getString(label),
+                title = title,
                 options = if (action == ReminderAction.LogIt) UNNotificationActionOptionForeground else UNNotificationActionOptionNone,
             )
         }
