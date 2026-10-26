@@ -277,6 +277,25 @@ class FoodRoutesTest {
     }
 
     @Test
+    fun searchAndDescribeHaveTheirOwnLimits() = runTest {
+        withApp { client ->
+            val searches = (1..121).map { client.get("/v1/foods/search?q=banana") { auth() }.status }
+            assertEquals(HttpStatusCode.TooManyRequests, searches.last())
+            assertTrue(searches.dropLast(1).all { it == HttpStatusCode.OK })
+
+            val describes = (1..31).map {
+                client.post("/v1/describe") {
+                    auth()
+                    contentType(ContentType.Application.Json)
+                    setBody(DescribeRequest("2 eggs"))
+                }.status
+            }
+            assertEquals(HttpStatusCode.TooManyRequests, describes.last())
+            assertTrue(describes.dropLast(1).all { it == HttpStatusCode.OK })
+        }
+    }
+
+    @Test
     fun describeRejectsEmptyAndHugeText() = runTest {
         withApp { client ->
             for (text in listOf("  ", "x".repeat(1_001))) {

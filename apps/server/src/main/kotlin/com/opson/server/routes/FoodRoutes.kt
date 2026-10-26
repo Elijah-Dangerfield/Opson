@@ -11,6 +11,8 @@ import com.opson.server.domain.SearchSort
 import com.opson.server.domain.SearchSource
 import com.opson.server.http.clientContext
 import com.opson.server.plugins.BARCODE_LOOKUP_LIMIT
+import com.opson.server.plugins.DESCRIBE_LIMIT
+import com.opson.server.plugins.FOOD_SEARCH_LIMIT
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.problem
 import io.ktor.http.HttpStatusCode
@@ -42,6 +44,10 @@ import java.util.UUID
  *    every miss costs an outside call from the server's one IP.
  *  - `POST /v1/describe {text}` heuristic parse into items ([DescribeParser]).
  *
+ * Search and describe have their own per-IP limits too (`RateLimits.kt`):
+ * a search is the catalog's heaviest statement, and a description is up to
+ * 20 of them.
+ *
  * All require a Supabase JWT. None of them reads or writes user data, and
  * none logs a query: what someone searches for is about what they eat.
  */
@@ -51,35 +57,37 @@ fun Route.foodRoutes(
     describer: FoodDescriber,
 ) {
     authenticate(SUPABASE_JWT_AUTH) {
-        get("/v1/foods/search") {
-            val query = FoodCatalogRepository.normalizeQuery(call.request.queryParameters["q"].orEmpty())
-            if (query.isEmpty()) {
-                return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_query", "q is required"))
+        rateLimit(RateLimitName(FOOD_SEARCH_LIMIT)) {
+            get("/v1/foods/search") {
+                val query = FoodCatalogRepository.normalizeQuery(call.request.queryParameters["q"].orEmpty())
+                if (query.isEmpty()) {
+                    return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_query", "q is required"))
+                }
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+                    ?.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
+                    ?: FoodCatalogRepository.DEFAULT_LIMIT
+                val params = call.request.queryParameters
+                val category = params["category"]?.let {
+                    SearchCategory.fromWire(it)
+                        ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_category", "Unknown category"))
+                }
+                val source = params["source"]?.let {
+                    SearchSource.fromWire(it)
+                        ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_source", "Unknown source"))
+                }
+                val sort = params["sort"]?.let {
+                    SearchSort.fromWire(it)
+                        ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_sort", "Unknown sort"))
+                } ?: SearchSort.BestMatch
+                val matches = catalog.search(
+                    query,
+                    limit,
+                    country = call.clientContext().countryCode,
+                    openFoodFacts = true, // still only when the server's FOOD_SEARCH_OFF_ENABLED is on
+                    filter = SearchFilter(category = category, source = source, sort = sort),
+                )
+                call.respond(FoodSearchResponse(query = query, foods = matches.map { it.food.toResponse() }))
             }
-            val limit = call.request.queryParameters["limit"]?.toIntOrNull()
-                ?.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
-                ?: FoodCatalogRepository.DEFAULT_LIMIT
-            val params = call.request.queryParameters
-            val category = params["category"]?.let {
-                SearchCategory.fromWire(it)
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_category", "Unknown category"))
-            }
-            val source = params["source"]?.let {
-                SearchSource.fromWire(it)
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_source", "Unknown source"))
-            }
-            val sort = params["sort"]?.let {
-                SearchSort.fromWire(it)
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_sort", "Unknown sort"))
-            } ?: SearchSort.BestMatch
-            val matches = catalog.search(
-                query,
-                limit,
-                country = call.clientContext().countryCode,
-                openFoodFacts = true, // still only when the server's FOOD_SEARCH_OFF_ENABLED is on
-                filter = SearchFilter(category = category, source = source, sort = sort),
-            )
-            call.respond(FoodSearchResponse(query = query, foods = matches.map { it.food.toResponse() }))
         }
 
         get("/v1/foods/search/options") {
@@ -120,15 +128,17 @@ fun Route.foodRoutes(
             call.respond(food.toResponse())
         }
 
-        post("/v1/describe") {
-            val text = call.receive<DescribeRequest>().text?.trim().orEmpty()
-            if (text.isEmpty() || text.length > DescribeParser.MAX_TEXT) {
-                return@post call.respond(
-                    HttpStatusCode.BadRequest,
-                    problem("invalid_text", "text must be 1 to ${DescribeParser.MAX_TEXT} characters"),
-                )
+        rateLimit(RateLimitName(DESCRIBE_LIMIT)) {
+            post("/v1/describe") {
+                val text = call.receive<DescribeRequest>().text?.trim().orEmpty()
+                if (text.isEmpty() || text.length > DescribeParser.MAX_TEXT) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        problem("invalid_text", "text must be 1 to ${DescribeParser.MAX_TEXT} characters"),
+                    )
+                }
+                call.respond(DescribeResponse(items = describer.describe(text).map { it.toDto() }))
             }
-            call.respond(DescribeResponse(items = describer.describe(text).map { it.toDto() }))
         }
     }
 }

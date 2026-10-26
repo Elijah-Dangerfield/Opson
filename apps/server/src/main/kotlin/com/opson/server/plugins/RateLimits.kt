@@ -25,6 +25,9 @@ const val DELETE_ACCOUNT_LIMIT = "delete-account"
 const val BARCODE_LOOKUP_LIMIT = "barcode-lookup"
 const val BARCODE_MISS_LIMIT = "barcode-miss"
 const val PHOTO_ESTIMATE_LIMIT = "photo-estimate"
+const val FOOD_SEARCH_LIMIT = "food-search"
+const val DESCRIBE_LIMIT = "describe"
+const val EXPORT_LIMIT = "export"
 
 fun Application.installRateLimits() {
     install(RateLimit) {
@@ -72,6 +75,27 @@ fun Application.installRateLimits() {
             // user (PhotoEstimateLimiter, after auth); this per-IP bucket stops
             // a flood of large bodies before any of them is read or verified.
             rateLimiter(limit = 30, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(FOOD_SEARCH_LIMIT)) {
+            // Each search is the catalog's heaviest statement. The app debounces
+            // typing, so a person stays well under 2 a second for a minute; under
+            // the global 600 alone, one client could keep the pool busy by itself.
+            rateLimiter(limit = 120, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(DESCRIBE_LIMIT)) {
+            // One description is up to 20 catalog searches (DescribeParser.MAX_PHRASES).
+            rateLimiter(limit = 30, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(EXPORT_LIMIT)) {
+            // An export streams someone's whole history and holds a pooled
+            // connection while it does. People export now and then, not in a loop.
+            rateLimiter(limit = 10, refillPeriod = 1.hours)
             requestKey { call -> call.clientIp() }
         }
 

@@ -8,6 +8,7 @@ import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Precision
 import com.opson.server.domain.UserId
 import com.opson.server.plugins.installAuthentication
+import com.opson.server.plugins.installRateLimits
 import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
 import com.opson.server.testing.TestJwt
@@ -74,6 +75,7 @@ class ExportRoutesTest {
             application {
                 installSerialization()
                 installStatusPages()
+                installRateLimits()
                 installAuthentication(TestJwt.verification)
                 routing { exportRoutes(repo) }
             }
@@ -98,12 +100,31 @@ class ExportRoutesTest {
     }
 
     @Test
+    fun exportsAreLimitedPerHour() = runTest {
+        val repo = FakeExportRepository(records)
+        testApplication {
+            application {
+                installSerialization()
+                installStatusPages()
+                installRateLimits()
+                installAuthentication(TestJwt.verification)
+                routing { exportRoutes(repo) }
+            }
+            val statuses = (1..11).map {
+                client.get("/v1/export.csv") { header(HttpHeaders.Authorization, TestJwt.bearer(userId)) }.status
+            }
+            assertEquals(List(10) { HttpStatusCode.OK } + HttpStatusCode.TooManyRequests, statuses)
+        }
+    }
+
+    @Test
     fun requiresAuth() = runTest {
         val repo = FakeExportRepository(records)
         testApplication {
             application {
                 installSerialization()
                 installStatusPages()
+                installRateLimits()
                 installAuthentication(TestJwt.verification)
                 routing { exportRoutes(repo) }
             }

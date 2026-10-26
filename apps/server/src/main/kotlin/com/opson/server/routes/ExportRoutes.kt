@@ -3,6 +3,7 @@ package com.opson.server.routes
 import com.opson.server.domain.ExportRecord
 import com.opson.server.domain.ExportRepository
 import com.opson.server.domain.Nutrients
+import com.opson.server.plugins.EXPORT_LIMIT
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.userId
 import io.ktor.http.ContentDisposition
@@ -10,6 +11,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
+import io.ktor.server.plugins.ratelimit.RateLimitName
+import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondTextWriter
@@ -28,16 +31,18 @@ import java.time.ZoneOffset
  */
 fun Route.exportRoutes(repository: ExportRepository) {
     authenticate(SUPABASE_JWT_AUTH) {
-        get("/v1/export.csv") {
-            val userId = call.userId() ?: return@get call.respond(HttpStatusCode.Unauthorized)
-            call.response.header(
-                HttpHeaders.ContentDisposition,
-                ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, "opson-export.csv")
-                    .toString(),
-            )
-            call.respondTextWriter(ContentType.Text.CSV.withParameter("charset", "utf-8")) {
-                writeRow(EXPORT_HEADER)
-                repository.export(userId) { record -> writeRow(record.toCells()) }
+        rateLimit(RateLimitName(EXPORT_LIMIT)) {
+            get("/v1/export.csv") {
+                val userId = call.userId() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                call.response.header(
+                    HttpHeaders.ContentDisposition,
+                    ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, "opson-export.csv")
+                        .toString(),
+                )
+                call.respondTextWriter(ContentType.Text.CSV.withParameter("charset", "utf-8")) {
+                    writeRow(EXPORT_HEADER)
+                    repository.export(userId) { record -> writeRow(record.toCells()) }
+                }
             }
         }
     }
