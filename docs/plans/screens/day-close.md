@@ -9,7 +9,7 @@ note, Done. Read `shared.md` first.
 - Logic: `phone-logic.js` `dc`, `dEaten`, `dTotals`; `PROTOTYPE_NOTES.md` "Big-day card".
 
 ## Route
-`DayCloseRoute(dayIso: String)` in `:features:today`, `screen<>` (system design
+`DayCloseRoute(dayIso: String)` in `:features:today` (api, so the plan's other entries can open it), `screen<>` (system design
 section 10 lists Day close as a full screen). `DayCloseViewModel(day)` in
 `:features:today:impl`, package `com.opson.features.today.impl.dayclose`.
 Reached from the header check, the Day menu, never from Note (see `shared.md`).
@@ -56,7 +56,7 @@ data class BigDayCard(val tomorrow: Display, val commitment: Commitment)   // Co
 | `InputsArrived(day, settings, policy)` | Rebuilds. Prefills `note` from `day.note` once. |
 | `NoteTyped(text)` | `note = text`. |
 | `CommitmentTapped` | `commitment = Committed`. Saves nothing, on purpose (`PROTOTYPE_NOTES.md`). Both buttons send it. |
-| `DoneTapped` | `DiaryRepository.closeDay(day, note.trim().ifEmpty { null })` sets `closed_at`, event `Close`. |
+| `DoneTapped` | `DiaryRepository.setDayNote(day, note.trim().ifEmpty { null })`, then `closeDay(day)` (sets `closed_at`; the repository takes the note separately), event `Close`. |
 | `BackTapped` | Event `Close` without closing the day or saving the note. |
 
 ## Events
@@ -83,6 +83,9 @@ except Coast, which reveals only on Week.
 | Tomorrow | calories | `Tomorrow: 2,100 kcal, same as always.` | Hidden | as Show | Hidden |
 
 ## Copy
+
+Keys are prefixed `today_dayclose_` in `strings_today.xml` (the brief's one
+prefix per feature); the table drops the `today_` for space.
 
 | Key | String |
 |---|---|

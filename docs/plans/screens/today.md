@@ -80,11 +80,16 @@ data class ItemRowUi(val entryId: String, val name: String, val amount: String, 
 ```kotlin
 data class TodayInputs(
     val today: LocalDate,
+    val timeZone: TimeZone,        // LocalCalendar.timeZone(), for item times
     val day: Day,                  // DiaryRepository.observeDay(selected)
     val settings: Settings,
     val explorer: ExplorerStats?,  // only collected when the layout is Explorer
 )
+data class ExplorerStats(val safeFoods: List<String>, val newFoods: List<NewFoodSeen>)   // ExplorerStats.from(frequent, days, today)
 ```
+
+`Settings.ringMode` is the diary's `RingMode`; the builder maps it to
+`SummaryRingMode` by name and `RingModeTapped` maps back.
 
 Every `resolve` call passes `FormatContext(day = day.date, dayClosed = day.isClosed(today))`.
 
@@ -127,21 +132,23 @@ No branch reads `PresetId`. Layout comes from `policy.preset.today`, the rest fr
 | `TurnOnScoresTapped` | `NumbersChanger.request(Override(Micros, Show))`; `NeedsPause` emits `OpenPause(change)`, `Applied` emits the matching toast. |
 | `MealTileTapped(slot)` | Event `OpenLogger(day, slot)`. |
 | `MealPlusTapped(slot)` | Event `OpenMealSheet(day, slot)`. Uncategorized card uses the same action. |
-| `ItemTapped(entryId)` | Event `OpenItemSheet(entryId)`. |
+| `ItemTapped(entryId)` | Event `OpenItemSheet(day, entryId)` (the repository has no lookup by id, so the sheet reads the entry from its day). |
 | `WaterPlusTapped` | Event `OpenWaterSheet(day)`. |
-| `AlreadyAteTapped(slot)` | `DiaryRepository.markAteNoDetails(day, slot)`. |
+| `AlreadyAteTapped(slot)` | `DiaryRepository.setAteNoDetails(day, slot, ate = true)`. |
 | `RhythmLogTapped(slot)` | Event `OpenLogger(day, slot)`. |
 | `LogSomethingNewTapped` | Event `OpenLogger(day, slot = null)` with search focused. |
-| `TabReselected` | `SelectedDay.select(today)` and event `ScrollToTop`. |
 | Menu actions | Listed in `today-sheets.md`. |
 
 ## Events
 `OpenCalendar(day)`, `OpenDayClose(day)`, `OpenNutrients(day, range)`,
-`OpenLogger(day, slot?, focusSearch)`, `OpenLog(day, slot, tab)`, `OpenWeight`,
-`OpenDayNote(day)`, `OpenMealSheet(day, slot)`, `OpenItemSheet(entryId)`,
-`OpenWaterSheet(day)`, `OpenPause(change)`, `ShowToast(message, args)`,
-`ScrollToTop`. The entry point maps each to a route in the owning feature's
-api (logger, trends, settings, today itself).
+`OpenLogger(day, slot?, focusSearch)` (`LoggerRoute(slot, dayIso, focusSearch)`), `OpenLog(day, slot, tab)` (`LogRoute`), `OpenWeight`,
+`OpenDayNote(day)`, `OpenMealSheet(day, slot)`, `OpenItemSheet(day, entryId)`,
+`OpenWaterSheet(day)`, `OpenPause(change)`, `ShowToast(message, args)`.
+No `TabReselected` / `ScrollToTop` in 0.1: the shell's `Router` has no reselect
+signal yet (`shell.md` lists it; it was not ported). Add both when it lands. The entry point maps each to a route in the owning feature's
+api (logger, trends, settings, today itself). `NutrientsRoute(dayIso, range)`
+and `NutrientsRange` did not exist yet, so this work adds them to `:features:trends`
+exactly as `trends.md` specifies; Trends registers the screen.
 
 ## Data
 
@@ -150,7 +157,7 @@ api (logger, trends, settings, today itself).
 | `SelectedDay` then `DiaryRepository.observeDay(day)` | `flatMapLatest`, so a day change cancels the old day |
 | `SettingsRepository.observe()` | settings |
 | `VisibilityPolicySource.policy` | re-emits at 9 pm, so Delayed opens while the screen is up |
-| `DiaryRepository.observeFoodStats(since = today − 30)` | Explorer only |
+| `DiaryRepository.frequentFoods(limit = 6, days = 30)` and `observeDays(today − 180, today)` | Explorer only. Safe foods are the six most logged in 30 days; a new food is one whose first entry in the last 180 days falls in this month (`ExplorerStats.from`, pure and tested). There is no food-stats query, and 180 days keeps the scan small. |
 
 All combined into `TodayInputs`, sent as `InputsArrived`. Writes:
 `SelectedDay.select`, `SettingsRepository.update` (ring mode, meal groups),
@@ -158,6 +165,12 @@ All combined into `TodayInputs`, sent as `InputsArrived`. Writes:
 Offline: everything is Room, so nothing changes; writes queue in the outbox.
 
 ## Components
+Every size in the handoff lives in a library, not in the feature: the hero
+header, hero buttons, locked card, meal tiles, checklist rows and sheet menu
+rows go in `:libraries:ui`; the pieces that draw a `Display` or `RingValue`
+(summary rings and cells, the macros card row, the water card, the meal card
+header, the soft card) go in `:libraries:diary:ui` (`TodayCards.kt`).
+
 - `:libraries:ui`: `HeroBlock` (sticky, bottom radius 24, shadow), `EdgeCard`, `IconTile`, `ProgressRing(segments)`, `PagerDots`, `SegmentedBar` (water), `FillBar` (macro bars, 5 dp), `Banner`, `MenuPopover`, icon buttons at 40 dp (header and summary buttons are 40 by design), `RelativeDay`.
 - `:libraries:nutrition:ui`: `NutrientText`, `NutrientBar`, `NutrientVisible`, `NutrientRingLabel`, `MacroLine`.
 - `:libraries:diary:ui`: `MealSlot` icon and tints, `DiaryItemRow`, feel chip labels.
@@ -176,7 +189,7 @@ Surface `Today` for everything on this screen.
 | Macro grid (page 2), macros card | protein, carbs, fat, fiber | `47 g` with bar (grid), `47 g of 120 g` (card) | "Building / Getting there / Plenty today" with bar | hidden, label too | hidden, label too |
 | Meal macro line | protein, carbs, fat | `47 g protein` part | part omitted | omitted | omitted |
 | Meal header total, item kcal | calories | `445 kcal` | hidden | hidden | hidden |
-| Scores (page 3) | micros | `62%` | "Some / Most / Plenty" | "Nutrition scores are off" | "Nutrition scores are off" + Turn on |
+| Scores (page 3) | micros (summed from each item's `micros` map through `Micronutrient.itemKey`) | `62%` | "Some / Most / Plenty" | "Nutrition scores are off" | "Nutrition scores are off" + Turn on |
 | Water row | water | `750 of 2,000 ml` and segments | segments only, no text | segments hidden | row hidden |
 | Meal count | none (a count) | `3 of 4` on the soft card when `preset.mealCount` | same | same | same |
 
@@ -246,7 +259,7 @@ Not built in 0.1: "Change meal times" (Rhythm, links to Reminders), "Expended to
   - Future and past day close button and empty text; tone Warm picks warm keys.
   - Water Soften: segments with `Display.Soft(text = null)`; Explorer: no water row.
   - Name-only item: Hidden calories, meal total excludes it.
-- `TodayViewModelTest` (fakes for `DiaryRepository`, `SettingsRepository`, `VisibilityPolicySource`, `NumbersChanger`, `SelectedDay`), one per action in the table: day navigation bounds, `CloseDayTapped` ignored on a future day, `RingModeTapped` cycles and persists, `TurnOnScoresTapped` emits `OpenPause` when pause is on and a toast when off, tile/plus/item/water/rhythm events, `AlreadyAteTapped` writes, `TabReselected` selects today and emits `ScrollToTop`.
-- Domain tests in `:libraries:nutrition` for `ringValue`, `macroLine`, `availableRingModes`, `NutritionScores`, `WaterProgress` (see `shared.md`).
+- `TodayViewModelTest` (fakes for `DiaryRepository`, `SettingsRepository`, `VisibilityPolicySource`, `NumbersChanger`, `SelectedDay`), one per action in the table: day navigation bounds, `CloseDayTapped` ignored on a future day, `RingModeTapped` cycles and persists, `TurnOnScoresTapped` emits `OpenPause` when pause is on and a toast when off, tile/plus/item/water/rhythm events, `AlreadyAteTapped` writes.
+- Domain tests in `:libraries:nutrition` for `Micronutrient.itemKey` (`vitamin_a_rae_ug`, `folate_dfe_ug` and the rest of the catalog's keys) and `NutritionScores.percentsOfItems` (new), `ringValue`, `macroLine`, `availableRingModes`, `NutritionScores`, `WaterProgress` (see `shared.md`).
 - Previews (`org.jetbrains.compose.ui.tooling.preview.Preview`, from `TodayFixtures`): Full populated, Full big day, Full empty, Delayed locked, Delayed revealed, Blind, Nutrient focus, Rhythm, Explorer, Mindful (banner), Fuel (soft card with meal count), Coast, groups off, future day, dark, large text.
 - `SURFACES` entries (`TodayLeakSurfaces`): `today`, `today-big-day`, `today-groups-off`, `today-past`, `today-future`. The layout comes from the policy, so the leak test's calories-hidden presets (Blind, Nutrient, Rhythm, Explorer, Mindful) cover the Meals, Rhythm and Explorer layouts with no extra fixtures. All but `today-future` set `showsCaloriesInFull = true`.

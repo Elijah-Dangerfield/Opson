@@ -9,8 +9,10 @@ Day note. Read `shared.md` and `today.md` first.
 - Prototype markup: `Phone.dc.html` `sheet.menu` (line 900), `sheet.mealMenu` (923), `sheet.mealNote` (935), `sheet.mealFeel` (953), `sheet.waterMenu` (966), `sheet.cal` (981).
 - Logic: `phone-logic.js` `addMenuItems`, `dayItems`, `mealMenu`, `note`, `feel`, `wt`, `cal`, `cells`.
 
-All classes live in `:features:today:impl`, package `com.opson.features.today.impl.<sheet>`;
-routes in `:features:today`, package `com.opson.features.today`. Every sheet
+All classes live in `:features:today:impl`, package `com.opson.features.today.impl.<sheet>`.
+Routes only Today opens live there too (as the logger keeps `AmountSheetRoute`
+in its impl); `MealNoteRoute` and `DayCloseRoute`, which other features open,
+are in `:features:today`, package `com.opson.features.today`. Every sheet
 passes `scrollableContent = true` and has a separate `XSheetContent(state, onAction)`.
 
 Common to every sheet below: components are `SheetHeader` (title plus a Close
@@ -57,7 +59,7 @@ Photo and Start/End fast are not built (0.2 / Later).
 | `DayMenuTapped` | `menu = Day`, `clearArmed = false`. |
 | `MenuDismissed` | `menu = null`, `clearArmed = false`. |
 | `AddFoodTapped` | Close menu, `OpenLogger(day, slot = null)`. |
-| `AddDescribeTapped` | Close menu, `OpenLog(day, MealSlot.defaultFor(now), Describe)`. |
+| `AddDescribeTapped` | Close menu, `OpenLog(day, MealSlot.defaultFor(now, groupsOn), Describe)` (`LogRoute`). |
 | `AddGlassOfWaterTapped` | Close menu, `DiaryRepository.addWater(day, glassMl)`, toast. |
 | `AddWeighInTapped` | Close menu, `OpenWeight`. |
 | `AddNoteTapped` / `DayNoteTapped` | Close menu, `OpenDayNote(day)` (not Day close, see `shared.md`). |
@@ -65,7 +67,7 @@ Photo and Start/End fast are not built (0.2 / Later).
 | `DayNutrientsTapped` | Close menu, `OpenNutrients(day, Day)`. |
 | `CopyPreviousDayTapped` | `DiaryRepository.copyDay(from = day − 1, to = day)`, appended to every slot, toast. |
 | `CopyToTomorrowTapped` | `DiaryRepository.copyDay(from = day, to = day + 1)`, appended, toast. |
-| `MealGroupsToggled` | `SettingsRepository.update { mealGroups = !mealGroups }`. |
+| `MealGroupsToggled` | `SettingsRepository.update { mealGroups = !day.mealGroupsOn(it) }` (global, as the prototype; `Day.mealGroups` stays null in 0.1). |
 | `WaterVisibilityToggled` | Shown: `NumbersChanger.request(Override(Water, Hide))`. Hidden: `ClearOverride(Water)` when the preset's level is not Hide, else `Override(Water, Show)`. `NeedsPause` emits `OpenPause`. |
 | `ClearDayTapped` | First tap: `clearArmed = true`, menu stays open. Second: `DiaryRepository.clearDay(day)` (items and ate-no-details; water, notes and feelings stay), close menu, toast. |
 
@@ -103,8 +105,8 @@ note entries. `SURFACES`: `today-add-menu`, `today-day-menu`, `today-day-menu-ar
 
 ```kotlin
 data class CalendarState(
-    val month: YearMonth,
-    val title: String,                     // "October 2026", RelativeDay month formatter
+    val month: YearMonth,                  // kotlinx-datetime 0.7
+    val title: String,                     // "October 2026", DateCopy.monthYear
     val weekdayInitials: List<StringResource>,   // S M T W T F S, Sunday first as the prototype
     val cells: List<CalendarCell?>,        // null = leading blank
     val canGoPrev: Boolean,                // month > today's month − 12
@@ -121,7 +123,7 @@ data class CalendarCell(val date: LocalDate, val selected: Boolean, val isToday:
 | `TodayTapped` | `SelectedDay.select(today)`, `Dismiss`. |
 | `DoneTapped` | `Dismiss`. |
 
-Data: `DiaryRepository.observeLoggedDays(month): Flow<Set<LocalDate>>`. Offline: local.
+Data: `DiaryRepository.observeLoggedDates(year, month): Flow<Set<LocalDate>>`, re-subscribed per month with `flatMapLatest`. Offline: local.
 Components: `MonthGrid`, `SheetHeader`, buttons. Selected day: accent circle;
 today: accent ring; logged: a `c-fat` dot; disabled: `line` colour.
 
@@ -167,7 +169,7 @@ sealed interface MealSheetItem {
 | `HowItFeltTapped` | `OpenMealFeel(day, slot)`. |
 | `CopyFromDayBeforeTapped` | `DiaryRepository.copySlot(from = day − 1, to = day, slot)`, toast, `Dismiss`. |
 | `AteNoDetailsTapped` | `DiaryRepository.markAteNoDetails(day, slot)`, toast, `Dismiss`. |
-| `SaveAsMealTapped` | `OpenCreateMeal(dayIso, slot)` (foods api). |
+| `SaveAsMealTapped` | `OpenCreateMeal(dayIso, slot)`: `CreateMealRoute(fromDayIso, fromSlot)`, added to `:features:foods` as `foods.md` specifies (Foods registers it). |
 
 Every `Open*` event dismisses this sheet first (`router.goBack()` then
 `router.navigate(next)`). Data: `DiaryRepository.observeDay(day)` and `(day − 1)`,
@@ -191,7 +193,7 @@ save-as-meal only with items; each tap's event and write. `SURFACES`: `meal-shee
 |---|---|
 | `NoteLoaded(text)` | Prefills `draft` once. |
 | `NoteTyped(text)` | `draft = text`. |
-| `SaveTapped` | Trimmed non-empty: `DiaryRepository.setMealNote(day, slot, text)` and toast; empty: clears the note, no toast. `Dismiss`. |
+| `SaveTapped` | The note is `MealFeeling.note` (there is no separate meal note): `setFeeling(day, slot, feeling.copy(note = trimmed or null))`, keeping hunger, fullness and moods. Non-empty: toast. `Dismiss`. |
 
 Copy: `today_note_title` Note, %s; placeholder `today_note_placeholder` Where
 you were, who with, anything worth remembering; `today_note_save` Save; toast
@@ -211,7 +213,7 @@ data class MealFeelState(val hunger: Hunger?, val fullness: Fullness?, val moods
 | `FeelingLoaded(feeling)` | Prefills once. |
 | `HungerTapped(h)` / `FullnessTapped(f)` | Selects, or clears when tapped again. |
 | `MoodTapped(m)` | Toggles in the set. |
-| `SaveTapped` | `DiaryRepository.setMealFeeling(day, slot, ...)`, toast, `Dismiss`. |
+| `SaveTapped` | `DiaryRepository.setFeeling(day, slot, ...)`, keeping the note, toast, `Dismiss`. |
 
 Copy: title `How %s felt`, subtitle `All optional. Only you see this.`, `Hunger
 before`: Very hungry / Hungry / Peckish / Not hungry; `Fullness after`: Still
@@ -242,7 +244,7 @@ data class WaterSheetState(
 | `AddGlassTapped` | `addWater(day, +glassMl)`, toast, `Dismiss`. |
 | `CustomAmountTyped(text)` | Keeps digits only. |
 | `AddCustomTapped` | When > 0: fl oz converted with `Units.flOzToMl`, `addWater`, toast, `Dismiss`. |
-| `RemoveGlassTapped` | `addWater(day, −glassMl)`, clamped at 0 by the repository, toast, `Dismiss`. |
+| `RemoveGlassTapped` | `removeWater(day, glassMl)`, clamped at 0 by the repository, toast, `Dismiss`. |
 | `WaterSettingsTapped` | `OpenWaterSettings` (settings api). |
 
 Copy: title `Water`; `Add a glass, %s`; placeholder and description `Custom
@@ -257,8 +259,9 @@ conversion, digits filter, remove hidden at 0. `SURFACES`: `water-sheet`.
 
 ## Item sheet (new, not in the handoff)
 
-`ItemSheetRoute(entryId: String)`. Reason: nothing in the handoff removes a
-wrong entry, and a reviewer will try.
+`ItemSheetRoute(dayIso: String, entryId: String)`. Reason: nothing in the handoff removes a
+wrong entry, and a reviewer will try. The repository has no lookup by id, so
+the sheet observes the entry's day and finds it there.
 
 ```kotlin
 data class ItemSheetState(val name: String, val sub: String, val calories: Display, val slot: MealSlot?)
@@ -267,7 +270,7 @@ data class ItemSheetState(val name: String, val sub: String, val calories: Displ
 | Action | Does |
 |---|---|
 | `EntryArrived(entry, day, policy)` | Calories resolved on `Today` with the entry's day context. |
-| `RemoveTapped` | `DiaryRepository.remove(entryId)` (a tombstone, so it syncs), toast, `Dismiss`. |
+| `RemoveTapped` | `DiaryRepository.removeItem(entryId)` (a tombstone, so it syncs), toast, `Dismiss`. |
 
 Copy (new): `today_item_remove` Remove from %s; toast `Removed from %s.`
 Edge: entry already gone (removed on another device) dismisses. `SURFACES`: `item-sheet`.
