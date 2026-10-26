@@ -1,13 +1,13 @@
 package com.opson.features.today.impl
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.foods.CreateMealRoute
-import com.opson.features.logger.LogRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.ModesRoute
@@ -46,10 +46,12 @@ import com.opson.features.today.impl.water.WaterSheetEvent
 import com.opson.features.today.impl.water.WaterSheetViewModel
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
+import com.opson.features.trends.WeightRoute
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.Router
+import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.navigation.bottomSheet
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
@@ -85,6 +87,7 @@ class TodayFeatureEntryPoint(
     private val itemSheetViewModelFactory: (LocalDate, String) -> ItemSheetViewModel,
     private val dayNoteViewModelFactory: (LocalDate) -> DayNoteViewModel,
     private val todayCardsViewModelFactory: () -> TodayCardsViewModel,
+    private val tabBar: TabBar,
 ) : FeatureEntryPoint {
 
     @Suppress("LongMethod")
@@ -95,6 +98,12 @@ class TodayFeatureEntryPoint(
             val viewModel: TodayViewModel = viewModel { todayViewModelFactory() }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event -> onTodayEvent(event, router) }
+            // The select panel takes the bottom bar's place while foods are being picked (2.12).
+            val selecting = state.selection != null
+            DisposableEffect(selecting) {
+                tabBar.hide(TAB_BAR_OWNER, selecting)
+                onDispose { tabBar.hide(TAB_BAR_OWNER, false) }
+            }
             TodayScreen(state = state, onAction = viewModel::takeAction)
         }
 
@@ -248,7 +257,7 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenLoggerWithFood -> router.navigate(
                 LoggerRoute(dayIso = event.day.toString(), prePickFoodId = event.foodId, prePickIsCustom = event.isCustom),
             )
-            is TodayEvent.OpenLog -> router.navigate(LogRoute(event.day.toString(), event.slot, event.tab))
+            TodayEvent.OpenWeight -> router.navigate(WeightRoute())
             is TodayEvent.OpenMealFeel -> router.navigate(MealFeelRoute(event.day.toString(), event.slot))
             TodayEvent.OpenTodayCards -> router.navigate(TodayCardsRoute())
             TodayEvent.OpenFasting -> router.navigate(FastingRoute())
@@ -262,6 +271,8 @@ class TodayFeatureEntryPoint(
         }
     }
 }
+
+private const val TAB_BAR_OWNER = "today-select"
 
 /** Every Today sheet: the page colour, a grab handle, its own scroll. */
 @Composable

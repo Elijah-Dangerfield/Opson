@@ -1,7 +1,7 @@
 package com.opson.features.today.impl
 
 import androidx.lifecycle.viewModelScope
-import com.opson.features.logger.LogTab
+import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.FastingRepository
@@ -13,6 +13,8 @@ import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.EnergyExpended
@@ -39,11 +41,15 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.today_toast_added_to
+import opson.libraries.resources.generated.resources.today_toast_copied_foods_one
+import opson.libraries.resources.generated.resources.today_toast_copied_foods_other
+import opson.libraries.resources.generated.resources.today_toast_moved_foods_one
+import opson.libraries.resources.generated.resources.today_toast_moved_foods_other
 import opson.libraries.resources.generated.resources.today_toast_cleared
 import opson.libraries.resources.generated.resources.today_toast_copied_previous
 import opson.libraries.resources.generated.resources.today_toast_copied_tomorrow
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -74,12 +80,18 @@ class TodayViewModel(
     private val fastingRelease: FastingRelease,
     private val ticker: MinuteTicker,
     private val remindersEnabled: RemindersEnabled,
+    private val editor: DiaryItemEditor,
+    private val weights: WeightRepository,
+    private val summaryEnabled: TodaySummaryEnabled,
+    private val selectEnabled: TodaySelectEnabled,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value),
 ) {
     private var model = Model(policy = policySource.policy.value)
     private var highlightJob: Job? = null
     private var undoJob: Job? = null
+    private var removedJob: Job? = null
+    private var removals = 0L
 
     private data class Model(
         val policy: VisibilityPolicy,
@@ -94,7 +106,16 @@ class TodayViewModel(
         /** "Not today" or "I tried it" on the food bridge, for this date. Kept nowhere else. */
         val bridgeSkippedOn: LocalDate? = null,
         val fasting: FastingStatus? = null,
+        /** The foods being selected; null when not selecting. */
+        val selected: Set<String>? = null,
+        val step: SelectStep = SelectStep.Actions,
+        val swipe: SwipeState = SwipeState(),
+        /** What the last removal took, while its Undo is open. */
+        val removed: Removal? = null,
     )
+
+    /** The ids a removal took, what the bar says about them, and which removal it was. */
+    private data class Removal(val ids: List<String>, val notice: RemovedNotice, val token: Long)
 
     init {
         viewModelScope.launch {
@@ -131,13 +152,12 @@ class TodayViewModel(
             is TodayAction.RhythmLogTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
             is TodayAction.PlanItTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
             is TodayAction.MealPlusTapped -> sendEvent(TodayEvent.OpenMealSheet(day(), action.slot))
-            is TodayAction.CopyYesterdayMealTapped -> {
-                diary.copySlot(fromDay = day().minus(DatePeriod(days = 1)), toDay = day(), slot = action.slot)
-                sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_added_to, listOf(action.slot.sentenceName))))
-            }
-            is TodayAction.SavedMealsTapped -> sendEvent(TodayEvent.OpenLog(day(), action.slot, LogTab.Saved))
             is TodayAction.FeelPromptTapped -> sendEvent(TodayEvent.OpenMealFeel(day(), action.slot))
-            is TodayAction.ItemTapped -> sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
+            is TodayAction.ItemTapped -> if (model.swipe.open != null) {
+                action.rebuild { copy(swipe = SwipeState()) }
+            } else {
+                sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
+            }
             TodayAction.WaterPlusTapped -> sendEvent(TodayEvent.OpenWaterSheet(day()))
             is TodayAction.AlreadyAteTapped -> diary.setAteNoDetails(day(), action.slot, ate = true)
             TodayAction.RemindersTapped -> sendEvent(TodayEvent.OpenReminders)
@@ -190,14 +210,136 @@ class TodayViewModel(
                 diary.setUntracked(day(), untracked = model.inputs?.day?.untracked != true)
             }
             TodayAction.EditCardsTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenTodayCards) }
-            TodayAction.ClearDayTapped -> if (model.clearArmed) {
-                action.closeMenuThen {
-                    diary.clearDay(day())
-                    sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_cleared)))
-                }
-            } else {
-                action.rebuild { copy(clearArmed = true) }
+            TodayAction.ClearDayTapped -> clearDay(action)
+            is TodayAction.SummaryPageShown -> settingsRepository.update { it.copy(todaySummaryPage = action.page) }
+            TodayAction.CollapseTapped -> settingsRepository.update { it.copy(todaySummaryCollapsed = true) }
+            TodayAction.ExpandTapped -> settingsRepository.update { it.copy(todaySummaryCollapsed = false) }
+            TodayAction.SummaryLongPressed -> if (state.summaryTools) sendEvent(TodayEvent.OpenTodayCards)
+            TodayAction.WeightTapped -> sendEvent(TodayEvent.OpenWeight)
+            else -> selectAction(action)
+        }
+    }
+
+    /** Select foods, swipe to delete and Undo after a removal (`release.todaySelect`). */
+    @Suppress("CyclomaticComplexMethod", "LongMethod")
+    private suspend fun selectAction(action: TodayAction) {
+        if (!state.selectTools) return
+        when (action) {
+            is TodayAction.FoodLongPressed -> action.rebuild {
+                copy(selected = setOf(action.entryId), step = SelectStep.Actions, swipe = SwipeState(), menuOpen = false)
             }
+            is TodayAction.FoodToggled -> action.rebuild { copy(selected = selected?.toggle(action.entryId)) }
+            is TodayAction.MealHeaderToggled -> action.rebuild {
+                val ids = inputs?.day?.items(action.slot).orEmpty().map { it.id }
+                val current = selected.orEmpty()
+                copy(selected = if (ids.all { it in current }) current - ids.toSet() else current + ids)
+            }
+            TodayAction.SelectAllTapped -> action.rebuild { copy(selected = inputs?.day?.allItems.orEmpty().mapTo(LinkedHashSet()) { it.id }) }
+            TodayAction.SelectionClosed -> action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+            TodayAction.CopyToTapped -> action.rebuild { copy(step = SelectStep.CopyTo(slot = firstSelectedSlot())) }
+            is TodayAction.CopyDayPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(day = action.day) ?: step) }
+            is TodayAction.CopySlotPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(slot = action.slot) ?: step) }
+            TodayAction.CopyConfirmed -> copySelected(action)
+            TodayAction.MoveTapped -> action.rebuild { copy(step = SelectStep.MoveTo()) }
+            is TodayAction.MoveSlotPicked -> action.rebuild { copy(step = SelectStep.MoveTo(action.slot)) }
+            TodayAction.MoveConfirmed -> moveSelected(action)
+            TodayAction.RemoveSelectedTapped -> action.rebuild { copy(step = SelectStep.ConfirmRemove) }
+            TodayAction.RemoveSelectedConfirmed -> {
+                val ids = state.selection?.ids.orEmpty().toList()
+                action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+                remove(action, ids)
+            }
+            TodayAction.SelectStepBack -> action.rebuild { copy(step = SelectStep.Actions) }
+            is TodayAction.MoveUncategorizedTapped -> action.rebuild {
+                copy(selected = action.ids.toSet(), step = SelectStep.MoveTo(), swipe = SwipeState(), menuOpen = false)
+            }
+            is TodayAction.RowSwipedOpen -> action.rebuild { copy(swipe = SwipeState(open = action.entryId)) }
+            TodayAction.RowClosed, TodayAction.RowRemoveKept -> action.rebuild { copy(swipe = SwipeState()) }
+            TodayAction.ListScrolled -> if (model.swipe.open != null) action.rebuild { copy(swipe = SwipeState()) }
+            is TodayAction.DeleteRequested -> action.rebuild { copy(swipe = SwipeState(confirming = action.entryId)) }
+            is TodayAction.RowRemoveConfirmed -> {
+                action.rebuild { copy(swipe = SwipeState()) }
+                remove(action, listOf(action.entryId))
+            }
+            TodayAction.RemovedUndoTapped -> model.removed?.let { removal ->
+                removedJob?.cancel()
+                action.rebuild { copy(removed = null) }
+                editor.restoreItems(removal.ids)
+            }
+            is TodayAction.RemovedUndoExpired -> if (model.removed?.token == action.token) action.rebuild { copy(removed = null) }
+            else -> Unit
+        }
+    }
+
+    /**
+     * Removes [ids] now (totals change only here, after Remove) and offers Undo for six seconds,
+     * the same window as after adding. Undo puts back exactly those rows.
+     */
+    private suspend fun remove(action: TodayAction, ids: List<String>) {
+        if (ids.isEmpty()) return
+        val items = model.inputs?.day?.allItems.orEmpty().filter { it.id in ids }
+        val one = items.singleOrNull()
+        val token = ++removals
+        editor.removeItems(ids)
+        action.rebuild { copy(removed = Removal(ids, RemovedNotice(ids.size, one?.name, one?.slot), token)) }
+        removedJob?.cancel()
+        removedJob = viewModelScope.launch {
+            delay(LoggedToMeal.UNDO_WINDOW)
+            takeAction(TodayAction.RemovedUndoExpired(token))
+        }
+    }
+
+    private suspend fun copySelected(action: TodayAction) {
+        val step = model.step as? SelectStep.CopyTo ?: return
+        val slot = step.slot ?: return
+        val ids = state.selection?.ids.orEmpty().toList()
+        val to = calendar.today().plus(DatePeriod(days = step.day.offset))
+        val copied = editor.copyItems(ids, to, slot)
+        action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+        sendEvent(
+            TodayEvent.ShowToast(
+                if (copied.size == 1) {
+                    Toast(Res.string.today_toast_copied_foods_one)
+                } else {
+                    Toast(Res.string.today_toast_copied_foods_other, listOf(copied.size))
+                },
+            ),
+        )
+    }
+
+    private suspend fun moveSelected(action: TodayAction) {
+        val slot = (model.step as? SelectStep.MoveTo)?.slot ?: return
+        val ids = state.selection?.ids.orEmpty().toList()
+        editor.moveItems(ids, slot)
+        action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+        sendEvent(
+            TodayEvent.ShowToast(
+                if (ids.size == 1) {
+                    Toast(Res.string.today_toast_moved_foods_one, listOf(slot.sentenceName))
+                } else {
+                    Toast(Res.string.today_toast_moved_foods_other, listOf(ids.size, slot.sentenceName))
+                },
+            ),
+        )
+    }
+
+    /** Copy to… starts on the meal the first picked food is in, when that is a meal. */
+    private fun firstSelectedSlot(): MealSlot? {
+        val first = model.selected?.firstOrNull() ?: return null
+        return model.inputs?.day?.allItems?.firstOrNull { it.id == first }?.slot?.takeIf { it.isMeal }
+    }
+
+    private fun Set<String>.toggle(id: String): Set<String> = if (id in this) this - id else this + id
+
+    /** "Clear this day" asks for a second tap. */
+    private suspend fun clearDay(action: TodayAction) {
+        if (model.clearArmed) {
+            action.closeMenuThen {
+                diary.clearDay(day())
+                sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_cleared)))
+            }
+        } else {
+            action.rebuild { copy(clearArmed = true) }
         }
     }
 
@@ -215,6 +357,10 @@ class TodayViewModel(
                 highlight = slot ?: highlight.takeIf { sameDate },
                 // Another date drops the Undo bar (the add stays in the diary), unless the add was for it.
                 added = this.added?.takeIf { it.day == day.date },
+                // Selecting and swiped rows belong to the date they started on.
+                selected = selected.takeIf { sameDate },
+                step = if (sameDate) step else SelectStep.Actions,
+                swipe = if (sameDate) swipe else SwipeState(),
             )
         }
         if (slot != null) fadeHighlight()
@@ -272,6 +418,12 @@ class TodayViewModel(
                 highlight = current.highlight,
                 added = current.added,
                 bridgeSkipped = current.bridgeSkippedOn == inputs.day.date,
+                ui = TodayUi(
+                    selected = current.selected,
+                    step = current.step,
+                    swipe = current.swipe,
+                    removed = current.removed?.notice,
+                ),
             ).copy(fasting = current.fasting)
         }
     }
@@ -291,7 +443,7 @@ class TodayViewModel(
             .map { it.preset.today == TodayLayout.Explorer }
             .distinctUntilChanged()
             .flatMapLatest { on -> if (on) explorerStats() else flowOf(null) }
-        return combine(days, settingsRepository.settings, explorer, expended()) { (d, before), settings, stats, expended ->
+        return combine(days, settingsRepository.settings, explorer, expended(), weighIns()) { (d, before), settings, stats, expended, weighIns ->
             TodayInputs(
                 today = calendar.today(),
                 timeZone = calendar.timeZone(),
@@ -301,8 +453,17 @@ class TodayViewModel(
                 explorer = stats,
                 remindersOn = remindersEnabled(),
                 expended = expended,
+                summaryOn = summaryEnabled(),
+                selectOn = selectEnabled(),
+                weighIns = weighIns,
             )
         }
+    }
+
+    /** The last few weeks of weigh-ins for the Weight row. With `release.todaySummary` off the store is never read. */
+    private fun weighIns(): Flow<List<WeighIn>> {
+        if (!summaryEnabled()) return flowOf(emptyList())
+        return weights.observeWeighIns(since = clock.now() - WEIGH_IN_LOOKBACK)
     }
 
     /** The fasting card, ticking once a minute only while it can show. */
@@ -340,6 +501,9 @@ class TodayViewModel(
     companion object {
         /** How long a changed meal stays outlined. */
         val HIGHLIGHT_FOR = 2.seconds
+
+        /** The Weight row's trend reads two weeks; a little more covers a day in the past. */
+        private val WEIGH_IN_LOOKBACK = 42.days
         private const val SAFE_FOOD_DAYS = 30
     }
 }

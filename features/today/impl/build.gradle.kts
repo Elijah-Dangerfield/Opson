@@ -26,6 +26,8 @@ kotlin {
             implementation(projects.libraries.reminders)
             // Expended so far, behind release.health.
             implementation(projects.libraries.health)
+            // The design sync 2 release flags (release.todaySummary, todaySelect, checkIn).
+            implementation(projects.libraries.config)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)

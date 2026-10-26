@@ -1,12 +1,12 @@
 package com.opson.features.today.impl
 
-import com.opson.features.logger.LogTab
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.MacroLineStyle
@@ -61,7 +61,98 @@ data class TodayState(
     val menu: DayMenu? = null,
     /** The fasting card (0.2), from [TodayFastingCard]; null when it does not show. */
     val fasting: FastingStatus? = null,
+    /** `release.todaySummary`: the dots, the chevron, long-press to customise, the sticky bar. */
+    val summaryTools: Boolean = false,
+    /** The summary page left open: 0 energy, 1 macros. Remembered across days and restarts. */
+    val summaryPage: Int = 0,
+    /** The summary shrunk to one pinned line by choice. */
+    val collapsed: Boolean = false,
+    /** The summary as one line: the sticky bar for each page, and the collapsed line. */
+    val compact: CompactSummary? = null,
+    /** The day's latest weigh-in, through the weight level. */
+    val weight: WeightRow? = null,
+    /** `release.todaySelect`: long-press to select, swipe to delete. */
+    val selectTools: Boolean = false,
+    /** Foods being selected (2.12); null when not selecting. */
+    val selection: Selection? = null,
+    /** Which food row is swiped open, and which has turned into its confirmation (2.13, 2.14). */
+    val swipe: SwipeState = SwipeState(),
+    /** "Removed banana" with Undo, for six seconds after a removal. */
+    val removed: RemovedNotice? = null,
 )
+
+/** One piece of the eaten bar: a macro's share of the energy, or ([metric] null) the rest in one neutral piece. */
+data class BarPart(val metric: Metric?, val weight: Float)
+
+/** A stat on page 1 of the summary: its value is an amount through the policy, or a count. */
+data class StatTile(val stat: SummaryStat, val value: StatValue)
+
+sealed interface StatValue {
+    data class Amount(val metric: Metric, val display: Display) : StatValue
+
+    /** "3 of 4" meals, or glasses of water. */
+    data class Count(val done: Int, val total: Int) : StatValue
+}
+
+/** Page 2 (2.1b): "of 1,245 kcal", the macros two by two, and each Show macro's share of the energy. */
+data class MacrosPage(val eaten: Display, val rows: List<MacroTile>, val shares: List<MacroShare>)
+
+data class MacroShare(val metric: Metric, val label: StringResource, val share: Display, val weight: Float)
+
+/** The summary as one line (2.1c, 2.1d). [pages] are the sticky bar per page; [collapsed] joins page 1's lead to page 2's. */
+data class CompactSummary(val pages: List<CompactLine>, val collapsed: CompactLine)
+
+data class CompactLine(val parts: List<CompactPart>, val bar: CompactBar? = null)
+
+/** The eaten bar under a compact line, only where calories are shown. */
+data class CompactBar(val eaten: Display, val rangeStart: Float, val rangeEnd: Float, val parts: List<BarPart>)
+
+sealed interface CompactPart {
+    /** An amount, with [label] before it ("range 1,900 to 2,300", "Protein Partway"). */
+    data class Amount(val metric: Metric, val display: Display, val label: StringResource? = null) : CompactPart
+
+    /** The macros as the meal headers write them: "51P 162C 44F". */
+    data class Macros(val parts: List<MacroPart>) : CompactPart
+
+    /** "3 of 4 meals". */
+    data class Meals(val done: Int, val total: Int) : CompactPart
+
+    /** "3 meals logged", while totals are locked. */
+    data class Logged(val meals: Int) : CompactPart
+}
+
+/** "This morning · 7:02 AM" and the weight, Soft or Shown; the row is absent when weight is Hide. */
+data class WeightRow(val display: Display, val at: LocalTime, val morning: Boolean)
+
+/**
+ * Foods picked in select mode: their [count] and totals through the policy (Blind keeps only the
+ * count), and which [step] the panel is on.
+ */
+data class Selection(
+    val ids: Set<String>,
+    val count: Int,
+    val calories: Display,
+    val macros: List<MacroTile>,
+    val step: SelectStep = SelectStep.Actions,
+)
+
+sealed interface SelectStep {
+    data object Actions : SelectStep
+    data class CopyTo(val day: CopyDay = CopyDay.Today, val slot: MealSlot? = null) : SelectStep
+    data class MoveTo(val slot: MealSlot? = null) : SelectStep
+
+    /** "Remove 3 foods?" in place of the actions. */
+    data object ConfirmRemove : SelectStep
+}
+
+/** Where Copy to… can send foods, counted from the real today. */
+enum class CopyDay(val offset: Int) { Yesterday(-1), Today(0), Tomorrow(1) }
+
+/** [open]: the row with Delete showing. [confirming]: the row turned into "Remove banana from breakfast?". */
+data class SwipeState(val open: String? = null, val confirming: String? = null)
+
+/** What was just removed: one food by [name] in [slot], or [count] foods. Never an amount. */
+data class RemovedNotice(val count: Int, val name: String?, val slot: MealSlot?)
 
 /** [count] foods just went into [slot]. A count of foods, never an amount. */
 data class AddedNotice(val slot: MealSlot, val count: Int)
@@ -86,6 +177,12 @@ sealed interface TodaySummary {
         val macros: List<MacroTile>,
         /** Expended so far from a connected health app (0.2): energy out, today only. */
         val expended: Display = Display.Hidden,
+        /** The eaten fill split by macro (design sync 2). Empty on an empty day. */
+        val bar: List<BarPart> = emptyList(),
+        /** Page 1's stats (`release.todaySummary`); none on an empty day. */
+        val stats: List<StatTile> = emptyList(),
+        /** Page 2, the macros (`release.todaySummary`); null when off or nothing to show. */
+        val macrosPage: MacrosPage? = null,
     ) : TodaySummary
 
     /** Calories softened (2.6): meals counted when the mode counts them, the lead macro, the rest as bars. */
@@ -169,15 +266,13 @@ sealed interface MealEntry {
     }
 
     /**
-     * An empty meal as one row. The next meal to come ([usual]) says "Usually around" and
-     * offers yesterday's version, or Saved meals when there is no yesterday.
+     * An empty meal as one row. The next meal to come ([usual]) says "Usually around". Copying
+     * yesterday's version lives in the add sheet now (design sync 2, 2.2).
      */
     data class Collapsed(
         override val slot: MealSlot,
         val around: LocalTime,
         val usual: Boolean,
-        val yesterday: Yesterday?,
-        val offerSaved: Boolean,
     ) : MealEntry
 
     /** A meal as its foods in a line (Explorer), or how it felt (Mindful). */
@@ -197,9 +292,6 @@ sealed interface MealEntry {
     data class NotPlanned(override val slot: MealSlot) : MealEntry
 }
 
-/** Yesterday's version of an empty meal, to copy in one tap. */
-data class Yesterday(val foods: String, val calories: Display)
-
 /** How a meal felt, as chips: "Hungry → Satisfied", then moods. */
 data class FeelLine(val hunger: StringResource?, val fullness: StringResource?, val moods: List<StringResource>)
 
@@ -217,6 +309,8 @@ data class MealCard(
     val ateNoDetails: Boolean,
     val feel: List<StringResource>,
     val note: String?,
+    /** Uncategorized with `release.todaySelect`: "Move to…" files its foods into a meal. */
+    val fileable: Boolean = false,
 )
 
 data class ItemRowUi(val entryId: String, val name: String, val amount: String, val precision: Precision, val calories: Display)
@@ -259,8 +353,6 @@ sealed interface TodayAction {
     data class MealTileTapped(val slot: MealSlot) : TodayAction
     data class MealPlusTapped(val slot: MealSlot) : TodayAction
     data class PlanItTapped(val slot: MealSlot) : TodayAction
-    data class CopyYesterdayMealTapped(val slot: MealSlot) : TodayAction
-    data class SavedMealsTapped(val slot: MealSlot) : TodayAction
     data class FeelPromptTapped(val slot: MealSlot) : TodayAction
     data class ItemTapped(val entryId: String) : TodayAction
     data object WaterPlusTapped : TodayAction
@@ -298,6 +390,41 @@ sealed interface TodayAction {
     data object UntrackedMenuTapped : TodayAction
     data object EditCardsTapped : TodayAction
     data object ClearDayTapped : TodayAction
+
+    // The summary card (release.todaySummary)
+    data class SummaryPageShown(val page: Int) : TodayAction
+    data object CollapseTapped : TodayAction
+    data object ExpandTapped : TodayAction
+    data object SummaryLongPressed : TodayAction
+    data object WeightTapped : TodayAction
+
+    // Select foods and swipe to delete (release.todaySelect)
+    data class FoodLongPressed(val entryId: String) : TodayAction
+    data class FoodToggled(val entryId: String) : TodayAction
+    data class MealHeaderToggled(val slot: MealSlot) : TodayAction
+    data object SelectAllTapped : TodayAction
+    data object SelectionClosed : TodayAction
+    data object CopyToTapped : TodayAction
+    data class CopyDayPicked(val day: CopyDay) : TodayAction
+    data class CopySlotPicked(val slot: MealSlot) : TodayAction
+    data object CopyConfirmed : TodayAction
+    data object MoveTapped : TodayAction
+    data class MoveSlotPicked(val slot: MealSlot) : TodayAction
+    data object MoveConfirmed : TodayAction
+    data object RemoveSelectedTapped : TodayAction
+    data object RemoveSelectedConfirmed : TodayAction
+    data object SelectStepBack : TodayAction
+    data class MoveUncategorizedTapped(val ids: List<String>) : TodayAction
+    data class RowSwipedOpen(val entryId: String) : TodayAction
+    data object RowClosed : TodayAction
+    data class DeleteRequested(val entryId: String) : TodayAction
+    data object RowRemoveKept : TodayAction
+    data class RowRemoveConfirmed(val entryId: String) : TodayAction
+    data object ListScrolled : TodayAction
+    data object RemovedUndoTapped : TodayAction
+
+    /** The removal's six seconds ran out; [token] tells this removal from a later one. */
+    data class RemovedUndoExpired(val token: Long) : TodayAction
 }
 
 sealed interface TodayEvent {
@@ -308,7 +435,6 @@ sealed interface TodayEvent {
 
     /** The logger with [foodId] already picked (the food bridge's "I tried it"). */
     data class OpenLoggerWithFood(val day: LocalDate, val foodId: String, val isCustom: Boolean) : TodayEvent
-    data class OpenLog(val day: LocalDate, val slot: MealSlot, val tab: LogTab) : TodayEvent
     data class OpenDayNote(val day: LocalDate) : TodayEvent
     data class OpenMealSheet(val day: LocalDate, val slot: MealSlot) : TodayEvent
     data class OpenMealFeel(val day: LocalDate, val slot: MealSlot) : TodayEvent
@@ -317,6 +443,7 @@ sealed interface TodayEvent {
     data object OpenTodayCards : TodayEvent
     data object OpenFasting : TodayEvent
     data object OpenReminders : TodayEvent
+    data object OpenWeight : TodayEvent
     data class OpenPause(val change: NumbersChange) : TodayEvent
     data class ShowToast(val toast: Toast) : TodayEvent
 }
@@ -335,6 +462,12 @@ data class TodayInputs(
     val remindersOn: Boolean = false,
     /** Today's energy from a connected health app; null when not connected or `release.health` is off. */
     val expended: EnergyExpended? = null,
+    /** `release.todaySummary`. */
+    val summaryOn: Boolean = false,
+    /** `release.todaySelect`. */
+    val selectOn: Boolean = false,
+    /** Recent weigh-ins, oldest first, for the Weight row and its trend word. Only read with [summaryOn]. */
+    val weighIns: List<WeighIn> = emptyList(),
 )
 
 /**

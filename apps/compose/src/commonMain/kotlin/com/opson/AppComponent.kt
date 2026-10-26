@@ -5,6 +5,7 @@ import com.opson.libraries.core.AutoInit
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.navigation.DeepLinkBridge
+import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.navigation.impl.DelegatingRouter
 import com.opson.libraries.telemetry.impl.JankMonitor
 import com.opson.libraries.telemetry.impl.StartupReporter
@@ -26,6 +27,9 @@ interface AppComponent {
     val featureEntryPoints: Set<FeatureEntryPoint>
     val appViewModel: AppViewModel  // Singleton, shared between MainActivity and App
     val delegatingRouter: DelegatingRouter
+
+    /** Lets a tab screen put the bottom bar away while it needs the room (Today's select mode). */
+    val tabBar: TabBar
     val telemetry: Telemetry
 
     /**

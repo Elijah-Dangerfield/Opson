@@ -53,6 +53,8 @@ kotlin {
             implementation(projects.libraries.health)
             // `release.barcode` lives next to the logger it gates.
             implementation(projects.features.logger.impl)
+            // release.todaySummary, release.todaySelect and release.checkIn live next to Today.
+            implementation(projects.features.today.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.widgets)
             implementation(libs.kotlinx.serialization.json)

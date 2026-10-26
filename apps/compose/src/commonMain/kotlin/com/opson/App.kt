@@ -38,6 +38,7 @@ import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.SessionExpiredRoute
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowHost
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowNavigator
+import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.navigation.impl.DelegatingRouter
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toEnterTransition
@@ -197,6 +198,7 @@ fun App(appComponent: AppComponent) {
                             router = router,
                             telemetry = appComponent.telemetry,
                             jankMonitor = appComponent.jankMonitor,
+                            tabBar = appComponent.tabBar,
                         )
                     } else {
                         BootLoadingScreen()
@@ -287,6 +289,7 @@ private fun AppNavigation(
     router: DelegatingRouter,
     telemetry: Telemetry,
     jankMonitor: JankMonitor,
+    tabBar: TabBar,
 ) {
     // Tag every crash/error with the route the user is currently on. Sheets
     // and dialogs are real destinations on this same back stack (see
@@ -326,7 +329,7 @@ private fun AppNavigation(
         // and it marks that consumed so a tab screen does not pad for the navigation bar twice.
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
-            ShellBottomBar(navController = navController, router = router)
+            ShellBottomBar(navController = navController, router = router, tabBar = tabBar)
         },
         snackbarHost = {
             PresenterSnackbarHost()

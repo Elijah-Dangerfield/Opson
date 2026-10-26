@@ -3,6 +3,9 @@ package com.opson.integration.config
 import com.opson.features.logger.impl.BarcodeScanEnabled
 import com.opson.features.logger.impl.PhotoEstimateEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
+import com.opson.features.today.impl.CheckInEnabled
+import com.opson.features.today.impl.TodaySelectEnabled
+import com.opson.features.today.impl.TodaySummaryEnabled
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.config.ConfiguredValue
 import com.opson.libraries.config.DoubleConfigValue
@@ -326,6 +329,9 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     VoiceLogEnabled(appConfigMap),
     PhotoEstimateEnabled(appConfigMap),
     WidgetsEnabled(appConfigMap),
+    TodaySummaryEnabled(appConfigMap),
+    TodaySelectEnabled(appConfigMap),
+    CheckInEnabled(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"

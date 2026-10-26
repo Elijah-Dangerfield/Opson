@@ -202,8 +202,8 @@
     <string name="today_dayclose_below">Your range is %1$s</string>
     <string name="today_dayclose_soft_label">Today</string>
     <string name="today_dayclose_soft_label_other_day">That day</string>
-    <string name="today_dayclose_big_day">Big days happen. Cutting back hard tomorrow tends to backfire and makes the next big day more likely. Tomorrow's plan stays the same.</string>
-    <string name="today_dayclose_tomorrow">Tomorrow: %1$s, same as always.</string>
+    <string name="today_dayclose_big_day">Everyone has big days. Tomorrow is a fresh start, and you don't need to make up for today.</string>
+    <string name="today_dayclose_tomorrow">Your range tomorrow is %1$s, the same as usual.</string>
     <string name="today_dayclose_commit_normal">Back to normal tomorrow</string>
     <string name="today_dayclose_commit_can">I can do this</string>
     <string name="today_dayclose_committed">Heard. That stays between you and you.</string>
@@ -290,4 +290,45 @@
     <string name="today_toast_moved_foods_one">Moved 1 food to %1$s.</string>
     <string name="today_toast_moved_foods_other">Moved %1$d foods to %2$s.</string>
     <string name="today_move_to">Move to…</string>
+
+    <!-- Design sync 2: how it felt (3.10) -->
+    <string name="today_feel_title_question">How was %1$s?</string>
+    <string name="today_feel_subtitle_optional">Everything here is optional, and only you see it.</string>
+    <string name="today_feel_mood_any">Mood · pick any</string>
+    <string name="today_feel_note">Add a note</string>
+    <string name="today_feel_skip">Skip</string>
+    <string name="today_feel_a_bit">A bit</string>
+    <string name="today_feel_too_full">Too full</string>
+
+    <!-- Design sync 2: Day close (4.1 to 4.5) -->
+    <string name="today_dayclose_why_not">Why not cut back?</string>
+    <string name="today_dayclose_support">If eating feels hard right now, talk to someone</string>
+    <!-- TODO(clinician): approve this wording and pick the citation before a study is named anywhere. -->
+    <string name="today_dayclose_why_title">Why not cut back?</string>
+    <string name="today_dayclose_why_body">Research on dieting finds that eating a lot less after a big day often leads to more overeating later. Going back to your usual range works better than making up for one day.</string>
+    <string name="today_dayclose_why_ok">OK</string>
+    <string name="today_dayclose_expended">Expended, from your watch</string>
+    <string name="today_checkin_title">Check in</string>
+    <string name="today_checkin_note">Optional · only you see this</string>
+    <string name="today_checkin_hunger">Hunger through the day</string>
+    <string name="today_checkin_hunger_rarely">Rarely</string>
+    <string name="today_checkin_hunger_some">Some</string>
+    <string name="today_checkin_hunger_steady">Steady</string>
+    <string name="today_checkin_hunger_often">Often</string>
+    <string name="today_checkin_hunger_very">Very</string>
+    <string name="today_checkin_energy">Energy</string>
+    <string name="today_checkin_energy_low">Low</string>
+    <string name="today_checkin_energy_ok">OK</string>
+    <string name="today_checkin_energy_good">Good</string>
+    <string name="today_checkin_sleep">Sleep last night</string>
+    <string name="today_checkin_sleep_poor">Poor</string>
+    <string name="today_checkin_sleep_ok">OK</string>
+    <string name="today_checkin_sleep_good">Good</string>
+    <string name="today_checkin_mood">Mood · pick any</string>
+    <string name="today_checkin_mood_calm">Calm</string>
+    <string name="today_checkin_mood_social">Social</string>
+    <string name="today_checkin_mood_stressed">Stressed</string>
+    <string name="today_checkin_mood_tired">Tired</string>
+    <string name="today_checkin_mood_low">Low</string>
+    <string name="today_checkin_mood_happy">Happy</string>
 </resources>
