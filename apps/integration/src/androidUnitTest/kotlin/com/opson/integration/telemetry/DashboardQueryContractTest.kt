@@ -137,8 +137,8 @@ class DashboardQueryContractTest {
             buildList {
                 dashboard.datasourceUids.filterNot { it in ALLOWED_DATASOURCE_UIDS }
                     .forEach { add("${dashboard.file}: datasource uid \"$it\"") }
-                dashboard.queries.filterNot { it.expr.contains("service_name=\"$SERVICE_NAME\"") }
-                    .forEach { add("${dashboard.file}: query does not select service_name=\"$SERVICE_NAME\": ${it.expr}") }
+                dashboard.queries.filterNot { query -> SERVICE_NAMES.any { query.expr.contains("service_name=\"$it\"") } }
+                    .forEach { add("${dashboard.file}: query does not select a service_name in $SERVICE_NAMES: ${it.expr}") }
             }
         }.distinct().sorted()
 
@@ -272,7 +272,19 @@ private val LOOSE_CONSTRUCTS = listOf(
  * targets and an `__expr__` math node; the query targets underneath it still name
  * the Loki uid, and those are what the contract checks.
  */
-private val ALLOWED_DATASOURCE_UIDS = setOf("grafanacloud-logs", "__expr__", "-- Mixed --", "-- Grafana --")
+/**
+ * `opson-db` is the Postgres datasource the long-term dashboards read through
+ * the read-only `grafana_ro` role (see ops/grafana/README.md). Its panels are
+ * SQL over aggregate views, so the event checks here do not apply to them.
+ */
+private val ALLOWED_DATASOURCE_UIDS = setOf("grafanacloud-logs", "opson-db", "__expr__", "-- Mixed --", "-- Grafana --")
+
+/**
+ * The client exports as [GrafanaLogTree.SERVICE_NAME]; the server as the
+ * default `serviceName` in `apps/server/.../config/ServerConfig.kt`. A Loki
+ * query must select one of the two, never neither.
+ */
+private val SERVICE_NAMES = listOf(SERVICE_NAME, "opson-server")
 
 /**
  * Keys every record carries regardless of the event: the two stream labels, the
