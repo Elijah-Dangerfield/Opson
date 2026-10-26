@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.opson.libraries.ui.PreviewContent
-import com.opson.libraries.ui.components.CircularLoadingIndicator
+import com.opson.libraries.ui.components.CircularProgressIndicator
 import com.opson.libraries.ui.components.CyclingLoadingMessage
 import com.opson.libraries.ui.components.DefaultBootLoadingMessages
 import com.opson.system.AppTheme
@@ -39,7 +39,7 @@ fun BootLoadingScreen(
             .background(AppTheme.colors.background.color),
         contentAlignment = Alignment.Center,
     ) {
-        CircularLoadingIndicator()
+        CircularProgressIndicator()
         CyclingLoadingMessage(
             messages = DefaultBootLoadingMessages,
             startDelay = messageStartDelay,
