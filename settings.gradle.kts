@@ -65,6 +65,11 @@ if (!serverOnly) {
     // depends on every feature and library, impls included.
     include(":apps:screenshots")
 
+    // BlindModeLeakTest: every screen rendered under Robolectric in every mode
+    // that hides calories, scanned for a calorie amount. Tests only; depends on
+    // every feature impl, and runs in the plain testDebugUnitTest sweep.
+    include(":apps:leaktest")
+
     // Compose Multiplatform (web) admin console for remote config. The server
     // serves the prebuilt bundle at /admin; CI builds it — the server build
     // itself stays JS-toolchain-free, so it's gated out of the server-only

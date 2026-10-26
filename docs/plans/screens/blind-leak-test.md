@@ -64,14 +64,15 @@ class BlindModeLeakTest(private val surface: LeakSurface, private val preset: Pr
 
     companion object {
         @JvmStatic @ParameterizedRobolectricTestRunner.Parameters(name = "{0} in {1}")
-        fun cases() = SURFACES.flatMap { s -> HIDDEN_PRESETS.map { arrayOf(s, it) } }
+        fun cases() = PRESETS_UNDER_TEST.flatMap { p -> SURFACES.map { arrayOf(it, p) } }  // minus whole-surface reveals
     }
 }
 ```
 
 | Piece | Detail |
 |---|---|
-| `HIDDEN_PRESETS` | Blind, plus every preset whose calories, remaining and energyOut are all Hide: Nutrient, Rhythm, Explorer, Mindful. Blind is the requirement; the others cost a few seconds and cover the Rhythm and Explorer layouts. Fuel (calories Soft) and Delayed / Coast (Delay) are not in this set: a soft word legitimately carries the `metric:calories` tag. |
+| `PRESETS_UNDER_TEST` | Every preset whose calories level is not Show, derived from `Presets.all`: Blind, Nutrient, Rhythm, Explorer, Mindful (Hide: nothing at all), Delayed and Coast (Delay, at noon before the reveal and before Coast's weekly check: nothing apart from `REVEALED_BY_DESIGN`), Fuel (Soften: the calories tag may hold a word, never a digit). `SurfacesCoverageTest` pins the set. |
+| `REVEALED_BY_DESIGN` | What a delayed or soft mode shows on purpose, each with its reason: Day close, a past day and the week views in Delayed (the whole surface is skipped in that preset only); Coast's last weekly check; yesterday's dinner offered on Today in Delayed and the label typed into Add a food (those two allow the exact values only, so anything else on the surface still fails). |
 | `policyFor(preset)` | `VisibilityPolicy(NumbersSettings(preset), fixedClock, TimeZone.UTC)` with the clock at 2026-10-25 12:00, before the 9 pm reveal. |
 | `LeakHarness` | `AppThemeProvider` (Pine, light, normal text) plus `CompositionLocalProvider(LocalVisibilityPolicy provides policy)`. If Compose resources fail to resolve under Robolectric, add `PreviewContextConfigurationEffect()` here; verify on the first run. |
 | `assertNoTaggedMetrics` | `onAllNodes(hasTestTag(...), useUnmergedTree = true).assertCountEquals(0)` for each of the three tags. |
