@@ -193,7 +193,8 @@ object TrendsStateBuilder {
         val bars = when (span.range) {
             TrendsRange.Week -> span.days.map { date ->
                 val current = date == inputs.today
-                val kcal = dayAt(date).intakeKcal()
+                val day = dayAt(date)
+                val kcal = day.intakeKcal()?.takeIf { opens(Metric.Calories, day, inputs, policy) }
                 if (current) inProgress = IntakeCaption.TodayInProgress else kcal?.let(tracked::add)
                 IntakeBar(TrendsCalendar.weekdayLabel(date), kcal?.let { (it / scale).toFloat() }, isCurrent = current)
             }
@@ -202,8 +203,11 @@ object TrendsStateBuilder {
                 val starts = TrendsCalendar.weekStarts(inputs.today, inputs.settings.weekStart, count)
                 starts.mapIndexed { index, start ->
                     val current = index == starts.lastIndex
-                    val week = (0 until TrendsCalendar.DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }.filter { it <= inputs.today }
-                    val days = week.mapNotNull { dayAt(it).intakeKcal() }
+                    val week = (0 until TrendsCalendar.DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }
+                        .filter { it <= inputs.today }
+                        .map(dayAt)
+                        .filter { opens(Metric.Calories, it, inputs, policy) }
+                    val days = week.mapNotNull { it.intakeKcal() }
                     if (current) inProgress = IntakeCaption.WeekInProgress else tracked.addAll(days)
                     val labelled = span.range == TrendsRange.FourWeeks || (starts.lastIndex - index) % THREE_MONTHS_LABEL_EVERY == 0
                     IntakeBar(
@@ -280,7 +284,11 @@ object TrendsStateBuilder {
     ): NutrientsCard? {
         if (!showsNutrients(policy, context)) return null
         // Today is still in progress, so it stays out of the average like the chart's striped bar.
-        val averages = WeekAverages.of(span.days.filter { it < inputs.today }.map(dayAt))
+        // A day a delayed macro hasn't opened on yet stays out too.
+        val delayed = TREND_MACROS.filter { policy.level(it) == Visibility.Delay }
+        val averages = WeekAverages.of(
+            span.days.filter { it < inputs.today }.map(dayAt).filter { day -> delayed.all { opens(it, day, inputs, policy) } },
+        )
         val targets = inputs.settings.targets
         val tiles = TREND_MACROS.mapNotNull { metric ->
             val display = policy.resolve(metric, averages?.of(metric), Surface.Week, context.copy(of = targets.goal(metric), goal = GoalStyle.Slash))
@@ -304,6 +312,22 @@ object TrendsStateBuilder {
             },
             trend = curve.trend,
         )
+    }
+
+    /**
+     * Whether [day]'s [metric] may go into the chart and the averages. The week view itself is
+     * open in Delayed all day, but a day it covers may not be: today before the reveal or day
+     * close, or, for a weekly reveal (Coast), any day of a week whose check has not come. The
+     * month and three-month spans reach past the week window into exactly those days.
+     */
+    private fun opens(metric: Metric, day: Day, inputs: TrendsInputs, policy: VisibilityPolicy): Boolean {
+        if (policy.level(metric) != Visibility.Delay) return true
+        if (!policy.revealsWeekly) {
+            return policy.effectiveLevel(metric, Surface.Today, day.formatContext(inputs.today)) == Visibility.Show
+        }
+        val weekEnd = TrendsCalendar.weekStartOf(day.date, inputs.settings.weekStart)
+            .plus(TrendsCalendar.DAYS_IN_WEEK - 1, DateTimeUnit.DAY)
+        return policy.isWeekOpen(weekEnd)
     }
 
     /** Bars are drawn against the top of the range plus a fifth, rounded up to the next 100. */
