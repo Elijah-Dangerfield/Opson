@@ -53,6 +53,23 @@ class SessionTrackerImplTest {
     }
 
     @Test
+    fun aSecondForeground_withNoBackgroundBetween_doesNotRoll() {
+        val clock = MutableClock(initialMs = 1_000L)
+        val tracker = SessionTrackerImpl(clock = clock)
+
+        tracker.onColdBoot(AppEvent.ColdBoot)
+        tracker.onBackground(AppEvent.OnBackground)
+        clock.advance(byMs = 60_000L)
+        tracker.onForeground(AppEvent.OnForeground(isColdBoot = false))
+        // Half an hour of use later, a foreground with no background before it
+        // (iOS reactivating after Control Center or a permission alert).
+        clock.advance(byMs = 30L * 60_000L)
+        tracker.onForeground(AppEvent.OnForeground(isColdBoot = false))
+
+        assertEquals(1L, tracker.current.id, "the gap must be measured from a background that is still open")
+    }
+
+    @Test
     fun foreground_atThreshold_rollsSession() {
         val clock = MutableClock(initialMs = 1_000L)
         val tracker = SessionTrackerImpl(clock = clock)

@@ -36,14 +36,11 @@ import kotlin.uuid.Uuid
  * **State is in-memory, not persisted.** Each cold start resets the
  * counter to 1. Per-launch identifier is enough for the only consumer
  * shape we care about — repos asking "have I fetched this session?"
- * The persisted `AppData.lastSessionEndedAt` covers the "first ever
- * launch" question separately.
  *
  * **Thread safety:** all lifecycle callbacks fire on the platform main
- * thread (Android `Lifecycle.Event`, iOS `UIApplication` notifications)
- * — no need to serialize the volatile `lastBackgroundedAtMs` write
- * against the foreground read. The state flow's atomic updates handle
- * any downstream re-fanning.
+ * thread (Android `Lifecycle.Event`, iOS `UIApplication` notifications),
+ * so the `lastBackgroundedAtMs` write and the foreground read never
+ * race. The state flow's atomic updates handle any downstream re-fanning.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, multibinding = true, boundType = AppEventListener::class)
@@ -91,7 +88,10 @@ class SessionTrackerImpl(
             // back-to-back. Skip so we don't double-count session #1.
             return
         }
+        // Consumed, so a later foreground with no background in between can't
+        // measure its gap from a background that already ended.
         val backgroundedAtMs = lastBackgroundedAtMs ?: return
+        lastBackgroundedAtMs = null
         val gap = clock.now().toEpochMilliseconds() - backgroundedAtMs
         if (gap >= SessionTracker.BACKGROUND_ROLLOVER_MS) {
             startNewSession(SessionStartReason.BackgroundRollover(backgroundedForMs = gap))
