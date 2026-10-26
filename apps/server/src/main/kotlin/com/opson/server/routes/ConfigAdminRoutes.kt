@@ -277,12 +277,6 @@ private suspend fun schema(manifestRepository: AppConfigManifestRepository): Con
 
 private const val DEFAULT_AUDIT_LIMIT = 100
 
-private suspend fun ApplicationCall.requireAdmin(config: AdminConfig): Boolean {
-    if (authenticatedAsAdmin(config)) return true
-    respondProblem(HttpStatusCode.Unauthorized, "unauthorized", "Missing or invalid admin token.")
-    return false
-}
-
 private fun ApplicationCall.actor(): String =
     request.header("X-Admin-Actor")?.takeUnless { it.isBlank() } ?: "admin"
 

@@ -412,6 +412,39 @@ Micros keys carry their unit: `sugars_g`, `added_sugars_g`, `saturated_fat_g`,
 `thiamin_mg`, `riboflavin_mg`, `niacin_mg`, `vitamin_b6_mg`,
 `folate_dfe_ug`, `vitamin_b12_ug`, `choline_mg`.
 
+### Website waitlist (`V16__waitlist.sql`)
+
+The site's form posts here; the contract is in `docs/plans/website.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/v1/waitlist` `{email, source?, company?}` | No auth. 204 on a new address, a known one (any case) and a filled honeypot (`company`, then nothing is stored). 400 `{"error":"invalid_email"}`, also for a body that is not JSON or is over 4 KB. 429 `{"error":"rate_limited"}` past 5 per IP per 10 minutes or 50 per IP per day (`WaitlistLimiter`, in memory, keyed like the other per-IP limits on `Fly-Client-IP`). |
+| GET | `/v1/admin/waitlist?limit=50&offset=0` | Admin token. Newest first, with `total`. |
+| GET | `/v1/admin/waitlist/export.csv` | Admin token. `email,source,created_at`, oldest first. |
+| POST | `/v1/admin/waitlist/remove` `{email}` | Admin token. Deletes the address in any case; 404 `not_found`. |
+
+The email is stored lower-cased, unique on `lower(email)`, and inserted with
+`ON CONFLICT DO NOTHING`, so the answer never says who is on the list. The
+route logs the outcome only, never the address. Removal deletes the row,
+because the site's privacy wording promises deletion; `unsubscribed_at` is
+there for a future one-click unsubscribe, and rows with it set are left out of
+the list, the total and the export. `analytics.waitlist_daily` (day, signups)
+feeds the Pulse board and holds no emails. The admin console's Waitlist tab
+uses these routes.
+
+CORS for this route comes from `WAITLIST_ALLOWED_ORIGINS` and only this route
+uses it: `plugins/Cors.kt` installs the API-wide policy on the routing root,
+and `waitlistRoutes` installs its own on `/v1/waitlist`, which Ktor applies
+instead for that path (preflight included). With the variable unset, dev
+allows the Astro dev server and the GitHub Pages site and prod allows no
+browser origin. To set it on prod (no secret, but `fly secrets` is how the
+apps take env vars):
+
+```bash
+printf "Allowed origins, comma-separated [https://elijah-dangerfield.github.io]: "; read -r WO; WO="${WO:-https://elijah-dangerfield.github.io}"
+fly secrets set WAITLIST_ALLOWED_ORIGINS="$WO" -a opson-server-prod; unset WO
+```
+
 ### Analytics (`V9__analytics.sql`)
 
 Views in the `analytics` schema aggregate across users and never select a
@@ -419,7 +452,8 @@ nutrient amount or a user id (`DatabaseSchemaTest` enforces both). The
 `grafana_ro` role (NOLOGIN) can read that schema and nothing else. To connect
 Grafana, create a login role outside migrations and grant it `grafana_ro`.
 `V13__barcode_misses.sql` adds `barcode_hit_rate_daily`, `top_missed_barcodes`
-and `barcode_misses_by_country` for the Food catalog board.
+and `barcode_misses_by_country` for the Food catalog board. `V16__waitlist.sql`
+adds `waitlist_daily` for Pulse.
 
 ## Environment variables
 
@@ -436,6 +470,7 @@ and `barcode_misses_by_country` for the Food catalog board.
 | `NUTRITIONIX_CACHE_RESULTS` | no | `false` | `true` stores Nutritionix answers in `foods`. Only if the contract allows it. |
 | `ANTHROPIC_API_KEY` | no |, | Secret. Turns on photo estimates. Unset → `/v1/describe/photo` answers 503. |
 | `ANTHROPIC_PHOTO_MODEL` | no | `claude-opus-5-5` | The model that reads meal photos (effort `low`). A cheaper model is a config change, not a release. |
+| `WAITLIST_ALLOWED_ORIGINS` | no | dev: `http://localhost:4321,https://elijah-dangerfield.github.io`; prod: none | Comma-separated exact origins (`scheme://host[:port]`) allowed to call `POST /v1/waitlist` from a browser. Only that route uses it. |
 
 ## Roadmap (planned, not yet wired)
 

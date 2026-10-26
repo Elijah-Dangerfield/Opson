@@ -31,7 +31,7 @@ class DatabaseSchemaTest : DatabaseTest() {
             listOf(
                 FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable, BarcodeMissesTable,
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable,
-                CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable,
+                CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, WaitlistTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
@@ -41,6 +41,7 @@ class DatabaseSchemaTest : DatabaseTest() {
         val tables = listOf(
             "foods", "off_foods", "food_search_events", "barcode_lookups", "barcode_misses", "log_entries",
             "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts",
+            "waitlist",
         )
         val withRls = strings(
             "SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relrowsecurity",
@@ -127,7 +128,7 @@ class DatabaseSchemaTest : DatabaseTest() {
     fun noAnalyticsViewExposesAUserOrANutrientAmount() {
         val forbidden = setOf(
             "user_id", "kcal", "protein", "carbs", "fat", "fiber", "micros", "grams", "quantity",
-            "kg", "water_ml", "note", "name", "settings", "feeling",
+            "kg", "water_ml", "note", "name", "settings", "feeling", "email",
         )
         val columns = strings("SELECT column_name::text FROM information_schema.columns WHERE table_schema = 'analytics'")
         assertTrue(columns.isNotEmpty())
@@ -217,6 +218,65 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
     }
 
+    /** V16 is additive and idempotent: running it again over a loaded table changes nothing. */
+    @Test
+    fun waitlistMigrationIsIdempotent() {
+        val rows = "SELECT count(*)::text FROM waitlist"
+        database.blockingTransaction { exec("INSERT INTO waitlist (email, source) VALUES ('ada@example.com', 'home')") }
+        try {
+            val before = strings(rows)
+            val migration = checkNotNull(javaClass.getResource("/db/migration/V16__waitlist.sql")).readText()
+            database.blockingTransaction { exec(migration) }
+            database.blockingTransaction { exec(migration) }
+            assertEquals(before, strings(rows))
+        } finally {
+            database.blockingTransaction { exec("DELETE FROM waitlist") }
+        }
+    }
+
+    /** The table refuses what the route would never write: a second address in another case, a free-form source. */
+    @Test
+    fun waitlistRefusesCaseDuplicatesAndBadSources() {
+        try {
+            database.blockingTransaction { exec("INSERT INTO waitlist (email) VALUES ('ada@example.com')") }
+            assertFailsWith<Exception> {
+                database.blockingTransaction { exec("INSERT INTO waitlist (email) VALUES ('ADA@example.com')") }
+            }
+            assertFailsWith<Exception> {
+                database.blockingTransaction { exec("INSERT INTO waitlist (email, source) VALUES ('b@example.com', 'Home Page')") }
+            }
+        } finally {
+            database.blockingTransaction { exec("DELETE FROM waitlist") }
+        }
+    }
+
+    /** Sign-ups per UTC day, a count and nothing else. */
+    @Test
+    fun waitlistDailyCountsSignupsPerDay() {
+        database.blockingTransaction {
+            exec(
+                "INSERT INTO waitlist (email, created_at) VALUES " +
+                    "('a@example.com', '2001-02-03T01:00:00Z'), ('b@example.com', '2001-02-03T23:00:00Z'), " +
+                    "('c@example.com', '2001-02-04T12:00:00Z')",
+            )
+        }
+        try {
+            assertEquals(
+                listOf("2001-02-03:2", "2001-02-04:1"),
+                strings("SELECT day || ':' || signups FROM analytics.waitlist_daily ORDER BY day"),
+            )
+            assertEquals(
+                listOf("day", "signups"),
+                strings(
+                    "SELECT column_name::text FROM information_schema.columns " +
+                        "WHERE table_schema = 'analytics' AND table_name = 'waitlist_daily' ORDER BY ordinal_position",
+                ),
+            )
+        } finally {
+            database.blockingTransaction { exec("DELETE FROM waitlist") }
+        }
+    }
+
     @Test
     fun grafanaRoleReadsAnalyticsAndNothingElse() {
         database.blockingTransaction {
@@ -225,7 +285,7 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
         listOf(
             "log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "barcode_misses",
-            "profiles",
+            "profiles", "waitlist",
         ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
@@ -251,7 +311,7 @@ class DatabaseSchemaTest : DatabaseTest() {
             "daily_active_loggers", "entries_by_method_precision", "meals_per_day_distribution", "days_closed",
             "preset_distribution", "search_daily", "top_zero_result_queries", "barcode_outcomes_daily",
             "weekly_retention_cohorts", "retention_d1_d7_d30", "barcode_hit_rate_daily", "top_missed_barcodes",
-            "barcode_misses_by_country",
+            "barcode_misses_by_country", "waitlist_daily",
         )
     }
 }

@@ -202,6 +202,16 @@ object BarcodeMissesTable : Table("barcode_misses") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** The website waitlist, written only by the server. See `V16__waitlist.sql`. */
+object WaitlistTable : Table("waitlist") {
+    val id = uuid("id")
+    val email = text("email")
+    val signupSource = text("source").nullable()
+    val createdAt = timestamp("created_at")
+    val unsubscribedAt = timestamp("unsubscribed_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
 /**
  * Columns every synced diary table shares (see `V8__diary.sql`). `server_seq`
  * is set by the `bump_server_seq` trigger, so it is `databaseGenerated()` and

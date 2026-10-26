@@ -1,8 +1,11 @@
 package com.opson.server.routes
 
 import com.opson.server.config.AdminConfig
+import com.opson.server.plugins.problem
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.header
+import io.ktor.server.response.respond
 
 /**
  * Shared gate for the token-protected admin routes under `/v1/admin`. The
@@ -22,4 +25,11 @@ internal fun ApplicationCall.authenticatedAsAdmin(config: AdminConfig): Boolean 
     var mismatch = 0
     for (i in token.indices) mismatch = mismatch or (token[i].code xor presented[i].code)
     return mismatch == 0
+}
+
+/** [authenticatedAsAdmin], answering 401 `unauthorized` itself when it fails. Use as `if (!call.requireAdmin(config)) return@get`. */
+internal suspend fun ApplicationCall.requireAdmin(config: AdminConfig): Boolean {
+    if (authenticatedAsAdmin(config)) return true
+    respond(HttpStatusCode.Unauthorized, problem("unauthorized", "Missing or invalid admin token."))
+    return false
 }

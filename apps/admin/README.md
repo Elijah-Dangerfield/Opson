@@ -68,6 +68,12 @@ way.
 - **Versions.** What a captured build shipped with: the in-code defaults per
   app version (see the manifest section below).
 - **Audit.** Every change, newest first, with before/after diffs.
+- **Waitlist.** The website waitlist for the connected environment: how many
+  addresses, the newest 50 (page back with *Older*), *Export CSV*
+  (`email,source,created_at`, downloaded by the browser), and *Remove*, per
+  row or by typing the address from a removal request. Remove deletes the
+  address, as the site's privacy wording promises. Server side it's
+  `/v1/admin/waitlist` (see `apps/server/README.md`).
 - **Kill switches.** The pinned panel above the tabs holds the emergency flags
   (maintenance mode/message, min supported build) with an ALL CLEAR / BANNER /
   BLOCKING state header.
