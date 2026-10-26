@@ -117,7 +117,7 @@ fun App(appComponent: AppComponent) {
                 Catching {
                     val request = NavDeepLinkRequest.Builder.fromUri(NavUri(url)).build()
                     navController.handleDeepLink(request)
-                }.logOnFailure { "Failed to handle deep link: $url" }
+                }.logOnFailure { "Failed to handle deep link: ${url.withoutQueryOrFragment()}" }
             }
         }
     }
@@ -267,6 +267,13 @@ private fun ProvideVisibilityPolicy(
 }
 
 /**
+ * A link as it may be logged: scheme, host and path. The query and the fragment
+ * can carry a session (`opson://auth/confirmed#access_token=…`), and an error
+ * log is forwarded to Sentry and Grafana.
+ */
+internal fun String.withoutQueryOrFragment(): String = substringBefore('#').substringBefore('?')
+
+/**
  * The simple class name of a destination's route, for telemetry tagging.
  *
  * Type-safe nav stores the route as its serializer name — the fully-qualified
@@ -354,10 +361,10 @@ private fun AppNavigation(
                     // How should we animate the B screen?
                     // Enter animation should match B's Enter
                     val targetRoute = targetState.toRouteOrNull<Route>()
-                    val (animationType, reason) = when {
-                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
-                        targetRoute != null -> targetRoute.enter to "Using target route enter animation"
-                        else -> AnimationType.None to "Target destination is not a Route; default to none"
+                    val animationType = when {
+                        isSwitchingTabs() -> AnimationType.None // Switching tabs
+                        targetRoute != null -> targetRoute.enter // Using target route enter animation
+                        else -> AnimationType.None // Target destination is not a Route; default to none
                     }
 
                     animationType.toEnterTransition()
@@ -369,11 +376,11 @@ private fun AppNavigation(
                     // AKA if B slides out, A should slide IN
                     val initialRoute = initialState.toRouteOrNull<Route>()
                     val targetRoute = targetState.toRouteOrNull<Route>()
-                    val (animationType, reason) = when {
-                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
-                        initialRoute != null -> initialRoute.popExit.opposite() to "Mirroring initial popExit animation"
-                        targetRoute != null -> targetRoute.enter to "Fallback to target route enter animation"
-                        else -> AnimationType.None to "No route metadata; default to none"
+                    val animationType = when {
+                        isSwitchingTabs() -> AnimationType.None // Switching tabs
+                        initialRoute != null -> initialRoute.popExit.opposite() // Mirroring initial popExit animation
+                        targetRoute != null -> targetRoute.enter // Fallback to target route enter animation
+                        else -> AnimationType.None // No route metadata; default to none
                     }
 
                     animationType.toEnterTransition()
@@ -384,10 +391,10 @@ private fun AppNavigation(
                     // How should we animate the A screen
                     // Exit animation should match A's Exit
                     val initialRoute = initialState.toRouteOrNull<Route>()
-                    val (animationType, reason) = when {
-                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
-                        initialRoute != null -> initialRoute.exit to "Using initial route exit animation"
-                        else -> AnimationType.None to "Initial destination is not a Route; default to none"
+                    val animationType = when {
+                        isSwitchingTabs() -> AnimationType.None // Switching tabs
+                        initialRoute != null -> initialRoute.exit // Using initial route exit animation
+                        else -> AnimationType.None // Initial destination is not a Route; default to none
                     }
 
                     animationType.toExitTransition()
@@ -399,10 +406,10 @@ private fun AppNavigation(
                     // Exit animation should match B's pope Exit
                     val initialRoute = initialState.toRouteOrNull<Route>()
 
-                    val (animationType, reason) = when {
-                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
-                        initialRoute != null -> initialRoute.popExit to "Using initial route popExit animation"
-                        else -> AnimationType.None to "Initial destination is not a Route; default to none"
+                    val animationType = when {
+                        isSwitchingTabs() -> AnimationType.None // Switching tabs
+                        initialRoute != null -> initialRoute.popExit // Using initial route popExit animation
+                        else -> AnimationType.None // Initial destination is not a Route; default to none
                     }
 
                     animationType.toExitTransition()
