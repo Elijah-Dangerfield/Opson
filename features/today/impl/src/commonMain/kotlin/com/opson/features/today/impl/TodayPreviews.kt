@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import com.opson.features.today.impl.calendar.CalendarSheetContent
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
@@ -17,9 +18,13 @@ import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Tone
+import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.ui.FastingStatusFixtures
+import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.PreviewContent
 import kotlinx.datetime.DatePeriod
@@ -42,6 +47,10 @@ private fun Phone(dark: Boolean = false, largeText: Boolean = false, content: @C
     PreviewContent(darkTheme = dark, largeText = largeText, content = content)
 }
 
+/**
+ * Today as the design sync 2 screens draw it: both release flags on, unless a preview says
+ * otherwise. [firstRow] scrolls the list, so the sticky bar and the rows below the fold show.
+ */
 @Composable
 private fun Today(
     policy: VisibilityPolicy,
@@ -50,28 +59,102 @@ private fun Today(
     highlight: MealSlot? = null,
     added: LoggedToMeal? = null,
     remindersOn: Boolean = false,
+    expended: EnergyExpended? = null,
+    weighIns: List<WeighIn> = emptyList(),
+    flagsOn: Boolean = true,
+    ui: TodayUi = TodayUi(),
+    firstRow: Int = 0,
 ) {
     TodayScreen(
-        state = TodayFixtures.todayState(policy, day = day, settings = settings, highlight = highlight, added = added, remindersOn = remindersOn),
+        state = TodayFixtures.todayState(
+            policy,
+            day = day,
+            settings = settings,
+            highlight = highlight,
+            added = added,
+            remindersOn = remindersOn,
+            expended = expended,
+            summaryOn = flagsOn,
+            selectOn = flagsOn,
+            weighIns = weighIns,
+            ui = ui,
+        ),
         onAction = {},
+        listState = rememberLazyListState(initialFirstVisibleItemIndex = firstRow),
     )
 }
 
-@Preview(widthDp = 390, heightDp = 844)
+/** v3 `today-full`: the watch connected and a weigh-in this morning. */
 @Composable
-private fun TodayFullPreview() = Phone { Today(full) }
+private fun TodayFull(settings: Settings = Settings(), ui: TodayUi = TodayUi(), firstRow: Int = 0) =
+    Today(full, settings = settings, expended = TodayFixtures.expended, weighIns = TodayFixtures.weighIns, ui = ui, firstRow = firstRow)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TodayFullDarkPreview() = Phone(dark = true) { Today(full) }
+private fun TodayFullPreview() = Phone { TodayFull() }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TodayFullLargeTextPreview() = Phone(largeText = true) { Today(full) }
+private fun TodayFullDarkPreview() = Phone(dark = true) { TodayFull() }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TodayEmptyPreview() = Phone { Today(full, day = Day.empty(TodayFixtures.today)) }
+private fun TodayFullLargeTextPreview() = Phone(largeText = true) { TodayFull() }
+
+/** Both release flags off: the refined v3 card, macros as columns, no dots, no chevron, no swipe. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayFullFlagsOffPreview() = Phone { Today(full, expended = TodayFixtures.expended, flagsOn = false) }
+
+/** 2.1b: swiped to the macros page, which is remembered. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayMacrosPreview() = Phone { TodayFull(settings = Settings(todaySummaryPage = 1)) }
+
+/** 2.1c: scrolled to lunch, the card pinned under the header as one line. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayStickyPreview() = Phone { TodayFull(firstRow = LUNCH_ROW) }
+
+/** 2.1d: collapsed by choice, at the top of the page. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayCollapsedPreview() = Phone { TodayFull(settings = Settings(todaySummaryCollapsed = true)) }
+
+/** 2.12: three foods picked, the panel totals them. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySelectPreview() = Phone { TodayFull(ui = TodayUi(selected = TodayFixtures.picked), firstRow = BREAKFAST_ROW) }
+
+/** 2.12 in Blind: "3 foods" and the actions, nothing else. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySelectBlindPreview() = Phone {
+    Today(policy(PresetId.Blind), ui = TodayUi(selected = TodayFixtures.picked))
+}
+
+/** 2.13: the banana swiped open to Delete. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySwipeDeletePreview() = Phone {
+    TodayFull(ui = TodayUi(swipe = SwipeState(open = TodayFixtures.banana)), firstRow = BREAKFAST_ROW)
+}
+
+/** 2.14: the banana's row turned into its confirmation. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayDeleteConfirmPreview() = Phone {
+    TodayFull(ui = TodayUi(swipe = SwipeState(confirming = TodayFixtures.banana)), firstRow = BREAKFAST_ROW)
+}
+
+/** Foods logged outside a usual meal wait in Uncategorized with Move to…. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayUncategorizedPreview() = Phone { Today(full, day = TodayFixtures.day(loose = true), firstRow = BREAKFAST_ROW + 2) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayEmptyPreview() = Phone { Today(full, day = Day.empty(TodayFixtures.today), expended = TodayFixtures.morningExpended) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -178,7 +261,20 @@ private fun TodayDayMenuArmedDarkPreview() = Phone(dark = true) { TodayWithMenu(
 
 @Preview(widthDp = 390)
 @Composable
-private fun TodayCardsSheetPreview() = Phone { TodayCardsSheetContent(TodayFixtures.todayCardsState(full), onAction = {}) }
+private fun TodayCardsSheetPreview() = Phone {
+    // v3 draws fiber hidden in Modes and numbers, so its row shows the lock.
+    val fiberHidden = VisibilityPolicy(
+        NumbersSettings(preset = PresetId.Full, overrides = mapOf(Metric.Fiber to Visibility.Hide)),
+        Clock.fixed(TodayFixtures.noon),
+        TodayFixtures.timeZone,
+    )
+    TodayCardsSheetContent(TodayFixtures.todayCardsState(fiberHidden, TodayFixtures.changingWeight, summaryOn = true), onAction = {})
+}
+
+/** With the summary flag off: the cards alone, as before. */
+@Preview(widthDp = 390)
+@Composable
+private fun TodayCardsSheetFlagOffPreview() = Phone { TodayCardsSheetContent(TodayFixtures.todayCardsState(full), onAction = {}) }
 
 /** 0.2: with fasting offered and its timer on, the Fasting card switch joins the sheet. */
 @Preview(widthDp = 390)
@@ -250,7 +346,17 @@ private fun DayNoteSheetPreview() = Phone { DayNoteSheetContent(TodayFixtures.da
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun DayClosePreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(full), onAction = {}) }
+private fun DayClosePreview() = Phone {
+    DayCloseScreen(
+        TodayFixtures.dayCloseState(full, note = "", expended = TodayFixtures.expended, checkInOn = true, checkIn = TodayFixtures.checkIn),
+        onAction = {},
+    )
+}
+
+/** With `release.checkIn` off: no check-in, as before. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseCheckInOffPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(full), onAction = {}) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -273,6 +379,13 @@ private fun DayCloseRevealedPreview() = Phone { DayCloseScreen(TodayFixtures.day
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun DayCloseBlindPreview() = Phone {
+    DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.Blind), checkInOn = true, checkIn = TodayFixtures.checkIn), onAction = {})
+}
+
+/** Blind with `release.checkIn` off: the one-tap feeling, as before. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseBlindCheckInOffPreview() = Phone {
     DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.Blind), feeling = DayFeeling.Steady), onAction = {})
 }
 
@@ -295,3 +408,7 @@ private fun DayClosePastDayPreview() = Phone {
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun DayCloseWarmPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(full, settings = Settings(tone = Tone.Warm)), onAction = {}) }
+
+/** Rows of [TodayFull]'s list: the card, water, weight, then breakfast and lunch. */
+private const val BREAKFAST_ROW = 3
+private const val LUNCH_ROW = 4

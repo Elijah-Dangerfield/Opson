@@ -90,6 +90,9 @@ class SurfacesCoverageTest {
                 "meal-feel", "water-sheet", "item-sheet", "day-note", "day-close", "day-close-big-day",
                 "today-reminders",
                 "today-expended", "today-exercise",
+                "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
+                "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
+                "today-cards-summary",
             ),
             "LoggerLeakSurfaces" to listOf(
                 "logger", "logger-picked", "logger-search", "logger-search-empty", "logger-describe",
@@ -121,6 +124,8 @@ class SurfacesCoverageTest {
             "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day",
             "today-reminders", "today-expended", "today-exercise", "integrations",
+            "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
+            "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
             "logger-describe-voice", "logger-search-tabs",
             "widget", "widgets",
         )

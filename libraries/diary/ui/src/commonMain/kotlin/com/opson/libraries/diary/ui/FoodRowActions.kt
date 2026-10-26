@@ -114,7 +114,8 @@ fun SwipeFoodRow(
     val density = LocalDensity.current
     val reveal = with(density) { SwipeReveal.toPx() }
     var width by remember { mutableIntStateOf(0) }
-    var drag by remember { mutableFloatStateOf(0f) }
+    // Starts where [open] says, so a row drawn open (a preview, a restored screen) is open at once.
+    var drag by remember { mutableFloatStateOf(if (open) -reveal else 0f) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(open) {
         val target = if (open) -reveal else 0f

@@ -16,8 +16,12 @@ import com.opson.features.today.impl.meal.MealSheetState
 import com.opson.features.today.impl.meal.MealSheetStateBuilder
 import com.opson.features.today.impl.water.WaterSheetState
 import com.opson.features.today.impl.water.WaterSheetStateBuilder
+import com.opson.libraries.diary.CheckIn
+import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
@@ -28,8 +32,11 @@ import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Mood
+import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.Sleep
+import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -206,6 +213,9 @@ object TodayFixtures {
         dayBefore: Day = if (day.date == today) yesterday() else Day.empty(day.date.minus(DatePeriod(days = 1))),
         remindersOn: Boolean = false,
         expended: EnergyExpended? = null,
+        summaryOn: Boolean = false,
+        selectOn: Boolean = false,
+        weighIns: List<WeighIn> = emptyList(),
     ): TodayInputs = TodayInputs(
         today = today,
         timeZone = timeZone,
@@ -215,7 +225,28 @@ object TodayFixtures {
         explorer = explorer,
         remindersOn = remindersOn,
         expended = expended,
+        summaryOn = summaryOn,
+        selectOn = selectOn,
+        weighIns = weighIns,
     )
+
+    /** Two weeks of morning weigh-ins ending on [today] at 7:02 am, 73.9 kg, the line about level. */
+    val weighIns: List<WeighIn> = (13 downTo 0).map { back ->
+        val date = today.minus(DatePeriod(days = back))
+        WeighIn(id = "w-$date", measuredAt = LocalDateTime(date, LocalTime(7, 2)).toInstant(timeZone), kg = 73.9 + (back % 3 - 1) * 0.1)
+    }
+
+    /** v3 `today-empty`'s "Expended so far 410 kcal" at 8 in the morning. */
+    val morningExpended: EnergyExpended = EnergyExpended(restingKcal = 330.0, activeKcal = 80.0, workoutKcal = 0.0)
+
+    /** The foods picked in v3 `today-select`: porridge, banana and the adobo. */
+    val picked: Set<String> = setOf("oats-$today", "banana-$today", "adobo-$today")
+
+    /** The banana, the row v3 swipes in `today-swipe-delete` and confirms in `today-delete-confirm`. */
+    val banana: String = "banana-$today"
+
+    /** The check-in v3 `day-close` shows: steady hunger, good energy, OK sleep, calm and social. */
+    val checkIn: CheckIn = CheckIn(hunger = DayHunger.Steady, energy = Energy.Good, sleep = Sleep.Ok, moods = setOf(CheckInMood.Calm, CheckInMood.Social))
 
     /** v3 `today-full`'s "Expended so far 1,990 kcal": 1,580 resting and 410 active, 150 of it in a workout. */
     val expended: EnergyExpended = EnergyExpended(restingKcal = 1580.0, activeKcal = 410.0, workoutKcal = 150.0)
@@ -236,13 +267,18 @@ object TodayFixtures {
         added: LoggedToMeal? = null,
         remindersOn: Boolean = false,
         expended: EnergyExpended? = null,
+        summaryOn: Boolean = false,
+        selectOn: Boolean = false,
+        weighIns: List<WeighIn> = emptyList(),
+        ui: TodayUi = TodayUi(),
     ): TodayState = TodayStateBuilder.build(
-        inputs(day, settings, remindersOn = remindersOn, expended = expended),
+        inputs(day, settings, remindersOn = remindersOn, expended = expended, summaryOn = summaryOn, selectOn = selectOn, weighIns = weighIns),
         policy,
         menuOpen,
         clearArmed,
         highlight,
         added,
+        ui = ui,
     )
 
     fun dayCloseState(
@@ -254,16 +290,26 @@ object TodayFixtures {
         note: String = "",
         feeling: DayFeeling? = null,
         expended: EnergyExpended? = null,
+        checkInOn: Boolean = false,
+        checkIn: CheckIn? = null,
     ): DayCloseState = DayCloseStateBuilder.build(
-        DayCloseInputs(today = today, day = day(date, bigDay = bigDay, dinner = !bigDay), settings = settings, expended = expended),
+        DayCloseInputs(today = today, day = day(date, bigDay = bigDay, dinner = !bigDay), settings = settings, expended = expended, checkInOn = checkInOn),
         policy,
         note = note,
         committed = committed,
         feeling = feeling,
+        checkIn = checkIn,
     )
 
-    fun todayCardsState(policy: VisibilityPolicy, settings: Settings = Settings(), fastingReleased: Boolean = false): TodayCardsState =
-        TodayCardsStateBuilder.build(settings, policy, fastingReleased)
+    fun todayCardsState(
+        policy: VisibilityPolicy,
+        settings: Settings = Settings(),
+        fastingReleased: Boolean = false,
+        summaryOn: Boolean = false,
+    ): TodayCardsState = TodayCardsStateBuilder.build(settings, policy, fastingReleased, summaryOn)
+
+    /** Someone whose first goal was changing their weight, as v3 `today-customize-summary` opens. */
+    val changingWeight: Settings = Settings(onboarding = OnboardingAnswers(why = listOf("changing_weight")))
 
     fun calendarState(): CalendarState {
         val logged = (1..24).filter { it % 7 != 4 }.map { LocalDate(today.year, today.month, it) }.toSet() + today
@@ -275,8 +321,9 @@ object TodayFixtures {
 
     fun mealNoteState(): MealNoteState = MealNoteState(MealSlot.Lunch, draft = "Ate outside with Sam. Felt relaxed.", loaded = true)
 
+    /** v3 `logger-how-it-felt`: lunch, very hungry before, full after, rushed. */
     fun mealFeelState(): MealFeelState =
-        MealFeelState(MealSlot.Breakfast, hunger = Hunger.Hungry, fullness = Fullness.Satisfied, moods = setOf(Mood.Calm), loaded = true)
+        MealFeelState(MealSlot.Lunch, hunger = Hunger.VeryHungry, fullness = Fullness.Full, moods = setOf(Mood.Rushed), loaded = true)
 
     fun waterSheetState(settings: Settings = Settings()): WaterSheetState = WaterSheetStateBuilder.build(day(), settings, custom = "")
 

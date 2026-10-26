@@ -1,6 +1,7 @@
 package com.opson.features.today.impl
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import com.opson.libraries.ui.components.MinTouchTarget
@@ -106,7 +107,65 @@ object TodayLeakSurfaces {
         LeakSurface(id = "day-close-big-day", label = "Day close · big day", showsCaloriesInFull = true) { policy ->
             DayCloseScreen(state = TodayFixtures.dayCloseState(policy, bigDay = true), onAction = {})
         },
+
+        // Design sync 2, behind release.todaySummary, release.todaySelect and release.checkIn.
+        LeakSurface(id = "today-summary", label = "Today, the summary card's stats", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy), onAction = {})
+        },
+        LeakSurface(id = "today-macros", label = "Today, the macros page", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy, Settings(todaySummaryPage = 1)), onAction = {})
+        },
+        // The bar the card shrinks into while scrolled, for every page, as it would pin under the header.
+        LeakSurface(id = "today-sticky", label = "Today, the sticky summary bar", showsCaloriesInFull = true) { policy ->
+            val compact = designSync(policy).compact
+            Column {
+                compact?.pages?.indices?.forEach { page -> StickyBar(compact, page, onScrollToTop = {}) }
+            }
+        },
+        LeakSurface(id = "today-collapsed", label = "Today, the summary collapsed", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy, Settings(todaySummaryCollapsed = true)), onAction = {})
+        },
+        LeakSurface(id = "today-weight", label = "Today, a weigh-in on the day", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy), onAction = {})
+        },
+        LeakSurface(id = "today-select", label = "Today, foods selected", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy, ui = TodayUi(selected = TodayFixtures.picked)), onAction = {})
+        },
+        LeakSurface(id = "today-select-remove", label = "Today, removing selected foods", showsCaloriesInFull = true) { policy ->
+            TodayScreen(
+                state = designSync(policy, ui = TodayUi(selected = TodayFixtures.picked, step = SelectStep.ConfirmRemove)),
+                onAction = {},
+            )
+        },
+        LeakSurface(id = "today-swipe-delete", label = "Today, a food swiped to Delete", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy, ui = TodayUi(swipe = SwipeState(open = TodayFixtures.banana))), onAction = {})
+        },
+        LeakSurface(id = "today-delete-confirm", label = "Today, a food's removal confirmed in place", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy, ui = TodayUi(swipe = SwipeState(confirming = TodayFixtures.banana))), onAction = {})
+        },
+        LeakSurface(id = "today-cards-summary", label = "Edit Today's cards, the summary card", showsCaloriesInFull = false) { policy ->
+            TodayCardsSheetContent(state = TodayFixtures.todayCardsState(policy, TodayFixtures.changingWeight, summaryOn = true), onAction = {})
+        },
+        LeakSurface(id = "day-close-check-in", label = "Day close, the check-in", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(
+                state = TodayFixtures.dayCloseState(policy, expended = TodayFixtures.expended, checkInOn = true, checkIn = TodayFixtures.checkIn),
+                onAction = {},
+            )
+        },
     )
+
+    /** Today as design sync 2 draws it: both flags on, the watch connected, a weigh-in this morning. */
+    private fun designSync(policy: VisibilityPolicy, settings: Settings = Settings(), ui: TodayUi = TodayUi()): TodayState =
+        TodayFixtures.todayState(
+            policy,
+            day = TodayFixtures.day(loose = true),
+            settings = settings,
+            expended = TodayFixtures.expended,
+            summaryOn = true,
+            selectOn = true,
+            weighIns = TodayFixtures.weighIns,
+            ui = ui,
+        )
 }
 
 /** Today with the ⋮ menu open over it, the menu drawn in place where the popover would sit. */

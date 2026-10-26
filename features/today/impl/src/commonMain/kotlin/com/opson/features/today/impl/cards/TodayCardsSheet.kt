@@ -121,13 +121,9 @@ data class TodayCardsState(
     val summary: SummarySection? = null,
 )
 
-/**
- * [goal] is the onboarding goal the suggestion came from ("Changing my weight"), null for the
- * default. [chosen] says the person picked their own, so Reset has something to undo.
- */
+/** [goal] is the onboarding goal the suggestion came from ("Changing my weight"), null for the default. */
 data class SummarySection(
     val goal: StringResource?,
-    val chosen: Boolean,
     val stats: List<StatRow>,
     val ticked: Int,
     val macrosPage: Boolean,
@@ -180,7 +176,6 @@ object TodayCardsStateBuilder {
         }
         return SummarySection(
             goal = SummaryStats.goalLabel(settings),
-            chosen = settings.todaySummaryStats != null,
             stats = rows,
             ticked = rows.count { it.ticked },
             macrosPage = settings.todayMacrosPage,
@@ -333,7 +328,7 @@ private fun SummarySectionContent(summary: SummarySection, onAction: (TodayCards
     }
 }
 
-/** "Suggested from your goals: Changing my weight" with Reset once the person has made their own. */
+/** "Suggested from your goals: Changing my weight" and Reset, which goes back to the suggestion. */
 @Composable
 private fun SuggestionBanner(summary: SummarySection, onAction: (TodayCardsAction) -> Unit) {
     Row(
@@ -354,19 +349,18 @@ private fun SuggestionBanner(summary: SummarySection, onAction: (TodayCardsActio
             color = AppTheme.colors.accent,
             modifier = Modifier.weight(1f),
         )
-        if (summary.chosen) {
-            Text(
-                text = stringResource(Res.string.today_summary_reset),
-                typography = AppTheme.type.bodyBold.ExtraBold,
-                color = AppTheme.colors.accent,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier
-                    .semantics { role = Role.Button }
-                    .bounceClick(scaleDown = 0.95f, onClick = { onAction(TodayCardsAction.StatsReset) })
-                    .defaultMinSize(minHeight = MinTouchTarget)
-                    .padding(horizontal = 8.dp, vertical = 12.dp),
-            )
-        }
+        // Always offered, as the design draws it; with nothing chosen it simply keeps the suggestion.
+        Text(
+            text = stringResource(Res.string.today_summary_reset),
+            typography = AppTheme.type.bodyBold.ExtraBold,
+            color = AppTheme.colors.accent,
+            textDecoration = TextDecoration.Underline,
+            modifier = Modifier
+                .semantics { role = Role.Button }
+                .bounceClick(scaleDown = 0.95f, onClick = { onAction(TodayCardsAction.StatsReset) })
+                .defaultMinSize(minHeight = MinTouchTarget)
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+        )
     }
 }
 

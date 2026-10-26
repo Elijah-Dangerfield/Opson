@@ -91,7 +91,7 @@ private val typedLabel = Reveal.Only(
  * that no longer exists.
  */
 internal val REVEALED_BY_DESIGN: Map<Pair<PresetId, String>, Reveal> = buildMap {
-    listOf("day-close", "day-close-big-day").forEach { put(PresetId.Delayed to it, dayCloseOpens) }
+    listOf("day-close", "day-close-big-day", "day-close-check-in").forEach { put(PresetId.Delayed to it, dayCloseOpens) }
     put(PresetId.Delayed to "today-past", pastDayOpens)
     listOf("trends", "trends-blind", "trends-coast", "nutrients-week", "patterns", "patterns-blind")
         .forEach { put(PresetId.Delayed to it, weekOpens) }
