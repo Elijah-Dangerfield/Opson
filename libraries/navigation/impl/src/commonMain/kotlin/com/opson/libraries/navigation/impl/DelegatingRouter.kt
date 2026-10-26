@@ -2,18 +2,13 @@ package com.opson.libraries.navigation.impl
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.coroutineScope
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import com.opson.libraries.core.logging.KLog
-import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetState
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
-import com.opson.libraries.core.shouldNotBeCaught
 import com.opson.libraries.core.throwIfDebug
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.observeWithLifecycle
@@ -31,9 +26,6 @@ import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.navigation.FileShareLauncher
 import com.opson.libraries.navigation.NavigableWhileBlocked
 import com.opson.libraries.navigation.TrackableRoute
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -64,25 +56,17 @@ class DelegatingRouter(
     private var navController: NavHostController? = null
     private var processingJob: Job? = null
 
-    private var viewScope: CompletableDeferred<CoroutineScope> = CompletableDeferred()
-
-    fun clearNavController(controller: NavHostController? = null) {
-        if (navController === controller || controller == null) {
+    private fun clearNavController(controller: NavHostController) {
+        if (navController === controller) {
             logger.d { "Clearing nav controller" }
             processingJob?.cancel()
             processingJob = null
             navController = null
-            viewScope = CompletableDeferred()
         }
     }
 
-    fun setNavController(
-        controller: NavHostController,
-        lifecycle: Lifecycle,
-        scope: CoroutineScope = lifecycle.coroutineScope,
-    ) {
+    private fun setNavController(controller: NavHostController, lifecycle: Lifecycle) {
         logger.d { "Setting nav controller" }
-        viewScope.complete(scope)
         navController = controller
         processingJob?.cancel()
         processingJob = appScope.launch {
@@ -230,16 +214,13 @@ class DelegatingRouter(
             .logOnFailure("Failed to share file: $name ($mimeType)")
             .throwIfDebug()
     }
+
     @Composable
     fun Bind(navController: NavHostController) {
-        logger.i { "Binding nav controller" }
         val lifecycleOwner = LocalLifecycleOwner.current
-        val coroutineScope = rememberCoroutineScope()
-        val controllerKey = remember(navController) { navController }
-
-        DisposableEffect(controllerKey, lifecycleOwner) {
-            setNavController(controllerKey, lifecycleOwner.lifecycle, coroutineScope)
-            onDispose { clearNavController(controllerKey) }
+        DisposableEffect(navController, lifecycleOwner) {
+            setNavController(navController, lifecycleOwner.lifecycle)
+            onDispose { clearNavController(navController) }
         }
     }
 
@@ -263,7 +244,6 @@ class DelegatingRouter(
     private fun NavHostController.shouldBlockNavigation(route: Route): Boolean {
         if (!isBlockingErrorActive()) return false
         if (route is NavigableWhileBlocked) return false
-        KLog.i { "Blocking Navigation for route $route" }
         return true
     }
 
@@ -278,6 +258,8 @@ class DelegatingRouter(
     private suspend fun NavHostController.awaitGraphAttachment() {
         withContext(Dispatchers.Main.immediate) {
             currentBackStackEntryFlow.first()
+            // TODO(review): an unexplained settle time from the initial commit. Nobody knows what
+            // it waits for, so it stays until a launch-and-deep-link test can show it is unneeded.
             delay(100)
         }
     }
