@@ -16,6 +16,11 @@ kotlin {
             implementation(compose.runtime)
         }
 
+        commonTest.dependencies {
+            implementation(projects.libraries.flowroutines.testing)
+            implementation(projects.libraries.speech)
+        }
+
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.ktx)

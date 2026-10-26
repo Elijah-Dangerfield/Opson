@@ -44,7 +44,7 @@ interface SpeechToText {
     fun openSettings()
 }
 interface MicPermissionPrompt { @Composable fun rememberPermissionRequest(onAnswer: (MicPermission) -> Unit): () -> Unit }
-enum class SpeechFailure { NoSpeech, NoRecognizer, NoModel, NeedsConnection, Busy, Unknown }
+enum class SpeechFailure { NoSpeech, NoRecognizer, NoMicrophone, NotAllowed, NoModel, NeedsConnection, Busy, Unknown }
 ```
 
 Same split as `:libraries:scanner`: the interface and types in the library,
@@ -59,6 +59,24 @@ asks through an activity result.
 | Permission | Speech recognition, then microphone (`AVAudioApplication`); either refused is `Denied(canAskAgain = false)` | `RECORD_AUDIO`; rationale state gives `Denied(canAskAgain = true)` |
 | Unavailable | No recognizer for the locale, or no mic input (the simulator: a zero-rate input format would throw in `installTap`) | `isRecognitionAvailable` false |
 | Threads | Built and torn down on main; recognizer callbacks hop to the main queue | Main only, as `SpeechRecognizer` requires |
+
+**iOS session order (after a simulator abort, 2026-10-26).** Reading
+`AVAudioEngine.inputNode` with no usable input aborts the process inside
+AudioToolbox (`_ReportRPCTimeout` from `AURemoteIO::Initialize`), which nothing
+can catch. So a session runs these steps in this order, in `MicSession` over an
+`AudioSteps` seam (commonMain, unit tested), with the AVFoundation steps in
+`AvAudioSteps`: recognizer exists; both permissions granted; record category,
+measurement mode and `setActive(true)`, each error-checked; the session reports
+`isInputAvailable`, a route input, channels and a sample rate; only then the
+engine is created and `inputNode.outputFormatForBus(0)` read, where 0 Hz or 0
+channels is "no microphone"; then the tap, the engine and the task. Any failure,
+the final text, an error or a cancel tears down once: task cancelled, engine
+stopped, tap removed from the node kept earlier (never `engine.inputNode`
+again), `setActive(false)` notifying others. `OneSessionAtATime` answers Busy
+to a second session while one is open, so a quick second tap never starts a
+second engine. `availability()` also says "no microphone" when the session has
+no input, before any prompt. The permission answer is delivered once the app
+is active again, so the session is never activated while the alert is leaving.
 
 **What happens to the audio.** Opson never writes audio to disk, never keeps
 it in memory past the session, and never sends it to Opson's servers. Only the
@@ -109,7 +127,7 @@ through `describeTyped` with no debounce, which is the typed path from there.
 | Action | Does |
 |---|---|
 | `MicTapped` | Ready or a notice: unavailable gives the Unavailable notice; `Granted` starts; `NotAsked` or `Denied(canAskAgain = true)` asks (`RequestMicPermission`); `Denied(false)` shows Denied. Listening: stop (as `WentQuiet`). Asking or Transcribing: nothing. "Try again" and "Allow microphone" send this too |
-| `MicPermissionAnswered(permission)` | Granted starts; refused shows Denied |
+| `MicPermissionAnswered(permission)` | Granted starts (unless already listening, even if the capture moved on while the prompt was up); refused shows Denied |
 | `SpeechArrived(heard)` | Partial: the field shows it, the silence timer restarts. Final: blank is NoSpeech, else parse. Failed: if something was heard, keep it as final; else the notice for the reason |
 | `WentQuiet` | Silence timer (2 s after speech, 8 s before any) or the 55 s cap (iOS server recognition stops near a minute): `finishListening`, Transcribing |
 | `TranscriptOverdue` | 4 s in Transcribing with no final: keep what was heard |
@@ -117,7 +135,13 @@ through `describeTyped` with no debounce, which is the typed path from there.
 | `OpenSettingsTapped` | The app's Settings page; notice gone |
 | `ScreenPaused` | App backgrounded or sheet covered while listening: stop and keep what was heard |
 
-Also: typing while listening stops listening (the person took over); Back off
+Session failures map to notices: NoRecognizer, NoModel and NoMicrophone to
+Unavailable; NotAllowed to Denied (and `voice.permission_denied`); Busy and
+Unknown to Failed; an exception from the flow is Unknown. Every way a session
+ends without words shows a notice.
+
+Also: typing while listening stops listening (the person took over), but a
+field echoing its own value is not typing; Back off
 Describe, Save the name, and leaving the sheet cancel it.
 
 Event: `RequestMicPermission`; the entry point runs the prompt. `VoiceAction`

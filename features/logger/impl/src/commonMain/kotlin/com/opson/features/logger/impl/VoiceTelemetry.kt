@@ -11,6 +11,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 enum class VoiceFallback(val wire: String) {
     NoRecognizer("no_recognizer"),
     NoModel("no_model"),
+    NoMicrophone("no_microphone"),
     NeedsConnection("needs_connection"),
     NoSpeech("no_speech"),
     Busy("busy"),
@@ -22,6 +23,9 @@ enum class VoiceFallback(val wire: String) {
             SpeechFailure.NoSpeech -> NoSpeech
             SpeechFailure.NoRecognizer -> NoRecognizer
             SpeechFailure.NoModel -> NoModel
+            SpeechFailure.NoMicrophone -> NoMicrophone
+            // Reported as permission_denied instead; this is never sent.
+            SpeechFailure.NotAllowed -> Error
             SpeechFailure.NeedsConnection -> NeedsConnection
             SpeechFailure.Busy -> Busy
             SpeechFailure.Unknown -> Error
