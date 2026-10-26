@@ -25,6 +25,38 @@ What v3 changed from the handoff:
 | Custom food: Energy, Protein, Carbs, Fat, Fiber | Every field optional; Nutrient focus asks only protein and fiber; Blind shows no number fields |
 | Blind: "photograph the label" | Photo is 0.2, so the button and its sentence are not built (below) |
 
+## Design sync 2
+
+The owner's export (`docs/plans/design-sync-2.md`, ids `foods-previews__*`)
+is the spec now. It draws what v3 drew, and the build already matches it:
+
+| Design sync 2 note | Build |
+|---|---|
+| Two side-by-side create tiles | Built (`FoodsScreen` tiles) |
+| Saved meals before Your foods; Recent below the fold | Built (`FoodsStateBuilder` order) |
+| Create a meal: "Add a food" hands off to the logger sheet in pick-for-this-meal mode | Built (`CreateMealEvent.OpenPicker`, `LoggerRoute(pickForMeal)`, `MealPicks`) |
+| Add a food: every nutrition field optional | Built: blank saves `null` |
+| Nutrient focus asks only protein and fiber | Built: `AddFoodStateBuilder.asked` |
+| Blind has no number fields at all | Built: `labelOnly`, the eye-off card |
+| "Scan the label instead", "Photograph the label" | Not built: label scan is out of scope (`docs/plans/food-data-import.md`) |
+
+Kept on purpose, with the reason:
+- **Fiber in Full numbers.** 11.3 draws four fields; the build asks five,
+  because fiber is a tracked macro, Nutrient focus asks for it, and a Full
+  user should be able to enter what a Nutrient focus user can.
+- **The data credit** under the cards. ODbL requires it for Open Food Facts
+  rows; the design leaves it out.
+- **Unit chips** read `piece`, `grams`, `cup`. The design's "roll" is the
+  pandesal's own word, not a fixed chip.
+- **Saved meal subtitles** keep each food's own capitalisation ("Oat porridge
+  with milk, Banana"). The design lowercases them, which would also lowercase
+  brands and names.
+
+Tests that pin the field rules: `AddFoodTest` (Full asks five, Nutrient focus
+asks protein and fiber, Blind and every hiding mode ask none, the view model
+drops a field and its typed text when the mode stops asking, a saved Nutrient
+focus or Blind food carries no number it didn't ask for).
+
 Routes in `:features:foods` (`com.opson.features.foods`); impl in
 `:features:foods:impl` (`com.opson.features.foods.impl`).
 
