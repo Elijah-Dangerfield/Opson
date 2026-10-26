@@ -1,0 +1,160 @@
+---
+import { API_URL, CONTACT_EMAIL } from '../consts';
+import { waitlistEndpoint } from '../lib/waitlist';
+
+interface Props {
+  /** Anchor id, unique on the page. */
+  id: string;
+  /** Recorded as the source when the URL has no ?c= campaign. */
+  page: string;
+  /** Visible label for the email field. */
+  label?: string;
+}
+
+const { id, page, label = 'Your email' } = Astro.props;
+---
+
+<form
+  class="waitlist"
+  id={id}
+  action={waitlistEndpoint(API_URL)}
+  method="post"
+  novalidate
+  data-waitlist
+  data-api={API_URL}
+  data-page={page}
+>
+  <label class="label" for={`${id}-email`}>{label}</label>
+  <div class="row">
+    <input
+      id={`${id}-email`}
+      name="email"
+      type="email"
+      inputmode="email"
+      autocomplete="email"
+      spellcheck="false"
+      maxlength="254"
+      required
+      placeholder="you@example.com"
+      aria-describedby={`${id}-status`}
+    />
+    <button class="button" type="submit">Join the waitlist</button>
+  </div>
+  <div class="visually-hidden" aria-hidden="true">
+    <label for={`${id}-company`}>Company</label>
+    <input id={`${id}-company`} name="company" type="text" tabindex="-1" autocomplete="off" />
+  </div>
+  <p class="status" id={`${id}-status`} role="status" aria-live="polite" tabindex="-1"></p>
+  <noscript>
+    <p class="status">
+      This form needs JavaScript. You can also email <a href={`mailto:${CONTACT_EMAIL}?subject=Waitlist`}>{CONTACT_EMAIL}</a> and we'll add you by hand.
+    </p>
+    <style>
+      form[data-waitlist] .row { display: none; }
+    </style>
+  </noscript>
+</form>
+
+<script>
+  import { MESSAGES, joinWaitlist, readSource } from '../lib/waitlist';
+
+  for (const form of document.querySelectorAll<HTMLFormElement>('form[data-waitlist]')) {
+    const email = form.querySelector<HTMLInputElement>('input[name="email"]')!;
+    const company = form.querySelector<HTMLInputElement>('input[name="company"]')!;
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const status = form.querySelector<HTMLElement>('.status')!;
+    let busy = false;
+
+    const show = (state: keyof typeof MESSAGES) => {
+      form.dataset.state = state;
+      status.textContent = MESSAGES[state];
+    };
+
+    email.addEventListener('input', () => email.removeAttribute('aria-invalid'));
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (busy) return;
+
+      email.value = email.value.trim();
+      if (!email.checkValidity()) {
+        email.setAttribute('aria-invalid', 'true');
+        show('invalid_email');
+        email.focus();
+        return;
+      }
+      email.removeAttribute('aria-invalid');
+
+      busy = true;
+      button.disabled = true;
+      show('sending');
+      const result = await joinWaitlist(form.dataset.api!, {
+        email: email.value,
+        source: readSource(location.search, form.dataset.page ?? ''),
+        company: company.value,
+      });
+      busy = false;
+      button.disabled = false;
+      show(result);
+
+      if (result === 'done') {
+        email.value = '';
+        // The row hides once you're on the list; keep focus somewhere sensible.
+        status.focus();
+      } else if (result === 'invalid_email') {
+        email.setAttribute('aria-invalid', 'true');
+        email.focus();
+      }
+    });
+  }
+</script>
+
+<style>
+  .waitlist { max-width: 520px; }
+  .label {
+    display: block;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  input[type='email'] {
+    flex: 1 1 240px;
+    min-width: 0;
+    min-height: 52px;
+    padding: 0 16px;
+    font: 400 17px var(--font);
+    color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-input);
+  }
+  input[type='email']::placeholder { color: var(--muted); opacity: .8; }
+  input[type='email']:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  input[aria-invalid='true'] { border-color: var(--accent); }
+  .button { min-height: 52px; flex: 0 0 auto; }
+  .status {
+    min-height: 1.5em;
+    margin-top: 10px;
+    color: var(--ink-soft);
+    font-size: 16px;
+  }
+  .status:focus { outline: none; }
+  form[data-state='done'] .row { display: none; }
+  form[data-state='done'] .status {
+    margin-top: 0;
+    font-weight: 700;
+    font-size: 19px;
+    color: var(--ink);
+  }
+  form[data-state='invalid_email'] .status,
+  form[data-state='rate_limited'] .status,
+  form[data-state='error'] .status {
+    color: var(--ink);
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+  }
+  @media (max-width: 520px) {
+    .button { flex: 1 1 100%; }
+  }
+</style>

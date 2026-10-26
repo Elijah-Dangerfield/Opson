@@ -1,0 +1,85 @@
+---
+import { CONTACT_EMAIL, href } from '../consts';
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="top">
+      <div class="about">
+        <a class="brand" href={href('/')}>
+          <img src={href('/favicon.svg')} alt="" width="32" height="32" />
+          <span>Opson</span>
+        </a>
+        <p>A food log where you decide how many numbers you see. Made by Nightjar Labs.</p>
+      </div>
+      <div class="cols">
+        <div>
+          <h2>Opson</h2>
+          <a href={href('/')}>Home</a>
+          <a href={href('/#waitlist')}>Join the waitlist</a>
+        </div>
+        <div>
+          <h2>Legal and help</h2>
+          <a href={href('/privacy/')}>Privacy</a>
+          <a href={href('/terms/')}>Terms</a>
+          <a href={href('/contact/')}>Contact</a>
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        </div>
+      </div>
+    </div>
+    <div class="bottom">
+      <p>© {year} Nightjar Labs LLC</p>
+      <p>This site has no cookies, analytics or trackers.</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: var(--hero);
+    color: var(--on-hero);
+    padding: 56px 0 36px;
+    margin-top: auto;
+  }
+  .top {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+  .about { max-width: 340px; }
+  .about p { color: var(--on-hero-muted); margin-top: 14px; }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--on-hero);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 21px;
+  }
+  .brand img { border-radius: 8px; }
+  .cols { display: flex; gap: 56px; flex-wrap: wrap; }
+  .cols div { display: flex; flex-direction: column; gap: 10px; }
+  h2 {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--on-hero-muted);
+    margin-bottom: 2px;
+  }
+  .cols a { color: var(--on-hero); text-decoration: none; }
+  .cols a:hover { text-decoration: underline; }
+  .bottom {
+    border-top: 1px solid rgba(243, 238, 235, .14);
+    padding-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    color: var(--on-hero-muted);
+    font-size: 15px;
+  }
+</style>

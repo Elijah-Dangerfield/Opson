@@ -1,0 +1,184 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WaitlistForm from '../components/WaitlistForm.astro';
+import Screenshot from '../components/Screenshot.astro';
+import { href } from '../consts';
+
+// The App Store screenshots, straight from docs/. Astro resizes them at build.
+import todayFull from '../../../docs/app-store/screenshots/01-today-full.png';
+import logger from '../../../docs/app-store/screenshots/02-logger-picked.png';
+import todayBlind from '../../../docs/app-store/screenshots/03-today-blind.png';
+import modes from '../../../docs/app-store/screenshots/04-modes.png';
+import trends from '../../../docs/app-store/screenshots/05-trends-week.png';
+---
+
+<Layout>
+  <section class="intro">
+    <div class="wrap intro-grid">
+      <div class="intro-copy">
+        <p class="status-pill">In App Review now</p>
+        <h1>All the numbers, some of them, or none.</h1>
+        <p class="lead">
+          Opson is a food log where you decide how many numbers you see. Track everything like a regular
+          calorie counter, hide calories and just log meals, or save the totals for the end of the day.
+        </p>
+        <WaitlistForm id="waitlist" page="home" label="Get an email when it's out" />
+        <p class="fine">
+          We only use your email for that, plus maybe a few updates before launch. It's never sold or
+          shared. <a href={href('/privacy/')}>More on privacy</a>.
+        </p>
+      </div>
+      <figure class="pair">
+        <div class="pair-shots">
+          <Screenshot
+            src={todayFull}
+            width={300}
+            loading="eager"
+            alt="Today in Full numbers: 739 kcal eaten against a range of 1,900 to 2,300, with protein, carbs and fat bars and a breakfast of oatmeal and a banana."
+          />
+          <Screenshot
+            src={todayBlind}
+            width={300}
+            loading="eager"
+            alt="The same day in Blind mode: no calories anywhere, just breakfast, lunch and snack ticked off and dinner around 7:00."
+          />
+        </div>
+        <figcaption>The same Monday in Full numbers, then in Blind.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="modes" aria-labelledby="modes-title">
+    <div class="wrap modes-grid">
+      <div class="modes-copy">
+        <h2 id="modes-title">Start from a mode, then change any single number.</h2>
+        <p>
+          There are ten starting points. Full numbers and Blind sit at either end. In between are ones like
+          Delayed reveal, where you log all day and the totals open at a time you pick.
+        </p>
+        <p>
+          After that, each number gets its own setting: show it, soften it, show it later, or hide it. Whatever
+          you pick applies everywhere in the app.
+        </p>
+      </div>
+      <Screenshot
+        src={modes}
+        width={320}
+        class="modes-shot"
+        alt="The Modes and numbers screen, listing ten starting points from Full numbers to Coast, with Show, Soft, Later and Hide for each number below."
+      />
+    </div>
+  </section>
+
+  <section class="logging" aria-labelledby="logging-title">
+    <div class="wrap logging-grid">
+      <div class="logging-copy">
+        <h2 id="logging-title">Logging is quick.</h2>
+        <p>Search a food, copy yesterday's breakfast, reuse a saved meal, or just mark that you ate.</p>
+        <p>
+          There are no streaks and no "calories left" nags. Skip a day and it shows up as a gap in your week,
+          nothing more.
+        </p>
+        <p>Your log syncs to your account, and you can export or delete it whenever you want.</p>
+      </div>
+      <div class="logging-shots">
+        <Screenshot
+          src={logger}
+          width={280}
+          alt="Adding to a snack: a search for apple with 25 matches, Apple, raw picked, and 2 foods picked at the bottom."
+        />
+        <Screenshot
+          src={trends}
+          width={280}
+          alt="Trends for a week: a bar for each day against a shaded range, with Wednesday left empty, and a recap of 6 of 7 days logged."
+        />
+      </div>
+    </div>
+  </section>
+
+  <section class="closing" aria-labelledby="closing-title">
+    <div class="wrap closing-inner">
+      <h2 id="closing-title">Want to know when it's out?</h2>
+      <p>Opson is with Apple for review. Leave your email and we'll tell you when you can download it.</p>
+      <WaitlistForm id="waitlist-bottom" page="home" />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  section { padding: clamp(56px, 9vw, 104px) 0; }
+
+  .intro { padding-top: clamp(40px, 7vw, 80px); }
+  .intro-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(40px, 6vw, 80px);
+    align-items: center;
+  }
+  .intro-copy { display: flex; flex-direction: column; gap: 22px; }
+  .status-pill {
+    align-self: flex-start;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-tint);
+    padding: 6px 12px;
+    border-radius: 999px; /* unslop-ignore: the app's chip shape (AppShapes.pill) */
+  }
+  .lead { font-size: clamp(18px, 2vw, 21px); color: var(--ink-soft); max-width: 34em; }
+  .fine { font-size: 15px; color: var(--muted); max-width: 34em; }
+
+  .pair { margin: 0; }
+  .pair-shots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    max-width: 560px;
+    margin-inline: auto;
+  }
+  /* The Blind shot sits lower, so the two read as before and after. */
+  .pair-shots > :global(:last-child) { margin-top: 56px; }
+  .pair figcaption {
+    margin-top: 18px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  .modes { background: var(--hero); color: var(--on-hero); }
+  .modes-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: clamp(40px, 6vw, 96px);
+    align-items: center;
+  }
+  .modes-copy { display: flex; flex-direction: column; gap: 18px; max-width: 34em; }
+  .modes-copy p { color: var(--on-hero-muted); font-size: 19px; }
+  .modes :global(.modes-shot) { max-width: 320px; justify-self: center; border-color: transparent; }
+
+  .logging-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(40px, 6vw, 96px);
+    align-items: center;
+  }
+  .logging-copy { display: flex; flex-direction: column; gap: 16px; max-width: 30em; order: 2; }
+  .logging-copy p { color: var(--ink-soft); font-size: 19px; }
+  .logging-shots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    max-width: 540px;
+  }
+
+  .closing { border-top: 1px solid var(--line); }
+  .closing-inner { max-width: 640px; display: flex; flex-direction: column; gap: 16px; }
+  .closing p { color: var(--ink-soft); font-size: 19px; margin-bottom: 8px; }
+
+  @media (max-width: 880px) {
+    .intro-grid, .modes-grid, .logging-grid { grid-template-columns: 1fr; }
+    .logging-copy { order: 0; }
+    .pair-shots, .logging-shots { max-width: 440px; }
+    .modes :global(.modes-shot) { max-width: 260px; }
+  }
+</style>

@@ -1,0 +1,21 @@
+---
+import Layout from '../layouts/Layout.astro';
+// Rendered from legal/terms.md at build time, the same file synced to
+// nightjarlabs.llc. Edit it there, not here.
+import { Content, frontmatter } from '../../../legal/terms.md';
+import { formatUpdated } from '../lib/dates';
+---
+
+<Layout title="Terms, Opson" description="The terms for using the Opson app.">
+  <article class="page">
+    <div class="wrap">
+      <header class="page-head">
+        <h1>{frontmatter.title}</h1>
+        <p>Last updated {formatUpdated(frontmatter.updated)}.</p>
+      </header>
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+  </article>
+</Layout>

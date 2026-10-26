@@ -1,0 +1,75 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Builds the Astro marketing site under website/ and publishes it to GitHub
+# Pages. Today that's https://elijah-dangerfield.github.io/Opson/.
+#
+# Fires on:     Pushes to main that touch website/**, the files the site renders
+#               from outside it (legal/*.md, the App Store screenshots), or this
+#               workflow. Also workflow_dispatch for a manual re-publish.
+# Gated on:     The repo variable SITE_ENABLED. Until it is 'true' both jobs
+#               skip, so pushes don't fail before Pages is switched on.
+# Needs:        Settings → Pages → Source set to "GitHub Actions", and the repo
+#               variables SITE_URL, SITE_BASE and PUBLIC_API_URL (each falls
+#               back to a default in website/ when unset).
+# Side effects: Updates the live site, including the waitlist form, which posts
+#               to PUBLIC_API_URL.
+# Edit to change: content lives in website/src/. See website/README.md.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Deploy Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'legal/privacy.md'
+      - 'legal/terms.md'
+      - 'docs/app-store/screenshots/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: vars.SITE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
+      SITE_BASE: ${{ vars.SITE_BASE }}
+      PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/dist
+
+  deploy:
+    if: vars.SITE_ENABLED == 'true'
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
