@@ -16,12 +16,10 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.opson.features.settings.impl.SettingsCard
 import com.opson.features.settings.impl.SettingsDefaults
 import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
-import com.opson.features.settings.impl.SettingsRow
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.button.FlatButton
@@ -44,9 +42,6 @@ import opson.libraries.resources.generated.resources.settings_delete_offline
 import opson.libraries.resources.generated.resources.settings_export_offline
 import opson.libraries.resources.generated.resources.settings_find_could_not_open
 import opson.libraries.resources.generated.resources.settings_send_feedback
-import opson.libraries.resources.generated.resources.settings_support_clinician
-import opson.libraries.resources.generated.resources.settings_support_clinician_sub
-import opson.libraries.resources.generated.resources.settings_support_coming_later
 import opson.libraries.resources.generated.resources.settings_support_crisis_call
 import opson.libraries.resources.generated.resources.settings_support_crisis_call_or_text
 import opson.libraries.resources.generated.resources.settings_support_crisis_unknown
@@ -67,8 +62,6 @@ import opson.libraries.resources.generated.resources.settings_support_keep
 import opson.libraries.resources.generated.resources.settings_support_opens_browser
 import opson.libraries.resources.generated.resources.settings_support_provider
 import opson.libraries.resources.generated.resources.settings_support_title
-import opson.libraries.resources.generated.resources.settings_support_trusted
-import opson.libraries.resources.generated.resources.settings_support_trusted_sub
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
