@@ -58,7 +58,7 @@
     <string name="photo_empty_body">Try another photo, or describe it in your own words.</string>
     <string name="photo_unavailable_title">Photo estimates aren't available right now</string>
     <string name="photo_unavailable_body">You can still describe the meal in your own words, or search for each food.</string>
-    <string name="photo_failed_title">Couldn't read that photo</string>
+    <string name="photo_failed_title">That didn't work</string>
     <string name="photo_failed_body">Something went wrong on our side. Try again in a moment.</string>
     <string name="photo_failed_offline">Photo estimates need a connection.</string>
     <string name="photo_too_many_title">That's a lot of photos for now</string>

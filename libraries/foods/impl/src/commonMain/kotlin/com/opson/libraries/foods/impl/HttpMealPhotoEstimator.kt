@@ -47,7 +47,8 @@ class HttpMealPhotoEstimator(private val networkClient: NetworkClient) : MealPho
             }
             when (response.status) {
                 HttpStatusCode.OK -> PhotoEstimate.Items(response.body<DescribeResponse>().items.map { it.toDomain() })
-                HttpStatusCode.ServiceUnavailable -> PhotoEstimate.Unavailable
+                // 503: no key on the server. 404: a server from before the route existed.
+                HttpStatusCode.ServiceUnavailable, HttpStatusCode.NotFound -> PhotoEstimate.Unavailable
                 HttpStatusCode.TooManyRequests -> PhotoEstimate.TooMany
                 else -> PhotoEstimate.Failed(offline = false)
             }
