@@ -17,6 +17,8 @@ kotlin {
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
             implementation(projects.libraries.diary)
+            // The fasting status card, shared with Today.
+            implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.identity)

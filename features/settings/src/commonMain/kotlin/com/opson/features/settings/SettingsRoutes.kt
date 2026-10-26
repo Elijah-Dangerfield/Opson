@@ -29,3 +29,11 @@ class LookAndFeelRoute : Route()
 /** Helpline, export, delete, and the sharing that is coming later. */
 @Serializable
 class SupportRoute : Route()
+
+/**
+ * Fasting (0.2, `release.fasting`): the status card, the timer switch, the Today card and the
+ * eating window. Only reached where fasting is offered (Full numbers and Sprint, and never for
+ * someone who agreed numbers have been hard).
+ */
+@Serializable
+class FastingRoute : Route()

@@ -8,10 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
 import com.opson.features.today.impl.Toast
+import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.NumbersChanger
 import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.fastingTimerOn
 import com.opson.libraries.diary.ui.TodayCard
 import com.opson.libraries.diary.ui.TodayCardPadding
 import com.opson.libraries.flowroutines.SEAViewModel
@@ -31,6 +33,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.fasting_cards_body
+import opson.libraries.resources.generated.resources.fasting_title
 import opson.libraries.resources.generated.resources.today_cards_groups
 import opson.libraries.resources.generated.resources.today_cards_groups_body
 import opson.libraries.resources.generated.resources.today_cards_title
@@ -42,16 +46,20 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * "Edit Today's cards" from the ⋮ menu (design v3, 2.11): meal groups, and the water card,
- * which moved here from the Day menu's "Hide water". Fasting is 0.2. Hiding water applies at
- * once through [NumbersChanger]. Showing it again is a change that shows more, and v3 keeps
- * those in Modes and numbers behind the pause, so turning the switch on opens Modes.
+ * which moved here from the Day menu's "Hide water". Hiding water applies at once through
+ * [NumbersChanger]. Showing it again is a change that shows more, and v3 keeps those in Modes
+ * and numbers behind the pause, so turning the switch on opens Modes.
+ *
+ * Fasting (0.2) moved here from the Day menu too: its card switch, only while fasting is offered
+ * and its timer is on. [fasting] is null when the row is not there at all.
  */
-data class TodayCardsState(val mealGroups: Boolean = true, val water: Boolean = true)
+data class TodayCardsState(val mealGroups: Boolean = true, val water: Boolean = true, val fasting: Boolean? = null)
 
 sealed interface TodayCardsAction {
     data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy) : TodayCardsAction
     data object MealGroupsToggled : TodayCardsAction
     data object WaterToggled : TodayCardsAction
+    data object FastingToggled : TodayCardsAction
     data object CloseTapped : TodayCardsAction
 }
 
@@ -63,8 +71,12 @@ sealed interface TodayCardsEvent {
 }
 
 object TodayCardsStateBuilder {
-    fun build(settings: Settings, policy: VisibilityPolicy): TodayCardsState =
-        TodayCardsState(mealGroups = settings.mealGroups, water = policy.level(Metric.Water) != Visibility.Hide)
+    fun build(settings: Settings, policy: VisibilityPolicy, fastingReleased: Boolean = false): TodayCardsState =
+        TodayCardsState(
+            mealGroups = settings.mealGroups,
+            water = policy.level(Metric.Water) != Visibility.Hide,
+            fasting = settings.fastToday.takeIf { settings.fastingTimerOn(fastingReleased) },
+        )
 }
 
 @Inject
@@ -72,6 +84,7 @@ class TodayCardsViewModel(
     private val settingsRepository: SettingsRepository,
     private val policySource: VisibilityPolicySource,
     private val numbersChanger: NumbersChanger,
+    private val fastingRelease: FastingRelease,
 ) : SEAViewModel<TodayCardsState, TodayCardsEvent, TodayCardsAction>(initialStateArg = TodayCardsState()) {
 
     init {
@@ -82,7 +95,12 @@ class TodayCardsViewModel(
 
     override suspend fun handleAction(action: TodayCardsAction) {
         when (action) {
-            is TodayCardsAction.InputsArrived -> action.updateState { TodayCardsStateBuilder.build(action.settings, action.policy) }
+            is TodayCardsAction.InputsArrived -> action.updateState {
+                TodayCardsStateBuilder.build(action.settings, action.policy, fastingRelease.isOn())
+            }
+            TodayCardsAction.FastingToggled -> if (settingsRepository.settings.value.fastingTimerOn(fastingRelease.isOn())) {
+                settingsRepository.update { it.copy(fastToday = !it.fastToday) }
+            }
             TodayCardsAction.MealGroupsToggled -> settingsRepository.update { it.copy(mealGroups = !it.mealGroups) }
             TodayCardsAction.WaterToggled -> {
                 if (policySource.policy.value.level(Metric.Water) == Visibility.Hide) {
@@ -132,6 +150,17 @@ fun TodayCardsSheetContent(
                 iconTone = AppTheme.colors.nutrients.water,
             ) {
                 AppSwitch(checked = state.water, onCheckedChange = { onAction(TodayCardsAction.WaterToggled) })
+            }
+            state.fasting?.let { on ->
+                HorizontalDivider(color = AppTheme.colors.line)
+                ListRow(
+                    title = stringResource(Res.string.fasting_title),
+                    subtitle = stringResource(Res.string.fasting_cards_body),
+                    icon = AppIcons.Schedule,
+                    iconTone = AppTheme.colors.nutrients.fiber,
+                ) {
+                    AppSwitch(checked = on, onCheckedChange = { onAction(TodayCardsAction.FastingToggled) })
+                }
             }
         }
     }

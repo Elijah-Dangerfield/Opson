@@ -16,6 +16,9 @@ import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.fasting_more_off
+import opson.libraries.resources.generated.resources.fasting_more_on
+import opson.libraries.resources.generated.resources.fasting_title
 import opson.libraries.resources.generated.resources.settings_modes_changes
 import opson.libraries.resources.generated.resources.settings_more_look
 import opson.libraries.resources.generated.resources.settings_more_look_sub
@@ -105,6 +108,13 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             showDivider = showDivider,
             onClick = onClick,
         )
+        is MoreRow.Fasting -> SettingsRow(
+            title = stringResource(Res.string.fasting_title),
+            icon = AppIcons.Schedule,
+            trailingText = if (row.on) stringResource(Res.string.fasting_more_on, row.plan.key) else stringResource(Res.string.fasting_more_off),
+            showDivider = showDivider,
+            onClick = onClick,
+        )
         MoreRow.Support -> SettingsRow(
             title = stringResource(Res.string.settings_more_support),
             icon = AppIcons.Support,
@@ -131,6 +141,13 @@ private fun MorePreview() {
 private fun MoreFuelWithAChangeDarkPreview() {
     val settings = SettingsFixtures.settings(SettingsFixtures.fuelWithACarbsChange)
     SettingsPreview(dark = true) { MoreScreen(MoreStateBuilder.build(settings), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun MoreWithFastingPreview() {
+    val settings = SettingsFixtures.settings().copy(fasting = true)
+    SettingsPreview { MoreScreen(MoreStateBuilder.build(settings, fastingReleased = true), onAction = {}) }
 }
 
 @Preview

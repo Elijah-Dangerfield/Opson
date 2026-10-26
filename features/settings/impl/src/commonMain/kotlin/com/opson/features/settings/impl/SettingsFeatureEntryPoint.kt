@@ -9,6 +9,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.home.FeedbackRoute
 import com.opson.features.onboarding.OnboardingRoute
+import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.GoalStyleRoute
 import com.opson.features.settings.LookAndFeelRoute
 import com.opson.features.settings.ModesRoute
@@ -17,6 +18,9 @@ import com.opson.features.settings.PauseBeforeMoreRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.TargetsRoute
 import com.opson.features.settings.WaterSettingsRoute
+import com.opson.features.settings.impl.fasting.FastingEvent
+import com.opson.features.settings.impl.fasting.FastingScreen
+import com.opson.features.settings.impl.fasting.FastingViewModel
 import com.opson.features.settings.impl.look.LookAndFeelEvent
 import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelViewModel
@@ -72,6 +76,7 @@ class SettingsFeatureEntryPoint(
     private val waterSettingsViewModel: (backToMore: Boolean) -> WaterSettingsViewModel,
     private val lookAndFeelViewModel: () -> LookAndFeelViewModel,
     private val supportViewModel: () -> SupportViewModel,
+    private val fastingViewModel: () -> FastingViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -86,6 +91,7 @@ class SettingsFeatureEntryPoint(
                         MoreEvent.OpenWater -> WaterSettingsRoute(fromMore = true)
                         MoreEvent.OpenLookAndFeel -> LookAndFeelRoute()
                         MoreEvent.OpenSupport -> SupportRoute()
+                        MoreEvent.OpenFasting -> FastingRoute()
                     },
                 )
             }
@@ -177,6 +183,18 @@ class SettingsFeatureEntryPoint(
                 }
             }
             WaterSettingsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        screen<FastingRoute> {
+            val viewModel: FastingViewModel = viewModel { fastingViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is FastingEvent.ShowToast -> show(event.toast)
+                    FastingEvent.Close -> router.goBack()
+                }
+            }
+            FastingScreen(state = state, onAction = viewModel::takeAction)
         }
 
         screen<LookAndFeelRoute> {

@@ -17,6 +17,7 @@ import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Tone
+import com.opson.libraries.diary.ui.FastingStatusFixtures
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -167,6 +168,28 @@ private fun TodayDayMenuArmedDarkPreview() = Phone(dark = true) { TodayWithMenu(
 @Preview(widthDp = 390)
 @Composable
 private fun TodayCardsSheetPreview() = Phone { TodayCardsSheetContent(TodayFixtures.todayCardsState(full), onAction = {}) }
+
+/** 0.2: with fasting offered and its timer on, the Fasting card switch joins the sheet. */
+@Preview(widthDp = 390)
+@Composable
+private fun TodayCardsSheetFastingPreview() = Phone {
+    TodayCardsSheetContent(TodayFixtures.todayCardsState(full, Settings(fasting = true), fastingReleased = true), onAction = {})
+}
+
+/** 0.2: the fasting card on an empty morning, 13h 40m into last night's fast. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayFastingPreview() = Phone {
+    val state = TodayFixtures.todayState(full, day = Day.empty(TodayFixtures.today))
+    TodayScreen(state = state.copy(fasting = FastingStatusFixtures.running), onAction = {})
+}
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayFastingDarkPreview() = Phone(dark = true) {
+    val state = TodayFixtures.todayState(full, day = Day.empty(TodayFixtures.today))
+    TodayScreen(state = state.copy(fasting = FastingStatusFixtures.windowOpen), onAction = {})
+}
 
 @Preview(widthDp = 390)
 @Composable

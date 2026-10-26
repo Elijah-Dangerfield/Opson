@@ -4,6 +4,8 @@ import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.Fast
+import com.opson.libraries.diary.FastingRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
@@ -221,4 +223,25 @@ class FakeRecentLogEvents : RecentLogEvents {
 /** A clock the test moves by hand, alongside the scheduler's virtual time. */
 class FakeClock(var now: Instant = TodayFixtures.noon) : Clock {
     override fun now(): Instant = now
+}
+
+/** Fasts for Today's card: the latest is set by the test; starts and ends are counted. */
+class FakeFastingRepository : FastingRepository {
+    val latest = MutableStateFlow<Fast?>(null)
+    var startDueCalls = 0
+        private set
+    var endCalls = 0
+        private set
+
+    override fun observeLatest(): Flow<Fast?> = latest
+
+    override suspend fun startDue() {
+        startDueCalls++
+    }
+
+    override suspend fun end() {
+        endCalls++
+    }
+
+    override suspend fun endForTimerOff() = Unit
 }

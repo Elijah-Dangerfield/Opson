@@ -17,7 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.ui.EnergySummaryCard
+import com.opson.libraries.diary.ui.FastingTodayCard
 import com.opson.libraries.diary.ui.FocusSummaryCard
 import com.opson.libraries.diary.ui.FoodListCard
 import com.opson.libraries.diary.ui.FoodsLine
@@ -226,6 +228,7 @@ internal sealed interface TodayRow {
     data class Tiles(val tiles: List<MealTile>) : TodayRow { override val key = "tiles" }
     data class Rhythm(val card: RhythmCard) : TodayRow { override val key = "rhythm" }
     data class SafeFoods(val foods: List<String>) : TodayRow { override val key = "safe-foods" }
+    data class Fasting(val status: FastingStatus) : TodayRow { override val key = "fasting" }
     data class Water(val water: WaterRow) : TodayRow { override val key = "water" }
     data class Meal(val entry: MealEntry) : TodayRow { override val key = "meal-${entry.slot.wire}" }
     data class Had(val had: WhatYouHad) : TodayRow { override val key = "what-you-had" }
@@ -244,6 +247,7 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
     state.whatYouHad?.takeIf { state.rhythm == null }?.let { add(TodayRow.Had(it)) }
     state.bridge?.let { add(TodayRow.Bridge(it)) }
     state.safeFoods?.let { add(TodayRow.SafeFoods(it)) }
+    state.fasting?.let { add(TodayRow.Fasting(it)) }
     state.water?.let { add(TodayRow.Water(it)) }
     state.meals.forEach { add(TodayRow.Meal(it)) }
     state.whatYouHad?.takeIf { state.rhythm != null }?.let { add(TodayRow.Had(it)) }
@@ -312,6 +316,11 @@ private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayActi
             title = stringResource(Res.string.today_explorer_safe),
             foods = row.foods,
             emptyText = stringResource(Res.string.today_explorer_safe_empty),
+        )
+        is TodayRow.Fasting -> FastingTodayCard(
+            status = row.status,
+            onOpen = { onAction(TodayAction.FastingCardTapped) },
+            onEndFast = { onAction(TodayAction.EndFastTapped) },
         )
         is TodayRow.Water -> WaterCard(
             title = stringResource(Res.string.today_water),

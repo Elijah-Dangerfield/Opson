@@ -176,7 +176,16 @@ fun interface FastingRelease {
     fun isOn(): Boolean
 }
 
-/** The live timer: [Clock.now] at once, then at each wall-clock minute. */
+/**
+ * The live timer's beat: now at once, then at each wall-clock minute. An interface so a view
+ * model test can hold time still or step it; an endless delay loop would never let a test's
+ * scheduler go idle.
+ */
+fun interface MinuteTicker {
+    fun ticks(): Flow<Instant>
+}
+
+/** The real [MinuteTicker]'s flow: [Clock.now] at once, then at each wall-clock minute. */
 fun minuteTicks(clock: Clock): Flow<Instant> = flow {
     while (true) {
         val now = clock.now()

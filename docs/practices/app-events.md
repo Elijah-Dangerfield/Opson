@@ -112,6 +112,18 @@ sheet's "What's prompting this?" answer.
 |---|---|---|
 | `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details, quick_number, name_only, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
 
+### Fasting (0.2)
+
+Both from `FastingRepositoryImpl` (`:libraries:diary:impl`), the only writer of fasts, so no
+screen emits them. **No event carries a duration, a start or an end time.** How long someone
+goes without eating is health data, and a duration in Loki is one query away from a
+longest-fast record, which the app refuses to keep.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `fast.started` | `plan` (`12:12`, `14:10`, `16:8`) | When this device writes the evening's fast. A fast starts when the eating window closes, so this fires the first time a screen showing the timer looks after the close, not at the close itself. A fast pulled from another device does not fire it |
+| `fast.ended` | `by` (`user`, `food`, `timer_off`) | End fast, logging food on today or earlier, or switching the timer off, while a fast runs. Reaching the goal is derived, not written, and fires nothing |
+
 ## Warn+ log forwarding (not events)
 
 Besides events, `GrafanaLogTree` forwards plain KLog lines at Warn and above to Loki as ordinary

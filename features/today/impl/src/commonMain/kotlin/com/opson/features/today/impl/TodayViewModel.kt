@@ -3,9 +3,13 @@ package com.opson.features.today.impl
 import androidx.lifecycle.viewModelScope
 import com.opson.features.logger.LogTab
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.FastingRelease
+import com.opson.libraries.diary.FastingRepository
+import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
@@ -60,6 +64,9 @@ class TodayViewModel(
     private val calendar: LocalCalendar,
     private val recentLogEvents: RecentLogEvents,
     private val clock: Clock,
+    private val fasting: FastingRepository,
+    private val fastingRelease: FastingRelease,
+    private val ticker: MinuteTicker,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value),
 ) {
@@ -79,6 +86,7 @@ class TodayViewModel(
         val added: LoggedToMeal? = null,
         /** "Not today" or "I tried it" on the food bridge, for this date. Kept nowhere else. */
         val bridgeSkippedOn: LocalDate? = null,
+        val fasting: FastingStatus? = null,
     )
 
     init {
@@ -93,6 +101,9 @@ class TodayViewModel(
             combine(recentLogEvents.latest, selectedDay.date) { event, shown -> event?.let { TodayAction.LoggedArrived(it, shown) } }
                 .filterNotNull()
                 .collect { takeAction(it) }
+        }
+        viewModelScope.launch {
+            fastingCard().collect { takeAction(TodayAction.FastingArrived(it)) }
         }
     }
 
@@ -144,6 +155,13 @@ class TodayViewModel(
                 )
             }
             TodayAction.BridgeNotTodayTapped -> action.rebuild { copy(bridgeSkippedOn = day()) }
+            is TodayAction.FastingArrived -> {
+                action.rebuild { copy(fasting = action.status) }
+                // A card on show means the timer is on: start the evening's fast once the window closes.
+                if (action.status != null) fasting.startDue()
+            }
+            TodayAction.FastingCardTapped -> sendEvent(TodayEvent.OpenFasting)
+            TodayAction.EndFastTapped -> fasting.end()
 
             TodayAction.DayMenuTapped -> action.rebuild { copy(menuOpen = true, clearArmed = false) }
             TodayAction.MenuDismissed -> action.closeMenu()
@@ -246,7 +264,7 @@ class TodayViewModel(
                 highlight = current.highlight,
                 added = current.added,
                 bridgeSkipped = current.bridgeSkippedOn == inputs.day.date,
-            )
+            ).copy(fasting = current.fasting)
         }
     }
 
@@ -276,6 +294,21 @@ class TodayViewModel(
             )
         }
     }
+
+    /** The fasting card, ticking once a minute only while it can show. */
+    private fun fastingCard(): Flow<FastingStatus?> =
+        combine(settingsRepository.settings, selectedDay.date) { settings, day -> settings to day }
+            .flatMapLatest { (settings, day) ->
+                val released = fastingRelease.isOn()
+                if (!TodayFastingCard.shows(settings, released, day, calendar.today())) {
+                    flowOf(null)
+                } else {
+                    combine(fasting.observeLatest(), ticker.ticks()) { latest, now ->
+                        TodayFastingCard.build(settings, released, day, calendar.today(), latest, now, calendar.timeZone())
+                    }
+                }
+            }
+            .distinctUntilChanged()
 
     private fun explorerStats(): Flow<ExplorerStats> {
         val today = calendar.today()

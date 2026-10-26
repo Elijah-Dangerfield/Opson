@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for fasting (docs/plans/screens/fasting.md): the Fasting page, its More
+  row, the Today card and the Edit Today's cards row. 0.2, behind
+  release.fasting. Same rules as strings.xml: no backslash escapes, positional
+  %1$s arguments. No streaks, records or targets, and nothing that asks
+  someone to wait before eating.
+-->
+<resources>
+
+    <string name="fasting_title">Fasting</string>
+
+    <!-- The status card, over the hero colour -->
+    <string name="fasting_status_open">Eating window open</string>
+    <string name="fasting_status_open_big">Until %1$s</string>
+    <string name="fasting_status_running">Fasting</string>
+    <string name="fasting_status_running_since">Since %1$s</string>
+    <string name="fasting_status_ended">Fast ended</string>
+    <string name="fasting_status_ended_big">At %1$s</string>
+    <string name="fasting_status_resting">Not fasting</string>
+    <string name="fasting_status_next">The timer starts again at %1$s.</string>
+    <string name="fasting_status_food_ends">Logging food ends a fast.</string>
+    <string name="fasting_end">End fast</string>
+
+    <!-- Durations on the live timer -->
+    <string name="fasting_hours_minutes">%1$dh %2$dm</string>
+    <string name="fasting_minutes">%1$dm</string>
+
+    <!-- Settings card -->
+    <string name="fasting_timer">Fasting timer</string>
+    <string name="fasting_timer_body">Off unless you turn it on</string>
+    <string name="fasting_show_on_today">Card on Today</string>
+    <string name="fasting_window">Eating window</string>
+    <string name="fasting_window_range">%1$s to %2$s</string>
+
+    <!-- Reached in a mode without fasting -->
+    <string name="fasting_not_in_mode">Fasting isn't part of this mode</string>
+    <string name="fasting_not_in_mode_body">Long gaps between meals tend to work against the goals of this mode. If regular meals are the aim, meal reminders help with that instead.</string>
+
+    <!-- Today's card -->
+    <string name="fasting_today_running">%1$s, since %2$s</string>
+
+    <!-- More and Edit Today's cards -->
+    <string name="fasting_more_off">Off</string>
+    <string name="fasting_more_on">On, %1$s</string>
+    <string name="fasting_cards_body">The timer, while it is on.</string>
+
+    <string name="fasting_toast_ended">Fast ended.</string>
+</resources>

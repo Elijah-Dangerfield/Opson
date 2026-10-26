@@ -128,7 +128,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 26 | Calendar | `calendar` | today | ported | no |
 | 27 | Day menu | `today-day-menu` | today | ported | yes (Today under it) |
 | 28 | Add menu | none | | dropped in design v3 (no header +) | |
-| 29 | Fasting | none | | 0.2, add when built | |
+| 29 | Fasting | `fasting` | settings | 0.2, `fasting.md`; only Full and Sprint offer it, so Blind renders "not part of this mode" | no |
 | 30 | Logger with picked foods | `logger-picked` | logger | ported | yes |
 | 31 | Create a meal | `foods-create-meal` | foods | ported (demo fixture) | yes |
 | 32 | Custom food | `foods-add-food` | foods | v3 "Add a food", Calories field holds 120 | yes |

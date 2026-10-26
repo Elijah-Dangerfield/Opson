@@ -2,17 +2,25 @@ package com.opson.features.today.impl
 
 import com.opson.features.logger.LogTab
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.Fast
+import com.opson.libraries.diary.FastingRelease
+import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MinuteTicker
+import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
@@ -25,7 +33,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 /**
  * [TodayViewModel], one test per action: what it writes, what it sends, and the outline on a
@@ -41,6 +51,8 @@ class TodayViewModelTest : CoroutineTest() {
     private val selectedDay = FakeSelectedDay()
     private val recentLogEvents = FakeRecentLogEvents()
     private val clock = FakeClock()
+    private val fasting = FakeFastingRepository()
+    private var fastingReleased = true
 
     private fun vm() = TodayViewModel(
         diary = diary,
@@ -50,6 +62,9 @@ class TodayViewModelTest : CoroutineTest() {
         calendar = FakeCalendar(),
         recentLogEvents = recentLogEvents,
         clock = clock,
+        fasting = fasting,
+        fastingRelease = FastingRelease { fastingReleased },
+        ticker = MinuteTicker { flowOf(clock.now) },
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -427,5 +442,75 @@ class TodayViewModelTest : CoroutineTest() {
         val vm = vm()
 
         assertTrue(vm.state.meals.all { it is MealEntry.Collapsed })
+    }
+
+    // --- Fasting (0.2) ---
+
+    @Test
+    fun noFastingCardWhileTheTimerIsOff() = runUnitTest {
+        val vm = vm()
+        assertNull(vm.state.fasting)
+        assertEquals(0, fasting.startDueCalls)
+    }
+
+    @Test
+    fun theFastingCardShowsTodayWhileTheTimerIsOn_andStartsADueFast() = runUnitTest {
+        settings.state.value = Settings(fasting = true)
+        val vm = vm()
+
+        assertEquals(FastingStatus.WindowOpen(until = LocalTime(19, 0)), vm.state.fasting)
+        assertEquals(1, fasting.startDueCalls)
+
+        vm.takeAction(TodayAction.PreviousDayTapped)
+        assertNull(vm.state.fasting, "only on today")
+    }
+
+    @Test
+    fun theFastingCardReadsTheStoredStart() = runUnitTest {
+        settings.state.value = Settings(fasting = true)
+        clock.now = Instant.parse("2026-10-25T21:30:00Z")
+        fasting.latest.value = Fast(today, Instant.parse("2026-10-25T19:00:00Z"), goalHours = 14)
+        val vm = vm()
+
+        assertEquals(FastingStatus.Running(since = LocalTime(19, 0), elapsed = 150.minutes), vm.state.fasting)
+    }
+
+    @Test
+    fun theFastingCardNeverShowsAfterTheStatementOrOutsideFullAndSprint() = runUnitTest {
+        PresetId.entries.forEach { preset ->
+            listOf(false, true).forEach { hard ->
+                settings.state.value = Settings(
+                    numbers = NumbersSettings(preset),
+                    fasting = true,
+                    onboarding = OnboardingAnswers(hard = hard),
+                )
+                val shows = !hard && (preset == PresetId.Full || preset == PresetId.Sprint)
+                assertEquals(shows, vm().state.fasting != null, "$preset, hard=$hard")
+            }
+        }
+    }
+
+    @Test
+    fun theFastingCardStaysOffWithTheFlagOffOrTheCardSwitchedOff() = runUnitTest {
+        fastingReleased = false
+        settings.state.value = Settings(fasting = true)
+        assertNull(vm().state.fasting)
+
+        fastingReleased = true
+        settings.state.value = Settings(fasting = true, fastToday = false)
+        assertNull(vm().state.fasting)
+    }
+
+    @Test
+    fun theFastingCardOpensFasting_andEndFastEndsIt() = runUnitTest {
+        settings.state.value = Settings(fasting = true)
+        val vm = vm()
+        val events = events(vm)
+
+        vm.takeAction(TodayAction.FastingCardTapped)
+        vm.takeAction(TodayAction.EndFastTapped)
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenFasting), events)
+        assertEquals(1, fasting.endCalls)
     }
 }

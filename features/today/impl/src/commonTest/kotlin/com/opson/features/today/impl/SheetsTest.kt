@@ -6,6 +6,7 @@ import com.opson.features.today.impl.calendar.CalendarStateBuilder
 import com.opson.features.today.impl.calendar.CalendarViewModel
 import com.opson.features.today.impl.cards.TodayCardsAction
 import com.opson.features.today.impl.cards.TodayCardsEvent
+import com.opson.features.today.impl.cards.TodayCardsStateBuilder
 import com.opson.features.today.impl.cards.TodayCardsViewModel
 import com.opson.features.today.impl.daynote.DayNoteAction
 import com.opson.features.today.impl.daynote.DayNoteEvent
@@ -26,16 +27,19 @@ import com.opson.features.today.impl.water.WaterSheetAction
 import com.opson.features.today.impl.water.WaterSheetStateBuilder
 import com.opson.features.today.impl.water.WaterSheetViewModel
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.NumbersOutcome
+import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersChange
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WaterUnit
@@ -269,7 +273,7 @@ class SheetsTest : CoroutineTest() {
         val settings = FakeSettingsRepository()
         val source = FakePolicySource()
         val changer = FakeNumbersChanger(NumbersOutcome.Applied(fewer = true))
-        val vm = TodayCardsViewModel(settings, source, changer)
+        val vm = TodayCardsViewModel(settings, source, changer, FastingRelease { false })
         val events = collect(vm.eventFlow)
 
         vm.takeAction(TodayCardsAction.MealGroupsToggled)
@@ -287,12 +291,40 @@ class SheetsTest : CoroutineTest() {
 
     @Test
     fun hidingWaterBehindThePauseOpensIt() = runUnitTest {
-        val vm = TodayCardsViewModel(FakeSettingsRepository(), FakePolicySource(), FakeNumbersChanger(NumbersOutcome.NeedsPause))
+        val vm = TodayCardsViewModel(FakeSettingsRepository(), FakePolicySource(), FakeNumbersChanger(NumbersOutcome.NeedsPause), FastingRelease { false })
         val events = collect(vm.eventFlow)
 
         vm.takeAction(TodayCardsAction.WaterToggled)
 
         assertEquals<TodayCardsEvent>(TodayCardsEvent.OpenPause(NumbersChange.Override(Metric.Water, Visibility.Hide)), events.single())
+    }
+
+    @Test
+    fun theFastingRowShowsOnlyWhileFastingIsOfferedAndOn() {
+        val policy = policy(PresetId.Full)
+        val on = Settings(fasting = true)
+        assertEquals(true, TodayCardsStateBuilder.build(on, policy, fastingReleased = true).fasting)
+        assertNull(TodayCardsStateBuilder.build(Settings(), policy, fastingReleased = true).fasting, "timer off")
+        assertNull(TodayCardsStateBuilder.build(on, policy, fastingReleased = false).fasting, "flag off")
+        assertNull(
+            TodayCardsStateBuilder.build(on.copy(onboarding = OnboardingAnswers(hard = true)), policy, fastingReleased = true).fasting,
+            "after the statement",
+        )
+        assertNull(
+            TodayCardsStateBuilder.build(on.copy(numbers = NumbersSettings(PresetId.Rhythm)), policy, fastingReleased = true).fasting,
+            "a mode without fasting",
+        )
+    }
+
+    @Test
+    fun theFastingRowTogglesTheTodayCard() = runUnitTest {
+        val settings = FakeSettingsRepository(Settings(fasting = true))
+        val vm = TodayCardsViewModel(settings, FakePolicySource(), FakeNumbersChanger(), FastingRelease { true })
+
+        vm.takeAction(TodayCardsAction.FastingToggled)
+
+        assertFalse(settings.state.value.fastToday)
+        assertEquals(false, vm.state.fasting)
     }
 
     // Explorer

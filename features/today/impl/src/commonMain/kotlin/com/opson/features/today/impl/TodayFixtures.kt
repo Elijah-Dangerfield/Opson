@@ -228,8 +228,8 @@ object TodayFixtures {
         feeling = feeling,
     )
 
-    fun todayCardsState(policy: VisibilityPolicy, settings: Settings = Settings()): TodayCardsState =
-        TodayCardsStateBuilder.build(settings, policy)
+    fun todayCardsState(policy: VisibilityPolicy, settings: Settings = Settings(), fastingReleased: Boolean = false): TodayCardsState =
+        TodayCardsStateBuilder.build(settings, policy, fastingReleased)
 
     fun calendarState(): CalendarState {
         val logged = (1..24).filter { it % 7 != 4 }.map { LocalDate(today.year, today.month, it) }.toSet() + today

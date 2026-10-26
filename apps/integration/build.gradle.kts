@@ -44,6 +44,8 @@ kotlin {
             // place a test can hold the whole declared key set at once.
             implementation(projects.libraries.config)
             implementation(projects.libraries.config.impl)
+            // FastingReleaseFlag (release.fasting), for the config manifest drift test.
+            implementation(projects.libraries.diary)
             implementation(projects.libraries.telemetry.impl)
             implementation(libs.kotlinx.serialization.json)
 

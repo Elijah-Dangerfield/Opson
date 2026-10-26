@@ -70,6 +70,7 @@ import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.LocalDrink
+import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.LockClock
 import androidx.compose.material.icons.rounded.LunchDining
 import androidx.compose.material.icons.rounded.Mic
@@ -157,6 +158,9 @@ object AppIcons {
     val MonitorWeight get() = icon("monitor_weight", MaterialIcons.Rounded.MonitorWeight)
     val Schedule get() = icon("schedule", MaterialIcons.Rounded.Schedule)
     val LockClock get() = icon("lock_clock", MaterialIcons.Rounded.LockClock)
+
+    /** A fast that is running, on the fasting status and Today's card. */
+    val HourglassTop get() = icon("hourglass_top", MaterialIcons.Rounded.HourglassTop)
 
     // Navigation and chrome
     val Close get() = icon("close", MaterialIcons.Rounded.Close)
@@ -251,7 +255,7 @@ object AppIcons {
         get() = listOf(
             BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant, LocalDining,
             Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, Mic, EditNote, PostAdd, Edit,
-            Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight, Schedule, LockClock,
+            Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight, Schedule, LockClock, HourglassTop,
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             SearchOff, Cancel, ArrowBack, ExpandMore,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,

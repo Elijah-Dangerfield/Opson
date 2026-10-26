@@ -1,5 +1,7 @@
 package com.opson.features.settings.impl
 
+import com.opson.features.settings.impl.fasting.FastingFixtures
+import com.opson.features.settings.impl.fasting.FastingScreen
 import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelStateBuilder
 import com.opson.features.settings.impl.modes.ModesScreen
@@ -63,6 +65,11 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "support-delete", label = "Support, delete everything", showsCaloriesInFull = false) { _ ->
             SupportScreen(SupportState(delete = DeleteStep.Confirming), onAction = {})
+        },
+        // 0.2. Times and a duration, no nutrition number; in a mode without fasting it says so.
+        LeakSurface(id = "fasting", label = "Fasting", showsCaloriesInFull = false) { policy ->
+            val settings = FastingFixtures.settings(preset = policy.settings.preset)
+            FastingScreen(FastingFixtures.state(settings, FastingFixtures.lastNight, FastingFixtures.morning), onAction = {})
         },
         LeakSurface(id = "look-and-feel", label = "Look and feel", showsCaloriesInFull = false) { policy ->
             LookAndFeelScreen(LookAndFeelStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})

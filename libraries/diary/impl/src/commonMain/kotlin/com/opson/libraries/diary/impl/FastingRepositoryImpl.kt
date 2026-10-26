@@ -7,10 +7,12 @@ import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.FastingRepository
 import com.opson.libraries.diary.FastingSchedule
 import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.db.FastEntity
 import com.opson.libraries.diary.fastingTimerOn
+import com.opson.libraries.diary.minuteTicks
 import com.opson.libraries.diary.impl.wire.FastRowDto
 import com.opson.libraries.diary.impl.wire.WireJson
 import kotlinx.coroutines.flow.Flow
@@ -135,6 +137,13 @@ class FastingRepositoryImpl(
         const val BY_FOOD = "food"
         const val BY_TIMER_OFF = "timer_off"
     }
+}
+
+@SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class)
+@Inject
+class SystemMinuteTicker(private val clock: Clock) : MinuteTicker {
+    override fun ticks(): Flow<Instant> = minuteTicks(clock)
 }
 
 internal fun FastEntity.toDomain(): Fast = Fast(

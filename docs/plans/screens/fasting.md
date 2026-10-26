@@ -87,7 +87,7 @@ interface FastingRepository {
 }
 
 fun interface FastingRelease { fun isOn(): Boolean }   // bound to the release.fasting flag
-fun minuteTicks(clock: Clock): Flow<Instant>          // the live timer: now, then on each wall-clock minute
+fun interface MinuteTicker { fun ticks(): Flow<Instant> } // the live timer: now, then each wall-clock minute; a test holds it still
 ```
 
 A fast is keyed by its `day`, so two devices that both start the evening's

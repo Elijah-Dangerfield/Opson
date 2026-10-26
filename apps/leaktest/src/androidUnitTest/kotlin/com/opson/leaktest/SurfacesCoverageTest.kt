@@ -94,7 +94,7 @@ class SurfacesCoverageTest {
             ),
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
-                "targets-by-day", "water-settings", "support", "support-delete", "look-and-feel",
+                "targets-by-day", "water-settings", "support", "support-delete", "look-and-feel", "fasting",
             ),
         )
 

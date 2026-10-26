@@ -2,6 +2,7 @@ package com.opson.features.today.impl
 
 import com.opson.features.logger.LogTab
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
@@ -57,6 +58,8 @@ data class TodayState(
     /** Explorer's food bridge (2.8), until "I tried it" or "Not today". */
     val bridge: FoodBridgeCard? = null,
     val menu: DayMenu? = null,
+    /** The fasting card (0.2), from [TodayFastingCard]; null when it does not show. */
+    val fasting: FastingStatus? = null,
 )
 
 /** [count] foods just went into [slot]. A count of foods, never an amount. */
@@ -259,6 +262,11 @@ sealed interface TodayAction {
     data object BridgeTriedTapped : TodayAction
     data object BridgeNotTodayTapped : TodayAction
 
+    // Fasting (0.2)
+    data class FastingArrived(val status: FastingStatus?) : TodayAction
+    data object FastingCardTapped : TodayAction
+    data object EndFastTapped : TodayAction
+
     // The ⋮ menu
     data object DayMenuTapped : TodayAction
     data object MenuDismissed : TodayAction
@@ -287,6 +295,7 @@ sealed interface TodayEvent {
     data class OpenItemSheet(val day: LocalDate, val entryId: String) : TodayEvent
     data class OpenWaterSheet(val day: LocalDate) : TodayEvent
     data object OpenTodayCards : TodayEvent
+    data object OpenFasting : TodayEvent
     data class OpenPause(val change: NumbersChange) : TodayEvent
     data class ShowToast(val toast: Toast) : TodayEvent
 }
