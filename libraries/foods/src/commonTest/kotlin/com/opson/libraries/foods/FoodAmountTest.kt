@@ -61,7 +61,7 @@ class FoodAmountTest {
     fun aDraftCarriesTheAmountTheWayItReads() {
         val draft = rice.toLogDraft(FoodAmount.OfPortion(Portion("1 cup", 158.0), count = 1.5), Precision.Estimate)
 
-        assertEquals("1.5 × 1 cup", draft.amountText)
+        assertEquals("1½ cups", draft.amountText)
         assertEquals(1.5, draft.quantity)
         assertEquals("1 cup", draft.unit)
         assertEquals(237.0, draft.grams)
@@ -72,6 +72,16 @@ class FoodAmountTest {
 
         assertEquals("150 g", rice.toLogDraft(FoodAmount.Grams(150.0), Precision.Weighed).amountText)
         assertEquals("1 cup", rice.toLogDraft(FoodAmount.Servings()).amountText)
+        assertEquals("½ cup", rice.toLogDraft(FoodAmount.Servings(0.5)).amountText)
+    }
+
+    @Test
+    fun aDecimalPortionLabelReadsAsAFraction() {
+        val oats = rice.copy(portions = listOf(Portion("0.25 cup", 20.0)))
+
+        assertEquals("¼ cup", oats.amountTextFor(FoodAmount.Servings()))
+        assertEquals("¾ cup", oats.amountTextFor(FoodAmount.Servings(3.0)))
+        assertEquals("2 cups", oats.amountTextFor(FoodAmount.OfPortion(Portion("0.25 cup", 20.0), 8.0)))
     }
 
     @Test
