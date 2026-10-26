@@ -1,0 +1,756 @@
+package com.opson.libraries.diary.ui
+
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.GoalStyle
+import com.opson.libraries.nutrition.MacroLineStyle
+import com.opson.libraries.nutrition.MacroPart
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NutrientAmounts
+import com.opson.libraries.nutrition.Surface
+import com.opson.libraries.nutrition.macroLine
+import com.opson.libraries.nutrition.ui.MacroLine
+import com.opson.libraries.nutrition.ui.NutrientBar
+import com.opson.libraries.nutrition.ui.NutrientPhrase
+import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.nutrition.ui.NutrientVisible
+import com.opson.libraries.nutrition.ui.currentVisibilityPolicy
+import com.opson.libraries.nutrition.ui.separator
+import com.opson.libraries.nutrition.ui.testTag
+import com.opson.libraries.ui.PreviewLightDark
+import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.EdgeCard
+import com.opson.libraries.ui.components.HeroCard
+import com.opson.libraries.ui.components.HeroDivider
+import com.opson.libraries.ui.components.HeroLabel
+import com.opson.libraries.ui.components.HeroLink
+import com.opson.libraries.ui.components.HeroWashButton
+import com.opson.libraries.ui.components.HeroWashPanel
+import com.opson.libraries.ui.components.HorizontalDivider
+import com.opson.libraries.ui.components.MinTouchTarget
+import com.opson.libraries.ui.components.PillAction
+import com.opson.libraries.ui.components.RangeBar
+import com.opson.libraries.ui.components.SegmentedBar
+import com.opson.libraries.ui.components.chip.PillTag
+import com.opson.libraries.ui.components.chip.PillTagSize
+import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
+import com.opson.libraries.ui.components.icon.IconResource
+import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.RoundIconButton
+import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.system.AppTheme
+import com.opson.system.background
+import com.opson.system.color.ToneColors
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+/*
+ * Today's and Day close's cards that carry a number (design v3, 2.1 to 2.10 and 4.1 to 4.5).
+ * Every number arrives resolved as a Display and renders through the tagged nutrient texts and
+ * bars, so a hidden number takes its label with it. Bars stop at full.
+ */
+
+/** One macro on a summary card: its label, the resolved amount, and its colour. */
+data class SummaryMacro(val metric: Metric, val label: String, val display: Display, val color: ColorResource)
+
+/** Paddings for [TodayCard]s that hold a list row or a checklist rather than free content. */
+object TodayCardPadding {
+    /** A card that is one [com.opson.libraries.ui.components.ListRow]: Close the day, the reveal link. */
+    val List = PaddingValues(start = 20.dp, end = 14.dp, top = 6.dp, bottom = 6.dp)
+
+    /** Rhythm's checklist: the title at the top, the last row's own padding at the bottom. */
+    val Checklist = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 6.dp)
+}
+
+/** A card inside the page padding: radius 22, the surface, 20 inside. Today's v3 cards. */
+@Composable
+fun TodayCard(
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(20.dp),
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(AppTheme.spacing.row),
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    EdgeCard(
+        modifier = modifier,
+        edgeToEdge = false,
+        contentPadding = contentPadding,
+        verticalArrangement = verticalArrangement,
+        onClick = onClick,
+        content = content,
+    )
+}
+
+/**
+ * The summary with calories shown (2.1): "Eaten" over the big figure and its unit, your range on
+ * the right, a bar with the range as a dashed box, then the macros and a Nutrients link.
+ * [emptyTitle] ("Nothing yet") stands in for the figure on an empty day. The bar's fill comes
+ * from [eaten]'s fraction, so it exists only when the amount does.
+ */
+@Composable
+fun EnergySummaryCard(
+    eatenLabel: String,
+    eaten: Display,
+    unitLabel: String,
+    rangeLabel: String,
+    range: Display,
+    rangeStart: Float,
+    rangeEnd: Float,
+    macros: List<SummaryMacro>,
+    nutrientsLabel: String,
+    onNutrients: () -> Unit,
+    modifier: Modifier = Modifier,
+    emptyTitle: String? = null,
+) {
+    HeroCard(modifier = modifier) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            Column(Modifier.weight(1f)) {
+                HeroLabel(eatenLabel)
+                if (emptyTitle != null) {
+                    Text(text = emptyTitle, typography = AppTheme.type.subH1, color = AppTheme.colors.onHero)
+                } else {
+                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        NutrientText(Metric.Calories, eaten, typography = AppTheme.type.figureDisplay, color = AppTheme.colors.onHero)
+                        NutrientVisible(eaten) {
+                            Text(
+                                text = unitLabel,
+                                typography = AppTheme.type.cardTitle,
+                                color = AppTheme.colors.onHero.withAlpha(LABEL_ALPHA),
+                                modifier = Modifier.padding(bottom = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
+            NutrientVisible(range) {
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    HeroLabel(rangeLabel)
+                    NutrientText(Metric.Calories, range, typography = AppTheme.type.cardTitle.Tabular, color = AppTheme.colors.onHero)
+                }
+            }
+        }
+        NutrientVisible(eaten) {
+            val fill = (eaten as? Display.Shown)?.fraction ?: 0f
+            RangeBar(
+                fill = fill,
+                rangeStart = rangeStart,
+                rangeEnd = rangeEnd,
+                modifier = Modifier.padding(top = AppTheme.spacing.row).testTag(Metric.Calories.testTag()),
+            )
+        }
+        if (macros.isNotEmpty()) {
+            HeroDivider()
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.page)) {
+                macros.forEach { macro -> MacroColumn(macro, Modifier.weight(1f)) }
+            }
+        }
+        HeroLink(text = nutrientsLabel, onClick = onNutrients, modifier = Modifier.align(Alignment.End).padding(top = 8.dp))
+    }
+}
+
+@Composable
+private fun MacroColumn(macro: SummaryMacro, modifier: Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(10.dp).background(macro.color, CircleShape))
+            Text(text = macro.label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.onHero, maxLines = 1)
+        }
+        NutrientText(macro.metric, macro.display, typography = AppTheme.type.secondaryStrong.Bold.Tabular, color = AppTheme.colors.onHero, maxLines = 1)
+        HeroBar(macro, height = 6)
+    }
+}
+
+@Composable
+private fun HeroBar(macro: SummaryMacro, height: Int) {
+    NutrientBar(
+        metric = macro.metric,
+        display = macro.display,
+        color = macro.color.color,
+        trackColor = AppTheme.colors.onHero.withAlpha(TRACK_ALPHA).color,
+        modifier = Modifier.fillMaxWidth().height(height.dp),
+    )
+}
+
+/**
+ * The summary with energy softened (2.6, Fuel): the meal count and the lead macro side by side
+ * over the meals as segments, then the other macros as bars, and energy as a word.
+ */
+@Composable
+fun SoftSummaryCard(
+    energyLabel: String,
+    energy: Display,
+    modifier: Modifier = Modifier,
+    mealsLabel: String? = null,
+    mealsValue: String? = null,
+    mealsDone: Int = 0,
+    mealsTotal: Int = 0,
+    lead: SummaryMacro? = null,
+    rows: List<SummaryMacro> = emptyList(),
+) {
+    HeroCard(modifier = modifier) {
+        if (mealsLabel != null || lead != null) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.page)) {
+                if (mealsLabel != null && mealsValue != null) {
+                    Column(Modifier.weight(1f)) {
+                        HeroLabel(mealsLabel)
+                        Text(text = mealsValue, typography = AppTheme.type.subH1.Tabular, color = AppTheme.colors.onHero)
+                    }
+                }
+                if (lead != null) {
+                    Column(Modifier.weight(1f)) {
+                        HeroLabel(lead.label)
+                        NutrientText(lead.metric, lead.display, typography = AppTheme.type.heroTitle.Tabular, color = AppTheme.colors.onHero)
+                    }
+                }
+            }
+            if (mealsLabel != null && mealsTotal > 0) {
+                SegmentedBar(
+                    filled = mealsDone,
+                    total = mealsTotal,
+                    color = AppTheme.colors.onHero,
+                    trackColor = AppTheme.colors.onHero.withAlpha(TRACK_ALPHA),
+                    height = 10.dp,
+                    gap = 6.dp,
+                    modifier = Modifier.padding(top = AppTheme.spacing.row),
+                )
+            }
+            HeroDivider()
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+            rows.forEach { macro ->
+                NutrientVisible(macro.display) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LabelledValue(macro.label, macro.metric, macro.display)
+                        HeroBar(macro, height = 8)
+                    }
+                }
+            }
+            NutrientVisible(energy) { LabelledValue(energyLabel, Metric.Calories, energy) }
+        }
+    }
+}
+
+@Composable
+private fun LabelledValue(label: String, metric: Metric, display: Display) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(text = label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.onHero, modifier = Modifier.weight(1f))
+        NutrientText(metric, display, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.onHero)
+    }
+}
+
+/** Nutrient focus (2.5): "Your focus today", then each visible nutrient as a dot, its name, its word and a bar. */
+@Composable
+fun FocusSummaryCard(
+    title: String,
+    rows: List<SummaryMacro>,
+    modifier: Modifier = Modifier,
+) {
+    HeroCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+        HeroLabel(title)
+        rows.forEach { macro ->
+            NutrientVisible(macro.display) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(Modifier.size(12.dp).background(macro.color, CircleShape))
+                        Text(text = macro.label, typography = AppTheme.type.sheetTitle, color = AppTheme.colors.onHero, modifier = Modifier.weight(1f))
+                        NutrientText(macro.metric, macro.display, typography = AppTheme.type.bodyBold.ExtraBold, color = AppTheme.colors.onHero)
+                    }
+                    HeroBar(macro, height = 14)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Today's water card: the water tile, "Water" and its amount (nothing when hidden), the glasses
+ * as segments, and the + that opens the water sheet.
+ */
+@Composable
+fun WaterCard(
+    title: String,
+    display: Display,
+    filled: Int,
+    total: Int,
+    showSegments: Boolean,
+    onAdd: () -> Unit,
+    addIcon: IconResource,
+    modifier: Modifier = Modifier,
+) {
+    TodayCard(modifier = modifier, contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            IconTile(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                    Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+                    NutrientText(Metric.Water, display, typography = AppTheme.type.secondary.Tabular, color = AppTheme.colors.muted, maxLines = 1)
+                }
+                if (showSegments) SegmentedBar(filled = filled, total = total)
+            }
+            RoundIconButton(icon = addIcon, onClick = onAdd, size = MinTouchTarget)
+        }
+    }
+}
+
+/** One logged item on a [TodayMealCard]. */
+data class MealCardItem(
+    val key: String,
+    val name: String,
+    val sub: String,
+    val calories: Display,
+)
+
+/**
+ * A meal's header: tile, name, a muted line ([subtitle], then the macro line when there is one,
+ * "8:10 am · 13P 80C 8F"), its energy and [trailing] (the 48 +). Shared by every meal card.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun MealHeader(
+    icon: IconResource,
+    tone: ToneColors,
+    title: String,
+    subtitle: String?,
+    modifier: Modifier = Modifier,
+    calories: Display = Display.Hidden,
+    macros: List<MacroPart> = emptyList(),
+    macroStyle: MacroLineStyle = MacroLineStyle.Compact,
+    trailing: @Composable RowScope.() -> Unit = {},
+) {
+    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+        IconTile(icon = icon, tone = tone)
+        Column(Modifier.weight(1f)) {
+            Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+            FlowRow {
+                if (subtitle != null) Text(text = subtitle, typography = AppTheme.type.secondary.Tabular, color = AppTheme.colors.muted)
+                if (subtitle != null && macros.isNotEmpty()) Text(text = SUBTITLE_SEPARATOR, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+                MacroLine(parts = macros, separator = macroStyle.separator, typography = AppTheme.type.secondary.Tabular)
+            }
+        }
+        NutrientText(Metric.Calories, calories, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.muted, maxLines = 1)
+        trailing()
+    }
+}
+
+private const val SUBTITLE_SEPARATOR = " · "
+
+/**
+ * A meal with its items (2.1): the [MealHeader], each item opening the item sheet, how it felt as
+ * chips and the note.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun TodayMealCard(
+    icon: IconResource,
+    tone: ToneColors,
+    title: String,
+    time: String?,
+    calories: Display,
+    macros: List<MacroPart>,
+    macroStyle: MacroLineStyle,
+    addIcon: IconResource,
+    onAdd: () -> Unit,
+    items: List<MealCardItem>,
+    onItemClick: (MealCardItem) -> Unit,
+    feel: List<String>,
+    note: String?,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+) {
+    TodayCard(
+        modifier = modifier.then(
+            if (highlighted) Modifier.border(2.dp, AppTheme.colors.accent.color, AppTheme.shapes.card) else Modifier,
+        ),
+        contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        MealHeader(icon, tone, title, time, calories = calories, macros = macros, macroStyle = macroStyle) {
+            RoundIconButton(icon = addIcon, onClick = onAdd, size = MinTouchTarget)
+        }
+        Column(Modifier.padding(end = 6.dp)) {
+            items.forEach { item ->
+                DiaryItemRow(
+                    name = item.name,
+                    sub = item.sub,
+                    calories = item.calories,
+                    onClick = { onItemClick(item) },
+                    showDivider = false,
+                    dividerAbove = true,
+                    contentPadding = PaddingValues(vertical = AppTheme.spacing.row),
+                )
+            }
+        }
+        if (feel.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+                feel.forEach { PillTag(label = it) }
+            }
+        }
+        if (note != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(icon = AppIcons.EditNote, size = 18.dp, color = AppTheme.colors.muted, modifier = Modifier.padding(top = 1.dp))
+                Text(text = note, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            }
+        }
+    }
+}
+
+/** A meal as one compact card: the [MealHeader] and anything [below] it (suggestions, the foods). */
+@Composable
+fun MealRowCard(
+    icon: IconResource,
+    tone: ToneColors,
+    title: String,
+    subtitle: String?,
+    modifier: Modifier = Modifier,
+    calories: Display = Display.Hidden,
+    trailing: @Composable RowScope.() -> Unit = {},
+    below: (@Composable ColumnScope.() -> Unit)? = null,
+) {
+    TodayCard(
+        modifier = modifier,
+        contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        MealHeader(icon, tone, title, subtitle, calories = calories, trailing = trailing)
+        if (below != null) Column(Modifier.padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row), content = below)
+    }
+}
+
+/** A line of food names under a line, inside a [MealRowCard]: a planned meal's foods. */
+@Composable
+fun FoodsLine(text: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        HorizontalDivider(color = AppTheme.colors.line)
+        Text(text = text, typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.padding(top = AppTheme.spacing.row))
+    }
+}
+
+/**
+ * Yesterday's version of an empty meal (2.2): its label and foods, its energy (nothing when
+ * hidden), and the Copy pill.
+ */
+@Composable
+fun YesterdayBox(
+    label: String,
+    foods: String,
+    calories: Display,
+    copyLabel: String,
+    onCopy: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.inputLarge)
+            .background(AppTheme.colors.soft)
+            .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(text = label, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted)
+            Text(text = foods, typography = AppTheme.type.body, color = AppTheme.colors.ink)
+        }
+        NutrientText(Metric.Calories, calories, typography = AppTheme.type.secondary.Tabular, color = AppTheme.colors.muted, maxLines = 1)
+        PillAction(label = copyLabel, onClick = onCopy, solid = true)
+    }
+}
+
+/** Mindful's foods with how they felt as chips, or [prompt] ("How did it feel?") when nothing is tagged. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun JournalEntry(
+    foods: String,
+    feel: List<String>,
+    prompt: String,
+    onPrompt: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (feel.isEmpty()) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(AppTheme.shapes.inputLarge)
+                .background(AppTheme.colors.soft)
+                .semantics { role = Role.Button }
+                .bounceClick(scaleDown = 0.98f, onClick = onPrompt)
+                .defaultMinSize(minHeight = MinTouchTarget)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = foods, typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+            Text(text = prompt, typography = AppTheme.type.bodyBold.ExtraBold, color = AppTheme.colors.accent)
+        }
+    } else {
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(text = foods, typography = AppTheme.type.body, color = AppTheme.colors.ink)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                feel.forEach { PillTag(label = it, typography = AppTheme.type.secondaryStrong.Bold, size = PillTagSize.Regular) }
+            }
+        }
+    }
+}
+
+/** A card of labelled food lines with lines between: Blind's and Rhythm's "What you had". */
+@Composable
+fun FoodListCard(
+    rows: List<Pair<String?, String>>,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+) {
+    TodayCard(modifier = modifier, verticalArrangement = Arrangement.Top) {
+        if (title != null) Text(text = title, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted, modifier = Modifier.padding(bottom = AppTheme.spacing.row))
+        rows.forEachIndexed { index, (label, foods) ->
+            if (index > 0) HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(vertical = AppTheme.spacing.row))
+            if (label != null) Text(text = label, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted)
+            Text(text = foods, typography = AppTheme.type.body, color = AppTheme.colors.ink)
+        }
+    }
+}
+
+/** Explorer's safe foods: the label and the names as soft pills, or [emptyText] before there are any. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun SafeFoodsCard(
+    title: String,
+    foods: List<String>,
+    emptyText: String,
+    modifier: Modifier = Modifier,
+) {
+    TodayCard(modifier = modifier) {
+        Text(text = title, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted)
+        if (foods.isEmpty()) {
+            Text(text = emptyText, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        } else {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                foods.forEach { PillTag(label = it, typography = AppTheme.type.body.Medium, size = PillTagSize.Regular) }
+            }
+        }
+    }
+}
+
+/**
+ * Day close with calories shown (4.1): the figure big with its unit, the range as a sentence
+ * ([rangeLine]), and the four macros in their colours below a line.
+ */
+@Composable
+fun DayTotalsCard(
+    eaten: Display,
+    unitLabel: String,
+    rangeLine: @Composable () -> Unit,
+    macros: List<SummaryMacro>,
+    modifier: Modifier = Modifier,
+) {
+    TodayCard(modifier = modifier, contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 24.dp)) {
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            NutrientText(Metric.Calories, eaten, typography = AppTheme.type.figureDisplay, color = AppTheme.colors.ink)
+            NutrientVisible(eaten) {
+                Text(text = unitLabel, typography = AppTheme.type.cardTitle, color = AppTheme.colors.muted, modifier = Modifier.padding(bottom = 4.dp))
+            }
+        }
+        rangeLine()
+        if (macros.isNotEmpty()) {
+            HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(vertical = 6.dp))
+            Row(Modifier.fillMaxWidth()) {
+                macros.forEach { macro ->
+                    NutrientVisible(macro.display) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(text = macro.label, typography = AppTheme.type.secondarySmall.Bold, color = macro.color)
+                            NutrientText(macro.metric, macro.display, typography = AppTheme.type.cardTitle.Tabular, color = AppTheme.colors.ink)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A plain sentence under a Day close figure, the range inside it: "Inside your range of 1,900 to 2,300". */
+@Composable
+fun RangeSentence(range: Display, phrase: @Composable (String) -> String) {
+    NutrientPhrase(metric = Metric.Calories, display = range, phrase = phrase, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.ink)
+}
+
+/**
+ * Day close's big-day reset (4.2, 4.3) on the hero: the message, tomorrow's unchanged range,
+ * then either the commitment buttons ([onCommit] for both; they save nothing) or [committedText].
+ */
+@Composable
+fun BigDayHeroCard(
+    body: String,
+    tomorrow: Display,
+    tomorrowPhrase: @Composable (String) -> String,
+    commitLabels: List<String>,
+    onCommit: () -> Unit,
+    committedText: String?,
+    modifier: Modifier = Modifier,
+) {
+    HeroCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.page)) {
+        Text(text = body, typography = AppTheme.type.sheetTitle.Bold, color = AppTheme.colors.onHero)
+        NutrientPhrase(
+            metric = Metric.Calories,
+            display = tomorrow,
+            phrase = tomorrowPhrase,
+            typography = AppTheme.type.body.Tabular,
+            color = AppTheme.colors.onHero.withAlpha(LABEL_ALPHA),
+        )
+        if (commitLabels.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                commitLabels.forEach { HeroWashButton(text = it, onClick = onCommit, modifier = Modifier.weight(1f)) }
+            }
+        }
+        if (committedText != null) {
+            HeroWashPanel(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Icon(icon = AppIcons.Favorite, size = 26.dp, color = AppTheme.colors.onHero)
+                    Text(text = committedText, typography = AppTheme.type.bodyBold.ExtraBold, color = AppTheme.colors.onHero)
+                }
+            }
+        }
+    }
+}
+
+/** Day close in Blind (4.5): "Logged today" and the four meals as chips, a check on the ones eaten. */
+@Composable
+fun LoggedMealsCard(
+    label: String,
+    meals: List<Pair<MealSlot, String>>,
+    done: Set<MealSlot>,
+    modifier: Modifier = Modifier,
+) {
+    TodayCard(modifier = modifier, contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+        Text(text = label, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted)
+        meals.chunked(2).forEach { pair ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                pair.forEach { (slot, title) ->
+                    val tone = slot.tileColors()
+                    val isDone = slot in done
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minHeight = MinTouchTarget)
+                            .clip(AppTheme.shapes.inputLarge)
+                            .background(if (isDone) tone.container else AppTheme.colors.soft)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+                    ) {
+                        Box(
+                            Modifier.size(24.dp).clip(CircleShape).background(if (isDone) tone.content else AppTheme.colors.line),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (isDone) Icon(icon = AppIcons.Check, size = 16.dp, color = AppTheme.colors.surface)
+                        }
+                        Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A label and a value on one line in a card: Day close's "Meals  4 of 4". */
+@Composable
+fun LabelValueCard(label: String, value: String, modifier: Modifier = Modifier) {
+    TodayCard(modifier = modifier) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(text = label, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+            Text(text = value, typography = AppTheme.type.cardTitle.Tabular, color = AppTheme.colors.ink, textAlign = TextAlign.End)
+        }
+    }
+}
+
+/** A label over one line in a card (Day close's soft "Today / Partway through"). */
+@Composable
+fun LabelledLineCard(
+    label: String,
+    modifier: Modifier = Modifier,
+    value: @Composable () -> Unit,
+) {
+    TodayCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(text = label, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted)
+        value()
+    }
+}
+
+private const val LABEL_ALPHA = 0.72f
+private const val TRACK_ALPHA = 0.16f
+
+@Suppress("VerifyStrings")
+@Preview(widthDp = 390)
+@Composable
+private fun TodayCardsPreview() {
+    PreviewLightDark {
+        val policy = currentVisibilityPolicy()
+        val n = AppTheme.colors.nutrients
+        val lunch = NutrientAmounts(kcal = 515.0, protein = 30.0, carbs = 50.0, fat = 20.0)
+        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+            EnergySummaryCard(
+                eatenLabel = "Eaten",
+                eaten = policy.resolve(Metric.Calories, 1245.0, Surface.Today, FormatContext(of = 2760.0, bare = true)),
+                unitLabel = "kcal",
+                rangeLabel = "Your range",
+                range = policy.resolve(Metric.Calories, 1900.0, Surface.Today, FormatContext(bare = true)),
+                rangeStart = 0.69f,
+                rangeEnd = 0.83f,
+                macros = listOf(
+                    SummaryMacro(Metric.Protein, "Protein", policy.resolve(Metric.Protein, 51.0, Surface.Today, FormatContext(of = 120.0, goal = GoalStyle.Slash)), n.protein.content),
+                    SummaryMacro(Metric.Carbs, "Carbs", policy.resolve(Metric.Carbs, 162.0, Surface.Today, FormatContext(of = 250.0, goal = GoalStyle.Slash)), n.carbs.content),
+                ),
+                nutrientsLabel = "Nutrients",
+                onNutrients = {},
+            )
+            WaterCard("Water", policy.resolve(Metric.Water, 750.0, Surface.Today), 3, 8, true, {}, AppIcons.Add)
+            TodayMealCard(
+                icon = AppIcons.LunchDining,
+                tone = n.fat,
+                title = "Lunch",
+                time = "12:40 PM",
+                calories = policy.resolve(Metric.Calories, 515.0, Surface.Today),
+                macros = policy.macroLine(lunch, Surface.Today, style = MacroLineStyle.Compact),
+                macroStyle = MacroLineStyle.Compact,
+                addIcon = AppIcons.Add,
+                onAdd = {},
+                items = listOf(MealCardItem("1", "Chicken adobo", "1 thigh · Estimate", policy.resolve(Metric.Calories, 310.0, Surface.Today, FormatContext(bare = true)))),
+                onItemClick = {},
+                feel = emptyList(),
+                note = null,
+            )
+            MealRowCard(
+                icon = AppIcons.DinnerDining,
+                tone = n.protein,
+                title = "Dinner",
+                subtitle = "Usually around 7:00 PM",
+                trailing = { RoundIconButton(icon = AppIcons.Add, onClick = {}, size = MinTouchTarget) },
+            )
+        }
+    }
+}

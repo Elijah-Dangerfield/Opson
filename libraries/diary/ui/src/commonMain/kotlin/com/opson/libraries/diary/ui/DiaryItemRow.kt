@@ -2,6 +2,7 @@ package com.opson.libraries.diary.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +34,10 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * One logged item: the name, a line under it (`1 cup · Estimate`) and its
  * energy on the right. Today's meal cards and Create a meal. [calories] comes
  * resolved; hidden renders nothing, not a blank where a number was.
+ *
+ * A list of rows draws a line under each ([showDivider]). Today's meal card
+ * draws the line above each row instead, after its header, so it passes
+ * [dividerAbove] and [DiaryItemRowDefaults.CardPadding].
  */
 @Composable
 fun DiaryItemRow(
@@ -42,15 +47,18 @@ fun DiaryItemRow(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     showDivider: Boolean = true,
+    dividerAbove: Boolean = false,
+    contentPadding: PaddingValues = DiaryItemRowDefaults.ListPadding,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        if (dividerAbove) HorizontalDivider(color = AppTheme.colors.line)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
                 .thenIf(onClick != null) { bounceClick(scaleDown = 0.98f, onClick = onClick!!) }
-                .padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(contentPadding),
+            verticalAlignment = if (dividerAbove) Alignment.Top else Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -75,6 +83,14 @@ fun DiaryItemRow(
         }
         if (showDivider) HorizontalDivider(color = AppTheme.colors.line)
     }
+}
+
+object DiaryItemRowDefaults {
+    /** Rows in a list: 10 above and below, a line under each. */
+    val ListPadding = PaddingValues(vertical = 10.dp)
+
+    /** Rows on a Today meal card: a line above, 10 under it, and the card's own gap after. */
+    val CardPadding = PaddingValues(top = 10.dp)
 }
 
 @Preview(widthDp = 390)
