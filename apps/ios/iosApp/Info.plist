@@ -73,22 +73,16 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<!--
-	  There is deliberately no NSCameraUsageDescription here, and adding one
-	  back needs a reason.
-
-	  The template used to ship a CameraPreview across all three source sets
-	  with AVFoundation imported to serve it, which forced this key: App Store
-	  delivery scans the binary for *API references*, not call sites, so the
-	  upload was rejected with ITMS-90683 whether or not any screen showed a
-	  preview. The camera came out wholesale, so the key went with it. Declaring
-	  access to a sensor the app never touches contradicts the App Privacy
-	  answers and PrivacyInfo.xcprivacy.
-
-	  If you add camera code, add this key with a purpose string that says what
-	  you use it for; a vague one is its own rejection. If you are not using the
-	  camera and an upload is still rejected for it, something reintroduced an
-	  AVFoundation reference. `otool -L` on the built .app will tell you.
+	  The barcode scanner (:libraries:scanner:impl, AVFoundation from Kotlin)
+	  reads the camera. App Store delivery scans the binary for AVFoundation
+	  *references*, not call sites, so this key is required from the build that
+	  links the scanner on, even while release.barcode keeps the button hidden;
+	  without it the upload is rejected with ITMS-90683. Frames are only read
+	  for barcodes on the device and never stored, which is what the string
+	  says. Remove the key only together with the scanner.
 	-->
+	<key>NSCameraUsageDescription</key>
+	<string>Opson uses the camera to read barcodes on food packs. No photos are taken or saved.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>
