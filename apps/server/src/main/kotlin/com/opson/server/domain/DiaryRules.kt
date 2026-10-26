@@ -119,7 +119,7 @@ object DiaryRules {
             ?: text("note", row.note, MAX_NOTE)
             ?: when {
                 row.moods.size > MAX_MOODS -> "moods has too many items"
-                row.moods.any { it.isBlank() || it.length > MAX_FEELING } -> "moods has an invalid item"
+                row.moods.any { it.isBlank() || it.length > MAX_FEELING || NUL in it } -> "moods has an invalid item"
                 else -> null
             }
 
@@ -160,8 +160,11 @@ object DiaryRules {
         text("name", row.name, MAX_NAME, required = true)
             ?: jsonSize("items", row.itemsJson)
 
-    private fun jsonSize(field: String, json: String): String? =
-        if (json.length > MAX_JSON_CHARS) "$field is too large" else null
+    private fun jsonSize(field: String, json: String): String? = when {
+        json.length > MAX_JSON_CHARS -> "$field is too large"
+        JSON_NUL in json -> "$field contains a NUL character"
+        else -> null
+    }
 
     private fun dayError(day: LocalDate, now: Instant): String? {
         val today = java.time.Instant.ofEpochMilli(now.toEpochMilliseconds()).atZone(ZoneOffset.UTC).toLocalDate()
@@ -176,8 +179,17 @@ object DiaryRules {
         value == null -> if (required) "$field is required" else null
         required && value.isBlank() -> "$field is required"
         value.length > max -> "$field is longer than $max characters"
+        NUL in value -> "$field contains a NUL character"
         else -> null
     }
+
+    /**
+     * Postgres stores neither a NUL character in text nor a `\u0000` escape in
+     * jsonb. Such a row fails the whole sync transaction, so it has to be
+     * refused here, alone, or it blocks the outbox for good.
+     */
+    private const val NUL = '\u0000'
+    private const val JSON_NUL = "\\u0000"
 
     private fun amount(field: String, value: Double?, max: Double): String? = when {
         value == null -> null
@@ -194,7 +206,7 @@ object DiaryRules {
     private fun micros(micros: Map<String, Double>?): String? {
         if (micros == null) return null
         if (micros.size > MAX_MICROS) return "micros has too many keys"
-        if (micros.keys.any { it.isBlank() || it.length > MAX_MICRO_KEY }) return "micros has an invalid key"
+        if (micros.keys.any { it.isBlank() || it.length > MAX_MICRO_KEY || NUL in it }) return "micros has an invalid key"
         return micros.values.firstNotNullOfOrNull { amount("micros", it, MAX_NUTRIENT) }
     }
 }
