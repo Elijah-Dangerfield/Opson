@@ -27,6 +27,9 @@ class FakeProgressPhotoRepository(photos: List<ProgressPhoto> = ProgressPhotosFi
     val notes = mutableMapOf<String, String>()
     var deletedAll = false
 
+    /** While set, thumbnail reads wait for it: the disk being slow. */
+    var thumbnailsWaitFor: CompletableDeferred<Unit>? = null
+
     override fun observePhotos(): Flow<List<ProgressPhoto>> = photos
     override fun observeComparisons(): Flow<List<SavedComparison>> = comparisons
     override fun observeLastTaken(): Flow<LocalDate?> = photos.map { list -> list.maxOfOrNull { it.date } }
@@ -43,6 +46,7 @@ class FakeProgressPhotoRepository(photos: List<ProgressPhoto> = ProgressPhotosFi
     }
 
     override suspend fun thumbnail(id: String): ByteArray? {
+        thumbnailsWaitFor?.await()
         imageReads += id
         return byteArrayOf(2)
     }

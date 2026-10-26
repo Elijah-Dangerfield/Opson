@@ -7,6 +7,10 @@ import com.opson.libraries.progressphotos.PhotoBytes
 import com.opson.libraries.progressphotos.ProgressPhoto
 import com.opson.libraries.progressphotos.ProgressPhotoRepository
 import com.opson.libraries.progressphotos.SavedComparison
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -18,7 +22,9 @@ import kotlin.time.Clock
 /**
  * The grid. Locks and asks for the phone's lock every time it is created,
  * which is every time the screen opens. Thumbnails are read only while
- * unlocked and dropped the moment it locks again.
+ * unlocked and dropped the moment it locks again. They are read beside the
+ * page rather than inside an action, so the grid draws first and a tap
+ * doesn't wait for the disk.
  */
 @Inject
 class ProgressPhotosViewModel(
@@ -32,6 +38,7 @@ class ProgressPhotosViewModel(
     private var comparisons: List<SavedComparison> = emptyList()
     private val thumbnails = mutableMapOf<String, PhotoBytes>()
     private var ui = ProgressPhotosUi()
+    private var reading: Job? = null
 
     private val today: LocalDate get() = clock.now().toLocalDateTime(timeZone).date
 
@@ -49,19 +56,26 @@ class ProgressPhotosViewModel(
                 list = action.photos
                 comparisons = action.saved
                 thumbnails.keys.retainAll(action.photos.map { it.id }.toSet())
-                loadThumbnails()
                 rebuild(action)
+                readThumbnails()
             }
             is ProgressPhotosAction.LockChanged -> {
                 if (action.lock != PhotoLockState.Unlocked) {
+                    reading?.cancel()
                     thumbnails.clear()
                     ui = ProgressPhotosUi()
-                } else {
-                    loadThumbnails()
                 }
                 rebuild(action)
+                readThumbnails()
             }
             ProgressPhotosAction.UnlockTapped, ProgressPhotosAction.Foregrounded -> lock.unlock()
+            is ProgressPhotosAction.ThumbnailsRead -> {
+                // A read that finished after the lock came back down is dropped.
+                if (lock.state.value != PhotoLockState.Unlocked) return
+                val ids = list.orEmpty().map { it.id }.toSet()
+                action.read.filterKeys { it in ids }.forEach { (id, bytes) -> thumbnails[id] = bytes }
+                rebuild(action)
+            }
             is ProgressPhotosAction.TileTapped -> sendEvent(ProgressPhotosEvent.OpenPhoto(action.id))
             ProgressPhotosAction.CompareTapped -> sendEvent(ProgressPhotosEvent.OpenCompare(null, null))
             is ProgressPhotosAction.SavedPairTapped -> comparisons.firstOrNull { it.id == action.id }?.let {
@@ -80,11 +94,17 @@ class ProgressPhotosViewModel(
         }
     }
 
-    /** Reads the thumbnails not read yet, only while unlocked. */
-    private suspend fun loadThumbnails() {
+    /** Reads the thumbnails not read yet, together, only while unlocked. */
+    private fun readThumbnails() {
         if (lock.state.value != PhotoLockState.Unlocked) return
-        list.orEmpty().filter { it.id !in thumbnails }.forEach { photo ->
-            photos.thumbnail(photo.id)?.let { thumbnails[photo.id] = PhotoBytes(it) }
+        val missing = list.orEmpty().map { it.id }.filter { it !in thumbnails }
+        if (missing.isEmpty()) return
+        reading?.cancel()
+        reading = viewModelScope.launch {
+            val read = coroutineScope {
+                missing.map { id -> async { photos.thumbnail(id)?.let { id to PhotoBytes(it) } } }.awaitAll()
+            }
+            takeAction(ProgressPhotosAction.ThumbnailsRead(read.filterNotNull().toMap()))
         }
     }
 
@@ -103,6 +123,7 @@ class ProgressPhotosViewModel(
 sealed interface ProgressPhotosAction {
     data class PhotosArrived(val photos: List<ProgressPhoto>, val saved: List<SavedComparison>) : ProgressPhotosAction
     data class LockChanged(val lock: PhotoLockState) : ProgressPhotosAction
+    data class ThumbnailsRead(val read: Map<String, PhotoBytes>) : ProgressPhotosAction
     data object UnlockTapped : ProgressPhotosAction
     data object Foregrounded : ProgressPhotosAction
     data class TileTapped(val id: String) : ProgressPhotosAction
