@@ -26,6 +26,7 @@ import com.opson.libraries.diary.ui.SectionLabel
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.ListRow
 import com.opson.libraries.ui.components.SheetHeader
@@ -58,6 +59,7 @@ import opson.libraries.resources.generated.resources.logger_or_number
 import opson.libraries.resources.generated.resources.logger_read_as
 import opson.libraries.resources.generated.resources.logger_saved_add
 import opson.libraries.resources.generated.resources.logger_saved_empty
+import opson.libraries.resources.generated.resources.logger_saved_loading_cd
 import opson.libraries.resources.generated.resources.logger_saved_title
 import org.jetbrains.compose.resources.stringResource
 
@@ -234,6 +236,11 @@ internal fun SavedPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
             overline = forMeal(state.slot),
             onBack = { onAction(LoggerAction.BackTapped) },
         )
+        // Opened on Saved, the meals can still be on their way; "nothing saved yet" would be a lie.
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_saved_loading_cd))
+            return@Column
+        }
         FoodRowsCard {
             if (meals.isEmpty()) FoodRowsNote(stringResource(Res.string.logger_saved_empty))
             meals.forEachIndexed { index, meal ->

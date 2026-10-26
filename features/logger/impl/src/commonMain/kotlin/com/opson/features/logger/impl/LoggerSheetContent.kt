@@ -77,6 +77,7 @@ import opson.libraries.resources.generated.resources.logger_empty_save
 import opson.libraries.resources.generated.resources.logger_empty_title
 import opson.libraries.resources.generated.resources.logger_first_run
 import opson.libraries.resources.generated.resources.logger_for_meal
+import opson.libraries.resources.generated.resources.logger_loading_cd
 import opson.libraries.resources.generated.resources.logger_matches
 import opson.libraries.resources.generated.resources.logger_meal_picker_cd
 import opson.libraries.resources.generated.resources.logger_method_ate
@@ -202,7 +203,11 @@ private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
             ),
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            if (!state.loading) body(state.body, describable = !state.pickingForMeal, onAction)
+            if (state.loading) {
+                item(key = "loading") { DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_loading_cd)) }
+            } else {
+                body(state.body, describable = !state.pickingForMeal, onAction)
+            }
         }
         state.basket?.let { BasketBar(it, state.pickingForMeal, onAction) }
     }
