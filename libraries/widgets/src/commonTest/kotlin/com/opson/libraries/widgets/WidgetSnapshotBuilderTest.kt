@@ -3,12 +3,15 @@ package com.opson.libraries.widgets
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.PaletteChoice
+import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
+import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -47,6 +50,22 @@ class WidgetSnapshotBuilderTest {
         assertEquals(1245 / 2760f, energy.fraction, 0.001f)
         assertEquals(1900 / 2760f, energy.rangeStart, 0.001f)
         assertEquals(2300 / 2760f, energy.rangeEnd, 0.001f)
+    }
+
+    @Test
+    fun aRangeThatDiffersByDay_drawsThatDaysRange() {
+        // 2026-10-25 is a Sunday: its group's range, not the base 1,900 to 2,300.
+        val base = WidgetFixtures.inputs(NumbersSettings(preset = PresetId.Full), WidgetFixtures.day, mealGroups = true)
+        val weekend = DayGroup(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), minKcal = 2300, maxKcal = 2700)
+        val weekdays = DayGroup(DayOfWeek.entries.toSet() - weekend.days, minKcal = 1900, maxKcal = 2300)
+        val byDay = base.settings.targets.copy(style = TargetStyle.ByDay(listOf(weekdays, weekend)))
+        val inputs = base.copy(settings = base.settings.copy(targets = byDay))
+
+        val energy = assertNotNull(WidgetSnapshotBuilder.build(inputs, WidgetFixtures.policy(PresetId.Full), COPY).today.energy)
+
+        // The bar runs to 3,240 (2,700 plus 20%).
+        assertEquals(2300 / 3240f, energy.rangeStart, 0.001f)
+        assertEquals(2700 / 3240f, energy.rangeEnd, 0.001f)
     }
 
     @Test
