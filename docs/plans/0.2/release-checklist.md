@@ -186,3 +186,10 @@ carry it.
 - [ ] Open Food Facts: grow prod's disk (2 GB now; the table is 2.3 GB and a
       reload holds two copies), load it, credit Open Food Facts wherever its
       foods appear, then set `FOOD_SEARCH_OFF_ENABLED=true`.
+
+## Held native commits
+
+The widget receiver and WidgetKit extension are on branch
+`hold/0.2-widgets-native` (commits `31b4e8a`, `6771fe0`), not on main.
+Cherry-pick them when 0.2 is cut, after the App ID, App Group and profile
+steps above.
