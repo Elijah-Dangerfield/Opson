@@ -5,7 +5,7 @@
 2. **Slices.** The codebase is split into slices that don't share files, so
    reviewers can fix in parallel in their own worktrees. Each slice owns a set
    of modules (see [`LEDGER.md`](LEDGER.md)).
-3. **Per slice, a reviewer:**
+3. **Per slice, a reviewer** (briefed by [`REVIEWER-BRIEF.md`](REVIEWER-BRIEF.md)):
    - reads every Kotlin, Swift, SQL, script and config file in the slice;
    - runs the unslop-code scanner over it
      (`python3 ~/.claude/skills/unslop-code/scripts/unslop_code_scan.py <path>`);
@@ -16,8 +16,8 @@
    - fixes what it can in small commits, each with a test when behaviour
      changes;
    - marks each file reviewed in `LEDGER.md` (slice section only);
-   - writes product ideas (not code issues) to `docs/review/product-notes.md`
-     under its slice heading.
+   - writes product ideas (not code issues) under `## Product notes` in its
+     findings file; the orchestrator gathers them into `product-notes.md`.
 4. **Orchestrator** merges each slice, runs the full check (detekt, all module
    tests, leak test, server tests, integration tests, iOS build, launch
    smoke), and walks the touched screens in the simulator.
