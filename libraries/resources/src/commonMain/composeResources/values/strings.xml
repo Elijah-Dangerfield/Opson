@@ -37,10 +37,6 @@
     <string name="shell_tab_more">More</string>
     <string name="shell_add">Log food</string>
 
-    <!-- Today -->
-    <string name="today_title">Today</string>
-    <string name="today_placeholder">Your day will show up here.</string>
-
     <!-- Trends -->
     <string name="trends_title">Trends</string>
     <string name="trends_placeholder">How your weeks go will show up here.</string>

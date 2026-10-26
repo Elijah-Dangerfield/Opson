@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for Today: the screen, its menu and sheets, and Day close. Verbatim from
+  the v3 design (docs/design/v3) where it has the line, else the handoff
+  prototype. Same rules as strings.xml: no backslash escapes, positional %1$s
+  arguments.
+-->
+<resources>
+
+    <!-- Header -->
+    <string name="today_label_today">Today</string>
+    <string name="today_label_yesterday">Yesterday</string>
+    <string name="today_label_tomorrow">Tomorrow</string>
+    <string name="today_prev_day_cd">Previous day</string>
+    <string name="today_pick_day_cd">Pick a day</string>
+    <string name="today_next_day_cd">Next day</string>
+    <string name="today_calendar_cd">Calendar</string>
+    <string name="today_day_menu_cd">More for this day</string>
+
+    <!-- Summary cards -->
+    <string name="today_summary_eaten">Eaten</string>
+    <string name="today_summary_kcal">kcal</string>
+    <string name="today_summary_range">Your range</string>
+    <string name="today_summary_nothing_yet">Nothing yet</string>
+    <string name="today_summary_nutrients">Nutrients</string>
+    <string name="today_macro_protein">Protein</string>
+    <string name="today_macro_carbs">Carbs</string>
+    <string name="today_macro_fat">Fat</string>
+    <string name="today_macro_fiber">Fiber</string>
+    <string name="today_soft_meals">Meals</string>
+    <string name="today_soft_energy">Energy</string>
+    <string name="today_count_value">%1$d of %2$d</string>
+    <string name="today_focus_title">Your focus today</string>
+    <string name="today_locked_day_title">Totals open at 9:00 pm</string>
+    <string name="today_locked_week_title">Saved for your weekly check</string>
+    <string name="today_locked_day_body">Log as you go. There's nothing to check until then.</string>
+    <string name="today_locked_day_body_warm">Keep logging as you go. Nothing to check until tonight.</string>
+    <string name="today_locked_week_body">Log as much or as little as you like. Totals show up once a week.</string>
+    <string name="today_revealed_title">Your totals are open</string>
+    <string name="today_revealed_body">See them in Close the day. They lock again tomorrow morning.</string>
+    <string name="today_counted_label">So far today</string>
+    <string name="today_counted_label_other_day">That day</string>
+    <string name="today_counted_none">No meals yet</string>
+    <string name="today_counted_one">One meal</string>
+    <string name="today_counted_two">Two meals</string>
+    <string name="today_counted_three">Three meals</string>
+    <string name="today_counted_four">All four meals</string>
+    <string name="today_counted_next">%1$s is usually around %2$s.</string>
+    <string name="today_counts_meals_one">%1$d meal logged</string>
+    <string name="today_counts_meals_other">%1$d meals logged</string>
+    <string name="today_counts_glasses_one">%1$d glass</string>
+    <string name="today_counts_glasses_other">%1$d glasses</string>
+    <string name="today_new_this_month">New this month</string>
+    <string name="today_new_count_one">%1$d food</string>
+    <string name="today_new_count_other">%1$d foods</string>
+    <string name="today_explorer_new_empty">Nothing new yet this month.</string>
+    <string name="today_banner_sprint">Sprint, day %1$d of 14. Tracking takes a break on %2$s.</string>
+    <string name="today_banner_sprint_done">Sprint is done. Pick what's next in Modes and numbers.</string>
+
+    <!-- Meal tiles, Rhythm, Explorer -->
+    <string name="today_tile_items_one">%1$d food · %2$s</string>
+    <string name="today_tile_items_other">%1$d foods · %2$s</string>
+    <string name="today_tile_ate">Ate, no details</string>
+    <string name="today_rhythm_title">Meals today</string>
+    <string name="today_rhythm_logged">%1$s · planned around %2$s</string>
+    <string name="today_rhythm_ate">Ate, no details · planned around %1$s</string>
+    <string name="today_rhythm_planned">Planned around %1$s</string>
+    <string name="today_rhythm_already_ate">Already ate</string>
+    <string name="today_rhythm_log">Log it</string>
+    <string name="today_what_you_had">What you had</string>
+    <string name="today_explorer_safe">Safe foods</string>
+    <string name="today_explorer_safe_empty">Foods you log often show up here.</string>
+
+    <!-- Water and meal cards -->
+    <string name="today_water">Water</string>
+    <string name="today_water_cd">Water options</string>
+    <string name="today_add_to_cd">Add to %1$s</string>
+    <string name="today_all_food">All food</string>
+    <string name="today_item_sub">%1$s · %2$s</string>
+    <string name="today_meal_usually">Usually around %1$s</string>
+    <string name="today_meal_around">Around %1$s</string>
+    <string name="today_meal_yesterday">Yesterday's %1$s</string>
+    <string name="today_meal_copy">Copy</string>
+    <string name="today_meal_saved">Saved meals</string>
+    <string name="today_feel_prompt">How did it feel?</string>
+    <string name="today_feel_pair">%1$s → %2$s</string>
+    <string name="today_plan_title">Planned meals count as logged</string>
+    <string name="today_plan_body">Edit anything tomorrow if plans change.</string>
+    <string name="today_planned">Planned</string>
+    <string name="today_not_planned">Not planned</string>
+    <string name="today_plan_it">Plan it</string>
+    <string name="today_close_title">Close the day</string>
+    <string name="today_close_body">Look back and add a note. It takes about a minute.</string>
+    <string name="today_closed_title">Day closed</string>
+    <string name="today_closed_body">Look back, or change the note.</string>
+
+    <!-- Day menu -->
+    <string name="today_menu_close_day">Close the day</string>
+    <string name="today_menu_close_this_day">Close this day</string>
+    <string name="today_menu_nutrients">This day's nutrients</string>
+    <string name="today_menu_copy_yesterday">Copy yesterday</string>
+    <string name="today_menu_copy_tomorrow">Copy this day to tomorrow</string>
+    <string name="today_menu_add_note">Add a note</string>
+    <string name="today_menu_edit_cards">Edit Today's cards</string>
+    <string name="today_menu_clear">Clear this day</string>
+    <string name="today_menu_clear_confirm">Tap again to clear</string>
+
+    <!-- Today's cards sheet -->
+    <string name="today_cards_title">Today's cards</string>
+    <string name="today_cards_groups">Meal groups</string>
+    <string name="today_cards_groups_body">Breakfast, lunch, snack and dinner. Off puts everything in one list.</string>
+    <string name="today_cards_water">Water</string>
+    <string name="today_cards_water_body">The water card and its glasses.</string>
+
+    <!-- Calendar -->
+    <string name="today_cal_prev_cd">Previous month</string>
+    <string name="today_cal_next_cd">Next month</string>
+    <string name="today_cal_legend">Something logged</string>
+    <string name="today_cal_today">Today</string>
+    <string name="today_cal_done">Done</string>
+    <string name="today_cal_initial_sun">S</string>
+    <string name="today_cal_initial_mon">M</string>
+    <string name="today_cal_initial_tue">T</string>
+    <string name="today_cal_initial_wed">W</string>
+    <string name="today_cal_initial_thu">T</string>
+    <string name="today_cal_initial_fri">F</string>
+    <string name="today_cal_initial_sat">S</string>
+
+    <!-- Meal sheet -->
+    <string name="today_meal_add_food">Add food</string>
+    <string name="today_meal_add_note">Add a note</string>
+    <string name="today_meal_how_felt">How it felt</string>
+    <string name="today_meal_copy_yesterday">Copy yesterday's %1$s</string>
+    <string name="today_meal_copy_day_before">Copy %1$s from the day before</string>
+    <string name="today_meal_ate">Ate, no details</string>
+    <string name="today_meal_save_as_meal">Save as a meal</string>
+
+    <!-- Meal note and How it felt -->
+    <string name="today_note_title">Note, %1$s</string>
+    <string name="today_note_placeholder">Where you were, who with, anything worth remembering</string>
+    <string name="today_note_save">Save</string>
+    <string name="today_feel_title">How %1$s felt</string>
+    <string name="today_feel_subtitle">All optional. Only you see this.</string>
+    <string name="today_feel_hunger">Hunger before</string>
+    <string name="today_feel_fullness">Fullness after</string>
+    <string name="today_feel_mood">Mood, pick any</string>
+    <string name="today_feel_save">Save</string>
+
+    <!-- Water sheet -->
+    <string name="today_water_title">Water</string>
+    <string name="today_water_add_glass">Add a glass, %1$s</string>
+    <string name="today_water_custom">Custom amount</string>
+    <string name="today_water_unit_ml">ml</string>
+    <string name="today_water_unit_floz">fl oz</string>
+    <string name="today_water_add">Add</string>
+    <string name="today_water_remove">Remove a glass</string>
+    <string name="today_water_settings">Water settings</string>
+
+    <!-- Item sheet and day note -->
+    <string name="today_item_remove">Remove from %1$s</string>
+    <string name="today_daynote_title">Note</string>
+    <string name="today_daynote_save">Save</string>
+
+    <!-- Toasts -->
+    <string name="today_toast_saved">Saved.</string>
+    <string name="today_toast_saved_fewer">Saved. Fewer numbers from now on.</string>
+    <string name="today_toast_water">Glass of water added.</string>
+    <string name="today_toast_water_added">Water added.</string>
+    <string name="today_toast_water_removed">Removed a glass.</string>
+    <string name="today_toast_copied_previous">Copied the previous day in.</string>
+    <string name="today_toast_copied_tomorrow">Copied. It will be waiting on the next day.</string>
+    <string name="today_toast_cleared">Cleared this day.</string>
+    <string name="today_toast_added_to">Added to %1$s.</string>
+    <string name="today_toast_marked_eaten">Marked %1$s as eaten.</string>
+    <string name="today_toast_note_saved">Note saved to %1$s.</string>
+    <string name="today_toast_feel_saved">Saved. Only you see this.</string>
+    <string name="today_toast_removed">Removed from %1$s.</string>
+    <string name="today_toast_daynote_saved">Note saved.</string>
+
+    <!-- Day close -->
+    <string name="today_dayclose_title">Close the day</string>
+    <string name="today_dayclose_title_warm">How today went</string>
+    <string name="today_dayclose_back">‹ %1$s</string>
+    <string name="today_dayclose_revealed_title">Your totals are open</string>
+    <string name="today_dayclose_revealed_body">They lock again tomorrow morning.</string>
+    <string name="today_dayclose_kcal">kcal</string>
+    <string name="today_dayclose_inside">Inside your range of %1$s</string>
+    <string name="today_dayclose_above">Above your range today</string>
+    <string name="today_dayclose_above_other_day">Above your range that day</string>
+    <string name="today_dayclose_below">Your range is %1$s</string>
+    <string name="today_dayclose_soft_label">Today</string>
+    <string name="today_dayclose_soft_label_other_day">That day</string>
+    <string name="today_dayclose_big_day">Big days happen. Cutting back hard tomorrow tends to backfire and makes the next big day more likely. Tomorrow's plan stays the same.</string>
+    <string name="today_dayclose_tomorrow">Tomorrow: %1$s, same as always.</string>
+    <string name="today_dayclose_commit_normal">Back to normal tomorrow</string>
+    <string name="today_dayclose_commit_can">I can do this</string>
+    <string name="today_dayclose_committed">Heard. That stays between you and you.</string>
+    <string name="today_dayclose_logged_today">Logged today</string>
+    <string name="today_dayclose_logged_that_day">Logged that day</string>
+    <string name="today_dayclose_meals">Meals</string>
+    <string name="today_dayclose_note_label">Anything to remember about today? · optional</string>
+    <string name="today_dayclose_note_label_other_day">Anything to remember about this day? · optional</string>
+    <string name="today_dayclose_note_placeholder">Dinner at Lola's, a lazy Sunday</string>
+    <string name="today_dayclose_done">Close the day</string>
+    <string name="today_dayclose_caption">You can still edit this day afterwards.</string>
+</resources>
