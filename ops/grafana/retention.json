@@ -1,0 +1,120 @@
+{
+  "uid": "opson-retention",
+  "title": "Opson \u00b7 Retention",
+  "description": "Do people keep logging? Cohorts by the week of their first entry.",
+  "tags": [
+    "opson"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "1h",
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "table",
+      "title": "Weekly cohorts",
+      "description": "Share of each first-log week still logging N weeks later.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "opson-db"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "opson-db"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT cohort_week, cohort_size, week_offset, active_users, round(retention::numeric, 3) AS retention FROM analytics.weekly_retention_cohorts ORDER BY cohort_week DESC, week_offset"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "id": 1,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 10
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Day 1, 7 and 30 retention by cohort day",
+      "description": "Of the people whose first entry was that day, the share who logged again on day 1, 7 and 30.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "opson-db"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "opson-db"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT cohort_day::timestamp AS time, d1::float / nullif(cohort_size, 0) AS \"day 1\", d7::float / nullif(cohort_size, 0) AS \"day 7\", d30::float / nullif(cohort_size, 0) AS \"day 30\" FROM analytics.retention_d1_d7_d30 WHERE $__timeFilter(cohort_day::timestamp) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 2,
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 24,
+        "h": 8
+      }
+    }
+  ]
+}
