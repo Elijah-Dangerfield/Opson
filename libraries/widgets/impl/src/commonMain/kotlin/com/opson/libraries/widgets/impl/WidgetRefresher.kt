@@ -4,8 +4,10 @@ import com.opson.libraries.config.AppConfigFlow
 import com.opson.libraries.core.AutoInit
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
+import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.widgets.WidgetPublisher
+import com.opson.libraries.widgets.WidgetSnapshot
 import com.opson.libraries.widgets.WidgetSnapshotSource
 import com.opson.libraries.widgets.WidgetsEnabled
 import kotlinx.coroutines.flow.collectLatest
@@ -26,12 +28,17 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * no repository read, no platform write, no widget reload. A flip from on to off within a run
  * clears what it published, so a widget falls back to "Open Opson" instead of freezing on a
  * day that is gone.
+ *
+ * It clears too while the settings are nobody's yet ([SettingsRepository.isKnown] false), which
+ * is a user change until the next account's first pull: the source has nothing to say then, and
+ * the home screen would otherwise keep the last account's day, in the last account's mode.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = AutoInit::class, multibinding = true)
 @Inject
 class WidgetRefresher(
     private val config: AppConfigFlow,
+    private val settingsRepository: SettingsRepository,
     private val source: WidgetSnapshotSource,
     private val publisher: WidgetPublisher,
     private val appScope: AppCoroutineScope,
@@ -41,17 +48,26 @@ class WidgetRefresher(
 
     private val started = appScope.launch {
         config.map(WidgetsEnabled::isOn).distinctUntilChanged().collectLatest { on ->
-            if (on) {
-                source.observe().collect { snapshot ->
-                    Catching { publisher.publish(snapshot) }
-                        .onSuccess { published = true }
-                        .logOnFailure { "Publishing the widget snapshot failed" }
-                }
-            } else if (published) {
-                Catching { publisher.clear() }
-                    .onSuccess { published = false }
-                    .logOnFailure { "Clearing the widget snapshot failed" }
+            if (!on) {
+                clearIfPublished()
+                return@collectLatest
+            }
+            settingsRepository.isKnown.collectLatest { known ->
+                if (known) source.observe().collect(::publish) else clearIfPublished()
             }
         }
+    }
+
+    private suspend fun publish(snapshot: WidgetSnapshot) {
+        Catching { publisher.publish(snapshot) }
+            .onSuccess { published = true }
+            .logOnFailure { "Publishing the widget snapshot failed" }
+    }
+
+    private suspend fun clearIfPublished() {
+        if (!published) return
+        Catching { publisher.clear() }
+            .onSuccess { published = false }
+            .logOnFailure { "Clearing the widget snapshot failed" }
     }
 }
