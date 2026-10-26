@@ -83,6 +83,14 @@ internal object ExerciseAdjustmentSerializer : KeyedEnumSerializer<ExerciseAdjus
     ExerciseAdjustment.Default,
 )
 
+/** [Settings.exerciseRange]: the same keys, but anything unreadable is None, never a range that moves. */
+internal object ExerciseRangeSerializer : KeyedEnumSerializer<ExerciseAdjustment>(
+    "opson.ExerciseRange",
+    ExerciseAdjustment.entries,
+    { it.name.lowercase() },
+    ExerciseAdjustment.None,
+)
+
 internal object WaterUnitSerializer : KeyedEnumSerializer<WaterUnit>(
     "opson.WaterUnit",
     WaterUnit.entries,

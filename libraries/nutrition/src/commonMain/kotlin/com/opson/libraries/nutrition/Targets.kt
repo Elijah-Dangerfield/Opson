@@ -17,6 +17,13 @@ val GOAL_FLOOR_KCAL: Int? = null
 // While it is null, a deficit can never grow past the one it started at.
 val MAX_DEFICIT_KCAL: Int? = null
 
+// TODO(clinician): the most watch activity may add to today's range, and the share "Some of it"
+// adds. An engineer picked both. The cap only stops one bad reading (a 5,000 kcal glitch) from
+// moving the range absurdly, and sits above an ordinary active day so normal movement is never
+// clipped. Neither can lower a range: activity only ever adds, and the base is the floor.
+const val EXERCISE_CAP_KCAL: Int = 1000
+const val EXERCISE_SOME_SHARE: Double = 0.5
+
 /**
  * The user's energy range and macro goals. [startingKcal] is the target the
  * user began with, and is the floor until [GOAL_FLOOR_KCAL] is set.
@@ -196,7 +203,10 @@ data class Targets(
     /** Sets the target directly, never below the floor. The range moves with it. */
     fun withEnergy(kcal: Int): Targets = shiftedBy(max(kcal, floorKcal) - energyKcal)
 
-    /** Today's range: the base plus whatever the user lets watch activity add. */
+    /**
+     * Today's range: the base plus whatever the user lets watch activity add, at most
+     * [EXERCISE_CAP_KCAL]. Never below the base, whatever the readings.
+     */
     fun today(adjustment: ExerciseAdjustment, movementKcal: Int, workoutKcal: Int): EnergyRange {
         val activity = adjustment.activityKcal(movementKcal, workoutKcal)
         return EnergyRange(energyKcal + activity, minKcal + activity, maxKcal + activity, activity)
@@ -288,17 +298,19 @@ enum class ExerciseAdjustment {
     None,
     ;
 
-    /** Never negative, so activity can only ever add to a target. */
+    /** Never negative and never above [EXERCISE_CAP_KCAL], so activity can only ever add a bounded amount. */
     fun activityKcal(movementKcal: Int, workoutKcal: Int): Int {
-        val activity = max(0, movementKcal) + max(0, workoutKcal)
-        return when (this) {
-            All -> activity
-            Some -> (activity / 2.0).roundToInt()
-            None -> 0
+        val activity = max(0, movementKcal).toLong() + max(0, workoutKcal).toLong()
+        val added = when (this) {
+            All -> activity.toDouble()
+            Some -> activity * EXERCISE_SOME_SHARE
+            None -> 0.0
         }
+        return added.coerceAtMost(EXERCISE_CAP_KCAL.toDouble()).roundToInt()
     }
 
     companion object {
+        /** The prototype's default, kept for 0.1's `exercise` key. Today's range reads `exerciseRange`, where unanswered is [None]. */
         val Default = Some
     }
 }

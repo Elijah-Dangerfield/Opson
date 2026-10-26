@@ -30,6 +30,7 @@ import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.DatePeriod
@@ -219,6 +220,12 @@ object TodayFixtures {
     /** v3 `today-full`'s "Expended so far 1,990 kcal": 1,580 resting and 410 active, 150 of it in a workout. */
     val expended: EnergyExpended = EnergyExpended(restingKcal = 1580.0, activeKcal = 410.0, workoutKcal = 150.0)
 
+    /** Someone who let all of their activity into the range: [expended]'s 410 active moves 1,900 to 2,300 up to 2,310 to 2,710. */
+    val exerciseAll: Settings = Settings(exerciseRange = ExerciseAdjustment.All)
+
+    /** Some of it: half of 410, so 2,105 to 2,505. */
+    val exerciseSome: Settings = Settings(exerciseRange = ExerciseAdjustment.Some)
+
     fun todayState(
         policy: VisibilityPolicy,
         day: Day = day(),
@@ -246,8 +253,9 @@ object TodayFixtures {
         date: LocalDate = today,
         note: String = "",
         feeling: DayFeeling? = null,
+        expended: EnergyExpended? = null,
     ): DayCloseState = DayCloseStateBuilder.build(
-        DayCloseInputs(today = today, day = day(date, bigDay = bigDay, dinner = !bigDay), settings = settings),
+        DayCloseInputs(today = today, day = day(date, bigDay = bigDay, dinner = !bigDay), settings = settings, expended = expended),
         policy,
         note = note,
         committed = committed,
