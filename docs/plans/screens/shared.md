@@ -105,9 +105,11 @@ Surface mapping from the prototype's surface strings: `today` to `Today`;
 
 ## `:libraries:nutrition:ui` additions
 
-- `NutrientRingLabel(metric, value: RingValue?)`: value over unit, tagged, renders nothing when null.
-- `MacroLine(parts: List<MacroPart>, separator)`: each part a tagged `Text`, joined with ` · ` (long) or a space (compact). Renders nothing for an empty list.
-- `LeakSurface` type for the leak test (see `blind-leak-test.md`).
+Built.
+
+- `NutrientRingLabel(metric, value: RingValue?, modifier, valueColor, unitColor)`: value over unit on the hero colours, the column tagged `metric:<key>`, renders nothing when null.
+- `MacroLine(parts: List<MacroPart>, modifier, separator, typography, color)`: each part a tagged `Text` in a `FlowRow`, joined with `MacroLineStyle.Long.separator` (` · `, the default) or `MacroLineStyle.Compact.separator` (a space). Renders nothing for an empty list.
+- `LeakSurface(id, label, showsCaloriesInFull, content: @Composable (VisibilityPolicy) -> Unit)` in `com.opson.libraries.nutrition.ui.leak` (see `blind-leak-test.md`). `toString()` is the id, for parameterized test names.
 
 ## `:libraries:diary:ui` contents
 
@@ -124,17 +126,19 @@ Surface mapping from the prototype's surface strings: `today` to `Today`;
 The parallel build covers EdgeCard, IconTile, PillChip, SegmentedControl,
 AppSwitch, RadioRow, Stepper, SegmentedBar, FillBar, ProgressRing, PagerDots,
 HeroBlock, CenterAddButton, BottomNavBar, MenuPopover, SheetHeader, ListRow,
-buttons and AppIcons. The screens also need:
+buttons and AppIcons. The screens also need the rows below, all built, each with
+a preview. Components take strings and fractions; none formats a nutrition number.
 
-| Component | For |
-|---|---|
-| `BottomSheet(heightFraction: Float)` | Logger at 0.93. Pins height for the same anchor reason as `scrollableContent`, and lets content own a pinned header, a `LazyColumn` and a pinned footer. The `ScrollInsideBottomSheet` detekt rule allows a lazy list when `heightFraction` is set. |
-| `ProgressRing(segments: List<RingSegment>)` | The Eaten ring is split three ways. |
-| `MonthGrid` | Calendar sheet. |
-| `IntakeBarChart(bars, band)`, `TrendLine(points, dots)` | Trends and Weight. Extend the existing `BarChart` if it fits. |
-| `TextArea`, `MaskedTextField`, `NumberField` | Notes, masked weigh-in, custom amounts. Every field exposes its value as `EditableText` semantics so the leak test scans it. |
-| `Banner` | Preset banners on Today. |
-| `RelativeDay` formatting | `Today`, `Yesterday`, `Tomorrow`, `Thu, Oct 22`, plus `Oct 25, 9:41 PM` for timestamps. Pure date copy, not nutrition. |
+| Component | Shape | For |
+|---|---|---|
+| `BottomSheet(heightFraction: Float)` | Logger at 0.93. Pins height for the same anchor reason as `scrollableContent`, and lets content own a pinned header, a `LazyColumn` and a pinned footer. The `ScrollInsideBottomSheet` detekt rule reports a `LazyColumn` / `LazyVerticalGrid` in a `BottomSheet` without a named `heightFraction`, and still reports `verticalScroll` with or without it. | Logger |
+| `ProgressRing(segments: List<RingSegment>)` | The Eaten ring is split three ways. | Today |
+| `MonthGrid(weekdayLabels, cells: List<MonthGridCell?>, onDayClick: (LocalDate) -> Unit)` | `MonthGridCell(date, contentDescription, selected, isToday, enabled, marked)`; null is a leading blank and the caller lays out the month. Selected accent circle, today accent ring, `marked` a `c-fat` dot, disabled in `line` and not clickable. | Calendar sheet |
+| `IntakeBarChart(bars: List<IntakeBar>, band: ClosedFloatingPointRange<Float>?)` | `IntakeBar(label, fraction: Float?, isCurrent)`; a null fraction is a gap. Not built on the template `BarChart`: that draws a numeric axis from a value formatter, which on a calorie chart is a calorie amount. | Trends |
+| `TrendLine(points: List<Float>, dots: List<Float>?)` | Heights in `0..1`, evenly spaced; a smoothed curve that never overshoots its points, dots behind it. Default size is the handoff's 310 by 130. | Trends, Weight |
+| `TextArea`, `MaskedTextField(value, onValueChange, masked, ...)`, `NumberField(value, onValueChange, label?, unit?, allowDecimal, textAlign, ...)` | All on foundation `BasicTextField`, so the value is `EditableText` semantics and the leak test scans it (`TextFieldSemanticsTest` proves it, including that a masked value is not in the tree and the field is marked as a password). `NumberField` runs typed text through `NumberInput.sanitize(raw, allowDecimal)` (digits and one point, comma counts as a point), which a ViewModel can call too. | Notes, masked weigh-in, custom amounts |
+| `Banner(text)` | Soft fill, radius 14, secondary text. Information only. | Preset banners on Today |
+| `RelativeDay` and `DateCopy` (`com.opson.libraries.ui.time`) | `sealed interface RelativeDay { Today, Yesterday, Tomorrow, Date(date) }`, `RelativeDay.of(day, today)`. `DateCopy.label(day)` gives `Today` / `Yesterday` / `Tomorrow` / `Thu, Oct 22`; also `monthDay` (`Oct 22`), `longMonthDay` (`October 25`), `longWeekdayMonthDay` (`Sunday, Oct 25`), `monthYear` (`October 2026`), `range` (`Oct 19 to 25`), `timestamp(LocalDateTime)` (`Oct 25, 9:41 PM`). English spelled by hand, pure, unit tested. A screen whose copy table names a resource for Today/Yesterday/Tomorrow can map those three itself. | Day labels, back labels, Modes note |
 
 ## `:libraries:navigation` additions
 

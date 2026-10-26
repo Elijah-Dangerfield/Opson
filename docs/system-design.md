@@ -82,7 +82,7 @@ feature api modules never depend on each other).
 | Module | Plugin | Owns |
 |---|---|---|
 | `:libraries:nutrition` | kotlin.multiplatform | `Metric`, `Visibility`, `ModePreset`, `Presets`, `VisibilityPolicy`, `Display`, soften words, formatting, `Targets`, floor rule, exercise adjustment, EMA weight trend, unit conversion, and the screen helpers in `docs/plans/screens/shared.md` (`NutrientAmounts`, `GoalStyle`, `resolveRange`, `macroLine`, `ringValue`, `share`, ring modes, `NumbersChange`, micronutrients and scores, water glasses). Pure Kotlin, no I/O. |
-| `:libraries:nutrition:ui` | compose.multiplatform | `NutrientValue`, `NutrientText`, `NutrientBar`, `LocalVisibilityPolicy`, test tags. The only Compose code that touches a `Display`. |
+| `:libraries:nutrition:ui` | compose.multiplatform | `NutrientValue`, `NutrientText`, `NutrientBar`, `NutrientRingLabel`, `MacroLine`, `LocalVisibilityPolicy`, test tags, and `LeakSurface` for the leak test. The only Compose code that touches a `Display`. |
 | `:libraries:diary` | kotlin.multiplatform | Room entities and DAOs, repository interfaces (`DiaryRepository`, `WeightRepository`, `CustomFoodRepository`, `SavedMealRepository`, `SettingsRepository`), domain models (`LogItem`, `Day`, `MealSlot`, `Precision`, `Feel`). |
 | `:libraries:diary:impl` | kotlin.multiplatform | Repository impls, the outbox, `DiarySyncer` (a `UserScopedSyncer`), the sync API client. |
 | `:libraries:foods` | kotlin.multiplatform | `FoodCatalog` interface (search, barcode, detail, describe), `Food`, `Portion`, `NutrientProfile`, the amount math (`Food.toLogDraft`), and the `food_cache` entity and DAO (here, not in the impl, so `AppDatabase` can register them). |
