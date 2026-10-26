@@ -11,8 +11,9 @@
 #                           Play Console production track (full rollout),
 #                           creates Sentry release + uploads mappings.
 #                           Uploads AAB/APK artifacts to the GitHub Release.
-#   ios                   — builds IPA, uploads to TestFlight external group
-#                           "main", submits to App Store review with Apple's
+#   ios                   — builds IPA, uploads to the TestFlight external
+#                           group named by TESTFLIGHT_EXTERNAL_GROUP below,
+#                           submits to App Store review with Apple's
 #                           phased release enabled, creates Sentry release +
 #                           uploads dSYMs. Uploads IPA artifact.
 #   attach-artifacts      — attaches all platform binaries to the GH Release.
@@ -68,11 +69,15 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
     steps:
       - id: tag
+        # The input arrives through the environment, not spliced into the
+        # script, so it is only ever data.
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             TAG="${GITHUB_REF_NAME}"
           else
-            TAG="${{ inputs.tag }}"
+            TAG="$INPUT_TAG"
             if [ -z "$TAG" ]; then
               echo "::error::workflow_dispatch requires 'tag' input"
               exit 1
@@ -254,7 +259,10 @@ jobs:
           EDIT_JSON=$(curl -fsS -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Length: 0" "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$PKG/edits" || true)
           EDIT_ID=$(echo "$EDIT_JSON" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d.get("id",""))' 2>/dev/null || true)
           if [ -z "$EDIT_ID" ]; then
-            echo "Could not create edit (new app or missing permission) — treating as first release"
+            # A warning, not an echo: on an app that already has production
+            # releases this sends the build to internal only, and the run is
+            # otherwise green.
+            echo "::warning::Could not open a Play edit (a new app, a missing permission or a Play outage). Routing to the internal track; promote it in Play Console if production already has releases."
             {
               echo "track=internal"
               echo "status=completed"
@@ -364,15 +372,15 @@ jobs:
         run: |
           set -e
           RELEASE="opson@${{ needs.resolve-tag.outputs.version }}+${{ needs.build-number.outputs.value }}"
-          npx --yes @sentry/cli releases new "$RELEASE"
-          npx --yes @sentry/cli releases set-commits "$RELEASE" --auto || true
+          npx --yes @sentry/cli@3.8.2 releases new "$RELEASE"
+          npx --yes @sentry/cli@3.8.2 releases set-commits "$RELEASE" --auto || true
           if [ -f apps/compose/build/outputs/mapping/release/mapping.txt ]; then
-            npx --yes @sentry/cli upload-proguard \
+            npx --yes @sentry/cli@3.8.2 upload-proguard \
               --android-manifest apps/compose/build/intermediates/merged_manifests/release/AndroidManifest.xml \
               apps/compose/build/outputs/mapping/release/mapping.txt || true
           fi
-          npx --yes @sentry/cli debug-files upload apps/compose/build/intermediates/merged_native_libs/release/out/lib || true
-          npx --yes @sentry/cli releases finalize "$RELEASE"
+          npx --yes @sentry/cli@3.8.2 debug-files upload apps/compose/build/intermediates/merged_native_libs/release/out/lib || true
+          npx --yes @sentry/cli@3.8.2 releases finalize "$RELEASE"
 
       - name: Upload AAB artifact
         if: always()
