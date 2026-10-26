@@ -24,6 +24,7 @@ import com.opson.libraries.navigation.dialog
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toRouteOrNull
+import kotlinx.datetime.TimeZone
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -69,9 +70,12 @@ class ErrorEntryPoints(
 
         screen<AccessDeniedRoute> { backStackEntry ->
             val route = backStackEntry.toRoute<AccessDeniedRoute>()
+            val restoredOn = remember(route.until) {
+                route.until?.let { accessRestoredDate(it, TimeZone.currentSystemDefault()) }
+            }
             AccessDeniedScreen(
                 reason = route.reason,
-                until = route.until,
+                restoredOn = restoredOn,
                 appealUrl = route.appealUrl,
                 onAppeal = { url -> router.openWebLink(url) },
             )

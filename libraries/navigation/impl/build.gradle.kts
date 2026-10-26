@@ -37,6 +37,7 @@ kotlin {
         commonTest.dependencies {
             implementation(projects.libraries.flowroutines.testing)
             implementation(projects.libraries.navigation)
+            implementation(libs.kotlinx.datetime)
         }
 
         androidMain.dependencies {
