@@ -72,7 +72,7 @@ data class Food(
 )
 
 /**
- * A food's category, from USDA's own (V16). Wire values match the
+ * A food's category, from USDA's own (V17). Wire values match the
  * `foods_category_check` CHECK. Most foods have none.
  */
 enum class FoodCategory(val wire: String) {

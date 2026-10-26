@@ -80,7 +80,7 @@ class UsdaFoodSeedTest : DatabaseTest() {
         assertEquals("Egg, whole, raw", catalog.search("eggs", 5, record = false).first().food.name)
         assertEquals("Coffee, brewed", catalog.search("coffee", 5, record = false).first().food.name)
 
-        // Categories (V16) for the Logger's Restaurant and Beverages tabs.
+        // Categories (V17) for the Logger's Restaurant and Beverages tabs.
         val categories = database.blockingTransaction {
             FoodsTable.selectAll().mapNotNull { it[FoodsTable.category] }.groupingBy { it }.eachCount()
         }

@@ -129,7 +129,7 @@ object FoodsTable : Table("foods") {
     val portions = jsonb("portions")
     val popularity = integer("popularity")
 
-    /** `restaurant`, `beverage`, `baby_food`, `supplement` or null ([com.opson.server.domain.FoodCategory], V16). */
+    /** `restaurant`, `beverage`, `baby_food`, `supplement` or null ([com.opson.server.domain.FoodCategory], V17). */
     val category = text("category").nullable()
 
     /**

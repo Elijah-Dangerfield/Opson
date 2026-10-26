@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- V16: a small, normalised category on catalog foods, for the Logger's
+-- V17: a small, normalised category on catalog foods, for the Logger's
 -- Restaurant and Beverages tabs (docs/plans/screens/search-options.md).
 --
 -- Filled from USDA's own categories by scripts/import_usda_foods.py (SR Legacy

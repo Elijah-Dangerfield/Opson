@@ -40,7 +40,7 @@ archives is ever executed. The directory is deleted when the run ends.
 Every row gets a `category` (restaurant, beverage, baby_food, supplement or
 none) from USDA's own: `food_category` for Foundation and SR Legacy, the WWEIA
 category for FNDDS, `branded_food_category` for Branded. The database needs
-migration V16 first. scripts/backfill_food_categories.py fills it in for rows
+migration V17 first. scripts/backfill_food_categories.py fills it in for rows
 loaded before it existed.
 
 USDA FoodData Central data is public domain (CC0).
@@ -449,7 +449,7 @@ def default_portion_first(portions: list[dict], kcal_100g: float | None) -> list
 
 # ─── Categories ─────────────────────────────────────────────────────────────
 #
-# foods.category (V16): a small normalised set the Logger's tabs filter on.
+# foods.category (V17): a small normalised set the Logger's tabs filter on.
 # Restaurant and beverage are what the tabs need; baby food and supplements
 # are the two kinds that most often crowd a search, and cost one line each.
 
@@ -1269,7 +1269,7 @@ def main() -> int:
         )
         if has_columns != [["2"]]:
             raise SystemExit(
-                "foods.tier or foods.category is missing: run the server migrations (V10, V16) against this database first"
+                "foods.tier or foods.category is missing: run the server migrations (V10, V17) against this database first"
             )
 
     started = time.monotonic()
