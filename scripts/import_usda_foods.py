@@ -1155,6 +1155,14 @@ def find_psql(explicit: str | None) -> str:
     raise SystemExit("psql not found; install libpq or pass --psql-bin")
 
 
+# TCP keepalives on every connection. A connection the network drops silently
+# otherwise leaves psql, and the import feeding it, waiting forever at 0% CPU
+# (it happened on the Open Food Facts load). libpq has no environment variable
+# for these, so they go in a conninfo string; the host, user and password still
+# come from the environment, out of `ps`.
+KEEPALIVES = "keepalives=1 keepalives_idle=30 keepalives_interval=10 keepalives_count=6"
+
+
 class Psql:
     """One database, reached through the psql binary."""
 
@@ -1163,7 +1171,7 @@ class Psql:
 
     def query(self, sql: str) -> list[list[str]]:
         result = subprocess.run(
-            [self.binary, "-X", "-A", "-t", "-F", "\t", "-v", "ON_ERROR_STOP=1", "-c", sql],
+            [self.binary, "-X", "-A", "-t", "-F", "\t", "-v", "ON_ERROR_STOP=1", "-d", KEEPALIVES, "-c", sql],
             env=self.env, capture_output=True, text=True,
         )
         if result.returncode != 0:
@@ -1183,7 +1191,7 @@ class PsqlOutput:
 
     def __init__(self, db: Psql):
         self._proc = subprocess.Popen(
-            [db.binary, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", "-"],
+            [db.binary, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", KEEPALIVES, "-f", "-"],
             stdin=subprocess.PIPE, env=db.env,
         )
 
