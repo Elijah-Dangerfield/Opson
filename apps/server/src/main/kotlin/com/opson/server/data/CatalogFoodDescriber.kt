@@ -34,14 +34,17 @@ class CatalogFoodDescriber(
     private val catalog: FoodCatalogRepository,
 ) : FoodDescriber {
 
-    override suspend fun describe(text: String): List<DescribedItem> =
-        DescribeParser.parse(text).map { phrase ->
+    override suspend fun describe(text: String): List<DescribedItem> = describePhrases(DescribeParser.parse(text))
+
+    /** Matches phrases built elsewhere (a photo estimate) exactly as typed text is matched. */
+    suspend fun describePhrases(phrases: List<ParsedPhrase>): List<DescribedItem> =
+        phrases.map { phrase ->
             val match = catalog.search(phrase.foodText, limit = 1, record = false).firstOrNull()
             if (match == null) unmatched(phrase) else matched(phrase, match.food, match.tier)
         }
 
     private fun unmatched(phrase: ParsedPhrase): DescribedItem {
-        val grams = phrase.unit?.gramsPerUnit?.let { it * phrase.quantity }
+        val grams = phrase.unit?.gramsPerUnit?.let { it * phrase.quantity } ?: phrase.gramsHint
         return DescribedItem(
             text = phrase.text,
             name = phrase.foodText,
@@ -82,7 +85,7 @@ class CatalogFoodDescriber(
         )
     }
 
-    private enum class How { Mass, Portion, DefaultPortion, Guess }
+    private enum class How { Mass, Portion, Estimated, DefaultPortion, Guess }
 
     private data class Resolved(val grams: Double, val portion: Portion?, val how: How)
 
@@ -101,6 +104,8 @@ class CatalogFoodDescriber(
             val portion = candidates.first()
             return Resolved(qty * perUnit(portion), portion, How.Portion)
         }
+        // An estimated weight beats guessing that the amount is one default portion.
+        phrase.gramsHint?.takeIf { it > 0 }?.let { return Resolved(it, null, How.Estimated) }
         val fallback = defaultPortion(weighed)
             ?: return Resolved(qty * 100.0, null, How.Guess)
         return Resolved(qty * perUnit(fallback), fallback, How.DefaultPortion)
@@ -126,7 +131,7 @@ class CatalogFoodDescriber(
         }
         val amountPenalty = when (how) {
             How.Mass, How.Portion -> 0
-            How.DefaultPortion -> 1
+            How.Estimated, How.DefaultPortion -> 1
             How.Guess -> 2
         }
         return when (matchScore - amountPenalty) {

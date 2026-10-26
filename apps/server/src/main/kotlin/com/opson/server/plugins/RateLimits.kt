@@ -24,6 +24,7 @@ const val PLAYER_REPORT_LIMIT = "player-report"
 const val DELETE_ACCOUNT_LIMIT = "delete-account"
 const val BARCODE_LOOKUP_LIMIT = "barcode-lookup"
 const val BARCODE_MISS_LIMIT = "barcode-miss"
+const val PHOTO_ESTIMATE_LIMIT = "photo-estimate"
 
 fun Application.installRateLimits() {
     install(RateLimit) {
@@ -63,6 +64,14 @@ fun Application.installRateLimits() {
             // never legitimately outrun that route's 60/min. Its own bucket,
             // so a report never spends a lookup.
             rateLimiter(limit = 60, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(PHOTO_ESTIMATE_LIMIT)) {
+            // Every photo estimate is a paid model call. The real limit is per
+            // user (PhotoEstimateLimiter, after auth); this per-IP bucket stops
+            // a flood of large bodies before any of them is read or verified.
+            rateLimiter(limit = 30, refillPeriod = 1.minutes)
             requestKey { call -> call.clientIp() }
         }
 

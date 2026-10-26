@@ -375,6 +375,24 @@ stty -echo; printf "Nutritionix app id: "; read -r NX_ID; printf "\nNutritionix 
 [ -n "$NX_ID" ] && [ -n "$NX_KEY" ] && fly secrets set NUTRITIONIX_APP_ID="$NX_ID" NUTRITIONIX_APP_KEY="$NX_KEY" -a opson-server-prod; unset NX_ID NX_KEY
 ```
 
+**Photo estimates (`POST /v1/describe/photo`).** `PhotoDescriber` asks an
+`EstimateProvider` what foods a meal photo holds, then matches each one
+through `CatalogFoodDescriber`, so the answer is the same `DescribeResponse`
+typed text gets. The provider is `AnthropicEstimateProvider` (the official
+Java SDK, structured JSON output) when `ANTHROPIC_API_KEY` is set; without it
+the route answers 503 `photo_estimate_unavailable` and the app shows a calm
+"not available" state. Limits: body 6 MB, decoded image 4 MB (JPEG, PNG or
+WebP by its bytes), note 300 characters, 10 per user per 10 minutes and 40 per
+day (`PhotoEstimateLimiter`, in memory). The image is never stored and nothing
+from it or the note is logged, only the outcome, item count and latency. Do
+not set the SDK's `ANTHROPIC_LOG=debug` in production: it logs request
+bodies, which here are meal photos. To turn it on:
+
+```bash
+stty -echo; printf "Anthropic API key: "; read -r AK; stty echo; printf "\n"
+[ -n "$AK" ] && fly secrets set ANTHROPIC_API_KEY="$AK" -a opson-server-prod; unset AK
+```
+
 **NCCDB (a slot, not code).** The Nutrition Coordinating Center Food and
 Nutrient Database from the University of Minnesota is licensed and delivered
 as files, not an API, so it is not a `FoodSource`. When there is a licence,
@@ -416,6 +434,8 @@ and `barcode_misses_by_country` for the Food catalog board.
 | `NUTRITIONIX_APP_ID` | no |, | With `NUTRITIONIX_APP_KEY`, turns on Nutritionix barcode lookups (tier 3, asked before Open Food Facts). |
 | `NUTRITIONIX_APP_KEY` | no |, | Secret. Both keys or neither. |
 | `NUTRITIONIX_CACHE_RESULTS` | no | `false` | `true` stores Nutritionix answers in `foods`. Only if the contract allows it. |
+| `ANTHROPIC_API_KEY` | no |, | Secret. Turns on photo estimates. Unset → `/v1/describe/photo` answers 503. |
+| `ANTHROPIC_PHOTO_MODEL` | no | `claude-opus-5-5` | The model that reads meal photos (effort `low`). A cheaper model is a config change, not a release. |
 
 ## Roadmap (planned, not yet wired)
 

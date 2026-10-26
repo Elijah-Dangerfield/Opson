@@ -55,12 +55,39 @@ data class ServerConfig(
 data class FoodSourcesConfig(
     val nutritionix: NutritionixConfig? = null,
     val searchOpenFoodFacts: Boolean = false,
+    /** The model that reads meal photos. Null (photo estimates off) until `ANTHROPIC_API_KEY` is set. */
+    val anthropic: AnthropicConfig? = null,
 ) {
     companion object {
         fun fromEnv(env: Env): FoodSourcesConfig = FoodSourcesConfig(
             nutritionix = NutritionixConfig.fromEnv(env),
             searchOpenFoodFacts = env["FOOD_SEARCH_OFF_ENABLED"]?.trim()?.lowercase() == "true",
+            anthropic = AnthropicConfig.fromEnv(env),
         )
+    }
+}
+
+/**
+ * The Anthropic API, for photo estimates (`POST /v1/describe/photo`). Null
+ * until `ANTHROPIC_API_KEY` is set, and the route then answers 503
+ * `photo_estimate_unavailable`, which the app shows as a calm "not available
+ * right now". [photoModel] is `ANTHROPIC_PHOTO_MODEL`, so the model can change
+ * without a release (see `AnthropicEstimateProvider` for the default and why).
+ * Treat the key like a password: never log it.
+ */
+data class AnthropicConfig(
+    val apiKey: String,
+    val photoModel: String = DEFAULT_PHOTO_MODEL,
+) {
+    override fun toString(): String = "AnthropicConfig(apiKey=***, photoModel=$photoModel)"
+
+    companion object {
+        const val DEFAULT_PHOTO_MODEL = "claude-opus-5-5"
+
+        fun fromEnv(env: Env): AnthropicConfig? {
+            val key = env["ANTHROPIC_API_KEY"] ?: return null
+            return AnthropicConfig(apiKey = key, photoModel = env["ANTHROPIC_PHOTO_MODEL"]?.trim() ?: DEFAULT_PHOTO_MODEL)
+        }
     }
 }
 

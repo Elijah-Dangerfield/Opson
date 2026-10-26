@@ -30,6 +30,7 @@ import com.opson.server.routes.exportRoutes
 import com.opson.server.routes.foodRoutes
 import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
+import com.opson.server.routes.photoRoutes
 import com.opson.server.routes.playerReportRoutes
 import com.opson.server.routes.syncRoutes
 import io.ktor.server.application.Application
@@ -83,6 +84,12 @@ fun Application.module(config: ServerConfig) {
 
     config.foodSources.nutritionix?.let {
         logger.info("Nutritionix barcode lookups on, caching ${if (it.cacheResults) "on" else "off"}")
+    }
+    val anthropic = config.foodSources.anthropic
+    if (anthropic != null) {
+        logger.info("Photo estimates on, model ${anthropic.photoModel}")
+    } else {
+        logger.info("ANTHROPIC_API_KEY not set — photo estimates answer 503 unavailable.")
     }
     val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources) }
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
@@ -164,6 +171,7 @@ fun Application.installApp(
             playerReportRoutes(component.playerReportRepository)
             syncRoutes(component.syncRepository, component.clock)
             foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber)
+            photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.clock)
             barcodeMissRoutes(component.barcodeMissRepository)
             exportRoutes(component.exportRepository)
         }

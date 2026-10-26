@@ -40,13 +40,19 @@ enum class PortionSize(val wire: String, val words: Set<String>) {
     }
 }
 
-/** One phrase of a description, before it is matched to a food. */
+/**
+ * One phrase of a description, before it is matched to a food. [gramsHint]
+ * is a weight for the whole amount from somewhere other than the words (a
+ * photo estimate); matching uses it when no portion of the food fits the
+ * unit or size. Typed text never has one.
+ */
 data class ParsedPhrase(
     val text: String,
     val quantity: Double,
     val unit: DescribeUnit?,
     val size: PortionSize?,
     val foodText: String,
+    val gramsHint: Double? = null,
 )
 
 /**

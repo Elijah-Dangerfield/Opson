@@ -58,6 +58,14 @@ data class DescribeRequest(val text: String? = null)
 data class DescribeResponse(val items: List<DescribedItemDto>)
 
 /**
+ * `POST /v1/describe/photo`. [image] is base64 (JPEG, PNG or WebP, read from
+ * the bytes); [note] is what a photo cannot show ("cooked in butter"). The
+ * answer is a [DescribeResponse], the same rows typed text gets.
+ */
+@Serializable
+data class PhotoDescribeRequest(val image: String? = null, val note: String? = null)
+
+/**
  * One parsed phrase. Always an estimate: the client shows "Estimate" and logs
  * it with precision `estimate`. `confidence` is `high`, `medium` or `low`.
  * `foodId` (and the nutrient fields) are null when nothing in the catalog

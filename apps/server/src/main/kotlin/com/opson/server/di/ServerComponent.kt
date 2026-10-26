@@ -2,6 +2,7 @@ package com.opson.server.di
 
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.config.SupabaseConfig
+import com.opson.server.data.PhotoDescriber
 import com.opson.server.db.Database
 import com.opson.server.domain.AppConfigAdminRepository
 import com.opson.server.domain.AppConfigManifestRepository
@@ -13,6 +14,7 @@ import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodDescriber
 import com.opson.server.domain.ExampleSource
 import com.opson.server.domain.ModerationRepository
+import com.opson.server.domain.PhotoEstimateLimiter
 import com.opson.server.domain.PlayerReportRepository
 import com.opson.server.domain.ProfileRepository
 import com.opson.server.domain.SupabaseAdminClient
@@ -55,7 +57,7 @@ abstract class ServerComponent(
      * client answers NotConfigured) instead of failing at construction.
      */
     @get:Provides val supabaseConfig: SupabaseConfig? = null,
-    /** Which outside food sources a barcode miss may ask. Default: Open Food Facts only. */
+    /** Which outside food sources a barcode miss may ask (default: Open Food Facts only), and the photo estimate provider. */
     @get:Provides val foodSourcesConfig: FoodSourcesConfig = FoodSourcesConfig(),
 ) {
     abstract val exampleSource: ExampleSource
@@ -71,6 +73,8 @@ abstract class ServerComponent(
     abstract val barcodeLookup: BarcodeLookup
     abstract val barcodeMissRepository: BarcodeMissRepository
     abstract val foodDescriber: FoodDescriber
+    abstract val photoDescriber: PhotoDescriber
+    abstract val photoEstimateLimiter: PhotoEstimateLimiter
     abstract val exportRepository: ExportRepository
     abstract val clock: Clock
 
