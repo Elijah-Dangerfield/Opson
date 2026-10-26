@@ -1,0 +1,159 @@
+package com.opson.libraries.diary
+
+import com.opson.libraries.nutrition.ExerciseAdjustment
+import com.opson.libraries.nutrition.FastingPlan
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Targets
+import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.WaterUnit
+import com.opson.libraries.nutrition.WeightUnit
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Instant
+
+/**
+ * [Settings] defaults against the prototype's `DEFAULTS`
+ * (`docs/design/handoff/phone-logic.js`) and the shared plan's table, and the
+ * JSON they persist and sync as, including what an unknown value decodes to.
+ *
+ * Not covered: when `changedAt` moves, which the settings store owns
+ * (`SettingsStoreTest` in `:libraries:diary:impl`).
+ */
+class SettingsTest {
+
+    @Test
+    fun defaultsMatchThePrototype() {
+        val s = Settings()
+
+        // mode:'full', overrides:{}, lock:false, changedAt:null
+        assertEquals(NumbersSettings(preset = PresetId.Full), s.numbers)
+        assertEquals(emptyMap(), s.numbers.overrides)
+        assertEquals(false, s.numbers.pauseBeforeMore)
+        assertNull(s.numbers.changedAt)
+        // exercise:'some', quiet:true, tone:'plain', weekStart:'Mon', askTags:true
+        assertEquals(ExerciseAdjustment.Some, s.exercise)
+        assertEquals(true, s.quiet)
+        assertEquals(Tone.Plain, s.tone)
+        assertEquals(DayOfWeek.MONDAY, s.weekStart)
+        assertEquals(true, s.askTags)
+        // events:{bigday:'full', newfood:'subtle', recap:'subtle', reminders:'subtle'}
+        assertEquals(EventLevel.Full, s.bigDayEvent)
+        assertEquals(EventLevel.Subtle, s.newFoodEvent)
+        assertEquals(EventLevel.Subtle, s.recapEvent)
+        assertEquals(EventLevel.Subtle, s.remindersEvent)
+        // mealRem:{Breakfast:true, Lunch:true, Snack:false, Dinner:true}
+        assertEquals(MealReminders(breakfast = true, lunch = true, snack = false, dinner = true), s.mealReminders)
+        // ringMode:'target', trRange:'1W', trCards: all true
+        assertEquals(RingMode.Target, s.ringMode)
+        assertEquals(TrendsRange.Week, s.trendsRange)
+        assertEquals(TrendsCards(intake = true, recap = true, nutrients = true, expended = true, weight = true), s.trendsCards)
+        // waterGoal:8, glassMl:250, waterUnit:'ml', waterRem:false
+        assertEquals(8, s.waterGlasses)
+        assertEquals(250, s.glassMl)
+        assertEquals(2_000, s.waterGoalMl)
+        assertEquals(WaterUnit.Ml, s.waterUnit)
+        assertEquals(false, s.waterReminders)
+        // fasting:false, fastToday:true, fastPlan:'14:10'
+        assertEquals(false, s.fasting)
+        assertEquals(true, s.fastToday)
+        assertEquals(FastingPlan.FourteenTen, s.fastPlan)
+        // Undefined in DEFAULTS; the prototype's reads treat undefined as these.
+        assertEquals(true, s.mealGroups) // S.mealGroups !== false
+        assertNull(s.healthToday) // S.healthToday ?? (preset is Full)
+        assertEquals(true, s.healthOpen) // S.healthOpen !== false
+        assertEquals(
+            HealthRows(steps = true, heartRate = true, restingHeartRate = true, hrv = false, sleep = true, vo2Max = false, workouts = true),
+            s.healthRows,
+        )
+        // The shared plan's additions.
+        assertEquals(Targets.Default, s.targets)
+        assertEquals(MacroMode.Ratios, s.macroMode)
+        assertEquals(WeightUnit.Kg, s.weightUnit)
+        assertEquals(PaletteChoice.Pine, s.palette)
+        assertEquals(ThemeMode.System, s.theme)
+        assertEquals(TextSize.Normal, s.textSize)
+        assertNull(s.sprintStartedOn)
+        assertEquals(OnboardingAnswers(), s.onboarding)
+    }
+
+    @Test
+    fun everyFieldSurvivesAJsonRoundTrip() {
+        val s = Settings(
+            numbers = NumbersSettings(
+                preset = PresetId.Delayed,
+                overrides = mapOf(Metric.Water to Visibility.Hide, Metric.Protein to Visibility.Soften),
+                pauseBeforeMore = true,
+                changedAt = Instant.parse("2026-10-20T08:30:00Z"),
+            ),
+            sprintStartedOn = LocalDate(2026, 10, 1),
+            targets = Targets.Default.raise(),
+            macroMode = MacroMode.Grams,
+            exercise = ExerciseAdjustment.None,
+            ringMode = RingMode.Remaining,
+            trendsRange = TrendsRange.ThreeMonths,
+            weekStart = DayOfWeek.SUNDAY,
+            waterUnit = WaterUnit.FlOz,
+            weightUnit = WeightUnit.Lb,
+            fastPlan = FastingPlan.SixteenEight,
+            palette = PaletteChoice.Espresso,
+            onboarding = OnboardingAnswers(why = listOf("curious"), feel = "rather_not", hard = true),
+        )
+
+        val decoded = SettingsJson.decodeFromString(Settings.serializer(), SettingsJson.encodeToString(Settings.serializer(), s))
+
+        assertEquals(s, decoded)
+    }
+
+    @Test
+    fun theWireSpellingIsThePrototypes() {
+        val json = SettingsJson.encodeToString(
+            Settings.serializer(),
+            Settings(
+                numbers = NumbersSettings(preset = PresetId.Coast, overrides = mapOf(Metric.EnergyOut to Visibility.Soften)),
+                waterUnit = WaterUnit.FlOz,
+            ),
+        )
+
+        listOf("\"preset\":\"coast\"", "\"energyOut\":\"soften\"", "\"fastPlan\":\"14:10\"", "\"waterUnit\":\"oz\"", "\"exercise\":\"some\"")
+            .forEach { assertTrue(it in json, "missing $it in $json") }
+    }
+
+    @Test
+    fun missingFieldsTakeTheirDefaults() {
+        assertEquals(Settings(), SettingsJson.decodeFromString(Settings.serializer(), "{}"))
+    }
+
+    @Test
+    fun valuesThisBuildDoesNotKnowFailClosed() {
+        val decoded = SettingsJson.decodeFromString(
+            Settings.serializer(),
+            """{"numbers":{"preset":"hyperfocus","overrides":{"calories":"glimpse","sparkle":"show"}},"tone":"sassy","shiny":true}""",
+        )
+
+        assertEquals(PresetId.Blind, decoded.numbers.preset, "an unknown mode shows fewer numbers, never more")
+        assertEquals(mapOf(Metric.Calories to Visibility.Hide), decoded.numbers.overrides)
+        assertEquals(Tone.Plain, decoded.tone)
+    }
+
+    @Test
+    fun aTargetWithoutItsStartingPointKeepsTheFloorWhereItIs() {
+        val decoded = SettingsJson.decodeFromString(
+            Settings.serializer(),
+            """{"targets":{"energyKcal":2300,"minKcal":2100,"maxKcal":2500,"proteinG":120,"carbsG":250,"fatG":70,"fiberG":30}}""",
+        )
+
+        assertEquals(2300, decoded.targets.floorKcal)
+    }
+
+    @Test
+    fun numbersAreTheSettingsThePolicyReads() {
+        val s = Settings(numbers = NumbersSettings(preset = PresetId.Mindful))
+        assertEquals(s.numbers, s.numbers())
+    }
+}
