@@ -61,7 +61,8 @@ Weeks run from the chosen start day; the last bar is the current week (the one
 holding today), using its own average so far, drawn in `c-fat`. 4 weeks is 4
 bars, 3 months 12 bars (the prototype's `WEEKLY` length). Labels are the week's
 first day as `M/d`, on every bar for 4 weeks and on every third bar counting
-back from the current week for 3 months.
+back from the current week for 3 months. The card's average is over every
+tracked day in the range.
 
 **New foods**: there is no "first logged" query, so the builder works it out
 from the days it already has. A food (keyed by catalog id, custom food id, or
@@ -141,8 +142,13 @@ agent's) is not on this branch.
 - **Fuel** (calories Soft): no intake card at all; the recap still renders.
 - **Large text**: recap rows wrap; the chart keeps its height.
 
+Library additions this needed: `Micronutrient.wireKey` / `fromWireKey`,
+`Map<String, Double>.toMicronutrients()` and `VisibilityPolicy.microReference`
+in `:libraries:nutrition`; `NutrientFillBar` in `:libraries:nutrition:ui`;
+`ColorDot`, `DotStrip` and `BackLink` in `:libraries:ui`.
+
 ### Tests
-`TrendsStateBuilderTest`: window for each start day with today on a Sunday and a
+`TrendsCalendarTest` and `TrendsStateBuilderTest`: window for each start day with today on a Sunday and a
 Wednesday; 4 weeks and 3 months bar counts and labels; Blind (recap and weight
 card only); Coast (intake revealed); Fuel (no intake); card toggles off;
 untracked days are gaps not zeros. `TrendsViewModelTest`: events. Previews:
@@ -333,9 +339,10 @@ carries no number at Trend only.
 | `BackTapped` | `Close`. |
 
 ### Data
-`WeightRepository.observeWeighIns(since = today − 90 days)`, settings, policy.
+`WeightRepository.observeWeighIns(since = today − 120 days)`, settings, policy.
 EMA over weigh-ins in time order with alpha 0.2 (`WeightTrend.ema`), seeded
-from all 90 days and then sliced to the range. Offline: local.
+from all of them so the 3-month line starts warm, then sliced to the range
+(`WeightCurves.curve`, shared with the Trends card). Offline: local.
 
 ### Visibility surfaces
 Surface `Weight`.

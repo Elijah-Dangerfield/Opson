@@ -1,18 +1,95 @@
 package com.opson.features.trends.impl
 
+import androidx.lifecycle.viewModelScope
+import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.flowroutines.collectIn
+import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.nutrition.VisibilityPolicySource
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
+import kotlinx.datetime.toLocalDateTime
 import me.tatarka.inject.annotations.Inject
+import kotlin.time.Clock
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @Inject
-class TrendsViewModel : SEAViewModel<TrendsState, TrendsEvent, TrendsAction>(
-    initialStateArg = TrendsState,
-) {
-    override suspend fun handleAction(action: TrendsAction) = Unit
+class TrendsViewModel(
+    diary: DiaryRepository,
+    weights: WeightRepository,
+    settingsRepository: SettingsRepository,
+    policySource: VisibilityPolicySource,
+    private val clock: Clock,
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+) : SEAViewModel<TrendsState, TrendsEvent, TrendsAction>(initialStateArg = TrendsState()) {
+
+    private val today: LocalDate get() = clock.now().toLocalDateTime(timeZone).date
+
+    init {
+        // The policy source re-emits at midnight, so the date is read again on
+        // each emission and the range moves with the day.
+        val span = combine(settingsRepository.settings, policySource.policy) { settings, _ ->
+            val today = today
+            Span(TrendsCalendar.firstNeeded(today, settings), today)
+        }.distinctUntilChanged()
+
+        val records = span.flatMapLatest { span ->
+            val weighInsSince = span.today.minus(WEIGH_IN_DAYS, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
+            combine(
+                diary.observeDays(span.from, span.today),
+                weights.observeWeighIns(since = weighInsSince),
+            ) { days, weighIns -> Records(span.today, days, weighIns) }
+        }
+
+        combine(settingsRepository.settings, policySource.policy, records) { settings, policy, records ->
+            TrendsAction.InputsArrived(
+                TrendsInputs(records.today, settings, records.days, records.weighIns, timeZone),
+                policy,
+            )
+        }.collectIn(viewModelScope) { takeAction(it) }
+    }
+
+    override suspend fun handleAction(action: TrendsAction) {
+        when (action) {
+            is TrendsAction.InputsArrived -> action.updateState { TrendsStateBuilder.build(action.inputs, action.policy) }
+            TrendsAction.SettingsTapped -> sendEvent(TrendsEvent.OpenTrendsSettings)
+            TrendsAction.NutrientsCardTapped -> sendEvent(TrendsEvent.OpenNutrients(today.toString()))
+            TrendsAction.WeightCardTapped -> sendEvent(TrendsEvent.OpenWeight)
+        }
+    }
+
+    private data class Span(val from: LocalDate, val today: LocalDate)
+
+    private class Records(val today: LocalDate, val days: List<Day>, val weighIns: List<WeighIn>)
+
+    private companion object {
+        /** Enough history to seed the EMA before the card's four weeks. */
+        const val WEIGH_IN_DAYS = 90
+    }
 }
 
-/** Empty until the Trends screen is built; it becomes a data class with the screen's fields. */
-data object TrendsState
+sealed interface TrendsAction {
+    data class InputsArrived(val inputs: TrendsInputs, val policy: VisibilityPolicy) : TrendsAction
+    data object SettingsTapped : TrendsAction
+    data object NutrientsCardTapped : TrendsAction
+    data object WeightCardTapped : TrendsAction
+}
 
-sealed interface TrendsEvent
+sealed interface TrendsEvent {
+    data object OpenTrendsSettings : TrendsEvent
 
-sealed interface TrendsAction
+    /** Nutrients detail on Week average, with "Trends" as the back label. */
+    data class OpenNutrients(val dayIso: String) : TrendsEvent
+    data object OpenWeight : TrendsEvent
+}

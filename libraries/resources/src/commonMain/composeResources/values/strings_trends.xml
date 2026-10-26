@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Trends, its settings sheet, Nutrients detail and Weight. Verbatim from the
+  handoff where it has the copy (docs/design/handoff/Phone.dc.html), see
+  docs/plans/screens/trends.md. `trends_title` lives in the shared strings.xml.
+  No backslash escapes: write apostrophes directly (see strings.xml).
+-->
+<resources>
+    <!-- Trends -->
+    <string name="trends_settings_cd">Trends settings</string>
+    <string name="trends_range_4w">Last 4 weeks</string>
+    <string name="trends_range_3m">Last 3 months</string>
+    <string name="trends_intake_daily">Daily intake</string>
+    <string name="trends_intake_weekly">Weekly average intake</string>
+    <string name="trends_average">Average</string>
+    <string name="trends_intake_caption">Shaded band is your range. A gap means a day you left untracked.</string>
+    <string name="trends_recap">Recap</string>
+    <string name="trends_recap_breakfast">Breakfast</string>
+    <string name="trends_recap_breakfast_value">%1$d of 7 days</string>
+    <string name="trends_recap_new_foods">New foods</string>
+    <string name="trends_recap_days">Days logged</string>
+    <string name="trends_recap_days_value">%1$d of 7</string>
+    <string name="trends_recap_caption">Each dot is a meal logged.</string>
+    <string name="trends_nutrients">Nutrients</string>
+    <string name="trends_nutrients_sub">Daily average this week</string>
+    <string name="trends_nutrients_sub_micros">Daily average, with vitamins and minerals</string>
+    <string name="trends_weight">Weight</string>
+    <string name="trends_weight_hidden">Hidden. Tap to log a weigh-in.</string>
+    <string name="trends_weight_now">This morning</string>
+    <string name="trends_weight_trend">Smoothed trend, 4 weeks</string>
+    <string name="trends_weight_none">No weigh-ins yet. Tap to log one.</string>
+
+    <!-- Nutrient labels -->
+    <string name="trends_energy">Energy</string>
+    <string name="trends_protein">Protein</string>
+    <string name="trends_carbs">Carbs</string>
+    <string name="trends_fat">Fat</string>
+    <string name="trends_fiber">Fiber</string>
+
+    <!-- Trends settings sheet -->
+    <string name="trends_settings_title">Trends settings</string>
+    <string name="trends_settings_range">Date range</string>
+    <string name="trends_settings_range_week">Week</string>
+    <string name="trends_settings_range_4w">4 weeks</string>
+    <string name="trends_settings_range_3m">3 months</string>
+    <string name="trends_settings_week_start">Week starts on</string>
+    <string name="trends_settings_monday">Monday</string>
+    <string name="trends_settings_saturday">Saturday</string>
+    <string name="trends_settings_sunday">Sunday</string>
+    <string name="trends_settings_show">Show on Trends</string>
+    <string name="trends_settings_card_intake">Intake chart</string>
+    <string name="trends_settings_card_recap">Recap</string>
+    <string name="trends_settings_card_nutrients">Nutrients</string>
+    <string name="trends_settings_card_weight">Weight</string>
+
+    <!-- Nutrients detail -->
+    <string name="trends_nutrients_title">Nutrients</string>
+    <string name="trends_nutrients_day">Day</string>
+    <string name="trends_nutrients_week">Week average</string>
+    <string name="trends_nutrients_week_sub">Daily average, %1$s</string>
+    <string name="trends_nutrients_macros">Energy and macros</string>
+    <string name="trends_nutrients_scores">Nutrition scores</string>
+    <string name="trends_score_all">All targets</string>
+    <string name="trends_score_vitamins">Vitamins</string>
+    <string name="trends_score_minerals">Minerals</string>
+    <string name="trends_score_bone">Bone health</string>
+    <string name="trends_score_immune">Immune support</string>
+    <string name="trends_score_energy">Energy and metabolism</string>
+    <string name="trends_micros_vitamins">Vitamins</string>
+    <string name="trends_micros_minerals">Minerals</string>
+    <string name="trends_micro_vitamin_a">Vitamin A</string>
+    <string name="trends_micro_vitamin_b12">Vitamin B12</string>
+    <string name="trends_micro_vitamin_c">Vitamin C</string>
+    <string name="trends_micro_vitamin_d">Vitamin D</string>
+    <string name="trends_micro_vitamin_e">Vitamin E</string>
+    <string name="trends_micro_vitamin_k">Vitamin K</string>
+    <string name="trends_micro_folate">Folate</string>
+    <string name="trends_micro_calcium">Calcium</string>
+    <string name="trends_micro_iron">Iron</string>
+    <string name="trends_micro_magnesium">Magnesium</string>
+    <string name="trends_micro_potassium">Potassium</string>
+    <string name="trends_micro_sodium">Sodium</string>
+    <string name="trends_micro_zinc">Zinc</string>
+    <string name="trends_micros_caption">Percent of a typical daily target. Most people land well under on some and over on others, and that's fine. A week tells you more than a day.</string>
+    <string name="trends_micros_off_title">Vitamins and minerals are off</string>
+    <string name="trends_micros_off_body">They stay off until you want them, so the basics don't get buried. You can turn them on here, or one at a time in Modes and numbers.</string>
+    <string name="trends_micros_off_button">Show vitamins and minerals</string>
+    <string name="trends_nutrients_nothing">No nutrient detail in this mode. Your meals are all still logged.</string>
+    <string name="trends_pause_first">You asked for a pause before showing more. Change it in Modes and numbers.</string>
+
+    <!-- Weight -->
+    <string name="trends_weight_title">Weight</string>
+    <string name="trends_weight_view_hidden">Hidden</string>
+    <string name="trends_weight_view_trend">Trend only</string>
+    <string name="trends_weight_view_numbers">Numbers</string>
+    <string name="trends_weight_average">7-day average</string>
+    <string name="trends_weight_range_1w">Last 7 days</string>
+    <string name="trends_weight_range_1m">Last 4 weeks</string>
+    <string name="trends_weight_range_3m">Last 3 months</string>
+    <string name="trends_weight_chip_1w">1W</string>
+    <string name="trends_weight_chip_1m">1M</string>
+    <string name="trends_weight_chip_3m">3M</string>
+    <string name="trends_weight_caption_dots">Dots are daily weigh-ins. The line is the smoothed trend.</string>
+    <string name="trends_weight_caption_trend">Smoothed over about a week, so day-to-day water swings barely move the line.</string>
+    <string name="trends_weight_hidden_title">Weight is hidden</string>
+    <string name="trends_weight_hidden_body">You can still log it. Digits turn to dots as you type and nothing shows afterwards.</string>
+    <string name="trends_weight_log">Log a weigh-in</string>
+    <string name="trends_weight_unit_kg">kg</string>
+    <string name="trends_weight_unit_lb">lb</string>
+    <string name="trends_weight_save">Save</string>
+    <string name="trends_weight_saved">Saved.</string>
+    <string name="trends_weight_saved_hidden">Saved. It stays out of view.</string>
+</resources>
