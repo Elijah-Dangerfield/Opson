@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The adaptive icon's art: a white ring, half full. The launcher shows roughly
+  the centre 72dp of this 108dp canvas, so the ring is sized (36.6dp across) to
+  match how much of the iOS icon it fills. Source: docs/design/brand/app-icon.svg.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M35.7,54 a18.3,18.3 0 1,0 36.6,0 a18.3,18.3 0 1,0 -36.6,0 Z M40.135,55.408 A13.936,13.936 0 1,1 67.865,55.408 Z" />
+</vector>
