@@ -148,8 +148,15 @@ fun LoggerSheetContent(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
+    // Whatever opens over the search (options, scanner, photo, a pane, the meal menu) puts the
+    // keyboard away first; left up, it covers half of what just opened.
+    val focusManager = LocalFocusManager.current
+    val away: (LoggerAction) -> Unit = { action ->
+        focusManager.clearFocus()
+        onAction(action)
+    }
     Column(modifier = Modifier.fillMaxSize()) {
-        LoggerTitle(state, onAction)
+        LoggerTitle(state, onAction, onOpenPicker = { focusManager.clearFocus() })
         SearchField(
             value = state.query,
             onValueChange = { onAction(LoggerAction.SearchTyped(it)) },
@@ -161,12 +168,12 @@ private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
                 .padding(horizontal = AppTheme.spacing.page)
                 .onFocusChanged { if (it.isFocused) onAction(LoggerAction.SearchFocused) },
             trailing = if (state.canScan) {
-                { BarcodeButton(onClick = { onAction(LoggerAction.BarcodeTapped) }) }
+                { BarcodeButton(onClick = { away(LoggerAction.BarcodeTapped) }) }
             } else {
                 null
             },
             action = state.options?.let { options ->
-                { OptionsButton(active = options.active, onClick = { onAction(LoggerAction.SearchOptionsTapped) }) }
+                { OptionsButton(active = options.active, onClick = { away(LoggerAction.SearchOptionsTapped) }) }
             },
         )
         state.options?.tabs?.let { tabs -> SearchTabs(tabs, state.options.tab, onAction) }
@@ -180,7 +187,7 @@ private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
                     .padding(horizontal = AppTheme.spacing.page),
                 horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
             ) {
-                state.methods.forEach { method -> MethodChip(method, onAction) }
+                state.methods.forEach { method -> MethodChip(method, away) }
             }
         }
         if (state.quickMethods.isNotEmpty()) {
@@ -190,7 +197,7 @@ private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
                     .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, top = AppTheme.spacing.chip),
                 horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
             ) {
-                state.quickMethods.forEach { method -> MethodChip(method, onAction) }
+                state.quickMethods.forEach { method -> MethodChip(method, away) }
             }
         }
         LazyColumn(
@@ -218,7 +225,7 @@ private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
  * being put together, the title is "This meal", with no dropdown and no day.
  */
 @Composable
-private fun LoggerTitle(state: LoggerState, onAction: (LoggerAction) -> Unit) {
+private fun LoggerTitle(state: LoggerState, onAction: (LoggerAction) -> Unit, onOpenPicker: () -> Unit) {
     var picking by remember { mutableStateOf(false) }
     val canPick = state.slots.size > 1 && !state.pickingForMeal
     val meal = stringResource(if (state.pickingForMeal) Res.string.logger_this_meal else state.slot.label)
@@ -246,7 +253,10 @@ private fun LoggerTitle(state: LoggerState, onAction: (LoggerAction) -> Unit) {
                             role = Role.DropdownList
                             contentDescription = pickerDescription
                         }
-                        .bounceClick(scaleDown = 0.98f) { picking = true }
+                        .bounceClick(scaleDown = 0.98f) {
+                            onOpenPicker()
+                            picking = true
+                        }
                 } else {
                     Modifier
                 },
