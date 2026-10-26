@@ -5,11 +5,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
-import com.opson.baselineprofile.BenchmarkJourney.CONTINUE
-import com.opson.baselineprofile.BenchmarkJourney.CONTINUE_AS_GUEST
-import com.opson.baselineprofile.BenchmarkJourney.TODAY_PLACEHOLDER
+import com.opson.baselineprofile.BenchmarkJourney.SETTING_UP
+import com.opson.baselineprofile.BenchmarkJourney.SKIP_AND_START_LOGGING
+import com.opson.baselineprofile.BenchmarkJourney.todayScreen
 import com.opson.baselineprofile.BenchmarkJourney.ciAnyOf
-import com.opson.baselineprofile.BenchmarkJourney.ciText
 import com.opson.baselineprofile.BenchmarkJourney.describeScreen
 import com.opson.baselineprofile.BenchmarkJourney.launchIntent
 import com.opson.baselineprofile.BenchmarkJourney.openAndCloseLogger
@@ -65,16 +64,16 @@ class MinifiedReleaseSmokeTest {
 
         // Walk onboarding if it is showing. Adaptive for the same reason as the
         // generators: a device that is already onboarded lands straight on Today.
-        val anyOnboardingCta = ciAnyOf(CONTINUE_AS_GUEST, CONTINUE)
+        val anyOnboardingCta = ciAnyOf(SKIP_AND_START_LOGGING, SETTING_UP)
         repeat(BenchmarkJourney.ONBOARDING_MAX_STEPS) {
-            if (device.hasObject(ciText(TODAY_PLACEHOLDER))) return@repeat
+            if (device.hasObject(todayScreen())) return@repeat
             device.tapMatching(anyOnboardingCta, ONBOARDING_STEP_TIMEOUT_MS)
         }
 
         // Reaching Today means the DI graph built, persisted app state
         // deserialized through its generated serializer, and the start
         // destination resolved — the first things R8 could have broken.
-        check(device.wait(Until.hasObject(ciText(TODAY_PLACEHOLDER)), LAUNCH_TIMEOUT_MS) == true) {
+        check(device.wait(Until.hasObject(todayScreen()), LAUNCH_TIMEOUT_MS) == true) {
             "Never reached Today. " + device.describeScreen()
         }
 

@@ -64,12 +64,12 @@ object BenchmarkJourney {
      * on all three.
      */
     fun MacrobenchmarkScope.reachHome() {
-        val anyOnboardingCta = ciAnyOf(CONTINUE_AS_GUEST, CONTINUE, SETTING_UP)
+        val anyOnboardingCta = ciAnyOf(SKIP_AND_START_LOGGING, SETTING_UP)
         repeat(ONBOARDING_MAX_STEPS) {
-            if (device.hasObject(ciText(TODAY_PLACEHOLDER))) return
+            if (device.hasObject(todayScreen())) return
             device.tapMatching(anyOnboardingCta, ONBOARDING_STEP_TIMEOUT_MS)
         }
-        check(device.wait(Until.hasObject(ciText(TODAY_PLACEHOLDER)), FIRST_SCREEN_TIMEOUT_MS) == true) {
+        check(device.wait(Until.hasObject(todayScreen()), FIRST_SCREEN_TIMEOUT_MS) == true) {
             "Never reached Today. " + device.describeScreen()
         }
     }
@@ -89,13 +89,13 @@ object BenchmarkJourney {
     /** Switches through every tab, checking each one's own screen rendered. */
     fun UiDevice.visitTabs() {
         listOf(
-            TRENDS to TRENDS_PLACEHOLDER,
-            FOODS to FOODS_PLACEHOLDER,
-            MORE to MORE_PLACEHOLDER,
-            TODAY to TODAY_PLACEHOLDER,
-        ).forEach { (tab, placeholder) ->
+            TRENDS to By.desc(TRENDS_SETTINGS),
+            FOODS to ciText(FOODS_PLACEHOLDER),
+            MORE to ciText(MORE_MODES),
+            TODAY to todayScreen(),
+        ).forEach { (tab, screen) ->
             tapRequired(tab)
-            check(wait(Until.hasObject(ciText(placeholder)), SCREEN_TIMEOUT_MS) == true) {
+            check(wait(Until.hasObject(screen), SCREEN_TIMEOUT_MS) == true) {
                 "Tapped the $tab tab but its screen never appeared. " + describeScreen()
             }
         }
@@ -106,22 +106,22 @@ object BenchmarkJourney {
         val add = wait(Until.findObject(By.desc(LOG_FOOD)), SCREEN_TIMEOUT_MS)
         checkNotNull(add) { "No \"$LOG_FOOD\" button in the bottom bar. " + describeScreen() }
         add.click()
-        check(wait(Until.hasObject(ciText(LOGGER_PLACEHOLDER)), SCREEN_TIMEOUT_MS) == true) {
+        check(wait(Until.hasObject(ciText(LOGGER_SEARCH)), SCREEN_TIMEOUT_MS) == true) {
             "Tapped + but the logger never appeared. " + describeScreen()
         }
         pressBack()
-        check(wait(Until.gone(ciText(LOGGER_PLACEHOLDER)), SCREEN_TIMEOUT_MS) == true) {
+        check(wait(Until.gone(ciText(LOGGER_SEARCH)), SCREEN_TIMEOUT_MS) == true) {
             "Back did not close the logger. " + describeScreen()
         }
-        check(hasObject(ciText(TODAY_PLACEHOLDER))) {
+        check(hasObject(todayScreen())) {
             "Closing the logger did not leave Today showing. " + describeScreen()
         }
     }
 
     // Verbatim from the screens they appear on. If one changes, these tests are
     // where it surfaces, which is the point.
-    const val CONTINUE_AS_GUEST = "Continue as guest"
-    const val CONTINUE = "Continue"
+    /** Welcome's one-tap path: Full numbers, no questions and no account step. */
+    const val SKIP_AND_START_LOGGING = "Skip and start logging"
     const val SETTING_UP = "Setting things up…"
     const val TODAY = "Today"
     const val TRENDS = "Trends"
@@ -129,12 +129,16 @@ object BenchmarkJourney {
     const val MORE = "More"
     const val LOG_FOOD = "Log food"
 
-    // The placeholder line on each screen. Each screen's real build replaces its line here.
-    const val TODAY_PLACEHOLDER = "Your day will show up here."
-    const val TRENDS_PLACEHOLDER = "How your weeks go will show up here."
+    // One thing each screen always shows, in every mode. Today's day label reads "Today" like
+    // its tab, so Today and Trends are found by an icon button's spoken label instead.
+    const val TODAY_DAY_MENU = "More for this day"
+    const val TRENDS_SETTINGS = "Trends settings"
     const val FOODS_PLACEHOLDER = "Your favorites and saved meals will live here."
-    const val MORE_PLACEHOLDER = "Modes, targets and support will live here."
-    const val LOGGER_PLACEHOLDER = "Search, favorites and recent foods will show up here."
+    const val MORE_MODES = "Modes and numbers"
+    const val LOGGER_SEARCH = "Search foods, dishes, restaurants"
+
+    /** Today's day menu button, present on every day in every mode. */
+    fun todayScreen(): BySelector = By.desc(TODAY_DAY_MENU)
 
     const val FIRST_SCREEN_TIMEOUT_MS = 20_000L
     const val SCREEN_TIMEOUT_MS = 15_000L
