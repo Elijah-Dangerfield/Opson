@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for :libraries:diary:ui, the meal, precision and feeling labels every
+  diary screen shares. Same rules as strings.xml: no backslash escapes,
+  positional %1$s arguments.
+-->
+<resources>
+
+    <!-- Meal slots, as chips and titles -->
+    <string name="diary_slot_breakfast">Breakfast</string>
+    <string name="diary_slot_lunch">Lunch</string>
+    <string name="diary_slot_snack">Snack</string>
+    <string name="diary_slot_dinner">Dinner</string>
+    <string name="diary_slot_uncategorized">Uncategorized</string>
+
+    <!-- Meal slots inside a sentence: "Added to dinner." -->
+    <string name="diary_slot_sentence_breakfast">breakfast</string>
+    <string name="diary_slot_sentence_lunch">lunch</string>
+    <string name="diary_slot_sentence_snack">snack</string>
+    <string name="diary_slot_sentence_dinner">dinner</string>
+    <string name="diary_slot_sentence_uncategorized">uncategorized</string>
+
+    <!-- How sure: on an item row, and on the amount sheet's picker -->
+    <string name="diary_precision_row_weighed">Weighed</string>
+    <string name="diary_precision_row_estimate">Estimate</string>
+    <string name="diary_precision_row_named">Named</string>
+    <string name="diary_precision_picker_weighed">Weighed</string>
+    <string name="diary_precision_picker_estimate">Estimated</string>
+    <string name="diary_precision_picker_named">Just the name</string>
+
+    <!-- How it felt -->
+    <string name="diary_hunger_very_hungry">Very hungry</string>
+    <string name="diary_hunger_hungry">Hungry</string>
+    <string name="diary_hunger_peckish">Peckish</string>
+    <string name="diary_hunger_not_hungry">Not hungry</string>
+    <string name="diary_fullness_still_hungry">Still hungry</string>
+    <string name="diary_fullness_satisfied">Satisfied</string>
+    <string name="diary_fullness_full">Full</string>
+    <string name="diary_fullness_very_full">Very full</string>
+    <string name="diary_mood_calm">Calm</string>
+    <string name="diary_mood_happy">Happy</string>
+    <string name="diary_mood_social">Social</string>
+    <string name="diary_mood_rushed">Rushed</string>
+    <string name="diary_mood_stressed">Stressed</string>
+    <string name="diary_mood_anxious">Anxious</string>
+    <string name="diary_mood_low">Low</string>
+
+    <!-- Food rows -->
+    <string name="diary_pick_cd">Pick %1$s</string>
+    <string name="diary_remove_cd">Remove %1$s</string>
+    <string name="diary_meal_done_cd">%1$s, done</string>
+    <string name="diary_meal_not_done_cd">%1$s, not yet</string>
+
+</resources>

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
@@ -108,6 +109,7 @@ object AppIcons {
     val Close get() = icon("close", MaterialIcons.Rounded.Close)
     val Check get() = icon("check", MaterialIcons.Rounded.Check)
     val CheckCircle get() = icon("check_circle", MaterialIcons.Rounded.CheckCircle)
+    val RadioButtonUnchecked get() = icon("radio_button_unchecked", MaterialIcons.Rounded.RadioButtonUnchecked)
     val MoreHoriz get() = icon("more_horiz", MaterialIcons.Rounded.MoreHoriz)
     val ChevronLeft get() = icon("chevron_left", MaterialIcons.Rounded.ChevronLeft)
     val ChevronRight get() = icon("chevron_right", MaterialIcons.Rounded.ChevronRight)
@@ -148,7 +150,7 @@ object AppIcons {
             BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant,
             Add, Remove, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, Mic, EditNote, Edit,
             Bookmark, BookmarkAdd, History, Dialpad, MonitorWeight, Schedule, LockClock,
-            Close, Check, CheckCircle, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
+            Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
             Star, Favorite, Bolt, Science, FormatListBulleted,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart,

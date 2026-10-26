@@ -1,0 +1,64 @@
+package com.opson.libraries.diary.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.opson.libraries.ui.PreviewLightDark
+import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.system.AppTheme
+import com.opson.system.color.ToneColors
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+/**
+ * A food's tile. The catalog has no categories to pick an icon from, so every
+ * food gets the fork and knife, tinted by a stable hash of [seed] (the food's
+ * key or id) over the four nutrient tints. The same food is the same colour on
+ * every screen and every launch, and neighbouring rows usually differ.
+ */
+@Composable
+fun FoodIconTile(
+    seed: String,
+    modifier: Modifier = Modifier,
+    size: IconTileSize = IconTileSize.Medium,
+) {
+    IconTile(icon = AppIcons.Restaurant, tone = foodTone(seed), modifier = modifier, size = size)
+}
+
+/** The tint [FoodIconTile] uses for [seed], for anything drawn around it (the favorites' round tile). */
+@Composable
+fun foodTone(seed: String): ToneColors {
+    val nutrients = AppTheme.colors.nutrients
+    return when (FoodTint.indexOf(seed)) {
+        0 -> nutrients.protein
+        1 -> nutrients.carbs
+        2 -> nutrients.fat
+        else -> nutrients.fiber
+    }
+}
+
+/** Pure so it can be tested: the same seed must land on the same tint on Android and iOS. */
+internal object FoodTint {
+    private const val TINTS = 4
+    private const val PRIME = 31
+
+    // Spelled out rather than String.hashCode(), which nothing promises is the same on every platform.
+    fun indexOf(seed: String): Int {
+        var hash = 0
+        for (c in seed) hash = PRIME * hash + c.code
+        return ((hash % TINTS) + TINTS) % TINTS
+    }
+}
+
+@Preview
+@Composable
+private fun FoodIconTilePreview() {
+    PreviewLightDark {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            listOf("f:banana", "f:rice", "f:yogurt", "c:granola", "f:adobo").forEach { FoodIconTile(seed = it) }
+        }
+    }
+}
