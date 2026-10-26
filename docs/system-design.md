@@ -206,7 +206,7 @@ foods (
 log_entries (
   id uuid pk, user_id, day date, slot text,    -- breakfast|lunch|snack|dinner|uncategorized
   logged_at timestamptz,
-  food_id uuid null references foods(id), custom_food_id uuid null,
+  food_id uuid null references foods(id) on delete set null, custom_food_id uuid null,
   name text, amount_text text, quantity real null, unit text null, grams real null,
   precision text,                              -- weighed|estimate|named
   kcal real null, protein real null, carbs real null, fat real null, fiber real null,
@@ -232,7 +232,17 @@ user_settings (user_id pk, settings jsonb, changed_at timestamptz null)       --
 
 food_search_events (id bigserial, at timestamptz, query_norm text, result_count int, picked boolean)
   -- no user_id on purpose: it answers "which foods are we missing", not "what did this person search"
+
+barcode_lookups (id bigserial, at timestamptz, barcode text, outcome text)   -- catalog|off|miss|error, no user_id
 ```
+
+The migrations are `V7__food_catalog.sql`, `V8__diary.sql` and
+`V9__analytics.sql`. Columns a row cannot exist without (ids, `day`, `slot`,
+`name`, `precision`, `method`, `logged_at`, `measured_at`, `kg`, serving
+amount and unit) are `not null`; everything else is nullable as written.
+`food_id` is `on delete set null` so removing a catalog food never deletes a
+logged meal (the entry keeps its own name and nutrient snapshot). pg_trgm is
+created in the `extensions` schema, where Supabase keeps it.
 
 Totals are computed, never stored. A stored total is a second source of truth
 that drifts.
@@ -267,15 +277,29 @@ POST /v1/sync
 200
 { "applied":  ["<outbox uuid>", ...],
   "rejected": [ { "id": "<outbox uuid>", "code": "invalid_row", "message": "..." } ],
-  "changes":  { "log_entries": [...], "day_records": [...], "meal_feelings": [...],
-                "weigh_ins": [...], "custom_foods": [...], "saved_meals": [...], "settings": {...} | null },
-  "cursor": 1301, "has_more": false }
+  "changes":  { "logEntries": [...], "dayRecords": [...], "mealFeelings": [...],
+                "weighIns": [...], "customFoods": [...], "savedMeals": [...], "settings": {...} | null },
+  "cursor": 1301, "hasMore": false }
 ```
 
+JSON is camelCase like the rest of the API, times are epoch milliseconds
+(`clientUpdatedAtEpochMs`, `loggedAtEpochMs`, `measuredAtEpochMs`,
+`closedAtEpochMs`, `changedAtEpochMs`) and days are ISO dates. `entity` is one
+of `log_entry`, `day_record`, `meal_feeling`, `weigh_in`, `custom_food`,
+`saved_meal`, `settings`. Row shapes are the `*RowDto` classes in
+`apps/server/.../routes/SyncDto.kt`; pulled rows use the same shapes. The
+settings row is `{ settings: {...}, changedAtEpochMs, clientUpdatedAtEpochMs }`.
+Rejection codes are `unknown_entity` and `invalid_row`; a request with more
+than 500 mutations is a 400 `too_many_mutations`.
+
 - **State-based, not operation-based.** A mutation carries the whole row. The
-  server upserts it when `row.client_updated_at` is newer than what it has
-  (last write wins), and ignores it otherwise. Replaying a mutation is
-  harmless, which is what makes retries safe.
+  server upserts it when `row.clientUpdatedAtEpochMs` is strictly newer than
+  what it has (last write wins), and ignores it otherwise. Replaying a
+  mutation is harmless, which is what makes retries safe. An ignored mutation
+  is still listed in `applied`, because the client should drop it.
+- **One user syncs at a time.** Each request takes a per-user advisory lock
+  inside one READ COMMITTED transaction. A sequence alone can commit seq 101
+  before seq 100, and a pull by cursor would then skip 100 forever.
 - **Idempotent by construction.** Row ids are client UUIDs. The outbox id is
   echoed back in `applied` so the client deletes exactly what landed.
 - **Every write that changes a row bumps its `server_seq`.** A mutation ignored
@@ -313,6 +337,13 @@ Search ranking rule: exact name match, then prefix, then full text rank, then
 trigram similarity, with `popularity` (picks across all users) as the tiebreak.
 Generic foods (USDA) rank above branded (Open Food Facts) at equal match.
 
+Two refinements, both forced by how USDA names foods ("Egg, whole, raw"):
+a match on the name's first comma segment ranks right after exact, so `eggs`
+finds eggs; and prefix means whole words, so `toast` does not rank "Toaster
+pastries" first. Within a tier, names containing the query words whole, and
+plain forms (`raw`, `NFS`, `plain`, `whole`, `brewed`, `cooked`), come before
+similarity and popularity.
+
 ---
 
 ## 8. Food database
@@ -344,6 +375,12 @@ shared by every app on the stack. This is the Cards rule.
   through the Supabase session pooler.
 - Dashboards live as JSON in `ops/grafana/`, and are pushed with the Grafana MCP
   or the import script.
+- Views (`V9__analytics.sql`): `daily_active_loggers`,
+  `entries_by_method_precision`, `meals_per_day_distribution`, `days_closed`,
+  `preset_distribution`, `search_daily`, `top_zero_result_queries` (30 days,
+  only queries searched at least 3 times), `barcode_outcomes_daily`,
+  `weekly_retention_cohorts`, `retention_d1_d7_d30`. `DatabaseSchemaTest`
+  fails if any of them grows a user id or a nutrient column.
 
 | Dashboard | Panels (all aggregate) | Source |
 |---|---|---|
@@ -455,6 +492,11 @@ The same applies to each server resource.
 ## 15. Decisions
 
 Dated, newest first. Add to it, never rewrite it.
+
+- **2026-10-25: sync JSON is camelCase with epoch-millisecond times.** The
+  first draft of §6 used snake_case keys. Every other Opson and Cards route is
+  camelCase with `…EpochMs` times, and the client's `@Serializable` models
+  then need no `@SerialName`. Enum values stay lowercase snake strings.
 
 - **2026-10-25: local-first with a state-based outbox.** Logging has to work
   offline, and a row-level last-write-wins merge is simple enough to be

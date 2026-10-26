@@ -5,11 +5,16 @@ import com.opson.server.db.Database
 import com.opson.server.domain.AppConfigAdminRepository
 import com.opson.server.domain.AppConfigManifestRepository
 import com.opson.server.domain.AppConfigSource
+import com.opson.server.domain.BarcodeLookup
+import com.opson.server.domain.ExportRepository
+import com.opson.server.domain.FoodCatalogRepository
+import com.opson.server.domain.FoodDescriber
 import com.opson.server.domain.ExampleSource
 import com.opson.server.domain.ModerationRepository
 import com.opson.server.domain.PlayerReportRepository
 import com.opson.server.domain.ProfileRepository
 import com.opson.server.domain.SupabaseAdminClient
+import com.opson.server.domain.SyncRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -57,6 +62,12 @@ abstract class ServerComponent(
     abstract val appConfigSource: AppConfigSource
     abstract val appConfigAdminRepository: AppConfigAdminRepository
     abstract val appConfigManifestRepository: AppConfigManifestRepository
+    abstract val syncRepository: SyncRepository
+    abstract val foodCatalogRepository: FoodCatalogRepository
+    abstract val barcodeLookup: BarcodeLookup
+    abstract val foodDescriber: FoodDescriber
+    abstract val exportRepository: ExportRepository
+    abstract val clock: Clock
 
     /**
      * Wall-clock source. Singleton so every component sees the same "now".

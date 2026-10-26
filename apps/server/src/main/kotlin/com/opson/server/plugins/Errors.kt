@@ -3,6 +3,8 @@ package com.opson.server.plugins
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.plugins.BadRequestException
+import io.ktor.server.plugins.UnsupportedMediaTypeException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
@@ -37,6 +39,20 @@ private val logger = LoggerFactory.getLogger("StatusPages")
 
 fun Application.installStatusPages() {
     install(StatusPages) {
+        // A body that doesn't decode (`call.receive<T>()`) is the caller's
+        // fault, not a 500. The message names the target type, never the body.
+        exception<BadRequestException> { call, _ ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                problem("bad_request", "Request body is missing or malformed"),
+            )
+        }
+        exception<UnsupportedMediaTypeException> { call, _ ->
+            call.respond(
+                HttpStatusCode.UnsupportedMediaType,
+                problem("unsupported_media_type", "Send application/json"),
+            )
+        }
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,

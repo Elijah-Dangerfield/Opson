@@ -28,7 +28,8 @@ To enable the database-backed + authenticated routes, set env vars (copy
    On boot, Flyway applies everything in `src/main/resources/db/migration`.
 
 2. **Supabase auth**: set `SUPABASE_URL=https://<project>.supabase.co` to mount
-   `/v1/me`. The server verifies the client's Supabase JWTs against the project's
+   the authenticated routes (`/v1/me`, `/v1/sync`, `/v1/foods/*`, `/v1/describe`,
+   `/v1/export.csv`). The server verifies the client's Supabase JWTs against the project's
    public keys (JWKS); no secret is stored server-side.
 
 Boot modes (graceful degradation is a deliberate standard):
@@ -37,7 +38,7 @@ Boot modes (graceful degradation is a deliberate standard):
 |---|---|---|
 | unset | unset | `/_health`, `/v1/example` |
 | set   | unset | + DB connected (no auth routes) |
-| set   | set   | + `/v1/me` (full) |
+| set   | set   | + `/v1/me`, `/v1/sync`, `/v1/foods/*`, `/v1/describe`, `/v1/export.csv` (full) |
 
 ## Layout
 
@@ -141,12 +142,92 @@ Three patterns, each with a copyable example:
 - **Repository test** (`data/PostgresProfileRepositoryTest.kt`): real Postgres
   via Testcontainers (`DatabaseTest`), `@After` table cleanup, injected clock.
   Skips cleanly (JUnit `Assume`) when Docker is absent.
-- **Full-stack test** (`FullStackMeTest.kt`): the real DI graph + real Postgres
+- **Full-stack test** (`FullStackMeTest.kt`, `FullStackSyncTest.kt`): the real DI graph + real Postgres
   through the `installApp` seam; proves auth + repo + route integrate.
 
 ```bash
 ./gradlew :apps:server:test           # add -Dopson.skipGitHooksCheck=true outside a hooked checkout
 ```
+
+## Opson routes
+
+The food logger's API. The contract is `docs/system-design.md` §5 to §9; this
+is the working summary. Everything needs a Supabase JWT. JSON is camelCase,
+times are epoch milliseconds (`…EpochMs`), days are ISO dates, and errors are
+the usual `ProblemResponse`.
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/v1/sync` | Push the outbox and pull changes in one call. 400 `too_many_mutations` (> 500), 400 `invalid_cursor`. |
+| GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. |
+| GET | `/v1/foods/{id}` | 400 `invalid_id`, 404 `not_found`. |
+| GET | `/v1/foods/barcode/{code}` | Catalog, then Open Food Facts (5 s timeout, cached into `foods` as `off`). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable`. 60/min per IP. |
+| POST | `/v1/describe` `{text}` | Heuristic parse into items. 400 `invalid_text` (empty or > 1000 chars). |
+| GET | `/v1/export.csv` | Streams the caller's entries, weigh-ins and water. |
+
+### Sync (`SyncRoutes`, `PostgresSyncRepository`)
+
+```
+POST /v1/sync  { "cursor": 0, "mutations": [ { "id": "<outbox id>", "entity": "log_entry", "row": { … } } ] }
+200 { "applied": [ids], "rejected": [{ "id", "code", "message" }],
+      "changes": { "logEntries", "dayRecords", "mealFeelings", "weighIns", "customFoods", "savedMeals", "settings" },
+      "cursor": 1301, "hasMore": false }
+```
+
+- `entity` is `log_entry`, `day_record`, `meal_feeling`, `weigh_in`,
+  `custom_food`, `saved_meal` or `settings`. Row shapes are the `*RowDto`
+  classes in `routes/SyncDto.kt`; pulled rows come back in the same shapes.
+- Rejections carry a stable code: `unknown_entity`, or `invalid_row` (could
+  not be decoded, or broke a rule in `domain/DiaryRules.kt`). Messages name
+  the field and never echo the value. A rejection never blocks the rest.
+- Last write wins on `clientUpdatedAtEpochMs`, strictly newer only, so a
+  replay is a no-op and does not bump `server_seq`. An older write is still
+  reported in `applied`: the server is done with it.
+- One READ COMMITTED transaction per request, holding a per-user advisory
+  lock, so a pull by cursor can never skip a row another device committed
+  late. 500 rows per entity per response; follow `hasMore`.
+- A log entry naming an unknown catalog food is kept with `foodId` null.
+  The first sync of an entry that names a catalog food bumps its popularity.
+
+### Food catalog
+
+`foods` holds USDA FoodData Central (Foundation, SR Legacy, FNDDS) plus the
+Open Food Facts products people have scanned. Search tiers, best first:
+exact name, the name's first comma segment ("Egg, whole, raw" for `eggs`),
+whole-word prefix, full text, trigram similarity. Within a tier: generic
+before branded, whole-word matches, plain forms (`raw`, `NFS`, `whole`, …),
+similarity, then popularity. pg_trgm lives in the `extensions` schema (as on
+Supabase) and every use of it is schema-qualified.
+
+**Loading USDA foods.** `scripts/import_usda_foods.py` (Python 3 stdlib only)
+downloads the three CSV releases into a fresh temp directory, maps nutrients
+per 100 g and portions, dedupes names across datasets, and writes
+`apps/server/fooddb/usda_foods.sql.gz`: batched `INSERT … ON CONFLICT (source,
+source_id) DO UPDATE` with stable uuid5 ids, so re-running it updates in place
+and never touches popularity. The generated file is committed (about 1.5 MB,
+13,324 foods).
+
+```bash
+python3 -I scripts/import_usda_foods.py                 # regenerate fooddb/usda_foods.sql.gz
+gunzip -c apps/server/fooddb/usda_foods.sql.gz \
+  | psql "$DATABASE_URL" --single-transaction -v ON_ERROR_STOP=1   # load it (after migrations)
+```
+
+Load it after the server has run its migrations once. `UsdaFoodSeedTest`
+applies the committed file to a Testcontainers Postgres on every test run.
+Micros keys carry their unit: `sugars_g`, `added_sugars_g`, `saturated_fat_g`,
+`cholesterol_mg`, `sodium_mg`, `potassium_mg`, `calcium_mg`, `iron_mg`,
+`magnesium_mg`, `phosphorus_mg`, `zinc_mg`, `copper_mg`, `manganese_mg`,
+`selenium_ug`, `vitamin_a_rae_ug`, `vitamin_c_mg`, `vitamin_d_ug`,
+`vitamin_e_mg`, `vitamin_k_ug`, `thiamin_mg`, `riboflavin_mg`, `niacin_mg`,
+`vitamin_b6_mg`, `folate_dfe_ug`, `vitamin_b12_ug`, `choline_mg`.
+
+### Analytics (`V9__analytics.sql`)
+
+Views in the `analytics` schema aggregate across users and never select a
+nutrient amount or a user id (`DatabaseSchemaTest` enforces both). The
+`grafana_ro` role (NOLOGIN) can read that schema and nothing else. To connect
+Grafana, create a login role outside migrations and grant it `grafana_ro`.
 
 ## Environment variables
 

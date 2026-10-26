@@ -25,9 +25,12 @@ import com.opson.server.plugins.installWebSockets
 import com.opson.server.routes.appConfigRoutes
 import com.opson.server.routes.configAdminRoutes
 import com.opson.server.routes.exampleRoutes
+import com.opson.server.routes.exportRoutes
+import com.opson.server.routes.foodRoutes
 import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
 import com.opson.server.routes.playerReportRoutes
+import com.opson.server.routes.syncRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.routing
@@ -155,6 +158,9 @@ fun Application.installApp(
         if (component != null && verification != null) {
             meRoutes(component.profileRepository, component.supabaseAdminClient)
             playerReportRoutes(component.playerReportRepository)
+            syncRoutes(component.syncRepository, component.clock)
+            foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber)
+            exportRoutes(component.exportRepository)
         }
     }
 }

@@ -22,6 +22,7 @@ import kotlin.time.Duration.Companion.minutes
 const val PROFILE_WRITE_LIMIT = "profile-write"
 const val PLAYER_REPORT_LIMIT = "player-report"
 const val DELETE_ACCOUNT_LIMIT = "delete-account"
+const val BARCODE_LOOKUP_LIMIT = "barcode-lookup"
 
 fun Application.installRateLimits() {
     install(RateLimit) {
@@ -44,6 +45,15 @@ fun Application.installRateLimits() {
             // a deletion-endpoint risk. 5/hour per IP gives a legitimate
             // user multiple retries while making scripted abuse impractical.
             rateLimiter(limit = 5, refillPeriod = 1.hours)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(BARCODE_LOOKUP_LIMIT)) {
+            // A catalog miss becomes a call to Open Food Facts, which limits
+            // product reads per caller IP, and every Opson user shares the
+            // server's IP. 60/min per client keeps one hot loop from spending
+            // everyone's OFF budget; a person scanning a pantry never hits it.
+            rateLimiter(limit = 60, refillPeriod = 1.minutes)
             requestKey { call -> call.clientIp() }
         }
 
