@@ -28,10 +28,13 @@ sealed interface Display {
  * - [day] / [dayClosed]: which day the number belongs to, for delayed reveal.
  *   `null` means today.
  * - [eaten] / [min] / [max]: only for [Metric.Remaining], to say "On target".
+ * - [goal]: how a shown amount spells [of]. It never changes soften words or
+ *   `fraction`, which read [of] in every style.
  */
 data class FormatContext(
     val of: Double? = null,
     val bare: Boolean = false,
+    val goal: GoalStyle = GoalStyle.Default,
     val unit: WaterUnit = WaterUnit.Ml,
     val weightUnit: WeightUnit = WeightUnit.Kg,
     val day: LocalDate? = null,
@@ -40,3 +43,25 @@ data class FormatContext(
     val min: Double? = null,
     val max: Double? = null,
 )
+
+/**
+ * How a shown energy or macro amount mentions its goal, for the surfaces that
+ * draw it differently: the Today grid shows the bare amount under a bar, the
+ * logger strip uses a slash, the nutrients detail spells "of".
+ *
+ * Only calories, energy out and the four macros read it. Water always says
+ * "of" and the rest have no goal to spell.
+ */
+enum class GoalStyle {
+    /** Macros say "47 g of 120 g" when there is a goal; energy never mentions one. */
+    Default,
+
+    /** `47 g`, `1,245 kcal`: the goal only drives the bar. */
+    None,
+
+    /** `47 g of 120 g`, `1,245 kcal of 2,305`. */
+    Of,
+
+    /** `47 / 120 g`, `1,245 / 2,305`. */
+    Slash,
+}

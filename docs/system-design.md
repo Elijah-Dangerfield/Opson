@@ -81,7 +81,7 @@ feature api modules never depend on each other).
 
 | Module | Plugin | Owns |
 |---|---|---|
-| `:libraries:nutrition` | kotlin.multiplatform | `Metric`, `Visibility`, `ModePreset`, `Presets`, `VisibilityPolicy`, `Display`, soften words, formatting, `Targets`, floor rule, exercise adjustment, EMA weight trend, unit conversion. Pure Kotlin, no I/O. |
+| `:libraries:nutrition` | kotlin.multiplatform | `Metric`, `Visibility`, `ModePreset`, `Presets`, `VisibilityPolicy`, `Display`, soften words, formatting, `Targets`, floor rule, exercise adjustment, EMA weight trend, unit conversion, and the screen helpers in `docs/plans/screens/shared.md` (`NutrientAmounts`, `GoalStyle`, `resolveRange`, `macroLine`, `ringValue`, `share`, ring modes, `NumbersChange`, micronutrients and scores, water glasses). Pure Kotlin, no I/O. |
 | `:libraries:nutrition:ui` | compose.multiplatform | `NutrientValue`, `NutrientText`, `NutrientBar`, `LocalVisibilityPolicy`, test tags. The only Compose code that touches a `Display`. |
 | `:libraries:diary` | kotlin.multiplatform | Room entities and DAOs, repository interfaces (`DiaryRepository`, `WeightRepository`, `CustomFoodRepository`, `SavedMealRepository`, `SettingsRepository`), domain models (`LogItem`, `Day`, `MealSlot`, `Precision`, `Feel`). |
 | `:libraries:diary:impl` | kotlin.multiplatform | Repository impls, the outbox, `DiarySyncer` (a `UserScopedSyncer`), the sync API client. |
@@ -136,7 +136,8 @@ class VisibilityPolicy(settings: NumbersSettings, clock: Clock, timeZone: TimeZo
     fun score(): Int                               // sum of Visibility.score over metrics
     fun isRaise(next: NumbersSettings): Boolean    // friction trigger
 }
-data class FormatContext(val of: Double? = null, val bare: Boolean = false, val unit: WaterUnit = WaterUnit.Ml,
+data class FormatContext(val of: Double? = null, val bare: Boolean = false, val goal: GoalStyle = GoalStyle.Default,
+                         val unit: WaterUnit = WaterUnit.Ml,
                          val weightUnit: WeightUnit = WeightUnit.Kg,
                          val day: LocalDate? = null, val dayClosed: Boolean = false,
                          val eaten: Double? = null, val min: Double? = null, val max: Double? = null)

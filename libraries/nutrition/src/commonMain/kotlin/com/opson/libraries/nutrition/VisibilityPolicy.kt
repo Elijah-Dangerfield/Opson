@@ -16,7 +16,7 @@ class VisibilityPolicy(
     val settings: NumbersSettings,
     private val clock: Clock,
     private val timeZone: TimeZone,
-    private val formatter: NutritionFormatter = EnglishNutritionFormatter,
+    internal val formatter: NutritionFormatter = EnglishNutritionFormatter,
 ) {
     val preset: ModePreset get() = Presets[settings.preset]
 
@@ -105,10 +105,29 @@ class VisibilityPolicy(
             WeightUnit.Lb -> formatter.weight(Units.kgToLb(value), WeightUnit.Lb)
         }
         Metric.Micros -> formatter.percent(value)
-        Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber ->
-            formatter.grams(value, context.of?.takeIf { it != 0.0 })
+        Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber -> grams(value, context)
         Metric.Remaining -> remaining(value, context)
-        Metric.Calories, Metric.EnergyOut -> formatter.energy(value, context.bare)
+        Metric.Calories, Metric.EnergyOut -> energy(value, context)
+    }
+
+    private fun grams(value: Double, context: FormatContext): String {
+        val of = context.of?.takeIf { it != 0.0 }
+        return when {
+            of == null || context.goal == GoalStyle.None -> formatter.grams(value, of = null)
+            context.goal == GoalStyle.Slash -> formatter.gramsSlash(value, of)
+            else -> formatter.grams(value, of)
+        }
+    }
+
+    private fun energy(value: Double, context: FormatContext): String {
+        val of = context.of?.takeIf { it != 0.0 }
+        return when {
+            of == null -> formatter.energy(value, context.bare)
+            context.goal == GoalStyle.Of -> formatter.energyOf(value, of, context.bare)
+            context.goal == GoalStyle.Slash -> formatter.energySlash(value, of, context.bare)
+            // Default and None: energy never spells its goal unless asked to.
+            else -> formatter.energy(value, context.bare)
+        }
     }
 
     private fun remaining(value: Double, context: FormatContext): String {

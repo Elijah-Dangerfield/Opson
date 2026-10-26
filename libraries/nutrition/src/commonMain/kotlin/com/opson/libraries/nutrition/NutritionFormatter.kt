@@ -37,6 +37,45 @@ interface NutritionFormatter {
     fun onTarget(): String
     fun aboveRange(): String
     fun soft(word: SoftWord): String
+
+    /** `1,245 kcal of 2,305`, bare `1,245 of 2,305`. */
+    fun energyOf(kcal: Double, of: Double, bare: Boolean): String
+
+    /** `1,245 / 2,305`, or `1,245 / 2,305 kcal` with the unit. */
+    fun energySlash(kcal: Double, of: Double, bare: Boolean): String
+
+    /** `47 / 120 g`. */
+    fun gramsSlash(grams: Double, of: Double): String
+
+    /** `1,900 to 2,300`, or `1,900 to 2,300 kcal` with the unit. */
+    fun energyRange(min: Double, max: Double, bare: Boolean): String
+
+    /** `47 g protein`. [metric] is one of the four macros. */
+    fun macroLong(metric: Metric, grams: Double): String
+
+    /** `47P`. [metric] is one of the four macros. */
+    fun macroCompact(metric: Metric, grams: Double): String
+
+    /** A ring's energy label: `1,245` over `kcal`. */
+    fun ringEnergy(kcal: Double): RingValue
+
+    /** A ring's macro label: `47` over `g`. */
+    fun ringGrams(grams: Double): RingValue
+
+    /** The remaining ring inside the range: `On` over `target`. */
+    fun ringOnTarget(): RingValue
+
+    /** The remaining ring above the range: `Past` over `range`. */
+    fun ringAboveRange(): RingValue
+
+    /** The balance ring: `−950` or `+120` over `kcal`. */
+    fun ringBalance(kcal: Double): RingValue
+
+    /** A glass or a daily goal, not an amount drunk: `250 ml`, `2,000 ml`, `8 fl oz`. */
+    fun glassSize(amount: Double, unit: WaterUnit): String
+
+    /** A micronutrient's daily reference: `700 µg`, `2.4 µg`, `1,000 mg`, `2,300 mg limit`. */
+    fun microReference(micro: Micronutrient): String
 }
 
 /** The prototype's strings, word for word. */
@@ -80,6 +119,66 @@ object EnglishNutritionFormatter : NutritionFormatter {
         SoftWord.Plenty -> "Plenty"
         SoftWord.TrendOnly -> "Trend only"
     }
+
+    override fun energyOf(kcal: Double, of: Double, bare: Boolean): String =
+        if (bare) "${wholeNumber(kcal)} of ${wholeNumber(of)}" else "${wholeNumber(kcal)} kcal of ${wholeNumber(of)}"
+
+    override fun energySlash(kcal: Double, of: Double, bare: Boolean): String =
+        if (bare) "${wholeNumber(kcal)} / ${wholeNumber(of)}" else "${wholeNumber(kcal)} / ${wholeNumber(of)} kcal"
+
+    override fun gramsSlash(grams: Double, of: Double): String = "${wholeNumber(grams)} / ${wholeNumber(of)} g"
+
+    override fun energyRange(min: Double, max: Double, bare: Boolean): String =
+        if (bare) "${wholeNumber(min)} to ${wholeNumber(max)}" else "${wholeNumber(min)} to ${wholeNumber(max)} kcal"
+
+    override fun macroLong(metric: Metric, grams: Double): String = "${wholeNumber(grams)} g ${macroWord(metric)}"
+
+    override fun macroCompact(metric: Metric, grams: Double): String = "${wholeNumber(grams)}${macroLetter(metric)}"
+
+    override fun ringEnergy(kcal: Double): RingValue = RingValue(wholeNumber(kcal), "kcal")
+
+    override fun ringGrams(grams: Double): RingValue = RingValue(wholeNumber(grams), "g")
+
+    override fun ringOnTarget(): RingValue = RingValue("On", "target")
+
+    override fun ringAboveRange(): RingValue = RingValue("Past", "range")
+
+    override fun ringBalance(kcal: Double): RingValue {
+        val rounded = kcal.roundToLong()
+        // A true minus sign, as the prototype, so it does not read as a hyphen.
+        val sign = if (rounded < 0) "\u2212" else "+"
+        return RingValue("$sign${groupThousands(abs(rounded))}", "kcal")
+    }
+
+    override fun glassSize(amount: Double, unit: WaterUnit): String = when (unit) {
+        WaterUnit.Ml -> "${wholeNumber(amount)} ml"
+        WaterUnit.FlOz -> "${wholeNumber(amount)} fl oz"
+    }
+
+    override fun microReference(micro: Micronutrient): String {
+        val unit = when (micro.unit) {
+            MicroUnit.Mg -> "mg"
+            MicroUnit.Ug -> "\u00B5g"
+        }
+        val amount = "${trimmedDecimal(micro.reference)} $unit"
+        return if (micro.isLimit) "$amount limit" else amount
+    }
+
+    private fun macroWord(metric: Metric): String = when (metric) {
+        Metric.Protein -> "protein"
+        Metric.Carbs -> "carbs"
+        Metric.Fat -> "fat"
+        Metric.Fiber -> "fiber"
+        else -> throw IllegalArgumentException("$metric is not a macro")
+    }
+
+    private fun macroLetter(metric: Metric): String = when (metric) {
+        Metric.Protein -> "P"
+        Metric.Carbs -> "C"
+        Metric.Fat -> "F"
+        Metric.Fiber -> "Fb"
+        else -> throw IllegalArgumentException("$metric is not a macro")
+    }
 }
 
 // Written by hand rather than through a platform locale formatter so output is
@@ -95,6 +194,12 @@ internal fun oneDecimal(value: Double): String {
     val sign = if (tenths < 0) "-" else ""
     val magnitude = abs(tenths)
     return "$sign${groupThousands(magnitude / 10)}.${magnitude % 10}"
+}
+
+/** A whole number when there is no fraction, else one decimal place: `700`, `2.4`, `1,000`. */
+internal fun trimmedDecimal(value: Double): String {
+    val tenths = (value * 10).roundToLong()
+    return if (tenths % 10 == 0L) groupThousands(tenths / 10) else oneDecimal(value)
 }
 
 internal fun groupThousands(value: Long): String {

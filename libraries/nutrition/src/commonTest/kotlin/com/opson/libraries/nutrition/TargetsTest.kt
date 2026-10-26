@@ -130,4 +130,63 @@ class TargetsTest {
         assertEquals(expected, base.tomorrow())
         assertEquals(EnergyRange(2150, 1950, 2350, 0), base.raise().tomorrow())
     }
+    @Test
+    fun raise_ratioMode_scalesProteinCarbsAndFatWithEnergy() {
+        // The prototype's Math.round(GOAL[k] * baseT / GOAL.target) at 2150.
+        val raised = base.raise(scaleMacros = true)
+        assertEquals(2150, raised.energyKcal)
+        assertEquals(123, raised.proteinG)
+        assertEquals(256, raised.carbsG)
+        assertEquals(72, raised.fatG)
+    }
+
+    @Test
+    fun raise_ratioMode_leavesFiberAlone() {
+        assertEquals(base.fiberG, base.raise(scaleMacros = true).fiberG)
+    }
+
+    @Test
+    fun raise_gramMode_leavesTheGramsWhereTheyAre() {
+        val raised = base.raise(scaleMacros = false)
+        assertEquals(listOf(120, 250, 70, 30), listOf(raised.proteinG, raised.carbsG, raised.fatG, raised.fiberG))
+    }
+
+    @Test
+    fun ratioMode_matchesThePrototypeAfterManySteps() {
+        var targets = base
+        repeat(10) { targets = targets.raise(scaleMacros = true) }
+        assertEquals(2600, targets.energyKcal)
+        assertEquals(Math.roundHalfUp(120 * 2600 / 2100.0), targets.proteinG)
+        assertEquals(Math.roundHalfUp(250 * 2600 / 2100.0), targets.carbsG)
+        assertEquals(Math.roundHalfUp(70 * 2600 / 2100.0), targets.fatG)
+    }
+
+    @Test
+    fun ratioMode_raiseThenLowerBackDoesNotDriftTheSplit() {
+        var targets = base
+        repeat(25) { targets = targets.raise(scaleMacros = true) }
+        repeat(25) { targets = requireNotNull(targets.lower(scaleMacros = true)) }
+        assertEquals(base, targets.copy(ratioBasis = null))
+    }
+
+    @Test
+    fun ratioMode_aGramModeStepStartsANewBasis() {
+        // Raise in ratio mode, switch to grams and raise (grams stay), back to
+        // ratio: the split now scales from where gram mode left it.
+        val inGrams = base.raise(scaleMacros = true).raise(scaleMacros = false)
+        assertNull(inGrams.ratioBasis)
+        assertEquals(123, inGrams.proteinG)
+        val backToRatio = inGrams.raise(scaleMacros = true)
+        assertEquals(Math.roundHalfUp(123 * 2250 / 2200.0), backToRatio.proteinG)
+    }
+
+    @Test
+    fun lower_ratioMode_stillStopsAtTheFloor() {
+        assertNull(base.lower(scaleMacros = true))
+        assertEquals(base, base.raise(scaleMacros = true).lower(scaleMacros = true)?.copy(ratioBasis = null))
+    }
+
+    private object Math {
+        fun roundHalfUp(value: Double): Int = kotlin.math.floor(value + 0.5).toInt()
+    }
 }
