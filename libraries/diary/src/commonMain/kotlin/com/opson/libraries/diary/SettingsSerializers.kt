@@ -1,6 +1,9 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.ExerciseAdjustment
+import com.opson.libraries.nutrition.MAX_DEFICIT_KCAL
+import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -10,6 +13,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WaterUnit
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
@@ -49,7 +53,7 @@ val SettingsJson: Json = Json {
 internal open class KeyedEnumSerializer<E : Enum<E>>(
     serialName: String,
     private val values: List<E>,
-    private val key: (E) -> String,
+    val key: (E) -> String,
     private val unknown: E,
 ) : KSerializer<E> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor(serialName, PrimitiveKind.STRING)
@@ -122,6 +126,8 @@ private class NumbersWire(
     val overrides: Map<Metric, Visibility> = emptyMap(),
     val pauseBeforeMore: Boolean = false,
     val changedAtEpochMs: Long? = null,
+    /** `"21:00"`. Missing (settings from before v3) or unreadable is the default, 9:00 pm. */
+    val revealAt: String? = null,
 )
 
 internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
@@ -134,6 +140,7 @@ internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
             overrides = value.overrides,
             pauseBeforeMore = value.pauseBeforeMore,
             changedAtEpochMs = value.changedAt?.toEpochMilliseconds(),
+            revealAt = value.revealAt.toWire(),
         ),
     )
 
@@ -144,8 +151,15 @@ internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
             overrides = wire.overrides,
             pauseBeforeMore = wire.pauseBeforeMore,
             changedAt = wire.changedAtEpochMs?.let(Instant::fromEpochMilliseconds),
+            revealAt = wire.revealAt?.let(::revealAtFromWire) ?: NumbersSettings.DEFAULT_REVEAL_AT,
         )
     }
+
+    /** Hours and minutes only: a reveal time has no seconds, and `"21:00"` reads the same everywhere. */
+    private fun LocalTime.toWire(): String =
+        hour.toString().padStart(2, '0') + ":" + minute.toString().padStart(2, '0')
+
+    private fun revealAtFromWire(value: String): LocalTime? = runCatching { LocalTime.parse(value) }.getOrNull()
 }
 
 @Serializable
@@ -158,6 +172,34 @@ private class TargetsWire(
     val fatG: Int,
     val fiberG: Int,
     val startingKcal: Int? = null,
+    val startingMinKcal: Int? = null,
+    val style: TargetStyleWire? = null,
+)
+
+/**
+ * The goal style. `kind` is `range`, `deficit` or `by_day`; anything else reads as a range, the
+ * one style that needs nothing else to be safe.
+ */
+@Serializable
+private class TargetStyleWire(
+    val kind: String = KIND_RANGE,
+    val deficitKcal: Int? = null,
+    val startingDeficitKcal: Int? = null,
+    val groups: List<DayGroupWire> = emptyList(),
+) {
+    companion object {
+        const val KIND_RANGE = "range"
+        const val KIND_DEFICIT = "deficit"
+        const val KIND_BY_DAY = "by_day"
+    }
+}
+
+/** One day group: days as `mon`..`sun`. */
+@Serializable
+private class DayGroupWire(
+    val days: List<String> = emptyList(),
+    val minKcal: Int,
+    val maxKcal: Int,
 )
 
 internal object TargetsSerializer : KSerializer<Targets> {
@@ -174,6 +216,8 @@ internal object TargetsSerializer : KSerializer<Targets> {
             fatG = value.fatG,
             fiberG = value.fiberG,
             startingKcal = value.startingKcal,
+            startingMinKcal = value.startingMinKcal,
+            style = value.style.toWire(),
         ),
     )
 
@@ -190,6 +234,63 @@ internal object TargetsSerializer : KSerializer<Targets> {
             // The floor is where the user started. Losing it would let the
             // target drift below it, so a missing value pins it to today's target.
             startingKcal = wire.startingKcal ?: wire.energyKcal,
+            startingMinKcal = wire.startingMinKcal ?: wire.minKcal,
+        ).let { targets -> targets.copy(style = wire.style?.toStyle(targets) ?: TargetStyle.Range) }
+    }
+
+    private fun TargetStyle.toWire(): TargetStyleWire = when (this) {
+        TargetStyle.Range -> TargetStyleWire(TargetStyleWire.KIND_RANGE)
+        is TargetStyle.Deficit -> TargetStyleWire(
+            TargetStyleWire.KIND_DEFICIT,
+            deficitKcal = kcal,
+            startingDeficitKcal = startingKcal,
         )
+        is TargetStyle.ByDay -> TargetStyleWire(
+            TargetStyleWire.KIND_BY_DAY,
+            groups = groups.map { group ->
+                DayGroupWire(
+                    days = DayOfWeek.entries.filter { it in group.days }.map(DayOfWeekSerializer.key),
+                    minKcal = group.minKcal,
+                    maxKcal = group.maxKcal,
+                )
+            },
+        )
+    }
+
+    /**
+     * Reads a style back, repairing rather than trusting it: another build or a hand-edited row
+     * could break the rules the write path keeps. A deficit is held to 0..its start (or the
+     * dietitian's maximum), groups to four, each weekday to exactly one group (first wins,
+     * missing days join the first), and a group whose range breaks the floor takes the base
+     * range. Anything unreadable is a plain range.
+     */
+    private fun TargetStyleWire.toStyle(targets: Targets): TargetStyle = when (kind) {
+        TargetStyleWire.KIND_DEFICIT -> {
+            val start = (startingDeficitKcal ?: 0).coerceAtLeast(0)
+            val cap = MAX_DEFICIT_KCAL ?: start
+            TargetStyle.Deficit(kcal = (deficitKcal ?: 0).coerceIn(0, cap), startingKcal = start)
+        }
+        TargetStyleWire.KIND_BY_DAY -> byDay(targets) ?: TargetStyle.Range
+        else -> TargetStyle.Range
+    }
+
+    private fun TargetStyleWire.byDay(targets: Targets): TargetStyle.ByDay? {
+        val wires = groups.take(TargetStyle.MAX_GROUPS)
+        if (wires.isEmpty()) return null
+        val seen = mutableSetOf<DayOfWeek>()
+        val decoded = wires.map { wire ->
+            val days = wire.days.mapNotNull(DayOfWeekSerializer::fromKey).filter(seen::add).toSet()
+            val safe = wire.minKcal >= targets.lowFloorKcal &&
+                (wire.minKcal + wire.maxKcal) / 2 >= targets.floorKcal &&
+                wire.maxKcal - wire.minKcal >= Targets.STEP_KCAL
+            if (safe) {
+                DayGroup(days, wire.minKcal, wire.maxKcal)
+            } else {
+                DayGroup(days, targets.minKcal, targets.maxKcal)
+            }
+        }.toMutableList()
+        val missing = DayOfWeek.entries.toSet() - seen
+        decoded[0] = decoded[0].copy(days = decoded[0].days + missing)
+        return TargetStyle.ByDay(decoded)
     }
 }

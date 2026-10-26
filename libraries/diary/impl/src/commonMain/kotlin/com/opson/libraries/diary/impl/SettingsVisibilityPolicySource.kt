@@ -13,11 +13,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
@@ -40,11 +44,12 @@ import kotlin.time.Instant
  *   existing account, the local settings are defaults (Full numbers) until the
  *   first pull lands. Serving those would flash every number at someone who
  *   chose to see none. Blind is the only safe guess.
- * - **A new policy at 9 pm and at midnight.** Delayed numbers open at 9 pm
- *   ([VisibilityPolicy.DAY_CLOSE_REVEAL]). The policy reads the clock when it
- *   resolves, but screens only re-resolve when the policy they hold changes,
- *   so without a fresh instance at the boundary the numbers would stay shut
- *   until something else happened to recompose.
+ * - **A new policy at the reveal time and at midnight.** Delayed numbers open
+ *   at the user's reveal time ([NumbersSettings.revealAt], 9 pm unless they
+ *   picked another). The policy reads the clock when it resolves, but screens
+ *   only re-resolve when the policy they hold changes, so without a fresh
+ *   instance at the boundary the numbers would stay shut until something else
+ *   happened to recompose.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -77,24 +82,31 @@ internal class LivePolicy(
 
     init {
         scope.launch {
-            while (true) {
-                val boundary = nextBoundary(clock.now())
-                // Steps of at most a minute: a coroutine delay does not count time
-                // the phone spent asleep, so one long delay could wake hours late.
-                while (clock.now() < boundary) {
-                    delay((boundary - clock.now()).coerceIn(1.milliseconds, 1.minutes))
+            // A new reveal time restarts the wait, so a change never leaves the loop
+            // asleep until the old boundary.
+            settingsRepository.settings
+                .map { it.numbers.revealAt }
+                .distinctUntilChanged()
+                .collectLatest { revealAt ->
+                    while (true) {
+                        val boundary = nextBoundary(clock.now(), revealAt)
+                        // Steps of at most a minute: a coroutine delay does not count time
+                        // the phone spent asleep, so one long delay could wake hours late.
+                        while (clock.now() < boundary) {
+                            delay((boundary - clock.now()).coerceIn(1.milliseconds, 1.minutes))
+                        }
+                        tick.value += 1
+                    }
                 }
-                tick.value += 1
-            }
         }
     }
 
     private fun build(numbers: NumbersSettings) = VisibilityPolicy(numbers, clock, calendar.timeZone())
 
-    private fun nextBoundary(now: Instant): Instant {
+    private fun nextBoundary(now: Instant, revealAt: LocalTime): Instant {
         val zone = calendar.timeZone()
         val local = now.toLocalDateTime(zone)
-        val reveal = LocalDateTime(local.date, VisibilityPolicy.DAY_CLOSE_REVEAL).toInstant(zone)
+        val reveal = LocalDateTime(local.date, revealAt).toInstant(zone)
         return if (now < reveal) reveal else local.date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone)
     }
 

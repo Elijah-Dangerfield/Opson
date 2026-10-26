@@ -1,5 +1,6 @@
 package com.opson.libraries.nutrition
 
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -26,12 +27,17 @@ sealed interface NumbersChange {
     @Serializable
     data object TurnOffPause : NumbersChange
 
+    /** When anything set to Later opens on the day. Earlier shows numbers sooner, so it is a raise. */
+    @Serializable
+    data class SetRevealAt(val time: LocalTime) : NumbersChange
+
     /** The settings after this change, stamped [at] so More can say when they last changed. */
     fun applyTo(settings: NumbersSettings, at: Instant): NumbersSettings = when (this) {
         is PickPreset -> settings.pickPreset(id, at)
         is Override -> settings.override(metric, level, at)
         is ClearOverride -> settings.copy(overrides = settings.overrides - metric, changedAt = at)
         TurnOffPause -> settings.copy(pauseBeforeMore = false, changedAt = at)
+        is SetRevealAt -> settings.copy(revealAt = time, changedAt = at)
     }
 
     /**
@@ -41,10 +47,15 @@ sealed interface NumbersChange {
      * so does turning the pause off: otherwise it could be skipped in two taps
      * (pause off, then raise), which defeats a setting the user turned on to
      * protect themselves. Lowering and equal-score changes never pause.
+     *
+     * The reveal time changes no level, so the score cannot see it. Moving it
+     * earlier opens Later numbers sooner, which is showing more, so that pauses
+     * too; moving it later never does.
      */
     fun needsPause(current: NumbersSettings): Boolean {
         if (!current.pauseBeforeMore) return false
         if (this == TurnOffPause) return true
+        if (this is SetRevealAt) return time < current.revealAt
         // The stamp does not affect the score, so any instant will do.
         return current.isRaise(applyTo(current, Instant.DISTANT_PAST))
     }

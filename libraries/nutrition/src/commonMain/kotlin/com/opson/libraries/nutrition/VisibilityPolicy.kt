@@ -33,14 +33,16 @@ class VisibilityPolicy(
     /**
      * Whether delayed numbers are open on [surface] for the day in [context].
      * Coast opens on the week view only. Everything else delayed also opens at
-     * day close, once the day is closed or past, and from 9:00 pm on the day.
+     * day close, once the day is closed or past, and from the user's reveal
+     * time ([NumbersSettings.revealAt], 9:00 pm unless they picked another) on
+     * the day.
      */
     fun isRevealed(surface: Surface, context: FormatContext = FormatContext()): Boolean {
         if (preset.revealOn == RevealOn.Week) return surface == Surface.Week
         if (surface == Surface.Week || surface == Surface.DayClose || context.dayClosed) return true
         val now = clock.now().toLocalDateTime(timeZone)
         val day = context.day ?: now.date
-        return day < now.date || (day == now.date && now.time >= DAY_CLOSE_REVEAL)
+        return day < now.date || (day == now.date && now.time >= settings.revealAt)
     }
 
     fun resolve(metric: Metric, value: Double?, surface: Surface, context: FormatContext = FormatContext()): Display {
@@ -158,6 +160,7 @@ class VisibilityPolicy(
         context.of?.takeIf { it != 0.0 } ?: WaterDefaults.GOAL_ML.toDouble()
 
     companion object {
-        val DAY_CLOSE_REVEAL: LocalTime = LocalTime(21, 0)
+        /** The default reveal time. The live one is [NumbersSettings.revealAt]. */
+        val DAY_CLOSE_REVEAL: LocalTime = NumbersSettings.DEFAULT_REVEAL_AT
     }
 }

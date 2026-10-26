@@ -102,6 +102,7 @@ class SettingsNumbersChanger(
         is NumbersChange.PickPreset -> "preset"
         is NumbersChange.Override, is NumbersChange.ClearOverride -> "metric"
         NumbersChange.TurnOffPause -> "pause"
+        is NumbersChange.SetRevealAt -> "reveal_time"
     }
 
     internal companion object {

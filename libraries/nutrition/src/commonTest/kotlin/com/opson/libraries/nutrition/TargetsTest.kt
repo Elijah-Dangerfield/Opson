@@ -73,7 +73,7 @@ class TargetsTest {
     @Test
     fun withEnergy_raisesFreelyAndMovesTheRange() {
         val set = base.withEnergy(2500)
-        assertEquals(Targets(2500, 2300, 2700, 120, 250, 70, 30, startingKcal = 2100), set)
+        assertEquals(Targets(2500, 2300, 2700, 120, 250, 70, 30, startingKcal = 2100, startingMinKcal = 1900), set)
     }
 
     @Test

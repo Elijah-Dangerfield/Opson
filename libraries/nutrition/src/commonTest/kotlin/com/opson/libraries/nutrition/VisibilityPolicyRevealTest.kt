@@ -1,6 +1,7 @@
 package com.opson.libraries.nutrition
 
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -67,6 +68,27 @@ class VisibilityPolicyRevealTest {
     @Test
     fun delayed_opensAtNineSharp() {
         assertEquals(Display.Shown("1,245"), delayedCalories(Surface.Today, now = at(21, 0)))
+    }
+
+    @Test
+    fun delayed_opensAtTheUsersOwnRevealTime() {
+        val settings = NumbersSettings(preset = PresetId.Delayed, revealAt = LocalTime(19, 30))
+        fun policyAt(hour: Int, minute: Int) = VisibilityPolicy(settings, clockAt(at(hour, minute)), TimeZone.UTC)
+        assertFalse(policyAt(19, 29).isRevealed(Surface.Today))
+        assertTrue(policyAt(19, 30).isRevealed(Surface.Today))
+        assertEquals(Display.Shown("1,245"), policyAt(19, 30).resolve(Metric.Calories, 1245.0, Surface.Today, FormatContext(bare = true)))
+    }
+
+    @Test
+    fun delayed_aLaterRevealTimeKeepsNineOClockShut() {
+        val settings = NumbersSettings(preset = PresetId.Delayed, revealAt = LocalTime(22, 15))
+        assertFalse(VisibilityPolicy(settings, clockAt(at(21, 0)), TimeZone.UTC).isRevealed(Surface.Today))
+        assertTrue(VisibilityPolicy(settings, clockAt(at(22, 15)), TimeZone.UTC).isRevealed(Surface.Today))
+    }
+
+    @Test
+    fun revealTime_defaultsToNine() {
+        assertEquals(LocalTime(21, 0), NumbersSettings().revealAt)
     }
 
     @Test

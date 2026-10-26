@@ -5,6 +5,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
 
 /**
@@ -21,6 +22,8 @@ class PauseBeforeMoreRoute(
     val presetKey: String? = null,
     val metricKey: String? = null,
     val levelKey: String? = null,
+    /** `"19:30"`, for a reveal time change. */
+    val timeKey: String? = null,
 ) : Route() {
 
     /** The change this sheet holds, or null for a route no [toRoute] could have built. */
@@ -33,6 +36,7 @@ class PauseBeforeMoreRoute(
         }
         KIND_CLEAR -> metricKey?.let(::metricFor)?.let(NumbersChange::ClearOverride)
         KIND_PAUSE -> NumbersChange.TurnOffPause
+        KIND_REVEAL -> timeKey?.let(::timeFor)?.let(NumbersChange::SetRevealAt)
         else -> null
     }
 
@@ -41,10 +45,16 @@ class PauseBeforeMoreRoute(
         const val KIND_OVERRIDE = "override"
         const val KIND_CLEAR = "clear"
         const val KIND_PAUSE = "pause"
+        const val KIND_REVEAL = "reveal"
 
         fun metricFor(key: String): Metric? = Metric.entries.firstOrNull { it.key == key }
 
         fun levelFor(key: String): Visibility? = Visibility.entries.firstOrNull { it.routeKey == key }
+
+        fun timeFor(key: String): LocalTime? = runCatching { LocalTime.parse(key) }.getOrNull()
+
+        fun timeKey(time: LocalTime): String =
+            time.hour.toString().padStart(2, '0') + ":" + time.minute.toString().padStart(2, '0')
     }
 }
 
@@ -58,6 +68,10 @@ fun NumbersChange.toRoute(): PauseBeforeMoreRoute = when (this) {
     )
     is NumbersChange.ClearOverride -> PauseBeforeMoreRoute(PauseBeforeMoreRoute.KIND_CLEAR, metricKey = metric.key)
     NumbersChange.TurnOffPause -> PauseBeforeMoreRoute(PauseBeforeMoreRoute.KIND_PAUSE)
+    is NumbersChange.SetRevealAt -> PauseBeforeMoreRoute(
+        PauseBeforeMoreRoute.KIND_REVEAL,
+        timeKey = PauseBeforeMoreRoute.timeKey(time),
+    )
 }
 
 /** Stable on purpose: a route saved in navigation state must still read back after an update. */

@@ -1,5 +1,6 @@
 package com.opson.libraries.nutrition
 
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,6 +22,31 @@ class NumbersChangeTest {
         val adjusted = NumbersSettings(preset = PresetId.Full, overrides = mapOf(Metric.Weight to Visibility.Hide))
         val next = NumbersChange.PickPreset(PresetId.Blind).applyTo(adjusted, at)
         assertEquals(NumbersSettings(preset = PresetId.Blind, changedAt = at), next)
+    }
+
+    @Test
+    fun setRevealAt_movesTheRevealAndStamps() {
+        val next = NumbersChange.SetRevealAt(LocalTime(19, 30)).applyTo(NumbersSettings(PresetId.Delayed), at)
+        assertEquals(LocalTime(19, 30), next.revealAt)
+        assertEquals(at, next.changedAt)
+    }
+
+    @Test
+    fun setRevealAt_earlierPauses_laterDoesNot() {
+        val delayed = NumbersSettings(PresetId.Delayed, pauseBeforeMore = true)
+        assertTrue(NumbersChange.SetRevealAt(LocalTime(20, 0)).needsPause(delayed))
+        assertFalse(NumbersChange.SetRevealAt(LocalTime(22, 0)).needsPause(delayed))
+        assertFalse(NumbersChange.SetRevealAt(delayed.revealAt).needsPause(delayed))
+        assertFalse(NumbersChange.SetRevealAt(LocalTime(6, 0)).needsPause(delayed.copy(pauseBeforeMore = false)))
+    }
+
+    @Test
+    fun changes_countOnlyLevelsThatDifferFromThePreset() {
+        val fuel = NumbersSettings(
+            PresetId.Fuel,
+            overrides = mapOf(Metric.Carbs to Visibility.Show, Metric.Protein to Presets[PresetId.Fuel].level(Metric.Protein)),
+        )
+        assertEquals(mapOf(Metric.Carbs to Visibility.Show), fuel.changes)
     }
 
     @Test

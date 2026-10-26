@@ -3,6 +3,7 @@ package com.opson.features.settings.impl.pause
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
+import kotlinx.datetime.LocalTime
 
 data class PauseState(
     val subject: PauseSubject,
@@ -24,12 +25,16 @@ sealed interface PauseSubject {
     /** Turning the pause itself off. */
     data object ThePause : PauseSubject
 
+    /** Moving the reveal time earlier, so Later numbers open sooner. */
+    data class RevealTime(val time: LocalTime) : PauseSubject
+
     companion object {
         fun of(change: NumbersChange): PauseSubject = when (change) {
             is NumbersChange.PickPreset -> Preset(change.id)
             is NumbersChange.Override -> Number(change.metric)
             is NumbersChange.ClearOverride -> Number(change.metric)
             NumbersChange.TurnOffPause -> ThePause
+            is NumbersChange.SetRevealAt -> RevealTime(change.time)
         }
     }
 }

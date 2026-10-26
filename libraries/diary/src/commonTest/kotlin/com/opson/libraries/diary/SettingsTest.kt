@@ -1,6 +1,9 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.ExerciseAdjustment
+import com.opson.libraries.nutrition.RangeEnd
+import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -11,6 +14,7 @@ import com.opson.libraries.nutrition.WaterUnit
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -149,6 +153,67 @@ class SettingsTest {
         )
 
         assertEquals(2300, decoded.targets.floorKcal)
+    }
+
+    @Test
+    fun theRevealTimeTravelsAsHoursAndMinutes_andDefaultsToNine() {
+        val s = Settings(numbers = NumbersSettings(preset = PresetId.Delayed, revealAt = LocalTime(19, 30)))
+        val json = SettingsJson.encodeToString(Settings.serializer(), s)
+        assertTrue("\"revealAt\":\"19:30\"" in json, json)
+        assertEquals(s, SettingsJson.decodeFromString(Settings.serializer(), json))
+
+        // Settings written before v3 have no reveal time.
+        val old = SettingsJson.decodeFromString(Settings.serializer(), """{"numbers":{"preset":"delayed"}}""")
+        assertEquals(LocalTime(21, 0), old.numbers.revealAt)
+        val broken = SettingsJson.decodeFromString(Settings.serializer(), """{"numbers":{"revealAt":"teatime"}}""")
+        assertEquals(LocalTime(21, 0), broken.numbers.revealAt)
+    }
+
+    @Test
+    fun everyGoalStyleSurvivesAJsonRoundTrip() {
+        val byDay = requireNotNull(Targets.Default.useByDay().addDayGroup())
+            .moveDay(DayOfWeek.MONDAY, 1)
+            .step(RangeEnd.High, up = true, group = 1)!!
+        listOf(
+            Targets.Default,
+            Targets.Default.useDeficit(burnKcal = 2420).stepDeficit(up = false)!!,
+            byDay,
+            Targets.Default.step(RangeEnd.Low, up = true)!!,
+        ).forEach { targets ->
+            val s = Settings(targets = targets)
+            assertEquals(s, SettingsJson.decodeFromString(Settings.serializer(), SettingsJson.encodeToString(Settings.serializer(), s)))
+        }
+    }
+
+    @Test
+    fun targetsFromBeforeGoalStylesAreARange_withTheLowEndPinned() {
+        val decoded = SettingsJson.decodeFromString(
+            Settings.serializer(),
+            """{"targets":{"energyKcal":2100,"minKcal":1900,"maxKcal":2300,"proteinG":120,"carbsG":250,"fatG":70,"fiberG":30}}""",
+        )
+        assertEquals(TargetStyle.Range, decoded.targets.style)
+        assertEquals(1900, decoded.targets.lowFloorKcal)
+    }
+
+    @Test
+    fun aGoalStyleThatBreaksTheRulesIsRepairedOnTheWayIn() {
+        val targets = """"energyKcal":2100,"minKcal":1900,"maxKcal":2300,"proteinG":120,"carbsG":250,"fatG":70,"fiberG":30"""
+        fun decode(style: String) = SettingsJson.decodeFromString(
+            Settings.serializer(),
+            """{"targets":{$targets,"style":$style}}""",
+        ).targets.style
+
+        assertEquals(TargetStyle.Range, decode("""{"kind":"crash_diet"}"""))
+        // A deficit past where it started is held there.
+        assertEquals(TargetStyle.Deficit(150, 150), decode("""{"kind":"deficit","deficitKcal":900,"startingDeficitKcal":150}"""))
+        // A day in two groups stays in the first; days in none join the first; a range under the floor takes the base.
+        val repaired = decode(
+            """{"kind":"by_day","groups":[{"days":["mon","tue"],"minKcal":1900,"maxKcal":2300},""" +
+                """{"days":["tue","sat"],"minKcal":1200,"maxKcal":1400}]}""",
+        )
+        val groups = (repaired as TargetStyle.ByDay).groups
+        assertEquals(DayOfWeek.entries.toSet() - DayOfWeek.SATURDAY, groups[0].days)
+        assertEquals(DayGroup(setOf(DayOfWeek.SATURDAY), 1900, 2300), groups[1])
     }
 
     @Test

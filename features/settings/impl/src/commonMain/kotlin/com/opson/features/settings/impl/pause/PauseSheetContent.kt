@@ -104,6 +104,7 @@ private fun body(subject: PauseSubject): String = when (subject) {
     is PauseSubject.Preset -> stringResource(Res.string.settings_pause_body, stringResource(subject.id.label))
     is PauseSubject.Number -> stringResource(Res.string.settings_pause_body, stringResource(subject.metric.label))
     PauseSubject.ThePause -> stringResource(Res.string.settings_pause_body_pause)
+    is PauseSubject.RevealTime -> stringResource(Res.string.settings_pause_body_pause)
 }
 
 private val PauseReason.label: StringResource

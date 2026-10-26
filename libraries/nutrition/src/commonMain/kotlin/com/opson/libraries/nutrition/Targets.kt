@@ -1,5 +1,7 @@
 package com.opson.libraries.nutrition
 
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -10,9 +12,20 @@ import kotlin.math.roundToInt
 // the user started, so the target can only go up.
 val GOAL_FLOOR_KCAL: Int? = null
 
+// TODO(dietitian): MAX_DEFICIT_KCAL caps "A set deficit" and must be set by the
+// same dietitian before launch, with the floor above. Do not invent a value.
+// While it is null, a deficit can never grow past the one it started at.
+val MAX_DEFICIT_KCAL: Int? = null
+
 /**
  * The user's energy range and macro goals. [startingKcal] is the target the
  * user began with, and is the floor until [GOAL_FLOOR_KCAL] is set.
+ * [startingMinKcal] is the low end they began with, the low end's floor until
+ * then. Each end of the range steps on its own ([step]); [energyKcal], the aim,
+ * is the middle of the range and never drops below [floorKcal] either.
+ *
+ * [style] is how the goal is shaped (a range, a set deficit, different by
+ * day). Ask [rangeFor] for any one day's goal rather than reading the fields.
  *
  * [ratioBasis] is bookkeeping for ratio mode, not something a screen reads:
  * the split the current grams were scaled from. Scaling each 50 kcal step from
@@ -30,10 +43,133 @@ data class Targets(
     val fiberG: Int,
     val startingKcal: Int = energyKcal,
     val ratioBasis: MacroSplit? = null,
+    val startingMinKcal: Int = minKcal,
+    val style: TargetStyle = TargetStyle.Range,
 ) {
+    /** The aim's floor. */
     val floorKcal: Int get() = GOAL_FLOOR_KCAL ?: startingKcal
 
-    val canLower: Boolean get() = energyKcal - STEP_KCAL >= floorKcal
+    /** The low end's floor: the dietitian's floor once set, until then where the low end started. */
+    val lowFloorKcal: Int get() = GOAL_FLOOR_KCAL ?: startingMinKcal
+
+    val canLower: Boolean
+        get() = energyKcal - STEP_KCAL >= floorKcal && minKcal - STEP_KCAL >= lowFloorKcal
+
+    /** The most a set deficit may be: the dietitian's maximum once set, until then where it started. */
+    val maxDeficitKcal: Int
+        get() = MAX_DEFICIT_KCAL ?: (style as? TargetStyle.Deficit)?.startingKcal ?: 0
+
+    /**
+     * The goal for [date]. A day group's range under [TargetStyle.ByDay]; under
+     * [TargetStyle.Deficit], "about" what the user burns ([burnKcal], a 7-day average) less the
+     * deficit, never below the floor. A deficit falls back to the range when the burn is not
+     * known yet or [preset] does not offer deficits, so a mode change can never leave a
+     * deficit running where the user can't see or change it.
+     */
+    fun rangeFor(date: LocalDate, preset: PresetId, burnKcal: Int? = null): DayGoal {
+        val base = DayGoal.Range(minKcal, maxKcal, energyKcal)
+        return when (val s = style) {
+            TargetStyle.Range -> base
+            is TargetStyle.ByDay -> {
+                val index = s.groups.indexOfFirst { date.dayOfWeek in it.days }
+                if (index < 0) {
+                    base
+                } else {
+                    val group = s.groups[index]
+                    DayGoal.Range(group.minKcal, group.maxKcal, group.midKcal, groupIndex = index)
+                }
+            }
+            is TargetStyle.Deficit -> {
+                if (burnKcal == null || !TargetStyle.deficitAllowed(preset)) {
+                    base
+                } else {
+                    DayGoal.About(deficitGoal(burnKcal, s.kcal))
+                }
+            }
+        }
+    }
+
+    /** What the user burns less [deficit], rounded to 10 and never under the floor. */
+    fun deficitGoal(burnKcal: Int, deficit: Int): Int {
+        val rounded = ((burnKcal - deficit) / 10.0).roundToInt() * 10
+        val floor = ((floorKcal + 9) / 10) * 10
+        return max(rounded, floor)
+    }
+
+    /** Whether moving [end] of the range (or of day group [group]) by one step [up] is allowed. */
+    fun canStep(end: RangeEnd, up: Boolean, group: Int? = null): Boolean = stepped(end, up, group) != null
+
+    /**
+     * Moves [end] of the base range, or of day group [group], by 50 kcal. `null` when that would
+     * break the floor rule (the low end under [lowFloorKcal], the middle under [floorKcal]) or
+     * bring the ends closer than one step. Raising the high end is always allowed. With
+     * [scaleMacros] (ratio mode) a base range step scales protein, carbs and fat with the aim.
+     */
+    fun step(end: RangeEnd, up: Boolean, group: Int? = null, scaleMacros: Boolean = false): Targets? {
+        val (min, max) = stepped(end, up, group) ?: return null
+        if (group == null) return withEnds(min, max, scaleMacros)
+        val byDay = style as TargetStyle.ByDay
+        val groups = byDay.groups.toMutableList()
+        groups[group] = groups[group].copy(minKcal = min, maxKcal = max)
+        return copy(style = byDay.copy(groups = groups))
+    }
+
+    /** A plain range. Day groups and a deficit are dropped; the base range stays as it is. */
+    fun useRange(): Targets = copy(style = TargetStyle.Range)
+
+    /**
+     * A set deficit, unless one is already set. It starts at what the user's aim already implies
+     * against [burnKcal] (floored to 50, never negative), and at 0 when the burn is unknown, so
+     * while [MAX_DEFICIT_KCAL] is unset it never asks for more than the user already had.
+     */
+    fun useDeficit(burnKcal: Int?): Targets {
+        if (style is TargetStyle.Deficit) return this
+        val implied = burnKcal?.let { max(0, it - energyKcal) / STEP_KCAL * STEP_KCAL } ?: 0
+        val start = MAX_DEFICIT_KCAL?.let { minOf(implied, it) } ?: implied
+        return copy(style = TargetStyle.Deficit(kcal = start, startingKcal = start))
+    }
+
+    /** Different by day, unless it already is: one group holding every day, on the base range. */
+    fun useByDay(): Targets {
+        if (style is TargetStyle.ByDay) return this
+        return copy(style = TargetStyle.ByDay(listOf(DayGroup(DayOfWeek.entries.toSet(), minKcal, maxKcal))))
+    }
+
+    /** One step more or less deficit. `null` below 0 or past [maxDeficitKcal]. */
+    fun stepDeficit(up: Boolean): Targets? {
+        val deficit = style as? TargetStyle.Deficit ?: return null
+        val next = deficit.kcal + if (up) STEP_KCAL else -STEP_KCAL
+        if (next < 0 || next > maxDeficitKcal) return null
+        return copy(style = deficit.copy(kcal = next))
+    }
+
+    /** Moves [day] into group [group]. A day is never removed, only moved, so it stays in exactly one group. */
+    fun moveDay(day: DayOfWeek, group: Int): Targets {
+        val byDay = style as? TargetStyle.ByDay ?: return this
+        if (group !in byDay.groups.indices) return this
+        val groups = byDay.groups.mapIndexed { index, it ->
+            if (index == group) it.copy(days = it.days + day) else it.copy(days = it.days - day)
+        }
+        return copy(style = byDay.copy(groups = groups))
+    }
+
+    /** A new, empty group on the first group's range. `null` at [TargetStyle.MAX_GROUPS]. */
+    fun addDayGroup(): Targets? {
+        val byDay = style as? TargetStyle.ByDay ?: return null
+        if (byDay.groups.size >= TargetStyle.MAX_GROUPS) return null
+        val first = byDay.groups.first()
+        return copy(style = byDay.copy(groups = byDay.groups + DayGroup(emptySet(), first.minKcal, first.maxKcal)))
+    }
+
+    /** Removes group [group], handing its days to the first group. The first group stays. */
+    fun removeDayGroup(group: Int): Targets? {
+        val byDay = style as? TargetStyle.ByDay ?: return null
+        if (group <= 0 || group > byDay.groups.lastIndex) return null
+        val removed = byDay.groups[group]
+        val groups = byDay.groups.filterIndexed { index, _ -> index != group }.toMutableList()
+        groups[0] = groups[0].copy(days = groups[0].days + removed.days)
+        return copy(style = byDay.copy(groups = groups))
+    }
 
     /**
      * Raising is always allowed. With [scaleMacros] (ratio mode) protein, carbs
@@ -62,14 +198,43 @@ data class Targets(
      */
     fun tomorrow(): EnergyRange = EnergyRange(energyKcal, minKcal, maxKcal, activityKcal = 0)
 
+    private fun stepped(end: RangeEnd, up: Boolean, group: Int?): Pair<Int, Int>? {
+        val (min, max) = if (group == null) {
+            minKcal to maxKcal
+        } else {
+            val g = (style as? TargetStyle.ByDay)?.groups?.getOrNull(group) ?: return null
+            g.minKcal to g.maxKcal
+        }
+        val delta = if (up) STEP_KCAL else -STEP_KCAL
+        val next = when (end) {
+            RangeEnd.Low -> (min + delta) to max
+            RangeEnd.High -> min to (max + delta)
+        }
+        val (nextMin, nextMax) = next
+        val gapOk = nextMax - nextMin >= STEP_KCAL
+        // Only a step down can cross a floor; a step up is checked for the gap alone.
+        val floorOk = up || (nextMin >= lowFloorKcal && (nextMin + nextMax) / 2 >= floorKcal)
+        return if (gapOk && floorOk) next else null
+    }
+
+    private fun withEnds(min: Int, max: Int, scaleMacros: Boolean): Targets {
+        val energy = (min + max) / 2
+        val moved = copy(energyKcal = energy, minKcal = min, maxKcal = max, ratioBasis = null)
+        return if (scaleMacros) scaledTo(moved, energy) else moved
+    }
+
     private fun shiftedBy(kcal: Int, scaleMacros: Boolean = false): Targets {
         val energy = energyKcal + kcal
         val shifted = copy(energyKcal = energy, minKcal = minKcal + kcal, maxKcal = maxKcal + kcal, ratioBasis = null)
-        if (!scaleMacros) return shifted
+        return if (scaleMacros) scaledTo(shifted, energy) else shifted
+    }
+
+    /** [moved] with protein, carbs and fat scaled from this target's ratio basis to [energy]. */
+    private fun scaledTo(moved: Targets, energy: Int): Targets {
         val basis = ratioBasis ?: MacroSplit(energyKcal, proteinG, carbsG, fatG)
-        if (basis.kcal <= 0) return shifted
+        if (basis.kcal <= 0) return moved
         fun scaled(grams: Int) = (grams * energy.toDouble() / basis.kcal).roundToInt()
-        return shifted.copy(
+        return moved.copy(
             proteinG = scaled(basis.proteinG),
             carbsG = scaled(basis.carbsG),
             fatG = scaled(basis.fatG),

@@ -4,6 +4,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -25,6 +26,7 @@ class PauseBeforeMoreRouteTest {
                 add(NumbersChange.ClearOverride(metric))
             }
             add(NumbersChange.TurnOffPause)
+            add(NumbersChange.SetRevealAt(LocalTime(19, 30)))
         }
 
         changes.forEach { assertEquals(it, it.toRoute().change()) }
