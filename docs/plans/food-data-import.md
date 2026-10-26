@@ -123,3 +123,44 @@ in this repo under `legal/` and synced there by pull request (see
 | Nutrola "open dataset" | Claims 500k foods under CC BY-SA, but no GitHub repo by that name exists, so it can't be downloaded or checked. Its stated sources are ones we already import. Revisit only if a real download appears. |
 | PhysioNet CGMacros | Glucose-monitor study with per-meal totals for 45 people. CC BY-NC-SA, non-commercial. |
 | GWU Himmelfarb guide | A list of links. No food composition database on it. |
+
+## Future work (queued, don't start yet)
+
+Decided by the user on 2026-10-26. Start only when the user asks.
+
+### Scan-miss measurement (0.1)
+
+- When a barcode lookup finds nothing, record the miss server-side: barcode,
+  the user's country, timestamp, and the platform. No user ID, no other
+  personal data.
+- A table such as `barcode_misses` in the same database, with a count per
+  barcode so repeat misses roll up.
+- A Grafana panel in the Opson folder: overall hit rate, misses over time,
+  the most-missed barcodes, and misses by country. Use the existing
+  `opson-db` / `opson-prod-db` datasources and the Database dropdown
+  (`ops/grafana/generate_db_dashboards.py`).
+- This hit rate decides whether a paid fallback (Nutritionix) is worth
+  turning on.
+
+### Label photo and community foods (0.2)
+
+- On a scan miss, offer in this order: "Save the name only" (already built,
+  and it stays first for recovery users), photograph the label, or type it in.
+- Photo: front and back. On-device text recognition fills in the Nutrition
+  Facts fields. The user confirms or edits before saving.
+- On save, the food is also added to a shared **community** table with its
+  barcode: tier 4, `verified = false`. It shows up for other users' scans and
+  searches, ranked below tiers 1 to 3. Store the label photos for review.
+- Keep it out of the share-alike tables, and never copy Open Food Facts rows
+  into it.
+- **Review in Grafana:** a board listing pending community foods, with the
+  label photos, the entered values, and how many users scanned that barcode.
+  The user approves or rejects each one there.
+  - Approved: `verified = true`, shows a verified badge, and is reclassified
+    from community to a reviewed tier. Pick the tier name with the user.
+  - Rejected: hidden from other users. It stays in the submitter's own foods.
+  - Grafana panels are read-only. Approve and reject need a write path,
+    either a Grafana action button calling an authenticated admin endpoint
+    or the existing `apps/admin`. Check which fits before building.
+- Optional, ask the user first: offer approved entries back to Open Food
+  Facts.
