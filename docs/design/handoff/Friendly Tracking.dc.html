@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E4E6EE}
+a{color:#34589A}
+a:hover{color:#1A1C1F}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#E4E6EE;color:#14161C;font-family:'Atkinson Hyperlegible Next','Atkinson Hyperlegible',system-ui,sans-serif;display:flex;flex-direction:column">
+  <header style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid #D3D5D8;background:#EEEFF1">
+    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:700;font-size:17px">Friendly Tracking</span><span style="font-size:13px;color:#5B6068">MVP prototype · mock data, nothing leaves this page</span></div>
+    <div style="display:flex;background:#DFE1E4;border-radius:12px;padding:3px;gap:2px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.onClick }}" style="border:none;border-radius:10px;padding:9px 16px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }}">{{ t.label }}</button></sc-for>
+    </div>
+  </header>
+
+  <sc-if value="{{ view.proto }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-wrap:wrap;gap:56px;justify-content:center;align-items:flex-start;padding:44px 24px 64px">
+      <dc-import name="Phone" palette="{{ palette }}" settings="{{ settings }}" on-settings="{{ onSettings }}" screen="{{ protoScreen }}" screen-nonce="{{ screenNonce }}" big-day="{{ bigDay }}" theme="{{ theme }}" text-size="{{ textSize }}" hint-size="390px,844px"></dc-import>
+      <div style="width:300px;max-width:100%;display:flex;flex-direction:column;gap:24px">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:13px;font-weight:600;color:#5B6068">Mode</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ modeChips }}" as="c" hint-placeholder-count="10"><button onClick="{{ c.onClick }}" style="border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:999px;padding:7px 12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">{{ c.label }}</button></sc-for></div>
+          <span style="font-size:13px;color:#5B6068;line-height:1.4">Switches here skip the in-app pause so you can review quickly. Inside the app, turn on "Pause before showing more" to feel the friction.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:13px;font-weight:600;color:#5B6068">Sample day</span>
+          <div style="display:flex;background:#DFE1E4;border-radius:12px;padding:3px;gap:2px"><sc-for list="{{ dayOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="flex:1;border:none;border-radius:10px;padding:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+          <span style="font-size:13px;color:#5B6068;line-height:1.4">Big day adds a birthday dinner, then open Close the day to see the reset card.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.45">
+          <span style="font-size:13px;font-weight:600;color:#5B6068">Try</span>
+          <span>Tap + for the quick-add sheet.</span>
+          <span>Tap the summary card for that day's nutrients.</span>
+          <span>Use the arrows by the date to go back a day, or forward to plan meals.</span>
+          <span>Tap the check at the top to close the day.</span>
+          <span>More, then Modes and numbers: change one number at a time.</span>
+        </div>
+        <button onClick="{{ replay }}" style="align-self:flex-start;background:none;border:1px solid #C9CCD0;border-radius:12px;padding:9px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;color:#1A1C1F">Replay onboarding</button>
+        <button onClick="{{ reset }}" style="align-self:flex-start;background:none;border:1px solid #C9CCD0;border-radius:12px;padding:9px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;color:#1A1C1F">Reset saved settings</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ view.gallery }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:40px;padding:32px 28px 64px">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+        <section style="display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:18px;font-weight:700">{{ g.title }}</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:28px">
+            <sc-for list="{{ g.items }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="width:215px;height:442px;overflow:hidden;padding:10px;box-sizing:border-box"><div style="width:390px;height:844px;transform:scale(0.5);transform-origin:0 0">
+                  <dc-import name="Phone" palette="{{ palette }}" settings="{{ p.settings }}" screen="{{ p.screen }}" log-tab="{{ p.logTab }}" sheet="{{ p.sheet }}" onb-step="{{ p.onbStep }}" big-day="{{ p.bigDay }}" demo="{{ p.demo }}" sw-page="{{ p.swPage }}" photo-estimated="{{ p.photoEstimated }}" quick-parsed="{{ p.quickParsed }}" friction="{{ p.friction }}" nut-range="{{ p.nutRange }}" theme="{{ theme }}" text-size="{{ textSize }}" hint-size="390px,844px"></dc-import>
+                </div></div>
+                <span style="font-size:13px;font-weight:600;padding-left:10px">{{ p.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ view.test }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:20px;padding:32px 28px 64px;max-width:900px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h2 style="margin:0;font-size:22px;font-weight:700">Blind mode leak test</h2>
+        <span style="font-size:15px;color:#3E4248;line-height:1.5;max-width:640px;text-wrap:pretty">Renders every surface in Blind mode, including search, the add sheet, photo estimates, history and widgets, then scans the text for any calorie amount or policy-tagged value. Full numbers runs alongside as a control, to prove the scanner can see values when they exist.</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <button onClick="{{ runTest }}" style="background:#4255D8;color:#FFFFFF;border:none;border-radius:12px;padding:12px 20px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">{{ testBtn }}</button>
+        <span style="font-size:16px;font-weight:700">{{ testSummary }}</span>
+      </div>
+      <sc-if value="{{ hasResults }}">
+        <div style="background:#FFFFFF;border-radius:16px;padding:6px 20px;display:flex;flex-direction:column">
+          <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:12px;padding:10px 0;font-size:13px;font-weight:600;color:#5B6068"><span>Surface</span><span>Blind</span><span>Full numbers (control)</span></div>
+          <sc-for list="{{ results }}" as="r" hint-placeholder-count="10">
+            <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:12px;padding:10px 0;border-top:1px solid #E1E3E6;font-size:14px">
+              <span style="font-weight:600">{{ r.label }}</span>
+              <span style="font-weight:700">{{ r.blind }}</span>
+              <span style="color:#5B6068">{{ r.full }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <div ref="{{ testRef }}" data-leak-root="" style="display:flex;flex-wrap:wrap;gap:6px;opacity:0.9">
+        <sc-for list="{{ testSurfaces }}" as="p" hint-placeholder-count="0">
+          <div data-surface="{{ p.id }}" style="width:117px;height:253px;overflow:hidden"><div style="width:390px;height:844px;transform:scale(0.3);transform-origin:0 0">
+            <dc-import name="Phone" palette="{{ palette }}" settings="{{ p.settings }}" screen="{{ p.screen }}" log-tab="{{ p.logTab }}" sheet="{{ p.sheet }}" onb-step="{{ p.onbStep }}" big-day="{{ p.bigDay }}" demo="{{ p.demo }}" sw-page="{{ p.swPage }}" photo-estimated="{{ p.photoEstimated }}" quick-parsed="{{ p.quickParsed }}" friction="{{ p.friction }}" nut-range="{{ p.nutRange }}" hint-size="390px,844px"></dc-import>
+          </div></div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;palette&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pine&quot;,&quot;espresso&quot;,&quot;clay&quot;,&quot;plum&quot;],&quot;default&quot;:&quot;pine&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Display&quot;},&quot;dark&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Display&quot;},&quot;largeText&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Display&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;onb&quot;,&quot;today&quot;,&quot;log&quot;,&quot;dayclose&quot;,&quot;week&quot;,&quot;modes&quot;,&quot;reminders&quot;,&quot;weight&quot;,&quot;integrations&quot;,&quot;support&quot;,&quot;widgets&quot;],&quot;default&quot;:&quot;today&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;}}">
+const KEY = 'ft-settings-v1';
+const MODES = [['full','Full numbers'],['delayed','Delayed reveal'],['blind','Blind'],['nutrient','Nutrient focus'],['rhythm','Rhythm'],['explorer','Explorer'],['mindful','Mindful'],['fuel','Fuel'],['sprint','Sprint'],['coast','Coast']];
+const NAME = Object.fromEntries(MODES);
+const v = (mode, screen, label, extra = {}) => ({label:label || NAME[mode], screen, settings:{mode, ...(extra.settings || {})}, ...extra});
+
+const GROUPS = [
+  {title:'1 · Onboarding', items:[v('full','onb','Pricing first, skip available',{onbStep:0}), v('full','onb','Question 2 of 4',{onbStep:2}), v('full','onb','Mode preview',{onbStep:5})]},
+  {title:'2 · Today', items:['full','delayed','blind','rhythm','explorer','nutrient','fuel','mindful','sprint','coast'].map(m => v(m,'today'))},
+  {title:'Today · summary pages and menus', items:[v('full','today','Summary · energy'), v('full','today','Third ring · Remaining',{settings:{ringMode:'remaining'}}), v('full','today','Third ring · Balance',{settings:{ringMode:'balance'}}), v('full','today','Summary · macros',{swPage:1}), v('full','today','Summary · scores (off)',{swPage:2}), v('full','today','Summary · scores (on)',{swPage:2,settings:{overrides:{micros:'show'}}}), v('full','today','Calendar',{sheet:'cal'}), v('full','today','Meal + options',{sheet:'mealMenu'}), v('full','today','Meal groups off',{settings:{mealGroups:false}}), v('blind','today','How it felt',{sheet:'mealFeel'}), v('full','today','Meal note',{sheet:'mealNote'}), v('full','today','Water options',{sheet:'waterMenu'}), v('full','water','Water settings'), v('full','today','Day menu',{sheet:'dayMenu'}), v('full','today','Add menu',{sheet:'addMenu'}), v('full','today','Fasting on Today',{settings:{fasting:true}})]},
+  {title:'Fasting', items:[v('full','fasting','Full numbers · off'), v('full','fasting','Full numbers · on',{settings:{fasting:true}}), v('blind','fasting','Blind'), v('rhythm','fasting','Rhythm')]},
+  {title:'3 · Log entry', items:[
+    v('full','today','Logger · Full',{sheet:'quick'}), v('full','today','Logger · foods picked',{sheet:'quick',demo:true}), v('blind','today','Logger · Blind',{sheet:'quick',demo:true}),
+    v('full','log','Search · Full'), v('blind','log','Search · Blind'),
+    v('full','log','Add sheet · Full',{sheet:'add'}), v('blind','log','Add sheet · Blind',{sheet:'add'}),
+    v('full','log','Photo estimate · Full',{logTab:'photo',photoEstimated:true}), v('blind','log','Photo estimate · Blind',{logTab:'photo',photoEstimated:true}),
+    v('full','log','Describe · Full',{logTab:'quick',quickParsed:true}), v('blind','log','Describe · Blind',{logTab:'quick',quickParsed:true}),
+    v('full','log','Saved meals',{logTab:'saved'})]},
+  {title:'4 · Day close', items:[v('full','dayclose','Big day · Full',{bigDay:true}), v('delayed','dayclose','Reveal · Delayed',{bigDay:true}), v('fuel','dayclose','Fuel'), v('blind','dayclose','Blind',{bigDay:true})]},
+  {title:'Nutrients detail', items:[v('full','nutrients','Day · vitamins off (default)'), v('full','nutrients','Day · vitamins on',{settings:{overrides:{micros:'show'}}}), v('full','nutrients','Week average',{nutRange:'week',settings:{overrides:{micros:'show'}}}), v('fuel','nutrients','Fuel'), v('blind','nutrients','Blind')]},
+  {title:'5 · Trends (week)', items:[v('full','week','Full numbers'), v('blind','week','Blind'), v('coast','week','Coast'), v('full','week','Week starts Saturday',{settings:{weekStart:'Sat'}}), v('full','week','Trends settings',{sheet:'trends'}), v('full','week','3 months',{settings:{trRange:'3M'}})]},
+  {title:'6 · Modes and visibility', items:[v('full','modes','Presets and matrix'), v('blind','modes','From Blind'), v('blind','modes','Pause before more',{friction:true,sheet:'friction',settings:{lock:true}})]},
+  {title:'7 · Reminders and celebrations', items:[v('full','reminders','Per event, quiet mode, tone')]},
+  {title:'8 · Weight', items:[v('full','weight','Numbers'), v('delayed','weight','Trend only'), v('blind','weight','Hidden')]},
+  {title:'9 · Integrations', items:[v('full','integrations','Full numbers'), v('blind','integrations','Blind')]},
+  {title:'10 · Support and sharing', items:[v('full','support','Support and sharing')]},
+  {title:'Widgets and watch', items:[v('full','widgets','Full numbers'), v('blind','widgets','Blind'), v('rhythm','widgets','Rhythm')]},
+  {title:'Foods', items:[v('full','foods','Full numbers'), v('blind','foods','Blind'), v('full','mealbuilder','Create a meal',{demo:true}), v('blind','mealbuilder','Create a meal · Blind',{demo:true}), v('full','customfood','Custom food'), v('nutrient','customfood','Custom food · Nutrient focus'), v('blind','customfood','Custom food · Blind')]},
+  {title:'Targets', items:[v('full','targets','Full numbers'), v('blind','targets','Blind')]},
+  {title:'More', items:[v('full','more','More')]},
+];
+
+const SURFACES = [
+  {label:'Onboarding · pricing', screen:'onb', onbStep:0}, {label:'Onboarding · mode preview', screen:'onb', onbStep:5},
+  {label:'Today', screen:'today'}, {label:'Today · big day', screen:'today', bigDay:true},
+  {label:'Quick-add sheet', screen:'today', sheet:'quick'}, {label:'Food search', screen:'log'}, {label:'Add-food sheet', screen:'log', sheet:'add'},
+  {label:'Photo estimate', screen:'log', logTab:'photo', photoEstimated:true}, {label:'Describe a meal', screen:'log', logTab:'quick', quickParsed:true},
+  {label:'Saved meals and copy yesterday', screen:'log', logTab:'saved'},
+  {label:'Day close · big day', screen:'dayclose', bigDay:true}, {label:'Trends (week history)', screen:'week'}, {label:'Foods tab', screen:'foods'}, {label:'Nutrients detail', screen:'nutrients'},
+  {label:'Modes and numbers', screen:'modes'}, {label:'Reminders', screen:'reminders'}, {label:'Weight', screen:'weight'},
+  {label:'Integrations', screen:'integrations'}, {label:'Support', screen:'support'}, {label:'More', screen:'more'},
+  {label:'Widgets and watch', screen:'widgets'},
+  {label:'Meal options', screen:'today', sheet:'mealMenu'}, {label:'How it felt', screen:'today', sheet:'mealFeel'}, {label:'Water options', screen:'today', sheet:'waterMenu'}, {label:'Water settings', screen:'water'},
+  {label:'Calendar', screen:'today', sheet:'cal'}, {label:'Day menu', screen:'today', sheet:'dayMenu'}, {label:'Add menu', screen:'today', sheet:'addMenu'}, {label:'Fasting', screen:'fasting'},
+  {label:'Logger with picked foods', screen:'today', sheet:'quick', demo:true}, {label:'Create a meal', screen:'mealbuilder', demo:true}, {label:'Custom food', screen:'customfood'}, {label:'Targets', screen:'targets'},
+];
+const LEAK = /\d[\d,.]*\s*(kcal|cal\b|calories)|\d[\d,]*\s*left\b/gi;
+const TAGGED = '[data-metric="calories"],[data-metric="remaining"],[data-metric="energyOut"]';
+
+function scan(el) {
+  if (!el) return null;
+  const text = el.textContent + ' ' + [...el.querySelectorAll('input,textarea')].map(i => i.value).join(' ');
+  return {hits:[...text.matchAll(LEAK)].map(m => m[0]), tagged:el.querySelectorAll(TAGGED).length};
+}
+
+class Component extends DCLogic {
+  testRef = React.createRef();
+  state = {tab:'proto', settings:this.load(), bigDay:false, testing:false, results:null};
+
+  load() { try { return JSON.parse(localStorage.getItem(KEY)) || {mode:'full'}; } catch (e) { return {mode:'full'}; } }
+  persist(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+  onSettings = patch => this.setState(st => {
+    const touchesNumbers = 'mode' in patch || 'overrides' in patch;
+    const stamp = touchesNumbers ? {changedAt:new Date().toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})} : {};
+    const s = {...st.settings, ...patch, ...stamp};
+    this.persist(s);
+    return {settings:s};
+  });
+  componentWillUnmount() { clearTimeout(this.t); }
+
+  runTest = () => {
+    this.setState({testing:true, results:null});
+    let n = 0;
+    const poll = () => {
+      const root = this.testRef.current || document.querySelector('[data-leak-root]') || document;
+      const ready = root.querySelectorAll('[data-surface] [data-ft]').length;
+      if (ready < SURFACES.length * 2 && n++ < 50) { this.t = setTimeout(poll, 150); return; }
+      this.t = setTimeout(() => {
+        const results = SURFACES.map((s, i) => ({label:s.label, blind:scan(root.querySelector(`[data-surface="blind-${i}"]`)), full:scan(root.querySelector(`[data-surface="full-${i}"]`))}));
+        this.setState({testing:false, results});
+        console.log('[leak-test]', results.map(r => `${r.label}: blind ${r.blind ? r.blind.hits.length + r.blind.tagged : 'missing'}`).join(' | '));
+      }, 300);
+    };
+    poll();
+  };
+
+  renderVals() {
+    const st = this.state, p = this.props;
+    const theme = p.dark ? 'dark' : 'light', textSize = p.largeText ? 'large' : 'normal';
+    const tab = (k, label) => ({label, onClick:() => this.setState({tab:k}), bg:st.tab === k ? '#FFFFFF' : 'transparent', fg:st.tab === k ? '#1A1C1F' : '#5B6068'});
+    const surfaces = st.testing || st.results ? SURFACES.flatMap((s, i) => [
+      {...s, id:`blind-${i}`, settings:{mode:'blind'}}, {...s, id:`full-${i}`, settings:{mode:'full'}},
+    ]) : [];
+    const res = st.results || [];
+    const pass = res.filter(r => r.blind && !r.blind.hits.length && !r.blind.tagged).length;
+    return {
+      tabs:[tab('proto','Prototype'), tab('gallery','Preview gallery'), tab('test','Blind leak test')],
+      view:{proto:st.tab === 'proto', gallery:st.tab === 'gallery', test:st.tab === 'test'},
+      theme, textSize, palette:p.palette || 'pine', settings:st.settings, onSettings:this.onSettings, protoScreen:st.protoScreen || p.startScreen || 'today', screenNonce:st.screenNonce || 0, bigDay:st.bigDay,
+      replay:() => this.setState(s => ({protoScreen:'onb', screenNonce:(s.screenNonce || 0) + 1})),
+      modeChips:MODES.map(([k, label]) => { const a = st.settings.mode === k; return {label, onClick:() => this.onSettings({mode:k, overrides:{}}), bd:a ? '#4255D8' : '#C9CCD8', bg:a ? '#4255D8' : '#F6F7FA', fg:a ? '#FFFFFF' : '#14161C'}; }),
+      dayOpts:[['Typical day', false], ['Big day', true]].map(([label, b]) => ({label, onClick:() => this.setState({bigDay:b}), bg:st.bigDay === b ? '#FFFFFF' : 'transparent', fg:st.bigDay === b ? '#1A1C1F' : '#5B6068'})),
+      reset:() => { this.persist({mode:'full'}); this.setState({settings:{mode:'full'}}); },
+      groups:GROUPS,
+      runTest:this.runTest, testBtn:st.testing ? 'Running…' : st.results ? 'Run again' : 'Run the test',
+      testRef:this.testRef, testSurfaces:surfaces, hasResults:!!st.results,
+      testSummary:st.results ? (pass === res.length ? `Pass: ${pass} of ${res.length} surfaces show no calorie values in Blind.` : `Fail: ${res.length - pass} of ${res.length} surfaces leak.`) : '',
+      results:res.map(r => ({
+        label:r.label,
+        blind:!r.blind ? 'Not rendered' : (!r.blind.hits.length && !r.blind.tagged) ? 'Pass' : `Leak: ${[...r.blind.hits.slice(0, 2)].join(', ') || r.blind.tagged + ' tagged values'}`,
+        full:!r.full ? 'Not rendered' : r.full.hits.length || r.full.tagged ? `${r.full.hits.length + r.full.tagged} values seen` : 'No values on this screen',
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>
