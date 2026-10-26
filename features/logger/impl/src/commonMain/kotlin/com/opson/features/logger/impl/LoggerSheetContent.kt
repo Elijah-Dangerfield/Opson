@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +25,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -41,7 +41,7 @@ import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.bounceClick
-import com.opson.libraries.ui.components.CircularLoadingIndicator
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.MenuItem
 import com.opson.libraries.ui.components.PopoverMenu
@@ -63,8 +63,6 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.color.ToneColors
-import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.delay
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.barcode_scan_cd
 import opson.libraries.resources.generated.resources.logger_add_to
@@ -334,7 +332,9 @@ private fun LazyListScope.body(body: LoggerBody, describable: Boolean, onAction:
                 color = AppTheme.colors.muted,
             )
         }
-        LoggerBody.Searching -> item(key = "searching") { SearchingIndicator() }
+        LoggerBody.Searching -> item(key = "searching") {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_searching_cd))
+        }
         is LoggerBody.NoResults -> {
             if (body.offline) item(key = "offline") { OfflineCaption() }
             item(key = "no-results") { NoResults(body.query, describable, onAction) }
@@ -372,28 +372,6 @@ private fun LazyListScope.body(body: LoggerBody, describable: Boolean, onAction:
     }
 }
 
-/** Shown only once a search has run past [SEARCHING_INDICATOR_DELAY], so fast answers don't flash a spinner. */
-@Composable
-private fun SearchingIndicator() {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(SEARCHING_INDICATOR_DELAY)
-        visible = true
-    }
-    val searchingDescription = stringResource(Res.string.logger_searching_cd)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = AppTheme.spacing.section)
-            .semantics { contentDescription = searchingDescription },
-        contentAlignment = Alignment.Center,
-    ) {
-        if (visible) CircularLoadingIndicator()
-    }
-}
-
-private val SEARCHING_INDICATOR_DELAY = 500.milliseconds
-
 @Composable
 private fun OfflineCaption() {
     Text(text = stringResource(Res.string.logger_offline_results), typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
@@ -401,6 +379,8 @@ private fun OfflineCaption() {
 
 @Composable
 private fun FoodRows(rows: List<FoodRowUi>, onAction: (LoggerAction) -> Unit) {
+    // Opening a food covers the search with the amount sheet; the keyboard would sit over it.
+    val focusManager = LocalFocusManager.current
     FoodRowsCard {
         rows.forEachIndexed { index, row ->
             FoodPickRow(
@@ -410,7 +390,10 @@ private fun FoodRows(rows: List<FoodRowUi>, onAction: (LoggerAction) -> Unit) {
                 macros = row.macros,
                 calories = row.calories,
                 picked = row.picked,
-                onOpen = { onAction(LoggerAction.FoodNameTapped(row)) },
+                onOpen = {
+                    focusManager.clearFocus()
+                    onAction(LoggerAction.FoodNameTapped(row))
+                },
                 onToggle = { onAction(LoggerAction.FoodToggleTapped(row)) },
                 iconSeed = row.key,
                 kind = row.kind,

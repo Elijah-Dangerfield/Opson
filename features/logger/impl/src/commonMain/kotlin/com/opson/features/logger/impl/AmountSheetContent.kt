@@ -41,6 +41,7 @@ import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.testTag
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -85,6 +86,7 @@ import opson.libraries.resources.generated.resources.logger_amount_kcal
 import opson.libraries.resources.generated.resources.logger_amount_less_cd
 import opson.libraries.resources.generated.resources.logger_amount_meal
 import opson.libraries.resources.generated.resources.logger_amount_meal_cd
+import opson.libraries.resources.generated.resources.logger_amount_loading_cd
 import opson.libraries.resources.generated.resources.logger_amount_missing
 import opson.libraries.resources.generated.resources.logger_amount_more_cd
 import opson.libraries.resources.generated.resources.logger_amount_now
@@ -174,7 +176,9 @@ private fun AmountColumn(state: AmountState, onAction: (AmountAction) -> Unit) {
         ) {
             if (state.missing) {
                 Text(text = stringResource(Res.string.logger_amount_missing), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
-            } else if (!state.loading) {
+            } else if (state.loading) {
+                DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_amount_loading_cd))
+            } else {
                 if (state.showAmount) AmountCard(state, onAction)
                 WhenCard(state, onAction)
                 state.portion?.let { PortionSection(it) }

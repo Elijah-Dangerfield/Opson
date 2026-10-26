@@ -147,6 +147,7 @@
     <string name="logger_micro_sodium">Sodium</string>
     <string name="logger_micro_zinc">Zinc</string>
     <string name="logger_micro_of_daily">%1$s of a day</string>
+    <string name="logger_amount_loading_cd">Loading this food</string>
     <string name="logger_amount_missing">This food needs a connection to open.</string>
 
     <!-- How it felt -->
