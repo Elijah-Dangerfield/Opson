@@ -68,6 +68,7 @@
     <string name="onboarding_statement_body">If you say yes, you get gentler starting points. We don't ask why, and the answer is used for nothing else.</string>
     <string name="onboarding_statement_yes">Yes, that's me</string>
     <string name="onboarding_statement_no">Not really</string>
+    <string name="onboarding_talk_to_someone">Talk to someone</string>
     <string name="onboarding_see_starting_point">See my starting point</string>
 
     <!-- Recommendation -->

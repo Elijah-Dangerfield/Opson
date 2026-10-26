@@ -83,6 +83,38 @@ class AddFoodTest : CoroutineTest() {
     }
 
     @Test
+    fun nutrientFocusSavesOnlyProteinAndFiber() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(AddFoodAction.NameTyped("Lola's pandesal"))
+        AddFoodStateBuilder.FIELD_ORDER.forEach { vm.takeAction(AddFoodAction.NutritionTyped(it, "5")) }
+
+        policySource.policy.value = policy(PresetId.Nutrient)
+        vm.takeAction(AddFoodAction.SaveTapped)
+
+        assertEquals(
+            CustomFoodDraft(name = "Lola's pandesal", servingAmount = 1.0, servingUnit = "piece", protein = 5.0, fiber = 5.0),
+            customFoods.created.single(),
+        )
+    }
+
+    @Test
+    fun blindSavesTheNameWithNoNumberEvenOnesTypedBefore() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(AddFoodAction.NameTyped("Lola's pandesal"))
+        vm.takeAction(AddFoodAction.NutritionTyped(Metric.Calories, "120"))
+
+        policySource.policy.value = policy(PresetId.Blind)
+        assertTrue(vm.state.labelOnly)
+        assertTrue(vm.state.canSave, "a name is enough")
+        vm.takeAction(AddFoodAction.SaveTapped)
+
+        assertEquals(
+            CustomFoodDraft(name = "Lola's pandesal", servingAmount = 1.0, servingUnit = "piece"),
+            customFoods.created.single(),
+        )
+    }
+
+    @Test
     fun numbersKeepDigitsAndOneDecimalPoint() = runUnitTest {
         val vm = vm()
 

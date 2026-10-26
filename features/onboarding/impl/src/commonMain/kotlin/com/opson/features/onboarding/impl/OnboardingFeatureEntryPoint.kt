@@ -10,6 +10,7 @@ import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.onboarding.SignInRoute
 import com.opson.features.onboarding.SignUpRoute
 import com.opson.features.onboarding.VerifyEmailRoute
+import com.opson.features.settings.SupportRoute
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.NavigationOptions
@@ -42,6 +43,9 @@ class OnboardingFeatureEntryPoint(
                     OnboardingEvent.NavigateToToday -> router.enterTab(TodayRoute())
                     OnboardingEvent.NavigateToSignIn -> router.navigate(SignInRoute())
                     OnboardingEvent.NavigateToSignUp -> router.navigate(SignUpRoute())
+                    // TODO(design-sync-2): open FindSupportRoute once the Settings agent's Find
+                    // support screen lands in :features:settings. Support has the helplines today.
+                    OnboardingEvent.NavigateToSupport -> router.navigate(SupportRoute())
                 }
             }
 

@@ -211,6 +211,23 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertFalse(PresetId.Sprint in vm.state.alternatives)
     }
 
+    @Test
+    fun talkToSomeone_opensSupport_whicheverAnswerIsPicked_andLeavesTheStepAlone() = runUnitTest {
+        listOf(null, StatementAnswer.Agree, StatementAnswer.NotReally).forEach { answer ->
+            val vm = atQuestion(SetupQuestion.Statement)
+            val received = collectEvents(vm)
+            answer?.let { vm.takeAction(OnboardingAction.OptionTapped(it)) }
+            runCurrent()
+            val before = vm.state
+
+            vm.takeAction(OnboardingAction.TalkToSomeoneTapped)
+            runCurrent()
+
+            assertEquals(listOf<OnboardingEvent>(OnboardingEvent.NavigateToSupport), received, "answer $answer")
+            assertEquals(before, vm.state, "answer $answer")
+        }
+    }
+
     // ---------- Continue, Skip, Back ----------
 
     @Test

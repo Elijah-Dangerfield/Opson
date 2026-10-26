@@ -36,6 +36,9 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Lock as OutlinedLock
+import androidx.compose.material.icons.outlined.Visibility as OutlinedVisibility
+import androidx.compose.material.icons.outlined.VisibilityOff as OutlinedVisibilityOff
+import androidx.compose.material.icons.rounded.SupportAgent
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.MoreVert
@@ -203,6 +206,10 @@ object AppIcons {
     // Visibility levels, as onboarding's mode preview marks them
     val Visibility get() = icon("visibility", MaterialIcons.Rounded.Visibility)
 
+    /** The outlined eye and eye-off, as design sync 2 draws the mode preview's lines. */
+    val VisibilityOutline get() = icon("visibility_outline", MaterialIcons.Outlined.OutlinedVisibility)
+    val VisibilityOffOutline get() = icon("visibility_off_outline", MaterialIcons.Outlined.OutlinedVisibilityOff)
+
     /** A softened number (a word or a fill bar): Symbols' `blur_on`, a field of dots. */
     val BlurOn get() = icon("blur_on", MaterialIcons.Rounded.BlurOn)
 
@@ -221,6 +228,9 @@ object AppIcons {
     val Notifications get() = icon("notifications", MaterialIcons.Outlined.Notifications)
     val WaterDropOutline get() = icon("water_drop_outline", MaterialIcons.Outlined.WaterDrop)
     val Support get() = icon("support", MaterialIcons.Rounded.Support)
+
+    /** A person with a headset: "Talk to someone", which opens Find support. */
+    val SupportAgent get() = icon("support_agent", MaterialIcons.Rounded.SupportAgent)
     val WorkspacePremium get() = icon("workspace_premium", MaterialIcons.Outlined.WorkspacePremium)
     val Download get() = icon("download", MaterialIcons.Rounded.Download)
 
@@ -276,7 +286,7 @@ object AppIcons {
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             SearchOff, Cancel, ArrowBack, ExpandMore,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
-            Visibility, BlurOn, Mail, Group, LockOutlined,
+            Visibility, VisibilityOutline, VisibilityOffOutline, BlurOn, Mail, Group, LockOutlined, SupportAgent,
             OpenInNew, Target, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
             Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch, Widgets,
