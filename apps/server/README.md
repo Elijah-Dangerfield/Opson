@@ -159,7 +159,8 @@ the usual `ProblemResponse`.
 | Method | Path | Notes |
 |---|---|---|
 | POST | `/v1/sync` | Push the outbox and pull changes in one call. 400 `too_many_mutations` (> 500), 400 `invalid_cursor`. |
-| GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. |
+| GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`) and `sort` (`best`, `name`); 400 `invalid_category` / `invalid_source` / `invalid_sort`. |
+| GET | `/v1/foods/search/options` | `{sources, categories}` this server takes; `off` only when `FOOD_SEARCH_OFF_ENABLED` is on. |
 | GET | `/v1/foods/{id}` | 400 `invalid_id`, 404 `not_found`. |
 | GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. 60/min per IP. |
 | POST | `/v1/foods/barcode-misses` `{id, barcode}` | The app reports a code the barcode route answered 404. 204, idempotent on `id`. Region, platform and app version come from the `X-*` headers; no user id is stored. 400 `invalid_id`, `invalid_barcode`. 60/min per IP. Feeds `barcode_misses` (V13). |

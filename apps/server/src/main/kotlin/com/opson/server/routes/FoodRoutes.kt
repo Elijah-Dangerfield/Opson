@@ -5,6 +5,10 @@ import com.opson.server.domain.BarcodeLookupResult
 import com.opson.server.domain.DescribeParser
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodDescriber
+import com.opson.server.domain.SearchCategory
+import com.opson.server.domain.SearchFilter
+import com.opson.server.domain.SearchSort
+import com.opson.server.domain.SearchSource
 import com.opson.server.http.clientContext
 import com.opson.server.plugins.BARCODE_LOOKUP_LIMIT
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
@@ -24,7 +28,12 @@ import java.util.UUID
  * The food catalog: search, detail, barcode, and "Describe it".
  *
  *  - `GET /v1/foods/search?q=&limit=25` ranked matches (see
- *    [FoodCatalogRepository]); records one anonymous search event.
+ *    [FoodCatalogRepository]); records one anonymous search event. Optional
+ *    `category` (`restaurant`, `beverage`, `common`), `source` (`usda`,
+ *    `off`) and `sort` (`best`, `name`) narrow or reorder it ([SearchFilter]);
+ *    without them the call is exactly 0.1's. An unknown value is a 400.
+ *  - `GET /v1/foods/search/options` which of those this server offers: `off`
+ *    only when `FOOD_SEARCH_OFF_ENABLED` is on.
  *  - `GET /v1/foods/{id}` one food with portions and micros.
  *  - `GET /v1/foods/barcode/{code}` catalog, then the enabled outside sources
  *    in tier order ([BarcodeLookup]). 404
@@ -50,13 +59,35 @@ fun Route.foodRoutes(
             val limit = call.request.queryParameters["limit"]?.toIntOrNull()
                 ?.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
                 ?: FoodCatalogRepository.DEFAULT_LIMIT
+            val params = call.request.queryParameters
+            val category = params["category"]?.let {
+                SearchCategory.fromWire(it)
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_category", "Unknown category"))
+            }
+            val source = params["source"]?.let {
+                SearchSource.fromWire(it)
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_source", "Unknown source"))
+            }
+            val sort = params["sort"]?.let {
+                SearchSort.fromWire(it)
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_sort", "Unknown sort"))
+            } ?: SearchSort.BestMatch
             val matches = catalog.search(
                 query,
                 limit,
                 country = call.clientContext().countryCode,
                 openFoodFacts = true, // still only when the server's FOOD_SEARCH_OFF_ENABLED is on
+                filter = SearchFilter(category = category, source = source, sort = sort),
             )
             call.respond(FoodSearchResponse(query = query, foods = matches.map { it.food.toResponse() }))
+        }
+
+        get("/v1/foods/search/options") {
+            val sources = buildList {
+                add(SearchSource.Usda.wire)
+                if (catalog.searchesOpenFoodFacts) add(SearchSource.OpenFoodFacts.wire)
+            }
+            call.respond(SearchOptionsResponse(sources = sources, categories = SearchCategory.entries.map { it.wire }))
         }
 
         rateLimit(RateLimitName(BARCODE_LOOKUP_LIMIT)) {

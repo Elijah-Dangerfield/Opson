@@ -1,6 +1,7 @@
 package com.opson.server.db
 
 import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.FoodCategory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.TransactionManager
@@ -87,6 +88,36 @@ class DatabaseSchemaTest : DatabaseTest() {
             database.blockingTransaction { exec(migration) }
         }
         assertEquals(before, strings(indexes))
+    }
+
+    /**
+     * V16 was applied to opson-dev by hand before Flyway saw it, like V12, so
+     * a second run changes nothing. The Kotlin enum and the CHECK must agree,
+     * or the backfill could write a value the server can't read back.
+     */
+    @Test
+    fun foodCategoryMigrationIsIdempotentAndItsCheckMatchesTheEnum() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V16__food_category.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        assertEquals(
+            listOf("1"),
+            strings("SELECT count(*)::text FROM pg_constraint WHERE conname = 'foods_category_check'"),
+        )
+        FoodCategory.entries.forEach { category ->
+            database.blockingTransaction {
+                exec(
+                    "INSERT INTO foods (source, source_id, name, category) " +
+                        "VALUES ('usda_sr', 'category-${category.wire}', 'x', '${category.wire}')",
+                )
+            }
+        }
+        assertFailsWith<Exception> {
+            database.blockingTransaction {
+                exec("INSERT INTO foods (source, source_id, name, category) VALUES ('usda_sr', 'category-bad', 'x', 'snack')")
+            }
+        }
+        database.blockingTransaction { exec("DELETE FROM foods WHERE source_id LIKE 'category-%'") }
     }
 
     /** V14 (fasts) is additive and safe to run twice; account deletion still cascades into it. */

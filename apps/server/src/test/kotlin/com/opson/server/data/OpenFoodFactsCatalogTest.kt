@@ -5,6 +5,9 @@ import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodsTable
 import com.opson.server.domain.CatalogSource
 import com.opson.server.domain.FoodTier
+import com.opson.server.domain.SearchCategory
+import com.opson.server.domain.SearchFilter
+import com.opson.server.domain.SearchSource
 import com.opson.server.testing.DiaryFixtures
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.insert
@@ -96,6 +99,22 @@ class OpenFoodFactsCatalogTest : DatabaseTest() {
             listOf("Bread, white" to null, "White bread" to "00000000000031", "White bread" to "03000000000024"),
             names,
         )
+    }
+
+    @Test
+    fun theSourceFilterPicksOneSideAndCategoriesLeaveOpenFoodFactsOut() = runTest {
+        seedGeneric("Bread, white")
+        seedOff("White bread", "03000000000024", scans = 500)
+        val catalog = repo(enabled = true)
+        suspend fun names(filter: SearchFilter) =
+            catalog.search("white bread", 10, record = false, openFoodFacts = true, filter = filter).map { it.food.name }
+
+        assertEquals(listOf("Bread, white", "White bread"), names(SearchFilter.None))
+        assertEquals(listOf("White bread"), names(SearchFilter(source = SearchSource.OpenFoodFacts)))
+        assertEquals(listOf("Bread, white"), names(SearchFilter(source = SearchSource.Usda)))
+        // Open Food Facts rows carry no category and are tier 4, so no tab ever shows them.
+        assertEquals(listOf("Bread, white"), names(SearchFilter(category = SearchCategory.Common)))
+        assertEquals(emptyList(), names(SearchFilter(category = SearchCategory.Beverage)))
     }
 
     @Test

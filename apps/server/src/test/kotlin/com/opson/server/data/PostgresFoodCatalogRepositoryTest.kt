@@ -6,10 +6,15 @@ import com.opson.server.db.FoodsTable
 import com.opson.server.domain.BarcodeOutcome
 import com.opson.server.domain.CatalogSource
 import com.opson.server.domain.ExternalProduct
+import com.opson.server.domain.FoodCategory
 import com.opson.server.domain.FoodTier
 import com.opson.server.domain.MatchTier
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Portion
+import com.opson.server.domain.SearchCategory
+import com.opson.server.domain.SearchFilter
+import com.opson.server.domain.SearchSort
+import com.opson.server.domain.SearchSource
 import com.opson.server.testing.DiaryFixtures
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -20,8 +25,10 @@ import org.junit.After
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -42,6 +49,7 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
         brand: String? = null,
         popularity: Int = 0,
         barcode: String? = null,
+        category: FoodCategory? = null,
     ): UUID {
         val id = UUID.randomUUID()
         database.blockingTransaction {
@@ -52,6 +60,7 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
                 it[FoodsTable.name] = name
                 it[FoodsTable.brand] = brand
                 it[FoodsTable.barcode] = barcode
+                it[FoodsTable.category] = category?.wire
                 it[kcal100g] = 100f
                 it[micros] = """{"sodium_mg": 1.5}"""
                 it[portions] = """[{"label": "1 cup", "grams": 240}]"""
@@ -135,6 +144,79 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
     fun matchesBrandInFullText() = runTest {
         seed("Hazelnut spread", source = "off", brand = "Nutella")
         assertEquals(listOf("Hazelnut spread"), names("nutella"))
+    }
+
+    // ── Search options (category, source, sort) ─────────────────────────────
+
+    private suspend fun names(query: String, filter: SearchFilter) =
+        repo.search(query, 10, record = false, filter = filter).map { it.food.name }
+
+    @Test
+    fun noOptionsIsTheStatementAndTheResults01Gets() = runTest {
+        seed("Chicken, roasted")
+        seed("Chicken sandwich, fast food", category = FoodCategory.Restaurant)
+        seed("Chicken Noodle Soup", source = "usda_branded", barcode = "00051000012616")
+        assertSame(PostgresFoodCatalogRepository.SEARCH_SQL, PostgresFoodCatalogRepository.searchSql(SearchFilter.None))
+        assertSame(
+            PostgresFoodCatalogRepository.SEARCH_SQL,
+            PostgresFoodCatalogRepository.searchSql(SearchFilter(sort = SearchSort.Name)),
+            "sorting by name reorders in Kotlin and leaves the statement alone",
+        )
+        assertFalse("category" in PostgresFoodCatalogRepository.SEARCH_SQL)
+        assertEquals(names("chicken"), names("chicken", SearchFilter.None))
+    }
+
+    @Test
+    fun aCategoryKeepsOnlyItsFoods() = runTest {
+        seed("Chicken, roasted")
+        seed("Chicken sandwich, fast food", category = FoodCategory.Restaurant)
+        seed("CHICK-FIL-A, chicken sandwich", source = "usda_sr", category = FoodCategory.Restaurant)
+        seed("Chicken broth drink", source = "usda_branded", barcode = "00051000012617", category = FoodCategory.Beverage)
+
+        assertEquals(
+            setOf("Chicken sandwich, fast food", "CHICK-FIL-A, chicken sandwich"),
+            names("chicken", SearchFilter(category = SearchCategory.Restaurant)).toSet(),
+        )
+        assertEquals(listOf("Chicken broth drink"), names("chicken", SearchFilter(category = SearchCategory.Beverage)))
+        val typo = names("chiken sandwich", SearchFilter(category = SearchCategory.Restaurant))
+        assertTrue(typo.all { "sandwich" in it.lowercase() && it != "Chicken broth drink" }, "the typo fallback filters too: $typo")
+    }
+
+    @Test
+    fun commonIsTiersOneAndTwo() = runTest {
+        seed("Peanut butter, smooth")
+        seed("Peanut Butter Crunchy", source = "usda_branded", barcode = "00051500255193")
+        seed("Peanut butter, organic", source = "nutritionix")
+        seed("Peanut butter, bio", source = "off")
+        assertEquals(
+            setOf("Peanut butter, smooth", "Peanut Butter Crunchy"),
+            names("peanut butter", SearchFilter(category = SearchCategory.Common)).toSet(),
+        )
+    }
+
+    @Test
+    fun theSourceFilterKeepsUsdaOrOpenFoodFacts() = runTest {
+        seed("Hazelnut spread", source = "usda_sr")
+        seed("Hazelnut spread, chocolate", source = "usda_branded", barcode = "00009800895007")
+        seed("Hazelnut spread, bio", source = "off")
+        seed("Hazelnut spread, licensed", source = "nutritionix")
+        assertEquals(
+            setOf("Hazelnut spread", "Hazelnut spread, chocolate"),
+            names("hazelnut spread", SearchFilter(source = SearchSource.Usda)).toSet(),
+        )
+        assertEquals(listOf("Hazelnut spread, bio"), names("hazelnut spread", SearchFilter(source = SearchSource.OpenFoodFacts)))
+    }
+
+    @Test
+    fun sortByNameOrdersTheBestMatchesAToZ() = runTest {
+        seed("Rice, white, cooked")
+        seed("Rice, brown, cooked")
+        seed("Arroz con pollo, rice")
+        repeat(4) { seed("Zucchini $it") }
+        val best = names("rice", SearchFilter.None)
+        val byName = names("rice", SearchFilter(sort = SearchSort.Name))
+        assertEquals(best.toSet(), byName.toSet(), "the same matches, reordered")
+        assertEquals(listOf("Arroz con pollo, rice", "Rice, brown, cooked", "Rice, white, cooked"), byName)
     }
 
     @Test
