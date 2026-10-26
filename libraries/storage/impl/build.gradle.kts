@@ -17,6 +17,9 @@ kotlin {
             implementation(projects.libraries.flowroutines)
             implementation(projects.libraries.opson)
             implementation(projects.libraries.opson.storage)
+            // Their Room entities and DAOs register in AppDatabase.
+            implementation(projects.libraries.diary)
+            implementation(projects.libraries.foods)
             implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {

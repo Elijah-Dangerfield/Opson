@@ -344,6 +344,10 @@ class AppNetworkConfig : NetworkConfig {
 }
 ```
 
+Opson binds `OpsonNetworkConfig` in `apps/compose`: debug builds talk to
+`https://opson-server-dev.fly.dev`, release builds to
+`https://opson-server-prod.fly.dev`, keyed on `BuildInfo.isDebug`.
+
 **Authenticated calls.** Inject `NetworkClient` and use
 `networkClient.authenticatedClient` for endpoints that need a Bearer token.
 The token comes from your `AuthTokenProvider` binding (default is no-op).

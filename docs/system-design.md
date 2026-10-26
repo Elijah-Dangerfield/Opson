@@ -85,8 +85,8 @@ feature api modules never depend on each other).
 | `:libraries:nutrition:ui` | compose.multiplatform | `NutrientValue`, `NutrientText`, `NutrientBar`, `LocalVisibilityPolicy`, test tags. The only Compose code that touches a `Display`. |
 | `:libraries:diary` | kotlin.multiplatform | Room entities and DAOs, repository interfaces (`DiaryRepository`, `WeightRepository`, `CustomFoodRepository`, `SavedMealRepository`, `SettingsRepository`), domain models (`LogItem`, `Day`, `MealSlot`, `Precision`, `Feel`). |
 | `:libraries:diary:impl` | kotlin.multiplatform | Repository impls, the outbox, `DiarySyncer` (a `UserScopedSyncer`), the sync API client. |
-| `:libraries:foods` | kotlin.multiplatform | `FoodCatalog` interface (search, barcode, detail, describe), `Food`, `Portion`, `NutrientProfile`. |
-| `:libraries:foods:impl` | kotlin.multiplatform | Ktor client calls to `/v1/foods/*` with a small Room cache of foods the user has touched, so favorites and recents work offline. |
+| `:libraries:foods` | kotlin.multiplatform | `FoodCatalog` interface (search, barcode, detail, describe), `Food`, `Portion`, `NutrientProfile`, the amount math (`Food.toLogDraft`), and the `food_cache` entity and DAO (here, not in the impl, so `AppDatabase` can register them). |
+| `:libraries:foods:impl` | kotlin.multiplatform | Ktor client calls to `/v1/foods/*` over that cache of foods the user has touched, so favorites and recents work offline. |
 | `:features:today` (+`impl`) | feature | Today screen, Add menu, Day menu, calendar sheet, meal sheet, water sheet, day close. |
 | `:features:logger` (+`impl`) | feature | Logger sheet, amount sheet, Describe, Saved. |
 | `:features:foods` (+`impl`) | feature | Foods tab, create a meal, add a custom food. |
@@ -252,10 +252,17 @@ that drifts.
 The same tables minus `server_seq`, plus:
 
 ```
-outbox (id uuid pk, entity text, entity_id text, payload text, created_at)
+outbox (id uuid pk, entity text, entity_id text, payload text, base_payload text null,
+        created_at, day text null)   -- unique (entity, entity_id)
 sync_state (singleton: cursor bigint, last_success_at)
-food_cache (id pk, json, last_used_at, favorite boolean)   -- in :libraries:foods:impl
+food_cache (id pk, json, search_text, barcode null, last_used_at null, favorite boolean)   -- in :libraries:foods
 ```
+
+The outbox holds at most one change per row: a newer change replaces the
+waiting one under a fresh id, so the server's ack for the old id cannot delete
+it. `base_payload` is the row before the first waiting change (null for a new
+row) and is what a rejection restores. `day` lets the drain hold back changes
+to a day the server will not take yet (section 6).
 
 Settings are not a Room table on the device. They are a `@Serializable`
 `Settings` data class in a persistent `Cache` (the `AppData` pattern), mirrored
@@ -315,6 +322,16 @@ than 500 mutations is a 400 `too_many_mutations`.
 - **Triggers:** `DiarySyncer` implements `UserScopedSyncer`, so sync runs on
   sign-in, warm foreground and reconnect. A write also schedules a debounced
   sync (2 s) so another device sees it quickly.
+- **Days ahead wait.** The server refuses a day more than two days past today
+  (UTC) and Today lets the user plan six ahead, so a change to a later day
+  stays in the outbox until its day comes into range, rather than being sent,
+  refused and rolled back.
+- **Whose settings.** After a user change the device holds default settings
+  until that user's first pull lands (`SettingsRepository.isKnown`). A local
+  settings change made in that window is not queued, because the whole default
+  object would overwrite the user's real settings on the server; if the pull
+  brings none (a new account), the local copy is queued then. The settings
+  JSON repeats `preset` at the top level, the one key the server reads.
 
 ---
 
@@ -507,6 +524,14 @@ The same applies to each server resource.
 ## 15. Decisions
 
 Dated, newest first. Add to it, never rewrite it.
+
+- **2026-10-25: the client holds back changes to days the server refuses.**
+  `DiaryRules.MAX_DAYS_AHEAD` is 2 and Today allows 6. Holding them in the
+  outbox keeps planned days on the device and sends them when they come into
+  range; raising the server's limit to 7 would let them go at once.
+- **2026-10-25: settings changes wait while the user's settings are unknown.**
+  Last write wins on the whole settings object, so a default object pushed from
+  a fresh device would erase the user's mode. See section 6.
 
 - **2026-10-25: sync JSON is camelCase with epoch-millisecond times.** The
   first draft of §6 used snake_case keys. Every other Opson and Cards route is

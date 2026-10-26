@@ -1,25 +1,48 @@
 package com.opson.libraries.storage.impl.db
 
+import androidx.room.AutoMigration
 import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 import androidx.room.TypeConverters
+import com.opson.libraries.diary.db.CustomFoodDao
+import com.opson.libraries.diary.db.CustomFoodEntity
+import com.opson.libraries.diary.db.DayRecordDao
+import com.opson.libraries.diary.db.DayRecordEntity
+import com.opson.libraries.diary.db.LogEntryDao
+import com.opson.libraries.diary.db.LogEntryEntity
+import com.opson.libraries.diary.db.MealFeelingDao
+import com.opson.libraries.diary.db.MealFeelingEntity
+import com.opson.libraries.diary.db.OutboxDao
+import com.opson.libraries.diary.db.OutboxEntity
+import com.opson.libraries.diary.db.SavedMealDao
+import com.opson.libraries.diary.db.SavedMealEntity
+import com.opson.libraries.diary.db.SyncStateDao
+import com.opson.libraries.diary.db.SyncStateEntity
+import com.opson.libraries.diary.db.WeighInDao
+import com.opson.libraries.diary.db.WeighInEntity
+import com.opson.libraries.foods.db.FoodCacheDao
+import com.opson.libraries.foods.db.FoodCacheEntity
 import com.opson.libraries.opson.storage.db.ExampleUserDataDao
 import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
 
 @Database(
     entities = [
         ExampleUserDataEntity::class,
+        LogEntryEntity::class,
+        DayRecordEntity::class,
+        MealFeelingEntity::class,
+        WeighInEntity::class,
+        CustomFoodEntity::class,
+        SavedMealEntity::class,
+        OutboxEntity::class,
+        SyncStateEntity::class,
+        FoodCacheEntity::class,
     ],
-    version = 5, // Bumped: demo User/Session tables replaced by the example table
+    version = 6, // 6: the diary tables, the outbox, sync state and the food cache
     /**
      * Every bump from [FIRST_APP_DATA_VERSION] on has to be listed here.
-     *
-     * The list is empty because nothing has been bumped since. It is declared
-     * anyway, because the moment someone adds a table or a column the choice
-     * they face is "add a line here" or "let the builder drop the database",
-     * and only one of those is written down anywhere.
      *
      * Most additions are a new table or a defaulted column, which Room can
      * migrate on its own. A change it cannot, a renamed or retyped column,
@@ -27,13 +50,33 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
      * the default is wrong for a new column, give the entry a
      * `spec = SomeBackfill::class`.
      */
-    autoMigrations = [],
+    autoMigrations = [
+        AutoMigration(from = 5, to = 6),
+    ],
     exportSchema = true
 )
 @TypeConverters(CoreTypeConverters::class)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun exampleUserDataDao(): ExampleUserDataDao
+
+    abstract fun logEntryDao(): LogEntryDao
+
+    abstract fun dayRecordDao(): DayRecordDao
+
+    abstract fun mealFeelingDao(): MealFeelingDao
+
+    abstract fun weighInDao(): WeighInDao
+
+    abstract fun customFoodDao(): CustomFoodDao
+
+    abstract fun savedMealDao(): SavedMealDao
+
+    abstract fun outboxDao(): OutboxDao
+
+    abstract fun syncStateDao(): SyncStateDao
+
+    abstract fun foodCacheDao(): FoodCacheDao
 
     companion object {
         /**

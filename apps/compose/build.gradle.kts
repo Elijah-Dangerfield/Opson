@@ -98,6 +98,10 @@ kotlin {
             implementation(projects.libraries.identity.impl)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
+            implementation(projects.libraries.diary)
+            implementation(projects.libraries.diary.impl)
+            implementation(projects.libraries.foods)
+            implementation(projects.libraries.foods.impl)
 
             implementation(projects.features.foods)
             implementation(projects.features.foods.impl)

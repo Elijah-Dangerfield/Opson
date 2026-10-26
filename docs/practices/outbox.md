@@ -45,6 +45,15 @@ and maps the outcome, success → clear, `DisplayNameTaken`/`Invalid…` →
 clear + revert + rejection event, network error → keep queued. A
 multi-event outbox is the same loop over a list.
 
+## The multi-row version: the diary
+
+`DiarySyncer` and `DiaryWriter` in `:libraries:diary:impl` are the shape above
+over a table: a Room `outbox` written in the same transaction as the row it
+carries (`DatabaseTransactor`), one waiting change per row (a newer change
+replaces it under a new id), a base snapshot per row so a rejection can roll
+back, and a paged drain that judges progress by the outbox changing. Read it
+before building a third.
+
 ## What the production app did that we deliberately did NOT port
 
 The origin app's high-value outbox (an economy ledger) added per-event
