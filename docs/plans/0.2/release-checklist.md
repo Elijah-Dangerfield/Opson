@@ -34,3 +34,13 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
   states the safety rule, so build it to the design and mark the numbers
   `TODO(clinician)`.
 - Wear OS / Apple Watch quick-log rows (with the watch work, wave 2).
+
+## Barcode (`release.barcode`)
+
+- [ ] Push the new Food catalog Grafana panels (`ops/grafana/foods.json`)
+      after prod runs V12 and V13; until then their prod queries fail.
+- [ ] App Privacy: check whether barcode misses (product interaction, not
+      linked to the user) need declaring, and add the wording from
+      `docs/plans/screens/barcode.md` to `legal/privacy.md`.
+- [ ] Try a real scan on an iPhone and an Android phone: a hit, a miss and a
+      denied camera.
