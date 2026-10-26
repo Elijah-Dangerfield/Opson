@@ -8,7 +8,9 @@ import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 
@@ -19,21 +21,48 @@ class SetupAnswersTest {
         assertEquals(Why.entries, SetupQuestion.Reason.options)
         assertEquals(NumbersFeel.entries, SetupQuestion.Feeling.options)
         assertEquals(Notice.entries, SetupQuestion.Focus.options)
-        assertEquals(listOf<SetupOption>(HardBefore), SetupQuestion.Hard.options)
+        assertEquals(StatementAnswer.entries, SetupQuestion.Statement.options)
         assertEquals((1..4).toList(), SetupQuestion.entries.map { it.number })
+        assertEquals(
+            listOf("question_1", "question_2", "question_3", "statement"),
+            SetupQuestion.entries.map { it.eventName },
+        )
+        assertEquals(listOf(true, false, false, false), SetupQuestion.entries.map { it.multiSelect })
     }
 
     @Test
-    fun tap_replacesTheFeelAnswer_andTogglesTheRest() {
+    fun tap_togglesTheWhyAnswers_andReplacesEveryOther() {
         val answers = SetupAnswers()
             .tap(Why.Curious)
             .tap(NumbersFeel.LoveThem)
             .tap(NumbersFeel.NotSure)
             .tap(Notice.Patterns)
-            .tap(HardBefore)
+            .tap(Notice.Amounts)
+            .tap(StatementAnswer.Agree)
+            .tap(StatementAnswer.NotReally)
 
-        assertEquals(SetupAnswers(setOf(Why.Curious), NumbersFeel.NotSure, setOf(Notice.Patterns), hard = true), answers)
-        assertEquals(SetupAnswers(feel = NumbersFeel.NotSure), answers.tap(Why.Curious).tap(Notice.Patterns).tap(HardBefore))
+        assertEquals(
+            SetupAnswers(setOf(Why.Curious), NumbersFeel.NotSure, Notice.Amounts, StatementAnswer.NotReally),
+            answers,
+        )
+        assertEquals(emptySet(), answers.tap(Why.Curious).why)
+    }
+
+    @Test
+    fun hard_isOnlyAgreeingWithTheStatement() {
+        assertTrue(SetupAnswers(statement = StatementAnswer.Agree).hard)
+        assertFalse(SetupAnswers(statement = StatementAnswer.NotReally).hard)
+        assertFalse(SetupAnswers().hard)
+    }
+
+    @Test
+    fun isEmpty_meansNothingThatCouldShapeAStartingPoint() {
+        assertTrue(SetupAnswers().isEmpty)
+        assertTrue(SetupAnswers(statement = StatementAnswer.NotReally).isEmpty, "Not really says nothing on its own")
+        assertFalse(SetupAnswers(statement = StatementAnswer.Agree).isEmpty)
+        assertFalse(SetupAnswers(why = setOf(Why.Curious)).isEmpty)
+        assertFalse(SetupAnswers(feel = NumbersFeel.NotSure).isEmpty)
+        assertFalse(SetupAnswers(notice = Notice.Patterns).isEmpty)
     }
 
     @Test
@@ -49,20 +78,21 @@ class SetupAnswersTest {
         val answers = SetupAnswers(
             why = setOf(Why.WorkingWithProvider, Why.Curious),
             feel = NumbersFeel.RatherNot,
-            notice = setOf(Notice.HowEatingFeels, Notice.Amounts),
-            hard = true,
+            notice = Notice.HowEatingFeels,
+            statement = StatementAnswer.Agree,
         )
 
         assertEquals(
             OnboardingAnswers(
                 why = listOf("curious", "working_with_provider"),
                 feel = "rather_not",
-                notice = listOf("amounts", "how_eating_feels"),
+                notice = listOf("how_eating_feels"),
                 hard = true,
             ),
             answers.toSettings(),
         )
         assertEquals(OnboardingAnswers(), SetupAnswers().toSettings())
+        assertEquals(OnboardingAnswers(), SetupAnswers(statement = StatementAnswer.NotReally).toSettings())
     }
 
     @Test
@@ -76,7 +106,7 @@ class SetupAnswersTest {
             ),
         )
 
-        val after = before.startingWith(PresetId.Blind, SetupAnswers(hard = true), today = LocalDate(2026, 10, 25))
+        val after = before.startingWith(PresetId.Blind, SetupAnswers(statement = StatementAnswer.Agree), today = LocalDate(2026, 10, 25))
 
         assertEquals(NumbersSettings(preset = PresetId.Blind), after.numbers)
         assertNull(after.numbers.changedAt)

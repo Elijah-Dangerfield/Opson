@@ -1,34 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Onboarding: the welcome, the four setup questions and the starting mode.
-  Copy is the handoff's (README 4.11, the is.onb block in Phone.dc.html) word
-  for word where it has it. Preset labels and lines repeat the Modes table in
+  Onboarding: Welcome and the plan, three questions, the optional statement,
+  the starting mode and the optional account step. Copy is design v3's
+  (docs/design/v3/onboarding-*.png) word for word where it has it; the
+  exceptions are marked. Preset labels repeat the Modes table in
   docs/plans/screens/settings.md until a shared preset resource exists.
 -->
 <resources>
-    <!-- Welcome -->
-    <string name="onboarding_welcome_title">Opson</string>
+    <!-- Welcome. The design's "Friendly Tracking" is a placeholder for the app name. -->
+    <string name="onboarding_welcome_title" translatable="false">Opson</string>
     <string name="onboarding_welcome_subtitle">Write down what you eat. See as many numbers as you want, or none.</string>
-    <string name="onboarding_welcome_questions">Four short questions. You can skip all of them.</string>
-    <string name="onboarding_set_it_up">Set it up</string>
-    <string name="onboarding_skip_all">Skip, start logging</string>
+    <string name="onboarding_welcome_body">You can show, soften, save for later or hide every number, and change it whenever you like.</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_skip_all">Skip and start logging</string>
+    <string name="onboarding_have_account">Have an account?</string>
+    <string name="onboarding_sign_in">Sign in</string>
 
-    <!-- Sign-in options on Welcome -->
-    <string name="onboarding_opening_browser">Opening browser…</string>
-    <string name="onboarding_waiting_for_apple">Waiting for Apple…</string>
-    <string name="onboarding_sign_in_with_email">Sign in with email</string>
-    <string name="onboarding_create_an_account">Create an account</string>
-    <string name="onboarding_oauth_failed">Sign-in didn't go through. Please try again.</string>
+    <!--
+      The plan. 0.1 has no in-app purchase and a price with no way to buy it is an App Review
+      rejection, so Plus is "Coming later" with no price (docs/design/v3/CHANGES.md). The design
+      lists "barcode scan, recipes" under Free; barcode is hidden in 0.1 and recipes are saved meals.
+    -->
+    <string name="onboarding_plan_free">Free</string>
+    <string name="onboarding_plan_free_includes">Logging, saved meals and every mode</string>
+    <string name="onboarding_plan_plus">Plus</string>
+    <string name="onboarding_plan_plus_later">Coming later</string>
+    <string name="onboarding_plan_plus_includes">Photo estimates and watch quick-log</string>
 
     <!-- Questions -->
     <string name="onboarding_progress">%1$d of 4</string>
+    <string name="onboarding_progress_optional">%1$d of 4 · Optional</string>
+    <string name="onboarding_progress_description">Step %1$d of 4</string>
     <string name="onboarding_skip">Skip</string>
-    <string name="onboarding_next">Next</string>
-    <string name="onboarding_pick_any">Pick any.</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_pick_any">Pick any that fit.</string>
 
     <string name="onboarding_q_why">Why are you tracking?</string>
-    <string name="onboarding_why_curious">Curious</string>
-    <string name="onboarding_why_performance">Performance</string>
+    <string name="onboarding_why_curious">Curious what I eat</string>
+    <string name="onboarding_why_performance">Training or performance</string>
     <string name="onboarding_why_eating_enough">Eating enough</string>
     <string name="onboarding_why_eating_regularly">Eating regularly</string>
     <string name="onboarding_why_medical_need">A medical need</string>
@@ -36,10 +45,11 @@
     <string name="onboarding_why_working_with_provider">Working with a provider</string>
 
     <string name="onboarding_q_feel">How do you feel about seeing numbers?</string>
-    <string name="onboarding_feel_love_them">Love them</string>
+    <string name="onboarding_feel_love_them">I love them</string>
     <string name="onboarding_feel_some_are_fine">Some are fine</string>
-    <string name="onboarding_feel_rather_not">Rather not</string>
-    <string name="onboarding_feel_not_sure">Not sure</string>
+    <string name="onboarding_feel_rather_not">I'd rather not see them</string>
+    <string name="onboarding_feel_not_sure">Not sure yet</string>
+    <string name="onboarding_feel_footnote">This only picks a starting point. Later you can change any single number.</string>
 
     <string name="onboarding_q_notice">What do you want to notice?</string>
     <string name="onboarding_notice_amounts">Amounts</string>
@@ -47,37 +57,94 @@
     <string name="onboarding_notice_patterns">Patterns</string>
     <string name="onboarding_notice_how_eating_feels">How eating feels</string>
 
-    <string name="onboarding_q_hard">One optional question</string>
-    <string name="onboarding_q_hard_sub">This only unlocks gentler starting points. We never ask for a diagnosis.</string>
-    <string name="onboarding_hard_before">Numbers or tracking have been hard for me before</string>
+    <!--
+      The statement. A statement to agree with, never a question about a diagnosis.
+      TODO(clinician): review the quote, the body and both answers before release.
+      The design's body ends "and the answer stays on this phone", which is not true: the answer
+      is saved with the rest of the settings, and settings sync to the person's account.
+    -->
+    <string name="onboarding_q_statement">Does this sound like you?</string>
+    <string name="onboarding_statement_quote">“Numbers or tracking have been hard for me before.”</string>
+    <string name="onboarding_statement_body">If you say yes, you get gentler starting points. We don't ask why, and the answer is used for nothing else.</string>
+    <string name="onboarding_statement_yes">Yes, that's me</string>
+    <string name="onboarding_statement_no">Not really</string>
+    <string name="onboarding_see_starting_point">See my starting point</string>
 
     <!-- Recommendation -->
-    <string name="onboarding_reco_kicker">A starting point, not a recommendation</string>
-    <string name="onboarding_reco_see">What you'll see</string>
+    <string name="onboarding_reco_kicker">Your starting point</string>
+    <string name="onboarding_reco_see">You'll see</string>
+    <string name="onboarding_reco_kept_out">Kept out of view</string>
     <string name="onboarding_reco_or">Or start with</string>
+    <string name="onboarding_all_modes">All modes</string>
     <string name="onboarding_reco_change">Change it any time under More, then Modes and numbers.</string>
     <string name="onboarding_start_with">Start with %1$s</string>
     <string name="onboarding_finishing">Setting things up…</string>
 
-    <!-- Preset labels and lines -->
+    <!-- What a mode shows and keeps out of view, built from its levels (ModePreview). -->
+    <string name="onboarding_preview_calorie_amounts">Calorie amounts</string>
+    <string name="onboarding_preview_energy_word">A word for energy, like “partway”</string>
+    <string name="onboarding_preview_calories_later">Calories, once the day is closed</string>
+    <string name="onboarding_preview_calories_weekly">Calories, once a week</string>
+    <string name="onboarding_preview_calories_hidden">Calorie amounts and watch energy</string>
+    <string name="onboarding_preview_macro_amounts">Protein, carbs, fat and fiber amounts</string>
+    <string name="onboarding_preview_protein_fiber_amounts">Protein and fiber amounts</string>
+    <string name="onboarding_preview_some_nutrient_amounts">Some nutrient amounts</string>
+    <string name="onboarding_preview_protein_fiber_bars">Protein and fiber as fill bars</string>
+    <string name="onboarding_preview_some_nutrient_bars">Some nutrients as fill bars</string>
+    <string name="onboarding_preview_macros_later">Protein, carbs, fat and fiber, once the day is closed</string>
+    <string name="onboarding_preview_some_nutrients_later">Some nutrients, once the day is closed</string>
+    <string name="onboarding_preview_macros_hidden">Protein, carbs, fat and fiber</string>
+    <string name="onboarding_preview_carbs_fat_hidden">Carbs and fat</string>
+    <string name="onboarding_preview_other_nutrients_hidden">Other nutrients</string>
+    <string name="onboarding_preview_meal_count">How many meals you've had</string>
+    <string name="onboarding_preview_weight_amounts">Your weight</string>
+    <string name="onboarding_preview_weight_trend">Weight shows as a trend only</string>
+    <string name="onboarding_preview_weight_hidden">Weight</string>
+    <string name="onboarding_preview_meal_by_meal">What you ate, meal by meal</string>
+    <string name="onboarding_preview_meal_checklist">A checklist of your meals</string>
+    <string name="onboarding_preview_new_foods">The new foods you try</string>
+    <string name="onboarding_preview_how_meals_felt">How each meal felt</string>
+
+    <!-- Preset labels and one-line descriptions under the name -->
     <string name="onboarding_preset_full">Full numbers</string>
-    <string name="onboarding_preset_full_line">Everything visible. Watch sync shapes your target.</string>
+    <string name="onboarding_preset_full_line">Every number, as it is.</string>
     <string name="onboarding_preset_delayed">Delayed reveal</string>
     <string name="onboarding_preset_delayed_line">Log all day. Totals open at a time you pick.</string>
     <string name="onboarding_preset_blind">Blind</string>
-    <string name="onboarding_preset_blind_line">No calories anywhere in the app.</string>
+    <string name="onboarding_preset_blind_line">Log food without any numbers.</string>
     <string name="onboarding_preset_nutrient">Nutrient focus</string>
-    <string name="onboarding_preset_nutrient_line">Calories hidden. Protein and fiber as fill bars.</string>
+    <string name="onboarding_preset_nutrient_line">The nutrients in your food come first.</string>
     <string name="onboarding_preset_rhythm">Rhythm</string>
-    <string name="onboarding_preset_rhythm_line">A meal checklist with reminders. Amounts optional.</string>
+    <string name="onboarding_preset_rhythm_line">Regular meals come first.</string>
     <string name="onboarding_preset_explorer">Explorer</string>
-    <string name="onboarding_preset_explorer_line">Safe foods, new foods, small wins for trying.</string>
+    <string name="onboarding_preset_explorer_line">Trying new foods comes first.</string>
     <string name="onboarding_preset_mindful">Mindful</string>
-    <string name="onboarding_preset_mindful_line">Hunger, fullness and how it felt. No nutrition data.</string>
+    <string name="onboarding_preset_mindful_line">How eating feels comes first.</string>
     <string name="onboarding_preset_fuel">Fuel</string>
-    <string name="onboarding_preset_fuel_line">Eating enough first. Protein and meal count up front.</string>
+    <string name="onboarding_preset_fuel_line">Eating enough comes first.</string>
     <string name="onboarding_preset_sprint">Sprint</string>
     <string name="onboarding_preset_sprint_line">Track for two weeks to learn, then take a break.</string>
     <string name="onboarding_preset_coast">Coast</string>
     <string name="onboarding_preset_coast_line">Light logging and one weekly check.</string>
+
+    <!--
+      The account step: optional and last. The design's first reassurance line reads
+      "Encrypted. Only you can read it.", which the server cannot promise, so it says what is
+      true. TODO(owner): "add an account later in More" needs an account entry in More.
+    -->
+    <string name="onboarding_account_title">Save your setup</string>
+    <string name="onboarding_account_body">Back up your logs and settings, and pick up on a new phone.</string>
+    <string name="onboarding_account_apple">Continue with Apple</string>
+    <string name="onboarding_account_google">Continue with Google</string>
+    <string name="onboarding_account_google_mark" translatable="false">G</string>
+    <string name="onboarding_account_email">Continue with email</string>
+    <string name="onboarding_account_opening_browser">Opening browser…</string>
+    <string name="onboarding_account_waiting_for_apple">Waiting for Apple…</string>
+    <string name="onboarding_account_private">Private to you. No ad tracking.</string>
+    <string name="onboarding_account_export">Export or delete it any time</string>
+    <string name="onboarding_account_coach">Needed later to share with a coach</string>
+    <string name="onboarding_account_keep">Keep it on this phone</string>
+    <string name="onboarding_account_later">You can add an account later in More.</string>
+    <string name="onboarding_account_in_use">That account is already in use. Try another way, or keep it on this phone.</string>
+    <string name="onboarding_account_failed">That didn't go through. Please try again.</string>
 </resources>

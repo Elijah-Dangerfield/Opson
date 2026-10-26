@@ -10,18 +10,15 @@ import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.identity.auth.AccountCreationState
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
-import com.opson.libraries.identity.auth.AppleSignInCredential
-import com.opson.libraries.identity.auth.AuthOutcome
-import com.opson.libraries.identity.auth.AuthOutcomeClassifier
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.GuestAccountCreator
 import com.opson.libraries.identity.auth.LinkIdentityOutcome
 import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.auth.PendingIdentity
-import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.awaitCredential
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.opson.AppCache
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
@@ -32,43 +29,41 @@ import kotlinx.datetime.todayIn
 import me.tatarka.inject.annotations.Inject
 
 /**
- * Onboarding: a welcome, four skippable questions and a starting mode, with
- * **deferred account creation**. No account exists on launch; one is minted
- * only when the user commits.
+ * Onboarding (design v3): Welcome with the plan, three skippable questions, an
+ * optional statement, a starting mode, then an optional account step. No
+ * account exists on launch; the anonymous guest is minted when the mode is
+ * saved, and the account step only claims it.
  *
- *   1. **Welcome**: "Set it up" enters the questions (no auth yet); "Skip,
- *      start logging" finishes at once in Delayed reveal. Apple and Google
- *      sign-in: a returning account goes straight to Today, a brand-new one
- *      runs through the questions like a guest. New-vs-returning comes from
- *      the server's new-account signal via [AuthOutcomeClassifier].
- *   2. **Questions 1 to 4**: each answer recomputes the recommendation
- *      ([ModeRecommender]). Every question can be skipped.
- *   3. **Recommendation**: the recommended mode with up to four alternatives.
- *      Full numbers and Sprint are never offered to someone who said numbers
- *      have been hard. "Start with ..." finishes.
+ *   1. **Welcome**: "Get started" enters the questions; "Skip and start
+ *      logging" saves Full numbers and goes straight to Today, past the account
+ *      step; "Sign in" opens the existing sign-in flow for returning users.
+ *   2. **Questions 1 to 3 and the statement**: each answer recomputes the
+ *      recommendation ([ModeRecommender]). Every step can be skipped and
+ *      nothing asks again later.
+ *   3. **Recommendation**: the mode, what you'll see and what stays out of view
+ *      ([ModePreview]), three alternatives and All modes. Full numbers and
+ *      Sprint are never offered to someone who agreed numbers have been hard.
+ *   4. **Account**: claim the guest with Apple, Google or email, or keep it on
+ *      this phone. Skipping is normal.
  *
- * Finishing writes the preset and the answers to settings without stamping
- * `changedAt` (so Modes says "Set by you during setup"), then kicks off
- * guest-account creation ([GuestAccountCreator], app-scoped so it survives the
- * ViewModel) with a bounded wait, marks `hasUserOnboarded` and goes to Today.
- *
- * **Why creation is deferred:** minting an anonymous account on launch leaves
- * an orphan whenever the user then signs into a real account. Onboarding runs
- * entirely unauthenticated, and the account is created at the point of no
- * return.
+ * Saving writes the preset and the answers to settings without stamping
+ * `changedAt` (so Modes says "Set by you during setup"), creates the guest
+ * ([GuestAccountCreator], app-scoped so it survives the ViewModel) with a
+ * bounded wait, and marks `hasUserOnboarded`. A claimed identity, or a guest
+ * that could not be created in time, has nothing to claim and goes to Today.
  *
  * Hard guard on init: if `AppData.hasUserOnboarded` is already true, fire
  * [OnboardingEvent.NavigateToToday] immediately so a returning user that
  * lands on the route bounces to Today.
  *
- * Telemetry carries step names, the preset key and booleans. Never an answer:
- * "numbers have been hard for me before" is close to a clinical disclosure.
+ * Telemetry carries step names, the preset key, the account choice and
+ * booleans. Never an answer: agreeing that numbers have been hard is close to
+ * a clinical disclosure.
  */
 @Inject
 class OnboardingViewModel(
     private val appCache: AppCache,
     private val authRepository: AuthRepository,
-    private val authOutcomeClassifier: AuthOutcomeClassifier,
     private val guestAccountCreator: GuestAccountCreator,
     private val appleSignInCoordinator: AppleSignInCoordinator,
     private val settingsRepository: SettingsRepository,
@@ -82,11 +77,14 @@ class OnboardingViewModel(
     private val onboardingStartedAt = TimeSource.Monotonic.markNow()
 
     /**
-     * True once this instance routed to Today (completed, or a returning user
-     * bounced/signed in). Suppresses the best-effort `onboarding.abandoned`
-     * fired from [onCleared].
+     * True once the mode was saved (`onboarding.completed` fired) or a returning
+     * user bounced to Today. Suppresses a second `onboarding.completed` and the
+     * best-effort `onboarding.abandoned` fired from [onCleared].
      */
-    private var exitedToToday = false
+    private var completed = false
+
+    /** True once this ViewModel created the guest the account step can claim. */
+    private var guestCreated = false
 
     init {
         // Resolve where onboarding opens (Today bounce / questions re-entry /
@@ -98,17 +96,19 @@ class OnboardingViewModel(
     override suspend fun handleAction(action: OnboardingAction) {
         when (action) {
             OnboardingAction.ResolveEntry -> action.handleResolveEntry()
-            OnboardingAction.ContinueAsGuest -> action.handleContinueAsGuest()
+            OnboardingAction.GetStartedTapped -> action.handleGetStarted()
             OnboardingAction.SkipAllTapped -> action.handleSkipAll()
+            OnboardingAction.SignInTapped -> sendEvent(OnboardingEvent.NavigateToSignIn)
             is OnboardingAction.OptionTapped -> action.handleOptionTapped(action.option)
-            OnboardingAction.NextTapped, OnboardingAction.SkipQuestionTapped -> action.advance()
+            OnboardingAction.ContinueTapped, OnboardingAction.SkipQuestionTapped -> action.advance()
             is OnboardingAction.AlternativeTapped -> action.handleAlternativeTapped(action.preset)
-            OnboardingAction.StartTapped -> action.finish(state.chosen, state.answers, skippedAll = false)
-            OnboardingAction.SignIn -> sendEvent(OnboardingEvent.NavigateToSignIn)
-            OnboardingAction.SignUp -> sendEvent(OnboardingEvent.NavigateToSignUp)
+            OnboardingAction.AllModesTapped -> action.handleAllModes()
+            OnboardingAction.StartTapped -> action.handleStart()
+            OnboardingAction.SaveWithAppleTapped -> action.handleSaveWithApple()
+            OnboardingAction.SaveWithGoogleTapped -> action.handleSaveWithGoogle()
+            OnboardingAction.SaveWithEmailTapped -> action.handleSaveWithEmail()
+            OnboardingAction.KeepOnPhoneTapped -> action.leaveAccountStep(AccountChoice.Phone)
             OnboardingAction.Back -> action.handleBack()
-            is OnboardingAction.SignInWithOAuth -> action.handleOAuth(action.provider)
-            OnboardingAction.SignInWithApple -> action.handleAppleSignIn()
         }
     }
 
@@ -117,14 +117,14 @@ class OnboardingViewModel(
             val authed = authRepository.current() as? AuthState.Authenticated
             when {
                 appCache.get().hasUserOnboarded -> {
-                    exitedToToday = true
+                    completed = true
                     sendEvent(OnboardingEvent.NavigateToToday)
                 }
                 // A real (non-anonymous) account that hasn't finished onboarding
                 // is a just-verified email signup bounced back here from
                 // VerifyEmail. Drop them straight into the questions, skipping
-                // the guest/OAuth landing they don't need. identityClaimed
-                // suppresses the back-to-Welcome control.
+                // Welcome. identityClaimed suppresses the back-to-Welcome control,
+                // and the account step has nothing left to claim.
                 authed != null && !authed.isAnonymous -> enterQuestions(identityClaimed = true)
                 // An anonymous guest session already exists at launch. Guest
                 // creation is deferred (a new user is Unauthenticated here), so a
@@ -134,7 +134,7 @@ class OnboardingViewModel(
                 authed != null -> {
                     logger.logEvent("onboarding.auth_selected", "method" to "guest", "returning" to true)
                     appCache.update { it.copy(hasUserOnboarded = true) }
-                    exitedToToday = true
+                    completed = true
                     sendEvent(OnboardingEvent.NavigateToToday)
                 }
                 else -> logStepViewed(OnboardingStep.Welcome)
@@ -142,17 +142,14 @@ class OnboardingViewModel(
         }.logOnFailure { "Onboarding entry resolution failed" }
     }
 
-    /**
-     * "Set it up". No auth here: the guest account is created when the user
-     * finishes, so tapping this only enters the questions.
-     */
-    private suspend fun OnboardingAction.handleContinueAsGuest() {
+    /** "Get started". No auth here: the guest is created when the mode is saved. */
+    private suspend fun OnboardingAction.handleGetStarted() {
+        if (state.step != OnboardingStep.Welcome || state.isFinishing) return
         logger.logEvent("onboarding.auth_selected", "method" to "guest", "returning" to false)
-        updateState { it.copy(authError = null) }
         enterQuestions(identityClaimed = false)
     }
 
-    /** "Skip, start logging": a guest with no answers, in Delayed reveal. */
+    /** "Skip and start logging": a guest with no answers, in Full numbers, past the account step. */
     private suspend fun OnboardingAction.handleSkipAll() {
         if (state.step != OnboardingStep.Welcome) return
         logger.logEvent("onboarding.auth_selected", "method" to "guest", "returning" to false)
@@ -165,7 +162,6 @@ class OnboardingViewModel(
         updateState {
             it.copy(
                 step = first,
-                oauthInFlight = null,
                 identityClaimed = it.identityClaimed || identityClaimed,
             ).withRecommendation()
         }
@@ -176,11 +172,11 @@ class OnboardingViewModel(
         updateState {
             val question = it.question ?: return@updateState it
             if (option !in question.options) return@updateState it
-            it.copy(answers = it.answers.tap(option), picked = null).withRecommendation()
+            it.copy(answers = it.answers.tap(option), picked = null, showAllModes = false).withRecommendation()
         }
     }
 
-    /** Next and Skip both move on; Skip leaves the answer as it is. */
+    /** Continue and Skip both move on; Skip leaves the answer as it is. */
     private suspend fun OnboardingAction.advance() {
         val question = state.question ?: return
         val next = SetupQuestion.of(question.number + 1)
@@ -193,223 +189,184 @@ class OnboardingViewModel(
     private suspend fun OnboardingAction.handleAlternativeTapped(preset: PresetId) {
         updateState {
             if (it.step != OnboardingStep.Recommendation || preset !in it.alternatives) return@updateState it
-            it.copy(
-                picked = preset,
-                alternatives = ModeRecommender.alternatives(preset, it.answers.hard),
-            )
+            it.copy(picked = preset).withRecommendation()
         }
     }
 
+    private suspend fun OnboardingAction.handleAllModes() {
+        updateState {
+            if (it.step != OnboardingStep.Recommendation) return@updateState it
+            it.copy(showAllModes = true).withRecommendation()
+        }
+    }
+
+    /** "Start with ...": save the mode, then the account step when there is a guest to claim. */
+    private suspend fun OnboardingAction.handleStart() {
+        if (state.step != OnboardingStep.Recommendation) return
+        finish(state.chosen, state.answers, skippedAll = false)
+    }
+
     /**
-     * The point of no return, from Start or Skip all:
+     * Saves [preset], from Start or Skip all:
      *  1. Save the preset and the answers. `changedAt` stays null so Modes can
      *     say "Set by you during setup". Safe before the account exists: the
      *     guest is the first user on this install, so no user-scoped clear
      *     runs, and the settings row syncs once the account is live.
-     *  2. Guest path (no session yet): start guest-account creation and join on
-     *     it with a bounded wait. Success or failure both complete onboarding;
-     *     a failed (offline) creation is flagged degraded and the creator keeps
-     *     retrying in the background. A claimed account (OAuth, Apple, a
-     *     verified email) needs nothing more.
-     *  3. Mark `hasUserOnboarded` and go to Today. Never trap the user on a
+     *  2. No session yet: create the guest and join on it with a bounded wait.
+     *     A failed (offline) or slow creation is flagged degraded and the
+     *     creator keeps retrying in the background. Never trap the user on a
      *     backend call.
+     *  3. Mark `hasUserOnboarded`.
+     *  4. Skip all, a claimed identity or a guest that is not there yet: Today.
+     *     Otherwise the account step.
+     *
+     * Runs again when the person comes back from the account step and starts
+     * with another mode: the settings are saved again, nothing else repeats.
      */
     private suspend fun OnboardingAction.finish(preset: PresetId, answers: SetupAnswers, skippedAll: Boolean) {
         if (state.isFinishing) return
         val tookRecommendation = !skippedAll && preset == state.recommended
-        updateState { it.copy(isFinishing = true, creationStarted = true) }
+        updateState { it.copy(isFinishing = true, creationStarted = true, accountError = null) }
 
         val today = clock.todayIn(TimeZone.currentSystemDefault())
         Catching {
             settingsRepository.update(stampNumbersChange = false) { it.startingWith(preset, answers, today) }
         }.logOnFailure { "Onboarding could not save the starting mode" }
 
-        if (authRepository.current() !is AuthState.Authenticated) {
-            guestAccountCreator.start(PendingIdentity(displayName = DisplayNameSuggester.next()))
-            // Bounded wait. If creation hasn't reached a terminal state in time
-            // (offline / wedged), go on degraded; the creator keeps the identity
-            // and retries in the background.
-            val terminal = withTimeoutOrNull(FINISH_CREATION_AWAIT_TIMEOUT) {
-                guestAccountCreator.awaitTerminal()
-            }
-            logger.d { "finish: guest-creation terminal=${terminal?.let { it::class.simpleName } ?: "timed-out"}" }
-            if (terminal is AccountCreationState.Failed || terminal == null) {
-                updateState { it.copy(creationFailed = true) }
-            }
-        }
+        val session = authRepository.current() as? AuthState.Authenticated
+        if (session == null && !guestCreated) createGuest()
 
-        exitedToToday = true
-        logger.logEvent(
-            "onboarding.completed",
-            "duration_sec" to onboardingStartedAt.elapsedNow().inWholeSeconds,
-            "account_ready" to !state.creationFailed,
-            "preset" to preset.key,
-            "took_recommendation" to tookRecommendation,
-            "skipped_all" to skippedAll,
-        )
+        if (!completed) {
+            completed = true
+            logger.logEvent(
+                "onboarding.completed",
+                "duration_sec" to onboardingStartedAt.elapsedNow().inWholeSeconds,
+                "account_ready" to !state.creationFailed,
+                "preset" to preset.key,
+                "took_recommendation" to tookRecommendation,
+                "skipped_all" to skippedAll,
+            )
+        }
         appCache.update { it.copy(hasUserOnboarded = true) }
-        // isFinishing stays true: the screen is leaving, and a second tap queued
-        // behind this one must not finish again.
+
+        val claimable = guestCreated || session?.isAnonymous == true
+        if (skippedAll || !claimable) {
+            // isFinishing stays true: the screen is leaving, and a second tap
+            // queued behind this one must not finish again.
+            sendEvent(OnboardingEvent.NavigateToToday)
+        } else {
+            updateState { it.copy(step = OnboardingStep.Account, isFinishing = false) }
+            logStepViewed(OnboardingStep.Account)
+        }
+    }
+
+    private suspend fun OnboardingAction.createGuest() {
+        guestAccountCreator.start(PendingIdentity(displayName = DisplayNameSuggester.next()))
+        // Bounded wait. If creation hasn't reached a terminal state in time
+        // (offline / wedged), go on degraded; the creator keeps the identity
+        // and retries in the background.
+        val terminal = withTimeoutOrNull(FINISH_CREATION_AWAIT_TIMEOUT) {
+            guestAccountCreator.awaitTerminal()
+        }
+        logger.d { "finish: guest-creation terminal=${terminal?.let { it::class.simpleName } ?: "timed-out"}" }
+        if (terminal is AccountCreationState.Succeeded) {
+            guestCreated = true
+        } else {
+            updateState { it.copy(creationFailed = true) }
+        }
+    }
+
+    /**
+     * "Continue with Apple" (iOS): link the native Apple identity onto the
+     * guest, keeping everything just saved. A dismissed sheet is a quiet no-op.
+     * Never falls back to signing in: an Apple ID already on another account
+     * would switch sessions and wipe the settings this flow just wrote.
+     */
+    private suspend fun OnboardingAction.handleSaveWithApple() {
+        if (!state.canClaim) return
+        updateState { it.copy(accountInFlight = AccountMethod.Apple, accountError = null) }
+        val request = Catching { appleSignInCoordinator.awaitCredential() }
+            .logOnFailure { "Apple credential request failed" }
+        val credential = request.getOrNull()
+        when {
+            request.isFailure -> updateState {
+                it.copy(accountInFlight = null, accountError = OnboardingAccountError.Failed)
+            }
+            credential == null -> updateState { it.copy(accountInFlight = null) }
+            else -> settleLink(AccountMethod.Apple, authRepository.linkAppleIdentity(credential))
+        }
+    }
+
+    /** "Continue with Google": link Google onto the guest through the browser round trip. */
+    private suspend fun OnboardingAction.handleSaveWithGoogle() {
+        if (!state.canClaim) return
+        updateState { it.copy(accountInFlight = AccountMethod.Google, accountError = null) }
+        settleLink(AccountMethod.Google, authRepository.linkOAuthIdentity(OAuthProvider.Google))
+    }
+
+    private suspend fun OnboardingAction.settleLink(method: AccountMethod, outcome: LinkIdentityOutcome) {
+        val error = when (outcome) {
+            LinkIdentityOutcome.Success -> null
+            LinkIdentityOutcome.Cancelled -> null
+            LinkIdentityOutcome.AlreadyOnAnotherAccount -> OnboardingAccountError.AccountInUse
+            LinkIdentityOutcome.ProviderNotEnabled -> OnboardingAccountError.ProviderNotEnabled
+            is LinkIdentityOutcome.NetworkError -> OnboardingAccountError.Offline
+            LinkIdentityOutcome.NotSignedIn, is LinkIdentityOutcome.Unknown -> OnboardingAccountError.Failed
+        }
+        updateState { it.copy(accountInFlight = null, accountError = error) }
+        if (outcome == LinkIdentityOutcome.Success) {
+            leaveAccountStep(if (method == AccountMethod.Apple) AccountChoice.Apple else AccountChoice.Google)
+        }
+    }
+
+    /**
+     * "Continue with email": the sign-up screen links an email and password onto
+     * the anonymous guest, and email verification lands on Today.
+     */
+    private suspend fun OnboardingAction.handleSaveWithEmail() {
+        if (!state.canClaim) return
+        updateState { it.copy(accountError = null) }
+        logAccountChoice(AccountChoice.Email)
+        sendEvent(OnboardingEvent.NavigateToSignUp)
+    }
+
+    private suspend fun OnboardingAction.leaveAccountStep(choice: AccountChoice) {
+        if (state.step != OnboardingStep.Account || state.isFinishing) return
+        logAccountChoice(choice)
+        updateState { it.copy(isFinishing = true) }
         sendEvent(OnboardingEvent.NavigateToToday)
     }
 
-    private suspend fun OnboardingAction.handleOAuth(provider: OAuthProvider) {
-        updateState { it.copy(oauthInFlight = provider, authError = null) }
-        when (val outcome = authRepository.signInWithOAuth(provider)) {
-            is SignInOutcome.Success -> {
-                val authOutcome = authOutcomeClassifier.classify()
-                logger.logEvent(
-                    "onboarding.auth_selected",
-                    "method" to provider.name.lowercase(),
-                    "returning" to (authOutcome != AuthOutcome.SignedUp),
-                )
-                routeAfterSignIn(authOutcome)
-            }
-            SignInOutcome.Cancelled -> updateState { it.copy(oauthInFlight = null) }
-            SignInOutcome.ProviderNotEnabled -> updateState {
-                it.copy(oauthInFlight = null, authError = OnboardingAuthError.OAuthProviderNotEnabled)
-            }
-            is SignInOutcome.NetworkError -> updateState {
-                it.copy(oauthInFlight = null, authError = OnboardingAuthError.OAuthNetworkError)
-            }
-            SignInOutcome.InvalidCredentials,
-            is SignInOutcome.EmailNotConfirmed,
-            is SignInOutcome.Unknown,
-            -> updateState {
-                it.copy(oauthInFlight = null, authError = OnboardingAuthError.OAuthFailed)
-            }
-        }
+    private fun logAccountChoice(choice: AccountChoice) {
+        logger.logEvent("onboarding.account_choice", "choice" to choice.eventName)
     }
 
     /**
-     * Route a fresh (non-link) sign-in by its typed [AuthOutcome]:
-     *  - [AuthOutcome.SignedUp]: first-ever sign-in for this identity, so run
-     *    them through the questions like a guest. `identityClaimed` suppresses
-     *    the back-to-Welcome control (the sign-in options no longer apply).
-     *  - [AuthOutcome.SignedIn]: a returning account already has its settings,
-     *    which arrive by sync, so skip onboarding straight to Today. Until they
-     *    land the visibility policy stays Blind, so a new phone never shows Full
-     *    numbers first.
-     *
-     * [AuthOutcome.Linked] can't reach here (Welcome has no anonymous guest to
-     * link onto, since guest creation is deferred), so it routes to Today like
-     * any already-established account.
-     */
-    private suspend fun OnboardingAction.routeAfterSignIn(outcome: AuthOutcome) {
-        when (outcome) {
-            AuthOutcome.SignedUp -> enterQuestions(identityClaimed = true)
-            AuthOutcome.SignedIn, AuthOutcome.Linked -> {
-                appCache.update { it.copy(hasUserOnboarded = true) }
-                updateState { it.copy(oauthInFlight = null) }
-                exitedToToday = true
-                sendEvent(OnboardingEvent.NavigateToToday)
-            }
-        }
-    }
-
-    /**
-     * Native "Sign in with Apple". Runs the iOS coordinator for the id token,
-     * then either **links** the Apple identity to the current anonymous guest
-     * (preserving any progress made as a guest) or, if there's no anonymous
-     * session, signs in fresh. A dismissed sheet (`null` credential) is a quiet
-     * no-op; only a real failure surfaces an error. Reuses [OnboardingState.oauthInFlight]
-     * so the button shows the in-flight state like the OAuth buttons.
-     */
-    private suspend fun OnboardingAction.handleAppleSignIn() {
-        updateState { it.copy(oauthInFlight = OAuthProvider.Apple, authError = null) }
-        Catching { appleSignInCoordinator.awaitCredential() }
-            .logOnFailure { "Apple credential request failed" }
-            .fold(
-                onSuccess = { credential ->
-                    if (credential == null) {
-                        // User dismissed the sheet: quiet no-op.
-                        updateState { it.copy(oauthInFlight = null) }
-                    } else {
-                        finishAppleSignIn(credential)
-                    }
-                },
-                onFailure = {
-                    updateState {
-                        it.copy(oauthInFlight = null, authError = OnboardingAuthError.OAuthFailed)
-                    }
-                },
-            )
-    }
-
-    private suspend fun OnboardingAction.finishAppleSignIn(credential: AppleSignInCredential) {
-        // Two shapes of "Continue with Apple", decided by whether we're holding an
-        // anonymous guest to link onto:
-        //   1. Anonymous guest present → LINK Apple to it (keeps progress) and
-        //      carry on through onboarding like any new signup.
-        //   2. No anonymous guest (e.g. right after account deletion, which tears
-        //      the session down) → SIGN IN. That sign-in may hit a pre-existing
-        //      account OR mint a net-new one, so we don't assume; [signInApple]
-        //      classifies via the brand-new signal.
-        val isAnonymousGuest =
-            (authRepository.current() as? AuthState.Authenticated)?.isAnonymous == true
-        if (isAnonymousGuest) {
-            when (authRepository.linkAppleIdentity(credential)) {
-                LinkIdentityOutcome.Success -> {
-                    logger.logEvent("onboarding.auth_selected", "method" to "apple", "returning" to false)
-                    enterQuestions(identityClaimed = true)
-                }
-                LinkIdentityOutcome.AlreadyOnAnotherAccount -> signInApple(credential)
-                else -> failAppleSignIn()
-            }
-        } else {
-            signInApple(credential)
-        }
-    }
-
-    /**
-     * Apple sign-in with no guest to link onto. `signInWithApple` either signs
-     * into a pre-existing Apple account OR mints a net-new one (Supabase
-     * creates on first Apple OIDC, e.g. after an account deletion left no
-     * session). We must NOT assume "existing": classify via
-     * [authOutcomeClassifier] exactly like [handleOAuth], so a net-new account
-     * runs through the questions instead of landing cold on Today.
-     */
-    private suspend fun OnboardingAction.signInApple(credential: AppleSignInCredential) {
-        if (authRepository.signInWithApple(credential) !is SignInOutcome.Success) {
-            failAppleSignIn()
-            return
-        }
-        val outcome = authOutcomeClassifier.classify()
-        logger.logEvent(
-            "onboarding.auth_selected",
-            "method" to "apple",
-            "returning" to (outcome != AuthOutcome.SignedUp),
-        )
-        routeAfterSignIn(outcome)
-    }
-
-    private suspend fun OnboardingAction.failAppleSignIn() =
-        updateState { it.copy(oauthInFlight = null, authError = OnboardingAuthError.OAuthFailed) }
-
-    /**
-     * Recommendation → Question 4, Question n → n − 1, Question 1 → Welcome.
-     * Gated by [OnboardingState.canGoBack]: nothing moves while finishing, and
-     * a claimed identity cannot return to the Welcome sign-in options.
+     * Account → Recommendation → Statement → Question n − 1 → Welcome. Gated by
+     * [OnboardingState.canGoBack]: nothing moves while saving or linking, and
+     * question 1 cannot return to Welcome once the mode was saved or an
+     * identity is claimed.
      */
     private suspend fun OnboardingAction.handleBack() {
         if (!state.canGoBack) return
         val previous = when (val step = state.step) {
             OnboardingStep.Welcome -> return
-            OnboardingStep.Recommendation -> OnboardingStep.Question(SetupQuestion.Hard)
+            OnboardingStep.Account -> OnboardingStep.Recommendation
+            OnboardingStep.Recommendation -> OnboardingStep.Question(SetupQuestion.Statement)
             is OnboardingStep.Question ->
                 SetupQuestion.of(step.question.number - 1)?.let { OnboardingStep.Question(it) }
                     ?: OnboardingStep.Welcome
         }
-        updateState { it.copy(step = previous) }
+        updateState { it.copy(step = previous, accountError = null) }
         logStepViewed(previous)
     }
 
     override fun onCleared() {
         // Best-effort abandonment marker: the VM outliving the flow without ever
-        // routing to Today means the user backed out (system back on Welcome
-        // exits the app and clears the entry). A process kill won't reach this;
-        // the funnel's step_viewed-without-completed sessions cover that case.
-        if (!exitedToToday) {
+        // saving a mode means the user backed out (system back on Welcome exits
+        // the app and clears the entry). A process kill won't reach this; the
+        // funnel's step_viewed-without-completed sessions cover that case.
+        if (!completed) {
             logger.logEvent("onboarding.abandoned", "step" to state.step.eventName)
         }
         super.onCleared()
@@ -421,14 +378,24 @@ class OnboardingViewModel(
 
     companion object {
         /**
-         * Upper bound on how long finishing waits for the in-flight guest
-         * account before going to Today anyway. Onboarding must never trap the
-         * user on a backend call: if creation hasn't settled by now (offline /
-         * slow), we proceed degraded and the creator keeps retrying in the
-         * background.
+         * Upper bound on how long saving waits for the in-flight guest account
+         * before going on anyway. Onboarding must never trap the user on a
+         * backend call: if creation hasn't settled by now (offline / slow), we
+         * proceed degraded and the creator keeps retrying in the background.
          */
         private val FINISH_CREATION_AWAIT_TIMEOUT = 5_000.milliseconds
     }
+}
+
+/** How the account step claims the guest in place. Email hands off to the sign-up screen. */
+enum class AccountMethod { Apple, Google }
+
+/** How someone left the account step, as `onboarding.account_choice` names it. */
+private enum class AccountChoice(val eventName: String) {
+    Phone("phone"),
+    Google("google"),
+    Apple("apple"),
+    Email("email"),
 }
 
 data class OnboardingState(
@@ -438,29 +405,32 @@ data class OnboardingState(
     val recommended: PresetId = ModeRecommender.recommend(SetupAnswers()),
     /** An alternative the user tapped on the recommendation step. Cleared by any new answer. */
     val picked: PresetId? = null,
-    val alternatives: List<PresetId> = ModeRecommender.alternatives(recommended, hard = false),
+    /** Three other starting points, or every offered mode once [showAllModes]. */
+    val alternatives: List<PresetId> = ModeRecommender.alternatives(SetupAnswers(), recommended),
+    /** "All modes" was tapped: [alternatives] lists every mode on offer. */
+    val showAllModes: Boolean = false,
 
-    val oauthInFlight: OAuthProvider? = null,
-    val authError: OnboardingAuthError? = null,
+    /** The Apple or Google link running on the account step. Disables its buttons. */
+    val accountInFlight: AccountMethod? = null,
+    val accountError: OnboardingAccountError? = null,
 
     /**
-     * True once the user has claimed a real identity mid-onboarding (e.g. a new
-     * Apple account) and is finishing setup. Suppresses the "back to landing
-     * page" affordance: the Welcome sign-in options are meaningless once you're
-     * signed in, and re-running them would be confusing.
+     * True when the person arrived with a real identity (a verified email
+     * signup). Suppresses the "back to Welcome" affordance and the account
+     * step: there is nothing left to claim.
      */
     val identityClaimed: Boolean = false,
 
-    /** True once finishing has begun. Pins the flow forward. */
+    /** True once the mode was saved. Pins question 1 so Welcome cannot run again. */
     val creationStarted: Boolean = false,
 
-    /** True from Start (or Skip all) until the screen leaves. Disables every button. */
+    /** True while the mode is being saved, and from leaving until the screen goes. Disables every button. */
     val isFinishing: Boolean = false,
 
     /**
-     * True if guest-account creation failed (offline) by the time the user
-     * finished onboarding. They still land on Today; the account is retried in
-     * the background.
+     * True if guest-account creation failed (offline) by the time the mode was
+     * saved. They still land on Today; the account is retried in the
+     * background.
      */
     val creationFailed: Boolean = false,
 
@@ -475,10 +445,21 @@ data class OnboardingState(
     /** The current question's options, with what is already picked. */
     val options: List<SetupChoice> get() = question?.let(answers::choices).orEmpty()
 
+    /** How far through the questions, 1 to [SetupQuestion.Count]. 0 off the question steps. */
+    val progress: Int get() = question?.number ?: 0
+
+    /** What [chosen] shows and keeps out of view. */
+    val preview: ModePreview get() = ModePreview.of(Presets[chosen])
+
+    /** The account step's buttons work: on the step, with nothing running. */
+    val canClaim: Boolean
+        get() = step == OnboardingStep.Account && accountInFlight == null && !isFinishing
+
     val canGoBack: Boolean
         get() = when (step) {
             OnboardingStep.Welcome -> false
             OnboardingStep.Recommendation -> !isFinishing
+            OnboardingStep.Account -> accountInFlight == null && !isFinishing
             is OnboardingStep.Question ->
                 !isFinishing && (step.question != SetupQuestion.Reason || (!identityClaimed && !creationStarted))
         }
@@ -486,11 +467,16 @@ data class OnboardingState(
     /** Recomputes the recommendation and the alternatives from [answers]. */
     internal fun withRecommendation(): OnboardingState {
         val next = ModeRecommender.recommend(answers)
-        val chosen = picked?.takeIf { ModeRecommender.isOffered(it, answers.hard) }
+        val kept = picked?.takeIf { ModeRecommender.isOffered(it, answers.hard) }
         return copy(
             recommended = next,
-            picked = chosen,
-            alternatives = ModeRecommender.alternatives(chosen ?: next, answers.hard),
+            picked = kept,
+            alternatives = ModeRecommender.alternatives(
+                answers = answers,
+                chosen = kept ?: next,
+                recommended = next,
+                all = showAllModes,
+            ),
         )
     }
 }
@@ -504,11 +490,15 @@ sealed interface OnboardingStep {
     }
 
     data class Question(val question: SetupQuestion) : OnboardingStep {
-        override val eventName: String get() = "question_${question.number}"
+        override val eventName: String get() = question.eventName
     }
 
     data object Recommendation : OnboardingStep {
         override val eventName = "recommendation"
+    }
+
+    data object Account : OnboardingStep {
+        override val eventName = "account"
     }
 }
 
@@ -519,41 +509,42 @@ sealed interface OnboardingEvent {
 }
 
 /**
- * Inline error surfaced under the Welcome step's sign-in buttons. Typed so
- * the VM doesn't hold raw user-facing copy: `OnboardingScreen.kt` resolves
- * each variant at render time. Only the OAuth/Apple entries can fail here; the
- * guest path defers account creation to the app-scoped [GuestAccountCreator],
- * which retries in the background instead of surfacing an error on Welcome.
+ * Inline error under the account step's buttons. Typed so the VM holds no
+ * user-facing copy: `OnboardingScreen.kt` resolves each one at render time.
  */
-sealed interface OnboardingAuthError {
-    /** OAuth provider isn't enabled in the auth backend yet. */
-    data object OAuthProviderNotEnabled : OnboardingAuthError
-    /** OAuth network unreachable. */
-    data object OAuthNetworkError : OnboardingAuthError
-    /** OAuth invalid credentials / email-not-confirmed / unknown. */
-    data object OAuthFailed : OnboardingAuthError
+sealed interface OnboardingAccountError {
+    /** The Apple ID or Google account already belongs to another Opson account. */
+    data object AccountInUse : OnboardingAccountError
+    /** The provider isn't enabled in the auth backend yet. */
+    data object ProviderNotEnabled : OnboardingAccountError
+    /** The network was unreachable. */
+    data object Offline : OnboardingAccountError
+    /** Anything else. */
+    data object Failed : OnboardingAccountError
 }
 
 sealed interface OnboardingAction {
     /** Internal: fired once on init to resolve the opening step / bounce. */
     data object ResolveEntry : OnboardingAction
-    /** "Set it up" on Welcome: the guest path, into the questions. */
-    data object ContinueAsGuest : OnboardingAction
-    /** "Skip, start logging" on Welcome. */
+    /** "Get started" on Welcome: the guest path, into the questions. */
+    data object GetStartedTapped : OnboardingAction
+    /** "Skip and start logging" on Welcome. */
     data object SkipAllTapped : OnboardingAction
+    /** "Have an account? Sign in" on Welcome. */
+    data object SignInTapped : OnboardingAction
     data class OptionTapped(val option: SetupOption) : OnboardingAction
-    data object NextTapped : OnboardingAction
+    /** "Continue", or "See my starting point" on the statement. */
+    data object ContinueTapped : OnboardingAction
     data object SkipQuestionTapped : OnboardingAction
     data class AlternativeTapped(val preset: PresetId) : OnboardingAction
+    data object AllModesTapped : OnboardingAction
     /** "Start with ..." on the recommendation step. */
     data object StartTapped : OnboardingAction
-    /** Welcome-step entry into the email/password sign-in flow. */
-    data object SignIn : OnboardingAction
-    /** Welcome-step entry into the email/password sign-up flow. */
-    data object SignUp : OnboardingAction
+    data object SaveWithAppleTapped : OnboardingAction
+    data object SaveWithGoogleTapped : OnboardingAction
+    data object SaveWithEmailTapped : OnboardingAction
+    /** "Keep it on this phone" on the account step. */
+    data object KeepOnPhoneTapped : OnboardingAction
     /** One step back, when [OnboardingState.canGoBack]. */
     data object Back : OnboardingAction
-    data class SignInWithOAuth(val provider: OAuthProvider) : OnboardingAction
-    /** Welcome-step native "Sign in with Apple" (iOS only). */
-    data object SignInWithApple : OnboardingAction
 }

@@ -6,14 +6,12 @@ import com.opson.libraries.core.logging.LogEntry
 import com.opson.libraries.core.logging.LogId
 import com.opson.libraries.core.logging.LogTree
 import com.opson.libraries.diary.OnboardingAnswers
-import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
-import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.LinkIdentityOutcome
 import com.opson.libraries.identity.auth.OAuthProvider
-import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.opson.AppData
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -26,23 +24,24 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
-import kotlinx.datetime.LocalDate
 
 /**
- * Covers the onboarding flow with **deferred account creation**:
+ * Covers onboarding as design v3 draws it, with **deferred account creation**:
  *
  *  - Entry: an onboarded user bounces to Today; a claimed account that has not
- *    set up lands on Question 1; a stranded guest is adopted.
- *  - Set it up enters the questions without creating an account.
- *  - Answers: the feel question replaces, the others toggle; each answer
- *    recomputes the recommendation and the alternatives.
- *  - Next and Skip walk to the recommendation; Back walks back, gated.
- *  - Start and Skip all write the preset and the answers without stamping
- *    `changedAt`, then create the guest, mark onboarded and go to Today.
- *  - OAuth and Apple: returning accounts go to Today, new ones answer the
- *    questions with Back to Welcome blocked.
+ *    set up lands on question 1; a stranded guest is adopted.
+ *  - Get started enters the questions without creating an account.
+ *  - Answers: why toggles, everything else replaces; each answer recomputes
+ *    the recommendation and the alternatives.
+ *  - Continue and Skip walk to the recommendation; Back walks back, gated.
+ *  - Start saves the preset and the answers without stamping `changedAt`,
+ *    creates the guest, marks onboarded and opens the account step. Skip all
+ *    saves Full numbers and goes straight to Today.
+ *  - The account step links Google or Apple onto the guest, hands email to
+ *    sign-up, or keeps it on this phone.
  *  - No event attribute ever carries an answer.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -61,8 +60,7 @@ class OnboardingViewModelTest : CoroutineTest() {
     fun init_alreadyOnboarded_immediatelyNavigatesToToday() = runUnitTest {
         val cache = FakeAppCache(initial = AppData(hasUserOnboarded = true))
         val vm = newVm(cache = cache)
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
+        val received = collectEvents(vm)
         runCurrent()
 
         assertEquals(OnboardingEvent.NavigateToToday, received.firstOrNull())
@@ -73,9 +71,8 @@ class OnboardingViewModelTest : CoroutineTest() {
         // A just-confirmed email signup routed back from VerifyEmail: a real
         // (non-anonymous) account that hasn't finished onboarding opens at the
         // first question with the back-to-Welcome control suppressed.
-        val cache = FakeAppCache(initial = AppData(hasUserOnboarded = false))
         val auth = FakeAuthRepository(initialAuthState = sampleAuthenticated)
-        val vm = newVm(cache = cache, auth = auth)
+        val vm = newVm(auth = auth)
         runCurrent()
 
         assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
@@ -85,16 +82,13 @@ class OnboardingViewModelTest : CoroutineTest() {
 
     @Test
     fun init_returningAnonymousGuest_skipsOnboarding_navigatesToToday() = runUnitTest {
-        // An install with a pre-existing anonymous guest session that reaches
-        // onboarding-not-onboarded is a RETURNING guest whose flag was lost,
-        // not a new user. It skips the questions and adopts the onboarded flag
-        // so it can't bounce back here.
-        val cache = FakeAppCache(initial = AppData(hasUserOnboarded = false))
+        // A pre-existing anonymous guest session reaching onboarding is a
+        // RETURNING guest whose flag was lost, not a new user.
+        val cache = FakeAppCache()
         val auth = FakeAuthRepository(initialAuthState = sampleAnonymousGuest)
         val settings = FakeSettingsRepository()
         val vm = newVm(cache = cache, auth = auth, settings = settings)
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
+        val received = collectEvents(vm)
         runCurrent()
 
         assertEquals(OnboardingEvent.NavigateToToday, received.firstOrNull())
@@ -113,27 +107,40 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(listOf("welcome"), events.steps())
     }
 
-    // ---------- Set it up ----------
+    // ---------- Welcome ----------
 
     @Test
-    fun continueAsGuest_entersQuestionOne_withoutCreatingAnAccount() = runUnitTest {
-        val auth = FakeAuthRepository() // Unauthenticated by default
+    fun getStarted_entersQuestionOne_withoutCreatingAnAccount() = runUnitTest {
+        KLog.plant(events)
         val creator = FakeGuestAccountCreator()
-        val vm = newVm(auth = auth, creator = creator)
+        val vm = newVm(creator = creator)
 
-        vm.takeAction(OnboardingAction.ContinueAsGuest)
+        vm.takeAction(OnboardingAction.GetStartedTapped)
         runCurrent()
 
         assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
-        assertNull(vm.state.authError)
-        assertEquals(0, creator.startCalls, "no account until the user finishes")
+        assertEquals(1, vm.state.progress)
+        assertEquals(0, creator.startCalls, "no account until the mode is saved")
         assertTrue(vm.state.canGoBack, "a guest can still go back to Welcome")
+        assertEquals("guest", events.single("onboarding.auth_selected")["method"])
+    }
+
+    @Test
+    fun signIn_emitsNavigateToSignIn_andStaysOnWelcome() = runUnitTest {
+        val vm = newVm()
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.SignInTapped)
+        runCurrent()
+
+        assertEquals(OnboardingEvent.NavigateToSignIn, received.firstOrNull())
+        assertEquals(OnboardingStep.Welcome, vm.state.step)
     }
 
     // ---------- Answers ----------
 
     @Test
-    fun optionTapped_multiSelectQuestion_togglesEachAnswer() = runUnitTest {
+    fun optionTapped_whyQuestion_togglesEachAnswer() = runUnitTest {
         val vm = atQuestion(SetupQuestion.Reason)
 
         vm.takeAction(OnboardingAction.OptionTapped(Why.Curious))
@@ -151,27 +158,22 @@ class OnboardingViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun optionTapped_feelQuestion_replacesTheAnswer() = runUnitTest {
+    fun optionTapped_singleChoiceQuestions_replaceTheAnswer() = runUnitTest {
         val vm = atQuestion(SetupQuestion.Feeling)
-
         vm.takeAction(OnboardingAction.OptionTapped(NumbersFeel.LoveThem))
         vm.takeAction(OnboardingAction.OptionTapped(NumbersFeel.RatherNot))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        vm.takeAction(OnboardingAction.OptionTapped(Notice.Amounts))
+        vm.takeAction(OnboardingAction.OptionTapped(Notice.Patterns))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        vm.takeAction(OnboardingAction.OptionTapped(StatementAnswer.Agree))
+        vm.takeAction(OnboardingAction.OptionTapped(StatementAnswer.NotReally))
         runCurrent()
 
         assertEquals(NumbersFeel.RatherNot, vm.state.answers.feel)
+        assertEquals(Notice.Patterns, vm.state.answers.notice)
+        assertEquals(StatementAnswer.NotReally, vm.state.answers.statement)
         assertEquals(1, vm.state.options.count { it.selected })
-    }
-
-    @Test
-    fun optionTapped_hardQuestion_togglesTheHardAnswer() = runUnitTest {
-        val vm = atQuestion(SetupQuestion.Hard)
-
-        vm.takeAction(OnboardingAction.OptionTapped(HardBefore))
-        runCurrent()
-        assertTrue(vm.state.answers.hard)
-
-        vm.takeAction(OnboardingAction.OptionTapped(HardBefore))
-        runCurrent()
         assertFalse(vm.state.answers.hard)
     }
 
@@ -186,22 +188,21 @@ class OnboardingViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun optionTapped_recomputesTheRecommendation_andClearsAPickedAlternative() = runUnitTest {
+    fun agreeingWithTheStatement_clearsAPickedAlternative_andTakesFullAndSprintAway() = runUnitTest {
         val vm = atQuestion(SetupQuestion.Feeling)
         vm.takeAction(OnboardingAction.OptionTapped(NumbersFeel.LoveThem))
         runCurrent()
         assertEquals(PresetId.Full, vm.state.recommended)
 
         // Walk to the recommendation, pick an alternative, then come back and
-        // say numbers have been hard: the pick is cleared and Full is gone.
-        repeat(3) { vm.takeAction(OnboardingAction.NextTapped) }
+        // agree with the statement: the pick is cleared and Full is gone.
+        repeat(3) { vm.takeAction(OnboardingAction.ContinueTapped) }
+        vm.takeAction(OnboardingAction.AlternativeTapped(vm.state.alternatives.first()))
         runCurrent()
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Blind))
-        runCurrent()
-        assertEquals(PresetId.Blind, vm.state.chosen)
+        assertNotNull(vm.state.picked)
 
         vm.takeAction(OnboardingAction.Back)
-        vm.takeAction(OnboardingAction.OptionTapped(HardBefore))
+        vm.takeAction(OnboardingAction.OptionTapped(StatementAnswer.Agree))
         runCurrent()
 
         assertNull(vm.state.picked)
@@ -210,26 +211,29 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertFalse(PresetId.Sprint in vm.state.alternatives)
     }
 
-    // ---------- Next, Skip, Back ----------
+    // ---------- Continue, Skip, Back ----------
 
     @Test
-    fun nextAndSkip_walkTheQuestions_toTheRecommendation_loggingEachStep() = runUnitTest {
+    fun continueAndSkip_walkTheQuestionsAndTheStatement_toTheRecommendation_loggingEachStep() = runUnitTest {
         KLog.plant(events)
         val vm = atQuestion(SetupQuestion.Reason)
 
-        vm.takeAction(OnboardingAction.NextTapped)
+        vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
         assertEquals(OnboardingStep.Question(SetupQuestion.Feeling), vm.state.step)
         vm.takeAction(OnboardingAction.SkipQuestionTapped)
         runCurrent()
         assertEquals(OnboardingStep.Question(SetupQuestion.Focus), vm.state.step)
         vm.takeAction(OnboardingAction.SkipQuestionTapped)
-        vm.takeAction(OnboardingAction.NextTapped)
+        runCurrent()
+        assertEquals(OnboardingStep.Question(SetupQuestion.Statement), vm.state.step)
+        assertEquals(4, vm.state.progress)
+        vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
 
         assertEquals(OnboardingStep.Recommendation, vm.state.step)
         assertEquals(
-            listOf("welcome", "question_1", "question_2", "question_3", "question_4", "recommendation"),
+            listOf("welcome", "question_1", "question_2", "question_3", "statement", "recommendation"),
             events.steps(),
         )
     }
@@ -245,9 +249,9 @@ class OnboardingViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun nextTapped_offTheQuestions_isIgnored() = runUnitTest {
+    fun continueTapped_offTheQuestions_isIgnored() = runUnitTest {
         val vm = newVm()
-        vm.takeAction(OnboardingAction.NextTapped)
+        vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
 
         assertEquals(OnboardingStep.Welcome, vm.state.step)
@@ -255,10 +259,7 @@ class OnboardingViewModelTest : CoroutineTest() {
 
     @Test
     fun back_walksFromTheRecommendation_toWelcome() = runUnitTest {
-        val vm = atQuestion(SetupQuestion.Reason)
-        repeat(4) { vm.takeAction(OnboardingAction.NextTapped) }
-        runCurrent()
-        assertEquals(OnboardingStep.Recommendation, vm.state.step)
+        val vm = atRecommendation()
 
         val seen = mutableListOf<OnboardingStep>()
         repeat(5) {
@@ -269,7 +270,7 @@ class OnboardingViewModelTest : CoroutineTest() {
 
         assertEquals(
             listOf(
-                OnboardingStep.Question(SetupQuestion.Hard),
+                OnboardingStep.Question(SetupQuestion.Statement),
                 OnboardingStep.Question(SetupQuestion.Focus),
                 OnboardingStep.Question(SetupQuestion.Feeling),
                 OnboardingStep.Question(SetupQuestion.Reason),
@@ -291,7 +292,7 @@ class OnboardingViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun back_isBlocked_onceFinishingStarted() = runUnitTest {
+    fun back_isBlocked_whileTheModeIsSaving() = runUnitTest {
         val vm = atRecommendation(creator = FakeGuestAccountCreator(hangInProgress = true))
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
@@ -303,35 +304,57 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(OnboardingStep.Recommendation, vm.state.step)
     }
 
+    @Test
+    fun back_onQuestionOne_isBlocked_forAClaimedIdentity() = runUnitTest {
+        val vm = newVm(auth = FakeAuthRepository(initialAuthState = sampleAuthenticated))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        vm.takeAction(OnboardingAction.Back)
+        runCurrent()
+        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
+
+        vm.takeAction(OnboardingAction.Back)
+        runCurrent()
+
+        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
+    }
+
     // ---------- Recommendation ----------
 
     @Test
-    fun noAnswers_recommendDelayed_withFourAlternatives() = runUnitTest {
+    fun noAnswers_recommendFullNumbers_withThreeGentlerAlternatives() = runUnitTest {
         val vm = atRecommendation()
 
-        assertEquals(PresetId.Delayed, vm.state.chosen)
-        assertEquals(
-            listOf(PresetId.Full, PresetId.Blind, PresetId.Nutrient, PresetId.Rhythm),
-            vm.state.alternatives,
-        )
+        assertEquals(PresetId.Full, vm.state.chosen)
+        assertEquals(listOf(PresetId.Blind, PresetId.Delayed, PresetId.Nutrient), vm.state.alternatives)
+        assertEquals(ModePreview.of(Presets.Full), vm.state.preview)
+    }
+
+    @Test
+    fun theDesignsAnswers_recommendFuel_andPreviewIt() = runUnitTest {
+        val vm = atRecommendation(answers = designAnswers)
+
+        assertEquals(PresetId.Fuel, vm.state.chosen)
+        assertEquals(listOf(PresetId.Rhythm, PresetId.Nutrient, PresetId.Blind), vm.state.alternatives)
+        assertEquals(ModePreview.of(Presets.Fuel), vm.state.preview)
     }
 
     @Test
     fun alternativeTapped_picksIt_andTheRecommendationBecomesAnAlternative() = runUnitTest {
-        val vm = atRecommendation()
+        val vm = atRecommendation(answers = designAnswers)
 
         vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Nutrient))
         runCurrent()
 
         assertEquals(PresetId.Nutrient, vm.state.chosen)
-        assertEquals(PresetId.Delayed, vm.state.recommended)
+        assertEquals(PresetId.Fuel, vm.state.recommended)
         assertFalse(PresetId.Nutrient in vm.state.alternatives)
-        assertTrue(PresetId.Delayed in vm.state.alternatives)
+        assertEquals(PresetId.Fuel, vm.state.alternatives.first())
+        assertEquals(ModePreview.of(Presets.Nutrient), vm.state.preview)
     }
 
     @Test
     fun alternativeTapped_notOnOffer_isIgnored() = runUnitTest {
-        val vm = atRecommendation(answers = listOf(HardBefore))
+        val vm = atRecommendation(answers = listOf(StatementAnswer.Agree))
 
         vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Full))
         runCurrent()
@@ -340,10 +363,30 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(PresetId.Blind, vm.state.chosen)
     }
 
-    // ---------- Finishing ----------
+    @Test
+    fun allModes_listsEveryModeOnOffer() = runUnitTest {
+        val vm = atRecommendation(answers = designAnswers)
+
+        vm.takeAction(OnboardingAction.AllModesTapped)
+        runCurrent()
+
+        assertTrue(vm.state.showAllModes)
+        assertEquals(
+            Presets.all.map { it.id } - setOf(PresetId.Fuel, PresetId.Full, PresetId.Sprint),
+            vm.state.alternatives,
+        )
+
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Coast))
+        runCurrent()
+        assertEquals(PresetId.Coast, vm.state.chosen)
+        assertTrue(PresetId.Fuel in vm.state.alternatives, "the list stays whole after a pick")
+    }
+
+    // ---------- Saving the mode ----------
 
     @Test
-    fun start_writesPresetAndAnswers_unstamped_thenCreatesGuest_thenOnboarded_thenToday() = runUnitTest {
+    fun start_writesPresetAndAnswers_unstamped_thenCreatesGuest_thenOnboarded_thenTheAccountStep() = runUnitTest {
+        KLog.plant(events)
         val order = mutableListOf<String>()
         val settings = FakeSettingsRepository(onUpdate = { order += "settings" })
         val creator = FakeGuestAccountCreator(onStart = { order += "guest" })
@@ -354,13 +397,16 @@ class OnboardingViewModelTest : CoroutineTest() {
             creator = creator,
             cache = cache,
         )
-        backgroundScope.launch { vm.eventFlow.collect { order += it.toString() } }
-        runCurrent()
+        val received = collectEvents(vm)
 
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
 
-        assertEquals(listOf("settings", "guest", "onboarded", "NavigateToToday"), order)
+        assertEquals(listOf("settings", "guest", "onboarded"), order)
+        assertEquals(OnboardingStep.Account, vm.state.step)
+        assertFalse(vm.state.isFinishing)
+        assertTrue(received.isEmpty(), "the account step comes before Today")
+        assertEquals("account", events.steps().last())
         assertEquals(listOf(false), settings.stampFlags, "onboarding must not stamp changedAt")
         val saved = settings.settings.value
         assertEquals(NumbersSettings(preset = PresetId.Rhythm), saved.numbers)
@@ -386,12 +432,10 @@ class OnboardingViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun start_twice_finishesOnce() = runUnitTest {
+    fun start_twice_savesOnce() = runUnitTest {
         val settings = FakeSettingsRepository()
         val creator = FakeGuestAccountCreator()
         val vm = atRecommendation(settings = settings, creator = creator)
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
 
         vm.takeAction(OnboardingAction.StartTapped)
         vm.takeAction(OnboardingAction.StartTapped)
@@ -399,31 +443,52 @@ class OnboardingViewModelTest : CoroutineTest() {
 
         assertEquals(1, creator.startCalls)
         assertEquals(1, settings.stampFlags.size)
-        assertEquals(listOf<OnboardingEvent>(OnboardingEvent.NavigateToToday), received)
+        assertEquals(OnboardingStep.Account, vm.state.step)
     }
 
     @Test
-    fun skipAll_savesDelayedWithEmptyAnswers_andCreatesTheGuest() = runUnitTest {
+    fun backFromTheAccountStep_andStartAgain_savesTheNewMode_withoutASecondGuestOrCompletion() = runUnitTest {
+        KLog.plant(events)
+        val settings = FakeSettingsRepository()
+        val creator = FakeGuestAccountCreator()
+        val vm = atAccount(answers = designAnswers, settings = settings, creator = creator)
+
+        vm.takeAction(OnboardingAction.Back)
+        runCurrent()
+        assertEquals(OnboardingStep.Recommendation, vm.state.step)
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Rhythm))
+        vm.takeAction(OnboardingAction.StartTapped)
+        runCurrent()
+
+        assertEquals(OnboardingStep.Account, vm.state.step)
+        assertEquals(PresetId.Rhythm, settings.settings.value.numbers.preset)
+        assertEquals(listOf(false, false), settings.stampFlags)
+        assertEquals(1, creator.startCalls)
+        assertEquals(1, events.all("onboarding.completed").size)
+    }
+
+    @Test
+    fun skipAll_savesFullNumbersWithEmptyAnswers_createsTheGuest_andGoesStraightToToday() = runUnitTest {
         KLog.plant(events)
         val settings = FakeSettingsRepository()
         val creator = FakeGuestAccountCreator()
         val cache = FakeAppCache()
         val vm = newVm(settings = settings, creator = creator, cache = cache)
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
+        val received = collectEvents(vm)
         runCurrent()
 
         vm.takeAction(OnboardingAction.SkipAllTapped)
         runCurrent()
 
-        assertEquals(NumbersSettings(preset = PresetId.Delayed), settings.settings.value.numbers)
+        assertEquals(NumbersSettings(preset = PresetId.Full), settings.settings.value.numbers)
         assertEquals(OnboardingAnswers(), settings.settings.value.onboarding)
         assertEquals(listOf(false), settings.stampFlags)
         assertEquals(1, creator.startCalls)
         assertTrue(cache.get().hasUserOnboarded)
         assertEquals(OnboardingEvent.NavigateToToday, received.single())
+        assertEquals(OnboardingStep.Welcome, vm.state.step, "skip all passes the account step too")
         val completed = events.single("onboarding.completed")
-        assertEquals("delayed", completed["preset"])
+        assertEquals("full", completed["preset"])
         assertEquals(true, completed["skipped_all"])
         assertEquals(false, completed["took_recommendation"])
     }
@@ -440,11 +505,10 @@ class OnboardingViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun start_guestCreationFails_stillNavigatesToToday_flaggedDegraded() = runUnitTest {
+    fun start_guestCreationFails_goesToToday_flaggedDegraded_withNoAccountStep() = runUnitTest {
         val cache = FakeAppCache()
         val vm = atRecommendation(cache = cache, creator = FakeGuestAccountCreator(failCreation = true))
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
+        val received = collectEvents(vm)
 
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
@@ -452,18 +516,15 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertTrue(cache.get().hasUserOnboarded)
         assertTrue(vm.state.creationFailed)
         assertEquals(OnboardingEvent.NavigateToToday, received.firstOrNull())
+        assertEquals(OnboardingStep.Recommendation, vm.state.step, "nothing to claim without a guest")
     }
 
     @Test
-    fun start_guestCreationNeverTerminates_finishesAfterTimeout() = runUnitTest {
-        // Onboarding must NEVER trap the user on a backend call. If guest
-        // creation is wedged/offline and never reaches a terminal state, Start
-        // still completes after the bounded wait; the creator keeps retrying in
-        // the background.
+    fun start_guestCreationNeverTerminates_goesOnAfterTheTimeout() = runUnitTest {
+        // Onboarding must NEVER trap the user on a backend call.
         val cache = FakeAppCache()
         val vm = atRecommendation(cache = cache, creator = FakeGuestAccountCreator(hangInProgress = true))
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
+        val received = collectEvents(vm)
 
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
@@ -477,22 +538,21 @@ class OnboardingViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun start_withAClaimedAccount_savesSettings_butCreatesNoGuest() = runUnitTest {
+    fun start_withAClaimedAccount_savesSettings_createsNoGuest_andSkipsTheAccountStep() = runUnitTest {
         val cache = FakeAppCache()
         val settings = FakeSettingsRepository()
         val creator = FakeGuestAccountCreator()
         val auth = FakeAuthRepository(initialAuthState = sampleAuthenticated)
         val vm = newVm(cache = cache, auth = auth, settings = settings, creator = creator)
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
+        val received = collectEvents(vm)
         runCurrent()
-        repeat(4) { vm.takeAction(OnboardingAction.SkipQuestionTapped) }
+        repeat(SetupQuestion.Count) { vm.takeAction(OnboardingAction.SkipQuestionTapped) }
 
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
 
         assertEquals(0, creator.startCalls, "a claimed account must not create a guest")
-        assertEquals(PresetId.Delayed, settings.settings.value.numbers.preset)
+        assertEquals(PresetId.Full, settings.settings.value.numbers.preset)
         assertTrue(cache.get().hasUserOnboarded)
         assertEquals(OnboardingEvent.NavigateToToday, received.single())
     }
@@ -510,24 +570,184 @@ class OnboardingViewModelTest : CoroutineTest() {
 
         val completed = events.all("onboarding.completed")
         assertEquals(listOf<Any?>(true, false), completed.map { it["took_recommendation"] })
-        assertEquals(listOf<Any?>("delayed", "blind"), completed.map { it["preset"] })
+        assertEquals(listOf<Any?>("full", "blind"), completed.map { it["preset"] })
         assertEquals(listOf<Any?>(false, false), completed.map { it["skipped_all"] })
         assertTrue(completed.all { "duration_sec" in it && "account_ready" in it })
     }
 
+    // ---------- Account step ----------
+
+    @Test
+    fun keepOnPhone_goesToToday_withoutLinkingAnything() = runUnitTest {
+        KLog.plant(events)
+        val auth = FakeAuthRepository()
+        val vm = atAccount(auth = auth)
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.KeepOnPhoneTapped)
+        runCurrent()
+
+        assertEquals(OnboardingEvent.NavigateToToday, received.single())
+        assertEquals(0, auth.linkOAuthCalls + auth.linkAppleCalls)
+        assertEquals("phone", events.single("onboarding.account_choice")["choice"])
+    }
+
+    @Test
+    fun saveWithGoogle_linksGoogleOntoTheGuest_thenToday() = runUnitTest {
+        KLog.plant(events)
+        val auth = FakeAuthRepository(linkOAuthOutcome = LinkIdentityOutcome.Success)
+        val vm = atAccount(auth = auth)
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.SaveWithGoogleTapped)
+        runCurrent()
+
+        assertEquals(OAuthProvider.Google, auth.lastLinkOAuthProvider)
+        assertEquals(0, auth.oauthSignInCalls, "claiming links, it never signs into another account")
+        assertEquals(OnboardingEvent.NavigateToToday, received.single())
+        assertNull(vm.state.accountInFlight)
+        assertEquals("google", events.single("onboarding.account_choice")["choice"])
+    }
+
+    @Test
+    fun saveWithGoogle_cancelled_staysQuietly() = runUnitTest {
+        val vm = atAccount(auth = FakeAuthRepository(linkOAuthOutcome = LinkIdentityOutcome.Cancelled))
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.SaveWithGoogleTapped)
+        runCurrent()
+
+        assertTrue(received.isEmpty())
+        assertEquals(OnboardingStep.Account, vm.state.step)
+        assertNull(vm.state.accountError)
+        assertNull(vm.state.accountInFlight)
+    }
+
+    @Test
+    fun saveWithGoogle_failures_showTheirError_andStay() = runUnitTest {
+        mapOf(
+            LinkIdentityOutcome.AlreadyOnAnotherAccount to OnboardingAccountError.AccountInUse,
+            LinkIdentityOutcome.ProviderNotEnabled to OnboardingAccountError.ProviderNotEnabled,
+            LinkIdentityOutcome.NetworkError(RuntimeException("offline")) to OnboardingAccountError.Offline,
+            LinkIdentityOutcome.NotSignedIn to OnboardingAccountError.Failed,
+        ).forEach { (outcome, error) ->
+            val vm = atAccount(auth = FakeAuthRepository(linkOAuthOutcome = outcome))
+
+            vm.takeAction(OnboardingAction.SaveWithGoogleTapped)
+            runCurrent()
+
+            assertEquals(error, vm.state.accountError, "for $outcome")
+            assertEquals(OnboardingStep.Account, vm.state.step)
+            assertTrue(vm.state.canClaim, "the buttons work again after $outcome")
+        }
+    }
+
+    @Test
+    fun saveWithApple_linksAppleOntoTheGuest_thenToday() = runUnitTest {
+        KLog.plant(events)
+        val auth = FakeAuthRepository(linkAppleOutcome = LinkIdentityOutcome.Success)
+        val vm = atAccount(auth = auth, appleCoordinator = FakeAppleSignInCoordinator(credential = sampleAppleCredential))
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.SaveWithAppleTapped)
+        runCurrent()
+
+        assertEquals(1, auth.linkAppleCalls)
+        assertEquals(0, auth.appleSignInCalls)
+        assertEquals(OnboardingEvent.NavigateToToday, received.single())
+        assertEquals("apple", events.single("onboarding.account_choice")["choice"])
+    }
+
+    @Test
+    fun saveWithApple_onAnotherAccount_saysSo_andNeverSwitchesSessions() = runUnitTest {
+        // Signing in instead would switch users and wipe the settings onboarding just saved.
+        val auth = FakeAuthRepository(
+            linkAppleOutcome = LinkIdentityOutcome.AlreadyOnAnotherAccount,
+            appleSignInOutcome = com.opson.libraries.identity.auth.SignInOutcome.Success,
+        )
+        val vm = atAccount(auth = auth, appleCoordinator = FakeAppleSignInCoordinator(credential = sampleAppleCredential))
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.SaveWithAppleTapped)
+        runCurrent()
+
+        assertEquals(0, auth.appleSignInCalls)
+        assertEquals(OnboardingAccountError.AccountInUse, vm.state.accountError)
+        assertTrue(received.isEmpty())
+    }
+
+    @Test
+    fun saveWithApple_sheetDismissed_isQuiet() = runUnitTest {
+        val auth = FakeAuthRepository()
+        val vm = atAccount(auth = auth, appleCoordinator = FakeAppleSignInCoordinator(credential = null))
+
+        vm.takeAction(OnboardingAction.SaveWithAppleTapped)
+        runCurrent()
+
+        assertEquals(0, auth.linkAppleCalls)
+        assertNull(vm.state.accountInFlight)
+        assertNull(vm.state.accountError)
+        assertEquals(OnboardingStep.Account, vm.state.step)
+    }
+
+    @Test
+    fun saveWithApple_nativeFailure_showsFailed() = runUnitTest {
+        val vm = atAccount(appleCoordinator = FakeAppleSignInCoordinator(errorMessage = "ASAuthorization error"))
+
+        vm.takeAction(OnboardingAction.SaveWithAppleTapped)
+        runCurrent()
+
+        assertEquals(OnboardingAccountError.Failed, vm.state.accountError)
+        assertNull(vm.state.accountInFlight)
+    }
+
+    @Test
+    fun saveWithEmail_handsOffToSignUp() = runUnitTest {
+        KLog.plant(events)
+        val vm = atAccount()
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.SaveWithEmailTapped)
+        runCurrent()
+
+        assertEquals(OnboardingEvent.NavigateToSignUp, received.single())
+        assertEquals("email", events.single("onboarding.account_choice")["choice"])
+    }
+
+    @Test
+    fun accountActions_offTheAccountStep_doNothing() = runUnitTest {
+        val auth = FakeAuthRepository(linkOAuthOutcome = LinkIdentityOutcome.Success)
+        val vm = atRecommendation()
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.KeepOnPhoneTapped)
+        vm.takeAction(OnboardingAction.SaveWithGoogleTapped)
+        vm.takeAction(OnboardingAction.SaveWithEmailTapped)
+        runCurrent()
+
+        assertTrue(received.isEmpty())
+        assertEquals(0, auth.linkOAuthCalls)
+    }
+
+    // ---------- Telemetry ----------
+
     @Test
     fun noEventAttribute_everCarriesAnAnswer() = runUnitTest {
         KLog.plant(events)
-        val vm = atRecommendation(
-            answers = listOf(Why.MedicalNeed, Why.ChangingWeight, NumbersFeel.RatherNot, Notice.HowEatingFeels, HardBefore),
+        val vm = atAccount(
+            answers = listOf(
+                Why.MedicalNeed,
+                Why.ChangingWeight,
+                NumbersFeel.RatherNot,
+                Notice.HowEatingFeels,
+                StatementAnswer.Agree,
+            ),
         )
-        vm.takeAction(OnboardingAction.Back)
-        vm.takeAction(OnboardingAction.NextTapped)
-        vm.takeAction(OnboardingAction.StartTapped)
+        vm.takeAction(OnboardingAction.KeepOnPhoneTapped)
         runCurrent()
 
-        val answerWords = (Why.entries + NumbersFeel.entries + Notice.entries + HardBefore)
-            .flatMap { listOf(it.key, (it as? Enum<*>)?.name ?: "HardBefore") }
+        val answerWords = (Why.entries + NumbersFeel.entries + Notice.entries + StatementAnswer.entries)
+            .flatMap { listOf(it.key, (it as Enum<*>).name) }
             .map { it.lowercase() }
         val values = events.entries
             .filter { it.context.extras[EXTRA_APP_EVENT].toString().startsWith("onboarding.") }
@@ -536,273 +756,17 @@ class OnboardingViewModelTest : CoroutineTest() {
         val leaked = values.filter { value -> answerWords.any { it == value } }
         assertTrue(leaked.isEmpty(), "answers reached telemetry: $leaked")
         assertFalse(
-            events.entries.any { entry -> entry.context.extras.keys.any { it in setOf("why", "feel", "notice", "hard") } },
+            events.entries.any { entry ->
+                entry.context.extras.keys.any { it in setOf("why", "feel", "notice", "hard", "statement") }
+            },
             "an event carried an answer key",
         )
     }
 
-    // ---------- Sign-in paths (unchanged except where they land) ----------
-
-    @Test
-    fun signInWithOAuth_providerNotEnabled_surfacesOAuthProviderNotEnabled() = runUnitTest {
-        val auth = FakeAuthRepository(oauthSignInOutcome = SignInOutcome.ProviderNotEnabled)
-        val vm = newVm(auth = auth)
-
-        vm.takeAction(OnboardingAction.SignInWithOAuth(OAuthProvider.Google))
-        runCurrent()
-
-        assertEquals(OnboardingAuthError.OAuthProviderNotEnabled, vm.state.authError)
-    }
-
-    @Test
-    fun signInWithOAuth_networkError_surfacesOAuthNetworkError() = runUnitTest {
-        val auth = FakeAuthRepository(
-            oauthSignInOutcome = SignInOutcome.NetworkError(RuntimeException("offline")),
-        )
-        val vm = newVm(auth = auth)
-
-        vm.takeAction(OnboardingAction.SignInWithOAuth(OAuthProvider.Apple))
-        runCurrent()
-
-        assertEquals(OnboardingAuthError.OAuthNetworkError, vm.state.authError)
-    }
-
-    @Test
-    fun signInWithOAuth_returningAccount_marksOnboarded_navigatesToToday_withoutTouchingSettings() = runUnitTest {
-        // isNewAccount=false (the FakeProfileRepository default): a returning
-        // sign-in. Its settings arrive by sync, so onboarding writes none.
-        val cache = FakeAppCache()
-        val settings = FakeSettingsRepository()
-        val auth = FakeAuthRepository(oauthSignInOutcome = SignInOutcome.Success)
-        val vm = newVm(cache = cache, auth = auth, settings = settings)
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
-
-        vm.takeAction(OnboardingAction.SignInWithOAuth(OAuthProvider.Apple))
-        runCurrent()
-
-        assertEquals(OAuthProvider.Apple, auth.lastOAuthProvider)
-        assertTrue(cache.get().hasUserOnboarded)
-        assertEquals(OnboardingEvent.NavigateToToday, received.firstOrNull())
-        assertNull(vm.state.oauthInFlight)
-        assertTrue(settings.stampFlags.isEmpty())
-    }
-
-    @Test
-    fun signInWithOAuth_brandNewAccount_answersTheQuestions_notStraightToToday() = runUnitTest {
-        val cache = FakeAppCache()
-        val auth = FakeAuthRepository(oauthSignInOutcome = SignInOutcome.Success)
-        val profile = FakeProfileRepository().apply { isNewAccount = true }
-        val vm = newVm(cache = cache, auth = auth, profile = profile)
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
-
-        vm.takeAction(OnboardingAction.SignInWithOAuth(OAuthProvider.Google))
-        runCurrent()
-
-        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
-        assertTrue(vm.state.identityClaimed)
-        assertFalse(cache.get().hasUserOnboarded, "brand-new sign-up isn't onboarded until they finish")
-        assertTrue(received.isEmpty(), "must not navigate from the brand-new path")
-        assertNull(vm.state.oauthInFlight)
-    }
-
-    @Test
-    fun signInWithOAuth_cancelled_silentlyClearsInFlightFlag() = runUnitTest {
-        val cache = FakeAppCache()
-        val auth = FakeAuthRepository(oauthSignInOutcome = SignInOutcome.Cancelled)
-        val vm = newVm(cache = cache, auth = auth)
-
-        vm.takeAction(OnboardingAction.SignInWithOAuth(OAuthProvider.Google))
-        runCurrent()
-
-        assertFalse(cache.get().hasUserOnboarded)
-        assertNull(vm.state.oauthInFlight)
-        assertNull(vm.state.authError)
-    }
-
-    @Test
-    fun signIn_emitsNavigateToSignInEvent() = runUnitTest {
-        val vm = newVm()
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
-
-        vm.takeAction(OnboardingAction.SignIn)
-        runCurrent()
-
-        assertEquals(OnboardingEvent.NavigateToSignIn, received.firstOrNull())
-        assertEquals(OnboardingStep.Welcome, vm.state.step)
-    }
-
-    @Test
-    fun signUp_emitsNavigateToSignUpEvent() = runUnitTest {
-        val vm = newVm()
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
-
-        vm.takeAction(OnboardingAction.SignUp)
-        runCurrent()
-
-        assertEquals(OnboardingEvent.NavigateToSignUp, received.firstOrNull())
-    }
-
-    @Test
-    fun back_isBlockedOnQuestionOne_afterOAuthIdentityClaimed() = runUnitTest {
-        // A brand-new OAuth account enters the questions with identityClaimed:
-        // the Welcome sign-in options no longer apply, so Back on Question 1 is
-        // a no-op. Later questions still step back.
-        val auth = FakeAuthRepository(oauthSignInOutcome = SignInOutcome.Success)
-        val profile = FakeProfileRepository().apply { isNewAccount = true }
-        val vm = newVm(auth = auth, profile = profile)
-        vm.takeAction(OnboardingAction.SignInWithOAuth(OAuthProvider.Google))
-        vm.takeAction(OnboardingAction.NextTapped)
-        vm.takeAction(OnboardingAction.Back)
-        runCurrent()
-        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
-
-        vm.takeAction(OnboardingAction.Back)
-        runCurrent()
-
-        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
-    }
-
-    @Test
-    fun appleSignIn_asAnonymousGuest_linkSuccess_entersTheQuestions_claimed() = runUnitTest {
-        // Brand-new Apple identity gets LINKED to the current anonymous guest
-        // (keeps progress) and continues onboarding like a new signup. The
-        // cache starts onboarded so init's resolve takes the plain Today bounce
-        // instead of the returning-guest adoption; the link behavior under
-        // test is unaffected either way.
-        val cache = FakeAppCache(initial = AppData(hasUserOnboarded = true))
-        val auth = FakeAuthRepository(
-            linkAppleOutcome = LinkIdentityOutcome.Success,
-            initialAuthState = sampleAnonymousGuest,
-        )
-        val vm = newVm(
-            cache = cache,
-            auth = auth,
-            appleCoordinator = FakeAppleSignInCoordinator(credential = sampleAppleCredential),
-        )
-
-        vm.takeAction(OnboardingAction.SignInWithApple)
-        runCurrent()
-
-        assertEquals(1, auth.linkAppleCalls, "anonymous guest must take the link path")
-        assertEquals(0, auth.appleSignInCalls)
-        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
-        assertTrue(vm.state.identityClaimed)
-        assertNull(vm.state.oauthInFlight)
-    }
-
-    @Test
-    fun appleSignIn_identityOnAnotherAccount_signsIn_andNavigatesToToday() = runUnitTest {
-        // The Apple identity already belongs to an existing account: the link
-        // is rejected, so we switch sessions and skip onboarding entirely.
-        val cache = FakeAppCache(initial = AppData(hasUserOnboarded = true))
-        val auth = FakeAuthRepository(
-            linkAppleOutcome = LinkIdentityOutcome.AlreadyOnAnotherAccount,
-            appleSignInOutcome = SignInOutcome.Success,
-            initialAuthState = sampleAnonymousGuest,
-        )
-        val vm = newVm(
-            cache = cache,
-            auth = auth,
-            appleCoordinator = FakeAppleSignInCoordinator(credential = sampleAppleCredential),
-        )
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
-
-        vm.takeAction(OnboardingAction.SignInWithApple)
-        runCurrent()
-
-        assertEquals(1, auth.appleSignInCalls, "rejected link must fall back to sign-in")
-        assertTrue(cache.get().hasUserOnboarded)
-        assertEquals(OnboardingEvent.NavigateToToday, received.firstOrNull())
-        assertNull(vm.state.oauthInFlight)
-    }
-
-    @Test
-    fun appleSignIn_noAnonSession_brandNewAccount_answersTheQuestions() = runUnitTest {
-        // After an account deletion there's NO anonymous session, so the link
-        // path is skipped and we sign in. The backend mints a NET-NEW account
-        // (server isNewAccount=true). It must run through the questions.
-        val cache = FakeAppCache()
-        val auth = FakeAuthRepository(
-            appleSignInOutcome = SignInOutcome.Success,
-            initialAuthState = AuthState.Unauthenticated(),
-        )
-        val profile = FakeProfileRepository().apply { isNewAccount = true }
-        val vm = newVm(
-            cache = cache,
-            auth = auth,
-            profile = profile,
-            appleCoordinator = FakeAppleSignInCoordinator(credential = sampleAppleCredential),
-        )
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
-
-        vm.takeAction(OnboardingAction.SignInWithApple)
-        runCurrent()
-
-        assertEquals(0, auth.linkAppleCalls, "no anonymous guest to link onto")
-        assertEquals(1, auth.appleSignInCalls)
-        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
-        assertTrue(vm.state.identityClaimed)
-        assertFalse(cache.get().hasUserOnboarded, "net-new account isn't onboarded until they finish")
-        assertTrue(received.isEmpty(), "must not navigate from the net-new Apple path")
-        assertNull(vm.state.oauthInFlight)
-    }
-
-    @Test
-    fun appleSignIn_noAnonSession_existingAccount_navigatesToToday() = runUnitTest {
-        val cache = FakeAppCache()
-        val auth = FakeAuthRepository(
-            appleSignInOutcome = SignInOutcome.Success,
-            initialAuthState = AuthState.Unauthenticated(),
-        )
-        val vm = newVm(
-            cache = cache,
-            auth = auth,
-            appleCoordinator = FakeAppleSignInCoordinator(credential = sampleAppleCredential),
-        )
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
-
-        vm.takeAction(OnboardingAction.SignInWithApple)
-        runCurrent()
-
-        assertEquals(1, auth.appleSignInCalls)
-        assertTrue(cache.get().hasUserOnboarded)
-        assertEquals(OnboardingEvent.NavigateToToday, received.firstOrNull())
-        assertNull(vm.state.oauthInFlight)
-    }
-
-    @Test
-    fun appleSignIn_sheetDismissed_isQuietNoOp() = runUnitTest {
-        val vm = newVm(appleCoordinator = FakeAppleSignInCoordinator(credential = null))
-
-        vm.takeAction(OnboardingAction.SignInWithApple)
-        runCurrent()
-
-        assertNull(vm.state.oauthInFlight)
-        assertNull(vm.state.authError)
-        assertEquals(OnboardingStep.Welcome, vm.state.step)
-    }
-
-    @Test
-    fun appleSignIn_nativeFailure_surfacesOAuthFailed() = runUnitTest {
-        val vm = newVm(
-            appleCoordinator = FakeAppleSignInCoordinator(errorMessage = "ASAuthorization error"),
-        )
-
-        vm.takeAction(OnboardingAction.SignInWithApple)
-        runCurrent()
-
-        assertEquals(OnboardingAuthError.OAuthFailed, vm.state.authError)
-        assertNull(vm.state.oauthInFlight)
-    }
-
     // ---------- Test scaffolding ----------
+
+    private val designAnswers: List<SetupOption> =
+        listOf(Why.EatingEnough, Why.EatingRegularly, NumbersFeel.SomeAreFine, StatementAnswer.Agree)
 
     private val fixedClock = object : Clock {
         override fun now(): Instant = Instant.parse("2026-10-25T12:00:00Z")
@@ -811,46 +775,81 @@ class OnboardingViewModelTest : CoroutineTest() {
     private fun newVm(
         cache: FakeAppCache = FakeAppCache(),
         auth: FakeAuthRepository = FakeAuthRepository(),
-        profile: FakeProfileRepository = FakeProfileRepository(),
         creator: FakeGuestAccountCreator = FakeGuestAccountCreator(),
         appleCoordinator: FakeAppleSignInCoordinator = FakeAppleSignInCoordinator(),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
     ): OnboardingViewModel = OnboardingViewModel(
         appCache = cache,
         authRepository = auth,
-        authOutcomeClassifier = FakeAuthOutcomeClassifier(profile),
         guestAccountCreator = creator,
         appleSignInCoordinator = appleCoordinator,
         settingsRepository = settings,
         clock = fixedClock,
     )
 
-    /** A guest who tapped Set it up and walked to [question]. */
-    private fun kotlinx.coroutines.test.TestScope.atQuestion(
+    private fun TestScope.collectEvents(vm: OnboardingViewModel): MutableList<OnboardingEvent> {
+        val received = mutableListOf<OnboardingEvent>()
+        backgroundScope.launch { vm.eventFlow.collect { received += it } }
+        runCurrent()
+        return received
+    }
+
+
+    /** A guest who tapped Get started and walked to [question]. */
+    private fun TestScope.atQuestion(
         question: SetupQuestion,
         settings: FakeSettingsRepository = FakeSettingsRepository(),
     ): OnboardingViewModel {
         val vm = newVm(settings = settings)
-        vm.takeAction(OnboardingAction.ContinueAsGuest)
-        repeat(question.number - 1) { vm.takeAction(OnboardingAction.NextTapped) }
+        vm.takeAction(OnboardingAction.GetStartedTapped)
+        repeat(question.number - 1) { vm.takeAction(OnboardingAction.ContinueTapped) }
         runCurrent()
         return vm
     }
 
-    /** A guest at the recommendation after tapping [answers] on their questions. */
-    private fun kotlinx.coroutines.test.TestScope.atRecommendation(
+    /** A guest at the recommendation after tapping [answers] on their steps. */
+    private fun TestScope.atRecommendation(
         answers: List<SetupOption> = emptyList(),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
         creator: FakeGuestAccountCreator = FakeGuestAccountCreator(),
         cache: FakeAppCache = FakeAppCache(),
+        auth: FakeAuthRepository = FakeAuthRepository(),
+        appleCoordinator: FakeAppleSignInCoordinator = FakeAppleSignInCoordinator(),
     ): OnboardingViewModel {
-        val vm = newVm(settings = settings, creator = creator, cache = cache)
-        vm.takeAction(OnboardingAction.ContinueAsGuest)
+        val vm = newVm(
+            settings = settings,
+            creator = creator,
+            cache = cache,
+            auth = auth,
+            appleCoordinator = appleCoordinator,
+        )
+        vm.takeAction(OnboardingAction.GetStartedTapped)
         SetupQuestion.entries.forEach { question ->
             answers.filter { it in question.options }.forEach { vm.takeAction(OnboardingAction.OptionTapped(it)) }
-            vm.takeAction(OnboardingAction.NextTapped)
+            vm.takeAction(OnboardingAction.ContinueTapped)
         }
         runCurrent()
+        return vm
+    }
+
+    /** A guest on the account step: answered, started, the guest created. */
+    private fun TestScope.atAccount(
+        answers: List<SetupOption> = emptyList(),
+        settings: FakeSettingsRepository = FakeSettingsRepository(),
+        creator: FakeGuestAccountCreator = FakeGuestAccountCreator(),
+        auth: FakeAuthRepository = FakeAuthRepository(),
+        appleCoordinator: FakeAppleSignInCoordinator = FakeAppleSignInCoordinator(),
+    ): OnboardingViewModel {
+        val vm = atRecommendation(
+            answers = answers,
+            settings = settings,
+            creator = creator,
+            auth = auth,
+            appleCoordinator = appleCoordinator,
+        )
+        vm.takeAction(OnboardingAction.StartTapped)
+        runCurrent()
+        check(vm.state.step == OnboardingStep.Account) { "expected the account step, was ${vm.state.step}" }
         return vm
     }
 

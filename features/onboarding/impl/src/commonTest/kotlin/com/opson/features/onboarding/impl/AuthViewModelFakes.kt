@@ -54,6 +54,7 @@ internal class FakeAuthRepository(
     val linkEmailOutcome: LinkEmailIdentityOutcome = LinkEmailIdentityOutcome.Unknown(RuntimeException("not stubbed")),
     val linkAppleOutcome: LinkIdentityOutcome = LinkIdentityOutcome.Unknown(RuntimeException("not stubbed")),
     val appleSignInOutcome: SignInOutcome = SignInOutcome.Unknown(RuntimeException("not stubbed")),
+    val linkOAuthOutcome: LinkIdentityOutcome = LinkIdentityOutcome.Unknown(RuntimeException("not stubbed")),
     initialAuthState: AuthState = AuthState.Unauthenticated(),
 ) : AuthRepository {
     var signInCalls: Int = 0
@@ -127,8 +128,16 @@ internal class FakeAuthRepository(
     override suspend fun deleteAccount(): DeleteAccountOutcome =
         error("deleteAccount not used by the auth ViewModels")
 
-    override suspend fun linkOAuthIdentity(provider: OAuthProvider): LinkIdentityOutcome =
-        error("linkOAuthIdentity not used by the auth ViewModels")
+    var linkOAuthCalls: Int = 0
+        private set
+    var lastLinkOAuthProvider: OAuthProvider? = null
+        private set
+
+    override suspend fun linkOAuthIdentity(provider: OAuthProvider): LinkIdentityOutcome {
+        linkOAuthCalls += 1
+        lastLinkOAuthProvider = provider
+        return linkOAuthOutcome
+    }
 
     override suspend fun linkEmailIdentity(email: String, password: String): LinkEmailIdentityOutcome {
         linkEmailCalls += 1

@@ -6,19 +6,25 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.datetime.LocalDate
 
-/** The four setup questions, in order. Every one can be skipped. */
-enum class SetupQuestion(val number: Int, val multiSelect: Boolean) {
+/**
+ * The setup steps that take an answer, in order: three questions, then the optional statement.
+ * Every one can be skipped. [eventName] is what `onboarding.step_viewed` carries, never an index.
+ */
+enum class SetupQuestion(val number: Int, val multiSelect: Boolean, val eventName: String) {
     /** Why are you tracking? */
-    Reason(1, multiSelect = true),
+    Reason(1, multiSelect = true, eventName = "question_1"),
 
     /** How do you feel about seeing numbers? */
-    Feeling(2, multiSelect = false),
+    Feeling(2, multiSelect = false, eventName = "question_2"),
 
     /** What do you want to notice? */
-    Focus(3, multiSelect = true),
+    Focus(3, multiSelect = false, eventName = "question_3"),
 
-    /** The optional one: numbers have been hard before. A single toggle. */
-    Hard(4, multiSelect = true),
+    /**
+     * "Numbers or tracking have been hard for me before": a statement to agree with, never a
+     * question about a diagnosis. Agreeing unlocks the gentler presets.
+     */
+    Statement(4, multiSelect = false, eventName = "statement"),
     ;
 
     val options: List<SetupOption>
@@ -26,7 +32,7 @@ enum class SetupQuestion(val number: Int, val multiSelect: Boolean) {
             Reason -> Why.entries
             Feeling -> NumbersFeel.entries
             Focus -> Notice.entries
-            Hard -> listOf(HardBefore)
+            Statement -> StatementAnswer.entries
         }
 
     companion object {
@@ -65,37 +71,44 @@ enum class Notice(override val key: String) : SetupOption {
     HowEatingFeels("how_eating_feels"),
 }
 
-/** "Numbers or tracking have been hard for me before". Stored as `OnboardingAnswers.hard`. */
-data object HardBefore : SetupOption {
-    override val key: String = "hard"
+/** The answer to the statement. Only [Agree] is stored, as `OnboardingAnswers.hard`. */
+enum class StatementAnswer(override val key: String) : SetupOption {
+    Agree("agree"),
+    NotReally("not_really"),
 }
 
 /** An option as the screen shows it. */
 data class SetupChoice(val option: SetupOption, val selected: Boolean)
 
 /**
- * What the user said. Never sent to telemetry: the hard answer is close to a
+ * What the user said. Never sent to telemetry: agreeing with the statement is close to a
  * clinical disclosure.
  */
 data class SetupAnswers(
     val why: Set<Why> = emptySet(),
     val feel: NumbersFeel? = null,
-    val notice: Set<Notice> = emptySet(),
-    val hard: Boolean = false,
+    val notice: Notice? = null,
+    val statement: StatementAnswer? = null,
 ) {
+    /** The person agreed that numbers or tracking have been hard for them. */
+    val hard: Boolean get() = statement == StatementAnswer.Agree
+
+    /** Nothing said that could shape a starting point. "Not really" says nothing on its own. */
+    val isEmpty: Boolean get() = why.isEmpty() && feel == null && notice == null && !hard
+
     fun has(option: SetupOption): Boolean = when (option) {
         is Why -> option in why
         is NumbersFeel -> feel == option
-        is Notice -> option in notice
-        HardBefore -> hard
+        is Notice -> notice == option
+        is StatementAnswer -> statement == option
     }
 
-    /** The answers after tapping [option]: the feel question replaces, everything else toggles. */
+    /** The answers after tapping [option]: the multi-select question toggles, the others replace. */
     fun tap(option: SetupOption): SetupAnswers = when (option) {
         is Why -> copy(why = why.toggle(option))
         is NumbersFeel -> copy(feel = option)
-        is Notice -> copy(notice = notice.toggle(option))
-        HardBefore -> copy(hard = !hard)
+        is Notice -> copy(notice = option)
+        is StatementAnswer -> copy(statement = option)
     }
 
     fun choices(question: SetupQuestion): List<SetupChoice> =
@@ -105,7 +118,7 @@ data class SetupAnswers(
     fun toSettings(): OnboardingAnswers = OnboardingAnswers(
         why = Why.entries.filter { it in why }.map { it.key },
         feel = feel?.key,
-        notice = Notice.entries.filter { it in notice }.map { it.key },
+        notice = listOfNotNull(notice?.key),
         hard = hard,
     )
 

@@ -6,7 +6,6 @@ import opson.libraries.resources.generated.resources.onboarding_feel_love_them
 import opson.libraries.resources.generated.resources.onboarding_feel_not_sure
 import opson.libraries.resources.generated.resources.onboarding_feel_rather_not
 import opson.libraries.resources.generated.resources.onboarding_feel_some_are_fine
-import opson.libraries.resources.generated.resources.onboarding_hard_before
 import opson.libraries.resources.generated.resources.onboarding_notice_amounts
 import opson.libraries.resources.generated.resources.onboarding_notice_how_eating_feels
 import opson.libraries.resources.generated.resources.onboarding_notice_nutrients
@@ -32,11 +31,35 @@ import opson.libraries.resources.generated.resources.onboarding_preset_rhythm
 import opson.libraries.resources.generated.resources.onboarding_preset_rhythm_line
 import opson.libraries.resources.generated.resources.onboarding_preset_sprint
 import opson.libraries.resources.generated.resources.onboarding_preset_sprint_line
+import opson.libraries.resources.generated.resources.onboarding_preview_calorie_amounts
+import opson.libraries.resources.generated.resources.onboarding_preview_calories_hidden
+import opson.libraries.resources.generated.resources.onboarding_preview_calories_later
+import opson.libraries.resources.generated.resources.onboarding_preview_calories_weekly
+import opson.libraries.resources.generated.resources.onboarding_preview_carbs_fat_hidden
+import opson.libraries.resources.generated.resources.onboarding_preview_energy_word
+import opson.libraries.resources.generated.resources.onboarding_preview_how_meals_felt
+import opson.libraries.resources.generated.resources.onboarding_preview_macro_amounts
+import opson.libraries.resources.generated.resources.onboarding_preview_macros_hidden
+import opson.libraries.resources.generated.resources.onboarding_preview_macros_later
+import opson.libraries.resources.generated.resources.onboarding_preview_meal_by_meal
+import opson.libraries.resources.generated.resources.onboarding_preview_meal_checklist
+import opson.libraries.resources.generated.resources.onboarding_preview_meal_count
+import opson.libraries.resources.generated.resources.onboarding_preview_new_foods
+import opson.libraries.resources.generated.resources.onboarding_preview_other_nutrients_hidden
+import opson.libraries.resources.generated.resources.onboarding_preview_protein_fiber_amounts
+import opson.libraries.resources.generated.resources.onboarding_preview_protein_fiber_bars
+import opson.libraries.resources.generated.resources.onboarding_preview_some_nutrient_amounts
+import opson.libraries.resources.generated.resources.onboarding_preview_some_nutrient_bars
+import opson.libraries.resources.generated.resources.onboarding_preview_some_nutrients_later
+import opson.libraries.resources.generated.resources.onboarding_preview_weight_amounts
+import opson.libraries.resources.generated.resources.onboarding_preview_weight_hidden
+import opson.libraries.resources.generated.resources.onboarding_preview_weight_trend
 import opson.libraries.resources.generated.resources.onboarding_q_feel
-import opson.libraries.resources.generated.resources.onboarding_q_hard
-import opson.libraries.resources.generated.resources.onboarding_q_hard_sub
 import opson.libraries.resources.generated.resources.onboarding_q_notice
+import opson.libraries.resources.generated.resources.onboarding_q_statement
 import opson.libraries.resources.generated.resources.onboarding_q_why
+import opson.libraries.resources.generated.resources.onboarding_statement_no
+import opson.libraries.resources.generated.resources.onboarding_statement_yes
 import opson.libraries.resources.generated.resources.onboarding_why_changing_weight
 import opson.libraries.resources.generated.resources.onboarding_why_curious
 import opson.libraries.resources.generated.resources.onboarding_why_eating_enough
@@ -51,14 +74,14 @@ internal val SetupQuestion.title: StringResource
         SetupQuestion.Reason -> Res.string.onboarding_q_why
         SetupQuestion.Feeling -> Res.string.onboarding_q_feel
         SetupQuestion.Focus -> Res.string.onboarding_q_notice
-        SetupQuestion.Hard -> Res.string.onboarding_q_hard
+        SetupQuestion.Statement -> Res.string.onboarding_q_statement
     }
 
+/** The line under the title. The statement has its own quote and body instead. */
 internal val SetupQuestion.subtitle: StringResource?
     get() = when (this) {
-        SetupQuestion.Reason, SetupQuestion.Focus -> Res.string.onboarding_pick_any
-        SetupQuestion.Feeling -> null
-        SetupQuestion.Hard -> Res.string.onboarding_q_hard_sub
+        SetupQuestion.Reason -> Res.string.onboarding_pick_any
+        SetupQuestion.Feeling, SetupQuestion.Focus, SetupQuestion.Statement -> null
     }
 
 internal val SetupOption.label: StringResource
@@ -78,7 +101,8 @@ internal val SetupOption.label: StringResource
         Notice.Nutrients -> Res.string.onboarding_notice_nutrients
         Notice.Patterns -> Res.string.onboarding_notice_patterns
         Notice.HowEatingFeels -> Res.string.onboarding_notice_how_eating_feels
-        HardBefore -> Res.string.onboarding_hard_before
+        StatementAnswer.Agree -> Res.string.onboarding_statement_yes
+        StatementAnswer.NotReally -> Res.string.onboarding_statement_no
     }
 
 internal val PresetId.label: StringResource
@@ -95,7 +119,7 @@ internal val PresetId.label: StringResource
         PresetId.Coast -> Res.string.onboarding_preset_coast
     }
 
-/** "What you'll see" for each mode. */
+/** The line under the mode's name on the recommendation step. */
 internal val PresetId.line: StringResource
     get() = when (this) {
         PresetId.Full -> Res.string.onboarding_preset_full_line
@@ -108,4 +132,31 @@ internal val PresetId.line: StringResource
         PresetId.Fuel -> Res.string.onboarding_preset_fuel_line
         PresetId.Sprint -> Res.string.onboarding_preset_sprint_line
         PresetId.Coast -> Res.string.onboarding_preset_coast_line
+    }
+
+internal val PreviewItem.label: StringResource
+    get() = when (this) {
+        PreviewItem.CalorieAmounts -> Res.string.onboarding_preview_calorie_amounts
+        PreviewItem.EnergyWord -> Res.string.onboarding_preview_energy_word
+        PreviewItem.CaloriesLater -> Res.string.onboarding_preview_calories_later
+        PreviewItem.CaloriesWeekly -> Res.string.onboarding_preview_calories_weekly
+        PreviewItem.CaloriesHidden -> Res.string.onboarding_preview_calories_hidden
+        PreviewItem.MacroAmounts -> Res.string.onboarding_preview_macro_amounts
+        PreviewItem.ProteinFiberAmounts -> Res.string.onboarding_preview_protein_fiber_amounts
+        PreviewItem.SomeNutrientAmounts -> Res.string.onboarding_preview_some_nutrient_amounts
+        PreviewItem.ProteinFiberBars -> Res.string.onboarding_preview_protein_fiber_bars
+        PreviewItem.SomeNutrientBars -> Res.string.onboarding_preview_some_nutrient_bars
+        PreviewItem.MacrosLater -> Res.string.onboarding_preview_macros_later
+        PreviewItem.SomeNutrientsLater -> Res.string.onboarding_preview_some_nutrients_later
+        PreviewItem.MacrosHidden -> Res.string.onboarding_preview_macros_hidden
+        PreviewItem.CarbsFatHidden -> Res.string.onboarding_preview_carbs_fat_hidden
+        PreviewItem.OtherNutrientsHidden -> Res.string.onboarding_preview_other_nutrients_hidden
+        PreviewItem.MealCount -> Res.string.onboarding_preview_meal_count
+        PreviewItem.WeightAmounts -> Res.string.onboarding_preview_weight_amounts
+        PreviewItem.WeightTrend -> Res.string.onboarding_preview_weight_trend
+        PreviewItem.WeightHidden -> Res.string.onboarding_preview_weight_hidden
+        PreviewItem.MealByMeal -> Res.string.onboarding_preview_meal_by_meal
+        PreviewItem.MealChecklist -> Res.string.onboarding_preview_meal_checklist
+        PreviewItem.NewFoods -> Res.string.onboarding_preview_new_foods
+        PreviewItem.HowMealsFelt -> Res.string.onboarding_preview_how_meals_felt
     }
