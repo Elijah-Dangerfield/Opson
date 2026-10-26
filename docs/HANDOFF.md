@@ -48,6 +48,23 @@ targets, bars capped at 100%), the reveal-time setting and goal styles.
    pooler URL) so the monthly refresh runs; until then it skips with a notice.
 7. iOS build to TestFlight, screenshots from the simulator, submit 0.1.
 
+## At the end: the Opson website
+
+No domain yet; one comes later, so build it to deploy anywhere and switch
+domains without code changes.
+
+- Marketing pages, privacy policy and terms, built **very similar to how
+  Downcard (the Cards project) does its site**. Study that site's structure,
+  stack and deploy before starting.
+- A **waitlist signup** that lands somewhere the owner can contact people
+  from (a database table, e.g. a `waitlist` table in Supabase behind a server
+  endpoint or an edge function, with email, created_at and source). Include
+  abuse protection and a way to export or view the list.
+- Privacy and terms: the app's `legal/` files are already published at
+  nightjarlabs.llc/opson/privacy and /terms; the site should link to or reuse
+  them rather than fork the text, and the waitlist needs its own privacy
+  wording (what the email is used for, how to get removed).
+
 ## Needs you
 
 - `/design-login` in a `claude` terminal, so the `claude_design` connector
