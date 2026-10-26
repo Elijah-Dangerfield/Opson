@@ -79,7 +79,7 @@ class SurfacesCoverageTest {
                 "onboarding-welcome", "onboarding-statement", "onboarding-recommendation", "onboarding-account",
             ),
             "TodayLeakSurfaces" to listOf(
-                "today", "today-big-day", "today-added", "today-groups-off", "today-past", "today-future",
+                "today", "today-big-day", "today-added", "today-untracked", "today-groups-off", "today-past", "today-future",
                 "today-day-menu", "today-day-menu-armed", "today-cards", "calendar", "meal-sheet", "meal-note",
                 "meal-feel", "water-sheet", "item-sheet", "day-note", "day-close", "day-close-big-day",
             ),
@@ -99,7 +99,7 @@ class SurfacesCoverageTest {
         )
 
         val SHOWS_CALORIES_IN_FULL: List<String> = listOf(
-            "today", "today-big-day", "today-added", "today-groups-off", "today-past", "today-future",
+            "today", "today-big-day", "today-added", "today-untracked", "today-groups-off", "today-past", "today-future",
             "today-day-menu", "today-day-menu-armed", "item-sheet", "day-close", "day-close-big-day",
             "logger", "logger-picked", "logger-search", "logger-describe", "logger-saved", "logger-amount",
             "foods", "foods-create-meal", "foods-add-food",
