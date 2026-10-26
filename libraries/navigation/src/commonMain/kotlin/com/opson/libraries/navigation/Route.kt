@@ -142,3 +142,25 @@ inline fun <reified T : Any> serializableType(
 
     override fun serializeAsValue(value: T): String = json.encodeToString(value)
 }
+
+/**
+ * [serializableType] for a nullable argument (`slot: MealSlot? = null`). Register it under the
+ * nullable type, `typeOf<MealSlot?>()`: a non-null registration does not match a nullable arg
+ * and the graph fails to build on iOS.
+ *
+ * A null travels as the literal `"null"`, the same as navigation's own nullable `StringType`.
+ */
+inline fun <reified T : Any> nullableSerializableType(json: Json = Json) = object : NavType<T?>(isNullableAllowed = true) {
+
+    override fun put(bundle: SavedState, key: String, value: T?) {
+        bundle.write { if (value == null) putNull(key) else putString(key, json.encodeToString(value)) }
+    }
+
+    override fun get(bundle: SavedState, key: String): T? = bundle.read {
+        if (!contains(key) || isNull(key)) null else json.decodeFromString<T>(getString(key))
+    }
+
+    override fun parseValue(value: String): T? = if (value == "null") null else json.decodeFromString<T>(value)
+
+    override fun serializeAsValue(value: T?): String = value?.let { json.encodeToString(it) } ?: "null"
+}

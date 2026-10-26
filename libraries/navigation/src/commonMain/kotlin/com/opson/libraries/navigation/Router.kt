@@ -51,7 +51,7 @@ interface Router {
      * ```
      * router.batch {
      *     switchTab(TodayRoute())
-     *     navigate(LoggerRoute(slot = "lunch"))
+     *     navigate(LoggerRoute(slot = MealSlot.Lunch))
      * }
      * ```
      */
