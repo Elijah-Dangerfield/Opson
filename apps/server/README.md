@@ -161,7 +161,7 @@ the usual `ProblemResponse`.
 | POST | `/v1/sync` | Push the outbox and pull changes in one call. 400 `too_many_mutations` (> 500), 400 `invalid_cursor`. |
 | GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. |
 | GET | `/v1/foods/{id}` | 400 `invalid_id`, 404 `not_found`. |
-| GET | `/v1/foods/barcode/{code}` | Catalog, then Open Food Facts (5 s timeout, cached into `foods` as `off`). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable`. 60/min per IP. |
+| GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. 60/min per IP. |
 | POST | `/v1/describe` `{text}` | Heuristic parse into items. 400 `invalid_text` (empty or > 1000 chars). |
 | GET | `/v1/export.csv` | Streams the caller's entries, weigh-ins and water. |
 
@@ -191,21 +191,52 @@ POST /v1/sync  { "cursor": 0, "mutations": [ { "id": "<outbox id>", "entity": "l
 
 ### Food catalog
 
-`foods` holds USDA FoodData Central (Foundation, SR Legacy, FNDDS) plus the
-Open Food Facts products people have scanned. Search tiers, best first:
-exact name, the name's first comma segment ("Egg, whole, raw" for `eggs`),
-whole-word prefix, full text, trigram similarity. Within a tier: generic
-before branded, whole-word matches, plain forms (`raw`, `NFS`, `whole`, …),
-similarity, then popularity. pg_trgm lives in the `extensions` schema (as on
-Supabase) and every use of it is schema-qualified.
+We own the catalog: every search and every barcode is answered from `foods`
+first, and outside sources only fill gaps one product at a time. Rows come
+from four tiers of source, best first (`foods.tier`, V10):
 
-**Loading USDA foods.** `scripts/import_usda_foods.py` (Python 3 stdlib only)
-downloads the three CSV releases into a fresh temp directory, maps nutrients
-per 100 g and portions, dedupes names across datasets, and writes
-`apps/server/fooddb/usda_foods.sql.gz`: batched `INSERT … ON CONFLICT (source,
-source_id) DO UPDATE` with stable uuid5 ids, so re-running it updates in place
-and never touches popularity. The generated file is committed (about 1.5 MB,
-13,324 foods).
+| Tier | Sources (`foods.source`) | How rows get there | `verified` |
+|---|---|---|---|
+| 1 reference | `usda_foundation`, `usda_sr`, `usda_fndds` | committed seed, `import_usda_foods.py` | true |
+| 2 label | `usda_branded` | `import_usda_foods.py --branded`, monthly workflow | true |
+| 3 licensed | `nutritionix` (later NCCDB) | barcode miss, only with keys and caching on | true |
+| 4 community | `off` (later user submissions) | barcode miss, cached | false |
+
+A trigger fills `tier` and `verified` from `source`, so loaders never write
+them; `food_source_tier()` is the one mapping, and `DatabaseSchemaTest`
+checks it against `CatalogSource`.
+
+**Search.** Match tiers, best first: exact name, the name's first comma
+segment ("Egg, whole, raw" for `eggs`), whole-word prefix, full text, trigram
+similarity. Two rules sit above the match tier. A query that names a
+product's brand (every word of `brand` is in the query, apart from filler
+such as "Inc." or "Foods") ranks that brand first, so `cheerios` and
+`chobani greek yogurt` lead with the product. Otherwise generic (tier 1)
+foods come before branded ones, so `banana` offers "Banana, raw" before a
+product a store called "Bananas". Trigram-only matches stay last. Within a
+match tier: verified first, lower source tier first, whole-word matches, plain
+forms (`raw`, `NFS`, `whole`, …), similarity, then popularity. pg_trgm lives
+in the `extensions` schema (as on Supabase) and every use of it is
+schema-qualified.
+
+**Barcodes.** A scan is looked up in every equivalent form of the code:
+leading zeros never change a GTIN, so a UPC-A, its EAN-13 and its GTIN-14
+match the same row, and an 8-digit code is also tried as a UPC-E expanded to
+its UPC-A. Branded rows store the 14-digit form; Open Food Facts rows keep the
+code as scanned. If both exist for one product, the better tier answers.
+On a miss, `CatalogBarcodeLookup` asks each enabled `FoodSource` in tier
+order (`ConfiguredLiveFoodSources`): Nutritionix when configured, then Open
+Food Facts. The first that knows the product answers; a cacheable answer is
+upserted into `foods`. Every lookup records `catalog`, `off`, `nutritionix`,
+`miss` or `error` in `barcode_lookups` for the Food catalog dashboard.
+
+**Loading USDA generic foods.** `scripts/import_usda_foods.py` (Python 3
+stdlib only) downloads the Foundation, SR Legacy and FNDDS CSV releases into a
+fresh temp directory, maps nutrients per 100 g and portions, dedupes names
+across datasets, and writes `apps/server/fooddb/usda_foods.sql.gz`: batched
+`INSERT … ON CONFLICT (source, source_id) DO UPDATE` with stable uuid5 ids, so
+re-running it updates in place and never touches popularity. The generated
+file is committed (about 1.5 MB, 13,324 foods).
 
 ```bash
 python3 -I scripts/import_usda_foods.py                 # regenerate fooddb/usda_foods.sql.gz
@@ -215,12 +246,80 @@ gunzip -c apps/server/fooddb/usda_foods.sql.gz \
 
 Load it after the server has run its migrations once. `UsdaFoodSeedTest`
 applies the committed file to a Testcontainers Postgres on every test run.
+
+**Loading USDA Branded Foods.** `--branded` imports FoodData Central Branded
+Foods: about 430,000 US packaged products with a barcode, from a 450 MB
+release. It finds the newest release on the FDC download page (`--branded-url`
+or `--archive` to pin one), reads the CSVs straight out of the zip without
+extracting them, and keeps one record per barcode, the newest by
+`available_date` then `modified_date`. Names and brands are ALL CAPS in the
+data and are title-cased ("Campbell's Chunky Soup w/ Beef 18.8 oz"); records
+with no energy and no macros, or impossible per-100 g values, are skipped.
+The label's serving becomes the one portion. Grams only come from a serving
+stated in grams: a serving stated in ml keeps its label ("1 can (355 ml)")
+with no grams, and the client falls back to weighing. For those products the
+nutrients are per 100 ml, as the label states them. Branded rows are keyed on
+the barcode (`ON CONFLICT (barcode)`), because FDC gives a resubmitted
+product a new `fdc_id`; the food id is derived from the barcode, so it
+survives releases. A row is only rewritten when something in it changed, so
+re-importing a release already loaded leaves the table as it was instead of
+doubling it on disk until vacuum runs. With the 2026-04 release loaded,
+`foods` takes about 345 MB including indexes (the generic foods alone are a
+few percent of that): check the database plan's size limit before the first load.
+
+The output is too big to commit. Write it to the gitignored
+`apps/server/fooddb/usda_branded.sql.gz`, or stream it straight into a
+database with `--psql`, which runs `psql` with `ON_ERROR_STOP` in one
+transaction, prints progress, and ends with row counts by source and the
+table size. With no value, `--psql` reads the connection string from
+`CATALOG_DATABASE_URL`, and it hands it to psql through libpq environment
+variables, so the password is never on a command line. It refuses to start
+if the database has not run V10.
+
+```bash
+python3 -I scripts/import_usda_foods.py --branded       # write fooddb/usda_branded.sql.gz
+CATALOG_DATABASE_URL=postgresql://… python3 -I scripts/import_usda_foods.py --branded --psql
+python3 -I -m unittest discover -s scripts -p 'test_import_usda_foods.py'   # importer unit tests
+```
+
+`.github/workflows/food-catalog-refresh.yml` runs the same `--branded --psql`
+import on the 3rd of every month (and on demand) against the
+`CATALOG_DATABASE_URL` secret, and posts the counts to the job summary. With
+the secret unset it skips with a notice.
+
+**Nutritionix (off until there is budget).** `NutritionixSource` calls
+`GET https://trackapi.nutritionix.com/v2/search/item?upc=` with the
+`x-app-id` / `x-app-key` headers and scales the per-serving answer to per
+100 g. It is only bound when `NUTRITIONIX_APP_ID` and `NUTRITIONIX_APP_KEY`
+are both set, and then goes before Open Food Facts. Nutritionix's API terms
+limit storing their data, so by default answers are served once and not
+cached (each such scan is a paid request). Set `NUTRITIONIX_CACHE_RESULTS=true`
+only when the contract allows cached copies; they are stored as source
+`nutritionix`, tier 3. To turn it on in production:
+
+```bash
+stty -echo; printf "Nutritionix app id: "; read -r NX_ID; printf "\nNutritionix app key: "; read -r NX_KEY; stty echo; printf "\n"
+[ -n "$NX_ID" ] && [ -n "$NX_KEY" ] && fly secrets set NUTRITIONIX_APP_ID="$NX_ID" NUTRITIONIX_APP_KEY="$NX_KEY" -a opson-server-prod; unset NX_ID NX_KEY
+```
+
+**NCCDB (a slot, not code).** The Nutrition Coordinating Center Food and
+Nutrient Database from the University of Minnesota is licensed and delivered
+as files, not an API, so it is not a `FoodSource`. When there is a licence,
+its importer belongs beside the Branded import in
+`scripts/import_usda_foods.py` (or a sibling script with the same safety
+rules: fresh temp dir, untrusted archive, upsert keyed on `(source,
+source_id)` with uuid5 ids). It needs a migration that adds `nccdb` to the
+`foods.source` CHECK and maps it to tier 3 (licensed, verified) in
+`food_source_tier()`, plus `CatalogSource.Nccdb`. Nothing parses its format
+yet because we have not seen it.
+
 Micros keys carry their unit: `sugars_g`, `added_sugars_g`, `saturated_fat_g`,
-`cholesterol_mg`, `sodium_mg`, `potassium_mg`, `calcium_mg`, `iron_mg`,
-`magnesium_mg`, `phosphorus_mg`, `zinc_mg`, `copper_mg`, `manganese_mg`,
-`selenium_ug`, `vitamin_a_rae_ug`, `vitamin_c_mg`, `vitamin_d_ug`,
-`vitamin_e_mg`, `vitamin_k_ug`, `thiamin_mg`, `riboflavin_mg`, `niacin_mg`,
-`vitamin_b6_mg`, `folate_dfe_ug`, `vitamin_b12_ug`, `choline_mg`.
+`trans_fat_g` (branded only), `cholesterol_mg`, `sodium_mg`, `potassium_mg`,
+`calcium_mg`, `iron_mg`, `magnesium_mg`, `phosphorus_mg`, `zinc_mg`,
+`copper_mg`, `manganese_mg`, `selenium_ug`, `vitamin_a_rae_ug`,
+`vitamin_c_mg`, `vitamin_d_ug`, `vitamin_e_mg`, `vitamin_k_ug`,
+`thiamin_mg`, `riboflavin_mg`, `niacin_mg`, `vitamin_b6_mg`,
+`folate_dfe_ug`, `vitamin_b12_ug`, `choline_mg`.
 
 ### Analytics (`V9__analytics.sql`)
 
@@ -239,6 +338,9 @@ Grafana, create a login role outside migrations and grant it `grafana_ro`.
 | `SUPABASE_URL` | no |, | `https://<project>.supabase.co`. Unset → `/v1/me` not mounted. |
 | `SERVER_HOST` | no | `0.0.0.0` | |
 | `SERVER_PORT` | no | 8080 | |
+| `NUTRITIONIX_APP_ID` | no |, | With `NUTRITIONIX_APP_KEY`, turns on Nutritionix barcode lookups (tier 3, asked before Open Food Facts). |
+| `NUTRITIONIX_APP_KEY` | no |, | Secret. Both keys or neither. |
+| `NUTRITIONIX_CACHE_RESULTS` | no | `false` | `true` stores Nutritionix answers in `foods`. Only if the contract allows it. |
 
 ## Roadmap (planned, not yet wired)
 

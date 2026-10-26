@@ -4,10 +4,11 @@ import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodSearchEventsTable
 import com.opson.server.db.FoodsTable
 import com.opson.server.domain.BarcodeOutcome
-import com.opson.server.domain.FoodSource
+import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.ExternalProduct
+import com.opson.server.domain.FoodTier
 import com.opson.server.domain.MatchTier
 import com.opson.server.domain.Nutrients
-import com.opson.server.domain.OpenFoodFactsProduct
 import com.opson.server.domain.Portion
 import com.opson.server.testing.DiaryFixtures
 import kotlinx.coroutines.test.runTest
@@ -35,7 +36,13 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
     }
     private val repo get() = PostgresFoodCatalogRepository(database, clock)
 
-    private fun seed(name: String, source: String = "usda_sr", brand: String? = null, popularity: Int = 0): UUID {
+    private fun seed(
+        name: String,
+        source: String = "usda_sr",
+        brand: String? = null,
+        popularity: Int = 0,
+        barcode: String? = null,
+    ): UUID {
         val id = UUID.randomUUID()
         database.blockingTransaction {
             FoodsTable.insert {
@@ -44,6 +51,7 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
                 it[sourceId] = id.toString()
                 it[FoodsTable.name] = name
                 it[FoodsTable.brand] = brand
+                it[FoodsTable.barcode] = barcode
                 it[kcal100g] = 100f
                 it[micros] = """{"sodium_mg": 1.5}"""
                 it[portions] = """[{"label": "1 cup", "grams": 240}]"""
@@ -167,18 +175,137 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
 
     @Test
     fun openFoodFactsUpsertIsIdempotentAndKeepsTheId() = runTest {
-        val product = OpenFoodFactsProduct(
+        val product = ExternalProduct(
             barcode = "3017620422003", name = "Hazelnut spread", brand = "Acme",
             per100g = Nutrients(kcal = 539.0, fat = 30.9), micros = mapOf("sodium_mg" to 42.8),
             portions = listOf(Portion("15 g", 15.0)),
         )
-        val first = repo.upsertOpenFoodFactsProduct(product)
-        val second = repo.upsertOpenFoodFactsProduct(product.copy(name = "Hazelnut cocoa spread"))
+        val first = repo.upsertExternalProduct(CatalogSource.OpenFoodFacts, product)
+        val second = repo.upsertExternalProduct(CatalogSource.OpenFoodFacts, product.copy(name = "Hazelnut cocoa spread"))
 
         assertEquals(first.id, second.id)
         assertEquals("Hazelnut cocoa spread", second.name)
-        assertEquals(FoodSource.OpenFoodFacts, second.source)
+        assertEquals(CatalogSource.OpenFoodFacts, second.source)
+        assertEquals(FoodTier.Community, second.tier)
+        assertEquals(false, second.verified)
         assertEquals(second, repo.findByBarcode("3017620422003"))
         repo.recordBarcodeLookup("3017620422003", BarcodeOutcome.OpenFoodFacts)
+    }
+
+    // ── Branded foods and source tiers ──────────────────────────────────────
+
+    @Test
+    fun tierAndVerifiedFollowTheSource() = runTest {
+        val generic = assertNotNull(repo.findById(seed("Banana, raw", source = "usda_fndds")))
+        val branded = assertNotNull(repo.findById(seed("Banana Chips", source = "usda_branded", barcode = "00011110852714")))
+        val community = assertNotNull(repo.findById(seed("Banana chips", source = "off", barcode = "3017620422003")))
+        assertEquals(listOf(FoodTier.Reference, FoodTier.Label, FoodTier.Community), listOf(generic, branded, community).map { it.tier })
+        assertEquals(listOf(true, true, false), listOf(generic, branded, community).map { it.verified })
+    }
+
+    @Test
+    fun anUpsertThatMovesARowToAnotherSourceMovesItsTier() = runTest {
+        val id = seed("Cola", source = "off", barcode = "00049000028911")
+        database.blockingTransaction {
+            FoodsTable.update({ FoodsTable.id eq id }) { it[sourceKind] = "usda_branded" }
+        }
+        val food = assertNotNull(repo.findById(id))
+        assertEquals(FoodTier.Label, food.tier)
+        assertEquals(true, food.verified)
+    }
+
+    @Test
+    fun plainGenericQueryKeepsGenericFoodsFirst() = runTest {
+        seed("Banana, raw", source = "usda_fndds")
+        seed("Bananas", source = "usda_branded", brand = "Dole", barcode = "00033383000016", popularity = 500)
+        seed("Banana Chips", source = "usda_branded", brand = "Kroger", barcode = "00011110852714")
+        seed("Banana chips", source = "off", brand = "Acme", barcode = "3017620422003", popularity = 900)
+        seed("Bread, banana", source = "usda_sr")
+
+        assertEquals(
+            listOf("Banana, raw", "Bread, banana", "Bananas", "Banana Chips", "Banana chips"),
+            names("banana"),
+            "generic before branded; then exact before prefix; label (verified) before community at the same tier",
+        )
+    }
+
+    @Test
+    fun brandedWinsWhenTheQueryNamesTheBrand() = runTest {
+        // SR Legacy names a few brands inside generic rows, which the
+        // generic-first rule alone would put on top.
+        seed("Cereal, Cheerios", source = "usda_sr")
+        seed("Cheerios Cereal", source = "usda_branded", brand = "Cheerios", barcode = "00016000275287")
+        seed("Honey Nut Cheerios", source = "usda_branded", brand = "General Mills Sales Inc.", barcode = "00016000275270")
+
+        assertEquals("Cheerios Cereal", names("cheerios").first(), "the brand is named")
+        assertEquals("Honey Nut Cheerios", names("general mills cheerios").first(), "filler like Sales Inc. need not be typed")
+    }
+
+    @Test
+    fun aBrandThatIsAlsoAFoodNameDoesNotTakeOverTheFood() = runTest {
+        seed("Peanut butter", source = "usda_fndds")
+        seed("Smooth Operator Peanut Butter", source = "usda_branded", brand = "Peanut Butter & Co.", barcode = "00898148001019")
+        assertEquals(listOf("Peanut butter", "Smooth Operator Peanut Butter"), names("peanut butter"))
+    }
+
+    @Test
+    fun typoMatchesOnlyFillInWhenDirectMatchesRunShort() = runTest {
+        seed("Banana, raw")
+        seed("Bananna split") // trigram only
+        assertEquals(listOf("Banana, raw", "Bananna split"), names("banana", limit = 10))
+        assertEquals(listOf("Banana, raw"), names("banana", limit = 1))
+    }
+
+    @Test
+    fun aBrandNamedAlongsideTheFoodBeatsTheGenericFood() = runTest {
+        seed("Yogurt, Greek, plain, nonfat", source = "usda_sr")
+        seed("Greek Yogurt, Plain", source = "usda_branded", brand = "Chobani", barcode = "00818290010490")
+        seed("Greek Yogurt, Honey", source = "usda_branded", brand = "The Greek Gods", barcode = "00694649000019")
+
+        assertEquals("Greek Yogurt, Plain", names("chobani greek yogurt").first())
+        assertEquals(
+            listOf("Yogurt, Greek, plain, nonfat", "Greek Yogurt, Plain", "Greek Yogurt, Honey"),
+            names("greek yogurt"),
+            "half a brand (Greek, without Gods) is not naming it, so the generic food leads",
+        )
+    }
+
+    @Test
+    fun verifiedBeatsPopularWithinAMatchTier() = runTest {
+        seed("Peanut Butter, Creamy", source = "off", brand = "Acme", barcode = "3017620422003", popularity = 100)
+        seed("Peanut Butter, Creamy", source = "usda_branded", brand = "Jif", barcode = "00051500255162")
+        val results = repo.search("peanut butter creamy", 10, record = false).map { it.food }
+        assertEquals(listOf(CatalogSource.UsdaBranded, CatalogSource.OpenFoodFacts), results.map { it.source })
+    }
+
+    @Test
+    fun barcodeMatchesAnyFormOfTheCodeAndPrefersTheBetterTier() = runTest {
+        seed("Coke (Open Food Facts)", source = "off", barcode = "0049000028911")
+        seed("Coca-Cola Classic", source = "usda_branded", barcode = "00049000028911")
+
+        listOf("049000028911", "0049000028911", "00049000028911").forEach { scanned ->
+            assertEquals("Coca-Cola Classic", repo.findByBarcode(scanned)?.name, scanned)
+        }
+        assertNull(repo.findByBarcode("049000028912"))
+    }
+
+    @Test
+    fun barcodeLookupExpandsUpcE() = runTest {
+        seed("Gum", source = "usda_branded", barcode = "00042100005264")
+        assertEquals("Gum", repo.findByBarcode("04252614")?.name)
+    }
+
+    @Test
+    fun portionsWithoutGramsDecode() = runTest {
+        val id = seed("Cola", source = "usda_branded", barcode = "00049000028911")
+        database.blockingTransaction {
+            FoodsTable.update({ FoodsTable.id eq id }) {
+                it[portions] = """[{"label": "1 can (355 ml)", "grams": null}, {"label": "1 bottle"}]"""
+            }
+        }
+        assertEquals(
+            listOf(Portion("1 can (355 ml)", null), Portion("1 bottle", null)),
+            assertNotNull(repo.findById(id)).portions,
+        )
     }
 }

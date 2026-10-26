@@ -91,7 +91,9 @@ class CatalogFoodDescriber(
         phrase.unit?.gramsPerUnit?.let { return Resolved(qty * it, null, How.Mass) }
 
         val unitWords = phrase.unit?.portionWords.orEmpty()
-        val candidates = food.portions.filter { p ->
+        // A serving known only by volume ("1 can (355 ml)") has no grams to scale by.
+        val weighed = food.portions.filter { it.grams != null }
+        val candidates = weighed.filter { p ->
             (unitWords.isEmpty() || unitWords.any { w -> p.label.hasWord(w) }) &&
                 (phrase.size == null || phrase.size.words.any { w -> p.label.hasWord(w) })
         }
@@ -99,7 +101,7 @@ class CatalogFoodDescriber(
             val portion = candidates.first()
             return Resolved(qty * perUnit(portion), portion, How.Portion)
         }
-        val fallback = defaultPortion(food.portions)
+        val fallback = defaultPortion(weighed)
             ?: return Resolved(qty * 100.0, null, How.Guess)
         return Resolved(qty * perUnit(fallback), fallback, How.DefaultPortion)
     }
@@ -113,7 +115,8 @@ class CatalogFoodDescriber(
             ?: portions.firstOrNull { p -> VOLUME_OR_MASS.none { p.label.hasWord(it) } }
             ?: portions.firstOrNull()
 
-    private fun perUnit(portion: Portion): Double = portion.grams / DescribeParser.labelAmount(portion.label)
+    private fun perUnit(portion: Portion): Double =
+        checkNotNull(portion.grams) { "only weighed portions reach here" } / DescribeParser.labelAmount(portion.label)
 
     private fun confidence(tier: MatchTier, how: How): DescribeConfidence {
         val matchScore = when (tier) {

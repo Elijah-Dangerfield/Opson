@@ -1,6 +1,7 @@
 package com.opson.integration.helpers
 
 import com.opson.server.config.DatabaseConfig
+import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.Database
 import com.opson.server.di.ServerComponent
 import com.opson.server.di.create
@@ -38,7 +39,7 @@ class InProcessServer : AutoCloseable {
     private val engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =
         embeddedServer(Netty, port = 0) {
             installApp(
-                component = ServerComponent::class.create(sharedDatabase(), null),
+                component = ServerComponent::class.create(sharedDatabase(), null, FoodSourcesConfig()),
                 verification = IntegrationAuth.verification,
             )
         }.start(wait = false)

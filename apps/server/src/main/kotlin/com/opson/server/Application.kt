@@ -80,7 +80,10 @@ fun Application.module(config: ServerConfig) {
         logger.warn("SUPABASE_URL not set — authenticated routes (/v1/me) are disabled.")
     }
 
-    val component = database?.let { ServerComponent::class.create(it, config.supabase) }
+    config.foodSources.nutritionix?.let {
+        logger.info("Nutritionix barcode lookups on, caching ${if (it.cacheResults) "on" else "off"}")
+    }
+    val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources) }
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
     // mode simply runs without it — same null-safe degradation as everything
     // else here.

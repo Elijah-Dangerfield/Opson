@@ -1,10 +1,10 @@
 package com.opson.server.data
 
 import com.opson.server.di.ServerScope
+import com.opson.server.domain.ExternalProduct
+import com.opson.server.domain.FoodSourceResult
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.OpenFoodFactsClient
-import com.opson.server.domain.OpenFoodFactsProduct
-import com.opson.server.domain.OpenFoodFactsResult
 import com.opson.server.domain.Portion
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
@@ -62,26 +62,26 @@ class HttpOpenFoodFactsClient(
         if (engine != null) HttpClient(engine, configure) else HttpClient(CIO, configure)
     }
 
-    override suspend fun product(barcode: String): OpenFoodFactsResult {
+    override suspend fun product(barcode: String): FoodSourceResult {
         return try {
             val response = client.get("$baseUrl/api/v2/product/$barcode.json") {
                 header(HttpHeaders.UserAgent, USER_AGENT)
                 parameter("fields", FIELDS)
             }
             when {
-                response.status == HttpStatusCode.NotFound -> OpenFoodFactsResult.NotFound
+                response.status == HttpStatusCode.NotFound -> FoodSourceResult.NotFound
                 response.status.value >= 500 || response.status == HttpStatusCode.TooManyRequests ->
-                    OpenFoodFactsResult.Unavailable(cause = null)
+                    FoodSourceResult.Unavailable(cause = null)
 
-                response.status != HttpStatusCode.OK -> OpenFoodFactsResult.NotFound
+                response.status != HttpStatusCode.OK -> FoodSourceResult.NotFound
                 else -> map(barcode, JSON.parseToJsonElement(response.bodyAsText()).jsonObject)
-                    ?.let { OpenFoodFactsResult.Found(it) }
-                    ?: OpenFoodFactsResult.NotFound
+                    ?.let { FoodSourceResult.Found(it) }
+                    ?: FoodSourceResult.NotFound
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            OpenFoodFactsResult.Unavailable(e)
+            FoodSourceResult.Unavailable(e)
         }
     }
 
@@ -111,7 +111,7 @@ class HttpOpenFoodFactsClient(
         )
 
         /** Null when OFF has no such product or nothing usable to show for it. */
-        fun map(barcode: String, body: JsonObject): OpenFoodFactsProduct? {
+        fun map(barcode: String, body: JsonObject): ExternalProduct? {
             if ((body["status"] as? JsonPrimitive)?.intOrNull == 0) return null
             val product = body["product"] as? JsonObject ?: return null
             val name = listOf("product_name", "product_name_en", "generic_name")
@@ -127,7 +127,7 @@ class HttpOpenFoodFactsClient(
             val portions = servingGrams?.let {
                 listOf(Portion(product.string("serving_size")?.trim()?.take(80)?.ifEmpty { null } ?: "1 serving", it))
             }.orEmpty()
-            return OpenFoodFactsProduct(
+            return ExternalProduct(
                 barcode = barcode,
                 name = name.take(200),
                 brand = brand?.take(200),

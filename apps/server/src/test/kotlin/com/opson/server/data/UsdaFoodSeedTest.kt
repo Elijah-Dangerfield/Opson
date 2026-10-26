@@ -2,7 +2,8 @@ package com.opson.server.data
 
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodsTable
-import com.opson.server.domain.FoodSource
+import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.FoodTier
 import com.opson.server.testing.DiaryFixtures
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.selectAll
@@ -58,10 +59,11 @@ class UsdaFoodSeedTest : DatabaseTest() {
         assertTrue(banana.name.lowercase().startsWith("banana"), banana.name)
         assertTrue(banana.per100g.kcal!! in 80.0..100.0, "banana kcal ${banana.per100g.kcal}")
         assertTrue(banana.portions.isNotEmpty())
+        assertEquals(FoodTier.Reference to true, banana.tier to banana.verified, "the seed predates tiers; the trigger fills them")
 
         val egg = catalog.search("egg whole raw", 5, record = false).first().food
         assertTrue(egg.per100g.protein!! in 11.0..14.0, "egg protein ${egg.per100g.protein}")
-        assertTrue(egg.portions.any { it.grams in 40.0..60.0 }, "egg portions ${egg.portions}")
+        assertTrue(egg.portions.any { (it.grams ?: 0.0) in 40.0..60.0 }, "egg portions ${egg.portions}")
 
         val rice = catalog.search("rice white cooked", 5, record = false).map { it.food }
         assertTrue(rice.any { it.per100g.kcal!! in 120.0..140.0 }, "rice ${rice.map { it.name to it.per100g.kcal }}")
@@ -69,7 +71,7 @@ class UsdaFoodSeedTest : DatabaseTest() {
         val yogurt = catalog.search("greek yogurt plain", 5, record = false).first().food
         assertTrue(yogurt.name.contains("Greek", ignoreCase = true), yogurt.name)
         assertTrue(yogurt.per100g.protein!! > 7.0)
-        assertTrue(yogurt.source != FoodSource.OpenFoodFacts)
+        assertTrue(yogurt.source != CatalogSource.OpenFoodFacts)
         assertTrue(yogurt.micros.containsKey("calcium_mg"))
 
         assertEquals("Egg, whole, raw", catalog.search("eggs", 5, record = false).first().food.name)

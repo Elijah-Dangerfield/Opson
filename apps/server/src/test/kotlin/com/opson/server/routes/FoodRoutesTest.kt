@@ -2,6 +2,7 @@ package com.opson.server.routes
 
 import com.opson.server.domain.BarcodeLookup
 import com.opson.server.domain.BarcodeLookupResult
+import com.opson.server.domain.CatalogSource
 import com.opson.server.domain.DescribeConfidence
 import com.opson.server.domain.DescribedItem
 import com.opson.server.domain.FoodDescriber
@@ -24,6 +25,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -149,6 +151,32 @@ class FoodRoutesTest {
             val down = client.get("/v1/foods/barcode/0123456789012") { auth() }
             assertEquals(HttpStatusCode.ServiceUnavailable, down.status)
             assertEquals("barcode_lookup_unavailable", down.body<ProblemResponse>().error.code)
+        }
+    }
+
+    @Test
+    fun responsesCarryTierVerifiedAndVolumeOnlyServings() = runTest {
+        val cola = food(
+            "Coca-Cola Classic",
+            source = CatalogSource.UsdaBranded,
+            barcode = "00049000028911",
+            portions = listOf(Portion("1 Can (355 mL)", null)),
+        )
+        val scanned = food("Hazelnut spread", source = CatalogSource.OpenFoodFacts, barcode = "3017620422003")
+        val lookup = FakeBarcodeLookup(BarcodeLookupResult.Found(cola))
+        withApp(FakeFoodCatalog(listOf(banana, cola, scanned)), lookup = lookup) { client ->
+            val branded = client.get("/v1/foods/barcode/049000028911") { auth() }
+            assertEquals(
+                """"portions":[{"label":"1 Can (355 mL)"}],"tier":2,"verified":true}""",
+                branded.bodyAsText().substringAfter(""""micros":{"sodium_mg":100.0},"""),
+                "a volume-only serving goes out with no grams key at all",
+            )
+
+            val generic = client.get("/v1/foods/${banana.id}") { auth() }.body<FoodResponse>()
+            assertEquals(1 to true, generic.tier to generic.verified)
+            val community = client.get("/v1/foods/${scanned.id}") { auth() }.body<FoodResponse>()
+            assertEquals(4 to false, community.tier to community.verified)
+            assertEquals("usda_branded", client.get("/v1/foods/${cola.id}") { auth() }.body<FoodResponse>().source)
         }
     }
 

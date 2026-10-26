@@ -1,6 +1,9 @@
 package com.opson.libraries.foods.impl
 
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.foods.FoodTier
+import com.opson.libraries.foods.Portion
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
 import kotlinx.coroutines.flow.Flow
@@ -95,6 +98,27 @@ class FoodCatalogImplTest : CoroutineTest() {
         assertEquals("yogurt", catalog.detail("yogurt").getOrThrow().id)
         assertEquals("yogurt", catalog.barcode("012345678905").getOrThrow()?.id)
         assertTrue(catalog.detail("never-seen").isFailure)
+    }
+
+    @Test
+    fun tierAndVerifiedReachTheModelAndVolumeOnlyServingsAreLeftOut() {
+        val cola = FoodResponse(
+            id = "cola",
+            source = "usda_branded",
+            name = "Coca-Cola Classic",
+            per100g = NutrientsDto(kcal = 39.4),
+            portions = listOf(PortionDto("1 can (355 ml)"), PortionDto("1 glass (240 g)", 240.0)),
+            tier = 2,
+            verified = true,
+        ).toDomain()
+        assertEquals(FoodSource.UsdaBranded, cola.source)
+        assertEquals(FoodTier.Label, cola.tier)
+        assertTrue(cola.verified)
+        assertEquals(listOf(Portion("1 glass (240 g)", 240.0)), cola.portions)
+
+        val fromAnOlderServer = rice.toDomain()
+        assertEquals(FoodTier.Unknown, fromAnOlderServer.tier)
+        assertEquals(false, fromAnOlderServer.verified)
     }
 
     private val rice = FoodResponse(

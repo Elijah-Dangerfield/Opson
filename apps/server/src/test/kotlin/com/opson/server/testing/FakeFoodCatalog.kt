@@ -1,13 +1,14 @@
 package com.opson.server.testing
 
 import com.opson.server.domain.BarcodeOutcome
+import com.opson.server.domain.Barcodes
+import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.ExternalProduct
 import com.opson.server.domain.Food
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodMatch
-import com.opson.server.domain.FoodSource
 import com.opson.server.domain.MatchTier
 import com.opson.server.domain.Nutrients
-import com.opson.server.domain.OpenFoodFactsProduct
 import com.opson.server.domain.Portion
 import java.util.UUID
 
@@ -39,13 +40,16 @@ class FakeFoodCatalog(foods: List<Food> = emptyList()) : FoodCatalogRepository {
 
     override suspend fun findById(id: UUID): Food? = foods.firstOrNull { it.id == id }
 
-    override suspend fun findByBarcode(barcode: String): Food? = foods.firstOrNull { it.barcode == barcode }
+    override suspend fun findByBarcode(barcode: String): Food? {
+        val forms = Barcodes.equivalents(barcode)
+        return foods.filter { it.barcode in forms }.minByOrNull { it.tier }
+    }
 
-    override suspend fun upsertOpenFoodFactsProduct(product: OpenFoodFactsProduct): Food {
-        val existing = foods.indexOfFirst { it.source == FoodSource.OpenFoodFacts && it.sourceId == product.barcode }
+    override suspend fun upsertExternalProduct(source: CatalogSource, product: ExternalProduct): Food {
+        val existing = foods.indexOfFirst { it.source == source && it.sourceId == product.barcode }
         val food = Food(
             id = if (existing >= 0) foods[existing].id else UUID.randomUUID(),
-            source = FoodSource.OpenFoodFacts,
+            source = source,
             sourceId = product.barcode,
             name = product.name,
             brand = product.brand,
@@ -67,7 +71,7 @@ class FakeFoodCatalog(foods: List<Food> = emptyList()) : FoodCatalogRepository {
             name: String,
             kcal: Double? = 100.0,
             portions: List<Portion> = emptyList(),
-            source: FoodSource = FoodSource.UsdaSr,
+            source: CatalogSource = CatalogSource.UsdaSr,
             barcode: String? = null,
             id: UUID = UUID.randomUUID(),
         ) = Food(

@@ -4,29 +4,36 @@ import com.opson.server.di.ServerScope
 import com.opson.server.domain.BarcodeLookup
 import com.opson.server.domain.BarcodeLookupResult
 import com.opson.server.domain.BarcodeOutcome
+import com.opson.server.domain.ExternalProduct
+import com.opson.server.domain.Food
 import com.opson.server.domain.FoodCatalogRepository
-import com.opson.server.domain.OpenFoodFactsClient
-import com.opson.server.domain.OpenFoodFactsResult
+import com.opson.server.domain.FoodSource
+import com.opson.server.domain.FoodSourceResult
+import com.opson.server.domain.LiveFoodSources
 import me.tatarka.inject.annotations.Inject
 import org.slf4j.LoggerFactory
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import java.util.UUID
 
 /**
- * Catalog first, then Open Food Facts. A product OFF knows is upserted into
- * `foods` with source `off`, so the next scan of the same code is a catalog
- * hit and every user gets the same food id for it. Every lookup records its
- * outcome in `barcode_lookups` for the catalog dashboard.
+ * Our catalog first, in any equivalent form of the code. On a miss, each
+ * enabled outside source in tier order ([LiveFoodSources]); the first one
+ * that knows the product answers. A cacheable answer is upserted into
+ * `foods`, so the next scan of that code is a catalog hit and every user gets
+ * the same food id for it. Every lookup records its outcome in
+ * `barcode_lookups` for the Food catalog dashboard.
  *
- * A miss is not cached: OFF gains products every day, and a code that was
- * unknown last week may resolve now.
+ * A miss is not cached: outside sources gain products every day. The lookup
+ * is Unavailable only when no source could give a definite answer; a source
+ * that is down while another says "not found" still makes a miss.
  */
 @SingleIn(ServerScope::class)
 @ContributesBinding(ServerScope::class)
 @Inject
 class CatalogBarcodeLookup(
     private val catalog: FoodCatalogRepository,
-    private val openFoodFacts: OpenFoodFactsClient,
+    private val sources: LiveFoodSources,
 ) : BarcodeLookup {
 
     override suspend fun lookup(barcode: String): BarcodeLookupResult {
@@ -34,25 +41,52 @@ class CatalogBarcodeLookup(
             catalog.recordBarcodeLookup(barcode, BarcodeOutcome.Catalog)
             return BarcodeLookupResult.Found(food)
         }
-        return when (val result = openFoodFacts.product(barcode)) {
-            is OpenFoodFactsResult.Found -> {
-                val food = catalog.upsertOpenFoodFactsProduct(result.product)
-                catalog.recordBarcodeLookup(barcode, BarcodeOutcome.OpenFoodFacts)
-                BarcodeLookupResult.Found(food)
-            }
+        var answered = false
+        for (source in sources.inTierOrder()) {
+            when (val result = source.lookup(barcode)) {
+                is FoodSourceResult.Found -> {
+                    val food = if (source.cacheable) {
+                        catalog.upsertExternalProduct(source.catalogSource, result.product)
+                    } else {
+                        result.product.servedOnce(source)
+                    }
+                    catalog.recordBarcodeLookup(barcode, source.outcome)
+                    return BarcodeLookupResult.Found(food)
+                }
 
-            OpenFoodFactsResult.NotFound -> {
-                catalog.recordBarcodeLookup(barcode, BarcodeOutcome.Miss)
-                BarcodeLookupResult.NotFound
-            }
+                FoodSourceResult.NotFound -> answered = true
 
-            is OpenFoodFactsResult.Unavailable -> {
-                logger.warn("Open Food Facts lookup failed", result.cause)
-                catalog.recordBarcodeLookup(barcode, BarcodeOutcome.Error)
-                BarcodeLookupResult.Unavailable
+                is FoodSourceResult.Unavailable ->
+                    logger.warn("${source.catalogSource.wire} barcode lookup failed", result.cause)
             }
         }
+        val noSources = sources.inTierOrder().isEmpty()
+        return if (answered || noSources) {
+            catalog.recordBarcodeLookup(barcode, BarcodeOutcome.Miss)
+            BarcodeLookupResult.NotFound
+        } else {
+            catalog.recordBarcodeLookup(barcode, BarcodeOutcome.Error)
+            BarcodeLookupResult.Unavailable
+        }
     }
+
+    /**
+     * A food from a source we may not store. The id is derived from the
+     * source and the code, so two scans of the same product agree on it; it is
+     * not in `foods`, so a log entry naming it keeps its own snapshot and syncs
+     * with no food id.
+     */
+    private fun ExternalProduct.servedOnce(source: FoodSource): Food = Food(
+        id = UUID.nameUUIDFromBytes("${source.catalogSource.wire}:$barcode".toByteArray()),
+        source = source.catalogSource,
+        sourceId = barcode,
+        name = name,
+        brand = brand,
+        barcode = barcode,
+        per100g = per100g,
+        micros = micros,
+        portions = portions,
+    )
 
     private companion object {
         val logger = LoggerFactory.getLogger(CatalogBarcodeLookup::class.java)

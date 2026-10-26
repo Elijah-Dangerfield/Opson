@@ -6,6 +6,7 @@ import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchResult
 import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.foods.FoodTier
 import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
@@ -123,7 +124,12 @@ internal fun FoodResponse.toDomain(): Food = Food(
     brand = brand,
     barcode = barcode,
     micros = micros,
-    portions = portions.map { Portion(it.label, it.grams) },
+    // A serving known only by volume has no gram weight to scale by, so it is
+    // left out and the amount sheet falls back to grams, as for a food with
+    // no portions at all.
+    portions = portions.mapNotNull { p -> p.grams?.let { Portion(p.label, it) } },
+    tier = FoodTier.fromWire(tier),
+    verified = verified,
 )
 
 internal fun DescribedItemDto.toDomain(): ParsedItem = ParsedItem(

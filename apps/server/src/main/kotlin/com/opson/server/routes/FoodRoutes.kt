@@ -25,10 +25,11 @@ import java.util.UUID
  *  - `GET /v1/foods/search?q=&limit=25` ranked matches (see
  *    [FoodCatalogRepository]); records one anonymous search event.
  *  - `GET /v1/foods/{id}` one food with portions and micros.
- *  - `GET /v1/foods/barcode/{code}` catalog, then Open Food Facts. 404
- *    `not_found` when neither knows the code, 503 `barcode_lookup_unavailable`
- *    when Open Food Facts could not be reached. Rate-limited per IP because
- *    every miss costs a call to OFF from the server's one IP.
+ *  - `GET /v1/foods/barcode/{code}` catalog, then the enabled outside sources
+ *    in tier order ([BarcodeLookup]). 404
+ *    `not_found` when nobody knows the code, 503 `barcode_lookup_unavailable`
+ *    when no source could be reached. Rate-limited per IP because
+ *    every miss costs an outside call from the server's one IP.
  *  - `POST /v1/describe {text}` heuristic parse into items ([DescribeParser]).
  *
  * All require a Supabase JWT. None of them reads or writes user data, and

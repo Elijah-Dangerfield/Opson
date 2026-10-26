@@ -2,33 +2,64 @@ package com.opson.server.domain
 
 import java.util.UUID
 
-/** Where a catalog food came from. Wire values match the `foods.source` CHECK. */
-enum class FoodSource(val wire: String) {
-    UsdaFoundation("usda_foundation"),
-    UsdaSr("usda_sr"),
-    UsdaFndds("usda_fndds"),
-    OpenFoodFacts("off"),
+/**
+ * How much a source's numbers can be trusted, best first. Wire values match
+ * `foods.tier` (V10). Tiers 1 to 3 are [verified][FoodTier.verified]:
+ * someone accountable stands behind the numbers.
+ */
+enum class FoodTier(val wire: Int) {
+    /** USDA Foundation, SR Legacy, FNDDS: generic foods, lab or survey data. */
+    Reference(1),
+
+    /** USDA Branded Foods: the manufacturer's nutrition label. */
+    Label(2),
+
+    /** Paid sources cached under a licence (Nutritionix, later NCCDB). */
+    Licensed(3),
+
+    /** Open Food Facts, and later foods people submit. */
+    Community(4),
     ;
 
-    /** USDA foods are generic; Open Food Facts products are branded. */
-    val isGeneric: Boolean get() = this != OpenFoodFacts
+    val verified: Boolean get() = this != Community
 
     companion object {
-        fun fromWire(value: String): FoodSource? = entries.firstOrNull { it.wire == value }
+        fun fromWire(value: Int): FoodTier = entries.firstOrNull { it.wire == value } ?: Community
     }
 }
 
-/** A household measure: `{label: "1 cup, sliced", grams: 150}`. */
-data class Portion(val label: String, val grams: Double)
+/** Where a catalog food came from. Wire values match the `foods.source` CHECK (V10). */
+enum class CatalogSource(val wire: String, val tier: FoodTier) {
+    UsdaFoundation("usda_foundation", FoodTier.Reference),
+    UsdaSr("usda_sr", FoodTier.Reference),
+    UsdaFndds("usda_fndds", FoodTier.Reference),
+    UsdaBranded("usda_branded", FoodTier.Label),
+    Nutritionix("nutritionix", FoodTier.Licensed),
+    OpenFoodFacts("off", FoodTier.Community),
+    ;
+
+    companion object {
+        fun fromWire(value: String): CatalogSource? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+/**
+ * A household measure: `{label: "1 cup, sliced", grams: 150}`. [grams] is
+ * null for a serving the label states only by volume ("1 can (355 ml)"):
+ * there is no honest gram weight without a density, so the client falls back
+ * to weighing.
+ */
+data class Portion(val label: String, val grams: Double?)
 
 /**
  * A catalog food. Nutrients are per 100 g and null when the source does not
- * say. [micros] keys carry their unit (`sodium_mg`, `vitamin_d_ug`); see
- * scripts/import_usda_foods.py for the full list.
+ * say. For a branded product labelled in ml they are per 100 ml, which is
+ * what the label states. [micros] keys carry their unit (`sodium_mg`,
+ * `vitamin_d_ug`); see scripts/import_usda_foods.py for the full list.
  */
 data class Food(
     val id: UUID,
-    val source: FoodSource,
+    val source: CatalogSource,
     val sourceId: String,
     val name: String,
     val brand: String?,
@@ -36,6 +67,8 @@ data class Food(
     val per100g: Nutrients,
     val micros: Map<String, Double>,
     val portions: List<Portion>,
+    val tier: FoodTier = source.tier,
+    val verified: Boolean = tier.verified,
 )
 
 /** How well a search result matched the query, best first. */
@@ -44,9 +77,11 @@ enum class MatchTier { Exact, Head, Prefix, FullText, Similar }
 data class FoodMatch(val food: Food, val tier: MatchTier, val similarity: Double)
 
 /**
- * The shared catalog. Search ranking (docs/system-design.md §7): exact name,
- * then prefix, then full text, then trigram similarity; generic (USDA) above
- * branded (Open Food Facts) at the same tier; popularity breaks ties.
+ * The shared catalog. Search ranking (docs/system-design.md §7): a query that
+ * names a product's brand ranks that brand first; otherwise generic (reference
+ * tier) foods come before branded ones, and within that, exact name, then
+ * prefix, then full text, then trigram similarity; verified and lower source
+ * tiers first at the same match; popularity breaks ties.
  */
 interface FoodCatalogRepository {
     /**
@@ -58,14 +93,20 @@ interface FoodCatalogRepository {
 
     suspend fun findById(id: UUID): Food?
 
+    /**
+     * The food for a scanned code in any of its equivalent forms
+     * ([Barcodes.equivalents]). When two rows carry the same product under
+     * different forms (an Open Food Facts copy and the Branded Foods row),
+     * the better tier wins.
+     */
     suspend fun findByBarcode(barcode: String): Food?
 
     /**
-     * Insert or refresh an Open Food Facts product, keyed on
-     * `(source = 'off', source_id = barcode)`. Returns the stored row, whose
-     * id is stable across refreshes.
+     * Insert or refresh a product an outside source returned, keyed on
+     * `(source, source_id = barcode)`. Returns the stored row, whose id is
+     * stable across refreshes.
      */
-    suspend fun upsertOpenFoodFactsProduct(product: OpenFoodFactsProduct): Food
+    suspend fun upsertExternalProduct(source: CatalogSource, product: ExternalProduct): Food
 
     /** One anonymous `barcode_lookups` row. */
     suspend fun recordBarcodeLookup(barcode: String, outcome: BarcodeOutcome)
@@ -84,12 +125,13 @@ interface FoodCatalogRepository {
 enum class BarcodeOutcome(val wire: String) {
     Catalog("catalog"),
     OpenFoodFacts("off"),
+    Nutritionix("nutritionix"),
     Miss("miss"),
     Error("error"),
 }
 
-/** A product as Open Food Facts describes it, already mapped to per-100 g values. */
-data class OpenFoodFactsProduct(
+/** A product as an outside source describes it, already mapped to per-100 g values. */
+data class ExternalProduct(
     val barcode: String,
     val name: String,
     val brand: String?,
@@ -98,17 +140,45 @@ data class OpenFoodFactsProduct(
     val portions: List<Portion>,
 )
 
-sealed interface OpenFoodFactsResult {
-    data class Found(val product: OpenFoodFactsProduct) : OpenFoodFactsResult
-    data object NotFound : OpenFoodFactsResult
+/** What one outside source said about one barcode. */
+sealed interface FoodSourceResult {
+    data class Found(val product: ExternalProduct) : FoodSourceResult
+    data object NotFound : FoodSourceResult
 
-    /** Timeout, network failure or a 5xx. Not cached, not a miss. */
-    data class Unavailable(val cause: Throwable?) : OpenFoodFactsResult
+    /** Timeout, network failure, a 5xx or a rate limit. Not cached, not a miss. */
+    data class Unavailable(val cause: Throwable?) : FoodSourceResult
 }
 
-/** `world.openfoodfacts.org/api/v2/product/{code}.json`. No key; descriptive User-Agent. */
+/** Open Food Facts `api/v2/product/{code}.json`. No key; descriptive User-Agent. */
 interface OpenFoodFactsClient {
-    suspend fun product(barcode: String): OpenFoodFactsResult
+    suspend fun product(barcode: String): FoodSourceResult
+}
+
+/**
+ * An outside source asked when a barcode is not in our catalog. Our own
+ * catalog serves every search and every scan it can; these only fill gaps,
+ * one product at a time.
+ */
+interface FoodSource {
+    /** The `foods.source` a cached answer is stored under, and so its tier. */
+    val catalogSource: CatalogSource
+
+    /** What `barcode_lookups` records when this source answers. */
+    val outcome: BarcodeOutcome
+
+    /**
+     * Whether an answer may be stored in `foods`. False for a source whose
+     * terms do not allow keeping its data: its answers are served once and
+     * asked for again next time.
+     */
+    val cacheable: Boolean
+
+    suspend fun lookup(barcode: String): FoodSourceResult
+}
+
+/** The outside sources that are switched on, best tier first. */
+fun interface LiveFoodSources {
+    fun inTierOrder(): List<FoodSource>
 }
 
 sealed interface BarcodeLookupResult {
@@ -117,12 +187,51 @@ sealed interface BarcodeLookupResult {
     data object Unavailable : BarcodeLookupResult
 }
 
-/** Catalog first, then Open Food Facts (cached into the catalog), else not found. */
+/** Catalog first, then each enabled outside source in tier order, else not found. */
 interface BarcodeLookup {
     suspend fun lookup(barcode: String): BarcodeLookupResult
 
     companion object {
         /** EAN-8 through GTIN-14, digits only. */
         fun isValidBarcode(code: String): Boolean = code.length in 8..14 && code.all { it in '0'..'9' }
+    }
+}
+
+/**
+ * The forms one product code can arrive or be stored in. Leading zeros never
+ * change a GTIN, so a UPC-A (12 digits), its EAN-13 and its GTIN-14 are the
+ * same product: Branded Foods rows store the 14-digit form, Open Food Facts
+ * rows the code as it was scanned. An 8-digit code is either an EAN-8 or a
+ * UPC-E, the compressed UPC-A printed on small US packs, so both readings are
+ * offered.
+ */
+object Barcodes {
+    fun equivalents(code: String): List<String> {
+        val forms = linkedSetOf(code)
+        if (!BarcodeLookup.isValidBarcode(code)) return forms.toList()
+        val significant = code.trimStart('0')
+        listOf(8, 12, 13, 14).filter { significant.length <= it }.forEach { forms += significant.padStart(it, '0') }
+        upcEToUpcA(code)?.let { upcA -> listOf(12, 13, 14).forEach { forms += upcA.padStart(it, '0') } }
+        return forms.toList()
+    }
+
+    /** GS1 check digit for the digits before it. */
+    fun checkDigit(body: String): Int {
+        val total = body.reversed().withIndex().sumOf { (i, c) -> (c - '0') * if (i % 2 == 0) 3 else 1 }
+        return (10 - total % 10) % 10
+    }
+
+    /** The 12-digit UPC-A an 8-digit UPC-E (number system 0 or 1) stands for, or null. */
+    fun upcEToUpcA(code: String): String? {
+        if (code.length != 8 || code.any { it !in '0'..'9' } || code[0] !in "01") return null
+        val d = code.substring(1, 7)
+        val body = when (d[5]) {
+            '0', '1', '2' -> d.substring(0, 2) + d[5] + "0000" + d.substring(2, 5)
+            '3' -> d.substring(0, 3) + "00000" + d.substring(3, 5)
+            '4' -> d.substring(0, 4) + "00000" + d[4]
+            else -> d.substring(0, 5) + "0000" + d[5]
+        }
+        val upcA = code[0] + body + code[7]
+        return upcA.takeIf { checkDigit(it.dropLast(1)) == it.last() - '0' }
     }
 }

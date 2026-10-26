@@ -58,3 +58,11 @@ explain-*.md
 # side-by-sides. Regenerated on demand; published to the design-sync branch
 # when shared, never committed here.
 /design-sync/
+
+# USDA Branded Foods upsert (scripts/import_usda_foods.py --branded). Too big
+# to commit, and the monthly refresh regenerates it anyway.
+# The generic usda_foods.sql.gz next to it is committed.
+apps/server/fooddb/usda_branded*.sql.gz*
+
+# Written by `python3 -m unittest` in scripts/.
+__pycache__/

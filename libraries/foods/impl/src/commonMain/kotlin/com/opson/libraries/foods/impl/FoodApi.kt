@@ -35,6 +35,9 @@ data class FoodResponse(
     val per100g: NutrientsDto,
     val micros: Map<String, Double> = emptyMap(),
     val portions: List<PortionDto> = emptyList(),
+    /** 1 reference, 2 label, 3 licensed, 4 community. Absent from servers older than V10. */
+    val tier: Int? = null,
+    val verified: Boolean = false,
 )
 
 @Serializable
@@ -46,8 +49,9 @@ data class NutrientsDto(
     val fiber: Double? = null,
 )
 
+/** `grams` is absent for a serving the label gives only in ml ("1 can (355 ml)"). */
 @Serializable
-data class PortionDto(val label: String, val grams: Double)
+data class PortionDto(val label: String, val grams: Double? = null)
 
 @Serializable
 data class FoodSearchResponse(

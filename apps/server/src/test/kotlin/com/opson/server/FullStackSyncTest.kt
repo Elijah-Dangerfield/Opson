@@ -1,5 +1,6 @@
 package com.opson.server
 
+import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.DatabaseTest
 import com.opson.server.di.ServerComponent
 import com.opson.server.di.create
@@ -80,7 +81,7 @@ class FullStackSyncTest : DatabaseTest() {
     fun twoDevicesConvergeThroughSync() = runTest {
         val user = seedAuthUser()
         val other = seedAuthUser()
-        val component = ServerComponent::class.create(database, null)
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig())
         val foodId = DiaryFixtures.insertFood(database, name = "Soup, lentil").toString()
         val entryId = UUID.randomUUID().toString()
 
@@ -142,7 +143,7 @@ class FullStackSyncTest : DatabaseTest() {
     @Test
     fun exportReadsWhatSyncWrote() = runTest {
         val user = seedAuthUser()
-        val component = ServerComponent::class.create(database, null)
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig())
         testApplication {
             application { installApp(component, TestJwt.verification) }
             val client = createClient { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }

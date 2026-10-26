@@ -1,5 +1,6 @@
 package com.opson.server.di
 
+import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.config.SupabaseConfig
 import com.opson.server.db.Database
 import com.opson.server.domain.AppConfigAdminRepository
@@ -53,6 +54,8 @@ abstract class ServerComponent(
      * client answers NotConfigured) instead of failing at construction.
      */
     @get:Provides val supabaseConfig: SupabaseConfig? = null,
+    /** Which outside food sources a barcode miss may ask. Default: Open Food Facts only. */
+    @get:Provides val foodSourcesConfig: FoodSourcesConfig = FoodSourcesConfig(),
 ) {
     abstract val exampleSource: ExampleSource
     abstract val profileRepository: ProfileRepository

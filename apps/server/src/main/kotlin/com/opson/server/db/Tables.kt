@@ -128,6 +128,13 @@ object FoodsTable : Table("foods") {
     val micros = jsonb("micros")
     val portions = jsonb("portions")
     val popularity = integer("popularity")
+
+    /**
+     * Set from `source` by the `foods_set_tier` trigger (V10), so both are
+     * `databaseGenerated()`: Kotlin writes the source and reads these back.
+     */
+    val tier = short("tier").databaseGenerated()
+    val verified = bool("verified").databaseGenerated()
     override val primaryKey = PrimaryKey(id)
 }
 

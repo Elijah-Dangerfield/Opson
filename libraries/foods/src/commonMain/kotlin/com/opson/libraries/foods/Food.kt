@@ -17,6 +17,12 @@ enum class FoodSource(val wire: String) {
     @SerialName("usda_fndds")
     UsdaFndds("usda_fndds"),
 
+    @SerialName("usda_branded")
+    UsdaBranded("usda_branded"),
+
+    @SerialName("nutritionix")
+    Nutritionix("nutritionix"),
+
     @SerialName("off")
     OpenFoodFacts("off"),
 
@@ -26,6 +32,36 @@ enum class FoodSource(val wire: String) {
 
     companion object {
         fun fromWire(value: String): FoodSource = entries.firstOrNull { it.wire == value } ?: Unknown
+    }
+}
+
+/**
+ * How much the catalog trusts a food's source, best first: USDA generic data,
+ * then a manufacturer's label (USDA Branded), then licensed data, then
+ * community data (Open Food Facts). Screens can mark the first three as
+ * verified.
+ */
+@Serializable
+enum class FoodTier(val wire: Int) {
+    @SerialName("reference")
+    Reference(1),
+
+    @SerialName("label")
+    Label(2),
+
+    @SerialName("licensed")
+    Licensed(3),
+
+    @SerialName("community")
+    Community(4),
+
+    /** A food cached by a build from before the server sent tiers. */
+    @SerialName("unknown")
+    Unknown(0),
+    ;
+
+    companion object {
+        fun fromWire(value: Int?): FoodTier = entries.firstOrNull { it.wire == value } ?: Unknown
     }
 }
 
@@ -43,7 +79,12 @@ data class NutrientProfile(
 @Serializable
 data class Portion(val label: String, val grams: Double)
 
-/** A catalog food. [micros] is per 100 g, keyed with the unit in the key (`sodium_mg`). */
+/**
+ * A catalog food. [micros] is per 100 g, keyed with the unit in the key
+ * (`sodium_mg`). [verified] means someone accountable stands behind the
+ * numbers (tiers [FoodTier.Reference] to [FoodTier.Licensed]); it is for a
+ * mark on the row, not for ranking, which the server already did.
+ */
 @Serializable
 data class Food(
     val id: String,
@@ -54,6 +95,8 @@ data class Food(
     val barcode: String? = null,
     val micros: Map<String, Double> = emptyMap(),
     val portions: List<Portion> = emptyList(),
+    val tier: FoodTier = FoodTier.Unknown,
+    val verified: Boolean = false,
 ) {
     val isOpenFoodFacts: Boolean get() = source == FoodSource.OpenFoodFacts
 }
@@ -101,7 +144,7 @@ data class FoodSearchResult(
 )
 
 /**
- * The food catalog: USDA FoodData Central plus Open Food Facts, through the
+ * The food catalog: USDA FoodData Central (generic and branded) plus Open Food Facts, through the
  * server. Foods the user has picked are kept on the device, so Favorites and
  * Recent work offline and search falls back to them when the server cannot be
  * reached.
@@ -115,7 +158,7 @@ interface FoodCatalog {
     /** One food with portions and micros. Falls back to the cached copy offline. */
     suspend fun detail(id: String): Catching<Food>
 
-    /** The food for a barcode, or null when neither the catalog nor Open Food Facts knows it. */
+    /** The food for a barcode, or null when neither the catalog nor any outside source knows it. */
     suspend fun barcode(code: String): Catching<Food?>
 
     /** "2 eggs and toast" to items. Online only. */

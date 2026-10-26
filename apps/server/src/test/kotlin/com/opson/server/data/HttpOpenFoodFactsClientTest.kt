@@ -1,6 +1,6 @@
 package com.opson.server.data
 
-import com.opson.server.domain.OpenFoodFactsResult
+import com.opson.server.domain.FoodSourceResult
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondError
@@ -42,7 +42,7 @@ class HttpOpenFoodFactsClientTest {
 
         assertEquals("Opson/0.1 (food logger)", userAgent)
         assertEquals("/api/v2/product/$code.json", path)
-        val product = assertIs<OpenFoodFactsResult.Found>(result).product
+        val product = assertIs<FoodSourceResult.Found>(result).product
         assertEquals("Hazelnut spread", product.name)
         assertEquals("Acme", product.brand)
         assertEquals(539.0, product.per100g.kcal)
@@ -72,18 +72,18 @@ class HttpOpenFoodFactsClientTest {
     @Test
     fun notFoundOn404OrStatusZero() = runTest {
         val notFound = HttpOpenFoodFactsClient(MockEngine { respondError(HttpStatusCode.NotFound) })
-        assertEquals(OpenFoodFactsResult.NotFound, notFound.product(code))
+        assertEquals(FoodSourceResult.NotFound, notFound.product(code))
 
         val statusZero = HttpOpenFoodFactsClient(
             MockEngine { respond("""{"status":0,"status_verbose":"product not found"}""", HttpStatusCode.OK, json) },
         )
-        assertEquals(OpenFoodFactsResult.NotFound, statusZero.product(code))
+        assertEquals(FoodSourceResult.NotFound, statusZero.product(code))
     }
 
     @Test
     fun serverErrorIsUnavailable() = runTest {
         val client = HttpOpenFoodFactsClient(MockEngine { respondError(HttpStatusCode.BadGateway) })
-        assertIs<OpenFoodFactsResult.Unavailable>(client.product(code))
+        assertIs<FoodSourceResult.Unavailable>(client.product(code))
     }
 
     @Test
@@ -94,6 +94,6 @@ class HttpOpenFoodFactsClientTest {
             respond(found, HttpStatusCode.OK, json)
         }
         val client = HttpOpenFoodFactsClient(engine, timeoutMs = 50)
-        assertIs<OpenFoodFactsResult.Unavailable>(client.product(code))
+        assertIs<FoodSourceResult.Unavailable>(client.product(code))
     }
 }

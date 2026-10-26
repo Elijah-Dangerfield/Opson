@@ -25,6 +25,7 @@ data class ServerConfig(
     val accessControl: AccessControlConfig,
     val admin: AdminConfig,
     val configChange: ConfigChangeConfig,
+    val foodSources: FoodSourcesConfig = FoodSourcesConfig(),
 ) {
     companion object {
         fun fromEnv(env: Env = Env()): ServerConfig = ServerConfig(
@@ -36,7 +37,49 @@ data class ServerConfig(
             accessControl = AccessControlConfig.fromEnv(env),
             admin = AdminConfig.fromEnv(env),
             configChange = ConfigChangeConfig.fromEnv(env),
+            foodSources = FoodSourcesConfig.fromEnv(env),
         )
+    }
+}
+
+/**
+ * Outside food sources a barcode miss can be sent to (Open Food Facts is
+ * always on and needs no config). Each paid source is null, and so never
+ * called, until its keys are set.
+ */
+data class FoodSourcesConfig(
+    val nutritionix: NutritionixConfig? = null,
+) {
+    companion object {
+        fun fromEnv(env: Env): FoodSourcesConfig = FoodSourcesConfig(
+            nutritionix = NutritionixConfig.fromEnv(env),
+        )
+    }
+}
+
+/**
+ * Nutritionix API credentials. Both keys or nothing: one without the other is
+ * treated as unset. [cacheResults] defaults to false because Nutritionix's
+ * terms limit keeping their data; see `NutritionixSource` before turning it on.
+ * Treat the key like a password: never log it.
+ */
+data class NutritionixConfig(
+    val appId: String,
+    val appKey: String,
+    val cacheResults: Boolean = false,
+) {
+    override fun toString(): String = "NutritionixConfig(appId=$appId, appKey=***, cacheResults=$cacheResults)"
+
+    companion object {
+        fun fromEnv(env: Env): NutritionixConfig? {
+            val appId = env["NUTRITIONIX_APP_ID"] ?: return null
+            val appKey = env["NUTRITIONIX_APP_KEY"] ?: return null
+            return NutritionixConfig(
+                appId = appId,
+                appKey = appKey,
+                cacheResults = env["NUTRITIONIX_CACHE_RESULTS"]?.trim()?.lowercase() == "true",
+            )
+        }
     }
 }
 

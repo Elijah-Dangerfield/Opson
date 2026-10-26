@@ -1,5 +1,6 @@
 package com.opson.server.db
 
+import com.opson.server.domain.CatalogSource
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.TransactionManager
@@ -52,6 +53,16 @@ class DatabaseSchemaTest : DatabaseTest() {
         val triggers = strings("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal")
         listOf("log_entries", "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings")
             .forEach { assertTrue("${it}_bump_server_seq" in triggers, "no cursor trigger on $it") }
+    }
+
+    @Test
+    fun foodTiersFollowTheSourceForEverySourceTheCheckAllows() {
+        assertTrue("foods_set_tier" in strings("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal"))
+        // The Kotlin enum and the SQL function must agree, or a cached food
+        // would be served with one tier and searched with another.
+        val sources = CatalogSource.entries.joinToString(",") { "'${it.wire}'" }
+        val tiers = strings("SELECT s || '=' || public.food_source_tier(s) FROM unnest(ARRAY[$sources]) AS s")
+        assertEquals(CatalogSource.entries.map { "${it.wire}=${it.tier.wire}" }, tiers)
     }
 
     @Test

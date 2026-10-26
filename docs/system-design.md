@@ -189,17 +189,21 @@ cursor.
 ### Postgres (`public` schema, Flyway in `apps/server/src/main/resources/db/migration`)
 
 ```sql
--- Catalog, shared by everyone, loaded from USDA FoodData Central + Open Food Facts
+-- Catalog, shared by everyone: USDA FoodData Central (generic + Branded), Open Food Facts, later paid sources
 foods (
-  id uuid pk, source text check (source in ('usda_foundation','usda_sr','usda_fndds','off')),
+  id uuid pk, source text check (source in ('usda_foundation','usda_sr','usda_fndds','usda_branded','nutritionix','off')),
   source_id text, name text, brand text null, barcode text null unique,
   kcal_100g real, protein_100g real, carbs_100g real, fat_100g real, fiber_100g real,  -- nullable when unknown
   micros jsonb not null default '{}',          -- nutrient key -> amount per 100 g
   portions jsonb not null default '[]',        -- [{label:'1 cup', grams:240}]
   search tsvector generated always as (to_tsvector('simple', name || ' ' || coalesce(brand,''))) stored,
   popularity int not null default 0,
+  tier smallint not null,                      -- 1 reference (USDA generic), 2 label (USDA Branded), 3 licensed, 4 community (OFF)
+  verified boolean not null,                   -- true for tiers 1-3
   unique (source, source_id))
-  -- GIN index on search, trigram index on lower(name) for prefix and typo tolerance
+  -- GIN index on search, trigram index on lower(name) for prefix and typo tolerance.
+  -- A trigger sets tier and verified from source (food_source_tier()), so loaders never write them.
+  -- Branded rows store the barcode as GTIN-14 and upsert on it; OFF rows keep the code as scanned.
 
 -- Everything below has user_id uuid not null references auth.users(id) on delete cascade,
 -- client_updated_at timestamptz not null, server_seq bigint not null default nextval('sync_seq'),
@@ -235,11 +239,11 @@ user_settings (user_id pk, settings jsonb, changed_at timestamptz null)       --
 food_search_events (id bigserial, at timestamptz, query_norm text, result_count int, picked boolean)
   -- no user_id on purpose: it answers "which foods are we missing", not "what did this person search"
 
-barcode_lookups (id bigserial, at timestamptz, barcode text, outcome text)   -- catalog|off|miss|error, no user_id
+barcode_lookups (id bigserial, at timestamptz, barcode text, outcome text)   -- catalog|off|nutritionix|miss|error, no user_id
 ```
 
-The migrations are `V7__food_catalog.sql`, `V8__diary.sql` and
-`V9__analytics.sql`. Columns a row cannot exist without (ids, `day`, `slot`,
+The migrations are `V7__food_catalog.sql`, `V8__diary.sql`,
+`V9__analytics.sql` and `V10__food_tiers.sql`. Columns a row cannot exist without (ids, `day`, `slot`,
 `name`, `precision`, `method`, `logged_at`, `measured_at`, `kg`, serving
 amount and unit) are `not null`; everything else is nullable as written.
 `food_id` is `on delete set null` so removing a catalog food never deletes a
@@ -347,14 +351,19 @@ errors in the `ProblemResponse` envelope.
 | POST | `/v1/sync` | Push and pull, section 6 |
 | GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. |
 | GET | `/v1/foods/{id}` | Detail with portions and micros |
-| GET | `/v1/foods/barcode/{code}` | Catalog first, then Open Food Facts, cached into `foods`. 404 `not_found` when neither has it. |
+| GET | `/v1/foods/barcode/{code}` | Catalog first, in any equivalent form of the code (UPC-A, EAN-13, GTIN-14, UPC-E), then each enabled outside source in tier order (Nutritionix when configured, Open Food Facts); cacheable answers are stored in `foods`. 404 `not_found` when nobody has it, 503 when no source could answer. |
 | POST | `/v1/describe` `{text}` | Parses "2 eggs and toast" into items: quantity + unit + food match. Heuristic, no AI. |
 | GET | `/v1/export.csv` | Every log entry, weigh-in and water day for the caller |
 | GET/DELETE | `/v1/me` | Existing. Delete cascades through every table above. |
 
 Search ranking rule: exact name match, then prefix, then full text rank, then
 trigram similarity, with `popularity` (picks across all users) as the tiebreak.
-Generic foods (USDA) rank above branded (Open Food Facts) at equal match.
+Two rules sit above that. When the query names a product's brand (every word
+of the brand, apart from filler like "Inc.", is in the query), that brand's
+products come first: `cheerios`, `chobani greek yogurt`. Otherwise generic
+(reference tier) foods come before branded ones, so `banana` still offers
+"Banana, raw" first. Within a match tier, verified before unverified and lower
+source tier first. Every food in a response carries `tier` and `verified`.
 
 Two refinements, both forced by how USDA names foods ("Egg, whole, raw"):
 a match on the name's first comma segment ranks right after exact, so `eggs`
@@ -367,16 +376,35 @@ similarity and popularity.
 
 ## 8. Food database
 
-- **USDA FoodData Central**, public domain: Foundation, SR Legacy and FNDDS
-  (survey foods "as eaten", which carry household portions like "1 cup").
-  About 13,000 foods with full micronutrients. Loaded by
-  `scripts/import_usda_foods.py`, which downloads the CSV releases, normalizes
-  nutrients per 100 g, keeps portions, and writes an idempotent upsert into
-  `foods`.
-- **Open Food Facts** for barcodes, no key. The server looks up unknown codes
-  at `world.openfoodfacts.org/api/v2/product/{code}.json` with a descriptive
-  User-Agent, maps it, and caches it in `foods` with `source = 'off'`. Data is
-  ODbL, so the Foods screen credits Open Food Facts.
+Our own catalog serves every search and every barcode. Sources are layered
+by how far their numbers can be trusted (`foods.tier`):
+
+1. **Reference: USDA FoodData Central generic foods**, public domain:
+   Foundation, SR Legacy and FNDDS (survey foods "as eaten", which carry
+   household portions like "1 cup"). About 13,000 foods with full
+   micronutrients. Loaded by `scripts/import_usda_foods.py`, which downloads
+   the CSV releases, normalizes nutrients per 100 g, keeps portions, and
+   writes an idempotent upsert into `foods`. The output is committed.
+2. **Label: USDA Branded Foods**, public domain: about 430,000 US packaged
+   products with barcodes, from manufacturers' labels. Loaded by the same
+   script with `--branded`, streamed into the database with `--psql`, and
+   refreshed monthly by `.github/workflows/food-catalog-refresh.yml`. Keyed
+   on the barcode (stored as GTIN-14) so a newer release updates products in
+   place. Not committed.
+3. **Licensed: paid sources, off until there is budget.** Nutritionix is a
+   live barcode source, only bound when its keys are set, and its answers
+   are cached only behind `NUTRITIONIX_CACHE_RESULTS` because its terms limit
+   storage. NCCDB (University of Minnesota) would arrive as an importer; the
+   slot is described in `apps/server/README.md`.
+4. **Community: Open Food Facts** for barcodes we do not have, no key. The
+   server looks up unknown codes at
+   `world.openfoodfacts.org/api/v2/product/{code}.json` with a descriptive
+   User-Agent, maps it, and caches it in `foods` with `source = 'off'`. Data
+   is ODbL, so the Foods screen credits Open Food Facts. Later, foods people
+   submit land here too.
+
+Tiers 1 to 3 are `verified`. A barcode miss asks the enabled outside sources
+in tier order; the first that knows the product answers.
 - **Photo estimates** need a vision model and a key, so they are out of the
   first release (the handoff's Plus tier).
 
@@ -406,7 +434,7 @@ shared by every app on the stack. This is the Cards rule.
 | Opson Pulse | daily active loggers, entries per day, days closed, new accounts, sync errors | Postgres + Loki |
 | Logging | entries by method, precision mix (weighed / estimate / named), "ate, no details" share, meals per day, time-of-day histogram | Postgres |
 | Modes | active users by preset, override usage per metric, friction sheet shown vs completed, mode changes per week | Postgres + Loki events |
-| Food catalog | searches per day, zero-result rate, top zero-result queries, barcode hit rate (catalog vs OFF vs miss) | Postgres |
+| Food catalog | searches per day, zero-result rate, top zero-result queries, barcode hit rate (catalog vs each outside source vs miss) | Postgres |
 | Retention | weekly cohorts by first log, D1/D7/D30 | Postgres |
 | Server | RED for `/v1/*` excluding `/_health`, p95 latency of `/v1/sync` and search | Loki / Tempo |
 
@@ -533,6 +561,21 @@ The same applies to each server resource.
 ## 15. Decisions
 
 Dated, newest first. Add to it, never rewrite it.
+
+- **2026-10-26: we own the catalog, layered by trust, with paid sources
+  behind flags.** A professional tracker answers from its own database; an
+  outside API on every scan is slow, rate-limited and gone the day it changes
+  terms. So USDA Branded Foods (about 430,000 products) joins the generic
+  USDA foods in `foods`, refreshed monthly, and outside sources only fill
+  gaps one product at a time, cached where their terms allow. Every food
+  carries a tier (reference, label, licensed, community) and a `verified`
+  flag, and search prefers verified, lower tiers within a match, generic
+  foods for plain queries, and the brand when the query names one. Paid
+  sources are code that waits for a key: Nutritionix is wired and bound only
+  when `NUTRITIONIX_APP_ID` and `NUTRITIONIX_APP_KEY` are set, with caching
+  off unless the contract allows it; NCCDB is a documented importer slot.
+  This amends the 2026-10-25 "no keyed food API" decision only in that
+  a keyed API can now be switched on; it still is not.
 
 - **2026-10-25: the client holds back changes to days the server refuses.**
   `DiaryRules.MAX_DAYS_AHEAD` is 2 and Today allows 6. Holding them in the

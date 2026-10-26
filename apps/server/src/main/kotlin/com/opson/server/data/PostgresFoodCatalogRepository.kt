@@ -7,13 +7,15 @@ import com.opson.server.db.FoodsTable
 import com.opson.server.db.toJavaInstant
 import com.opson.server.di.ServerScope
 import com.opson.server.domain.BarcodeOutcome
+import com.opson.server.domain.Barcodes
+import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.ExternalProduct
 import com.opson.server.domain.Food
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodMatch
-import com.opson.server.domain.FoodSource
+import com.opson.server.domain.FoodTier
 import com.opson.server.domain.MatchTier
 import com.opson.server.domain.Nutrients
-import com.opson.server.domain.OpenFoodFactsProduct
 import com.opson.server.domain.Portion
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -24,7 +26,9 @@ import me.tatarka.inject.annotations.Inject
 import org.jetbrains.exposed.sql.IColumnType
 import org.jetbrains.exposed.sql.IntegerColumnType
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.TextColumnType
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
@@ -55,10 +59,20 @@ import kotlin.time.Clock
  *    "Banana chips" but "toast" does not find "Toaster pastries");
  *  - full text: every query word starts a word of the name or brand;
  *  - similar: trigram similarity only, for typos.
- * Within a tier: generic before branded, names containing the query words as
- * whole words first, then the plain form of a food ("raw", "NFS", "plain",
- * "whole", "brewed", "cooked") over prepared dishes, so "eggs" offers
- * "Egg, whole, raw" before "Egg, creamed"; then similarity to the whole name rounded to one decimal
+ * Above the match tier sit two rules about what the query is asking for:
+ *  - a query that names a product's brand ("chobani yogurt", "cheerios")
+ *    ranks that brand's products first. Naming a brand means every word of
+ *    the brand, apart from filler like "Inc." or "Foods", is in the query,
+ *    and no generic food is an exact or head match ("peanut butter" stays a
+ *    food even though "Peanut Butter & Co." is a brand);
+ *  - otherwise generic (reference tier) foods come before branded ones, so
+ *    "banana" offers "Banana, raw" before a product a store named "Bananas".
+ *    Trigram-only matches stay last either way.
+ * Within a match tier: verified before unverified and lower source tier
+ * first, then names containing the query words as whole words, then the
+ * plain form of a food ("raw", "NFS", "plain", "whole", "brewed", "cooked")
+ * over prepared dishes, so "eggs" offers "Egg, whole, raw" before
+ * "Egg, creamed"; then similarity to the whole name rounded to one decimal
  * (so near-equal matches fall through to popularity), then popularity, then
  * shorter names.
  */
@@ -94,15 +108,20 @@ class PostgresFoodCatalogRepository(
         val text = TextColumnType()
         val variants = terms.phraseVariants.joinToString("|")
         val args = listOf<Pair<IColumnType<*>, Any?>>(
+            text to terms.likePrefix, // direct: prefix
+            text to terms.prefixTsQuery, // direct: full text
+            IntegerColumnType() to limit, // typo fallback only below this many direct matches
+            text to terms.normalized, // fallback: trigram
+            text to terms.likePrefix, // fallback: not already direct
+            text to terms.prefixTsQuery, // fallback: not already direct
             text to variants, // exact tier
             text to variants, // head tier
             text to terms.wordPrefixRegex, // prefix tier
             text to terms.prefixTsQuery, // full-text tier
             text to terms.wholeWordTsQuery, // whole-word bonus
+            text to terms.brandWords, // brand named: every brand word is one of these
+            text to terms.queryWords, // brand named: and at least one is a query word
             text to terms.normalized, // similarity
-            text to terms.likePrefix, // where: prefix
-            text to terms.prefixTsQuery, // where: full text
-            text to terms.normalized, // where: trigram
             IntegerColumnType() to limit,
         )
         val results = mutableListOf<FoodMatch>()
@@ -112,7 +131,7 @@ class PostgresFoodCatalogRepository(
             explicitStatementType = StatementType.SELECT,
         ) { rs ->
             while (rs.next()) {
-                val tier = MatchTier.entries[rs.getInt("tier")]
+                val tier = MatchTier.entries[rs.getInt("match_tier")]
                 results += FoodMatch(rs.toFood(), tier, rs.getDouble("sim"))
             }
         }
@@ -124,10 +143,15 @@ class PostgresFoodCatalogRepository(
     }
 
     override suspend fun findByBarcode(barcode: String): Food? = database.transaction {
-        FoodsTable.selectAll().where { FoodsTable.barcode eq barcode }.singleOrNull()?.toFood()
+        FoodsTable.selectAll()
+            .where { FoodsTable.barcode inList Barcodes.equivalents(barcode) }
+            .orderBy(FoodsTable.tier to SortOrder.ASC, FoodsTable.verified to SortOrder.DESC)
+            .limit(1)
+            .singleOrNull()
+            ?.toFood()
     }
 
-    override suspend fun upsertOpenFoodFactsProduct(product: OpenFoodFactsProduct): Food = database.transaction {
+    override suspend fun upsertExternalProduct(source: CatalogSource, product: ExternalProduct): Food = database.transaction {
         FoodsTable.upsert(
             FoodsTable.sourceKind,
             FoodsTable.sourceId,
@@ -135,7 +159,7 @@ class PostgresFoodCatalogRepository(
             onUpdateExclude = listOf(FoodsTable.id),
         ) {
             it[id] = UUID.randomUUID()
-            it[sourceKind] = FoodSource.OpenFoodFacts.wire
+            it[sourceKind] = source.wire
             it[sourceId] = product.barcode
             it[name] = product.name
             it[brand] = product.brand
@@ -149,7 +173,7 @@ class PostgresFoodCatalogRepository(
             it[portions] = JSON.encodeToString(PORTIONS_SERIALIZER, product.portions.map { p -> PortionJson(p.label, p.grams) })
         }
         FoodsTable.selectAll()
-            .where { (FoodsTable.sourceKind eq FoodSource.OpenFoodFacts.wire) and (FoodsTable.sourceId eq product.barcode) }
+            .where { (FoodsTable.sourceKind eq source.wire) and (FoodsTable.sourceId eq product.barcode) }
             .single()
             .toFood()
     }
@@ -166,7 +190,7 @@ class PostgresFoodCatalogRepository(
 
     private fun ResultRow.toFood(): Food = Food(
         id = this[FoodsTable.id],
-        source = FoodSource.fromWire(this[FoodsTable.sourceKind]) ?: FoodSource.UsdaSr,
+        source = CatalogSource.fromWire(this[FoodsTable.sourceKind]) ?: CatalogSource.UsdaSr,
         sourceId = this[FoodsTable.sourceId],
         name = this[FoodsTable.name],
         brand = this[FoodsTable.brand],
@@ -180,11 +204,13 @@ class PostgresFoodCatalogRepository(
         ),
         micros = decodeMicros(this[FoodsTable.micros]),
         portions = decodePortions(this[FoodsTable.portions]),
+        tier = FoodTier.fromWire(this[FoodsTable.tier].toInt()),
+        verified = this[FoodsTable.verified],
     )
 
     private fun ResultSet.toFood(): Food = Food(
         id = getObject("id", UUID::class.java),
-        source = FoodSource.fromWire(getString("source")) ?: FoodSource.UsdaSr,
+        source = CatalogSource.fromWire(getString("source")) ?: CatalogSource.UsdaSr,
         sourceId = getString("source_id"),
         name = getString("name"),
         brand = getString("brand"),
@@ -198,6 +224,8 @@ class PostgresFoodCatalogRepository(
         ),
         micros = decodeMicros(getString("micros")),
         portions = decodePortions(getString("portions")),
+        tier = FoodTier.fromWire(getInt("tier")),
+        verified = getBoolean("verified"),
     )
 
     private fun ResultSet.nullableFloat(column: String): Double? {
@@ -206,7 +234,7 @@ class PostgresFoodCatalogRepository(
     }
 
     @Serializable
-    private data class PortionJson(val label: String, val grams: Double)
+    private data class PortionJson(val label: String, val grams: Double? = null)
 
     internal companion object {
         private val JSON = Json { ignoreUnknownKeys = true }
@@ -218,35 +246,72 @@ class PostgresFoodCatalogRepository(
         fun decodePortions(json: String): List<Portion> =
             JSON.decodeFromString(PORTIONS_SERIALIZER, json).map { Portion(it.label, it.grams) }
 
-        /** The column order here is what [toFood] on a ResultSet reads. */
+        /**
+         * The column order here is what [toFood] on a ResultSet reads.
+         *
+         * Trigram similarity only runs when the direct matches (prefix and
+         * full text) number fewer than the limit. Similar-only rows always
+         * rank after direct ones, so skipping them changes nothing visible,
+         * and with Branded Foods loaded the `%` operator alone rechecks tens
+         * of thousands of rows for a word like "banana". The `count(*)`
+         * subquery is uncorrelated, so Postgres evaluates it once and skips
+         * the trigram scan entirely when it is false.
+         *
+         * A query counts as naming a brand only when no generic food is an
+         * exact or head match for it: "peanut butter" is a food first, even
+         * though "Peanut Butter & Co." is a brand.
+         */
         private val SEARCH_SQL = """
-            SELECT * FROM (
-                SELECT f.id, f.source, f.source_id, f.name, f.brand, f.barcode,
-                       f.kcal_100g, f.protein_100g, f.carbs_100g, f.fat_100g, f.fiber_100g,
-                       f.micros::text AS micros, f.portions::text AS portions, f.popularity,
-                       CASE
-                           WHEN lower(f.name) = ANY (string_to_array(?, '|')) THEN 0
-                           WHEN btrim(split_part(lower(f.name), ',', 1)) = ANY (string_to_array(?, '|')) THEN 1
-                           WHEN lower(f.name) ~ ? THEN 2
-                           WHEN f.search @@ to_tsquery('simple', ?) THEN 3
-                           ELSE 4
-                       END AS tier,
-                       f.search @@ to_tsquery('simple', ?) AS whole_words,
-                       lower(f.name) ~ '\m(raw|nfs|plain|whole|brewed|cooked)\M' AS staple,
-                       extensions.similarity(lower(f.name), ?) AS sim
-                FROM foods f
+            WITH direct AS (
+                SELECT f.* FROM foods f
                 WHERE lower(f.name) LIKE ?
                    OR f.search @@ to_tsquery('simple', ?)
-                   OR lower(f.name) OPERATOR(extensions.%) ?
-            ) m
-            ORDER BY m.tier,
-                     (m.source = 'off'),
-                     m.whole_words DESC,
-                     m.staple DESC,
-                     round(m.sim::numeric, 1) DESC,
-                     m.popularity DESC,
-                     length(m.name),
-                     m.name
+            ),
+            candidates AS (
+                SELECT * FROM direct
+                UNION ALL
+                SELECT f.* FROM foods f
+                WHERE (SELECT count(*) FROM direct) < ?
+                  AND lower(f.name) OPERATOR(extensions.%) ?
+                  AND NOT (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
+            ),
+            scored AS (
+                SELECT c.id, c.source, c.source_id, c.name, c.brand, c.barcode,
+                       c.kcal_100g, c.protein_100g, c.carbs_100g, c.fat_100g, c.fiber_100g,
+                       c.micros::text AS micros, c.portions::text AS portions, c.popularity,
+                       c.tier, c.verified,
+                       CASE
+                           WHEN lower(c.name) = ANY (string_to_array(?, '|')) THEN 0
+                           WHEN btrim(split_part(lower(c.name), ',', 1)) = ANY (string_to_array(?, '|')) THEN 1
+                           WHEN lower(c.name) ~ ? THEN 2
+                           WHEN c.search @@ to_tsquery('simple', ?) THEN 3
+                           ELSE 4
+                       END AS match_tier,
+                       c.search @@ to_tsquery('simple', ?) AS whole_words,
+                       coalesce((
+                           SELECT cardinality(b.words) > 0
+                                  AND b.words <@ string_to_array(?, '|')
+                                  AND b.words && string_to_array(?, '|')
+                           FROM (SELECT array_remove(regexp_split_to_array(lower(c.brand), '[^[:alnum:]]+'), '') AS words) b
+                       ), false) AS brand_hit,
+                       lower(c.name) ~ '\m(raw|nfs|plain|whole|brewed|cooked)\M' AS staple,
+                       extensions.similarity(lower(c.name), ?) AS sim
+                FROM candidates c
+            )
+            SELECT s.*, s.brand_hit AND NOT bool_or(s.tier = 1 AND s.match_tier <= 1) OVER () AS brand_named
+            FROM scored s
+            ORDER BY (s.match_tier = 4),
+                     brand_named DESC,
+                     (s.tier > 1),
+                     s.match_tier,
+                     s.verified DESC,
+                     s.tier,
+                     s.whole_words DESC,
+                     s.staple DESC,
+                     round(s.sim::numeric, 1) DESC,
+                     s.popularity DESC,
+                     length(s.name),
+                     s.name
             LIMIT ?
         """.trimIndent()
     }
@@ -278,8 +343,19 @@ internal class SearchTerms private constructor(
     /** `(eggs | egg) & (white | whites)`: every word appears whole. */
     val wholeWordTsQuery: String = words.joinToString(" & ") { w -> variantsOf(w).joinToString(" | ", "(", ")") }
 
+    /** `chobani|chobanis|yogurt|yogurts`: the query's words and their variants. */
+    val queryWords: String = words.flatMap(::variantsOf).distinct().joinToString("|")
+
+    /** [queryWords] plus what a brand may carry that nobody types ("Inc.", "Foods", the s of "Campbell's"). */
+    val brandWords: String = (words.flatMap(::variantsOf) + BRAND_FILLER).distinct().joinToString("|")
+
     companion object {
-        private val WORD = Regex("[\\p{L}\\p{N}]+")
+        private val BRAND_FILLER = listOf(
+            "the", "and", "of", "s", "inc", "llc", "ltd", "co", "corp", "corporation", "company", "companies",
+            "foods", "food", "brand", "brands", "sales", "usa", "us", "international", "products", "group",
+        )
+
+        private val WORD =Regex("[\\p{L}\\p{N}]+")
 
         fun of(normalized: String): SearchTerms? {
             val words = WORD.findAll(normalized).map { it.value }.take(8).toList()
