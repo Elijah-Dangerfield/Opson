@@ -275,7 +275,7 @@ private fun MicrosOffCard(onModes: () -> Unit) {
     EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.InsetPadding, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
             IconTile(icon = AppIcons.Science, tone = AppTheme.colors.nutrients.fiber)
-            Text(text = stringResource(Res.string.trends_micros_off_title), typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink)
+            Text(text = stringResource(Res.string.trends_micros_off_title), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
         }
         Text(text = stringResource(Res.string.trends_micros_off_body), typography = AppTheme.type.body, color = AppTheme.colors.muted)
         ListRow(

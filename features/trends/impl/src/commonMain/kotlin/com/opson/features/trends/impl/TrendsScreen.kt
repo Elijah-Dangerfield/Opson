@@ -190,7 +190,7 @@ private fun IntakeCardView(card: IntakeCard) {
                 }
             }
         }
-        IntakeBarChart(bars = card.bars, band = card.band)
+        IntakeBarChart(bars = card.bars, band = card.band, bandColor = AppTheme.colors.accentTint)
         Text(
             text = stringResource(
                 when (card.caption) {
@@ -341,7 +341,7 @@ private fun NutrientsCardView(card: NutrientsCard, onClick: () -> Unit) {
     TrendsCard(onClick = onClick) {
         TitleWithChevron(title = stringResource(Res.string.trends_nutrients), subtitle = stringResource(Res.string.trends_nutrients_sub))
         card.macros.chunked(2).forEach { pair ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimension.D900)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimension.D700)) {
                 pair.forEach { tile -> MacroTileView(tile, Modifier.weight(1f)) }
                 if (pair.size == 1) Spacer(Modifier.weight(1f))
             }
@@ -356,12 +356,12 @@ private fun MacroTileView(tile: MacroTile, modifier: Modifier = Modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimension.D300),
+            horizontalArrangement = Arrangement.spacedBy(Dimension.D200),
         ) {
             ColorDot(color, size = Dimension.D400)
             Text(
                 text = stringResource(tile.label),
-                typography = AppTheme.type.bodyBold,
+                typography = AppTheme.type.secondaryStrong.Bold,
                 color = AppTheme.colors.ink,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
@@ -369,7 +369,7 @@ private fun MacroTileView(tile: MacroTile, modifier: Modifier = Modifier) {
             NutrientText(
                 metric = tile.metric,
                 display = tile.display,
-                typography = AppTheme.type.body.Tabular,
+                typography = AppTheme.type.secondary.Tabular,
                 color = AppTheme.colors.muted,
                 maxLines = 1,
             )

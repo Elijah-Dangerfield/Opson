@@ -142,28 +142,33 @@ private fun TimingCardView(card: TimingCard) {
             Spacer(Modifier.width(SLOT_LABEL_WIDTH))
             TimelineAxis(AXIS.map { stringResource(it) }, Modifier.weight(1f))
         }
-        card.facts.forEach { fact ->
-            HorizontalDivider(color = AppTheme.colors.line)
-            when (fact) {
-                is TimingFact.Usually -> FactRow(
-                    stringResource(Res.string.trends_patterns_usually, stringResource(fact.slot.label)),
-                    DateCopy.time(fact.time.hour, fact.time.minute),
-                )
-                is TimingFact.LaterOn -> FactRow(
-                    stringResource(Res.string.trends_patterns_later_on, stringResource(fact.slot.label), weekdays(fact.days)),
-                    stringResource(Res.string.trends_patterns_later, duration(fact.minutes)),
-                )
-                is TimingFact.LongestGap -> FactRow(
-                    stringResource(Res.string.trends_patterns_gap),
-                    stringResource(
-                        Res.string.trends_patterns_gap_value,
-                        stringResource(fact.from.label),
-                        stringResource(fact.to.sentenceName),
-                        duration(fact.minutes),
-                    ),
-                )
-            }
+        Column {
+            card.facts.forEach { fact -> TimingFactRow(fact) }
         }
+    }
+}
+
+@Composable
+private fun TimingFactRow(fact: TimingFact) {
+    HorizontalDivider(color = AppTheme.colors.line)
+    when (fact) {
+        is TimingFact.Usually -> FactRow(
+            stringResource(Res.string.trends_patterns_usually, stringResource(fact.slot.label)),
+            DateCopy.time(fact.time.hour, fact.time.minute),
+        )
+        is TimingFact.LaterOn -> FactRow(
+            stringResource(Res.string.trends_patterns_later_on, stringResource(fact.slot.label), weekdays(fact.days)),
+            stringResource(Res.string.trends_patterns_later, duration(fact.minutes)),
+        )
+        is TimingFact.LongestGap -> FactRow(
+            stringResource(Res.string.trends_patterns_gap),
+            stringResource(
+                Res.string.trends_patterns_gap_value,
+                stringResource(fact.from.label),
+                stringResource(fact.to.sentenceName),
+                duration(fact.minutes),
+            ),
+        )
     }
 }
 
@@ -229,9 +234,11 @@ private fun SizesCard(sizes: List<MealSize>) {
 private fun OftenCard(rows: List<MealFrequency>) {
     PatternsCard {
         CardTitle(stringResource(Res.string.trends_patterns_often))
-        rows.forEach { row ->
-            HorizontalDivider(color = AppTheme.colors.line)
-            FactRow(stringResource(row.slot.label), stringResource(Res.string.trends_patterns_often_value, row.days, row.of))
+        Column {
+            rows.forEach { row ->
+                HorizontalDivider(color = AppTheme.colors.line)
+                FactRow(stringResource(row.slot.label), stringResource(Res.string.trends_patterns_often_value, row.days, row.of))
+            }
         }
     }
 }
@@ -240,14 +247,16 @@ private fun OftenCard(rows: List<MealFrequency>) {
 private fun HungerCardView(card: HungerCard) {
     PatternsCard {
         CardTitle(stringResource(Res.string.trends_patterns_hunger))
-        card.rows.forEach { row ->
-            HorizontalDivider(color = AppTheme.colors.line)
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = Dimension.D300),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(text = stringResource(row.slot.label), typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
-                PillTag(label = stringResource(row.hunger.label), typography = AppTheme.type.bodyBold, size = PillTagSize.Regular)
+        Column {
+            card.rows.forEach { row ->
+                HorizontalDivider(color = AppTheme.colors.line)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Dimension.D300),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(text = stringResource(row.slot.label), typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+                    PillTag(label = stringResource(row.hunger.label), typography = AppTheme.type.bodyBold, size = PillTagSize.Regular)
+                }
             }
         }
         Text(
@@ -268,6 +277,6 @@ private val AXIS = listOf(
     Res.string.trends_patterns_axis_9p,
 )
 
-private val SLOT_LABEL_WIDTH = Dimension.D1900 + Dimension.D300
+private val SLOT_LABEL_WIDTH = Dimension.D1600
 private const val QUARTER_HOUR = 15
 private const val MINUTES_PER_HOUR = 60
