@@ -30,6 +30,7 @@ import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.ds_back
 import opson.libraries.resources.generated.resources.ds_back_to
+import opson.libraries.resources.generated.resources.ds_close
 import opson.libraries.resources.generated.resources.Res as SharedRes
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -44,6 +45,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  *
  * [backLabel] names where back goes ("‹ More", "‹ Trends"). It is no longer drawn; it becomes
  * the arrow's spoken label ("Back to More"), so callers keep passing the copy they already have.
+ *
+ * A page that is a task to finish or abandon (Create a meal, Add a food) passes
+ * [PageHeaderNavigation.Close]: an X labelled "Close" in place of the arrow, as v3 draws them.
  */
 @Composable
 fun PageHeader(
@@ -52,13 +56,18 @@ fun PageHeader(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     bleed: Dp = PageHeaderDefaults.Bleed,
+    navigation: PageHeaderNavigation = PageHeaderNavigation.Back,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val destination = backLabel.removePrefix("‹").trim()
-    val description = if (destination.isEmpty()) {
-        stringResource(SharedRes.string.ds_back)
-    } else {
-        stringResource(SharedRes.string.ds_back_to, destination)
+    val description = when {
+        navigation == PageHeaderNavigation.Close -> stringResource(SharedRes.string.ds_close)
+        destination.isEmpty() -> stringResource(SharedRes.string.ds_back)
+        else -> stringResource(SharedRes.string.ds_back_to, destination)
+    }
+    val icon = when (navigation) {
+        PageHeaderNavigation.Back -> AppIcons.ArrowBack
+        PageHeaderNavigation.Close -> AppIcons.Close
     }
     Row(
         modifier = modifier
@@ -76,7 +85,7 @@ fun PageHeader(
                 .bounceClick(scaleDown = 0.9f, onClick = onBack),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon = AppIcons.ArrowBack.described(description), size = 24.dp, color = AppTheme.colors.ink)
+            Icon(icon = icon.described(description), size = 24.dp, color = AppTheme.colors.ink)
         }
         Text(
             text = title,
@@ -91,6 +100,9 @@ fun PageHeader(
         Row(verticalAlignment = Alignment.CenterVertically, content = actions)
     }
 }
+
+/** What the top app bar's leading button looks like. Both leave the page. */
+enum class PageHeaderNavigation { Back, Close }
 
 object PageHeaderDefaults {
     /** Material's small top app bar. */
@@ -112,6 +124,7 @@ private fun PageHeaderPreview() {
     PreviewLightDark {
         Column {
             PageHeader(title = "Modes and numbers", backLabel = "‹ More", onBack = {})
+            PageHeader(title = "Create a meal", backLabel = "‹ Foods", onBack = {}, navigation = PageHeaderNavigation.Close)
             PageHeader(title = "Targets", backLabel = "‹ More", onBack = {}) {
                 Box(
                     modifier = Modifier.size(MinTouchTarget),

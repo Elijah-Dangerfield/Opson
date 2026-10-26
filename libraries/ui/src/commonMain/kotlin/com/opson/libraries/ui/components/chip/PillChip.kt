@@ -144,7 +144,8 @@ enum class PillTagSize(internal val padding: PaddingValues) {
 /**
  * A v3 choice: a rounded chip with a line border, or a soft accent fill and a check when
  * selected (amount units, hunger, fullness, mood). Drawn 36 dp tall with a 48 dp touch area.
- * Pass `role = Role.Checkbox` for a multi-select group such as mood.
+ * Pass `role = Role.Checkbox` for a multi-select group such as mood. On a surface card, pass
+ * [unselectedColor] `surface` so an unselected chip is white with its outline, as v3 draws it.
  */
 @Composable
 fun ChoiceChip(
@@ -153,6 +154,7 @@ fun ChoiceChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     role: Role = Role.RadioButton,
+    unselectedColor: ColorResource = AppTheme.colors.bg,
 ) {
     val colors = AppTheme.colors
     Box(
@@ -165,7 +167,7 @@ fun ChoiceChip(
             modifier = Modifier
                 .defaultMinSize(minHeight = ChipVisualHeight)
                 .clip(AppTheme.shapes.input)
-                .background(if (selected) colors.accentTint else colors.bg)
+                .background(if (selected) colors.accentTint else unselectedColor)
                 .border(1.dp, if (selected) colors.accentTint.color else colors.line.color, AppTheme.shapes.input)
                 .padding(start = if (selected) 10.dp else 12.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,

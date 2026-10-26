@@ -24,6 +24,8 @@ import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.outlined.Edit as OutlinedEdit
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.PostAdd
+import androidx.compose.material.icons.rounded.LocalDining
 import androidx.compose.material.icons.automirrored.rounded.EventNote
 import androidx.compose.material.icons.rounded.DashboardCustomize
 import androidx.compose.material.icons.rounded.Lock
@@ -117,6 +119,9 @@ object AppIcons {
     val Nutrition get() = icon("nutrition", MaterialIcons.Rounded.Eco)
     val Restaurant get() = icon("restaurant", MaterialIcons.Rounded.Restaurant)
 
+    /** Crossed fork and knife: Foods' "Create a meal". */
+    val LocalDining get() = icon("local_dining", MaterialIcons.Rounded.LocalDining)
+
     // Logging
     val Add get() = icon("add", MaterialIcons.Rounded.Add)
     val Remove get() = icon("remove", MaterialIcons.Rounded.Remove)
@@ -137,6 +142,9 @@ object AppIcons {
     val PhotoCamera get() = icon("photo_camera", MaterialIcons.Rounded.PhotoCamera)
     val Mic get() = icon("mic", MaterialIcons.Rounded.Mic)
     val EditNote get() = icon("edit_note", MaterialIcons.Rounded.EditNote)
+
+    /** A page with a +: Foods' "Add a food". */
+    val PostAdd get() = icon("post_add", MaterialIcons.Rounded.PostAdd)
     val Edit get() = icon("edit", MaterialIcons.Rounded.Edit)
     val EditOutline get() = icon("edit_outline", MaterialIcons.Outlined.OutlinedEdit)
     val Bookmark get() = icon("bookmark", MaterialIcons.Rounded.Bookmark)
@@ -229,8 +237,8 @@ object AppIcons {
     /** Every entry, for the gallery. */
     internal val all: List<IconResource>
         get() = listOf(
-            BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant,
-            Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, Mic, EditNote, Edit,
+            BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant, LocalDining,
+            Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, Mic, EditNote, PostAdd, Edit,
             Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight, Schedule, LockClock,
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             SearchOff, Cancel, ArrowBack, ExpandMore,
