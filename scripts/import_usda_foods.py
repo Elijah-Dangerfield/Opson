@@ -813,7 +813,12 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
         # key. An fdc_id that moved to another barcode would collide on
         # (source, source_id) and fail the whole import; the old row gives the
         # id up instead.
+        # One transaction per batch, not per run: the UPDATE frees a source_id
+        # the INSERT may take, so the pair commits together, and a dropped
+        # connection costs one batch instead of the whole import. Re-running
+        # finishes the job, because unchanged rows are skipped.
         sql = (
+            "BEGIN;\n"
             "UPDATE foods f SET source_id = f.source_id || ':superseded:' || f.id::text\n"
             f"FROM (VALUES {pairs}) AS v(source_id, barcode)\n"
             f"WHERE f.source = {sql_text(BRANDED_SOURCE)} AND f.source_id = v.source_id"
@@ -821,6 +826,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
             f"INSERT INTO foods ({', '.join(COLUMNS)}) VALUES\n"
             + ",\n".join(row for _, _, row in batch)
             + f"\nON CONFLICT (barcode) DO UPDATE SET {update}\nWHERE {changed};\n"
+            "COMMIT;\n"
         )
         rows_in_batch = len(batch)
         batch.clear()
@@ -977,11 +983,18 @@ class Psql:
 
 
 class PsqlOutput:
-    """Streams SQL into psql as one transaction that stops at the first error."""
+    """Streams SQL into psql, stopping at the first error.
+
+    No run-wide transaction: the branded set is about 430,000 rows and eight
+    minutes over the network, and one connection blip near the end used to
+    throw all of it away. The SQL commits per batch instead (see the branded
+    chunker), and every batch is an idempotent upsert, so a failed run is
+    finished by running it again.
+    """
 
     def __init__(self, db: Psql):
         self._proc = subprocess.Popen(
-            [db.binary, "-X", "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-f", "-"],
+            [db.binary, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", "-"],
             stdin=subprocess.PIPE, env=db.env,
         )
 
@@ -990,16 +1003,16 @@ class PsqlOutput:
             self._proc.stdin.write(text.encode("utf-8"))
         except BrokenPipeError:
             self._proc.wait()
-            raise SystemExit(f"psql stopped (exit {self._proc.returncode}); nothing was committed")
+            raise SystemExit(f"psql stopped (exit {self._proc.returncode}); batches sent before this point are committed, so re-run to finish")
 
     def close(self) -> None:
         try:
             self._proc.stdin.close()
         except BrokenPipeError:
             pass
-        log("  waiting for the database to commit")
+        log("  waiting for psql to finish")
         if self._proc.wait() != 0:
-            raise SystemExit(f"psql failed (exit {self._proc.returncode}); nothing was committed")
+            raise SystemExit(f"psql failed (exit {self._proc.returncode}); batches sent before this point are committed, so re-run to finish")
 
 
 def stream(chunks, out, total_rows: int | None = None) -> None:
