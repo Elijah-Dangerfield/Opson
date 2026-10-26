@@ -30,7 +30,7 @@ private const val MEDIUM = "Medium"
 private const val SMALL = "Small"
 private const val EXTRA_SMALL = "ExtraSmall"
 
-/** The button page body. Reused by [DesignSystemPreview]. */
+/** The button page body, shown by the Buttons preview in Button.kt. */
 @Composable
 internal fun ButtonCatalogBody() {
     CatalogSection(
