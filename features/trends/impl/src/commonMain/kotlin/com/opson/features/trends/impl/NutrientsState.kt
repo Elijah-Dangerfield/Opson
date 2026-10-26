@@ -70,7 +70,7 @@ sealed interface NutrientsSubtitle {
     data class WeekAverage(val range: String) : NutrientsSubtitle
 }
 
-/** GoalStyle.Of: `47 g of 120 g`. */
+/** GoalStyle.Of: `47 of 120 g`. */
 data class NutrientRow(val metric: Metric, val label: StringResource, val display: Display)
 
 data class MicroGroupRows(val group: MicroGroup, val title: StringResource, val rows: List<MicroRow>)

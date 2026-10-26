@@ -17,7 +17,7 @@ class GoalStyleTest {
 
     @Test
     fun default_macrosSayOf_energyDoesNot() {
-        assertEquals("47 g of 120 g", text(Metric.Protein, 47.0, 120.0, GoalStyle.Default))
+        assertEquals("47 of 120 g", text(Metric.Protein, 47.0, 120.0, GoalStyle.Default))
         assertEquals("1,245 kcal", text(Metric.Calories, 1245.0, 2305.0, GoalStyle.Default))
         assertEquals("1,245", text(Metric.Calories, 1245.0, 2305.0, GoalStyle.Default, bare = true))
     }
@@ -30,7 +30,7 @@ class GoalStyleTest {
 
     @Test
     fun of_spellsTheGoalForEnergyToo() {
-        assertEquals("47 g of 120 g", text(Metric.Protein, 47.0, 120.0, GoalStyle.Of))
+        assertEquals("47 of 120 g", text(Metric.Protein, 47.0, 120.0, GoalStyle.Of))
         assertEquals("1,245 kcal of 2,305", text(Metric.Calories, 1245.0, 2305.0, GoalStyle.Of))
         assertEquals("1,245 of 2,305", text(Metric.Calories, 1245.0, 2305.0, GoalStyle.Of, bare = true))
     }

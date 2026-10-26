@@ -231,7 +231,7 @@ the default from Today.
 Top app bar `Nutrients` with the subtitle (`Sunday, Oct 25` or `Oct 19 to 25`);
 segmented `This day` / `Week average`; the macros card (no title): Energy
 `2,058 kcal · range 1,900 to 2,300` on a bar with the range as a dashed box, then
-Protein, Carbs, Fat, Fiber `88 g of 120 g` with bars that stop at 100%. Then
+Protein, Carbs, Fat, Fiber `88 of 120 g` with bars that stop at 100%. Then
 either the Vitamins and Minerals cards and the caption, or the off card.
 
 The **Nutrition scores** page is cut: a score built from hidden data is a
@@ -275,7 +275,7 @@ Surface `Nutrients` for This day, `Week` (day = window end) for Week average.
 | Number | Metric | Show | Soften | Delay | Hide |
 |---|---|---|---|---|---|
 | Energy | calories | `2,058 kcal` with range and bar | soft word with bar, no range | Day: hidden until reveal; Week: open | row removed |
-| Macros | macros | `88 g of 120 g` with bar | soft word with bar | as above | row removed |
+| Macros | macros | `88 of 120 g` with bar | soft word with bar | as above | row removed |
 | Vitamins, minerals | micros | `78%` with bar, `of 700 µg` | `Some` / `Most` / `Plenty` | as above | off card linking to Modes |
 
 ### Copy

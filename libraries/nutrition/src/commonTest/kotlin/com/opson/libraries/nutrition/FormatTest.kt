@@ -54,9 +54,9 @@ class FormatTest {
 
     @Test
     fun macros_ofGoal() {
-        assertEquals("47 g of 120 g", full.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
-        assertEquals("12 g of 30 g", full.text(Metric.Fiber, 12.0, FormatContext(of = 30.0)))
-        assertEquals("1,250 g of 2,500 g", full.text(Metric.Carbs, 1250.0, FormatContext(of = 2500.0)))
+        assertEquals("47 of 120 g", full.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
+        assertEquals("12 of 30 g", full.text(Metric.Fiber, 12.0, FormatContext(of = 30.0)))
+        assertEquals("1,250 of 2,500 g", full.text(Metric.Carbs, 1250.0, FormatContext(of = 2500.0)))
     }
 
     @Test

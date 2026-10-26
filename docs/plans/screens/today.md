@@ -174,7 +174,7 @@ open / See them in Close the day. They lock again tomorrow morning.",
 
 Known differences from the images, all from the policy's one formatter (shared
 by every screen, so not changed here): ranges read "1,900 to 2,300" not
-"1,900–2,300"; macros "51 / 120 g" and "51 g of 120 g" in one style; times
+"1,900–2,300"; macros "51 / 120 g" and "51 of 120 g" in one style; times
 "8:10 AM" (`DateCopy`); water "750 of 2,000 ml" without the glasses count;
 Nutrient focus words are the policy's ("Building", "Getting there").
 

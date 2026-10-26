@@ -91,7 +91,7 @@ object EnglishNutritionFormatter : NutritionFormatter {
         if (bare) wholeNumber(kcal) else "${wholeNumber(kcal)} kcal"
 
     override fun grams(grams: Double, of: Double?): String =
-        if (of == null) "${wholeNumber(grams)} g" else "${wholeNumber(grams)} g of ${wholeNumber(of)} g"
+        if (of == null) "${wholeNumber(grams)} g" else "${wholeNumber(grams)} of ${wholeNumber(of)} g"
 
     override fun percent(percent: Double): String = "${wholeNumber(percent)}%"
 
