@@ -94,6 +94,17 @@ data class Settings(
      */
     @Serializable(with = ExerciseRangeSerializer::class)
     val exerciseRange: ExerciseAdjustment? = null,
+
+    // Today's summary card (design sync 2, `release.todaySummary`). Top-level keys on purpose:
+    // the server merges settings one level deep.
+    /** The card shrunk to one line by choice, kept across days and restarts. */
+    val todaySummaryCollapsed: Boolean = false,
+    /** The page last left open: 0 energy, 1 macros. */
+    val todaySummaryPage: Int = 0,
+    /** Page 1's stats as `SummaryStat` wire keys, in order; null follows the onboarding goals. */
+    val todaySummaryStats: List<String>? = null,
+    /** Page 2, the macros page. */
+    val todayMacrosPage: Boolean = true,
 ) {
     val waterGoalMl: Int get() = waterGlasses * glassMl
 

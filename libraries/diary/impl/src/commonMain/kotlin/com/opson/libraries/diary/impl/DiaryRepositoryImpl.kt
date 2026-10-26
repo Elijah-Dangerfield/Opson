@@ -4,6 +4,7 @@ import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
@@ -36,7 +37,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import kotlin.time.Instant
 
 @SingleIn(AppScope::class)
-@ContributesBinding(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = DiaryRepository::class)
+@ContributesBinding(AppScope::class, boundType = DiaryItemEditor::class)
 @Inject
 class DiaryRepositoryImpl(
     private val tables: DiaryTables,
@@ -44,7 +46,7 @@ class DiaryRepositoryImpl(
     private val settingsRepository: SettingsRepository,
     private val calendar: LocalCalendar,
     private val fastEnder: FastEnder,
-) : DiaryRepository {
+) : DiaryRepository, DiaryItemEditor {
 
     private val logger = KLog.withTag("Diary")
 
@@ -119,6 +121,33 @@ class DiaryRepositoryImpl(
         if (existing.slot == slot.wire) return@write
         putEntry(existing.copy(slot = slot.wire, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
     }
+
+    override suspend fun removeItems(ids: List<String>) = writer.write {
+        ids.forEach { id ->
+            val existing = tables.entries.get(id)?.takeUnless { it.deleted } ?: return@forEach
+            putEntry(existing.copy(deleted = true, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
+        }
+    }
+
+    override suspend fun restoreItems(ids: List<String>) = writer.write {
+        ids.forEach { id ->
+            val existing = tables.entries.get(id)?.takeIf { it.deleted } ?: return@forEach
+            putEntry(existing.copy(deleted = false, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
+        }
+    }
+
+    override suspend fun moveItems(ids: List<String>, slot: MealSlot) = writer.write {
+        ids.forEach { id ->
+            val existing = tables.entries.get(id)?.takeUnless { it.deleted } ?: return@forEach
+            if (existing.slot == slot.wire) return@forEach
+            putEntry(existing.copy(slot = slot.wire, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
+        }
+    }
+
+    override suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem> = writer.write {
+        val source = ids.mapNotNull { id -> tables.entries.get(id)?.takeUnless { it.deleted }?.toDomain() }
+        insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy)
+    }.also { if (it.isNotEmpty()) foodLoggedOn(toDay) }
 
     override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> = writer.write {
         val source = tables.entries.getDay(from.toString()).mapNotNull { it.toDomain() }

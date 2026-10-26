@@ -101,6 +101,26 @@ interface DiaryRepository {
     fun frequentFoods(limit: Int = 5, days: Int = 30): Flow<List<LogItem>>
 }
 
+/**
+ * Several logged items at once, and taking a removal back: Today's select mode and swipe to
+ * delete. Its own interface so the many `DiaryRepository` fakes stay as they are.
+ */
+interface DiaryItemEditor {
+    /** Tombstones each of [ids]; one already gone is skipped. */
+    suspend fun removeItems(ids: List<String>)
+
+    /** Undoes [removeItems]: each of [ids] that is a tombstone comes back as it was. */
+    suspend fun restoreItems(ids: List<String>)
+
+    suspend fun moveItems(ids: List<String>, slot: MealSlot)
+
+    /**
+     * Copies [ids] into [slot] on [toDay], in their order, as new items (method
+     * [LogMethod.Copy]), or into Uncategorized when meal groups are off that day.
+     */
+    suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem>
+}
+
 interface WeightRepository {
     /** Weigh-ins oldest first, from [since] when given. */
     fun observeWeighIns(since: Instant? = null): Flow<List<WeighIn>>
