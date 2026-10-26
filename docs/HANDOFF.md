@@ -1,89 +1,70 @@
 # Where Opson stands (2026-10-26, evening)
 
-Everything below is on `main` and pushed.
+## 0.1.0
 
-## Shipped to main
+Submitted to App Review and **waiting for review**. Build 202610261458,
+uploaded from the Mac. 0.1 offers Sign in with Apple or no account; Google,
+email and every "Coming later" row are hidden for review. Don't approve the
+prod server deploy that's waiting in GitHub while it's in review: 0.1 talks to
+prod as it is.
 
-- Every 0.1 screen at design v3: Onboarding, Today (Undo after adding, Mark as
-  untracked, Explorer's food bridge, Blind's day feeling), Logger, Foods,
-  Trends with Nutrients, Weight and Patterns, More/Modes/Targets/Support.
-- `BlindModeLeakTest` across every surface (`:apps:leaktest`), tokens and type
-  scale measured from v3, one theme per screen preview.
-- Food catalog: USDA generic and Branded (445,414 foods) in dev and prod.
-- Open Food Facts: `off_foods` table (V12), importer with an atomic monthly
-  reload, benchmark script. **Not loaded anywhere and not in search.** See
-  "Open Food Facts" below.
-- Text fields keep fast typing (a value no longer round-trips through the
-  ViewModel and eats keystrokes), and the search field's Search key closes
-  the keyboard.
-- iOS is iPhone-only for 0.1 (`TARGETED_DEVICE_FAMILY = 1`).
+## 0.2 on main (all behind release flags that default off)
 
-## App Store
+| Feature | Flag | State |
+|---|---|---|
+| Barcode scan, typed codes, misses logged for Grafana | `release.barcode` | Merged. Real-camera test pending. |
+| Integrations, Apple Health / Health Connect, Expended so far | `release.health` | Merged. Entitlement held back. Range question in progress. |
+| Reminders and notifications | `release.reminders` | Merged. Real-device delivery untested. |
+| Fasting (Full and Sprint only, opt-in, 16 h cap) | `release.fasting` | Merged. |
+| Search ranking, default servings, bounded Open Food Facts search | `FOOD_SEARCH_OFF_ENABLED` (server) | Merged, on dev. |
 
-- Listing, privacy labels, age rating, price, review notes: done.
-- Five 6.9-inch screenshots from the real app are uploaded; the files are in
-  `docs/app-store/screenshots/`.
-- TestFlight build from the latest main is in CI; once it processes it gets
-  attached to 0.1.0 and submitted.
+All four app flags are switched on in dev's remote config, so the Debug app
+shows them. Prod config is untouched.
 
-## Open Food Facts
+Fixed along the way: fast typing dropped letters in every text field; a
+launch crash on iOS from reminders; settings sync now merges instead of
+replacing, so a 0.1 phone can't erase 0.2 settings.
 
-Size and speed, measured on a local Postgres sized like dev: 3.29M products,
-2.1 GB with indexes. Search p50 66 ms, but p95 1.3 s and p99 5.7 s: short
-prefixes and common words scan too many rows. Details in
-`docs/food-data-sources.md`.
+**What has to happen before 0.2 ships** is in
+`docs/plans/0.2/release-checklist.md` (entitlements to put back, Play health
+declaration, privacy wording, prod deploy, prod backfill, Open Food Facts load).
 
-Before it goes anywhere near search or prod:
+## In progress
 
-1. Bound the search candidates (minimum prefix length, a per-tier cap, or a
-   hot subset ranked by `scans`), then re-run `scripts/bench_off_search.py`.
-2. Load dev and benchmark there. Dev's disk is now 12 GB; the first attempt
-   hit the old size and Supabase put dev in read-only mode for about 15
-   minutes.
-3. Prod's disk is **2 GB**. A reload holds two copies, so grow it to fit
-   about 6 GB on top of what's there before any load.
-4. Then set the repo variable `OFF_IMPORT_ENABLED=true` for the monthly job.
+Wave 2, each in its own worktree: photo estimate, voice log, the health
+"Should exercise change your range?" question, home screen widgets, and a v3
+design polish pass over Onboarding, Trends, Foods, Day close, Modes, Support
+and More.
 
-## Found while taking screenshots (not fixed yet)
+## Design sync
 
-- Search ranking: "brown rice" puts a branded "Crispy Sushi Rice Patties"
-  (brand "Rice Browns") above plain brown rice.
-- Default serving: blueberries default to "1 berry, 1 kcal". The importer
-  should prefer a cup or a typical serving over a single piece for small
-  items.
+All 405 app screens are published for Claude Design:
+https://raw.githubusercontent.com/Elijah-Dangerfield/Opson/design-sync/app/manifest.json
+Give that URL to Claude Design so its exports use the app's screen ids.
 
 ## Queued, don't start yet
 
-Barcode scan misses logged to a table with a Grafana panel (0.1), then label
-photo or manual entry into a community table and a Grafana review board
-(0.2). Details in `docs/plans/food-data-import.md`, "Future work".
+Label photo and community food entries, and the Grafana review board
+(`docs/plans/food-data-import.md`, "Future work"). Coaching (v2).
 
 ## At the end: the Opson website
 
-No domain yet; one comes later, so build it to deploy anywhere and switch
-domains without code changes.
-
-- Marketing pages, privacy policy and terms, built **very similar to how
-  Downcard (the Cards project) does its site**. Study that site's structure,
-  stack and deploy before starting.
-- A **waitlist signup** that lands somewhere the owner can contact people
-  from (a `waitlist` table in Supabase behind a server endpoint or an edge
-  function, with email, created_at and source). Include abuse protection and
-  a way to export or view the list.
-- Privacy and terms: the app's `legal/` files are already published at
-  nightjarlabs.llc/opson/privacy and /terms; the site should link to or reuse
-  them rather than fork the text, and the waitlist needs its own privacy
-  wording (what the email is used for, how to get removed).
+No domain yet; build it to deploy anywhere and switch domains without code
+changes. Marketing pages, privacy and terms built very similar to how Downcard
+(the Cards project) does its site. A waitlist signup that lands in a database
+you can contact people from, with abuse protection and a way to export it.
+Link to or reuse the published `legal/` pages; the waitlist needs its own
+privacy wording.
 
 ## Needs you
 
-- Set the `CATALOG_DATABASE_URL` repo secret (prod pooler URL) so the monthly
-  USDA refresh runs.
-- `/design-login` in a `claude` terminal, so the `claude_design` connector
-  works.
-- Decide the default palette: the icon is Espresso's accent; the app defaults
-  to Pine.
+- GitHub › Settings › Actions › General: allow GitHub Actions to create pull
+  requests, or release-please keeps failing.
+- Photo estimate will need an `ANTHROPIC_API_KEY` on the server.
+- `/design-login` in a `claude` terminal so the Claude Design connector works.
+- Set the `CATALOG_DATABASE_URL` repo secret (prod pooler URL) for the monthly
+  USDA refresh.
+- Default palette: the icon is Espresso's accent; the app defaults to Pine.
 - Before public launch: a dietitian sets `GOAL_FLOOR_KCAL` and the maximum
-  deficit; a clinician reviews the copy marked `TODO(clinician)`; check the
-  helpline and provider links marked `TODO(launch)` (both open the Alliance's
-  home page today).
+  deficit; a clinician reviews everything marked `TODO(clinician)`; check the
+  helpline and provider links marked `TODO(launch)`.

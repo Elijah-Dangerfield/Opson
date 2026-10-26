@@ -207,18 +207,35 @@ A trigger fills `tier` and `verified` from `source`, so loaders never write
 them; `food_source_tier()` is the one mapping, and `DatabaseSchemaTest`
 checks it against `CatalogSource`.
 
-**Search.** Match tiers, best first: exact name, the name's first comma
-segment ("Egg, whole, raw" for `eggs`), whole-word prefix, full text, trigram
-similarity. Two rules sit above the match tier. A query that names a
-product's brand (every word of `brand` is in the query, apart from filler
-such as "Inc." or "Foods") ranks that brand first, so `cheerios` and
-`chobani greek yogurt` lead with the product. Otherwise generic (tier 1)
-foods come before branded ones, so `banana` offers "Banana, raw" before a
-product a store called "Bananas". Trigram-only matches stay last. Within a
-match tier: verified first, lower source tier first, whole-word matches, plain
-forms (`raw`, `NFS`, `whole`, …), similarity, then popularity. pg_trgm lives
-in the `extensions` schema (as on Supabase) and every use of it is
-schema-qualified.
+**Search.** Match tiers, best first: exact name, head (the name's first comma
+segment, "Egg, whole, raw" for `eggs`; also after a category word, "Fish,
+salmon" for `salmon`; or the first two segments in any order, "Rice, brown"
+for `brown rice`), whole-word prefix, full text, trigram similarity. Rules
+above the match tier, in order: a match on the food's name beats a match only
+through its brand (`brown rice` never leads with the brand "Rice Browns"); a
+query that names a brand (the brand's words appear in the query as a run,
+filler such as "Inc." aside, and the query has 4 or more characters) ranks
+that brand first, so `cheerios` and `chobani greek yogurt` lead with the
+product; otherwise generic (tier 1) foods come before branded ones; and
+USDA's own restaurant rows ("CHICK-FIL-A, ...") follow plain foods unless
+named. Trigram-only matches stay last, except a close typo of a generic food
+when nothing generic matched (`avacado` finds "Avocado, raw" even though
+products spell it that way). Within a match tier: verified first, lower
+source tier first, whole-word matches, plain forms (`raw`, `NFS`, `whole`,
+…), similarity, then popularity. Generic rows are read first through their
+own partial indexes (V15); Branded rows are only read when they can reach the
+results. pg_trgm lives in the `extensions` schema (as on Supabase) and every
+use of it is schema-qualified.
+
+**Relevance suite.** `SearchRelevanceTest` runs 78 queries a person types
+(`src/test/resources/search-relevance.tsv`, with what each top 3 must hold)
+against the generic seed plus a committed Branded fixture
+(`search-relevance-branded.sql.gz`, made by
+`scripts/search_relevance_fixture.py` from a database with the Branded load).
+It prints the hit rate and every top 3, and fails under its floor. Any
+ranking change answers to it. To run it against a full local copy instead,
+set `SEARCH_RELEVANCE_JDBC_URL` (plus `_USER`, `_PASSWORD`); Flyway migrates
+that database first, so never point it at a shared one.
 
 **Barcodes.** A scan is looked up in every equivalent form of the code:
 leading zeros never change a GTIN, so a UPC-A, its EAN-13 and its GTIN-14
@@ -291,7 +308,12 @@ the secret unset it skips with a notice.
 **Loading Open Food Facts.** `scripts/import_off_foods.py` loads the
 monthly CSV export (about 1.5 GB, 4.8 million products) into `off_foods`
 (V12), a table of its own: Open Food Facts is ODbL, share-alike, so its rows
-are never copied into `foods`. Search will read both tables (not wired yet).
+are never copied into `foods`. Search reads both tables once
+`FOOD_SEARCH_OFF_ENABLED=true` (off by default): `OpenFoodFactsSearch` caps the
+candidates of each kind of match before it scores them, so a query costs about
+the same at 3.3 million rows as at 3,000, and works the rows in after generic
+foods and Branded rows of the same match. The reload writes rows most-scanned
+first, which is what makes the caps keep the popular products.
 It keeps the 3.3 million products with energy and macros per 100 g that are
 physically possible, an 8 to 14 digit barcode and a name, stores valid
 barcodes as 14-digit GTINs like Branded Foods, and keeps `countries_tags` for
@@ -325,8 +347,18 @@ python3 -I -m unittest discover -s scripts -p 'test_import_off_foods.py'
 ```
 
 The monthly workflow has the same reload as a second job, off until the
-`OFF_IMPORT_ENABLED` repository variable is `true`. Measured size (2.1 GB),
-load time and search latency are in `docs/food-data-sources.md`.
+`OFF_IMPORT_ENABLED` repository variable is `true`. Measured size (2.3 GB with
+the V15 indexes), load time and search latency, before and after bounding, are
+in `docs/food-data-sources.md`.
+
+**Default servings.** The app logs a food's first portion, so the importer
+puts a typical serving first (`default_portion_first`: a cup of blueberries,
+not one berry; an ounce of almonds, not a cup). For rows already loaded:
+
+```bash
+CATALOG_DATABASE_URL=postgresql://… python3 -I scripts/backfill_default_portions.py --dry-run
+CATALOG_DATABASE_URL=postgresql://… python3 -I scripts/backfill_default_portions.py   # idempotent
+```
 
 **Nutritionix (off until there is budget).** `NutritionixSource` calls
 `GET https://trackapi.nutritionix.com/v2/search/item?upc=` with the

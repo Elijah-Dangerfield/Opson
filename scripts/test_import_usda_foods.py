@@ -6,6 +6,7 @@
 import unittest
 
 from import_usda_foods import (
+    default_portion_first,
     gtin_check_digit,
     normalize_gtin,
     pg_env,
@@ -108,6 +109,88 @@ class ServingTest(unittest.TestCase):
         self.assertIsNone(serving_portion("500", "MG", "1 capsule"))
         self.assertIsNone(serving_portion("1", "IU", "1 drop"))
         self.assertIsNone(serving_portion("30", "", "1 bar"))
+
+
+def portions(*pairs):
+    return [{"label": label, "grams": grams} for label, grams in pairs]
+
+
+class DefaultPortionTest(unittest.TestCase):
+    """Real FDC portion lists; the first portion is what the app logs by default."""
+
+    def first(self, items, kcal_100g):
+        result = default_portion_first(items, kcal_100g)
+        self.assertEqual(sorted(map(str, items)), sorted(map(str, result)), "every portion is kept")
+        self.assertEqual(result, default_portion_first(result, kcal_100g), "a second pass changes nothing")
+        return result[0]["label"]
+
+    def test_berries_default_to_a_cup_not_one_berry(self):
+        blueberries = portions(("1 berry", 2.0), ("1 cup", 150.0), ("50 berries", 68.0))
+        self.assertEqual("1 cup", self.first(blueberries, 57.0))
+        strawberries = portions(("1 fruit", 18.0), ("1 cup", 150.0), ("1 medium (1-1/4\" dia)", 12.0),
+                                ("1 NLEA serving", 147.0))
+        self.assertEqual("1 cup", self.first(strawberries, 32.0))
+        grapes = portions(("1 grape", 7.0), ("1 cup", 150.0))
+        self.assertEqual("1 cup", self.first(grapes, 69.0))
+
+    def test_nuts_default_to_an_ounce(self):
+        almonds = portions(("1 nut", 1.2), ("1 cup", 141.0), ("1 package", 50.0), ("1 100 calorie package", 18.0),
+                           ("1 oz", 28.4))
+        self.assertEqual("1 oz", self.first(almonds, 579.0))
+        # A cup of almonds is 828 kcal: dense food by the cup is replaced too.
+        nuts = portions(("1 cup, whole", 143.0), ("1 cup, sliced", 92.0), ("1 oz (23 whole kernels)", 28.4),
+                        ("1 almond", 1.2))
+        self.assertEqual("1 oz (23 whole kernels)", self.first(nuts, 579.0))
+
+    def test_grains_keep_their_cup(self):
+        rice = portions(("1 cup, cooked", 195.0), ("1 oz, cooked", 28.4))
+        self.assertEqual("1 cup, cooked", self.first(rice, 123.0))
+        oats = portions(("1 cup", 80.0))
+        self.assertEqual("1 cup", self.first(oats, 379.0))
+
+    def test_candy_defaults_to_a_regular_size_not_one_piece(self):
+        candy = portions(("1 piece", 8.0), ("1 miniature/bite size", 10.0), ("1 fun/snack size", 15.0),
+                         ("1 pouch/regular size", 45.0), ("1 large", 90.0))
+        self.assertEqual("1 pouch/regular size", self.first(candy, 490.0))
+        # Ten small jelly beans are 41 kcal: small, but a real serving. Left alone.
+        jelly_beans = portions(("10 small", 11.0), ("10 large (1 oz)", 28.0))
+        self.assertEqual("10 small", self.first(jelly_beans, 375.0))
+
+    def test_drinks_default_to_a_cup_or_can_not_a_fluid_ounce(self):
+        coffee = portions(("1 fl oz", 30.0), ("1 cup (8 fl oz)", 240.0), ("1 small", 360.0), ("1 medium", 480.0))
+        self.assertEqual("1 cup (8 fl oz)", self.first(coffee, 1.0))
+        cola = portions(("1 fl oz (no ice)", 31.0), ("1 fl oz (with ice)", 23.0), ("1 can (12 fl oz)", 372.0),
+                        ("1 bottle (20 fl oz)", 620.0))
+        self.assertEqual("1 can (12 fl oz)", self.first(cola, 42.0))
+        milk = portions(("1 cup", 244.0), ("1 fl oz", 30.5),
+                        ("Guideline amount per fl oz of beverage", 2.5))
+        self.assertEqual("1 cup", self.first(milk, 61.0))
+
+    def test_small_on_purpose_stays(self):
+        sugar = portions(("1 teaspoon", 4.2), ("1 cup", 200.0))
+        self.assertEqual("1 teaspoon", self.first(sugar, 387.0))
+        bacon = portions(("1 medium slice (yield after cooking)", 8.0), ("1 oz, raw (yield after cooking)", 8.0))
+        self.assertEqual("1 medium slice (yield after cooking)", self.first(bacon, 468.0))
+
+    def test_a_cup_of_butter_gives_way_to_a_spoon(self):
+        butter = portions(("1 cup", 224.0), ("1 tablespoon", 14.0), ("1 pat", 7.0),
+                          ("Guideline amount per slice of bread/roll", 7.0))
+        self.assertEqual("1 tablespoon", self.first(butter, 717.0))
+
+    def test_meals_keep_a_big_default(self):
+        meal = portions(("1 meal", 340.0), ("1 cup", 240.0))
+        self.assertEqual("1 meal", self.first(meal, 180.0))
+
+    def test_nothing_better_leaves_the_list_alone(self):
+        spice = portions(("1 tsp", 1.4), ("1 tbsp", 4.4))
+        self.assertEqual("1 tsp", self.first(spice, 300.0))
+        self.assertEqual([], default_portion_first([], 100.0))
+        one = portions(("1 berry", 2.0))
+        self.assertEqual(one, default_portion_first(one, 57.0))
+
+    def test_unknown_energy_still_moves_a_sip(self):
+        coffee = portions(("1 fl oz", 30.0), ("1 cup (8 fl oz)", 240.0))
+        self.assertEqual("1 cup (8 fl oz)", self.first(coffee, None))
 
 
 class ConnectionTest(unittest.TestCase):

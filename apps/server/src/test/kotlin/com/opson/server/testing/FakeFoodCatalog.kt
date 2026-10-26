@@ -22,7 +22,13 @@ class FakeFoodCatalog(foods: List<Food> = emptyList()) : FoodCatalogRepository {
     val searches = mutableListOf<Pair<String, Boolean>>()
     val barcodeOutcomes = mutableListOf<Pair<String, BarcodeOutcome>>()
 
-    override suspend fun search(query: String, limit: Int, record: Boolean): List<FoodMatch> {
+    override suspend fun search(
+        query: String,
+        limit: Int,
+        record: Boolean,
+        country: String?,
+        openFoodFacts: Boolean,
+    ): List<FoodMatch> {
         val q = FoodCatalogRepository.normalizeQuery(query)
         searches += q to record
         val words = q.split(' ').map { it.trimEnd('s') }

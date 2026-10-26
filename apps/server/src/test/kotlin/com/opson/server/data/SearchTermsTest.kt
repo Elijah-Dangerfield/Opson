@@ -32,6 +32,17 @@ class SearchTermsTest {
     }
 
     @Test
+    fun brandTermsComeFromTheWordsOnly() {
+        val terms = SearchTerms.of("ben & jerry's")!!
+        assertEquals("ben jerry s", terms.phrase)
+        assertEquals("%ben%|%bens%|%jerry%|%jerrys%", terms.likeWords, "filler like the s of Jerry's tells nothing about a brand")
+        assertEquals("%lays%|%lay%", SearchTerms.of("lays")!!.likeWords, "the singular is what finds Lay's")
+        assertEquals(true, terms.canNameBrand)
+        assertEquals(false, SearchTerms.of("avo")!!.canNameBrand, "three letters are a word being typed")
+        assertEquals(false, SearchTerms.of("m&m")!!.canNameBrand)
+    }
+
+    @Test
     fun nothingSearchableIsNull() {
         assertNull(SearchTerms.of("%%% ,,,"))
     }
