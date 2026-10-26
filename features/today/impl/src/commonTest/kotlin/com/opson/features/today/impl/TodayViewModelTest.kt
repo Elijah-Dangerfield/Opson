@@ -21,6 +21,8 @@ import opson.libraries.resources.generated.resources.today_toast_added_to
 import opson.libraries.resources.generated.resources.today_toast_cleared
 import opson.libraries.resources.generated.resources.today_toast_copied_previous
 import opson.libraries.resources.generated.resources.today_toast_copied_tomorrow
+import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.reminders.RemindersEnabled
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -53,6 +55,11 @@ class TodayViewModelTest : CoroutineTest() {
         clock = clock,
         health = health,
         healthFlag = healthFlag(healthOn),
+        remindersEnabled = RemindersEnabled(
+            object : AppConfigMap() {
+                override val map: Map<String, *> = mapOf("release" to mapOf("reminders" to true))
+            },
+        ),
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -361,6 +368,16 @@ class TodayViewModelTest : CoroutineTest() {
         vm.takeAction(TodayAction.AlreadyAteTapped(MealSlot.Dinner))
 
         assertEquals(listOf(today to MealSlot.Dinner), diary.ateNoDetails)
+    }
+
+    @Test
+    fun theRhythmReminderLineOpensReminders_andTheFlagReachesTheState() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+
+        vm.takeAction(TodayAction.RemindersTapped)
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenReminders), events)
     }
 
     @Test

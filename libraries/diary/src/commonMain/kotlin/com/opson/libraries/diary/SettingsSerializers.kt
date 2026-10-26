@@ -294,3 +294,41 @@ internal object TargetsSerializer : KSerializer<Targets> {
         return TargetStyle.ByDay(decoded)
     }
 }
+
+@Serializable
+private class MealTimesWire(
+    val breakfast: String? = null,
+    val lunch: String? = null,
+    val snack: String? = null,
+    val dinner: String? = null,
+)
+
+/** `{"breakfast":"08:00",...}`. A missing or unreadable meal reads as its default, never failing the object. */
+internal object MealTimesSerializer : KSerializer<MealTimes> {
+    override val descriptor: SerialDescriptor = MealTimesWire.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: MealTimes) = encoder.encodeSerializableValue(
+        MealTimesWire.serializer(),
+        MealTimesWire(
+            breakfast = value.breakfast.toWire(),
+            lunch = value.lunch.toWire(),
+            snack = value.snack.toWire(),
+            dinner = value.dinner.toWire(),
+        ),
+    )
+
+    override fun deserialize(decoder: Decoder): MealTimes {
+        val wire = decoder.decodeSerializableValue(MealTimesWire.serializer())
+        return MealTimes(
+            breakfast = wire.breakfast.toTime() ?: MealTimes.DEFAULT_BREAKFAST,
+            lunch = wire.lunch.toTime() ?: MealTimes.DEFAULT_LUNCH,
+            snack = wire.snack.toTime() ?: MealTimes.DEFAULT_SNACK,
+            dinner = wire.dinner.toTime() ?: MealTimes.DEFAULT_DINNER,
+        )
+    }
+
+    private fun LocalTime.toWire(): String =
+        hour.toString().padStart(2, '0') + ":" + minute.toString().padStart(2, '0')
+
+    private fun String?.toTime(): LocalTime? = this?.let { runCatching { LocalTime.parse(it) }.getOrNull() }
+}

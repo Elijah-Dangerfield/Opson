@@ -9,6 +9,7 @@ import com.opson.libraries.diary.ThemeMode
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.reminders.RemindersEnabled
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 
@@ -20,22 +21,26 @@ data class LookAndFeelState(
     val weightUnit: WeightUnit = WeightUnit.Kg,
     val tone: Tone = Tone.Plain,
     val askTags: Boolean = true,
+    /** Tone and the hunger questions. They move to Reminders when `release.reminders` is on. */
+    val showsTalk: Boolean = true,
 )
 
 object LookAndFeelStateBuilder {
-    fun build(settings: Settings): LookAndFeelState = LookAndFeelState(
+    fun build(settings: Settings, remindersOn: Boolean = false): LookAndFeelState = LookAndFeelState(
         palette = settings.palette,
         theme = settings.theme,
         textSize = settings.textSize,
         weightUnit = settings.weightUnit,
         tone = settings.tone,
         askTags = settings.askTags,
+        showsTalk = !remindersOn,
     )
 }
 
 @Inject
 class LookAndFeelViewModel(
     private val settingsRepository: SettingsRepository,
+    private val remindersEnabled: RemindersEnabled,
 ) : SEAViewModel<LookAndFeelState, LookAndFeelEvent, LookAndFeelAction>(initialStateArg = LookAndFeelState()) {
 
     init {
@@ -46,7 +51,7 @@ class LookAndFeelViewModel(
 
     override suspend fun handleAction(action: LookAndFeelAction) {
         when (action) {
-            is LookAndFeelAction.InputsArrived -> action.updateState { LookAndFeelStateBuilder.build(action.settings) }
+            is LookAndFeelAction.InputsArrived -> action.updateState { LookAndFeelStateBuilder.build(action.settings, remindersEnabled()) }
             is LookAndFeelAction.PalettePicked -> settingsRepository.update { it.copy(palette = action.palette) }
             is LookAndFeelAction.ThemePicked -> settingsRepository.update { it.copy(theme = action.theme) }
             is LookAndFeelAction.TextSizePicked -> settingsRepository.update { it.copy(textSize = action.size) }

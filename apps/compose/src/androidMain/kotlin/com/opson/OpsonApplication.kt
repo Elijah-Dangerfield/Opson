@@ -1,9 +1,17 @@
 package com.opson
 
 import android.app.Application
+import com.opson.libraries.reminders.ReminderActions
+import com.opson.libraries.reminders.impl.ReminderActionsHost
 
-class OpsonApplication : Application() {
-    
+/**
+ * [ReminderActionsHost] so the reminder receivers, which the system builds outside DI, reach the
+ * coordinator through the graph built here.
+ */
+class OpsonApplication : Application(), ReminderActionsHost {
+
+    override val reminderActions: ReminderActions get() = appComponent.reminderActions
+
     lateinit var appComponent: AndroidAppComponent
         private set
     

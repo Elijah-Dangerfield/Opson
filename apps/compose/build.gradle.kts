@@ -84,6 +84,8 @@ kotlin {
             implementation(projects.libraries.resources)
             implementation(projects.libraries.review)
             implementation(projects.libraries.review.impl)
+            implementation(projects.libraries.reminders)
+            implementation(projects.libraries.reminders.impl)
             implementation(projects.libraries.scanner)
             implementation(projects.libraries.scanner.impl)
 

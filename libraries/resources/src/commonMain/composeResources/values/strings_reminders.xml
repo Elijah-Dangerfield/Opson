@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Reminders and celebrations, the reminder notifications, and the Rhythm card that links to
+  them (0.2, behind release.reminders). Verbatim from design v3 (reminders.png,
+  reminder-notification.png, today-rhythm.png) where it has the copy, then the handoff, new
+  lines per docs/plans/screens/reminders.md.
+  Same rules as strings.xml: no backslash escapes, positional format specifiers.
+
+  The notification strings take no format arguments on purpose: a notification is a
+  visibility surface, and a fixed string cannot carry a number the policy hides.
+-->
+<resources>
+
+    <!-- The page -->
+    <string name="reminders_title">Reminders and celebrations</string>
+    <string name="reminders_quiet_title">Quiet mode</string>
+    <string name="reminders_quiet_body">No confetti, sounds or vibration.</string>
+    <string name="reminders_big_day_title">After a big day</string>
+    <string name="reminders_big_day_body">A calm card at day close. Full adds the two buttons.</string>
+    <string name="reminders_meals_title">Meal reminders</string>
+    <string name="reminders_meals_body">A nudge if a meal isn't logged by its time.</string>
+    <string name="reminders_level_off">Off</string>
+    <string name="reminders_level_subtle">Subtle</string>
+    <string name="reminders_level_full">Full</string>
+    <string name="reminders_times_label">Meal reminder times</string>
+    <string name="reminders_time_off">Off</string>
+    <string name="reminders_time_title">%1$s time</string>
+    <string name="reminders_time_ok">OK</string>
+    <string name="reminders_time_cancel">Cancel</string>
+    <string name="reminders_tone_title">How we talk to you</string>
+    <string name="reminders_tone_plain">Plain</string>
+    <string name="reminders_tone_warm">Warm</string>
+    <string name="reminders_tone_example">For example: %1$s</string>
+    <string name="reminders_tone_plain_sample">“Dinner isn't logged yet.”</string>
+    <string name="reminders_tone_warm_sample">“Dinner's still open. Add it whenever.”</string>
+    <string name="reminders_tags_title">Hunger and fullness questions</string>
+    <string name="reminders_tags_body">Asked when you add food. Always skippable.</string>
+    <string name="reminders_no_evening">We don't send evening messages about what's left to eat. That isn't a setting, we just don't.</string>
+    <string name="reminders_permission_off">Notifications are off for Opson, so reminders can't reach you.</string>
+    <string name="reminders_permission_open">Open settings</string>
+
+    <!-- More -->
+    <string name="reminders_more_row">Reminders and celebrations</string>
+    <string name="reminders_more_quiet_on">Quiet mode on</string>
+    <string name="reminders_more_quiet_off">Quiet mode off</string>
+
+    <!-- Water settings -->
+    <string name="reminders_water_row">Reminders</string>
+    <string name="reminders_water_row_body">One mid-morning, one mid-afternoon.</string>
+
+    <!-- Today, Rhythm -->
+    <string name="reminders_rhythm_next">%1$s reminder</string>
+    <string name="reminders_rhythm_next_body">%1$s, only if %2$s isn't logged</string>
+    <string name="reminders_rhythm_change">Change times</string>
+    <string name="reminders_rhythm_off">Meal reminders</string>
+    <string name="reminders_rhythm_off_body">Off</string>
+    <string name="reminders_rhythm_set_up">Set up</string>
+
+    <!-- The notification. Plain is v3's; warm keys end in _warm. -->
+    <string name="reminders_note_breakfast">Breakfast isn't logged yet</string>
+    <string name="reminders_note_lunch">Lunch isn't logged yet</string>
+    <string name="reminders_note_snack">Snack isn't logged yet</string>
+    <string name="reminders_note_dinner">Dinner isn't logged yet</string>
+    <string name="reminders_note_breakfast_warm">Breakfast, whenever you're ready</string>
+    <string name="reminders_note_lunch_warm">Lunch, whenever you're ready</string>
+    <string name="reminders_note_snack_warm">A snack, whenever you're ready</string>
+    <string name="reminders_note_dinner_warm">Dinner, whenever you're ready</string>
+    <string name="reminders_note_meal_body">Add it whenever you like, or let us know you already ate.</string>
+    <string name="reminders_note_meal_body_warm">No rush. Add it when it suits you, or tell us you already ate.</string>
+    <string name="reminders_note_water">Time for some water</string>
+    <string name="reminders_note_water_warm">A glass of water?</string>
+    <string name="reminders_note_water_body">Log a glass whenever you like.</string>
+    <string name="reminders_note_water_body_warm">Only if you feel like one. Log it whenever.</string>
+    <string name="reminders_note_already_ate">Already ate</string>
+    <string name="reminders_note_log_it">Log it</string>
+    <string name="reminders_note_snooze">In 30 min</string>
+    <string name="reminders_note_app">Opson</string>
+    <string name="reminders_note_now">now</string>
+
+    <!-- Android notification channels, as Settings lists them -->
+    <string name="reminders_channel_full">Meal reminders</string>
+    <string name="reminders_channel_subtle">Meal reminders, subtle</string>
+    <string name="reminders_channel_quiet">Meal reminders, quiet</string>
+</resources>

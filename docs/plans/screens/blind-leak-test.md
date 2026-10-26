@@ -93,6 +93,13 @@ Two companion tests in the same module:
 5. **Every number renders through `NutrientText`, `NutrientBar`, `NutrientRingLabel` or `MacroLine`**, which tag it. Text inputs expose their value as `EditableText` semantics.
 6. **Everything composes at once.** Sheets render their content without the `ModalBottomSheet` popup. Pagers that hold numbers set `beyondViewportPageCount` so every page composes (the Today summary pager uses 2). Menus render their content directly.
 7. **No infinite animation under `LocalInspectionMode`** (AGENTS.md landmine), or the rule waits forever for idle.
+8. **Notification text is a surface too.** A notification never reaches a composable, so its
+   words are listed through a lookalike: `reminder-notification` renders every reminder key in
+   both tones from `ReminderCopy`, the same resources the platform posts. Notification copy
+   takes no format arguments, so no number can reach it in any mode; one that ever needs a number
+   resolves it through `VisibilityPolicy` and stays in this surface. Proved by breaking it once:
+   a meal body changed to "About 640 kcal left" failed `reminder-notification` in all eight
+   presets under test (2026-10-26).
 
 ## SURFACES, ported
 
@@ -115,7 +122,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 13 | Foods tab | `foods` | foods | ported | yes |
 | 14 | Nutrients detail | `nutrients` | trends | ported | yes |
 | 15 | Modes and numbers | `modes` | settings | ported | no |
-| 16 | Reminders | none | | 0.2, add when built | |
+| 16 | Reminders | `reminders` | settings | 0.2, behind `release.reminders` | no |
 | 17 | Weight | `weight` | trends | ported | no |
 | 18 | Integrations | `integrations` | settings | 0.2, `integrations.md`; shows energyOut | yes |
 | 19 | Support | `support` | settings | ported | no |
@@ -147,6 +154,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `pause-sheet` | settings | | no |
 | new | | `look-and-feel` | settings | | no |
 | new | | `foods-add-food-blind` | foods | v3 11.4; Add a food with no number fields | no |
+| new | | `reminder-notification` | settings | 0.2, v3 7.2; every reminder's text, plain and warm, as the system shows it | no |
+| new | | `today-reminders` | today | 0.2; Rhythm's reminder line (a time, never an amount) | yes |
 | new | | `today-expended` | today | 0.2, `integrations.md`; the Expended so far line | yes |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships

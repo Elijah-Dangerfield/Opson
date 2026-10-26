@@ -11,6 +11,7 @@ import com.opson.libraries.config.LongConfigValue
 import com.opson.libraries.config.StringConfigValue
 import com.opson.libraries.config.impl.ConfigRefreshThrottleMs
 import com.opson.libraries.config.impl.model.BasicMapAppConfig
+import com.opson.libraries.reminders.RemindersEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.telemetry.impl.AppEventsEnabled
 import com.opson.libraries.telemetry.impl.AppEventsSampleRate
@@ -314,6 +315,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     AppEventsEnabled(appConfigMap),
     AppEventsSampleRate(appConfigMap),
     KlogForwardingEnabled(appConfigMap),
+    RemindersEnabled(appConfigMap),
     HealthReleaseFlag(appConfigMap),
     BarcodeScanEnabled(appConfigMap),
 )

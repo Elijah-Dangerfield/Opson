@@ -24,6 +24,7 @@ import androidx.navigation.NavUri
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.opson.features.logger.LoggerRoute
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.BuildInfo
@@ -113,6 +114,15 @@ fun App(appComponent: AppComponent) {
                     navController.handleDeepLink(request)
                 }.logOnFailure { "Failed to handle deep link: $url" }
             }
+        }
+    }
+
+    // A tapped reminder (or its Log it button) opens the Logger on that meal and day. Through the
+    // router rather than a URL: DelegatingRouter holds the command until the NavHost is bound, so
+    // a tap that cold-starts the app still lands, and the meal travels as a typed argument.
+    LaunchedEffect(router) {
+        appComponent.reminderOpens.requests.collect { open ->
+            router.navigate(LoggerRoute(slot = open.slot, dayIso = open.date.toString()))
         }
     }
 

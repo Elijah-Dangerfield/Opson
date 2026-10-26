@@ -142,6 +142,18 @@ from the store.** Health values never leave the device.
 | `health.permission_denied` | `source` | Connect came back without the permissions, or the prompt failed |
 | `health.disconnected` | `source` | Disconnect on Watch and health apps |
 
+### Reminders
+
+0.2, behind `release.reminders`. Fired through `ReminderEvents` in `:libraries:reminders`. Kinds,
+levels, counts and permission states only: never a meal name, a meal time or any text.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `reminder.set` | `kind` (`meal` / `water`), `level` (`off` / `subtle` / `full`, the meal level as chosen), `meals_on` (0 to 4), `water_on`, `permission` (`granted` / `denied` / `not_asked`) | A change to what gets scheduled: a meal level, a meal switch or a meal time on Reminders (`RemindersViewModel`), water reminders on Water settings (`WaterSettingsViewModel`) |
+| `reminder.permission` | `granted` | After the system notification prompt answers. Only asked when someone turns a reminder on |
+| `reminder.delivered` | `kind`, `snoozed` | **Android only**, when the alarm posts the notification. iOS has no delivery callback for a backgrounded app, so there is no iOS series to compare |
+| `reminder.tapped` | `kind`, `action` (`open` / `log_it` / `already_ate` / `snooze`) | The notification itself or one of its buttons (`ReminderCoordinator`) |
+
 ## Warn+ log forwarding (not events)
 
 Besides events, `GrafanaLogTree` forwards plain KLog lines at Warn and above to Loki as ordinary

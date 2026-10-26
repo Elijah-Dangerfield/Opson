@@ -34,6 +34,13 @@ object TodayLeakSurfaces {
         LeakSurface(id = "today", label = "Today", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy), onAction = {})
         },
+        // 0.2, release.reminders: Rhythm's reminder line is a time, never an amount.
+        LeakSurface(id = "today-reminders", label = "Today · with reminders", showsCaloriesInFull = true) { policy ->
+            TodayScreen(
+                state = TodayFixtures.todayState(policy, settings = TodayFixtures.remindersSet, remindersOn = true),
+                onAction = {},
+            )
+        },
         LeakSurface(id = "today-big-day", label = "Today · big day", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.day(bigDay = true, loose = true)), onAction = {})
         },

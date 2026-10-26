@@ -7,6 +7,7 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.reminders.RemindersEnabled
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
@@ -21,6 +22,7 @@ class MoreViewModel(
     settingsRepository: SettingsRepository,
     private val health: HealthRepository,
     healthFlag: HealthReleaseFlag,
+    private val remindersEnabled: RemindersEnabled,
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
     init {
@@ -40,13 +42,16 @@ class MoreViewModel(
 
     override suspend fun handleAction(action: MoreAction) {
         when (action) {
-            is MoreAction.InputsArrived -> action.updateState { MoreStateBuilder.build(action.settings, action.healthConnected) }
+            is MoreAction.InputsArrived -> action.updateState {
+                MoreStateBuilder.build(action.settings, action.healthConnected, remindersOn = remindersEnabled())
+            }
             MoreAction.ScreenResumed -> health.refresh()
             is MoreAction.RowTapped -> when (action.row) {
                 is MoreRow.Modes -> sendEvent(MoreEvent.OpenModes)
                 MoreRow.Targets -> sendEvent(MoreEvent.OpenTargets)
                 MoreRow.LookAndFeel -> sendEvent(MoreEvent.OpenLookAndFeel)
                 is MoreRow.Health -> sendEvent(MoreEvent.OpenHealth)
+                is MoreRow.Reminders -> sendEvent(MoreEvent.OpenReminders)
                 is MoreRow.Water -> sendEvent(MoreEvent.OpenWater)
                 MoreRow.Support -> sendEvent(MoreEvent.OpenSupport)
                 MoreRow.Plan -> Unit
@@ -61,6 +66,7 @@ sealed interface MoreEvent {
     data object OpenWater : MoreEvent
     data object OpenLookAndFeel : MoreEvent
     data object OpenHealth : MoreEvent
+    data object OpenReminders : MoreEvent
     data object OpenSupport : MoreEvent
 }
 

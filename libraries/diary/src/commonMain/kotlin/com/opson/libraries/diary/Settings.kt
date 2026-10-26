@@ -9,6 +9,7 @@ import com.opson.libraries.nutrition.WaterUnit
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -70,12 +71,24 @@ data class Settings(
     val healthOpen: Boolean = true,
     val quiet: Boolean = true,
     val mealReminders: MealReminders = MealReminders(),
+    /** When each meal usually happens: Today's "Usually around", Rhythm's "planned around", and the meal reminder times. */
+    @Serializable(with = MealTimesSerializer::class)
+    val mealTimes: MealTimes = MealTimes(),
+    /**
+     * The person picked a meal reminder level or turned a meal on themselves. 0.1 synced the
+     * prototype's defaults ([remindersEvent] Subtle, three meals on) for everyone who never saw
+     * the page, so until this is true those defaults are not acted on. See [mealReminderLevel].
+     */
+    val remindersChosen: Boolean = false,
     val waterReminders: Boolean = false,
     val newFoodEvent: EventLevel = EventLevel.Subtle,
     val recapEvent: EventLevel = EventLevel.Subtle,
     val remindersEvent: EventLevel = EventLevel.Subtle,
 ) {
     val waterGoalMl: Int get() = waterGlasses * glassMl
+
+    /** How noticeable meal reminders are, as chosen: Off until the person has chosen ([remindersChosen]). */
+    val mealReminderLevel: EventLevel get() = if (remindersChosen) remindersEvent else EventLevel.Off
 
     /** Same settings with different numbers. `changedAt` is whatever [next] carries. */
     fun withNumbers(next: NumbersSettings): Settings = copy(numbers = next)
@@ -212,7 +225,61 @@ data class MealReminders(
     val lunch: Boolean = true,
     val snack: Boolean = false,
     val dinner: Boolean = true,
-)
+) {
+    /** Uncategorized is not a meal, so it never has a reminder. */
+    fun isOn(slot: MealSlot): Boolean = when (slot) {
+        MealSlot.Breakfast -> breakfast
+        MealSlot.Lunch -> lunch
+        MealSlot.Snack -> snack
+        MealSlot.Dinner -> dinner
+        MealSlot.Uncategorized -> false
+    }
+
+    fun with(slot: MealSlot, on: Boolean): MealReminders = when (slot) {
+        MealSlot.Breakfast -> copy(breakfast = on)
+        MealSlot.Lunch -> copy(lunch = on)
+        MealSlot.Snack -> copy(snack = on)
+        MealSlot.Dinner -> copy(dinner = on)
+        MealSlot.Uncategorized -> this
+    }
+
+    val countOn: Int get() = MealSlot.meals.count(::isOn)
+}
+
+/**
+ * When each meal usually happens. The defaults are the times Today used before they were a
+ * setting, so nothing on Today moved when they became one. Serialized as `"08:00"` per meal by
+ * [MealTimesSerializer]; a missing or unreadable time falls back to that meal's default.
+ */
+data class MealTimes(
+    val breakfast: LocalTime = DEFAULT_BREAKFAST,
+    val lunch: LocalTime = DEFAULT_LUNCH,
+    val snack: LocalTime = DEFAULT_SNACK,
+    val dinner: LocalTime = DEFAULT_DINNER,
+) {
+    /** Uncategorized has no time of its own; it reads as lunch, the middle of the day. */
+    fun at(slot: MealSlot): LocalTime = when (slot) {
+        MealSlot.Breakfast -> breakfast
+        MealSlot.Lunch, MealSlot.Uncategorized -> lunch
+        MealSlot.Snack -> snack
+        MealSlot.Dinner -> dinner
+    }
+
+    fun with(slot: MealSlot, time: LocalTime): MealTimes = when (slot) {
+        MealSlot.Breakfast -> copy(breakfast = time)
+        MealSlot.Lunch -> copy(lunch = time)
+        MealSlot.Snack -> copy(snack = time)
+        MealSlot.Dinner -> copy(dinner = time)
+        MealSlot.Uncategorized -> this
+    }
+
+    companion object {
+        val DEFAULT_BREAKFAST = LocalTime(8, 0)
+        val DEFAULT_LUNCH = LocalTime(12, 30)
+        val DEFAULT_SNACK = LocalTime(15, 30)
+        val DEFAULT_DINNER = LocalTime(19, 0)
+    }
+}
 
 /**
  * The four onboarding questions, as the option keys onboarding defines. Every

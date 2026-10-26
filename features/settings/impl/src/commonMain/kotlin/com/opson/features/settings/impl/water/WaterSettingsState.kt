@@ -23,6 +23,8 @@ data class WaterSettingsState(
     val glassMl: Int = 0,
     val sizes: List<GlassSize> = emptyList(),
     val unit: WaterUnit = WaterUnit.Ml,
+    /** "One mid-morning, one mid-afternoon." Null hides the row: `release.reminders` is off. */
+    val reminders: Boolean? = null,
 )
 
 /** A glass size choice: [ml] is what is stored, [label] is "250 ml" or "8 fl oz". */
@@ -34,7 +36,7 @@ object WaterSettingsStateBuilder {
 
     val glassSizesMl: List<Int> = listOf(200, 250, 330, 500)
 
-    fun build(settings: Settings, backToMore: Boolean): WaterSettingsState = WaterSettingsState(
+    fun build(settings: Settings, backToMore: Boolean, remindersOn: Boolean = false): WaterSettingsState = WaterSettingsState(
         backToMore = backToMore,
         showOnToday = settings.numbers.level(Metric.Water) != Visibility.Hide,
         goals = goals,
@@ -43,6 +45,7 @@ object WaterSettingsStateBuilder {
         glassMl = settings.glassMl,
         sizes = glassSizesMl.map { GlassSize(it, WaterProgress.glassSize(it, settings.waterUnit)) },
         unit = settings.waterUnit,
+        reminders = settings.waterReminders.takeIf { remindersOn },
     )
 
     /**

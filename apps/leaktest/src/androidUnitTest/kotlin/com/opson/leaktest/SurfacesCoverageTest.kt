@@ -88,6 +88,7 @@ class SurfacesCoverageTest {
                 "today", "today-big-day", "today-added", "today-untracked", "today-groups-off", "today-past", "today-future",
                 "today-day-menu", "today-day-menu-armed", "today-cards", "calendar", "meal-sheet", "meal-note",
                 "meal-feel", "water-sheet", "item-sheet", "day-note", "day-close", "day-close-big-day",
+                "today-reminders",
                 "today-expended",
             ),
             "LoggerLeakSurfaces" to listOf(
@@ -102,6 +103,7 @@ class SurfacesCoverageTest {
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
                 "targets-by-day", "water-settings", "support", "support-delete", "look-and-feel",
+                "reminders", "reminder-notification",
                 "integrations",
             ),
         )
@@ -113,7 +115,7 @@ class SurfacesCoverageTest {
             "foods", "foods-create-meal", "foods-add-food",
             "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day",
-            "today-expended", "integrations",
+            "today-reminders", "today-expended", "integrations",
         )
     }
 }

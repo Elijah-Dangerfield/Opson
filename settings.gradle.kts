@@ -113,6 +113,8 @@ if (!serverOnly) {
     include(":libraries:nutrition:ui")
     include(":libraries:identity")
     include(":libraries:identity:impl")
+    include(":libraries:reminders")
+    include(":libraries:reminders:impl")
     include(":libraries:resources")
     include(":libraries:review")
     include(":libraries:review:impl")

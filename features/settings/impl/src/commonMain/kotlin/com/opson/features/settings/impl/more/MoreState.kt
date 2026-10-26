@@ -10,9 +10,9 @@ data class MoreState(val groups: List<List<MoreRow>> = emptyList())
  * One row. No row carries an amount (design v3: "Row subtitles never show amounts"), so More
  * resolves nothing through the policy.
  *
- * Not built in 0.1, so not here: Reminders and celebrations, Fasting, Widgets and watch face.
- * Fasting, when it lands, belongs in the extras card and only where `Fasting.allowed(preset)`.
- * Watch and health apps is 0.2, behind `release.health`.
+ * Reminders and celebrations shows only with `release.reminders` on, Watch and health apps only
+ * with `release.health`. Not built yet, so not here: Fasting, Widgets and watch face. Fasting,
+ * when it lands, belongs in the extras card and only where `Fasting.allowed(preset)`.
  */
 sealed interface MoreRow {
     /** "Fuel", or "Fuel, 1 change" when levels differ from the preset's. */
@@ -23,6 +23,8 @@ sealed interface MoreRow {
 
     data object LookAndFeel : MoreRow
 
+    /** "Quiet mode on" or "Quiet mode off", as v3. Only with `release.reminders` on. */
+    data class Reminders(val quiet: Boolean) : MoreRow
     /** Watch and health apps (0.2): "Connected" or "Not connected", never an amount. */
     data class Health(val connected: Boolean) : MoreRow
 
@@ -38,14 +40,16 @@ sealed interface MoreRow {
 object MoreStateBuilder {
 
     /**
-     * How the app treats you, optional extras, then help and plan. [healthConnected] is null
-     * while `release.health` is off, and then there is no health row at all.
+     * How the app treats you, optional extras, then help and plan. Reminders shows only with
+     * [remindersOn]; [healthConnected] is null while `release.health` is off, and then there is
+     * no health row at all.
      */
-    fun build(settings: Settings, healthConnected: Boolean? = null): MoreState = MoreState(
+    fun build(settings: Settings, healthConnected: Boolean? = null, remindersOn: Boolean = false): MoreState = MoreState(
         groups = listOf(
             listOfNotNull(
                 MoreRow.Modes(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                 MoreRow.Targets,
+                MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
                 MoreRow.LookAndFeel,
                 healthConnected?.let { MoreRow.Health(connected = it) },
             ),

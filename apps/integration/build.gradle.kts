@@ -45,6 +45,8 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.config.impl)
             implementation(projects.libraries.telemetry.impl)
+            // RemindersEnabled, for ConfigManifestRegistryDriftTest.
+            implementation(projects.libraries.reminders)
             // HealthReleaseFlag, for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.health)
             // `release.barcode` lives next to the logger it gates.

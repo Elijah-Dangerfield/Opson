@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Meal and water reminders (0.2). Asked for only when someone turns a reminder on. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Alarms do not survive a reboot; the boot receiver asks the coordinator to replan. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!--
+      No SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM: reminders are inexact on purpose
+      (setAndAllowWhileIdle), see AndroidLocalNotifications.
+      Every receiver is exported="false": the system's own broadcasts still reach them, and
+      nothing outside the app can fire a reminder or answer one.
+    -->
+    <application>
+        <receiver
+            android:name="com.opson.libraries.reminders.impl.ReminderAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name="com.opson.libraries.reminders.impl.ReminderActionReceiver"
+            android:exported="false" />
+        <receiver
+            android:name="com.opson.libraries.reminders.impl.ReminderBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
