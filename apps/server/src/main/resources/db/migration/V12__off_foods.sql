@@ -44,8 +44,8 @@
 -- a policy, rather than silently dropping it. During a reload the database
 -- holds both tables, so it needs room for about twice the table's size.
 --
--- Idempotent on purpose. opson-dev got this table (and its first load) by
--- running this exact file through psql before the server's Flyway saw it.
+-- Idempotent on purpose. opson-dev got this table by running this exact file
+-- through psql before the server's Flyway saw it.
 -- Nothing was written to flyway_schema_history, so when a deploy runs V12 it
 -- finds the table and indexes already there, does nothing, and records V12
 -- as applied with this file's checksum. Hence CREATE ... IF NOT EXISTS
@@ -85,6 +85,9 @@ CREATE TABLE IF NOT EXISTS off_foods (
     verified         BOOLEAN NOT NULL DEFAULT FALSE,
     -- When Open Food Facts last changed the product (its last_modified_t).
     last_modified_at TIMESTAMPTZ,
+    -- Open Food Facts' unique_scans_n: how many people scanned the product.
+    -- The only popularity signal 3 million products come with; 0 if unknown.
+    scans            INTEGER NOT NULL DEFAULT 0,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     search           TSVECTOR GENERATED ALWAYS AS (

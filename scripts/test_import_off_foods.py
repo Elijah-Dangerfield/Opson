@@ -19,6 +19,7 @@ from import_off_foods import (
     parse_number,
     portions_for,
     product_from,
+    scan_count,
 )
 
 
@@ -214,6 +215,13 @@ class FieldsTest(unittest.TestCase):
         self.assertEqual({"sodium_mg": 400.0, "vitamin_c_mg": 30.0, "vitamin_d_ug": 2.5, "sugars_g": 56.3},
                          micros_for(get))
 
+    def test_scan_count(self):
+        self.assertEqual(12, scan_count("12"))
+        self.assertEqual(3, scan_count("3.0"))
+        for raw in ("", "-4", "nan", "1e12", "lots"):
+            self.assertEqual(0, scan_count(raw), raw)
+        self.assertEqual(57, product_from(row(unique_scans_n="57"), Stats()).scans)
+
     def test_modified_at(self):
         self.assertEqual(1781851567, modified_at("1781851567"))
         self.assertIsNone(modified_at(""))
@@ -231,7 +239,7 @@ class SqlTest(unittest.TestCase):
         self.assertIn("'L''Original'", sql)
         self.assertIn("ARRAY['en:france','en:germany']::text[]", sql)
         self.assertIn("ON CONFLICT (barcode) DO UPDATE", sql)
-        self.assertIn("to_timestamp(1781851567)", sql)
+        self.assertIn("to_timestamp(1781851567),0)", sql)
 
     def test_ids_are_stable_per_barcode(self):
         a = batch_sql([product_from(row(), Stats())], "2026-10-26")

@@ -165,6 +165,7 @@ object OffFoodsTable : Table("off_foods") {
     val tier = short("tier")
     val verified = bool("verified")
     val lastModifiedAt = timestamp("last_modified_at").nullable()
+    val scans = integer("scans")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     override val primaryKey = PrimaryKey(id)

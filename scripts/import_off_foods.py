@@ -143,7 +143,7 @@ MICROS = {
 COLUMNS = [
     "id", "barcode", "name", "brand", "quantity", "serving",
     "kcal_100g", "protein_100g", "carbs_100g", "fat_100g", "fiber_100g",
-    "micros", "portions", "countries_tags", "source_version", "last_modified_at",
+    "micros", "portions", "countries_tags", "source_version", "last_modified_at", "scans",
 ]
 UPDATE_COLUMNS = [c for c in COLUMNS if c not in ("id", "barcode")]
 
@@ -302,6 +302,14 @@ def micros_for(get) -> dict[str, float]:
     return micros
 
 
+def scan_count(raw: str | None) -> int:
+    """unique_scans_n as a non-negative int; 0 when blank or nonsense."""
+    value = parse_number(raw)
+    if value is None or not 0 <= value < 2 ** 31:
+        return 0
+    return int(value)
+
+
 def modified_at(raw: str | None) -> int | None:
     value = parse_number(raw)
     if value is None or not MIN_EPOCH <= value < MAX_EPOCH:
@@ -325,6 +333,7 @@ class Product:
     portions: list
     countries: list
     modified: int | None
+    scans: int = 0
 
 
 @dataclass
@@ -403,6 +412,7 @@ def product_from(get, stats: Stats) -> Product | None:
         portions=portions_for(get("serving_size"), get("quantity")),
         countries=country_tags(get("countries_tags")),
         modified=modified_at(get("last_modified_t")),
+        scans=scan_count(get("unique_scans_n")),
     )
 
 
@@ -468,6 +478,7 @@ def sql_row(product: Product, version: str) -> str:
         countries,
         sql_text(version),
         f"to_timestamp({product.modified})" if product.modified is not None else "NULL",
+        str(product.scans),
     ]) + ")"
 
 
