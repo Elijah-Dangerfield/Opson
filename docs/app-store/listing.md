@@ -20,28 +20,10 @@ promises a feature the build hides is a rejection.
 **Subtitle** (30): `Food log with gentle numbers`
 
 **Promotional text** (170):
-> Log meals fast and choose how much you see. Full numbers, soft words, numbers saved for later, or none at all. One setting, applied everywhere.
+> A food log that shows you all the numbers, some of them, or none. Your call.
 
-**Description** (4000):
-> Opson is a food log for everyone, including people who find calorie counting hard.
->
-> Log the way you like: search thousands of foods, copy yesterday's breakfast, save meals you eat often, describe a meal in your own words, or mark a meal as eaten with no details. Pick several foods at once and add them in one tap.
->
-> Then decide what you see. Opson has modes for different relationships with numbers:
->
-> • Full numbers: calories, protein, carbs, fat and fiber, with targets.
-> • Delayed reveal: log all day, see totals in the evening.
-> • Nutrient focus: protein and fiber as simple progress words, no calories.
-> • Blind: no numbers anywhere, just your meals.
-> • Rhythm, Explorer, Mindful, Fuel, Sprint and Coast for other ways of eating and checking in.
->
-> Whatever you pick applies to every screen. A hidden number stays hidden everywhere, label included. You can turn on a short pause before showing yourself more numbers, and showing fewer always applies right away.
->
-> Opson never sends "calories left" reminders, never lowers tomorrow's target after a big day, and has no streaks.
->
-> Your log is saved on your phone and backed up to your account. No ads. Export or delete everything from the Support page.
->
-> Opson is not medical advice. If you are working on your relationship with food, the Support page lists places to get help.
+**Description** (4000, kept to five plain sentences on purpose):
+> Opson is a food log where you decide how many numbers you see. You can track everything like a regular calorie counter, hide calories and just log meals, or save the totals for the end of the day. Logging is quick: search a food, copy yesterday's breakfast, reuse a saved meal, or just mark that you ate. Whatever you pick applies everywhere in the app, and there are no streaks or "calories left" nags. Your log syncs to your account, and you can export or delete it whenever you want.
 
 **Keywords** (100): `food log,meal tracker,calorie counter,macros,protein,nutrition,diary,mindful eating,intuitive,diet`
 
