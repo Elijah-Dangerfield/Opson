@@ -6,6 +6,7 @@ import com.opson.features.settings.impl.eventsOf
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
 import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.features.settings.impl.remindersFlag
+import com.opson.features.settings.impl.widgetsFlag
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.flowroutines.testing.CoroutineTest
@@ -55,7 +56,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun settingsArriveAsState() = runUnitTest {
         val settings = FakeSettingsRepository(SettingsFixtures.settings())
-        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false })
+        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag())
 
         settings.state.value = settings.state.value.copy(waterGlasses = 10)
 
@@ -64,7 +65,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun eachRowOpensItsPage_andPlanOpensNothing() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false })
+        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag())
         val events = eventsOf(vm)
 
         vm.state.groups.flatten().forEach { vm.takeAction(MoreAction.RowTapped(it)) }
@@ -119,7 +120,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theFastingRowOpensFasting() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true })
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true }, widgetsFlag())
         val events = eventsOf(vm)
 
         vm.takeAction(MoreAction.RowTapped(vm.state.groups[1][1]))
@@ -127,10 +128,43 @@ class MoreTest : CoroutineTest() {
         assertEquals(listOf(MoreEvent.OpenFasting), events)
     }
 
+    // --- Widgets (0.2) ---
+
+    @Test
+    fun widgetsFlagOff_noRow_inAnyMode() {
+        PresetId.entries.forEach { preset ->
+            assertTrue(build(NumbersSettings(preset)).groups.flatten().none { it == MoreRow.Widgets }, "in $preset")
+        }
+    }
+
+    @Test
+    fun widgetsFlagOn_theRowSitsLastInTheExtrasCard_afterFasting() {
+        val settings = SettingsFixtures.settings().copy(fasting = true)
+        assertEquals(
+            listOf(MoreRow.Water(glasses = 8), MoreRow.Fasting(on = true, plan = FastingPlan.FourteenTen), MoreRow.Widgets),
+            MoreStateBuilder.build(settings, fastingReleased = true, widgetsOn = true).groups[1],
+        )
+        assertEquals(
+            listOf(MoreRow.Water(glasses = 8), MoreRow.Widgets),
+            MoreStateBuilder.build(SettingsFixtures.settings(NumbersSettings(PresetId.Blind)), widgetsOn = true).groups[1],
+            "in a mode without fasting",
+        )
+    }
+
+    @Test
+    fun theWidgetsRowOpensWidgets() = runUnitTest {
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(on = true))
+        val events = eventsOf(vm)
+
+        vm.takeAction(MoreAction.RowTapped(vm.state.groups[1].last()))
+
+        assertEquals(listOf<MoreEvent>(MoreEvent.OpenWidgets), events)
+    }
+
     @Test
     fun healthFlagOff_noRow_andTheStoreIsNeverTouched() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.Connected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false })
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag())
 
         assertTrue(vm.state.groups.flatten().none { it is MoreRow.Health })
         assertEquals(0, health.refreshes)
@@ -139,7 +173,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOn_theRowSaysWhetherItIsConnected() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.NotConnected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false })
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag())
         assertEquals(MoreRow.Health(connected = false), vm.state.groups[0].last())
 
         health.statusFlow.value = HealthStatus.Connected
@@ -150,7 +184,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun screenResumed_rechecksTheConnection() = runUnitTest {
         val health = FakeHealthRepository()
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false })
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag())
         val before = health.refreshes
         vm.takeAction(MoreAction.ScreenResumed)
         assertEquals(before + 1, health.refreshes)
@@ -184,7 +218,7 @@ class MoreTest : CoroutineTest() {
             MoreStateBuilder.build(settings, remindersOn = true).groups[0],
         )
 
-        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false })
+        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false }, widgetsFlag())
         val events = eventsOf(vm)
         vm.takeAction(MoreAction.RowTapped(MoreRow.Reminders(quiet = false)))
         assertEquals(listOf<MoreEvent>(MoreEvent.OpenReminders), events)

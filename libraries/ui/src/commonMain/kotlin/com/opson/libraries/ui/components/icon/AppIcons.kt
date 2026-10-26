@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Watch
+import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.EventRepeat
@@ -254,6 +255,9 @@ object AppIcons {
     /** Watch and health apps (More) and Expended so far (Today). */
     val Watch get() = icon("watch", MaterialIcons.Rounded.Watch)
 
+    /** Widgets (More), as v3's "widgets" glyph. */
+    val Widgets get() = icon("widgets", MaterialIcons.Rounded.Widgets)
+
     /** The meal's tile icon. Uncategorized uses the list glyph. */
     fun meal(tone: MealTone): IconResource = when (tone) {
         MealTone.Breakfast -> BakeryDining
@@ -275,7 +279,7 @@ object AppIcons {
             Visibility, BlurOn, Mail, Group, LockOutlined,
             OpenInNew, Target, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
             Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
-            Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch,
+            Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch, Widgets,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

@@ -52,3 +52,10 @@ class LeaveOutDayRoute : Route()
  */
 @Serializable
 class FastingRoute : Route()
+
+/**
+ * Widgets (0.2, `release.widgets`): what the home screen widget looks like in the person's mode,
+ * and how to add one. Opened from More.
+ */
+@Serializable
+class WidgetsRoute : Route()

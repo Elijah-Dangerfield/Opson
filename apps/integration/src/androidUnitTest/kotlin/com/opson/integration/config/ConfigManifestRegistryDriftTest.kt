@@ -19,6 +19,7 @@ import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.telemetry.impl.AppEventsEnabled
 import com.opson.libraries.telemetry.impl.AppEventsSampleRate
 import com.opson.libraries.telemetry.impl.KlogForwardingEnabled
+import com.opson.libraries.widgets.WidgetsEnabled
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -324,6 +325,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     BarcodeScanEnabled(appConfigMap),
     VoiceLogEnabled(appConfigMap),
     PhotoEstimateEnabled(appConfigMap),
+    WidgetsEnabled(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"

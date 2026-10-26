@@ -93,7 +93,13 @@ Two companion tests in the same module:
 5. **Every number renders through `NutrientText`, `NutrientBar`, `NutrientRingLabel` or `MacroLine`**, which tag it. Text inputs expose their value as `EditableText` semantics.
 6. **Everything composes at once.** Sheets render their content without the `ModalBottomSheet` popup. Pagers that hold numbers set `beyondViewportPageCount` so every page composes (the Today summary pager uses 2). Menus render their content directly.
 7. **No infinite animation under `LocalInspectionMode`** (AGENTS.md landmine), or the rule waits forever for idle.
-8. **Notification text is a surface too.** A notification never reaches a composable, so its
+8. **A widget's snapshot is a surface too.** Widgets render a `WidgetSnapshot` built in shared
+   Kotlin and nothing else, so a hidden number is absent from it rather than masked. `widget`
+   renders that snapshot through `WidgetCard`, the Compose lookalike laid out as the Glance and
+   SwiftUI widgets are, and `WidgetSnapshotBuilderTest` scans the snapshot's JSON in every preset
+   that hides calories. `Surface.Widget` never reveals a delayed number, so Delayed and Coast
+   need no `REVEALED_BY_DESIGN` entry for it.
+9. **Notification text is a surface too.** A notification never reaches a composable, so its
    words are listed through a lookalike: `reminder-notification` renders every reminder key in
    both tones from `ReminderCopy`, the same resources the platform posts. Notification copy
    takes no format arguments, so no number can reach it in any mode; one that ever needs a number
@@ -127,7 +133,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 18 | Integrations | `integrations` | settings | 0.2, `integrations.md`; shows energyOut | yes |
 | 19 | Support | `support` | settings | ported | no |
 | 20 | More | `more` | settings | ported | yes |
-| 21 | Widgets and watch | none | | Later | |
+| 21 | Widgets and watch | `widget` | settings | 0.2, `widgets.md`, behind `release.widgets`: the home screen widget drawn from its snapshot (today and tomorrow, both sizes). The watch is still Later. | yes |
 | 22 | Meal options | `meal-sheet` | today | ported | no |
 | 23 | How it felt | `meal-feel` | today | ported | no |
 | 24 | Water options | `water-sheet` | today | ported | no |
@@ -162,6 +168,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `logger-describe-voice` | logger | 0.2, `voice.md`; Describe it while listening, over lines already read | yes |
 | new | | `logger-photo-swap` | logger | 0.2, `photo.md`; swapping a line's food | yes |
 | new | | `logger-photo-start` | logger | 0.2, `photo.md`; the note and the two ways to a photo | no |
+| new | | `widgets` | settings | 0.2, `widgets.md`; the Widgets page under More, which previews the person's own widget | yes |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and

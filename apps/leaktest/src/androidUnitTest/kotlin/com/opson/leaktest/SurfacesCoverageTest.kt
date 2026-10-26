@@ -107,6 +107,7 @@ class SurfacesCoverageTest {
                 "targets-by-day", "water-settings", "support", "support-delete", "look-and-feel",
                 "reminders", "reminder-notification",
                 "integrations", "integrations-leave-out", "fasting",
+                "widget", "widgets",
             ),
         )
 
@@ -120,6 +121,7 @@ class SurfacesCoverageTest {
             "targets", "targets-deficit", "targets-by-day",
             "today-reminders", "today-expended", "today-exercise", "integrations",
             "logger-describe-voice",
+            "widget", "widgets",
         )
     }
 }

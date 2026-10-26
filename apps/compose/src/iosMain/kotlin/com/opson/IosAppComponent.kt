@@ -6,6 +6,7 @@ import com.opson.libraries.navigation.FileSharePresenter
 import com.opson.libraries.opson.PermissionManager
 import com.opson.libraries.review.ReviewLauncher
 import com.opson.libraries.ui.nativeviews.NativeViewFactory
+import com.opson.libraries.widgets.WidgetBridge
 import me.tatarka.inject.annotations.Provides
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.MergeComponent
@@ -27,7 +28,11 @@ abstract class IosAppComponent(
     // from `iOSApp.swift` for Router.shareFile. Android shares through a
     // FileProvider bound via anvil.
     private val fileSharePresenter: FileSharePresenter,
-    val nativeViewFactory: NativeViewFactory
+    val nativeViewFactory: NativeViewFactory,
+    // The Swift `IOSWidgetBridge` (App Group UserDefaults + WidgetCenter), passed in from
+    // `iOSApp.swift` for the home screen widgets. Only called with release.widgets on. Android
+    // publishes through Glance, bound via anvil.
+    private val widgetBridge: WidgetBridge,
 ) : AppComponent {
 
     @Provides
@@ -44,6 +49,9 @@ abstract class IosAppComponent(
 
     @Provides
     fun provideFileSharePresenter(): FileSharePresenter = fileSharePresenter
+
+    @Provides
+    fun provideWidgetBridge(): WidgetBridge = widgetBridge
 }
 
 
@@ -54,5 +62,6 @@ expect fun create(
     appleSignInCoordinator: AppleSignInCoordinator,
     secureSessionStorage: SecureSessionStorage,
     fileSharePresenter: FileSharePresenter,
-    nativeViewFactory: NativeViewFactory
+    nativeViewFactory: NativeViewFactory,
+    widgetBridge: WidgetBridge,
 ): IosAppComponent

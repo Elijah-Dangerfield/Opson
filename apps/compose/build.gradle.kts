@@ -90,6 +90,8 @@ kotlin {
             implementation(projects.libraries.scanner.impl)
             implementation(projects.libraries.speech)
             implementation(projects.libraries.speech.impl)
+            implementation(projects.libraries.widgets)
+            implementation(projects.libraries.widgets.impl)
 
             implementation(projects.libraries.storage)
             implementation(projects.libraries.storage.impl)

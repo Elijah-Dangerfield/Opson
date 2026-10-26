@@ -43,4 +43,10 @@ enum class Surface {
     Foods,
     Settings,
     Weight,
+
+    /**
+     * A home screen widget. Delayed numbers never open here: a home screen is seen by whoever
+     * picks up the phone, and the reveal is a moment in the app.
+     */
+    Widget,
 }

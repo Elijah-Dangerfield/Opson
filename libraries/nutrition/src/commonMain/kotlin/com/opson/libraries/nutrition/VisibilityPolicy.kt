@@ -40,9 +40,10 @@ class VisibilityPolicy(
      * the week opens at the user's reveal time on it ([isWeekOpen]). Everything
      * else delayed also opens at day close, once the day is closed or past, and
      * from the user's reveal time ([NumbersSettings.revealAt], 9:00 pm unless
-     * they picked another) on the day.
+     * they picked another) on the day. A widget ([Surface.Widget]) never opens.
      */
     fun isRevealed(surface: Surface, context: FormatContext = FormatContext()): Boolean {
+        if (surface == Surface.Widget) return false
         if (revealsWeekly) return surface == Surface.Week && (context.day?.let(::isWeekOpen) ?: true)
         if (surface == Surface.Week || surface == Surface.DayClose || context.dayClosed) return true
         val now = clock.now().toLocalDateTime(timeZone)

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget card. White, tinted to the snapshot's background by Glance. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="22dp" />
+    <solid android:color="#FFFFFFFF" />
+</shape>

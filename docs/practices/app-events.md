@@ -186,6 +186,15 @@ levels, counts and permission states only: never a meal name, a meal time or any
 | `reminder.delivered` | `kind`, `snoozed` | **Android only**, when the alarm posts the notification. iOS has no delivery callback for a backgrounded app, so there is no iOS series to compare |
 | `reminder.tapped` | `kind`, `action` (`open` / `log_it` / `already_ate` / `snooze`) | The notification itself or one of its buttons (`ReminderCoordinator`) |
 
+### Widgets
+
+0.2, behind `release.widgets`. Fired through `WidgetEvents` in `:libraries:widgets`. Never a
+number, a meal name or any text from the snapshot.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `widget.log_tapped` | `next_meal` (whether a meal was still to come, so the Logger opened on it rather than its own default) | A home screen widget's + opened the app (`WidgetOpener`) |
+
 ### Fasting (0.2)
 
 Both from `FastingRepositoryImpl` (`:libraries:diary:impl`), the only writer of fasts, so no

@@ -22,6 +22,7 @@ import com.opson.features.settings.RemindersRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.TargetsRoute
 import com.opson.features.settings.WaterSettingsRoute
+import com.opson.features.settings.WidgetsRoute
 import com.opson.features.settings.impl.fasting.FastingEvent
 import com.opson.features.settings.impl.fasting.FastingScreen
 import com.opson.features.settings.impl.fasting.FastingViewModel
@@ -63,6 +64,9 @@ import com.opson.features.settings.impl.targets.TargetsViewModel
 import com.opson.features.settings.impl.water.WaterSettingsEvent
 import com.opson.features.settings.impl.water.WaterSettingsScreen
 import com.opson.features.settings.impl.water.WaterSettingsViewModel
+import com.opson.features.settings.impl.widgets.WidgetsEvent
+import com.opson.features.settings.impl.widgets.WidgetsScreen
+import com.opson.features.settings.impl.widgets.WidgetsViewModel
 import com.opson.features.settings.toRoute
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
@@ -96,6 +100,7 @@ class SettingsFeatureEntryPoint(
     private val remindersViewModel: () -> RemindersViewModel,
     private val integrationsViewModel: () -> IntegrationsViewModel,
     private val leaveOutViewModel: () -> LeaveOutViewModel,
+    private val widgetsViewModel: () -> WidgetsViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -113,6 +118,7 @@ class SettingsFeatureEntryPoint(
                         MoreEvent.OpenFasting -> FastingRoute()
                         MoreEvent.OpenReminders -> RemindersRoute()
                         MoreEvent.OpenHealth -> IntegrationsRoute()
+                        MoreEvent.OpenWidgets -> WidgetsRoute()
                     },
                 )
             }
@@ -307,6 +313,19 @@ class SettingsFeatureEntryPoint(
             ) {
                 LeaveOutSheetContent(state = state, onAction = viewModel::takeAction)
             }
+        }
+
+        // Registered whatever release.widgets says, like Integrations: only the More row links
+        // here, and that row is behind the flag.
+        screen<WidgetsRoute> {
+            val viewModel: WidgetsViewModel = viewModel { widgetsViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    WidgetsEvent.Close -> router.goBack()
+                }
+            }
+            WidgetsScreen(state = state, onAction = viewModel::takeAction)
         }
     }
 

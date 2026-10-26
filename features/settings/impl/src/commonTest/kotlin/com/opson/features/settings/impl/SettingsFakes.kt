@@ -26,6 +26,7 @@ import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.reminders.NotificationPermission
 import com.opson.libraries.reminders.NotificationPermissions
 import com.opson.libraries.reminders.RemindersEnabled
+import com.opson.libraries.widgets.WidgetsEnabled
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -145,6 +146,13 @@ class FakeAuthRepository(var deleteOutcome: DeleteAccountOutcome = DeleteAccount
 fun remindersFlag(on: Boolean = false): RemindersEnabled = RemindersEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("reminders" to on))
+    },
+)
+
+/** `release.widgets`, on or off. */
+fun widgetsFlag(on: Boolean = false): WidgetsEnabled = WidgetsEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("widgets" to on))
     },
 )
 

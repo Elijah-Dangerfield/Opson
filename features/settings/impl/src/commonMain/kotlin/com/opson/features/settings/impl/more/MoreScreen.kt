@@ -38,6 +38,7 @@ import opson.libraries.resources.generated.resources.settings_more_targets_sub
 import opson.libraries.resources.generated.resources.settings_more_title
 import opson.libraries.resources.generated.resources.settings_more_water
 import opson.libraries.resources.generated.resources.settings_more_water_glasses
+import opson.libraries.resources.generated.resources.widgets_title
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -139,6 +140,12 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             showDivider = showDivider,
             onClick = onClick,
         )
+        MoreRow.Widgets -> SettingsRow(
+            title = stringResource(Res.string.widgets_title),
+            icon = AppIcons.Widgets,
+            showDivider = showDivider,
+            onClick = onClick,
+        )
         MoreRow.Support -> SettingsRow(
             title = stringResource(Res.string.settings_more_support),
             icon = AppIcons.Support,
@@ -181,6 +188,14 @@ private fun MoreRemindersPreview() {
 private fun MoreWithFastingPreview() {
     val settings = SettingsFixtures.settings().copy(fasting = true)
     SettingsPreview { MoreScreen(MoreStateBuilder.build(settings, fastingReleased = true), onAction = {}) }
+}
+
+/** With `release.widgets` on: Widgets after Fasting in the extras card, as v3. */
+@Preview
+@Composable
+private fun MoreWithWidgetsPreview() {
+    val settings = SettingsFixtures.settings().copy(fasting = true)
+    SettingsPreview { MoreScreen(MoreStateBuilder.build(settings, fastingReleased = true, widgetsOn = true), onAction = {}) }
 }
 
 @Preview
