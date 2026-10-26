@@ -198,6 +198,27 @@ carry it.
       4. Set `OFF_IMPORT_ENABLED=true` and the `CATALOG_DATABASE_URL` secret
          so the monthly reload keeps it current.
 
+## Search options (`release.searchOptions`)
+
+- [ ] After the prod deploy (V16 adds `foods.category`, a catalog-only
+      change plus one read of the table for its CHECK), fill the category in
+      on prod. Dev got the same on 2026-10-26: 2,129 generic and 50,547
+      Branded rows, 395 to 431 MB, and a second run changed nothing. This
+      prompts for prod's session pooler URL, dry-runs, then writes generic
+      and Branded (a 450 MB download):
+
+      ```bash
+      stty -echo; printf "Prod CATALOG_DATABASE_URL (session pooler): "; read -r V; stty echo; printf "\n"
+      if [ -n "$V" ]; then
+        CATALOG_DATABASE_URL="$V" python3 -I scripts/backfill_food_categories.py --dry-run &&
+        CATALOG_DATABASE_URL="$V" python3 -I scripts/backfill_food_categories.py &&
+        CATALOG_DATABASE_URL="$V" python3 -I scripts/backfill_food_categories.py --branded
+      else echo "No URL entered, nothing run."; fi; unset V
+      ```
+- [ ] Flip `release.searchOptions` with or before `FOOD_SEARCH_OFF_ENABLED`:
+      its source badge and the line under results are the Logger's Open Food
+      Facts credit (step 3 above).
+
 ## Held native commits
 
 The widget receiver and WidgetKit extension are on branch

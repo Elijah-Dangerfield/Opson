@@ -6,7 +6,9 @@
 import unittest
 
 from import_usda_foods import (
+    branded_category,
     default_portion_first,
+    generic_category,
     gtin_check_digit,
     normalize_gtin,
     pg_env,
@@ -191,6 +193,62 @@ class DefaultPortionTest(unittest.TestCase):
     def test_unknown_energy_still_moves_a_sip(self):
         coffee = portions(("1 fl oz", 30.0), ("1 cup (8 fl oz)", 240.0))
         self.assertEqual("1 cup (8 fl oz)", self.first(coffee, None))
+
+
+class CategoryTest(unittest.TestCase):
+
+    def test_sr_and_foundation_categories(self):
+        self.assertEqual("restaurant", generic_category("usda_sr", "21", "McDONALD'S, Big Mac"))
+        self.assertEqual("restaurant", generic_category("usda_foundation", "25", "Restaurant, Chinese, fried rice"))
+        self.assertEqual("beverage", generic_category("usda_sr", "14", "Beverages, coffee, brewed"))
+        self.assertEqual("baby_food", generic_category("usda_sr", "3", "Babyfood, cereal, rice"))
+        self.assertIsNone(generic_category("usda_sr", "20", "Rice, white, cooked"))
+
+    def test_sr_juices_and_fluid_milk_are_drinks_but_not_their_powders(self):
+        self.assertEqual("beverage", generic_category("usda_sr", "9", "Orange juice, raw"))
+        self.assertIsNone(generic_category("usda_sr", "9", "Oranges, raw"))
+        self.assertEqual("beverage", generic_category("usda_sr", "1", "Milk, whole, 3.25% milkfat, with added vitamin D"))
+        self.assertIsNone(generic_category("usda_sr", "1", "Milk, dry, nonfat, instant"))
+        self.assertIsNone(generic_category("usda_sr", "1", "Milk, canned, condensed, sweetened"))
+        self.assertIsNone(generic_category("usda_sr", "1", "Cheese, cheddar"))
+
+    def test_fndds_wweia_categories(self):
+        self.assertEqual("beverage", generic_category("usda_fndds", "7302", "Coffee, brewed"))
+        self.assertEqual("beverage", generic_category("usda_fndds", "7506", "Margarita"))
+        self.assertEqual("beverage", generic_category("usda_fndds", "1004", "Milk, NFS"))
+        self.assertEqual("beverage", generic_category("usda_fndds", "1902", "Almond milk, unsweetened"))
+        self.assertEqual("baby_food", generic_category("usda_fndds", "9402", "Infant formula, ready-to-feed"))
+        self.assertEqual("supplement", generic_category("usda_fndds", "9802", "Protein powder, whey based"))
+        self.assertIsNone(generic_category("usda_fndds", "4002", "Rice, white, cooked"))
+        self.assertIsNone(generic_category("usda_fndds", "", "Rice"))
+
+    def test_fndds_names_that_say_fast_food_are_restaurant_food(self):
+        self.assertEqual(
+            "restaurant",
+            generic_category("usda_fndds", "2202", "Chicken breast, fried, coated, from fast food / restaurant"),
+        )
+        self.assertEqual("restaurant", generic_category("usda_fndds", "1402", "Milk shake, fast food, chocolate"))
+
+    def test_branded_categories_in_every_spelling(self):
+        self.assertEqual("beverage", branded_category("Soda"))
+        self.assertEqual("beverage", branded_category("Fruit & Vegetable Juice, Nectars & Fruit Drinks"))
+        for spelling in (
+            "Non Alcoholic Beverages  Ready to Drink",
+            "Non Alcoholic Beverages - Ready to Drink",
+            "Non Alcoholic Beverages \u2013 Ready to Drink",
+        ):
+            self.assertEqual("beverage", branded_category(spelling), spelling)
+        self.assertEqual("baby_food", branded_category("Baby/Infant  Foods/Beverages"))
+        self.assertEqual("baby_food", branded_category("Baby/Infant \u2013 Foods/Beverages"))
+        self.assertEqual("supplement", branded_category("Meal Replacement Supplements"))
+
+    def test_branded_foods_that_only_mention_a_drink_are_not_drinks(self):
+        self.assertIsNone(branded_category("Milk Additives"))
+        self.assertIsNone(branded_category("Vinegars/Cooking Wines"))
+        self.assertIsNone(branded_category("Frozen Fruit & Fruit Juice Concentrates"))
+        self.assertIsNone(branded_category("Includes any products that can be described/observed as ... water, milk, oil"))
+        self.assertIsNone(branded_category(""))
+        self.assertIsNone(branded_category(None))
 
 
 class ConnectionTest(unittest.TestCase):
