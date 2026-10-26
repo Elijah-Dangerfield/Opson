@@ -4,6 +4,11 @@
 // use only the stdlib, and a dependency declaration makes every cold run
 // resolve Maven coordinates over the network (observed hanging the script
 // runner entirely on flaky daemons).
+//
+// Editing this file does not invalidate the scripts that import it. The
+// runner caches each compiled script in ~/Library/Caches/main.kts.compiled.cache
+// keyed on the importing script alone, so a fix made here keeps running the old
+// code until that cache is cleared. `rm ~/Library/Caches/main.kts.compiled.cache/*.jar`
 
 /**
  * The shared half of the setup scripts: terminal prompting, and a machine-local
@@ -211,22 +216,10 @@ object Keys {
             "so every store crash stays unsymbolicated.",
     )
 
-    val FLY_TOKEN_DEV = SetupKey(
-        storeKey = "fly.tokenDev",
-        env = "FLY_API_TOKEN_DEV",
-        label = "Fly.io deploy token (dev)",
-        secret = true,
-        where = "fly tokens create deploy -a <app>-server-dev --expiry 8760h",
-        consequence = "server-deploy.yml fails at the deploy step on every push to main.",
-    )
-    val FLY_TOKEN_PROD = SetupKey(
-        storeKey = "fly.tokenProd",
-        env = "FLY_API_TOKEN_PROD",
-        label = "Fly.io deploy token (prod)",
-        secret = true,
-        where = "fly tokens create deploy -a <app>-server-prod --expiry 8760h",
-        consequence = "server-deploy-prod.yml fails after you approve the deploy.",
-    )
+    // No Fly deploy tokens here on purpose. `fly tokens create deploy -a <app>`
+    // scopes a token to one app, so a stored token is the previous project's
+    // and fails this project's deploy. setup_fly.main.kts mints a fresh pair
+    // per project straight into the repo secrets instead.
 
     val APPLE_TEAM_ID = SetupKey(
         storeKey = "apple.teamId",
@@ -410,7 +403,6 @@ object Keys {
      */
     val all: List<SetupKey> = listOf(
         SENTRY_USER_TOKEN, SENTRY_ORG, SENTRY_CI_TOKEN,
-        FLY_TOKEN_DEV, FLY_TOKEN_PROD,
         APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH, APPLE_DIST_CERT_PASSWORD,
         SUPABASE_ACCESS_TOKEN, SUPABASE_ORG,
         GRAFANA_OTLP_BASE_URL, GRAFANA_OTLP_INSTANCE_ID, GRAFANA_LOGS_WRITE_TOKEN,

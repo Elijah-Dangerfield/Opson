@@ -183,6 +183,33 @@ if (!commandExists("kotlin")) {
     die("The kotlin CLI is needed to run the steps. `brew install kotlin`, then re-run.")
 }
 
+/**
+ * Offers to create the GitHub repo, since the Fly and release-secret steps
+ * both stop at "needs a GitHub repo" and nothing else in the run makes one.
+ *
+ * Before [steps], which reads the repo when it builds the list, so a repo
+ * created here unblocks those steps in the same run. Private by default: going
+ * public is a choice about the code, and it should be typed, not defaulted.
+ */
+fun offerGithubRepo() {
+    if (!hasCi || ghRepoSlug() != null) return
+    println()
+    bold("━━ GitHub repo ━━")
+    println("  the Fly and release-secret steps put their tokens in repo secrets, so they need one")
+    if (githubCliState() != GithubCliState.READY) {
+        yellow("  gh is not ready, run `gh auth login`, then re-run this.")
+        return
+    }
+    if (!confirm("  Create a GitHub repo for this project and push to it?", default = true)) return
+    val name = prompt("  Repo name", root.name)
+    val visibility = if (confirm("  Make it public?", default = false)) "--public" else "--private"
+    if (!runInteractive("gh", "repo", "create", name, visibility, "--source", ".", "--remote", "origin", "--push")) {
+        yellow("  gh repo create failed, see above. The steps that need a repo will say so.")
+    }
+}
+
+offerGithubRepo()
+
 val outcomes = steps().associate { it.name to runStep(it) }
 
 println()

@@ -185,10 +185,6 @@ if (!hasGhRepo()) {
         val token = createDeployToken(app) ?: return@forEach
         if (setGhSecret(secret, token)) {
             green("✓ Set repo secret $secret (scoped to $app, expires in a year)")
-            values.offerToRemember(
-                if (secret.endsWith("DEV")) Keys.FLY_TOKEN_DEV else Keys.FLY_TOKEN_PROD,
-                token,
-            )
         } else {
             yellow("Could not set $secret, `gh secret set $secret` it yourself.")
         }

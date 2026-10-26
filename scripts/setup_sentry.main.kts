@@ -192,7 +192,7 @@ fun parseDsn(dsn: String): Dsn {
  * the app will: if this is accepted, the value written to telemetry.properties
  * is live.
  */
-fun sendTestEvent(dsn: Dsn, marker: String): Boolean {
+fun sendTestEvent(dsn: Dsn, marker: String): String? {
     val eventId = java.util.UUID.randomUUID().toString().replace("-", "")
     val payload = """
         {"event_id":"$eventId","timestamp":"${Instant.now()}","platform":"other",
@@ -210,21 +210,26 @@ fun sendTestEvent(dsn: Dsn, marker: String): Boolean {
     )
     if (!response.isSuccess) {
         red("✗ Sentry rejected the test event (HTTP ${response.code}): ${response.body.take(300)}")
-        return false
+        return null
     }
     green("✓ Test event accepted by ingest (id $eventId)")
-    return true
+    return eventId
 }
 
-fun awaitEvent(token: String, org: String, project: String, marker: String): Boolean {
+/**
+ * Polls for the event by its id rather than searching for its tag.
+ *
+ * The tag search was the first version and it reported failure on a working
+ * setup: Sentry stores the event within seconds but indexes tags for search
+ * much later, so every run ended in "Setup did NOT finish" while the event sat
+ * in the project. A direct lookup answers 404 until the event is stored and
+ * 200 once it is, which is the actual question.
+ */
+fun awaitEvent(token: String, org: String, project: String, eventId: String): Boolean {
     print("Waiting for the event to appear in $org/$project")
     repeat(POLL_ATTEMPTS) {
-        val url = "$SENTRY_API/projects/$org/$project/issues/" +
-            "?query=${encode("setup_check:$marker")}&statsPeriod=1h"
-        val response = request("GET", url, token)
-        // A tag search that matched returns a populated array; a miss returns
-        // literally "[]", so length is the whole test.
-        if (response.isSuccess && response.body.trim().length > 2) {
+        val response = request("GET", "$SENTRY_API/projects/$org/$project/events/$eventId/", token)
+        if (response.isSuccess) {
             println()
             return true
         }
@@ -408,7 +413,7 @@ configureCi(org, project, values, interactive)
 
 bold("\nProving it works")
 val marker = "setupcheck" + java.util.UUID.randomUUID().toString().take(8).replace("-", "")
-val delivered = sendTestEvent(parsedDsn, marker) && awaitEvent(userToken, org, project, marker)
+val delivered = sendTestEvent(parsedDsn, marker)?.let { awaitEvent(userToken, org, project, it) } ?: false
 
 // Before the verdict rather than after it, so the last thing on screen stays
 // the one line that says whether Sentry is actually on. Unconditional: a run
@@ -419,7 +424,7 @@ values.printUnconfigured()
 println()
 if (delivered) {
     green("━━ Sentry is live ━━")
-    println("A test event reached $org/$project and was found by search.")
+    println("A test event reached $org/$project.")
     println("https://sentry.io/organizations/$org/issues/?project=&query=${encode("setup_check:$marker")}")
     println()
     println("Next: commit $TELEMETRY_FILE, then rebuild. Debug builds report from the next launch.")

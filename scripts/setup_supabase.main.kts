@@ -52,8 +52,17 @@ fun resolveOrganization(token: String, interactive: Boolean, suggested: String?)
     if (slugs.isEmpty()) die("That token can see no organizations. Create one in the Supabase dashboard first.")
     if (slugs.size == 1) return slugs.single()
     println("Organizations: " + orgs.joinToString(", ") { "${it["name"].text} (${it["slug"].text})" })
+    suggested?.takeIf { it in slugs }?.let { if (!interactive) return it }
+    if (!interactive) {
+        // Guessing here put a project in the wrong organization once: with no
+        // stored org, "the first one the API lists" is an arbitrary answer, and
+        // a project created in a client's org is a mess to undo.
+        die(
+            "Several organizations and none chosen. Set SUPABASE_ORG to one of " +
+                "${slugs.joinToString(", ")}, or save it with ./scripts/setup_credentials.main.kts"
+        )
+    }
     val default = suggested?.takeIf { it in slugs } ?: slugs.first()
-    if (!interactive) return default
     val chosen = prompt("Organization slug", default)
     if (chosen !in slugs) die("'$chosen' is not one of: ${slugs.joinToString(", ")}")
     return chosen
@@ -165,6 +174,13 @@ val redirectUrls = listOf("$scheme://login-callback", "$scheme://auth/confirmed"
 // A function, not an `if` around a deferred `val`: top-level declarations in a
 // .main.kts are class properties, so they have to be initialized where they are
 // declared.
+/**
+ * The connection string for a project this run created, so it can go straight
+ * into `apps/server/.env`. Null for an adopted project: the API never returns
+ * a database password, so there is nothing to write.
+ */
+var createdDatabaseUrl: String? = null
+
 fun adoptOrCreateProject(): String {
     findProject(token, projectName)?.let { existing ->
         val ref = existing["ref"].text ?: die("Supabase returned a project with no ref")
@@ -197,6 +213,7 @@ fun adoptOrCreateProject(): String {
     println("  Connection string for apps/server/.env:")
     println("  postgresql://postgres:$databasePassword@db.$ref.supabase.co:5432/postgres")
     println()
+    createdDatabaseUrl = "postgresql://postgres:$databasePassword@db.$ref.supabase.co:5432/postgres"
     return ref
 }
 
@@ -254,6 +271,12 @@ if (hasGhRepo()) {
     yellow("No GitHub repo reachable via gh, set SUPABASE_PROJECT_ID / SUPABASE_ANON_KEY yourself once there is one.")
 }
 
+/** Reads `KEY=value` from an env file, null when absent or blank. */
+fun readEnvValue(file: File, key: String): String? =
+    file.takeIf { it.exists() }?.readLines()
+        ?.firstOrNull { it.trimStart().startsWith("$key=") }
+        ?.substringAfter('=')?.trim()?.takeIf { it.isNotEmpty() }
+
 val serverEnvExample = File(root, "apps/server/.env.example")
 if (serverEnvExample.exists()) {
     bold("\nServer configuration")
@@ -270,7 +293,14 @@ if (serverEnvExample.exists()) {
         yellow("  Could not read the service role key. Copy it from Settings → API Keys if you want")
         yellow("  in-app account deletion and display-name mirroring.")
     }
-    dim("  DATABASE_URL is still yours to set, see the connection string above, or apps/server/.env.example.")
+    val databaseUrl = createdDatabaseUrl
+    if (databaseUrl != null) {
+        upsertProperty(serverEnv, "DATABASE_URL", databaseUrl)
+        green("✓ Wrote DATABASE_URL into apps/server/.env")
+    } else if (readEnvValue(serverEnv, "DATABASE_URL") == null) {
+        dim("  DATABASE_URL is still yours to set. This project was adopted, and Supabase never")
+        dim("  returns a database password, so reset it in the dashboard if you do not have it.")
+    }
     dim("  ./scripts/setup_fly.main.kts pushes these to the deployed server.")
 }
 
