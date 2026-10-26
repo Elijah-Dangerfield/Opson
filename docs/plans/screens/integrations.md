@@ -22,8 +22,9 @@ and `docs/plans/0.2/README.md` first.
 | Wear OS watch row ("Quick-log saved meals · Plus") | Not built | Watch is wave 2 (`widgets.png`), and Plus has no purchase flow. |
 | Garmin, Fitbit, Oura "Set up" | Not built | They reach us through Health Connect / Apple Health already; a row that only says so adds nothing yet. |
 | Expended today: Resting, Everyday movement, Workouts, Total | Built | The breakdown of the number Today shows. |
-| Should exercise change your range? | Not built | It moves the energy range on Today. That is a targets change with its own safety rule and a `TODO(clinician)` (settings.md). Today keeps `targets.today(exercise, 0, 0)`, so connecting never moves anyone's range. Next step once reviewed. |
-| Days left out of the math | Not built | Only means something with the exercise question. |
+| Should exercise change your range? | Built (second pass) | See "Exercise in the range" below. Moves today's range up only, capped, `TODO(clinician)` on the cap and the share. Never asked of, or applied to, someone who said numbers have been hard. |
+| Days left out of the math | Built (second pass) | See "Days left out of the math" below. They are the days marked untracked, listed and picked here. |
+| Exercise adjustment row on Targets (`targets.png`) | Built (second pass) | Shows the choice, opens this page. |
 | Health card on Today (heart rate, sleep, steps) | Not built | The Health card is its own scope gate; reading heart rate, sleep and steps would ask for three more permissions for a card nobody can see yet. |
 | Expended so far on Today | Built | |
 
@@ -250,3 +251,155 @@ From `RealHealthRepository`, attribute `source` (`apple_health` / `health_connec
   Hide show no `metric:energyOut` node and no kcal text from energy.
 - Previews: Integrations not connected, connected, permission denied, Blind,
   dark; Today with the expended line, light and dark.
+
+## Second pass: exercise in the range, days left out
+
+Everything here is behind `release.health` too. Off, the page can't be
+reached, Today and Day close never read energy, and the range is the base
+range exactly as in 0.1.
+
+### Exercise in the range
+
+**Setting.** A new top-level key, `exerciseRange: ExerciseAdjustment? = null`
+(`"none"`, `"some"`, `"all"`; anything unreadable decodes to `none`). Not the
+0.1 `exercise` key: 0.1 synced the prototype's default (`"some"`) for everyone
+who never saw a question, so it says nothing about a choice, and settings sync
+merges shallowly, so a new key is the only clean way to start from "not asked".
+`exercise` stays in `Settings`, unread, so old JSON still round-trips.
+
+**Unanswered means No.** `Settings.exerciseInRange` (in `:libraries:diary`) is
+`None` when `onboarding.hard` is true, whatever is stored, and otherwise
+`exerciseRange ?: None`. v3 draws "Some of it" picked, but connecting a health
+app must not move anyone's range by itself ("settings change only when the
+user changes them"), so the radio starts on No until the person picks.
+
+**Numbers have been hard.** Someone who answered yes to "Numbers or tracking
+have been hard for me before" never gets range changes from exercise: the
+question is not rendered, Targets has no Exercise adjustment row, and
+`exerciseInRange` is `None` for them even if a value was stored before they
+answered. Tying food to exercise is the compensation pattern the handoff keeps
+out (no manual exercise logging, never "earn" or "burn it off"), so for this
+person the design's own rule ("a quiet day never lowers it") is not enough.
+
+**The math** (`Targets.today(adjustment, movementKcal, workoutKcal)`, in
+`:libraries:nutrition`):
+- activity = max(0, movement) + max(0, workouts); All adds all of it, Some adds
+  `EXERCISE_SOME_SHARE` (0.5) of it, None adds 0.
+- capped at `EXERCISE_CAP_KCAL` (1,000). Both constants carry
+  `TODO(clinician)`: an engineer picked them. The cap stops one bad watch
+  reading (a 5,000 kcal glitch) from moving the range absurdly, and sits above
+  a normal active day so ordinary movement is not clipped.
+- the result is added to the target and both ends, never subtracted. The
+  base is the floor, so whatever the watch says, today's range is at least the
+  base range. Tomorrow always starts from the base (`Targets.tomorrow()`).
+
+**Where it applies.** `todayRange(settings, day, today, expended)` in
+`:features:today:impl` is the one place Today and Day close ask. Activity
+counts only when all hold: the day is today, `expended` is non-null (the view
+model passes null unless the flag is on and the store is connected), and the
+day is not left out of the math (untracked). Movement is
+`EnergyExpended.movementKcal`, workouts `workoutKcal`, rounded.
+
+**Where it shows** (v3): Today's "Your range" and Day close's range line move
+up; no extra caption, as `today-full.png` has none. Targets gets the
+`targets.png` row, `Exercise adjustment` with the choice under it ("No",
+"Some of it", "All of it"), opening this page; shown when the flag is on, the
+store is connected, the person is not `hard`, and the Targets amounts are
+visible. The Targets steppers keep showing the base range: that is what the
+person sets.
+
+**Visibility.** The question carries no numbers, so it shows in every mode.
+The range is the Calories metric and resolves as before. When energy out is
+hidden but calories shown, the range still moves (the person asked for it);
+nothing says by how much, so no energy-out amount is rendered.
+
+### Days left out of the math
+
+**What they are.** The days marked untracked (`Day.untracked`, Today's day
+menu "Mark as untracked"). The app already leaves those out of every average
+and count on Trends (`Day.countsInTrends`, `WeekAverages`, the recap, Meal
+patterns), and Today has no hero card on them. This pass adds the third piece
+of "the math": an untracked day gets no exercise in its range. So this card is
+a list of, and a way to pick, those days. One concept, one stored field, no
+second list that could disagree with Trends.
+
+**The card** (v3 `integrations--full.png`): title, one row per day left out
+in the last 90 days (Trends' longest span; older days are in no math), newest
+first, `Sun, Oct 18` with the day's note muted at the end ("Family visit" is
+the note Day close saved). Then `Leave out another day` (or `Leave out a day`
+with none, above the line `None yet. A day you leave out doesn't count in your
+averages.`). Shown whether or not a store is connected, because Trends uses it
+either way.
+
+**The sheet.** `LeaveOutDayRoute()`, `bottomSheet<>` in settings, its own
+`LeaveOutViewModel`. A `MonthGrid` (Sunday first, as Today's calendar), days
+from 89 days ago to today enabled, left-out days drawn selected. Tapping a day
+leaves it out, tapping a left-out day counts it again
+(`DiaryRepository.setUntracked`), and the sheet stays open; `Done` closes it.
+Future days can't be picked: nothing has happened on them to leave out, and
+Today's day menu already offers it for tomorrow if wanted.
+
+```kotlin
+data class LeaveOutState(
+    val month: LocalDate, val title: String,
+    val cells: List<LeaveOutCell?>, val canGoPrev: Boolean, val canGoNext: Boolean,
+)
+data class LeaveOutCell(val date: LocalDate, val leftOut: Boolean, val isToday: Boolean, val enabled: Boolean)
+```
+Actions: `DaysArrived(month, leftOut)`, `PrevMonthTapped`, `NextMonthTapped`,
+`DayTapped(date)`, `DoneTapped`. Event: `Dismiss`.
+
+### Integrations state, second pass
+
+```kotlin
+data class IntegrationsState(
+    ...,
+    val exercise: ExerciseQuestion? = null,   // connected and not `hard`
+    val leftOut: LeftOutCard = LeftOutCard(emptyList()),
+)
+data class ExerciseQuestion(val selected: ExerciseAdjustment)
+data class LeftOutCard(val days: List<LeftOutDay>)
+data class LeftOutDay(val date: LocalDate, val label: String, val note: String?)
+```
+Inputs gain `settings` and `untracked: List<Day>` (from
+`observeDays(today - 89, today)`, filtered). New actions:
+`ExercisePicked(choice)` (writes `exerciseRange`; ignored for `hard`),
+`LeaveOutDayTapped` (event `OpenLeaveOut`). Order on the page as v3: source,
+Expended today, the question, days left out, the privacy footer.
+
+### Copy, second pass (v3 verbatim where it has it)
+- `Should exercise change your range?`; `No` / `Your range stays the same however much you move.`;
+  `Some of it` / `Half of your movement and workouts is added.`; `All of it` /
+  `All of your watch's active energy is added.`; `Your range only ever goes up for movement. A quiet day never lowers it.`
+- `Days left out of the math`; `Leave out another day`; `Leave out a day`;
+  `None yet. A day you leave out doesn't count in your averages.`
+- Sheet: `Leave out a day`; `Tap a day to leave it out of your averages. Tap it again to count it.`;
+  `Done`; cell description `%1$s, left out`.
+- Targets: `Exercise adjustment` (in `strings_settings.xml`, prefix `settings_`).
+
+### Tests, second pass
+- `TargetsTest` / `ExerciseRangeTest` (property style over a grid of base
+  ranges, readings including negatives and huge values, every choice): never
+  below the base, never more than the cap above it, None adds 0, Some is half
+  of All before the cap, tomorrow unchanged.
+- `SettingsTest`: `exerciseRange` round trip, missing key is null, unknown
+  value is `none`, `exerciseInRange` is None for `hard` and for unanswered.
+- `todayRange` tests: zero activity when not connected (null), a past day, an
+  untracked day, `hard`; moves with Some and All.
+- `IntegrationsStateBuilderTest`: question hidden when not connected and for
+  `hard`; selected reflects the setting (null is None); left-out rows newest
+  first with notes; empty card. Across Full, Blind, Fuel, Delayed.
+- `IntegrationsViewModelTest`: `ExercisePicked` writes, ignored for `hard`;
+  `LeaveOutDayTapped` sends `OpenLeaveOut`.
+- `LeaveOutViewModelTest`: tap leaves out, tap again counts it, out-of-window
+  and future taps do nothing, month arrows stop at the window, Done dismisses.
+- `TargetsStateBuilderTest`/`TargetsViewModelTest`: the row only with flag on,
+  connected, not `hard`, calories shown; tapping it opens Integrations.
+- `TodayStateBuilderTest` / `DayCloseStateBuilderTest`: range moves with
+  Some/All, not for `hard`, not without energy.
+- Leak test: `today-exercise` (Today, All of it, with energy) and
+  `integrations-leave-out` (the sheet, no amounts) in `SURFACES` and
+  `REQUIRED_SURFACES`; `today-exercise` also in `ENERGY_OUT_SURFACES`.
+- Previews: Integrations connected with breakdown and each choice (No, Some,
+  All), with left-out days, Blind, dark, numbers-have-been-hard (no question);
+  the sheet light and dark; Targets with the row; Today with Some of it.
