@@ -39,6 +39,7 @@ import com.opson.server.routes.waitlistRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.routing
+import kotlin.time.Clock
 import org.slf4j.LoggerFactory
 
 /**
@@ -95,7 +96,7 @@ fun Application.module(config: ServerConfig) {
     } else {
         logger.info("ANTHROPIC_API_KEY not set — photo estimates answer 503 unavailable.")
     }
-    val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources) }
+    val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources, Clock.System) }
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
     // mode simply runs without it — same null-safe degradation as everything
     // else here.

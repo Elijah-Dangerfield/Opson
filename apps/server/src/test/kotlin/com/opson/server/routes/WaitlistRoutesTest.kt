@@ -21,6 +21,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlin.time.Clock
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.selectAll
 import org.junit.After
@@ -189,7 +190,7 @@ class WaitlistRoutesTest : DatabaseTest() {
     }
 
     private fun waitlistApp(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig())
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
         application {
             installApp(component, verification = null, waitlistConfig = WaitlistConfig(setOf(site)))
         }

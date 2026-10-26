@@ -188,10 +188,10 @@ class DiarySyncer(
     private suspend fun runSync(): Result<Unit> {
         val user = activeUser.user.value
         if (user is ActiveUser.SignedIn && user.userId == stoppedFor) return Result.success(Unit)
-        return Catching { drain(user) }
+        return Catching { drain() }
     }
 
-    private suspend fun drain(user: ActiveUser) {
+    private suspend fun drain() {
         var cursor = tables.syncState.get()?.cursor ?: 0L
         var previousKeys: List<String>? = null
         var outcome = DrainOutcome.BudgetSpent
@@ -222,6 +222,12 @@ class DiarySyncer(
             }
         }
 
+        // Whose pull this was is read now, not when the sync started: the
+        // coordinator that starts the first sync after a sign-in and the
+        // active-user source follow auth separately, so at the start the source
+        // can still be on the state before it. A user change mid-sync cancels
+        // the sync before the next user is announced, so this is never them.
+        val user = activeUser.user.value
         if (pullComplete && user is ActiveUser.SignedIn && settingsStore.markPulled(user.userId, pulledSettings)) {
             requestSync()
         }
