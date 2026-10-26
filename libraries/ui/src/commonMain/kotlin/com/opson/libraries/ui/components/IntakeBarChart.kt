@@ -31,13 +31,18 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /**
  * One bar in an [IntakeBarChart]. [fraction] is the bar's height over the
  * chart's scale, worked out by the screen's builder; `null` is an untracked day
- * and draws as a gap, not a zero.
+ * and draws as a gap, not a zero. [isCurrent] marks the day or week still in
+ * progress: it draws striped, so a part-day is never read as a small one.
  */
 data class IntakeBar(val label: String, val fraction: Float?, val isCurrent: Boolean = false)
 
 /**
  * The Trends intake chart: one bar per day or week, the user's range as a
  * shaded band behind them, and short labels underneath.
+ *
+ * Every bar is the same colour, inside the band or out of it (design v3): a
+ * colour that changed with the amount would mean over or under. The bar still
+ * in progress is striped and its label bold.
  *
  * Deliberately not the template's `BarChart`, which this would otherwise
  * extend: that one draws a numeric axis from a value formatter, and a calorie
@@ -51,9 +56,8 @@ fun IntakeBarChart(
     bars: List<IntakeBar>,
     band: ClosedFloatingPointRange<Float>?,
     modifier: Modifier = Modifier,
-    chartHeight: Dp = 150.dp,
-    barColor: ColorResource = AppTheme.colors.fill,
-    currentBarColor: ColorResource = AppTheme.colors.nutrients.fat.content,
+    chartHeight: Dp = 130.dp,
+    barColor: ColorResource = AppTheme.colors.accent,
     bandColor: ColorResource = AppTheme.colors.soft,
 ) {
     if (bars.isEmpty()) return
@@ -90,7 +94,7 @@ fun IntakeBarChart(
                                 .fillMaxHeight(fraction)
                                 .heightIn(min = MIN_BAR_HEIGHT)
                                 .clip(BarShape)
-                                .background(if (bar.isCurrent) currentBarColor else barColor),
+                                .then(if (bar.isCurrent) Modifier.stripes(barColor) else Modifier.background(barColor)),
                         )
                     }
                 }
@@ -100,8 +104,8 @@ fun IntakeBarChart(
             bars.forEach { bar ->
                 Text(
                     text = bar.label,
-                    typography = AppTheme.type.caption,
-                    color = AppTheme.colors.muted,
+                    typography = if (bar.isCurrent) AppTheme.type.secondaryStrong.Bold else AppTheme.type.secondary,
+                    color = if (bar.isCurrent) AppTheme.colors.ink else AppTheme.colors.muted,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
@@ -111,17 +115,34 @@ fun IntakeBarChart(
     }
 }
 
+/** Diagonal stripes in two light shades of [color]: "still in progress". */
+private fun Modifier.stripes(color: ColorResource): Modifier = drawBehind {
+    drawRect(color.color.copy(alpha = STRIPE_BASE_ALPHA))
+    val step = STRIPE_STEP.toPx()
+    val stroke = STRIPE_WIDTH.toPx()
+    val stripe = color.color.copy(alpha = STRIPE_ALPHA)
+    var x = -size.height
+    while (x < size.width) {
+        drawLine(stripe, Offset(x, size.height), Offset(x + size.height, 0f), strokeWidth = stroke)
+        x += step
+    }
+}
+
 private val BAR_GAP = 8.dp
 private val MAX_BAR_WIDTH = 30.dp
 private val MIN_BAR_HEIGHT = 2.dp
 private val BAND_RADIUS = 4.dp
+private val STRIPE_STEP = 10.dp
+private val STRIPE_WIDTH = 4.dp
+private const val STRIPE_BASE_ALPHA = 0.3f
+private const val STRIPE_ALPHA = 0.22f
 private val BarShape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
 
 @Preview(widthDp = 390)
 @Composable
 private fun IntakeBarChartPreview() {
     // The prototype week, Oct 19 to 25 over a 3,200 scale, with Thursday untracked.
-    val week = listOf("Mo" to 2050f, "Tu" to 1980f, "We" to 2240f, "Th" to null, "Fr" to 2410f, "Sa" to 2160f, "Su" to 1245f)
+    val week = listOf("Mon" to 2050f, "Tue" to 1980f, "Wed" to 2240f, "Thu" to null, "Fri" to 2410f, "Sat" to 2160f, "Sun" to 1245f)
     PreviewLightDark {
         IntakeBarChart(
             bars = week.mapIndexed { index, (label, kcal) ->

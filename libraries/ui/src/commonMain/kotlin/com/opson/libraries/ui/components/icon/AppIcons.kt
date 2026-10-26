@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.EventRepeat
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Palette
@@ -212,6 +213,9 @@ object AppIcons {
     val TrendingDown get() = icon("trending_down", MaterialIcons.AutoMirrored.Rounded.TrendingDown)
     val EventRepeat get() = icon("event_repeat", MaterialIcons.Rounded.EventRepeat)
 
+    /** A calendar with a check: Coast's weekly check on Trends. */
+    val EventAvailable get() = icon("event_available", MaterialIcons.Rounded.EventAvailable)
+
     // Misc
     val Star get() = icon("star", MaterialIcons.Rounded.Star)
     val Favorite get() = icon("favorite", MaterialIcons.Rounded.Favorite)
@@ -244,7 +248,7 @@ object AppIcons {
             SearchOff, Cancel, ArrowBack, ExpandMore,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
             Visibility, BlurOn, Mail, Group, LockOutlined,
-            OpenInNew, Target, Palette, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat,
+            OpenInNew, Target, Palette, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
             Star, Favorite, Bolt, Science, FormatListBulleted,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart,
         )

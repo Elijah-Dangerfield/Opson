@@ -158,9 +158,10 @@ fun CountChip(
 }
 
 /**
- * A bar on the hero with a range drawn as a dashed box (design v3 "the dashed box marks your
- * range"). [fill], [rangeStart] and [rangeEnd] are fractions of the bar; the fill stops at the
- * end, so going past the range shows nothing new. 14 tall track, 18 tall box.
+ * A bar with a range drawn as a dashed box (design v3 "the dashed box marks your range"), on the
+ * hero by default. [fill], [rangeStart] and [rangeEnd] are fractions of the bar; the fill stops at
+ * the end, so going past the range shows nothing new. 14 tall track, 18 tall box. Nutrients detail
+ * draws it on a white card with [RangeBarDefaults.onSurface].
  */
 @Composable
 fun RangeBar(
@@ -168,10 +169,11 @@ fun RangeBar(
     rangeStart: Float,
     rangeEnd: Float,
     modifier: Modifier = Modifier,
+    colors: RangeBarColors = RangeBarDefaults.onHero(),
 ) {
-    val track = AppTheme.colors.onHero.withAlpha(RANGE_TRACK_ALPHA).color
-    val fillColor = AppTheme.colors.onHero.color
-    val boxColor = AppTheme.colors.onHero.withAlpha(RANGE_BOX_ALPHA).color
+    val track = colors.track.color
+    val fillColor = colors.fill.color
+    val boxColor = colors.box.color
     val dash = remember { PathEffect.dashPathEffect(floatArrayOf(DASH, DASH)) }
     Box(
         modifier = modifier
@@ -198,6 +200,27 @@ fun RangeBar(
                     )
                 }
             },
+    )
+}
+
+/** The three colours of a [RangeBar]. */
+data class RangeBarColors(val track: ColorResource, val fill: ColorResource, val box: ColorResource)
+
+object RangeBarDefaults {
+    /** White on the hero colour, as Today's summary. */
+    @Composable
+    fun onHero(): RangeBarColors = RangeBarColors(
+        track = AppTheme.colors.onHero.withAlpha(RANGE_TRACK_ALPHA),
+        fill = AppTheme.colors.onHero,
+        box = AppTheme.colors.onHero.withAlpha(RANGE_BOX_ALPHA),
+    )
+
+    /** Ink on a white card: the energy row on Nutrients detail. */
+    @Composable
+    fun onSurface(): RangeBarColors = RangeBarColors(
+        track = AppTheme.colors.track,
+        fill = AppTheme.colors.ink,
+        box = AppTheme.colors.accent,
     )
 }
 
