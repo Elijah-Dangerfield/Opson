@@ -31,6 +31,8 @@ import com.opson.system.thenIf
 import com.opson.system.typography.TypographyResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.opson.libraries.ui.system.minTouchTarget
+import com.opson.libraries.ui.components.barFill
+import androidx.compose.ui.draw.drawBehind
 
 /** The handoff's flat button fills. None of them is a warning colour: deleting is [Accent], not red. */
 enum class FlatButtonTone {
@@ -46,8 +48,14 @@ enum class FlatButtonTone {
     /** Ink fill, page-colour text: the one strong action in a sheet ("Show them"). */
     Ink,
 
-    /** Accent fill ("Delete" after the confirm). */
+    /** Accent fill ("Keep things as they are", the safe choice). */
     Accent,
+
+    /** No fill, ink text: a dialog's other choice ("Delete", "Cancel"). */
+    Text,
+
+    /** No fill, accent text: a dialog's safe choice ("Keep my data", "OK"). */
+    AccentText,
 }
 
 /**
@@ -55,8 +63,11 @@ enum class FlatButtonTone {
  * text left-aligned like a list link unless [centered].
  *
  * [enabled] false draws the track fill with muted text and ignores taps (the pause sheet's
- * "Opens in 7s"). [dimmed] is for a button that should look unavailable but still answer a tap
- * so it can explain itself, as Lower does at the energy floor: transparent fill, muted text.
+ * "Show calories in 0:07"). [dimmed] is for a button that should look unavailable but still
+ * answer a tap so it can explain itself: transparent fill, muted text.
+ *
+ * [progress], 0 to 1, fills the button from the start edge a shade darker, behind the text:
+ * the pause sheet's wait filling in as it counts down.
  */
 @Composable
 fun FlatButton(
@@ -71,6 +82,7 @@ fun FlatButton(
     shape: Shape = AppTheme.shapes.inputLarge,
     minHeight: Dp = FlatButtonDefaults.MinHeight,
     typography: TypographyResource = AppTheme.type.menuItem,
+    progress: Float? = null,
 ) {
     val colors = AppTheme.colors
     val (container, content) = when {
@@ -81,8 +93,12 @@ fun FlatButton(
             FlatButtonTone.Outlined -> null to colors.ink
             FlatButtonTone.Ink -> colors.ink to colors.bg
             FlatButtonTone.Accent -> colors.accent to colors.onAccent
+            FlatButtonTone.Text -> null to colors.ink
+            FlatButtonTone.AccentText -> null to colors.accent
         }
     }
+    // A shade darker than the track it fills, whatever the theme.
+    val fillColor = colors.ink.color.copy(alpha = 0.07f)
     val bordered = tone == FlatButtonTone.Outlined || tone == FlatButtonTone.SoftOutlined
     Row(
         modifier = modifier
@@ -90,6 +106,9 @@ fun FlatButton(
             .defaultMinSize(minHeight = minHeight)
             .clip(shape)
             .thenIf(container != null) { background(container!!) }
+            .thenIf(progress != null) {
+                drawBehind { drawRect(fillColor, size = size.copy(width = size.width * barFill(progress!!))) }
+            }
             .thenIf(bordered) { border(1.dp, colors.line.color, shape) }
             .semantics {
                 role = Role.Button
@@ -183,6 +202,18 @@ private fun FlatButtonPreview() {
                 modifier = Modifier.fillMaxWidth(),
             )
             FlatButton(text = "Delete", onClick = {}, tone = FlatButtonTone.Accent, centered = true)
+            FlatButton(
+                text = "Show calories in 0:07",
+                onClick = {},
+                centered = true,
+                enabled = false,
+                progress = 0.3f,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row {
+                FlatButton(text = "Keep my data", onClick = {}, tone = FlatButtonTone.AccentText)
+                FlatButton(text = "Delete", onClick = {}, tone = FlatButtonTone.Text)
+            }
         }
     }
 }

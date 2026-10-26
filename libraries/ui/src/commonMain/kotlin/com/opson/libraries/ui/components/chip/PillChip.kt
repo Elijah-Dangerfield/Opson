@@ -40,10 +40,19 @@ enum class PillChipSize(internal val padding: PaddingValues, internal val minHei
     Compact(PaddingValues(horizontal = 13.dp, vertical = 7.dp), 40.dp),
 }
 
+/** How a selected [PillChip] looks. */
+enum class PillChipStyle {
+    /** Solid accent, on-accent text. */
+    Solid,
+
+    /** Accent tint with a check and accent text, and a transparent, outlined unselected chip (v3 pause sheet). */
+    Tint,
+}
+
 /**
  * A selectable pill (meal chips, unit chips, hunger and mood chips). Selected is solid accent
  * with on-accent text; unselected is surface with a 1dp line border and ink text. Pass
- * `role = Role.Checkbox` for a multi-select group such as mood.
+ * `role = Role.Checkbox` for a multi-select group such as mood. [style] picks the selected look.
  */
 @Composable
 fun PillChip(
@@ -54,11 +63,22 @@ fun PillChip(
     size: PillChipSize = PillChipSize.Regular,
     enabled: Boolean = true,
     role: Role = Role.RadioButton,
+    style: PillChipStyle = PillChipStyle.Solid,
 ) {
     val colors = AppTheme.colors
-    val container = if (selected) colors.accent else colors.surface
-    val border = if (selected) colors.accent else colors.line
-    val content = if (selected) colors.onAccent else colors.ink
+    val tint = style == PillChipStyle.Tint
+    val container = when {
+        selected -> if (tint) colors.accentTint else colors.accent
+        else -> if (tint) colors.bg else colors.surface
+    }
+    val border = when {
+        selected -> if (tint) colors.accentTint else colors.accent
+        else -> colors.line
+    }
+    val content = when {
+        selected -> if (tint) colors.accent else colors.onAccent
+        else -> colors.ink
+    }
     val typography = when (size) {
         PillChipSize.Regular -> AppTheme.type.secondaryStrong
         PillChipSize.Compact -> AppTheme.type.secondarySmallStrong
@@ -73,7 +93,9 @@ fun PillChip(
             .selectable(selected = selected, enabled = enabled, role = role, onClick = onClick)
             .padding(size.padding),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        if (tint && selected) Icon(icon = AppIcons.Check, size = 18.dp, color = content)
         Text(text = label, typography = typography, color = content, maxLines = 1)
     }
 }
