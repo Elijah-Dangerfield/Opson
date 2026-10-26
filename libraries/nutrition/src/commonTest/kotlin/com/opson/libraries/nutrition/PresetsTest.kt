@@ -93,7 +93,7 @@ class PresetsTest {
                 PresetId.Nutrient to TodayLayout.Full,
                 PresetId.Rhythm to TodayLayout.Rhythm,
                 PresetId.Explorer to TodayLayout.Explorer,
-                PresetId.Mindful to TodayLayout.Meals,
+                PresetId.Mindful to TodayLayout.Journal,
                 PresetId.Fuel to TodayLayout.Full,
                 PresetId.Sprint to TodayLayout.Full,
                 PresetId.Coast to TodayLayout.Meals,

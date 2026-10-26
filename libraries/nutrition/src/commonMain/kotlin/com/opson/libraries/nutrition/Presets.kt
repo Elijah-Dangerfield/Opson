@@ -1,7 +1,10 @@
 package com.opson.libraries.nutrition
 
-/** Which Today layout a preset uses. Screens pick a layout from this, never from the preset id. */
-enum class TodayLayout { Full, Meals, Rhythm, Explorer }
+/**
+ * Which Today layout a preset uses. Screens pick a layout from this, never from the preset id.
+ * [Journal] is Mindful's (design v3, 2.9): meals as foods and how they felt, with no tiles.
+ */
+enum class TodayLayout { Full, Meals, Rhythm, Explorer, Journal }
 
 /** When delayed numbers open. `null` on a preset behaves as [DayClose]. */
 enum class RevealOn { DayClose, Week }
@@ -100,7 +103,7 @@ object Presets {
 
     val Mindful = ModePreset(
         id = PresetId.Mindful,
-        today = TodayLayout.Meals,
+        today = TodayLayout.Journal,
         banner = true,
         vis = gentle(fill(Visibility.Hide)),
     )
