@@ -250,7 +250,7 @@ object LoggerStateBuilder {
         val ordered = { picks: List<FoodPick> -> sorted(picks, sort, recency) }
         val filter = searchFilterFor(inputs.settings, choices)
         return when (choices.tab) {
-            SearchTab.Favorites -> own(SearchTab.Favorites, query, ordered(inputs.favorites.mapNotNull { it.toPick(PickSource.Favorite) }))
+            SearchTab.Favorites -> own(SearchTab.Favorites, query, ordered(favoritePicks(inputs)))
             SearchTab.Custom -> own(SearchTab.Custom, query, ordered(inputs.customFoods.map { it.toPick() }))
             SearchTab.Common, SearchTab.Restaurant, SearchTab.Beverages ->
                 if (query.isEmpty()) Listing.Hint(choices.tab) else catalogMatches(query, choices.search, filter, emptyList(), ordered)
@@ -312,6 +312,19 @@ object LoggerStateBuilder {
         // A food already under "Usual at dinner" is not repeated under Recent.
         val recent = inputs.recent.mapNotNull { it.toPick(PickSource.Recent) }.filterNot { it.key in usualKeys }
         return Listing.Browse(usual = usual, recent = recent)
+    }
+
+    /**
+     * The foods starred on the amount sheet, newest star first, then the ones logged most. A star
+     * is found wherever the device already has the food: the diary, the catalog cache or the
+     * person's own foods; one it cannot find yet waits until it can.
+     */
+    private fun favoritePicks(inputs: LoggerInputs): List<FoodPick> {
+        val logged = (inputs.favorites + inputs.history + inputs.recent).mapNotNull { it.toPick(PickSource.Favorite) }.associateBy { it.key }
+        val cached = inputs.known.values.map { it.toPick().copy(source = PickSource.Favorite) }.associateBy { it.key }
+        val own = inputs.customFoods.map { it.toPick().copy(source = PickSource.Favorite) }.associateBy { it.key }
+        val starred = inputs.settings.favoriteFoods.mapNotNull { key -> logged[key] ?: cached[key] ?: own[key] }
+        return (starred + inputs.favorites.mapNotNull { it.toPick(PickSource.Favorite) }).distinctBy { it.key }
     }
 
     private fun history(inputs: LoggerInputs): List<FoodPick> = inputs.history.mapNotNull { it.toPick(PickSource.Recent) }
