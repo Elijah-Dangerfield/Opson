@@ -39,7 +39,6 @@
 
     <!-- Trends -->
     <string name="trends_title">Trends</string>
-    <string name="trends_placeholder">How your weeks go will show up here.</string>
 
     <!-- Bug report -->
     <string name="bug_report_title">Report a Bug</string>
