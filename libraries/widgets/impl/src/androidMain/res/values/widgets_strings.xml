@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android-only widget copy: Glance draws outside Compose Multiplatform's resources, and before the
+  app has written a snapshot there is nothing else to say. Everything a widget shows once the app
+  has run comes from the snapshot (strings_widgets.xml).
+-->
+<resources>
+    <string name="widgets_android_fallback">Open Opson to start.</string>
+</resources>

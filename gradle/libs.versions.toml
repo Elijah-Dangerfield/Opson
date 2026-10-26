@@ -17,6 +17,8 @@ androidx-testExt = "1.3.0"
 androidx-work = "2.9.1"
 # Health Connect. 1.1.0 needs minSdk 26; libraries/health/impl's manifest overrides it (Health Connect only exists from Android 9).
 androidx-health-connect = "1.1.0"
+# Home screen widgets (0.2). glance-preview is Glance's own @Preview, not Compose's.
+androidx-glance = "1.1.1"
 atomicfu = "0.29.0"
 composeMultiplatform = "1.9.3"
 compottie="2.0.2"
@@ -144,6 +146,9 @@ androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-p
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "androidx-work" }
 androidx-health-connect = { module = "androidx.health.connect:connect-client", version.ref = "androidx-health-connect" }
+androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "androidx-glance" }
+androidx-glance-preview = { module = "androidx.glance:glance-preview", version.ref = "androidx-glance" }
+androidx-glance-appwidget-preview = { module = "androidx.glance:glance-appwidget-preview", version.ref = "androidx-glance" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 ktor-serverCore = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
