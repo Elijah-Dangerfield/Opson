@@ -38,7 +38,7 @@ import kotlin.time.ExperimentalTime
  * Boot once at startup with the runtime [Database]:
  *
  * ```
- * val component = ServerComponent::class.create(database)
+ * val component = ServerComponent::class.create(database, supabaseConfig, foodSourcesConfig, Clock.System)
  * routing { meRoutes(component.profileRepository) }
  * ```
  *
@@ -61,6 +61,12 @@ abstract class ServerComponent(
     @get:Provides val supabaseConfig: SupabaseConfig? = null,
     /** Which outside food sources a barcode miss may ask (default: Open Food Facts only), and the photo estimate provider. */
     @get:Provides val foodSourcesConfig: FoodSourcesConfig = FoodSourcesConfig(),
+    /**
+     * Wall-clock source, one for the whole graph so every component sees the
+     * same "now". Production never passes it; the end-to-end suite does, to
+     * step past time-based caches without waiting.
+     */
+    @get:Provides val clock: Clock = Clock.System,
 ) {
     abstract val exampleSource: ExampleSource
     abstract val profileRepository: ProfileRepository
@@ -80,14 +86,6 @@ abstract class ServerComponent(
     abstract val exportRepository: ExportRepository
     abstract val waitlistRepository: WaitlistRepository
     abstract val waitlistLimiter: WaitlistLimiter
-    abstract val clock: Clock
-
-    /**
-     * Wall-clock source. Singleton so every component sees the same "now".
-     * Tests pass a fixed clock to the class under test directly.
-     */
-    @Provides
-    fun provideClock(): Clock = Clock.System
 
     /**
      * Long-lived application scope for server-owned background work (e.g. the

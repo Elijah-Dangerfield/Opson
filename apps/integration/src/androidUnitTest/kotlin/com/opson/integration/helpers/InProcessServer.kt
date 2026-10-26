@@ -47,6 +47,9 @@ import java.util.UUID
  */
 class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
 
+    /** The server's clock: real time until a test steps it, e.g. past the app-config cache. */
+    val clock = TestClock()
+
     val upstreams = FakeUpstreams(deleteAuthUser = { id -> sql("DELETE FROM auth.users WHERE id = ?::uuid", id) })
 
     private val engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =
@@ -59,6 +62,7 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
                         anthropic = if (photoEstimates) AnthropicConfig(apiKey = "integration", baseUrl = upstreams.baseUrl) else null,
                         openFoodFactsUrl = upstreams.baseUrl,
                     ),
+                    clock,
                 ),
                 verification = IntegrationAuth.verification,
                 adminConfig = AdminConfig(apiToken = ADMIN_TOKEN),

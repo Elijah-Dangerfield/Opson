@@ -18,6 +18,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
+import kotlin.time.Clock
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.deleteAll
@@ -50,7 +51,7 @@ class FullStackMeTest : DatabaseTest() {
     @Test
     fun getMe_createsAndReturnsProfile_throughRealGraph() = runTest {
         val userId = seedAuthUser()
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig())
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
 
         testApplication {
             application { installApp(component, JwtVerification.Static(verifier)) }

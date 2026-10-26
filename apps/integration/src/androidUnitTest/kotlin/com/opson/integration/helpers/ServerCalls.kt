@@ -1,5 +1,6 @@
 package com.opson.integration.helpers
 
+import io.ktor.client.request.delete
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.put
@@ -46,6 +47,14 @@ suspend fun Harness.setFlagFor(
         }.toString(),
     )
     return ruleId
+}
+
+/** Removes a rule [setFlagFor] added, so the flag falls back to its base value for that user. */
+suspend fun Harness.removeFlagRule(ruleId: String) {
+    val response = http.delete("${server.baseUrl}/v1/admin/config/rules/$ruleId") {
+        header("X-Admin-Token", InProcessServer.ADMIN_TOKEN)
+    }
+    check(response.status.isSuccess()) { "admin DELETE rule answered ${response.status}" }
 }
 
 private suspend fun Harness.adminPut(path: String, body: String) {
