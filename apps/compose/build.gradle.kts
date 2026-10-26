@@ -98,7 +98,6 @@ kotlin {
             implementation(projects.libraries.opson.storage)
             implementation(projects.libraries.config)
             implementation(projects.libraries.config.impl)
-            implementation(projects.libraries.opson.storage)
             implementation(projects.libraries.networking)
             implementation(projects.libraries.networking.impl)
             implementation(projects.libraries.telemetry.impl)
@@ -140,6 +139,10 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+        }
+
+        commonTest.dependencies {
+            implementation(projects.libraries.flowroutines.testing)
         }
     }
 }
