@@ -51,6 +51,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * card. Once there is text it takes an accent outline and, with [onClear], a
  * clear button. [trailing] is for a button inside the empty bar (the barcode
  * button, once scanning ships); the clear button replaces it while typing.
+ * [action] sits at the very end and stays while typing (the search options
+ * button), since what it changes applies to the results being typed for.
  *
  * [focusOnOpen] asks for the keyboard the first time the field composes, for
  * "Log something new" opening straight into search.
@@ -65,6 +67,7 @@ fun SearchField(
     onClear: (() -> Unit)? = null,
     clearDescription: String? = null,
     trailing: (@Composable () -> Unit)? = null,
+    action: (@Composable () -> Unit)? = null,
 ) {
     val focusRequester = remember { FocusRequester() }
     val inPreview = LocalInspectionMode.current
@@ -118,6 +121,7 @@ fun SearchField(
                     }
                     !typing -> trailing?.invoke()
                 }
+                action?.invoke()
             }
         },
     )
@@ -166,6 +170,13 @@ private fun SearchFieldPreview() {
             var query by remember { mutableStateOf("") }
             SearchField(value = query, onValueChange = { query = it }, placeholder = "Search for a food")
             SearchField(value = "banana", onValueChange = {}, placeholder = "Search for a food", onClear = {})
+            SearchField(
+                value = "banana",
+                onValueChange = {},
+                placeholder = "Search for a food",
+                onClear = {},
+                action = { Icon(icon = AppIcons.Tune, size = 24.dp, color = AppTheme.colors.ink) },
+            )
             SingleLineField(value = "", onValueChange = {}, placeholder = "2 eggs and toast")
         }
     }
