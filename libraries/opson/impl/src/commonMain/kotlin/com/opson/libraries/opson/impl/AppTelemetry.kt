@@ -35,10 +35,6 @@ class AppTelemetry : Telemetry by ConfiguredTelemetry(
     configProvider = { SentryRuntimeConfig.forApp(BuildInfo) }
 )
 
-class IosExtensionTelemetry(
-    private val configProvider: () -> SentryRuntimeConfig = { SentryRuntimeConfig.forIosExtension(BuildInfo) }
-) : Telemetry by ConfiguredTelemetry(configProvider)
-
 private class ConfiguredTelemetry(
     private val configProvider: () -> SentryRuntimeConfig
 ) : Telemetry {
@@ -398,21 +394,6 @@ data class SentryRuntimeConfig(
                     minBufferLevel = if (buildInfo.isDebug) LogLevel.Verbose else LogLevel.Debug,
                 ),
                 enableAutoSessionTracking = true
-            )
-        }
-
-        fun forIosExtension(buildInfo: BuildInfo): SentryRuntimeConfig {
-            val base = forApp(buildInfo)
-            val environment = "${buildInfo.releaseChannel}-ios-extension-${buildInfo.buildType}"
-            return base.copy(
-                environment = environment,
-                release = base.release + "-extension",
-                tracesSampleRate = if (buildInfo.isDebug) 0.25 else 0.05,
-                logPolicy = LogPolicy(
-                    minBreadcrumbLevel = LogLevel.Info,
-                    minEventLevel = LogLevel.Error
-                ),
-                enableAutoSessionTracking = false
             )
         }
     }
