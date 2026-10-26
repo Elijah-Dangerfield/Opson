@@ -28,9 +28,7 @@ class TelemetryUserBinderTest : CoroutineTest() {
         profile.emit(sample(id = "u1", name = "Alice"))
         runCurrent()
 
-        assertEquals(1, telemetry.setUserCalls.size)
-        assertEquals("u1", telemetry.setUserCalls.single().id)
-        assertEquals("Alice", telemetry.setUserCalls.single().name)
+        assertEquals(listOf<String?>("u1"), telemetry.setUserCalls)
     }
 
     @Test
@@ -45,7 +43,7 @@ class TelemetryUserBinderTest : CoroutineTest() {
         binder.onColdBoot(AppEvent.ColdBoot)
         runCurrent()
 
-        assertEquals("u1", telemetry.setUserCalls.single().id)
+        assertEquals("u1", telemetry.setUserCalls.single())
     }
 
     @Test
@@ -79,7 +77,9 @@ class TelemetryUserBinderTest : CoroutineTest() {
     }
 
     @Test
-    fun displayNameChange_reEmits() = runUnitTest {
+    fun nameAndEmailChanges_doNotReachTelemetry() = runUnitTest {
+        // Only the id is sent; a rename or a newly claimed email is the same
+        // user and must not push personal data to crash reporting.
         val profile = FakeProfile()
         val telemetry = RecordingTelemetry()
         val binder = build(profile, telemetry)
@@ -88,10 +88,10 @@ class TelemetryUserBinderTest : CoroutineTest() {
         binder.onColdBoot(AppEvent.ColdBoot)
         runCurrent()
         profile.emit(sample(id = "u1", name = "Renamed"))
+        profile.emit(sample(id = "u1", name = "Renamed", email = "alice@example.com"))
         runCurrent()
 
-        assertEquals(2, telemetry.setUserCalls.size)
-        assertEquals("Renamed", telemetry.setUserCalls.last().name)
+        assertEquals(listOf<String?>("u1"), telemetry.setUserCalls)
     }
 
     @Test
@@ -107,9 +107,7 @@ class TelemetryUserBinderTest : CoroutineTest() {
         binder.onUserChanged(AppEvent.UserChanged(previous = "u1", current = null))
 
         assertEquals(2, telemetry.setUserCalls.size)
-        val cleared = telemetry.setUserCalls.last()
-        assertNull(cleared.id)
-        assertNull(cleared.name)
+        assertNull(telemetry.setUserCalls.last())
     }
 
     @Test
@@ -126,37 +124,7 @@ class TelemetryUserBinderTest : CoroutineTest() {
         binder.onUserChanged(AppEvent.UserChanged(previous = "u1", current = "u2"))
 
         assertEquals(1, telemetry.setUserCalls.size, "switch must not push a clear call")
-        assertEquals("u1", telemetry.setUserCalls.last().id)
-    }
-
-    @Test
-    fun email_forwardedWhenPresent() = runUnitTest {
-        val profile = FakeProfile()
-        val telemetry = RecordingTelemetry()
-        val binder = build(profile, telemetry)
-
-        profile.emit(sample(id = "u1", name = "Alice", email = "alice@example.com"))
-        binder.onColdBoot(AppEvent.ColdBoot)
-        runCurrent()
-
-        assertEquals("alice@example.com", telemetry.setUserCalls.single().email)
-    }
-
-    @Test
-    fun emailChange_reEmits() = runUnitTest {
-        val profile = FakeProfile()
-        val telemetry = RecordingTelemetry()
-        val binder = build(profile, telemetry)
-
-        profile.emit(sample(id = "u1", name = "Alice", email = null))
-        binder.onColdBoot(AppEvent.ColdBoot)
-        runCurrent()
-        profile.emit(sample(id = "u1", name = "Alice", email = "alice@example.com"))
-        runCurrent()
-
-        assertEquals(2, telemetry.setUserCalls.size)
-        assertNull(telemetry.setUserCalls.first().email)
-        assertEquals("alice@example.com", telemetry.setUserCalls.last().email)
+        assertEquals("u1", telemetry.setUserCalls.last())
     }
 
     @Test
@@ -189,14 +157,12 @@ class TelemetryUserBinderTest : CoroutineTest() {
     )
 
     private class RecordingTelemetry : Telemetry {
-        data class SetUserCall(val email: String?, val name: String?, val id: String?)
-
-        val setUserCalls = mutableListOf<SetUserCall>()
+        val setUserCalls = mutableListOf<String?>()
         val setRouteCalls = mutableListOf<String>()
 
         override fun initialize() = Unit
-        override fun setUser(email: String?, name: String?, id: String?) {
-            setUserCalls += SetUserCall(email, name, id)
+        override fun setUser(id: String?) {
+            setUserCalls += id
         }
 
         override fun setCurrentRoute(route: String) {
