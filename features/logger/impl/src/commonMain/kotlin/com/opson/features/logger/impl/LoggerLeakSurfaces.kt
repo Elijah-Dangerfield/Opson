@@ -31,6 +31,13 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-amount", label = "Add-food sheet", showsCaloriesInFull = true) { policy ->
             AmountSheetContent(state = LoggerFixtures.amountState(policy), onAction = {})
         },
+        LeakSurface(id = "logger-scan-amount", label = "Add-food sheet after a scan", showsCaloriesInFull = true) { policy ->
+            AmountSheetContent(state = LoggerFixtures.scannedAmountState(policy), onAction = {})
+        },
+        // The scanner draws no food data in any stage; the miss is its fullest screen.
+        LeakSurface(id = "logger-scan-miss", label = "Barcode not found", showsCaloriesInFull = false) { _ ->
+            BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed), onAction = {}, viewfinder = {})
+        },
         LeakSurface(id = "logger-how-it-felt", label = "How it felt", showsCaloriesInFull = false) { _ ->
             HowItFeltSheetContent(state = LoggerFixtures.howItFeltState(), onAction = {})
         },

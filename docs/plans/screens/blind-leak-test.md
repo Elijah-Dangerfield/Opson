@@ -124,7 +124,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 15 | Modes and numbers | `modes` | settings | ported | no |
 | 16 | Reminders | `reminders` | settings | 0.2, behind `release.reminders` | no |
 | 17 | Weight | `weight` | trends | ported | no |
-| 18 | Integrations | none | | 0.2, add when built (it shows energyOut) | |
+| 18 | Integrations | `integrations` | settings | 0.2, `integrations.md`; shows energyOut | yes |
 | 19 | Support | `support` | settings | ported | no |
 | 20 | More | `more` | settings | ported | yes |
 | 21 | Widgets and watch | none | | Later | |
@@ -156,6 +156,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `foods-add-food-blind` | foods | v3 11.4; Add a food with no number fields | no |
 | new | | `reminder-notification` | settings | 0.2, v3 7.2; every reminder's text, plain and warm, as the system shows it | no |
 | new | | `today-reminders` | today | 0.2; Rhythm's reminder line (a time, never an amount) | yes |
+| new | | `today-expended` | today | 0.2, `integrations.md`; the Expended so far line | yes |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and

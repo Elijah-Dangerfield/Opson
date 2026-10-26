@@ -86,6 +86,7 @@ import opson.libraries.resources.generated.resources.reminders_rhythm_off
 import opson.libraries.resources.generated.resources.reminders_rhythm_next_body
 import opson.libraries.resources.generated.resources.reminders_rhythm_next
 import opson.libraries.resources.generated.resources.reminders_rhythm_change
+import opson.libraries.resources.generated.resources.integrations_today_expended
 import opson.libraries.resources.generated.resources.today_add_to_cd
 import opson.libraries.resources.generated.resources.today_added_one
 import opson.libraries.resources.generated.resources.today_added_other
@@ -402,6 +403,8 @@ private fun Summary(summary: TodaySummary, dayLabel: RelativeDay, onAction: (Tod
             nutrientsLabel = stringResource(Res.string.today_summary_nutrients),
             onNutrients = { onAction(TodayAction.NutrientsTapped) },
             emptyTitle = if (summary.empty) stringResource(Res.string.today_summary_nothing_yet) else null,
+            expendedLabel = stringResource(Res.string.integrations_today_expended),
+            expended = summary.expended,
         )
         is TodaySummary.Soft -> SoftSummaryCard(
             energyLabel = stringResource(Res.string.today_soft_energy),

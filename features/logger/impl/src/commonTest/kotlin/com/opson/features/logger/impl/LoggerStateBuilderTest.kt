@@ -290,6 +290,21 @@ class LoggerStateBuilderTest {
     }
 
     @Test
+    fun theBarcodeButtonFollowsTheFlagAndStaysOutOfPickMode() {
+        val choices = LoggerChoices(slot = MealSlot.Dinner)
+        val policy = policy(PresetId.Full)
+
+        assertFalse(LoggerStateBuilder.build(inputs(), policy, choices).canScan, "flag off: not rendered, as in 0.1")
+        assertTrue(LoggerStateBuilder.build(inputs(), policy, choices.copy(scanAvailable = true)).canScan)
+        assertFalse(
+            LoggerStateBuilder.build(inputs(), policy, choices.copy(scanAvailable = true, pickingForMeal = true)).canScan,
+            "a meal being put together logs nothing, so it has nothing to scan into",
+        )
+        // Blind changes no part of it: the button carries no number.
+        assertTrue(LoggerStateBuilder.build(inputs(), policy(PresetId.Blind), choices.copy(scanAvailable = true)).canScan)
+    }
+
+    @Test
     fun shortNamesCutAtTheFirstCommaOrBracket() {
         assertEquals("Greek yogurt", shortName("Greek yogurt, plain"))
         assertEquals("Garlic fried rice", shortName("Garlic fried rice (sinangag)"))

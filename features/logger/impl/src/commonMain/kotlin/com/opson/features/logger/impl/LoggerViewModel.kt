@@ -4,7 +4,6 @@ import androidx.lifecycle.viewModelScope
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
 import com.opson.libraries.core.AppState
-import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
@@ -79,6 +78,7 @@ class LoggerViewModel(
     private val appState: AppState,
     private val telemetry: LoggerTelemetry,
     private val mealPicks: MealPicks,
+    scanEnabled: BarcodeScanEnabled,
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
     initialStateArg = LoggerState(focusSearch = route.focusSearch, pane = route.start.pane, pickingForMeal = route.pickForMeal != null),
 ) {
@@ -99,6 +99,7 @@ class LoggerViewModel(
             focusSearch = route.focusSearch,
             focusNumber = route.start == LoggerStart.Number,
             pickingForMeal = route.pickForMeal != null,
+            scanAvailable = scanEnabled(),
         ),
         policy = policySource.policy.value,
     )
@@ -173,6 +174,9 @@ class LoggerViewModel(
             LoggerAction.BackTapped -> back(action)
             LoggerAction.AddToMealTapped -> pickForMeal?.let(::handBack) ?: commit()
             LoggerAction.CloseTapped -> sendEvent(LoggerEvent.Dismiss)
+            LoggerAction.BarcodeTapped -> if (model.choices.scanAvailable && pickForMeal == null) {
+                sendEvent(LoggerEvent.OpenScanner(day, slot()))
+            }
         }
     }
 
@@ -254,21 +258,13 @@ class LoggerViewModel(
         basketStore.toggle(pick.toBasketItem())
     }
 
-    /**
-     * "Save the name only": a custom food with nothing but the name, so it shows
-     * up in search next time, picked as name-only. An existing food by that
-     * name is reused rather than duplicated.
-     */
+    /** "Save the name only" ([pickNameOnly]) for what was typed, then back to an empty search. */
     private suspend fun saveName(action: LoggerAction) {
         val name = when (model.choices.pane) {
             LoggerPane.Describe -> model.choices.describeText
             else -> model.choices.query
         }.trim().ifEmpty { return }
-        val food = model.inputs?.customFoods?.firstOrNull { it.name.equals(name, ignoreCase = true) }
-            ?: customFoods.create(CustomFoodDraft(name = name, servingAmount = 1.0, servingUnit = NAME_ONLY_UNIT))
-        val ref = FoodRef.Custom(food.id)
-        val draft = LogDraft(name = food.name, precision = Precision.Named, customFoodId = food.id, method = PickSource.Name.methodFor(ref))
-        basketStore.upsert(BasketItem(key = ref.key, ref = ref, draft = draft, source = PickSource.Name))
+        pickNameOnly(name, model.inputs?.customFoods.orEmpty(), customFoods, basketStore)
         describeJob?.cancel()
         basketStore.removeWhere { it.source == PickSource.Describe }
         searchJob?.cancel()

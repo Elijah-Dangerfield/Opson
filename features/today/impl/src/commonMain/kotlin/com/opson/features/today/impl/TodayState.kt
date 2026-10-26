@@ -6,6 +6,7 @@ import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.MacroLineStyle
 import com.opson.libraries.nutrition.MacroPart
@@ -80,6 +81,8 @@ sealed interface TodaySummary {
         val rangeStart: Float,
         val rangeEnd: Float,
         val macros: List<MacroTile>,
+        /** Expended so far from a connected health app (0.2): energy out, today only. */
+        val expended: Display = Display.Hidden,
     ) : TodaySummary
 
     /** Calories softened (2.6): meals counted when the mode counts them, the lead macro, the rest as bars. */
@@ -321,6 +324,8 @@ data class TodayInputs(
     val explorer: ExplorerStats? = null,
     /** `release.reminders`: the Rhythm card's reminder line. */
     val remindersOn: Boolean = false,
+    /** Today's energy from a connected health app; null when not connected or `release.health` is off. */
+    val expended: EnergyExpended? = null,
 )
 
 /**

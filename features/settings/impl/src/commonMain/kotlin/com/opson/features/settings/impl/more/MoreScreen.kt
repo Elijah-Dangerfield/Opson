@@ -16,6 +16,9 @@ import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.integrations_more_connected
+import opson.libraries.resources.generated.resources.integrations_more_not_connected
+import opson.libraries.resources.generated.resources.integrations_more_title
 import opson.libraries.resources.generated.resources.reminders_more_quiet_off
 import opson.libraries.resources.generated.resources.reminders_more_quiet_on
 import opson.libraries.resources.generated.resources.reminders_more_row
@@ -109,6 +112,14 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             showDivider = showDivider,
             onClick = onClick,
         )
+        is MoreRow.Health -> SettingsRow(
+            title = stringResource(Res.string.integrations_more_title),
+            icon = AppIcons.Watch,
+            subtitle = stringResource(if (row.connected) Res.string.integrations_more_connected else Res.string.integrations_more_not_connected),
+            chevron = true,
+            showDivider = showDivider,
+            onClick = onClick,
+        )
         is MoreRow.Water -> SettingsRow(
             title = stringResource(Res.string.settings_more_water),
             icon = AppIcons.WaterDropOutline,
@@ -149,6 +160,12 @@ private fun MoreFuelWithAChangeDarkPreview() {
 @Composable
 private fun MoreRemindersPreview() {
     SettingsPreview { MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings(), remindersOn = true), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun MoreWithHealthPreview() {
+    SettingsPreview { MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings(), healthConnected = true), onAction = {}) }
 }
 
 @Preview

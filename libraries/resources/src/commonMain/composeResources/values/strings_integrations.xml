@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Watch and health apps (0.2, behind release.health): the More row, the Integrations page and
+  the Expended so far line on Today. Design v3 integrations.png where it has the copy; the
+  rest per docs/plans/screens/integrations.md.
+  Same rules as strings.xml: no backslash escapes, positional format specifiers.
+-->
+<resources>
+
+    <!-- More -->
+    <string name="integrations_more_title">Watch and health apps</string>
+    <string name="integrations_more_connected">Connected</string>
+    <string name="integrations_more_not_connected">Not connected</string>
+
+    <!-- The page -->
+    <string name="integrations_title">Watch and health apps</string>
+    <string name="integrations_apple_health">Apple Health</string>
+    <string name="integrations_health_connect">Health Connect</string>
+    <string name="integrations_reads">Reads energy and workouts.</string>
+    <string name="integrations_connected">Connected</string>
+    <string name="integrations_connect">Connect</string>
+    <string name="integrations_disconnect">Disconnect</string>
+    <string name="integrations_get_health_connect">Get Health Connect</string>
+    <string name="integrations_open_health_connect">Open Health Connect</string>
+    <string name="integrations_unsupported">Not available on this phone.</string>
+    <string name="integrations_needs_install">Health Connect needs installing or updating first.</string>
+    <string name="integrations_denied_health_connect">Opson can't read anything until you allow it. You can change that in Health Connect.</string>
+    <string name="integrations_denied_apple_health">Opson can't read anything until you allow it. You can change that in the Health app.</string>
+    <string name="integrations_privacy">Health data stays on this phone. Opson doesn't send it anywhere.</string>
+    <string name="integrations_remove_apple_health">To remove access completely, open the Health app, tap your picture, then Apps.</string>
+
+    <!-- Expended today -->
+    <string name="integrations_expended_title">Expended today</string>
+    <string name="integrations_resting">Resting</string>
+    <string name="integrations_movement">Everyday movement</string>
+    <string name="integrations_workouts">Workouts</string>
+    <string name="integrations_total">Total</string>
+    <string name="integrations_empty">Nothing from %1$s yet today.</string>
+    <string name="integrations_hidden">Your mode isn't showing energy numbers right now.</string>
+
+    <!-- Toasts -->
+    <string name="integrations_toast_connected">Connected.</string>
+    <string name="integrations_toast_disconnected">Disconnected.</string>
+
+    <!-- Today -->
+    <string name="integrations_today_expended">Expended so far</string>
+</resources>

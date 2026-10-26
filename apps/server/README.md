@@ -162,6 +162,7 @@ the usual `ProblemResponse`.
 | GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. |
 | GET | `/v1/foods/{id}` | 400 `invalid_id`, 404 `not_found`. |
 | GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. 60/min per IP. |
+| POST | `/v1/foods/barcode-misses` `{id, barcode}` | The app reports a code the barcode route answered 404. 204, idempotent on `id`. Region, platform and app version come from the `X-*` headers; no user id is stored. 400 `invalid_id`, `invalid_barcode`. 60/min per IP. Feeds `barcode_misses` (V13). |
 | POST | `/v1/describe` `{text}` | Heuristic parse into items. 400 `invalid_text` (empty or > 1000 chars). |
 | GET | `/v1/export.csv` | Streams the caller's entries, weigh-ins and water. |
 
@@ -367,6 +368,8 @@ Views in the `analytics` schema aggregate across users and never select a
 nutrient amount or a user id (`DatabaseSchemaTest` enforces both). The
 `grafana_ro` role (NOLOGIN) can read that schema and nothing else. To connect
 Grafana, create a login role outside migrations and grant it `grafana_ro`.
+`V13__barcode_misses.sql` adds `barcode_hit_rate_daily`, `top_missed_barcodes`
+and `barcode_misses_by_country` for the Food catalog board.
 
 ## Environment variables
 

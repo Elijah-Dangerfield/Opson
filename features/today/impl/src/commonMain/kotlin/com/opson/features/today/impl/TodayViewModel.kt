@@ -11,6 +11,9 @@ import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -61,6 +64,8 @@ class TodayViewModel(
     private val calendar: LocalCalendar,
     private val recentLogEvents: RecentLogEvents,
     private val clock: Clock,
+    private val health: HealthRepository,
+    private val healthFlag: HealthReleaseFlag,
     private val remindersEnabled: RemindersEnabled,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value),
@@ -268,7 +273,7 @@ class TodayViewModel(
             .map { it.preset.today == TodayLayout.Explorer }
             .distinctUntilChanged()
             .flatMapLatest { on -> if (on) explorerStats() else flowOf(null) }
-        return combine(days, settingsRepository.settings, explorer) { (d, before), settings, stats ->
+        return combine(days, settingsRepository.settings, explorer, expended()) { (d, before), settings, stats, expended ->
             TodayInputs(
                 today = calendar.today(),
                 timeZone = calendar.timeZone(),
@@ -277,7 +282,17 @@ class TodayViewModel(
                 settings = settings,
                 explorer = stats,
                 remindersOn = remindersEnabled(),
+                expended = expended,
             )
+        }
+    }
+
+    /** Today's energy while today is on show. With `release.health` off the store is never touched. */
+    private fun expended(): Flow<EnergyExpended?> {
+        if (!healthFlag()) return flowOf(null)
+        return selectedDay.date.flatMapLatest { date ->
+            val today = calendar.today()
+            if (date == today) health.energy(today, calendar.timeZone()) else flowOf(null)
         }
     }
 

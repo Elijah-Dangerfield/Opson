@@ -86,6 +86,8 @@ kotlin {
             implementation(projects.libraries.review.impl)
             implementation(projects.libraries.reminders)
             implementation(projects.libraries.reminders.impl)
+            implementation(projects.libraries.scanner)
+            implementation(projects.libraries.scanner.impl)
 
             implementation(projects.libraries.storage)
             implementation(projects.libraries.storage.impl)
@@ -104,6 +106,8 @@ kotlin {
             implementation(projects.libraries.diary.impl)
             implementation(projects.libraries.foods)
             implementation(projects.libraries.foods.impl)
+            implementation(projects.libraries.health)
+            implementation(projects.libraries.health.impl)
 
             implementation(projects.features.foods)
             implementation(projects.features.foods.impl)

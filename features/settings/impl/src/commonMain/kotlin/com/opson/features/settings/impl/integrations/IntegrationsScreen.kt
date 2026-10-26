@@ -1,0 +1,267 @@
+package com.opson.features.settings.impl.integrations
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.opson.features.settings.impl.SettingsCard
+import com.opson.features.settings.impl.SettingsFixtures
+import com.opson.features.settings.impl.SettingsHeader
+import com.opson.features.settings.impl.SettingsPage
+import com.opson.features.settings.impl.SettingsPreview
+import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.nutrition.ui.NutrientVisible
+import com.opson.libraries.ui.components.HorizontalDivider
+import com.opson.libraries.ui.components.button.ButtonGhost
+import com.opson.libraries.ui.components.button.ButtonPrimary
+import com.opson.libraries.ui.components.button.ButtonSize
+import com.opson.libraries.ui.components.chip.StatusPill
+import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.text.Text
+import com.opson.system.AppTheme
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.integrations_apple_health
+import opson.libraries.resources.generated.resources.integrations_connect
+import opson.libraries.resources.generated.resources.integrations_connected
+import opson.libraries.resources.generated.resources.integrations_denied_apple_health
+import opson.libraries.resources.generated.resources.integrations_denied_health_connect
+import opson.libraries.resources.generated.resources.integrations_disconnect
+import opson.libraries.resources.generated.resources.integrations_empty
+import opson.libraries.resources.generated.resources.integrations_expended_title
+import opson.libraries.resources.generated.resources.integrations_get_health_connect
+import opson.libraries.resources.generated.resources.integrations_health_connect
+import opson.libraries.resources.generated.resources.integrations_hidden
+import opson.libraries.resources.generated.resources.integrations_needs_install
+import opson.libraries.resources.generated.resources.integrations_open_health_connect
+import opson.libraries.resources.generated.resources.integrations_privacy
+import opson.libraries.resources.generated.resources.integrations_reads
+import opson.libraries.resources.generated.resources.integrations_remove_apple_health
+import opson.libraries.resources.generated.resources.integrations_title
+import opson.libraries.resources.generated.resources.integrations_total
+import opson.libraries.resources.generated.resources.integrations_unsupported
+import opson.libraries.resources.generated.resources.settings_back_more
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+@Composable
+fun IntegrationsScreen(
+    state: IntegrationsState,
+    onAction: (IntegrationsAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingsPage(modifier = modifier) {
+        SettingsHeader(
+            title = stringResource(Res.string.integrations_title),
+            backLabel = stringResource(Res.string.settings_back_more),
+            onBack = { onAction(IntegrationsAction.BackTapped) },
+        )
+        if (state.loading) return@SettingsPage
+        SourceCard(state, onAction)
+        state.expended?.let { ExpendedCard(it, state.source) }
+        Note(stringResource(Res.string.integrations_privacy), Modifier.padding(horizontal = 4.dp))
+    }
+}
+
+@Composable
+private fun SourceCard(state: IntegrationsState, onAction: (IntegrationsAction) -> Unit) {
+    SettingsCard {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.section),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(text = stringResource(state.source.title), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+                Text(
+                    text = stringResource(
+                        when (state.connection) {
+                            Connection.Unsupported -> Res.string.integrations_unsupported
+                            Connection.NeedsInstall -> Res.string.integrations_needs_install
+                            else -> Res.string.integrations_reads
+                        },
+                    ),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                )
+            }
+            when (state.connection) {
+                Connection.Connected -> StatusPill(label = stringResource(Res.string.integrations_connected), icon = AppIcons.Check)
+                Connection.NotConnected, Connection.Connecting -> ButtonPrimary(
+                    onClick = { onAction(IntegrationsAction.ConnectTapped) },
+                    size = ButtonSize.Small,
+                    enabled = state.connection == Connection.NotConnected,
+                ) {
+                    Text(stringResource(Res.string.integrations_connect))
+                }
+                Connection.NeedsInstall -> ButtonPrimary(onClick = { onAction(IntegrationsAction.GetHealthConnectTapped) }, size = ButtonSize.Small) {
+                    Text(stringResource(Res.string.integrations_get_health_connect))
+                }
+                Connection.Unsupported -> Unit
+            }
+        }
+        if (state.denied) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            Column(Modifier.padding(vertical = AppTheme.spacing.row), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+                Text(
+                    text = stringResource(
+                        if (state.source == HealthSource.AppleHealth) Res.string.integrations_denied_apple_health else Res.string.integrations_denied_health_connect,
+                    ),
+                    typography = AppTheme.type.body,
+                    color = AppTheme.colors.ink,
+                )
+                if (state.canOpenSource) {
+                    ButtonGhost(onClick = { onAction(IntegrationsAction.OpenSourceTapped) }, size = ButtonSize.Small) {
+                        Text(stringResource(Res.string.integrations_open_health_connect))
+                    }
+                }
+            }
+        }
+        if (state.connection == Connection.Connected) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            Column(Modifier.padding(vertical = AppTheme.spacing.chip)) {
+                ButtonGhost(onClick = { onAction(IntegrationsAction.DisconnectTapped) }, size = ButtonSize.Small) {
+                    Text(stringResource(Res.string.integrations_disconnect))
+                }
+                if (state.source == HealthSource.AppleHealth) {
+                    Note(stringResource(Res.string.integrations_remove_apple_health), Modifier.padding(bottom = AppTheme.spacing.chip))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Expended today. Hidden is one line with no heading, because a hidden number takes its label
+ * with it; Empty keeps the heading, since there is nothing to hide.
+ */
+@Composable
+private fun ExpendedCard(card: ExpendedCard, source: HealthSource) {
+    SettingsCard {
+        when (card) {
+            ExpendedCard.Hidden -> Note(stringResource(Res.string.integrations_hidden), Modifier.padding(vertical = AppTheme.spacing.section))
+            ExpendedCard.Empty -> {
+                Heading()
+                Note(stringResource(Res.string.integrations_empty, stringResource(source.title)), Modifier.padding(bottom = AppTheme.spacing.section))
+            }
+            is ExpendedCard.Shown -> {
+                Heading()
+                card.rows.forEach { row ->
+                    HorizontalDivider(color = AppTheme.colors.line)
+                    AmountRow(stringResource(row.label), row.display, strong = false)
+                }
+                NutrientVisible(card.total) {
+                    HorizontalDivider(color = AppTheme.colors.ink)
+                    AmountRow(stringResource(Res.string.integrations_total), card.total, strong = true)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Heading() {
+    Text(
+        text = stringResource(Res.string.integrations_expended_title),
+        typography = AppTheme.type.secondaryStrong.Bold,
+        color = AppTheme.colors.muted,
+        modifier = Modifier.padding(top = AppTheme.spacing.section, bottom = AppTheme.spacing.row),
+    )
+}
+
+/** A label and its amount; the label goes with the amount when the amount is hidden. */
+@Composable
+private fun AmountRow(label: String, display: Display, strong: Boolean) {
+    NutrientVisible(display) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.section),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                typography = if (strong) AppTheme.type.bodyBold else AppTheme.type.body,
+                color = AppTheme.colors.ink,
+                modifier = Modifier.weight(1f),
+            )
+            NutrientText(
+                metric = Metric.EnergyOut,
+                display = display,
+                typography = AppTheme.type.bodyBold.Tabular,
+                color = AppTheme.colors.ink,
+            )
+        }
+    }
+}
+
+@Composable
+private fun Note(text: String, modifier: Modifier = Modifier) {
+    Text(text = text, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, modifier = modifier)
+}
+
+private val HealthSource.title: StringResource
+    get() = when (this) {
+        HealthSource.AppleHealth -> Res.string.integrations_apple_health
+        HealthSource.HealthConnect -> Res.string.integrations_health_connect
+    }
+
+@Preview
+@Composable
+private fun IntegrationsNotConnectedPreview() {
+    SettingsPreview {
+        IntegrationsScreen(IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Full), status = HealthStatus.NotConnected), onAction = {})
+    }
+}
+
+@Preview
+@Composable
+private fun IntegrationsConnectedPreview() {
+    SettingsPreview {
+        IntegrationsScreen(IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Full)), onAction = {})
+    }
+}
+
+@Preview
+@Composable
+private fun IntegrationsPermissionDeniedPreview() {
+    SettingsPreview {
+        IntegrationsScreen(
+            IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Full), status = HealthStatus.NotConnected, denied = true),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun IntegrationsBlindPreview() {
+    SettingsPreview { IntegrationsScreen(IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Blind)), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun IntegrationsAppleHealthEmptyPreview() {
+    SettingsPreview {
+        IntegrationsScreen(
+            IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Full), source = HealthSource.AppleHealth, energy = null),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun IntegrationsConnectedDarkPreview() {
+    SettingsPreview(dark = true) {
+        IntegrationsScreen(IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Full)), onAction = {})
+    }
+}

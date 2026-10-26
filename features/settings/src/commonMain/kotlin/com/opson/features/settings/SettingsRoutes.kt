@@ -37,3 +37,6 @@ class SupportRoute : Route()
  */
 @Serializable
 class RemindersRoute : Route()
+/** Watch and health apps: connect Apple Health or Health Connect, and today's energy from it (0.2). */
+@Serializable
+class IntegrationsRoute : Route()

@@ -137,6 +137,24 @@ private fun LoggerAmountBlindPreview() = Amount(LoggerFixtures.amountState(blind
 @Composable
 private fun LoggerAmountTagsOffPreview() = Amount(LoggerFixtures.amountState(full, settings = Settings(askTags = false)))
 
+/** `release.barcode` on: v3's barcode button inside the empty search bar. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanButtonPreview() = Logger(LoggerFixtures.loggerState(full, scanAvailable = true))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanButtonDarkPreview() = Logger(LoggerFixtures.loggerState(full, scanAvailable = true), dark = true)
+
+/** A scan hit lands here: the label's serving, in the current meal. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanAmountPreview() = Amount(LoggerFixtures.scannedAmountState(full))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanAmountBlindPreview() = Amount(LoggerFixtures.scannedAmountState(blind))
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerHowItFeltPreview() = HowItFelt()

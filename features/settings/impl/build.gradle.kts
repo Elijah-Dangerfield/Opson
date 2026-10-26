@@ -23,6 +23,7 @@ kotlin {
             implementation(projects.libraries.reminders)
             implementation(projects.libraries.config)
             implementation(projects.libraries.diary.ui)
+            implementation(projects.libraries.health)
 
             implementation(libs.kotlinx.datetime)
 
@@ -41,6 +42,7 @@ kotlin {
             implementation(projects.libraries.identity)
             implementation(projects.libraries.reminders)
             implementation(projects.libraries.config)
+            implementation(projects.libraries.health)
             implementation(libs.kotlinx.datetime)
             implementation(projects.libraries.resources)
             implementation(compose.components.resources)

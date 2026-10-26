@@ -29,6 +29,7 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.logger_toast_ate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -57,7 +58,11 @@ class LoggerViewModelTest : CoroutineTest() {
     private val appState = FakeAppState()
     private val mealPicks = FakeMealPicks()
 
-    private fun vm(route: LoggerRoute = LoggerRoute(slot = MealSlot.Dinner), at: Instant = NOON) = LoggerViewModel(
+    private fun vm(
+        route: LoggerRoute = LoggerRoute(slot = MealSlot.Dinner),
+        at: Instant = NOON,
+        scanOn: Boolean = false,
+    ) = LoggerViewModel(
         route = route,
         diary = diary,
         customFoods = customFoods,
@@ -73,6 +78,7 @@ class LoggerViewModelTest : CoroutineTest() {
         appState = appState,
         telemetry = telemetry,
         mealPicks = mealPicks,
+        scanEnabled = scanFlag(scanOn),
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {
@@ -84,6 +90,45 @@ class LoggerViewModelTest : CoroutineTest() {
     private fun TestScope.settle() {
         advanceTimeBy(1_000)
         runCurrent()
+    }
+
+    @Test
+    fun barcodeTappedOpensTheScannerForThisDayAndMealWhenTheFlagIsOn() = runUnitTest {
+        val vm = vm(scanOn = true)
+        val events = events(vm)
+        settle()
+        assertTrue(vm.state.canScan)
+
+        vm.takeAction(LoggerAction.BarcodeTapped)
+        settle()
+
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenScanner(LoggerFixtures.today, MealSlot.Dinner)), events)
+    }
+
+    @Test
+    fun withTheFlagOffThereIsNoScannerAndTheTapDoesNothing() = runUnitTest {
+        val vm = vm(scanOn = false)
+        val events = events(vm)
+        settle()
+        assertFalse(vm.state.canScan)
+
+        vm.takeAction(LoggerAction.BarcodeTapped)
+        settle()
+
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun pickingForAMealHasNoScanner() = runUnitTest {
+        val vm = vm(LoggerRoute(pickForMeal = "meal-1"), scanOn = true)
+        val events = events(vm)
+        settle()
+        assertFalse(vm.state.canScan)
+
+        vm.takeAction(LoggerAction.BarcodeTapped)
+        settle()
+
+        assertTrue(events.isEmpty())
     }
 
     @Test

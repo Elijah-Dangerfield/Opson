@@ -6,6 +6,7 @@ import com.opson.server.db.Database
 import com.opson.server.domain.AppConfigAdminRepository
 import com.opson.server.domain.AppConfigManifestRepository
 import com.opson.server.domain.AppConfigSource
+import com.opson.server.domain.BarcodeMissRepository
 import com.opson.server.domain.BarcodeLookup
 import com.opson.server.domain.ExportRepository
 import com.opson.server.domain.FoodCatalogRepository
@@ -68,6 +69,7 @@ abstract class ServerComponent(
     abstract val syncRepository: SyncRepository
     abstract val foodCatalogRepository: FoodCatalogRepository
     abstract val barcodeLookup: BarcodeLookup
+    abstract val barcodeMissRepository: BarcodeMissRepository
     abstract val foodDescriber: FoodDescriber
     abstract val exportRepository: ExportRepository
     abstract val clock: Clock

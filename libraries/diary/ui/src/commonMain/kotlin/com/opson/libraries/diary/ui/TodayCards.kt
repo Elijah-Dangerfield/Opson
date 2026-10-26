@@ -114,6 +114,9 @@ fun TodayCard(
  * the right, a bar with the range as a dashed box, then the macros and a Nutrients link.
  * [emptyTitle] ("Nothing yet") stands in for the figure on an empty day. The bar's fill comes
  * from [eaten]'s fraction, so it exists only when the amount does.
+ *
+ * [expended] is "Expended so far" from a connected health app, on the Nutrients line (0.2).
+ * Hidden takes the watch icon and [expendedLabel] with it.
  */
 @Composable
 fun EnergySummaryCard(
@@ -129,6 +132,8 @@ fun EnergySummaryCard(
     onNutrients: () -> Unit,
     modifier: Modifier = Modifier,
     emptyTitle: String? = null,
+    expendedLabel: String? = null,
+    expended: Display = Display.Hidden,
 ) {
     HeroCard(modifier = modifier) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
@@ -172,7 +177,24 @@ fun EnergySummaryCard(
                 macros.forEach { macro -> MacroColumn(macro, Modifier.weight(1f)) }
             }
         }
-        HeroLink(text = nutrientsLabel, onClick = onNutrients, modifier = Modifier.align(Alignment.End).padding(top = 8.dp))
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) {
+                if (expendedLabel != null) ExpendedLine(expendedLabel, expended)
+            }
+            HeroLink(text = nutrientsLabel, onClick = onNutrients)
+        }
+    }
+}
+
+/** "⌚ Expended so far 1,990 kcal": energy out from the health app, nothing at all when hidden. */
+@Composable
+private fun ExpendedLine(label: String, expended: Display) {
+    NutrientVisible(expended) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(icon = AppIcons.Watch, size = 20.dp, color = AppTheme.colors.onHero.withAlpha(LABEL_ALPHA))
+            Text(text = label, typography = AppTheme.type.secondary, color = AppTheme.colors.onHero.withAlpha(LABEL_ALPHA), maxLines = 1)
+            NutrientText(Metric.EnergyOut, expended, typography = AppTheme.type.secondaryStrong.Bold.Tabular, color = AppTheme.colors.onHero, maxLines = 1)
+        }
     }
 }
 
@@ -727,6 +749,8 @@ private fun TodayCardsPreview() {
                 ),
                 nutrientsLabel = "Nutrients",
                 onNutrients = {},
+                expendedLabel = "Expended so far",
+                expended = policy.resolve(Metric.EnergyOut, 1990.0, Surface.Today),
             )
             WaterCard("Water", policy.resolve(Metric.Water, 750.0, Surface.Today), 3, 8, true, {}, AppIcons.Add)
             TodayMealCard(

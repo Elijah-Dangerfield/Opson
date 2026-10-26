@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for barcode scanning (0.2, behind release.barcode): the button in the
+  logger's search bar and the scanner screen. The waiting and not-found lines
+  are from docs/plans/screens/logger.md; the rest is in
+  docs/plans/screens/barcode.md. None of it names a number, so every mode
+  shows it unchanged. Same rules as strings.xml: no backslash escapes,
+  positional %1$s arguments.
+-->
+<resources>
+
+    <!-- Logger search bar -->
+    <string name="barcode_scan_cd">Scan a barcode</string>
+
+    <!-- Scanner -->
+    <string name="barcode_title">Scan a barcode</string>
+    <string name="barcode_close_cd">Close</string>
+    <string name="barcode_hint">Hold the barcode inside the frame.</string>
+    <string name="barcode_looking_up">First time anyone's scanned this one. Looking it up now, and it'll be instant for the next person.</string>
+    <string name="barcode_scan_again">Scan again</string>
+    <string name="barcode_search_instead">Search instead</string>
+
+    <!-- Not found -->
+    <string name="barcode_not_found">We couldn't find this one anywhere.</string>
+    <string name="barcode_code">Barcode %1$s</string>
+    <string name="barcode_miss_body">You can still log it by name, without numbers.</string>
+    <string name="barcode_name_placeholder">What is it?</string>
+    <string name="barcode_save_name">Save the name only</string>
+
+    <!-- Lookup failed: offline, or no source answered -->
+    <string name="barcode_unavailable">Couldn't look that up right now. Try again in a moment.</string>
+
+    <!-- Camera permission -->
+    <string name="barcode_camera_title">The camera is off for Opson</string>
+    <string name="barcode_camera_body">Opson only uses the camera to read barcodes. You can turn it on in Settings, or search by name instead.</string>
+    <string name="barcode_camera_body_ask">Opson only uses the camera to read barcodes. Nothing is recorded.</string>
+    <string name="barcode_allow_camera">Allow camera</string>
+    <string name="barcode_open_settings">Open Settings</string>
+</resources>

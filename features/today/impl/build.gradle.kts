@@ -24,6 +24,8 @@ kotlin {
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.reminders)
+            // Expended so far, behind release.health.
+            implementation(projects.libraries.health)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -42,6 +44,7 @@ kotlin {
             implementation(projects.libraries.diary)
             implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.nutrition)
+            implementation(projects.libraries.health)
             implementation(projects.libraries.resources)
             implementation(projects.libraries.ui)
             implementation(projects.libraries.reminders)

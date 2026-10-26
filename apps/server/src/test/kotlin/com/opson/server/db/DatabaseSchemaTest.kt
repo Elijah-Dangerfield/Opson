@@ -29,7 +29,7 @@ class DatabaseSchemaTest : DatabaseTest() {
     fun catalogAndDiaryTablesMatchTheirExposedProjections() = runTest {
         database.transaction {
             listOf(
-                FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable,
+                FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable, BarcodeMissesTable,
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable,
                 CustomFoodsTable, SavedMealsTable, UserSettingsTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
@@ -39,8 +39,8 @@ class DatabaseSchemaTest : DatabaseTest() {
     @Test
     fun rowLevelSecurityIsOnForEveryNewTable() {
         val tables = listOf(
-            "foods", "off_foods", "food_search_events", "barcode_lookups", "log_entries", "day_records",
-            "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings",
+            "foods", "off_foods", "food_search_events", "barcode_lookups", "barcode_misses", "log_entries",
+            "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings",
         )
         val withRls = strings(
             "SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relrowsecurity",
@@ -131,13 +131,72 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
     }
 
+    /** V13 is additive and idempotent: running it again over a loaded table changes nothing. */
+    @Test
+    fun barcodeMissesMigrationIsIdempotent() {
+        val rows = "SELECT count(*)::text FROM barcode_misses"
+        database.blockingTransaction {
+            exec("INSERT INTO barcode_misses (id, barcode, platform) VALUES (gen_random_uuid(), '04963406', 'ios')")
+        }
+        try {
+            val before = strings(rows)
+            val migration = checkNotNull(javaClass.getResource("/db/migration/V13__barcode_misses.sql")).readText()
+            database.blockingTransaction { exec(migration) }
+            assertEquals(before, strings(rows))
+        } finally {
+            database.blockingTransaction { exec("DELETE FROM barcode_misses") }
+        }
+    }
+
+    /** The coverage views: errors stay out of the hit rate, misses group on the GTIN, region defaults to unknown. */
+    @Test
+    fun barcodeCoverageViewsAggregate() {
+        database.blockingTransaction {
+            listOf("catalog", "off", "miss", "error").forEach { outcome ->
+                exec("INSERT INTO barcode_lookups (at, barcode, outcome) VALUES ('2001-02-03T12:00:00Z', '049000028911', '$outcome')")
+            }
+            // A UPC-A and its EAN-13 are one product; the third has no region.
+            exec(
+                "INSERT INTO barcode_misses (id, barcode, gtin, country, platform) VALUES " +
+                    "(gen_random_uuid(), '049000028911', '00049000028911', 'US', 'ios'), " +
+                    "(gen_random_uuid(), '0049000028911', '00049000028911', 'CA', 'android'), " +
+                    "(gen_random_uuid(), '4006381333931', '04006381333931', NULL, 'android')",
+            )
+        }
+        try {
+            assertEquals(
+                listOf("4:2:1:1:0.6667"),
+                strings(
+                    "SELECT lookups || ':' || hits || ':' || misses || ':' || errors || ':' || hit_rate " +
+                        "FROM analytics.barcode_hit_rate_daily WHERE day = '2001-02-03'",
+                ),
+            )
+            assertEquals(
+                listOf("00049000028911:2:2", "04006381333931:1:0"),
+                strings("SELECT code || ':' || misses || ':' || countries FROM analytics.top_missed_barcodes"),
+            )
+            assertEquals(
+                listOf("CA:1", "US:1", "unknown:1"),
+                strings("SELECT country || ':' || misses FROM analytics.barcode_misses_by_country ORDER BY country"),
+            )
+        } finally {
+            database.blockingTransaction {
+                exec("DELETE FROM barcode_lookups WHERE at < '2002-01-01'")
+                exec("DELETE FROM barcode_misses")
+            }
+        }
+    }
+
     @Test
     fun grafanaRoleReadsAnalyticsAndNothingElse() {
         database.blockingTransaction {
             exec("SET LOCAL ROLE grafana_ro")
             ANALYTICS_VIEWS.forEach { exec("SELECT * FROM analytics.$it LIMIT 1") }
         }
-        listOf("log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "profiles").forEach { table ->
+        listOf(
+            "log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "barcode_misses",
+            "profiles",
+        ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
                     exec("SET LOCAL ROLE grafana_ro")
@@ -161,7 +220,8 @@ class DatabaseSchemaTest : DatabaseTest() {
         val ANALYTICS_VIEWS = listOf(
             "daily_active_loggers", "entries_by_method_precision", "meals_per_day_distribution", "days_closed",
             "preset_distribution", "search_daily", "top_zero_result_queries", "barcode_outcomes_daily",
-            "weekly_retention_cohorts", "retention_d1_d7_d30",
+            "weekly_retention_cohorts", "retention_d1_d7_d30", "barcode_hit_rate_daily", "top_missed_barcodes",
+            "barcode_misses_by_country",
         )
     }
 }

@@ -30,6 +30,7 @@ import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -203,6 +204,7 @@ object TodayFixtures {
         explorer: ExplorerStats? = explorer(),
         dayBefore: Day = if (day.date == today) yesterday() else Day.empty(day.date.minus(DatePeriod(days = 1))),
         remindersOn: Boolean = false,
+        expended: EnergyExpended? = null,
     ): TodayInputs = TodayInputs(
         today = today,
         timeZone = timeZone,
@@ -211,7 +213,11 @@ object TodayFixtures {
         settings = settings,
         explorer = explorer,
         remindersOn = remindersOn,
+        expended = expended,
     )
+
+    /** v3 `today-full`'s "Expended so far 1,990 kcal": 1,580 resting and 410 active, 150 of it in a workout. */
+    val expended: EnergyExpended = EnergyExpended(restingKcal = 1580.0, activeKcal = 410.0, workoutKcal = 150.0)
 
     fun todayState(
         policy: VisibilityPolicy,
@@ -222,7 +228,15 @@ object TodayFixtures {
         highlight: MealSlot? = null,
         added: LoggedToMeal? = null,
         remindersOn: Boolean = false,
-    ): TodayState = TodayStateBuilder.build(inputs(day, settings, remindersOn = remindersOn), policy, menuOpen, clearArmed, highlight, added)
+        expended: EnergyExpended? = null,
+    ): TodayState = TodayStateBuilder.build(
+        inputs(day, settings, remindersOn = remindersOn, expended = expended),
+        policy,
+        menuOpen,
+        clearArmed,
+        highlight,
+        added,
+    )
 
     fun dayCloseState(
         policy: VisibilityPolicy,

@@ -1,5 +1,6 @@
 package com.opson.integration.config
 
+import com.opson.features.logger.impl.BarcodeScanEnabled
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.config.ConfiguredValue
 import com.opson.libraries.config.DoubleConfigValue
@@ -11,6 +12,7 @@ import com.opson.libraries.config.StringConfigValue
 import com.opson.libraries.config.impl.ConfigRefreshThrottleMs
 import com.opson.libraries.config.impl.model.BasicMapAppConfig
 import com.opson.libraries.reminders.RemindersEnabled
+import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.telemetry.impl.AppEventsEnabled
 import com.opson.libraries.telemetry.impl.AppEventsSampleRate
 import com.opson.libraries.telemetry.impl.KlogForwardingEnabled
@@ -314,6 +316,8 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     AppEventsSampleRate(appConfigMap),
     KlogForwardingEnabled(appConfigMap),
     RemindersEnabled(appConfigMap),
+    HealthReleaseFlag(appConfigMap),
+    BarcodeScanEnabled(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"
