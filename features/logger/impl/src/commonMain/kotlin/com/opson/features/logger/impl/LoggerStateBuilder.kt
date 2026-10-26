@@ -47,6 +47,9 @@ data class LoggerChoices(
     val pickingForMeal: Boolean = false,
     /** `release.barcode`, read once when the sheet opens. */
     val scanAvailable: Boolean = false,
+    /** `release.voice`, read once when the sheet opens. */
+    val voiceEnabled: Boolean = false,
+    val voice: VoiceCapture = VoiceCapture.Idle(),
 )
 
 /**
@@ -92,6 +95,8 @@ object LoggerStateBuilder {
                 canNumber = canNumber,
                 number = if (canNumber) choices.number else "",
                 focusNumber = choices.focusNumber && canNumber,
+                // A spoken description becomes the same text and the same lines as a typed one.
+                voice = VoiceStateBuilder.build(choices.voiceEnabled && !choices.pickingForMeal, choices.voice),
             ),
             saved = SavedUi(
                 meals = inputs.savedMeals.map { meal ->

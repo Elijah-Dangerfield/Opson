@@ -111,7 +111,7 @@ through `describeTyped` with no debounce, which is the typed path from there.
 | `MicTapped` | Ready or a notice: unavailable gives the Unavailable notice; `Granted` starts; `NotAsked` or `Denied(canAskAgain = true)` asks (`RequestMicPermission`); `Denied(false)` shows Denied. Listening: stop (as `WentQuiet`). Asking or Transcribing: nothing. "Try again" and "Allow microphone" send this too |
 | `MicPermissionAnswered(permission)` | Granted starts; refused shows Denied |
 | `SpeechArrived(heard)` | Partial: the field shows it, the silence timer restarts. Final: blank is NoSpeech, else parse. Failed: if something was heard, keep it as final; else the notice for the reason |
-| `WentQuiet` | Silence timer (2 s after speech, 8 s before any) or the 60 s cap: `finishListening`, Transcribing |
+| `WentQuiet` | Silence timer (2 s after speech, 8 s before any) or the 55 s cap (iOS server recognition stops near a minute): `finishListening`, Transcribing |
 | `TranscriptOverdue` | 4 s in Transcribing with no final: keep what was heard |
 | `TypeInsteadTapped` | Notice gone, the field takes focus |
 | `OpenSettingsTapped` | The app's Settings page; notice gone |
@@ -120,7 +120,15 @@ through `describeTyped` with no debounce, which is the typed path from there.
 Also: typing while listening stops listening (the person took over); Back off
 Describe, Save the name, and leaving the sheet cancel it.
 
-Event: `RequestMicPermission`; the entry point runs the prompt.
+Event: `RequestMicPermission`; the entry point runs the prompt. `VoiceAction`
+and `RequestMicPermission` extend the logger's sealed `LoggerAction` and
+`LoggerEvent` from `DescribeVoice.kt`, so the logger's own files carry only
+the seams (`DescribeUi.voice`, `LoggerChoices.voiceEnabled` / `voice`, one
+`when` branch, the cancels in Back and Save the name). The recognizer,
+the flag and the telemetry come in as one `DescribeVoice`.
+
+The entry point composes the prompt and a `LifecycleResumeEffect` (pause sends
+`ScreenPaused`) only while `describe.voice` is non-null.
 
 ## Components
 Existing: `RoundIconButton` (the 56 dp mic, accent tint; filled with a stop
@@ -166,7 +174,7 @@ Never the transcript, a word, or anything parsed from it.
 | `voice_type_instead` | Type instead |
 | `voice_try_again` | Try again |
 | `voice_unavailable` | Voice isn't available on this phone right now. Typing works just the same. |
-| `voice_needs_connection` | Voice needs a connection on this phone. Typing works offline. |
+| `voice_needs_connection` | Voice needs a connection on this phone right now. You can type it instead. |
 | `voice_no_speech` | Didn't catch anything that time. |
 | `voice_failed` | Voice stopped unexpectedly. |
 
@@ -190,7 +198,8 @@ Android manifest (speech impl): `RECORD_AUDIO`, and a `<queries>` entry for
   `describe`, silence and overdue timers, typing and Back cancel, telemetry
   never carries text, flag off ignores the mic.
 - `WordBucketTest`.
-- Previews: idle, listening with partial text, transcribing, denied,
-  unavailable, Blind, dark, flag off.
+- Previews (`VoicePreviews.kt`): idle, listening with partial text,
+  listening over lines, transcribing, denied, unavailable, no speech, Blind,
+  and dark. Flag off is the existing `LoggerDescribePreview`.
 - Leak test: `logger-describe-voice` in `LoggerLeakSurfaces` and
   `REQUIRED_SURFACES`.
