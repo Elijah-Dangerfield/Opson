@@ -9,5 +9,7 @@
   { "path": "release.reminders", "type": "boolean", "default": false, "description": "0.2: Reminders page, reminder notifications and the Rhythm reminder line" },
   { "path": "release.health", "type": "boolean", "default": false, "description": "0.2 watch and health apps: the More row, Integrations and Expended so far on Today" },
   { "path": "release.barcode", "type": "boolean", "default": false, "description": "The barcode button in the logger search bar, and the scanner it opens" },
-  { "path": "release.fasting", "type": "boolean", "default": false, "description": "0.2: the Fasting page, its More row, the Today card and the timer" }
+  { "path": "release.fasting", "type": "boolean", "default": false, "description": "0.2: the Fasting page, its More row, the Today card and the timer" },
+  { "path": "release.voice", "type": "boolean", "default": false, "description": "0.2: the mic in the Logger's Describe pane, speech to text on the device" },
+  { "path": "release.photo", "type": "boolean", "default": false, "description": "0.2: the Photo chip in the logger, and the photo estimate sheet it opens" }
 ]

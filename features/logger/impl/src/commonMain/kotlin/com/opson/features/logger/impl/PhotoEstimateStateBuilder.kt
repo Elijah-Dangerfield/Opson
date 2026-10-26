@@ -1,10 +1,10 @@
 package com.opson.features.logger.impl
 
+import com.opson.libraries.diary.HouseholdAmount
 import com.opson.libraries.foods.AmountUnit
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.PortionAmount
-import com.opson.libraries.foods.amountText
 import com.opson.libraries.foods.amountTextFor
 import com.opson.libraries.foods.chipLabel
 import com.opson.libraries.foods.nutrientsFor
@@ -54,7 +54,7 @@ object PhotoEstimateStateBuilder {
             PhotoRowUi(
                 key = row.key,
                 name = row.name,
-                amount = if (unit != null) unit.amountText(row.quantity) else draft.amountText.orEmpty(),
+                amount = draft.amountLabel,
                 isWeight = unit == AmountUnit.Grams || (unit == null && row.parsed?.unit == GRAMS),
                 calories = policy.resolve(Metric.Calories, draft.kcal, Surface.Logger, bare),
                 matched = row.food != null,
@@ -66,7 +66,7 @@ object PhotoEstimateStateBuilder {
             val units = PhotoRows.units(food, householdOnly)
             PhotoAmountEditor(
                 key = row.key,
-                amount = unit.amountText(row.quantity),
+                amount = row.draft().amountLabel,
                 units = units.map { it.chipLabel },
                 unitIndex = units.indexOf(unit).coerceAtLeast(0),
                 canLess = PortionAmount.canLess(unit, row.quantity),
@@ -108,7 +108,7 @@ object PhotoEstimateStateBuilder {
             id = id,
             name = name,
             subtitle = brand,
-            amount = amountTextFor(serving),
+            amount = HouseholdAmount.tidy(amountTextFor(serving)),
             calories = policy.resolve(Metric.Calories, nutrientsFor(serving).kcal, Surface.Logger, bare),
         )
     }

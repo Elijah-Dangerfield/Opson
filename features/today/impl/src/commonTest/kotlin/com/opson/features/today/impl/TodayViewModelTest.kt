@@ -102,6 +102,30 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun healthFlagOn_exerciseInTheRange_movesTodaysRange() = runUnitTest {
+        settings.state.value = TodayFixtures.exerciseAll
+        val vm = vm(FakeHealthRepository(connected = true, energy = TodayFixtures.expended), healthOn = true)
+
+        assertEquals("2,310 to 2,710", (vm.state.summary as TodaySummary.Energy).range.text())
+    }
+
+    @Test
+    fun healthFlagOff_exerciseInTheRange_keepsTheBase() = runUnitTest {
+        settings.state.value = TodayFixtures.exerciseAll
+        val vm = vm(FakeHealthRepository(connected = true, energy = TodayFixtures.expended), healthOn = false)
+
+        assertEquals("1,900 to 2,300", (vm.state.summary as TodaySummary.Energy).range.text())
+    }
+
+    @Test
+    fun notConnected_exerciseInTheRange_keepsTheBase() = runUnitTest {
+        settings.state.value = TodayFixtures.exerciseAll
+        val vm = vm(FakeHealthRepository(connected = false, energy = TodayFixtures.expended), healthOn = true)
+
+        assertEquals("1,900 to 2,300", (vm.state.summary as TodaySummary.Energy).range.text())
+    }
+
+    @Test
     fun healthFlagOn_anotherDay_readsNothing() = runUnitTest {
         val health = FakeHealthRepository(connected = true, energy = TodayFixtures.expended)
         val vm = vm(health, healthOn = true)

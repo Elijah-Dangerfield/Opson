@@ -77,14 +77,16 @@ internal fun SettingsCard(modifier: Modifier = Modifier, content: @Composable Co
 }
 
 /**
- * A More row (design v3): an accent icon, a title with an optional subtitle, then trailing text
+ * A More row (design v3): an icon, a title with an optional subtitle, then trailing text
  * or a chevron. The whole row is the tap target; a row with no [onClick] is plain text.
+ * [quietIcon] draws the icon muted: v3 keeps the accent for the first group on More.
  */
 @Composable
 internal fun SettingsRow(
     title: String,
     icon: IconResource?,
     modifier: Modifier = Modifier,
+    quietIcon: Boolean = false,
     subtitle: String? = null,
     trailingText: String? = null,
     chevron: Boolean = false,
@@ -104,7 +106,7 @@ internal fun SettingsRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SettingsDefaults.IconGap),
         ) {
-            if (icon != null) Icon(icon = icon, size = 24.dp, color = AppTheme.colors.accent)
+            if (icon != null) Icon(icon = icon, size = 24.dp, color = if (quietIcon) AppTheme.colors.muted else AppTheme.colors.accent)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
                 if (subtitle != null) {
@@ -148,6 +150,6 @@ data class Toast(val message: StringResource, val args: List<Any> = emptyList())
 
 /** One theme per screen preview (every preview is also a 390 dp design-sync screenshot). */
 @Composable
-internal fun SettingsPreview(dark: Boolean = false, content: @Composable () -> Unit) {
-    PreviewContent(darkTheme = dark) { content() }
+internal fun SettingsPreview(dark: Boolean = false, largeText: Boolean = false, content: @Composable () -> Unit) {
+    PreviewContent(darkTheme = dark, largeText = largeText) { content() }
 }

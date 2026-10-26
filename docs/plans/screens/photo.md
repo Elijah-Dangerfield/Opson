@@ -124,7 +124,7 @@ with the day's context.
   Logger surface, a food with any household portion starts in that portion,
   and the stepper does not offer grams. Weights are a number too. This reads
   the calories level, never the mode.
-- A weight reads "about 120 g"; a household amount reads "1 tbsp", as drawn.
+- A weight reads "about 120 g"; a household amount reads "1 tbsp" or "2 cups", as drawn. Both go through `LogDraft.amountLabel` (`HouseholdAmount`), like every other row.
 
 ## Actions
 | Action | Does |

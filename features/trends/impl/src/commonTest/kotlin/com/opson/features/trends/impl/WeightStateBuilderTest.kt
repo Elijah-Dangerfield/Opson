@@ -40,7 +40,8 @@ class WeightStateBuilderTest {
         val state = build()
         val trend = assertIs<Display.Shown>(state.trend)
         val latest = assertIs<Display.Shown>(state.latest)
-        assertTrue(trend.text.endsWith("kg") && latest.text.endsWith("kg"))
+        // The trend is bare; the screen sets "kg" small beside it. Today's reading carries its unit.
+        assertTrue(trend.text.none { it.isLetter() } && latest.text.endsWith("kg"))
         assertEquals(WeighInWhen.ThisMorning, state.latestWhen)
         val chart = assertNotNull(state.chart)
         assertEquals(28, chart.dots?.size)
@@ -121,7 +122,8 @@ class WeightStateBuilderTest {
     fun pounds_readInPounds() {
         val state = build(settings = Settings(weightUnit = WeightUnit.Lb))
         assertEquals(WeightUnit.Lb, state.unit)
-        assertTrue(assertIs<Display.Shown>(state.trend).text.endsWith("lb"))
+        // The trend is bare, in pounds: about 73 kg reads as about 161, the screen adds "lb".
+        assertTrue(assertIs<Display.Shown>(state.trend).text.toDouble() > 150.0)
         assertTrue(assertIs<Display.Shown>(state.latest).text.endsWith("lb"))
     }
 

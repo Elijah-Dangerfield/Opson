@@ -1,6 +1,7 @@
 package com.opson.libraries.foods
 
 import com.opson.libraries.diary.CustomFood
+import com.opson.libraries.diary.HouseholdAmount
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.Precision
@@ -72,20 +73,27 @@ object PortionAmount {
 }
 
 /**
- * The unit as a chip on the amount sheet: a portion without its leading count
- * ("1 cup" is "cup", "1 medium" is "medium"), grams spelled out.
+ * The unit as a chip on the amount sheet: a portion of one without its count
+ * ("1 cup" is "cup", "1 medium" is "medium"), any other portion as people say
+ * it ("0.25 cup" is "¼ cup"), grams spelled out.
  */
 val AmountUnit.chipLabel: String
     get() = when (this) {
         AmountUnit.Grams -> "grams"
-        is AmountUnit.OfPortion -> label.removePrefix("1 ").trim().ifEmpty { label }
+        is AmountUnit.OfPortion ->
+            if (HouseholdAmount.amountOf(label) == 1.0) {
+                HouseholdAmount.unitOf(label).ifEmpty { label }
+            } else {
+                HouseholdAmount.ofPortion(label)
+            }
         is AmountUnit.Serving -> unit
     }
 
-/** The amount on the stepper: "150 g", "1 plate", "1.5 cup". An amount, not a nutrient, so no policy. */
+/** The amount on the stepper: "150 g", "1 plate", "1½ cups". An amount, not a nutrient, so no policy. */
 fun AmountUnit.amountText(quantity: Double): String = when (this) {
-    AmountUnit.Grams -> "${formatNumber(quantity)} g"
-    else -> "${formatNumber(quantity)} $chipLabel"
+    AmountUnit.Grams -> HouseholdAmount.of(quantity, "g")
+    is AmountUnit.OfPortion -> HouseholdAmount.ofPortion(label, quantity)
+    is AmountUnit.Serving -> HouseholdAmount.of(quantity, unit)
 }
 
 /** Units for a catalog food: its portions, then grams. A food with no portions offers grams only. */

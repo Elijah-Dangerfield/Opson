@@ -35,7 +35,7 @@ data class CustomFood(
             name = name,
             precision = precision,
             customFoodId = id,
-            amountText = "${formatAmount(amount)} $servingUnit",
+            amountText = HouseholdAmount.of(amount, servingUnit),
             quantity = amount,
             unit = servingUnit,
             grams = if (servingUnit.equals("g", ignoreCase = true)) amount else null,
@@ -84,8 +84,3 @@ data class SavedMeal(
     }
 }
 
-/** A whole number prints without ".0"; anything else keeps up to two decimals. */
-internal fun formatAmount(value: Double): String {
-    val rounded = kotlin.math.round(value * 100) / 100
-    return if (rounded == kotlin.math.floor(rounded)) rounded.toLong().toString() else rounded.toString()
-}

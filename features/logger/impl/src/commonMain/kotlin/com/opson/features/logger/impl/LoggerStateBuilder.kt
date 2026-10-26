@@ -49,6 +49,9 @@ data class LoggerChoices(
     val scanAvailable: Boolean = false,
     /** `release.photo`, read once when the sheet opens. */
     val photoAvailable: Boolean = false,
+    /** `release.voice`, read once when the sheet opens. */
+    val voiceEnabled: Boolean = false,
+    val voice: VoiceCapture = VoiceCapture.Idle(),
 )
 
 /**
@@ -87,13 +90,15 @@ object LoggerStateBuilder {
                         key = item.key,
                         ref = item.ref,
                         name = item.draft.name,
-                        amount = item.draft.amountText.orEmpty(),
+                        amount = item.draft.amountLabel,
                         calories = policy.resolve(Metric.Calories, item.draft.kcal, Surface.Logger, bare),
                     )
                 },
                 canNumber = canNumber,
                 number = if (canNumber) choices.number else "",
                 focusNumber = choices.focusNumber && canNumber,
+                // A spoken description becomes the same text and the same lines as a typed one.
+                voice = VoiceStateBuilder.build(choices.voiceEnabled && !choices.pickingForMeal, choices.voice),
             ),
             saved = SavedUi(
                 meals = inputs.savedMeals.map { meal ->
@@ -202,7 +207,7 @@ object LoggerStateBuilder {
         name = draft.name,
         shortName = shortName(draft.name),
         subtitle = subtitle,
-        amount = draft.amountText.orEmpty(),
+        amount = draft.amountLabel,
         macros = if (draft.hasMacros) {
             policy.macroLine(draft.amounts(), Surface.Logger, bare, MacroLineStyle.Compact)
         } else {

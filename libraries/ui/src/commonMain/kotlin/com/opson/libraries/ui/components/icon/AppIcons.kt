@@ -76,6 +76,7 @@ import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.LockClock
 import androidx.compose.material.icons.rounded.LunchDining
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.MonitorHeart
 import androidx.compose.material.icons.rounded.MonitorWeight
 import androidx.compose.material.icons.rounded.MoreHoriz
@@ -149,6 +150,9 @@ object AppIcons {
     val PhotoCamera get() = icon("photo_camera", MaterialIcons.Rounded.PhotoCamera)
     val PhotoLibrary get() = icon("photo_library", MaterialIcons.Rounded.PhotoLibrary)
     val Mic get() = icon("mic", MaterialIcons.Rounded.Mic)
+
+    /** Stop listening: the mic button while it is on. */
+    val Stop get() = icon("stop", MaterialIcons.Rounded.Stop)
     val EditNote get() = icon("edit_note", MaterialIcons.Rounded.EditNote)
 
     /** A page with a +: Foods' "Add a food". */
@@ -263,7 +267,7 @@ object AppIcons {
     internal val all: List<IconResource>
         get() = listOf(
             BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant, LocalDining,
-            Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, PhotoLibrary, Mic, EditNote, PostAdd, Edit,
+            Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, PhotoLibrary, Mic, Stop, EditNote, PostAdd, Edit,
             Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight, Schedule, LockClock, HourglassTop,
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
             SearchOff, Cancel, ArrowBack, ExpandMore,

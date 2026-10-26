@@ -126,6 +126,7 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         is MoreRow.Water -> SettingsRow(
             title = stringResource(Res.string.settings_more_water),
             icon = AppIcons.WaterDropOutline,
+            quietIcon = true,
             trailingText = pluralStringResource(Res.plurals.settings_more_water_glasses, row.glasses, row.glasses),
             showDivider = showDivider,
             onClick = onClick,
@@ -133,6 +134,7 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         is MoreRow.Fasting -> SettingsRow(
             title = stringResource(Res.string.fasting_title),
             icon = AppIcons.Schedule,
+            quietIcon = true,
             trailingText = if (row.on) stringResource(Res.string.fasting_more_on, row.plan.key) else stringResource(Res.string.fasting_more_off),
             showDivider = showDivider,
             onClick = onClick,
@@ -140,12 +142,14 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         MoreRow.Support -> SettingsRow(
             title = stringResource(Res.string.settings_more_support),
             icon = AppIcons.Support,
+            quietIcon = true,
             showDivider = showDivider,
             onClick = onClick,
         )
         MoreRow.Plan -> SettingsRow(
             title = stringResource(Res.string.settings_more_plan),
             icon = AppIcons.WorkspacePremium,
+            quietIcon = true,
             trailingText = stringResource(Res.string.settings_more_plan_free),
             showDivider = showDivider,
         )

@@ -17,8 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.Role
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.ui.TodayCard
-import com.opson.libraries.ui.components.chip.PillChip
-import com.opson.libraries.ui.components.chip.PillChipSize
+import com.opson.libraries.ui.components.chip.ChoiceChip
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_busy
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_good
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_hard
@@ -67,7 +66,12 @@ import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextArea
 import com.opson.system.AppTheme
+import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Assisted
@@ -100,6 +104,8 @@ class DayCloseViewModel(
     settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
     private val calendar: LocalCalendar,
+    private val health: HealthRepository,
+    private val healthFlag: HealthReleaseFlag,
 ) : SEAViewModel<DayCloseState, DayCloseEvent, DayCloseAction>(initialStateArg = DayCloseState()) {
 
     private var model = Model()
@@ -115,10 +121,16 @@ class DayCloseViewModel(
 
     init {
         viewModelScope.launch {
-            combine(diary.observeDay(day), settingsRepository.settings, policySource.policy) { d, settings, policy ->
-                DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings), policy)
+            combine(diary.observeDay(day), settingsRepository.settings, policySource.policy, expended()) { d, settings, policy, expended ->
+                DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended), policy)
             }.collect(::takeAction)
         }
+    }
+
+    /** Today's energy, so the range here is the one Today showed. With `release.health` off the store is never touched. */
+    private fun expended(): Flow<EnergyExpended?> {
+        val today = calendar.today()
+        return if (healthFlag() && day == today) health.energy(today, calendar.timeZone()) else flowOf(null)
     }
 
     override suspend fun handleAction(action: DayCloseAction) {
@@ -173,12 +185,10 @@ fun DayCloseScreen(
             ) {
                 PageHeader(
                     title = stringResource(state.title),
+                    subtitle = state.day?.let { DateCopy.longWeekdayMonthDay(it) },
                     backLabel = stringResource(Res.string.today_dayclose_back, state.backLabel.text()),
                     onBack = { onAction(DayCloseAction.BackTapped) },
                 )
-                state.day?.let {
-                    Text(text = DateCopy.longWeekdayMonthDay(it), typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
-                }
                 if (state.loading) return@Column
                 if (state.revealNote) {
                     InfoBanner(
@@ -264,12 +274,12 @@ private fun Feeling(choice: FeelingChoice, onAction: (DayCloseAction) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
         ) {
             choice.options.forEach { feeling ->
-                PillChip(
+                ChoiceChip(
                     label = stringResource(feeling.label),
                     selected = feeling == choice.picked,
                     onClick = { onAction(DayCloseAction.FeelingTapped(feeling)) },
-                    size = PillChipSize.Compact,
                     role = Role.RadioButton,
+                    unselectedColor = AppTheme.colors.surface,
                 )
             }
         }

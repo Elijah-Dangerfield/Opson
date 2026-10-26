@@ -170,6 +170,7 @@ fun RangeBar(
     rangeEnd: Float,
     modifier: Modifier = Modifier,
     colors: RangeBarColors = RangeBarDefaults.onHero(),
+    height: Dp = RangeBarDefaults.Height,
 ) {
     val track = colors.track.color
     val fillColor = colors.fill.color
@@ -178,7 +179,7 @@ fun RangeBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(RangeBarHeight)
+            .height(height)
             .drawBehind {
                 val trackHeight = size.height * TRACK_SHARE
                 val top = (size.height - trackHeight) / 2
@@ -207,6 +208,12 @@ fun RangeBar(
 data class RangeBarColors(val track: ColorResource, val fill: ColorResource, val box: ColorResource)
 
 object RangeBarDefaults {
+    /** Today's summary: the bar the day is read from (design v3, 2.1). */
+    val Height: Dp = 22.dp
+
+    /** A row in a list, as Nutrients' energy row: about half as tall (design v3, 5.4). */
+    val CompactHeight: Dp = 12.dp
+
     /** White on the hero colour, as Today's summary. */
     @Composable
     fun onHero(): RangeBarColors = RangeBarColors(
@@ -224,7 +231,6 @@ object RangeBarDefaults {
     )
 }
 
-private val RangeBarHeight: Dp = 22.dp
 private const val TRACK_SHARE = 0.6f
 private const val DASH = 8f
 private const val STROKE = 3f
@@ -321,6 +327,13 @@ private fun DayHeaderPreview() {
                 CountChip(icon = AppIcons.WaterDrop, iconColor = AppTheme.colors.nutrients.water.content, text = "3 glasses")
             }
             HeroCard { RangeBar(fill = 0.45f, rangeStart = 0.69f, rangeEnd = 0.83f) }
+            RangeBar(
+                fill = 0.8f,
+                rangeStart = 0.69f,
+                rangeEnd = 0.83f,
+                colors = RangeBarDefaults.onSurface(),
+                height = RangeBarDefaults.CompactHeight,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                 SuggestionButton(label = "Yesterday's dinner", icon = AppIcons.ContentCopy, onClick = {})
                 PillAction(label = "Plan it", onClick = {})

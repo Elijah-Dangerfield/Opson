@@ -36,7 +36,8 @@ interface NutritionFormatter {
     fun energy(kcal: Double, bare: Boolean): String
     fun grams(grams: Double, of: Double?): String
     fun percent(percent: Double): String
-    fun weight(amount: Double, unit: WeightUnit): String
+    /** `72.6 kg`, or `72.6` when [bare], for a figure that sets its unit apart. */
+    fun weight(amount: Double, unit: WeightUnit, bare: Boolean = false): String
     fun water(amount: Double, of: Double, unit: WaterUnit): String
     fun left(kcal: Double): String
     fun onTarget(): String
@@ -90,13 +91,14 @@ object EnglishNutritionFormatter : NutritionFormatter {
         if (bare) wholeNumber(kcal) else "${wholeNumber(kcal)} kcal"
 
     override fun grams(grams: Double, of: Double?): String =
-        if (of == null) "${wholeNumber(grams)} g" else "${wholeNumber(grams)} g of ${wholeNumber(of)} g"
+        if (of == null) "${wholeNumber(grams)} g" else "${wholeNumber(grams)} of ${wholeNumber(of)} g"
 
     override fun percent(percent: Double): String = "${wholeNumber(percent)}%"
 
-    override fun weight(amount: Double, unit: WeightUnit): String = when (unit) {
-        WeightUnit.Kg -> "${oneDecimal(amount)} kg"
-        WeightUnit.Lb -> "${oneDecimal(amount)} lb"
+    override fun weight(amount: Double, unit: WeightUnit, bare: Boolean): String = when {
+        bare -> oneDecimal(amount)
+        unit == WeightUnit.Kg -> "${oneDecimal(amount)} kg"
+        else -> "${oneDecimal(amount)} lb"
     }
 
     override fun water(amount: Double, of: Double, unit: WaterUnit): String = when (unit) {

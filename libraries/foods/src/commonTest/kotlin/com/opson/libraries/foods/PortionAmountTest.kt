@@ -34,9 +34,12 @@ class PortionAmountTest {
         assertEquals("medium", medium.chipLabel)
         assertEquals("cup", cup.chipLabel)
         assertEquals("grams", AmountUnit.Grams.chipLabel)
-        assertEquals("1.5 medium", medium.amountText(1.5))
+        assertEquals("1½ medium", medium.amountText(1.5))
+        assertEquals("1½ cups", cup.amountText(1.5))
+        assertEquals("¼ cup", AmountUnit.OfPortion(Portion("0.25 cup", 20.0)).chipLabel)
+        assertEquals("½ cup", AmountUnit.OfPortion(Portion("0.25 cup", 20.0)).amountText(2.0))
         assertEquals("150 g", AmountUnit.Grams.amountText(150.0))
-        assertEquals("2 bar", AmountUnit.Serving("bar").amountText(2.0))
+        assertEquals("2 bars", AmountUnit.Serving("bar").amountText(2.0))
     }
 
     @Test
@@ -99,7 +102,7 @@ class PortionAmountTest {
         assertEquals(30.0, granola.initialQuantity)
         assertEquals(210.0, granola.draftFor(45.0).kcal!!, 0.01)
         assertEquals("45 g", granola.draftFor(45.0).amountText)
-        assertEquals("2 bar", bar.draftFor(2.0).amountText)
+        assertEquals("2 bars", bar.draftFor(2.0).amountText)
         assertEquals(LogMethod.Custom, bar.draftFor(1.0).method)
     }
 

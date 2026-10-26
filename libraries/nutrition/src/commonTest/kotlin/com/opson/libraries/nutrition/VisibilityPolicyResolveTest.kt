@@ -115,7 +115,7 @@ class VisibilityPolicyResolveTest {
     fun fuel_softensCaloriesButShowsProtein() {
         val fuel = policy(PresetId.Fuel)
         assertEquals("In your range", fuel.text(Metric.Calories, 2100.0, FormatContext(of = 2100.0)))
-        assertEquals("47 g of 120 g", fuel.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
+        assertEquals("47 of 120 g", fuel.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
         assertNull(fuel.text(Metric.Carbs, 47.0, FormatContext(of = 250.0)))
     }
 

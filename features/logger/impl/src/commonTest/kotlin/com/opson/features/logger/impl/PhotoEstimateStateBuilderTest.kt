@@ -45,7 +45,7 @@ class PhotoEstimateStateBuilderTest {
     fun inFullEachLineShowsItsAmountAndBareEnergy() {
         val rows = review(full).rows
         assertEquals(listOf("Chicken breast, grilled", "Olive oil", "Broccoli, steamed"), rows.map { it.name })
-        assertEquals(listOf("120 g", "1 tbsp", "2 cup"), rows.map { it.amount })
+        assertEquals(listOf("120 g", "1 tbsp", "2 cups"), rows.map { it.amount })
         assertEquals(listOf(true, false, false), rows.map { it.isWeight })
         assertEquals(listOf("198", "119", "62"), rows.map { it.calories.text() })
         assertTrue(rows.all { it.matched })
@@ -81,7 +81,7 @@ class PhotoEstimateStateBuilderTest {
         assertEquals("photo:2", fullEditor?.key)
         assertEquals(listOf("cup", "grams"), fullEditor?.units)
         assertEquals(0, fullEditor?.unitIndex)
-        assertEquals("2 cup", fullEditor?.amount)
+        assertEquals("2 cups", fullEditor?.amount)
 
         assertEquals(listOf("cup"), review(blind, editing = true).editor?.units)
     }

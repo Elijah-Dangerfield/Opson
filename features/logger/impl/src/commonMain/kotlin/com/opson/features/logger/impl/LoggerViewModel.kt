@@ -30,10 +30,15 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.speech.Heard
+import com.opson.libraries.speech.MicPermission
+import com.opson.libraries.speech.SpeechAvailability
+import com.opson.libraries.speech.SpeechFailure
 import com.opson.libraries.ui.components.text.NumberInput
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
@@ -45,7 +50,9 @@ import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.logger_toast_ate
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * The logger sheet: search, Describe it and Saved meals, all picking into one
@@ -80,6 +87,7 @@ class LoggerViewModel(
     private val mealPicks: MealPicks,
     scanEnabled: BarcodeScanEnabled,
     photoEnabled: PhotoEstimateEnabled,
+    private val voice: DescribeVoice,
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
     initialStateArg = LoggerState(focusSearch = route.focusSearch, pane = route.start.pane, pickingForMeal = route.pickForMeal != null),
 ) {
@@ -102,12 +110,19 @@ class LoggerViewModel(
             pickingForMeal = route.pickForMeal != null,
             scanAvailable = scanEnabled(),
             photoAvailable = photoEnabled(),
+            voiceEnabled = voice.enabled(),
         ),
         policy = policySource.policy.value,
     )
 
     private var searchJob: Job? = null
     private var describeJob: Job? = null
+    private var listenJob: Job? = null
+    private var voiceTimer: Job? = null
+    private var voiceCap: Job? = null
+
+    /** Whether the running session recognises on the phone, for `voice.started`. */
+    private var onDevice = false
 
     private data class Model(
         val choices: LoggerChoices,
@@ -159,7 +174,12 @@ class LoggerViewModel(
                 telemetry.methodPicked(LogVia.Note, items = 0)
                 sendEvent(LoggerEvent.OpenMealNote(day, slot()))
             }
-            is LoggerAction.DescribeTyped -> describeTyped(action, action.text)
+            is LoggerAction.DescribeTyped -> {
+                // A field can echo its own value back (iOS does around system prompts); only a real edit counts as typing.
+                val edited = action.text != model.choices.describeText
+                if (edited) typedOverVoice(action)
+                if (edited || !model.choices.voice.busy) describeTyped(action, action.text)
+            }
             is LoggerAction.DescribeArrived -> describeArrived(action)
             is LoggerAction.DescribeFailed -> {
                 if (action.text == model.choices.describeText.trim()) {
@@ -176,6 +196,7 @@ class LoggerViewModel(
             LoggerAction.BackTapped -> back(action)
             LoggerAction.AddToMealTapped -> pickForMeal?.let(::handBack) ?: commit()
             LoggerAction.CloseTapped -> sendEvent(LoggerEvent.Dismiss)
+            is VoiceAction -> voiceAction(action)
             LoggerAction.BarcodeTapped -> if (model.choices.scanAvailable && pickForMeal == null) {
                 sendEvent(LoggerEvent.OpenScanner(day, slot()))
             }
@@ -216,7 +237,7 @@ class LoggerViewModel(
         }
     }
 
-    private suspend fun describeTyped(action: LoggerAction, text: String) {
+    private suspend fun describeTyped(action: LoggerAction, text: String, debounce: Duration = DESCRIBE_DEBOUNCE) {
         val parsing = text.isNotBlank()
         action.choose { copy(describeText = text, describeStatus = if (parsing) DescribeStatus.Parsing else DescribeStatus.Idle) }
         describeJob?.cancel()
@@ -226,7 +247,7 @@ class LoggerViewModel(
         }
         val trimmed = text.trim()
         describeJob = viewModelScope.launch {
-            delay(DESCRIBE_DEBOUNCE)
+            delay(debounce)
             val items = foodCatalog.describe(trimmed).getOrNull()
             takeAction(if (items == null) LoggerAction.DescribeFailed(trimmed) else LoggerAction.DescribeArrived(trimmed, items))
         }
@@ -246,9 +267,17 @@ class LoggerViewModel(
             LoggerPane.Describe -> {
                 // Describe's lines are only picks while Describe is open.
                 describeJob?.cancel()
+                endVoice()
                 basketStore.removeWhere { it.source == PickSource.Describe }
                 action.choose {
-                    copy(pane = LoggerPane.Search, describeText = "", describeStatus = DescribeStatus.Idle, number = "", focusNumber = false)
+                    copy(
+                        pane = LoggerPane.Search,
+                        describeText = "",
+                        describeStatus = DescribeStatus.Idle,
+                        number = "",
+                        focusNumber = false,
+                        voice = VoiceCapture.Idle(),
+                    )
                 }
             }
             LoggerPane.Saved -> action.choose { copy(pane = LoggerPane.Search) }
@@ -271,10 +300,18 @@ class LoggerViewModel(
         }.trim().ifEmpty { return }
         pickNameOnly(name, model.inputs?.customFoods.orEmpty(), customFoods, basketStore)
         describeJob?.cancel()
+        endVoice()
         basketStore.removeWhere { it.source == PickSource.Describe }
         searchJob?.cancel()
         action.choose {
-            copy(pane = LoggerPane.Search, query = "", search = null, describeText = "", describeStatus = DescribeStatus.Idle)
+            copy(
+                pane = LoggerPane.Search,
+                query = "",
+                search = null,
+                describeText = "",
+                describeStatus = DescribeStatus.Idle,
+                voice = VoiceCapture.Idle(),
+            )
         }
     }
 
@@ -385,11 +422,206 @@ class LoggerViewModel(
         }
     }
 
+    // Voice log (docs/plans/screens/voice.md). Speech only ever fills describeText;
+    // from the final transcript on it is the typed path, through describeTyped.
+
+    private suspend fun voiceAction(action: VoiceAction) {
+        if (!model.choices.voiceEnabled) return
+        val capture = model.choices.voice
+        when (action) {
+            VoiceAction.MicTapped -> when (capture) {
+                is VoiceCapture.Listening -> stopListening(action, capture)
+                VoiceCapture.Asking, is VoiceCapture.Transcribing -> Unit
+                is VoiceCapture.Idle, is VoiceCapture.Notice -> micTapped(action)
+            }
+            // A yes starts listening even if something moved the capture on while the prompt was up: the person asked.
+            is VoiceAction.MicPermissionAnswered -> if (capture !is VoiceCapture.Listening && capture !is VoiceCapture.Transcribing) {
+                when (val answer = action.permission) {
+                    MicPermission.Granted -> startListening(action, asked = true)
+                    is MicPermission.Denied -> denied(action, answer.canAskAgain)
+                    MicPermission.NotAsked -> action.choose { copy(voice = VoiceCapture.Idle()) }
+                }
+            }
+            is VoiceAction.SpeechArrived -> speechArrived(action, capture, action.heard)
+            VoiceAction.WentQuiet -> if (capture is VoiceCapture.Listening) stopListening(action, capture)
+            VoiceAction.TranscriptOverdue -> if (capture is VoiceCapture.Transcribing) transcribed(action, capture.prefix, capture.heard)
+            VoiceAction.TypeInsteadTapped -> action.choose { copy(voice = VoiceCapture.Idle(focusText = true)) }
+            VoiceAction.OpenSettingsTapped -> {
+                voice.speech.openSettings()
+                action.choose { copy(voice = VoiceCapture.Idle()) }
+            }
+            // Keep what was heard: the mic cannot run in the background, and the words are the person's.
+            VoiceAction.ScreenPaused -> when (capture) {
+                is VoiceCapture.Listening -> transcribed(action, capture.prefix, capture.heard)
+                is VoiceCapture.Transcribing -> transcribed(action, capture.prefix, capture.heard)
+                // The permission prompt itself pauses the screen on Android.
+                is VoiceCapture.Idle, VoiceCapture.Asking, is VoiceCapture.Notice -> Unit
+            }
+        }
+    }
+
+    private suspend fun micTapped(action: LoggerAction) {
+        when (val availability = voice.speech.availability()) {
+            is SpeechAvailability.Unavailable -> fallBack(action, availability.why, restore = null)
+            is SpeechAvailability.Ready -> {
+                onDevice = availability.onDevice
+                when (val permission = voice.speech.permission()) {
+                    MicPermission.Granted -> startListening(action, asked = false)
+                    MicPermission.NotAsked -> askForMic(action)
+                    // A tap on the mic is the person asking, so a prompt Android will still show is shown.
+                    is MicPermission.Denied -> if (permission.canAskAgain) askForMic(action) else denied(action, canAskAgain = false)
+                }
+            }
+        }
+    }
+
+    private suspend fun askForMic(action: LoggerAction) {
+        action.choose { copy(voice = VoiceCapture.Asking) }
+        sendEvent(RequestMicPermission)
+    }
+
+    private suspend fun startListening(action: LoggerAction, asked: Boolean) {
+        // A parse of typed text still waiting would be overtaken by what is said; the final text parses it all.
+        describeJob?.cancel()
+        val typed = model.choices.describeText.trim()
+        val prefix = if (typed.isEmpty()) "" else "$typed "
+        action.choose {
+            copy(
+                voice = VoiceCapture.Listening(prefix, heard = ""),
+                describeStatus = if (describeStatus == DescribeStatus.Parsing) DescribeStatus.Idle else describeStatus,
+            )
+        }
+        voice.telemetry.started(onDevice, asked)
+        listenJob?.cancel()
+        listenJob = viewModelScope.launch {
+            voice.speech.listen()
+                // However the platform fails, the person sees why and can type instead.
+                .catch { emit(Heard.Failed(SpeechFailure.Unknown)) }
+                .collect { takeAction(VoiceAction.SpeechArrived(it)) }
+        }
+        armQuiet(NOTHING_SAID)
+        voiceCap?.cancel()
+        voiceCap = viewModelScope.launch {
+            delay(LISTEN_LIMIT)
+            takeAction(VoiceAction.WentQuiet)
+        }
+    }
+
+    private suspend fun speechArrived(action: LoggerAction, capture: VoiceCapture, heard: Heard) {
+        val (prefix, sofar) = when (capture) {
+            is VoiceCapture.Listening -> capture.prefix to capture.heard
+            is VoiceCapture.Transcribing -> capture.prefix to capture.heard
+            // A late answer from a session already ended.
+            is VoiceCapture.Idle, VoiceCapture.Asking, is VoiceCapture.Notice -> return
+        }
+        when (heard) {
+            is Heard.Partial -> {
+                val next = when (capture) {
+                    is VoiceCapture.Listening -> capture.copy(heard = heard.text)
+                    else -> VoiceCapture.Transcribing(prefix, heard.text)
+                }
+                action.choose { copy(voice = next, describeText = prefix + heard.text) }
+                if (capture is VoiceCapture.Listening) armQuiet(QUIET_AFTER_SPEECH)
+            }
+            is Heard.Final -> transcribed(action, prefix, heard.text)
+            // Words already heard are worth more than the error that ended the session.
+            is Heard.Failed -> if (sofar.isNotBlank()) {
+                transcribed(action, prefix, sofar)
+            } else {
+                fallBack(action, heard.why, restore = prefix)
+            }
+        }
+    }
+
+    private suspend fun stopListening(action: LoggerAction, capture: VoiceCapture.Listening) {
+        voice.speech.finishListening()
+        voiceCap?.cancel()
+        action.choose { copy(voice = VoiceCapture.Transcribing(capture.prefix, capture.heard)) }
+        voiceTimer?.cancel()
+        voiceTimer = viewModelScope.launch {
+            delay(TRANSCRIBE_TIMEOUT)
+            takeAction(VoiceAction.TranscriptOverdue)
+        }
+    }
+
+    /** The session is over with [text] heard after [prefix]: from here it is exactly the typed path. */
+    private suspend fun transcribed(action: LoggerAction, prefix: String, text: String) {
+        endVoice()
+        if (text.isBlank()) {
+            fallBack(action, SpeechFailure.NoSpeech, restore = prefix)
+            return
+        }
+        voice.telemetry.transcribed(WordBucket.of(text))
+        action.choose { copy(voice = VoiceCapture.Idle(afterSession = true)) }
+        describeTyped(action, prefix + text.trim(), debounce = Duration.ZERO)
+    }
+
+    /** Voice cannot help this time; typing can. [restore] puts back what was typed before the session, if there was one. */
+    private suspend fun fallBack(action: LoggerAction, why: SpeechFailure, restore: String?) {
+        endVoice()
+        // Turned off in Settings while the sheet was open: the same notice, and the same event, as a refusal.
+        if (why == SpeechFailure.NotAllowed) {
+            voice.telemetry.permissionDenied(canAskAgain = false)
+        } else {
+            voice.telemetry.fallback(VoiceFallback.of(why))
+        }
+        action.choose {
+            copy(voice = VoiceCapture.Notice(why.toNotice()), describeText = restore?.trimEnd() ?: describeText)
+        }
+    }
+
+    private suspend fun denied(action: LoggerAction, canAskAgain: Boolean) {
+        voice.telemetry.permissionDenied(canAskAgain)
+        action.choose { copy(voice = VoiceCapture.Notice(VoiceNotice.Denied(canAskAgain))) }
+    }
+
+    /**
+     * Typing while the mic is on means the person took over: stop listening and keep what is in
+     * the field. Typing is also the way past any notice, so that goes too.
+     */
+    private suspend fun typedOverVoice(action: LoggerAction) {
+        val next = when (model.choices.voice) {
+            is VoiceCapture.Listening, is VoiceCapture.Transcribing -> VoiceCapture.Idle(afterSession = true)
+            is VoiceCapture.Idle, is VoiceCapture.Notice -> VoiceCapture.Idle()
+            VoiceCapture.Asking -> return
+        }
+        endVoice()
+        if (next != model.choices.voice) action.choose { copy(voice = next) }
+    }
+
+    private fun armQuiet(after: Duration) {
+        voiceTimer?.cancel()
+        voiceTimer = viewModelScope.launch {
+            delay(after)
+            takeAction(VoiceAction.WentQuiet)
+        }
+    }
+
+    /** Stops the mic without waiting for a transcript. */
+    private fun endVoice() {
+        listenJob?.cancel()
+        listenJob = null
+        voiceTimer?.cancel()
+        voiceCap?.cancel()
+    }
+
     companion object {
         val SEARCH_DEBOUNCE = 250.milliseconds
 
         /** Longer than search: a parse is a heavier call, and people pause mid-sentence. */
         val DESCRIBE_DEBOUNCE = 700.milliseconds
+
+        /** A pause this long after speech means the person is done. */
+        val QUIET_AFTER_SPEECH = 2.seconds
+
+        /** Nothing said at all for this long after the mic opens: stop rather than listen to the room. */
+        val NOTHING_SAID = 8.seconds
+
+        /** iOS stops server recognition at about a minute; a meal never needs that long. */
+        val LISTEN_LIMIT = 55.seconds
+
+        /** How long to wait for the recognizer to settle after the mic stops before keeping what was heard. */
+        val TRANSCRIBE_TIMEOUT = 4.seconds
         const val SEARCH_LIMIT = 25
         const val USUAL_LIMIT = 3
         const val RECENT_LIMIT = 6

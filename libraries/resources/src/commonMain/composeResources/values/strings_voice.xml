@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for voice log (0.2, behind release.voice): the mic in Describe it and
+  what it says while it listens. From docs/plans/screens/voice.md. None of it
+  names a number, so every mode shows it unchanged. Same rules as strings.xml:
+  no backslash escapes, positional %1$s arguments.
+-->
+<resources>
+
+    <!-- The mic -->
+    <string name="voice_mic_cd">Say it instead of typing</string>
+    <string name="voice_stop_cd">Stop listening</string>
+
+    <!-- Status line under the field, read out by TalkBack and VoiceOver -->
+    <string name="voice_listening">Listening. Tap stop when you're done.</string>
+    <string name="voice_stopped">Stopped listening</string>
+
+    <!-- When voice can't help, typing can -->
+    <string name="voice_denied">Opson needs the microphone to hear you. You can turn it on in Settings.</string>
+    <string name="voice_denied_ask">Opson needs the microphone to hear you.</string>
+    <string name="voice_unavailable">Voice isn't available on this phone right now. Typing works just the same.</string>
+    <string name="voice_needs_connection">Voice needs a connection on this phone right now. You can type it instead.</string>
+    <string name="voice_no_speech">Didn't catch anything that time.</string>
+    <string name="voice_failed">Voice stopped unexpectedly.</string>
+    <string name="voice_allow">Allow microphone</string>
+    <string name="voice_open_settings">Open Settings</string>
+    <string name="voice_try_again">Try again</string>
+    <string name="voice_type_instead">Type instead</string>
+</resources>

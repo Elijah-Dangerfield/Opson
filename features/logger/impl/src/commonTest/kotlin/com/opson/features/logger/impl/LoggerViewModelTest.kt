@@ -81,6 +81,7 @@ class LoggerViewModelTest : CoroutineTest() {
         mealPicks = mealPicks,
         scanEnabled = scanFlag(scanOn),
         photoEnabled = photoFlag(photoOn),
+        voice = DescribeVoice(FakeSpeechToText(), voiceFlag(false), RecordingVoiceTelemetry()),
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {

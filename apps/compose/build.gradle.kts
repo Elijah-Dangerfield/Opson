@@ -88,6 +88,8 @@ kotlin {
             implementation(projects.libraries.reminders.impl)
             implementation(projects.libraries.scanner)
             implementation(projects.libraries.scanner.impl)
+            implementation(projects.libraries.speech)
+            implementation(projects.libraries.speech.impl)
 
             implementation(projects.libraries.storage)
             implementation(projects.libraries.storage.impl)

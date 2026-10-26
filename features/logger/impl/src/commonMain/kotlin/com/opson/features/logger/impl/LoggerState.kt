@@ -108,6 +108,8 @@ data class DescribeUi(
     val canNumber: Boolean = false,
     val number: String = "",
     val focusNumber: Boolean = false,
+    /** The mic and what it is doing; null with `release.voice` off. */
+    val voice: VoiceUi? = null,
 )
 
 sealed interface DescribeStatus {

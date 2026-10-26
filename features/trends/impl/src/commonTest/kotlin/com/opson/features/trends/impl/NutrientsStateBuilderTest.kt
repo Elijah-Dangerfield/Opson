@@ -46,7 +46,7 @@ class NutrientsStateBuilderTest {
         assertEquals((2300 / (2300 * 1.15)).toFloat(), energy.rangeEnd)
         val rows = assertNotNull(state.macros)
         assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), rows.map { it.metric })
-        assertEquals("53 g of 120 g", assertIs<Display.Shown>(rows[0].display).text)
+        assertEquals("53 of 120 g", assertIs<Display.Shown>(rows[0].display).text)
         assertEquals(true, state.microsOff)
         assertNull(state.micros)
         assertEquals(false, state.nothing)
@@ -151,6 +151,6 @@ class NutrientsStateBuilderTest {
     @Test
     fun emptyDay_isARealZero() {
         val state = build(inputs = TrendsFixtures.nutrientsInputs(days = emptyList()))
-        assertEquals("0 g of 120 g", assertIs<Display.Shown>(assertNotNull(state.macros).single { it.metric == Metric.Protein }.display).text)
+        assertEquals("0 of 120 g", assertIs<Display.Shown>(assertNotNull(state.macros).single { it.metric == Metric.Protein }.display).text)
     }
 }

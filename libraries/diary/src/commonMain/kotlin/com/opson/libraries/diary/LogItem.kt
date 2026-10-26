@@ -34,6 +34,12 @@ data class LogItem(
     /** Micronutrient key (unit in the key, `sodium_mg`) to amount for the whole item. */
     val micros: Map<String, Double>? = null,
 ) {
+    /**
+     * The amount as a row shows it. Every screen reads this, not [amountText], so entries an
+     * older build saved as "0.25 cup" or "1.5 × 1 cup" read "¼ cup" and "1½ cups" too.
+     */
+    val amountLabel: String get() = HouseholdAmount.tidy(amountText.orEmpty())
+
     /** The same food and amount, for copying into another day or a saved meal. */
     fun toDraft(): LogDraft = LogDraft(
         name = name,
@@ -79,7 +85,10 @@ data class LogDraft(
     val fiber: Double? = null,
     val micros: Map<String, Double>? = null,
     val method: LogMethod? = null,
-)
+) {
+    /** The amount as a row shows it, read the same way as [LogItem.amountLabel]. Not serialized: no backing field. */
+    val amountLabel: String get() = HouseholdAmount.tidy(amountText.orEmpty())
+}
 
 /**
  * A sum that knows how much of it is known.

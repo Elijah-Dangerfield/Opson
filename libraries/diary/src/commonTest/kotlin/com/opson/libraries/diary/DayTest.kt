@@ -121,7 +121,7 @@ class DayTest {
 
         assertEquals(380.0, draft.kcal)
         assertNull(draft.fiber)
-        assertEquals("2 bar", draft.amountText)
+        assertEquals("2 bars", draft.amountText)
         assertEquals("c1", draft.customFoodId)
         assertEquals(LogMethod.Custom, draft.method)
     }

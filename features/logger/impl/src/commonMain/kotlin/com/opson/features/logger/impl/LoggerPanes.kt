@@ -45,7 +45,6 @@ import opson.libraries.resources.generated.resources.logger_add_to
 import opson.libraries.resources.generated.resources.logger_describe_failed
 import opson.libraries.resources.generated.resources.logger_describe_offline
 import opson.libraries.resources.generated.resources.logger_describe_placeholder
-import opson.libraries.resources.generated.resources.logger_describe_prompt
 import opson.libraries.resources.generated.resources.logger_describe_reading
 import opson.libraries.resources.generated.resources.logger_describe_title
 import opson.libraries.resources.generated.resources.logger_described_estimate
@@ -109,6 +108,13 @@ internal fun DescribePane(state: LoggerState, onAction: (LoggerAction) -> Unit) 
 
 @Composable
 private fun DescribeBox(describe: DescribeUi, onAction: (LoggerAction) -> Unit) {
+    val voice = describe.voice
+    val focusRequester = remember { FocusRequester() }
+    val inPreview = LocalInspectionMode.current
+    LaunchedEffect(voice?.focusText) {
+        // "Type instead": the keyboard comes up where the words go. No window in a preview, nothing to focus.
+        if (voice?.focusText == true && !inPreview) Catching { focusRequester.requestFocus() }
+    }
     val shape = AppTheme.shapes.inputLarge
     Column(
         modifier = Modifier
@@ -125,15 +131,19 @@ private fun DescribeBox(describe: DescribeUi, onAction: (LoggerAction) -> Unit) 
             minLines = 2,
             // The box around it carries the outline, so the field's own melts into the fill.
             borderColor = AppTheme.colors.surface,
+            modifier = Modifier.focusRequester(focusRequester),
         )
-        // The design's mic button sits here; voice logging is 0.2, so only the prompt shows.
-        Text(
-            text = stringResource(Res.string.logger_describe_prompt),
-            typography = AppTheme.type.secondary,
-            color = AppTheme.colors.muted,
-            modifier = Modifier.padding(horizontal = AppTheme.spacing.section),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = AppTheme.spacing.section),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+        ) {
+            DescribePromptLine(voice, modifier = Modifier.weight(1f))
+            // The design's mic, behind release.voice.
+            voice?.let { MicButton(it, onAction) }
+        }
     }
+    voice?.notice?.let { VoiceNoticeCard(it, onAction) }
 }
 
 @Composable

@@ -132,7 +132,7 @@ object TodayStateBuilder {
 
         val day = inputs.day
         val settings = inputs.settings
-        val range = settings.targets.today(settings.exercise, 0, 0)
+        val range = todayRange(settings, day, inputs.today, inputs.expended)
         val eaten = day.totals().kcal.known
         val delayed = policy.level(Metric.Calories) == Visibility.Delay
         val shown = policy.effectiveLevel(Metric.Calories, Surface.Today, context) == Visibility.Show
@@ -151,7 +151,7 @@ object TodayStateBuilder {
     private fun energy(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, eaten: Double): TodaySummary.Energy {
         val day = inputs.day
         val settings = inputs.settings
-        val range = settings.targets.today(settings.exercise, 0, 0)
+        val range = todayRange(settings, day, inputs.today, inputs.expended)
         val scaleMax = range.maxKcal * BAR_HEADROOM
         val empty = day.allItems.isEmpty() && day.ateNoDetails.isEmpty()
         return TodaySummary.Energy(
@@ -436,7 +436,7 @@ object TodayStateBuilder {
                 ItemRowUi(
                     entryId = item.id,
                     name = item.name,
-                    amount = item.amountText.orEmpty(),
+                    amount = item.amountLabel,
                     precision = item.precision,
                     // The meal header carries the unit, so each item is a plain number (v3 2.1).
                     calories = policy.resolve(Metric.Calories, item.kcal, Surface.Today, context.copy(bare = true)),

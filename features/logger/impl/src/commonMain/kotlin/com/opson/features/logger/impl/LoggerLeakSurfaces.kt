@@ -25,6 +25,10 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-describe", label = "Describe a meal", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeState(policy), onAction = {})
         },
+        // Voice log: words heard live over lines already read. The transcript is the person's; the lines are policy's.
+        LeakSurface(id = "logger-describe-voice", label = "Describe a meal by voice", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = VoiceFixtures.listeningOverLines(policy), onAction = {})
+        },
         LeakSurface(id = "logger-saved", label = "Saved meals", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.savedState(policy), onAction = {})
         },
