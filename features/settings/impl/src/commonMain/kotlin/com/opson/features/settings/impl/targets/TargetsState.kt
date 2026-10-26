@@ -3,6 +3,7 @@ package com.opson.features.settings.impl.targets
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.RangeEnd
@@ -39,6 +40,11 @@ data class TargetsState(
     val macros: List<TargetMacroRow> = emptyList(),
     /** The Ratios / Grams editor is open in the macro card. */
     val editingMacros: Boolean = false,
+    /**
+     * The Exercise adjustment row (v3 `targets.png`, 0.2): the answer that applies, or null when
+     * the row is not shown (`release.health` off, no store connected, or numbers have been hard).
+     */
+    val exercise: ExerciseAdjustment? = null,
 )
 
 /** What a "−" step does: move, show a lock (the floor), or nothing (the ends would touch). */
@@ -122,6 +128,8 @@ object TargetsStateBuilder {
      *
      * [burnKcal] is what the user burns, a 7-day average, when the app knows it (0.1 never
      * does); [editingGroup] and [editingMacros] are the view model's own UI state.
+     * [healthConnected] is `release.health` on and a store connected: only then does the
+     * Exercise adjustment row show, and never for someone who said numbers have been hard.
      */
     fun build(
         settings: Settings,
@@ -129,6 +137,7 @@ object TargetsStateBuilder {
         burnKcal: Int? = null,
         editingGroup: Int? = null,
         editingMacros: Boolean = false,
+        healthConnected: Boolean = false,
     ): TargetsState {
         val targets = settings.targets
         if (policy.level(Metric.Calories) != Visibility.Show) {
@@ -152,6 +161,7 @@ object TargetsStateBuilder {
             macroMode = settings.macroMode,
             macros = macros(targets, policy),
             editingMacros = editingMacros,
+            exercise = settings.exerciseInRange.takeIf { healthConnected && !settings.onboarding.hard },
         )
     }
 

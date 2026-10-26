@@ -41,6 +41,10 @@ class RemindersRoute : Route()
 @Serializable
 class IntegrationsRoute : Route()
 
+/** Leave out a day (0.2, behind `release.health`): a month of days to leave out of the math, or count again. */
+@Serializable
+class LeaveOutDayRoute : Route()
+
 /**
  * Fasting (0.2, `release.fasting`): the status card, the timer switch, the Today card and the
  * eating window. Only reached where fasting is offered (Full numbers and Sprint, and never for

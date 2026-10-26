@@ -374,8 +374,8 @@ Expended today, the question, days left out, the privacy footer.
 - `Days left out of the math`; `Leave out another day`; `Leave out a day`;
   `None yet. A day you leave out doesn't count in your averages.`
 - Sheet: `Leave out a day`; `Tap a day to leave it out of your averages. Tap it again to count it.`;
-  `Done`; cell description `%1$s, left out`.
-- Targets: `Exercise adjustment` (in `strings_settings.xml`, prefix `settings_`).
+  `Done`; cell description `%1$s, not counted` (never "left": a date next to it reads as calories left to the leak test).
+- Targets: `Exercise adjustment` (`integrations_targets_exercise`, kept in this file with the rest of the 0.2 copy so it merges cleanly).
 
 ### Tests, second pass
 - `TargetsTest` / `ExerciseRangeTest` (property style over a grid of base

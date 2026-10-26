@@ -131,6 +131,7 @@ fun TargetsScreen(
         state.deficit?.let { DeficitCards(it, onAction) }
         if (state.style == StyleKind.ByDay) ByDayCards(state, onAction)
         if (state.macros.isNotEmpty()) MacroCard(state, onAction)
+        state.exercise?.let { ExerciseAdjustmentCard(it, onAction) }
     }
 }
 

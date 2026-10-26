@@ -2,7 +2,9 @@ package com.opson.features.settings.impl.integrations
 
 import androidx.lifecycle.viewModelScope
 import com.opson.features.settings.impl.Toast
+import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.ConnectOutcome
 import com.opson.libraries.health.HealthRepository
@@ -19,13 +21,16 @@ import opson.libraries.resources.generated.resources.integrations_toast_disconne
 const val HEALTH_CONNECT_PLAY_URL = "https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata"
 
 /**
- * Watch and health apps. Reads the connection and today's energy from [HealthRepository] and
- * the live policy, rebuilds through [IntegrationsStateBuilder], and asks for permission only
- * from [IntegrationsAction.ConnectTapped].
+ * Watch and health apps. Reads the connection and today's energy from [HealthRepository], the
+ * exercise answer from settings, the days left out from the diary and the live policy, rebuilds
+ * through [IntegrationsStateBuilder], and asks for permission only from
+ * [IntegrationsAction.ConnectTapped].
  */
 @Inject
 class IntegrationsViewModel(
     private val health: HealthRepository,
+    private val settingsRepository: SettingsRepository,
+    diary: DiaryRepository,
     policySource: VisibilityPolicySource,
     calendar: LocalCalendar,
 ) : SEAViewModel<IntegrationsState, IntegrationsEvent, IntegrationsAction>(
@@ -44,8 +49,13 @@ class IntegrationsViewModel(
         val today = calendar.today()
         viewModelScope.launch {
             // energy() refreshes the status first, so the page opens on the real connection.
-            combine(health.energy(today, calendar.timeZone()), health.status) { energy, status ->
-                IntegrationsInputs(source = health.source, status = status, energy = energy, today = today)
+            combine(
+                health.energy(today, calendar.timeZone()),
+                health.status,
+                settingsRepository.settings,
+                diary.observeDays(LeaveOutWindow.start(today), today),
+            ) { energy, status, settings, days ->
+                IntegrationsInputs(source = health.source, status = status, energy = energy, today = today, settings = settings, days = days)
             }.collect { takeAction(IntegrationsAction.InputsArrived(it)) }
         }
         viewModelScope.launch {
@@ -67,6 +77,11 @@ class IntegrationsViewModel(
             IntegrationsAction.GetHealthConnectTapped -> sendEvent(IntegrationsEvent.OpenLink(HEALTH_CONNECT_PLAY_URL))
             IntegrationsAction.OpenSourceTapped -> health.openSourceSettings()
             IntegrationsAction.BackTapped -> sendEvent(IntegrationsEvent.Close)
+            is IntegrationsAction.ExercisePicked -> settingsRepository.update { current ->
+                // Never asked of someone who said numbers have been hard, so never written for them either.
+                if (current.onboarding.hard) current else current.copy(exerciseRange = action.choice)
+            }
+            IntegrationsAction.LeaveOutDayTapped -> sendEvent(IntegrationsEvent.OpenLeaveOut)
         }
     }
 

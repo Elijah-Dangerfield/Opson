@@ -3,6 +3,8 @@ package com.opson.features.settings.impl.targets
 import com.opson.features.settings.impl.FakePolicySource
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
+import com.opson.features.settings.impl.integrations.FakeHealthRepository
+import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
 import com.opson.libraries.diary.MacroMode
@@ -146,7 +148,7 @@ class TargetsTest : CoroutineTest() {
     // --- view model ---
 
     private fun viewModel(repository: FakeSettingsRepository, preset: PresetId = PresetId.Full) =
-        TargetsViewModel(repository, FakePolicySource(SettingsFixtures.policy(preset)))
+        TargetsViewModel(repository, FakePolicySource(SettingsFixtures.policy(preset)), FakeHealthRepository(), healthFlag(false))
 
     private fun FakeSettingsRepository.targets(): Targets = state.value.targets
 
