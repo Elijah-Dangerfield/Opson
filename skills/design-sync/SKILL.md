@@ -64,7 +64,10 @@ rule only for a screen the app does not have yet.
 
 ### Design to app
 
-1. Get the Claude Design export (a zip or folder) from the user, then run
+1. Before the user exports from Claude Design, run `export --publish` and
+   give them the manifest URL (or `app.zip`) to hand to Claude Design, so the
+   design files are named with the app's ids. Then get the Claude Design
+   export (a zip or folder) from the user, then run
    `./scripts/design_sync.main.kts export` (skip it if `status` shows a fresh
    export for the current commit) and
    `./scripts/design_sync.main.kts import <path>`.
@@ -111,6 +114,10 @@ rule only for a screen the app does not have yet.
 
 ### Design to app
 
+0. Ask for the app's manifest first (the URL from `export --publish`, or its
+   `app.zip`). Without it you can only invent ids, and invented ids pair with
+   nothing: a first real run exported 64 screens and paired 0 of them. If the
+   user can't provide it, say the pairing will be done by hand afterwards.
 1. Export each screen the user wants built or changed as a PNG at 390x844,
    3x if possible (1170x2532 px), one screen per image, nothing around it.
 2. Name each file `<screen id>.png`. Use the id from the app's manifest when
