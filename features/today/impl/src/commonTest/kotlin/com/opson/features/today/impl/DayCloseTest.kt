@@ -1,5 +1,11 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.Sleep
+import com.opson.libraries.diary.Energy
+import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.CheckInMood
+import com.opson.libraries.diary.CheckIn
+import kotlinx.datetime.LocalDate
 import com.opson.features.today.impl.dayclose.Commitment
 import com.opson.features.today.impl.dayclose.DayCloseAction
 import com.opson.features.today.impl.dayclose.DayCloseEvent
@@ -255,5 +261,74 @@ class DayCloseTest : CoroutineTest() {
         diary.days.value = diary.days.value + (TodayFixtures.today.plus(DatePeriod(days = 1)) to TodayFixtures.plannedDay())
 
         assertEquals<DayCloseEvent?>(DayCloseEvent.Close, events.lastOrNull())
+    }
+
+    // Design sync 2: the check-in (release.checkIn), the expended row, and the big-day links
+
+    @Test
+    fun theCheckInIsOfferedInEveryMode_onlyWithTheFlag_andTakesTheFeelingsPlace() {
+        listOf(PresetId.Full, PresetId.Blind, PresetId.Fuel, PresetId.Delayed).forEach { preset ->
+            val on = TodayFixtures.dayCloseState(policy(preset), checkInOn = true)
+            assertNotNull(on.checkIn, "$preset")
+            assertNull(on.feeling, "$preset")
+            assertNull(TodayFixtures.dayCloseState(policy(preset)).checkIn, "$preset with the flag off")
+        }
+        assertNotNull(TodayFixtures.dayCloseState(policy(PresetId.Blind)).feeling, "Blind keeps its feeling with the flag off")
+    }
+
+    @Test
+    fun expendedFromTheWatch_showsAtShow_andOnlyToday() {
+        assertEquals("1,990 kcal", TodayFixtures.dayCloseState(policy(PresetId.Full), expended = TodayFixtures.expended).expended.text())
+        assertIs<Display.Hidden>(TodayFixtures.dayCloseState(policy(PresetId.Blind), expended = TodayFixtures.expended).expended)
+        assertIs<Display.Hidden>(
+            TodayFixtures.dayCloseState(policy(PresetId.Full), expended = TodayFixtures.expended, date = TodayFixtures.pastDay().date).expended,
+        )
+    }
+
+    @Test
+    fun theCheckInPrefillsOnce_andIsSavedOnCloseTheDay() = runUnitTest {
+        diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(checkIn = CheckIn(hunger = DayHunger.Some)))
+        val vm = vm(checkInOn = true)
+        assertEquals(CheckIn(hunger = DayHunger.Some), vm.state.checkIn)
+
+        vm.takeAction(DayCloseAction.CheckInHungerTapped(DayHunger.Steady))
+        vm.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Good))
+        vm.takeAction(DayCloseAction.CheckInSleepTapped(Sleep.Ok))
+        vm.takeAction(DayCloseAction.CheckInMoodTapped(CheckInMood.Calm))
+        vm.takeAction(DayCloseAction.CheckInMoodTapped(CheckInMood.Social))
+        vm.takeAction(DayCloseAction.CheckInSleepTapped(Sleep.Ok))
+        diary.days.value = diary.days.value.mapValues { (_, d) -> d.copy(checkIn = CheckIn(hunger = DayHunger.Very)) }
+        assertEquals(DayHunger.Steady, vm.state.checkIn?.hunger, "a later emission does not overwrite what is being answered")
+
+        vm.takeAction(DayCloseAction.DoneTapped)
+
+        val expected = CheckIn(hunger = DayHunger.Steady, energy = Energy.Good, moods = setOf(CheckInMood.Calm, CheckInMood.Social))
+        assertEquals(listOf<Pair<LocalDate, CheckIn?>>(TodayFixtures.today to expected), diary.checkIns.toList(), "sleep tapped twice is left blank")
+    }
+
+    @Test
+    fun backSavesNoCheckIn_andTheFlagOffWritesNone() = runUnitTest {
+        val on = vm(checkInOn = true)
+        on.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
+        on.takeAction(DayCloseAction.BackTapped)
+        assertTrue(diary.checkIns.isEmpty())
+
+        val off = vm(checkInOn = false)
+        off.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
+        off.takeAction(DayCloseAction.DoneTapped)
+        assertTrue(diary.checkIns.isEmpty())
+    }
+
+    @Test
+    fun whyNotCutBackAndSupportOpenTheirPages() = runUnitTest {
+        val events = mutableListOf<DayCloseEvent>()
+        val vm = vm()
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+
+        vm.takeAction(DayCloseAction.WhyNotCutBackTapped)
+        vm.takeAction(DayCloseAction.SupportTapped)
+
+        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.OpenWhyNotCutBack, DayCloseEvent.OpenSupport), events)
+        assertEquals(0, diary.writes, "opening support is never recorded")
     }
 }

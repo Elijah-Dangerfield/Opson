@@ -233,7 +233,7 @@ object TodayFixtures {
     /** Two weeks of morning weigh-ins ending on [today] at 7:02 am, 73.9 kg, the line about level. */
     val weighIns: List<WeighIn> = (13 downTo 0).map { back ->
         val date = today.minus(DatePeriod(days = back))
-        WeighIn(id = "w-$date", measuredAt = LocalDateTime(date, LocalTime(7, 2)).toInstant(timeZone), kg = 73.9 + (back % 3 - 1) * 0.1)
+        WeighIn(id = "w-$date", measuredAt = LocalDateTime(date, LocalTime(7, 2)).toInstant(timeZone), kg = 73.9 + ((back + 1) % 3 - 1) * 0.1)
     }
 
     /** v3 `today-empty`'s "Expended so far 410 kcal" at 8 in the morning. */

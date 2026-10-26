@@ -96,6 +96,14 @@ class DiaryRulesTest {
     }
 
     @Test
+    fun theCheckInIsOpaqueButCapped() {
+        val record = DayRecord(today, null, null, null, emptyMap(), null, now, false, checkIn = """{"hunger":"steady","moods":["calm"]}""")
+        assertNull(DiaryRules.validate(record, now))
+        assertNull(DiaryRules.validate(record.copy(checkIn = null), now))
+        assertNotNull(DiaryRules.validate(record.copy(checkIn = "x".repeat(DiaryRules.MAX_CHECK_IN + 1)), now))
+    }
+
+    @Test
     fun feelingsAreCapped() {
         val feeling = MealFeeling(today, MealSlot.Lunch, "hungry", "full", listOf("calm"), null, now, false)
         assertNull(DiaryRules.validate(feeling, now))
