@@ -40,9 +40,15 @@ const { id, page, label = 'Your email' } = Astro.props;
     />
     <button class="button" type="submit">Join the waitlist</button>
   </div>
+  {/*
+    The honeypot, sent as `company`. Its name and label say nothing a browser's
+    autofill recognises: Chrome fills an organisation field even when told not
+    to, and a filled honeypot is a signup the server quietly drops. A JSX
+    comment, so the explanation stays out of the page bots read.
+  */}
   <div class="visually-hidden" aria-hidden="true">
-    <label for={`${id}-company`}>Company</label>
-    <input id={`${id}-company`} name="company" type="text" tabindex="-1" autocomplete="off" />
+    <label for={`${id}-hp`}>Leave this empty</label>
+    <input id={`${id}-hp`} name="hp_leave_empty" type="text" tabindex="-1" autocomplete="off" />
   </div>
   <p class="status" id={`${id}-status`} role="status" aria-live="polite" tabindex="-1"></p>
   <noscript>
@@ -60,7 +66,7 @@ const { id, page, label = 'Your email' } = Astro.props;
 
   for (const form of document.querySelectorAll<HTMLFormElement>('form[data-waitlist]')) {
     const email = form.querySelector<HTMLInputElement>('input[name="email"]')!;
-    const company = form.querySelector<HTMLInputElement>('input[name="company"]')!;
+    const honeypot = form.querySelector<HTMLInputElement>('input[name="hp_leave_empty"]')!;
     const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
     const status = form.querySelector<HTMLElement>('.status')!;
     let busy = false;
@@ -91,7 +97,7 @@ const { id, page, label = 'Your email' } = Astro.props;
       const result = await joinWaitlist(form.dataset.api!, {
         email: email.value,
         source: readSource(location.search, form.dataset.page ?? ''),
-        company: company.value,
+        company: honeypot.value,
       });
       busy = false;
       button.disabled = false;
