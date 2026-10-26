@@ -41,10 +41,9 @@ sealed interface HowItFeltEvent {
 }
 
 /**
- * How it felt, after adding (always in a mode that asks, otherwise with hunger
- * questions on) or from a meal. Prefilled from what the meal already has, so
- * hunger picked on the amount sheet shows here. Skip writes nothing. No
- * telemetry: feelings are health data.
+ * How it felt for one meal, prefilled from what the meal already has. Skip writes nothing. No
+ * telemetry: feelings are health data. Nothing opens it since design sync 2 (see
+ * [HowItFeltRoute]); Today's meal card has its own sheet.
  */
 @Inject
 class HowItFeltViewModel(

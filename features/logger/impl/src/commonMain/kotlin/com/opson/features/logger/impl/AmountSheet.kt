@@ -198,13 +198,8 @@ data class AmountChoice(
             val fresh = initial(food, slot, saved)
             val unit = food.units(saved).firstOrNull { it.label == item.draft.unit || it.chipLabel == item.draft.unit }
             val quantity = item.draft.quantity
-            val known = unit != null && quantity != null
-            return fresh.copy(
-                precision = item.draft.precision,
-                unit = if (known) unit else fresh.unit,
-                quantity = if (known) quantity!! else fresh.quantity,
-                time = time,
-            )
+            val picked = fresh.copy(precision = item.draft.precision, time = time)
+            return if (unit != null && quantity != null) picked.copy(unit = unit, quantity = quantity) else picked
         }
     }
 }
