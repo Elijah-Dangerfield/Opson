@@ -16,11 +16,13 @@ import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.foods.FoodTier
 import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
 import com.opson.libraries.foods.toLogDraft
 import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.scanner.CameraPermission
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
@@ -192,10 +194,17 @@ object LoggerFixtures {
         date: LocalDate = today,
         firstRun: Boolean = false,
         pickingForMeal: Boolean = false,
+        scanAvailable: Boolean = false,
     ): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(basket = basket, settings = settings, date = date, firstRun = firstRun),
         policy = policy,
-        choices = LoggerChoices(slot = MealSlot.Dinner, query = query, search = search, pickingForMeal = pickingForMeal),
+        choices = LoggerChoices(
+            slot = MealSlot.Dinner,
+            query = query,
+            search = search,
+            pickingForMeal = pickingForMeal,
+            scanAvailable = scanAvailable,
+        ),
     )
 
     fun searchState(policy: VisibilityPolicy): LoggerState = loggerState(policy, query = "rice", search = search())
@@ -257,6 +266,39 @@ object LoggerFixtures {
         val choice = AmountChoice.initial(food).copy(hunger = Hunger.Hungry)
         return AmountStateBuilder.build(food, choice, settings, policy, ref, PickSource.Usual, MealSlot.Dinner)
     }
+
+    /** A packaged food a scan found: a manufacturer's label, its serving first. */
+    val scannedYogurt: Food = food(
+        id = "scanned-yogurt",
+        name = "Greek yogurt, vanilla",
+        portion = "1 container (150 g)",
+        grams = 150.0,
+        kcal = 140.0,
+        protein = 12.0,
+        carbs = 16.0,
+        fat = 3.5,
+        brand = "Oikos",
+    ).copy(source = FoodSource.UsdaBranded, barcode = "00036632027627", tier = FoodTier.Label, verified = true)
+
+    /** The code the scan fixtures read and missed. */
+    const val MISSED_CODE = "4006381333931"
+
+    /** The amount sheet a hit opens, as it opens: the label's serving, nothing chosen yet. */
+    fun scannedAmountState(policy: VisibilityPolicy): AmountState {
+        val food = AmountFood.Catalog(scannedYogurt)
+        val ref = FoodRef.Catalog(scannedYogurt.id)
+        return AmountStateBuilder.build(food, AmountChoice.initial(food), Settings(), policy, ref, PickSource.Barcode, MealSlot.Dinner)
+    }
+
+    fun scanState(model: ScanModel): BarcodeScanState = BarcodeScanStateBuilder.build(MealSlot.Dinner, model)
+
+    val scanning: ScanModel = ScanModel(permission = CameraPermission.Granted)
+    val lookingUpSlow: ScanModel = scanning.copy(lookup = Lookup.Running(MISSED_CODE, slow = true))
+    val missed: ScanModel = scanning.copy(lookup = Lookup.Missed(MISSED_CODE))
+    val missedNamed: ScanModel = missed.copy(name = "Rye crispbread")
+    val unavailable: ScanModel = scanning.copy(lookup = Lookup.Failed(MISSED_CODE))
+    val cameraOff: ScanModel = ScanModel(permission = CameraPermission.Denied(canAskAgain = false))
+    val cameraAskAgain: ScanModel = ScanModel(permission = CameraPermission.Denied(canAskAgain = true))
 
     /** After lunch in Mindful: very hungry before, full after, rushed, as in 3.10. */
     fun howItFeltState(): HowItFeltState = HowItFeltState(

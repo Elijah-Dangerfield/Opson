@@ -5,5 +5,6 @@
   { "path": "config.refreshThrottleMs", "type": "long", "default": 300000, "description": "Minimum gap between config fetches; 0 refetches on every foreground" },
   { "path": "telemetry.appEventsEnabled", "type": "boolean", "default": true, "description": "Kill switch for shipping app events and forwarded logs to Grafana" },
   { "path": "telemetry.klogForwardingEnabled", "type": "boolean", "default": true, "description": "Forward Warn+ KLog lines to Grafana as plain OTLP logs" },
-  { "path": "telemetry.appEventsSampleRate", "type": "double", "default": 1.0, "description": "Per-session sampling rate for app events, 0.0..1.0" }
+  { "path": "telemetry.appEventsSampleRate", "type": "double", "default": 1.0, "description": "Per-session sampling rate for app events, 0.0..1.0" },
+  { "path": "release.barcode", "type": "boolean", "default": false, "description": "The barcode button in the logger search bar, and the scanner it opens" }
 ]

@@ -45,6 +45,8 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.config.impl)
             implementation(projects.libraries.telemetry.impl)
+            // `release.barcode` lives next to the logger it gates.
+            implementation(projects.features.logger.impl)
             implementation(libs.kotlinx.serialization.json)
 
             // Boot a real server on an ephemeral port + verify HS256 test JWTs.
@@ -97,6 +99,10 @@ tasks.withType<Test>().configureEach {
     val dashboards = rootProject.file("ops/grafana")
     inputs.dir(dashboards).withPropertyName("grafanaDashboards")
     systemProperty("grafanaDashboards", dashboards.absolutePath)
+
+    // DashboardQueryContractTest checks every analytics view a board reads
+    // against the views these migrations create.
+    inputs.dir(rootProject.file("apps/server/src/main/resources/db/migration")).withPropertyName("serverMigrations")
 
     // The same hole one level along: the tests also grep the Kotlin tree, for
     // `ConfiguredValue` declarations and for `logEvent(...)` call sites, and

@@ -110,7 +110,24 @@ sheet's "What's prompting this?" answer.
 
 | Event | Attributes | Fires |
 |---|---|---|
-| `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details, quick_number, name_only, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
+| `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details, quick_number, name_only, barcode, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
+
+### Barcode scan
+
+All from `BarcodeScanViewModel` through `BarcodeTelemetry` (`:features:logger:impl`), behind
+`release.barcode`, and read by the Scanner panel on `ops/grafana/foods.json`. **No event carries
+the barcode**, a food name or an amount: what someone scans is what they eat. The products people
+miss are counted server-side instead, in `barcode_misses` with no account attached.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `barcode.scan_started` | `permission` (`granted`: it already was, `asked`: the prompt was just answered yes) | The viewfinder goes live: on opening with the camera allowed, after a yes, or on coming back from Settings with it turned on |
+| `barcode.hit` | `source` (`usda_branded`, `off`, `nutritionix`, …), `slow` (the lookup took over 400 ms, so an outside source answered) | A lookup found a food, just before the amount sheet opens |
+| `barcode.miss` | | The server had no food for the code (a 404). A lookup that failed, offline or a 503, is not a miss and fires nothing |
+| `barcode.permission_denied` | `can_ask_again` | The camera prompt was answered no, or the scanner opened with the camera already off. Counts people who could not scan at all |
+
+A pick from a scan logs with `logger.method_picked` `method=barcode`; "Save the name only" after a
+miss logs as `name_only`.
 
 ## Warn+ log forwarding (not events)
 
