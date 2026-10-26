@@ -8,13 +8,25 @@ import subprocess
 from pathlib import Path
 
 LEDGER = Path("docs/review/LEDGER.md")
-REVIEWED_EXTENSIONS = (".kt", ".kts", ".swift", ".sql", ".py", ".sh", ".yml", ".yaml", ".ts", ".astro", ".mjs")
+REVIEWED_EXTENSIONS = (
+    ".kt", ".kts", ".swift", ".sql", ".py", ".sh", ".yml", ".yaml", ".ts", ".astro", ".mjs",
+    ".toml", ".properties", ".pro", ".xcconfig",
+)
+# Config that carries no reviewed extension: the release lanes, the server image,
+# the git hooks, the Grafana boards (JSON whose queries run against production)
+# and release-please's version rules.
+REVIEWED_NAMES = {"Dockerfile", "Fastfile", "Appfile", "release-please-config.json", ".release-please-manifest.json"}
+REVIEWED_PREFIXES = (".githooks/", "ops/grafana/")
 
 # First matching prefix wins, so narrower prefixes come first.
 SLICES = [
-    ("scripts-ops-ci", [".github/workflows/", "ops/", "scripts/"]),
-    ("apps-shells", ["apps/admin/", "apps/compose/", "apps/ios/iosApp/"]),
-    ("build-config", ["apps/baselineprofile/", "build-logic/", "build.gradle.kts", "config/", "detekt-rules/", "settings.gradle.kts"]),
+    ("scripts-ops-ci", [".github/workflows/", ".githooks/", "apps/ios/fastlane/", "ops/", "scripts/"]),
+    ("apps-shells", ["apps/admin/", "apps/compose/", "apps/ios/"]),
+    ("build-config", [
+        "apps/baselineprofile/", "build-logic/", "build.gradle.kts", "config/", "detekt-rules/", "gradle/",
+        "gradle.properties", "settings.gradle.kts", "telemetry.properties", "versions.properties",
+        "release-please-config.json", ".release-please-manifest.json",
+    ]),
     ("test-apps", ["apps/integration/", "apps/leaktest/", "apps/screenshots/"]),
     ("server", ["apps/server/"]),
     ("onboarding-foods", ["features/foods/", "features/onboarding/"]),
@@ -38,15 +50,23 @@ keeps existing ticks.
 """
 
 
+def is_reviewed(path):
+    if "/build/" in path:
+        return False
+    return (
+        path.endswith(REVIEWED_EXTENSIONS)
+        or path.rsplit("/", 1)[-1] in REVIEWED_NAMES
+        or (path.startswith(REVIEWED_PREFIXES) and not path.endswith(".md"))
+    )
+
+
 def tracked_files():
     out = subprocess.run(["git", "ls-files"], capture_output=True, text=True, check=True).stdout
-    return [f for f in out.splitlines() if f.endswith(REVIEWED_EXTENSIONS) and "/build/" not in f]
+    return [f for f in out.splitlines() if is_reviewed(f)]
 
 
-def existing_ticks():
-    if not LEDGER.exists():
-        return set()
-    return set(re.findall(r"- \[x\] `(.+)`", LEDGER.read_text()))
+def existing_ticks(text):
+    return set(re.findall(r"- \[x\] `(.+)`", text))
 
 
 def slice_of(path):
@@ -56,20 +76,25 @@ def slice_of(path):
     return None
 
 
-def main():
-    ticked = existing_ticks()
+def render(paths, ticked):
     files = {name: [] for name, _ in SLICES}
-    for path in tracked_files():
+    for path in paths:
         name = slice_of(path)
         if name:
             files[name].append(path)
     lines = [HEADER]
     for name, _ in SLICES:
-        paths = sorted(files[name])
-        lines.append(f"\n## {name} ({len(paths)} files)\n")
-        lines += [f"- [{'x' if p in ticked else ' '}] `{p}`" for p in paths]
-    LEDGER.write_text("\n".join(lines) + "\n")
-    print(f"{sum(len(v) for v in files.values())} files in {len(SLICES)} slices")
+        in_slice = sorted(files[name])
+        lines.append(f"\n## {name} ({len(in_slice)} files)\n")
+        lines += [f"- [{'x' if p in ticked else ' '}] `{p}`" for p in in_slice]
+    return "\n".join(lines) + "\n", sum(len(v) for v in files.values())
+
+
+def main():
+    ticked = existing_ticks(LEDGER.read_text()) if LEDGER.exists() else set()
+    text, count = render(tracked_files(), ticked)
+    LEDGER.write_text(text)
+    print(f"{count} files in {len(SLICES)} slices")
 
 
 if __name__ == "__main__":
