@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher's widget picker. Held until the 0.2 release with the receiver that uses them. -->
+<resources>
+    <string name="widgets_picker_label">Today</string>
+    <string name="widgets_picker_description">Today at a glance, the way your mode shows it. Tap + to log.</string>
+</resources>

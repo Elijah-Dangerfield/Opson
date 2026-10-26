@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      The home screen widget (0.2). HELD OUT OF main UNTIL THE 0.2 RELEASE: a receiver here puts
+      Opson in the launcher's widget picker whatever release.widgets says, and a widget that
+      never gets a snapshot would sit on "Open Opson to start." See
+      docs/plans/0.2/release-checklist.md, Widgets.
+
+      Exported because the launcher's host binds it and the system sends APPWIDGET_UPDATE; it
+      only redraws from what the app wrote, so a stray broadcast can show nothing new.
+    -->
+    <application>
+        <receiver
+            android:name="com.opson.libraries.widgets.impl.OpsonWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widgets_picker_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/opson_widget_info" />
+        </receiver>
+    </application>
+</manifest>
