@@ -5,9 +5,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
-import com.opson.features.settings.toRoute
+import com.opson.features.settings.ModesRoute
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
+import com.opson.features.trends.PatternsRoute
 import com.opson.features.trends.TrendsRoute
 import com.opson.features.trends.TrendsSettingsRoute
 import com.opson.features.trends.WeightRoute
@@ -34,6 +35,7 @@ class TrendsFeatureEntryPoint(
     private val trendsSettingsViewModelFactory: () -> TrendsSettingsViewModel,
     private val nutrientsViewModelFactory: (day: LocalDate, range: NutrientsRange, fromTrends: Boolean) -> NutrientsViewModel,
     private val weightViewModelFactory: () -> WeightViewModel,
+    private val patternsViewModelFactory: () -> PatternsViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -46,6 +48,7 @@ class TrendsFeatureEntryPoint(
                     is TrendsEvent.OpenNutrients ->
                         router.navigate(NutrientsRoute(event.dayIso, NutrientsRange.WeekAverage, fromTrends = true))
                     TrendsEvent.OpenWeight -> router.navigate(WeightRoute())
+                    TrendsEvent.OpenPatterns -> router.navigate(PatternsRoute())
                 }
             }
             TrendsScreen(state = state, onAction = viewModel::takeAction)
@@ -80,7 +83,7 @@ class TrendsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     NutrientsEvent.Close -> router.goBack()
-                    is NutrientsEvent.OpenPause -> router.navigate(event.change.toRoute())
+                    NutrientsEvent.OpenModes -> router.navigate(ModesRoute())
                 }
             }
             NutrientsScreen(state = state, onAction = viewModel::takeAction)
@@ -92,10 +95,20 @@ class TrendsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     WeightEvent.Close -> router.goBack()
-                    is WeightEvent.OpenPause -> router.navigate(event.change.toRoute())
                 }
             }
             WeightScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        screen<PatternsRoute> {
+            val viewModel: PatternsViewModel = viewModel { patternsViewModelFactory() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    PatternsEvent.Close -> router.goBack()
+                }
+            }
+            PatternsScreen(state = state, onAction = viewModel::takeAction)
         }
     }
 }

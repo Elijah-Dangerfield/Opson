@@ -4,7 +4,6 @@ import androidx.lifecycle.viewModelScope
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.TrendsCards
-import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -19,7 +18,6 @@ enum class TrendsCard { Intake, Recap, Nutrients, Weight }
 data class CardToggle(val card: TrendsCard, val on: Boolean)
 
 data class TrendsSettingsState(
-    val range: TrendsRange = TrendsRange.Week,
     val weekStart: DayOfWeek = DayOfWeek.MONDAY,
     /** Only the cards that could show in the current mode. */
     val toggles: List<CardToggle> = emptyList(),
@@ -32,20 +30,19 @@ object TrendsSettingsStateBuilder {
 
     /**
      * Intake is offered only when the chart could show (calories effectively
-     * shown on the week view), Nutrients only when a macro or the micros could;
-     * offering a switch for a card the mode will never draw is a switch that
-     * does nothing. Recap and Weight always.
+     * shown on the week view), Nutrients only when a macro could, Weight only
+     * when weight is not hidden; offering a switch for a card the mode will
+     * never draw is a switch that does nothing. Recap always.
      */
     fun build(settings: Settings, policy: VisibilityPolicy): TrendsSettingsState {
         val cards = settings.trendsCards
         return TrendsSettingsState(
-            range = settings.trendsRange,
             weekStart = settings.weekStart,
             toggles = buildList {
                 if (TrendsStateBuilder.showsIntake(policy)) add(CardToggle(TrendsCard.Intake, cards.intake))
                 add(CardToggle(TrendsCard.Recap, cards.recap))
                 if (TrendsStateBuilder.showsNutrients(policy)) add(CardToggle(TrendsCard.Nutrients, cards.nutrients))
-                add(CardToggle(TrendsCard.Weight, cards.weight))
+                if (TrendsStateBuilder.showsWeight(policy)) add(CardToggle(TrendsCard.Weight, cards.weight))
             },
         )
     }
@@ -69,7 +66,6 @@ class TrendsSettingsViewModel(
         when (action) {
             is TrendsSettingsAction.InputsArrived ->
                 action.updateState { TrendsSettingsStateBuilder.build(action.settings, action.policy) }
-            is TrendsSettingsAction.RangePicked -> settingsRepository.update { it.copy(trendsRange = action.range) }
             is TrendsSettingsAction.WeekStartPicked -> {
                 if (action.day in TrendsSettingsStateBuilder.WEEK_STARTS) {
                     settingsRepository.update { it.copy(weekStart = action.day) }
@@ -91,7 +87,6 @@ private fun TrendsCards.flipped(card: TrendsCard): TrendsCards = when (card) {
 
 sealed interface TrendsSettingsAction {
     data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy) : TrendsSettingsAction
-    data class RangePicked(val range: TrendsRange) : TrendsSettingsAction
     data class WeekStartPicked(val day: DayOfWeek) : TrendsSettingsAction
     data class CardToggled(val card: TrendsCard) : TrendsSettingsAction
     data object CloseTapped : TrendsSettingsAction

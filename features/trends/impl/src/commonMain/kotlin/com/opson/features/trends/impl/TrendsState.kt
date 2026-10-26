@@ -1,8 +1,8 @@
 package com.opson.features.trends.impl
 
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.NewFoods
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.WeighIn
@@ -18,17 +18,13 @@ import com.opson.libraries.ui.components.IntakeBar
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.minus
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
-import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.trends_intake_daily
-import opson.libraries.resources.generated.resources.trends_intake_weekly
-import opson.libraries.resources.generated.resources.trends_nutrients_sub
-import opson.libraries.resources.generated.resources.trends_nutrients_sub_micros
 import org.jetbrains.compose.resources.StringResource
 import kotlin.math.ceil
 
@@ -42,11 +38,18 @@ data class TrendsInputs(
     val timeZone: TimeZone,
 )
 
+/** The Trends tab, top to bottom. Each card is `null` when it is off or the mode has nothing to put on it. */
 data class TrendsState(
     val loading: Boolean = true,
     val rangeLabel: RangeLabel? = null,
+    /** The Week / Month / 3 months control; `null` hides it, when no card on the page follows a range. */
+    val range: TrendsRange? = null,
+    val weeklyCheck: WeeklyCheck? = null,
     val intake: IntakeCard? = null,
+    /** "Your week": the meal-dot grid, leading the page when there is no intake chart. */
+    val week: WeekDots? = null,
     val recap: RecapCard? = null,
+    val lastCheck: LastCheck? = null,
     val nutrients: NutrientsCard? = null,
     val weight: WeightCard? = null,
 )
@@ -58,206 +61,245 @@ sealed interface RangeLabel {
     data object LastThreeMonths : RangeLabel
 }
 
+/** Coast before its weekly check: when it opens. [tonight] when that is today. */
+data class WeeklyCheck(val day: DayOfWeek, val at: LocalTime, val tonight: Boolean)
+
 data class IntakeCard(
-    val title: StringResource,
-    /** Average over tracked days; Hidden when no day in the range has energy. */
+    /** Daily average over tracked days, the one still in progress left out; Hidden when there is none. */
     val average: Display,
     val bars: List<IntakeBar>,
     /** The user's range over the chart's scale. */
     val band: ClosedFloatingPointRange<Float>,
+    val caption: IntakeCaption,
 )
 
-data class RecapCard(
-    val breakfastDays: Int,
-    val newFoods: Int,
-    val daysLogged: Int,
-    val days: List<RecapDay>,
-)
+/** What the caption under the chart explains: the band, and the striped bar when there is one. */
+enum class IntakeCaption { Plain, TodayInProgress, WeekInProgress }
 
 /** [meals] is the four meals in order, each the slot when it was done and `null` when not. */
-data class RecapDay(val label: String, val meals: List<MealSlot?>)
+data class RecapDay(val label: String, val meals: List<MealSlot?>, val isToday: Boolean)
 
-data class NutrientsCard(val subtitle: StringResource, val macros: List<MacroTile>)
+data class WeekDots(val days: List<RecapDay>)
+
+/** [titled]: "Recap" with a Patterns link, when the card sits under the chart rather than leading. */
+data class RecapCard(val titled: Boolean, val rows: List<RecapRow>)
+
+sealed interface RecapRow {
+    data class DaysLogged(val days: Int, val of: Int) : RecapRow
+    data class Breakfast(val days: Int, val of: Int) : RecapRow
+    data class MealsLogged(val meals: Int) : RecapRow
+
+    /** [names] only when the recap leads the page, as chips under the count. */
+    data class NewFoods(val count: Int, val names: List<String>?) : RecapRow
+}
+
+/** Coast: last week's check, readable until the next one opens. [weekEnd] is `Oct 18`. */
+data class LastCheck(val weekEnd: String, val average: Display, val weight: Display)
+
+data class NutrientsCard(val macros: List<MacroTile>)
 
 data class MacroTile(val metric: Metric, val label: StringResource, val display: Display)
 
 data class WeightCard(
     val subtitle: WeightSubtitle,
-    /** Only ever a shown amount: at "Trend only" the value slot stays empty. */
-    val now: Display?,
-    /** The smoothed line over 4 weeks; `null` when weight is hidden, empty under two readings. */
-    val trend: List<Float>?,
+    /** The smoothed weight at Show, the slope word when softened, `null` before any weigh-in. */
+    val value: Display?,
+    /** The smoothed line over the span; empty under two readings. */
+    val trend: List<Float>,
 )
 
-sealed interface WeightSubtitle {
-    data object Hidden : WeightSubtitle
-    data object NoWeighIns : WeightSubtitle
-    data object Trend : WeightSubtitle
-
-    /** When the shown weight was measured: `null` is "This morning", otherwise `Yesterday` or `Thu, Oct 22`. */
-    data class Latest(val dayText: String?) : WeightSubtitle
-}
+enum class WeightSubtitle { Trend, NoWeighIns }
 
 /**
  * Builds [TrendsState]. Pure: the ViewModel, the previews and the leak test all
  * call it, so the leak test checks the real mapping.
  *
- * Every amount is resolved on [Surface.Week], where Delayed and Coast numbers
- * are open, except weight, which resolves on [Surface.Weight] as the prototype
- * does so the card and the weight page always agree.
+ * Every amount resolves on [Surface.Week] with the week window's last day as
+ * the context day, so Coast's week stays closed until its weekly check;
+ * weight resolves on [Surface.Weight] so the card and the Weight page agree.
+ * No layout decision reads the mode: each card follows its metric's level.
  */
 object TrendsStateBuilder {
-
-    /** Weight card trend: the last four weeks. */
-    private const val WEIGHT_CARD_DAYS = 28
 
     fun build(inputs: TrendsInputs, policy: VisibilityPolicy): TrendsState {
         val settings = inputs.settings
         val cards = settings.trendsCards
         val window = TrendsCalendar.weekWindow(inputs.today, settings.weekStart)
+        val weekContext = FormatContext(day = window.end)
         val byDate = inputs.days.associateBy { it.date }
         val dayAt = { date: LocalDate -> byDate[date] ?: Day.empty(date) }
+
+        val checkPending = policy.revealsWeekly &&
+            policy.level(Metric.Calories) == Visibility.Delay &&
+            !policy.isWeekOpen(window.end)
+
+        val ranged = !checkPending && (
+            (cards.intake && showsIntake(policy, weekContext)) ||
+                (cards.nutrients && showsNutrients(policy, weekContext)) ||
+                (cards.weight && showsWeight(policy))
+            )
+        val range = if (ranged) settings.trendsRange else TrendsRange.Week
+        val span = TrendsCalendar.span(inputs.today, settings.weekStart, range)
+
+        val intake = if (cards.intake && !checkPending) intake(inputs, span, dayAt, policy, weekContext) else null
+        val leads = intake == null && !checkPending
+
         return TrendsState(
             loading = false,
-            rangeLabel = when (settings.trendsRange) {
+            rangeLabel = when (range) {
                 TrendsRange.Week -> RangeLabel.Week(DateCopy.range(window.start, window.end))
                 TrendsRange.FourWeeks -> RangeLabel.LastFourWeeks
                 TrendsRange.ThreeMonths -> RangeLabel.LastThreeMonths
             },
-            intake = if (cards.intake) intake(inputs, window, dayAt, policy) else null,
-            recap = if (cards.recap) recap(inputs, window, dayAt) else null,
-            nutrients = if (cards.nutrients) nutrients(settings.targets, window, dayAt, policy) else null,
-            weight = if (cards.weight) weight(inputs, policy) else null,
+            range = if (ranged) range else null,
+            weeklyCheck = if (checkPending) {
+                WeeklyCheck(window.end.dayOfWeek, policy.weekOpensAt(window.end).time, tonight = window.end == inputs.today)
+            } else {
+                null
+            },
+            intake = intake,
+            week = if (cards.recap && leads) WeekDots(window.days.map { recapDay(dayAt(it), inputs.today) }) else null,
+            recap = if (cards.recap) recap(inputs, span, dayAt, leads, checkPending) else null,
+            lastCheck = if (checkPending) lastCheck(inputs, window, dayAt, policy) else null,
+            nutrients = if (cards.nutrients && !checkPending) nutrients(inputs, span, dayAt, policy, weekContext) else null,
+            weight = if (cards.weight && !checkPending) weight(inputs, span, policy) else null,
         )
     }
 
     /** Calories effectively shown on the week view: a soft word on a bar chart would still read as an amount. */
-    fun showsIntake(policy: VisibilityPolicy): Boolean =
-        policy.effectiveLevel(Metric.Calories, Surface.Week) == Visibility.Show
+    fun showsIntake(policy: VisibilityPolicy, context: FormatContext = FormatContext()): Boolean =
+        policy.effectiveLevel(Metric.Calories, Surface.Week, context) == Visibility.Show
 
-    /** Any macro or the micros not hidden on the week view. */
-    fun showsNutrients(policy: VisibilityPolicy): Boolean =
-        (TREND_MACROS + Metric.Micros).any { policy.effectiveLevel(it, Surface.Week) != Visibility.Hide }
+    /** Any macro not hidden on the week view. */
+    fun showsNutrients(policy: VisibilityPolicy, context: FormatContext = FormatContext()): Boolean =
+        TREND_MACROS.any { policy.effectiveLevel(it, Surface.Week, context) != Visibility.Hide }
+
+    /** Weight not hidden: the card is removed, not greyed, when it is. */
+    fun showsWeight(policy: VisibilityPolicy): Boolean =
+        policy.effectiveLevel(Metric.Weight, Surface.Weight) != Visibility.Hide
 
     private fun intake(
         inputs: TrendsInputs,
-        window: WeekWindow,
+        span: TrendsSpan,
         dayAt: (LocalDate) -> Day,
         policy: VisibilityPolicy,
+        context: FormatContext,
     ): IntakeCard? {
-        if (!showsIntake(policy)) return null
+        if (!showsIntake(policy, context)) return null
         val targets = inputs.settings.targets
         val scale = chartScale(targets)
-        val range = inputs.settings.trendsRange
         val tracked = mutableListOf<Double>()
-        val bars = when (range) {
-            TrendsRange.Week -> window.days.map { date ->
-                val kcal = dayAt(date).intakeKcal()?.also(tracked::add)
-                IntakeBar(
-                    label = TrendsCalendar.weekdayLabel(date),
-                    fraction = kcal?.let { (it / scale).toFloat() },
-                    isCurrent = date == inputs.today,
-                )
+        var inProgress = IntakeCaption.Plain
+        val bars = when (span.range) {
+            TrendsRange.Week -> span.days.map { date ->
+                val current = date == inputs.today
+                val kcal = dayAt(date).intakeKcal()
+                if (current) inProgress = IntakeCaption.TodayInProgress else kcal?.let(tracked::add)
+                IntakeBar(TrendsCalendar.weekdayLabel(date), kcal?.let { (it / scale).toFloat() }, isCurrent = current)
             }
             TrendsRange.FourWeeks, TrendsRange.ThreeMonths -> {
-                val starts = TrendsCalendar.weekStarts(inputs.today, inputs.settings.weekStart, TrendsCalendar.barCount(range))
+                val count = TrendsCalendar.barCount(span.range)
+                val starts = TrendsCalendar.weekStarts(inputs.today, inputs.settings.weekStart, count)
                 starts.mapIndexed { index, start ->
-                    val week = (0 until DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }.filter { it <= inputs.today }
-                    val kcal = week.mapNotNull { dayAt(it).intakeKcal() }.also(tracked::addAll).averageOrNull()
-                    val fromCurrent = starts.lastIndex - index
-                    val labelled = range == TrendsRange.FourWeeks || fromCurrent % THREE_MONTHS_LABEL_EVERY == 0
+                    val current = index == starts.lastIndex
+                    val week = (0 until TrendsCalendar.DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }.filter { it <= inputs.today }
+                    val days = week.mapNotNull { dayAt(it).intakeKcal() }
+                    if (current) inProgress = IntakeCaption.WeekInProgress else tracked.addAll(days)
+                    val labelled = span.range == TrendsRange.FourWeeks || (starts.lastIndex - index) % THREE_MONTHS_LABEL_EVERY == 0
                     IntakeBar(
                         label = if (labelled) "${start.month.number}/${start.day}" else "",
-                        fraction = kcal?.let { (it / scale).toFloat() },
-                        isCurrent = index == starts.lastIndex,
+                        fraction = days.averageOrNull()?.let { (it / scale).toFloat() },
+                        isCurrent = current,
                     )
                 }
             }
         }
         return IntakeCard(
-            title = if (range == TrendsRange.Week) Res.string.trends_intake_daily else Res.string.trends_intake_weekly,
-            average = policy.resolve(Metric.Calories, tracked.averageOrNull(), Surface.Week),
+            average = policy.resolve(Metric.Calories, tracked.averageOrNull(), Surface.Week, context),
             bars = bars,
             band = (targets.minKcal / scale).toFloat()..(targets.maxKcal / scale).toFloat(),
+            caption = inProgress,
         )
     }
 
-    private fun recap(inputs: TrendsInputs, window: WeekWindow, dayAt: (LocalDate) -> Day): RecapCard {
-        val week = window.days.map(dayAt)
+    private fun recapDay(day: Day, today: LocalDate) = RecapDay(
+        label = TrendsCalendar.weekdayLabel(day.date),
+        meals = MealSlot.meals.map { slot -> slot.takeIf { day.isMealDone(it) } },
+        isToday = day.date == today,
+    )
+
+    private fun recap(
+        inputs: TrendsInputs,
+        span: TrendsSpan,
+        dayAt: (LocalDate) -> Day,
+        leads: Boolean,
+        checkPending: Boolean,
+    ): RecapCard {
+        val counted = span.days.filter { it <= inputs.today }.map(dayAt)
+        val of = span.dayCount
+        val daysLogged = RecapRow.DaysLogged(counted.count { it.hasLogged }, of)
+        if (checkPending) {
+            return RecapCard(titled = false, rows = listOf(daysLogged, RecapRow.MealsLogged(counted.sumOf { it.doneMealCount })))
+        }
+        val newFoods = NewFoods.between(inputs.days, span.start, span.end, TrendsCalendar.NEW_FOOD_LOOKBACK_DAYS)
         return RecapCard(
-            breakfastDays = week.count { it.isMealDone(MealSlot.Breakfast) },
-            newFoods = newFoods(inputs.days, window),
-            daysLogged = week.count { it.hasLogged },
-            days = week.map { day ->
-                RecapDay(
-                    label = TrendsCalendar.weekdayLabel(day.date),
-                    meals = MealSlot.meals.map { slot -> slot.takeIf { day.isMealDone(it) } },
-                )
-            },
+            titled = !leads,
+            rows = listOf(
+                daysLogged,
+                RecapRow.Breakfast(counted.count { it.isMealDone(MealSlot.Breakfast) }, of),
+                RecapRow.NewFoods(newFoods.size, newFoods.takeIf { leads }),
+            ),
         )
     }
 
-    /**
-     * Foods logged in [window] that were not logged in the lookback before it.
-     * There is no "first ever" query, so 90 days of absence is what new means.
-     */
-    internal fun newFoods(days: List<Day>, window: WeekWindow): Int {
-        val lookbackStart = window.start.minus(TrendsCalendar.NEW_FOOD_LOOKBACK_DAYS, DateTimeUnit.DAY)
-        fun keys(filter: (LocalDate) -> Boolean) = days.asSequence()
-            .filter { filter(it.date) }
-            .flatMap { it.allItems }
-            .filter { it.method != LogMethod.QuickNumber }
-            .mapNotNull { item ->
-                item.foodId?.let { "food:$it" }
-                    ?: item.customFoodId?.let { "custom:$it" }
-                    ?: item.name.trim().lowercase().takeIf(String::isNotEmpty)?.let { "name:$it" }
-            }
-            .toSet()
-        val before = keys { it >= lookbackStart && it < window.start }
-        val during = keys { it >= window.start && it <= window.end }
-        return (during - before).size
+    private fun lastCheck(inputs: TrendsInputs, window: WeekWindow, dayAt: (LocalDate) -> Day, policy: VisibilityPolicy): LastCheck {
+        val last = TrendsCalendar.previousWeek(window)
+        val average = last.days.mapNotNull { dayAt(it).intakeKcal() }.averageOrNull()
+        val curve = WeightCurves.curve(inputs.weighIns, last.end, WEIGHT_CHECK_DAYS, inputs.timeZone)
+        return LastCheck(
+            weekEnd = DateCopy.monthDay(last.end),
+            average = policy.resolve(Metric.Calories, average, Surface.Week, FormatContext(day = last.end)),
+            weight = policy.resolve(
+                Metric.Weight,
+                curve.trendKg,
+                Surface.Weight,
+                FormatContext(weightUnit = inputs.settings.weightUnit, trendKgPerWeek = curve.kgPerWeek),
+            ),
+        )
     }
 
     private fun nutrients(
-        targets: Targets,
-        window: WeekWindow,
+        inputs: TrendsInputs,
+        span: TrendsSpan,
         dayAt: (LocalDate) -> Day,
         policy: VisibilityPolicy,
+        context: FormatContext,
     ): NutrientsCard? {
-        if (!showsNutrients(policy)) return null
-        val averages = WeekAverages.of(window.days.map(dayAt))
-        val microsShown = policy.effectiveLevel(Metric.Micros, Surface.Week) != Visibility.Hide
+        if (!showsNutrients(policy, context)) return null
+        // Today is still in progress, so it stays out of the average like the chart's striped bar.
+        val averages = WeekAverages.of(span.days.filter { it < inputs.today }.map(dayAt))
+        val targets = inputs.settings.targets
         val tiles = TREND_MACROS.mapNotNull { metric ->
-            val context = FormatContext(of = targets.goal(metric), goal = GoalStyle.None)
-            val display = policy.resolve(metric, averages?.of(metric), Surface.Week, context)
+            val display = policy.resolve(metric, averages?.of(metric), Surface.Week, context.copy(of = targets.goal(metric), goal = GoalStyle.Slash))
             if (display is Display.Hidden) null else MacroTile(metric, metric.label, display)
         }
-        return NutrientsCard(
-            subtitle = if (microsShown) Res.string.trends_nutrients_sub_micros else Res.string.trends_nutrients_sub,
-            macros = tiles,
-        )
+        return NutrientsCard(tiles)
     }
 
-    private fun weight(inputs: TrendsInputs, policy: VisibilityPolicy): WeightCard {
-        val level = policy.effectiveLevel(Metric.Weight, Surface.Weight)
-        val latest = inputs.weighIns.lastOrNull()
-        val subtitle = when {
-            level == Visibility.Hide -> WeightSubtitle.Hidden
-            latest == null -> WeightSubtitle.NoWeighIns
-            level == Visibility.Show -> WeightSubtitle.Latest(weighInDayText(latest, inputs.today, inputs.timeZone))
-            else -> WeightSubtitle.Trend
-        }
-        val now = latest?.let {
-            policy.resolve(Metric.Weight, it.kg, Surface.Weight, FormatContext(weightUnit = inputs.settings.weightUnit))
-        }
+    private fun weight(inputs: TrendsInputs, span: TrendsSpan, policy: VisibilityPolicy): WeightCard? {
+        if (!showsWeight(policy)) return null
+        val curve = WeightCurves.curve(inputs.weighIns, inputs.today, span.dayCount, inputs.timeZone)
         return WeightCard(
-            subtitle = subtitle,
-            now = now as? Display.Shown,
-            trend = if (level == Visibility.Hide) {
-                null
-            } else {
-                WeightCurves.curve(inputs.weighIns, inputs.today, WEIGHT_CARD_DAYS, inputs.timeZone).trend
+            subtitle = if (inputs.weighIns.isEmpty()) WeightSubtitle.NoWeighIns else WeightSubtitle.Trend,
+            value = curve.trendKg?.let {
+                policy.resolve(
+                    Metric.Weight,
+                    it,
+                    Surface.Weight,
+                    FormatContext(weightUnit = inputs.settings.weightUnit, trendKgPerWeek = curve.kgPerWeek),
+                ).takeUnless { display -> display is Display.Hidden }
             },
+            trend = curve.trend,
         )
     }
 
@@ -265,7 +307,8 @@ object TrendsStateBuilder {
     internal fun chartScale(targets: Targets): Double =
         ceil(targets.maxKcal * SCALE_HEADROOM / SCALE_STEP) * SCALE_STEP
 
-    private const val DAYS_IN_WEEK = 7
+    /** Coast's weight check looks at the smoothed line over the four weeks to the check. */
+    private const val WEIGHT_CHECK_DAYS = 28
     private const val THREE_MONTHS_LABEL_EVERY = 3
     private const val SCALE_HEADROOM = 1.2
     private const val SCALE_STEP = 100.0

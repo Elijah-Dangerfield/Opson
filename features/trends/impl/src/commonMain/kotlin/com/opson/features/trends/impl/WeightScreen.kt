@@ -2,9 +2,11 @@ package com.opson.features.trends.impl
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -12,23 +14,32 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.EdgeCard
+import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.TrendLine
 import com.opson.libraries.ui.components.button.ButtonPrimary
+import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
+import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.system.color.ToneColors
 import com.opson.libraries.ui.components.text.MaskedTextField
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
+import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_back
 import opson.libraries.resources.generated.resources.trends_title
-import opson.libraries.resources.generated.resources.trends_weight_average
+import opson.libraries.resources.generated.resources.trends_weight_caption
 import opson.libraries.resources.generated.resources.trends_weight_chip_1m
 import opson.libraries.resources.generated.resources.trends_weight_chip_1w
 import opson.libraries.resources.generated.resources.trends_weight_chip_3m
@@ -42,12 +53,12 @@ import opson.libraries.resources.generated.resources.trends_weight_range_3m
 import opson.libraries.resources.generated.resources.trends_weight_save
 import opson.libraries.resources.generated.resources.trends_weight_saved
 import opson.libraries.resources.generated.resources.trends_weight_saved_hidden
+import opson.libraries.resources.generated.resources.trends_weight_saved_trend
 import opson.libraries.resources.generated.resources.trends_weight_title
+import opson.libraries.resources.generated.resources.trends_weight_trend_label
+import opson.libraries.resources.generated.resources.trends_weight_trend_only_note
 import opson.libraries.resources.generated.resources.trends_weight_unit_kg
 import opson.libraries.resources.generated.resources.trends_weight_unit_lb
-import opson.libraries.resources.generated.resources.trends_weight_view_hidden
-import opson.libraries.resources.generated.resources.trends_weight_view_numbers
-import opson.libraries.resources.generated.resources.trends_weight_view_trend
 import org.jetbrains.compose.resources.stringResource
 
 /** The weight page. Stateless; what shows and what is masked is decided in [WeightStateBuilder]. */
@@ -72,65 +83,57 @@ internal fun WeightContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = AppTheme.spacing.page, vertical = AppTheme.spacing.section),
+            .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, bottom = AppTheme.spacing.section),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
     ) {
-        // "Trends" whatever opened it, as the prototype.
+        // "Trends" whatever opened it, as the prototype; it is the arrow's spoken label.
         PageHeader(
             title = stringResource(Res.string.trends_weight_title),
             backLabel = stringResource(Res.string.trends_back, stringResource(Res.string.trends_title)),
             onBack = { onAction(WeightAction.BackTapped) },
         )
-        SegmentedControl(
-            options = WeightView.entries,
-            selected = state.selected,
-            onSelect = { onAction(WeightAction.ViewPicked(it)) },
-            label = {
-                stringResource(
-                    when (it) {
-                        WeightView.Hidden -> Res.string.trends_weight_view_hidden
-                        WeightView.TrendOnly -> Res.string.trends_weight_view_trend
-                        WeightView.Numbers -> Res.string.trends_weight_view_numbers
-                    },
-                )
-            },
-        )
-        if (state.now != null) NowCard(state)
-        state.chart?.let { ChartCard(it, state.range, onAction) }
-        if (state.hiddenCard) {
-            EdgeCard(edgeToEdge = false, verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
-                Text(text = stringResource(Res.string.trends_weight_hidden_title), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
-                Text(text = stringResource(Res.string.trends_weight_hidden_body), typography = AppTheme.type.menuItem, color = AppTheme.colors.muted)
+        when (val trend = state.trend) {
+            is Display.Shown -> {
+                SummaryCard(trend, state)
+                state.chart?.let { ChartCard(it, state.range, onAction) }
             }
+            is Display.Soft -> SoftCard(trend, state.chart, state.range)
+            Display.Hidden, null -> state.chart?.let { ChartCard(it, state.range, onAction) }
         }
+        if (state.hiddenCard) HiddenCard()
         LogCard(state, onAction)
+        state.saved?.let { SavedBanner(it) }
     }
 }
 
 @Composable
-private fun NowCard(state: WeightState) {
-    val now = state.now ?: return
-    EdgeCard(edgeToEdge = false) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
-        ) {
+private fun WeightCard(content: @Composable ColumnScope.() -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = EdgeCardDefaults.InsetPadding,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+        content = content,
+    )
+}
+
+/** The trend as the large number and the latest reading small beside it: the same priority as the chart. */
+@Composable
+private fun SummaryCard(trend: Display, state: WeightState) {
+    WeightCard {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimension.D100)) {
-                NutrientText(Metric.Weight, now, typography = AppTheme.type.h1.Tabular, color = AppTheme.colors.ink)
-                Text(
-                    text = when (val measured = state.nowWhen) {
-                        is WeighInWhen.Day -> measured.text
-                        WeighInWhen.ThisMorning, null -> stringResource(Res.string.trends_weight_now)
-                    },
-                    typography = AppTheme.type.secondary,
-                    color = AppTheme.colors.muted,
-                )
+                Label(stringResource(Res.string.trends_weight_trend_label))
+                NutrientText(Metric.Weight, trend, typography = AppTheme.type.figureDisplay, color = AppTheme.colors.ink)
             }
-            state.average?.let { average ->
+            state.latest?.let { latest ->
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Dimension.D100)) {
-                    NutrientText(Metric.Weight, average, typography = AppTheme.type.numeric, color = AppTheme.colors.ink)
-                    Text(text = stringResource(Res.string.trends_weight_average), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+                    Label(
+                        when (val measured = state.latestWhen) {
+                            is WeighInWhen.Day -> measured.text
+                            WeighInWhen.ThisMorning, null -> stringResource(Res.string.trends_weight_now)
+                        },
+                    )
+                    NutrientText(Metric.Weight, latest, typography = AppTheme.type.figureMedium.ExtraBold, color = AppTheme.colors.ink)
                 }
             }
         }
@@ -139,56 +142,80 @@ private fun NowCard(state: WeightState) {
 
 @Composable
 private fun ChartCard(chart: WeightChart, range: WeightRange, onAction: (WeightAction) -> Unit) {
-    EdgeCard(edgeToEdge = false) {
+    WeightCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimension.D300),
         ) {
-            Text(
-                text = stringResource(
-                    when (range) {
-                        WeightRange.W1 -> Res.string.trends_weight_range_1w
-                        WeightRange.M1 -> Res.string.trends_weight_range_1m
-                        WeightRange.M3 -> Res.string.trends_weight_range_3m
+            Label(stringResource(range.label), Modifier.weight(1f))
+            if (chart.ranges) {
+                SegmentedControl(
+                    options = WeightRange.entries,
+                    selected = range,
+                    onSelect = { onAction(WeightAction.RangePicked(it)) },
+                    label = {
+                        stringResource(
+                            when (it) {
+                                WeightRange.W1 -> Res.string.trends_weight_chip_1w
+                                WeightRange.M1 -> Res.string.trends_weight_chip_1m
+                                WeightRange.M3 -> Res.string.trends_weight_chip_3m
+                            },
+                        )
                     },
-                ),
-                typography = AppTheme.type.secondarySmallStrong,
-                color = AppTheme.colors.muted,
-                modifier = Modifier.weight(1f),
-            )
-            SegmentedControl(
-                options = WeightRange.entries,
-                selected = range,
-                onSelect = { onAction(WeightAction.RangePicked(it)) },
-                label = {
-                    stringResource(
-                        when (it) {
-                            WeightRange.W1 -> Res.string.trends_weight_chip_1w
-                            WeightRange.M1 -> Res.string.trends_weight_chip_1m
-                            WeightRange.M3 -> Res.string.trends_weight_chip_3m
-                        },
-                    )
-                },
-                minHeight = AppTheme.spacing.compactTouchTarget,
-                modifier = Modifier.weight(1f),
-            )
+                    minHeight = MinTouchTarget,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
         TrendLine(points = chart.trend, dots = chart.dots)
-        Text(text = stringResource(chart.caption), typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
+        if (chart.from != null && chart.to != null) {
+            Row(Modifier.fillMaxWidth()) {
+                Text(text = chart.from, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, modifier = Modifier.weight(1f))
+                Text(text = chart.to, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            }
+        }
+        Text(text = stringResource(Res.string.trends_weight_caption), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+    }
+}
+
+/** Trend only: which way the line is going, as a word, and the line. No numbers, no weigh-in dots. */
+@Composable
+private fun SoftCard(word: Display, chart: WeightChart?, range: WeightRange) {
+    WeightCard {
+        Label(stringResource(range.label))
+        NutrientText(Metric.Weight, word, typography = AppTheme.type.subH1, color = AppTheme.colors.ink)
+        if (chart != null && chart.trend.isNotEmpty()) {
+            TrendLine(
+                points = chart.trend,
+                dots = null,
+                modifier = Modifier.fillMaxWidth().height(Dimension.D1900).padding(vertical = Dimension.D700),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HiddenCard() {
+    WeightCard {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            IconTile(icon = AppIcons.VisibilityOff, tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint))
+            Text(text = stringResource(Res.string.trends_weight_hidden_title), typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink)
+        }
+        Text(text = stringResource(Res.string.trends_weight_hidden_body), typography = AppTheme.type.body, color = AppTheme.colors.muted)
     }
 }
 
 @Composable
 private fun LogCard(state: WeightState, onAction: (WeightAction) -> Unit) {
-    EdgeCard(edgeToEdge = false) {
-        Text(text = stringResource(Res.string.trends_weight_log), typography = AppTheme.type.secondarySmallStrong, color = AppTheme.colors.muted)
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimension.D300), verticalAlignment = Alignment.CenterVertically) {
+    WeightCard {
+        Label(stringResource(Res.string.trends_weight_log))
+        Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row), verticalAlignment = Alignment.CenterVertically) {
             MaskedTextField(
                 value = state.input,
                 onValueChange = { onAction(WeightAction.WeightTyped(it)) },
                 masked = state.inputMasked,
-                placeholder = stringResource(
+                unit = stringResource(
                     when (state.unit) {
                         WeightUnit.Kg -> Res.string.trends_weight_unit_kg
                         WeightUnit.Lb -> Res.string.trends_weight_unit_lb
@@ -201,17 +228,46 @@ private fun LogCard(state: WeightState, onAction: (WeightAction) -> Unit) {
                 Text(text = stringResource(Res.string.trends_weight_save))
             }
         }
-        state.saved?.let { note ->
-            Text(
-                text = stringResource(
-                    when (note) {
-                        SavedNote.Plain -> Res.string.trends_weight_saved
-                        SavedNote.OutOfView -> Res.string.trends_weight_saved_hidden
-                    },
-                ),
-                typography = AppTheme.type.secondary,
-                color = AppTheme.colors.muted,
-            )
+        if (state.trendOnlyNote) {
+            Text(text = stringResource(Res.string.trends_weight_trend_only_note), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
         }
     }
 }
+
+@Composable
+private fun SavedBanner(note: SavedNote) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.inputLarge)
+            .background(AppTheme.colors.accentTint)
+            .padding(horizontal = AppTheme.spacing.cardHorizontal, vertical = Dimension.D700),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Icon(icon = AppIcons.CheckCircle, size = Dimension.D900, color = AppTheme.colors.accent)
+        Text(
+            text = stringResource(
+                when (note) {
+                    SavedNote.Plain -> Res.string.trends_weight_saved
+                    SavedNote.TrendOnly -> Res.string.trends_weight_saved_trend
+                    SavedNote.OutOfView -> Res.string.trends_weight_saved_hidden
+                },
+            ),
+            typography = AppTheme.type.bodyBold,
+            color = AppTheme.colors.accent,
+        )
+    }
+}
+
+@Composable
+private fun Label(text: String, modifier: Modifier = Modifier) {
+    Text(text = text, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted, modifier = modifier)
+}
+
+private val WeightRange.label
+    get() = when (this) {
+        WeightRange.W1 -> Res.string.trends_weight_range_1w
+        WeightRange.M1 -> Res.string.trends_weight_range_1m
+        WeightRange.M3 -> Res.string.trends_weight_range_3m
+    }

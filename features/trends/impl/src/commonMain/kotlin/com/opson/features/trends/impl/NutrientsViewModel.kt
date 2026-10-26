@@ -4,14 +4,9 @@ import androidx.lifecycle.viewModelScope
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
-import com.opson.libraries.diary.NumbersChanger
-import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
-import com.opson.libraries.nutrition.Metric
-import com.opson.libraries.nutrition.NumbersChange
-import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,7 +32,6 @@ class NutrientsViewModel(
     private val diary: DiaryRepository,
     private val settingsRepository: SettingsRepository,
     private val policySource: VisibilityPolicySource,
-    private val numbers: NumbersChanger,
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<NutrientsState, NutrientsEvent, NutrientsAction>(
@@ -63,13 +57,8 @@ class NutrientsViewModel(
                 action.updateState { it.copy(range = action.range) }
                 subscribe(action.range)
             }
-            NutrientsAction.ShowVitaminsTapped -> {
-                val change = NumbersChange.Override(Metric.Micros, Visibility.Show)
-                when (numbers.request(change)) {
-                    is NumbersOutcome.Applied -> Unit
-                    NumbersOutcome.NeedsPause -> sendEvent(NutrientsEvent.OpenPause(change))
-                }
-            }
+            // Showing more only ever happens in Modes and numbers, behind the pause (design v3).
+            NutrientsAction.ModesTapped -> sendEvent(NutrientsEvent.OpenModes)
             NutrientsAction.BackTapped -> sendEvent(NutrientsEvent.Close)
         }
     }
@@ -93,13 +82,13 @@ class NutrientsViewModel(
 sealed interface NutrientsAction {
     data class InputsArrived(val inputs: NutrientsInputs, val policy: VisibilityPolicy) : NutrientsAction
     data class RangePicked(val range: NutrientsRange) : NutrientsAction
-    data object ShowVitaminsTapped : NutrientsAction
+    data object ModesTapped : NutrientsAction
     data object BackTapped : NutrientsAction
 }
 
 sealed interface NutrientsEvent {
     data object Close : NutrientsEvent
 
-    /** "Pause before showing more" is on: [change] waits for the pause sheet. */
-    data class OpenPause(val change: NumbersChange) : NutrientsEvent
+    /** Modes and numbers, where vitamins and minerals are turned on. */
+    data object OpenModes : NutrientsEvent
 }

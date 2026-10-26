@@ -3,7 +3,7 @@ package com.opson.features.trends.impl
 import com.opson.libraries.diary.Day
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Micronutrient
-import com.opson.libraries.nutrition.NutritionScores
+import com.opson.libraries.nutrition.MicroPercents
 import com.opson.libraries.nutrition.toMicronutrients
 
 /**
@@ -43,7 +43,7 @@ object WeekAverages {
             carbs = totals.carbs.value,
             fat = totals.fat.value,
             fiber = totals.fiber.value,
-            microPercents = NutritionScores.percents(day.allItems.map { it.micros.orEmpty().toMicronutrients() }),
+            microPercents = MicroPercents.of(day.allItems.map { it.micros.orEmpty().toMicronutrients() }),
         )
     }
 
@@ -56,7 +56,7 @@ object WeekAverages {
         val tracked = days.filter { it.hasLogged }
         if (tracked.isEmpty()) return null
         val count = tracked.size.toDouble()
-        val percents = NutritionScores.percents(tracked.flatMap { day -> day.allItems.map { it.micros.orEmpty().toMicronutrients() } })
+        val percents = MicroPercents.of(tracked.flatMap { day -> day.allItems.map { it.micros.orEmpty().toMicronutrients() } })
         return NutrientDay(
             kcal = tracked.mapNotNull { it.intakeKcal() }.averageOrNull(),
             protein = tracked.sumOf { it.totals().protein.known } / count,

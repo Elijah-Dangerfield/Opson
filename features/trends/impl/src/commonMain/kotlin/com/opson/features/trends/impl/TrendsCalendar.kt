@@ -17,6 +17,15 @@ data class WeekWindow(val start: LocalDate, val end: LocalDate) {
 }
 
 /**
+ * The dates one Trends range covers, [start] to [end] both included: the week
+ * window on Week, or whole weeks up to today on Month and 3 months.
+ */
+data class TrendsSpan(val range: TrendsRange, val start: LocalDate, val end: LocalDate) {
+    val days: List<LocalDate> get() = generateSequence(start) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= end }.toList()
+    val dayCount: Int get() = days.size
+}
+
+/**
  * Which dates Trends looks at. Pure, so the window rules are tested once here
  * and the Trends and Nutrients builders agree on "this week".
  */
@@ -61,22 +70,29 @@ object TrendsCalendar {
         TrendsRange.ThreeMonths -> THREE_MONTHS_BARS
     }
 
+    /** The dates [range] covers: the week window, or the last 4 or 12 weeks by [weekStart] up to [today]. */
+    fun span(today: LocalDate, weekStart: DayOfWeek, range: TrendsRange): TrendsSpan = when (range) {
+        TrendsRange.Week -> weekWindow(today, weekStart).let { TrendsSpan(range, it.start, it.end) }
+        else -> TrendsSpan(range, weekStarts(today, weekStart, barCount(range)).first(), today)
+    }
+
+    /** The week before [window]: Coast's last weekly check. */
+    fun previousWeek(window: WeekWindow): WeekWindow =
+        WeekWindow(window.start.minus(DAYS_IN_WEEK, DateTimeUnit.DAY), window.end.minus(DAYS_IN_WEEK, DateTimeUnit.DAY))
+
     /**
-     * The first date Trends needs: the chart's range, the week window and the
-     * new-food lookback before it, so one `observeDays` covers every card.
+     * The first date Trends needs: the span, the week before the window (Coast's
+     * last check) and the new-food lookback before them, so one `observeDays`
+     * covers every card.
      */
     fun firstNeeded(today: LocalDate, settings: Settings): LocalDate {
         val window = weekWindow(today, settings.weekStart)
-        val lookback = window.start.minus(NEW_FOOD_LOOKBACK_DAYS, DateTimeUnit.DAY)
-        val chart = when (settings.trendsRange) {
-            TrendsRange.Week -> window.start
-            else -> weekStarts(today, settings.weekStart, barCount(settings.trendsRange)).first()
-        }
-        return minOf(lookback, chart)
+        val span = span(today, settings.weekStart, settings.trendsRange)
+        return minOf(span.start, previousWeek(window).start).minus(NEW_FOOD_LOOKBACK_DAYS, DateTimeUnit.DAY)
     }
 
-    /** "Mo", "Tu": the first two letters of the weekday, as the prototype labels its week. */
-    fun weekdayLabel(date: LocalDate): String = DateCopy.longWeekday(date.dayOfWeek).take(2)
+    /** "Mon", "Tue": the weekday as the v3 chart and dot grid label it. */
+    fun weekdayLabel(date: LocalDate): String = DateCopy.shortWeekday(date.dayOfWeek)
 
 
     // weekStart - 1, in 0..6 before the +1: (iso + 5) % 7 + 1 steps back one day and wraps Monday to Sunday.

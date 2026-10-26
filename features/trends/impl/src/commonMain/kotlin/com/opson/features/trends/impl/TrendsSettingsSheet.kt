@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.ListRow
 import com.opson.libraries.ui.components.SegmentedControl
@@ -25,10 +24,6 @@ import opson.libraries.resources.generated.resources.trends_settings_card_nutrie
 import opson.libraries.resources.generated.resources.trends_settings_card_recap
 import opson.libraries.resources.generated.resources.trends_settings_card_weight
 import opson.libraries.resources.generated.resources.trends_settings_monday
-import opson.libraries.resources.generated.resources.trends_settings_range
-import opson.libraries.resources.generated.resources.trends_settings_range_3m
-import opson.libraries.resources.generated.resources.trends_settings_range_4w
-import opson.libraries.resources.generated.resources.trends_settings_range_week
 import opson.libraries.resources.generated.resources.trends_settings_saturday
 import opson.libraries.resources.generated.resources.trends_settings_show
 import opson.libraries.resources.generated.resources.trends_settings_sunday
@@ -37,7 +32,10 @@ import opson.libraries.resources.generated.resources.trends_settings_week_start
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** The Trends settings sheet body, apart from its `BottomSheet` so previews and the leak test can render it. */
+/**
+ * The tune button's sheet: week start and which cards show. The range moved onto the page
+ * (design v3). The body, apart from its `BottomSheet` so previews and the leak test can render it.
+ */
 @Composable
 fun TrendsSettingsSheetContent(
     state: TrendsSettingsState,
@@ -55,14 +53,6 @@ fun TrendsSettingsSheetContent(
             title = stringResource(Res.string.trends_settings_title),
             onClose = { onAction(TrendsSettingsAction.CloseTapped) },
         )
-        Section(Res.string.trends_settings_range) {
-            SegmentedControl(
-                options = TrendsRange.entries,
-                selected = state.range,
-                onSelect = { onAction(TrendsSettingsAction.RangePicked(it)) },
-                label = { stringResource(it.label) },
-            )
-        }
         Section(Res.string.trends_settings_week_start) {
             SegmentedControl(
                 options = TrendsSettingsStateBuilder.WEEK_STARTS,
@@ -103,13 +93,6 @@ private fun Section(title: StringResource, content: @Composable () -> Unit) {
         content()
     }
 }
-
-private val TrendsRange.label: StringResource
-    get() = when (this) {
-        TrendsRange.Week -> Res.string.trends_settings_range_week
-        TrendsRange.FourWeeks -> Res.string.trends_settings_range_4w
-        TrendsRange.ThreeMonths -> Res.string.trends_settings_range_3m
-    }
 
 private val DayOfWeek.label: StringResource
     get() = when (this) {

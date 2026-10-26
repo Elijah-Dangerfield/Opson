@@ -3,7 +3,6 @@ package com.opson.features.trends.impl
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.Micronutrient
-import com.opson.libraries.nutrition.NutritionScore
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.color.Colors
 import opson.libraries.resources.generated.resources.Res
@@ -27,12 +26,6 @@ import opson.libraries.resources.generated.resources.trends_micro_zinc
 import opson.libraries.resources.generated.resources.trends_micros_minerals
 import opson.libraries.resources.generated.resources.trends_micros_vitamins
 import opson.libraries.resources.generated.resources.trends_protein
-import opson.libraries.resources.generated.resources.trends_score_all
-import opson.libraries.resources.generated.resources.trends_score_bone
-import opson.libraries.resources.generated.resources.trends_score_energy
-import opson.libraries.resources.generated.resources.trends_score_immune
-import opson.libraries.resources.generated.resources.trends_score_minerals
-import opson.libraries.resources.generated.resources.trends_score_vitamins
 import org.jetbrains.compose.resources.StringResource
 
 /** The energy and macro rows, in the prototype's order. */
@@ -72,16 +65,6 @@ internal val MicroGroup.label: StringResource
     get() = when (this) {
         MicroGroup.Vitamins -> Res.string.trends_micros_vitamins
         MicroGroup.Minerals -> Res.string.trends_micros_minerals
-    }
-
-internal val NutritionScore.label: StringResource
-    get() = when (this) {
-        NutritionScore.AllTargets -> Res.string.trends_score_all
-        NutritionScore.Vitamins -> Res.string.trends_score_vitamins
-        NutritionScore.Minerals -> Res.string.trends_score_minerals
-        NutritionScore.BoneHealth -> Res.string.trends_score_bone
-        NutritionScore.ImmuneSupport -> Res.string.trends_score_immune
-        NutritionScore.EnergyAndMetabolism -> Res.string.trends_score_energy
     }
 
 /** A nutrient's colour. They only tell nutrients apart; none means over or under. */

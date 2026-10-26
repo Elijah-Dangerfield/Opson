@@ -9,12 +9,11 @@ import com.opson.libraries.nutrition.GoalStyle
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.Micronutrient
-import com.opson.libraries.nutrition.NutritionScore
-import com.opson.libraries.nutrition.NutritionScores
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.microReference
+import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.LocalDate
@@ -38,16 +37,23 @@ data class NutrientsState(
     val backLabel: BackLabel = BackLabel.Trends,
     val subtitle: NutrientsSubtitle? = null,
     val range: NutrientsRange = NutrientsRange.Day,
-    /** `null` when all five are hidden. */
+    /** Energy against the range; `null` when calories are hidden. */
+    val energy: EnergyRow? = null,
+    /** The four macros not hidden; `null` when none shows. */
     val macros: List<NutrientRow>? = null,
     /** `null` unless the micros show. */
-    val scores: List<ScoreRow>? = null,
     val micros: List<MicroGroupRows>? = null,
-    /** Micros hidden while the mode shows some macro. */
-    val microsOff: MicrosOff? = null,
+    /** Micros hidden while the mode shows something else: the card that links to Modes and numbers. */
+    val microsOff: Boolean = false,
     /** Nothing on this page can show in this mode. */
     val nothing: Boolean = false,
 )
+
+/**
+ * Energy on a bar with the range as a dashed box. [eaten] carries the fill as its
+ * fraction of the bar; [range] is Shown only when calories are, and the box with it.
+ */
+data class EnergyRow(val eaten: Display, val range: Display, val rangeStart: Float, val rangeEnd: Float)
 
 sealed interface BackLabel {
     data object Trends : BackLabel
@@ -64,49 +70,73 @@ sealed interface NutrientsSubtitle {
     data class WeekAverage(val range: String) : NutrientsSubtitle
 }
 
-/** GoalStyle.Of: `1,245 kcal of 2,100`, `47 g of 120 g`. */
+/** GoalStyle.Of: `47 g of 120 g`. */
 data class NutrientRow(val metric: Metric, val label: StringResource, val display: Display)
-
-data class ScoreRow(val score: NutritionScore, val label: StringResource, val display: Display)
 
 data class MicroGroupRows(val group: MicroGroup, val title: StringResource, val rows: List<MicroRow>)
 
-/** [display] is a percent of [reference]: `62%`, or `Some` / `Most` / `Plenty` when softened. */
-data class MicroRow(val micro: Micronutrient, val label: StringResource, val reference: String, val display: Display)
-
-/** [canTurnOn]: the micros are off by choice (Hide), not waiting on a reveal. */
-data class MicrosOff(val canTurnOn: Boolean)
+/**
+ * [display] is a percent of [reference]: `62%`, or `Some` / `Most` / `Plenty` when softened.
+ * [isLimit]: the reference is a ceiling (sodium), which the copy says.
+ */
+data class MicroRow(
+    val micro: Micronutrient,
+    val label: StringResource,
+    val reference: String,
+    val isLimit: Boolean,
+    val display: Display,
+)
 
 /**
  * Builds [NutrientsState]. Day resolves on [Surface.Nutrients], so a Delayed
  * day opens at 9 pm or once it is past; Week average resolves on
- * [Surface.Week], where Delayed and Coast numbers are open.
+ * [Surface.Week], where Delayed numbers are open and Coast's open with its
+ * weekly check. There are no nutrition scores (design v3 cut them): a score
+ * built from hidden data is a number with no source.
  */
 object NutrientsStateBuilder {
 
     private const val PERCENT = 100.0
 
+    /** The energy bar runs to the top of the range plus this much, so the range box sits short of the end. */
+    private const val ENERGY_HEADROOM = 1.15
+
     fun build(inputs: NutrientsInputs, policy: VisibilityPolicy): NutrientsState {
         val targets = inputs.settings.targets
-        val surface = if (inputs.range == NutrientsRange.Day) Surface.Nutrients else Surface.Week
         val window = TrendsCalendar.weekWindow(inputs.today, inputs.settings.weekStart)
+        val surface = if (inputs.range == NutrientsRange.Day) Surface.Nutrients else Surface.Week
         val values: NutrientDay?
         val base: FormatContext
         when (inputs.range) {
             NutrientsRange.Day -> {
                 val day = inputs.days.firstOrNull { it.date == inputs.day } ?: Day.empty(inputs.day)
                 values = WeekAverages.ofDay(day)
-                base = day.formatContext(inputs.today).copy(goal = GoalStyle.Of)
+                base = day.formatContext(inputs.today)
             }
             NutrientsRange.WeekAverage -> {
                 val byDate = inputs.days.associateBy { it.date }
-                values = WeekAverages.of(window.days.map { byDate[it] ?: Day.empty(it) })
-                base = FormatContext(goal = GoalStyle.Of)
+                // Today is still in progress, so it stays out of the average, as on Trends.
+                values = WeekAverages.of(window.days.filter { it < inputs.today }.map { byDate[it] ?: Day.empty(it) })
+                // The week's last day, so Coast's week opens at its weekly check and not before.
+                base = FormatContext(day = window.end)
             }
         }
 
-        val macros = ENERGY_AND_MACROS.mapNotNull { metric ->
-            val display = policy.resolve(metric, values?.of(metric), surface, base.copy(of = targets.goal(metric)))
+        val scale = targets.maxKcal * ENERGY_HEADROOM
+        val eaten = policy.resolve(Metric.Calories, values?.kcal, surface, base.copy(of = scale, goal = GoalStyle.None))
+        val energy = if (eaten is Display.Hidden) {
+            null
+        } else {
+            EnergyRow(
+                eaten = eaten,
+                range = policy.resolveRange(Metric.Calories, targets.minKcal.toDouble(), targets.maxKcal.toDouble(), surface, base.copy(bare = true)),
+                rangeStart = (targets.minKcal / scale).toFloat(),
+                rangeEnd = (targets.maxKcal / scale).toFloat(),
+            )
+        }
+
+        val macros = TREND_MACROS.mapNotNull { metric ->
+            val display = policy.resolve(metric, values?.of(metric), surface, base.copy(of = targets.goal(metric), goal = GoalStyle.Of))
             if (display is Display.Hidden) null else NutrientRow(metric, metric.label, display)
         }.takeIf { it.isNotEmpty() }
 
@@ -116,20 +146,20 @@ object NutrientsStateBuilder {
         val microsShown = policy.effectiveLevel(Metric.Micros, surface, base) != Visibility.Hide
         val percents = values?.microPercents
         val microContext = base.copy(of = PERCENT)
-        fun percent(value: Double?) = policy.resolve(Metric.Micros, value, surface, microContext)
 
-        val scores = if (microsShown && percents != null) {
-            NutritionScores.compute(percents).map { (score, value) -> ScoreRow(score, score.label, percent(value)) }
-        } else {
-            null
-        }
         val micros = if (microsShown && percents != null) {
             MicroGroup.entries.map { group ->
                 MicroGroupRows(
                     group = group,
                     title = group.label,
                     rows = Micronutrient.inGroup(group).map { micro ->
-                        MicroRow(micro, micro.label, policy.microReference(micro), percent(percents[micro]))
+                        MicroRow(
+                            micro = micro,
+                            label = micro.label,
+                            reference = policy.microReference(micro),
+                            isLimit = micro.isLimit,
+                            display = policy.resolve(Metric.Micros, percents[micro], surface, microContext),
+                        )
                     },
                 )
             }
@@ -149,14 +179,10 @@ object NutrientsStateBuilder {
                 NutrientsRange.WeekAverage -> NutrientsSubtitle.WeekAverage(DateCopy.range(window.start, window.end))
             },
             range = inputs.range,
+            energy = energy,
             macros = macros,
-            scores = scores,
             micros = micros,
-            microsOff = if (!microsShown && macrosAllowed) {
-                MicrosOff(canTurnOn = policy.level(Metric.Micros) == Visibility.Hide)
-            } else {
-                null
-            },
+            microsOff = !microsShown && macrosAllowed,
             nothing = !microsShown && !macrosAllowed,
         )
     }

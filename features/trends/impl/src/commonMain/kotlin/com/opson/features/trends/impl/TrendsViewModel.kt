@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
@@ -28,7 +29,7 @@ import kotlin.time.Clock
 class TrendsViewModel(
     diary: DiaryRepository,
     weights: WeightRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
@@ -63,7 +64,12 @@ class TrendsViewModel(
     override suspend fun handleAction(action: TrendsAction) {
         when (action) {
             is TrendsAction.InputsArrived -> action.updateState { TrendsStateBuilder.build(action.inputs, action.policy) }
+            is TrendsAction.RangePicked -> {
+                // Not a visibility change: the range only picks which days the cards cover.
+                if (action.range != state.range) settingsRepository.update { it.copy(trendsRange = action.range) }
+            }
             TrendsAction.SettingsTapped -> sendEvent(TrendsEvent.OpenTrendsSettings)
+            TrendsAction.PatternsTapped -> sendEvent(TrendsEvent.OpenPatterns)
             TrendsAction.NutrientsCardTapped -> sendEvent(TrendsEvent.OpenNutrients(today.toString()))
             TrendsAction.WeightCardTapped -> sendEvent(TrendsEvent.OpenWeight)
         }
@@ -74,20 +80,23 @@ class TrendsViewModel(
     private class Records(val today: LocalDate, val days: List<Day>, val weighIns: List<WeighIn>)
 
     private companion object {
-        /** Enough history to seed the EMA before the card's four weeks. */
-        const val WEIGH_IN_DAYS = 90
+        /** Enough history to seed the EMA before the 3 months the card can cover. */
+        const val WEIGH_IN_DAYS = 120
     }
 }
 
 sealed interface TrendsAction {
     data class InputsArrived(val inputs: TrendsInputs, val policy: VisibilityPolicy) : TrendsAction
+    data class RangePicked(val range: TrendsRange) : TrendsAction
     data object SettingsTapped : TrendsAction
+    data object PatternsTapped : TrendsAction
     data object NutrientsCardTapped : TrendsAction
     data object WeightCardTapped : TrendsAction
 }
 
 sealed interface TrendsEvent {
     data object OpenTrendsSettings : TrendsEvent
+    data object OpenPatterns : TrendsEvent
 
     /** Nutrients detail on Week average, with "Trends" as the back label. */
     data class OpenNutrients(val dayIso: String) : TrendsEvent

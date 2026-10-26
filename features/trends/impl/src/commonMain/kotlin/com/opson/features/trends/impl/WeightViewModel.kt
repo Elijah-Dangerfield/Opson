@@ -3,14 +3,10 @@ package com.opson.features.trends.impl
 import androidx.lifecycle.viewModelScope
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
-import com.opson.libraries.diary.NumbersChanger
-import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
-import com.opson.libraries.nutrition.Metric
-import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -36,7 +32,6 @@ class WeightViewModel(
     private val weights: WeightRepository,
     settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
-    private val numbers: NumbersChanger,
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<WeightState, WeightEvent, WeightAction>(initialStateArg = WeightState()) {
@@ -64,14 +59,6 @@ class WeightViewModel(
             is WeightAction.InputsArrived -> {
                 latest = action
                 action.updateState { rebuild(it.ui()) ?: it }
-            }
-            is WeightAction.ViewPicked -> {
-                if (action.view == state.selected) return
-                val change = NumbersChange.Override(Metric.Weight, action.view.level)
-                when (numbers.request(change)) {
-                    is NumbersOutcome.Applied -> Unit
-                    NumbersOutcome.NeedsPause -> sendEvent(WeightEvent.OpenPause(change))
-                }
             }
             is WeightAction.RangePicked -> action.updateState { rebuild(it.ui().copy(range = action.range)) ?: it.copy(range = action.range) }
             is WeightAction.WeightTyped -> {
@@ -113,7 +100,6 @@ class WeightViewModel(
 
 sealed interface WeightAction {
     data class InputsArrived(val inputs: WeightInputs, val policy: VisibilityPolicy) : WeightAction
-    data class ViewPicked(val view: WeightView) : WeightAction
     data class RangePicked(val range: WeightRange) : WeightAction
     data class WeightTyped(val text: String) : WeightAction
     data object SaveTapped : WeightAction
@@ -122,7 +108,4 @@ sealed interface WeightAction {
 
 sealed interface WeightEvent {
     data object Close : WeightEvent
-
-    /** "Pause before showing more" is on: [change] waits for the pause sheet. */
-    data class OpenPause(val change: NumbersChange) : WeightEvent
 }

@@ -2,8 +2,10 @@ package com.opson.features.trends.impl
 
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
@@ -14,6 +16,7 @@ import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -25,6 +28,7 @@ import kotlin.math.cos
 import kotlin.math.round
 import kotlin.math.sin
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 private typealias Menu = Map<MealSlot, List<TrendsFixtures.Food>>
@@ -34,6 +38,8 @@ private typealias Menu = Map<MealSlot, List<TrendsFixtures.Food>>
  * shaped after the prototype's mocks: the week of Oct 19 to 25, 2026 seen on
  * Sunday the 25th at noon, Thursday left untracked, three foods new this week
  * (chicken kabsa, poutine, rice pudding), and the prototype's `WEIGHTS` curve.
+ * Meal times drift a little day to day, dinner runs later on Fridays and
+ * Saturdays, and hunger is tagged on most days, for Patterns.
  *
  * Nothing here builds a `Display`: every number goes through the real
  * builders and the policy the caller passes, which is what makes the leak test
@@ -46,6 +52,9 @@ object TrendsFixtures {
 
     /** Noon on the 25th: before the 9 pm reveal, as the leak test's clock. */
     val clock: Clock = fixedClock(LocalDateTime(today, LocalTime(12, 0)))
+
+    /** 10 pm on the 25th: after the reveal, so Coast's weekly check for the week has opened. */
+    val evening: Clock = fixedClock(LocalDateTime(today, LocalTime(22, 0)))
 
     fun fixedClock(at: LocalDateTime): Clock = object : Clock {
         override fun now(): Instant = at.toInstant(timeZone)
@@ -82,6 +91,9 @@ object TrendsFixtures {
 
     fun weightInputs(settings: Settings = Settings(), weighIns: List<WeighIn> = weighIns()): WeightInputs =
         WeightInputs(today, settings, weighIns, timeZone)
+
+    fun patternsInputs(settings: Settings = Settings(), days: List<Day> = days()): PatternsInputs =
+        PatternsInputs(today, settings, days, timeZone)
 
     /** The prototype week with ninety days of ordinary history behind it, oldest first. */
     fun days(): List<Day> {
@@ -153,14 +165,21 @@ object TrendsFixtures {
         val items = MealSlot.entries.associateWith { slot ->
             menu[slot].orEmpty().mapIndexed { index, food -> item(date, slot, index, food) }
         }
-        return Day(date = date, itemsBySlot = items)
+        // Hunger tagged on two days in three, so Patterns has something to say.
+        val seed = date.toEpochDays().toInt()
+        val feelings = if (seed % 3 == 0) {
+            emptyMap()
+        } else {
+            MealSlot.meals.filter { menu[it] != null }.associateWith { MealFeeling(hunger = HUNGER.getValue(it)) }
+        }
+        return Day(date = date, itemsBySlot = items, feelings = feelings)
     }
 
     private fun item(date: LocalDate, slot: MealSlot, index: Int, food: Food): LogItem = LogItem(
         id = "$date-${slot.wire}-$index",
         day = date,
         slot = slot,
-        loggedAt = LocalDateTime(date, MEAL_TIMES.getValue(slot)).toInstant(timeZone),
+        loggedAt = LocalDateTime(date, mealTime(date, slot)).toInstant(timeZone).plus(index.minutes),
         name = food.name,
         precision = Precision.Estimate,
         method = LogMethod.Search,
@@ -173,11 +192,36 @@ object TrendsFixtures {
         micros = food.micros,
     )
 
+    /**
+     * When a meal was logged: its usual time, a few minutes either side day to
+     * day, now and then later, and dinner about an hour later on Fridays and
+     * Saturdays, so the Patterns timeline has a shape.
+     */
+    private fun mealTime(date: LocalDate, slot: MealSlot): LocalTime {
+        val usual = MEAL_TIMES.getValue(slot)
+        val seed = date.toEpochDays().toInt() + slot.ordinal * 7
+        val jitter = (seed * 37 % 21 + 21) % 21 - 10
+        val late = when {
+            slot == MealSlot.Dinner && (date.dayOfWeek == DayOfWeek.FRIDAY || date.dayOfWeek == DayOfWeek.SATURDAY) -> 60
+            seed % 6 == 0 -> 50
+            else -> 0
+        }
+        val minutes = usual.hour * 60 + usual.minute + jitter + late
+        return LocalTime(minutes / 60, minutes % 60)
+    }
+
+    private val HUNGER = mapOf(
+        MealSlot.Breakfast to Hunger.Peckish,
+        MealSlot.Lunch to Hunger.Hungry,
+        MealSlot.Snack to Hunger.Peckish,
+        MealSlot.Dinner to Hunger.VeryHungry,
+    )
+
     private val MEAL_TIMES = mapOf(
-        MealSlot.Breakfast to LocalTime(8, 20),
-        MealSlot.Lunch to LocalTime(12, 50),
-        MealSlot.Snack to LocalTime(15, 45),
-        MealSlot.Dinner to LocalTime(19, 10),
+        MealSlot.Breakfast to LocalTime(8, 10),
+        MealSlot.Lunch to LocalTime(12, 20),
+        MealSlot.Snack to LocalTime(15, 30),
+        MealSlot.Dinner to LocalTime(18, 40),
         MealSlot.Uncategorized to LocalTime(11, 0),
     )
 }

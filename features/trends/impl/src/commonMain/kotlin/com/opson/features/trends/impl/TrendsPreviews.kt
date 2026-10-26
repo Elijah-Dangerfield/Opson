@@ -1,6 +1,9 @@
 package com.opson.features.trends.impl
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
@@ -8,114 +11,175 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
-import com.opson.libraries.ui.PreviewLightDark
-import kotlinx.datetime.DayOfWeek
+import com.opson.libraries.ui.PreviewContent
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-// Every preview builds its state through the real builder from TrendsFixtures,
-// so a preview in Blind shows exactly what Blind would.
+// Every state here comes from the real builders over TrendsFixtures, the same path the app and
+// the Blind leak test take. One theme per preview at the phone's 390 width, so each is also a
+// design-sync screenshot; the names follow the v3 design's screen ids (trends-blind,
+// nutrients-week, weight-hidden), with "Below" for the part of a page under the fold.
+
+private val full = TrendsFixtures.policy()
 
 @Composable
-private fun TrendsPreview(policy: VisibilityPolicy, inputs: TrendsInputs = TrendsFixtures.trendsInputs()) {
-    PreviewLightDark { TrendsContent(TrendsStateBuilder.build(inputs, policy), onAction = {}) }
+private fun Phone(dark: Boolean = false, content: @Composable () -> Unit) {
+    PreviewContent(darkTheme = dark, content = content)
 }
 
-@Preview(widthDp = 390)
+/** The page scrolled past the fold, to see the cards the 844 dp render cuts off. */
 @Composable
-private fun TrendsFullPreview() = TrendsPreview(TrendsFixtures.policy())
+private fun below(): Modifier = Modifier.verticalScroll(rememberScrollState(initial = BELOW_FOLD_PX))
 
-@Preview(widthDp = 390)
+private const val BELOW_FOLD_PX = 2_200
+
 @Composable
-private fun TrendsEmptyPreview() =
-    TrendsPreview(TrendsFixtures.policy(), TrendsFixtures.trendsInputs(days = emptyList(), weighIns = emptyList()))
+private fun Trends(policy: VisibilityPolicy, inputs: TrendsInputs = TrendsFixtures.trendsInputs(settings = TrendsFixtures.settings(policy))) {
+    TrendsScreen(TrendsStateBuilder.build(inputs, policy), onAction = {})
+}
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TrendsBlindPreview() = TrendsPreview(TrendsFixtures.policy(PresetId.Blind))
+private fun TrendsPreview() = Phone { Trends(full) }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TrendsCoastPreview() = TrendsPreview(TrendsFixtures.policy(PresetId.Coast))
+private fun TrendsDarkPreview() = Phone(dark = true) { Trends(full) }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TrendsNutrientFocusPreview() = TrendsPreview(TrendsFixtures.policy(PresetId.Nutrient))
+private fun TrendsBelowPreview() = Phone {
+    TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(), full), onAction = {}, modifier = below())
+}
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TrendsWeekStartsSaturdayPreview() =
-    TrendsPreview(TrendsFixtures.policy(), TrendsFixtures.trendsInputs(Settings(weekStart = DayOfWeek.SATURDAY)))
+private fun TrendsMonthPreview() =
+    Phone { Trends(full, TrendsFixtures.trendsInputs(Settings(trendsRange = TrendsRange.FourWeeks))) }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TrendsThreeMonthsPreview() =
-    TrendsPreview(TrendsFixtures.policy(), TrendsFixtures.trendsInputs(Settings(trendsRange = TrendsRange.ThreeMonths)))
+    Phone { Trends(full, TrendsFixtures.trendsInputs(Settings(trendsRange = TrendsRange.ThreeMonths))) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsEmptyPreview() =
+    Phone { Trends(full, TrendsFixtures.trendsInputs(days = emptyList(), weighIns = emptyList())) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsBlindPreview() = Phone { Trends(TrendsFixtures.policy(PresetId.Blind)) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsCoastPreview() = Phone { Trends(TrendsFixtures.policy(PresetId.Coast)) }
+
+/** Coast after Sunday's check has opened: the week's numbers, and no last-week card. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsCoastOpenPreview() = Phone { Trends(TrendsFixtures.policy(PresetId.Coast, clock = TrendsFixtures.evening)) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsNutrientFocusPreview() = Phone { Trends(TrendsFixtures.policy(PresetId.Nutrient)) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsSettingsPreview() = Phone { TrendsSettingsSheetContent(TrendsSettingsStateBuilder.build(Settings(), full), onAction = {}) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsSettingsBlindPreview() =
+    Phone { TrendsSettingsSheetContent(TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(PresetId.Blind)), onAction = {}) }
 
 @Composable
-private fun TrendsSettingsPreview(policy: VisibilityPolicy) {
-    PreviewLightDark { TrendsSettingsSheetContent(TrendsSettingsStateBuilder.build(Settings(), policy), onAction = {}) }
+private fun Nutrients(policy: VisibilityPolicy, inputs: NutrientsInputs, modifier: Modifier? = null) {
+    val state = NutrientsStateBuilder.build(inputs, policy)
+    if (modifier == null) NutrientsScreen(state, onAction = {}) else NutrientsContent(state, onAction = {}, modifier = modifier)
 }
 
-@Preview(widthDp = 390)
-@Composable
-private fun TrendsSettingsFullPreview() = TrendsSettingsPreview(TrendsFixtures.policy())
+private val microsOn = TrendsFixtures.policy(overrides = mapOf(Metric.Micros to Visibility.Show))
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TrendsSettingsBlindPreview() = TrendsSettingsPreview(TrendsFixtures.policy(PresetId.Blind))
+private fun NutrientsDayPreview() = Phone { Nutrients(full, TrendsFixtures.nutrientsInputs()) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NutrientsDayDarkPreview() = Phone(dark = true) { Nutrients(full, TrendsFixtures.nutrientsInputs()) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NutrientsWeekPreview() = Phone { Nutrients(microsOn, TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage)) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NutrientsWeekBelowPreview() =
+    Phone { Nutrients(microsOn, TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage), below()) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NutrientsEmptyDayPreview() = Phone { Nutrients(full, TrendsFixtures.nutrientsInputs(days = emptyList())) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NutrientsFuelPreview() = Phone { Nutrients(TrendsFixtures.policy(PresetId.Fuel), TrendsFixtures.nutrientsInputs()) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NutrientsBlindPreview() = Phone { Nutrients(TrendsFixtures.policy(PresetId.Blind), TrendsFixtures.nutrientsInputs()) }
 
 @Composable
-private fun NutrientsPreview(policy: VisibilityPolicy, inputs: NutrientsInputs) {
-    PreviewLightDark { NutrientsContent(NutrientsStateBuilder.build(inputs, policy), onAction = {}) }
+private fun Patterns(policy: VisibilityPolicy, modifier: Modifier? = null) {
+    val state = PatternsStateBuilder.build(TrendsFixtures.patternsInputs(), policy)
+    if (modifier == null) PatternsScreen(state, onAction = {}) else PatternsContent(state, onAction = {}, modifier = modifier)
 }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun NutrientsDayPreview() = NutrientsPreview(TrendsFixtures.policy(), TrendsFixtures.nutrientsInputs())
+private fun PatternsPreview() = Phone { Patterns(full) }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun NutrientsEmptyDayPreview() =
-    NutrientsPreview(TrendsFixtures.policy(), TrendsFixtures.nutrientsInputs(days = emptyList()))
+private fun PatternsBelowPreview() = Phone { Patterns(full, below()) }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun NutrientsMicrosShownPreview() = NutrientsPreview(
-    TrendsFixtures.policy(overrides = mapOf(Metric.Micros to Visibility.Show)),
-    TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage),
-)
+private fun PatternsDarkPreview() = Phone(dark = true) { Patterns(full) }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun NutrientsWeekDelayedPreview() =
-    NutrientsPreview(TrendsFixtures.policy(PresetId.Delayed), TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage))
+private fun PatternsBlindPreview() = Phone { Patterns(TrendsFixtures.policy(PresetId.Blind)) }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun NutrientsFuelPreview() = NutrientsPreview(TrendsFixtures.policy(PresetId.Fuel), TrendsFixtures.nutrientsInputs())
-
-@Preview(widthDp = 390)
-@Composable
-private fun NutrientsBlindPreview() = NutrientsPreview(TrendsFixtures.policy(PresetId.Blind), TrendsFixtures.nutrientsInputs())
+private fun PatternsEmptyPreview() =
+    Phone { PatternsScreen(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(days = emptyList()), full), onAction = {}) }
 
 @Composable
-private fun WeightPreview(policy: VisibilityPolicy, inputs: WeightInputs = TrendsFixtures.weightInputs(), ui: WeightUi = WeightUi()) {
-    PreviewLightDark { WeightContent(WeightStateBuilder.build(inputs, ui, policy), onAction = {}) }
+private fun Weight(policy: VisibilityPolicy, inputs: WeightInputs = TrendsFixtures.weightInputs(), ui: WeightUi = WeightUi()) {
+    WeightScreen(WeightStateBuilder.build(inputs, ui, policy), onAction = {})
 }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun WeightNumbersPreview() = WeightPreview(TrendsFixtures.policy())
+private fun WeightPreview() = Phone { Weight(full) }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun WeightEmptyPreview() = WeightPreview(TrendsFixtures.policy(), TrendsFixtures.weightInputs(weighIns = emptyList()))
+private fun WeightDarkPreview() = Phone(dark = true) { Weight(full) }
 
-@Preview(widthDp = 390)
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun WeightTrendOnlyPreview() = WeightPreview(TrendsFixtures.policy(PresetId.Fuel))
+private fun WeightEmptyPreview() = Phone { Weight(full, TrendsFixtures.weightInputs(weighIns = emptyList())) }
 
-@Preview(widthDp = 390)
+/** Trend only: weight set to Soft in Modes (Fuel does that). */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightTrendPreview() = Phone { Weight(TrendsFixtures.policy(PresetId.Fuel)) }
+
+/** Hidden, mid weigh-in and just after one: the digits are dots and the save says it shows nowhere. */
+@Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun WeightHiddenPreview() =
-    WeightPreview(TrendsFixtures.policy(PresetId.Blind), ui = WeightUi(input = "72.4", saved = true))
+    Phone { Weight(TrendsFixtures.policy(PresetId.Blind), ui = WeightUi(input = "72.4", saved = true)) }

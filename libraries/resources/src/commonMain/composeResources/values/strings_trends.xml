@@ -1,33 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Trends, its settings sheet, Nutrients detail and Weight. Verbatim from the
-  handoff where it has the copy (docs/design/handoff/Phone.dc.html), see
+  Trends, its settings sheet, Nutrients detail, Weight and Patterns. Verbatim
+  from design v3 (docs/design/v3) where it has the copy, see
   docs/plans/screens/trends.md. `trends_title` lives in the shared strings.xml.
   No backslash escapes: write apostrophes directly (see strings.xml).
 -->
 <resources>
     <!-- Trends -->
     <string name="trends_settings_cd">Trends settings</string>
+    <string name="trends_range_week">Week</string>
+    <string name="trends_range_month">Month</string>
+    <string name="trends_range_three_months">3 months</string>
     <string name="trends_range_4w">Last 4 weeks</string>
     <string name="trends_range_3m">Last 3 months</string>
-    <string name="trends_intake_daily">Daily intake</string>
-    <string name="trends_intake_weekly">Weekly average intake</string>
-    <string name="trends_average">Average</string>
-    <string name="trends_intake_caption">Shaded band is your range. A gap means a day you left untracked.</string>
+    <string name="trends_eaten">Eaten</string>
+    <string name="trends_avg">avg</string>
+    <string name="trends_intake_caption_plain">The band is your range. A gap is a day you left untracked.</string>
+    <string name="trends_intake_caption_today">The band is your range. Today is striped because it's still in progress, so it isn't in the average.</string>
+    <string name="trends_intake_caption_week">The band is your range. This week is striped because it's still in progress, so it isn't in the average.</string>
+    <string name="trends_check_tonight">Your weekly check opens tonight</string>
+    <string name="trends_check_on">Your weekly check opens %1$s</string>
+    <string name="trends_check_body">%1$s at %2$s. You'll see your weekly average and how weight is trending.</string>
+    <string name="trends_your_week">Your week</string>
     <string name="trends_recap">Recap</string>
-    <string name="trends_recap_breakfast">Breakfast</string>
-    <string name="trends_recap_breakfast_value">%1$d of 7 days</string>
-    <string name="trends_recap_new_foods">New foods</string>
+    <string name="trends_patterns">Patterns</string>
     <string name="trends_recap_days">Days logged</string>
-    <string name="trends_recap_days_value">%1$d of 7</string>
-    <string name="trends_recap_caption">Each dot is a meal logged.</string>
+    <string name="trends_recap_days_value">%1$d of %2$d</string>
+    <string name="trends_recap_breakfast">Breakfast</string>
+    <string name="trends_recap_breakfast_value">%1$d of %2$d days</string>
+    <string name="trends_recap_meals">Meals logged</string>
+    <string name="trends_recap_new_foods">New foods</string>
+    <string name="trends_last_check">Last week's check · %1$s</string>
+    <string name="trends_last_check_average">Daily average</string>
+    <string name="trends_last_check_weight">Weight</string>
     <string name="trends_nutrients">Nutrients</string>
-    <string name="trends_nutrients_sub">Daily average this week</string>
-    <string name="trends_nutrients_sub_micros">Daily average, with vitamins and minerals</string>
+    <string name="trends_nutrients_sub">Daily average</string>
     <string name="trends_weight">Weight</string>
-    <string name="trends_weight_hidden">Hidden. Tap to log a weigh-in.</string>
-    <string name="trends_weight_now">This morning</string>
-    <string name="trends_weight_trend">Smoothed trend, 4 weeks</string>
+    <string name="trends_weight_trend">Smoothed 7-day trend</string>
     <string name="trends_weight_none">No weigh-ins yet. Tap to log one.</string>
 
     <!-- Nutrient labels -->
@@ -39,36 +48,24 @@
 
     <!-- Trends settings sheet -->
     <string name="trends_settings_title">Trends settings</string>
-    <string name="trends_settings_range">Date range</string>
-    <string name="trends_settings_range_week">Week</string>
-    <string name="trends_settings_range_4w">4 weeks</string>
-    <string name="trends_settings_range_3m">3 months</string>
     <string name="trends_settings_week_start">Week starts on</string>
     <string name="trends_settings_monday">Monday</string>
     <string name="trends_settings_saturday">Saturday</string>
     <string name="trends_settings_sunday">Sunday</string>
     <string name="trends_settings_show">Show on Trends</string>
-    <string name="trends_settings_card_intake">Intake chart</string>
+    <string name="trends_settings_card_intake">Eaten chart</string>
     <string name="trends_settings_card_recap">Recap</string>
     <string name="trends_settings_card_nutrients">Nutrients</string>
     <string name="trends_settings_card_weight">Weight</string>
 
-    <!-- Nutrients detail and Weight: the back link, "‹ Trends" or "‹ Today" -->
+    <!-- Sub-screens: where back goes, "‹ Trends" or "‹ Today", spoken on the arrow -->
     <string name="trends_back">‹ %1$s</string>
 
     <!-- Nutrients detail -->
     <string name="trends_nutrients_title">Nutrients</string>
-    <string name="trends_nutrients_day">Day</string>
+    <string name="trends_nutrients_day">This day</string>
     <string name="trends_nutrients_week">Week average</string>
-    <string name="trends_nutrients_week_sub">Daily average, %1$s</string>
-    <string name="trends_nutrients_macros">Energy and macros</string>
-    <string name="trends_nutrients_scores">Nutrition scores</string>
-    <string name="trends_score_all">All targets</string>
-    <string name="trends_score_vitamins">Vitamins</string>
-    <string name="trends_score_minerals">Minerals</string>
-    <string name="trends_score_bone">Bone health</string>
-    <string name="trends_score_immune">Immune support</string>
-    <string name="trends_score_energy">Energy and metabolism</string>
+    <string name="trends_nutrients_range">· range</string>
     <string name="trends_micros_vitamins">Vitamins</string>
     <string name="trends_micros_minerals">Minerals</string>
     <string name="trends_micro_vitamin_a">Vitamin A</string>
@@ -84,32 +81,60 @@
     <string name="trends_micro_potassium">Potassium</string>
     <string name="trends_micro_sodium">Sodium</string>
     <string name="trends_micro_zinc">Zinc</string>
-    <string name="trends_micros_caption">Percent of a typical daily target. Most people land well under on some and over on others, and that's fine. A week tells you more than a day.</string>
+    <string name="trends_micro_of">of %1$s</string>
+    <string name="trends_micro_of_limit">of a %1$s</string>
+    <string name="trends_micros_caption">Percent of a typical daily target. Most people land under on some and over on others, and that's fine. A week tells you more than a day.</string>
     <string name="trends_micros_off_title">Vitamins and minerals are off</string>
-    <string name="trends_micros_off_body">They stay off until you want them, so the basics don't get buried. You can turn them on here, or one at a time in Modes and numbers.</string>
-    <string name="trends_micros_off_button">Show vitamins and minerals</string>
+    <string name="trends_micros_off_body">Turn them on in Modes and numbers.</string>
+    <string name="trends_micros_off_link">Modes and numbers</string>
     <string name="trends_nutrients_nothing">No nutrient detail in this mode. Your meals are all still logged.</string>
 
     <!-- Weight -->
     <string name="trends_weight_title">Weight</string>
-    <string name="trends_weight_view_hidden">Hidden</string>
-    <string name="trends_weight_view_trend">Trend only</string>
-    <string name="trends_weight_view_numbers">Numbers</string>
-    <string name="trends_weight_average">7-day average</string>
-    <string name="trends_weight_range_1w">Last 7 days</string>
-    <string name="trends_weight_range_1m">Last 4 weeks</string>
+    <string name="trends_weight_trend_label">Trend</string>
+    <string name="trends_weight_now">This morning</string>
+    <string name="trends_weight_range_1w">Last week</string>
+    <string name="trends_weight_range_1m">Last month</string>
     <string name="trends_weight_range_3m">Last 3 months</string>
     <string name="trends_weight_chip_1w">1W</string>
     <string name="trends_weight_chip_1m">1M</string>
     <string name="trends_weight_chip_3m">3M</string>
-    <string name="trends_weight_caption_dots">Dots are daily weigh-ins. The line is the smoothed trend.</string>
-    <string name="trends_weight_caption_trend">Smoothed over about a week, so day-to-day water swings barely move the line.</string>
+    <string name="trends_weight_caption">The dots are weigh-ins. The line is a smoothed trend, so a day of water weight doesn't steer you.</string>
     <string name="trends_weight_hidden_title">Weight is hidden</string>
-    <string name="trends_weight_hidden_body">You can still log it. Digits turn to dots as you type and nothing shows afterwards.</string>
+    <string name="trends_weight_hidden_body">You can still log it. Digits turn into dots as you type, and nothing shows afterwards.</string>
     <string name="trends_weight_log">Log a weigh-in</string>
     <string name="trends_weight_unit_kg">kg</string>
     <string name="trends_weight_unit_lb">lb</string>
     <string name="trends_weight_save">Save</string>
+    <string name="trends_weight_trend_only_note">After you save, it only shows up in the trend.</string>
     <string name="trends_weight_saved">Saved.</string>
-    <string name="trends_weight_saved_hidden">Saved. It stays out of view.</string>
+    <string name="trends_weight_saved_trend">Saved. It only shows up in the trend.</string>
+    <string name="trends_weight_saved_hidden">Saved. It won't show anywhere.</string>
+
+    <!-- Patterns -->
+    <string name="trends_patterns_title">Patterns</string>
+    <string name="trends_patterns_span">Last 4 weeks</string>
+    <string name="trends_patterns_when">When you eat</string>
+    <string name="trends_patterns_axis_6a">6a</string>
+    <string name="trends_patterns_axis_9a">9a</string>
+    <string name="trends_patterns_axis_12p">12p</string>
+    <string name="trends_patterns_axis_3p">3p</string>
+    <string name="trends_patterns_axis_6p">6p</string>
+    <string name="trends_patterns_axis_9p">9p</string>
+    <string name="trends_patterns_usually">%1$s, usually</string>
+    <string name="trends_patterns_later_on">%1$s on %2$s</string>
+    <string name="trends_patterns_later">About %1$s later</string>
+    <string name="trends_patterns_and">%1$s and %2$s</string>
+    <string name="trends_patterns_gap">Longest gap</string>
+    <string name="trends_patterns_gap_value">%1$s → %2$s, %3$s</string>
+    <string name="trends_patterns_minutes">%1$d min</string>
+    <string name="trends_patterns_hours">%1$d h</string>
+    <string name="trends_patterns_hours_minutes">%1$d h %2$d min</string>
+    <string name="trends_patterns_sizes">How big each meal is</string>
+    <string name="trends_patterns_size_line">·</string>
+    <string name="trends_patterns_often">How often</string>
+    <string name="trends_patterns_often_value">%1$d of %2$d days</string>
+    <string name="trends_patterns_hunger">Hunger before meals</string>
+    <string name="trends_patterns_hunger_from">From %1$d tagged meals</string>
+    <string name="trends_patterns_new_foods">New foods</string>
 </resources>
