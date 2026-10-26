@@ -1,4 +1,4 @@
-package com.opson.libraries.foods
+package com.opson.libraries.diary
 
 /**
  * What a food looks like on its tile: a rice bowl, a leaf, a piece of fruit.

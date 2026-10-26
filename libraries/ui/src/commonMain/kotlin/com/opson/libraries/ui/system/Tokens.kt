@@ -29,6 +29,9 @@ class AppShapes internal constructor() {
     /** The sticky colored block on Today: bottom corners only. */
     val heroBlock: Shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
 
+    /** Dialogs: the time picker, a small form. */
+    val dialog: Shape = RoundedCornerShape(28.dp)
+
     /** Popover menus. */
     val popover: Shape = RoundedCornerShape(18.dp)
 

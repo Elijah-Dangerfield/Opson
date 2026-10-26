@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.FoodKind
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.MacroLineStyle
 import com.opson.libraries.nutrition.MacroPart
@@ -59,6 +60,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * food"), in the accent when [sourceAccent]; [verified] adds a small check
  * before it for a source someone accountable stands behind. It carries no
  * number, so it stays when the energy is hidden.
+ *
+ * [kind] draws the design sync 2 tile, a picture of the food; without it the tile is the fork
+ * and knife tinted by [iconSeed].
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -77,6 +81,7 @@ fun FoodPickRow(
     source: String? = null,
     sourceAccent: Boolean = false,
     verified: Boolean = false,
+    kind: FoodKind? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -87,7 +92,7 @@ fun FoodPickRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            FoodIconTile(seed = iconSeed)
+            if (kind != null) FoodIconTile(kind = kind) else FoodIconTile(seed = iconSeed)
             Column(
                 modifier = Modifier
                     .weight(1f)

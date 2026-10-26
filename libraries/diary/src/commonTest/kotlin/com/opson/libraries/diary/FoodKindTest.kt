@@ -1,4 +1,4 @@
-package com.opson.libraries.foods
+package com.opson.libraries.diary
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
