@@ -53,6 +53,9 @@
     <string name="trends_settings_card_nutrients">Nutrients</string>
     <string name="trends_settings_card_weight">Weight</string>
 
+    <!-- Nutrients detail and Weight: the back link, "‹ Trends" or "‹ Today" -->
+    <string name="trends_back">‹ %1$s</string>
+
     <!-- Nutrients detail -->
     <string name="trends_nutrients_title">Nutrients</string>
     <string name="trends_nutrients_day">Day</string>
@@ -86,7 +89,6 @@
     <string name="trends_micros_off_body">They stay off until you want them, so the basics don't get buried. You can turn them on here, or one at a time in Modes and numbers.</string>
     <string name="trends_micros_off_button">Show vitamins and minerals</string>
     <string name="trends_nutrients_nothing">No nutrient detail in this mode. Your meals are all still logged.</string>
-    <string name="trends_pause_first">You asked for a pause before showing more. Change it in Modes and numbers.</string>
 
     <!-- Weight -->
     <string name="trends_weight_title">Weight</string>

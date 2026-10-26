@@ -7,10 +7,13 @@ import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.NumbersChanger
+import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
+import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +58,7 @@ class FakeDiaryRepository(days: List<Day> = TrendsFixtures.days()) : DiaryReposi
     override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = unused()
     override fun recentFoods(limit: Int): Flow<List<LogItem>> = unused()
     override fun usualAt(slot: MealSlot, limit: Int, days: Int): Flow<List<LogItem>> = unused()
+    override fun frequentFoods(limit: Int, days: Int): Flow<List<LogItem>> = unused()
 }
 
 class FakeWeightRepository(weighIns: List<WeighIn> = TrendsFixtures.weighIns()) : WeightRepository {
@@ -90,6 +94,29 @@ class FakeSettingsRepository(initial: Settings = Settings()) : SettingsRepositor
 /** A fixed policy the test can swap, standing in for the settings-driven source. */
 class FakePolicySource(initial: VisibilityPolicy = TrendsFixtures.policy()) : VisibilityPolicySource {
     override val policy = MutableStateFlow(initial)
+}
+
+/**
+ * The real rule over the fake settings, so a test can see what was written:
+ * a change that needs the pause writes nothing, anything else is applied and
+ * stamped. The rule itself is `SettingsNumbersChangerTest` in `:libraries:diary:impl`.
+ */
+class FakeNumbersChanger(private val settings: FakeSettingsRepository) : NumbersChanger {
+    val requested = mutableListOf<NumbersChange>()
+
+    override suspend fun request(change: NumbersChange): NumbersOutcome {
+        requested += change
+        val current = settings.settings.value.numbers
+        if (change.needsPause(current)) return NumbersOutcome.NeedsPause
+        val next = change.applyTo(current, TrendsFixtures.clock.now())
+        settings.update { it.withNumbers(next) }
+        return NumbersOutcome.Applied(fewer = next.score() < current.score())
+    }
+
+    override suspend fun confirm(change: NumbersChange) = unused()
+    override suspend fun turnOnPause() = unused()
+    override fun pauseShown(change: NumbersChange) = unused()
+    override fun pauseKept(change: NumbersChange) = unused()
 }
 
 private fun unused(): Nothing = error("Not used by the Trends screens")

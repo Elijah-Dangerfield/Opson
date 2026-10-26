@@ -21,10 +21,10 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientFillBar
 import com.opson.libraries.nutrition.ui.NutrientFillBarDefaults
 import com.opson.libraries.nutrition.ui.NutrientText
-import com.opson.libraries.ui.components.BackLink
 import com.opson.libraries.ui.components.ColorDot
 import com.opson.libraries.ui.components.DotDefaults
 import com.opson.libraries.ui.components.EdgeCard
+import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SegmentedControl
@@ -36,6 +36,7 @@ import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.trends_back
 import opson.libraries.resources.generated.resources.trends_micros_caption
 import opson.libraries.resources.generated.resources.trends_micros_off_body
 import opson.libraries.resources.generated.resources.trends_micros_off_button
@@ -76,14 +77,15 @@ internal fun NutrientsContent(
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Dimension.D100)) {
-            BackLink(
-                label = when (val back = state.backLabel) {
-                    BackLabel.Trends -> stringResource(Res.string.trends_title)
-                    is BackLabel.Day -> back.text
-                },
-                onClick = { onAction(NutrientsAction.BackTapped) },
+            val back = when (val label = state.backLabel) {
+                BackLabel.Trends -> stringResource(Res.string.trends_title)
+                is BackLabel.Day -> label.text
+            }
+            PageHeader(
+                title = stringResource(Res.string.trends_nutrients_title),
+                backLabel = stringResource(Res.string.trends_back, back),
+                onBack = { onAction(NutrientsAction.BackTapped) },
             )
-            Text(text = stringResource(Res.string.trends_nutrients_title), typography = AppTheme.type.subH1, color = AppTheme.colors.ink)
             when (val subtitle = state.subtitle) {
                 null -> Unit
                 is NutrientsSubtitle.Day -> Subtitle(subtitle.text)

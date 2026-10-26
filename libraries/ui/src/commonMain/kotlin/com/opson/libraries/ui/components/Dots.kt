@@ -21,7 +21,7 @@ import com.opson.system.background
 import com.opson.system.color.MealTone
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/** A small filled circle: the colour key beside a macro label, or one meal in a [DotStrip]. */
+/** A small filled circle: the colour key beside a macro label ([LegendDot] is this at 10dp), or one meal in a [DotStrip]. */
 @Composable
 fun ColorDot(
     color: ColorResource,
@@ -70,6 +70,9 @@ fun DotStrip(
 object DotDefaults {
     val Size: Dp = 8.dp
     val LargeSize: Dp = 9.dp
+
+    /** [LegendDot], in front of a nutrient's name on Targets. */
+    val LegendSize: Dp = 10.dp
     internal val DotGap: Dp = 3.dp
     internal val LabelGap: Dp = 6.dp
     internal val ColumnGap: Dp = 8.dp

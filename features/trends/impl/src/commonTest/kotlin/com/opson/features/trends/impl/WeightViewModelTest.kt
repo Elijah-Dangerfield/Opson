@@ -30,7 +30,7 @@ class WeightViewModelTest : CoroutineTest() {
             weights = weights,
             settingsRepository = settings,
             policySource = FakePolicySource(TrendsFixtures.policy(preset)),
-            numbers = TrendsNumbers(settings, TrendsFixtures.clock),
+            numbers = FakeNumbersChanger(settings),
             clock = TrendsFixtures.clock,
             timeZone = TrendsFixtures.timeZone,
         )

@@ -4,6 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.NumbersChanger
+import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
@@ -35,7 +37,7 @@ class NutrientsViewModel(
     private val diary: DiaryRepository,
     private val settingsRepository: SettingsRepository,
     private val policySource: VisibilityPolicySource,
-    private val numbers: TrendsNumbers,
+    private val numbers: NumbersChanger,
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<NutrientsState, NutrientsEvent, NutrientsAction>(
@@ -64,8 +66,8 @@ class NutrientsViewModel(
             NutrientsAction.ShowVitaminsTapped -> {
                 val change = NumbersChange.Override(Metric.Micros, Visibility.Show)
                 when (numbers.request(change)) {
-                    NumbersRequest.Applied -> Unit
-                    NumbersRequest.NeedsPause -> sendEvent(NutrientsEvent.OpenPause(change))
+                    is NumbersOutcome.Applied -> Unit
+                    NumbersOutcome.NeedsPause -> sendEvent(NutrientsEvent.OpenPause(change))
                 }
             }
             NutrientsAction.BackTapped -> sendEvent(NutrientsEvent.Close)

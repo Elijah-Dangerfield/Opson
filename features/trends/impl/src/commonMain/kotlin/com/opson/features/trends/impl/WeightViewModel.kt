@@ -3,6 +3,8 @@ package com.opson.features.trends.impl
 import androidx.lifecycle.viewModelScope
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
+import com.opson.libraries.diary.NumbersChanger
+import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
@@ -34,7 +36,7 @@ class WeightViewModel(
     private val weights: WeightRepository,
     settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
-    private val numbers: TrendsNumbers,
+    private val numbers: NumbersChanger,
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<WeightState, WeightEvent, WeightAction>(initialStateArg = WeightState()) {
@@ -67,8 +69,8 @@ class WeightViewModel(
                 if (action.view == state.selected) return
                 val change = NumbersChange.Override(Metric.Weight, action.view.level)
                 when (numbers.request(change)) {
-                    NumbersRequest.Applied -> Unit
-                    NumbersRequest.NeedsPause -> sendEvent(WeightEvent.OpenPause(change))
+                    is NumbersOutcome.Applied -> Unit
+                    NumbersOutcome.NeedsPause -> sendEvent(WeightEvent.OpenPause(change))
                 }
             }
             is WeightAction.RangePicked -> action.updateState { rebuild(it.ui().copy(range = action.range)) ?: it.copy(range = action.range) }

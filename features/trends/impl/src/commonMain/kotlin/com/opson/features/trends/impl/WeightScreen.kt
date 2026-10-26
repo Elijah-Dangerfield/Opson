@@ -15,8 +15,8 @@ import androidx.compose.ui.Modifier
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.ui.NutrientText
-import com.opson.libraries.ui.components.BackLink
 import com.opson.libraries.ui.components.EdgeCard
+import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.TrendLine
@@ -26,6 +26,7 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.trends_back
 import opson.libraries.resources.generated.resources.trends_title
 import opson.libraries.resources.generated.resources.trends_weight_average
 import opson.libraries.resources.generated.resources.trends_weight_chip_1m
@@ -74,11 +75,12 @@ internal fun WeightContent(
             .padding(horizontal = AppTheme.spacing.page, vertical = AppTheme.spacing.section),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Dimension.D100)) {
-            // "Trends" whatever opened it, as the prototype.
-            BackLink(label = stringResource(Res.string.trends_title), onClick = { onAction(WeightAction.BackTapped) })
-            Text(text = stringResource(Res.string.trends_weight_title), typography = AppTheme.type.subH1, color = AppTheme.colors.ink)
-        }
+        // "Trends" whatever opened it, as the prototype.
+        PageHeader(
+            title = stringResource(Res.string.trends_weight_title),
+            backLabel = stringResource(Res.string.trends_back, stringResource(Res.string.trends_title)),
+            onBack = { onAction(WeightAction.BackTapped) },
+        )
         SegmentedControl(
             options = WeightView.entries,
             selected = state.selected,

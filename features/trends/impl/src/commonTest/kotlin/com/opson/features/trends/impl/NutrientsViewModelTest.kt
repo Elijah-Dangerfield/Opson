@@ -35,7 +35,7 @@ class NutrientsViewModelTest : CoroutineTest() {
         diary = diary,
         settingsRepository = settings,
         policySource = FakePolicySource(),
-        numbers = TrendsNumbers(settings, TrendsFixtures.clock),
+        numbers = FakeNumbersChanger(settings),
         clock = TrendsFixtures.clock,
         timeZone = TrendsFixtures.timeZone,
     )

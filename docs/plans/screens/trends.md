@@ -130,9 +130,8 @@ Hidden, the subtitle is `trends_weight_none` `No weigh-ins yet. Tap to log
 one.` (new copy). Expended (`Expended`, `Daily average from your watch`) is 0.2
 and not rendered.
 
-Meal dots and labels use `AppTheme.colors.meal(...)` through a local
-`MealSlot` to `MealTone` mapping, because `:libraries:diary:ui` (the Logger
-agent's) is not on this branch.
+Meal dots take each slot's colour from `:libraries:diary:ui`
+(`MealSlot.tileColors()`).
 
 ### Edge cases
 - **No days tracked in the window**: intake card shows the band and empty bars; average Hidden (value null).
@@ -145,7 +144,8 @@ agent's) is not on this branch.
 Library additions this needed: `Micronutrient.wireKey` / `fromWireKey`,
 `Map<String, Double>.toMicronutrients()` and `VisibilityPolicy.microReference`
 in `:libraries:nutrition`; `NutrientFillBar` in `:libraries:nutrition:ui`;
-`ColorDot`, `DotStrip` and `BackLink` in `:libraries:ui`.
+`ColorDot` (which `LegendDot` now draws with) and `DotStrip` in `:libraries:ui`.
+The back links use Settings' `PageHeader` with `trends_back` (`‹ %s`).
 
 ### Tests
 `TrendsCalendarTest` and `TrendsStateBuilderTest`: window for each start day with today on a Sunday and a
@@ -239,13 +239,10 @@ from the same percents as the micro rows.
 | `ShowVitaminsTapped` | Requests `Override(Micros, Show)`; with the pause on, event `OpenPause(change)` and nothing is written. |
 | `BackTapped` | `Close`. |
 
-`NumbersChanger` is not on this branch. Until it lands, the request is
-`NumbersChange.needsPause(settings.numbers)` then
-`SettingsRepository.update { it.withNumbers(change.applyTo(it.numbers, now)) }`,
-behind one `TrendsNumbers` class with a `TODO(NumbersChanger)`. The pause sheet
-route (`PauseBeforeMoreRoute`, settings api) is not on this branch either, so
-`OpenPause` shows the toast `trends_pause_first` (`You asked for a pause before
-showing more. Change it in Modes and numbers.`) with a `TODO` naming the route.
+Both go through `NumbersChanger.request(change)` (`:libraries:diary`):
+`Applied` needs nothing more, since the policy re-emits and the page rebuilds;
+`NeedsPause` wrote nothing, and the entry point navigates to `change.toRoute()`,
+the pause sheet in `:features:settings`.
 
 ### Data
 `DiaryRepository.observeDay` (Day) or `observeDays(window)` (Week average);
@@ -332,7 +329,7 @@ carries no number at Trend only.
 | Action | Does |
 |---|---|
 | `InputsArrived(inputs, policy)` | |
-| `ViewPicked(view)` | Requests `Override(Weight, Hide / Soften / Show)` through `TrendsNumbers` (see Nutrients detail: `NumbersChanger` stand-in); raising with pause on emits `OpenPause(change)` and writes nothing. Picking the selected view does nothing. |
+| `ViewPicked(view)` | Requests `Override(Weight, Hide / Soften / Show)` through `NumbersChanger`; raising with pause on emits `OpenPause(change)` and writes nothing. Picking the selected view does nothing. |
 | `RangePicked(range)` | 1W (7), 1M (28), 3M (90) days. |
 | `WeightTyped(text)` | `NumberInput.sanitize(text, allowDecimal = true)`; clears `saved`. |
 | `SaveTapped` | Parses in `weightUnit`, converts to kg, `WeightRepository.addWeighIn(kg)`, clears input, `saved` set. Empty, zero or over 700 kg is ignored. |

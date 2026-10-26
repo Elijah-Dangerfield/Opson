@@ -5,6 +5,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
+import com.opson.features.settings.toRoute
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
 import com.opson.features.trends.TrendsRoute
@@ -16,15 +17,10 @@ import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.bottomSheet
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
-import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheet
-import com.opson.libraries.ui.snackbar.showSnackBar
 import com.opson.system.AppTheme
 import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Inject
-import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.trends_pause_first
-import org.jetbrains.compose.resources.getString
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
@@ -84,7 +80,7 @@ class TrendsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     NutrientsEvent.Close -> router.goBack()
-                    is NutrientsEvent.OpenPause -> openPause(event.change)
+                    is NutrientsEvent.OpenPause -> router.navigate(event.change.toRoute())
                 }
             }
             NutrientsScreen(state = state, onAction = viewModel::takeAction)
@@ -96,20 +92,10 @@ class TrendsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     WeightEvent.Close -> router.goBack()
-                    is WeightEvent.OpenPause -> openPause(event.change)
+                    is WeightEvent.OpenPause -> router.navigate(event.change.toRoute())
                 }
             }
             WeightScreen(state = state, onAction = viewModel::takeAction)
         }
-    }
-
-    /**
-     * TODO(PauseBeforeMoreRoute): navigate to the settings api's pause sheet with
-     * `change.toRoute()` once it lands. Until then nothing was written (the
-     * request stopped at the pause), and the toast says why and where to go.
-     */
-    @Suppress("UnusedParameter")
-    private suspend fun openPause(change: NumbersChange) {
-        showSnackBar(message = getString(Res.string.trends_pause_first))
     }
 }

@@ -10,10 +10,12 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.features.trends)
+            implementation(projects.features.settings)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
             implementation(projects.libraries.diary)
+            implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
 

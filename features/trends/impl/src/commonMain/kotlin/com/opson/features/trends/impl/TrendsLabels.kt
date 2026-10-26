@@ -1,13 +1,11 @@
 package com.opson.features.trends.impl
 
-import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NutritionScore
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.color.Colors
-import com.opson.system.color.MealTone
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_carbs
 import opson.libraries.resources.generated.resources.trends_energy
@@ -100,15 +98,3 @@ internal fun Colors.of(group: MicroGroup): ColorResource = when (group) {
     MicroGroup.Vitamins -> nutrients.fiber.content
     MicroGroup.Minerals -> nutrients.fat.content
 }
-
-// TODO(diary-ui): use MealSlot's colours from :libraries:diary:ui once the Logger
-// work lands it; this is the same mapping (shared.md), kept local until then.
-internal fun Colors.of(slot: MealSlot): ColorResource = meal(
-    when (slot) {
-        MealSlot.Breakfast -> MealTone.Breakfast
-        MealSlot.Lunch -> MealTone.Lunch
-        MealSlot.Snack -> MealTone.Snack
-        MealSlot.Dinner -> MealTone.Dinner
-        MealSlot.Uncategorized -> MealTone.Uncategorized
-    },
-).content

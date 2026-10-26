@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.opson.libraries.diary.ui.tileColors
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientFillBar
 import com.opson.libraries.nutrition.ui.NutrientText
@@ -166,10 +167,12 @@ private fun RecapCardView(card: RecapCard) {
             label = stringResource(Res.string.trends_recap_days),
             value = stringResource(Res.string.trends_recap_days_value, card.daysLogged),
         )
-        val colors = AppTheme.colors
         DotStrip(
             columns = card.days.map { day ->
-                DotStripColumn(label = day.label, dots = day.meals.map { slot -> slot?.let(colors::of) ?: colors.track })
+                DotStripColumn(
+                    label = day.label,
+                    dots = day.meals.map { slot -> slot?.tileColors()?.content ?: AppTheme.colors.track },
+                )
             },
             modifier = Modifier.padding(top = Dimension.D100),
         )
