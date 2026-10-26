@@ -1,5 +1,6 @@
 package com.opson.integration.foods
 
+import com.opson.integration.helpers.FakeUpstreams.OffProduct
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.randomUserId
 import com.opson.libraries.foods.Portion
@@ -13,7 +14,8 @@ import kotlin.test.assertTrue
 
 /**
  * **Food search and lookup.** The catalog client against the real catalog:
- * ranked search, a food by id with its portions, a barcode the catalog knows,
+ * ranked search, a food by id with its portions, a barcode the catalog knows
+ * in whatever form the scanner reads it, a barcode only Open Food Facts knows,
  * and a barcode nobody knows, whose miss report reaches the server without
  * anything that names the person who scanned it.
  *
@@ -64,6 +66,40 @@ class FoodSearchAndBarcodeTest : IntegrationTest() {
         assertNotNull(phone.database.foodCacheDao().get(id), "kept on the device so the amount sheet works offline")
     }
 
+    /**
+     * The importers store a Branded or Open Food Facts code as its 14-digit GTIN. A US scanner
+     * reads the 12 printed digits, a European one the 13-digit EAN, and a small US pack carries
+     * the 8-digit UPC-E. All four are one product.
+     */
+    @Test
+    fun barcodeStoredAsGtin14_isFoundByEveryFormOfItsCode() = integration {
+        val upcE = randomUpcE()
+        val upcA = upcEToUpcA(upcE)
+        val id = server.seedFood("$word crackers", kcalPer100g = 430.0, barcode = upcA.padStart(14, '0'), source = "usda_branded")
+        val phone = client()
+
+        for (scanned in listOf(upcA, "0$upcA", "00$upcA", upcE)) {
+            assertEquals(id, phone.foods.barcode(scanned).getOrThrow()?.id, "a scan of $scanned")
+        }
+        assertEquals(emptyList(), server.upstreams.openFoodFactsLookups, "every form was a catalog hit")
+    }
+
+    @Test
+    fun barcodeOnlyOpenFoodFactsKnows_isServed_andTheNextScanInAnotherFormIsACatalogHit() = integration {
+        val code = randomEan13(prefix = '0')
+        server.upstreams.openFoodFactsProducts[code] = OffProduct("$word oat bar", brand = "Corner Mill", kcalPer100g = 402.0)
+
+        val food = assertNotNull(client().foods.barcode(code).getOrThrow(), "Open Food Facts knows it")
+        assertEquals("$word oat bar", food.name)
+        assertEquals(402.0, food.per100g.kcal)
+        assertEquals(listOf(code), server.upstreams.openFoodFactsLookups)
+
+        // Another phone, whose scanner reads the 12-digit UPC-A of the same pack.
+        val again = assertNotNull(client().foods.barcode(code.drop(1)).getOrThrow())
+        assertEquals(food.id, again.id, "every user gets the same food for the product")
+        assertEquals(listOf(code), server.upstreams.openFoodFactsLookups, "the second scan never left the server")
+    }
+
     @Test
     fun barcodeMiss_isNull_andTheMissReportStoresNoUser() = integration {
         val code = randomEan13()
@@ -86,5 +122,21 @@ class FoodSearchAndBarcodeTest : IntegrationTest() {
         assertFalse(miss.values.any { it?.toString() == user }, "and no value is the user's id")
     }
 
-    private fun randomEan13(): String = "2" + (1..12).map { Random.nextInt(10) }.joinToString("")
+    private fun randomEan13(prefix: Char = '2'): String = withCheckDigit(prefix + digits(11))
+
+    /** A number-system-0 UPC-E, its check digit its UPC-A's, as printed on the pack. */
+    private fun randomUpcE(): String {
+        val body = "0" + digits(5) + Random.nextInt(5, 10)
+        return body + upcEToUpcA(body + "0").last()
+    }
+
+    /** The UPC-A a UPC-E stands for, when its sixth digit is 5 to 9 (the only kind [randomUpcE] makes). */
+    private fun upcEToUpcA(upcE: String): String = withCheckDigit(upcE.substring(0, 6) + "0000" + upcE[6])
+
+    private fun digits(n: Int): String = (1..n).map { Random.nextInt(10) }.joinToString("")
+
+    private fun withCheckDigit(body: String): String {
+        val total = body.reversed().withIndex().sumOf { (i, c) -> (c - '0') * if (i % 2 == 0) 3 else 1 }
+        return body + (10 - total % 10) % 10
+    }
 }
