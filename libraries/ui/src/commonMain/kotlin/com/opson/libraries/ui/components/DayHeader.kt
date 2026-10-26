@@ -20,9 +20,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -162,6 +165,9 @@ fun CountChip(
  * hero by default. [fill], [rangeStart] and [rangeEnd] are fractions of the bar; the fill stops at
  * the end, so going past the range shows nothing new. 14 tall track, 18 tall box. Nutrients detail
  * draws it on a white card with [RangeBarDefaults.onSurface].
+ *
+ * [segments] split the fill end to end by their weights, each in its own colour with a hairline
+ * between (Today's eaten bar by macro, design sync 2). Empty draws the fill in one colour.
  */
 @Composable
 fun RangeBar(
@@ -171,9 +177,11 @@ fun RangeBar(
     modifier: Modifier = Modifier,
     colors: RangeBarColors = RangeBarDefaults.onHero(),
     height: Dp = RangeBarDefaults.Height,
+    segments: List<RangeBarSegment> = emptyList(),
 ) {
     val track = colors.track.color
     val fillColor = colors.fill.color
+    val parts = segments.filter { it.weight > 0f }.map { it.weight to it.color.color }
     val boxColor = colors.box.color
     val dash = remember { PathEffect.dashPathEffect(floatArrayOf(DASH, DASH)) }
     Box(
@@ -186,8 +194,19 @@ fun RangeBar(
                 val radius = CornerRadius(trackHeight / 2)
                 drawRoundRect(track, topLeft = Offset(0f, top), size = Size(size.width, trackHeight), cornerRadius = radius)
                 val filled = size.width * fill.coerceIn(0f, 1f)
-                if (filled > 0f) {
+                if (filled > 0f && parts.isEmpty()) {
                     drawRoundRect(fillColor, topLeft = Offset(0f, top), size = Size(filled, trackHeight), cornerRadius = radius)
+                } else if (filled > 0f) {
+                    clipPath(Path().apply { addRoundRect(RoundRect(0f, top, filled, top + trackHeight, radius)) }) {
+                        val total = parts.sumOf { it.first.toDouble() }.toFloat()
+                        var x = 0f
+                        parts.forEachIndexed { index, (weight, color) ->
+                            val w = filled * weight / total
+                            val gap = if (index < parts.lastIndex) SEGMENT_GAP else 0f
+                            drawRect(color, topLeft = Offset(x, top), size = Size((w - gap).coerceAtLeast(0f), trackHeight))
+                            x += w
+                        }
+                    }
                 }
                 val start = size.width * rangeStart.coerceIn(0f, 1f)
                 val end = size.width * rangeEnd.coerceIn(0f, 1f)
@@ -203,6 +222,9 @@ fun RangeBar(
             },
     )
 }
+
+/** One piece of a [RangeBar]'s fill: [weight] relative to the others, drawn in [color]. */
+data class RangeBarSegment(val weight: Float, val color: ColorResource)
 
 /** The three colours of a [RangeBar]. */
 data class RangeBarColors(val track: ColorResource, val fill: ColorResource, val box: ColorResource)
@@ -229,9 +251,21 @@ object RangeBarDefaults {
         fill = AppTheme.colors.ink,
         box = AppTheme.colors.accent,
     )
+
+    /**
+     * Today's summary card on the surface colour (design sync 2): a quiet track, the box in muted
+     * ink so it reads as a mark rather than an action, and the fill split by macro by the caller.
+     */
+    @Composable
+    fun summary(): RangeBarColors = RangeBarColors(
+        track = AppTheme.colors.track,
+        fill = AppTheme.colors.inkSoft,
+        box = AppTheme.colors.inkSoft,
+    )
 }
 
 private const val TRACK_SHARE = 0.6f
+private const val SEGMENT_GAP = 3f
 private const val DASH = 8f
 private const val STROKE = 3f
 private const val BOX_RADIUS = 10f
@@ -333,6 +367,18 @@ private fun DayHeaderPreview() {
                 rangeEnd = 0.83f,
                 colors = RangeBarDefaults.onSurface(),
                 height = RangeBarDefaults.CompactHeight,
+            )
+            val n = AppTheme.colors.nutrients
+            RangeBar(
+                fill = 0.45f,
+                rangeStart = 0.69f,
+                rangeEnd = 0.83f,
+                colors = RangeBarDefaults.onSurface(),
+                segments = listOf(
+                    RangeBarSegment(0.16f, n.protein.content),
+                    RangeBarSegment(0.52f, n.carbs.content),
+                    RangeBarSegment(0.32f, n.fat.content),
+                ),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                 SuggestionButton(label = "Yesterday's dinner", icon = AppIcons.ContentCopy, onClick = {})

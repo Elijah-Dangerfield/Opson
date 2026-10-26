@@ -21,6 +21,11 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.EventRepeat
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.DragIndicator
+import androidx.compose.material.icons.rounded.SelectAll
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.SupportAgent
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material.icons.rounded.Support
@@ -188,6 +193,17 @@ object AppIcons {
     val ChevronRight get() = icon("chevron_right", MaterialIcons.Rounded.ChevronRight)
     val ArrowBack get() = icon("arrow_back", MaterialIcons.AutoMirrored.Rounded.ArrowBack)
     val ExpandMore get() = icon("expand_more", MaterialIcons.Rounded.ExpandMore)
+    val ExpandLess get() = icon("expand_less", MaterialIcons.Rounded.ExpandLess)
+
+    /** The handle a row is dragged by (Edit Today's cards). */
+    val DragIndicator get() = icon("drag_indicator", MaterialIcons.Rounded.DragIndicator)
+    val SelectAll get() = icon("select_all", MaterialIcons.Rounded.SelectAll)
+
+    /** "Suggested from your goals" (Edit Today's cards). */
+    val AutoAwesome get() = icon("auto_awesome", MaterialIcons.Rounded.AutoAwesome)
+
+    /** "Talk to someone": the support link on Day close's big-day card. */
+    val SupportAgent get() = icon("support_agent", MaterialIcons.Rounded.SupportAgent)
     val OpenInNew get() = icon("open_in_new", MaterialIcons.AutoMirrored.Rounded.OpenInNew)
     val SwapHoriz get() = icon("swap_horiz", MaterialIcons.Rounded.SwapHoriz)
     val Tune get() = icon("tune", MaterialIcons.Rounded.Tune)
@@ -274,7 +290,7 @@ object AppIcons {
             Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, PhotoLibrary, Mic, Stop, EditNote, PostAdd, Edit,
             Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight, Schedule, LockClock, HourglassTop,
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
-            SearchOff, Cancel, ArrowBack, ExpandMore,
+            SearchOff, Cancel, ArrowBack, ExpandMore, ExpandLess, DragIndicator, SelectAll, AutoAwesome, SupportAgent,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
             Visibility, BlurOn, Mail, Group, LockOutlined,
             OpenInNew, Target, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
