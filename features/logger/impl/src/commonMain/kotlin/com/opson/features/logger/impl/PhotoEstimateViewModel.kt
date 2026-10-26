@@ -266,7 +266,7 @@ class PhotoEstimateViewModel(
         val rows = model.rows
         if (model.step != PhotoStep.Review || model.swap != null) return
         rows.forEach { basketStore.upsert(it.toBasketItem()) }
-        val committed = committer.commit(day, slot, settingsRepository.settings.value) ?: return
+        val committed = committer.commit(day, slot) ?: return
         telemetry.added(items = rows.size)
         sendEvent(PhotoEstimateEvent.Logged(day, committed))
     }

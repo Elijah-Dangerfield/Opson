@@ -104,6 +104,15 @@ class SearchOptionsStateBuilderTest {
     }
 
     @Test
+    fun starredFoodsLeadFavoritesNewestStarFirst() {
+        val settings = Settings().toggleFavorite("f:yogurt").toggleFavorite("f:sinangag").toggleFavorite("c:granola")
+        val listed = assertIs<LoggerBody.Listed>(LoggerFixtures.optionsState(full, tab = SearchTab.Favorites, query = "", settings = settings).body)
+
+        assertEquals(listOf("c:granola", "f:sinangag", "f:yogurt", "f:arroz", "f:banana"), listed.rows.map { it.key })
+        assertTrue(listed.rows.all { it.source == PickSource.Favorite })
+    }
+
+    @Test
     fun anEmptyFavoritesOrCustomTabSaysWhatGoesThere() {
         val inputs = LoggerFixtures.optionsInputs().copy(favorites = emptyList(), customFoods = emptyList())
         assertEquals(

@@ -1,9 +1,16 @@
 package com.opson.features.logger.impl
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -30,6 +37,9 @@ import com.opson.libraries.speech.MicPermissionPrompt
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheet
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetDefaults
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetState
+import com.opson.libraries.ui.components.dialog.bottomsheet.expandOnDragUp
+import com.opson.libraries.ui.components.dialog.bottomsheet.sheetHeightFraction
+import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.snackbar.showSnackBar
 import com.opson.system.AppTheme
 import me.tatarka.inject.annotations.Inject
@@ -88,13 +98,11 @@ class LoggerFeatureEntryPoint(
 
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    is AmountEvent.ShowToast -> showToast(event.toast)
                     AmountEvent.Dismiss -> sheetState.dismiss()
                     // Both sheets go: this one and the logger under it. Today takes it from RecentLogEvents.
                     is AmountEvent.Logged -> router.batch {
                         goBack()
                         goBack()
-                        if (event.committed.askHowItFelt) navigate(HowItFeltRoute(event.day.toString(), event.committed.slot))
                     }
                 }
             }
@@ -206,10 +214,6 @@ class LoggerFeatureEntryPoint(
                     goBack()
                     navigate(MealNoteRoute(event.day.toString(), event.slot))
                 }
-                is LoggerEvent.OpenHowItFelt -> router.batch {
-                    goBack()
-                    navigate(HowItFeltRoute(event.day.toString(), event.slot))
-                }
                 // Over the sheet, so Back from the scanner lands on the logger and its basket.
                 is LoggerEvent.OpenScanner -> router.navigate(BarcodeScanRoute(event.day.toString(), event.slot))
                 is LoggerEvent.OpenPhoto -> router.navigate(PhotoEstimateRoute(event.day.toString(), event.slot))
@@ -222,16 +226,37 @@ class LoggerFeatureEntryPoint(
             }
         }
 
+        // Opens at 60% from a + so Today stays in view; grows to full height and stays there.
+        val partial = state.height == SheetHeight.Partial
+        val height = animateFloatAsState(
+            targetValue = if (partial) BottomSheetDefaults.PartialHeightFraction else BottomSheetDefaults.FullHeightFraction,
+            label = "LoggerHeight",
+        )
+        val expand = { viewModel.takeAction(LoggerAction.SheetExpanded) }
         BottomSheet(
             onDismissRequest = { router.goBack() },
             state = sheetState,
-            heightFraction = BottomSheetDefaults.FullHeightFraction,
+            // Read in layout, so growing does not recompose the sheet's content every frame.
+            modifier = Modifier.sheetHeightFraction { height.value },
             showDragHandle = true,
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .expandOnDragUp(enabled = partial, onExpand = expand)
+                        .padding(top = 10.dp, bottom = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) { SheetHandle() }
+            },
             // Back on Describe or Saved goes to search; the content handles that one.
             shouldDismissOnBackPress = state.pane == LoggerPane.Search,
             backgroundColor = AppTheme.colors.bg,
         ) {
-            LoggerSheetContent(state = state, onAction = viewModel::takeAction)
+            LoggerSheetContent(
+                state = state,
+                onAction = viewModel::takeAction,
+                modifier = Modifier.expandOnDragUp(enabled = partial, onExpand = expand),
+            )
         }
     }
 
@@ -261,7 +286,6 @@ class LoggerFeatureEntryPoint(
                 is PhotoEstimateEvent.Logged -> router.batch {
                     goBack()
                     goBack()
-                    if (event.committed.askHowItFelt) navigate(HowItFeltRoute(event.day.toString(), event.committed.slot))
                 }
                 PhotoEstimateEvent.Dismiss -> sheetState.dismiss()
             }

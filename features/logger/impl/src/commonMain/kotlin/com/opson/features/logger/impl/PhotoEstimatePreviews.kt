@@ -8,7 +8,8 @@ import com.opson.libraries.ui.components.dialog.bottomsheet.SheetFrame
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // Every state comes from PhotoEstimateStateBuilder over PhotoFixtures, as in the app and the Blind
-// leak test. LoggerPhotoPreview is design v3's logger-photo; one theme per preview.
+// leak test. The light, Full review is LoggerPhotoPreview in LoggerPreviews.kt, so it pairs with
+// design sync 2's logger-previews__logger-photo; one theme per preview.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
 private val blind = previewVisibilityPolicy(PresetId.Blind)
@@ -17,10 +18,6 @@ private val blind = previewVisibilityPolicy(PresetId.Blind)
 private fun Photo(state: PhotoEstimateState, dark: Boolean = false) = PreviewContent(darkTheme = dark) {
     SheetFrame { PhotoEstimateSheetContent(state, onAction = {}) }
 }
-
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun LoggerPhotoPreview() = Photo(PhotoFixtures.reviewState(full))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

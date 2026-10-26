@@ -2,12 +2,15 @@ package com.opson.features.logger.impl
 
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.FoodUnit
+import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MealSlotPicker
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SearchDatabase
@@ -28,6 +31,10 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.scanner.CameraPermission
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.minus
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -199,18 +206,62 @@ object LoggerFixtures {
         pickingForMeal: Boolean = false,
         scanAvailable: Boolean = false,
         photoAvailable: Boolean = false,
+        slot: MealSlot = MealSlot.Dinner,
+        height: SheetHeight = if (query.isBlank() && !pickingForMeal) SheetHeight.Partial else SheetHeight.Full,
     ): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(basket = basket, settings = settings, date = date, firstRun = firstRun),
         policy = policy,
         choices = LoggerChoices(
-            slot = MealSlot.Dinner,
+            slot = slot,
             query = query,
             search = search,
             pickingForMeal = pickingForMeal,
             scanAvailable = scanAvailable,
             photoAvailable = photoAvailable,
+            height = height,
         ),
     )
+
+    /** 10:40 on [today]: a time this person has no regular meal at (3.1b). */
+    val midMorning: LocalDateTime = LocalDateTime(today, LocalTime(10, 40))
+
+    /**
+     * Five days with breakfast at 8 and dinner at 7, and the foods from "Usual at dinner" also
+     * eaten mid-morning, unfiled. Nothing near 10:40 is a meal, so the meal picks Uncategorized.
+     */
+    fun midMorningHistory(): List<Day> = (1..5).map { n ->
+        val date = today.minus(n, DateTimeUnit.DAY)
+        fun at(food: Food, slot: MealSlot, hour: Int, minute: Int) =
+            food.toLogDraft(FoodAmount.Servings(1.0)).toItem(date, slot, 0).copy(
+                id = "${food.id}-$date-$hour",
+                loggedAt = LocalDateTime(date, LocalTime(hour, minute)).toInstant(TimeZone.UTC),
+            )
+        Day(
+            date = date,
+            itemsBySlot = MealSlot.entries.associateWith { slot ->
+                when (slot) {
+                    MealSlot.Breakfast -> listOf(at(yogurt, slot, 8, 0))
+                    MealSlot.Uncategorized -> listOf(at(arroz, slot, 10, 32), at(sinangag, slot, 10, 31), at(salad, slot, 10, 30))
+                    MealSlot.Dinner -> listOf(at(banana, slot, 19, 0))
+                    else -> emptyList()
+                }
+            },
+        )
+    }
+
+    /** The logger the nav + opens at 10:40, the meal picked from this history: Uncategorized, "Usual around 10:30 AM". */
+    fun uncategorizedInputs(): LoggerInputs =
+        inputs().copy(recentDays = midMorningHistory(), now = midMorning, timeZone = TimeZone.UTC)
+
+    fun uncategorizedState(policy: VisibilityPolicy, scanAvailable: Boolean = false, photoAvailable: Boolean = false): LoggerState {
+        val inputs = uncategorizedInputs()
+        val slot = MealSlotPicker.pick(inputs.recentDays, inputs.now, inputs.timeZone)
+        return LoggerStateBuilder.build(
+            inputs = inputs,
+            policy = policy,
+            choices = LoggerChoices(slot = slot, scanAvailable = scanAvailable, photoAvailable = photoAvailable),
+        )
+    }
 
     fun searchState(policy: VisibilityPolicy): LoggerState = loggerState(policy, query = "rice", search = search())
 
@@ -253,6 +304,7 @@ object LoggerFixtures {
         choices = LoggerChoices(
             slot = MealSlot.Breakfast,
             pane = LoggerPane.Describe,
+            height = SheetHeight.Full,
             describeText = if (parsedLines) "2 eggs and toast" else "",
             describeStatus = if (parsedLines) DescribeStatus.Parsed else DescribeStatus.Idle,
         ),
@@ -261,16 +313,32 @@ object LoggerFixtures {
     fun savedState(policy: VisibilityPolicy): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(),
         policy = policy,
-        choices = LoggerChoices(slot = MealSlot.Dinner, pane = LoggerPane.Saved),
+        choices = LoggerChoices(slot = MealSlot.Dinner, pane = LoggerPane.Saved, height = SheetHeight.Full),
     )
 
-    /** Arroz con pollo, one plate, an estimate, hungry before: 3.3. */
-    fun amountState(policy: VisibilityPolicy, settings: Settings = Settings()): AmountState {
+    /** 6:15 pm on [today], when the amount sheet fixtures are opened. */
+    val evening: LocalTime = LocalTime(18, 15)
+
+    /** Sizes this person saved for arroz con pollo, so the unit menu (3.3b) has more than the catalog's. */
+    val arrozSizes: Settings = Settings()
+        .withUnit("f:arroz", FoodUnit("serving", 300.0))
+        .withUnit("f:arroz", FoodUnit("oz", 28.0))
+        .toggleFavorite("f:arroz")
+
+    fun amountInputs(policy: VisibilityPolicy, settings: Settings = arrozSizes): AmountInputs =
+        AmountInputs(settings = settings, policy = policy, day = day(), today = today, now = evening)
+
+    /** Arroz con pollo, one plate, an estimate, for dinner, starred: 3.3. */
+    fun amountState(policy: VisibilityPolicy, settings: Settings = arrozSizes, precision: Precision = Precision.Estimate): AmountState {
         val food = AmountFood.Catalog(arroz)
         val ref = FoodRef.Catalog(arroz.id)
-        val choice = AmountChoice.initial(food).copy(hunger = Hunger.Hungry)
-        return AmountStateBuilder.build(food, choice, settings, policy, ref, PickSource.Usual, MealSlot.Dinner)
+        val choice = AmountChoice.initial(food, MealSlot.Dinner, settings.unitsFor(ref.key)).copy(precision = precision)
+        return AmountStateBuilder.build(food, choice, amountInputs(policy, settings), ref, PickSource.Usual)
     }
+
+    /** The Custom size dialog open over 3.3, "my bowl" half typed. */
+    fun customSizeState(policy: VisibilityPolicy): AmountState =
+        amountState(policy).copy(customSize = CustomSizeUi(name = "my bowl", grams = "420"))
 
     /** A packaged food a scan found: a manufacturer's label, its serving first. */
     val scannedYogurt: Food = food(
@@ -292,7 +360,7 @@ object LoggerFixtures {
     fun scannedAmountState(policy: VisibilityPolicy): AmountState {
         val food = AmountFood.Catalog(scannedYogurt)
         val ref = FoodRef.Catalog(scannedYogurt.id)
-        return AmountStateBuilder.build(food, AmountChoice.initial(food), Settings(), policy, ref, PickSource.Barcode, MealSlot.Dinner)
+        return AmountStateBuilder.build(food, AmountChoice.initial(food, MealSlot.Dinner), amountInputs(policy, Settings()), ref, PickSource.Barcode)
     }
 
     fun scanState(model: ScanModel): BarcodeScanState = BarcodeScanStateBuilder.build(MealSlot.Dinner, model)
@@ -347,7 +415,14 @@ object LoggerFixtures {
         openFoodFacts: Boolean = true,
     ): LoggerState {
         val inputs = optionsInputs(settings)
-        val choices = LoggerChoices(slot = MealSlot.Dinner, query = query, searchOptions = true, tab = tab, openFoodFacts = openFoodFacts)
+        val choices = LoggerChoices(
+            slot = MealSlot.Dinner,
+            query = query,
+            searchOptions = true,
+            tab = tab,
+            openFoodFacts = openFoodFacts,
+            height = SheetHeight.Full,
+        )
         val filter = LoggerStateBuilder.catalogFilter(inputs, choices)
         val foods = when {
             filter?.source == SearchSource.Usda || tab == SearchTab.Common -> listOf(usdaRice, brandedRice, pudding)

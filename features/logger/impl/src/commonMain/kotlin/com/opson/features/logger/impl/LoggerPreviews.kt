@@ -7,6 +7,8 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.previewVisibilityPolicy
 import com.opson.libraries.ui.PreviewContent
+import com.opson.libraries.diary.Precision
+import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetDefaults
 import com.opson.libraries.ui.components.dialog.bottomsheet.SheetFrame
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
@@ -20,15 +22,24 @@ private val full = previewVisibilityPolicy(PresetId.Full)
 private val blind = previewVisibilityPolicy(PresetId.Blind)
 private val nutrient = previewVisibilityPolicy(PresetId.Nutrient)
 
+/** The sheet at the height the state asks for: 60% from a +, full once it has grown. */
 @Composable
 private fun Logger(state: LoggerState, dark: Boolean = false) = PreviewContent(darkTheme = dark) {
-    SheetFrame { LoggerSheetContent(state, onAction = {}) }
+    val fraction = when (state.height) {
+        SheetHeight.Partial -> BottomSheetDefaults.PartialHeightFraction
+        SheetHeight.Full -> BottomSheetDefaults.FullHeightFraction
+    }
+    SheetFrame(heightFraction = fraction) { LoggerSheetContent(state, onAction = {}) }
 }
 
 @Composable
-private fun Amount(state: AmountState, dark: Boolean = false) = PreviewContent(darkTheme = dark) {
-    SheetFrame(heightFraction = AMOUNT_HEIGHT_FRACTION) { AmountSheetContent(state, onAction = {}) }
+private fun Amount(state: AmountState, dark: Boolean = false, unitMenu: Boolean = false) = PreviewContent(darkTheme = dark) {
+    SheetFrame(heightFraction = AMOUNT_HEIGHT_FRACTION) { AmountSheetContent(state, onAction = {}, unitMenuShown = unitMenu) }
 }
+
+// Design sync 2 draws the logger with release.barcode and release.photo on (the barcode button in
+// the search bar, Photo leading the chips), so the previews paired with it do too.
+// LoggerFlagsOffPreview is the same sheet as 0.1 ships it.
 
 @Composable
 private fun HowItFelt(dark: Boolean = false) = PreviewContent(darkTheme = dark) {
@@ -37,7 +48,16 @@ private fun HowItFelt(dark: Boolean = false) = PreviewContent(darkTheme = dark) 
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerPreview() = Logger(LoggerFixtures.loggerState(full))
+private fun LoggerPreview() = Logger(LoggerFixtures.loggerState(full, scanAvailable = true, photoAvailable = true))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerFlagsOffPreview() = Logger(LoggerFixtures.loggerState(full))
+
+/** 3.1b: the nav + at 10:40, when this person has no usual meal. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerUncategorizedPreview() = Logger(LoggerFixtures.uncategorizedState(full, scanAvailable = true, photoAvailable = true))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -66,15 +86,25 @@ private fun LoggerOtherDayPreview() =
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerPickedPreview() = Logger(LoggerFixtures.loggerState(full, basket = LoggerFixtures.pickedBasket()))
+private fun LoggerPickedPreview() = Logger(
+    LoggerFixtures.loggerState(
+        full,
+        basket = LoggerFixtures.pickedBasket(),
+        scanAvailable = true,
+        photoAvailable = true,
+        height = SheetHeight.Full,
+    ),
+)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerPickedDarkPreview() = Logger(LoggerFixtures.loggerState(full, basket = LoggerFixtures.pickedBasket()), dark = true)
+private fun LoggerPickedDarkPreview() =
+    Logger(LoggerFixtures.loggerState(full, basket = LoggerFixtures.pickedBasket(), height = SheetHeight.Full), dark = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerPickedBlindPreview() = Logger(LoggerFixtures.loggerState(blind, basket = LoggerFixtures.pickedBasket()))
+private fun LoggerPickedBlindPreview() =
+    Logger(LoggerFixtures.loggerState(blind, basket = LoggerFixtures.pickedBasket(), height = SheetHeight.Full))
 
 /** Create a meal's "Add a food": the same sheet, picking for the meal instead of logging. */
 @Preview(widthDp = 390, heightDp = 844)
@@ -135,9 +165,20 @@ private fun LoggerAmountDarkPreview() = Amount(LoggerFixtures.amountState(full),
 @Composable
 private fun LoggerAmountBlindPreview() = Amount(LoggerFixtures.amountState(blind))
 
+/** 3.3b: the unit menu, each unit with its weight, then "Custom size…". */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun LoggerAmountTagsOffPreview() = Amount(LoggerFixtures.amountState(full, settings = Settings(askTags = false)))
+private fun LoggerAmountUnitsPreview() = Amount(LoggerFixtures.amountState(full), unitMenu = true)
+
+/** Nutrient focus: macros and the day show, energy does not. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerAmountNutrientFocusPreview() = Amount(LoggerFixtures.amountState(nutrient))
+
+/** Name only: no amount and no numbers, just meal, time and how sure. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerAmountNameOnlyPreview() = Amount(LoggerFixtures.amountState(full, precision = Precision.Named))
 
 /** `release.barcode` on: v3's barcode button inside the empty search bar. */
 @Preview(widthDp = 390, heightDp = 844)
@@ -207,6 +248,13 @@ private const val SEARCH_OPTIONS_PREVIEW_FRACTION = 0.92f
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerHowItFeltPreview() = HowItFelt()
+
+/** 3.7, the photo estimate's review, with its photo and note compact on top. Its other states are in PhotoEstimatePreviews.kt. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerPhotoPreview() = PreviewContent {
+    SheetFrame { PhotoEstimateSheetContent(PhotoFixtures.reviewState(full), onAction = {}) }
+}
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

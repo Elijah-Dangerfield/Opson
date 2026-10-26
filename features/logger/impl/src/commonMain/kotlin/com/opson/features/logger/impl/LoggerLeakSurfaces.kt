@@ -13,6 +13,10 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger", label = "Quick-add sheet", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.loggerState(policy), onAction = {})
         },
+        // The nav + at a time with no usual meal: "Usual around" lists foods from any meal.
+        LeakSurface(id = "logger-uncategorized", label = "Quick-add sheet, no usual meal", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.uncategorizedState(policy), onAction = {})
+        },
         LeakSurface(id = "logger-picked", label = "Logger with picked foods", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.loggerState(policy, basket = LoggerFixtures.pickedBasket()), onAction = {})
         },
@@ -40,8 +44,13 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-saved", label = "Saved meals", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.savedState(policy), onAction = {})
         },
+        // This portion, Your day with this and All nutrients: Blind removes the cards.
         LeakSurface(id = "logger-amount", label = "Add-food sheet", showsCaloriesInFull = true) { policy ->
             AmountSheetContent(state = LoggerFixtures.amountState(policy), onAction = {})
+        },
+        // The unit menu's weights are amounts of food, not nutrients; the sheet under it still follows the policy.
+        LeakSurface(id = "logger-amount-units", label = "Add-food sheet, unit menu", showsCaloriesInFull = true) { policy ->
+            AmountSheetContent(state = LoggerFixtures.amountState(policy), onAction = {}, unitMenuShown = true)
         },
         LeakSurface(id = "logger-scan-amount", label = "Add-food sheet after a scan", showsCaloriesInFull = true) { policy ->
             AmountSheetContent(state = LoggerFixtures.scannedAmountState(policy), onAction = {})

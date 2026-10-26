@@ -71,16 +71,17 @@ class LoggerViewModelTest : CoroutineTest() {
         scanOn: Boolean = false,
         photoOn: Boolean = false,
         optionsOn: Boolean = false,
+        diaryRepo: FakeDiaryRepository = diary,
     ) = LoggerViewModel(
         route = route,
-        diary = diary,
+        diary = diaryRepo,
         customFoods = customFoods,
         savedMeals = savedMeals,
         foodCatalog = catalog,
         settingsRepository = settings,
         policySource = policySource,
         basketStore = basket,
-        committer = BasketCommitter(diary, catalog, basket, recentLogEvents, telemetry, Clock.fixed(at)),
+        committer = BasketCommitter(diaryRepo, catalog, basket, recentLogEvents, telemetry, Clock.fixed(at)),
         calendar = FakeCalendar(),
         selectedDay = selectedDay,
         clock = Clock.fixed(at),
@@ -342,21 +343,145 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(listOf(LogVia.Usual to 2), telemetry.events)
     }
 
+    /** Design sync 2, 3.10: How it felt opens only from a meal card, never after an add. */
     @Test
-    fun howItFeltFollowsWhenTheModeAsksOrHungerQuestionsAreOn() = runUnitTest {
-        settings.state.value = Settings(askTags = false, numbers = NumbersSettings(preset = PresetId.Mindful))
-        val mindful = vm()
-        val mindfulEvents = events(mindful)
+    fun noHowItFeltFollowsAnAddEvenWhenTheModeAsksOrHungerQuestionsAreOn() = runUnitTest {
+        settings.state.value = Settings(askTags = true, numbers = NumbersSettings(preset = PresetId.Mindful))
+        val vm = vm()
+        val events = events(vm)
         basket.upsert(LoggerFixtures.pickedBasket().first())
-        mindful.takeAction(LoggerAction.AddToMealTapped)
-        assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenHowItFelt(LoggerFixtures.today, MealSlot.Dinner)), mindfulEvents)
 
-        settings.state.value = Settings(askTags = true)
-        val asking = vm()
-        val askingEvents = events(asking)
+        vm.takeAction(LoggerAction.AddToMealTapped)
+
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.Dismiss), events)
+    }
+
+    // The meal picks itself (design sync 2, "ADD SHEET")
+
+    private val midMorning: Instant = Instant.parse("2026-10-25T10:40:00Z")
+
+    private fun historyDiary() = FakeDiaryRepository(LoggerFixtures.midMorningHistory() + LoggerFixtures.day())
+
+    @Test
+    fun theNavPlusUsesTheClockBeforeThereIsHistory() = runUnitTest {
+        val vm = vm(route = LoggerRoute())
+        settle()
+
+        assertEquals(MealSlot.Lunch, vm.state.slot, "two days of meals is not history yet; noon is lunch")
+    }
+
+    @Test
+    fun theNavPlusPicksTheMealUsuallyLoggedAtThisTime() = runUnitTest {
+        val vm = vm(route = LoggerRoute(), at = Instant.parse("2026-10-25T07:50:00Z"), diaryRepo = historyDiary())
+        settle()
+
+        assertEquals(MealSlot.Breakfast, vm.state.slot)
+    }
+
+    @Test
+    fun theNavPlusFallsBackToUncategorizedWithUsualAroundNow() = runUnitTest {
+        val vm = vm(route = LoggerRoute(), at = midMorning, diaryRepo = historyDiary())
+        settle()
+
+        assertEquals(MealSlot.Uncategorized, vm.state.slot)
+        assertEquals(MealSlot.Uncategorized, vm.state.slots.last())
+        val browse = assertIs<LoggerBody.Browse>(vm.state.body)
+        assertEquals(kotlinx.datetime.LocalTime(10, 30), browse.usualAround)
+        assertEquals(listOf("Arroz con pollo", "Garlic fried rice (sinangag)", "Side salad"), browse.usual.map { it.name })
+    }
+
+    @Test
+    fun uncategorizedSavesTheFoodsThereWithTheirTime() = runUnitTest {
+        val history = historyDiary()
+        val vm = vm(route = LoggerRoute(), at = midMorning, diaryRepo = history)
+        settle()
         basket.upsert(LoggerFixtures.pickedBasket().first())
-        asking.takeAction(LoggerAction.AddToMealTapped)
-        assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenHowItFelt(LoggerFixtures.today, MealSlot.Dinner)), askingEvents)
+
+        vm.takeAction(LoggerAction.AddToMealTapped)
+
+        assertEquals(MealSlot.Uncategorized, history.added.single().slot)
+        assertEquals(MealSlot.Uncategorized, recentLogEvents.logged.single().slot)
+    }
+
+    @Test
+    fun aMealsOwnPlusAlwaysUsesThatMeal() = runUnitTest {
+        val vm = vm(route = LoggerRoute(slot = MealSlot.Breakfast), at = midMorning, diaryRepo = historyDiary())
+        settle()
+
+        assertEquals(MealSlot.Breakfast, vm.state.slot)
+    }
+
+    @Test
+    fun aMealPickedFromTheDropdownStaysWhenTheInputsChange() = runUnitTest {
+        val history = historyDiary()
+        val vm = vm(route = LoggerRoute(), at = midMorning, diaryRepo = history)
+        settle()
+
+        vm.takeAction(LoggerAction.SlotPicked(MealSlot.Snack))
+        history.recent.value = listOf(LoggerFixtures.item(LoggerFixtures.banana, MealSlot.Snack))
+        settle()
+
+        assertEquals(MealSlot.Snack, vm.state.slot)
+    }
+
+    // Sheet height
+
+    @Test
+    fun theSheetOpensPartWayFromAPlus() = runUnitTest {
+        assertEquals(SheetHeight.Partial, vm(route = LoggerRoute()).state.height)
+        assertEquals(SheetHeight.Partial, vm(route = LoggerRoute(slot = MealSlot.Dinner)).state.height)
+    }
+
+    @Test
+    fun theSheetOpensFullToTypeOnAPaneOrForCreateAMeal() = runUnitTest {
+        assertEquals(SheetHeight.Full, vm(route = LoggerRoute(focusSearch = true)).state.height)
+        assertEquals(SheetHeight.Full, vm(route = LoggerRoute(start = LoggerStart.Describe)).state.height)
+        assertEquals(SheetHeight.Full, vm(route = LoggerRoute(start = LoggerStart.Saved)).state.height)
+        assertEquals(SheetHeight.Full, vm(route = LoggerRoute(pickForMeal = "meal-1")).state.height)
+    }
+
+    @Test
+    fun draggingUpGrowsTheSheet() = runUnitTest {
+        val vm = vm()
+        settle()
+
+        vm.takeAction(LoggerAction.SheetExpanded)
+
+        assertEquals(SheetHeight.Full, vm.state.height)
+    }
+
+    @Test
+    fun aTapInSearchGrowsTheSheet() = runUnitTest {
+        val vm = vm()
+        settle()
+
+        vm.takeAction(LoggerAction.SearchFocused)
+
+        assertEquals(SheetHeight.Full, vm.state.height)
+    }
+
+    @Test
+    fun typingGrowsTheSheetAndClearingNeverShrinksIt() = runUnitTest {
+        val vm = vm()
+        settle()
+
+        vm.takeAction(LoggerAction.SearchTyped("r"))
+        assertEquals(SheetHeight.Full, vm.state.height)
+        vm.takeAction(LoggerAction.SearchCleared)
+        assertEquals(SheetHeight.Full, vm.state.height)
+    }
+
+    @Test
+    fun openingDescribeOrSavedGrowsTheSheet() = runUnitTest {
+        val describe = vm()
+        settle()
+        describe.takeAction(LoggerAction.DescribeItTapped)
+        assertEquals(SheetHeight.Full, describe.state.height)
+
+        val saved = vm()
+        settle()
+        saved.takeAction(LoggerAction.SavedMealsTapped)
+        assertEquals(SheetHeight.Full, saved.state.height)
     }
 
     @Test
@@ -640,11 +765,11 @@ class LoggerViewModelTest : CoroutineTest() {
     @Test
     fun aDifferentModeRebuildsWithoutReopening() = runUnitTest {
         val vm = vm()
-        assertTrue(LoggerMethod.JustANumber in vm.state.methods)
+        assertTrue(LoggerMethod.JustANumber in vm.state.quickMethods)
 
         policySource.policy.value = policy(PresetId.Blind)
 
-        assertTrue(LoggerMethod.AddANote in vm.state.methods)
+        assertTrue(LoggerMethod.AddANote in vm.state.quickMethods)
     }
 
     // ── Search options (release.searchOptions) ──────────────────────────────
