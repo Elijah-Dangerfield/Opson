@@ -47,11 +47,14 @@
  */
 
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
+import java.net.URI
 import java.net.URLEncoder
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
+import java.time.Duration
 import java.util.Properties
 import kotlin.system.exitProcess
 
@@ -783,6 +786,17 @@ data class Response(val code: Int, val body: String) {
     val isSuccess: Boolean get() = code in 200..299
 }
 
+/**
+ * java.net.http rather than HttpURLConnection, which rejects PATCH outright
+ * with a ProtocolException. Supabase's auth config endpoint is PATCH-only, so
+ * the old client crashed setup_supabase.main.kts right after it had created
+ * the project, leaving a project with no auth config and no local.properties.
+ */
+val httpClient: HttpClient = HttpClient.newBuilder()
+    .connectTimeout(Duration.ofSeconds(20))
+    .followRedirects(HttpClient.Redirect.NORMAL)
+    .build()
+
 fun request(
     method: String,
     url: String,
@@ -790,24 +804,18 @@ fun request(
     body: String? = null,
     extraHeaders: Map<String, String> = emptyMap(),
 ): Response {
-    val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-        requestMethod = method
-        connectTimeout = 20_000
-        readTimeout = 60_000
-        token?.let { setRequestProperty("Authorization", "Bearer $it") }
-        setRequestProperty("Accept", "application/json")
-        extraHeaders.forEach { (key, value) -> setRequestProperty(key, value) }
-        if (body != null) {
-            doOutput = true
-            setRequestProperty("Content-Type", "application/json")
-        }
-    }
-    body?.let { connection.outputStream.use { stream -> stream.write(it.toByteArray()) } }
-    val code = connection.responseCode
-    val text = (if (code in 200..299) connection.inputStream else connection.errorStream)
-        ?.bufferedReader()?.use { it.readText() }.orEmpty()
-    connection.disconnect()
-    return Response(code, text)
+    val builder = HttpRequest.newBuilder(URI(url))
+        .timeout(Duration.ofSeconds(60))
+        .header("Accept", "application/json")
+        .method(
+            method,
+            body?.let { HttpRequest.BodyPublishers.ofString(it) } ?: HttpRequest.BodyPublishers.noBody(),
+        )
+    token?.let { builder.header("Authorization", "Bearer $it") }
+    if (body != null) builder.header("Content-Type", "application/json")
+    extraHeaders.forEach { (key, value) -> builder.header(key, value) }
+    val response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString())
+    return Response(response.statusCode(), response.body().orEmpty())
 }
 
 fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")
