@@ -50,3 +50,12 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
 - [ ] Deploy the server to prod once 0.1 is through review. It carries the
       settings merge (a 0.1 phone saving settings must not erase what a 0.2
       phone added), V12 to V14, and the new routes.
+
+## Search quality
+
+- [ ] After the prod deploy (V15 adds partial indexes; a few seconds of held
+      writes), run the default-portions backfill on prod. Command in
+      `docs/plans/search-quality.md`; it prompts for the URL, dry-runs first.
+- [ ] Open Food Facts: grow prod's disk (2 GB now; the table is 2.3 GB and a
+      reload holds two copies), load it, credit Open Food Facts wherever its
+      foods appear, then set `FOOD_SEARCH_OFF_ENABLED=true`.
