@@ -57,7 +57,11 @@ class IosProgressPhotoFileStore @Inject constructor() : ProgressPhotoFileStore {
 
     override suspend fun read(name: String): ByteArray? = withContext(Dispatchers.IO) {
         val url = folder(create = false)?.URLByAppendingPathComponent(name) ?: return@withContext null
-        NSData.dataWithContentsOfURL(url)?.toBytes()
+        val data = NSData.dataWithContentsOfURL(url)
+        // Complete protection makes a file unreadable while the phone is locked. That is a failure,
+        // not an absence: read as "no file", the index would be rewritten without its photos.
+        check(data != null || url.path?.let { manager.fileExistsAtPath(it) } != true) { "Couldn't read a progress photo file" }
+        data?.toBytes()
     }
 
     override suspend fun write(name: String, bytes: ByteArray) {

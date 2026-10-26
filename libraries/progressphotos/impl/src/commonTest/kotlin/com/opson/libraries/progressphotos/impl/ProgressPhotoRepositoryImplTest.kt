@@ -8,6 +8,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFails
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -109,6 +110,19 @@ class ProgressPhotoRepositoryImplTest {
         assertEquals(listOf(saved), repository.observeComparisons().first())
         repository.removeComparison(saved.id)
         assertEquals(emptyList(), repository.observeComparisons().first())
+    }
+
+    @Test
+    fun anIndexThatCannotBeReadIsNeitherRememberedAsEmptyNorOverwritten() = runTest {
+        val kept = add(sep13)
+        val afterRestart = ProgressPhotoRepositoryImpl(files)
+        files.failReads = true
+
+        assertEquals(emptyList(), afterRestart.observePhotos().first())
+        assertFails { afterRestart.add(byteArrayOf(4), byteArrayOf(5), Pose.Front, Instant.fromEpochMilliseconds(0), oct25) }
+
+        files.failReads = false
+        assertEquals(listOf(kept.id), afterRestart.observePhotos().first().map { it.id })
     }
 
     @Test

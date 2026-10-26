@@ -82,6 +82,7 @@ interface ProgressPhotoRepository {
  * and complete file protection. Names are flat (`index.json`, `<id>.jpg`).
  */
 interface ProgressPhotoFileStore {
+    /** `null` when there is no such file. Throws when there is one that can't be read. */
     suspend fun read(name: String): ByteArray?
 
     /** Replaces the whole file, so a crash mid-write never leaves half of one. */
