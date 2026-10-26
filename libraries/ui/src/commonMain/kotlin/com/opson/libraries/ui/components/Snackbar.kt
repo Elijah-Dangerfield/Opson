@@ -32,20 +32,22 @@ import com.opson.system.VerticalSpacerD800
 import com.opson.system.color.ProvideContentColor
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.random.Random
-import androidx.compose.material3.SnackbarData as MaterialSnackbarData
+import opson.libraries.resources.generated.resources.Res as SharedRes
+import opson.libraries.resources.generated.resources.ds_close
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.material3.SnackbarDuration as MaterialSnackbarDuration
 @Composable
 fun Snackbar(
-    podawanSnackbarData: PodawanSnackbarData,
+    data: AppSnackbarData,
     modifier: Modifier = Modifier,
     shape: Shape = SnackbarDefaults.shape,
     containerColor: ColorResource = SnackbarDefaults.backgroundColor,
     contentColor: ColorResource = SnackbarDefaults.contentColor,
 ) {
-    val message = podawanSnackbarData.visuals.message
-    val title = podawanSnackbarData.visuals.title
-    val actionLabel = podawanSnackbarData.visuals.actionLabel
-    val icon = podawanSnackbarData.visuals.icon
+    val message = data.visuals.message
+    val title = data.visuals.title
+    val actionLabel = data.visuals.actionLabel
+    val icon = data.visuals.icon
 
     ProvideContentColor(color = contentColor) {
 
@@ -108,7 +110,7 @@ fun Snackbar(
 
                 if (actionLabel != null) {
                     Button(
-                        onClick = podawanSnackbarData::performAction,
+                        onClick = data::performAction,
                         size = ButtonSize.ExtraSmall,
                     ) {
                         Text(text = actionLabel)
@@ -118,11 +120,11 @@ fun Snackbar(
             }
 
 
-            if (podawanSnackbarData.visuals.withDismissAction) {
+            if (data.visuals.withDismissAction) {
                 IconButton(
                     size = IconButton.Size.Small,
-                    icon = Icons.X("Close"),
-                    onClick = podawanSnackbarData::dismiss,
+                    icon = Icons.X(stringResource(SharedRes.string.ds_close)),
+                    onClick = data::dismiss,
                 )
             }
         }
@@ -139,8 +141,8 @@ fun snackBarData(
     duration: SnackbarDuration = SnackbarDuration.Short,
     onAction: () -> Unit = {},
     onDismiss: () -> Unit = {},
-): PodawanSnackbarData = object : PodawanSnackbarData {
-    override val visuals: PodawanSnackbarVisuals = PodawanSnackbarVisuals(
+): AppSnackbarData = object : AppSnackbarData {
+    override val visuals: AppSnackbarVisuals = AppSnackbarVisuals(
         title = title,
         icon = icon,
         message = message,
@@ -159,11 +161,11 @@ fun snackBarData(
 }
 
 fun snackBarData(
-    visuals: PodawanSnackbarVisuals,
+    visuals: AppSnackbarVisuals,
     onAction: () -> Unit = {},
     onDismiss: () -> Unit = {},
-): PodawanSnackbarData = object : PodawanSnackbarData {
-    override val visuals: PodawanSnackbarVisuals = visuals
+): AppSnackbarData = object : AppSnackbarData {
+    override val visuals: AppSnackbarVisuals = visuals
 
     override fun performAction() {
         onAction()
@@ -179,7 +181,7 @@ fun snackBarData(
 private fun PreviewSnackbarDebug() {
     PreviewContent(backgroundColor = ColorResource.White) {
         Snackbar(
-            podawanSnackbarData = snackBarData(
+            data = snackBarData(
                 title = "Title",
                 message = "This is some text that describes something that takes up a lot of space.".repeat(
                     2
@@ -197,7 +199,7 @@ private fun PreviewSnackbarDebug() {
 private fun PreviewSnackbar2() {
     PreviewContent {
         Snackbar(
-            podawanSnackbarData = snackBarData(
+            data = snackBarData(
                 title = "Title",
                 message = "This is some text that describes something that takes up a lot of space.".repeat(
                     2
@@ -214,7 +216,7 @@ private fun PreviewSnackbar2() {
 private fun PreviewSnackbarDeveloper() {
     PreviewContent {
         Snackbar(
-            podawanSnackbarData = snackBarData(
+            data = snackBarData(
                 message = "Hello World",
                 icon = Icons.Bug(null)
             )
@@ -227,7 +229,7 @@ private fun PreviewSnackbarDeveloper() {
 private fun PreviewSnackbar() {
     PreviewContent {
         Snackbar(
-            podawanSnackbarData = snackBarData(
+            data = snackBarData(
                 message = "Hello World",
                 icon = null
             )
@@ -246,32 +248,9 @@ object SnackbarDefaults {
     val contentColor: ColorResource @Composable get() = AppTheme.colors.onSurfaceSecondary
 }
 
-fun MaterialSnackbarData.toSnackbarData(title: String): PodawanSnackbarData {
-    val visuals = PodawanSnackbarVisuals(
-        title = title,
-        icon = null,
-        message = this.visuals.message,
-        actionLabel = this.visuals.actionLabel,
-        withDismissAction = this.visuals.withDismissAction,
-        duration = this.visuals.duration
-    )
-
-    return object : PodawanSnackbarData {
-        override val visuals: PodawanSnackbarVisuals = visuals
-
-        override fun dismiss() {
-            this@toSnackbarData.dismiss()
-        }
-
-        override fun performAction() {
-            this@toSnackbarData.performAction()
-        }
-    }
-}
-
 @Stable
-interface PodawanSnackbarData {
-    val visuals: PodawanSnackbarVisuals
+interface AppSnackbarData {
+    val visuals: AppSnackbarVisuals
 
     /**
      * Function to be called when Snackbar action has been performed to notify the listeners.
@@ -285,7 +264,7 @@ interface PodawanSnackbarData {
 }
 
 @Stable
-data class PodawanSnackbarVisuals(
+data class AppSnackbarVisuals(
     val id: Long = Random.nextLong(),
     val title: String?,
     val icon: IconResource? = null,
@@ -326,13 +305,5 @@ enum class SnackbarDuration {
             Long -> MaterialSnackbarDuration.Long
             Indefinite -> MaterialSnackbarDuration.Indefinite
         }
-    }
-}
-
-fun MaterialSnackbarDuration.toSnackbarDuration(): SnackbarDuration {
-    return when (this) {
-        androidx.compose.material3.SnackbarDuration.Short -> SnackbarDuration.Short
-        androidx.compose.material3.SnackbarDuration.Long -> SnackbarDuration.Long
-        androidx.compose.material3.SnackbarDuration.Indefinite -> SnackbarDuration.Indefinite
     }
 }
