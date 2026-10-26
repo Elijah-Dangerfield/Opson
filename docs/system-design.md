@@ -479,6 +479,9 @@ theme.
   Blind, render every surface in `SURFACES`, assert no `metric:calories`,
   `metric:remaining` or `metric:energyOut` tags and no text matching
   `/\d[\d,.]*\s*(kcal|cal\b|calories)|\d[\d,]*\s*left\b/i`. It runs in CI.
+  Detekt `HardcodedDisplay` keeps its fixtures honest: a `Display.Shown`,
+  `Display.Soft`, `RingValue` or `MacroPart` built outside `:libraries:nutrition`
+  (test source sets aside) fails the build.
 
 ---
 

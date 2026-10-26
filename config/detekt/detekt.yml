@@ -18,3 +18,12 @@ opson:
     active: true
   ScrollInsideBottomSheet:
     active: true
+  HardcodedDisplay:
+    active: true
+    # :libraries:nutrition is where these values are meant to be built (its
+    # :ui submodule is not, so only its own src is excluded). Test source sets
+    # may build expected values to compare against.
+    excludes:
+      - '**/libraries/nutrition/src/**'
+      - '**/src/*Test/**'
+      - '**/src/test/**'

@@ -19,6 +19,7 @@ class OpsonRuleSetProvider : RuleSetProvider {
             ::AnimatedStateReadInComposition,
             ::ClassNameInTelemetryAttribute,
             ::ScrollInsideBottomSheet,
+            ::HardcodedDisplay,
         ),
     )
 }

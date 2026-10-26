@@ -39,13 +39,16 @@ produces a specific bug, and the bug is named next to it. Read
 - [ ] **No animated value read during composition** (detekt
   `AnimatedStateReadInComposition` enforces it).
 - [ ] **Bottom sheets pass `scrollableContent = true`** instead of wrapping
-  content in their own scroll (detekt `ScrollInsideBottomSheet`).
+  content in their own scroll, and a sheet with a `LazyColumn` passes
+  `heightFraction` (detekt `ScrollInsideBottomSheet`).
 
 ### Visibility (the rule this app exists for)
 - [ ] **No nutrition number is formatted outside `VisibilityPolicy`.** Every
-  amount reaches the screen as a `Display` and renders through
-  `NutrientValue` / `NutrientText`. Grep the diff for `kcal`, `" g"` and
-  `toString()` on a nutrient.
+  amount reaches the screen as a `Display` (or `RingValue` / `MacroPart`) and
+  renders through `NutrientValue` / `NutrientText` / `NutrientRingLabel` /
+  `MacroLine`. Grep the diff for `kcal`, `" g"` and `toString()` on a
+  nutrient. Building one of those by hand outside `:libraries:nutrition` fails
+  detekt `HardcodedDisplay`.
 - [ ] **`HIDE` removes the label too**, not just the digits.
 - [ ] **Every rendered number carries `Modifier.testTag("metric:<metric>")`**,
   which `NutrientValue` does for you.
