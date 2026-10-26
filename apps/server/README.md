@@ -307,7 +307,12 @@ the secret unset it skips with a notice.
 **Loading Open Food Facts.** `scripts/import_off_foods.py` loads the
 monthly CSV export (about 1.5 GB, 4.8 million products) into `off_foods`
 (V12), a table of its own: Open Food Facts is ODbL, share-alike, so its rows
-are never copied into `foods`. Search will read both tables (not wired yet).
+are never copied into `foods`. Search reads both tables once
+`FOOD_SEARCH_OFF_ENABLED=true` (off by default): `OpenFoodFactsSearch` caps the
+candidates of each kind of match before it scores them, so a query costs about
+the same at 3.3 million rows as at 3,000, and works the rows in after generic
+foods and Branded rows of the same match. The reload writes rows most-scanned
+first, which is what makes the caps keep the popular products.
 It keeps the 3.3 million products with energy and macros per 100 g that are
 physically possible, an 8 to 14 digit barcode and a name, stores valid
 barcodes as 14-digit GTINs like Branded Foods, and keeps `countries_tags` for
@@ -341,8 +346,18 @@ python3 -I -m unittest discover -s scripts -p 'test_import_off_foods.py'
 ```
 
 The monthly workflow has the same reload as a second job, off until the
-`OFF_IMPORT_ENABLED` repository variable is `true`. Measured size (2.1 GB),
-load time and search latency are in `docs/food-data-sources.md`.
+`OFF_IMPORT_ENABLED` repository variable is `true`. Measured size (2.3 GB with
+the V13 indexes), load time and search latency, before and after bounding, are
+in `docs/food-data-sources.md`.
+
+**Default servings.** The app logs a food's first portion, so the importer
+puts a typical serving first (`default_portion_first`: a cup of blueberries,
+not one berry; an ounce of almonds, not a cup). For rows already loaded:
+
+```bash
+CATALOG_DATABASE_URL=postgresql://… python3 -I scripts/backfill_default_portions.py --dry-run
+CATALOG_DATABASE_URL=postgresql://… python3 -I scripts/backfill_default_portions.py   # idempotent
+```
 
 **Nutritionix (off until there is budget).** `NutritionixSource` calls
 `GET https://trackapi.nutritionix.com/v2/search/item?upc=` with the

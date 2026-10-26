@@ -1,5 +1,6 @@
 package com.opson.server.data
 
+import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.BarcodeLookupsTable
 import com.opson.server.db.Database
 import com.opson.server.db.FoodSearchEventsTable
@@ -31,6 +32,7 @@ import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.TextColumnType
+import org.jetbrains.exposed.sql.UUIDColumnType
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
@@ -79,16 +81,29 @@ import kotlin.time.Clock
 class PostgresFoodCatalogRepository(
     private val database: Database,
     private val clock: Clock,
+    private val sources: FoodSourcesConfig = FoodSourcesConfig(),
 ) : FoodCatalogRepository {
 
-    override suspend fun search(query: String, limit: Int, record: Boolean): List<FoodMatch> =
+    override suspend fun search(
+        query: String,
+        limit: Int,
+        record: Boolean,
+        country: String?,
+        openFoodFacts: Boolean,
+    ): List<FoodMatch> =
         database.transaction {
             val normalized = FoodCatalogRepository.normalizeQuery(query)
             val terms = SearchTerms.of(normalized)
-            val matches = if (terms == null) {
-                emptyList()
-            } else {
-                runSearch(terms, limit.coerceIn(1, FoodCatalogRepository.MAX_LIMIT))
+            val capped = limit.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
+            val matches = when {
+                terms == null -> emptyList()
+                openFoodFacts && sources.searchOpenFoodFacts && OpenFoodFactsSearch.searches(terms) ->
+                    OpenFoodFactsSearch.merge(
+                        catalog = runSearch(terms, capped),
+                        openFoodFacts = runOpenFoodFactsSearch(terms, capped, OpenFoodFactsSearch.countryTag(country)),
+                        limit = capped,
+                    )
+                else -> runSearch(terms, capped)
             }
             if (record && normalized.isNotEmpty()) {
                 FoodSearchEventsTable.insert {
@@ -140,8 +155,34 @@ class PostgresFoodCatalogRepository(
         return results
     }
 
+    private fun runOpenFoodFactsSearch(terms: SearchTerms, limit: Int, countryTag: String?): List<FoodMatch> {
+        val results = mutableListOf<FoodMatch>()
+        TransactionManager.current().exec(
+            stmt = OpenFoodFactsSearch.SQL,
+            args = OpenFoodFactsSearch.args(terms, limit, countryTag),
+            explicitStatementType = StatementType.SELECT,
+        ) { rs ->
+            while (rs.next()) {
+                results += FoodMatch(rs.toFood(), MatchTier.entries[rs.getInt("match_tier")], rs.getDouble("sim"))
+            }
+        }
+        return results
+    }
+
     override suspend fun findById(id: UUID): Food? = database.transaction {
         FoodsTable.selectAll().where { FoodsTable.id eq id }.singleOrNull()?.toFood()
+            ?: if (sources.searchOpenFoodFacts) openFoodFactsById(id) else null
+    }
+
+    /** An `off_foods` row, which search hands out when Open Food Facts is on. */
+    private fun openFoodFactsById(id: UUID): Food? {
+        var food: Food? = null
+        TransactionManager.current().exec(
+            stmt = OpenFoodFactsSearch.BY_ID_SQL,
+            args = listOf(UUIDColumnType() to id),
+            explicitStatementType = StatementType.SELECT,
+        ) { rs -> if (rs.next()) food = rs.toFood() }
+        return food
     }
 
     override suspend fun findByBarcode(barcode: String): Food? = database.transaction {
@@ -469,7 +510,10 @@ internal class SearchTerms private constructor(
      * to three is a word still being typed, and "avo" means avocado more
      * often than the brand "Avo's".
      */
-    val canNameBrand: Boolean = words.sumOf { it.length } >= MIN_BRAND_QUERY
+    val canNameBrand: Boolean get() = length >= MIN_BRAND_QUERY
+
+    /** Letters and digits in the query: `m&m` is 2. */
+    val length: Int = words.sumOf { it.length }
 
     companion object {
         private const val MIN_BRAND_QUERY = 4

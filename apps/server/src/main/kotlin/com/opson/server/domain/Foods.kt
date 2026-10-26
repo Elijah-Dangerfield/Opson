@@ -88,8 +88,19 @@ interface FoodCatalogRepository {
      * Ranked matches for [query]. When [record] is true, one anonymous
      * `food_search_events` row is written with the normalized query and the
      * result count (no user id, by design).
+     *
+     * [openFoodFacts] asks for `off_foods` rows as well. They are only added
+     * when the server's `FOOD_SEARCH_OFF_ENABLED` is on, ranked after generic
+     * and Branded rows of the same match, products sold in [country] (ISO
+     * 3166-1 alpha-2, when known) first. Rank by country, never filter by it.
      */
-    suspend fun search(query: String, limit: Int, record: Boolean = true): List<FoodMatch>
+    suspend fun search(
+        query: String,
+        limit: Int,
+        record: Boolean = true,
+        country: String? = null,
+        openFoodFacts: Boolean = false,
+    ): List<FoodMatch>
 
     suspend fun findById(id: UUID): Food?
 

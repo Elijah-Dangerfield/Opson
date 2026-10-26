@@ -77,8 +77,8 @@ class DatabaseSchemaTest : DatabaseTest() {
         val before = strings(indexes)
         assertEquals(
             listOf(
-                "off_foods_barcode_key", "off_foods_countries_idx", "off_foods_name_idx", "off_foods_name_trgm_idx",
-                "off_foods_pkey", "off_foods_search_idx",
+                "off_foods_barcode_key", "off_foods_countries_idx", "off_foods_country_search_idx", "off_foods_name_idx",
+                "off_foods_name_trgm_idx", "off_foods_pkey", "off_foods_search_idx",
             ),
             before,
         )

@@ -3,12 +3,19 @@
 
     CATALOG_DATABASE_URL=postgresql://... python3 -I scripts/bench_off_search.py
     python3 -I scripts/bench_off_search.py --country en:france --passes 3
+    python3 -I scripts/bench_off_search.py --compare              # and result quality
+    python3 -I scripts/bench_off_search.py --statement unbounded  # the 0.1 statement, for the before numbers
 
-The statement mirrors SEARCH_SQL in PostgresFoodCatalogRepository (prefix
-LIKE and prefix full text as direct matches, trigram similarity only when
-those find fewer than the limit, match tiers, brand named), aimed at
-`off_foods` and with one more ranking key: products sold in the caller's
-country first. Rank by country, never filter by it. LIMIT 25.
+`bounded` (the default) mirrors OpenFoodFactsSearch.SQL in the server: it
+caps the candidates of each kind of match before it scores them, and skips
+queries under 3 letters and digits. Change the two together. `unbounded` is
+the 0.1 catalog statement aimed at `off_foods`, which scores every row a
+prefix matches. Both rank the same way: match tier, a name match before a
+brand-only one, products sold in the caller's country first (rank by
+country, never filter by it), whole words, scans. LIMIT 25.
+
+`--compare` runs both and reports how much of the unbounded top 10 the
+bounded statement keeps, which is what the caps cost in quality.
 
 Each query runs under EXPLAIN (ANALYZE, TIMING OFF), so the times are the
 server's planning plus execution, without the network. The first pass warms
@@ -79,6 +86,12 @@ BRAND_FILLER = [
     "foods", "food", "brand", "brands", "sales", "usa", "us", "international", "products", "group",
 ]
 
+# Mirrors PostgresFoodCatalogRepository: OFF_MIN_QUERY and the OFF_* caps.
+MIN_QUERY = 3
+CAP_EXACT = 100
+CAP_WORDS = 300
+CAP_SIMILAR = 50
+
 
 def variants(word: str) -> list[str]:
     """SearchTerms.variantsOf: the word plus a naive singular or plural."""
@@ -98,74 +111,144 @@ def lit(text: str) -> str:
     return "'" + text.replace("'", "''") + "'"
 
 
-def search_sql(query: str, country: str) -> str | None:
+def terms(query: str) -> dict | None:
+    """SearchTerms, as literals."""
     normalized = re.sub(r"\s+", " ", query.lower().strip())[:100]
     words = WORD.findall(normalized)[:8]
     if not words:
         return None
     phrase = [" ".join(words[:-1] + [v]) for v in variants(words[-1])]
-    like = normalized.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
-    prefix_ts = " & ".join("(" + " | ".join(f"{v}:*" for v in variants(w)) + ")" for w in words)
-    whole_ts = " & ".join("(" + " | ".join(variants(w)) + ")" for w in words)
-    query_words = "|".join(dict.fromkeys(v for w in words for v in variants(w)))
-    brand_words = "|".join(dict.fromkeys([v for w in words for v in variants(w)] + BRAND_FILLER))
-    regex = "^(" + "|".join(phrase) + ")($|[^[:alnum:]])"
-    variants_text = "|".join(phrase)
+    return {
+        "normalized": normalized,
+        "chars": sum(len(w) for w in words),
+        "like": normalized.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%",
+        "prefix_ts": " & ".join("(" + " | ".join(f"{v}:*" for v in variants(w)) + ")" for w in words),
+        "whole_ts": " & ".join("(" + " | ".join(variants(w)) + ")" for w in words),
+        "query_words": "|".join(dict.fromkeys(v for w in words for v in variants(w))),
+        "brand_words": "|".join(dict.fromkeys([v for w in words for v in variants(w)] + BRAND_FILLER)),
+        "regex": "^(" + "|".join(phrase) + ")($|[^[:alnum:]])",
+        "variants": "|".join(phrase),
+    }
+
+
+def unbounded_sql(query: str, country: str) -> str | None:
+    """The 0.1 statement aimed at off_foods: scores every row a prefix matches. The quality reference."""
+    t = terms(query)
+    if t is None:
+        return None
     return f"""
 WITH direct AS (
     SELECT f.* FROM off_foods f
-    WHERE lower(f.name) LIKE {lit(like)}
-       OR f.search @@ to_tsquery('simple', {lit(prefix_ts)})
+    WHERE lower(f.name) LIKE {lit(t['like'])}
+       OR f.search @@ to_tsquery('simple', {lit(t['prefix_ts'])})
 ),
 candidates AS (
     SELECT * FROM direct
     UNION ALL
     SELECT f.* FROM off_foods f
     WHERE (SELECT count(*) FROM direct) < {LIMIT}
-      AND lower(f.name) OPERATOR(extensions.%) {lit(normalized)}
-      AND NOT (lower(f.name) LIKE {lit(like)} OR f.search @@ to_tsquery('simple', {lit(prefix_ts)}))
+      AND lower(f.name) OPERATOR(extensions.%) {lit(t['normalized'])}
+      AND NOT (lower(f.name) LIKE {lit(t['like'])} OR f.search @@ to_tsquery('simple', {lit(t['prefix_ts'])}))
 ),
 scored AS (
-    SELECT c.id, c.name, c.brand, c.barcode,
-           c.kcal_100g, c.protein_100g, c.carbs_100g, c.fat_100g, c.fiber_100g,
-           c.micros::text AS micros, c.portions::text AS portions, c.tier, c.verified,
+    SELECT c.id, c.name, c.brand, c.scans,
            CASE
-               WHEN lower(c.name) = ANY (string_to_array({lit(variants_text)}, '|')) THEN 0
-               WHEN btrim(split_part(lower(c.name), ',', 1)) = ANY (string_to_array({lit(variants_text)}, '|')) THEN 1
-               WHEN lower(c.name) ~ {lit(regex)} THEN 2
-               WHEN c.search @@ to_tsquery('simple', {lit(prefix_ts)}) THEN 3
+               WHEN lower(c.name) = ANY (string_to_array({lit(t['variants'])}, '|')) THEN 0
+               WHEN btrim(split_part(lower(c.name), ',', 1)) = ANY (string_to_array({lit(t['variants'])}, '|')) THEN 1
+               WHEN lower(c.name) ~ {lit(t['regex'])} THEN 2
+               WHEN c.search @@ to_tsquery('simple', {lit(t['prefix_ts'])}) THEN 3
                ELSE 4
            END AS match_tier,
-           c.search @@ to_tsquery('simple', {lit(whole_ts)}) AS whole_words,
-           coalesce((
-               SELECT cardinality(b.words) > 0
-                      AND b.words <@ string_to_array({lit(brand_words)}, '|')
-                      AND b.words && string_to_array({lit(query_words)}, '|')
-               FROM (SELECT array_remove(regexp_split_to_array(lower(c.brand), '[^[:alnum:]]+'), '') AS words) b
-           ), false) AS brand_hit,
+           c.search @@ to_tsquery('simple', {lit(t['whole_ts'])}) AS whole_words,
+           c.brand IS NULL OR to_tsvector('simple', c.name) @@ to_tsquery('simple', {lit(t['prefix_ts'])}) AS name_words,
            c.countries_tags @> ARRAY[{lit(country)}] AS in_country,
-           extensions.similarity(lower(c.name), {lit(normalized)}) AS sim
+           extensions.similarity(lower(c.name), {lit(t['normalized'])}) AS sim
     FROM candidates c
 )
-SELECT s.*
+SELECT s.id, s.name, s.brand, s.scans
 FROM scored s
-ORDER BY (s.match_tier = 4),
-         s.in_country DESC,
-         s.brand_hit DESC,
-         s.match_tier,
-         s.whole_words DESC,
-         round(s.sim::numeric, 1) DESC,
-         length(s.name),
-         s.name
+ORDER BY (s.match_tier = 4), (s.match_tier <= 2 OR (s.match_tier = 3 AND s.name_words)) DESC, s.in_country DESC, s.match_tier, s.whole_words DESC,
+         s.scans DESC, round(s.sim::numeric, 1) DESC, length(s.name), s.name
 LIMIT {LIMIT}"""
 
 
-def run_pass(db: Psql, queries: list[str], country: str) -> list[tuple[str, float, int]]:
+def bounded_sql(query: str, country: str) -> str | None:
+    """OFF_SEARCH_SQL in PostgresFoodCatalogRepository, with literals. None when the query is too short."""
+    t = terms(query)
+    if t is None or t["chars"] < MIN_QUERY:
+        return None
+    return f"""
+WITH exact AS (
+    SELECT o.id FROM off_foods o
+    WHERE lower(o.name) = ANY (string_to_array({lit(t['variants'])}, '|'))
+    LIMIT {CAP_EXACT}
+),
+words AS (
+    SELECT o.id FROM off_foods o
+    WHERE o.search @@ to_tsquery('simple', {lit(t['prefix_ts'])})
+    LIMIT {CAP_WORDS}
+),
+exact_here AS (
+    SELECT o.id FROM off_foods o
+    WHERE lower(o.name) = ANY (string_to_array({lit(t['variants'])}, '|'))
+      AND o.countries_tags @> ARRAY[{lit(country)}]
+    LIMIT {CAP_EXACT}
+),
+words_here AS (
+    SELECT o.id FROM off_foods o
+    WHERE o.search @@ to_tsquery('simple', {lit(t['prefix_ts'])})
+      AND o.countries_tags @> ARRAY[{lit(country)}]
+    LIMIT {CAP_WORDS}
+),
+hits AS (
+    SELECT id FROM exact UNION SELECT id FROM words UNION SELECT id FROM exact_here UNION SELECT id FROM words_here
+),
+typos AS (
+    SELECT o.id FROM off_foods o
+    WHERE (SELECT count(*) FROM hits) < {LIMIT}
+      AND {lit(t['normalized'])} OPERATOR(extensions.<%) lower(o.name)
+    LIMIT {CAP_SIMILAR}
+),
+candidates AS (
+    SELECT o.* FROM off_foods o
+    WHERE o.id IN (SELECT id FROM hits UNION SELECT id FROM typos)
+),
+scored AS (
+    SELECT c.id, c.name, c.brand, c.scans,
+           CASE
+               WHEN lower(c.name) = ANY (string_to_array({lit(t['variants'])}, '|')) THEN 0
+               WHEN btrim(split_part(lower(c.name), ',', 1)) = ANY (string_to_array({lit(t['variants'])}, '|')) THEN 1
+               WHEN lower(c.name) ~ {lit(t['regex'])} THEN 2
+               WHEN c.search @@ to_tsquery('simple', {lit(t['prefix_ts'])}) THEN 3
+               ELSE 4
+           END AS match_tier,
+           c.search @@ to_tsquery('simple', {lit(t['whole_ts'])}) AS whole_words,
+           c.brand IS NULL OR to_tsvector('simple', c.name) @@ to_tsquery('simple', {lit(t['prefix_ts'])}) AS name_words,
+           c.countries_tags @> ARRAY[{lit(country)}] AS in_country,
+           extensions.similarity(lower(c.name), {lit(t['normalized'])}) AS sim
+    FROM candidates c
+)
+SELECT s.id, s.name, s.brand, s.scans
+FROM scored s
+ORDER BY (s.match_tier = 4), (s.match_tier <= 2 OR (s.match_tier = 3 AND s.name_words)) DESC, s.in_country DESC, s.match_tier, s.whole_words DESC,
+         s.scans DESC, round(s.sim::numeric, 1) DESC, length(s.name), s.name
+LIMIT {LIMIT}"""
+
+
+STATEMENTS = {"bounded": bounded_sql, "unbounded": unbounded_sql}
+
+
+def run_pass(db: Psql, queries: list[str], country: str, statement) -> list[tuple[str, float, int]]:
+    """(query, server ms, rows) per query the statement runs for; a query it skips is left out."""
     script = ["\\set ON_ERROR_STOP 1", "SET statement_timeout = '60s';"]
-    for i, q in enumerate(queries):
-        sql = search_sql(q, country)
-        script.append(f"\\echo @@{i}")
+    ran = []
+    for q in queries:
+        sql = statement(q, country)
+        if sql is None:
+            continue
+        script.append(f"\\echo @@{len(ran)}")
         script.append(f"EXPLAIN (ANALYZE, TIMING OFF) {sql};")
+        ran.append(q)
     result = subprocess.run(
         [db.binary, "-X", "-q", "-A", "-t", "-f", "-"],
         input="\n".join(script), env=db.env, capture_output=True, text=True,
@@ -177,7 +260,7 @@ def run_pass(db: Psql, queries: list[str], country: str) -> list[tuple[str, floa
     for line in result.stdout.splitlines() + ["@@end"]:
         if line.startswith("@@"):
             if current is not None:
-                out.append((queries[current], ms, rows))
+                out.append((ran[current], ms, rows))
             current = None if line == "@@end" else int(line[2:])
             ms, rows, first = 0.0, 0, True
             continue
@@ -188,6 +271,53 @@ def run_pass(db: Psql, queries: list[str], country: str) -> list[tuple[str, floa
         if m:
             ms += float(m.group(2))
     return out
+
+
+def results(db: Psql, queries: list[str], country: str, statement) -> dict[str, list[str]]:
+    """The ids each query returns, in order."""
+    script = ["\\set ON_ERROR_STOP 1", "SET statement_timeout = '60s';"]
+    ran = []
+    for q in queries:
+        sql = statement(q, country)
+        if sql is None:
+            continue
+        script.append(f"\\echo @@{len(ran)}")
+        script.append(f"SELECT id FROM ({sql}) r;")
+        ran.append(q)
+    result = subprocess.run(
+        [db.binary, "-X", "-q", "-A", "-t", "-f", "-"],
+        input="\n".join(script), env=db.env, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise SystemExit(f"psql failed: {result.stderr.strip()}")
+    out: dict[str, list[str]] = {}
+    current = None
+    for line in result.stdout.splitlines():
+        if line.startswith("@@"):
+            current = ran[int(line[2:])]
+            out[current] = []
+        elif current is not None and line.strip():
+            out[current].append(line.strip())
+    return out
+
+
+def compare(db: Psql, queries: list[str], country: str) -> None:
+    """How much of the unbounded statement's top 10 the bounded one keeps."""
+    bounded = results(db, queries, country, bounded_sql)
+    reference = results(db, [q for q in queries if q in bounded], country, unbounded_sql)
+    overlaps, same_first, worst = [], 0, []
+    for q, ref in reference.items():
+        got = bounded.get(q, [])
+        if not ref:
+            continue
+        top = ref[:10]
+        overlap = len(set(top) & set(got[:10])) / len(top)
+        overlaps.append(overlap)
+        same_first += bool(got) and got[0] == ref[0]
+        worst.append((overlap, q))
+    print(f"quality, {len(overlaps)} queries: the bounded top 10 keeps {100 * sum(overlaps) / len(overlaps):.1f}% "
+          f"of the unbounded top 10; same first result {100 * same_first / len(overlaps):.1f}%")
+    print("lowest overlap: " + ", ".join(f"{q!r} {o:.0%}" for o, q in sorted(worst)[:12]))
 
 
 def percentile(values: list[float], p: float) -> float:
@@ -204,17 +334,24 @@ def main() -> int:
     parser.add_argument("--country", default="en:united-states", help="the caller's country tag (default en:united-states)")
     parser.add_argument("--passes", type=int, default=2, help="passes over the queries, the first one a warm-up (default 2)")
     parser.add_argument("--slow-ms", type=float, default=200.0, help="list queries slower than this (default 200)")
+    parser.add_argument("--statement", choices=sorted(STATEMENTS), default="bounded",
+                        help="bounded: the server's statement (default); unbounded: the 0.1 statement, for comparison")
+    parser.add_argument("--compare", action="store_true",
+                        help="also compare the bounded statement's results with the unbounded one's")
     args = parser.parse_args()
 
     conninfo = (args.psql or os.environ.get("CATALOG_DATABASE_URL", "")).strip()
     if not conninfo:
         raise SystemExit("set CATALOG_DATABASE_URL or pass --psql")
     db = Psql(find_psql(args.psql_bin), pg_env(conninfo))
+    statement = STATEMENTS[args.statement]
 
-    passes = [run_pass(db, QUERIES, args.country) for _ in range(max(args.passes, 2))]
+    passes = [run_pass(db, QUERIES, args.country, statement) for _ in range(max(args.passes, 2))]
+    skipped = len(QUERIES) - len(passes[0])
     warm = [ms for p in passes[1:] for _, ms, _ in p]
     cold = [ms for _, ms, _ in passes[0]]
-    print(f"{len(QUERIES)} queries, country {args.country}, {len(passes) - 1} measured pass(es) after a warm-up")
+    print(f"{args.statement}: {len(passes[0])} of {len(QUERIES)} queries run ({skipped} too short), "
+          f"country {args.country}, {len(passes) - 1} measured pass(es) after a warm-up")
     print(f"warm: p50 {percentile(warm, .5):.1f} ms, p95 {percentile(warm, .95):.1f} ms, "
           f"p99 {percentile(warm, .99):.1f} ms, max {max(warm):.1f} ms")
     longer = [ms for p in passes[1:] for q, ms, _ in p if len(q) >= 3]
@@ -233,6 +370,8 @@ def main() -> int:
         print(f"  {ms:8.1f} ms  {q!r} ({rows} results)")
     empty = [q for q, (_, rows) in worst.items() if rows == 0]
     print(f"no results: {empty}")
+    if args.compare:
+        compare(db, QUERIES, args.country)
     return 0
 
 
