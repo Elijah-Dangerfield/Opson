@@ -1,15 +1,19 @@
 package com.opson.features.settings.impl.integrations
 
 import com.opson.features.settings.impl.Toast
+import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.ui.time.DateCopy
 import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.integrations_movement
@@ -18,9 +22,10 @@ import opson.libraries.resources.generated.resources.integrations_workouts
 import org.jetbrains.compose.resources.StringResource
 
 /**
- * Watch and health apps (design v3 `integrations.png`, 0.2): the platform's health store, the
- * connection to it, and today's energy from it. Only the store's own row and Expended today are
- * built; `docs/plans/screens/integrations.md` says why the rest waits.
+ * Watch and health apps (design v3 `integrations.png`, `integrations--full.png`, 0.2): the
+ * platform's health store, the connection to it, today's energy from it, whether exercise moves
+ * the range, and the days left out of the math. `docs/plans/screens/integrations.md` says what
+ * v3 draws that is not built (the watch rows, the Health card).
  */
 data class IntegrationsState(
     val loading: Boolean = true,
@@ -32,7 +37,21 @@ data class IntegrationsState(
     val canOpenSource: Boolean = false,
     /** Only while connected. */
     val expended: ExpendedCard? = null,
+    /** "Should exercise change your range?": only while connected, and never for someone who said numbers have been hard. */
+    val exercise: ExerciseQuestion? = null,
+    val leftOut: LeftOutCard = LeftOutCard(emptyList()),
 )
+
+/** The three answers, with [selected] the one that applies: No until the person picks. */
+data class ExerciseQuestion(val selected: ExerciseAdjustment) {
+    val options: List<ExerciseAdjustment> get() = listOf(ExerciseAdjustment.None, ExerciseAdjustment.Some, ExerciseAdjustment.All)
+}
+
+/** The days marked untracked in the last [LeaveOutWindow.DAYS], newest first. */
+data class LeftOutCard(val days: List<LeftOutDay>)
+
+/** "Sun, Oct 18", and the day's own note ("Family visit") when it has one. */
+data class LeftOutDay(val date: LocalDate, val label: String, val note: String?)
 
 enum class Connection { Unsupported, NeedsInstall, NotConnected, Connecting, Connected }
 
@@ -49,12 +68,14 @@ sealed interface ExpendedCard {
 
 data class ExpendedLine(val label: StringResource, val display: Display)
 
-/** Everything the page reads. */
+/** Everything the page reads. [days] are the window's days; only the untracked ones are listed. */
 data class IntegrationsInputs(
     val source: HealthSource,
     val status: HealthStatus,
     val energy: EnergyExpended?,
     val today: LocalDate,
+    val settings: Settings = Settings(),
+    val days: List<Day> = emptyList(),
 )
 
 object IntegrationsStateBuilder {
@@ -81,8 +102,21 @@ object IntegrationsStateBuilder {
             denied = denied && connection == Connection.NotConnected,
             canOpenSource = inputs.source == HealthSource.HealthConnect,
             expended = if (connection == Connection.Connected) expended(inputs, policy) else null,
+            exercise = if (connection == Connection.Connected && !inputs.settings.onboarding.hard) {
+                ExerciseQuestion(inputs.settings.exerciseInRange)
+            } else {
+                null
+            },
+            leftOut = leftOut(inputs),
         )
     }
+
+    private fun leftOut(inputs: IntegrationsInputs): LeftOutCard = LeftOutCard(
+        inputs.days
+            .filter { it.untracked && LeaveOutWindow.contains(it.date, inputs.today) }
+            .sortedByDescending { it.date }
+            .map { LeftOutDay(it.date, DateCopy.weekdayMonthDay(it.date), it.note?.trim()?.takeIf(String::isNotEmpty)) },
+    )
 
     /**
      * Energy out has no soften word, so anything short of Show hides it, and the card says so in
@@ -115,11 +149,14 @@ sealed interface IntegrationsAction {
     data object DisconnectTapped : IntegrationsAction
     data object GetHealthConnectTapped : IntegrationsAction
     data object OpenSourceTapped : IntegrationsAction
+    data class ExercisePicked(val choice: ExerciseAdjustment) : IntegrationsAction
+    data object LeaveOutDayTapped : IntegrationsAction
     data object BackTapped : IntegrationsAction
 }
 
 sealed interface IntegrationsEvent {
     data class OpenLink(val url: String) : IntegrationsEvent
     data class ShowToast(val toast: Toast) : IntegrationsEvent
+    data object OpenLeaveOut : IntegrationsEvent
     data object Close : IntegrationsEvent
 }

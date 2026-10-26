@@ -54,6 +54,10 @@ object TodayLeakSurfaces {
         LeakSurface(id = "today-expended", label = "Today, with a health app connected", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, expended = TodayFixtures.expended), onAction = {})
         },
+        // 0.2: All of the watch's activity in the range. The range moves; nothing says by how much.
+        LeakSurface(id = "today-exercise", label = "Today, exercise in the range", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = TodayFixtures.todayState(policy, settings = TodayFixtures.exerciseAll, expended = TodayFixtures.expended), onAction = {})
+        },
         LeakSurface(id = "today-untracked", label = "Today, marked untracked", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.untrackedDay()), onAction = {})
         },

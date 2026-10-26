@@ -63,7 +63,7 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
 
     companion object {
         /** Every surface that draws energy out. Add one here when it starts to. */
-        val ENERGY_OUT_SURFACES = setOf("integrations", "today-expended")
+        val ENERGY_OUT_SURFACES = setOf("integrations", "today-expended", "today-exercise")
 
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")

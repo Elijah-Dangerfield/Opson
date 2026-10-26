@@ -2,6 +2,7 @@ package com.opson.features.today.impl
 
 import androidx.compose.runtime.Composable
 import com.opson.libraries.core.fixed
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -16,9 +17,9 @@ private fun policy(preset: PresetId): VisibilityPolicy =
     VisibilityPolicy(NumbersSettings(preset = preset), Clock.fixed(TodayFixtures.noon), TodayFixtures.timeZone)
 
 @Composable
-private fun TodayExpended(preset: PresetId, dark: Boolean = false) {
+private fun TodayExpended(preset: PresetId, dark: Boolean = false, settings: Settings = Settings()) {
     PreviewContent(darkTheme = dark) {
-        TodayScreen(state = TodayFixtures.todayState(policy(preset), expended = TodayFixtures.expended), onAction = {})
+        TodayScreen(state = TodayFixtures.todayState(policy(preset), settings = settings, expended = TodayFixtures.expended), onAction = {})
     }
 }
 
@@ -34,3 +35,12 @@ private fun TodayExpendedDarkPreview() = TodayExpended(PresetId.Full, dark = tru
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayExpendedBlindPreview() = TodayExpended(PresetId.Blind)
+
+/** "Some of it": half of the 410 active added, so the range reads 2,105 to 2,505. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayExerciseSomePreview() = TodayExpended(PresetId.Full, settings = TodayFixtures.exerciseSome)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayExerciseSomeDarkPreview() = TodayExpended(PresetId.Full, dark = true, settings = TodayFixtures.exerciseSome)

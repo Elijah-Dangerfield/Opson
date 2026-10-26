@@ -36,6 +36,10 @@ data class Settings(
     @Serializable(with = TargetsSerializer::class)
     val targets: Targets = Targets.Default,
     val macroMode: MacroMode = MacroMode.Ratios,
+    /**
+     * 0.1's key, never read: 0.1 synced the prototype's default for everyone who never saw a
+     * question, so it says nothing about a choice. Kept so old JSON round-trips. See [exerciseRange].
+     */
     @Serializable(with = ExerciseAdjustmentSerializer::class)
     val exercise: ExerciseAdjustment = ExerciseAdjustment.Default,
     val ringMode: RingMode = RingMode.Target,
@@ -84,11 +88,24 @@ data class Settings(
     val newFoodEvent: EventLevel = EventLevel.Subtle,
     val recapEvent: EventLevel = EventLevel.Subtle,
     val remindersEvent: EventLevel = EventLevel.Subtle,
+    /**
+     * "Should exercise change your range?" (0.2, Watch and health apps). Null until the person
+     * picks, which counts as No. Read it through [exerciseInRange].
+     */
+    @Serializable(with = ExerciseRangeSerializer::class)
+    val exerciseRange: ExerciseAdjustment? = null,
 ) {
     val waterGoalMl: Int get() = waterGlasses * glassMl
 
     /** How noticeable meal reminders are, as chosen: Off until the person has chosen ([remindersChosen]). */
     val mealReminderLevel: EventLevel get() = if (remindersChosen) remindersEvent else EventLevel.Off
+
+    /**
+     * How much watch activity may add to today's range. [ExerciseAdjustment.None] until the person
+     * picks, and always for someone who said numbers have been hard, whatever is stored.
+     */
+    val exerciseInRange: ExerciseAdjustment
+        get() = if (onboarding.hard) ExerciseAdjustment.None else exerciseRange ?: ExerciseAdjustment.None
 
     /** Same settings with different numbers. `changedAt` is whatever [next] carries. */
     fun withNumbers(next: NumbersSettings): Settings = copy(numbers = next)

@@ -12,7 +12,12 @@ import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.health.HealthStatus
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import me.tatarka.inject.annotations.Inject
@@ -33,9 +38,11 @@ import opson.libraries.resources.generated.resources.settings_targets_gap_toast
 class TargetsViewModel(
     private val settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
+    health: HealthRepository,
+    healthFlag: HealthReleaseFlag,
 ) : SEAViewModel<TargetsState, TargetsEvent, TargetsAction>(initialStateArg = TargetsState()) {
 
-    private var inputs: Pair<Settings, VisibilityPolicy>? = null
+    private var inputs: TargetsAction.InputsArrived? = null
 
     // What is open on the page. Kept here rather than read back from state, because a write
     // (a new group) lands as new inputs after the action that opened it.
@@ -43,8 +50,10 @@ class TargetsViewModel(
     private var editingMacros: Boolean = false
 
     init {
+        // With release.health off the store is never asked, so the exercise row can't show.
+        val connected = if (healthFlag()) health.status.map { it == HealthStatus.Connected } else flowOf(false)
         viewModelScope.launch {
-            combine(settingsRepository.observe(), policySource.policy, TargetsAction::InputsArrived)
+            combine(settingsRepository.observe(), policySource.policy, connected, TargetsAction::InputsArrived)
                 .collect(::takeAction)
         }
     }
@@ -52,7 +61,7 @@ class TargetsViewModel(
     override suspend fun handleAction(action: TargetsAction) {
         when (action) {
             is TargetsAction.InputsArrived -> {
-                inputs = action.settings to action.policy
+                inputs = action
                 rebuild(action)
             }
             TargetsAction.GoalStyleTapped -> sendEvent(TargetsEvent.OpenGoalStyle)
@@ -83,6 +92,7 @@ class TargetsViewModel(
             }
             is TargetsAction.MacroModePicked -> settingsRepository.update { it.copy(macroMode = action.mode) }
             TargetsAction.ModesTapped -> sendEvent(TargetsEvent.OpenModes)
+            TargetsAction.ExerciseAdjustmentTapped -> sendEvent(TargetsEvent.OpenIntegrations)
             TargetsAction.BackTapped -> sendEvent(TargetsEvent.Close)
         }
     }
@@ -107,9 +117,16 @@ class TargetsViewModel(
             .targets
 
     private suspend fun rebuild(action: TargetsAction) {
-        val (settings, policy) = inputs ?: return
+        val (settings, policy, healthConnected) = inputs ?: return
         action.updateState {
-            TargetsStateBuilder.build(settings, policy, burnKcal = null, editingGroup = editingGroup, editingMacros = editingMacros)
+            TargetsStateBuilder.build(
+                settings,
+                policy,
+                burnKcal = null,
+                editingGroup = editingGroup,
+                editingMacros = editingMacros,
+                healthConnected = healthConnected,
+            )
         }
     }
 
@@ -120,11 +137,13 @@ sealed interface TargetsEvent {
     data class ShowToast(val toast: Toast) : TargetsEvent
     data object OpenGoalStyle : TargetsEvent
     data object OpenModes : TargetsEvent
+    data object OpenIntegrations : TargetsEvent
     data object Close : TargetsEvent
 }
 
 sealed interface TargetsAction {
-    data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy) : TargetsAction
+    /** [healthConnected]: `release.health` on and a store connected, which is when exercise can move the range. */
+    data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy, val healthConnected: Boolean = false) : TargetsAction
     data object GoalStyleTapped : TargetsAction
 
     /** One step on [end] of the range, or of day group [group]. */
@@ -137,5 +156,6 @@ sealed interface TargetsAction {
     data object MacroCardTapped : TargetsAction
     data class MacroModePicked(val mode: MacroMode) : TargetsAction
     data object ModesTapped : TargetsAction
+    data object ExerciseAdjustmentTapped : TargetsAction
     data object BackTapped : TargetsAction
 }

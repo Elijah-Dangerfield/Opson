@@ -13,6 +13,7 @@ import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.GoalStyleRoute
 import com.opson.features.settings.IntegrationsRoute
+import com.opson.features.settings.LeaveOutDayRoute
 import com.opson.features.settings.LookAndFeelRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.MoreRoute
@@ -28,6 +29,9 @@ import com.opson.features.settings.impl.integrations.IntegrationsAction
 import com.opson.features.settings.impl.integrations.IntegrationsEvent
 import com.opson.features.settings.impl.integrations.IntegrationsScreen
 import com.opson.features.settings.impl.integrations.IntegrationsViewModel
+import com.opson.features.settings.impl.integrations.LeaveOutEvent
+import com.opson.features.settings.impl.integrations.LeaveOutSheetContent
+import com.opson.features.settings.impl.integrations.LeaveOutViewModel
 import com.opson.features.settings.impl.look.LookAndFeelEvent
 import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelViewModel
@@ -91,6 +95,7 @@ class SettingsFeatureEntryPoint(
     private val fastingViewModel: () -> FastingViewModel,
     private val remindersViewModel: () -> RemindersViewModel,
     private val integrationsViewModel: () -> IntegrationsViewModel,
+    private val leaveOutViewModel: () -> LeaveOutViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -167,6 +172,7 @@ class SettingsFeatureEntryPoint(
                     is TargetsEvent.ShowToast -> show(event.toast)
                     TargetsEvent.OpenGoalStyle -> router.navigate(GoalStyleRoute())
                     TargetsEvent.OpenModes -> router.navigate(ModesRoute())
+                    TargetsEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                     TargetsEvent.Close -> router.goBack()
                 }
             }
@@ -272,6 +278,7 @@ class SettingsFeatureEntryPoint(
                 when (event) {
                     is IntegrationsEvent.OpenLink -> router.openWebLink(event.url)
                     is IntegrationsEvent.ShowToast -> show(event.toast)
+                    IntegrationsEvent.OpenLeaveOut -> router.navigate(LeaveOutDayRoute())
                     IntegrationsEvent.Close -> router.goBack()
                 }
             }
@@ -281,6 +288,25 @@ class SettingsFeatureEntryPoint(
                 onPauseOrDispose {}
             }
             IntegrationsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        // Registered with IntegrationsRoute, for the same reason: only that page links here.
+        bottomSheet<LeaveOutDayRoute> { _, sheetState ->
+            val viewModel: LeaveOutViewModel = viewModel { leaveOutViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    // Animate the sheet down first; its dismiss callback pops the route.
+                    LeaveOutEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            BottomSheet(
+                onDismissRequest = { router.goBack() },
+                state = sheetState,
+                backgroundColor = AppTheme.colors.bg,
+            ) {
+                LeaveOutSheetContent(state = state, onAction = viewModel::takeAction)
+            }
         }
     }
 

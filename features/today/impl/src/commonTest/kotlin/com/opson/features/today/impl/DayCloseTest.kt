@@ -141,6 +141,8 @@ class DayCloseTest : CoroutineTest() {
         settingsRepository = FakeSettingsRepository(),
         policySource = policySource,
         calendar = FakeCalendar(),
+        health = FakeHealthRepository(),
+        healthFlag = healthFlag(false),
     )
 
     @Test

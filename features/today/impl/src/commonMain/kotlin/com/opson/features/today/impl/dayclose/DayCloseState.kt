@@ -2,6 +2,7 @@ package com.opson.features.today.impl.dayclose
 
 import com.opson.features.today.impl.MacroTile
 import com.opson.features.today.impl.TodayStateBuilder
+import com.opson.features.today.impl.todayRange
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.EventLevel
@@ -15,6 +16,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.ui.time.RelativeDay
+import com.opson.libraries.health.EnergyExpended
 import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_dayclose_title
@@ -82,7 +84,13 @@ sealed interface DayCloseEvent {
     data object Close : DayCloseEvent
 }
 
-data class DayCloseInputs(val today: LocalDate, val day: Day, val settings: Settings)
+data class DayCloseInputs(
+    val today: LocalDate,
+    val day: Day,
+    val settings: Settings,
+    /** Today's energy from a connected health app; null when not connected or `release.health` is off. */
+    val expended: EnergyExpended? = null,
+)
 
 /**
  * Day close as a pure function. Surface [Surface.DayClose], where delayed numbers open (Coast's
@@ -102,7 +110,7 @@ object DayCloseStateBuilder {
         val today = inputs.today
         val settings = inputs.settings
         val isToday = day.date == today
-        val range = settings.targets.today(settings.exercise, 0, 0)
+        val range = todayRange(settings, day, today, inputs.expended)
         val totals = day.totals()
         val eaten = totals.kcal.known
         val bare = day.formatContext(today, bare = true)
