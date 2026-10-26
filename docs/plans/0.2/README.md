@@ -55,3 +55,25 @@ The v3 PNGs in `docs/design/v3/` are the spec for look and copy. The handoff
   plain sentences, voice rules in the checklist.
 - **Your plan file** is `docs/plans/screens/<feature>.md` from
   `TEMPLATE.md`. Commit it first, then build to it.
+
+## Learned in wave 1
+
+- **Nothing new runs at app start while its flag is off.** Reminders
+  registered iOS notification buttons at every launch and crashed main on
+  iOS. Gate `AutoInit`, `init {}` blocks and launch-time side effects on the
+  release flag, and build UIKit, UserNotifications or HealthKit objects on
+  the main thread (`withContext(Dispatchers.Main)`); `getString` and other
+  suspend calls can resume on a worker.
+- **Unit tests don't launch the app.** The orchestrator runs
+  `scripts/ios_launch_smoke.sh` on every merge. Say in your report anything
+  your change runs at launch.
+- **An entitlement or capability can't land on main before its release.** It
+  breaks signing until the capability is registered on the bundle id, and a
+  build that declares it with no UI risks review. Put such changes in your
+  report and in `docs/plans/0.2/release-checklist.md`; the orchestrator holds
+  them back.
+- **Settings sync merges on the server** (`stored || incoming`, shallow). Add
+  new settings as new top-level keys, never inside an existing object.
+- **Wave-1 libraries to reuse:** `:libraries:scanner` (camera, permission
+  prompt), `:libraries:health`, `:libraries:reminders`
+  (`LocalNotifications`), `StatusPill`, `ScanFrame`, `TimeDialog`.
