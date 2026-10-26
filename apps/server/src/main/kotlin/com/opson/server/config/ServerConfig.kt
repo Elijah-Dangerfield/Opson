@@ -98,6 +98,11 @@ data class FoodSourcesConfig(
     val searchOpenFoodFacts: Boolean = false,
     /** The model that reads meal photos. Null (photo estimates off) until `ANTHROPIC_API_KEY` is set. */
     val anthropic: AnthropicConfig? = null,
+    /**
+     * Where Open Food Facts lives. Never set from the environment; the end-to-end
+     * tests point it at a stand-in so a barcode miss does not leave the machine.
+     */
+    val openFoodFactsUrl: String = OPEN_FOOD_FACTS_URL,
 ) {
     companion object {
         fun fromEnv(env: Env): FoodSourcesConfig = FoodSourcesConfig(
@@ -105,6 +110,8 @@ data class FoodSourcesConfig(
             searchOpenFoodFacts = env["FOOD_SEARCH_OFF_ENABLED"]?.trim()?.lowercase() == "true",
             anthropic = AnthropicConfig.fromEnv(env),
         )
+
+        const val OPEN_FOOD_FACTS_URL = "https://world.openfoodfacts.org"
     }
 }
 
@@ -119,8 +126,13 @@ data class FoodSourcesConfig(
 data class AnthropicConfig(
     val apiKey: String,
     val photoModel: String = DEFAULT_PHOTO_MODEL,
+    /**
+     * Null for Anthropic's own API. Never set from the environment; the
+     * end-to-end tests point it at a stand-in that answers like the Messages API.
+     */
+    val baseUrl: String? = null,
 ) {
-    override fun toString(): String = "AnthropicConfig(apiKey=***, photoModel=$photoModel)"
+    override fun toString(): String = "AnthropicConfig(apiKey=***, photoModel=$photoModel, baseUrl=$baseUrl)"
 
     companion object {
         const val DEFAULT_PHOTO_MODEL = "claude-opus-5-5"

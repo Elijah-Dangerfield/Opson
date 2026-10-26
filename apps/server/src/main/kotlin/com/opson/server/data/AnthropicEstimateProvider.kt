@@ -72,7 +72,7 @@ class ConfiguredEstimateProvider(config: FoodSourcesConfig) : EstimateProvider {
  */
 class AnthropicEstimateProvider(
     private val config: AnthropicConfig,
-    private val client: AnthropicClientAsync = defaultClient(config.apiKey, baseUrl = null),
+    private val client: AnthropicClientAsync = defaultClient(config.apiKey, config.baseUrl),
 ) : EstimateProvider {
 
     override suspend fun estimate(image: ByteArray, type: ImageType, note: String?): EstimateResult {

@@ -1,5 +1,6 @@
 package com.opson.server.data
 
+import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.di.ServerScope
 import com.opson.server.domain.ExternalProduct
 import com.opson.server.domain.FoodSourceResult
@@ -48,7 +49,7 @@ class HttpOpenFoodFactsClient(
 ) : OpenFoodFactsClient {
 
     @Inject
-    constructor() : this(engine = null)
+    constructor(config: FoodSourcesConfig) : this(engine = null, baseUrl = config.openFoodFactsUrl)
 
     private val client: HttpClient by lazy {
         val configure: io.ktor.client.HttpClientConfig<*>.() -> Unit = {
@@ -86,7 +87,7 @@ class HttpOpenFoodFactsClient(
     }
 
     internal companion object {
-        const val BASE_URL = "https://world.openfoodfacts.org"
+        const val BASE_URL = FoodSourcesConfig.OPEN_FOOD_FACTS_URL
         const val USER_AGENT = "Opson/0.1 (food logger)"
         const val TIMEOUT_MS = 5_000L
         const val FIELDS = "code,product_name,product_name_en,generic_name,brands,nutriments,serving_size,serving_quantity"
