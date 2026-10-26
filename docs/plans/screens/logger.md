@@ -249,6 +249,9 @@ Ate no details and Stop asking. Meal names inside sentences use
 
 ## Barcode (0.2)
 
+Superseded by [barcode.md](barcode.md), which is what was built. The waiting copy
+below is kept; the miss now offers "Save the name only" first, then search.
+
 Not built in 0.1. The barcode button opens the camera; a read code calls
 `FoodCatalog.barcode(code)` (`GET /v1/foods/barcode/{code}`). Our own catalog
 holds about 430,000 US products (USDA Branded Foods), so most scans answer in

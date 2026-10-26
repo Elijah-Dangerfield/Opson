@@ -19,6 +19,9 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.fasting_more_off
 import opson.libraries.resources.generated.resources.fasting_more_on
 import opson.libraries.resources.generated.resources.fasting_title
+import opson.libraries.resources.generated.resources.integrations_more_connected
+import opson.libraries.resources.generated.resources.integrations_more_not_connected
+import opson.libraries.resources.generated.resources.integrations_more_title
 import opson.libraries.resources.generated.resources.settings_modes_changes
 import opson.libraries.resources.generated.resources.settings_more_look
 import opson.libraries.resources.generated.resources.settings_more_look_sub
@@ -101,6 +104,14 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             showDivider = showDivider,
             onClick = onClick,
         )
+        is MoreRow.Health -> SettingsRow(
+            title = stringResource(Res.string.integrations_more_title),
+            icon = AppIcons.Watch,
+            subtitle = stringResource(if (row.connected) Res.string.integrations_more_connected else Res.string.integrations_more_not_connected),
+            chevron = true,
+            showDivider = showDivider,
+            onClick = onClick,
+        )
         is MoreRow.Water -> SettingsRow(
             title = stringResource(Res.string.settings_more_water),
             icon = AppIcons.WaterDropOutline,
@@ -148,6 +159,12 @@ private fun MoreFuelWithAChangeDarkPreview() {
 private fun MoreWithFastingPreview() {
     val settings = SettingsFixtures.settings().copy(fasting = true)
     SettingsPreview { MoreScreen(MoreStateBuilder.build(settings, fastingReleased = true), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun MoreWithHealthPreview() {
+    SettingsPreview { MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings(), healthConnected = true), onAction = {}) }
 }
 
 @Preview

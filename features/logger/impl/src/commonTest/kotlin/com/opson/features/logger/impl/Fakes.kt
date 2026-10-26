@@ -24,14 +24,20 @@ import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.foods.BarcodeMissReporter
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchResult
+import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.scanner.CameraPermission
+import com.opson.libraries.scanner.CameraPermissions
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +46,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 /** Noon on the fixtures' today, before the 9 pm reveal. */
@@ -190,7 +197,18 @@ class FakeFoodCatalog(
     override suspend fun detail(id: String): Catching<Food> =
         foods.firstOrNull { it.id == id }?.let { Catching.success(it) } ?: Catching.failure(IllegalStateException("offline"))
 
-    override suspend fun barcode(code: String): Catching<Food?> = Catching.success(null)
+    /** What [barcode] answers; null is a miss. */
+    var barcodeResult: Catching<Food?> = Catching.success(null)
+
+    /** How long [barcode] takes, in virtual time: a first lookup at an outside source is slow. */
+    var barcodeDelay: Duration = Duration.ZERO
+    val barcodes = mutableListOf<String>()
+
+    override suspend fun barcode(code: String): Catching<Food?> {
+        barcodes += code
+        delay(barcodeDelay)
+        return barcodeResult
+    }
 
     override suspend fun describe(text: String): Catching<List<ParsedItem>> = describeResult
 
@@ -265,6 +283,51 @@ class RecordingTelemetry : LoggerTelemetry {
 
     override fun methodPicked(via: LogVia, items: Int) {
         events += via to items
+    }
+}
+
+/** `release.barcode` as the remote config would set it. */
+fun scanFlag(on: Boolean): BarcodeScanEnabled = BarcodeScanEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("barcode" to on))
+    },
+)
+
+class FakeMissReporter : BarcodeMissReporter {
+    val reported = mutableListOf<String>()
+
+    override suspend fun report(code: String) {
+        reported += code
+    }
+}
+
+class FakeCameraPermissions(var permission: CameraPermission = CameraPermission.Granted) : CameraPermissions {
+    var settingsOpened = 0
+
+    override fun current(): CameraPermission = permission
+
+    override fun openSettings() {
+        settingsOpened++
+    }
+}
+
+class RecordingBarcodeTelemetry : BarcodeTelemetry {
+    val events = mutableListOf<String>()
+
+    override fun scanStarted(asked: Boolean) {
+        events += "scan_started asked=$asked"
+    }
+
+    override fun hit(source: FoodSource, slow: Boolean) {
+        events += "hit ${source.wire} slow=$slow"
+    }
+
+    override fun miss() {
+        events += "miss"
+    }
+
+    override fun permissionDenied(canAskAgain: Boolean) {
+        events += "permission_denied can_ask_again=$canAskAgain"
     }
 }
 

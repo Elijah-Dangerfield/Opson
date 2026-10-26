@@ -11,6 +11,7 @@ import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.flow.flowOf
@@ -54,7 +55,7 @@ class TodayViewModelTest : CoroutineTest() {
     private val fasting = FakeFastingRepository()
     private var fastingReleased = true
 
-    private fun vm() = TodayViewModel(
+    private fun vm(health: FakeHealthRepository = FakeHealthRepository(), healthOn: Boolean = false) = TodayViewModel(
         diary = diary,
         settingsRepository = settings,
         policySource = policySource,
@@ -62,6 +63,8 @@ class TodayViewModelTest : CoroutineTest() {
         calendar = FakeCalendar(),
         recentLogEvents = recentLogEvents,
         clock = clock,
+        health = health,
+        healthFlag = healthFlag(healthOn),
         fasting = fasting,
         fastingRelease = FastingRelease { fastingReleased },
         ticker = MinuteTicker { flowOf(clock.now) },
@@ -71,6 +74,45 @@ class TodayViewModelTest : CoroutineTest() {
         val events = mutableListOf<TodayEvent>()
         backgroundScope.launch { vm.eventFlow.toList(events) }
         return events
+    }
+
+    @Test
+    fun healthFlagOff_neverReadsEnergy_andShowsNoExpendedLine() = runUnitTest {
+        val health = FakeHealthRepository(connected = true, energy = TodayFixtures.expended)
+        val vm = vm(health, healthOn = false)
+
+        assertTrue(health.energyDays.isEmpty())
+        assertEquals(Display.Hidden, (vm.state.summary as TodaySummary.Energy).expended)
+    }
+
+    @Test
+    fun healthFlagOn_readsTodaysEnergy_intoTheSummary() = runUnitTest {
+        val health = FakeHealthRepository(connected = true, energy = TodayFixtures.expended)
+        val vm = vm(health, healthOn = true)
+
+        assertEquals(listOf(today), health.energyDays)
+        assertEquals(Display.Shown("1,990 kcal"), (vm.state.summary as TodaySummary.Energy).expended)
+    }
+
+    @Test
+    fun healthFlagOn_anotherDay_readsNothing() = runUnitTest {
+        val health = FakeHealthRepository(connected = true, energy = TodayFixtures.expended)
+        val vm = vm(health, healthOn = true)
+
+        vm.takeAction(TodayAction.PreviousDayTapped)
+
+        assertEquals(listOf(today), health.energyDays)
+        assertEquals(Display.Hidden, (vm.state.summary as TodaySummary.Energy).expended)
+    }
+
+    @Test
+    fun healthFlagOn_newEnergyArrives_andTheLineFollows() = runUnitTest {
+        val health = FakeHealthRepository(connected = true, energy = TodayFixtures.expended)
+        val vm = vm(health, healthOn = true)
+
+        health.energyFlow.value = TodayFixtures.expended.copy(activeKcal = 500.0)
+
+        assertEquals(Display.Shown("2,080 kcal"), (vm.state.summary as TodaySummary.Energy).expended)
     }
 
     @Test

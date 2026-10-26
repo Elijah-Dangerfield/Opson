@@ -84,6 +84,30 @@ class FastingRepositoryImplTest : CoroutineTest() {
         assertEquals(1, events.named("fast.started").size)
     }
 
+    /**
+     * The opt-in rule: a fast only ever starts for someone who opened Fasting and turned its
+     * timer on. With the settings anyone else has (the defaults: timer off), in every mode,
+     * Full and Sprint included, and with the flag on, after the window has closed: no row, no
+     * outbox change and no event, whether a screen asks or food is logged.
+     */
+    @Test
+    fun nobodyWhoNeverTurnedTheTimerOnGetsAFast_inAnyMode() = runUnitTest {
+        PresetId.entries.forEach { preset ->
+            settings.state.value = Settings(numbers = NumbersSettings(preset = preset))
+            assertEquals(false, settings.state.value.fasting, "the timer is off by default")
+
+            fasting.startDue()
+            diary.addItems(oct25, MealSlot.Snack, listOf(draft()), LogMethod.Search)
+            diary.setAteNoDetails(oct25, MealSlot.Dinner, ate = true)
+            fasting.startDue()
+
+            assertTrue(db.fasts.rows.isEmpty(), "no fast in $preset")
+            assertTrue(db.outbox.rows.none { it.entity == SyncEntity.Fast.wire }, "nothing queued in $preset")
+        }
+        assertTrue(events.named("fast.started").isEmpty())
+        assertTrue(events.named("fast.ended").isEmpty())
+    }
+
     @Test
     fun startDue_nothingWhileTheTimerIsOff() = runUnitTest {
         settings.state.value = timerOn().copy(fasting = false)

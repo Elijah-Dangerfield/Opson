@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4A1E0B0C2F00000100A1B2C3 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A1E0B0C2F00000200A1B2C3 /* HealthKit.framework */; };
 		40F7ACE82EE5E1E70057F44F /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 40F7ACE72EE5E1E70057F44F /* Sentry */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4A1E0B0C2F00000200A1B2C3 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		43650040A35ABEE2FF88A523 /* Opson.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Opson.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -46,12 +48,21 @@
 			buildActionMask = 2147483647;
 			files = (
 				40F7ACE82EE5E1E70057F44F /* Sentry in Frameworks */,
+				4A1E0B0C2F00000100A1B2C3 /* HealthKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4A1E0B0C2F00000300A1B2C3 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				4A1E0B0C2F00000200A1B2C3 /* HealthKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		AAAD9064E8710953FC84629E /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -66,6 +77,7 @@
 				8D47A0AC8E5C3B530E134DF3 /* Configuration */,
 				8EEEC16658FA3E2CD3B23C1D /* iosApp */,
 				AAAD9064E8710953FC84629E /* Products */,
+				4A1E0B0C2F00000300A1B2C3 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};

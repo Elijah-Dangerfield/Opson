@@ -23,7 +23,8 @@ Day close in `day-close.md`. Read `shared.md` first.
 | Day menu flat list with Hide water | Grouped; Hide water lives in Edit Today's cards (`today-sheets.md`). |
 | (new) | After food lands on the day, its meal is outlined for 2 s and scrolled to. |
 
-Not built, and why: **Expended so far** (0.2, watch data). **Safe foods "+ Add"**
+Not built, and why: **Expended so far** (0.2, watch data; now built behind
+`release.health`, see `integrations.md`). **Safe foods "+ Add"**
 (no way to mark a safe food in the domain). **Dinner reminder** card on Rhythm
 (Reminders, 0.2). **Photo and voice** on Mindful (0.2).
 

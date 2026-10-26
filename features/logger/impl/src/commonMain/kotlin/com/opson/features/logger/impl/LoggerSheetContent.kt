@@ -57,6 +57,7 @@ import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.color.ToneColors
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.barcode_scan_cd
 import opson.libraries.resources.generated.resources.logger_add_to
 import opson.libraries.resources.generated.resources.logger_add_to_this_meal
 import opson.libraries.resources.generated.resources.logger_add_to_title
@@ -128,6 +129,11 @@ private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
             onClear = { onAction(LoggerAction.SearchCleared) },
             clearDescription = stringResource(Res.string.logger_search_clear_cd),
             modifier = Modifier.padding(horizontal = AppTheme.spacing.page),
+            trailing = if (state.canScan) {
+                { BarcodeButton(onClick = { onAction(LoggerAction.BarcodeTapped) }) }
+            } else {
+                null
+            },
         )
         if (state.methods.isNotEmpty()) {
             FlowRow(
@@ -361,6 +367,24 @@ internal fun InlineLink(text: String, onClick: () -> Unit) {
     ) {
         Text(text = text, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.accent)
     }
+}
+
+/** v3's square barcode button inside the empty search bar: a soft tile, ink glyph, a full touch target. */
+@Composable
+private fun BarcodeButton(onClick: () -> Unit) {
+    val description = stringResource(Res.string.barcode_scan_cd)
+    IconTile(
+        icon = AppIcons.BarcodeScanner,
+        contentColor = AppTheme.colors.ink,
+        containerColor = AppTheme.colors.soft,
+        size = IconTileSize.Large,
+        modifier = Modifier
+            .bounceClick(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = description
+            },
+    )
 }
 
 /** A miss is never a dead end: describe it, or keep just the name. */

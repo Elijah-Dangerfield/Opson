@@ -108,7 +108,7 @@ real end.
 - Client: `SyncEntity.Fast("fast")`, `FastRowDto(day, startedAtEpochMs,
   endedAtEpochMs?, goalHours?, clientUpdatedAtEpochMs, deleted)`, merged and
   rolled back like every other row. Requests send `accepts: ["fast"]`.
-- Server, additive: `V13__fasts.sql` (`IF NOT EXISTS` everywhere, so it is
+- Server, additive: `V14__fasts.sql` (`IF NOT EXISTS` everywhere, so it is
   idempotent), `fasts (user_id, day, pk (user_id, day), started_at, ended_at,
   goal_hours smallint check 1..16, client_updated_at, server_seq, deleted)`,
   `user_id` cascades from `auth.users`, RLS on, the `bump_server_seq` trigger.

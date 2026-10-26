@@ -20,8 +20,8 @@ import kotlin.time.Instant
 
 /**
  * [FoodCatalogImpl] over a fake API and an in-memory cache: the offline
- * fallbacks, what lands in the cache (only foods the user picked or starred),
- * and that Recent and Favorites read from it.
+ * fallbacks, what lands in the cache (foods the user picked or starred, and a
+ * scanned food, unused), and that Recent and Favorites read from it.
  *
  * Not covered: the HTTP layer and the server's ranking, which belong to
  * `:apps:server` route tests and `:apps:integration`.
@@ -98,6 +98,32 @@ class FoodCatalogImplTest : CoroutineTest() {
         assertEquals("yogurt", catalog.detail("yogurt").getOrThrow().id)
         assertEquals("yogurt", catalog.barcode("012345678905").getOrThrow()?.id)
         assertTrue(catalog.detail("never-seen").isFailure)
+    }
+
+    @Test
+    fun aScannedFoodIsKeptForTheAmountSheetButNotPutInRecent() = runUnitTest {
+        api.barcodeResult = Result.success(yogurt)
+
+        assertEquals("yogurt", catalog.barcode("012345678905").getOrThrow()?.id)
+
+        assertTrue(catalog.observeRecent().first().isEmpty(), "scanning is not logging")
+        api.detailResult = Result.failure(IllegalStateException("offline"))
+        api.barcodeResult = Result.failure(IllegalStateException("offline"))
+        assertEquals("yogurt", catalog.detail("yogurt").getOrThrow().id)
+        // iOS reads a UPC-A as its EAN-13; the cache keys on the GTIN, so either form finds it.
+        assertEquals("yogurt", catalog.barcode("0012345678905").getOrThrow()?.id)
+    }
+
+    @Test
+    fun scanningAgainKeepsAFoodsRecentPlaceAndStar() = runUnitTest {
+        catalog.markUsed(yogurt.toDomain())
+        catalog.setFavorite(yogurt.toDomain(), favorite = true)
+        api.barcodeResult = Result.success(yogurt)
+
+        catalog.barcode("012345678905")
+
+        assertEquals(listOf("yogurt"), catalog.observeRecent().first().map { it.id })
+        assertEquals(listOf("yogurt"), catalog.observeFavorites().first().map { it.id })
     }
 
     @Test

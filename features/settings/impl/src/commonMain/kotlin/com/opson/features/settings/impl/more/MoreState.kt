@@ -12,8 +12,9 @@ data class MoreState(val groups: List<List<MoreRow>> = emptyList())
  * One row. No row carries an amount (design v3: "Row subtitles never show amounts"), so More
  * resolves nothing through the policy.
  *
- * Not built yet, so not here: Reminders and celebrations, Watch and health apps, Widgets and
- * watch face. Fasting (0.2) sits in the extras card, only where [FastingAccess] offers it.
+ * Not built yet, so not here: Reminders and celebrations, Widgets and watch face. Watch and
+ * health apps (0.2, `release.health`) sits in the first card; Fasting (0.2, `release.fasting`)
+ * sits in the extras card, only where [FastingAccess] offers it.
  */
 sealed interface MoreRow {
     /** "Fuel", or "Fuel, 1 change" when levels differ from the preset's. */
@@ -23,6 +24,9 @@ sealed interface MoreRow {
     data object Targets : MoreRow
 
     data object LookAndFeel : MoreRow
+
+    /** Watch and health apps (0.2): "Connected" or "Not connected", never an amount. */
+    data class Health(val connected: Boolean) : MoreRow
 
     /** The daily goal in glasses, a setting rather than intake. */
     data class Water(val glasses: Int) : MoreRow
@@ -38,13 +42,18 @@ sealed interface MoreRow {
 
 object MoreStateBuilder {
 
-    /** How the app treats you, optional extras, then help and plan. [fastingReleased] is `release.fasting`. */
-    fun build(settings: Settings, fastingReleased: Boolean = false): MoreState = MoreState(
+    /**
+     * How the app treats you, optional extras, then help and plan. [healthConnected] is null
+     * while `release.health` is off, and then there is no health row at all. [fastingReleased]
+     * is `release.fasting`.
+     */
+    fun build(settings: Settings, healthConnected: Boolean? = null, fastingReleased: Boolean = false): MoreState = MoreState(
         groups = listOf(
-            listOf(
+            listOfNotNull(
                 MoreRow.Modes(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                 MoreRow.Targets,
                 MoreRow.LookAndFeel,
+                healthConnected?.let { MoreRow.Health(connected = it) },
             ),
             listOfNotNull(
                 MoreRow.Water(glasses = settings.waterGlasses),

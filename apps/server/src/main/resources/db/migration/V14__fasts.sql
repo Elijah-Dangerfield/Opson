@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- V13: fasts (0.2, behind the client's release.fasting flag).
+-- V14: fasts (0.2, behind the client's release.fasting flag).
 --
 -- One row per fast, keyed by the local day it began: a fast starts when the
 -- eating window closes, so there is at most one per evening, and two devices

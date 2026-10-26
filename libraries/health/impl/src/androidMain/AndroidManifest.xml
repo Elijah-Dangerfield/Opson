@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- connect-client 1.1.0 says minSdk 26; the app is 24. Health Connect only exists from
+         Android 9, and HealthConnectReader reports Unsupported below that before touching the
+         library. Declared here so every manifest that merges this module (the app, the
+         screenshot tests) gets the override, not only the app's. -->
+    <uses-sdk tools:overrideLibrary="androidx.health.connect.client" />
+
+    <!-- Read only, and only energy and workouts: HealthConnectReader.PERMISSIONS must match.
+         Health Connect will not prompt for a permission that is not declared here, and Play's
+         Health Connect declaration form has to list exactly these. -->
+    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_BASAL_METABOLIC_RATE" />
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+
+    <!-- Android 11+ package visibility: getSdkStatus has to see the Health Connect app. -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+
+    <application>
+        <!-- Android 13 and lower: the privacy policy link on Health Connect's prompt. -->
+        <activity
+            android:name="com.opson.libraries.health.impl.HealthPermissionsRationaleActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Android 14 and up: Health Connect's "App permissions" page. Only the system can
+             start it (START_VIEW_PERMISSION_USAGE). -->
+        <activity-alias
+            android:name="com.opson.libraries.health.impl.ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity="com.opson.libraries.health.impl.HealthPermissionsRationaleActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+    </application>
+</manifest>

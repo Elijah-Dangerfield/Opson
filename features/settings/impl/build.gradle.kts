@@ -22,6 +22,7 @@ kotlin {
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.identity)
+            implementation(projects.libraries.health)
 
             implementation(libs.kotlinx.datetime)
 
@@ -38,6 +39,7 @@ kotlin {
             implementation(projects.libraries.diary)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.identity)
+            implementation(projects.libraries.health)
             implementation(libs.kotlinx.datetime)
             implementation(projects.libraries.resources)
             implementation(compose.components.resources)

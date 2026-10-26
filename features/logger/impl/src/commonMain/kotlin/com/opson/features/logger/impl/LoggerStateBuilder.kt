@@ -45,6 +45,8 @@ data class LoggerChoices(
     val focusNumber: Boolean = false,
     /** Picking for a meal Create a meal is putting together: search only, nothing written to the diary. */
     val pickingForMeal: Boolean = false,
+    /** `release.barcode`, read once when the sheet opens. */
+    val scanAvailable: Boolean = false,
 )
 
 /**
@@ -70,6 +72,8 @@ object LoggerStateBuilder {
             query = choices.query,
             focusSearch = choices.focusSearch,
             pickingForMeal = choices.pickingForMeal,
+            // A scan logs into this meal, so a meal being put together has no scanner.
+            canScan = choices.scanAvailable && !choices.pickingForMeal,
             // The method chips all log straight to the diary, so pick mode has none.
             methods = if (typing || choices.pickingForMeal) emptyList() else methods(inputs, policy, slot),
             body = body(inputs, policy, slot, choices, bare),

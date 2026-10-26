@@ -103,6 +103,8 @@ if (!serverOnly) {
     include(":libraries:flowroutines:testing")
     include(":libraries:foods")
     include(":libraries:foods:impl")
+    include(":libraries:health")
+    include(":libraries:health:impl")
     include(":libraries:navigation")
     include(":libraries:navigation:impl")
     include(":libraries:networking")
@@ -114,6 +116,8 @@ if (!serverOnly) {
     include(":libraries:resources")
     include(":libraries:review")
     include(":libraries:review:impl")
+    include(":libraries:scanner")
+    include(":libraries:scanner:impl")
     include(":libraries:storage")
     include(":libraries:storage:impl")
     // No api sibling on purpose: the public surface is the `logEvent`

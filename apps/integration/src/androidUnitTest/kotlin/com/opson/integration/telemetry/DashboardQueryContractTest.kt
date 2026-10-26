@@ -150,6 +150,35 @@ class DashboardQueryContractTest {
         )
     }
 
+    /**
+     * The Postgres half of the same promise. A panel reading an `analytics`
+     * view that no migration creates fails in Grafana with "relation does not
+     * exist", and only for whoever opens the board. Every view a committed
+     * panel reads has to be created by a Flyway migration, so renaming or
+     * dropping a view without regenerating the boards fails here.
+     */
+    @Test
+    fun everyAnalyticsViewADashboardReadsIsCreatedByAMigration() {
+        val created = analyticsViewsInMigrations()
+        assertTrue(
+            "barcode_outcomes_daily" in created && created.size >= MINIMUM_ANALYTICS_VIEWS,
+            "the migration scan found only $created, so it is reading the wrong directory",
+        )
+        val read = dashboards.flatMap { dashboard ->
+            dashboard.sql.flatMap { query ->
+                ANALYTICS_VIEW_READ.findAll(query).map { dashboard.file to it.groupValues[1] }.toList()
+            }
+        }
+        assertTrue(read.size >= MINIMUM_ANALYTICS_VIEWS, "only ${read.size} analytics reads parsed from the dashboards")
+
+        val missing = read.filter { (_, view) -> view !in created }.map { (file, view) -> "$file: analytics.$view" }
+        assertTrue(
+            missing.isEmpty(),
+            "These panels read a view no migration creates, so they error in Grafana:\n" +
+                missing.distinct().sorted().joinToString("\n") { "  $it" },
+        )
+    }
+
     @Test
     fun noTwoDashboardsShareAUid() {
         val uids = dashboards.map { it.uid }
@@ -254,6 +283,7 @@ private val SERVICE_NAME = GrafanaLogTree.SERVICE_NAME
 private const val MINIMUM_EMITTED_EVENTS = 8
 private const val MINIMUM_CHECKED_PAIRS = 15
 private const val MINIMUM_SOURCE_FILES = 200
+private const val MINIMUM_ANALYTICS_VIEWS = 10
 
 /**
  * Stages the reader must reject. Each one is a real way to write a panel, and
@@ -315,6 +345,8 @@ private data class Dashboard(
     val uid: String,
     val queries: List<Query>,
     val datasourceUids: Set<String>,
+    /** Every Postgres panel's `rawSql`. */
+    val sql: List<String> = emptyList(),
 )
 
 private data class Query(
@@ -336,17 +368,19 @@ private fun readDashboards(): List<Dashboard> {
         val root = Json.parseToJsonElement(file.readText()).jsonObjectOrFail(file.name)
         val uids = mutableSetOf<String>()
         val queries = mutableListOf<Query>()
+        val sql = mutableListOf<String>()
 
         root.collectDatasourceUids(uids)
         (root["panels"] as? JsonArray).orEmpty().forEach { panel ->
             val obj = panel.jsonObjectOrFail(file.name)
             (obj["targets"] as? JsonArray).orEmpty().forEach { rawTarget ->
                 val target = rawTarget.jsonObjectOrFail(file.name)
+                target["rawSql"]?.stringOrNull()?.let(sql::add)
                 val expr = target["expr"]?.stringOrNull() ?: return@forEach
                 queries += parseQuery(expr, target["legendFormat"]?.stringOrNull())
             }
         }
-        Dashboard(file.name, root["uid"]?.stringOrNull().orEmpty(), queries, uids)
+        Dashboard(file.name, root["uid"]?.stringOrNull().orEmpty(), queries, uids, sql)
     }
 }
 
@@ -482,6 +516,21 @@ private val STRINGY_VALUE = Regex("""^"|\.name\b|\.toString\(\)|simpleName|\.low
 private val EVENT_NAME = Regex("""[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*""")
 
 private fun String.looksLikeAString(): Boolean = STRINGY_VALUE.containsMatchIn(this)
+
+private val ANALYTICS_VIEW_READ = Regex("""\banalytics\.([a-z0-9_]+)""")
+private val ANALYTICS_VIEW_CREATED =
+    Regex("""CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+analytics\.([a-z0-9_]+)""", RegexOption.IGNORE_CASE)
+
+/** The `analytics` views the server's Flyway migrations create, by name. */
+private fun analyticsViewsInMigrations(): Set<String> {
+    val root = System.getProperty(REPO_ROOT_PROPERTY)
+        ?: error("$REPO_ROOT_PROPERTY is unset — apps/integration/build.gradle.kts should supply it")
+    val migrations = File(root, "apps/server/src/main/resources/db/migration")
+        .listFiles { f: File -> f.isFile && f.extension == "sql" }
+        .orEmpty()
+    return migrations.flatMap { file -> ANALYTICS_VIEW_CREATED.findAll(file.readText()).map { it.groupValues[1] }.toList() }
+        .toSet()
+}
 
 /** Event name → attribute key → every emit-site value expression seen for it. */
 private fun scanLogEventCalls(): Map<String, Map<String, List<String>>> {

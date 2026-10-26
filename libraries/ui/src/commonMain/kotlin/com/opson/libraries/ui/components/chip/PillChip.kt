@@ -135,6 +135,30 @@ fun ActionChip(
     }
 }
 
+/**
+ * A state, not a control: "✓ Connected" on Watch and health apps (design v3). An accent icon
+ * and a bold label on the accent tint, as tall as an [ActionChip]'s drawn pill.
+ */
+@Composable
+fun StatusPill(
+    label: String,
+    icon: IconResource,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .defaultMinSize(minHeight = ChipVisualHeight)
+            .clip(AppTheme.shapes.pill)
+            .background(AppTheme.colors.accentTint)
+            .padding(start = 10.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(icon = icon, size = 18.dp, color = AppTheme.colors.accent)
+        Text(text = label, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.ink, maxLines = 1)
+    }
+}
+
 /** [PillTag] sizes: [Small] for how-it-felt chips on a meal card, [Regular] for Explorer's safe foods. */
 enum class PillTagSize(internal val padding: PaddingValues) {
     Small(PaddingValues(horizontal = 10.dp, vertical = 5.dp)),
@@ -232,6 +256,7 @@ private fun PillChipPreview() {
                 PillTag(label = "Calm")
                 PillTag(label = "Hungry")
             }
+            StatusPill(label = "Connected", icon = AppIcons.Check)
         }
     }
 }
