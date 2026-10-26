@@ -217,8 +217,9 @@ private fun WelcomeStep(
 }
 
 /**
- * The plan before setup. 0.1 sells nothing, so Plus says "Coming later" and shows no price (a
- * price with no way to buy it is an App Review rejection).
+ * The plan before setup. 0.1 sells nothing and shows only Free: a price with no way to buy it is
+ * an App Review rejection, and a "Coming later" tier invites the same question. Plus comes back
+ * with the purchase that makes it real.
  */
 @Composable
 private fun PlanCard() {
@@ -231,12 +232,6 @@ private fun PlanCard() {
             name = stringResource(Res.string.onboarding_plan_free),
             note = null,
             includes = stringResource(Res.string.onboarding_plan_free_includes),
-        )
-        HorizontalDivider(color = AppTheme.colors.line)
-        PlanRow(
-            name = stringResource(Res.string.onboarding_plan_plus),
-            note = stringResource(Res.string.onboarding_plan_plus_later),
-            includes = stringResource(Res.string.onboarding_plan_plus_includes),
         )
     }
 }
@@ -549,24 +544,28 @@ private fun ColumnScope.AccountStep(
                     onClick = { onAction(OnboardingAction.SaveWithAppleTapped) },
                 )
             }
-            AccountButton(
-                label = stringResource(
-                    if (state.accountInFlight == AccountMethod.Google) {
-                        Res.string.onboarding_account_opening_browser
-                    } else {
-                        Res.string.onboarding_account_google
-                    },
-                ),
-                enabled = enabled,
-                onClick = { onAction(OnboardingAction.SaveWithGoogleTapped) },
-                leading = { GoogleMark() },
-            )
-            AccountButton(
-                label = stringResource(Res.string.onboarding_account_email),
-                enabled = enabled,
-                onClick = { onAction(OnboardingAction.SaveWithEmailTapped) },
-                leading = { Icon(icon = AppIcons.Mail, size = IconGlyph, color = AppTheme.colors.ink) },
-            )
+            if (SignInMethods.GOOGLE) {
+                AccountButton(
+                    label = stringResource(
+                        if (state.accountInFlight == AccountMethod.Google) {
+                            Res.string.onboarding_account_opening_browser
+                        } else {
+                            Res.string.onboarding_account_google
+                        },
+                    ),
+                    enabled = enabled,
+                    onClick = { onAction(OnboardingAction.SaveWithGoogleTapped) },
+                    leading = { GoogleMark() },
+                )
+            }
+            if (SignInMethods.EMAIL) {
+                AccountButton(
+                    label = stringResource(Res.string.onboarding_account_email),
+                    enabled = enabled,
+                    onClick = { onAction(OnboardingAction.SaveWithEmailTapped) },
+                    leading = { Icon(icon = AppIcons.Mail, size = IconGlyph, color = AppTheme.colors.ink) },
+                )
+            }
             state.accountError?.let { AccountErrorText(it) }
         }
 
@@ -578,7 +577,7 @@ private fun ColumnScope.AccountStep(
         ) {
             IconLine(AppIcons.LockOutlined, AppTheme.colors.accent, stringResource(Res.string.onboarding_account_private))
             IconLine(AppIcons.Download, AppTheme.colors.accent, stringResource(Res.string.onboarding_account_export))
-            IconLine(AppIcons.Group, AppTheme.colors.accent, stringResource(Res.string.onboarding_account_coach))
+            // Sharing with a coach is coming-later work; 0.1 doesn't mention it.
         }
     }
 

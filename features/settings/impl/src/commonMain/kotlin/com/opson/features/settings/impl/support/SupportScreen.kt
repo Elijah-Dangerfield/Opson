@@ -106,22 +106,8 @@ fun SupportScreen(
                 onClick = { onAction(SupportAction.FindProviderTapped) },
             )
         }
-        SettingsCard {
-            val later = stringResource(Res.string.settings_support_coming_later)
-            SettingsRow(
-                title = stringResource(Res.string.settings_support_trusted),
-                subtitle = stringResource(Res.string.settings_support_trusted_sub),
-                icon = null,
-                trailingText = later,
-                showDivider = true,
-            )
-            SettingsRow(
-                title = stringResource(Res.string.settings_support_clinician),
-                subtitle = stringResource(Res.string.settings_support_clinician_sub),
-                icon = null,
-                trailingText = later,
-            )
-        }
+        // Trusted person and sharing with a clinician return when they work; 0.1 shows no
+        // "Coming later" rows, which App Review can read as placeholder content.
         DataCard(state, onAction)
     }
     if (state.delete == DeleteStep.Confirming || state.delete == DeleteStep.Deleting) {

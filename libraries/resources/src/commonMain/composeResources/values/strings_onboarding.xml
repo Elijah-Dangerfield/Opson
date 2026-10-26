@@ -144,7 +144,7 @@
     <string name="onboarding_account_export">Export or delete it any time</string>
     <string name="onboarding_account_coach">Needed later to share with a coach</string>
     <string name="onboarding_account_keep">Keep it on this phone</string>
-    <string name="onboarding_account_later">You can add an account later in More.</string>
+    <string name="onboarding_account_later">Everything works without an account.</string>
     <string name="onboarding_account_in_use">That account is already in use. Try another way, or keep it on this phone.</string>
     <string name="onboarding_account_failed">That didn't go through. Please try again.</string>
 </resources>

@@ -67,3 +67,7 @@ apps/server/fooddb/off_foods*.sql.gz*
 
 # Written by `python3 -m unittest` in scripts/.
 __pycache__/
+
+# Local fastlane gems (bundle config path vendor/bundle)
+/apps/ios/vendor/
+/apps/ios/.bundle/
