@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for the Logger's search options (docs/plans/screens/search-options.md):
+  the options sheet, the category tabs and the source badges on rows. Same
+  rules as strings.xml: no backslash escapes, positional %1$s arguments.
+-->
+<resources>
+    <string name="search_options_cd">Search options</string>
+    <string name="search_options_title">Search options</string>
+    <string name="search_options_sort">Sort by</string>
+    <string name="search_options_sort_best">Best match</string>
+    <string name="search_options_sort_recent">Most recent</string>
+    <string name="search_options_sort_recent_sub">Foods you've logged come first</string>
+    <string name="search_options_sort_az">A to Z</string>
+    <string name="search_options_database">Database</string>
+    <string name="search_options_db_all">All</string>
+    <string name="search_options_db_usda">USDA</string>
+    <string name="search_options_db_off">Open Food Facts</string>
+    <string name="search_options_db_mine">My foods</string>
+    <string name="search_options_db_mine_sub">Foods you made and foods you've logged</string>
+    <string name="search_options_tabs">Category tabs</string>
+    <string name="search_options_tabs_sub">Show All, Favorites, Custom and more under the search bar</string>
+    <string name="search_options_done">Done</string>
+
+    <string name="search_tab_all">All</string>
+    <string name="search_tab_favorites">Favorites</string>
+    <string name="search_tab_custom">Custom</string>
+    <string name="search_tab_common">Common</string>
+    <string name="search_tab_restaurant">Restaurant</string>
+    <string name="search_tab_beverages">Beverages</string>
+    <string name="search_tab_hint_common">Search everyday foods</string>
+    <string name="search_tab_hint_restaurant">Search restaurant and fast food</string>
+    <string name="search_tab_hint_beverages">Search drinks</string>
+    <string name="search_tab_empty_favorites">Foods you log often show up here.</string>
+    <string name="search_tab_empty_custom">Foods you make show up here.</string>
+
+    <string name="search_badge_usda">USDA</string>
+    <string name="search_badge_branded">USDA branded</string>
+    <string name="search_badge_off">Open Food Facts</string>
+    <string name="search_badge_yours">Your food</string>
+    <string name="search_badge_verified_cd">Verified</string>
+    <string name="search_off_credit">Contains data from Open Food Facts, available under the Open Database License.</string>
+</resources>

@@ -152,8 +152,14 @@ data class FoodSearchResult(
  * Favorites are device-local: the server has no table for them.
  */
 interface FoodCatalog {
-    /** Online search; offline, a name match over foods picked before, with `fromCache` set. */
-    suspend fun search(query: String, limit: Int = 25): Catching<FoodSearchResult>
+    /**
+     * Online search; offline, a name match over foods picked before, with `fromCache` set.
+     * [filter] narrows or reorders it ([FoodSearchFilter.None] is 0.1's search).
+     */
+    suspend fun search(query: String, limit: Int = 25, filter: FoodSearchFilter = FoodSearchFilter.None): Catching<FoodSearchResult>
+
+    /** Which search options this server offers. Online only. */
+    suspend fun searchOptions(): Catching<SearchOptions>
 
     /** One food with portions and micros. Falls back to the cached copy offline. */
     suspend fun detail(id: String): Catching<Food>

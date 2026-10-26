@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +45,8 @@ import com.opson.libraries.ui.components.PopoverMenu
 import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.button.ButtonStyle
 import com.opson.libraries.ui.components.chip.ActionChip
+import com.opson.libraries.ui.components.chip.PillChip
+import com.opson.libraries.ui.components.chip.PillChipSize
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
@@ -90,6 +94,24 @@ import opson.libraries.resources.generated.resources.logger_search_clear_cd
 import opson.libraries.resources.generated.resources.logger_search_placeholder
 import opson.libraries.resources.generated.resources.logger_this_meal
 import opson.libraries.resources.generated.resources.logger_usual_at
+import opson.libraries.resources.generated.resources.search_badge_branded
+import opson.libraries.resources.generated.resources.search_badge_off
+import opson.libraries.resources.generated.resources.search_badge_usda
+import opson.libraries.resources.generated.resources.search_badge_yours
+import opson.libraries.resources.generated.resources.search_off_credit
+import opson.libraries.resources.generated.resources.search_options_cd
+import opson.libraries.resources.generated.resources.search_tab_all
+import opson.libraries.resources.generated.resources.search_tab_beverages
+import opson.libraries.resources.generated.resources.search_tab_common
+import opson.libraries.resources.generated.resources.search_tab_custom
+import opson.libraries.resources.generated.resources.search_tab_empty_custom
+import opson.libraries.resources.generated.resources.search_tab_empty_favorites
+import opson.libraries.resources.generated.resources.search_tab_favorites
+import opson.libraries.resources.generated.resources.search_tab_hint_beverages
+import opson.libraries.resources.generated.resources.search_tab_hint_common
+import opson.libraries.resources.generated.resources.search_tab_hint_restaurant
+import opson.libraries.resources.generated.resources.search_tab_restaurant
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -135,7 +157,11 @@ private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
             } else {
                 null
             },
+            action = state.options?.let { options ->
+                { OptionsButton(active = options.active, onClick = { onAction(LoggerAction.SearchOptionsTapped) }) }
+            },
         )
+        state.options?.tabs?.let { tabs -> SearchTabs(tabs, state.options.tab, onAction) }
         if (state.methods.isNotEmpty()) {
             FlowRow(
                 modifier = Modifier
@@ -296,7 +322,12 @@ private fun LazyListScope.body(body: LoggerBody, describable: Boolean, onAction:
             item(key = "matches") { SectionLabel(pluralStringResource(Res.plurals.logger_matches, body.rows.size, body.rows.size)) }
             item(key = "results") { FoodRows(body.rows, onAction) }
             item(key = "not-here") { NotHere(describable, onAction) }
+            // Open Food Facts' licence asks for this wherever its foods appear; each of its rows names it too.
+            if (body.openFoodFacts) item(key = "off-credit") { Caption(stringResource(Res.string.search_off_credit)) }
         }
+        is LoggerBody.Listed -> item(key = "listed") { FoodRows(body.rows, onAction) }
+        is LoggerBody.TabEmpty -> item(key = "tab-empty") { Caption(stringResource(body.tab.emptyCopy())) }
+        is LoggerBody.TabHint -> item(key = "tab-hint") { Caption(stringResource(body.tab.hintCopy())) }
         is LoggerBody.Browse -> {
             if (body.usual.isNotEmpty()) {
                 item(key = "usual-label") {
@@ -332,10 +363,88 @@ private fun FoodRows(rows: List<FoodRowUi>, onAction: (LoggerAction) -> Unit) {
                 onToggle = { onAction(LoggerAction.FoodToggleTapped(row)) },
                 iconSeed = row.key,
                 showDivider = index < rows.lastIndex,
+                source = row.badge?.let { stringResource(it.label) },
+                sourceAccent = row.badge == SourceBadge.YourFood,
+                verified = row.verified,
             )
         }
     }
 }
+
+@Composable
+private fun Caption(text: String) {
+    Text(text = text, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+}
+
+/** The search options button at the end of the search bar; tinted while a sort or database other than the default is on. */
+@Composable
+private fun OptionsButton(active: Boolean, onClick: () -> Unit) {
+    val description = stringResource(Res.string.search_options_cd)
+    IconTile(
+        icon = AppIcons.Tune,
+        contentColor = if (active) AppTheme.colors.accent else AppTheme.colors.ink,
+        containerColor = if (active) AppTheme.colors.accentTint else AppTheme.colors.soft,
+        size = IconTileSize.Large,
+        modifier = Modifier
+            .bounceClick(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = description
+            },
+    )
+}
+
+/** All, Favorites, Custom, Common, Restaurant, Beverages: one row that scrolls sideways. */
+@Composable
+private fun SearchTabs(tabs: List<SearchTab>, selected: SearchTab, onAction: (LoggerAction) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = AppTheme.spacing.chip)
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = AppTheme.spacing.page),
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+    ) {
+        tabs.forEach { tab ->
+            PillChip(
+                label = stringResource(tab.label),
+                selected = tab == selected,
+                onClick = { onAction(LoggerAction.TabPicked(tab)) },
+                size = PillChipSize.Compact,
+                role = Role.Tab,
+            )
+        }
+    }
+}
+
+private val SearchTab.label: StringResource
+    get() = when (this) {
+        SearchTab.All -> Res.string.search_tab_all
+        SearchTab.Favorites -> Res.string.search_tab_favorites
+        SearchTab.Custom -> Res.string.search_tab_custom
+        SearchTab.Common -> Res.string.search_tab_common
+        SearchTab.Restaurant -> Res.string.search_tab_restaurant
+        SearchTab.Beverages -> Res.string.search_tab_beverages
+    }
+
+/** Before typing on a tab that searches the catalog. */
+private fun SearchTab.hintCopy(): StringResource = when (this) {
+    SearchTab.Restaurant -> Res.string.search_tab_hint_restaurant
+    SearchTab.Beverages -> Res.string.search_tab_hint_beverages
+    else -> Res.string.search_tab_hint_common
+}
+
+/** A Favorites or Custom tab with nothing in it yet. */
+private fun SearchTab.emptyCopy(): StringResource =
+    if (this == SearchTab.Favorites) Res.string.search_tab_empty_favorites else Res.string.search_tab_empty_custom
+
+private val SourceBadge.label: StringResource
+    get() = when (this) {
+        SourceBadge.Usda -> Res.string.search_badge_usda
+        SourceBadge.UsdaBranded -> Res.string.search_badge_branded
+        SourceBadge.OpenFoodFacts -> Res.string.search_badge_off
+        SourceBadge.YourFood -> Res.string.search_badge_yours
+    }
 
 /** "Not here? Describe it or save the name", under the results. */
 @OptIn(ExperimentalLayoutApi::class)

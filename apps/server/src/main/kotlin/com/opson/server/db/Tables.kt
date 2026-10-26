@@ -129,6 +129,9 @@ object FoodsTable : Table("foods") {
     val portions = jsonb("portions")
     val popularity = integer("popularity")
 
+    /** `restaurant`, `beverage`, `baby_food`, `supplement` or null ([com.opson.server.domain.FoodCategory], V16). */
+    val category = text("category").nullable()
+
     /**
      * Set from `source` by the `foods_set_tier` trigger (V10), so both are
      * `databaseGenerated()`: Kotlin writes the source and reads these back.

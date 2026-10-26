@@ -22,6 +22,7 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.draftFor
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.foods.initialQuantity
@@ -88,6 +89,8 @@ class LoggerViewModel(
     scanEnabled: BarcodeScanEnabled,
     photoEnabled: PhotoEstimateEnabled,
     private val voice: DescribeVoice,
+    searchOptionsEnabled: SearchOptionsEnabled,
+    private val optionsTelemetry: SearchOptionsTelemetry,
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
     initialStateArg = LoggerState(focusSearch = route.focusSearch, pane = route.start.pane, pickingForMeal = route.pickForMeal != null),
 ) {
@@ -111,11 +114,15 @@ class LoggerViewModel(
             scanAvailable = scanEnabled(),
             photoAvailable = photoEnabled(),
             voiceEnabled = voice.enabled(),
+            searchOptions = searchOptionsEnabled(),
         ),
         policy = policySource.policy.value,
     )
 
     private var searchJob: Job? = null
+
+    /** The query and filter the running or last search asked for, so a rebuild only searches again when one changed. */
+    private var requested: Pair<String, FoodSearchFilter>? = null
     private var describeJob: Job? = null
     private var listenJob: Job? = null
     private var voiceTimer: Job? = null
@@ -132,7 +139,13 @@ class LoggerViewModel(
 
     init {
         viewModelScope.launch {
-            inputs(calendar, settingsRepository).collect { takeAction(LoggerAction.InputsArrived(it)) }
+            inputs(calendar, settingsRepository, model.choices.searchOptions).collect { takeAction(LoggerAction.InputsArrived(it)) }
+        }
+        // Only with release.searchOptions on: off, the sheet makes exactly the calls it made in 0.1.
+        if (model.choices.searchOptions) {
+            viewModelScope.launch {
+                foodCatalog.searchOptions().getOrNull()?.let { takeAction(LoggerAction.SearchOptionsArrived(it.openFoodFacts)) }
+            }
         }
         viewModelScope.launch {
             policySource.policy.collect { takeAction(LoggerAction.PolicyArrived(it)) }
@@ -143,13 +156,30 @@ class LoggerViewModel(
 
     override suspend fun handleAction(action: LoggerAction) {
         when (action) {
-            is LoggerAction.InputsArrived -> action.rebuild { copy(inputs = action.inputs) }
+            is LoggerAction.InputsArrived -> {
+                action.rebuild { copy(inputs = action.inputs) }
+                // A sort or database picked in the options sheet arrives here, with the settings.
+                searchIfStale()
+            }
             is LoggerAction.PolicyArrived -> action.rebuild { copy(policy = action.policy) }
             is LoggerAction.SlotPicked -> action.choose { copy(slot = action.slot) }
             is LoggerAction.SearchTyped -> searchTyped(action, action.text)
             LoggerAction.SearchCleared -> searchTyped(action, "")
             is LoggerAction.SearchResultsArrived -> {
-                if (action.outcome.query == model.choices.query.trim()) action.choose { copy(search = action.outcome) }
+                val current = model.choices.query.trim() to LoggerStateBuilder.catalogFilter(model.inputs, model.choices)
+                if (action.outcome.query to action.outcome.filter == current) action.choose { copy(search = action.outcome) }
+            }
+            LoggerAction.SearchOptionsTapped -> if (model.choices.searchOptions) {
+                sendEvent(LoggerEvent.OpenSearchOptions(model.choices.openFoodFacts))
+            }
+            is LoggerAction.TabPicked -> if (model.choices.searchOptions && action.tab != model.choices.tab) {
+                optionsTelemetry.tabPicked(action.tab)
+                action.choose { copy(tab = action.tab) }
+                searchIfStale()
+            }
+            is LoggerAction.SearchOptionsArrived -> {
+                action.choose { copy(openFoodFacts = action.openFoodFacts) }
+                searchIfStale()
             }
             // The amount sheet logs, so a meal being put together takes the row's default amount.
             is LoggerAction.FoodNameTapped -> if (pickForMeal != null) {
@@ -226,13 +256,34 @@ class LoggerViewModel(
 
     private suspend fun searchTyped(action: LoggerAction, text: String) {
         action.choose { copy(query = text, search = null, focusSearch = false) }
+        // Every keystroke restarts the debounce, even back to a query asked for before.
         searchJob?.cancel()
-        val query = text.trim()
-        if (query.isEmpty()) return
+        requested = null
+        searchIfStale()
+    }
+
+    /**
+     * Searches when the query, or what it is filtered by, differs from what was
+     * last asked for. A tab or a database that needs no server cancels any
+     * search still waiting.
+     */
+    private fun searchIfStale() {
+        val query = model.choices.query.trim()
+        val filter = LoggerStateBuilder.catalogFilter(model.inputs, model.choices)
+        val wanted = filter?.takeIf { query.isNotEmpty() }?.let { query to it }
+        if (wanted == requested) return
+        requested = wanted
+        searchJob?.cancel()
+        if (wanted == null) return
         searchJob = viewModelScope.launch {
             delay(SEARCH_DEBOUNCE)
-            val result = foodCatalog.search(query, SEARCH_LIMIT).getOrNull()
-            val outcome = SearchOutcome(query = query, foods = result?.foods.orEmpty(), offline = result?.fromCache ?: true)
+            val result = foodCatalog.search(query, SEARCH_LIMIT, wanted.second).getOrNull()
+            val outcome = SearchOutcome(
+                query = query,
+                foods = result?.foods.orEmpty(),
+                offline = result?.fromCache ?: true,
+                filter = wanted.second,
+            )
             takeAction(LoggerAction.SearchResultsArrived(outcome))
         }
     }
@@ -286,7 +337,7 @@ class LoggerViewModel(
 
     private fun toggle(row: FoodRowUi) {
         val inputs = model.inputs ?: return
-        val pick = LoggerStateBuilder.picks(inputs, model.choices.slot, model.choices.query, model.choices.search)
+        val pick = LoggerStateBuilder.picks(inputs, model.choices)
             .firstOrNull { it.key == row.key && it.source == row.source }
             ?: return
         basketStore.toggle(pick.toBasketItem())
@@ -398,7 +449,7 @@ class LoggerViewModel(
         )
     }
 
-    private fun inputs(calendar: LocalCalendar, settingsRepository: SettingsRepository): Flow<LoggerInputs> {
+    private fun inputs(calendar: LocalCalendar, settingsRepository: SettingsRepository, searchOptions: Boolean): Flow<LoggerInputs> {
         val usualBySlot: Flow<Map<MealSlot, List<LogItem>>> =
             combine(MealSlot.meals.map { slot -> diary.usualAt(slot, limit = USUAL_LIMIT) }) { lists ->
                 MealSlot.meals.zip(lists.toList()).toMap()
@@ -406,7 +457,7 @@ class LoggerViewModel(
         val days = combine(diary.observeDay(day), diary.observeDay(day.minus(1, DateTimeUnit.DAY))) { d, before -> d to before }
         val lists = combine(usualBySlot, diary.recentFoods(limit = RECENT_LIMIT), ::Pair)
         val mine = combine(customFoods.observeAll(), savedMeals.observeAll(), ::Pair)
-        return combine(days, settingsRepository.settings, basketStore.basket, lists, mine) {
+        val base = combine(days, settingsRepository.settings, basketStore.basket, lists, mine) {
                 (d, before), settings, basket, (usual, recent), (custom, saved) ->
             LoggerInputs(
                 today = calendar.today(),
@@ -419,6 +470,16 @@ class LoggerViewModel(
                 customFoods = custom,
                 savedMeals = saved,
             )
+        }
+        // The search options read three more lists; with the flag off nothing more is collected.
+        if (!searchOptions) return base
+        val more = combine(
+            diary.frequentFoods(limit = FAVORITES_LIMIT),
+            diary.recentFoods(limit = HISTORY_LIMIT),
+            foodCatalog.observeRecent(limit = KNOWN_LIMIT),
+        ) { favorites, history, known -> Triple(favorites, history, known.associateBy { it.id }) }
+        return combine(base, more) { inputs, (favorites, history, known) ->
+            inputs.copy(favorites = favorites, history = history, known = known)
         }
     }
 
@@ -626,6 +687,15 @@ class LoggerViewModel(
         const val SEARCH_LIMIT = 25
         const val USUAL_LIMIT = 3
         const val RECENT_LIMIT = 6
+
+        /** Favorites: the foods logged most over the last month. */
+        const val FAVORITES_LIMIT = 20
+
+        /** Most recent and My foods: how far back the person's own foods go. */
+        const val HISTORY_LIMIT = 30
+
+        /** Catalog foods kept on the device, read so a row from the diary can name its source. */
+        const val KNOWN_LIMIT = 100
 
         /**
          * The stored name of a "just a number" entry, as the prototype logs it.

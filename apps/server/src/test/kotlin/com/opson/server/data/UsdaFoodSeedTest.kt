@@ -3,7 +3,10 @@ package com.opson.server.data
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodsTable
 import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.FoodCategory
 import com.opson.server.domain.FoodTier
+import com.opson.server.domain.SearchCategory
+import com.opson.server.domain.SearchFilter
 import com.opson.server.testing.DiaryFixtures
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.selectAll
@@ -76,6 +79,19 @@ class UsdaFoodSeedTest : DatabaseTest() {
 
         assertEquals("Egg, whole, raw", catalog.search("eggs", 5, record = false).first().food.name)
         assertEquals("Coffee, brewed", catalog.search("coffee", 5, record = false).first().food.name)
+
+        // Categories (V16) for the Logger's Restaurant and Beverages tabs.
+        val categories = database.blockingTransaction {
+            FoodsTable.selectAll().mapNotNull { it[FoodsTable.category] }.groupingBy { it }.eachCount()
+        }
+        assertEquals(FoodCategory.entries.map { it.wire }.toSet(), categories.keys)
+        assertTrue(categories.getValue(FoodCategory.Restaurant.wire) > 300, "restaurant foods $categories")
+        assertTrue(categories.getValue(FoodCategory.Beverage.wire) > 500, "drinks $categories")
+        val drinks = SearchFilter(category = SearchCategory.Beverage)
+        assertEquals("Coffee, brewed", catalog.search("coffee", 5, record = false, filter = drinks).first().food.name)
+        assertTrue(catalog.search("banana", 5, record = false, filter = drinks).none { it.food.name == "Banana, raw" })
+        val restaurant = catalog.search("chicken", 10, record = false, filter = SearchFilter(category = SearchCategory.Restaurant))
+        assertTrue(restaurant.isNotEmpty())
 
         val described = CatalogFoodDescriber(catalog).describe("2 eggs and a medium banana")
         assertEquals(listOf("Egg, whole, raw", "Banana, raw"), described.map { it.name })

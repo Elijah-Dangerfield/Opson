@@ -1,6 +1,8 @@
 package com.opson.libraries.foods.impl
 
 import com.opson.libraries.core.Catching
+import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.SearchOrder
 import com.opson.libraries.networking.NetworkClient
 import com.opson.libraries.networking.authedCall
 import com.opson.libraries.networking.retry.RetryPolicy
@@ -59,6 +61,10 @@ data class FoodSearchResponse(
     val foods: List<FoodResponse>,
 )
 
+/** `GET /v1/foods/search/options`. */
+@Serializable
+data class SearchOptionsResponse(val sources: List<String> = emptyList(), val categories: List<String> = emptyList())
+
 @Serializable
 data class DescribeRequest(val text: String? = null)
 
@@ -86,7 +92,9 @@ data class DescribedItemDto(
 
 /** The catalog endpoints. An interface so the catalog's tests can fake the server. */
 interface FoodApi {
-    suspend fun search(query: String, limit: Int): Catching<FoodSearchResponse>
+    suspend fun search(query: String, limit: Int, filter: FoodSearchFilter = FoodSearchFilter.None): Catching<FoodSearchResponse>
+
+    suspend fun searchOptions(): Catching<SearchOptionsResponse>
 
     suspend fun detail(id: String): Catching<FoodResponse>
 
@@ -106,12 +114,21 @@ interface FoodApi {
 @Inject
 class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
 
-    override suspend fun search(query: String, limit: Int): Catching<FoodSearchResponse> =
+    override suspend fun search(query: String, limit: Int, filter: FoodSearchFilter): Catching<FoodSearchResponse> =
         networkClient.authedCall("foods.search", retry = RetryPolicy.idempotent()) { client ->
             client.get("/v1/foods/search") {
                 parameter("q", query)
                 parameter("limit", limit)
+                // Only what differs from the default, so an unfiltered search is the exact call 0.1 makes.
+                filter.category?.let { parameter("category", it.wire) }
+                filter.source?.let { parameter("source", it.wire) }
+                if (filter.order != SearchOrder.BestMatch) parameter("sort", filter.order.wire)
             }.body<FoodSearchResponse>()
+        }
+
+    override suspend fun searchOptions(): Catching<SearchOptionsResponse> =
+        networkClient.authedCall("foods.search_options", retry = RetryPolicy.idempotent()) { client ->
+            client.get("/v1/foods/search/options").body<SearchOptionsResponse>()
         }
 
     override suspend fun detail(id: String): Catching<FoodResponse> =

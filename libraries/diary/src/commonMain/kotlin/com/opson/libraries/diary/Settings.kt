@@ -94,6 +94,14 @@ data class Settings(
      */
     @Serializable(with = ExerciseRangeSerializer::class)
     val exerciseRange: ExerciseAdjustment? = null,
+    /**
+     * The Logger's search options (0.2, `release.searchOptions`): how results are ordered,
+     * which foods they come from, and whether the category tabs show. Top-level keys, because
+     * settings sync merges shallowly. The tab picked is not kept; the Logger opens on All.
+     */
+    val searchSort: SearchSort = SearchSort.BestMatch,
+    val searchDatabase: SearchDatabase = SearchDatabase.All,
+    val searchTabs: Boolean = true,
 ) {
     val waterGoalMl: Int get() = waterGlasses * glassMl
 
@@ -158,6 +166,39 @@ data class TrendsCards(
     val expended: Boolean = true,
     val weight: Boolean = true,
 )
+
+/** How the Logger orders search results. */
+@Serializable
+enum class SearchSort {
+    /** The server's ranking, your own matching foods first: what search did before options. */
+    @SerialName("best_match")
+    BestMatch,
+
+    /** Foods you've logged first, last used first, then the rest. */
+    @SerialName("most_recent")
+    MostRecent,
+
+    @SerialName("a_to_z")
+    AToZ,
+}
+
+/** Where the Logger's All tab looks for foods. */
+@Serializable
+enum class SearchDatabase {
+    @SerialName("all")
+    All,
+
+    @SerialName("usda")
+    Usda,
+
+    /** Only offered while the server searches Open Food Facts; otherwise read as [All]. */
+    @SerialName("open_food_facts")
+    OpenFoodFacts,
+
+    /** Foods you made and foods you've logged. No server call. */
+    @SerialName("my_foods")
+    MyFoods,
+}
 
 /** Which empty-state and toast lines the app uses. */
 @Serializable

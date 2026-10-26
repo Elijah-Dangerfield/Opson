@@ -13,11 +13,16 @@ import com.opson.server.domain.CatalogSource
 import com.opson.server.domain.ExternalProduct
 import com.opson.server.domain.Food
 import com.opson.server.domain.FoodCatalogRepository
+import com.opson.server.domain.FoodCategory
 import com.opson.server.domain.FoodMatch
 import com.opson.server.domain.FoodTier
 import com.opson.server.domain.MatchTier
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Portion
+import com.opson.server.domain.SearchCategory
+import com.opson.server.domain.SearchFilter
+import com.opson.server.domain.SearchSort
+import com.opson.server.domain.SearchSource
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -43,6 +48,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import java.sql.ResultSet
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 
 /**
@@ -90,20 +96,25 @@ class PostgresFoodCatalogRepository(
         record: Boolean,
         country: String?,
         openFoodFacts: Boolean,
+        filter: SearchFilter,
     ): List<FoodMatch> =
         database.transaction {
             val normalized = FoodCatalogRepository.normalizeQuery(query)
             val terms = SearchTerms.of(normalized)
             val capped = limit.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
-            val matches = when {
+            val ranked = when {
                 terms == null -> emptyList()
-                openFoodFacts && sources.searchOpenFoodFacts && OpenFoodFactsSearch.searches(terms) ->
+                openFoodFacts && sources.searchOpenFoodFacts && filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms) ->
                     OpenFoodFactsSearch.merge(
-                        catalog = runSearch(terms, capped),
+                        catalog = runSearch(terms, capped, filter),
                         openFoodFacts = runOpenFoodFactsSearch(terms, capped, OpenFoodFactsSearch.countryTag(country)),
                         limit = capped,
                     )
-                else -> runSearch(terms, capped)
+                else -> runSearch(terms, capped, filter)
+            }
+            val matches = when (filter.sort) {
+                SearchSort.BestMatch -> ranked
+                SearchSort.Name -> ranked.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.food.name })
             }
             if (record && normalized.isNotEmpty()) {
                 FoodSearchEventsTable.insert {
@@ -116,7 +127,9 @@ class PostgresFoodCatalogRepository(
             matches
         }
 
-    private fun runSearch(terms: SearchTerms, limit: Int): List<FoodMatch> {
+    override val searchesOpenFoodFacts: Boolean get() = sources.searchOpenFoodFacts
+
+    private fun runSearch(terms: SearchTerms, limit: Int, filter: SearchFilter): List<FoodMatch> {
         val text = TextColumnType()
         val args = listOf<Pair<IColumnType<*>, Any?>>(
             text to terms.likePrefix, // generic: prefix
@@ -143,7 +156,7 @@ class PostgresFoodCatalogRepository(
         )
         val results = mutableListOf<FoodMatch>()
         TransactionManager.current().exec(
-            stmt = SEARCH_SQL,
+            stmt = searchSql(filter),
             args = args,
             explicitStatementType = StatementType.SELECT,
         ) { rs ->
@@ -359,17 +372,17 @@ class PostgresFoodCatalogRepository(
          * Head includes the name's first two segments when they are exactly
          * the query's words in any order ("Rice, brown" for "brown rice").
          */
-        private val SEARCH_SQL = """
+        private fun searchSqlWith(condition: String): String = """
             WITH generic AS (
                 SELECT f.* FROM foods f
-                WHERE f.tier = 1
+                WHERE f.tier = 1$condition
                   AND (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
             ),
             direct AS (
                 SELECT * FROM generic
                 UNION ALL
                 SELECT f.* FROM foods f
-                WHERE f.tier > 1
+                WHERE f.tier > 1$condition
                   AND (? OR (SELECT count(*) FROM generic) < ?)
                   AND (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
             ),
@@ -381,7 +394,7 @@ class PostgresFoodCatalogRepository(
                        OR NOT EXISTS (SELECT 1 FROM direct d
                                       WHERE d.tier = 1 OR lower(d.brand) LIKE ANY (string_to_array(?, '|'))))
                   AND lower(f.name) OPERATOR(extensions.%) ?
-                  AND NOT (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
+                  AND NOT (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))$condition
             ),
             p AS (
                 SELECT string_to_array(?, '|') AS variants,
@@ -463,6 +476,40 @@ class PostgresFoodCatalogRepository(
                      r.name
             LIMIT ?
         """.trimIndent()
+
+        /** The statement 0.1's search runs. [SearchFilter.None] must always get exactly this. */
+        internal val SEARCH_SQL: String = searchSqlWith("")
+
+        private val filtered = ConcurrentHashMap<SearchFilter, String>()
+
+        /**
+         * The statement for [filter]: [SEARCH_SQL] with one more condition on
+         * each of its three reads of `foods`. The condition is chosen from the
+         * filter's enums, never built from request text.
+         */
+        internal fun searchSql(filter: SearchFilter): String {
+            val condition = foodsCondition(filter)
+            if (condition.isEmpty()) return SEARCH_SQL
+            return filtered.getOrPut(filter.copy(sort = SearchSort.BestMatch)) { searchSqlWith(condition) }
+        }
+
+        private fun foodsCondition(filter: SearchFilter): String = buildString {
+            when (filter.category) {
+                SearchCategory.Restaurant -> append(" AND f.category = '${FoodCategory.Restaurant.wire}'")
+                SearchCategory.Beverage -> append(" AND f.category = '${FoodCategory.Beverage.wire}'")
+                SearchCategory.Common -> append(" AND f.tier <= ${FoodTier.Label.wire}")
+                null -> Unit
+            }
+            when (filter.source) {
+                SearchSource.Usda -> append(" AND f.source IN (${USDA_SOURCES.joinToString { "'${it.wire}'" }})")
+                SearchSource.OpenFoodFacts -> append(" AND f.source = '${CatalogSource.OpenFoodFacts.wire}'")
+                null -> Unit
+            }
+        }
+
+        private val USDA_SOURCES = listOf(
+            CatalogSource.UsdaFoundation, CatalogSource.UsdaSr, CatalogSource.UsdaFndds, CatalogSource.UsdaBranded,
+        )
     }
 }
 

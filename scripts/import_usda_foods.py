@@ -37,6 +37,12 @@ directory, only the CSV files the importer needs are read, every archive
 member is checked for path traversal, links and size, and nothing from the
 archives is ever executed. The directory is deleted when the run ends.
 
+Every row gets a `category` (restaurant, beverage, baby_food, supplement or
+none) from USDA's own: `food_category` for Foundation and SR Legacy, the WWEIA
+category for FNDDS, `branded_food_category` for Branded. The database needs
+migration V16 first. scripts/backfill_food_categories.py fills it in for rows
+loaded before it existed.
+
 USDA FoodData Central data is public domain (CC0).
 """
 
@@ -149,7 +155,7 @@ SUGARS_NLEA = "269.3"
 COLUMNS = [
     "id", "source", "source_id", "name", "brand", "barcode",
     "kcal_100g", "protein_100g", "carbs_100g", "fat_100g", "fiber_100g",
-    "micros", "portions",
+    "micros", "portions", "category",
 ]
 UPDATE_COLUMNS = [c for c in COLUMNS if c not in ("id", "source", "source_id")]
 
@@ -166,6 +172,7 @@ class Food:
     fiber: float | None = None
     micros: dict[str, float] = field(default_factory=dict)
     portions: list[dict] = field(default_factory=list)
+    category: str | None = None
 
 
 def log(message: str) -> None:
@@ -280,7 +287,12 @@ def load_dataset(source: str, files: dict[str, Path], data_type: str) -> dict[st
             continue
         name = re.sub(r"\s+", " ", row["description"]).strip()
         if name:
-            foods[row["fdc_id"]] = Food(source=source, source_id=row["fdc_id"], name=name[:200])
+            foods[row["fdc_id"]] = Food(
+                source=source,
+                source_id=row["fdc_id"],
+                name=name[:200],
+                category=generic_category(source, row.get("food_category_id", ""), name),
+            )
 
     id_to_nbr = {row["id"]: normalize_nbr(row["nutrient_nbr"]) for row in read_csv(files["nutrient.csv"])}
 
@@ -435,6 +447,98 @@ def default_portion_first(portions: list[dict], kcal_100g: float | None) -> list
     return [best] + [p for p in portions if p is not best]
 
 
+# ─── Categories ─────────────────────────────────────────────────────────────
+#
+# foods.category (V16): a small normalised set the Logger's tabs filter on.
+# Restaurant and beverage are what the tabs need; baby food and supplements
+# are the two kinds that most often crowd a search, and cost one line each.
+
+RESTAURANT = "restaurant"
+BEVERAGE = "beverage"
+BABY_FOOD = "baby_food"
+SUPPLEMENT = "supplement"
+
+# SR Legacy and Foundation share one food_category table (food_category.csv, by id).
+SR_CATEGORIES = {
+    "21": RESTAURANT,  # Fast Foods
+    "25": RESTAURANT,  # Restaurant Foods
+    "14": BEVERAGE,  # Beverages
+    "28": BEVERAGE,  # Alcoholic Beverages
+    "3": BABY_FOOD,  # Baby Foods
+}
+SR_FRUITS = "9"  # Fruits and Fruit Juices
+SR_DAIRY = "1"  # Dairy and Egg Products
+NOT_A_DRINK = re.compile(r"\b(dry|dried|powder|powdered|condensed|evaporated)\b")
+
+# FNDDS uses What We Eat in America categories (wweia_food_category.csv).
+WWEIA_MILK = {"1002", "1004", "1006", "1008", "1202", "1204", "1206", "1208", "1402", "1902"}
+WWEIA_BABY = {"9002", "9004", "9006", "9007", "9008", "9010", "9012", "9202", "9204", "9402", "9404", "9602"}
+WWEIA_SUPPLEMENT = {"9802"}
+FROM_RESTAURANT = re.compile(r"\b(fast food|restaurant)\b")
+
+
+def generic_category(source: str, category_id: str, name: str) -> str | None:
+    """foods.category for a Foundation, SR Legacy or FNDDS food, from its own category and name."""
+    category_id = (category_id or "").strip()
+    lowered = name.lower()
+    if source == "usda_fndds":
+        if FROM_RESTAURANT.search(lowered):
+            return RESTAURANT
+        if (category_id.isdigit() and 7000 <= int(category_id) < 8000) or category_id in WWEIA_MILK:
+            return BEVERAGE
+        if category_id in WWEIA_BABY:
+            return BABY_FOOD
+        if category_id in WWEIA_SUPPLEMENT:
+            return SUPPLEMENT
+        return None
+    if category_id in SR_CATEGORIES:
+        return SR_CATEGORIES[category_id]
+    if category_id == SR_FRUITS and "juice" in lowered:
+        return BEVERAGE
+    if category_id == SR_DAIRY and lowered.startswith("milk,") and not NOT_A_DRINK.search(lowered):
+        return BEVERAGE
+    return None
+
+
+# Branded Foods' branded_food_category, as normalised by _category_key. The
+# release spells one category several ways ("Non Alcoholic Beverages - Ready
+# to Drink", "...  Ready to Drink", "... – Ready to Drink").
+BRANDED_BEVERAGES = {
+    "fruit & vegetable juice, nectars & fruit drinks", "soda", "water", "packaged water", "milk", "plant based milk",
+    "milk/milk substitutes", "other drinks", "powdered drinks", "energy, protein & muscle recovery drinks",
+    "iced & bottle tea", "non alcoholic beverages ready to drink", "non alcoholic beverages not ready to drink",
+    "tea bags", "tea and infusions/tisanes", "tea bags, loose leaf, speciality", "coffee", "coffee/tea/substitutes",
+    "coffee/coffee substitutes", "coffee instant, roast and ground", "alcohol", "alcoholic beverages", "beer",
+    "sport drinks", "liquid water enhancer", "plant based water", "breakfast drinks", "drinks flavoured ready to drink",
+    "drinks juices, drinks and cordials", "drinks soft drinks", "drinks", "drinks powdered", "drinks energy drinks",
+    "ready to drink", "fruit juice ready to drink (shelf stable)", "fruit juice not ready to drink (frozen)",
+}
+BRANDED_BABY = {"baby/infant foods/beverages", "infant formula"}
+BRANDED_SUPPLEMENTS = {
+    "specialty formula supplements", "meal replacement supplements", "green supplements",
+    "digestive & fiber supplements", "herbal supplements", "children's nutritional supplements", "vitamins",
+    "fatty acid supplements", "health supplements and vitamins", "antioxidant supplements",
+    "vitamins/minerals/nutritional supplements", "amino acid supplements", "ayurvedic supplements",
+    "nutritional supplements",
+}
+
+
+def _category_key(raw: str) -> str:
+    return " ".join(raw.lower().replace("\u2013", " ").replace("-", " ").split())
+
+
+def branded_category(raw: str | None) -> str | None:
+    """foods.category for a Branded product, from its branded_food_category."""
+    key = _category_key(raw or "")
+    if key in BRANDED_BEVERAGES:
+        return BEVERAGE
+    if key in BRANDED_BABY:
+        return BABY_FOOD
+    if key in BRANDED_SUPPLEMENTS:
+        return SUPPLEMENT
+    return None
+
+
 def dedupe_key(name: str) -> str:
     """'Bananas, raw' and 'Banana, raw' are the same food to a person searching."""
     words = re.findall(r"[a-z0-9]+", name.lower())
@@ -453,6 +557,7 @@ def dedupe(all_foods: list[Food]) -> list[Food]:
         # The duplicate loses, but its portions (FNDDS and SR carry the household
         # measures Foundation lacks) are still worth keeping.
         kept.portions = dedupe_portions(kept.portions + food.portions)
+        kept.category = kept.category or food.category
     return sorted(best.values(), key=lambda f: (SOURCE_PRIORITY[f.source], f.name.lower(), f.source_id))
 
 
@@ -482,6 +587,7 @@ def sql_row(food: Food) -> str:
         sql_number(rounded(food.fiber)),
         sql_text(micros) + "::jsonb",
         sql_text(portions) + "::jsonb",
+        sql_text(food.category) if food.category else "NULL",
     ]
     return "(" + ",".join(parts) + ")"
 
@@ -787,6 +893,11 @@ class BrandedStats:
     gram_servings: int = 0
 
 
+def branded_rank(repaired: bool, available_date: str, modified_date: str, fdc_id: str) -> tuple:
+    """Which of a barcode's records wins: the newest, and one stated correctly over one we repaired."""
+    return (not repaired, available_date, modified_date, int(fdc_id))
+
+
 def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
     """Branded Foods as (sql, rows) chunks, one batch at a time.
 
@@ -805,7 +916,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
     header, rows = csv_rows(zf, members["branded_food.csv"])
     col = {k: header[k] for k in (
         "fdc_id", "brand_owner", "brand_name", "gtin_upc", "serving_size", "serving_size_unit",
-        "household_serving_fulltext", "modified_date", "available_date",
+        "household_serving_fulltext", "modified_date", "available_date", "branded_food_category",
     )}
     best: dict[str, tuple] = {}
     for r in rows:
@@ -818,13 +929,14 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
         fdc_id = r[col["fdc_id"]].strip()
         if not fdc_id.isascii() or not fdc_id.isdecimal():
             continue
-        rank = (not repaired, r[col["available_date"]], r[col["modified_date"]], int(fdc_id))
+        rank = branded_rank(repaired, r[col["available_date"]], r[col["modified_date"]], fdc_id)
         kept = best.get(code)
         if kept is None or rank > kept[0]:
             brand = r[col["brand_name"]].strip() or r[col["brand_owner"]].strip()
             best[code] = (
                 rank, fdc_id, repaired, brand,
                 r[col["serving_size"]], r[col["serving_size_unit"]], r[col["household_serving_fulltext"]],
+                branded_category(r[col["branded_food_category"]]),
             )
     stats.products = len(best)
     stats.repaired_barcode = sum(1 for v in best.values() if v[2])
@@ -909,7 +1021,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
         return sql, rows_in_batch
 
     for code in sorted(best):
-        _, fdc_id, _, brand, size, unit, household = best[code]
+        _, fdc_id, _, brand, size, unit, household, category = best[code]
         name = title_case(names.get(code, ""))[:200]
         if not name:
             stats.no_name += 1
@@ -965,6 +1077,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
             sql_number(rounded(fiber)),
             sql_text(json.dumps(micros, separators=(",", ":"), sort_keys=True)) + "::jsonb",
             sql_text(json.dumps([portion] if portion else [], separators=(",", ":"), ensure_ascii=False)) + "::jsonb",
+            sql_text(category) if category else "NULL",
         ]) + ")"
         stats.imported += 1
         batch.append((fdc_id, code, row))
@@ -1150,12 +1263,14 @@ def main() -> int:
             raise SystemExit("--psql needs a connection string, or CATALOG_DATABASE_URL set")
         db = Psql(find_psql(args.psql_bin), pg_env(conninfo))
         # Fail before a 450 MB download, not after it.
-        has_tier = db.query(
+        has_columns = db.query(
             "SELECT count(*) FROM information_schema.columns "
-            "WHERE table_schema = 'public' AND table_name = 'foods' AND column_name = 'tier'"
+            "WHERE table_schema = 'public' AND table_name = 'foods' AND column_name IN ('tier', 'category')"
         )
-        if has_tier != [["1"]]:
-            raise SystemExit("foods.tier is missing: run the server migrations (V10) against this database first")
+        if has_columns != [["2"]]:
+            raise SystemExit(
+                "foods.tier or foods.category is missing: run the server migrations (V10, V16) against this database first"
+            )
 
     started = time.monotonic()
     summary: list[str] = []

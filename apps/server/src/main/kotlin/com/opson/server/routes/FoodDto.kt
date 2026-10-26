@@ -51,6 +51,13 @@ data class FoodSearchResponse(
     val foods: List<FoodResponse>,
 )
 
+/**
+ * `GET /v1/foods/search/options`: the `source` and `category` values this
+ * server takes. `sources` has `off` only when Open Food Facts search is on.
+ */
+@Serializable
+data class SearchOptionsResponse(val sources: List<String>, val categories: List<String>)
+
 @Serializable
 data class DescribeRequest(val text: String? = null)
 
