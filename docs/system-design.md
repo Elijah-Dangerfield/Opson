@@ -90,6 +90,7 @@ feature api modules never depend on each other).
 | `:libraries:foods:impl` | kotlin.multiplatform | Ktor client calls to `/v1/foods/*` over that cache of foods the user has touched, so favorites and recents work offline. |
 | `:libraries:health` | kotlin.multiplatform | `HealthRepository` (connect, disconnect, status, today's energy), `EnergyExpended`, `HealthSource`, and the `release.health` flag. Health values stay on the device: read on demand, never stored or synced (`docs/plans/screens/integrations.md`). |
 | `:libraries:health:impl` | kotlin.multiplatform | `RealHealthRepository` over a platform `HealthReader`: Health Connect (`androidMain`, with the permission rationale activity and manifest entries) and HealthKit through `platform.HealthKit` (`iosMain`, no Swift). Emits `health.*` app events with the source only. |
+| `:libraries:scanner` (+`impl`) | compose.multiplatform | The barcode camera behind `BarcodeCamera` (the composable viewfinder and permission prompt) and `CameraPermissions`. The impl binds CameraX with ML Kit's bundled model on Android and AVFoundation, from Kotlin, on iOS. 0.2, behind `release.barcode`. |
 | `:features:today` (+`impl`) | feature | Today screen, Add menu, Day menu, calendar sheet, meal sheet, water sheet, day close. |
 | `:features:logger` (+`impl`) | feature | Logger sheet, amount sheet, Describe, Saved. |
 | `:features:foods` (+`impl`) | feature | Foods tab, create a meal, add a custom food. |
@@ -244,6 +245,7 @@ food_search_events (id bigserial, at timestamptz, query_norm text, result_count 
   -- no user_id on purpose: it answers "which foods are we missing", not "what did this person search"
 
 barcode_lookups (id bigserial, at timestamptz, barcode text, outcome text)   -- catalog|off|nutritionix|miss|error, no user_id
+barcode_misses (id uuid pk, created_at, barcode, gtin null, country null, platform, app_version null)   -- V13, reported by the app after a 404, no user_id
 ```
 
 The migrations are `V7__food_catalog.sql`, `V8__diary.sql`,
@@ -356,6 +358,7 @@ errors in the `ProblemResponse` envelope.
 | GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. |
 | GET | `/v1/foods/{id}` | Detail with portions and micros |
 | GET | `/v1/foods/barcode/{code}` | Catalog first, in any equivalent form of the code (UPC-A, EAN-13, GTIN-14, UPC-E), then each enabled outside source in tier order (Nutritionix when configured, Open Food Facts); cacheable answers are stored in `foods`. 404 `not_found` when nobody has it, 503 when no source could answer. |
+| POST | `/v1/foods/barcode-misses` | `{id, barcode}` after a 404 from the barcode route. 204, idempotent on the app's id. Region, platform and version from the `X-*` headers, GTIN computed server-side, no user id stored. |
 | POST | `/v1/describe` `{text}` | Parses "2 eggs and toast" into items: quantity + unit + food match. Heuristic, no AI. |
 | GET | `/v1/export.csv` | Every log entry, weigh-in and water day for the caller |
 | GET/DELETE | `/v1/me` | Existing. Delete cascades through every table above. |
@@ -430,7 +433,9 @@ shared by every app on the stack. This is the Cards rule.
   `entries_by_method_precision`, `meals_per_day_distribution`, `days_closed`,
   `preset_distribution`, `search_daily`, `top_zero_result_queries` (30 days,
   only queries searched at least 3 times), `barcode_outcomes_daily`,
-  `weekly_retention_cohorts`, `retention_d1_d7_d30`. `DatabaseSchemaTest`
+  `weekly_retention_cohorts`, `retention_d1_d7_d30`, and from
+  `V13__barcode_misses.sql` `barcode_hit_rate_daily`, `top_missed_barcodes`
+  (30 days, grouped by GTIN) and `barcode_misses_by_country`. `DatabaseSchemaTest`
   fails if any of them grows a user id, a nutrient or a feeling column.
   `V11__untracked_days.sql` leaves untracked days out of
   `meals_per_day_distribution`; the activity views still count them, since

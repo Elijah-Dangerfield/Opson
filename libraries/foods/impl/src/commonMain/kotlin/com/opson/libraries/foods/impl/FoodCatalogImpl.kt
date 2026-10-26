@@ -7,6 +7,7 @@ import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchResult
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.FoodTier
+import com.opson.libraries.foods.Gtin
 import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
@@ -58,10 +59,23 @@ class FoodCatalogImpl(
     }
 
     override suspend fun barcode(code: String): Catching<Food?> {
-        val online = api.barcode(code.trim()).map { it?.toDomain() }
+        val trimmed = code.trim()
+        val online = api.barcode(trimmed).map { it?.toDomain() }
+        online.getOrNull()?.let { food ->
+            // Kept but not marked used: the amount sheet opens it next, and has
+            // to work even when the server cannot serve it again (offline, or
+            // a source whose answers it may not store). It reaches Recent only
+            // once it is logged.
+            val existing = cache.get(food.id)
+            cache.upsert(food.toCacheRow(lastUsedAt = existing?.lastUsedAtEpochMs, favorite = existing?.favorite ?: false))
+        }
         if (online.isSuccess) return online
-        return cache.getByBarcode(code.trim())?.decode()?.let { Catching.success(it) } ?: online
+        return cachedByBarcode(trimmed)?.let { Catching.success(it) } ?: online
     }
+
+    /** The cache stores GTINs (older rows the code as the server sent it), so try both forms. */
+    private suspend fun cachedByBarcode(code: String): Food? =
+        listOfNotNull(Gtin.normalize(code), code).distinct().firstNotNullOfOrNull { cache.getByBarcode(it)?.decode() }
 
     override suspend fun describe(text: String): Catching<List<ParsedItem>> =
         api.describe(text.trim()).map { response -> response.items.map { it.toDomain() } }
@@ -111,7 +125,8 @@ private fun Food.toCacheRow(lastUsedAt: Long?, favorite: Boolean) = FoodCacheEnt
     id = id,
     json = encode(),
     searchText = searchText(),
-    barcode = barcode,
+    // As a GTIN, so a later scan in any of the code's forms finds it offline.
+    barcode = barcode?.let { Gtin.normalize(it) ?: it },
     lastUsedAtEpochMs = lastUsedAt,
     favorite = favorite,
 )

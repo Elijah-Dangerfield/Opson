@@ -38,6 +38,8 @@ data class LoggerState(
      * dropdown or day, and a miss offers only "Save the name only".
      */
     val pickingForMeal: Boolean = false,
+    /** The barcode button in the empty search bar: `release.barcode` on, and not picking for a meal. */
+    val canScan: Boolean = false,
 ) {
     /** The search is not blank, so the chips and the day label step aside. */
     val typing: Boolean get() = query.isNotBlank()
@@ -159,12 +161,16 @@ sealed interface LoggerAction {
     data object BackTapped : LoggerAction
     data object AddToMealTapped : LoggerAction
     data object CloseTapped : LoggerAction
+
+    /** The barcode button in the empty search bar. */
+    data object BarcodeTapped : LoggerAction
 }
 
 sealed interface LoggerEvent {
     data class OpenAmount(val ref: FoodRef, val source: PickSource, val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenMealNote(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenHowItFelt(val day: LocalDate, val slot: MealSlot) : LoggerEvent
+    data class OpenScanner(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class ShowToast(val toast: Toast) : LoggerEvent
     data object Dismiss : LoggerEvent
 }

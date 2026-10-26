@@ -23,6 +23,7 @@ import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
 import com.opson.server.plugins.installWebSockets
 import com.opson.server.routes.appConfigRoutes
+import com.opson.server.routes.barcodeMissRoutes
 import com.opson.server.routes.configAdminRoutes
 import com.opson.server.routes.exampleRoutes
 import com.opson.server.routes.exportRoutes
@@ -163,6 +164,7 @@ fun Application.installApp(
             playerReportRoutes(component.playerReportRepository)
             syncRoutes(component.syncRepository, component.clock)
             foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber)
+            barcodeMissRoutes(component.barcodeMissRepository)
             exportRoutes(component.exportRepository)
         }
     }

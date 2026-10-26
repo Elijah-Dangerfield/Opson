@@ -19,6 +19,7 @@ enum class LogVia(val wire: String) {
     AteNoDetails("ate_no_details"),
     QuickNumber("quick_number"),
     NameOnly("name_only"),
+    Barcode("barcode"),
     Note("note"),
     ;
 
@@ -32,6 +33,7 @@ enum class LogVia(val wire: String) {
             PickSource.Foods -> Foods
             PickSource.Describe -> Describe
             PickSource.Name -> NameOnly
+            PickSource.Barcode -> Barcode
         }
     }
 }

@@ -204,6 +204,38 @@ b.series("Barcode lookups by outcome", [sql("A",
          "SELECT day::timestamp AS time, outcome AS metric, lookups AS value FROM analytics.barcode_outcomes_daily "
          "WHERE $__timeFilter(day::timestamp) ORDER BY 1")],
          "Found in our catalog, found on Open Food Facts, or not found.", h=10, stacked=True, bars=True)
+# Scan coverage (V13). The hit rate decides whether a paid barcode fallback is worth turning on.
+b.stat("Barcode hit rate, 7 days",
+       "SELECT coalesce(sum(hits)::float / nullif(sum(hits) + sum(misses), 0), 0) "
+       "FROM analytics.barcode_hit_rate_daily WHERE day > current_date - 7",
+       "Share of barcode lookups some source could answer. Lookups no source could reach are left out.",
+       unit="percentunit", decimals=1)
+b.stat("Barcode misses reported, 7 days",
+       "SELECT coalesce(sum(misses), 0) FROM analytics.barcode_misses_by_country WHERE day > current_date - 7",
+       "Misses the app reported after a scan found nothing.")
+b.series("Barcode hit rate", [sql("A",
+         "SELECT day::timestamp AS time, hit_rate AS \"hit rate\" FROM analytics.barcode_hit_rate_daily "
+         "WHERE $__timeFilter(day::timestamp) ORDER BY 1")],
+         "Daily share of lookups answered by our catalog or an outside source.", unit="percentunit")
+b.table("Most-missed barcodes",
+        "SELECT code AS barcode, misses, countries, last_missed_at FROM analytics.top_missed_barcodes",
+        "Last 30 days, grouped by GTIN so a UPC-A and its EAN-13 count once. Add these products first.",
+        w=12, h=10)
+b.bars("Barcode misses by country",
+       "SELECT country, sum(misses) AS misses FROM analytics.barcode_misses_by_country "
+       "WHERE $__timeFilter(day::timestamp) GROUP BY country ORDER BY misses DESC LIMIT 20",
+       "The phone's region setting at the time of the miss. Tells us which country's data to add next.",
+       w=12, h=10)
+b.series("Barcode misses per day", [sql("A",
+         "SELECT day::timestamp AS time, sum(misses) AS \"misses\" FROM analytics.barcode_misses_by_country "
+         "WHERE $__timeFilter(day::timestamp) GROUP BY 1 ORDER BY 1")],
+         "Misses the app reported, by day.", bars=True)
+b.series("Scanner", [
+    loki("A", 'sum(count_over_time({service_name="opson-client"} | event_name="barcode.scan_started" [$__interval]))', "scans started"),
+    loki("B", 'sum(count_over_time({service_name="opson-client"} | event_name="barcode.hit" [$__interval]))', "found"),
+    loki("C", 'sum(count_over_time({service_name="opson-client"} | event_name="barcode.miss" [$__interval]))', "not found"),
+    loki("D", 'sum(count_over_time({service_name="opson-client"} | event_name="barcode.permission_denied" [$__interval]))', "camera denied"),
+], "Client events. Loki keeps 31 days. Camera denied counts people who could not scan at all.", ds=LOKI)
 b.write()
 
 # ── Retention ──────────────────────────────────────────────────────────────

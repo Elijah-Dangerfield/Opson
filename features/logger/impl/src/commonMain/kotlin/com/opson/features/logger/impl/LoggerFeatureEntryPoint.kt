@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -19,7 +20,9 @@ import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.bottomSheet
 import com.opson.libraries.navigation.nullableSerializableType
+import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
+import com.opson.libraries.scanner.BarcodeCamera
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheet
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetDefaults
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetState
@@ -40,6 +43,8 @@ class LoggerFeatureEntryPoint(
     private val loggerViewModelFactory: (LoggerRoute) -> LoggerViewModel,
     private val amountViewModelFactory: (AmountSheetRoute) -> AmountViewModel,
     private val howItFeltViewModelFactory: (HowItFeltRoute) -> HowItFeltViewModel,
+    private val barcodeScanViewModelFactory: (BarcodeScanRoute) -> BarcodeScanViewModel,
+    private val barcodeCamera: BarcodeCamera,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -96,6 +101,13 @@ class LoggerFeatureEntryPoint(
             }
         }
 
+        // Only the logger's barcode button opens it, and that button is behind release.barcode.
+        screen<BarcodeScanRoute>(
+            typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
+        ) { backStackEntry ->
+            BarcodeScanner(backStackEntry.toRoute<BarcodeScanRoute>(), router)
+        }
+
         bottomSheet<HowItFeltRoute>(
             typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
         ) { backStackEntry, sheetState ->
@@ -146,6 +158,8 @@ class LoggerFeatureEntryPoint(
                     goBack()
                     navigate(HowItFeltRoute(event.day.toString(), event.slot))
                 }
+                // Over the sheet, so Back from the scanner lands on the logger and its basket.
+                is LoggerEvent.OpenScanner -> router.navigate(BarcodeScanRoute(event.day.toString(), event.slot))
                 is LoggerEvent.ShowToast -> showToast(event.toast)
                 // Animate the sheet down first; its dismiss callback pops the route.
                 LoggerEvent.Dismiss -> sheetState.dismiss()
@@ -163,6 +177,47 @@ class LoggerFeatureEntryPoint(
         ) {
             LoggerSheetContent(state = state, onAction = viewModel::takeAction)
         }
+    }
+
+    @Composable
+    private fun BarcodeScanner(route: BarcodeScanRoute, router: Router) {
+        val viewModel: BarcodeScanViewModel = viewModel { barcodeScanViewModelFactory(route) }
+        val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+        val requestPermission = barcodeCamera.rememberPermissionRequest { answer ->
+            viewModel.takeAction(BarcodeScanAction.PermissionAnswered(answer))
+        }
+        LifecycleResumeEffect(viewModel) {
+            viewModel.takeAction(BarcodeScanAction.Resumed)
+            onPauseOrDispose { }
+        }
+
+        viewModel.ObserveEvents { event ->
+            when (event) {
+                BarcodeScanEvent.RequestPermission -> requestPermission()
+                // The amount sheet takes this screen's place over the logger, as it does for a tapped search row.
+                is BarcodeScanEvent.OpenAmount -> router.batch {
+                    goBack()
+                    navigate(
+                        AmountSheetRoute(
+                            foodId = event.foodId,
+                            isCustom = false,
+                            source = PickSource.Barcode,
+                            dayIso = event.day.toString(),
+                            slot = event.slot,
+                        ),
+                    )
+                }
+                BarcodeScanEvent.Close -> router.goBack()
+            }
+        }
+
+        BarcodeScanScreen(
+            state = state,
+            onAction = viewModel::takeAction,
+            viewfinder = { modifier ->
+                barcodeCamera.Viewfinder(onCode = { viewModel.takeAction(BarcodeScanAction.CodeRead(it)) }, modifier = modifier)
+            },
+        )
     }
 }
 

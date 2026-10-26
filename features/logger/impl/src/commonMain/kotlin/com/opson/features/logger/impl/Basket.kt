@@ -36,6 +36,9 @@ enum class PickSource {
 
     /** "Save the name only": a name-only custom food made on the spot. */
     Name,
+
+    /** A scanned barcode the catalog knew. */
+    Barcode,
     ;
 
     /**
@@ -49,6 +52,7 @@ enum class PickSource {
         this == Favorite || this == Usual -> LogMethod.Favorite
         this == Saved -> LogMethod.Saved
         this == Describe -> LogMethod.Describe
+        this == Barcode -> LogMethod.Barcode
         else -> LogMethod.Recent
     }
 }
