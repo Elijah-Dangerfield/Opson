@@ -78,6 +78,34 @@ second engine. `availability()` also says "no microphone" when the session has
 no input, before any prompt. The permission answer is delivered once the app
 is active again, so the session is never activated while the alert is leaving.
 
+**Second simulator report (same day).** After the yes the pane still looked
+idle, and the app aborted 9 s later with "Initialize: RPC timeout. Apparently
+deadlocked", after the engine logged "associating with audio session (0x0),
+error -10879". The cause of the idle look: the yes did move the state to
+Listening, but `listen()` ran its audio calls on the main thread straight
+after, and the first touch of the engine's input sat in CoreAudio until its
+own watchdog killed the app. Compose never got the thread back to draw
+Listening, so the last frame (the prompt state, which looks idle) stayed up,
+and the abort landing 9 s later read as "the next tap crashes". Fixes:
+- Every audio session, engine and recognizer call now runs on one serial
+  queue (`AudioQueue`, through `OneSessionAtATime`), never the main thread,
+  so Listening is drawn whatever CoreAudio does.
+- `setCategory(record)`, `setMode(measurement)` and `setActive(true)` are
+  separate calls, each checked and logged at debug, and the engine is created
+  only after all three succeeded, on the same queue.
+- After activation, `isInputAvailable`, `availableInputs` and
+  `currentRoute.inputs` (plus channels and rate) must all be non-empty;
+  otherwise it is "no microphone". Each read is logged.
+- The simulator reports no microphone, because CoreAudio there can deadlock
+  and abort from any thread. Set `OPSON_VOICE_IN_SIMULATOR=1` in the scheme's
+  environment to try it anyway. Devices take the full path.
+- The iOS yes is passed on as given rather than read back (a read straight
+  after the prompt could say "not determined"), and an answer that is neither
+  yes nor no shows the Denied notice with Allow microphone, never idle.
+- A platform that never answers still ends in a notice: 8 s with nothing
+  heard stops, and 4 s later the session is dropped with "Didn't catch
+  anything".
+
 **What happens to the audio.** Opson never writes audio to disk, never keeps
 it in memory past the session, and never sends it to Opson's servers. Only the
 final text leaves the phone, to `/v1/describe`, as typed text does.

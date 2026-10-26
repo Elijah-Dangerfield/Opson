@@ -439,7 +439,8 @@ class LoggerViewModel(
                 when (val answer = action.permission) {
                     MicPermission.Granted -> startListening(action, asked = true)
                     is MicPermission.Denied -> denied(action, answer.canAskAgain)
-                    MicPermission.NotAsked -> action.choose { copy(voice = VoiceCapture.Idle()) }
+                    // Neither yes nor no: say what voice needs and offer to ask again, never a silent return to idle.
+                    MicPermission.NotAsked -> denied(action, canAskAgain = true)
                 }
             }
             is VoiceAction.SpeechArrived -> speechArrived(action, capture, action.heard)
