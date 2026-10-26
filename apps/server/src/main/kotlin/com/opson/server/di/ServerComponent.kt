@@ -19,6 +19,8 @@ import com.opson.server.domain.PlayerReportRepository
 import com.opson.server.domain.ProfileRepository
 import com.opson.server.domain.SupabaseAdminClient
 import com.opson.server.domain.SyncRepository
+import com.opson.server.domain.WaitlistLimiter
+import com.opson.server.domain.WaitlistRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -76,6 +78,8 @@ abstract class ServerComponent(
     abstract val photoDescriber: PhotoDescriber
     abstract val photoEstimateLimiter: PhotoEstimateLimiter
     abstract val exportRepository: ExportRepository
+    abstract val waitlistRepository: WaitlistRepository
+    abstract val waitlistLimiter: WaitlistLimiter
     abstract val clock: Clock
 
     /**

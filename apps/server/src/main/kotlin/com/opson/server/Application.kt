@@ -2,6 +2,7 @@ package com.opson.server
 
 import com.opson.server.config.AdminConfig
 import com.opson.server.config.ServerConfig
+import com.opson.server.config.WaitlistConfig
 import com.opson.server.data.InMemoryExampleSource
 import com.opson.server.data.WebhookConfigChangeNotifier
 import com.opson.server.db.Database
@@ -33,6 +34,8 @@ import com.opson.server.routes.meRoutes
 import com.opson.server.routes.photoRoutes
 import com.opson.server.routes.playerReportRoutes
 import com.opson.server.routes.syncRoutes
+import com.opson.server.routes.waitlistAdminRoutes
+import com.opson.server.routes.waitlistRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.routing
@@ -56,7 +59,8 @@ import org.slf4j.LoggerFactory
  * isn't mounted. Either way it boots — so you can clone and run with zero config.
  *
  * Order matters: serialization before status pages (so error envelopes encode),
- * auth after serialization (the 401 challenge writes a JSON body), CORS early.
+ * auth after serialization (the 401 challenge writes a JSON body). CORS is
+ * installed on the routing root, so a route can carry its own policy.
  */
 fun Application.module(config: ServerConfig) {
     val logger = LoggerFactory.getLogger("Bootstrap")
@@ -108,6 +112,7 @@ fun Application.module(config: ServerConfig) {
                 scope = it.provideServerCoroutineScope(),
             )
         } ?: ConfigChangeNotifier {},
+        waitlistConfig = config.waitlist,
     )
 
     // The hosted admin console (static bundle at /admin). Outside installApp so
@@ -129,15 +134,16 @@ fun Application.installApp(
     banGate: BanGate? = null,
     adminConfig: AdminConfig = AdminConfig(apiToken = null),
     configChangeNotifier: ConfigChangeNotifier = ConfigChangeNotifier {},
+    waitlistConfig: WaitlistConfig = WaitlistConfig(),
 ) {
     installSerialization()
-    installCors()
     installRateLimits()
     installStatusPages()
     installWebSockets()
     if (verification != null) installAuthentication(verification, banGate)
 
     routing {
+        installCors()
         healthRoutes()
         exampleRoutes(component?.exampleSource ?: InMemoryExampleSource())
         if (component != null) {
@@ -164,7 +170,10 @@ fun Application.installApp(
                     manifestRepository = component.appConfigManifestRepository,
                     notifier = configChangeNotifier,
                 )
+                waitlistAdminRoutes(adminConfig, component.waitlistRepository)
             }
+            // The website's form: public, its own CORS and rate limits.
+            waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
         }
         if (component != null && verification != null) {
             meRoutes(component.profileRepository, component.supabaseAdminClient)

@@ -1,15 +1,19 @@
 package com.opson.server.plugins
 
 import io.ktor.http.HttpMethod
-import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.routing.Route
 
 /**
- * Permissive CORS for the template default. Tighten [anyHost] to your real web
- * origins before shipping a browser client.
+ * The API-wide CORS policy: any origin, the headers and methods our own
+ * callers use. Installed on the routing root rather than the application so a
+ * route can replace it with a policy of its own (the waitlist form allows
+ * only `WAITLIST_ALLOWED_ORIGINS`, see `waitlistRoutes`). Ktor applies the
+ * nearest install to a call, and a route-level install answers preflights
+ * through its own `OPTIONS` handler, so every path still gets one.
  */
-fun Application.installCors() {
+fun Route.installCors() {
     install(CORS) {
         anyHost()
         allowHeader("Content-Type")

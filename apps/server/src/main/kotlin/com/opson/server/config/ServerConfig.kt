@@ -26,6 +26,7 @@ data class ServerConfig(
     val admin: AdminConfig,
     val configChange: ConfigChangeConfig,
     val foodSources: FoodSourcesConfig = FoodSourcesConfig(),
+    val waitlist: WaitlistConfig = WaitlistConfig(),
 ) {
     companion object {
         fun fromEnv(env: Env = Env()): ServerConfig = ServerConfig(
@@ -38,7 +39,47 @@ data class ServerConfig(
             admin = AdminConfig.fromEnv(env),
             configChange = ConfigChangeConfig.fromEnv(env),
             foodSources = FoodSourcesConfig.fromEnv(env),
+            waitlist = WaitlistConfig.fromEnv(env),
         )
+    }
+}
+
+/**
+ * The website's waitlist form (`POST /v1/waitlist`). [allowedOrigins] are the
+ * exact browser origins that route answers CORS for, from
+ * `WAITLIST_ALLOWED_ORIGINS` (comma-separated, `scheme://host[:port]`). No
+ * other route uses them.
+ *
+ * Unset on dev (and locally), it defaults to [DEV_ORIGINS]: the Astro dev
+ * server and the GitHub Pages site. Unset on prod, no browser origin is
+ * allowed, so the site's form fails until someone sets it on purpose.
+ */
+data class WaitlistConfig(
+    val allowedOrigins: Set<String> = emptySet(),
+) {
+    companion object {
+        val DEV_ORIGINS = setOf("http://localhost:4321", "https://elijah-dangerfield.github.io")
+
+        fun fromEnv(env: Env): WaitlistConfig {
+            val raw = env["WAITLIST_ALLOWED_ORIGINS"]
+            val isProd = SentryConfig.environmentFromFlyAppName(env) == "prod"
+            return WaitlistConfig(
+                allowedOrigins = when {
+                    raw != null -> parseOrigins(raw)
+                    isProd -> emptySet()
+                    else -> DEV_ORIGINS
+                },
+            )
+        }
+
+        /** Trims, lower-cases and drops a trailing slash; anything that is not `http(s)://host[:port]` is left out. */
+        internal fun parseOrigins(raw: String): Set<String> =
+            raw.split(',')
+                .map { it.trim().trimEnd('/').lowercase() }
+                .filter { ORIGIN.matches(it) }
+                .toSet()
+
+        private val ORIGIN = Regex("^https?://[a-z0-9.-]+(:[0-9]{1,5})?$")
     }
 }
 
