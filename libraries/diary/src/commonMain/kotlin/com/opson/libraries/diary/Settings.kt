@@ -102,7 +102,31 @@ data class Settings(
     val searchSort: SearchSort = SearchSort.BestMatch,
     val searchDatabase: SearchDatabase = SearchDatabase.All,
     val searchTabs: Boolean = true,
+    /**
+     * Foods starred on the amount sheet, as food ref keys (`f:<id>`, `c:<id>`), newest first.
+     * The search options' Favorites tab lists them first. A top-level key, like the rest.
+     */
+    val favoriteFoods: List<String> = emptyList(),
+    /**
+     * Sizes of the person's own for a food ("Custom size…" on the amount sheet), by food ref key.
+     * They show in that food's unit menu after its own portions.
+     */
+    val foodUnits: Map<String, List<FoodUnit>> = emptyMap(),
 ) {
+    fun isFavorite(foodKey: String): Boolean = foodKey in favoriteFoods
+
+    /** Stars [foodKey], or takes the star off. */
+    fun toggleFavorite(foodKey: String): Settings =
+        copy(favoriteFoods = if (isFavorite(foodKey)) favoriteFoods - foodKey else listOf(foodKey) + favoriteFoods)
+
+    fun unitsFor(foodKey: String): List<FoodUnit> = foodUnits[foodKey].orEmpty()
+
+    /** Adds [unit] to [foodKey]'s sizes, replacing one with the same name. */
+    fun withUnit(foodKey: String, unit: FoodUnit): Settings {
+        val kept = unitsFor(foodKey).filterNot { it.label.equals(unit.label, ignoreCase = true) }
+        return copy(foodUnits = foodUnits + (foodKey to kept + unit))
+    }
+
     val waterGoalMl: Int get() = waterGlasses * glassMl
 
     /** How noticeable meal reminders are, as chosen: Off until the person has chosen ([remindersChosen]). */
@@ -118,6 +142,10 @@ data class Settings(
     /** Same settings with different numbers. `changedAt` is whatever [next] carries. */
     fun withNumbers(next: NumbersSettings): Settings = copy(numbers = next)
 }
+
+/** A size someone saved for a food: "my bowl" is 420 g. Grams are what make it convertible. */
+@Serializable
+data class FoodUnit(val label: String, val grams: Double)
 
 /** The subset of [Settings] the `VisibilityPolicy` reads. */
 fun Settings.numbers(): NumbersSettings = numbers
