@@ -5,3 +5,12 @@ plugins {
 android {
     namespace = "com.opson.features.logger"
 }
+
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            // MealSlot is a route argument.
+            api(projects.libraries.diary)
+        }
+    }
+}

@@ -181,10 +181,12 @@ Writes: `addItems`, `addWater`, `copySlot`, `setAteNoDetails`, `setFeeling`,
 `FoodCatalog.markUsed`. All local first.
 
 Telemetry: `logger.method_picked` (`method`: search, favorite, usual, recent,
-saved, describe, yesterday, ate_no_details, quick_number, name_only, water,
-weigh_in, note; `items`: count). Fired when something is logged or a method chip
-opens its screen; a basket commit fires once per source in it. No food names, no
-amounts. `logger.opened` is the caller's (`shell.md`).
+saved, foods, describe, yesterday, ate_no_details, quick_number, name_only,
+water, weigh_in, note; `items`: count). Fired when something is logged; a basket
+commit fires once per source in it. Weigh-in and Add a note fire with 0 items
+when they open the screen that does the writing. Describe, Saved and Just a
+number fire from the Log screen when it logs. No food names, no amounts.
+`logger.opened` is the caller's (`shell.md`).
 
 ### Components
 `BottomSheet(heightFraction)`, pinned header (close `RoundIconButton`,

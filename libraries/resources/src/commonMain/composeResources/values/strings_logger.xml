@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for the logger: the center + sheet, the amount sheet and the Log
+  screen. Verbatim from the handoff prototype where it has the line. Same
+  rules as strings.xml: no backslash escapes, positional %1$s arguments.
+-->
+<resources>
+
+    <!-- Logger sheet -->
+    <string name="logger_close_cd">Close</string>
+    <string name="logger_for_day">For %1$s</string>
+    <string name="logger_totals_energy">Energy</string>
+    <string name="logger_totals_protein">Protein</string>
+    <string name="logger_totals_carbs">Carbs</string>
+    <string name="logger_totals_fat">Fat</string>
+    <string name="logger_search_placeholder">Search for a food</string>
+    <string name="logger_method_describe">Describe it</string>
+    <string name="logger_method_water">Water</string>
+    <string name="logger_method_saved">Saved meals</string>
+    <string name="logger_method_yesterday">Yesterday's %1$s</string>
+    <string name="logger_method_ate">Ate, no details</string>
+    <string name="logger_method_weigh_in">Weigh-in</string>
+    <string name="logger_method_number">Just a number</string>
+    <string name="logger_method_note">Add a note</string>
+    <string name="logger_favorites">Favorites</string>
+    <string name="logger_usual_at">Usual at %1$s</string>
+    <string name="logger_suggested">Suggested</string>
+    <string name="logger_recent">Recent</string>
+    <string name="logger_no_results">Nothing by that name yet. Try Describe, or make it a custom food under Foods.</string>
+    <string name="logger_offline_results">Search needs a connection. Showing foods you've used before.</string>
+    <string name="logger_first_run">Search for anything you ate. Foods you log show up here next time.</string>
+    <string name="logger_basket_count">%1$d picked</string>
+    <string name="logger_add_to">Add to %1$s</string>
+    <string name="logger_toast_added_one">Added %1$s to %2$s.</string>
+    <string name="logger_toast_added_many">Added %1$d foods to %2$s.</string>
+    <string name="logger_toast_water">Glass of water added.</string>
+    <string name="logger_toast_added_to">Added to %1$s.</string>
+    <string name="logger_toast_ate">Marked %1$s as eaten.</string>
+
+    <!-- Amount sheet -->
+    <string name="logger_amount_sure">How sure are you?</string>
+    <string name="logger_amount">Amount</string>
+    <string name="logger_amount_energy">Energy</string>
+    <string name="logger_amount_protein">Protein</string>
+    <string name="logger_amount_fiber">Fiber</string>
+    <string name="logger_amount_calcium">Calcium</string>
+    <string name="logger_amount_before">Before eating (optional)</string>
+    <string name="logger_amount_after">After (optional)</string>
+    <string name="logger_amount_stop_asking">Stop asking these</string>
+    <string name="logger_amount_pick">Pick this amount</string>
+    <string name="logger_amount_missing">This food needs a connection to open.</string>
+    <string name="logger_toast_stop_asking">Okay, no more hunger questions. You can turn them back on in More, under Look and feel.</string>
+
+    <!-- Log screen -->
+    <string name="logger_log_adding_to">Adding to</string>
+    <string name="logger_tab_describe">Describe</string>
+    <string name="logger_tab_saved">Saved</string>
+    <string name="logger_describe_prompt">Say it the way you'd say it</string>
+    <string name="logger_describe_placeholder">2 eggs and toast</string>
+    <string name="logger_describe_go">Go</string>
+    <string name="logger_parsed_sub">%1$s · Estimate</string>
+    <string name="logger_or_number">Or just a number</string>
+    <string name="logger_number_placeholder">kcal</string>
+    <string name="logger_number_add">Add</string>
+    <string name="logger_name_only">Just save the name, no details</string>
+    <string name="logger_describe_offline">Describe needs a connection. You can still save it by name.</string>
+    <string name="logger_describe_failed">That didn't parse. Try fewer words, or save it by name.</string>
+    <string name="logger_copy_yesterday">Copy yesterday's %1$s</string>
+    <string name="logger_copy">Copy</string>
+    <string name="logger_saved_add">Add</string>
+    <string name="logger_saved_empty">Saved meals show up here. Make one under Foods.</string>
+    <string name="logger_back_cd">Back</string>
+
+</resources>

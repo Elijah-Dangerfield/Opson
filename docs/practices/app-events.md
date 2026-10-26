@@ -105,6 +105,10 @@ sheet's "What's prompting this?" answer.
 | `friction.shown` | `subject` (`preset` / `metric` / `pause`) | The "Pause before showing more" sheet opened |
 | `friction.completed` | `subject`, `applied` | The sheet closed: `applied=true` from "Show them" after the wait, `false` from "Keep things as they are", a swipe down or back |
 
+| Event | Attributes | Fires |
+|---|---|---|
+| `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details, quick_number, name_only, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
+
 ## Warn+ log forwarding (not events)
 
 Besides events, `GrafanaLogTree` forwards plain KLog lines at Warn and above to Loki as ordinary
