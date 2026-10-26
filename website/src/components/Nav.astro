@@ -1,0 +1,83 @@
+---
+import { href } from '../consts';
+import { stripBase } from '../lib/paths';
+
+const current = stripBase(import.meta.env.BASE_URL, Astro.url.pathname).replace(/\/?$/, '/');
+const links = [
+  { path: '/', label: 'Home' },
+  { path: '/privacy/', label: 'Privacy' },
+  { path: '/terms/', label: 'Terms' },
+  { path: '/contact/', label: 'Contact' },
+];
+---
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href={href('/')}>
+      <img src={href('/favicon.svg')} alt="" width="36" height="36" />
+      <span>Opson</span>
+    </a>
+    <nav aria-label="Main">
+      <ul>
+        {links.map(({ path, label }) => (
+          <li>
+            <a href={href(path)} aria-current={current === path ? 'page' : undefined}>{label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 68px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+  }
+  .brand img { border-radius: 9px; }
+  ul {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  ul a {
+    display: block;
+    padding: 10px 12px;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 16px;
+    text-decoration: none;
+    border-radius: 10px;
+  }
+  ul a:hover { color: var(--ink); background: var(--soft); }
+  ul a[aria-current='page'] { color: var(--ink); box-shadow: inset 0 -3px 0 var(--accent); border-radius: 0; }
+  @media (max-width: 520px) {
+    .nav-inner { padding: 10px 0; }
+    ul a { padding: 8px; font-size: 15px; }
+    .brand span { font-size: 20px; }
+  }
+</style>
