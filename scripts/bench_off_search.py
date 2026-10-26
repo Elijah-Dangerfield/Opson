@@ -217,6 +217,9 @@ def main() -> int:
     print(f"{len(QUERIES)} queries, country {args.country}, {len(passes) - 1} measured pass(es) after a warm-up")
     print(f"warm: p50 {percentile(warm, .5):.1f} ms, p95 {percentile(warm, .95):.1f} ms, "
           f"p99 {percentile(warm, .99):.1f} ms, max {max(warm):.1f} ms")
+    longer = [ms for p in passes[1:] for q, ms, _ in p if len(q) >= 3]
+    print(f"warm, queries of 3+ characters: p50 {percentile(longer, .5):.1f} ms, "
+          f"p95 {percentile(longer, .95):.1f} ms, p99 {percentile(longer, .99):.1f} ms")
     print(f"first pass: p50 {percentile(cold, .5):.1f} ms, p95 {percentile(cold, .95):.1f} ms, "
           f"p99 {percentile(cold, .99):.1f} ms, max {max(cold):.1f} ms")
     worst: dict[str, tuple[float, int]] = {}

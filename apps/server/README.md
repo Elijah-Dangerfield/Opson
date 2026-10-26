@@ -305,7 +305,16 @@ transaction, so search never sees a half-loaded table. A failed run resumes
 when re-run; a failed swap is retried with `--swap-only`. It refuses to swap
 in fewer than a million rows, or under 80% of the live table (`--allow-shrink`
 overrides). While it runs the database holds both copies, so it needs about
-twice the table's size free.
+twice the table's size free. Supabase switches a database to read-only when
+its disk is 95% full, which is what a load too big for the disk ends in
+(`cannot execute INSERT in a read-only transaction`). To recover, drop the
+staging table from a session that opts back into writes, and the platform
+lifts read-only within minutes:
+
+```sql
+SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE;
+DROP TABLE IF EXISTS off_foods_next;
+```
 
 ```bash
 CATALOG_DATABASE_URL=postgresql://… python3 -I scripts/import_off_foods.py --psql   # download and reload
@@ -315,8 +324,8 @@ python3 -I -m unittest discover -s scripts -p 'test_import_off_foods.py'
 ```
 
 The monthly workflow has the same reload as a second job, off until the
-`OFF_IMPORT_ENABLED` repository variable is `true`. Sizes and search latency
-measured on opson-dev are in `docs/food-data-sources.md`.
+`OFF_IMPORT_ENABLED` repository variable is `true`. Measured size (2.1 GB),
+load time and search latency are in `docs/food-data-sources.md`.
 
 **Nutritionix (off until there is budget).** `NutritionixSource` calls
 `GET https://trackapi.nutritionix.com/v2/search/item?upc=` with the
