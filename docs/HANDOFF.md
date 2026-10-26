@@ -23,28 +23,23 @@ on their own branches.
 - Grafana: Opson folder, 8 dashboards, `opson-db` datasource on dev.
 - App Store Connect: app record, listing, privacy labels, age rating, price.
 
-## Paused, committed on branches (resume these)
+## Merged since the pause
 
-Each is a git worktree under `.claude/worktrees/` with a `wip`/`chore`
-checkpoint commit as its tip. To resume, start a session and say "resume the
-paused screen reworks from docs/HANDOFF.md".
+Today, Logger, and More/Modes/Targets/Support are all at v3 and on `main`,
+along with the shared ui changes (top app bar `PageHeader`, 48 dp touch
+targets, bars capped at 100%), the reveal-time setting and goal styles.
 
-| Work | Branch (also on GitHub) | State |
-|---|---|---|
-| Today, its sheets and Day close, to v3 | merged to `main` | **Merged** (73 tests, both platforms). Not built: Mark as untracked, the Explorer food bridge, Blind's "How did today feel?" chips, and the 6 s Undo, which the Logger's `RecentLogEvents` should feed. Watch for merge clashes on `CreateMealRoute` in `:features:foods` and `TodayLayout.Journal` in nutrition. |
-| Logger to v3 | `worktree-agent-a569e21155a608e60` (`wip/logger-v3`) | Main code done and compiles on Android: search-first sheet, meal dropdown, Describe and Saved inside the sheet (`LogRoute` kept as an alias), Pick and keep going, How it felt, `RecentLogEvents`/`LoggedToMeal`. **Left:** rewrite `AmountTest`, `LoggerStateBuilderTest` and `LoggerViewModelTest` (they don't compile yet), add `HowItFeltTest`, run tests, iOS compile, detekt, screenshots vs v3. |
-| More, Modes, Targets, Support to v3 | `worktree-agent-ae25ce58b390844eb` (`wip/settings-v3`) | Green commits: the v3 plan, the shared ui changes (`PageHeader` is a top app bar with the same signature, 48 dp `minTouchTarget`, bars clamp at 100%), and `revealAt` plus `TargetStyle`/`rangeFor` in nutrition. **The tip WIP commit does not compile**: More, Modes and the pause sheet rewritten, Targets state builder written. **Left:** Targets screen and VM, goal-style sheet and route, the Support delete dialog, Water and Look-and-feel previews (`LightAndDark` was removed), fixtures, leak surfaces, entry point, tests, detekt, screenshots. |
+## In progress (agent worktrees under `.claude/worktrees/`)
 
-Merge order when they finish: More/Modes/Targets first (it owns the shared
-changes), then Logger, then Today. Each needs a rebase on `main` and the
-combined checks (both app compiles, every feature's tests, detekt) before it
-merges.
+- Onboarding to v3.
+- Trends to v3, plus the new Patterns screen.
+- Foods to v3, including the Logger's pick-for-this-meal mode.
 
 ## Not started yet
 
-1. Onboarding to v3 (statement screen, account last, Skip lands on Full).
-2. Trends to v3, plus the new Patterns screen.
-3. Foods to v3 (needs the Logger's pick-for-this-meal mode).
+1. Today follow-ups: the 6 s Undo snackbar fed by `RecentLogEvents`
+   (`docs/plans/screens/logger.md`, "After adding"), Mark as untracked, the
+   Explorer food bridge, Blind's "How did today feel?" chips.
 4. `BlindModeLeakTest` across every surface (`docs/plans/screens/blind-leak-test.md`).
 5. Sweep screen previews that use `PreviewLightDark` (one theme per screen).
 6. ~~Prod data~~ done: both databases hold all 445,414 foods, prod has its
