@@ -70,11 +70,14 @@ fun WaterSettingsScreen(
             }
             HorizontalDivider(color = AppTheme.colors.line)
             Section(title = stringResource(Res.string.settings_water_goal_title)) {
-                Text(
-                    text = stringResource(Res.string.settings_water_goal, state.glasses, state.goalAmount),
-                    typography = AppTheme.type.secondarySmall.Tabular,
-                    color = AppTheme.colors.muted,
-                )
+                // Before settings arrive there is no amount, and "0 glasses,  a day" reads as broken.
+                if (state.goalAmount.isNotEmpty()) {
+                    Text(
+                        text = stringResource(Res.string.settings_water_goal, state.glasses, state.goalAmount),
+                        typography = AppTheme.type.secondarySmall.Tabular,
+                        color = AppTheme.colors.muted,
+                    )
+                }
                 SegmentedControl(
                     options = state.goals,
                     selected = state.glasses,

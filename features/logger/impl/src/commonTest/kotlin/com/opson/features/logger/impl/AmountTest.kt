@@ -136,10 +136,10 @@ class AmountTest : CoroutineTest() {
         val vm = vm()
 
         vm.takeAction(AmountAction.MoreTapped)
-        assertEquals("1.5 medium", vm.state.amountText)
+        assertEquals("1½ medium", vm.state.amountText)
         vm.takeAction(AmountAction.LessTapped)
         vm.takeAction(AmountAction.LessTapped)
-        assertEquals("0.5 medium", vm.state.amountText)
+        assertEquals("½ medium", vm.state.amountText)
         assertFalse(vm.state.canLess)
     }
 
@@ -199,7 +199,7 @@ class AmountTest : CoroutineTest() {
         vm.takeAction(AmountAction.PickAndKeepGoingTapped)
 
         val item = basket.basket.value.single()
-        assertEquals("1.5 × 1 medium", item.draft.amountText)
+        assertEquals("1½ medium", item.draft.amountText)
         assertEquals(157.5, item.draft.kcal!!, 0.1)
         assertEquals(LogMethod.Favorite, item.draft.method)
         assertEquals(Hunger.VeryHungry, item.hunger)

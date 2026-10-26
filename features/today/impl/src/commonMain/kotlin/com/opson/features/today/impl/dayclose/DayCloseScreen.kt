@@ -17,8 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.Role
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.ui.TodayCard
-import com.opson.libraries.ui.components.chip.PillChip
-import com.opson.libraries.ui.components.chip.PillChipSize
+import com.opson.libraries.ui.components.chip.ChoiceChip
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_busy
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_good
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_hard
@@ -186,12 +185,10 @@ fun DayCloseScreen(
             ) {
                 PageHeader(
                     title = stringResource(state.title),
+                    subtitle = state.day?.let { DateCopy.longWeekdayMonthDay(it) },
                     backLabel = stringResource(Res.string.today_dayclose_back, state.backLabel.text()),
                     onBack = { onAction(DayCloseAction.BackTapped) },
                 )
-                state.day?.let {
-                    Text(text = DateCopy.longWeekdayMonthDay(it), typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
-                }
                 if (state.loading) return@Column
                 if (state.revealNote) {
                     InfoBanner(
@@ -277,12 +274,12 @@ private fun Feeling(choice: FeelingChoice, onAction: (DayCloseAction) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
         ) {
             choice.options.forEach { feeling ->
-                PillChip(
+                ChoiceChip(
                     label = stringResource(feeling.label),
                     selected = feeling == choice.picked,
                     onClick = { onAction(DayCloseAction.FeelingTapped(feeling)) },
-                    size = PillChipSize.Compact,
                     role = Role.RadioButton,
+                    unselectedColor = AppTheme.colors.surface,
                 )
             }
         }

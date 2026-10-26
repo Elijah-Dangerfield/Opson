@@ -151,7 +151,7 @@ private fun Header(rangeLabel: RangeLabel?, onSettings: () -> Unit) {
         RoundIconButton(
             icon = AppIcons.Tune.described(stringResource(Res.string.trends_settings_cd)),
             onClick = onSettings,
-            size = Dimension.D1400,
+            size = Dimension.D1300,
             containerColor = AppTheme.colors.surface,
             contentColor = AppTheme.colors.ink,
         )
@@ -294,20 +294,20 @@ internal fun FoodChips(names: List<String>, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
-        names.forEach { PillTag(label = it, typography = AppTheme.type.bodyBold, size = PillTagSize.Regular) }
+        names.forEach { PillTag(label = it, typography = AppTheme.type.secondaryStrong.Bold, size = PillTagSize.Regular) }
     }
 }
 
-/** A label and its value on one line, the value bold at the end. 48 tall at least. */
+/** A label and its value on one line, the value bold at the end. Read-only, so 40 tall as v3 draws it. */
 @Composable
 internal fun FactRow(label: String, value: String, modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = Dimension.D1300),
+        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = Dimension.D1200).padding(vertical = Dimension.D300),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
         Text(text = label, typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
-        Text(text = value, typography = AppTheme.type.numeric.ExtraBold, color = AppTheme.colors.ink, textAlign = TextAlign.End)
+        Text(text = value, typography = AppTheme.type.body.ExtraBold, color = AppTheme.colors.ink, textAlign = TextAlign.End)
     }
 }
 

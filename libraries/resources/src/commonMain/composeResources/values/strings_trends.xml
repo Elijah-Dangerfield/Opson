@@ -83,7 +83,7 @@
     <string name="trends_micro_zinc">Zinc</string>
     <string name="trends_micro_of">of %1$s</string>
     <string name="trends_micro_of_limit">of a %1$s</string>
-    <string name="trends_micros_caption">Percent of a typical daily target. Most people land under on some and over on others, and that's fine. A week tells you more than a day.</string>
+    <string name="trends_micros_caption">Percent of a typical daily target. Most people land under on some and over on others, and that's fine. A week tells you more than a day does.</string>
     <string name="trends_micros_off_title">Vitamins and minerals are off</string>
     <string name="trends_micros_off_body">Turn them on in Modes and numbers.</string>
     <string name="trends_micros_off_link">Modes and numbers</string>

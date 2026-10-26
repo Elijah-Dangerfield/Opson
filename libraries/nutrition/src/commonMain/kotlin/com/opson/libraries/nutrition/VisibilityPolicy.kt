@@ -133,8 +133,8 @@ class VisibilityPolicy(
             }
         }
         Metric.Weight -> when (context.weightUnit) {
-            WeightUnit.Kg -> formatter.weight(value, WeightUnit.Kg)
-            WeightUnit.Lb -> formatter.weight(Units.kgToLb(value), WeightUnit.Lb)
+            WeightUnit.Kg -> formatter.weight(value, WeightUnit.Kg, context.bare)
+            WeightUnit.Lb -> formatter.weight(Units.kgToLb(value), WeightUnit.Lb, context.bare)
         }
         Metric.Micros -> formatter.percent(value)
         Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber -> grams(value, context)

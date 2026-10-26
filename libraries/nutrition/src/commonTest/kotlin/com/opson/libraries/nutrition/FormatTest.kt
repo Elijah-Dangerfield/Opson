@@ -79,6 +79,12 @@ class FormatTest {
     }
 
     @Test
+    fun weight_bareDropsTheUnit() {
+        assertEquals("72.6", full.text(Metric.Weight, 72.6, FormatContext(bare = true)))
+        assertEquals("160.1", full.text(Metric.Weight, 72.6, FormatContext(bare = true, weightUnit = WeightUnit.Lb)))
+    }
+
+    @Test
     fun micros_percent() {
         assertEquals("62%", full.text(Metric.Micros, 62.0))
         assertEquals("62%", full.text(Metric.Micros, 61.6))

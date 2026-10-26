@@ -98,7 +98,8 @@ object WeightStateBuilder {
 
         return WeightState(
             loading = false,
-            trend = policy.resolve(Metric.Weight, curve.trendKg, Surface.Weight, context).takeUnless { it is Display.Hidden },
+            // Bare: the screen sets the unit small beside the figure, as v3 draws it.
+            trend = policy.resolve(Metric.Weight, curve.trendKg, Surface.Weight, context.copy(bare = true)).takeUnless { it is Display.Hidden },
             latest = latest?.let { policy.resolve(Metric.Weight, it.kg, Surface.Weight, FormatContext(weightUnit = unit)) as? Display.Shown },
             latestWhen = if (shown && latest != null) {
                 weighInDayText(latest, inputs.today, inputs.timeZone)?.let(WeighInWhen::Day) ?: WeighInWhen.ThisMorning

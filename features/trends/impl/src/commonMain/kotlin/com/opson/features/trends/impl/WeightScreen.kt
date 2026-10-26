@@ -123,7 +123,16 @@ private fun SummaryCard(trend: Display, state: WeightState) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimension.D100)) {
                 Label(stringResource(Res.string.trends_weight_trend_label))
-                NutrientText(Metric.Weight, trend, typography = AppTheme.type.figureDisplay, color = AppTheme.colors.ink)
+                // The trend arrives bare, so the unit can sit small beside it.
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Dimension.D200)) {
+                    NutrientText(Metric.Weight, trend, typography = AppTheme.type.figureDisplay, color = AppTheme.colors.ink)
+                    Text(
+                        text = stringResource(state.unit.label),
+                        typography = AppTheme.type.cardTitle,
+                        color = AppTheme.colors.muted,
+                        modifier = Modifier.padding(bottom = Dimension.D100),
+                    )
+                }
             }
             state.latest?.let { latest ->
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Dimension.D100)) {
@@ -215,12 +224,7 @@ private fun LogCard(state: WeightState, onAction: (WeightAction) -> Unit) {
                 value = state.input,
                 onValueChange = { onAction(WeightAction.WeightTyped(it)) },
                 masked = state.inputMasked,
-                unit = stringResource(
-                    when (state.unit) {
-                        WeightUnit.Kg -> Res.string.trends_weight_unit_kg
-                        WeightUnit.Lb -> Res.string.trends_weight_unit_lb
-                    },
-                ),
+                unit = stringResource(state.unit.label),
                 keyboardActions = KeyboardActions(onDone = { onAction(WeightAction.SaveTapped) }),
                 modifier = Modifier.weight(1f),
             )
@@ -270,4 +274,10 @@ private val WeightRange.label
         WeightRange.W1 -> Res.string.trends_weight_range_1w
         WeightRange.M1 -> Res.string.trends_weight_range_1m
         WeightRange.M3 -> Res.string.trends_weight_range_3m
+    }
+
+private val WeightUnit.label
+    get() = when (this) {
+        WeightUnit.Kg -> Res.string.trends_weight_unit_kg
+        WeightUnit.Lb -> Res.string.trends_weight_unit_lb
     }

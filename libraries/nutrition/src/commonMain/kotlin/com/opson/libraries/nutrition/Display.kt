@@ -24,7 +24,7 @@ sealed interface Display {
  * Everything [VisibilityPolicy.resolve] needs besides the value.
  *
  * - [of]: the goal, for "47 g of 120 g", soften thresholds and bar fractions.
- * - [bare]: energy without the "kcal" suffix.
+ * - [bare]: energy without the "kcal" suffix, weight without "kg" or "lb".
  * - [day] / [dayClosed]: which day the number belongs to, for delayed reveal.
  *   `null` means today.
  * - [eaten] / [min] / [max]: only for [Metric.Remaining], to say "On target".
