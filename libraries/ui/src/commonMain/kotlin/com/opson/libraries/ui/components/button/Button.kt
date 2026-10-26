@@ -370,7 +370,8 @@ private fun backgroundColor(
     style != ButtonStyle.Filled -> null
     else -> when (type) {
         ButtonType.Primary -> accentSolid(accent)
-        ButtonType.Secondary -> AppTheme.colors.surfacePrimary
+        // The handoff's secondary buttons ("Today", "Raise") sit on the soft fill.
+        ButtonType.Secondary -> AppTheme.colors.soft
         ButtonType.Ghost -> null
         ButtonType.Danger -> AppTheme.colors.danger
     }
@@ -424,9 +425,9 @@ private fun contentColor(
     !enabled -> AppTheme.colors.textDisabled
     style == ButtonStyle.Filled -> when (type) {
         ButtonType.Primary -> onAccent(accent)
-        ButtonType.Secondary -> AppTheme.colors.onSurfacePrimary
-        ButtonType.Ghost -> AppTheme.colors.text
-        ButtonType.Danger -> AppTheme.colors.danger.onColor
+        ButtonType.Secondary -> AppTheme.colors.ink
+        ButtonType.Ghost -> AppTheme.colors.accent
+        ButtonType.Danger -> AppTheme.colors.onAccent
     }
     style == ButtonStyle.Outlined -> when (type) {
         ButtonType.Primary -> accentSolid(accent)
@@ -437,7 +438,8 @@ private fun contentColor(
     else -> when (type) { // Text
         ButtonType.Danger -> AppTheme.colors.danger
         ButtonType.Secondary -> AppTheme.colors.textSecondary
-        else -> AppTheme.colors.text
+        // Text buttons ("Stop asking these") are accent links in the handoff.
+        else -> AppTheme.colors.accent
     }
 }
 

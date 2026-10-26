@@ -1,25 +1,15 @@
 package com.opson.libraries.ui.components.chip
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.PreviewContent
-import com.opson.libraries.ui.components.text.Text
-import com.opson.system.AppTheme
-import com.opson.system.Dimension
-import com.opson.system.Radii
 import com.opson.system.VerticalSpacerD1000
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * Simple toggleable chip that reflects a selected state.
+ * Simple toggleable chip that reflects a selected state. Kept for existing callers; it is a
+ * [PillChip] now, so new code should call that directly.
  */
 @Composable
 fun SelectChip(
@@ -28,31 +18,7 @@ fun SelectChip(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Box(
-        modifier = modifier
-            .background(
-                color = if (selected) {
-                    AppTheme.colors.surfaceSecondary.color
-                } else {
-                    AppTheme.colors.surfacePrimary.color
-                },
-                shape = Radii.Round.shape
-            )
-            .border(
-                width = 2.dp,
-                color = if (selected) {
-                    AppTheme.colors.accentPrimary.color
-                } else {
-                    AppTheme.colors.border.color
-                },
-                shape = Radii.Round.shape
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = Dimension.D600, vertical = Dimension.D400),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = label, typography = AppTheme.typography.Label.L600)
-    }
+    PillChip(label = label, selected = selected, onClick = onClick, modifier = modifier)
 }
 
 

@@ -23,9 +23,9 @@ fun Card(
         contentColor = contentColor,
         onClick = onClick ?: {},
         bounceScale = if (onClick != null) 0.9f else 1f,
-        elevation = Elevation.Button,
+        elevation = Elevation.None,
         radius = Radii.Card,
-        contentPadding = PaddingValues(Dimension.D1000)
+        contentPadding = EdgeCardDefaults.ContentPadding
     ) {
         content()
     }
@@ -44,9 +44,9 @@ fun CardSecondary(
         contentColor = AppTheme.colors.onSurfaceSecondary,
         onClick = onClick ?: {},
         bounceScale = if (onClick != null) 0.9f else 1f,
-        elevation = Elevation.Button,
+        elevation = Elevation.None,
         radius = Radii.Card,
-        contentPadding = PaddingValues(Dimension.D1000)
+        contentPadding = EdgeCardDefaults.ContentPadding
     ) {
         content()
     }

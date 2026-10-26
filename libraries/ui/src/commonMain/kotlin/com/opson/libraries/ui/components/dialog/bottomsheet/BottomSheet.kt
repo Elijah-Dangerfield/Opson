@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.BottomSheetDefaults.DragHandle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
@@ -28,6 +27,7 @@ import com.opson.libraries.ui.system.LocalContentColor
 import com.opson.system.color.ProvideContentColor
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.components.text.Text
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -87,7 +87,8 @@ fun BottomSheet(
         sheetState = state.materialSheetStateDelegate,
         containerColor = backgroundColor.color,
         sheetGesturesEnabled = sheetGesturesEnabled,
-        scrimColor = AppTheme.colors.backgroundOverlay.color,
+        scrimColor = AppTheme.colors.scrim.color,
+        shape = AppTheme.shapes.sheet,
         properties = ModalBottomSheetProperties(
             shouldDismissOnBackPress = shouldDismissOnBackPress,
             shouldDismissOnClickOutside = shouldDismissOnClickOutside
@@ -97,10 +98,7 @@ fun BottomSheet(
             if (showDragHandle) {
                 dragHandle?.let {
                     it()
-                } ?: DragHandle(
-                    modifier = Modifier.fillMaxWidth(0.2f),
-                    color = contentColor.color
-                )
+                } ?: SheetHandle(modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
             }
         },
     ) {

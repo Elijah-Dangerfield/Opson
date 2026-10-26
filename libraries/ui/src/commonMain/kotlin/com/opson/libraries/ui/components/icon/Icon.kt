@@ -38,6 +38,21 @@ fun Icon(
     )
 }
 
+/** An icon at an exact size, for components that follow the handoff's pixel sizes (22, 26, 28...). */
+@Composable
+fun Icon(
+    icon: IconResource,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    color: ColorResource = com.opson.libraries.ui.system.LocalContentColor.current
+) {
+    androidx.compose.material3.Icon(
+        imageVector = icon.imageVector,
+        contentDescription = icon.contentDescription,
+        modifier = modifier.size(size),
+        tint = color.color
+    )
+}
 
 @Composable
 fun SmallIcon(

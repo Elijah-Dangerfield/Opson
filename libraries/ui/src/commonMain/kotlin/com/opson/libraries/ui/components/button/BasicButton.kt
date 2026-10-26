@@ -71,9 +71,8 @@ internal fun BasicButton(
             Surface(
                 modifier = Modifier.semantics { role = Role.Button },
                 radius = Radii.Button,
-                // When a deepColor is present the 3D lip replaces the drop
-                // shadow entirely, so no elevation there.
-                elevation = if (deepColor == null && backgroundColor != null) Elevation.Button else Elevation.None,
+                // The handoff's buttons are flat; the 3D lip is the only depth.
+                elevation = Elevation.None,
                 color = backgroundColor,
                 contentColor = contentColor,
                 border = borderColor?.let { Border(it, OutlinedButtonBorderWidth) },
@@ -176,46 +175,39 @@ internal fun ButtonSize.padding(hasIcon: Boolean): PaddingValues =
         ButtonSize.Large -> if (hasIcon) LargeButtonWithIconPadding else LargeButtonPadding
     }
 
-// Typography scale for buttons - uses Label typography (1.2x line height)
-// designed specifically for UI elements. Body typography (1.5x) is for reading,
-// not buttons, so we avoid it even for text-only buttons.
-//
-// Size progression:
-// - ExtraSmall: L400 (10sp) - Minimal UI like chips, badges
-// - Small: L500 (12sp) - Compact buttons in toolbars
-// - Medium: L600 (14sp) - Most common button size
-// - Large: L600.SemiBold (14sp, heavier weight) - Primary CTAs
+// Button type follows the handoff: sentence case, 700 weight. Large is the 1em primary
+// call to action (52dp tall), Medium and Small the 0.875em pill and inline buttons.
 
 private val ExtraSmallButtonTextConfig: TextConfig
     @Composable get() = TextConfig(
-        typography = AppTheme.typography.Label.L400,
+        typography = AppTheme.type.secondarySmallStrong,
         overflow = TextOverflow.Ellipsis,
         maxLines = 1,
-        allCaps = true
+        allCaps = false
     )
 
 private val SmallButtonTextConfig: TextConfig
     @Composable get() = TextConfig(
-        typography = AppTheme.typography.Label.L500,
+        typography = AppTheme.type.buttonSmall,
         overflow = TextOverflow.Ellipsis,
         maxLines = 1,
-        allCaps = true
+        allCaps = false
     )
 
 private val MediumButtonTextConfig: TextConfig
     @Composable get() = TextConfig(
-        typography = AppTheme.typography.Label.L600,
+        typography = AppTheme.type.buttonSmall,
         overflow = TextOverflow.Ellipsis,
         maxLines = 1,
-        allCaps = true
+        allCaps = false
     )
 
 private val LargeButtonTextConfig: TextConfig
     @Composable get() = TextConfig(
-        typography = AppTheme.typography.Label.L600.SemiBold,
+        typography = AppTheme.type.button,
         overflow = TextOverflow.Ellipsis,
         maxLines = 1,
-        allCaps = true
+        allCaps = false
     )
 
 
@@ -260,16 +252,17 @@ private val MediumButtonWithIconPadding = PaddingValues(
     bottom = Dimension.D600
 )
 
+// 15dp vertical on 1em text gives the handoff's 52dp primary button.
 private val LargeButtonPadding = PaddingValues(
-    horizontal = Dimension.D900,
-    vertical = Dimension.D900
+    horizontal = 18.dp,
+    vertical = 15.dp
 )
 
 private val LargeButtonWithIconPadding = PaddingValues(
-    start = Dimension.D800,       // 20dp start (reduced, icon adds weight)
-    end = Dimension.D900,          // 24dp end (extra space for icon)
-    top = Dimension.D900,          // 16dp vertical (same as text-only)
-    bottom = Dimension.D900
+    start = 16.dp,
+    end = 18.dp,
+    top = 15.dp,
+    bottom = 15.dp
 )
 
 private val ButtonIconSpacing = Dimension.D200

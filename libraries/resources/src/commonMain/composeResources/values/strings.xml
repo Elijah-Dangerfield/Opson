@@ -141,4 +141,12 @@ Build something amazing!</string>
     <string name="shake_report_a_bug">Report a bug</string>
     <string name="shake_dismiss">Dismiss</string>
 
+    <!-- Design system components (accessibility labels) -->
+    <string name="ds_close">Close</string>
+    <string name="ds_previous">Previous</string>
+    <string name="ds_next">Next</string>
+    <string name="ds_page_of">Page %1$d of %2$d</string>
+    <string name="ds_less">Less</string>
+    <string name="ds_more">More</string>
+
 </resources>
