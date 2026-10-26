@@ -1,52 +1,56 @@
-# Where Opson stands (paused 2026-10-26)
+# Where Opson stands (2026-10-26, evening)
 
-Work stopped mid-flight on purpose. Nothing is lost: finished work is on
-`main`, and the three in-progress screen reworks are committed as checkpoints
-on their own branches.
+Everything below is on `main` and pushed.
 
-## On `main` and deployed
+## Shipped to main
 
-- Foundation: visibility policy, design system, server (sync, search,
-  describe, export), local-first data layer with sync, app shell and tabs.
-- Screens built to the first handoff: Onboarding, Logger, More/Settings,
-  Trends (with Nutrients and Weight).
-- Food catalog: USDA generic foods (13k) and USDA Branded (432k products with
-  barcodes), source tiers and `verified`, pluggable paid sources (off).
-- Every `@Preview` renders to a screenshot (`:apps:screenshots`), and
-  `scripts/design_sync.main.kts` syncs with Claude Design. Skill: `design-sync`.
-- Design v3 from Claude Design is in `docs/design/v3/` with `CHANGES.md`.
-  **v3 is the spec now.**
-- New app icon on iOS and Android.
-- Supabase: `opson-dev` and `opson-prod` (Nightjar Labs). Prod Fly server is
-  wired to `opson-prod`; prod deploys need approval in the `production`
-  GitHub environment.
-- Grafana: Opson folder, 8 dashboards, `opson-db` datasource on dev.
-- App Store Connect: app record, listing, privacy labels, age rating, price.
+- Every 0.1 screen at design v3: Onboarding, Today (Undo after adding, Mark as
+  untracked, Explorer's food bridge, Blind's day feeling), Logger, Foods,
+  Trends with Nutrients, Weight and Patterns, More/Modes/Targets/Support.
+- `BlindModeLeakTest` across every surface (`:apps:leaktest`), tokens and type
+  scale measured from v3, one theme per screen preview.
+- Food catalog: USDA generic and Branded (445,414 foods) in dev and prod.
+- Open Food Facts: `off_foods` table (V12), importer with an atomic monthly
+  reload, benchmark script. **Not loaded anywhere and not in search.** See
+  "Open Food Facts" below.
+- Text fields keep fast typing (a value no longer round-trips through the
+  ViewModel and eats keystrokes), and the search field's Search key closes
+  the keyboard.
+- iOS is iPhone-only for 0.1 (`TARGETED_DEVICE_FAMILY = 1`).
 
-## Merged since the pause
+## App Store
 
-Today, Logger, and More/Modes/Targets/Support are all at v3 and on `main`,
-along with the shared ui changes (top app bar `PageHeader`, 48 dp touch
-targets, bars capped at 100%), the reveal-time setting and goal styles.
+- Listing, privacy labels, age rating, price, review notes: done.
+- Five 6.9-inch screenshots from the real app are uploaded; the files are in
+  `docs/app-store/screenshots/`.
+- TestFlight build from the latest main is in CI; once it processes it gets
+  attached to 0.1.0 and submitted.
 
-## In progress (agent worktrees under `.claude/worktrees/`)
+## Open Food Facts
 
-- Onboarding to v3.
-- Trends to v3, plus the new Patterns screen.
-- Foods to v3, including the Logger's pick-for-this-meal mode.
+Size and speed, measured on a local Postgres sized like dev: 3.29M products,
+2.1 GB with indexes. Search p50 66 ms, but p95 1.3 s and p99 5.7 s: short
+prefixes and common words scan too many rows. Details in
+`docs/food-data-sources.md`.
 
-## Not started yet
+Before it goes anywhere near search or prod:
 
-1. Today follow-ups: the 6 s Undo snackbar fed by `RecentLogEvents`
-   (`docs/plans/screens/logger.md`, "After adding"), Mark as untracked, the
-   Explorer food bridge, Blind's "How did today feel?" chips.
-4. `BlindModeLeakTest` across every surface (`docs/plans/screens/blind-leak-test.md`).
-5. Sweep screen previews that use `PreviewLightDark` (one theme per screen).
-6. ~~Prod data~~ done: both databases hold all 445,414 foods, prod has its
-   `grafana_ro` login and `opson-prod-db` datasource, and the dashboards have a
-   Database dropdown. Left: set the `CATALOG_DATABASE_URL` repo secret (prod
-   pooler URL) so the monthly refresh runs; until then it skips with a notice.
-7. iOS build to TestFlight, screenshots from the simulator, submit 0.1.
+1. Bound the search candidates (minimum prefix length, a per-tier cap, or a
+   hot subset ranked by `scans`), then re-run `scripts/bench_off_search.py`.
+2. Load dev and benchmark there. Dev's disk is now 12 GB; the first attempt
+   hit the old size and Supabase put dev in read-only mode for about 15
+   minutes.
+3. Prod's disk is **2 GB**. A reload holds two copies, so grow it to fit
+   about 6 GB on top of what's there before any load.
+4. Then set the repo variable `OFF_IMPORT_ENABLED=true` for the monthly job.
+
+## Found while taking screenshots (not fixed yet)
+
+- Search ranking: "brown rice" puts a branded "Crispy Sushi Rice Patties"
+  (brand "Rice Browns") above plain brown rice.
+- Default serving: blueberries default to "1 berry, 1 kcal". The importer
+  should prefer a cup or a typical serving over a single piece for small
+  items.
 
 ## At the end: the Opson website
 
@@ -57,9 +61,9 @@ domains without code changes.
   Downcard (the Cards project) does its site**. Study that site's structure,
   stack and deploy before starting.
 - A **waitlist signup** that lands somewhere the owner can contact people
-  from (a database table, e.g. a `waitlist` table in Supabase behind a server
-  endpoint or an edge function, with email, created_at and source). Include
-  abuse protection and a way to export or view the list.
+  from (a `waitlist` table in Supabase behind a server endpoint or an edge
+  function, with email, created_at and source). Include abuse protection and
+  a way to export or view the list.
 - Privacy and terms: the app's `legal/` files are already published at
   nightjarlabs.llc/opson/privacy and /terms; the site should link to or reuse
   them rather than fork the text, and the waitlist needs its own privacy
@@ -67,10 +71,13 @@ domains without code changes.
 
 ## Needs you
 
+- Set the `CATALOG_DATABASE_URL` repo secret (prod pooler URL) so the monthly
+  USDA refresh runs.
 - `/design-login` in a `claude` terminal, so the `claude_design` connector
-  works (the `design-sync` skill covers it until then).
-- Decide the default palette: the new icon is Espresso's accent; the app
-  defaults to Pine.
+  works.
+- Decide the default palette: the icon is Espresso's accent; the app defaults
+  to Pine.
 - Before public launch: a dietitian sets `GOAL_FLOOR_KCAL` and the maximum
   deficit; a clinician reviews the copy marked `TODO(clinician)`; check the
-  helpline and provider links marked `TODO(launch)`.
+  helpline and provider links marked `TODO(launch)` (both open the Alliance's
+  home page today).
