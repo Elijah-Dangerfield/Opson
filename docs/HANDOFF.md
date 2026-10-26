@@ -1,4 +1,4 @@
-# Where Opson stands (2026-10-26, evening)
+# Where Opson stands (2026-10-26, night)
 
 ## 0.1.0
 
@@ -13,28 +13,24 @@ prod as it is.
 | Feature | Flag | State |
 |---|---|---|
 | Barcode scan, typed codes, misses logged for Grafana | `release.barcode` | Merged. Real-camera test pending. |
-| Integrations, Apple Health / Health Connect, Expended so far | `release.health` | Merged. Entitlement held back. Range question in progress. |
+| Integrations, Health, Expended, exercise in the range, days left out | `release.health` | Merged. Entitlement held back. |
 | Reminders and notifications | `release.reminders` | Merged. Real-device delivery untested. |
 | Fasting (Full and Sprint only, opt-in, 16 h cap) | `release.fasting` | Merged. |
+| Voice log in Describe | `release.voice` | Merged. Simulator reads as no microphone; try on a phone. |
+| Photo estimate | `release.photo` | Merged. Needs `ANTHROPIC_API_KEY` on the server. |
+| Home screen widgets | `release.widgets` | Kotlin, More row and page merged. Native widget and receiver held on `hold/0.2-widgets-native`. |
 | Search ranking, default servings, bounded Open Food Facts search | `FOOD_SEARCH_OFF_ENABLED` (server) | Merged, on dev. |
 
-All four app flags are switched on in dev's remote config, so the Debug app
-shows them. Prod config is untouched.
+Also merged: a v3 design polish pass (amounts read "¼ cup", Blind Patterns
+shows no meal gaps, Targets fits at large text). Every app flag is on in
+dev's remote config so the Debug app shows them; prod config is untouched.
 
-Fixed along the way: fast typing dropped letters in every text field; a
-launch crash on iOS from reminders; settings sync now merges instead of
-replacing, so a 0.1 phone can't erase 0.2 settings.
+Each merge is checked with detekt, the module tests, the Blind leak test,
+the server tests, an iOS simulator build and `scripts/ios_launch_smoke.sh`,
+plus a walk through the feature in the simulator.
 
 **What has to happen before 0.2 ships** is in
-`docs/plans/0.2/release-checklist.md` (entitlements to put back, Play health
-declaration, privacy wording, prod deploy, prod backfill, Open Food Facts load).
-
-## In progress
-
-Wave 2, each in its own worktree: photo estimate, voice log, the health
-"Should exercise change your range?" question, home screen widgets, and a v3
-design polish pass over Onboarding, Trends, Foods, Day close, Modes, Support
-and More.
+`docs/plans/0.2/release-checklist.md`.
 
 ## Design sync
 
