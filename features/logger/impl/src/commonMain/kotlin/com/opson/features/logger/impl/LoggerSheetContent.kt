@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +41,7 @@ import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.CircularLoadingIndicator
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.MenuItem
 import com.opson.libraries.ui.components.PopoverMenu
@@ -61,6 +63,8 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.color.ToneColors
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.barcode_scan_cd
 import opson.libraries.resources.generated.resources.logger_add_to
@@ -93,6 +97,7 @@ import opson.libraries.resources.generated.resources.logger_offline_results
 import opson.libraries.resources.generated.resources.logger_recent
 import opson.libraries.resources.generated.resources.logger_search_clear_cd
 import opson.libraries.resources.generated.resources.logger_search_placeholder
+import opson.libraries.resources.generated.resources.logger_searching_cd
 import opson.libraries.resources.generated.resources.logger_this_meal
 import opson.libraries.resources.generated.resources.logger_usual_around
 import opson.libraries.resources.generated.resources.logger_usual_at
@@ -329,7 +334,7 @@ private fun LazyListScope.body(body: LoggerBody, describable: Boolean, onAction:
                 color = AppTheme.colors.muted,
             )
         }
-        LoggerBody.Searching -> Unit
+        LoggerBody.Searching -> item(key = "searching") { SearchingIndicator() }
         is LoggerBody.NoResults -> {
             if (body.offline) item(key = "offline") { OfflineCaption() }
             item(key = "no-results") { NoResults(body.query, describable, onAction) }
@@ -366,6 +371,28 @@ private fun LazyListScope.body(body: LoggerBody, describable: Boolean, onAction:
         }
     }
 }
+
+/** Shown only once a search has run past [SEARCHING_INDICATOR_DELAY], so fast answers don't flash a spinner. */
+@Composable
+private fun SearchingIndicator() {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(SEARCHING_INDICATOR_DELAY)
+        visible = true
+    }
+    val searchingDescription = stringResource(Res.string.logger_searching_cd)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = AppTheme.spacing.section)
+            .semantics { contentDescription = searchingDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (visible) CircularLoadingIndicator()
+    }
+}
+
+private val SEARCHING_INDICATOR_DELAY = 500.milliseconds
 
 @Composable
 private fun OfflineCaption() {
