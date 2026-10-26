@@ -36,7 +36,10 @@ plus a walk through the feature in the simulator.
 
 All 405 app screens are published for Claude Design:
 https://raw.githubusercontent.com/Elijah-Dangerfield/Opson/design-sync/app/manifest.json
-Give that URL to Claude Design so its exports use the app's screen ids.
+Give that URL to Claude Design so its exports use the app's screen ids. To sync
+design to app, export the screens as PNGs and drop the folder or zip anywhere;
+`scripts/design_sync.main.kts import <path>` pairs and compares them. (There is
+no `/design-login`; the PNG route is the way.)
 
 ## Queued, don't start yet
 
@@ -57,7 +60,6 @@ privacy wording.
 - GitHub › Settings › Actions › General: allow GitHub Actions to create pull
   requests, or release-please keeps failing.
 - Photo estimate will need an `ANTHROPIC_API_KEY` on the server.
-- `/design-login` in a `claude` terminal so the Claude Design connector works.
 - Set the `CATALOG_DATABASE_URL` repo secret (prod pooler URL) for the monthly
   USDA refresh.
 - Default palette: the icon is Espresso's accent; the app defaults to Pine.
