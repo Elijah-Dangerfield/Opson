@@ -25,6 +25,7 @@ apps/server/admin-web/*
 # Server runtime secrets. Real values live in apps/server/.env locally
 # and in Fly.io secrets in production. Only .env.example is committed.
 apps/server/.env
+apps/server/.env.prod
 apps/server/.env.local
 apps/server/.env.*.local
 
