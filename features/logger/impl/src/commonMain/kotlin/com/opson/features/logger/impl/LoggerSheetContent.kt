@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -93,6 +94,7 @@ import opson.libraries.resources.generated.resources.logger_recent
 import opson.libraries.resources.generated.resources.logger_search_clear_cd
 import opson.libraries.resources.generated.resources.logger_search_placeholder
 import opson.libraries.resources.generated.resources.logger_this_meal
+import opson.libraries.resources.generated.resources.logger_usual_around
 import opson.libraries.resources.generated.resources.logger_usual_at
 import opson.libraries.resources.generated.resources.search_badge_branded
 import opson.libraries.resources.generated.resources.search_badge_off
@@ -151,7 +153,9 @@ private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
             focusOnOpen = state.focusSearch,
             onClear = { onAction(LoggerAction.SearchCleared) },
             clearDescription = stringResource(Res.string.logger_search_clear_cd),
-            modifier = Modifier.padding(horizontal = AppTheme.spacing.page),
+            modifier = Modifier
+                .padding(horizontal = AppTheme.spacing.page)
+                .onFocusChanged { if (it.isFocused) onAction(LoggerAction.SearchFocused) },
             trailing = if (state.canScan) {
                 { BarcodeButton(onClick = { onAction(LoggerAction.BarcodeTapped) }) }
             } else {
@@ -163,13 +167,26 @@ private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
         )
         state.options?.tabs?.let { tabs -> SearchTabs(tabs, state.options.tab, onAction) }
         if (state.methods.isNotEmpty()) {
+            // One row that scrolls sideways, so the list starts sooner; the design lets the last chip run off the edge.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = AppTheme.spacing.chip)
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = AppTheme.spacing.page),
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+            ) {
+                state.methods.forEach { method -> MethodChip(method, onAction) }
+            }
+        }
+        if (state.quickMethods.isNotEmpty()) {
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, top = AppTheme.spacing.chip),
                 horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
             ) {
-                state.methods.forEach { method -> MethodChip(method, onAction) }
+                state.quickMethods.forEach { method -> MethodChip(method, onAction) }
             }
         }
         LazyColumn(
@@ -331,7 +348,14 @@ private fun LazyListScope.body(body: LoggerBody, describable: Boolean, onAction:
         is LoggerBody.Browse -> {
             if (body.usual.isNotEmpty()) {
                 item(key = "usual-label") {
-                    SectionLabel(stringResource(Res.string.logger_usual_at, stringResource(body.slot.sentenceName)))
+                    val around = body.usualAround
+                    SectionLabel(
+                        if (around != null) {
+                            stringResource(Res.string.logger_usual_around, DateCopy.time(around.hour, around.minute))
+                        } else {
+                            stringResource(Res.string.logger_usual_at, stringResource(body.slot.sentenceName))
+                        },
+                    )
                 }
                 item(key = "usual") { FoodRows(body.usual, onAction) }
             }
@@ -362,6 +386,7 @@ private fun FoodRows(rows: List<FoodRowUi>, onAction: (LoggerAction) -> Unit) {
                 onOpen = { onAction(LoggerAction.FoodNameTapped(row)) },
                 onToggle = { onAction(LoggerAction.FoodToggleTapped(row)) },
                 iconSeed = row.key,
+                kind = row.kind,
                 showDivider = index < rows.lastIndex,
                 source = row.badge?.let { stringResource(it.label) },
                 sourceAccent = row.badge == SourceBadge.YourFood,

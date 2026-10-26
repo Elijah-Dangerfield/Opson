@@ -27,7 +27,7 @@ import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
-import com.opson.libraries.ui.components.Banner
+import com.opson.libraries.ui.components.NoteBanner
 import com.opson.libraries.ui.components.CircularProgressIndicator
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.ListRow
@@ -304,7 +304,7 @@ private fun ColumnScope.ReviewBody(state: PhotoEstimateState, review: PhotoStage
             }
         }
     }
-    Banner(stringResource(if (review.usedNote) Res.string.photo_banner_note else Res.string.photo_banner))
+    NoteBanner(stringResource(if (review.usedNote) Res.string.photo_banner_note else Res.string.photo_banner))
 }
 
 @Composable
@@ -319,7 +319,8 @@ private fun EstimateRow(row: PhotoRowUi, editing: Boolean, onAction: (PhotoEstim
             TapField(
                 text = row.name,
                 onClick = { onAction(PhotoEstimateAction.RowNameTapped(row.key)) },
-                modifier = Modifier.weight(1f),
+                // The name gets the room: the lines are the focus (3.7).
+                modifier = Modifier.weight(NAME_WEIGHT),
                 description = stringResource(Res.string.photo_food_cd, row.name),
             )
             TapField(
@@ -466,3 +467,5 @@ private fun SwapPane(swap: PhotoStage.Swap, onAction: (PhotoEstimateAction) -> U
         }
     }
 }
+
+private const val NAME_WEIGHT = 1.4f
