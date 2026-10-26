@@ -42,6 +42,18 @@
 	  something specific to declare; a placeholder is worse than its absence.
 	-->
 	<!--
+	  Read-only HealthKit: active energy, resting energy and workouts, for
+	  "Expended so far" (HealthKitReader). The prompt only appears when someone
+	  taps Connect under More, Watch and health apps, which ships behind the
+	  release.health flag. There is deliberately no NSHealthUpdateUsageDescription:
+	  Opson never writes to Health, and declaring it would be a claim the
+	  binary does not back. The entitlement is com.apple.developer.healthkit in
+	  iosApp.entitlements; the bundle id needs the HealthKit capability in the
+	  developer portal too, or signing fails.
+	-->
+	<key>NSHealthShareUsageDescription</key>
+	<string>Opson reads your active energy, resting energy and workouts to show what you've expended today. It stays on your phone.</string>
+	<!--
 	  The export compliance answer, stated once here instead of by hand on every
 	  upload. Without it a build finishes processing and then sits in TestFlight
 	  as "Missing Compliance", installable by nobody, until someone opens App
