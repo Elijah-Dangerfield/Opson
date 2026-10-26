@@ -144,9 +144,15 @@ a preview. Components take strings and fractions; none formats a nutrition numbe
 
 - Port Cards' `TabRoute`, `Router.switchTab`, `enterTab`, `tabReselects`,
   `notifyTabReselected` and the `DelegatingRouter` implementation (see `shell.md`).
-- `Router.shareFile(name, mimeType, bytes)` on a new `FileShareLauncher` seam
-  (Android `FileProvider` plus `ACTION_SEND`, iOS `UIActivityViewController` from
-  Swift through `IosAppComponentFactory`). Support needs it for the CSV export.
+- Built: `Router.shareFile(name, mimeType, bytes)` on a `FileShareLauncher` seam.
+  Android: `AndroidFileShareLauncher` writes `cache/shared/<name>` and sends
+  `ACTION_SEND` through the chooser with a `content://` URI from
+  `ShareFileProvider` (authority `${applicationId}.fileshare`, paths in
+  `res/xml/file_share_paths.xml`). iOS: `IosFileShareLauncher` writes
+  `tmp/shared/<name>` in Kotlin and calls the Swift `FileSharePresenter`
+  (`IOSFileSharePresenter`, `UIActivityViewController`), passed in through
+  `IosAppComponent`'s `create(...)`. Swift gets a path, not the bytes. No JVM
+  target exists, so there is no JVM impl. Support needs it for the CSV export.
 
 ## 0.1 scope gates
 

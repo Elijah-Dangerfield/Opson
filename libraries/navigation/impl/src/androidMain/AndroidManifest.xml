@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Router.shareFile: exports go out through a content:// URI with a one-off read
+             grant, so the app never needs storage permission. The authority must match
+             ShareFileProvider.authority(). -->
+        <provider
+            android:name="com.opson.libraries.navigation.impl.ShareFileProvider"
+            android:authorities="${applicationId}.fileshare"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_share_paths" />
+        </provider>
+    </application>
+</manifest>

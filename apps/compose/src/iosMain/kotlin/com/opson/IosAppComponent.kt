@@ -2,6 +2,7 @@ package com.opson
 
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.SecureSessionStorage
+import com.opson.libraries.navigation.FileSharePresenter
 import com.opson.libraries.opson.PermissionManager
 import com.opson.libraries.review.ReviewLauncher
 import com.opson.libraries.ui.nativeviews.NativeViewFactory
@@ -22,6 +23,10 @@ abstract class IosAppComponent(
     // store), passed in from `iOSApp.swift`. Android binds
     // EncryptedSessionStorage via anvil.
     private val secureSessionStorage: SecureSessionStorage,
+    // The Swift `IOSFileSharePresenter` (UIActivityViewController), passed in
+    // from `iOSApp.swift` for Router.shareFile. Android shares through a
+    // FileProvider bound via anvil.
+    private val fileSharePresenter: FileSharePresenter,
     val nativeViewFactory: NativeViewFactory
 ) : AppComponent {
 
@@ -36,6 +41,9 @@ abstract class IosAppComponent(
 
     @Provides
     fun provideSecureSessionStorage(): SecureSessionStorage = secureSessionStorage
+
+    @Provides
+    fun provideFileSharePresenter(): FileSharePresenter = fileSharePresenter
 }
 
 
@@ -45,5 +53,6 @@ expect fun create(
     reviewLauncher: ReviewLauncher,
     appleSignInCoordinator: AppleSignInCoordinator,
     secureSessionStorage: SecureSessionStorage,
+    fileSharePresenter: FileSharePresenter,
     nativeViewFactory: NativeViewFactory
 ): IosAppComponent

@@ -9,6 +9,7 @@ struct iOSApp: App {
     let reviewLauncher = IOSReviewLauncher()
     let appleSignInCoordinator = IOSAppleSignInCoordinator()
     let secureSessionStorage = IOSSecureSessionStorage()
+    let fileSharePresenter = IOSFileSharePresenter()
     private let nativeViewFactory = IOSNativeViewFactory.shared
     private let iOSAppComponent: IosAppComponent
 
@@ -18,6 +19,7 @@ struct iOSApp: App {
             reviewLauncher: reviewLauncher,
             appleSignInCoordinator: appleSignInCoordinator,
             secureSessionStorage: secureSessionStorage,
+            fileSharePresenter: fileSharePresenter,
             nativeViewFactory: nativeViewFactory
         )
         iOSAppComponent.telemetry.initialize()

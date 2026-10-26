@@ -33,5 +33,10 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.kotlinx.serialization.json)
         }
+
+        androidMain.dependencies {
+            // FileProvider, for Router.shareFile.
+            implementation(libs.androidx.core.ktx)
+        }
     }
 }

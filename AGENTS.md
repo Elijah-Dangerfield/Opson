@@ -197,6 +197,8 @@ navigation<MyGraph>(startDestination = MyRoute()) { screen<...>; bottomSheet<...
 
 **Open external URLs via `Router.openWebLink(url)`**, don't roll your own platform `Intent.ACTION_VIEW` / `UIApplication.shared.open` plumbing. The implementation is in `libraries/navigation/impl/.../{Android,Ios,Jvm}WebLinkLauncher.kt` and is already wired into the DI graph and the `Router` interface.
 
+**Share a file via `Router.shareFile(name, mimeType, bytes)`** (exports). Android writes it to `cache/shared/` and opens the chooser through `ShareFileProvider`; iOS writes it to `tmp/shared/` in Kotlin and the Swift `IOSFileSharePresenter` (passed into `create(...)` in `iOSApp.swift`) shows `UIActivityViewController`. Swift only ever gets a path, never a `KotlinByteArray`.
+
 ## App-wide state
 
 `AppData` (in `libraries/<projectid>/.../AppCache.kt`) is a `@Serializable` data class persisted via `CacheFactory.persistent`. Add fields here for things like:

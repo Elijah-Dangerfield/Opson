@@ -58,6 +58,13 @@ interface Router {
     fun batch(block: RouterBatch.() -> Unit)
 
     fun openWebLink(url: String)
+
+    /**
+     * Opens the platform share sheet for a file built in memory, for exports. The user picks where
+     * it goes (Files, Mail, AirDrop, Drive); the app never sends it anywhere itself. Failure to
+     * open the sheet is logged, like [openWebLink], since there is nothing a screen can do about it.
+     */
+    fun shareFile(name: String, mimeType: String, bytes: ByteArray)
 }
 
 /**

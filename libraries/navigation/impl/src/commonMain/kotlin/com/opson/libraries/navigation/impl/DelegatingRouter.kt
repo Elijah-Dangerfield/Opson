@@ -28,6 +28,7 @@ import com.opson.libraries.navigation.TabRoute
 import com.opson.libraries.navigation.enterTab
 import com.opson.libraries.navigation.switchTab
 import com.opson.libraries.navigation.WebLinkLauncher
+import com.opson.libraries.navigation.FileShareLauncher
 import com.opson.libraries.navigation.NavigableWhileBlocked
 import com.opson.libraries.navigation.TrackableRoute
 import kotlinx.coroutines.CompletableDeferred
@@ -53,6 +54,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 class DelegatingRouter(
     private val appScope: AppCoroutineScope,
     private val webLinkLauncher: WebLinkLauncher,
+    private val fileShareLauncher: FileShareLauncher,
     private val navigationTracker: NavigationTracker,
 ) : Router, NavigationRecovery {
 
@@ -218,6 +220,14 @@ class DelegatingRouter(
         webLinkLauncher
             .open(url)
             .logOnFailure("Failed to open web link: $url")
+            .throwIfDebug()
+    }
+
+    override fun shareFile(name: String, mimeType: String, bytes: ByteArray) {
+        // The name and type only: the bytes are an export of the user's diary.
+        fileShareLauncher
+            .share(name, mimeType, bytes)
+            .logOnFailure("Failed to share file: $name ($mimeType)")
             .throwIfDebug()
     }
     @Composable
