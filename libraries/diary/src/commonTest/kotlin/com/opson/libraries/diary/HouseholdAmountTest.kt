@@ -95,6 +95,32 @@ class HouseholdAmountTest {
     }
 
     @Test
+    fun tidyRewritesWhatOlderBuildsSaved() {
+        assertEquals("1½ cups", HouseholdAmount.tidy("1.5 × 1 cup"))
+        assertEquals("2 medium", HouseholdAmount.tidy("2 × 1 medium"))
+        assertEquals("2 bars", HouseholdAmount.tidy("2 bar"))
+        assertEquals("150 g", HouseholdAmount.tidy("150 g"))
+        assertEquals("", HouseholdAmount.tidy(""))
+    }
+
+    @Test
+    fun aLoggedEntryReadsItsAmountTidied() {
+        val old = LogItem(
+            id = "i",
+            day = kotlinx.datetime.LocalDate(2026, 10, 25),
+            slot = MealSlot.Breakfast,
+            loggedAt = kotlin.time.Instant.fromEpochSeconds(0),
+            name = "Oats",
+            precision = Precision.Estimate,
+            method = LogMethod.Search,
+            amountText = "0.25 cup",
+        )
+        assertEquals("¼ cup", old.amountLabel)
+        assertEquals("1½ cups", old.toDraft().copy(amountText = "1.5 × 1 cup").amountLabel)
+        assertEquals("", old.copy(amountText = null).amountLabel)
+    }
+
+    @Test
     fun aCustomFoodsServingReadsInItsOwnUnit() {
         val bar = CustomFood(id = "c", name = "Oat bar", servingAmount = 1.0, servingUnit = "bar")
         val granola = CustomFood(id = "g", name = "Granola", servingAmount = 30.0, servingUnit = "g")

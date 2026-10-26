@@ -49,11 +49,21 @@ object HouseholdAmount {
     }
 
     /**
-     * Text someone else wrote ("1 1/2 cups", "0.25 cup") rewritten the same way, when it starts
-     * with an amount. Anything else ("a handful") comes back as it was.
+     * Text someone else wrote, or an older build saved ("1 1/2 cups", "0.25 cup", "2 bar",
+     * "1.5 × 1 cup"), rewritten the same way when it starts with an amount. Anything else
+     * ("a handful") comes back as it was.
      */
-    fun tidy(text: String): String =
-        if (LEADING_AMOUNT.containsMatchIn(text.trim())) ofPortion(text) else text
+    fun tidy(text: String): String {
+        val trimmed = text.trim()
+        if (!LEADING_AMOUNT.containsMatchIn(trimmed)) return text
+        // "1.5 × 1 cup": a count of a portion, as amounts were written before fractions.
+        val times = trimmed.indexOf(TIMES)
+        if (times > 0) {
+            val count = split(trimmed.substring(0, times)).first
+            return ofPortion(trimmed.substring(times + TIMES.length), count)
+        }
+        return ofPortion(trimmed)
+    }
 
     /** The label without its leading amount: "1 cup" is "cup", "1/2 cup, sliced" is "cup, sliced". */
     fun unitOf(label: String): String = split(label).second
@@ -128,6 +138,7 @@ object HouseholdAmount {
     }
 
     private const val SNAP = 0.02
+    private const val TIMES = " × "
 
     private val FRACTIONS = listOf(
         0.125 to "⅛",

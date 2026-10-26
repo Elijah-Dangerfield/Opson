@@ -72,6 +72,15 @@ class PatternsStateBuilderTest {
     }
 
     @Test
+    fun blind_whenMealsHappen_neverTheGapsBetweenThem() {
+        val facts = assertNotNull(build(PresetId.Blind).timing).facts
+        assertTrue(facts.all { it is TimingFact.Usually }, "gaps can feed restriction: $facts")
+        // Other gentle modes keep them: the gap is a time, and only Blind opts out.
+        val rhythm = assertNotNull(build(PresetId.Rhythm).timing).facts
+        assertTrue(rhythm.any { it is TimingFact.LongestGap })
+    }
+
+    @Test
     fun delayed_beforeTheReveal_leavesTodayOutOfTheSizes() {
         val inputs = TrendsFixtures.patternsInputs()
         val beforeToday = TrendsFixtures.patternsInputs(days = inputs.days.filter { it.date < TrendsFixtures.today })

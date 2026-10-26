@@ -197,7 +197,7 @@ class TodayStateBuilderTest {
 
         assertEquals(MealCount(3, 4), soft.mealCount)
         assertEquals(Metric.Protein, soft.lead?.metric)
-        assertEquals("51 g of 120 g", soft.lead?.display?.text())
+        assertEquals("51 of 120 g", soft.lead?.display?.text())
         assertEquals(listOf(Metric.Fiber), soft.rows.map { it.metric })
         assertEquals("Partway through", soft.energy.text())
         val breakfast = assertIs<MealEntry.Full>(build(PresetId.Fuel).meals.first()).card

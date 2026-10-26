@@ -97,11 +97,7 @@ internal fun ComposeContentTestRule.scan(): LeakScan {
             .map { Tagged(metric, it.texts().joinToString(" ")) }
     }
 
-    // Text, editable text and content descriptions in tree order, joined with single spaces, so
-    // "Energy" "190" "kcal" in sibling nodes reads "Energy 190 kcal" as it does on screen.
-    val segments = onAllNodes(isRoot(), useUnmergedTree = true).fetchSemanticsNodes()
-        .flatMap { root -> root.depthFirst() }
-        .flatMap { node -> node.texts() }
+    val segments = segments()
     val joined = StringBuilder()
     val starts = segments.map { text ->
         if (joined.isNotEmpty()) joined.append(' ')
@@ -115,6 +111,15 @@ internal fun ComposeContentTestRule.scan(): LeakScan {
     }.toList()
     return LeakScan(tagged, hits)
 }
+
+/**
+ * Text, editable text and content descriptions in tree order, every window included, so
+ * "Energy" "190" "kcal" in sibling nodes reads "Energy 190 kcal" once joined, as it does on screen.
+ */
+internal fun ComposeContentTestRule.segments(): List<String> =
+    onAllNodes(isRoot(), useUnmergedTree = true).fetchSemanticsNodes()
+        .flatMap { root -> root.depthFirst() }
+        .flatMap { node -> node.texts() }
 
 private fun SemanticsNode.depthFirst(): List<SemanticsNode> = listOf(this) + children.flatMap { it.depthFirst() }
 

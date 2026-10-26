@@ -23,7 +23,7 @@ sealed interface Display {
 /**
  * Everything [VisibilityPolicy.resolve] needs besides the value.
  *
- * - [of]: the goal, for "47 g of 120 g", soften thresholds and bar fractions.
+ * - [of]: the goal, for "47 of 120 g", soften thresholds and bar fractions.
  * - [bare]: energy without the "kcal" suffix, weight without "kg" or "lb".
  * - [day] / [dayClosed]: which day the number belongs to, for delayed reveal.
  *   `null` means today.
@@ -57,13 +57,13 @@ data class FormatContext(
  * "of" and the rest have no goal to spell.
  */
 enum class GoalStyle {
-    /** Macros say "47 g of 120 g" when there is a goal; energy never mentions one. */
+    /** Macros say "47 of 120 g" when there is a goal; energy never mentions one. */
     Default,
 
     /** `47 g`, `1,245 kcal`: the goal only drives the bar. */
     None,
 
-    /** `47 g of 120 g`, `1,245 kcal of 2,305`. */
+    /** `47 of 120 g`, `1,245 kcal of 2,305`. */
     Of,
 
     /** `47 / 120 g`, `1,245 / 2,305`. */

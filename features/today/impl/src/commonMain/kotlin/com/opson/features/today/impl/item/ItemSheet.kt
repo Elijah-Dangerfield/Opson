@@ -70,7 +70,7 @@ object ItemSheetStateBuilder {
         return ItemSheetState(
             loading = false,
             name = item.name,
-            amount = item.amountText.orEmpty(),
+            amount = item.amountLabel,
             precision = item.precision,
             calories = policy.resolve(Metric.Calories, item.kcal, Surface.Today, day.formatContext(today)),
             slot = item.slot,

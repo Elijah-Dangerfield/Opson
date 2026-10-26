@@ -201,6 +201,7 @@ private fun EnergyRowView(row: EnergyRow) {
             rangeStart = if (row.range is Display.Shown) row.rangeStart else 0f,
             rangeEnd = if (row.range is Display.Shown) row.rangeEnd else 0f,
             colors = RangeBarDefaults.onSurface(),
+            height = RangeBarDefaults.CompactHeight,
         )
     }
 }
