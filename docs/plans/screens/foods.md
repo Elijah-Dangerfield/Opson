@@ -71,7 +71,7 @@ show at Show and hide otherwise.
 | `SearchTapped` | Event `OpenLogger(LoggerRoute(focusSearch = true))`. |
 | `CreateMealTapped` | `OpenCreateMeal`. |
 | `AddFoodTapped` | `OpenAddFood`. |
-| `RowTapped(target)` / `RowAddTapped(target)` | `OpenLogger` with the food (`prePickFoodId`, `prePickIsCustom`) or the meal (`prePickSavedMealId`) already picked. |
+| `RowTapped(target)` | The row or its +. `OpenLogger` with the food (`prePickFoodId`, `prePickIsCustom`) or the meal (`prePickSavedMealId`) already picked. |
 
 Tapping the row or its + opens the Logger with it picked, so the user still
 chooses the meal and the day, and adding takes one more tap. A recent item
@@ -179,7 +179,7 @@ Lunch, since "Usually at" has no Uncategorized).
 - shows "Add to / This meal" with no meal dropdown and no day;
 - shows no method chips, and offers only "Save the name only" when a search misses (Describe, Yesterday's and Just a number write to the diary);
 - toggles a food when its name is tapped (the amount sheet logs, so it is not opened);
-- on "Add to this meal", publishes the picks' drafts through `MealPicks.picked(PickedForMeal(requestId, drafts))`, clears its basket and closes. Nothing is written to the diary.
+- on "Add to meal", publishes the picks' drafts through `MealPicks.picked(PickedForMeal(requestId, drafts))`, clears its basket and closes. Nothing is written to the diary.
 
 `MealPicks` (in `:libraries:diary`, impl in `:libraries:diary:impl`) is a
 `StateFlow<PickedForMeal?>` with `picked` and `consumed`, the same shape as
@@ -207,7 +207,7 @@ breakfast`; `Usually at`; `In this meal`; remove description `Remove %1$s`;
 `Nothing yet. Add a food below.`; `Total`; `%1$d food` / `%1$d foods`; `Add a
 food`; `Save meal`. Toast `Meal saved. It's in the + sheet under Saved
 meals.` Prefill name `My %1$s`. The logger's title in pick mode: `This meal`;
-its button `Add to this meal`.
+its button `Add to meal` ("Add to this meal" crowded out the picked count).
 
 ### Edge cases
 Duplicate names are allowed. Leaving with unsaved changes just leaves (no
@@ -245,7 +245,7 @@ data class AddFoodState(
     val name: String = "",
     val brand: String = "",
     val servingAmount: String = "1",
-    val servingUnit: ServingUnit = ServingUnit.Serving,  // Serving | Piece | Grams | Cup
+    val servingUnit: ServingUnit = ServingUnit.Piece,    // Piece | Grams | Cup
     val fields: List<NutritionField> = emptyList(),      // only metrics whose level is not Hide
     val canSave: Boolean = false,                        // name not blank
 ) { val labelOnly: Boolean get() = fields.isEmpty() }
@@ -256,8 +256,10 @@ Field order: Calories (kcal), Protein, Carbs, Fat, Fiber (g). The filter is
 the configured `level(metric) != Hide`, as the prototype: a Delayed user still
 fills them in, and Nutrient focus (protein and fiber softened, the rest
 hidden) asks only protein and fiber. Typed text is the user's own input, not a
-policy number. Units store as `serving`, `piece`, `g`, `cup` (grams as `g`,
-so `CustomFood.toDraft` fills grams).
+policy number. v3 draws three unit chips; its first reads "roll" for the
+pandesal, which is that food's own word, so the build offers `piece`, `grams`,
+`cup`, stored as `piece`, `g`, `cup` (grams as `g`, so `CustomFood.toDraft`
+fills grams).
 
 ### Actions
 
@@ -284,7 +286,7 @@ No resolved numbers. A metric at Hide has no field; Blind hides all five.
 ### Copy
 `Add a food`; `Name`, placeholder `Lola's pandesal`; `Brand or where it's from
 · optional`, placeholder `Corner bakery`; `One serving is`, amount description
-`Serving amount`, units `serving` / `piece` / `grams` / `cup`; `Per serving`,
+`Serving amount`, units `piece` / `grams` / `cup`; `Per serving`,
 `Fill in what you know`; labels Calories / Protein / Carbs / Fat / Fiber with
 kcal / g; Blind card `Nutrition stays out of view`, `A name is enough to save
 it.`; `Save food`. Toast `%1$s saved. It shows up in search now.`

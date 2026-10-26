@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for the Foods tab, Create a meal and Add a food. Verbatim from design
+  v3 (11.1 to 11.4) where it has the line, then the handoff prototype. Same
+  rules as strings.xml: no backslash escapes, positional %1$s arguments.
+-->
+<resources>
+
+    <!-- Foods tab -->
+    <string name="foods_title">Foods</string>
+    <string name="foods_search">Search foods, dishes, restaurants</string>
+    <string name="foods_create_meal">Create a meal</string>
+    <string name="foods_create_meal_sub">Group foods you eat together</string>
+    <string name="foods_add_food">Add a food</string>
+    <string name="foods_add_food_sub">Something search doesn't have</string>
+    <string name="foods_saved">Saved meals</string>
+    <string name="foods_yours">Your foods</string>
+    <string name="foods_yours_empty">Foods you make show up here and in search.</string>
+    <string name="foods_recent">Recent</string>
+    <string name="foods_add_cd">Add %1$s</string>
+    <string name="foods_credit">Food data from USDA FoodData Central and Open Food Facts. Open Food Facts data is available under the Open Database License.</string>
+
+    <!-- Create a meal -->
+    <string name="foods_meal_name">Name</string>
+    <string name="foods_meal_name_placeholder">Usual breakfast</string>
+    <string name="foods_meal_usually_at">Usually at</string>
+    <string name="foods_meal_items">In this meal</string>
+    <string name="foods_meal_empty">Nothing yet. Add a food below.</string>
+    <string name="foods_meal_remove_cd">Remove %1$s</string>
+    <string name="foods_meal_total">Total</string>
+    <plurals name="foods_meal_count">
+        <item quantity="one">%1$d food</item>
+        <item quantity="other">%1$d foods</item>
+    </plurals>
+    <string name="foods_meal_add_food">Add a food</string>
+    <string name="foods_meal_save">Save meal</string>
+    <string name="foods_meal_saved">Meal saved. It's in the + sheet under Saved meals.</string>
+    <string name="foods_meal_prefill_name">My %1$s</string>
+
+    <!-- Add a food -->
+    <string name="foods_food_name">Name</string>
+    <string name="foods_food_name_placeholder">Lola's pandesal</string>
+    <string name="foods_food_brand">Brand or where it's from · optional</string>
+    <string name="foods_food_brand_placeholder">Corner bakery</string>
+    <string name="foods_food_serving">One serving is</string>
+    <string name="foods_food_serving_amount_cd">Serving amount</string>
+    <string name="foods_unit_piece">piece</string>
+    <string name="foods_unit_grams">grams</string>
+    <string name="foods_unit_cup">cup</string>
+    <string name="foods_food_per_serving">Per serving</string>
+    <string name="foods_food_fill_in">Fill in what you know</string>
+    <string name="foods_field_calories">Calories</string>
+    <string name="foods_field_protein">Protein</string>
+    <string name="foods_field_carbs">Carbs</string>
+    <string name="foods_field_fat">Fat</string>
+    <string name="foods_field_fiber">Fiber</string>
+    <string name="foods_unit_kcal">kcal</string>
+    <string name="foods_unit_g">g</string>
+    <string name="foods_food_hidden_title">Nutrition stays out of view</string>
+    <string name="foods_food_hidden_body">A name is enough to save it.</string>
+    <string name="foods_food_save">Save food</string>
+    <string name="foods_food_saved">%1$s saved. It shows up in search now.</string>
+</resources>

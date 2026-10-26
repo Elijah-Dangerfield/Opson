@@ -41,10 +41,6 @@
     <string name="trends_title">Trends</string>
     <string name="trends_placeholder">How your weeks go will show up here.</string>
 
-    <!-- Foods -->
-    <string name="foods_title">Foods</string>
-    <string name="foods_placeholder">Your favorites and saved meals will live here.</string>
-
     <!-- Bug report -->
     <string name="bug_report_title">Report a Bug</string>
     <string name="bug_report_captured_details">Captured details</string>
