@@ -48,7 +48,6 @@ struct iOSApp: App {
 }
 
 struct RootComposeView: View {
-    @Environment(\.scenePhase) private var scenePhase
     let appComponent: IosAppComponent
     let nativeViewFactory: OpsonNativeViewFactory
 
