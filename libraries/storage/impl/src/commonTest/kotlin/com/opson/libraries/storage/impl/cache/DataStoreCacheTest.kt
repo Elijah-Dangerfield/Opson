@@ -29,7 +29,7 @@ class DataStoreCacheTest {
 
     @AfterTest
     fun deleteTempFiles() {
-        fileManager.deleteAll()
+        fileManager.deleteRoot()
     }
 
     /**
@@ -108,11 +108,7 @@ private class TempDirFileManager : FileManager {
 
     override fun createFile(name: String): Path = root / name
 
-    override fun deleteFile(name: String) {
-        FileSystem.SYSTEM.delete(root / name, mustExist = false)
-    }
-
-    override fun deleteAll() {
+    fun deleteRoot() {
         FileSystem.SYSTEM.deleteRecursively(root, mustExist = false)
     }
 }

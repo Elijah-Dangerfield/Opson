@@ -5,7 +5,6 @@ import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
-import androidx.room.TypeConverters
 import com.opson.libraries.diary.db.CustomFoodDao
 import com.opson.libraries.diary.db.CustomFoodEntity
 import com.opson.libraries.diary.db.DayRecordDao
@@ -61,7 +60,6 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
     ],
     exportSchema = true
 )
-@TypeConverters(CoreTypeConverters::class)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun exampleUserDataDao(): ExampleUserDataDao

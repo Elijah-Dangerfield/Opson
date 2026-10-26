@@ -17,7 +17,6 @@ class VersionedCacheJsonSerializer<T : Any>(
     private val serializer: KSerializer<T>,
     private val defaultValue: () -> T,
     private val migrations: List<Migration> = emptyList(),
-    private val encryption: CacheEncryption = NoEncryption,
 ) : CacheJsonSerializer<T> {
 
     private val currentVersion: Int = migrations.size + 1
@@ -25,8 +24,7 @@ class VersionedCacheJsonSerializer<T : Any>(
     override suspend fun read(bytes: ByteArray?): T {
         if (bytes == null || bytes.isEmpty()) return defaultValue()
 
-        val decrypted = encryption.decrypt(bytes)
-        val text = decrypted.decodeToString()
+        val text = bytes.decodeToString()
 
         val root = try {
             json.parseToJsonElement(text)
@@ -60,9 +58,7 @@ class VersionedCacheJsonSerializer<T : Any>(
             put("v", JsonPrimitive(currentVersion))
             put("d", data)
         }
-        val text = json.encodeToString(JsonObject.serializer(), root)
-        val bytes = text.encodeToByteArray()
-        return encryption.encrypt(bytes)
+        return json.encodeToString(JsonObject.serializer(), root).encodeToByteArray()
     }
 
     private suspend fun migrateIfNeeded(
@@ -113,7 +109,6 @@ inline fun <reified T : Any> versionedJsonSerializer(
     },
     noinline defaultValue: () -> T,
     migrations: List<VersionedCacheJsonSerializer.Migration> = emptyList(),
-    encryption: CacheEncryption? = null,
 ): CacheJsonSerializer<T> {
     val kSerializer = json.serializersModule.serializer<T>()
     return VersionedCacheJsonSerializer(
@@ -121,6 +116,5 @@ inline fun <reified T : Any> versionedJsonSerializer(
         serializer = kSerializer,
         defaultValue = defaultValue,
         migrations = migrations,
-        encryption = encryption ?: NoEncryption,
     )
 }

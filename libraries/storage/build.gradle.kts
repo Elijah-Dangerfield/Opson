@@ -1,14 +1,9 @@
 plugins {
     id("opson.kotlin.multiplatform")
-    alias(libs.plugins.androidxRoom)
 }
 
 android {
     namespace = "com.opson.libraries.storage"
-}
-
-room {
-    schemaDirectory("$projectDir/schemas")
 }
 
 kotlin {
