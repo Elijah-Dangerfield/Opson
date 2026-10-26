@@ -4,6 +4,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -50,6 +52,7 @@ import com.opson.libraries.ui.components.icon.IconTile
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.system.minTouchTarget
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
@@ -182,27 +185,61 @@ private fun RangeEndsCard(range: RangeCard, onAction: (TargetsAction) -> Unit) {
     }
 }
 
+/**
+ * The two ends side by side, as v3 draws them, when the wider amount fits between its steps at
+ * the current text size; stacked, each the card's full width, when it does not (Large text). The
+ * amount is never shrunk below the type scale or cut off.
+ */
 @Composable
 private fun EndSteppers(low: EndStepper, high: EndStepper, group: Int?, onAction: (TargetsAction) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-        listOf(RangeEnd.Low to low, RangeEnd.High to high).forEach { (end, stepper) ->
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(if (end == RangeEnd.Low) Res.string.settings_targets_low_end else Res.string.settings_targets_high_end),
-                    typography = AppTheme.type.secondaryStrong,
-                    color = AppTheme.colors.muted,
-                )
-                EndStepperView(
-                    stepper = stepper,
-                    endName = stringResource(
-                        if (end == RangeEnd.Low) Res.string.settings_targets_low_end_inline else Res.string.settings_targets_high_end_inline,
-                    ),
-                    onStep = { up -> onAction(TargetsAction.StepTapped(end, up, group)) },
-                )
+    val ends = listOf(RangeEnd.Low to low, RangeEnd.High to high)
+    val measurer = rememberTextMeasurer()
+    val style = AppTheme.type.numericLarge.style
+    val widestPx = ends.maxOf { (_, stepper) -> stepper.value.words?.let { measurer.measure(it, style, maxLines = 1).size.width } ?: 0 }
+    val widest = with(LocalDensity.current) { widestPx.toDp() }
+    val gap = AppTheme.spacing.row
+    BoxWithConstraints {
+        val sideBySide = (maxWidth - gap) / 2 >= widest + StepSize * 2 + AppTheme.spacing.chip * 2
+        val column: @Composable (Modifier, RangeEnd, EndStepper) -> Unit = { modifier, end, stepper ->
+            EndColumn(modifier, end, stepper, group, onAction)
+        }
+        if (sideBySide) {
+            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                ends.forEach { (end, stepper) -> column(Modifier.weight(1f), end, stepper) }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+                ends.forEach { (end, stepper) -> column(Modifier.fillMaxWidth(), end, stepper) }
             }
         }
     }
 }
+
+@Composable
+private fun EndColumn(modifier: Modifier, end: RangeEnd, stepper: EndStepper, group: Int?, onAction: (TargetsAction) -> Unit) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(if (end == RangeEnd.Low) Res.string.settings_targets_low_end else Res.string.settings_targets_high_end),
+            typography = AppTheme.type.secondaryStrong,
+            color = AppTheme.colors.muted,
+        )
+        EndStepperView(
+            stepper = stepper,
+            endName = stringResource(
+                if (end == RangeEnd.Low) Res.string.settings_targets_low_end_inline else Res.string.settings_targets_high_end_inline,
+            ),
+            onStep = { up -> onAction(TargetsAction.StepTapped(end, up, group)) },
+        )
+    }
+}
+
+/** What the amount reads, to measure it; null when hidden. */
+private val Display.words: String?
+    get() = when (this) {
+        Display.Hidden -> null
+        is Display.Soft -> text
+        is Display.Shown -> text
+    }
 
 /** − value +, in a soft rounded well. A lock replaces − where the floor blocks it. */
 @Composable
@@ -212,8 +249,8 @@ private fun EndStepperView(stepper: EndStepper, endName: String, onStep: (up: Bo
             .fillMaxWidth()
             .clip(AppTheme.shapes.inputLarge)
             .background(AppTheme.colors.soft)
-            // The buttons' 48 dp tap areas already sit 4 dp inside the well's sides.
-            .padding(vertical = 4.dp),
+            // v3's 40 dp steps (the design's exception to 44), 4 dp in from the well's sides.
+            .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when (stepper.down) {
@@ -228,6 +265,7 @@ private fun EndStepperView(stepper: EndStepper, endName: String, onStep: (up: Bo
                 icon = AppIcons.Remove.described(stringResource(Res.string.settings_targets_lower_end, endName)),
                 enabled = stepper.down == StepState.Open,
                 onClick = { onStep(false) },
+                touchTarget = StepSize,
             )
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -243,15 +281,23 @@ private fun EndStepperView(stepper: EndStepper, endName: String, onStep: (up: Bo
             icon = AppIcons.Add.described(stringResource(Res.string.settings_targets_raise_end, endName)),
             enabled = stepper.up == StepState.Open,
             onClick = { onStep(true) },
+            touchTarget = StepSize,
         )
     }
 }
 
 @Composable
-private fun StepButton(icon: IconResource, enabled: Boolean, onClick: () -> Unit, size: Dp = StepSize, container: ColorResource? = null) {
+private fun StepButton(
+    icon: IconResource,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    size: Dp = StepSize,
+    container: ColorResource? = null,
+    touchTarget: Dp = MinTouchTarget,
+) {
     Box(
         modifier = Modifier
-            .minTouchTarget()
+            .minTouchTarget(touchTarget)
             .size(size)
             .clip(AppTheme.shapes.input)
             .background(container ?: AppTheme.colors.surface)
@@ -757,4 +803,34 @@ private fun TargetsByDayEditingDarkPreview() {
 private fun TargetsBlindPreview() {
     val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind))
     SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+// The largest text size the app offers (Look and feel, Large): every stepper and amount whole.
+
+@Preview
+@Composable
+private fun TargetsLargeTextPreview() {
+    val settings = SettingsFixtures.settings()
+    SettingsPreview(largeText = true) { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun TargetsDeficitLargeTextPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.deficitTargets)
+    SettingsPreview(largeText = true) {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), burnKcal = SettingsFixtures.BURN_KCAL),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TargetsByDayEditingLargeTextPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets)
+    SettingsPreview(largeText = true) {
+        TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 1), onAction = {})
+    }
 }
