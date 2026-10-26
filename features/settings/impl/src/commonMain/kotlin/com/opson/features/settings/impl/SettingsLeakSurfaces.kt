@@ -1,5 +1,7 @@
 package com.opson.features.settings.impl
 
+import com.opson.features.settings.impl.integrations.IntegrationsFixtures
+import com.opson.features.settings.impl.integrations.IntegrationsScreen
 import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelStateBuilder
 import com.opson.features.settings.impl.modes.ModesScreen
@@ -63,6 +65,10 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "support-delete", label = "Support, delete everything", showsCaloriesInFull = false) { _ ->
             SupportScreen(SupportState(delete = DeleteStep.Confirming), onAction = {})
+        },
+        // 0.2: today's energy from Health Connect or Apple Health, every amount energyOut.
+        LeakSurface(id = "integrations", label = "Watch and health apps", showsCaloriesInFull = true) { policy ->
+            IntegrationsScreen(IntegrationsFixtures.state(policy), onAction = {})
         },
         LeakSurface(id = "look-and-feel", label = "Look and feel", showsCaloriesInFull = false) { policy ->
             LookAndFeelScreen(LookAndFeelStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})

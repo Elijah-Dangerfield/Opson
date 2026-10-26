@@ -3,6 +3,7 @@ package com.opson.features.settings.impl
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -10,6 +11,7 @@ import androidx.navigation.toRoute
 import com.opson.features.home.FeedbackRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.settings.GoalStyleRoute
+import com.opson.features.settings.IntegrationsRoute
 import com.opson.features.settings.LookAndFeelRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.MoreRoute
@@ -17,12 +19,17 @@ import com.opson.features.settings.PauseBeforeMoreRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.TargetsRoute
 import com.opson.features.settings.WaterSettingsRoute
+import com.opson.features.settings.impl.integrations.IntegrationsAction
+import com.opson.features.settings.impl.integrations.IntegrationsEvent
+import com.opson.features.settings.impl.integrations.IntegrationsScreen
+import com.opson.features.settings.impl.integrations.IntegrationsViewModel
 import com.opson.features.settings.impl.look.LookAndFeelEvent
 import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelViewModel
 import com.opson.features.settings.impl.modes.ModesEvent
 import com.opson.features.settings.impl.modes.ModesScreen
 import com.opson.features.settings.impl.modes.ModesViewModel
+import com.opson.features.settings.impl.more.MoreAction
 import com.opson.features.settings.impl.more.MoreEvent
 import com.opson.features.settings.impl.more.MoreScreen
 import com.opson.features.settings.impl.more.MoreViewModel
@@ -72,6 +79,7 @@ class SettingsFeatureEntryPoint(
     private val waterSettingsViewModel: (backToMore: Boolean) -> WaterSettingsViewModel,
     private val lookAndFeelViewModel: () -> LookAndFeelViewModel,
     private val supportViewModel: () -> SupportViewModel,
+    private val integrationsViewModel: () -> IntegrationsViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -86,8 +94,13 @@ class SettingsFeatureEntryPoint(
                         MoreEvent.OpenWater -> WaterSettingsRoute(fromMore = true)
                         MoreEvent.OpenLookAndFeel -> LookAndFeelRoute()
                         MoreEvent.OpenSupport -> SupportRoute()
+                        MoreEvent.OpenHealth -> IntegrationsRoute()
                     },
                 )
+            }
+            LifecycleResumeEffect(viewModel) {
+                viewModel.takeAction(MoreAction.ScreenResumed)
+                onPauseOrDispose {}
             }
             MoreScreen(state = state, onAction = viewModel::takeAction)
         }
@@ -207,6 +220,26 @@ class SettingsFeatureEntryPoint(
                 }
             }
             SupportScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        // Registered whatever release.health says: nothing links here while it is off, and a
+        // stale back stack entry should land on the page rather than crash.
+        screen<IntegrationsRoute> {
+            val viewModel: IntegrationsViewModel = viewModel { integrationsViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is IntegrationsEvent.OpenLink -> router.openWebLink(event.url)
+                    is IntegrationsEvent.ShowToast -> show(event.toast)
+                    IntegrationsEvent.Close -> router.goBack()
+                }
+            }
+            // Back from Health Connect's own screen: the access may have changed there.
+            LifecycleResumeEffect(viewModel) {
+                viewModel.takeAction(IntegrationsAction.ScreenResumed)
+                onPauseOrDispose {}
+            }
+            IntegrationsScreen(state = state, onAction = viewModel::takeAction)
         }
     }
 

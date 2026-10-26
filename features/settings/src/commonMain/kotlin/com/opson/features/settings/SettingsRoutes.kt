@@ -29,3 +29,7 @@ class LookAndFeelRoute : Route()
 /** Helpline, export, delete, and the sharing that is coming later. */
 @Serializable
 class SupportRoute : Route()
+
+/** Watch and health apps: connect Apple Health or Health Connect, and today's energy from it (0.2). */
+@Serializable
+class IntegrationsRoute : Route()
