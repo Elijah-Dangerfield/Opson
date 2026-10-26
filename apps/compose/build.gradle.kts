@@ -115,3 +115,13 @@ kotlin {
         }
     }
 }
+// The iOS test executable cannot link outside Xcode: the Kotlin Multiplatform
+// Sentry SDK needs the Sentry framework, which only reaches the app through
+// the Xcode project's Swift package. These tests are commonTest and already run
+// on Android (testDebugUnitTest in CI), so only the iOS run is skipped, which
+// is what stops `./gradlew build` failing on `ld: framework 'Sentry' not found`.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink>()
+    .matching { it.binary is org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable }
+    .configureEach { enabled = false }
+tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest>()
+    .configureEach { enabled = false }

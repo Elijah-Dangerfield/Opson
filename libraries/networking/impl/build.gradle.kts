@@ -75,3 +75,14 @@ dependencies {
 
 tasks.matching { it.name.contains("kspCommonMainKotlinMetadata", ignoreCase = true) }
     .configureEach { enabled = false }
+
+// The iOS test executable cannot link: Wiretap's shake detector is Swift, and
+// a Kotlin/Native test binary does not pull in the Swift compatibility
+// libraries an Xcode build would (`__swift_FORCE_LOAD_$_swiftCompatibility56`).
+// These tests are commonTest and already run on Android in CI, so only the iOS
+// run is skipped.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink>()
+    .matching { it.binary is org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable }
+    .configureEach { enabled = false }
+tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest>()
+    .configureEach { enabled = false }

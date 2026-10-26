@@ -115,3 +115,20 @@ if (System.getProperty("serverOnly") != "true") {
 
     tasks.named("check") { dependsOn(verifyComposeResourceStrings) }
 }
+// Kotlin/Native links run inside the Gradle daemon and are the heaviest step in
+// the build, several GB each for a release framework. `./gradlew build` starts
+// every iOS link it can in parallel, and that ran the daemon out of heap on
+// `linkReleaseFrameworkIosArm64`, which links fine on its own. One link at a
+// time costs a full build some minutes and costs Xcode and CI nothing, since
+// those link a single framework per invocation anyway.
+abstract class NativeLinkLimit : BuildService<BuildServiceParameters.None>
+
+val nativeLinkLimit = gradle.sharedServices.registerIfAbsent("nativeLinkLimit", NativeLinkLimit::class) {
+    maxParallelUsages.set(1)
+}
+
+subprojects {
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink>().configureEach {
+        usesService(nativeLinkLimit)
+    }
+}

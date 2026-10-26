@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base app theme with SplashScreen API support -->
     <style name="Theme.Opson" parent="android:Theme.Material.Light.NoActionBar">
         <!-- Splash screen background -->
-        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+        <!-- API 31+ only. Older versions ignore it and show windowBackground, which is the same colour. -->
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/splash_background</item>
         <!-- Status bar and nav bar colors -->
         <item name="android:statusBarColor">@color/splash_background</item>
         <item name="android:navigationBarColor">@color/splash_background</item>

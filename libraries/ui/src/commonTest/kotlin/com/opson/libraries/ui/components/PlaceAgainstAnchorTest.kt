@@ -27,7 +27,7 @@ class PlaceAgainstAnchorTest {
     )
 
     @Test
-    fun `content sits below the anchor, centred on it`() {
+    fun `content sits below the anchor and is centred on it`() {
         val offset = place(anchor = IntRect(left = 150, top = 200, right = 250, bottom = 240))
 
         assertEquals(IntOffset(x = 150, y = 250), offset)
@@ -44,7 +44,7 @@ class PlaceAgainstAnchorTest {
     }
 
     @Test
-    fun `content wider than the anchor is centred on it, not left-aligned`() {
+    fun `content wider than the anchor is centred on it rather than left-aligned`() {
         val offset = place(
             anchor = IntRect(left = 180, top = 200, right = 220, bottom = 240),
             contentSize = IntSize(100, 50),

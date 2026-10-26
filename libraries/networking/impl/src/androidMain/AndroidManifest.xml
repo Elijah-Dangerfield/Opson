@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- AndroidConnectivityObserver registers a network callback and reads the
+         active network. The app happened to get this permission through a
+         dependency's manifest, which is not something to rely on. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+</manifest>
