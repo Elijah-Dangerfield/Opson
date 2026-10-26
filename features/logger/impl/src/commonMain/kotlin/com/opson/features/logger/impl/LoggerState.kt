@@ -33,6 +33,11 @@ data class LoggerState(
     val saved: SavedUi = SavedUi(),
     /** Null when nothing is picked, and on Describe and Saved, which have their own buttons. */
     val basket: BasketFooter? = null,
+    /**
+     * Opened by Create a meal's "Add a food": the title reads "This meal" with no
+     * dropdown or day, and a miss offers only "Save the name only".
+     */
+    val pickingForMeal: Boolean = false,
 ) {
     /** The search is not blank, so the chips and the day label step aside. */
     val typing: Boolean get() = query.isNotBlank()

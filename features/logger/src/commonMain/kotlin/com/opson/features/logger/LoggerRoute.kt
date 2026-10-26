@@ -18,6 +18,9 @@ import kotlinx.serialization.Serializable
  * custom per [prePickIsCustom], added to the basket once.
  * @param prePickSavedMealId a saved meal whose items go into the basket once.
  * @param start the pane the sheet opens on.
+ * @param pickForMeal set by Create a meal: the sheet picks foods for a meal
+ * being put together instead of logging them, and hands the picks back through
+ * `MealPicks` under this request id. Its picks stay out of the logger's basket.
  */
 @Serializable
 data class LoggerRoute(
@@ -28,6 +31,7 @@ data class LoggerRoute(
     val prePickIsCustom: Boolean = false,
     val prePickSavedMealId: String? = null,
     val start: LoggerStart = LoggerStart.Search,
+    val pickForMeal: String? = null,
 ) : Route()
 
 /** Where the logger sheet opens. [Number] is Describe it with the "Or just a number" field focused. */

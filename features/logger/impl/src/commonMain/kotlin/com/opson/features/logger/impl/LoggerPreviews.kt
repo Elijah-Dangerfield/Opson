@@ -74,6 +74,12 @@ private fun LoggerPickedDarkPreview() = Logger(LoggerFixtures.loggerState(full, 
 @Composable
 private fun LoggerPickedBlindPreview() = Logger(LoggerFixtures.loggerState(blind, basket = LoggerFixtures.pickedBasket()))
 
+/** Create a meal's "Add a food": the same sheet, picking for the meal instead of logging. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerPickForMealPreview() =
+    Logger(LoggerFixtures.loggerState(full, basket = LoggerFixtures.pickedBasket(), pickingForMeal = true))
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerSearchPreview() = Logger(LoggerFixtures.searchState(full))

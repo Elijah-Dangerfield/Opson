@@ -11,7 +11,9 @@ import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.MealPicks
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.PickedForMeal
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.diary.SelectedDay
@@ -54,6 +56,10 @@ import kotlin.time.Duration.Companion.milliseconds
  * The state is rebuilt from [model] by [LoggerStateBuilder] after every
  * action; [model] holds what was read and what the user chose, and only
  * [handleAction] changes it.
+ *
+ * Opened with [LoggerRoute.pickForMeal] it logs nothing: Create a meal asked
+ * for foods, so the picks go into a basket of the sheet's own and back through
+ * [MealPicks]. The person's real basket is left as it was.
  */
 @Inject
 @Suppress("TooManyFunctions")
@@ -65,16 +71,22 @@ class LoggerViewModel(
     private val foodCatalog: FoodCatalog,
     settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
-    private val basketStore: BasketStore,
+    basketStore: BasketStore,
     private val committer: BasketCommitter,
     calendar: LocalCalendar,
     selectedDay: SelectedDay,
     clock: Clock,
     private val appState: AppState,
     private val telemetry: LoggerTelemetry,
+    private val mealPicks: MealPicks,
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
-    initialStateArg = LoggerState(focusSearch = route.focusSearch, pane = route.start.pane),
+    initialStateArg = LoggerState(focusSearch = route.focusSearch, pane = route.start.pane, pickingForMeal = route.pickForMeal != null),
 ) {
+    private val pickForMeal: String? = route.pickForMeal
+
+    /** The shared basket, or in pick-for-this-meal mode one of this sheet's own. */
+    private val basketStore: BasketStore = if (pickForMeal != null) BasketStore() else basketStore
+
     private val day: LocalDate = route.dayIso?.let(LocalDate::parse) ?: selectedDay.date.value
 
     private var model = Model(
@@ -86,6 +98,7 @@ class LoggerViewModel(
             pane = route.start.pane,
             focusSearch = route.focusSearch,
             focusNumber = route.start == LoggerStart.Number,
+            pickingForMeal = route.pickForMeal != null,
         ),
         policy = policySource.policy.value,
     )
@@ -107,7 +120,7 @@ class LoggerViewModel(
             policySource.policy.collect { takeAction(LoggerAction.PolicyArrived(it)) }
         }
         // Scoped to this back stack entry, so a pre-pick from Foods lands once however often the sheet recomposes.
-        viewModelScope.launch { prePick(route) }
+        if (pickForMeal == null) viewModelScope.launch { prePick(route) }
     }
 
     override suspend fun handleAction(action: LoggerAction) {
@@ -120,7 +133,12 @@ class LoggerViewModel(
             is LoggerAction.SearchResultsArrived -> {
                 if (action.outcome.query == model.choices.query.trim()) action.choose { copy(search = action.outcome) }
             }
-            is LoggerAction.FoodNameTapped -> sendEvent(LoggerEvent.OpenAmount(action.row.ref, action.row.source, day, slot()))
+            // The amount sheet logs, so a meal being put together takes the row's default amount.
+            is LoggerAction.FoodNameTapped -> if (pickForMeal != null) {
+                toggle(action.row)
+            } else {
+                sendEvent(LoggerEvent.OpenAmount(action.row.ref, action.row.source, day, slot()))
+            }
             is LoggerAction.FoodToggleTapped -> toggle(action.row)
             LoggerAction.DescribeItTapped -> action.choose { copy(pane = LoggerPane.Describe, focusNumber = false) }
             LoggerAction.DescribeTermTapped -> {
@@ -153,7 +171,7 @@ class LoggerViewModel(
             is LoggerAction.NumberTyped -> action.choose { copy(number = NumberInput.sanitize(action.text, allowDecimal = false)) }
             LoggerAction.AddNumberTapped -> addNumber()
             LoggerAction.BackTapped -> back(action)
-            LoggerAction.AddToMealTapped -> commit()
+            LoggerAction.AddToMealTapped -> pickForMeal?.let(::handBack) ?: commit()
             LoggerAction.CloseTapped -> sendEvent(LoggerEvent.Dismiss)
         }
     }
@@ -297,6 +315,14 @@ class LoggerViewModel(
         val settings = model.inputs?.settings ?: return
         val committed = committer.commit(day, slot(), settings) ?: return
         finish(committed)
+    }
+
+    /** Pick-for-this-meal mode's "Add to this meal": the picks go back to Create a meal, and nothing is logged. */
+    private fun handBack(requestId: String) {
+        val drafts = basketStore.basket.value.map { it.draft }.ifEmpty { return }
+        mealPicks.picked(PickedForMeal(requestId, drafts))
+        basketStore.clear()
+        sendEvent(LoggerEvent.Dismiss)
     }
 
     private fun finish(committed: Committed) {

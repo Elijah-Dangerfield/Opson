@@ -191,10 +191,11 @@ object LoggerFixtures {
         settings: Settings = Settings(),
         date: LocalDate = today,
         firstRun: Boolean = false,
+        pickingForMeal: Boolean = false,
     ): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(basket = basket, settings = settings, date = date, firstRun = firstRun),
         policy = policy,
-        choices = LoggerChoices(slot = MealSlot.Dinner, query = query, search = search),
+        choices = LoggerChoices(slot = MealSlot.Dinner, query = query, search = search, pickingForMeal = pickingForMeal),
     )
 
     fun searchState(policy: VisibilityPolicy): LoggerState = loggerState(policy, query = "rice", search = search())

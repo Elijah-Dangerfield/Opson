@@ -14,7 +14,9 @@ import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealFeeling
+import com.opson.libraries.diary.MealPicks
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.PickedForMeal
 import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SavedMealRepository
@@ -239,6 +241,18 @@ class FakeRecentLogEvents : RecentLogEvents {
     }
 
     override suspend fun undo(event: LoggedToMeal) = consumed(event)
+}
+
+class FakeMealPicks : MealPicks {
+    override val latest = MutableStateFlow<PickedForMeal?>(null)
+
+    override fun picked(picks: PickedForMeal) {
+        latest.value = picks
+    }
+
+    override fun consumed(picks: PickedForMeal) {
+        if (latest.value == picks) latest.value = null
+    }
 }
 
 class RecordingTelemetry : LoggerTelemetry {

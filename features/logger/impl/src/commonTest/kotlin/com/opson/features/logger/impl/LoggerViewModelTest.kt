@@ -30,6 +30,7 @@ import opson.libraries.resources.generated.resources.logger_toast_ate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -54,6 +55,7 @@ class LoggerViewModelTest : CoroutineTest() {
     private val selectedDay = FakeSelectedDay()
     private val recentLogEvents = FakeRecentLogEvents()
     private val appState = FakeAppState()
+    private val mealPicks = FakeMealPicks()
 
     private fun vm(route: LoggerRoute = LoggerRoute(slot = MealSlot.Dinner), at: Instant = NOON) = LoggerViewModel(
         route = route,
@@ -70,6 +72,7 @@ class LoggerViewModelTest : CoroutineTest() {
         clock = Clock.fixed(at),
         appState = appState,
         telemetry = telemetry,
+        mealPicks = mealPicks,
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {
@@ -242,6 +245,47 @@ class LoggerViewModelTest : CoroutineTest() {
         basket.upsert(LoggerFixtures.pickedBasket().first())
         asking.takeAction(LoggerAction.AddToMealTapped)
         assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenHowItFelt(LoggerFixtures.today, MealSlot.Dinner)), askingEvents)
+    }
+
+    @Test
+    fun pickingForAMealKeepsItsOwnBasketAndHandsThePicksBack() = runUnitTest {
+        val shared = LoggerFixtures.pickedBasket().first()
+        basket.upsert(shared)
+        val vm = vm(LoggerRoute(pickForMeal = "meal-1"))
+        val events = events(vm)
+
+        assertTrue(vm.state.pickingForMeal)
+        assertTrue(vm.state.methods.isEmpty(), "every method chip logs straight to the diary")
+        assertNull(vm.state.basket, "the person's own picks are not this meal's")
+
+        val rice = assertIs<LoggerBody.Browse>(vm.state.body).recent.first { it.key == "f:rice" }
+        vm.takeAction(LoggerAction.FoodNameTapped(rice))
+        assertEquals(1, vm.state.basket?.count, "a name tap picks the row's amount instead of opening the amount sheet")
+        vm.takeAction(LoggerAction.AddToMealTapped)
+
+        val picks = assertNotNull(mealPicks.latest.value)
+        assertEquals("meal-1", picks.requestId)
+        assertEquals(listOf("Jasmine rice, cooked"), picks.items.map { it.name })
+        assertTrue(diary.added.isEmpty(), "nothing is logged")
+        assertTrue(recentLogEvents.logged.isEmpty())
+        assertEquals(listOf(shared), basket.basket.value, "the shared basket is untouched")
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.Dismiss), events)
+    }
+
+    @Test
+    fun pickingForAMealWithNothingPickedHandsNothingBack() = runUnitTest {
+        val vm = vm(LoggerRoute(pickForMeal = "meal-1"))
+
+        vm.takeAction(LoggerAction.AddToMealTapped)
+
+        assertNull(mealPicks.latest.value)
+    }
+
+    @Test
+    fun pickingForAMealIgnoresAPrePick() = runUnitTest {
+        vm(LoggerRoute(pickForMeal = "meal-1", prePickSavedMealId = LoggerFixtures.savedMeals.first().id))
+
+        assertTrue(basket.basket.value.isEmpty())
     }
 
     @Test

@@ -50,6 +50,9 @@
         <item quantity="other">%1$d foods picked</item>
     </plurals>
     <string name="logger_add_to">Add to %1$s</string>
+    <!-- Pick-for-this-meal mode, opened by Create a meal's "Add a food" -->
+    <string name="logger_this_meal">This meal</string>
+    <string name="logger_add_to_this_meal">Add to meal</string>
 
     <!-- Describe it -->
     <string name="logger_for_meal">For %1$s</string>

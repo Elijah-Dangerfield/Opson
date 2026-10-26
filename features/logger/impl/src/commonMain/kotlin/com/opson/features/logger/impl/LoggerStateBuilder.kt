@@ -43,6 +43,8 @@ data class LoggerChoices(
     val number: String = "",
     val focusSearch: Boolean = false,
     val focusNumber: Boolean = false,
+    /** Picking for a meal Create a meal is putting together: search only, nothing written to the diary. */
+    val pickingForMeal: Boolean = false,
 )
 
 /**
@@ -58,7 +60,7 @@ object LoggerStateBuilder {
         val context = inputs.day.formatContext(inputs.today)
         val bare = inputs.day.formatContext(inputs.today, bare = true)
         val typing = choices.query.isNotBlank()
-        val canNumber = policy.level(Metric.Calories) != Visibility.Hide
+        val canNumber = policy.level(Metric.Calories) != Visibility.Hide && !choices.pickingForMeal
         return LoggerState(
             loading = false,
             day = RelativeDay.of(inputs.day.date, inputs.today),
@@ -67,7 +69,9 @@ object LoggerStateBuilder {
             pane = choices.pane,
             query = choices.query,
             focusSearch = choices.focusSearch,
-            methods = if (typing) emptyList() else methods(inputs, policy, slot),
+            pickingForMeal = choices.pickingForMeal,
+            // The method chips all log straight to the diary, so pick mode has none.
+            methods = if (typing || choices.pickingForMeal) emptyList() else methods(inputs, policy, slot),
             body = body(inputs, policy, slot, choices, bare),
             describe = DescribeUi(
                 text = choices.describeText,
