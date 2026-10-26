@@ -76,7 +76,8 @@ private fun StepperButton(icon: IconResource, enabled: Boolean, onClick: () -> U
             .clip(AppTheme.shapes.inputLarge)
             .background(AppTheme.colors.soft)
             .thenIf(!enabled) { alpha(DISABLED_ALPHA) }
-            .thenIf(enabled) { bounceClick(scaleDown = 0.92f, onClick = onClick) },
+            // Clickable even when disabled, so a screen reader hears "dimmed" rather than an unlabelled icon.
+            .bounceClick(enabled = enabled, scaleDown = 0.92f, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon = icon, size = 24.dp, color = AppTheme.colors.ink)

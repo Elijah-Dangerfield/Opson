@@ -115,7 +115,7 @@ fun ActionChip(
 ) {
     Box(
         modifier = modifier
-            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
+            .minTouchTarget()
             .semantics { role = Role.Button }
             .bounceClick(scaleDown = 0.95f, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -136,7 +136,7 @@ fun ActionChip(
 }
 
 /**
- * A state, not a control: "✓ Connected" on Watch and health apps (design v3). An accent icon
+ * A state, not a control: a check and "Connected" on Watch and health apps (design v3). An accent icon
  * and a bold label on the accent tint, as tall as an [ActionChip]'s drawn pill.
  */
 @Composable
@@ -183,7 +183,7 @@ fun ChoiceChip(
     val colors = AppTheme.colors
     Box(
         modifier = modifier
-            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
+            .minTouchTarget()
             .selectable(selected = selected, role = role, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
