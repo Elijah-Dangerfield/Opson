@@ -52,6 +52,12 @@ Before it goes anywhere near search or prod:
   should prefer a cup or a typical serving over a single piece for small
   items.
 
+## Queued, don't start yet
+
+Barcode scan misses logged to a table with a Grafana panel (0.1), then label
+photo or manual entry into a community table and a Grafana review board
+(0.2). Details in `docs/plans/food-data-import.md`, "Future work".
+
 ## At the end: the Opson website
 
 No domain yet; one comes later, so build it to deploy anywhere and switch
