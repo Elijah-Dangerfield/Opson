@@ -206,18 +206,35 @@ A trigger fills `tier` and `verified` from `source`, so loaders never write
 them; `food_source_tier()` is the one mapping, and `DatabaseSchemaTest`
 checks it against `CatalogSource`.
 
-**Search.** Match tiers, best first: exact name, the name's first comma
-segment ("Egg, whole, raw" for `eggs`), whole-word prefix, full text, trigram
-similarity. Two rules sit above the match tier. A query that names a
-product's brand (every word of `brand` is in the query, apart from filler
-such as "Inc." or "Foods") ranks that brand first, so `cheerios` and
-`chobani greek yogurt` lead with the product. Otherwise generic (tier 1)
-foods come before branded ones, so `banana` offers "Banana, raw" before a
-product a store called "Bananas". Trigram-only matches stay last. Within a
-match tier: verified first, lower source tier first, whole-word matches, plain
-forms (`raw`, `NFS`, `whole`, …), similarity, then popularity. pg_trgm lives
-in the `extensions` schema (as on Supabase) and every use of it is
-schema-qualified.
+**Search.** Match tiers, best first: exact name, head (the name's first comma
+segment, "Egg, whole, raw" for `eggs`; also after a category word, "Fish,
+salmon" for `salmon`; or the first two segments in any order, "Rice, brown"
+for `brown rice`), whole-word prefix, full text, trigram similarity. Rules
+above the match tier, in order: a match on the food's name beats a match only
+through its brand (`brown rice` never leads with the brand "Rice Browns"); a
+query that names a brand (the brand's words appear in the query as a run,
+filler such as "Inc." aside, and the query has 4 or more characters) ranks
+that brand first, so `cheerios` and `chobani greek yogurt` lead with the
+product; otherwise generic (tier 1) foods come before branded ones; and
+USDA's own restaurant rows ("CHICK-FIL-A, ...") follow plain foods unless
+named. Trigram-only matches stay last, except a close typo of a generic food
+when nothing generic matched (`avacado` finds "Avocado, raw" even though
+products spell it that way). Within a match tier: verified first, lower
+source tier first, whole-word matches, plain forms (`raw`, `NFS`, `whole`,
+…), similarity, then popularity. Generic rows are read first through their
+own partial indexes (V13); Branded rows are only read when they can reach the
+results. pg_trgm lives in the `extensions` schema (as on Supabase) and every
+use of it is schema-qualified.
+
+**Relevance suite.** `SearchRelevanceTest` runs 78 queries a person types
+(`src/test/resources/search-relevance.tsv`, with what each top 3 must hold)
+against the generic seed plus a committed Branded fixture
+(`search-relevance-branded.sql.gz`, made by
+`scripts/search_relevance_fixture.py` from a database with the Branded load).
+It prints the hit rate and every top 3, and fails under its floor. Any
+ranking change answers to it. To run it against a full local copy instead,
+set `SEARCH_RELEVANCE_JDBC_URL` (plus `_USER`, `_PASSWORD`); Flyway migrates
+that database first, so never point it at a shared one.
 
 **Barcodes.** A scan is looked up in every equivalent form of the code:
 leading zeros never change a GTIN, so a UPC-A, its EAN-13 and its GTIN-14

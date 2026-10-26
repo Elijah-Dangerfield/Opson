@@ -1,0 +1,95 @@
+# Search relevance suite: what a person types, and what the top 3 must hold.
+# Read by SearchRelevanceTest. One query per line: query<TAB>expectations.
+#
+# Expectations are separated by " ; ". Each is a case-insensitive regex,
+# matched with find() against the result's name, its brand (brand=) or
+# either (any=):
+#   regex          some row in the top 3 matches
+#   1:regex        the first row matches
+#   !regex         no row in the top 3 matches
+# Write the expectation for what a person means, not for what search returns
+# today. A query that fails is a ranking bug or a missing food, not a typo here.
+
+# Staples
+banana	1:^Bananas?, raw
+apple	1:^Apples?, raw
+eggs	1:^Eggs?, whole
+whole milk	1:^Milk, whole
+blueberries	1:^Blueberries, raw
+strawberries	1:^Strawberries, raw
+grapes	1:^Grapes, raw
+brown rice	1:^Rice, brown ; !brand=Rice Browns
+white rice	1:^Rice, white ; !brand=White Foods
+oatmeal	1:^Oatmeal
+chicken breast	1:^Chicken,? breast
+ground beef	1:^Beef, ground
+salmon	^(Fish, )?Salmon, (raw|cooked|baked|Atlantic)
+broccoli	1:^Broccoli, (raw|cooked)
+avocado	1:^Avocados?, raw
+almonds	1:^(Nuts, )?Almonds
+peanut butter	1:^Peanut butter
+greek yogurt	1:^Yogurt, Greek
+cheddar cheese	1:^Cheese, cheddar
+white bread	^Bread, white($|,)
+sweet potato	1:^Sweet potato
+orange juice	1:^Orange juice
+coffee	1:^Coffee, brewed
+olive oil	1:^(Olive oil|Oil, olive)
+green tea	(Tea, green|Green tea) ; !brand=Teas' Tea
+black beans	1:^(Black beans|Beans, black)
+spinach	1:^Spinach, raw
+butter	1:^Butter
+bagel	1:^Bagel
+# Dishes
+pizza	1:^Pizza
+lasagna	1:^Lasagna
+chicken noodle soup	1:^Soup, chicken noodle
+caesar salad	1:^Caesar salad
+burrito	1:^Burrito
+mac and cheese	1:^Macaroni (and|&) cheese
+fried rice	1:^(Rice, fried|Fried rice)
+hamburger	1:^Hamburger
+pancakes	1:^Pancakes
+pad thai	1:^Pad Thai
+spaghetti and meatballs	^Spaghetti (and|with) meatballs
+turkey sandwich	1:^Turkey sandwich
+chili	1:^Chili
+# Brands and branded products
+cheerios	1:cheerios
+oreo	1:oreo ; !mcflurry
+coke zero	1:any=coke
+nutella	1:nutella
+chobani greek yogurt	1:any=chobani
+clif bar	1:clif
+doritos	1:doritos
+red bull	1:red bull
+kind bar	1:any=\bkind\b
+fairlife	1:fairlife
+ben and jerrys	1:brand=ben & jerry
+kraft mac and cheese	1:brand=kraft ; (mac|macaroni)\W+(&|and|n)?\W*cheese
+# Misspellings
+bananna	1:^Bananas?, raw
+brocoli	1:^Broccoli
+avacado	1:^Avocados?
+yoghurt	1:yog(h)?urt
+spagetti	^Spaghetti
+mozarella	^(Cheese, )?mozzarella
+chiken breast	^Chicken,? breast
+strawbery	^Strawberr(y|ies)
+peanut buter	1:^Peanut butter
+oatmeel	1:^Oatmeal
+# Short prefixes, as typed
+ban	^Bananas?, raw
+avo	^Avocados?
+straw	^Strawberries
+chick	^(Chicken|Chickpeas)
+oat	^Oat
+yog	^Yogurt
+app	^Apples?, raw
+mi	^Milk
+egg	1:^Egg
+chi	^(Chicken|Chili|Chips|Chickpeas)
+sal	^(Salmon|Salad|Salsa|Salt|Fish, salmon)
+bro	^Broccoli
+cof	^Coffee
+piz	^Pizza

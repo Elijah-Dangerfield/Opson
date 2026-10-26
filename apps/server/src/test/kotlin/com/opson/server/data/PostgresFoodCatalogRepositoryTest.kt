@@ -271,6 +271,67 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
     }
 
     @Test
+    fun aBrandMatchNeverBeatsANameMatch() = runTest {
+        // Found in the app: "brown rice" offered this product of the brand "Rice Browns" first.
+        seed("Crispy Sushi Rice Patties", source = "usda_branded", brand = "Rice Browns", barcode = "00850000000017")
+        seed("Brown Rice Cakes", source = "usda_branded", brand = "Lundberg", barcode = "00073416000506")
+        seed("Snacks, rice cracker brown rice, plain", source = "usda_sr")
+        seed("Rice, brown, cooked, no added fat", source = "usda_fndds")
+
+        assertEquals(
+            listOf(
+                "Rice, brown, cooked, no added fat",
+                "Snacks, rice cracker brown rice, plain",
+                "Brown Rice Cakes",
+                "Crispy Sushi Rice Patties",
+            ),
+            names("brown rice"),
+            "the head match first, the generic full-text match next, then Branded by name, the brand-only match last",
+        )
+    }
+
+    @Test
+    fun aBrandMustBeNamedInOrder() = runTest {
+        seed("Jasmine Green Tea", source = "usda_branded", brand = "Teas' Tea", barcode = "00835003000010")
+        seed("Tea, hot, leaf, green", source = "usda_fndds")
+        assertEquals("Tea, hot, leaf, green", names("green tea").first(), "\"green tea\" does not name Teas' Tea")
+        assertEquals("Jasmine Green Tea", names("teas tea").first())
+    }
+
+    @Test
+    fun aShortQueryIsAWordBeingTypedNotABrand() = runTest {
+        seed("Skinny Sticks", source = "usda_branded", brand = "Avo's", barcode = "00850000000024")
+        seed("Avocado, raw", source = "usda_fndds")
+        assertEquals(listOf("Avocado, raw", "Skinny Sticks"), names("avo"))
+    }
+
+    @Test
+    fun headMatchesLookPastCategoriesAndWordOrder() = runTest {
+        seed("Salmon, sockeye, canned, total can contents", source = "usda_sr")
+        seed("Salmon salad", source = "usda_fndds")
+        seed("Fish, salmon, raw", source = "usda_sr")
+        assertEquals(MatchTier.Head, repo.search("salmon", 10, record = false).single { it.food.name == "Fish, salmon, raw" }.tier)
+        seed("Bread, whole grain white", source = "usda_fndds")
+        seed("Bread, white", source = "usda_fndds")
+        assertEquals("Bread, white", names("white bread").first(), "\"Bread, white\" is the query's words in another order")
+    }
+
+    @Test
+    fun restaurantRowsInGenericTablesFollowPlainFoods() = runTest {
+        seed("CHICK-FIL-A, chicken sandwich", source = "usda_sr")
+        seed("Chicken, ground, raw", source = "usda_fndds")
+        assertEquals(listOf("Chicken, ground, raw", "CHICK-FIL-A, chicken sandwich"), names("chick"))
+        assertEquals("CHICK-FIL-A, chicken sandwich", names("chick fil a").first(), "unless the query names the restaurant")
+    }
+
+    @Test
+    fun aTypoFindsTheFoodEvenWhenProductsShareTheTypo() = runTest {
+        seed("Organic Hummus, Avacado & Cilantro", source = "usda_branded", brand = "Baba", barcode = "00850000000031")
+        seed("Avocado, raw", source = "usda_fndds")
+        assertEquals(listOf("Avocado, raw", "Organic Hummus, Avacado & Cilantro"), names("avacado"))
+    }
+
+    @Test
     fun verifiedBeatsPopularWithinAMatchTier() = runTest {
         seed("Peanut Butter, Creamy", source = "off", brand = "Acme", barcode = "3017620422003", popularity = 100)
         seed("Peanut Butter, Creamy", source = "usda_branded", brand = "Jif", barcode = "00051500255162")

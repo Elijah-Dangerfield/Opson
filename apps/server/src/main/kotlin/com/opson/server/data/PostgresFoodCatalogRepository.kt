@@ -23,6 +23,7 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import me.tatarka.inject.annotations.Inject
+import org.jetbrains.exposed.sql.BooleanColumnType
 import org.jetbrains.exposed.sql.IColumnType
 import org.jetbrains.exposed.sql.IntegerColumnType
 import org.jetbrains.exposed.sql.ResultRow
@@ -53,28 +54,24 @@ import kotlin.time.Clock
  *
  * Tiers, best first ([MatchTier]):
  *  - exact: the whole name is the query (or its singular / plural);
- *  - head: the name's first comma segment is. USDA names read
+ *  - head: the name's first comma segment is, also after a category word
+ *    ("Fish, salmon"), or its first two segments are exactly the query's
+ *    words in any order ("Rice, brown" for "brown rice"). USDA names read
  *    "Egg, whole, raw", so this is what makes "eggs" find eggs;
  *  - prefix: the name starts with the query as whole words ("banana" finds
  *    "Banana chips" but "toast" does not find "Toaster pastries");
  *  - full text: every query word starts a word of the name or brand;
  *  - similar: trigram similarity only, for typos.
- * Above the match tier sit two rules about what the query is asking for:
- *  - a query that names a product's brand ("chobani yogurt", "cheerios")
- *    ranks that brand's products first. Naming a brand means every word of
- *    the brand, apart from filler like "Inc." or "Foods", is in the query,
- *    and no generic food is an exact or head match ("peanut butter" stays a
- *    food even though "Peanut Butter & Co." is a brand);
- *  - otherwise generic (reference tier) foods come before branded ones, so
- *    "banana" offers "Banana, raw" before a product a store named "Bananas".
- *    Trigram-only matches stay last either way.
- * Within a match tier: verified before unverified and lower source tier
- * first, then names containing the query words as whole words, then the
- * plain form of a food ("raw", "NFS", "plain", "whole", "brewed", "cooked")
- * over prepared dishes, so "eggs" offers "Egg, whole, raw" before
- * "Egg, creamed"; then similarity to the whole name rounded to one decimal
- * (so near-equal matches fall through to popularity), then popularity, then
- * shorter names.
+ * Above the match tier sit rules about what the query is asking for: a match
+ * on the name beats a match only through the brand, a query that names a
+ * brand ranks its products first, and otherwise generic foods come before
+ * branded ones. SEARCH_SQL's comment has the full order. Within a match tier:
+ * verified first, lower source tier, whole words, the plain form of a food
+ * ("raw", "NFS", "plain", "whole", "brewed", "cooked") over prepared dishes,
+ * similarity rounded to one decimal, popularity, shorter names.
+ *
+ * Any change to the ranking answers to the relevance suite
+ * (`SearchRelevanceTest`, `search-relevance.tsv`).
  */
 @SingleIn(ServerScope::class)
 @ContributesBinding(ServerScope::class)
@@ -106,22 +103,27 @@ class PostgresFoodCatalogRepository(
 
     private fun runSearch(terms: SearchTerms, limit: Int): List<FoodMatch> {
         val text = TextColumnType()
-        val variants = terms.phraseVariants.joinToString("|")
         val args = listOf<Pair<IColumnType<*>, Any?>>(
-            text to terms.likePrefix, // direct: prefix
-            text to terms.prefixTsQuery, // direct: full text
-            IntegerColumnType() to limit, // typo fallback only below this many direct matches
-            text to terms.normalized, // fallback: trigram
+            text to terms.likePrefix, // generic: prefix
+            text to terms.prefixTsQuery, // generic: full text
+            BooleanColumnType() to terms.canNameBrand, // Branded: always when a brand may be named,
+            IntegerColumnType() to limit, // otherwise only below this many generic matches
+            text to terms.likePrefix, // Branded: prefix
+            text to terms.prefixTsQuery, // Branded: full text
+            IntegerColumnType() to limit, // typo fallback below this many direct matches,
+            text to terms.likeWords, // or with no generic match and no brand carrying a query word
+            text to terms.normalized, // fallback: trigram similarity
             text to terms.likePrefix, // fallback: not already direct
             text to terms.prefixTsQuery, // fallback: not already direct
-            text to variants, // exact tier
-            text to variants, // head tier
-            text to terms.wordPrefixRegex, // prefix tier
-            text to terms.prefixTsQuery, // full-text tier
-            text to terms.wholeWordTsQuery, // whole-word bonus
-            text to terms.brandWords, // brand named: every brand word is one of these
-            text to terms.queryWords, // brand named: and at least one is a query word
-            text to terms.normalized, // similarity
+            text to terms.phraseVariants.joinToString("|"), // p.variants
+            text to terms.wordPrefixRegex, // p.prefix_regex
+            text to terms.prefixTsQuery, // p.prefix_ts
+            text to terms.wholeWordTsQuery, // p.whole_ts
+            text to terms.queryWords, // p.query_words
+            text to terms.normalized, // p.normalized
+            BooleanColumnType() to terms.canNameBrand, // p.brandable
+            text to terms.likeWords, // p.like_words
+            text to terms.phrase, // p.phrase
             IntegerColumnType() to limit,
         )
         val results = mutableListOf<FoodMatch>()
@@ -261,57 +263,163 @@ class PostgresFoodCatalogRepository(
          * exact or head match for it: "peanut butter" is a food first, even
          * though "Peanut Butter & Co." is a brand.
          */
+        /**
+         * A brand, a name's first segment or the query as words: lowercase,
+         * filler dropped ("Inc.", "Foods", "and", the s of "Campbell's"), naive
+         * singulars, single spaces. Both sides of a "does the query name this
+         * brand" check go through it, so they always agree.
+         */
+        private fun wordsOf(expr: String): String {
+            val filler = SearchTerms.BRAND_FILLER.joinToString("|")
+            return "btrim(regexp_replace(regexp_replace(regexp_replace(" +
+                "regexp_replace(lower($expr), '[^[:alnum:]]+', ' ', 'g'), " +
+                "'\\m($filler)\\M', ' ', 'g'), " +
+                "'\\m([[:alnum:]]{2,}[^s ])s\\M', '\\1', 'g'), ' +', ' ', 'g'))"
+        }
+
+        /**
+         * Category words USDA puts before the food ("Fish, salmon, raw",
+         * "Nuts, almonds"). A head match also looks past them, so `salmon`
+         * finds "Fish, salmon, raw" as it finds "Salmon, raw". Not meats:
+         * "Beef, bacon" is not what `bacon` means.
+         */
+        private const val CATEGORIES =
+            "fish,shellfish,crustaceans,mollusks,nuts,seeds,spices,beverages,candies,cereals,snacks,oil,cheese"
+
+        /**
+         * The column order here is what [toFood] on a ResultSet reads.
+         *
+         * Candidates: names starting with the query, and full text over name
+         * and brand. The typo fallback (trigram similarity of the whole name,
+         * or of its best-matching words) only runs when those are fewer than
+         * the limit, or include no generic food: with Branded Foods loaded a
+         * misspelling like "avacado" still finds the products that spell it
+         * that way, and a person typing it means the fruit. The `count(*)`
+         * and `EXISTS` subqueries are uncorrelated, so Postgres evaluates them
+         * once and skips the trigram scan entirely when they say so.
+         *
+         * Ranking, in order:
+         *  1. direct matches before typo matches, except a typo rescue: a
+         *     generic food whose words closely match the query (trigram word
+         *     similarity 0.45 or more: "avacado" and "Avocado, raw"), when
+         *     nothing generic matched directly and no brand is named;
+         *  2. a match on the food's name before a match only through its brand
+         *     ("brown rice" never offers the brand "Rice Browns" first);
+         *  3. a named brand: the brand's words appear in the query as a run
+         *     ("chobani greek yogurt", "coke zero"), the query has 4 or more
+         *     characters (shorter is a word being typed), and no generic food
+         *     is an exact or head match ("peanut butter" stays a food);
+         *  4. generic before Branded;
+         *  5. USDA's restaurant and brand rows in the generic tables
+         *     ("CHICK-FIL-A, ...") after plain foods, unless the query names them;
+         *  6. match tier (exact, head, whole-word prefix, full text, similar),
+         *     verified, source tier, whole words, plain forms, similarity,
+         *     popularity, shorter names.
+         * Head includes the name's first two segments when they are exactly
+         * the query's words in any order ("Rice, brown" for "brown rice").
+         */
         private val SEARCH_SQL = """
-            WITH direct AS (
+            WITH generic AS (
                 SELECT f.* FROM foods f
-                WHERE lower(f.name) LIKE ?
-                   OR f.search @@ to_tsquery('simple', ?)
+                WHERE f.tier = 1
+                  AND (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
+            ),
+            direct AS (
+                SELECT * FROM generic
+                UNION ALL
+                SELECT f.* FROM foods f
+                WHERE f.tier > 1
+                  AND (? OR (SELECT count(*) FROM generic) < ?)
+                  AND (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
             ),
             candidates AS (
                 SELECT * FROM direct
                 UNION ALL
                 SELECT f.* FROM foods f
-                WHERE (SELECT count(*) FROM direct) < ?
+                WHERE ((SELECT count(*) FROM direct) < ?
+                       OR NOT EXISTS (SELECT 1 FROM direct d
+                                      WHERE d.tier = 1 OR lower(d.brand) LIKE ANY (string_to_array(?, '|'))))
                   AND lower(f.name) OPERATOR(extensions.%) ?
                   AND NOT (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
             ),
+            p AS (
+                SELECT string_to_array(?, '|') AS variants,
+                       ?::text AS prefix_regex,
+                       to_tsquery('simple', ?) AS prefix_ts,
+                       to_tsquery('simple', ?) AS whole_ts,
+                       string_to_array(?, '|') AS query_words,
+                       ?::text AS normalized,
+                       ?::boolean AS brandable,
+                       string_to_array(?, '|') AS like_words,
+                       ' ' || ${wordsOf("?::text")} || ' ' AS phrase
+            ),
+            named AS (
+                SELECT c.*, lower(c.name) AS lname,
+                       CASE WHEN split_part(lower(c.name), ', ', 1) = ANY ('{$CATEGORIES}'::text[])
+                            THEN substr(lower(c.name), strpos(c.name, ', ') + 2)
+                            ELSE lower(c.name)
+                       END AS core
+                FROM candidates c
+            ),
             scored AS (
-                SELECT c.id, c.source, c.source_id, c.name, c.brand, c.barcode,
-                       c.kcal_100g, c.protein_100g, c.carbs_100g, c.fat_100g, c.fiber_100g,
-                       c.micros::text AS micros, c.portions::text AS portions, c.popularity,
-                       c.tier, c.verified,
+                SELECT n.id, n.source, n.source_id, n.name, n.brand, n.barcode,
+                       n.kcal_100g, n.protein_100g, n.carbs_100g, n.fat_100g, n.fiber_100g,
+                       n.micros::text AS micros, n.portions::text AS portions, n.popularity,
+                       n.tier, n.verified,
                        CASE
-                           WHEN lower(c.name) = ANY (string_to_array(?, '|')) THEN 0
-                           WHEN btrim(split_part(lower(c.name), ',', 1)) = ANY (string_to_array(?, '|')) THEN 1
-                           WHEN lower(c.name) ~ ? THEN 2
-                           WHEN c.search @@ to_tsquery('simple', ?) THEN 3
+                           WHEN n.lname = ANY (p.variants) THEN 0
+                           WHEN btrim(split_part(n.lname, ',', 1)) = ANY (p.variants)
+                             OR btrim(split_part(n.core, ',', 1)) = ANY (p.variants) THEN 1
+                           WHEN btrim(split_part(n.core, ',', 1)) = ANY (p.query_words)
+                             AND array_remove(regexp_split_to_array(substring(n.core FROM '^[^,]*(?:,[^,]*)?'),
+                                                                    '[^[:alnum:]]+'), '') <@ p.query_words
+                             AND to_tsvector('simple', substring(n.core FROM '^[^,]*(?:,[^,]*)?')) @@ p.whole_ts THEN 1
+                           WHEN n.lname ~ p.prefix_regex THEN 2
+                           WHEN n.search @@ p.prefix_ts THEN 3
                            ELSE 4
                        END AS match_tier,
-                       c.search @@ to_tsquery('simple', ?) AS whole_words,
-                       coalesce((
-                           SELECT cardinality(b.words) > 0
-                                  AND b.words <@ string_to_array(?, '|')
-                                  AND b.words && string_to_array(?, '|')
-                           FROM (SELECT array_remove(regexp_split_to_array(lower(c.brand), '[^[:alnum:]]+'), '') AS words) b
-                       ), false) AS brand_hit,
-                       lower(c.name) ~ '\m(raw|nfs|plain|whole|brewed|cooked)\M' AS staple,
-                       extensions.similarity(lower(c.name), ?) AS sim
-                FROM candidates c
+                       n.search @@ p.whole_ts AS whole_words,
+                       CASE WHEN p.brandable AND lower(n.brand) LIKE ANY (p.like_words)
+                            THEN strpos(p.phrase, ' ' || ${wordsOf("n.brand")} || ' ') > 0
+                            ELSE false
+                       END AS brand_hit,
+                       CASE WHEN strpos(n.name, ',') > 0 AND split_part(n.name, ',', 1) !~ '[a-z]{2}'
+                                 AND split_part(n.name, ',', 1) ~ '[A-Z]{2}'
+                            THEN strpos(p.phrase, ' ' || ${wordsOf("split_part(n.name, ',', 1)")} || ' ') = 0
+                            ELSE false
+                       END AS caps_unnamed,
+                       n.lname ~ '\m(raw|nfs|plain|whole|brewed|cooked)\M' AS staple,
+                       extensions.similarity(n.lname, p.normalized) AS sim,
+                       p.prefix_ts AS q_prefix_ts,
+                       p.normalized AS q_normalized
+                FROM named n CROSS JOIN p
+            ),
+            ranked AS (
+                SELECT s.*,
+                       s.match_tier <= 2 OR (s.match_tier = 3
+                           AND (s.brand IS NULL OR to_tsvector('simple', s.name) @@ s.q_prefix_ts)) AS name_hit,
+                       s.brand_hit AND NOT bool_or(s.tier = 1 AND s.match_tier <= 1) OVER () AS brand_named,
+                       s.tier = 1 AND s.match_tier = 4
+                           AND extensions.word_similarity(s.q_normalized, lower(s.name)) >= 0.45
+                           AND NOT bool_or(s.tier = 1 AND s.match_tier < 4) OVER ()
+                           AND NOT bool_or(s.brand_hit) OVER () AS rescue
+                FROM scored s
             )
-            SELECT s.*, s.brand_hit AND NOT bool_or(s.tier = 1 AND s.match_tier <= 1) OVER () AS brand_named
-            FROM scored s
-            ORDER BY (s.match_tier = 4),
-                     brand_named DESC,
-                     (s.tier > 1),
-                     s.match_tier,
-                     s.verified DESC,
-                     s.tier,
-                     s.whole_words DESC,
-                     s.staple DESC,
-                     round(s.sim::numeric, 1) DESC,
-                     s.popularity DESC,
-                     length(s.name),
-                     s.name
+            SELECT r.* FROM ranked r
+            ORDER BY NOT (r.match_tier < 4 OR r.rescue),
+                     (r.name_hit OR r.rescue) DESC,
+                     r.brand_named DESC,
+                     (r.tier > 1),
+                     r.caps_unnamed,
+                     r.match_tier,
+                     r.verified DESC,
+                     r.tier,
+                     r.whole_words DESC,
+                     r.staple DESC,
+                     round(r.sim::numeric, 1) DESC,
+                     r.popularity DESC,
+                     length(r.name),
+                     r.name
             LIMIT ?
         """.trimIndent()
     }
@@ -346,16 +454,33 @@ internal class SearchTerms private constructor(
     /** `chobani|chobanis|yogurt|yogurts`: the query's words and their variants. */
     val queryWords: String = words.flatMap(::variantsOf).distinct().joinToString("|")
 
-    /** [queryWords] plus what a brand may carry that nobody types ("Inc.", "Foods", the s of "Campbell's"). */
-    val brandWords: String = (words.flatMap(::variantsOf) + BRAND_FILLER).distinct().joinToString("|")
+    /** The query's words, space separated. The statement compares brands against them as a run. */
+    val phrase: String = words.joinToString(" ")
+
+    /**
+     * `%chobani%|%yogurt%`: LIKE patterns for a brand that carries one of the
+     * query's words, filler aside. A cheap test the statement runs before the
+     * exact one, since a named brand has every one of its words in the query.
+     */
+    val likeWords: String = words.filter { it !in BRAND_FILLER }.flatMap(::variantsOf).distinct().joinToString("|") { "%$it%" }
+
+    /**
+     * Whether the query may name a brand: 4 or more letters and digits. One
+     * to three is a word still being typed, and "avo" means avocado more
+     * often than the brand "Avo's".
+     */
+    val canNameBrand: Boolean = words.sumOf { it.length } >= MIN_BRAND_QUERY
 
     companion object {
-        private val BRAND_FILLER = listOf(
+        private const val MIN_BRAND_QUERY = 4
+
+        /** What a brand may carry that nobody types ("Inc.", "Foods", the s of "Campbell's"). */
+        val BRAND_FILLER = listOf(
             "the", "and", "of", "s", "inc", "llc", "ltd", "co", "corp", "corporation", "company", "companies",
             "foods", "food", "brand", "brands", "sales", "usa", "us", "international", "products", "group",
         )
 
-        private val WORD =Regex("[\\p{L}\\p{N}]+")
+        private val WORD = Regex("[\\p{L}\\p{N}]+")
 
         fun of(normalized: String): SearchTerms? {
             val words = WORD.findAll(normalized).map { it.value }.take(8).toList()
