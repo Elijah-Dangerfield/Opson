@@ -145,8 +145,10 @@ With no list for the region it reads `In crisis? Find a line near you` and opens
 Find support.
 
 Copy: `Find support`; `Free and confidential. Calls open your phone app.`;
-`In crisis right now`; `24/7 · call or text`; `Call %s` / `Text %s`;
-`Eating disorder support`; `Outside %s` (`Other countries` with no country);
+`In crisis right now`; `24/7 · call or text` (or `24/7 · text SHOUT to
+85258` where the text line wants a keyword); `Call %s` / `Text %s`;
+`Eating disorder support`; `Outside the US` and one per country (`Other
+countries` with no country);
 `Choose a country`; `Call` / `Text` / `Open`; `%1$s · %2$s` rows;
 `Your phone couldn't open this. The number is %s.`; `If you're in danger, call
 your local emergency number.`
