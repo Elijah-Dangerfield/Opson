@@ -109,10 +109,10 @@ object PageHeaderDefaults {
     val Height: Dp = 64.dp
 
     /**
-     * How far the back target reaches into the 20 dp page padding: the arrow's 24 dp glyph then
+     * How far the back target reaches into the 16 dp page padding: the arrow's 24 dp glyph then
      * starts 16 dp from the screen edge, and the title 56 dp, as a Material top app bar.
      */
-    val Bleed: Dp = 16.dp
+    val Bleed: Dp = 12.dp
 
     internal val TitleGap: Dp = 4.dp
 }

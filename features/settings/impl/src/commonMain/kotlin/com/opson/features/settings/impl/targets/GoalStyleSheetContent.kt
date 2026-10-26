@@ -49,7 +49,7 @@ fun GoalStyleSheetContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = AppTheme.spacing.page),
+            .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, top = 10.dp, bottom = AppTheme.spacing.page),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
         SheetHandle(modifier = Modifier.align(Alignment.CenterHorizontally))

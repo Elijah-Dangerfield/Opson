@@ -99,13 +99,12 @@ internal fun FormPage(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = FoodsDefaults.PagePadding),
+                .padding(horizontal = AppTheme.spacing.page),
         ) {
             PageHeader(
                 title = title,
                 backLabel = stringResource(Res.string.foods_title),
                 onBack = onClose,
-                bleed = FoodsDefaults.HeaderBleed,
                 navigation = PageHeaderNavigation.Close,
             )
             Column(
@@ -120,7 +119,7 @@ internal fun FormPage(
             ButtonPrimary(
                 onClick = onSave,
                 enabled = canSave,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = FoodsDefaults.PagePadding),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = AppTheme.spacing.page),
             ) {
                 Text(saveLabel)
             }

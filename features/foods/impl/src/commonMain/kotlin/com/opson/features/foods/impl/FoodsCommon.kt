@@ -146,12 +146,6 @@ internal fun FoodsCardNote(text: String) {
 }
 
 internal object FoodsDefaults {
-    /** Design v3's page inset. */
-    val PagePadding: Dp = 16.dp
-
-    /** The top app bar's close target reaches into the page padding, so the X sits 16 dp from the edge. */
-    val HeaderBleed: Dp = 12.dp
-
     val CardGap: Dp = 12.dp
     val CardPadding: Dp = 16.dp
     val CardRowInset: Dp = 14.dp

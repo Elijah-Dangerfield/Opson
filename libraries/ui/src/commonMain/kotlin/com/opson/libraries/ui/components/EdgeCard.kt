@@ -17,14 +17,16 @@ import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
+import com.opson.system.DefaultSpacing
 import com.opson.system.background
 import com.opson.system.thenIf
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * The handoff's card: surface color, radius 22, padding 16 by 20, running edge to edge.
+ * The handoff's card: surface color, radius 22, padding 16 all round (design v3), running edge
+ * to edge.
  *
- * Pages keep the 20dp page padding, and cards cancel it with a negative margin so they touch
+ * Pages keep the page padding, and cards cancel it with a negative margin so they touch
  * the screen edges while everything else stays inset. Compose has no negative padding, so
  * [edgeToEdge] widens the card by [bleed] on each side with [bleedHorizontal] instead. Pass
  * `edgeToEdge = false` for a card that sits inside the padding (inside a sheet, for example).
@@ -54,7 +56,7 @@ fun EdgeCard(
 }
 
 object EdgeCardDefaults {
-    val ContentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)
+    val ContentPadding = PaddingValues(horizontal = DefaultSpacing.cardHorizontal, vertical = DefaultSpacing.cardVertical)
     val ContentGap = 10.dp
 
     /** A card holding a list of divided rows (More, the presets, Support's sharing rows). */

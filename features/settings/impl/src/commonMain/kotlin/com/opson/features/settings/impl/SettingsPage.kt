@@ -50,7 +50,7 @@ internal fun SettingsPage(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = SettingsDefaults.PagePadding)
+                .padding(horizontal = AppTheme.spacing.page)
                 .padding(bottom = AppTheme.spacing.section),
             verticalArrangement = Arrangement.spacedBy(SettingsDefaults.CardGap),
             content = content,
@@ -61,7 +61,7 @@ internal fun SettingsPage(
 /** A pushed settings page's top app bar, lined up with [SettingsPage]'s padding. */
 @Composable
 internal fun SettingsHeader(title: String, backLabel: String, onBack: () -> Unit) {
-    PageHeader(title = title, backLabel = backLabel, onBack = onBack, bleed = SettingsDefaults.HeaderBleed)
+    PageHeader(title = title, backLabel = backLabel, onBack = onBack)
 }
 
 /** A card of [SettingsRow]s. */
@@ -133,12 +133,6 @@ internal fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 }
 
 internal object SettingsDefaults {
-    /** Design v3's page inset. */
-    val PagePadding: Dp = 16.dp
-
-    /** The back target reaches into the page padding so the arrow sits 16 dp from the edge. */
-    val HeaderBleed: Dp = 12.dp
-
     val CardGap: Dp = 12.dp
     val CardPadding: Dp = 16.dp
     val CardInset = PaddingValues(16.dp)

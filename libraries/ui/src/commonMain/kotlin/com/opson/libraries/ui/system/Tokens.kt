@@ -54,14 +54,14 @@ class AppShapes internal constructor() {
 /** Spacing from the handoff. Read through `AppTheme.spacing`. */
 @Immutable
 class AppSpacing internal constructor() {
-    /** Horizontal padding of every page. */
-    val page: Dp = 20.dp
+    /** Horizontal padding of every page. 16 in design v3 (it was 20 in the handoff). */
+    val page: Dp = 16.dp
 
     /** Gap between sections on a page. */
     val section: Dp = 14.dp
 
-    /** Card content padding. */
-    val cardHorizontal: Dp = 20.dp
+    /** Card content padding. Design v3 insets card content 16 from the card's edge. */
+    val cardHorizontal: Dp = 16.dp
     val cardVertical: Dp = 16.dp
 
     /** Gap between an icon tile and its text, and between row items. */

@@ -65,8 +65,8 @@ fun FoodsScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(
-                start = FoodsDefaults.PagePadding,
-                end = FoodsDefaults.PagePadding,
+                start = AppTheme.spacing.page,
+                end = AppTheme.spacing.page,
                 bottom = AppTheme.spacing.section * 2,
             ),
         ) {
