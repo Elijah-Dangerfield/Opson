@@ -36,6 +36,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * Texts arrive formatted. A nutrition figure on the right should come in through [trailing] as
  * a `NutrientValue`, which carries the metric test tag; [trailingText] is for anything else.
  * [onClick] covers the icon and the text, not the trailing action, which handles its own taps.
+ * [subtitleContent] replaces [subtitle] when the subtitle carries a number that must render
+ * through a tagged nutrient text.
  */
 @Composable
 fun ListRow(
@@ -48,6 +50,7 @@ fun ListRow(
     onClick: (() -> Unit)? = null,
     showDivider: Boolean = false,
     minHeight: Dp = 58.dp,
+    subtitleContent: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -81,7 +84,9 @@ fun ListRow(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (subtitle != null) {
+                    if (subtitleContent != null) {
+                        subtitleContent()
+                    } else if (subtitle != null) {
                         Text(
                             text = subtitle,
                             typography = AppTheme.type.secondarySmall.Tabular,

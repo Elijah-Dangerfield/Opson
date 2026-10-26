@@ -56,6 +56,15 @@ fun EdgeCard(
 object EdgeCardDefaults {
     val ContentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)
     val ContentGap = 10.dp
+
+    /** A card holding a list of divided rows (More, the presets, Support's sharing rows). */
+    val ListPadding = PaddingValues(horizontal = 18.dp, vertical = 4.dp)
+
+    /** A card inside the page padding holding text and buttons (Support, Targets). */
+    val InsetPadding = PaddingValues(18.dp)
+
+    /** The gap between a card's sections when [ContentGap] is too tight (Targets, the friction sheet). */
+    val SectionGap = 14.dp
 }
 
 /**

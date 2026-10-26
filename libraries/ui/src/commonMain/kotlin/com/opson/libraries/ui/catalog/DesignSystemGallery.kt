@@ -1,5 +1,11 @@
 package com.opson.libraries.ui.catalog
 
+import com.opson.libraries.ui.components.PageHeader
+import com.opson.libraries.ui.components.button.FlatButton
+import com.opson.libraries.ui.components.button.FlatButtonDefaults
+import com.opson.libraries.ui.components.button.FlatButtonTone
+import com.opson.libraries.ui.components.radio.RadioMatrix
+import com.opson.libraries.ui.components.radio.RadioMatrixRow
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -430,6 +436,25 @@ private fun ControlsSection() {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ButtonSecondary(onClick = {}) { Text("Today") }
         ButtonGhost(onClick = {}) { Text("Stop asking these") }
+    }
+    PageHeader(title = "Targets", backLabel = "‹ More", onBack = {})
+    FlatButton(text = "Find a provider", onClick = {}, modifier = Modifier.fillMaxWidth())
+    FlatButton(
+        text = "Show them",
+        onClick = {},
+        tone = FlatButtonTone.Ink,
+        centered = true,
+        minHeight = FlatButtonDefaults.TallMinHeight,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    EdgeCard(edgeToEdge = false, verticalArrangement = Arrangement.Top) {
+        val levels = listOf("Show", "Soft", "Later", "Hide")
+        RadioMatrix(
+            header = "Each number",
+            columns = levels,
+            rows = listOf(RadioMatrixRow("Protein", 1, levels.map { "Protein: $it" })),
+            onSelect = { _, _ -> },
+        )
     }
 }
 
