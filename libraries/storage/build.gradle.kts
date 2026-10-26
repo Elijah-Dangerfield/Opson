@@ -19,5 +19,8 @@ kotlin {
             implementation(projects.libraries.flowroutines)
             implementation(libs.kotlinx.serialization.json)
         }
+        commonTest.dependencies {
+            implementation(libs.kotlinx.coroutines.test)
+        }
     }
 }

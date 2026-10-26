@@ -61,7 +61,7 @@ class DataStoreCacheFactory (
         )
 
         val corruptionHandler = ReplaceFileCorruptionHandler<T> { ex ->
-            KLog.e("File Corrupted", ex)
+            KLog.e("Cache '$name' was unreadable and is reset to its default", ex)
             runBlocking { serializer.read(null) }
         }
 

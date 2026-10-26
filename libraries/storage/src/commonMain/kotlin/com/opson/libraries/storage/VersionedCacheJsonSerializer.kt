@@ -29,7 +29,7 @@ class VersionedCacheJsonSerializer<T : Any>(
         val root = try {
             json.parseToJsonElement(text)
         } catch (e: Exception) {
-            throw CorruptionException("Failed to parse JSON", e)
+            throw corruption("Failed to parse JSON", e)
         }
 
         val rootObj = root as? JsonObject
@@ -48,7 +48,7 @@ class VersionedCacheJsonSerializer<T : Any>(
         return try {
             json.decodeFromJsonElement(serializer, migratedData)
         } catch (e: Exception) {
-            throw CorruptionException("Failed to decode versioned data", e)
+            throw corruption("Failed to decode versioned data", e)
         }
     }
 
@@ -76,6 +76,15 @@ class VersionedCacheJsonSerializer<T : Any>(
 
         return element
     }
+
+    /**
+     * Names the parser's exception and drops it. kotlinx.serialization quotes
+     * the JSON around a failure ("JSON input: ..."), these files hold emails,
+     * names and body weights, and the corruption handler logs what it is given
+     * to Sentry.
+     */
+    private fun corruption(what: String, e: Exception) =
+        CorruptionException("$what (${e::class.simpleName})")
 
     fun interface Migration {
         suspend fun migrate(data: JsonElement): JsonElement
