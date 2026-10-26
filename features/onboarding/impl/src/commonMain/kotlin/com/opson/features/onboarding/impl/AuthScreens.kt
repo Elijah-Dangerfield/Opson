@@ -17,6 +17,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -166,13 +169,18 @@ fun SignInScreen(
         }
         if (state.appleEnabled) {
             // Native sign-in — runs the system sheet via the coordinator, not
-            // the web flow.
+            // the web flow. After the sheet, the sign-in itself is a network
+            // call, so the button says so rather than just greying out.
             ButtonSecondary(
                 onClick = { onAction(SignInAction.SignInWithApple) },
                 enabled = !state.isSubmitting,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(Res.string.auth_sign_in_with_apple))
+                Text(
+                    stringResource(
+                        if (state.isSubmitting) Res.string.auth_signing_in else Res.string.auth_sign_in_with_apple,
+                    ),
+                )
             }
         }
         if (SignInMethods.EMAIL) {
@@ -578,12 +586,14 @@ private fun PasswordField(
     )
 }
 
+/** Announced when it appears: the error arrives after the tap, away from the focused button. */
 @Composable
 private fun ErrorText(text: String) {
     Text(
         text = text,
         typography = AppTheme.typography.Body.B500,
         color = AppTheme.colors.danger,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )
 }
 
@@ -606,7 +616,7 @@ private fun VerifyEmailBanner(banner: VerifyEmailState.Banner) {
         typography = AppTheme.typography.Body.B500,
         color = color,
         textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
     )
 }
 
