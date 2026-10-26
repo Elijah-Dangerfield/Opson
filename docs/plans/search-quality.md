@@ -49,8 +49,11 @@ and in `docs/food-data-sources.md`.
 
 **Change.** The importer orders portions so the first is a sensible default:
 a labelled or typical serving (cup, medium piece, container, NLEA serving,
-slice, oz) over a single tiny unit, never a piece under a grams floor (about
-15 g) when something bigger exists. The rest keep their order, so every
+slice, oz) over a single tiny unit, never a piece under a grams floor (20 g,
+unless it is 40 kcal or more, or a spoon, slice or packet) when something
+bigger exists. Built that way, plus one case found on the way: a cup of
+something dense (over 500 kcal: almonds, butter) gives way to an ounce or a
+spoon. The rest keep their order, so every
 portion is still offered. One function, `order_portions`, with tests for
 berries, nuts, grains, candies and drinks.
 
@@ -88,6 +91,16 @@ same response shape (`source: "off"`, tier 4, not verified). `GET
 **Dev.** Load OFF into dev only if free space stays under 60% used during and
 after the load. Check `pg_database_size` and the disk first, stop if it
 climbs.
+
+## Outcome
+
+Results and numbers are in `docs/food-data-sources.md` ("Measured again" and
+"Search ranking and default servings"). Differences from the plan: the
+ranking also reads generic rows first through partial indexes (V13), which
+made search faster rather than slower; Open Food Facts also gets candidates
+from the caller's country (a GIN on `countries_tags, search`); and OFF was not
+loaded on dev, because its peak could pass 60% of the disk and the disk can't
+be read from SQL.
 
 ## Done means
 
