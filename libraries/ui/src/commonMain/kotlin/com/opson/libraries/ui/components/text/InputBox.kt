@@ -58,10 +58,11 @@ internal fun InputBox(
     minHeight: Dp,
     borderColor: ColorResource = AppTheme.colors.line,
 ) {
+    val typed = rememberTypedText(value, onValueChange)
     val ink = AppTheme.colors.ink
     BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
+        value = typed.text,
+        onValueChange = typed::onType,
         modifier = modifier,
         enabled = enabled,
         textStyle = typography.style(ink.color).copy(textAlign = textAlign),
@@ -86,7 +87,7 @@ internal fun InputBox(
                 // Min constraints passed down so the inner field spans the box and a centred
                 // value is centred in the box, not in its own width.
                 Box(modifier = Modifier.weight(1f), propagateMinConstraints = true) {
-                    if (value.isEmpty() && placeholder != null) {
+                    if (typed.text.isEmpty() && placeholder != null) {
                         Text(
                             text = placeholder,
                             typography = typography,

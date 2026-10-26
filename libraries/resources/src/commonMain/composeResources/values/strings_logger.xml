@@ -94,7 +94,7 @@
     <string name="logger_amount_fat">Fat</string>
     <string name="logger_amount_hunger">Hunger before · optional</string>
     <string name="logger_hunger_not">Not hungry</string>
-    <string name="logger_hunger_bit">A bit</string>
+    <string name="logger_hunger_bit">Peckish</string>
     <string name="logger_hunger_hungry">Hungry</string>
     <string name="logger_hunger_very">Very</string>
     <string name="logger_amount_stop_asking">Stop asking this</string>

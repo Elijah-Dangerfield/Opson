@@ -30,6 +30,7 @@ import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.text.NumberInput
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.components.text.rememberTypedText
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.background
@@ -116,12 +117,13 @@ fun SheetMenuNumberRow(
         ) {
             Icon(icon = icon, size = 22.dp, color = AppTheme.colors.accent)
             Box(Modifier.weight(1f).padding(vertical = 8.dp)) {
-                if (value.isEmpty()) {
+                val typed = rememberTypedText(value, onValueChange)
+                if (typed.text.isEmpty()) {
                     Text(text = placeholder, typography = AppTheme.type.menuItem.Normal, color = AppTheme.colors.muted, maxLines = 1)
                 }
                 BasicTextField(
-                    value = value,
-                    onValueChange = { onValueChange(NumberInput.sanitize(it, allowDecimal = false)) },
+                    value = typed.text,
+                    onValueChange = { typed.onType(NumberInput.sanitize(it, allowDecimal = false)) },
                     modifier = Modifier.fillMaxWidth().semantics { contentDescription = placeholder },
                     singleLine = true,
                     textStyle = AppTheme.type.menuItem.Normal.style(AppTheme.colors.ink.color),

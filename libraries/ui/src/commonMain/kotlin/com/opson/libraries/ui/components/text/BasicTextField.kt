@@ -50,11 +50,12 @@ fun BasicTextField(
         backgroundColor = AppTheme.colors.accentPrimary.color.copy(alpha = 0.4F)
     )
 
+    val typed = rememberTypedText(value, onValueChange)
     CompositionLocalProvider(LocalTextSelectionColors provides textSelectionColors) {
         SelectionContainer {
             androidx.compose.foundation.text.BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
+                value = typed.text,
+                onValueChange = typed::onType,
                 modifier = modifier,
                 enabled = enabled,
                 readOnly = readOnly,

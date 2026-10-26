@@ -28,6 +28,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -71,17 +72,21 @@ fun SearchField(
         // Without a window there is nothing to focus, and requesting it throws.
         if (focusOnOpen && !inPreview) Catching { focusRequester.requestFocus() }
     }
+    val typed = rememberTypedText(value, onValueChange)
+    val keyboard = LocalSoftwareKeyboardController.current
     val ink = AppTheme.colors.ink
     BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
+        value = typed.text,
+        onValueChange = typed::onType,
         modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
         textStyle = AppTheme.type.lead.style(ink.color),
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Search),
+        // Results update as you type, so Search only has to get the keyboard out of the way.
+        keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
         cursorBrush = SolidColor(AppTheme.colors.accent.color),
         decorationBox = { innerTextField ->
-            val typing = value.isNotEmpty()
+            val typing = typed.text.isNotEmpty()
             Row(
                 modifier = Modifier
                     .defaultMinSize(minHeight = 52.dp)
@@ -94,7 +99,7 @@ fun SearchField(
             ) {
                 Icon(icon = AppIcons.Search, size = 22.dp, color = AppTheme.colors.muted)
                 Box(modifier = Modifier.weight(1f).padding(vertical = 12.dp), propagateMinConstraints = true) {
-                    if (value.isEmpty()) {
+                    if (typed.text.isEmpty()) {
                         Text(text = placeholder, typography = AppTheme.type.lead, color = AppTheme.colors.muted, maxLines = 1)
                     }
                     innerTextField()
