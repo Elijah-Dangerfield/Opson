@@ -32,7 +32,7 @@
 
     <!-- Presets, label and line -->
     <string name="settings_preset_full">Full numbers</string>
-    <string name="settings_preset_full_line">Everything visible. Watch sync shapes your target.</string>
+    <string name="settings_preset_full_line">Every number visible, all day.</string>
     <string name="settings_preset_delayed">Delayed reveal</string>
     <string name="settings_preset_delayed_line">Log all day. Totals open at a time you pick.</string>
     <string name="settings_preset_blind">Blind</string>
@@ -40,7 +40,7 @@
     <string name="settings_preset_nutrient">Nutrient focus</string>
     <string name="settings_preset_nutrient_line">Calories hidden. Chosen nutrients as fill bars.</string>
     <string name="settings_preset_rhythm">Rhythm</string>
-    <string name="settings_preset_rhythm_line">A meal checklist with reminders. Amounts optional.</string>
+    <string name="settings_preset_rhythm_line">A meal checklist. Amounts optional.</string>
     <string name="settings_preset_explorer">Explorer</string>
     <string name="settings_preset_explorer_line">Safe foods, new foods, small wins for trying.</string>
     <string name="settings_preset_mindful">Mindful</string>
