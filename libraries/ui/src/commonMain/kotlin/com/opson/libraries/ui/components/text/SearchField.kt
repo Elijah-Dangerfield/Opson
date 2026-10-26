@@ -28,7 +28,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -73,7 +73,7 @@ fun SearchField(
         if (focusOnOpen && !inPreview) Catching { focusRequester.requestFocus() }
     }
     val typed = rememberTypedText(value, onValueChange)
-    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     val ink = AppTheme.colors.ink
     BasicTextField(
         value = typed.text,
@@ -83,7 +83,8 @@ fun SearchField(
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Search),
         // Results update as you type, so Search only has to get the keyboard out of the way.
-        keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+        // Dropping focus does that on iOS too, where hiding the keyboard controller does not.
+        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
         cursorBrush = SolidColor(AppTheme.colors.accent.color),
         decorationBox = { innerTextField ->
             val typing = typed.text.isNotEmpty()
