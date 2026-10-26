@@ -59,6 +59,7 @@ import com.opson.libraries.ui.components.ChecklistAction
 import com.opson.libraries.ui.components.ChecklistRow
 import com.opson.libraries.ui.components.CountChip
 import com.opson.libraries.ui.components.DayHeader
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HeaderIconButton
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -123,6 +124,7 @@ import opson.libraries.resources.generated.resources.today_explorer_safe_empty
 import opson.libraries.resources.generated.resources.today_feel_pair
 import opson.libraries.resources.generated.resources.today_feel_prompt
 import opson.libraries.resources.generated.resources.today_item_sub
+import opson.libraries.resources.generated.resources.today_loading_cd
 import opson.libraries.resources.generated.resources.today_label_today
 import opson.libraries.resources.generated.resources.today_label_tomorrow
 import opson.libraries.resources.generated.resources.today_label_yesterday
@@ -190,7 +192,7 @@ fun TodayScreen(
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
 ) {
-    val rows = todayRows(state)
+    val rows = remember(state) { todayRows(state) }
     val scope = rememberCoroutineScope()
     // Back leaves selecting, or puts a row's confirmation away, before it leaves Today.
     BackHandler(enabled = state.selection != null) { onAction(TodayAction.SelectionClosed) }
@@ -304,6 +306,8 @@ private fun BottomBars(state: TodayState, onAction: (TodayAction) -> Unit) {
 internal sealed interface TodayRow {
     val key: String
 
+    /** The day has not been read yet; the header already shows which day it is. */
+    data object Loading : TodayRow { override val key = "loading" }
     data class Banner(val banner: TodayBanner) : TodayRow { override val key = "banner" }
     data object Planning : TodayRow { override val key = "planning" }
     data class Summary(val summary: TodaySummary) : TodayRow { override val key = "summary" }
@@ -323,6 +327,10 @@ internal sealed interface TodayRow {
 }
 
 internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
+    if (state.loading) {
+        add(TodayRow.Loading)
+        return@buildList
+    }
     state.banner?.let { add(TodayRow.Banner(it)) }
     if (state.planning) add(TodayRow.Planning)
     // Collapsed, the card is the pinned line above the list instead.
@@ -347,6 +355,7 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
 @Composable
 private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayAction) -> Unit) {
     when (row) {
+        TodayRow.Loading -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.today_loading_cd))
         is TodayRow.Banner -> Banner(text = stringResource(row.banner.text, *row.banner.args.toTypedArray()))
         TodayRow.Planning -> InfoBanner(
             icon = AppIcons.EventNote,

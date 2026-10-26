@@ -74,6 +74,13 @@ class TodayStateBuilderTest {
         assertEquals(MealSlot.meals, state.meals.map { it.slot })
     }
 
+    /** A blank list under the header read as an empty day while the diary (or the health store) was still answering. */
+    @Test
+    fun beforeTheDayIsReadTheListIsOnlyTheSpinner() {
+        assertEquals(listOf<TodayRow>(TodayRow.Loading), todayRows(TodayState(day = TodayFixtures.today)))
+        assertTrue(TodayRow.Loading !in todayRows(build(PresetId.Full)))
+    }
+
     @Test
     fun theEatenBarStopsAtFullHowEverBigTheDay() {
         val energy = assertIs<TodaySummary.Energy>(build(PresetId.Full, day = TodayFixtures.day(bigDay = true)).summary)
