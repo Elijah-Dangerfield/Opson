@@ -101,7 +101,7 @@ class SurfacesCoverageTest {
             "FoodsLeakSurfaces" to listOf("foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind"),
             "TrendsLeakSurfaces" to listOf(
                 "trends", "trends-blind", "trends-coast", "trends-settings", "nutrients", "nutrients-week",
-                "weight", "patterns", "patterns-blind",
+                "weight", "patterns", "patterns-blind", "progress-photos", "progress-photos-compare",
             ),
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",

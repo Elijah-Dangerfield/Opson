@@ -1,7 +1,6 @@
 package com.opson.features.trends.impl
 
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.MealPatterns
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.NewFoods
@@ -41,9 +40,11 @@ data class PatternsState(
     val sizes: List<MealSize>? = null,
     /** How often each meal happens, in place of [sizes]. */
     val often: List<MealFrequency>? = null,
-    /** Hunger before meals: only with hunger tags on and some meal tagged. */
+    /** Hunger through the day: only with hunger tags on and some meal tagged. */
     val hunger: HungerCard? = null,
     val newFoods: List<String> = emptyList(),
+    /** Blind: hunger sits under New foods, below the fold (design sync 2, 5.7). */
+    val hungerLast: Boolean = false,
 )
 
 /** One meal on the 6 am to 9 pm timeline: a dot per logged meal, the usual window behind them. */
@@ -67,9 +68,14 @@ data class MealSize(val slot: MealSlot, val energy: Display, val share: Display,
 
 data class MealFrequency(val slot: MealSlot, val days: Int, val of: Int)
 
-data class HungerRow(val slot: MealSlot, val hunger: Hunger)
+/** One weekday's bar: how hungry its tagged meals were, `0..1`, or `null` with none tagged. */
+data class HungerDay(val day: DayOfWeek, val level: Float?)
 
-data class HungerCard(val rows: List<HungerRow>, val taggedMeals: Int)
+/**
+ * A bar per weekday, Monday first, and the skipped-breakfast fact when the
+ * tags say so: the weekdays it happened on, most often first.
+ */
+data class HungerCard(val days: List<HungerDay>, val skippedBreakfast: List<DayOfWeek>?)
 
 /**
  * Builds [PatternsState] from [MealPatterns], which owns the arithmetic.
@@ -129,11 +135,17 @@ object PatternsStateBuilder {
             sizes = sizes,
             often = if (sizes == null) MealSlot.meals.map { MealFrequency(it, facts.frequency[it] ?: 0, facts.dayCount) } else null,
             hunger = if (inputs.settings.askTags && facts.taggedMeals > 0) {
-                HungerCard(MealSlot.meals.mapNotNull { slot -> facts.hunger[slot]?.let { HungerRow(slot, it) } }, facts.taggedMeals)
+                HungerCard(
+                    days = DayOfWeek.entries.map { day ->
+                        HungerDay(day, facts.hungerByWeekday[day]?.let { (it / MealPatterns.HUNGER_STEPS).toFloat() })
+                    },
+                    skippedBreakfast = facts.hungrierWithoutBreakfast,
+                )
             } else {
                 null
             },
             newFoods = NewFoods.between(inputs.days, from, inputs.today),
+            hungerLast = sizes == null,
         )
     }
 

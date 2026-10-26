@@ -57,6 +57,8 @@ kotlin {
             implementation(projects.libraries.widgets)
             // FindSupportEnabled (release.findSupport), for ConfigManifestRegistryDriftTest.
             implementation(projects.features.settings)
+            // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
+            implementation(projects.libraries.progressphotos)
             implementation(libs.kotlinx.serialization.json)
 
             // Boot a real server on an ephemeral port + verify HS256 test JWTs.

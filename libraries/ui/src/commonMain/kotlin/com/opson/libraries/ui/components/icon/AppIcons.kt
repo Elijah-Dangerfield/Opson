@@ -101,6 +101,9 @@ import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Compare
+import androidx.compose.material.icons.rounded.Cameraswitch
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.WaterDrop
@@ -290,6 +293,16 @@ object AppIcons {
     /** Targets on More: concentric rings (design sync 2). */
     val TrackChanges get() = icon("track_changes", MaterialIcons.Rounded.TrackChanges)
 
+    // Progress photos (design sync 2, 8.4 and 8.5)
+    /** Two frames split down the middle: progress photos' Compare. */
+    val Compare get() = icon("compare", MaterialIcons.Rounded.Compare)
+
+    /** The front and back camera: the capture screen's switch. */
+    val Cameraswitch get() = icon("cameraswitch", MaterialIcons.Rounded.Cameraswitch)
+
+    /** A filled down triangle: Compare's date pickers. */
+    val ArrowDropDown get() = icon("arrow_drop_down", MaterialIcons.Rounded.ArrowDropDown)
+
     /** The meal's tile icon. Uncategorized uses the list glyph. */
     fun meal(tone: MealTone): IconResource = when (tone) {
         MealTone.Breakfast -> BakeryDining
@@ -313,6 +326,7 @@ object AppIcons {
             Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch, Widgets,
             Call, Sms, Public, SupportAgent, DeleteOutline, TrackChanges,
+            Compare, Cameraswitch, ArrowDropDown,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(
