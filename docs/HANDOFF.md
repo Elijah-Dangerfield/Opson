@@ -31,7 +31,7 @@ paused screen reworks from docs/HANDOFF.md".
 
 | Work | Branch (also on GitHub) | State |
 |---|---|---|
-| Today, its sheets and Day close, to v3 | `worktree-agent-a773f0e123d7f62d9` (`wip/today-v3`) | **Done and green** (73 tests, both platforms). Not built: Mark as untracked, the Explorer food bridge, Blind's "How did today feel?" chips, and the 6 s Undo, which the Logger's `RecentLogEvents` should feed. Watch for merge clashes on `CreateMealRoute` in `:features:foods` and `TodayLayout.Journal` in nutrition. |
+| Today, its sheets and Day close, to v3 | merged to `main` | **Merged** (73 tests, both platforms). Not built: Mark as untracked, the Explorer food bridge, Blind's "How did today feel?" chips, and the 6 s Undo, which the Logger's `RecentLogEvents` should feed. Watch for merge clashes on `CreateMealRoute` in `:features:foods` and `TodayLayout.Journal` in nutrition. |
 | Logger to v3 | `worktree-agent-a569e21155a608e60` (`wip/logger-v3`) | Main code done and compiles on Android: search-first sheet, meal dropdown, Describe and Saved inside the sheet (`LogRoute` kept as an alias), Pick and keep going, How it felt, `RecentLogEvents`/`LoggedToMeal`. **Left:** rewrite `AmountTest`, `LoggerStateBuilderTest` and `LoggerViewModelTest` (they don't compile yet), add `HowItFeltTest`, run tests, iOS compile, detekt, screenshots vs v3. |
 | More, Modes, Targets, Support to v3 | `worktree-agent-ae25ce58b390844eb` (`wip/settings-v3`) | Green commits: the v3 plan, the shared ui changes (`PageHeader` is a top app bar with the same signature, 48 dp `minTouchTarget`, bars clamp at 100%), and `revealAt` plus `TargetStyle`/`rangeFor` in nutrition. **The tip WIP commit does not compile**: More, Modes and the pause sheet rewritten, Targets state builder written. **Left:** Targets screen and VM, goal-style sheet and route, the Support delete dialog, Water and Look-and-feel previews (`LightAndDark` was removed), fixtures, leak surfaces, entry point, tests, detekt, screenshots. |
 
@@ -47,11 +47,10 @@ merges.
 3. Foods to v3 (needs the Logger's pick-for-this-meal mode).
 4. `BlindModeLeakTest` across every surface (`docs/plans/screens/blind-leak-test.md`).
 5. Sweep screen previews that use `PreviewLightDark` (one theme per screen).
-6. Prod data: load the food catalog into `opson-prod` (generic seed, then
-   `scripts/import_usda_foods.py --branded --psql`), set the `grafana_ro`
-   password on prod, add an `opson-prod-db` datasource and a dev/prod switch on
-   the dashboards. Dev's branded load was running when work paused; it is
-   idempotent, so just run it again if dev search lacks branded items.
+6. ~~Prod data~~ done: both databases hold all 445,414 foods, prod has its
+   `grafana_ro` login and `opson-prod-db` datasource, and the dashboards have a
+   Database dropdown. Left: set the `CATALOG_DATABASE_URL` repo secret (prod
+   pooler URL) so the monthly refresh runs; until then it skips with a notice.
 7. iOS build to TestFlight, screenshots from the simulator, submit 0.1.
 
 ## Needs you
