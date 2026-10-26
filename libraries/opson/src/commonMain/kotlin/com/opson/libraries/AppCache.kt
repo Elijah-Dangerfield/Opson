@@ -39,6 +39,13 @@ data class AppData(
 
     /** Epoch-ms — last review prompt the coordinator forwarded to the platform. 0 = never. */
     val lastReviewPromptAt: Long = 0L,
+
+    /**
+     * The person tapped Connect for Apple Health or Health Connect and it went through. Only
+     * the choice is kept here; health values are never stored. Account-scoped, so the next
+     * account on this phone starts disconnected.
+     */
+    val healthConnected: Boolean = false,
 ) {
     /**
      * Get the visit count for a screen by its tracking key.
@@ -82,4 +89,5 @@ fun AppData.resetAccountScoped(): AppData = copy(
     // next identity is re-offered onboarding rather than inheriting the
     // previous user's completion.
     hasUserOnboarded = false,
+    healthConnected = false,
 )

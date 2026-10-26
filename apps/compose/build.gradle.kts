@@ -102,6 +102,8 @@ kotlin {
             implementation(projects.libraries.diary.impl)
             implementation(projects.libraries.foods)
             implementation(projects.libraries.foods.impl)
+            implementation(projects.libraries.health)
+            implementation(projects.libraries.health.impl)
 
             implementation(projects.features.foods)
             implementation(projects.features.foods.impl)

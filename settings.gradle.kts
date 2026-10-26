@@ -103,6 +103,8 @@ if (!serverOnly) {
     include(":libraries:flowroutines:testing")
     include(":libraries:foods")
     include(":libraries:foods:impl")
+    include(":libraries:health")
+    include(":libraries:health:impl")
     include(":libraries:navigation")
     include(":libraries:navigation:impl")
     include(":libraries:networking")
