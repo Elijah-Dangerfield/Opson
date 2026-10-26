@@ -319,7 +319,16 @@ fun SummaryFooter(
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { leading() }
         SummaryLink(text = nutrientsLabel, onClick = onNutrients)
         if (collapseIcon != null) {
-            RoundIconButton(icon = collapseIcon, onClick = onCollapse, size = MinTouchTarget, iconSize = 24.dp)
+            // Quiet, not an action colour: the chevron changes the view, it does not do anything.
+            RoundIconButton(
+                icon = collapseIcon,
+                onClick = onCollapse,
+                size = 40.dp,
+                touchTarget = MinTouchTarget,
+                iconSize = 24.dp,
+                containerColor = AppTheme.colors.soft,
+                contentColor = AppTheme.colors.ink,
+            )
         }
     }
 }

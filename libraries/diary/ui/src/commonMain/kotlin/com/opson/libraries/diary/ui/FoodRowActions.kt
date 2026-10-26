@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -43,7 +43,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
@@ -147,8 +146,12 @@ fun SwipeFoodRow(
                 sub = sub,
                 calories = calories,
                 modifier = Modifier
-                    .offset { IntOffset(drag.roundToInt(), 0) }
-                    .fillMaxWidth()
+                    // The row narrows rather than slides, so the name stays readable beside Delete (2.13).
+                    .layout { measurable, constraints ->
+                        val width = (constraints.maxWidth + drag.roundToInt()).coerceIn(0, constraints.maxWidth)
+                        val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+                        layout(constraints.maxWidth, placeable.height) { placeable.place(0, 0) }
+                    }
                     .background(AppTheme.colors.surface)
                     .defaultMinSize(minHeight = MinTouchTarget)
                     .draggable(
