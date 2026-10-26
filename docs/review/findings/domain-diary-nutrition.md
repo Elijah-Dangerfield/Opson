@@ -5,7 +5,7 @@ finding names the place, the rule from [PRACTICES.md](../PRACTICES.md), what
 breaks, and its fate. The unslop-code scanner found only long identifiers
 (`clientUpdatedAtEpochMs` and the like), which match the wire names on purpose.
 
-## 1. A restart before auth answered showed default settings as the user's own — fixed
+## 1. A restart before auth answered showed default settings as the user's own: fixed
 
 - **Where:** `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsStore.kt:181`
   (before the fix: `ActiveUser.Unresolved, ActiveUser.SignedOut -> true`).
@@ -23,7 +23,7 @@ breaks, and its fate. The unslop-code scanner found only long identifiers
   and `nobodySignedIn_isKnownOnceAuthSaysSo`. Commit: `fix(diary): settings no
   pull reached stay unknown until auth answers`.
 
-## 2. Goal styles never reached Today's range — fixed in nutrition, deferred (cross-slice) for Today
+## 2. Goal styles never reached Today's range: fixed in nutrition, deferred (cross-slice) for Today
 
 - **Where:** `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Targets.kt:213`
   (`Targets.today` started from the base `minKcal`/`maxKcal`), against
@@ -49,7 +49,7 @@ breaks, and its fate. The unslop-code scanner found only long identifiers
     too. A week chart may want per-day bands; that is a product call, see the
     notes below.
 
-## 3. Copying food after the window closed lost the fast it ended — fixed
+## 3. Copying food after the window closed lost the fast it ended: fixed
 
 - **Where:** `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImpl.kt:150`
   to `:166` (`copyItems`, `copyDay`, `copySlot` told the fast ender after writing).
@@ -65,7 +65,7 @@ breaks, and its fate. The unslop-code scanner found only long identifiers
   `FastingRepositoryImplTest.copyingFoodAfterTheCloseRecordsTheFastItEnded_too`.
   Commit: `fix(diary): copying food after the window closed records the fast it ended`.
 
-## 4. Dead code — fixed
+## 4. Dead code: fixed
 
 - **Where:** `SyncWire.kt` `SERVER_MAX_MUTATIONS` (no reader; the drain's KDoc
   already states the cap), `TodayCards.kt` `TRACK_ALPHA` (no reader),
@@ -75,7 +75,7 @@ breaks, and its fate. The unslop-code scanner found only long identifiers
 - **Fix:** deleted, after grepping the whole repo. Commit: `refactor(diary):
   drop an unused cap, alpha and numbers() alias`.
 
-## 5. Diary sync: outbox, last-write-wins, rollback — not a problem
+## 5. Diary sync: outbox, last-write-wins, rollback: not a problem
 
 Read `DiarySyncer`, `DiaryStore`, `SettingsStore` and the DAOs for the
 orderings that lose writes:
@@ -91,20 +91,20 @@ orderings that lose writes:
 - `Catching` rethrows cancellation (`ThrowableExtensions.kt:8`), and the shared
   sync rethrows only when the caller itself is cancelled.
 
-## 6. `turnOnPause` stamps `changedAt` itself — not a problem
+## 6. `turnOnPause` stamps `changedAt` itself: not a problem
 
 `SettingsNumbersChanger.kt:67` sets `changedAt` although the store re-stamps
 it. Every change the changer makes is stamped the same way (`NumbersChange.applyTo`),
 so a repository that does not stamp still records when the user changed it;
 `SettingsNumbersChangerTest` relies on it.
 
-## 7. Delayed reveal and midnight loops — not a problem
+## 7. Delayed reveal and midnight loops: not a problem
 
 `LivePolicy` and `SelectedDayImpl` loop forever, but in a scope a test can
 cancel, with an injected clock, and in steps of at most a minute so a phone
 that slept does not wake hours late.
 
-## 8. Visibility in `:libraries:diary:ui` and `:libraries:nutrition:ui` — not a problem
+## 8. Visibility in `:libraries:diary:ui` and `:libraries:nutrition:ui`: not a problem
 
 Every number in the diary cards reaches the screen as a `Display`, `RingValue`
 or `MacroPart` and renders through `NutrientText`, `NutrientFigure`,

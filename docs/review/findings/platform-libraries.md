@@ -5,7 +5,7 @@
 [PRACTICES.md](../PRACTICES.md), what breaks, and its fate. The unslop-code
 scanner found only long identifiers, almost all of them Apple API names.
 
-## 1. A photo estimate slower than 30 s failed on the phone and was paid for anyway — fixed
+## 1. A photo estimate slower than 30 s failed on the phone and was paid for anyway: fixed
 
 - **Where:** `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/HttpMealPhotoEstimator.kt:46`
   (before the fix: `timeout { requestTimeoutMillis = TIMEOUT_MS }`).
@@ -20,7 +20,7 @@ scanner found only long identifiers, almost all of them Apple API names.
   reads the request's timeout capability under a client configured like the app's.
   Commit: `fix(foods): a photo estimate waits for the model past the 30 s socket timeout`.
 
-## 2. iOS camera sessions could be left running after the screen closed — fixed
+## 2. iOS camera sessions could be left running after the screen closed: fixed
 
 - **Where:** `libraries/scanner/impl/src/iosMain/kotlin/com/opson/libraries/scanner/impl/IosBarcodeCamera.kt:144`
   and `:162`, `IosStillCamera.kt:169` and `:205` (before the fix: `start` and
@@ -36,7 +36,7 @@ scanner found only long identifiers, almost all of them Apple API names.
   no test target for AVFoundation; checked by the iOS compile. Commit:
   `fix(scanner): iOS camera sessions start and stop in order`.
 
-## 3. iOS reminder requests were built off the main thread — fixed
+## 3. iOS reminder requests were built off the main thread: fixed
 
 - **Where:** `libraries/reminders/impl/src/iosMain/kotlin/com/opson/libraries/reminders/impl/IosLocalNotifications.kt:123`
   (before the fix: `schedule` built `UNMutableNotificationContent`,
@@ -52,7 +52,7 @@ scanner found only long identifiers, almost all of them Apple API names.
   as safe from any thread. Checked by the iOS compile. Commit:
   `fix(reminders): iOS notification requests are built on the main thread`.
 
-## 4. The widget's range box ignored a range that differs by day — fixed
+## 4. The widget's range box ignored a range that differs by day: fixed
 
 - **Where:** `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetSnapshotBuilder.kt:74`
   (before the fix: `settings.targets.today(settings.exercise, 0, 0)`).
@@ -64,7 +64,7 @@ scanner found only long identifiers, almost all of them Apple API names.
   Commit: `fix(widgets): the range box follows a range that differs by day`.
   Today has the same gap; see domain-diary-nutrition #2.
 
-## 5. A user change left the last account's day on the home screen — fixed
+## 5. A user change left the last account's day on the home screen: fixed
 
 - **Where:** `libraries/widgets/impl/src/commonMain/kotlin/com/opson/libraries/widgets/impl/WidgetRefresher.kt:55`.
 - **Rule:** checklist "Visibility" (the leak test covers widgets); §5 privacy.
@@ -78,7 +78,7 @@ scanner found only long identifiers, almost all of them Apple API names.
   and `settingsNotKnownYetAtLaunch_publishNothing_andClearNothing`. Commit:
   `fix(widgets): a user change takes the last account's day off the home screen`.
 
-## 6. A camera photo could stay in the cache after the sheet closed — fixed
+## 6. A camera photo could stay in the cache after the sheet closed: fixed
 
 - **Where:** `libraries/scanner/impl/src/androidMain/kotlin/com/opson/libraries/scanner/impl/AndroidMealPhotoPicker.kt:66`.
 - **Rule:** §5 privacy (the class promises "no photo outlives the estimate").
@@ -89,7 +89,7 @@ scanner found only long identifiers, almost all of them Apple API names.
   composition has no unit seam; compiled for Android. Commit:
   `fix(scanner): a camera photo is deleted even when the sheet closes mid-shrink`.
 
-## 7. Reminders touch the notification center at launch with the flag off — not a problem
+## 7. Reminders touch the notification center at launch with the flag off: not a problem
 
 `ReminderCoordinator` is `AutoInit` and, with `release.reminders` off, still
 reads pending and delivered requests and clears its own. That is how a remote
@@ -99,7 +99,7 @@ pins it. It builds no UserNotifications object and registers no category
 (`IosReminderDelegate` waits for the flag); the delegate itself is set at launch
 because a tap that cold-starts the app is lost otherwise.
 
-## 8. Health — not a problem
+## 8. Health: not a problem
 
 - HealthKit's `requestAuthorization` is reached only from
   `IntegrationsViewModel` on `viewModelScope`, the main thread; queries resume
@@ -109,7 +109,7 @@ because a tap that cold-starts the app is lost otherwise.
 - Health Connect's permission request runs on main and unregisters its
   launcher on result and on cancel.
 
-## 9. Speech — not a problem
+## 9. Speech: not a problem
 
 Every audio session, engine and recognizer call of a session runs on one serial
 queue (`OneSessionAtATime`), never main, and the engine's input node is read
@@ -118,7 +118,7 @@ only after the session is active with an input. `availability()` reads two
 (the input node was). Transcripts are never logged: the steps log names, codes
 and counts.
 
-## 10. Midnight emitters wait with one long delay — not a problem
+## 10. Midnight emitters wait with one long delay: not a problem
 
 `ReminderCoordinator.midnights()` and `RealWidgetSnapshotSource.midnights()`
 sleep straight to midnight, which a sleeping phone does not count, unlike the
@@ -126,14 +126,14 @@ one-minute steps in `LivePolicy`. Both also re-read today on every foreground,
 the reminder plan runs seven days ahead, and a widget picks its own day from
 the snapshot, so a late wake only delays a background replan. Left as is.
 
-## 11. Foods clients — not a problem
+## 11. Foods clients: not a problem
 
 Every read retries with the idempotent policy and logs no argument; the photo
 estimate never retries (a paid call); a barcode 404 is a definite miss and
 only a definite miss is reported; the miss id is made outside the retry so a
 replay is the same row; an offline search falls back to foods picked before.
 
-## 12. Two copies of the iOS shrink-and-encode helpers — deferred
+## 12. Two copies of the iOS shrink-and-encode helpers: deferred
 
 `IosStillCamera.kt` (`redraw`, `toBytes`) and `IosMealPhotoPicker.kt`
 (`shrink`, `toByteArray`) draw a `UIImage` upright at a size and copy the JPEG
