@@ -140,6 +140,11 @@ b.series("App launches", [loki("A",
 b.series("Server error logs", [loki("A",
          'sum(count_over_time({service_name="opson-server"} | detected_level="error" [$__interval]))', "errors")],
          "Error-level server log lines. Pair with Sentry for the stack traces.", ds=LOKI)
+# The website waitlist (V16). A count per day only; the emails stay in the admin console.
+b.series("Waitlist signups per day", [sql("A",
+         "SELECT day::timestamp AS time, signups AS \"signups\" FROM analytics.waitlist_daily "
+         "WHERE $__timeFilter(day::timestamp) ORDER BY 1")],
+         "New addresses on the website waitlist, by UTC day. A repeat sign-up is not counted twice.", bars=True)
 b.write()
 
 # ── Logging ────────────────────────────────────────────────────────────────

@@ -573,6 +573,66 @@
         "w": 12,
         "h": 8
       }
+    },
+    {
+      "type": "timeseries",
+      "title": "Waitlist signups per day",
+      "description": "New addresses on the website waitlist, by UTC day. A repeat sign-up is not counted twice.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${db}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${db}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, signups AS \"signups\" FROM analytics.waitlist_daily WHERE $__timeFilter(day::timestamp) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 10,
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      }
     }
   ]
 }
