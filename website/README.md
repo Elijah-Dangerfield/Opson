@@ -39,12 +39,15 @@ nothing to keep in sync by hand:
   wording stays in `website/` because editing `legal/` publishes to
   nightjarlabs.llc through the legal-sync workflow.
 - The home page uses the App Store screenshots in
-  `docs/app-store/screenshots/`. Astro resizes them to WebP at 1x and 2x when
-  it builds.
+  `docs/app-store/screenshots/` and one design image,
+  `docs/design/v3/support.png`, cropped to its export and delete buttons.
+  Astro resizes them to WebP at 1x and 2x when it builds.
 
-The look follows the app: the Espresso palette (its accent is the icon's clay,
-`#A4512D`), the app's radii, and its typeface. Light and dark follow the
-visitor's system setting.
+The layout borrows cronometer.com's shape: a dark band with the headline, the
+form and a phone, then one colored block per feature. The colors are the
+app's: Pine's dark green for the band, the icon's clay (`#A4512D`) as the
+accent, and the four meal colors for the blocks. `global.css` lists the
+contrast of every text pair. The site is light only.
 
 ## The waitlist
 

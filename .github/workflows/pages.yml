@@ -3,8 +3,9 @@
 # Pages. Today that's https://elijah-dangerfield.github.io/Opson/.
 #
 # Fires on:     Pushes to main that touch website/**, the files the site renders
-#               from outside it (legal/*.md, the App Store screenshots), or this
-#               workflow. Also workflow_dispatch for a manual re-publish.
+#               from outside it (legal/*.md, the App Store screenshots, one
+#               design image), or this workflow. Also workflow_dispatch for a
+#               manual re-publish.
 # Gated on:     The repo variable SITE_ENABLED. Until it is 'true' both jobs
 #               skip, so pushes don't fail before Pages is switched on.
 # Needs:        Settings → Pages → Source set to "GitHub Actions", and the repo
@@ -25,6 +26,7 @@ on:
       - 'legal/privacy.md'
       - 'legal/terms.md'
       - 'docs/app-store/screenshots/**'
+      - 'docs/design/v3/support.png'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 

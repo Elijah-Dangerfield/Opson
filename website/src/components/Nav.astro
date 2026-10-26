@@ -4,17 +4,16 @@ import { stripBase } from '../lib/paths';
 
 const current = stripBase(import.meta.env.BASE_URL, Astro.url.pathname).replace(/\/?$/, '/');
 const links = [
-  { path: '/', label: 'Home' },
   { path: '/privacy/', label: 'Privacy' },
   { path: '/terms/', label: 'Terms' },
   { path: '/contact/', label: 'Contact' },
 ];
 ---
 
-<header class="nav">
+<header class="nav dark">
   <div class="wrap nav-inner">
-    <a class="brand" href={href('/')}>
-      <img src={href('/favicon.svg')} alt="" width="36" height="36" />
+    <a class="brand" href={href('/')} aria-current={current === '/' ? 'page' : undefined}>
+      <img src={href('/favicon.svg')} alt="" width="34" height="34" />
       <span>Opson</span>
     </a>
     <nav aria-label="Main">
@@ -24,6 +23,7 @@ const links = [
             <a href={href(path)} aria-current={current === path ? 'page' : undefined}>{label}</a>
           </li>
         ))}
+        <li class="join"><a class="button" href={href('/#waitlist')}>Join the waitlist</a></li>
       </ul>
     </nav>
   </div>
@@ -34,50 +34,52 @@ const links = [
     position: sticky;
     top: 0;
     z-index: 100;
-    background: color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--line);
   }
   .nav-inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    min-height: 68px;
-    flex-wrap: wrap;
+    gap: 12px;
+    min-height: 72px;
   }
   .brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: var(--ink);
     text-decoration: none;
     font-weight: 800;
-    font-size: 22px;
+    font-size: 23px;
     letter-spacing: -0.02em;
   }
   .brand img { border-radius: 9px; }
   ul {
     display: flex;
+    align-items: center;
     gap: 4px;
     margin: 0;
     padding: 0;
     list-style: none;
   }
-  ul a {
+  ul a:not(.button) {
     display: block;
     padding: 10px 12px;
-    color: var(--muted);
-    font-weight: 600;
+    color: var(--on-hero-soft);
+    font-weight: 700;
     font-size: 16px;
     text-decoration: none;
-    border-radius: 10px;
   }
-  ul a:hover { color: var(--ink); background: var(--soft); }
-  ul a[aria-current='page'] { color: var(--ink); box-shadow: inset 0 -3px 0 var(--accent); border-radius: 0; }
-  @media (max-width: 520px) {
-    .nav-inner { padding: 10px 0; }
-    ul a { padding: 8px; font-size: 15px; }
-    .brand span { font-size: 20px; }
+  ul a:not(.button):hover { color: var(--on-hero); }
+  ul a[aria-current='page'] { color: var(--on-hero); box-shadow: inset 0 -3px 0 var(--cta); }
+  .join { margin-left: 10px; }
+  .join .button { min-height: 44px; padding: 0 20px; font-size: 16px; }
+
+  @media (max-width: 720px) {
+    .join { display: none; }
+  }
+  @media (max-width: 420px) {
+    .nav-inner { min-height: 64px; }
+    .brand { font-size: 20px; }
+    .brand img { width: 30px; height: 30px; }
+    ul a:not(.button) { padding: 8px 7px; font-size: 15px; }
   }
 </style>
