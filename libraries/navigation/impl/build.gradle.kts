@@ -25,6 +25,12 @@ kotlin {
             // "start fresh" lands once a new session is minted.
             implementation(projects.features.home)
             api(libs.jetbrains.navigation.compose)
+            // Used directly by commonMain (collectAsStateWithLifecycle,
+            // viewModel(), LocalLifecycleOwner). The platform compilations get
+            // them transitively, the common metadata compilation does not, so
+            // leaving them implicit fails `./gradlew build` while CI passes.
+            implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.kotlinx.serialization.json)
         }
     }

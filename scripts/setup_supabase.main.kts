@@ -256,6 +256,15 @@ val localProperties = File(root, "local.properties")
 upsertProperty(localProperties, "supabase.projectId", ref)
 upsertProperty(localProperties, "supabase.url", projectUrl)
 upsertProperty(localProperties, "supabase.anonKey", anonKey)
+// On a fresh project this script is usually what creates local.properties, and
+// Android Studio only writes sdk.dir into a file it creates itself. Without it
+// the first Gradle build dies on "SDK location not found".
+if (readProperty(localProperties, "sdk.dir") == null) {
+    listOfNotNull(System.getenv("ANDROID_HOME"), System.getenv("ANDROID_SDK_ROOT"),
+        System.getProperty("user.home") + "/Library/Android/sdk")
+        .firstOrNull { it.isNotBlank() && File(it).isDirectory }
+        ?.let { upsertProperty(localProperties, "sdk.dir", it) }
+}
 green("✓ Wrote supabase.projectId / url / anonKey into local.properties")
 dim("  local.properties is gitignored, CI reads SUPABASE_PROJECT_ID / SUPABASE_ANON_KEY instead.")
 
