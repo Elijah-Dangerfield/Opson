@@ -1,6 +1,7 @@
 package com.opson.server.db
 
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.javatime.timestamp
 
 /**
@@ -104,4 +105,138 @@ object AppConfigManifestTable : Table("app_config_manifest") {
     val allowedValuesJsonb = jsonb("allowed_values_jsonb").nullable()
     val capturedAt = timestamp("captured_at")
     override val primaryKey = PrimaryKey(versionCode, path)
+}
+
+/**
+ * The shared food catalog (USDA + Open Food Facts). Read-only for users;
+ * written by the USDA import script and by barcode lookups. The generated
+ * `search` tsvector column is deliberately not mapped: it is only used in raw
+ * SQL, and Exposed must never try to write it. See `V7__food_catalog.sql`.
+ */
+object FoodsTable : Table("foods") {
+    val id = uuid("id")
+    val sourceKind = text("source")
+    val sourceId = text("source_id")
+    val name = text("name")
+    val brand = text("brand").nullable()
+    val barcode = text("barcode").nullable()
+    val kcal100g = float("kcal_100g").nullable()
+    val protein100g = float("protein_100g").nullable()
+    val carbs100g = float("carbs_100g").nullable()
+    val fat100g = float("fat_100g").nullable()
+    val fiber100g = float("fiber_100g").nullable()
+    val micros = jsonb("micros")
+    val portions = jsonb("portions")
+    val popularity = integer("popularity")
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** One row per catalog search, no user id. See `V7__food_catalog.sql`. */
+object FoodSearchEventsTable : Table("food_search_events") {
+    val id = long("id").autoIncrement()
+    val at = timestamp("at")
+    val queryNorm = text("query_norm")
+    val resultCount = integer("result_count")
+    val picked = bool("picked")
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** One row per barcode lookup and where it was answered from. See `V7__food_catalog.sql`. */
+object BarcodeLookupsTable : Table("barcode_lookups") {
+    val id = long("id").autoIncrement()
+    val at = timestamp("at")
+    val barcode = text("barcode")
+    val outcome = text("outcome")
+    override val primaryKey = PrimaryKey(id)
+}
+
+/**
+ * Columns every synced diary table shares (see `V8__diary.sql`). `server_seq`
+ * is set by the `bump_server_seq` trigger, so it is `databaseGenerated()` and
+ * never written from Kotlin.
+ */
+abstract class SyncedTable(name: String) : Table(name) {
+    val userId = uuid("user_id")
+    val clientUpdatedAt = timestamp("client_updated_at")
+    val serverSeq = long("server_seq").databaseGenerated()
+    val deleted = bool("deleted")
+}
+
+object LogEntriesTable : SyncedTable("log_entries") {
+    val id = uuid("id")
+    val day = date("day")
+    val slot = text("slot")
+    val loggedAt = timestamp("logged_at")
+    val foodId = uuid("food_id").nullable()
+    val customFoodId = uuid("custom_food_id").nullable()
+    val name = text("name")
+    val amountText = text("amount_text").nullable()
+    val quantity = float("quantity").nullable()
+    val unit = text("unit").nullable()
+    val grams = float("grams").nullable()
+    val precision = text("precision")
+    val kcal = float("kcal").nullable()
+    val protein = float("protein").nullable()
+    val carbs = float("carbs").nullable()
+    val fat = float("fat").nullable()
+    val fiber = float("fiber").nullable()
+    val micros = jsonb("micros").nullable()
+    val method = text("method")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object DayRecordsTable : SyncedTable("day_records") {
+    val day = date("day")
+    val waterMl = integer("water_ml").nullable()
+    val closedAt = timestamp("closed_at").nullable()
+    val note = text("note").nullable()
+    val ateNoDetails = jsonb("ate_no_details")
+    val mealGroups = bool("meal_groups").nullable()
+    override val primaryKey = PrimaryKey(userId, day)
+}
+
+object MealFeelingsTable : SyncedTable("meal_feelings") {
+    val day = date("day")
+    val slot = text("slot")
+    val hunger = text("hunger").nullable()
+    val fullness = text("fullness").nullable()
+    val moods = array<String>("moods")
+    val note = text("note").nullable()
+    override val primaryKey = PrimaryKey(userId, day, slot)
+}
+
+object WeighInsTable : SyncedTable("weigh_ins") {
+    val id = uuid("id")
+    val measuredAt = timestamp("measured_at")
+    val kg = float("kg")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object CustomFoodsTable : SyncedTable("custom_foods") {
+    val id = uuid("id")
+    val name = text("name")
+    val brand = text("brand").nullable()
+    val servingAmount = float("serving_amount")
+    val servingUnit = text("serving_unit")
+    val kcal = float("kcal").nullable()
+    val protein = float("protein").nullable()
+    val carbs = float("carbs").nullable()
+    val fat = float("fat").nullable()
+    val fiber = float("fiber").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object SavedMealsTable : SyncedTable("saved_meals") {
+    val id = uuid("id")
+    val name = text("name")
+    val usualSlot = text("usual_slot").nullable()
+    val items = jsonb("items")
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** The whole client `Settings` object as one jsonb document per user. */
+object UserSettingsTable : SyncedTable("user_settings") {
+    val settings = jsonb("settings")
+    val changedAt = timestamp("changed_at").nullable()
+    override val primaryKey = PrimaryKey(userId)
 }

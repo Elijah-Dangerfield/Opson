@@ -40,6 +40,23 @@ class Database private constructor(
         newSuspendedTransaction(context = Dispatchers.IO, db = exposed) { block() }
 
     /**
+     * [transaction] at READ COMMITTED instead of the pool's REPEATABLE READ.
+     *
+     * For a transaction that takes a lock and must then see everything
+     * committed before the lock was granted. Under REPEATABLE READ the
+     * snapshot is taken by the first statement, which is the lock statement
+     * itself, so work committed while it waited stays invisible. `/v1/sync`
+     * needs this: it serializes a user's syncs with an advisory lock, then
+     * pulls by cursor.
+     */
+    suspend fun <T> readCommittedTransaction(block: suspend () -> T): T =
+        newSuspendedTransaction(
+            context = Dispatchers.IO,
+            db = exposed,
+            transactionIsolation = java.sql.Connection.TRANSACTION_READ_COMMITTED,
+        ) { block() }
+
+    /**
      * Synchronous transaction. Only for startup / test code that isn't inside a
      * coroutine. Production request paths use [transaction].
      */
