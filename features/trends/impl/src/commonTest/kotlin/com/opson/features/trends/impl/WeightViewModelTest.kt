@@ -2,23 +2,20 @@ package com.opson.features.trends.impl
 
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
-import com.opson.libraries.nutrition.Metric
-import com.opson.libraries.nutrition.NumbersChange
-import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Units
-import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
  * The weight view model: saving converts and validates, typing is sanitised,
- * the view picker goes through the numbers rule (a raise with the pause on
- * waits for the pause sheet), and the range is the page's own. What each view
+ * and the range is the page's own. There is no view picker: what shows is set
+ * in Modes and numbers. What each view
  * shows is `WeightStateBuilderTest`.
  */
 class WeightViewModelTest : CoroutineTest() {
@@ -30,7 +27,6 @@ class WeightViewModelTest : CoroutineTest() {
             weights = weights,
             settingsRepository = settings,
             policySource = FakePolicySource(TrendsFixtures.policy(preset)),
-            numbers = FakeNumbersChanger(settings),
             clock = TrendsFixtures.clock,
             timeZone = TrendsFixtures.timeZone,
         )
@@ -40,10 +36,10 @@ class WeightViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun inputsArrive_numbersView() = runUnitTest {
+    fun inputsArrive_buildTheNumbersPage() = runUnitTest {
         val vm = vm()
         assertEquals(false, vm.state.loading)
-        assertEquals(WeightView.Numbers, vm.state.selected)
+        assertNotNull(vm.state.chart)
     }
 
     @Test
@@ -99,43 +95,6 @@ class WeightViewModelTest : CoroutineTest() {
         vm.takeAction(WeightAction.RangePicked(WeightRange.W1))
         assertEquals(WeightRange.W1, vm.state.range)
         assertEquals(7, vm.state.chart?.dots?.size)
-    }
-
-    @Test
-    fun viewPicked_lowering_appliesAtOnce() = runUnitTest {
-        val settings = FakeSettingsRepository(Settings(numbers = NumbersSettings(pauseBeforeMore = true)))
-        val vm = vm(settings)
-        val events = backgroundScope.events(vm)
-        vm.takeAction(WeightAction.ViewPicked(WeightView.Hidden))
-        assertEquals(Visibility.Hide, settings.settings.value.numbers.overrides[Metric.Weight])
-        assertEquals(emptyList(), events)
-    }
-
-    @Test
-    fun viewPicked_raisingWithThePause_opensThePauseAndWritesNothing() = runUnitTest {
-        val blindPaused = Settings(numbers = NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true))
-        val settings = FakeSettingsRepository(blindPaused)
-        val vm = vm(settings, PresetId.Blind)
-        val events = backgroundScope.events(vm)
-        vm.takeAction(WeightAction.ViewPicked(WeightView.Numbers))
-        assertEquals(listOf<WeightEvent>(WeightEvent.OpenPause(NumbersChange.Override(Metric.Weight, Visibility.Show))), events)
-        assertEquals(blindPaused, settings.settings.value)
-    }
-
-    @Test
-    fun viewPicked_raisingWithoutThePause_applies() = runUnitTest {
-        val settings = FakeSettingsRepository(Settings(numbers = NumbersSettings(preset = PresetId.Blind)))
-        val vm = vm(settings, PresetId.Blind)
-        vm.takeAction(WeightAction.ViewPicked(WeightView.TrendOnly))
-        assertEquals(Visibility.Soften, settings.settings.value.numbers.overrides[Metric.Weight])
-    }
-
-    @Test
-    fun viewPicked_theSelectedOne_doesNothing() = runUnitTest {
-        val settings = FakeSettingsRepository()
-        val vm = vm(settings)
-        vm.takeAction(WeightAction.ViewPicked(WeightView.Numbers))
-        assertEquals(0, settings.updates)
     }
 
     @Test

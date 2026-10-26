@@ -16,7 +16,7 @@ import kotlin.test.assertNull
 
 /**
  * The Trends view model: inputs become state through the builder, the range
- * re-subscribes, and every tap is an event. What the state says for each mode
+ * is written to settings and re-subscribes, and every other tap is an event. What the state says for each mode
  * is `TrendsStateBuilderTest`.
  */
 class TrendsViewModelTest : CoroutineTest() {
@@ -37,23 +37,40 @@ class TrendsViewModelTest : CoroutineTest() {
         assertEquals(false, vm.state.loading)
         assertEquals(RangeLabel.Week("Oct 19 to 25"), vm.state.rangeLabel)
         assertEquals(7, vm.state.intake?.bars?.size)
-        assertEquals(LocalDate(2026, 7, 21) to TrendsFixtures.today, diary.rangeRequests.single())
+        // Last week (Coast's last check) starts Oct 12, and new foods look 90 days before that.
+        assertEquals(LocalDate(2026, 7, 14) to TrendsFixtures.today, diary.rangeRequests.single())
     }
 
     @Test
-    fun rangeChange_rebuilds_withoutResubscribingInsideTheLookback() = runUnitTest {
+    fun rangePicked_writesTheRange_andThePageFollows() = runUnitTest {
         val vm = vm()
-        settings.settings.value = Settings(trendsRange = TrendsRange.FourWeeks)
+        vm.takeAction(TrendsAction.RangePicked(TrendsRange.FourWeeks))
+        assertEquals(TrendsRange.FourWeeks, settings.settings.value.trendsRange)
+        assertEquals(Settings(trendsRange = TrendsRange.FourWeeks), settings.settings.value, "nothing else is written")
+        assertEquals(TrendsRange.FourWeeks, vm.state.range)
         assertEquals(4, vm.state.intake?.bars?.size)
-        settings.settings.value = Settings(trendsRange = TrendsRange.FourWeeks, tone = Tone.Warm)
-        assertEquals(1, diary.rangeRequests.size, "4 weeks sits inside the lookback, and a tone change moves nothing")
+        assertEquals(LocalDate(2026, 6, 30) to TrendsFixtures.today, diary.rangeRequests.last(), "four weeks back from Sep 28, plus the lookback")
+    }
+
+    @Test
+    fun rangePicked_theSameRange_writesNothing() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(TrendsAction.RangePicked(TrendsRange.Week))
+        assertEquals(0, settings.updates)
+    }
+
+    @Test
+    fun unrelatedSettingChange_doesNotResubscribe() = runUnitTest {
+        vm()
+        settings.settings.value = Settings(tone = Tone.Warm)
+        assertEquals(1, diary.rangeRequests.size)
     }
 
     @Test
     fun weekStartChange_resubscribesToTheNewSpan() = runUnitTest {
         val vm = vm()
         settings.settings.value = Settings(weekStart = DayOfWeek.SATURDAY)
-        assertEquals(LocalDate(2026, 7, 19) to TrendsFixtures.today, diary.rangeRequests.last())
+        assertEquals(LocalDate(2026, 7, 12) to TrendsFixtures.today, diary.rangeRequests.last())
         assertEquals(RangeLabel.Week("Oct 17 to 23"), vm.state.rangeLabel)
     }
 
@@ -79,6 +96,14 @@ class TrendsViewModelTest : CoroutineTest() {
         val events = backgroundScope.events(vm)
         vm.takeAction(TrendsAction.NutrientsCardTapped)
         assertEquals(listOf<TrendsEvent>(TrendsEvent.OpenNutrients("2026-10-25")), events)
+    }
+
+    @Test
+    fun patternsTapped_opensPatterns() = runUnitTest {
+        val vm = vm()
+        val events = backgroundScope.events(vm)
+        vm.takeAction(TrendsAction.PatternsTapped)
+        assertEquals(listOf<TrendsEvent>(TrendsEvent.OpenPatterns), events)
     }
 
     @Test

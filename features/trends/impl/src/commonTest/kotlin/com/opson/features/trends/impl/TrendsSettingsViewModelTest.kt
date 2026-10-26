@@ -2,7 +2,6 @@ package com.opson.features.trends.impl
 
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsCards
-import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.launch
@@ -26,7 +25,7 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
     fun toggles_filteredByWhatTheModeCanShow() {
         fun cards(preset: PresetId) = TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(preset)).toggles.map { it.card }
         assertEquals(TrendsCard.entries, cards(PresetId.Full))
-        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Weight), cards(PresetId.Blind))
+        assertEquals(listOf(TrendsCard.Recap), cards(PresetId.Blind), "weight is hidden, so its card never shows")
         assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.Fuel))
         assertEquals(listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Weight), cards(PresetId.Coast))
     }
@@ -34,17 +33,9 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
     @Test
     fun inputsArrive_stateFollowsSettings() = runUnitTest {
         val vm = vm()
-        settings.settings.value = Settings(trendsRange = TrendsRange.FourWeeks, weekStart = DayOfWeek.SUNDAY)
-        assertEquals(TrendsRange.FourWeeks, vm.state.range)
+        settings.settings.value = Settings(trendsCards = TrendsCards(recap = false), weekStart = DayOfWeek.SUNDAY)
         assertEquals(DayOfWeek.SUNDAY, vm.state.weekStart)
-    }
-
-    @Test
-    fun rangePicked_writesTheRange() = runUnitTest {
-        val vm = vm()
-        vm.takeAction(TrendsSettingsAction.RangePicked(TrendsRange.ThreeMonths))
-        assertEquals(TrendsRange.ThreeMonths, settings.settings.value.trendsRange)
-        assertEquals(Settings().copy(trendsRange = TrendsRange.ThreeMonths), settings.settings.value)
+        assertEquals(false, vm.state.toggles.single { it.card == TrendsCard.Recap }.on)
     }
 
     @Test

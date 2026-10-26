@@ -59,7 +59,7 @@ class TrendsCalendarTest {
     fun window_isSevenDaysInOrder() {
         val days = TrendsCalendar.weekWindow(sunday, DayOfWeek.MONDAY).days
         assertEquals(7, days.size)
-        assertEquals(listOf("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"), days.map(TrendsCalendar::weekdayLabel))
+        assertEquals(listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"), days.map(TrendsCalendar::weekdayLabel))
     }
 
     @Test
@@ -72,10 +72,22 @@ class TrendsCalendarTest {
     }
 
     @Test
-    fun firstNeeded_coversTheChartAndTheNewFoodLookback() {
-        val week = TrendsCalendar.firstNeeded(sunday, Settings())
-        assertEquals(LocalDate(2026, 7, 21), week) // Oct 19 minus 90 days
-        val threeMonths = TrendsCalendar.firstNeeded(sunday, Settings(trendsRange = TrendsRange.ThreeMonths))
-        assertEquals(week, threeMonths) // 12 weeks back from Oct 19 is Aug 3, inside the lookback
+    fun firstNeeded_coversTheSpanLastWeekAndTheNewFoodLookback() {
+        // Last week (Coast's last check) starts Oct 12; 90 days before it.
+        assertEquals(LocalDate(2026, 7, 14), TrendsCalendar.firstNeeded(sunday, Settings()))
+        // 12 weeks back from Oct 19 is Aug 3; 90 days before it.
+        assertEquals(LocalDate(2026, 5, 5), TrendsCalendar.firstNeeded(sunday, Settings(trendsRange = TrendsRange.ThreeMonths)))
+    }
+
+    @Test
+    fun span_weekIsTheWindow_monthAndThreeMonthsRunToToday() {
+        val week = TrendsCalendar.span(wednesday, DayOfWeek.MONDAY, TrendsRange.Week)
+        assertEquals(TrendsCalendar.weekWindow(wednesday, DayOfWeek.MONDAY).start, week.start)
+        assertEquals(7, week.dayCount)
+        val month = TrendsCalendar.span(sunday, DayOfWeek.MONDAY, TrendsRange.FourWeeks)
+        assertEquals(LocalDate(2026, 9, 28), month.start)
+        assertEquals(sunday, month.end)
+        assertEquals(28, month.dayCount)
+        assertEquals(84, TrendsCalendar.span(sunday, DayOfWeek.MONDAY, TrendsRange.ThreeMonths).dayCount)
     }
 }

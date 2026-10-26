@@ -12,14 +12,9 @@ import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Targets
-import com.opson.libraries.nutrition.Visibility
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.trends_intake_daily
-import opson.libraries.resources.generated.resources.trends_intake_weekly
-import opson.libraries.resources.generated.resources.trends_nutrients_sub
-import opson.libraries.resources.generated.resources.trends_nutrients_sub_micros
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -29,90 +24,106 @@ import kotlin.test.assertTrue
 
 /**
  * The Trends mapping for every visibility branch in the plan's surface table,
- * over the fixture week (Oct 19 to 25, Thursday untracked). The window rules
- * themselves are `TrendsCalendarTest`; that nothing hidden reaches the screen is
- * `BlindModeLeakTest`.
+ * over the fixture week (Oct 19 to 25 seen on Sunday the 25th at noon,
+ * Thursday untracked). The window rules themselves are `TrendsCalendarTest`;
+ * that nothing hidden reaches the screen is `BlindModeLeakTest`.
  */
 class TrendsStateBuilderTest {
 
-    private fun build(preset: PresetId = PresetId.Full, settings: Settings = Settings()) =
-        TrendsStateBuilder.build(TrendsFixtures.trendsInputs(settings), TrendsFixtures.policy(preset))
+    private fun build(
+        preset: PresetId = PresetId.Full,
+        settings: Settings = Settings(),
+        evening: Boolean = false,
+    ) = TrendsStateBuilder.build(
+        TrendsFixtures.trendsInputs(settings),
+        TrendsFixtures.policy(preset, clock = if (evening) TrendsFixtures.evening else TrendsFixtures.clock),
+    )
 
     @Test
-    fun full_week_drawsDailyBarsWithTodayCurrentAndThursdayAGap() {
+    fun full_week_everyBarTheSameKind_todayStriped_thursdayAGap() {
         val intake = assertNotNull(build().intake)
-        assertEquals(Res.string.trends_intake_daily, intake.title)
-        assertEquals(listOf("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"), intake.bars.map { it.label })
+        assertEquals(listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"), intake.bars.map { it.label })
         assertNull(intake.bars[3].fraction, "an untracked day is a gap, not a zero")
         assertEquals(1920f / 2800f, intake.bars[0].fraction)
         assertEquals(listOf(false, false, false, false, false, false, true), intake.bars.map { it.isCurrent })
         assertEquals(1900f / 2800f..2300f / 2800f, intake.band)
+        assertEquals(IntakeCaption.TodayInProgress, intake.caption)
     }
 
     @Test
-    fun full_week_averagesTrackedDaysOnly() {
-        // (1920 + 1690 + 1680 + 2015 + 1785 + 1130) / 6, Thursday left out.
-        assertEquals("1,703 kcal", assertIs<Display.Shown>(build().intake?.average).text)
+    fun full_week_averageLeavesOutTodayAndUntrackedDays() {
+        // (1920 + 1690 + 1680 + 2015 + 1785) / 5: Thursday untracked, Sunday still in progress.
+        assertEquals("1,818 kcal", assertIs<Display.Shown>(build().intake?.average).text)
     }
 
     @Test
-    fun rangeLabel_week_isTheWindow() {
+    fun theRangeControlCoversThePage_andShowsWhenACardFollowsIt() {
+        assertEquals(TrendsRange.Week, build().range)
+        assertEquals(TrendsRange.FourWeeks, build(settings = Settings(trendsRange = TrendsRange.FourWeeks)).range)
+    }
+
+    @Test
+    fun rangeLabel_followsTheRange() {
         assertEquals(RangeLabel.Week("Oct 19 to 25"), build().rangeLabel)
         assertEquals(RangeLabel.LastFourWeeks, build(settings = Settings(trendsRange = TrendsRange.FourWeeks)).rangeLabel)
         assertEquals(RangeLabel.LastThreeMonths, build(settings = Settings(trendsRange = TrendsRange.ThreeMonths)).rangeLabel)
     }
 
     @Test
-    fun fourWeeks_oneLabelledBarPerWeek_currentWeekLast() {
-        val intake = assertNotNull(build(settings = Settings(trendsRange = TrendsRange.FourWeeks)).intake)
-        assertEquals(Res.string.trends_intake_weekly, intake.title)
+    fun month_weeklyBars_currentWeekStripedAndOutOfTheAverage() {
+        val state = build(settings = Settings(trendsRange = TrendsRange.FourWeeks))
+        val intake = assertNotNull(state.intake)
         assertEquals(listOf("9/28", "10/5", "10/12", "10/19"), intake.bars.map { it.label })
         assertEquals(listOf(false, false, false, true), intake.bars.map { it.isCurrent })
-        // The current week is its own average so far: the same six tracked days as the week view.
-        assertEquals((10220.0 / 6 / 2800).toFloat(), intake.bars.last().fraction)
+        assertEquals(IntakeCaption.WeekInProgress, intake.caption)
+        assertIs<Display.Shown>(intake.average)
+    }
+
+    @Test
+    fun month_theRecapAndWeightCoverTheSameFourWeeks() {
+        val state = build(settings = Settings(trendsRange = TrendsRange.FourWeeks))
+        val days = assertNotNull(state.recap).rows.filterIsInstance<RecapRow.DaysLogged>().single()
+        assertEquals(28, days.of)
+        assertEquals(28, assertNotNull(state.weight).trend.size, "one weigh-in a day for four weeks")
     }
 
     @Test
     fun threeMonths_twelveBars_everyThirdLabelledFromTheCurrentWeek() {
         val bars = assertNotNull(build(settings = Settings(trendsRange = TrendsRange.ThreeMonths)).intake).bars
         assertEquals(12, bars.size)
-        val labelled = bars.indices.filter { bars[it].label.isNotEmpty() }
-        assertEquals(listOf(2, 5, 8, 11), labelled)
+        assertEquals(listOf(2, 5, 8, 11), bars.indices.filter { bars[it].label.isNotEmpty() })
         assertEquals("10/19", bars.last().label)
     }
 
     @Test
-    fun weekStartsSaturday_windowEndsBeforeToday() {
+    fun weekStartsSaturday_windowEndsBeforeToday_nothingInProgress() {
         val state = build(settings = Settings(weekStart = DayOfWeek.SATURDAY))
         assertEquals(RangeLabel.Week("Oct 17 to 23"), state.rangeLabel)
-        assertTrue(assertNotNull(state.intake).bars.none { it.isCurrent })
-        assertEquals(listOf("Sa", "Su", "Mo", "Tu", "We", "Th", "Fr"), state.intake?.bars?.map { it.label })
+        val intake = assertNotNull(state.intake)
+        assertTrue(intake.bars.none { it.isCurrent })
+        assertEquals(IntakeCaption.Plain, intake.caption)
+        assertEquals(listOf("Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"), intake.bars.map { it.label })
     }
 
     @Test
-    fun recap_countsTheWeekAndItsNewFoods() {
-        val recap = assertNotNull(build().recap)
-        assertEquals(6, recap.breakfastDays)
-        assertEquals(6, recap.daysLogged)
-        assertEquals(3, recap.newFoods, "kabsa, poutine and rice pudding are new; the rest were eaten before")
-        assertEquals(List(4) { null }, recap.days[3].meals)
-        assertEquals(listOf(MealSlot.Breakfast, MealSlot.Lunch, null, null), recap.days[6].meals)
+    fun full_recapSitsUnderTheChart_titled_withCountsOnly() {
+        val state = build()
+        assertNull(state.week, "the dot grid only leads when there is no chart")
+        val recap = assertNotNull(state.recap)
+        assertTrue(recap.titled)
+        assertEquals(
+            listOf(RecapRow.DaysLogged(6, 7), RecapRow.Breakfast(6, 7), RecapRow.NewFoods(3, names = null)),
+            recap.rows,
+        )
     }
 
     @Test
-    fun newFoods_aFoodSeenInTheLookbackIsNotNew() {
-        val window = TrendsCalendar.weekWindow(TrendsFixtures.today, DayOfWeek.MONDAY)
-        val earlierPoutine = dayWith(LocalDate(2026, 9, 1), item("poutine", "Poutine", 740.0))
-        assertEquals(2, TrendsStateBuilder.newFoods(listOf(earlierPoutine) + TrendsFixtures.days(), window))
-    }
-
-    @Test
-    fun nameOnlyDay_isAGapInTheChart() {
+    fun nameOnlyDay_isAGapInTheChart_butADayLogged() {
         val nameOnly = dayWith(LocalDate(2026, 10, 22), item(null, "Something at a friend's", null))
         val days = TrendsFixtures.days().filter { it.date != nameOnly.date } + nameOnly
         val state = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(days = days), TrendsFixtures.policy())
         assertNull(state.intake?.bars?.get(3)?.fraction)
-        assertEquals(7, state.recap?.daysLogged, "it still counts as a day logged")
+        assertEquals(RecapRow.DaysLogged(7, 7), state.recap?.rows?.first())
     }
 
     @Test
@@ -121,102 +132,114 @@ class TrendsStateBuilderTest {
         val intake = assertNotNull(state.intake)
         assertTrue(intake.bars.all { it.fraction == null })
         assertEquals(Display.Hidden, intake.average)
-        assertEquals(0, state.recap?.daysLogged)
+        assertEquals(RecapRow.DaysLogged(0, 7), state.recap?.rows?.first())
     }
 
     @Test
-    fun blind_onlyRecapAndAHiddenWeightCard() {
+    fun blind_theWeekLeads_andNutrientsAndWeightAreRemoved() {
         val state = build(PresetId.Blind)
         assertNull(state.intake)
         assertNull(state.nutrients)
-        assertNotNull(state.recap)
-        val weight = assertNotNull(state.weight)
-        assertEquals(WeightSubtitle.Hidden, weight.subtitle)
-        assertNull(weight.now)
-        assertNull(weight.trend)
+        assertNull(state.weight, "removed, not greyed out")
+        assertNull(state.range, "no card on the page follows a range")
+        val week = assertNotNull(state.week)
+        assertEquals(List(4) { null }, week.days[3].meals)
+        assertEquals(listOf(MealSlot.Breakfast, MealSlot.Lunch, null, null), week.days[6].meals)
+        assertTrue(week.days[6].isToday)
+        val recap = assertNotNull(state.recap)
+        assertEquals(false, recap.titled)
+        assertEquals(
+            RecapRow.NewFoods(3, listOf("Chicken kabsa", "Rice pudding", "Poutine")),
+            recap.rows.last(),
+        )
     }
 
     @Test
-    fun coast_intakeOpensOnTheWeekView() {
+    fun coast_beforeTheCheck_theCheckCountsAndLastWeekOnly() {
         val state = build(PresetId.Coast)
+        assertEquals(WeeklyCheck(DayOfWeek.SUNDAY, LocalTime(21, 0), tonight = true), state.weeklyCheck)
+        assertNull(state.intake)
+        assertNull(state.week)
+        assertNull(state.nutrients)
+        assertNull(state.weight, "the check holds the weight trend")
+        assertNull(state.range)
+        val recap = assertNotNull(state.recap)
+        assertEquals(RecapRow.DaysLogged(6, 7), recap.rows[0])
+        assertIs<RecapRow.MealsLogged>(recap.rows[1])
+        assertEquals(2, recap.rows.size)
+        val last = assertNotNull(state.lastCheck)
+        assertEquals("Oct 18", last.weekEnd)
+        assertTrue(assertIs<Display.Shown>(last.average).text.endsWith("kcal"), "last week's check is open")
+        assertIs<Display.Soft>(last.weight, "Coast's weight is a slope word")
+    }
+
+    @Test
+    fun coast_afterTheCheckOpens_theWeekIsOnTheChart() {
+        val state = build(PresetId.Coast, evening = true)
+        assertNull(state.weeklyCheck)
+        assertNull(state.lastCheck)
         assertIs<Display.Shown>(assertNotNull(state.intake).average)
-        assertNull(state.nutrients, "Coast hides every macro and the micros")
-        assertEquals(WeightSubtitle.Trend, state.weight?.subtitle)
-        assertNull(state.weight?.now)
-        assertTrue(state.weight?.trend.orEmpty().isNotEmpty())
+        assertIs<Display.Soft>(assertNotNull(state.weight).value)
     }
 
     @Test
-    fun delayed_beforeNinePm_isRevealedOnTheWeekView() {
-        assertIs<Display.Shown>(assertNotNull(build(PresetId.Delayed).intake).average)
+    fun delayed_beforeTheReveal_isOpenOnTheWeekView() {
+        val state = build(PresetId.Delayed)
+        assertNull(state.weeklyCheck, "Delayed opens at day close, not once a week")
+        assertIs<Display.Shown>(assertNotNull(state.intake).average)
     }
 
     @Test
-    fun fuel_noIntakeChart_butProteinAndFiberTiles() {
+    fun fuel_noChart_theWeekLeads_proteinAndFiberTiles_weightAsAWord() {
         val state = build(PresetId.Fuel)
         assertNull(state.intake, "a softened calorie chart would still read as amounts")
-        assertNotNull(state.recap)
-        val nutrients = assertNotNull(state.nutrients)
-        assertEquals(listOf(Metric.Protein, Metric.Fiber), nutrients.macros.map { it.metric })
+        assertNotNull(state.week)
+        assertEquals(listOf(Metric.Protein, Metric.Fiber), assertNotNull(state.nutrients).macros.map { it.metric })
+        assertIs<Display.Soft>(assertNotNull(state.weight).value)
+        assertEquals(TrendsRange.Week, state.range, "nutrients and weight follow the range, so the control shows")
     }
 
     @Test
-    fun full_nutrientsCard_gramsWithoutTheGoal() {
+    fun full_nutrientsCard_slashStyleWithBars_todayLeftOut() {
         val nutrients = assertNotNull(build().nutrients)
-        assertEquals(Res.string.trends_nutrients_sub, nutrients.subtitle)
         assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), nutrients.macros.map { it.metric })
         val protein = assertIs<Display.Shown>(nutrients.macros.first().display)
-        assertTrue(protein.text.endsWith(" g") && " of " !in protein.text, protein.text)
+        assertTrue(protein.text.endsWith(" / 120 g"), protein.text)
         assertNotNull(protein.fraction)
     }
 
     @Test
-    fun microsShown_nutrientsSubtitleMentionsThem() {
-        val state = TrendsStateBuilder.build(
-            TrendsFixtures.trendsInputs(),
-            TrendsFixtures.policy(overrides = mapOf(Metric.Micros to Visibility.Show)),
-        )
-        assertEquals(Res.string.trends_nutrients_sub_micros, state.nutrients?.subtitle)
-    }
-
-    @Test
-    fun nutrient_softened_isAWordWithABar() {
-        val state = build(PresetId.Nutrient)
-        val protein = assertIs<Display.Soft>(assertNotNull(state.nutrients).macros.single { it.metric == Metric.Protein }.display)
+    fun nutrientFocus_softenedTileIsAWordWithABar() {
+        val protein = assertIs<Display.Soft>(assertNotNull(build(PresetId.Nutrient).nutrients).macros.single { it.metric == Metric.Protein }.display)
         assertNotNull(protein.fraction)
     }
 
     @Test
-    fun full_weightCard_latestWeighInWithTrend() {
+    fun full_weightCard_theSmoothedWeightAndItsLine() {
         val weight = assertNotNull(build().weight)
-        assertEquals(WeightSubtitle.Latest(dayText = null), weight.subtitle)
-        assertTrue(assertIs<Display.Shown>(weight.now).text.endsWith("kg"))
-        assertEquals(28, weight.trend?.size)
+        assertEquals(WeightSubtitle.Trend, weight.subtitle)
+        assertTrue(assertIs<Display.Shown>(weight.value).text.endsWith("kg"))
+        assertEquals(7, weight.trend.size)
     }
 
     @Test
     fun weightCard_noWeighIns_saysSoWithoutAValue() {
         val state = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(weighIns = emptyList()), TrendsFixtures.policy())
         assertEquals(WeightSubtitle.NoWeighIns, state.weight?.subtitle)
-        assertNull(state.weight?.now)
+        assertNull(state.weight?.value)
         assertEquals(emptyList(), state.weight?.trend)
     }
 
     @Test
-    fun weightCard_latestFromYesterday_saysYesterday() {
-        val weighIns = TrendsFixtures.weighIns().dropLast(1)
-        val state = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(weighIns = weighIns), TrendsFixtures.policy())
-        assertEquals(WeightSubtitle.Latest("Yesterday"), state.weight?.subtitle)
-    }
-
-    @Test
-    fun cardsSwitchedOff_areNotBuilt() {
+    fun cardsSwitchedOff_areNotBuilt_andTheRangeGoesWithThem() {
         val off = Settings(trendsCards = TrendsCards(intake = false, recap = false, nutrients = false, weight = false))
         val state = build(settings = off)
         assertNull(state.intake)
         assertNull(state.recap)
+        assertNull(state.week)
         assertNull(state.nutrients)
         assertNull(state.weight)
+        assertNull(state.range)
         assertEquals(false, state.loading)
     }
 

@@ -8,9 +8,6 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
-import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.trends_weight_caption_dots
-import opson.libraries.resources.generated.resources.trends_weight_caption_trend
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -19,8 +16,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The weight page in its three views, a Delay override either side of 9 pm,
- * masking and range slicing, over the fixtures' ninety mornings. The EMA itself
+ * The weight page at each level (set in Modes, not here), a Delay override
+ * either side of 9 pm, masking and range slicing, over the fixtures' ninety
+ * mornings. The EMA itself
  * is `WeightTrend` in `:libraries:nutrition`.
  */
 class WeightStateBuilderTest {
@@ -38,53 +36,64 @@ class WeightStateBuilderTest {
     )
 
     @Test
-    fun numbers_valueAverageDotsAndPlainInput() {
+    fun numbers_theTrendIsTheLargeNumber_todaysReadingTheSmallOne() {
         val state = build()
-        assertEquals(WeightView.Numbers, state.selected)
-        assertTrue(assertIs<Display.Shown>(state.now).text.endsWith("kg"))
-        assertEquals(WeighInWhen.ThisMorning, state.nowWhen)
-        assertIs<Display.Shown>(state.average)
+        val trend = assertIs<Display.Shown>(state.trend)
+        val latest = assertIs<Display.Shown>(state.latest)
+        assertTrue(trend.text.endsWith("kg") && latest.text.endsWith("kg"))
+        assertEquals(WeighInWhen.ThisMorning, state.latestWhen)
         val chart = assertNotNull(state.chart)
         assertEquals(28, chart.dots?.size)
         assertEquals(28, chart.trend.size)
-        assertEquals(Res.string.trends_weight_caption_dots, chart.caption)
+        assertEquals("Sep 28", chart.from)
+        assertEquals("Oct 25", chart.to)
+        assertEquals(true, chart.ranges)
         assertEquals(false, state.inputMasked)
         assertEquals(false, state.hiddenCard)
+        assertEquals(false, state.trendOnlyNote)
     }
 
     @Test
-    fun trendOnly_lineWithoutDotsOrValues_maskedInput() {
+    fun noChangeReadout_anywhere() {
+        val state = build()
+        val texts = listOfNotNull(state.trend, state.latest).filterIsInstance<Display.Shown>().map { it.text }
+        assertTrue(texts.none { it.startsWith("-") || it.startsWith("\u2212") || it.startsWith("+") }, texts.toString())
+    }
+
+    @Test
+    fun trendOnly_aSlopeWordAndTheLine_noNumbersNoDotsNoRanges() {
         val state = build(PresetId.Fuel)
-        assertEquals(WeightView.TrendOnly, state.selected)
-        assertNull(state.now)
-        assertNull(state.average)
+        val word = assertIs<Display.Soft>(state.trend).text
+        assertTrue(word in setOf("Steady", "Rising slowly", "Falling slowly"), word)
+        assertNull(state.latest)
         val chart = assertNotNull(state.chart)
         assertNull(chart.dots)
+        assertNull(chart.from)
+        assertEquals(false, chart.ranges)
         assertEquals(28, chart.trend.size)
-        assertEquals(Res.string.trends_weight_caption_trend, chart.caption)
         assertEquals(true, state.inputMasked)
+        assertEquals(true, state.trendOnlyNote)
     }
 
     @Test
     fun hidden_noChart_hiddenCard_maskedInput() {
         val state = build(PresetId.Blind)
-        assertEquals(WeightView.Hidden, state.selected)
         assertNull(state.chart)
-        assertNull(state.now)
+        assertNull(state.trend)
+        assertNull(state.latest)
         assertEquals(true, state.hiddenCard)
         assertEquals(true, state.inputMasked)
     }
 
     @Test
-    fun delayOverride_picksTrendOnly_andHidesTheChartUntilNinePm() {
+    fun delayOverride_hidesUntilNinePm_thenShows() {
         val delayed = mapOf(Metric.Weight to Visibility.Delay)
         val noon = build(overrides = delayed)
-        assertEquals(WeightView.TrendOnly, noon.selected)
         assertNull(noon.chart)
         assertEquals(true, noon.hiddenCard)
         val evening = build(overrides = delayed, at = LocalTime(21, 30))
-        assertEquals(WeightView.TrendOnly, evening.selected)
         assertNotNull(evening.chart?.dots)
+        assertIs<Display.Shown>(evening.trend)
     }
 
     @Test
@@ -101,8 +110,9 @@ class WeightStateBuilderTest {
     }
 
     @Test
-    fun savedNote_plainOnlyWhenTheWeightShows() {
+    fun savedNote_saysWhereTheWeighInWillShow() {
         assertEquals(SavedNote.Plain, build(ui = WeightUi(saved = true)).saved)
+        assertEquals(SavedNote.TrendOnly, build(PresetId.Fuel, ui = WeightUi(saved = true)).saved)
         assertEquals(SavedNote.OutOfView, build(PresetId.Blind, ui = WeightUi(saved = true)).saved)
         assertNull(build().saved)
     }
@@ -111,7 +121,8 @@ class WeightStateBuilderTest {
     fun pounds_readInPounds() {
         val state = build(settings = Settings(weightUnit = WeightUnit.Lb))
         assertEquals(WeightUnit.Lb, state.unit)
-        assertTrue(assertIs<Display.Shown>(state.now).text.endsWith("lb"))
+        assertTrue(assertIs<Display.Shown>(state.trend).text.endsWith("lb"))
+        assertTrue(assertIs<Display.Shown>(state.latest).text.endsWith("lb"))
     }
 
     @Test
@@ -121,7 +132,8 @@ class WeightStateBuilderTest {
             WeightUi(),
             TrendsFixtures.policy(),
         )
-        assertNull(state.now)
+        assertNull(state.trend)
+        assertNull(state.latest)
         assertEquals(emptyList(), state.chart?.trend)
     }
 }

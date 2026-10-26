@@ -1,25 +1,17 @@
 package com.opson.features.trends.impl
 
 import com.opson.features.trends.NutrientsRange
-import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
-import com.opson.libraries.nutrition.Metric
-import com.opson.libraries.nutrition.NumbersChange
-import com.opson.libraries.nutrition.NumbersSettings
-import com.opson.libraries.nutrition.PresetId
-import com.opson.libraries.nutrition.Visibility
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 /**
- * The Nutrients detail view model: the range switch re-subscribes, "Show
- * vitamins and minerals" goes through the numbers rule (pause included), and
- * back closes. What each mode shows is `NutrientsStateBuilderTest`.
+ * The Nutrients detail view model: the range switch re-subscribes, vitamins
+ * and minerals link to Modes and numbers (nothing turns on here), and back
+ * closes. What each mode shows is `NutrientsStateBuilderTest`.
  */
 class NutrientsViewModelTest : CoroutineTest() {
 
@@ -35,7 +27,6 @@ class NutrientsViewModelTest : CoroutineTest() {
         diary = diary,
         settingsRepository = settings,
         policySource = FakePolicySource(),
-        numbers = FakeNumbersChanger(settings),
         clock = TrendsFixtures.clock,
         timeZone = TrendsFixtures.timeZone,
     )
@@ -72,27 +63,13 @@ class NutrientsViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun showVitamins_pauseOff_turnsMicrosOn() = runUnitTest {
+    fun modesTapped_opensModesAndWritesNothing() = runUnitTest {
         val settings = FakeSettingsRepository()
         val vm = vm(settings)
         val events = backgroundScope.events(vm)
-        vm.takeAction(NutrientsAction.ShowVitaminsTapped)
-        assertEquals(Visibility.Show, settings.settings.value.numbers.overrides[Metric.Micros])
-        assertNotNull(settings.settings.value.numbers.changedAt)
-        assertEquals(emptyList(), events)
-    }
-
-    @Test
-    fun showVitamins_pauseOn_opensThePauseAndWritesNothing() = runUnitTest {
-        val paused = Settings(numbers = NumbersSettings(preset = PresetId.Full, pauseBeforeMore = true))
-        val settings = FakeSettingsRepository(paused)
-        val vm = vm(settings)
-        val events = backgroundScope.events(vm)
-        vm.takeAction(NutrientsAction.ShowVitaminsTapped)
-        assertEquals(listOf<NutrientsEvent>(NutrientsEvent.OpenPause(NumbersChange.Override(Metric.Micros, Visibility.Show))), events)
-        assertEquals(paused, settings.settings.value)
-        assertEquals(0, settings.updates)
-        assertNull(settings.settings.value.numbers.overrides[Metric.Micros])
+        vm.takeAction(NutrientsAction.ModesTapped)
+        assertEquals(listOf<NutrientsEvent>(NutrientsEvent.OpenModes), events)
+        assertEquals(0, settings.updates, "showing more only happens in Modes and numbers, behind the pause")
     }
 
     @Test
