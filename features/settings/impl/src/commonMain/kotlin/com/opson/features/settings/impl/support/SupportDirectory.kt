@@ -64,8 +64,8 @@ data class PhoneNumber(val shown: String, val dial: String) {
 sealed interface Reach {
     data class Call(val number: PhoneNumber) : Reach
 
-    /** [keyword] is the word to send ("HOME"), when the service asks for one. */
-    data class Text(val number: PhoneNumber, val keyword: String? = null) : Reach
+    /** Messages, to [number]. A keyword the service asks for is in the line's description. */
+    data class Text(val number: PhoneNumber) : Reach
 
     data class Web(val url: String) : Reach
 }
@@ -166,7 +166,7 @@ object SupportDirectory {
                 name = Res.string.settings_find_crisis_text_line,
                 about = Res.string.settings_find_about_text_keyword,
                 aboutArgs = listOf("HOME", "741741"),
-                reach = Reach.Text(PhoneNumber("741741", "741741"), keyword = "HOME"),
+                reach = Reach.Text(PhoneNumber("741741", "741741")),
                 source = "https://www.crisistextline.org",
             ),
             // TODO(launch): point this at the Alliance's own provider search once someone has
