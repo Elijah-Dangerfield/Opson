@@ -99,8 +99,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 
 | # | Prototype label | Id | Owner | Status | Calories in Full |
 |---|---|---|---|---|---|
-| 1 | Onboarding · pricing | `onboarding-welcome` | onboarding | Pricing not built in 0.1; the welcome takes its place | no |
-| 2 | Onboarding · mode preview | `onboarding-recommendation` | onboarding | ported | no |
+| 1 | Onboarding · pricing | `onboarding-welcome` | onboarding | Welcome and the plan (v3); Plus is "Coming later" with no price in 0.1 | no |
+| 2 | Onboarding · mode preview | `onboarding-recommendation` | onboarding | ported; v3 adds `onboarding-statement` and `onboarding-account` next to it | no |
 | 3 | Today | `today` | today | ported | yes |
 | 4 | Today · big day | `today-big-day` | today | ported | yes |
 | 5 | Quick-add sheet | `logger` | logger | ported | yes |

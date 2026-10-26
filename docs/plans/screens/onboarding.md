@@ -1,207 +1,265 @@
 # Onboarding plan
 
-Four skippable questions and a recommended mode, folded into the existing
-`:features:onboarding` guest-account flow. No pricing screen in 0.1. Read
-`shared.md` first.
+Welcome with the plan, three skippable questions, an optional statement, a
+starting mode that lists what you'll see and what stays out of view, and an
+optional account step last. Built to design v3. Read `shared.md` first.
 
 ## Source
-- Handoff: `README.md` section 4.11; `PROTOTYPE_NOTES.md` "Pricing".
-- Prototype markup: `Phone.dc.html` lines 39 to 86, the `is.onb` block.
-- Logic: `phone-logic.js` `Q`, `pickMode`, `onb`, `finish`.
-- Existing code: `features/onboarding/impl/.../OnboardingViewModel.kt` (Welcome, PickIdentity, deferred guest creation through `GuestAccountCreator`, `ResolveEntry`, OAuth new vs returning through `AuthOutcomeClassifier`), `OnboardingFeatureEntryPoint.kt`, `OnboardingScreen.kt`.
-- System design section 13 and decision 2026-10-25 "no pricing in 0.1".
+- Design v3: `docs/design/v3/CHANGES.md` (global rules, the Onboarding row,
+  "Pricing on Welcome"), `manifest.json` notes for `onboarding-welcome`,
+  `onboarding-why`, `onboarding-numbers`, `onboarding-statement`,
+  `onboarding-recommendation`, `onboarding-account`, and their images. v3 wins
+  over the handoff wherever they disagree.
+- Handoff, for what v3 does not redraw: `README.md` 4.11, `phone-logic.js`
+  `pickMode`.
+- Existing code: `features/onboarding/impl/.../OnboardingViewModel.kt`,
+  `OnboardingScreen.kt`, `ModeRecommender.kt`, `SetupAnswers.kt`, the auth
+  screens and their view models (unchanged).
 
-## What changes in the existing flow
+## What changes from the previous build
 
-| Today | After |
+| Before | v3 |
 |---|---|
-| Welcome: "Welcome", guest, Google, Apple, email sign-in, create account | Welcome: the prototype's intro copy, **Set it up** (the guest path, into the questions), **Skip, start logging**, then the existing sign-in buttons unchanged |
-| PickIdentity: display name, then create the guest | Removed. Opson has no social surface, so a name screen is friction for nothing. The guest is created with `DisplayNameSuggester.next()` silently. |
-| New OAuth account goes to PickIdentity | Goes to Question 1 with `identityClaimed = true` |
-| `ResolveEntry` re-entry (authed, not onboarded) to PickIdentity | To Question 1 with `identityClaimed = true` |
-| Returning account goes Home | Goes to Today (`router.enterTab(TodayRoute())`). Its settings arrive by sync; `VisibilityPolicySource` stays Blind until they do (see `shared.md`), so a new phone never shows Full numbers first. |
-| `NavigateToHome` everywhere (onboarding, sign in, sign up, verify email) | `NavigateToToday`, routed with `router.enterTab(TodayRoute())` |
-
-Pricing (step 0 in the prototype) is not built: nothing is for sale in 0.1, and
-a price with no purchase flow is an App Review rejection.
+| Welcome: intro, Set it up, Skip start logging, then Google, Apple, email sign-in and create account | Welcome: intro, **the plan card** (Free and what it includes; Plus "Coming later", no price), **Get started**, **Skip and start logging**, and one "Have an account? **Sign in**" link to the existing `SignInRoute` (which has Google, Apple and email). No OAuth buttons on Welcome. |
+| Skip all saved Delayed reveal | Skip all saves **Full numbers** and lands on Today, with no account step |
+| Four questions, the fourth a "hard" toggle | Three questions, then the **statement** step ("4 of 4 · Optional"): a quote the person can agree with, two radio rows, and what happens with the answer. Never a question about a diagnosis. |
+| "2 of 4" text, round back button, Skip | A top bar: back arrow (48 dp), a **segmented progress bar** (four segments), Skip. "n of 4" stays as a small label above the title. |
+| Option rows with a trailing check | **Checkbox rows** (leading box) for multi-select, **radio rows** for single choice; selected rows are tinted |
+| Question 3 multi-select | Question 3 is single choice ("uses this same layout" as question 2) |
+| Recommendation: one sentence | "Your starting point", the mode, one line, then a **You'll see** card and a **Kept out of view** card, then three alternatives and **All modes** |
+| Start finished onboarding | Start saves the mode, creates the guest, then shows the **account step**. Claimed identities and a guest that could not be created go straight to Today. |
+| New OAuth or Apple account from Welcome ran the questions | Gone with the Welcome buttons. A brand-new email account confirmed through `VerifyEmail` still lands on question 1 with `identityClaimed`. |
 
 ## Route
-`OnboardingRoute` unchanged (`:features:onboarding`, `screen<>`). Steps are
-state inside it, as now.
+`OnboardingRoute` unchanged. Steps are state inside it.
 
 ## State
 
 ```kotlin
-// com.opson.features.onboarding.impl
 sealed interface OnboardingStep {
-    data object Welcome : OnboardingStep
-    data class Question(val question: SetupQuestion) : OnboardingStep
-    data object Recommendation : OnboardingStep
+    val eventName: String
+    data object Welcome          // "welcome"
+    data class Question(val question: SetupQuestion)   // question.eventName
+    data object Recommendation   // "recommendation"
+    data object Account          // "account"
 }
 
-data class OnboardingState(
-    val step: OnboardingStep = OnboardingStep.Welcome,
-    val answers: SetupAnswers = SetupAnswers(),
-    val recommended: PresetId = PresetId.Delayed,               // ModeRecommender.recommend(answers)
-    val picked: PresetId? = null,                               // an alternative the user tapped
-    val alternatives: List<PresetId> = emptyList(),
-    // kept from today's state:
-    val oauthInFlight: OAuthProvider? = null,
-    val authError: OnboardingAuthError? = null,
-    val identityClaimed: Boolean = false,
-    val creationStarted: Boolean = false,
-    val isFinishing: Boolean = false,
-    val creationFailed: Boolean = false,
-    val appleEnabled: Boolean = false,
-) {
-    val chosen: PresetId get() = picked ?: recommended
-    val question: SetupQuestion?                // the current question, null off the question steps
-    val options: List<SetupChoice>              // the current question's options with `selected`, derived from answers
-    val canGoBack: Boolean                      // drives the on-screen back button and the system back handler
+enum class SetupQuestion(val number: Int, val multiSelect: Boolean, val eventName: String) {
+    Reason(1, true, "question_1"), Feeling(2, false, "question_2"),
+    Focus(3, false, "question_3"), Statement(4, false, "statement"),
 }
 
 data class SetupAnswers(
     val why: Set<Why> = emptySet(),
     val feel: NumbersFeel? = null,
-    val notice: Set<Notice> = emptySet(),
-    val hard: Boolean = false,
-) { fun toSettings(): OnboardingAnswers }      // option keys, for Settings.onboarding
+    val notice: Notice? = null,
+    val statement: StatementAnswer? = null,
+) {
+    val hard: Boolean            // statement == Agree
+    val isEmpty: Boolean         // no answer that says anything (Not really counts as none)
+    fun toSettings(): OnboardingAnswers   // notice as a one-item list, hard from the statement
+}
 
-enum class SetupQuestion(val number: Int, val multiSelect: Boolean) { Reason(1), Feeling(2), Focus(3), Hard(4) }
-sealed interface SetupOption                    // Why, NumbersFeel and Notice entries, plus HardBefore
-data class SetupChoice(val option: SetupOption, val selected: Boolean)
+enum class StatementAnswer : SetupOption { Agree("agree"), NotReally("not_really") }
+
+data class OnboardingState(
+    val step: OnboardingStep = OnboardingStep.Welcome,
+    val answers: SetupAnswers = SetupAnswers(),
+    val recommended: PresetId,                 // ModeRecommender.recommend(answers)
+    val picked: PresetId? = null,
+    val alternatives: List<PresetId>,          // three, or every offered mode after All modes
+    val showAllModes: Boolean = false,
+    val accountInFlight: AccountMethod? = null,  // Google or Apple link running
+    val accountError: OnboardingAccountError? = null,
+    val identityClaimed: Boolean = false,
+    val creationStarted: Boolean = false,
+    val isFinishing: Boolean = false,          // Start or Skip all running
+    val creationFailed: Boolean = false,
+    val appleEnabled: Boolean = false,
+) {
+    val chosen: PresetId
+    val question: SetupQuestion?
+    val options: List<SetupChoice>
+    val progress: Int                          // 1..4 on the question steps
+    val preview: ModePreview                   // ModePreview.of(Presets[chosen])
+    val canGoBack: Boolean
+}
 ```
 
-Option keys (the strings `Settings.onboarding` stores, never sent to telemetry):
+Removed: `oauthInFlight`, `authError` (the Welcome sign-in errors), the
+`HardBefore` option.
 
-| Enum | Entries and keys |
-|---|---|
-| `Why` | Curious `curious`, Performance `performance`, EatingEnough `eating_enough`, EatingRegularly `eating_regularly`, MedicalNeed `medical_need`, ChangingWeight `changing_weight`, WorkingWithProvider `working_with_provider` |
-| `NumbersFeel` | LoveThem `love_them`, SomeAreFine `some_are_fine`, RatherNot `rather_not`, NotSure `not_sure` |
-| `Notice` | Amounts `amounts`, Nutrients `nutrients`, Patterns `patterns`, HowEatingFeels `how_eating_feels` |
-| `HardBefore` | stored as `OnboardingAnswers.hard` |
+`canGoBack`: false on Welcome, false while finishing or linking, false on
+question 1 when `identityClaimed` or `creationStarted`; true on the
+recommendation and on the account step (back goes to the recommendation).
 
-Removed fields: `displayName`, `userEditedName`, `saveError`. No `Display`
-values: onboarding shows no numbers. `canGoBack` is false on Welcome, false
-everywhere while `isFinishing`, and false on Question 1 when `identityClaimed`
-or `creationStarted`.
-
-`ModeRecommender` (pure, onboarding impl), a port of `pickMode`:
+### ModeRecommender
 
 | Answers | Preset |
 |---|---|
+| nothing that says anything (`isEmpty`) | **Full** (the same as Skip all) |
 | feel LoveThem | Delayed if hard, else Full |
 | feel RatherNot | Rhythm if why has EatingRegularly, else Blind |
 | feel SomeAreFine | Fuel if why has EatingEnough, else Nutrient |
-| notice has HowEatingFeels | Mindful |
+| notice HowEatingFeels | Mindful |
 | otherwise | Blind if hard, else Delayed |
 
-`alternatives(chosen, hard)`: the first four of `Presets.all` excluding
-`chosen`, and excluding Full **and Sprint** when `hard` is true.
+`alternatives(answers, chosen, recommended, all)`: the recommended mode first
+(so a picked alternative swaps places with it), then modes the answers point at
+(EatingRegularly Rhythm, SomeAreFine or notice Nutrients Nutrient, EatingEnough
+Fuel, HowEatingFeels Mindful, LoveThem Full then Delayed, RatherNot or hard
+Blind), then Blind, Delayed, Nutrient, Full; without `chosen`, without Full and
+Sprint when hard, distinct, the first three. With `all`, every offered mode in
+`Presets.all` order except `chosen`. The design's Fuel case (eating enough,
+eating regularly, some are fine) gives Rhythm, Nutrient focus, Blind.
+
+### ModePreview (pure, onboarding impl)
+
+Built from the preset's own levels, so the list can never say a number is out
+of view when the policy shows it. Water and vitamins are left out (every gentle
+mode softens water; vitamins are off in every preset).
+
+| Subject | Show | Soften | Delay | Hide |
+|---|---|---|---|---|
+| Calories | seen: Calorie amounts | seen: A word for energy; kept out: Calorie amounts and watch energy | seen: Calories once the day is closed (once a week for Coast) | kept out: Calorie amounts and watch energy |
+| Macros, grouped by level | seen: "… amounts" | seen: "… as fill bars" | seen: "… once the day is closed" | kept out: the group |
+| Weight | seen: Your weight | kept out: Weight shows as a trend only | kept out: (same as Soften) | kept out: Weight |
+| Meal count (`mealCount`) | seen: How many meals you've had | | | |
+| Layout | Meals: What you ate, meal by meal; Rhythm: A checklist of your meals; Explorer: The new foods you try; Journal: How each meal felt | | | |
+
+Seen is ordered shown, then softened, then later; each line carries its mark
+(eye, soft, later, eye-off) for the icon. Fuel reads exactly as the design.
 
 ## Actions
 
 | Action | Does |
 |---|---|
-| `ResolveEntry` (existing) | Re-entry now lands on `Question(1)`. |
-| `ContinueAsGuest` (existing, the Set it up button) | `step = Question(1)`. No account yet. |
-| `SkipAllTapped` | `finish(ModeRecommender.recommend(SetupAnswers()))`, which is Delayed. |
-| `OptionTapped(option)` | Updates the current question's answer: single choice replaces, multi toggles, the hard option toggles. Clears `picked`. Recomputes `recommended` and `alternatives`. |
-| `NextTapped` | Next question, or `Recommendation` after 4. |
-| `SkipQuestionTapped` | Same as `NextTapped`, answer left as is. |
-| `AlternativeTapped(preset)` | `picked = preset`; alternatives recomputed against the new `chosen`, so the recommended preset appears as an alternative and the picked one leaves the row (the prototype's behaviour). |
-| `StartTapped` | `finish(chosen)`. |
-| `Back` (existing) | Recommendation to Question 4, Question n to n − 1, Question 1 to Welcome unless `identityClaimed` or `creationStarted`. |
-| `SignIn`, `SignUp`, `SignInWithOAuth`, `SignInWithApple` (existing) | Unchanged, except a new account continues to `Question(1)`. |
+| `ResolveEntry` (existing) | Onboarded: Today. Claimed, not onboarded: question 1 with `identityClaimed`. Stranded guest: adopt, Today. Else log `welcome`. |
+| `GetStartedTapped` | Question 1. No account yet. |
+| `SkipAllTapped` | Welcome only. `finish(Full, empty answers, skippedAll)`, then Today. No account step. |
+| `SignInTapped` | Event `NavigateToSignIn`. |
+| `OptionTapped(option)` | Multi toggles, single replaces. Clears `picked` and `showAllModes`, recomputes. |
+| `ContinueTapped` | Next question, statement, then the recommendation. |
+| `SkipQuestionTapped` | Same move, answer left as it is. Nothing asks again later. |
+| `AlternativeTapped(preset)` | `picked = preset`, alternatives recomputed against it. |
+| `AllModesTapped` | `showAllModes = true`. |
+| `StartTapped` | `finish(chosen, answers)`, then the account step for a fresh guest, Today otherwise. Allowed again after Back from the account step: it saves the new choice and skips creating a guest that exists. |
+| `SaveWithAppleTapped` | iOS. Apple credential, then `linkAppleIdentity` onto the guest. Success: Today. Dismissed: quiet. `AlreadyOnAnotherAccount`: `AccountInUse`, never a session switch (that would wipe the settings just saved). |
+| `SaveWithGoogleTapped` | `linkOAuthIdentity(Google)`. Same outcomes. |
+| `SaveWithEmailTapped` | Event `NavigateToSignUp`; `SignUpViewModel` links the email to the anonymous guest, `VerifyEmail` lands on Today. |
+| `KeepOnPhoneTapped` | Today. |
+| `Back` | Account to recommendation, recommendation to the statement, question n to n − 1, question 1 to Welcome unless claimed or started. |
 
-`finish(preset)`:
-1. `SettingsRepository.update(stampNumbersChange = false) { it.copy(numbers = NumbersSettings(preset = preset), onboarding = answers.toSettings(), sprintStartedOn = …) }`, so `changedAt` stays null and Modes later reads "Set by you during setup." Sprint sets `sprintStartedOn = today` (from the injected `Clock` in the system time zone); any other preset leaves it as is. Safe before the account exists: the guest is the first user on the install, so no `UserScopedClearer` runs (it only clears a departing user), and the settings outbox row drains once the account is live.
-2. Guest path (no session yet): `guestAccountCreator.start(PendingIdentity(DisplayNameSuggester.next()))` with the existing bounded wait. Claimed path: nothing; the server-generated profile name stands, so the VM no longer needs `ProfileRepository`.
-3. `appCache.update { hasUserOnboarded = true }`, event `NavigateToToday`.
-
-Removed actions: `DisplayNameChanged`, `RegenerateDisplayName`, `ContinueFromPickIdentity`.
+`finish(preset, answers)`:
+1. `SettingsRepository.update(stampNumbersChange = false) { startingWith(preset, answers, today) }` (Sprint sets `sprintStartedOn`).
+2. No session yet: `guestAccountCreator.start(PendingIdentity(DisplayNameSuggester.next()))`, bounded 5 s wait; a timeout or failure sets `creationFailed`.
+3. `hasUserOnboarded = true`, `onboarding.completed` (first time only).
+4. Skip all, a claimed identity, or `creationFailed`: `NavigateToToday`. Otherwise `step = Account`.
 
 ## Events
-`NavigateToToday` (replaces `NavigateToHome`), `NavigateToSignIn`, `NavigateToSignUp` (existing).
+`NavigateToToday`, `NavigateToSignIn`, `NavigateToSignUp`.
 
 ## Data
-`SettingsRepository`, `AppCache`, `GuestAccountCreator`, `AuthRepository`,
-`AuthOutcomeClassifier` (existing), `Clock` (for Sprint's start day). The
-answers are saved with the preset in `Settings.onboarding` (owner's call: the
-field exists so Modes can keep Full out of reach for someone who said numbers
-have been hard). They travel only inside the user's own settings row, like every
-other setting, and are never sent anywhere else. Skip all saves empty answers.
-Offline: questions and the settings write work; account creation retries in the
-background as today.
+`SettingsRepository`, `AppCache`, `GuestAccountCreator`, `AuthRepository`
+(`current`, `linkOAuthIdentity`, `linkAppleIdentity`), `AppleSignInCoordinator`,
+`AuthOutcomeClassifier` is no longer needed, `Clock`. The answers are saved with
+the preset in `Settings.onboarding`, which syncs inside the user's own settings
+row like every other setting. They never reach telemetry.
 
-Telemetry: keep `onboarding.completed` (`duration_sec`, `account_ready`) and add
-`preset` (key), `took_recommendation` (true when the started preset is the
-recommended one; false on skip all, where nothing was recommended on screen) and
-`skipped_all`. `onboarding.auth_selected` (`method` guest, `returning` false)
-fires for Set it up and for Skip, start logging. Per-step view and abandon
-events use the stable names `welcome`, `question_1` to `question_4`,
-`recommendation` (`pick_identity` is gone with its step). **No answer values in
-any event**: "numbers or tracking have been hard for me before" is close to a
-clinical disclosure.
+## Telemetry
+- `onboarding.step_viewed` `step`: `welcome`, `question_1` to `question_3`,
+  `statement` (was `question_4`), `recommendation`, `account`.
+- `onboarding.auth_selected` (`guest`, false) for Get started and Skip all;
+  (`guest`, true) for an adopted stranded guest. The Welcome OAuth and Apple
+  entries are gone.
+- `onboarding.completed` unchanged (`duration_sec`, `account_ready`, `preset`,
+  `took_recommendation`, `skipped_all`), once, when the mode is first saved.
+- New `onboarding.account_choice` `choice`: `phone`, `google`, `apple`,
+  `email`, when the person leaves the account step that way (Google and Apple
+  on a successful link only).
+- `onboarding.abandoned` `step`: never after `completed`.
+- **No answer in any event.** Update `docs/practices/app-events.md` and the
+  `onboarding-funnel` dashboard's step list.
 
 ## Components
-`:libraries:ui` buttons, a new `ChoiceRow` (the prototype's option button: surface,
-1.5 dp line border that turns ink when selected, a check mark, 52 dp tall,
-radius 14; `role` Checkbox for multi-select and the hard toggle, RadioButton for
-the feel question), progress text, `PillChip` for alternatives (44 dp tall, as
-the prototype). Back is an icon button (`AppIcons.ChevronLeft`, "Back") on the
-question and recommendation steps plus a system `BackHandler`, both gated on
-`canGoBack`. Existing auth buttons unchanged. The primary button is pinned at
-the bottom on the question and recommendation steps; Welcome scrolls as one
-column with its buttons at the bottom.
+`:libraries:ui`: `ChoiceRow` restyled to v3 (leading checkbox for
+`Role.Checkbox`, leading `RadioDot` for `Role.RadioButton`, tinted fill and
+accent border when selected, 56 dp, bold label), `SegmentedBar` for progress,
+`ButtonPrimary`/`ButtonSecondary`/`ButtonGhost`, `EdgeCard`, `PillChip`,
+`AppIcons` (adds `Visibility`, `BlurOn` for softened, `Mail`, `Group`). The top
+bar is onboarding's own (arrow, progress, Skip), drawn like `PageHeader`'s
+Material top app bar; `PageHeader` itself needs a title, which these steps do
+not have. The primary button is pinned at the bottom on the question,
+statement and recommendation steps. Welcome and account scroll as one column
+with their actions at the bottom. 48 dp touch targets throughout.
 
 ## Visibility surfaces
-None: onboarding renders no numbers. It sets the preset every other surface
-reads, and the Full numbers alternative disappears when `hard` is set.
+None: onboarding renders no numbers. `OnboardingLeakSurfaces`:
+`onboarding-welcome`, `onboarding-recommendation` (plus `onboarding-statement`
+and `onboarding-account`), all `showsCaloriesInFull = false`, built from
+`OnboardingFixtures`, which runs the real `ModeRecommender`.
 
 ## Copy
+Verbatim from the v3 images except where noted. `strings_onboarding.xml`.
 
 | Key | String |
 |---|---|
-| `onboarding_welcome_title` (changed from "Welcome") | Opson |
-| `onboarding_welcome_subtitle` (changed) | Write down what you eat. See as many numbers as you want, or none. |
-| `onboarding_welcome_questions` | Four short questions. You can skip all of them. |
-| `onboarding_set_it_up` | Set it up |
-| `onboarding_skip_all` | Skip, start logging |
+| `onboarding_welcome_title` | Opson (the design's "Friendly Tracking" is the placeholder name) |
+| `onboarding_welcome_subtitle` | Write down what you eat. See as many numbers as you want, or none. |
+| `onboarding_welcome_body` | You can show, soften, save for later or hide every number, and change it whenever you like. |
+| `onboarding_plan_free` / `_free_includes` | Free / Logging, saved meals and every mode (design: "barcode scan, recipes"; barcode is hidden in 0.1) |
+| `onboarding_plan_plus` / `_plus_later` / `_plus_includes` | Plus / Coming later / Photo estimates and watch quick-log (no price, see CHANGES.md) |
+| `onboarding_get_started` | Get started |
+| `onboarding_skip_all` | Skip and start logging |
+| `onboarding_have_account` / `onboarding_sign_in` | Have an account? / Sign in |
 | `onboarding_progress` | %1$d of 4 |
-| `onboarding_skip` | Skip |
-| `onboarding_q_why` / `_sub` | Why are you tracking? / Pick any. |
-| options | Curious / Performance / Eating enough / Eating regularly / A medical need / Changing my weight / Working with a provider |
-| `onboarding_q_feel` | How do you feel about seeing numbers? |
-| options | Love them / Some are fine / Rather not / Not sure |
-| `onboarding_q_notice` / `_sub` | What do you want to notice? / Pick any. |
-| options | Amounts / Nutrients / Patterns / How eating feels |
-| `onboarding_q_hard` / `_sub` | One optional question / This only unlocks gentler starting points. We never ask for a diagnosis. |
-| option | Numbers or tracking have been hard for me before |
-| `onboarding_next` | Next |
-| `onboarding_reco_kicker` | A starting point, not a recommendation |
-| `onboarding_reco_see` | What you'll see |
-| `onboarding_preset_<key>`, `onboarding_preset_<key>_line` | the labels and lines from the Modes table in `settings.md`. Kept in the onboarding file because no shared preset-label resource exists yet; fold into one when Modes lands its own. |
-| `onboarding_reco_or` | Or start with |
-| `onboarding_reco_change` | Change it any time under More, then Modes and numbers. |
-| `onboarding_start_with` | Start with %s |
+| `onboarding_progress_optional` | %1$d of 4 · Optional |
+| `onboarding_skip`, `onboarding_continue` | Skip, Continue |
+| `onboarding_q_why`, `onboarding_pick_any` | Why are you tracking? / Pick any that fit. |
+| why options | Curious what I eat / Training or performance / Eating enough / Eating regularly / A medical need / Changing my weight / Working with a provider |
+| `onboarding_q_feel`, `onboarding_feel_footnote` | How do you feel about seeing numbers? / This only picks a starting point. Later you can change any single number. |
+| feel options | I love them / Some are fine / I'd rather not see them / Not sure yet |
+| `onboarding_q_notice` | What do you want to notice? (options unchanged) |
+| `onboarding_q_statement` | Does this sound like you? |
+| `onboarding_statement_quote` | "Numbers or tracking have been hard for me before." |
+| `onboarding_statement_body` | If you say yes, you get gentler starting points. We don't ask why, and the answer is used for nothing else. (`TODO(clinician)`; the design says "stays on this phone", which is not true: settings sync) |
+| `onboarding_statement_yes` / `_no` | Yes, that's me / Not really |
+| `onboarding_see_starting_point` | See my starting point |
+| `onboarding_reco_kicker` | Your starting point |
+| `onboarding_reco_see` / `onboarding_reco_kept_out` | You'll see / Kept out of view |
+| `onboarding_preview_*` | the ModePreview lines above |
+| `onboarding_reco_or`, `onboarding_all_modes` | Or start with / All modes |
+| `onboarding_start_with`, `onboarding_reco_change` | Start with %1$s / Change it any time under More, then Modes and numbers. |
+| `onboarding_preset_fuel_line` (changed) | Eating enough comes first. Other lines unchanged except Full, which drops the watch (0.2). |
+| `onboarding_account_title` / `_body` | Save your setup / Back up your logs and settings, and pick up on a new phone. |
+| `onboarding_account_google` / `_apple` / `_email` | Continue with Google / Continue with Apple / Continue with email |
+| `onboarding_account_private` | Private to your account. No ad tracking. (design: "Encrypted. Only you can read it.", which the server cannot promise) |
+| `onboarding_account_export` / `_coach` | Export or delete it any time / Needed later to share with a coach |
+| `onboarding_account_keep` / `_later` | Keep it on this phone / You can add an account later in More. (More has no account entry yet; flagged) |
+| `onboarding_account_in_use` | That account is already in use. Try another way, or keep it on this phone. |
 
-The existing auth strings stay, moved with the rest of the `onboarding_`
-strings from `strings.xml` to `strings_onboarding.xml`.
-`onboarding_pick_display_name_*`, `onboarding_display_name_*`,
-`onboarding_suggest_another`, `onboarding_continue` and
-`onboarding_continue_as_guest` are deleted with the step.
-
-## Edge cases and conflicts
-- **Skip all defaults to Delayed reveal, not Full numbers.** Judgment call: the prototype's skip keeps the default mode (Full), but its own recommender gives Delayed for an empty set of answers. Someone who skips setup should not see a calorie total on day one without choosing to; Full is one tap away in Modes.
-- **Hard answer hides Sprint too.** The handoff hides Full numbers; Sprint shows the same numbers, so hiding only Full would leave the same exposure under another name.
-- **Recommendation is Full and the user ticks hard later**: going back and toggling hard recomputes, so Full can no longer be the pick or an alternative.
-- **Back on Question 1 after an OAuth new account**: blocked (`identityClaimed`), as PickIdentity is today.
-- **Large text**: options stack, the primary button stays pinned at the bottom.
-- **Already onboarded** (`hasUserOnboarded`): `ResolveEntry` bounces to Today as now.
+## Edge cases
+- **Skip all is Full numbers** (v3). An empty set of answers through the
+  questions recommends Full too, so the two paths agree.
+- **Statement yes hides Full and Sprint** from the recommendation and the
+  alternatives, as before.
+- **Back from the account step** returns to the recommendation; Start again
+  re-saves the new choice and does not create a second guest or a second
+  `onboarding.completed`.
+- **Guest creation failed or timed out**: no account step (nothing to claim);
+  Today, as before.
+- **A claimed identity** (verified email) skips the account step.
+- **Large text**: rows grow, the primary button stays pinned.
 
 ## Tests
-- `ModeRecommenderTest`: every row of the table, the empty case is Delayed, alternatives exclude chosen, Full and Sprint excluded when hard, always four or fewer.
-- `OnboardingViewModelTest` (update the existing one): Set it up goes to Question 1 without creating an account; options single vs multi vs hard toggle; Next and Skip through to Recommendation; Back at each step; Start writes `NumbersSettings(preset)` with null `changedAt` then creates the guest then marks onboarded then emits `NavigateToToday`; Sprint sets `sprintStartedOn`; Skip all writes Delayed; OAuth new account lands on Question 1; returning account emits `NavigateToToday` with no settings write; no event attribute contains an answer.
-- Previews: Welcome, each question with and without selections, Recommendation (Delayed with four alternatives), Recommendation with hard set (no Full, no Sprint).
-- `SURFACES`: `OnboardingLeakSurfaces.all` in impl `commonMain`, ids `onboarding-welcome`, `onboarding-recommendation` (port of the prototype's two onboarding surfaces, pricing replaced by welcome), both `showsCaloriesInFull = false`. State comes from `OnboardingFixtures`, which builds it through `ModeRecommender`, the same code the ViewModel runs.
+- `ModeRecommenderTest`: every row, empty is Full, statement yes alone is
+  Blind, the design's Fuel alternatives, Full and Sprint never offered when
+  hard, All modes lists every offered mode.
+- `ModePreviewTest`: Fuel matches the design; for every preset nothing hidden
+  is in "seen", every shown subject is in "seen"; every preset sees something.
+- `SetupAnswersTest`: toggles, replaces, `isEmpty`, `toSettings`.
+- `OnboardingViewModelTest`: each action above, the account step outcomes, Skip
+  all saves Full, back from the account step, no answer in any event.
+- Previews named for the design ids: welcome, why, numbers, notice, statement,
+  recommendation (Fuel), recommendation hard, all modes, account (Android and
+  iOS), plus dark and large text.
