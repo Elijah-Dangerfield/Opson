@@ -117,7 +117,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 15 | Modes and numbers | `modes` | settings | ported | no |
 | 16 | Reminders | none | | 0.2, add when built | |
 | 17 | Weight | `weight` | trends | ported | no |
-| 18 | Integrations | none | | 0.2, add when built (it shows energyOut) | |
+| 18 | Integrations | `integrations` | settings | 0.2, `integrations.md`; shows energyOut | yes |
 | 19 | Support | `support` | settings | ported | no |
 | 20 | More | `more` | settings | ported | yes |
 | 21 | Widgets and watch | none | | Later | |
@@ -147,6 +147,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `pause-sheet` | settings | | no |
 | new | | `look-and-feel` | settings | | no |
 | new | | `foods-add-food-blind` | foods | v3 11.4; Add a food with no number fields | no |
+| new | | `today-expended` | today | 0.2, `integrations.md`; the Expended so far line | yes |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and
