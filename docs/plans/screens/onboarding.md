@@ -233,7 +233,7 @@ Verbatim from the v3 images except where noted. `strings_onboarding.xml`.
 | `onboarding_preset_fuel_line` (changed) | Eating enough comes first. Other lines unchanged except Full, which drops the watch (0.2). |
 | `onboarding_account_title` / `_body` | Save your setup / Back up your logs and settings, and pick up on a new phone. |
 | `onboarding_account_google` / `_apple` / `_email` | Continue with Google / Continue with Apple / Continue with email |
-| `onboarding_account_private` | Private to your account. No ad tracking. (design: "Encrypted. Only you can read it.", which the server cannot promise) |
+| `onboarding_account_private` | Private to you. No ad tracking. (design: "Encrypted. Only you can read it.", which the server cannot promise) |
 | `onboarding_account_export` / `_coach` | Export or delete it any time / Needed later to share with a coach |
 | `onboarding_account_keep` / `_later` | Keep it on this phone / You can add an account later in More. (More has no account entry yet; flagged) |
 | `onboarding_account_in_use` | That account is already in use. Try another way, or keep it on this phone. |

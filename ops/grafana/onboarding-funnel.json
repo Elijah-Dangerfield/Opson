@@ -293,7 +293,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "`step` is the step's own name (`welcome`, `question_1` to `question_4`, `recommendation`), never an index \u2014 the flow will gain a step and a funnel keyed on position would silently start comparing two different screens.",
+      "description": "`step` is the step's own name (`welcome`, `question_1` to `question_3`, `statement`, `recommendation`, `account`), never an index. The flow gains and loses steps (design v3 turned `question_4` into `statement` and added `account`), and a funnel keyed on position would silently start comparing two different screens.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -375,7 +375,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "Where the back-out happened, over the whole window. `welcome` is a bounce; a `question_n` or `recommendation` is someone who chose a path and then thought better of it, which is the more expensive one.",
+      "description": "Where the back-out happened, before the mode was saved. `welcome` is a bounce; a `question_n`, `statement` or `recommendation` is someone who chose a path and then thought better of it, which is the more expensive one. `account` never appears: the mode is saved before it, so leaving there is not abandoning.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -443,7 +443,7 @@
       },
       "id": 137,
       "panels": [],
-      "title": "Which door they came through",
+      "title": "What they chose",
       "type": "row"
     },
     {
@@ -451,7 +451,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "`method` is `guest` or the OAuth provider, lowercased. A provider missing entirely is worth checking against the sign-in screen before concluding nobody wants it \u2014 a misconfigured provider fails before this event fires.",
+      "description": "How people leave the optional account step that follows the mode: `phone` (Keep it on this phone), `google` or `apple` (a successful link onto the guest) or `email` (handed to sign-up, verified later). Skipping is normal; a large `phone` share is the design working, not a problem.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -502,13 +502,13 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "sum by (method) (count_over_time({service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.auth_selected\" [$__range]))",
+          "expr": "sum by (choice) (count_over_time({service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.account_choice\" [$__range]))",
           "refId": "A",
           "queryType": "instant",
-          "legendFormat": "{{method}}"
+          "legendFormat": "{{choice}}"
         }
       ],
-      "title": "Auth method",
+      "title": "Account step",
       "type": "piechart"
     },
     {
@@ -516,7 +516,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "`returning=true` is a user the auth outcome classifier recognised: a prior guest whose onboarding flag was lost, or a sign-in that hit an existing account. A high share on a young app usually means devices are losing their onboarded flag, not that people are coming back.",
+      "description": "`returning=true` is a prior guest whose onboarded flag was lost and whose session was adopted at entry. Returning users who sign in from Welcome's link go through the sign-in screen and do not fire `onboarding.auth_selected`. A high share on a young app usually means devices are losing their onboarded flag, not that people are coming back.",
       "fieldConfig": {
         "defaults": {
           "color": {

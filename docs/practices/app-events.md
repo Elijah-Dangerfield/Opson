@@ -82,16 +82,19 @@ the exact fire site.
 ### Onboarding
 
 All from `OnboardingViewModel`, read by `ops/grafana/onboarding-funnel.json`. `step` is always the
-step's own name, never an index: `welcome`, `question_1` to `question_4`, `recommendation`. **No
-event carries an answer to the setup questions**, not even as a count: "numbers or tracking have
-been hard for me before" is close to a clinical disclosure.
+step's own name, never an index: `welcome`, `question_1` to `question_3`, `statement` (the
+optional "numbers have been hard" step, `question_4` before design v3), `recommendation`,
+`account`. **No event carries an answer to the setup questions or the statement**, not even as a
+count: agreeing that "numbers or tracking have been hard for me before" is close to a clinical
+disclosure.
 
 | Event | Attributes | Fires |
 |---|---|---|
 | `onboarding.step_viewed` | `step` | Each step shown: Welcome on a fresh entry, and every move forward or back between steps |
-| `onboarding.auth_selected` | `method` (guest/google/apple), `returning` | Set it up and Skip, start logging (`guest`, false); a stranded anonymous session adopted at entry (`guest`, true); an OAuth or Apple sign-in, with `returning` from the auth outcome classifier |
-| `onboarding.completed` | `duration_sec`, `account_ready`, `preset` (key), `took_recommendation`, `skipped_all` | Once, when Start or Skip all finishes and before the move to Today. `account_ready` false means guest creation had not landed in time. `took_recommendation` is false on skip all, where nothing was recommended on screen |
-| `onboarding.abandoned` | `step` | `onCleared` without ever reaching Today. A process kill never gets here |
+| `onboarding.auth_selected` | `method` (guest), `returning` | Get started and Skip and start logging (`guest`, false); a stranded anonymous session adopted at entry (`guest`, true). Returning users sign in from Welcome's link, whose flow does not fire this |
+| `onboarding.completed` | `duration_sec`, `account_ready`, `preset` (key), `took_recommendation`, `skipped_all` | Once, when Start or Skip all first saves the mode, before the account step or Today. `account_ready` false means guest creation had not landed in time. `took_recommendation` is false on skip all, where nothing was recommended on screen. Coming back from the account step and starting again does not fire it twice |
+| `onboarding.account_choice` | `choice` (`phone`, `google`, `apple`, `email`) | When someone leaves the optional account step: Keep it on this phone, a successful Google or Apple link onto the guest, or the hand-off to email sign-up |
+| `onboarding.abandoned` | `step` | `onCleared` before the mode was ever saved. A process kill never gets here |
 
 ### Modes and the pause
 
