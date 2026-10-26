@@ -156,6 +156,34 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
     }
 
     @Test
+    fun noIdKeyedRowOfSomeoneElsesCanBeOverwritten() = runTest {
+        val alice = seedAuthUser()
+        val bob = seedAuthUser()
+        val weighIn = WeighIn(UUID.randomUUID(), T0, 70.0, T0, false)
+        val custom = CustomFood(UUID.randomUUID(), "Granola", null, 40.0, "g", Nutrients(kcal = 180.0), T0, false)
+        val saved = SavedMeal(UUID.randomUUID(), "Usual", MealSlot.Breakfast, "[]", T0, false)
+        repo.sync(alice, 0, listOf(weighIn, custom, saved).map { mutation(it) })
+
+        val later = T0 + 60.minutes
+        repo.sync(
+            bob,
+            0,
+            listOf(
+                weighIn.copy(kg = 1.0, clientUpdatedAt = later),
+                custom.copy(name = "Hijacked", clientUpdatedAt = later),
+                saved.copy(name = "Hijacked", clientUpdatedAt = later, deleted = true),
+            ).map { mutation(it) },
+        )
+
+        val aliceView = repo.sync(alice, 0, emptyList()).changes
+        assertEquals(listOf(weighIn), aliceView.weighIns)
+        assertEquals(listOf(custom), aliceView.customFoods)
+        assertEquals(listOf("Usual" to false), aliceView.savedMeals.map { it.name to it.deleted })
+        val bobView = repo.sync(bob, 0, emptyList()).changes
+        assertTrue(bobView.weighIns.isEmpty() && bobView.customFoods.isEmpty() && bobView.savedMeals.isEmpty())
+    }
+
+    @Test
     fun everyEntityRoundTrips() = runTest {
         val user = seedAuthUser()
         val day = DayRecord(DAY, 1500, T0, "good day", mapOf(MealSlot.Snack to true), true, T0, false, untracked = true, feeling = "steady")
