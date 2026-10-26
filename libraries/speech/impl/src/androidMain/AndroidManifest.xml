@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Voice log in Describe. Asked for only when someone taps the mic, behind release.voice. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Not required: typing does everything voice does. -->
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+
+    <queries>
+        <!--
+          Package visibility (API 30+): without this, SpeechRecognizer.isRecognitionAvailable
+          cannot see the phone's recognition service and reports none, so voice would read as
+          unavailable on every modern phone.
+        -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+</manifest>
