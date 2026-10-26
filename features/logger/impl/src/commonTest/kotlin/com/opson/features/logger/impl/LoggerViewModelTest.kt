@@ -11,10 +11,16 @@ import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.SearchCategory
+import com.opson.libraries.foods.SearchOptions
+import com.opson.libraries.foods.SearchOrder
+import com.opson.libraries.foods.SearchSource
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.ui.time.RelativeDay
@@ -57,12 +63,14 @@ class LoggerViewModelTest : CoroutineTest() {
     private val recentLogEvents = FakeRecentLogEvents()
     private val appState = FakeAppState()
     private val mealPicks = FakeMealPicks()
+    private val optionsTelemetry = RecordingSearchOptionsTelemetry()
 
     private fun vm(
         route: LoggerRoute = LoggerRoute(slot = MealSlot.Dinner),
         at: Instant = NOON,
         scanOn: Boolean = false,
         photoOn: Boolean = false,
+        optionsOn: Boolean = false,
     ) = LoggerViewModel(
         route = route,
         diary = diary,
@@ -82,6 +90,8 @@ class LoggerViewModelTest : CoroutineTest() {
         scanEnabled = scanFlag(scanOn),
         photoEnabled = photoFlag(photoOn),
         voice = DescribeVoice(FakeSpeechToText(), voiceFlag(false), RecordingVoiceTelemetry()),
+        searchOptionsEnabled = searchOptionsFlag(optionsOn),
+        optionsTelemetry = optionsTelemetry,
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {
@@ -635,5 +645,115 @@ class LoggerViewModelTest : CoroutineTest() {
         policySource.policy.value = policy(PresetId.Blind)
 
         assertTrue(LoggerMethod.AddANote in vm.state.methods)
+    }
+
+    // ── Search options (release.searchOptions) ──────────────────────────────
+
+    @Test
+    fun withTheOptionsOffNothingNewIsAskedOrSent() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(LoggerAction.SearchTyped("rice"))
+        settle()
+        vm.takeAction(LoggerAction.TabPicked(SearchTab.Restaurant))
+        vm.takeAction(LoggerAction.SearchOptionsTapped)
+        settle()
+
+        assertEquals(0, catalog.optionsAsked)
+        assertEquals(listOf(FoodSearchFilter.None), catalog.filters)
+        assertNull(vm.state.options)
+        assertTrue(optionsTelemetry.events.isEmpty())
+    }
+
+    @Test
+    fun withTheOptionsOnTheServerIsAskedOnceAndTheSheetOpensWithItsAnswer() = runUnitTest {
+        catalog.options = Catching.success(SearchOptions(openFoodFacts = true))
+        val vm = vm(optionsOn = true)
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(LoggerAction.SearchOptionsTapped)
+        runCurrent()
+
+        assertEquals(1, catalog.optionsAsked)
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenSearchOptions(openFoodFacts = true)), events)
+        assertEquals(SearchTab.entries, vm.state.options?.tabs)
+    }
+
+    @Test
+    fun aTabWhileTypingSearchesAgainWithItsCategory() = runUnitTest {
+        val vm = vm(optionsOn = true)
+        vm.takeAction(LoggerAction.SearchTyped("rice"))
+        settle()
+
+        vm.takeAction(LoggerAction.TabPicked(SearchTab.Restaurant))
+        assertEquals(LoggerBody.Searching, vm.state.body, "the All answer is not shown as Restaurant's")
+        settle()
+
+        assertEquals(listOf(FoodSearchFilter(), FoodSearchFilter(category = SearchCategory.Restaurant)), catalog.filters)
+        assertIs<LoggerBody.Results>(vm.state.body)
+        assertEquals(listOf("tab:restaurant"), optionsTelemetry.events)
+    }
+
+    @Test
+    fun aSortPickedInTheSheetSearchesAgain() = runUnitTest {
+        val vm = vm(optionsOn = true)
+        vm.takeAction(LoggerAction.SearchTyped("rice"))
+        settle()
+
+        settings.state.value = settings.state.value.copy(searchSort = SearchSort.AToZ)
+        settle()
+
+        assertEquals(listOf(SearchOrder.BestMatch, SearchOrder.Name), catalog.filters.map { it.order })
+        assertEquals(true, vm.state.options?.active)
+    }
+
+    @Test
+    fun aBasketChangeDoesNotSearchAgain() = runUnitTest {
+        val vm = vm(optionsOn = true)
+        vm.takeAction(LoggerAction.SearchTyped("rice"))
+        settle()
+        val row = assertIs<LoggerBody.Results>(vm.state.body).rows.first()
+
+        vm.takeAction(LoggerAction.FoodToggleTapped(row))
+        settle()
+
+        assertEquals(1, catalog.searches.size)
+    }
+
+    @Test
+    fun anAnswerForAnotherFilterIsDropped() = runUnitTest {
+        val vm = vm(optionsOn = true)
+        settle()
+        vm.takeAction(LoggerAction.SearchTyped("rice"))
+
+        val usda = FoodSearchFilter(source = SearchSource.Usda)
+        vm.takeAction(LoggerAction.SearchResultsArrived(SearchOutcome("rice", listOf(LoggerFixtures.banana), false, usda)))
+
+        assertEquals(LoggerBody.Searching, vm.state.body)
+    }
+
+    @Test
+    fun favoritesNeedNoServerAndPickAsFavorites() = runUnitTest {
+        diary.favorites.value = listOf(LoggerFixtures.item(LoggerFixtures.banana, MealSlot.Lunch))
+        val vm = vm(optionsOn = true)
+        settle()
+
+        vm.takeAction(LoggerAction.TabPicked(SearchTab.Favorites))
+        vm.takeAction(LoggerAction.SearchTyped("ban"))
+        settle()
+        val row = assertIs<LoggerBody.Results>(vm.state.body).rows.single()
+        vm.takeAction(LoggerAction.FoodToggleTapped(row))
+
+        assertTrue(catalog.searches.isEmpty())
+        assertEquals(PickSource.Favorite, basket.basket.value.single().source)
+        assertEquals(LogMethod.Favorite, basket.basket.value.single().draft.method)
+    }
+
+    @Test
+    fun theSameTabAgainIsNotAChange() = runUnitTest {
+        val vm = vm(optionsOn = true)
+        vm.takeAction(LoggerAction.TabPicked(SearchTab.All))
+        assertTrue(optionsTelemetry.events.isEmpty())
+        assertEquals(SearchTab.All, vm.state.options?.tab)
     }
 }

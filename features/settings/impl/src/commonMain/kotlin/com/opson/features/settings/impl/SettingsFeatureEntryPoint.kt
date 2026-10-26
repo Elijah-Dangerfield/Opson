@@ -11,6 +11,7 @@ import androidx.navigation.toRoute
 import com.opson.features.home.FeedbackRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.settings.FastingRoute
+import com.opson.features.settings.FindSupportRoute
 import com.opson.features.settings.GoalStyleRoute
 import com.opson.features.settings.IntegrationsRoute
 import com.opson.features.settings.LeaveOutDayRoute
@@ -52,6 +53,9 @@ import com.opson.features.settings.impl.reminders.RemindersEvent
 import com.opson.features.settings.impl.reminders.RemindersScreen
 import com.opson.features.settings.impl.reminders.RemindersViewModel
 import com.opson.features.settings.impl.support.EXPORT_MIME_TYPE
+import com.opson.features.settings.impl.support.FindSupportEvent
+import com.opson.features.settings.impl.support.FindSupportScreen
+import com.opson.features.settings.impl.support.FindSupportViewModel
 import com.opson.features.settings.impl.support.SupportEvent
 import com.opson.features.settings.impl.support.SupportScreen
 import com.opson.features.settings.impl.support.SupportViewModel
@@ -101,6 +105,7 @@ class SettingsFeatureEntryPoint(
     private val integrationsViewModel: () -> IntegrationsViewModel,
     private val leaveOutViewModel: () -> LeaveOutViewModel,
     private val widgetsViewModel: () -> WidgetsViewModel,
+    private val findSupportViewModel: () -> FindSupportViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -154,6 +159,7 @@ class SettingsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is PauseEvent.ShowToast -> show(event.toast)
+                    PauseEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
                     // Animate the sheet down first; its dismiss callback pops the route.
                     PauseEvent.Dismiss -> sheetState.dismiss()
                 }
@@ -265,6 +271,7 @@ class SettingsFeatureEntryPoint(
                     is SupportEvent.ShareExport -> router.shareFile(event.name, EXPORT_MIME_TYPE, event.bytes)
                     is SupportEvent.ShowToast -> show(event.toast)
                     SupportEvent.OpenFeedback -> router.navigate(FeedbackRoute())
+                    SupportEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
                     SupportEvent.GoToOnboarding -> router.navigate(
                         OnboardingRoute(),
                         NavigationOptions(clearBackStack = true),
@@ -326,6 +333,19 @@ class SettingsFeatureEntryPoint(
                 }
             }
             WidgetsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        // Registered whatever release.findSupport says: only flagged entry points link here.
+        // Nothing on this page logs, and App.kt keeps the route out of crash and jank attribution.
+        screen<FindSupportRoute> {
+            val viewModel: FindSupportViewModel = viewModel { findSupportViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    FindSupportEvent.Close -> router.goBack()
+                }
+            }
+            FindSupportScreen(state = state, onAction = viewModel::takeAction)
         }
     }
 

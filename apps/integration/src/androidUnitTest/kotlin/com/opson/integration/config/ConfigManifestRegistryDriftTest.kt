@@ -1,7 +1,9 @@
 package com.opson.integration.config
 
 import com.opson.features.logger.impl.BarcodeScanEnabled
+import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.logger.impl.PhotoEstimateEnabled
+import com.opson.features.logger.impl.SearchOptionsEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
 import com.opson.features.today.impl.CheckInEnabled
 import com.opson.features.today.impl.TodaySelectEnabled
@@ -329,6 +331,8 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     VoiceLogEnabled(appConfigMap),
     PhotoEstimateEnabled(appConfigMap),
     WidgetsEnabled(appConfigMap),
+    SearchOptionsEnabled(appConfigMap),
+    FindSupportEnabled(appConfigMap),
     TodaySummaryEnabled(appConfigMap),
     TodaySelectEnabled(appConfigMap),
     CheckInEnabled(appConfigMap),

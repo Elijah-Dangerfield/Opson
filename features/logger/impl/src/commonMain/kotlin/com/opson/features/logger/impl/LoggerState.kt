@@ -8,6 +8,7 @@ import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.MacroPart
@@ -40,6 +41,8 @@ data class LoggerState(
     val pickingForMeal: Boolean = false,
     /** The barcode button in the empty search bar: `release.barcode` on, and not picking for a meal. */
     val canScan: Boolean = false,
+    /** The options button and the category tabs; null with `release.searchOptions` off. */
+    val options: SearchOptionsBar? = null,
 ) {
     /** The search is not blank, so the chips and the day label step aside. */
     val typing: Boolean get() = query.isNotBlank()
@@ -75,6 +78,10 @@ data class FoodRowUi(
     /** Bare, as v3 draws a row: "525". */
     val calories: Display,
     val picked: Boolean,
+    /** Where the food came from; null with the search options off, or for a source with no badge. */
+    val badge: SourceBadge? = null,
+    /** Tiers 1 to 3: someone accountable stands behind the numbers. Never set for the person's own foods. */
+    val verified: Boolean = false,
 )
 
 sealed interface LoggerBody {
@@ -90,7 +97,17 @@ sealed interface LoggerBody {
 
     data object Searching : LoggerBody
 
-    data class Results(val rows: List<FoodRowUi>, val offline: Boolean) : LoggerBody
+    /** [openFoodFacts]: some rows are Open Food Facts', so the licence's credit goes under them. */
+    data class Results(val rows: List<FoodRowUi>, val offline: Boolean, val openFoodFacts: Boolean = false) : LoggerBody
+
+    /** Favorites, Custom or My foods before typing: the list itself, no heading. */
+    data class Listed(val rows: List<FoodRowUi>) : LoggerBody
+
+    /** Favorites or Custom with nothing in them yet. */
+    data class TabEmpty(val tab: SearchTab) : LoggerBody
+
+    /** Common, Restaurant or Beverages before typing: they search the catalog, so they need words. */
+    data class TabHint(val tab: SearchTab) : LoggerBody
 
     /** A miss is never a dead end: [query] goes into Describe or becomes a saved name. */
     data class NoResults(val query: String, val offline: Boolean) : LoggerBody
@@ -170,6 +187,14 @@ sealed interface LoggerAction {
 
     /** The Photo chip. */
     data object PhotoTapped : LoggerAction
+
+    /** The options button in the search bar (`release.searchOptions`). */
+    data object SearchOptionsTapped : LoggerAction
+
+    data class TabPicked(val tab: SearchTab) : LoggerAction
+
+    /** Whether the server searches Open Food Facts, asked once when the sheet opens. */
+    data class SearchOptionsArrived(val openFoodFacts: Boolean) : LoggerAction
 }
 
 sealed interface LoggerEvent {
@@ -178,6 +203,7 @@ sealed interface LoggerEvent {
     data class OpenHowItFelt(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenScanner(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenPhoto(val day: LocalDate, val slot: MealSlot) : LoggerEvent
+    data class OpenSearchOptions(val openFoodFacts: Boolean) : LoggerEvent
     data class ShowToast(val toast: Toast) : LoggerEvent
     data object Dismiss : LoggerEvent
 }
@@ -193,7 +219,21 @@ data class LoggerInputs(
     val recent: List<LogItem>,
     val customFoods: List<CustomFood>,
     val savedMeals: List<SavedMeal>,
+    /** What the Logger calls Favorites: the foods logged most lately. Empty with the search options off. */
+    val favorites: List<LogItem> = emptyList(),
+    /** Foods logged, newest first, for Most recent and My foods. Empty with the search options off. */
+    val history: List<LogItem> = emptyList(),
+    /** Catalog foods on the device by id, so a row from the diary can still name its source. */
+    val known: Map<String, Food> = emptyMap(),
 )
 
-/** A catalog search answer for [query]; [offline] when it came from the device cache, or nowhere. */
-data class SearchOutcome(val query: String, val foods: List<Food>, val offline: Boolean)
+/**
+ * A catalog search answer for [query] asked with [filter]; [offline] when it came from the device
+ * cache, or nowhere. An answer for another query or filter is stale.
+ */
+data class SearchOutcome(
+    val query: String,
+    val foods: List<Food>,
+    val offline: Boolean,
+    val filter: FoodSearchFilter = FoodSearchFilter.None,
+)

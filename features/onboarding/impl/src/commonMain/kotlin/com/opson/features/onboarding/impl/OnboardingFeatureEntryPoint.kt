@@ -10,6 +10,9 @@ import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.onboarding.SignInRoute
 import com.opson.features.onboarding.SignUpRoute
 import com.opson.features.onboarding.VerifyEmailRoute
+import com.opson.features.settings.FindSupportEnabled
+import com.opson.features.settings.FindSupportRoute
+import com.opson.features.settings.SupportRoute
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.NavigationOptions
@@ -30,6 +33,7 @@ class OnboardingFeatureEntryPoint(
     private val signUpViewModelFactory: () -> SignUpViewModel,
     private val verifyEmailViewModelFactory: (email: String?, guestLink: Boolean) -> VerifyEmailViewModel,
     private val forgotPasswordViewModelFactory: () -> ForgotPasswordViewModel,
+    private val findSupportEnabled: FindSupportEnabled,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -42,6 +46,9 @@ class OnboardingFeatureEntryPoint(
                     OnboardingEvent.NavigateToToday -> router.enterTab(TodayRoute())
                     OnboardingEvent.NavigateToSignIn -> router.navigate(SignInRoute())
                     OnboardingEvent.NavigateToSignUp -> router.navigate(SignUpRoute())
+                    // Find support once it's released; Support has the helplines until then.
+                    OnboardingEvent.NavigateToSupport ->
+                        router.navigate(if (findSupportEnabled()) FindSupportRoute() else SupportRoute())
                 }
             }
 

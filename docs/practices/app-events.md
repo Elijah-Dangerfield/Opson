@@ -112,6 +112,19 @@ sheet's "What's prompting this?" answer.
 |---|---|---|
 | `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details, quick_number, name_only, barcode, photo, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
 
+### Search options
+
+From `SearchOptionsViewModel` and `LoggerViewModel` through `SearchOptionsTelemetry`
+(`:features:logger:impl`), behind `release.searchOptions`. Values only: **no event carries the
+query** or a food. A pick of what is already picked fires nothing.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `search.sort_picked` | `sort` (`best_match`, `most_recent`, `a_to_z`) | A sort picked in the options sheet |
+| `search.database_picked` | `database` (`all`, `usda`, `open_food_facts`, `my_foods`) | A database picked in the options sheet |
+| `search.tabs_toggled` | `on` | The Category tabs switch flipped |
+| `search.tab_picked` | `tab` (`all`, `favorites`, `custom`, `common`, `restaurant`, `beverages`) | A category tab tapped under the search bar |
+
 ### Barcode scan
 
 All from `BarcodeScanViewModel` through `BarcodeTelemetry` (`:features:logger:impl`), behind

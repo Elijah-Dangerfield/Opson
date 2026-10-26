@@ -223,7 +223,7 @@ class LoggerStateBuilderTest {
 
     @Test
     fun aDiaryPickIsAnEstimateOfTheSameAmountAgain() {
-        val pick = LoggerStateBuilder.picks(inputs(), MealSlot.Dinner, "", null).first { it.source == PickSource.Recent }
+        val pick = LoggerStateBuilder.picks(inputs(), LoggerChoices(slot = MealSlot.Dinner)).first { it.source == PickSource.Recent }
 
         assertEquals(Precision.Estimate, pick.draft.precision, "the original was weighed; logging it again is not")
         assertEquals(LogMethod.Recent, pick.draft.method)

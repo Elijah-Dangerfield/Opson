@@ -10,6 +10,8 @@ import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.SavedMeal
+import com.opson.libraries.diary.SearchDatabase
+import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.foods.Confidence
 import com.opson.libraries.foods.Food
@@ -20,6 +22,7 @@ import com.opson.libraries.foods.FoodTier
 import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
+import com.opson.libraries.foods.SearchSource
 import com.opson.libraries.foods.toLogDraft
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.scanner.CameraPermission
@@ -304,6 +307,63 @@ object LoggerFixtures {
     val cameraUnavailable: ScanModel = scanning.copy(cameraUnavailable = true)
     val typing: ScanModel = cameraUnavailable.copy(typed = "40063813")
     val typingMisread: ScanModel = cameraUnavailable.copy(typed = "4006381333932", typedMisread = true)
+
+    // ── Search options (release.searchOptions) ──────────────────────────────
+
+    /** "rice" across every source a badge names: USDA generic, a label, Open Food Facts, and your own. */
+    val usdaRice: Food = rice.copy(tier = FoodTier.Reference, verified = true)
+    val brandedRice: Food = food("rice-branded", "Jasmine rice, ready to heat", "1 cup", 140.0, 210.0, 4.0, 46.0, 1.0, "Seeds of Change")
+        .copy(source = FoodSource.UsdaBranded, tier = FoodTier.Label, verified = true)
+    val offRice: Food = food("rice-off", "Riz basmati", "1 portion (125 g)", 125.0, 180.0, 4.0, 38.0, 1.0, "Taureau Ailé")
+        .copy(source = FoodSource.OpenFoodFacts, tier = FoodTier.Community, verified = false)
+    val riceBowl = CustomFood(
+        id = "rice-bowl",
+        name = "Lola's rice bowl",
+        servingAmount = 1.0,
+        servingUnit = "bowl",
+        kcal = 480.0,
+        protein = 22.0,
+        carbs = 60.0,
+        fat = 14.0,
+    )
+
+    /** Everything the options read: favorites, a longer history, and the catalog foods the device knows. */
+    fun optionsInputs(settings: Settings = Settings()): LoggerInputs = inputs(settings = settings).copy(
+        customFoods = listOf(granola, riceBowl),
+        favorites = listOf(arroz, banana, yogurt).map { item(it, MealSlot.Dinner) },
+        history = listOf(sinangag, banana, arroz, yogurt, kabsa).mapIndexed { i, food -> item(food, MealSlot.Lunch, minutesAgo = i * 60) },
+        known = listOf(arroz, banana, yogurt, sinangag, kabsa).associateBy { it.id },
+    )
+
+    /**
+     * The Logger with `release.searchOptions` on: tabs, the options button and a badge on every
+     * row. The catalog's answer is for exactly the filter these choices ask for.
+     */
+    fun optionsState(
+        policy: VisibilityPolicy,
+        tab: SearchTab = SearchTab.All,
+        query: String = "rice",
+        settings: Settings = Settings(),
+        openFoodFacts: Boolean = true,
+    ): LoggerState {
+        val inputs = optionsInputs(settings)
+        val choices = LoggerChoices(slot = MealSlot.Dinner, query = query, searchOptions = true, tab = tab, openFoodFacts = openFoodFacts)
+        val filter = LoggerStateBuilder.catalogFilter(inputs, choices)
+        val foods = when {
+            filter?.source == SearchSource.Usda || tab == SearchTab.Common -> listOf(usdaRice, brandedRice, pudding)
+            filter?.source == SearchSource.OpenFoodFacts -> listOf(offRice)
+            tab == SearchTab.Restaurant || tab == SearchTab.Beverages -> emptyList()
+            else -> listOf(usdaRice, brandedRice, offRice, pudding)
+        }
+        val search = filter?.let { SearchOutcome(query = query.trim(), foods = foods, offline = false, filter = it) }
+        return LoggerStateBuilder.build(inputs, policy, choices.copy(search = search))
+    }
+
+    /** The options sheet with a sort and a database picked, Open Food Facts offered. */
+    fun searchOptionsSheetState(): SearchOptionsState = SearchOptionsState.of(
+        Settings(searchSort = SearchSort.MostRecent, searchDatabase = SearchDatabase.Usda),
+        openFoodFacts = true,
+    )
 
     /** After lunch in Mindful: very hungry before, full after, rushed, as in 3.10. */
     fun howItFeltState(): HowItFeltState = HowItFeltState(

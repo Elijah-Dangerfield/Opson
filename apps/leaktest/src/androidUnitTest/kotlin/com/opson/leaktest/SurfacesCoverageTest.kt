@@ -96,6 +96,7 @@ class SurfacesCoverageTest {
                 "logger-saved", "logger-amount", "logger-how-it-felt",
                 "logger-photo", "logger-photo-swap", "logger-photo-start",
                 "logger-describe-voice",
+                "logger-search-tabs", "logger-search-options",
             ),
             "FoodsLeakSurfaces" to listOf("foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind"),
             "TrendsLeakSurfaces" to listOf(
@@ -104,7 +105,7 @@ class SurfacesCoverageTest {
             ),
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
-                "targets-by-day", "water-settings", "support", "support-delete", "look-and-feel",
+                "targets-by-day", "water-settings", "support", "support-delete", "support-find", "look-and-feel",
                 "reminders", "reminder-notification",
                 "integrations", "integrations-leave-out", "fasting",
                 "widget", "widgets",
@@ -120,7 +121,7 @@ class SurfacesCoverageTest {
             "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day",
             "today-reminders", "today-expended", "today-exercise", "integrations",
-            "logger-describe-voice",
+            "logger-describe-voice", "logger-search-tabs",
             "widget", "widgets",
         )
     }

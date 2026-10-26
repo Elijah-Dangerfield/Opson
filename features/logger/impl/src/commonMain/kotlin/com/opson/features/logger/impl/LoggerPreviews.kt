@@ -1,6 +1,8 @@
 package com.opson.features.logger.impl
 
 import androidx.compose.runtime.Composable
+import com.opson.libraries.diary.SearchDatabase
+import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.previewVisibilityPolicy
@@ -154,6 +156,53 @@ private fun LoggerScanAmountPreview() = Amount(LoggerFixtures.scannedAmountState
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerScanAmountBlindPreview() = Amount(LoggerFixtures.scannedAmountState(blind))
+
+// Search options, release.searchOptions on. With it off the Logger is LoggerSearchPreview above:
+// no options button, no tabs, no badges.
+
+@Composable
+private fun SearchOptions(dark: Boolean = false) = PreviewContent(darkTheme = dark) {
+    SheetFrame(heightFraction = SEARCH_OPTIONS_PREVIEW_FRACTION) {
+        SearchOptionsSheetContent(LoggerFixtures.searchOptionsSheetState(), onAction = {})
+    }
+}
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerSearchTabsPreview() = Logger(LoggerFixtures.optionsState(full))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerSearchTabsDarkPreview() = Logger(LoggerFixtures.optionsState(full), dark = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerSearchTabsBlindPreview() = Logger(LoggerFixtures.optionsState(blind))
+
+/** A to Z over USDA only: the options button lights up so the narrower list reads as chosen. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerSearchFilteredPreview() = Logger(
+    LoggerFixtures.optionsState(full, settings = Settings(searchSort = SearchSort.AToZ, searchDatabase = SearchDatabase.Usda)),
+)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerSearchFavoritesPreview() = Logger(LoggerFixtures.optionsState(full, tab = SearchTab.Favorites, query = ""))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerSearchRestaurantHintPreview() = Logger(LoggerFixtures.optionsState(full, tab = SearchTab.Restaurant, query = ""))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerSearchOptionsPreview() = SearchOptions()
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerSearchOptionsDarkPreview() = SearchOptions(dark = true)
+
+private const val SEARCH_OPTIONS_PREVIEW_FRACTION = 0.92f
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

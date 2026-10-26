@@ -1,11 +1,13 @@
 package com.opson.features.settings.impl.support
 
+import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.impl.Toast
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.diary.DiarySync
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.DeleteAccountOutcome
+import com.opson.libraries.navigation.WebLinkLauncher
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_delete_done
@@ -20,10 +22,27 @@ const val PROVIDER_URL = "https://www.allianceforeatingdisorders.com"
 const val EXPORT_FILE_NAME = "opson-export.csv"
 const val EXPORT_MIME_TYPE = "text/csv"
 
+/**
+ * @property findSupport `release.findSupport`: "Find support near you" and the crisis row
+ *   replace the 0.1 helpline links.
+ * @property crisis the crisis line for the phone's country, null when there is no list for it
+ *   (the row then opens Find support) or the flag is off.
+ * @property couldNotDial the phone had no dialer: the row's number, said plainly.
+ */
 data class SupportState(
     val export: ExportStatus = ExportStatus.Idle,
     val delete: DeleteStep = DeleteStep.Idle,
+    val findSupport: Boolean = false,
+    val crisis: CrisisLine? = null,
+    val couldNotDial: String? = null,
 )
+
+object SupportStateBuilder {
+    fun build(findSupport: Boolean, country: SupportCountry?): SupportState = SupportState(
+        findSupport = findSupport,
+        crisis = country?.takeIf { findSupport }?.let { SupportDirectory.of(it).crisis },
+    )
+}
 
 sealed interface ExportStatus {
     data object Idle : ExportStatus
@@ -55,12 +74,19 @@ class SupportViewModel(
     private val diarySync: DiarySync,
     private val dataExport: DataExport,
     private val authRepository: AuthRepository,
-) : SEAViewModel<SupportState, SupportEvent, SupportAction>(initialStateArg = SupportState()) {
+    findSupport: FindSupportEnabled,
+    region: DeviceRegion,
+    private val links: WebLinkLauncher,
+) : SEAViewModel<SupportState, SupportEvent, SupportAction>(
+    initialStateArg = SupportStateBuilder.build(findSupport(), SupportCountry.of(region.countryCode())),
+) {
 
     override suspend fun handleAction(action: SupportAction) {
         when (action) {
             SupportAction.HelplineTapped -> sendEvent(SupportEvent.OpenLink(HELPLINE_URL))
             SupportAction.FindProviderTapped -> sendEvent(SupportEvent.OpenLink(PROVIDER_URL))
+            SupportAction.FindSupportTapped -> sendEvent(SupportEvent.OpenFindSupport)
+            SupportAction.CrisisTapped -> crisis(action)
             SupportAction.ExportTapped -> export(action)
             SupportAction.SendFeedbackTapped -> sendEvent(SupportEvent.OpenFeedback)
             SupportAction.DeleteTapped -> action.updateState { it.copy(delete = DeleteStep.Confirming) }
@@ -68,6 +94,16 @@ class SupportViewModel(
             SupportAction.DeleteConfirmed -> delete(action)
             SupportAction.BackTapped -> sendEvent(SupportEvent.Close)
         }
+    }
+
+    /**
+     * Straight to the dialer, never through the router, which would log a failure. With no list
+     * for the phone's region the row opens Find support instead.
+     */
+    private suspend fun crisis(action: SupportAction) {
+        val line = state.crisis ?: return sendEvent(SupportEvent.OpenFindSupport)
+        val dialed = links.open(line.call.telUrl).isSuccess
+        action.updateState { it.copy(couldNotDial = if (dialed) null else line.call.shown) }
     }
 
     private suspend fun export(action: SupportAction) {
@@ -110,6 +146,7 @@ sealed interface SupportEvent {
 
     data class ShowToast(val toast: Toast) : SupportEvent
     data object OpenFeedback : SupportEvent
+    data object OpenFindSupport : SupportEvent
 
     /** Everything is gone; start again from onboarding with nothing behind it. */
     data object GoToOnboarding : SupportEvent
@@ -119,6 +156,8 @@ sealed interface SupportEvent {
 sealed interface SupportAction {
     data object HelplineTapped : SupportAction
     data object FindProviderTapped : SupportAction
+    data object FindSupportTapped : SupportAction
+    data object CrisisTapped : SupportAction
     data object ExportTapped : SupportAction
     data object SendFeedbackTapped : SupportAction
     data object DeleteTapped : SupportAction

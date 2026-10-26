@@ -103,6 +103,23 @@ them as soon as `:libraries:speech:impl` links, like the camera).
 - [ ] Try it on an iPhone and an Android phone: a spoken meal, a refused
       mic, airplane mode, and a phone with no on-device model.
 
+## Find support (`release.findSupport`)
+
+Design sync 2's helpline page, Support's crisis row and the pause sheet's
+"Talk to someone". The list ships in the app (`SupportDirectory`). Nothing
+is held back: the only platform change is `LSApplicationQueriesSchemes`
+(`tel`, `sms`) in the iOS Info.plist, which is not a capability.
+
+- [ ] Someone checks every number, text keyword and source URL in
+      `SupportDirectory` (US, UK, Canada, Australia, Ireland, New Zealand)
+      and removes the `TODO(launch): verify` notes. Then again each quarter.
+- [ ] Point the US "Find a treatment provider" line at the real search page.
+- [ ] Onboarding's statement and the big-day card link to `FindSupportRoute`
+      only with the flag on.
+- [ ] Try Call and Text on an iPhone and an Android phone, and the
+      "couldn't open" line on an iPad or a phone with no SIM.
+- [ ] Flip `release.findSupport` on.
+
 ## Widgets (`release.widgets`)
 
 The shared Kotlin, the Glance UI, the app's link handling and the Swift
@@ -197,6 +214,27 @@ carry it.
          `opson-server-prod`.
       4. Set `OFF_IMPORT_ENABLED=true` and the `CATALOG_DATABASE_URL` secret
          so the monthly reload keeps it current.
+
+## Search options (`release.searchOptions`)
+
+- [ ] After the prod deploy (V17 adds `foods.category`, a catalog-only
+      change plus one read of the table for its CHECK), fill the category in
+      on prod. Dev got the same on 2026-10-26: 2,129 generic and 50,547
+      Branded rows, 395 to 431 MB, and a second run changed nothing. This
+      prompts for prod's session pooler URL, dry-runs, then writes generic
+      and Branded (a 450 MB download):
+
+      ```bash
+      stty -echo; printf "Prod CATALOG_DATABASE_URL (session pooler): "; read -r V; stty echo; printf "\n"
+      if [ -n "$V" ]; then
+        CATALOG_DATABASE_URL="$V" python3 -I scripts/backfill_food_categories.py --dry-run &&
+        CATALOG_DATABASE_URL="$V" python3 -I scripts/backfill_food_categories.py &&
+        CATALOG_DATABASE_URL="$V" python3 -I scripts/backfill_food_categories.py --branded
+      else echo "No URL entered, nothing run."; fi; unset V
+      ```
+- [ ] Flip `release.searchOptions` with or before `FOOD_SEARCH_OFF_ENABLED`:
+      its source badge and the line under results are the Logger's Open Food
+      Facts credit (step 3 above).
 
 ## Held native commits
 

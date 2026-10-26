@@ -36,7 +36,7 @@
     <string name="integrations_workouts">Workouts</string>
     <string name="integrations_total">Total</string>
     <string name="integrations_empty">Nothing from %1$s yet today.</string>
-    <string name="integrations_hidden">Your mode isn't showing energy numbers right now.</string>
+    <string name="integrations_hidden">Your watch syncs in the background. Nothing from it shows in this mode.</string>
 
     <!-- Should exercise change your range? (v3 integrations.png) -->
     <string name="integrations_exercise_title">Should exercise change your range?</string>

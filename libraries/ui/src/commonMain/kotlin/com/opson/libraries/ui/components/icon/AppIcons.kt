@@ -17,6 +17,12 @@ import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Watch
 import androidx.compose.material.icons.rounded.Widgets
+import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.SupportAgent
+import androidx.compose.material.icons.rounded.TrackChanges
+import androidx.compose.material.icons.outlined.Sms as OutlinedSms
+import androidx.compose.material.icons.outlined.Delete as OutlinedDelete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.EventRepeat
@@ -25,7 +31,6 @@ import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.SupportAgent
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material.icons.rounded.Support
@@ -41,6 +46,8 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Lock as OutlinedLock
+import androidx.compose.material.icons.outlined.Visibility as OutlinedVisibility
+import androidx.compose.material.icons.outlined.VisibilityOff as OutlinedVisibilityOff
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.MoreVert
@@ -201,9 +208,6 @@ object AppIcons {
 
     /** "Suggested from your goals" (Edit Today's cards). */
     val AutoAwesome get() = icon("auto_awesome", MaterialIcons.Rounded.AutoAwesome)
-
-    /** "Talk to someone": the support link on Day close's big-day card. */
-    val SupportAgent get() = icon("support_agent", MaterialIcons.Rounded.SupportAgent)
     val OpenInNew get() = icon("open_in_new", MaterialIcons.AutoMirrored.Rounded.OpenInNew)
     val SwapHoriz get() = icon("swap_horiz", MaterialIcons.Rounded.SwapHoriz)
     val Tune get() = icon("tune", MaterialIcons.Rounded.Tune)
@@ -218,6 +222,10 @@ object AppIcons {
 
     // Visibility levels, as onboarding's mode preview marks them
     val Visibility get() = icon("visibility", MaterialIcons.Rounded.Visibility)
+
+    /** The outlined eye and eye-off, as design sync 2 draws the mode preview's lines. */
+    val VisibilityOutline get() = icon("visibility_outline", MaterialIcons.Outlined.OutlinedVisibility)
+    val VisibilityOffOutline get() = icon("visibility_off_outline", MaterialIcons.Outlined.OutlinedVisibilityOff)
 
     /** A softened number (a word or a fill bar): Symbols' `blur_on`, a field of dots. */
     val BlurOn get() = icon("blur_on", MaterialIcons.Rounded.BlurOn)
@@ -237,6 +245,7 @@ object AppIcons {
     val Notifications get() = icon("notifications", MaterialIcons.Outlined.Notifications)
     val WaterDropOutline get() = icon("water_drop_outline", MaterialIcons.Outlined.WaterDrop)
     val Support get() = icon("support", MaterialIcons.Rounded.Support)
+
     val WorkspacePremium get() = icon("workspace_premium", MaterialIcons.Outlined.WorkspacePremium)
     val Download get() = icon("download", MaterialIcons.Rounded.Download)
 
@@ -274,6 +283,25 @@ object AppIcons {
     /** Widgets (More), as v3's "widgets" glyph. */
     val Widgets get() = icon("widgets", MaterialIcons.Rounded.Widgets)
 
+    // Find support (design sync 2)
+    /** Call a line: the phone handset. */
+    val Call get() = icon("call", MaterialIcons.Rounded.Call)
+
+    /** Text a line: the outlined message bubble with dots. */
+    val Sms get() = icon("sms", MaterialIcons.Outlined.OutlinedSms)
+
+    /** The country picker's globe. */
+    val Public get() = icon("public", MaterialIcons.Rounded.Public)
+
+    /** "Find support near you" and "Talk to someone": the headset. */
+    val SupportAgent get() = icon("support_agent", MaterialIcons.Rounded.SupportAgent)
+
+    /** Delete everything, outlined as design sync 2 draws it. */
+    val DeleteOutline get() = icon("delete_outline", MaterialIcons.Outlined.OutlinedDelete)
+
+    /** Targets on More: concentric rings (design sync 2). */
+    val TrackChanges get() = icon("track_changes", MaterialIcons.Rounded.TrackChanges)
+
     /** The meal's tile icon. Uncategorized uses the list glyph. */
     fun meal(tone: MealTone): IconResource = when (tone) {
         MealTone.Breakfast -> BakeryDining
@@ -290,12 +318,13 @@ object AppIcons {
             Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, PhotoLibrary, Mic, Stop, EditNote, PostAdd, Edit,
             Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight, Schedule, LockClock, HourglassTop,
             Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
-            SearchOff, Cancel, ArrowBack, ExpandMore, ExpandLess, DragIndicator, SelectAll, AutoAwesome, SupportAgent,
+            SearchOff, Cancel, ArrowBack, ExpandMore, ExpandLess, DragIndicator, SelectAll, AutoAwesome,
             Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
-            Visibility, BlurOn, Mail, Group, LockOutlined,
+            Visibility, VisibilityOutline, VisibilityOffOutline, BlurOn, Mail, Group, LockOutlined,
             OpenInNew, Target, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
             Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
             Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch, Widgets,
+            Call, Sms, Public, SupportAgent, DeleteOutline, TrackChanges,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

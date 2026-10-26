@@ -53,6 +53,7 @@ class LoggerFeatureEntryPoint(
     // A provider, so nothing about photos is built at launch; the sheet asks for it when it opens.
     private val mealPhotoPicker: () -> MealPhotoPicker,
     private val micPermissionPrompt: MicPermissionPrompt,
+    private val searchOptionsViewModelFactory: (SearchOptionsRoute) -> SearchOptionsViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -123,6 +124,29 @@ class LoggerFeatureEntryPoint(
             PhotoEstimateSheet(backStackEntry.toRoute<PhotoEstimateRoute>(), sheetState, router)
         }
 
+        // Only the logger's options button opens it, and that button is behind release.searchOptions.
+        bottomSheet<SearchOptionsRoute> { backStackEntry, sheetState ->
+            val route = backStackEntry.toRoute<SearchOptionsRoute>()
+            val viewModel: SearchOptionsViewModel = viewModel { searchOptionsViewModelFactory(route) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    SearchOptionsEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+
+            BottomSheet(
+                onDismissRequest = { router.goBack() },
+                state = sheetState,
+                showDragHandle = true,
+                scrollableContent = true,
+                backgroundColor = AppTheme.colors.bg,
+            ) {
+                SearchOptionsSheetContent(state = state, onAction = viewModel::takeAction)
+            }
+        }
+
         bottomSheet<HowItFeltRoute>(
             typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
         ) { backStackEntry, sheetState ->
@@ -189,6 +213,8 @@ class LoggerFeatureEntryPoint(
                 // Over the sheet, so Back from the scanner lands on the logger and its basket.
                 is LoggerEvent.OpenScanner -> router.navigate(BarcodeScanRoute(event.day.toString(), event.slot))
                 is LoggerEvent.OpenPhoto -> router.navigate(PhotoEstimateRoute(event.day.toString(), event.slot))
+                // Over the logger: what is picked there applies to the search underneath as it is chosen.
+                is LoggerEvent.OpenSearchOptions -> router.navigate(SearchOptionsRoute(event.openFoodFacts))
                 is LoggerEvent.ShowToast -> showToast(event.toast)
                 // Animate the sheet down first; its dismiss callback pops the route.
                 LoggerEvent.Dismiss -> sheetState.dismiss()

@@ -250,4 +250,67 @@
     <string name="settings_delete_offline">We couldn't reach the server, so nothing was deleted. Try again when you're online.</string>
     <string name="settings_delete_failed">Something went wrong, so nothing was deleted. Try again in a little while.</string>
 
+    <!-- Design sync 2: More's Support subtitle, Support's Find support and crisis rows -->
+    <string name="settings_more_support_sub">Eating disorder helplines</string>
+    <string name="settings_support_find">Find support near you</string>
+    <string name="settings_support_crisis_call_or_text">In crisis? Call or text %1$s</string>
+    <string name="settings_support_crisis_call">In crisis? Call %1$s</string>
+    <string name="settings_support_crisis_where">24/7 · %1$s</string>
+    <string name="settings_support_crisis_unknown">In crisis? Find a line near you</string>
+    <string name="settings_support_crisis_unknown_sub">Lines for six countries, on this phone</string>
+    <string name="settings_pause_talk">Talk to someone</string>
+
+    <!-- Find support (design sync 2, release.findSupport) -->
+    <string name="settings_find_title">Find support</string>
+    <string name="settings_find_intro">Free and confidential. Calls open your phone app.</string>
+    <string name="settings_find_country_pick">Choose a country</string>
+    <string name="settings_find_country_change">Country: %1$s. Change</string>
+    <string name="settings_find_crisis_title">In crisis right now</string>
+    <string name="settings_find_crisis_sub">24/7 · call or text</string>
+    <string name="settings_find_crisis_sub_keyword">24/7 · text %1$s to %2$s</string>
+    <string name="settings_find_crisis_call">Call %1$s</string>
+    <string name="settings_find_crisis_text">Text %1$s</string>
+    <string name="settings_find_no_country">If you're in danger, call your local emergency number. Pick your country to see its lines.</string>
+    <string name="settings_find_ed_header">Eating disorder support</string>
+    <string name="settings_find_other_countries">Other countries</string>
+    <string name="settings_find_row_detail">%1$s · %2$s</string>
+    <string name="settings_find_row_title">%1$s · %2$s</string>
+    <string name="settings_find_call">Call</string>
+    <string name="settings_find_text">Text</string>
+    <string name="settings_find_open">Open</string>
+    <string name="settings_find_could_not_open">Your phone couldn't open this. The number is %1$s.</string>
+    <string name="settings_find_could_not_open_link">Your phone couldn't open this. The address is %1$s.</string>
+
+    <string name="settings_find_country_us">United States</string>
+    <string name="settings_find_country_gb">United Kingdom</string>
+    <string name="settings_find_country_ca">Canada</string>
+    <string name="settings_find_country_au">Australia</string>
+    <string name="settings_find_country_ie">Ireland</string>
+    <string name="settings_find_country_nz">New Zealand</string>
+    <string name="settings_find_outside_us">Outside the US</string>
+    <string name="settings_find_outside_gb">Outside the UK</string>
+    <string name="settings_find_outside_ca">Outside Canada</string>
+    <string name="settings_find_outside_au">Outside Australia</string>
+    <string name="settings_find_outside_ie">Outside Ireland</string>
+    <string name="settings_find_outside_nz">Outside New Zealand</string>
+
+    <!-- Line names are the organisations' own; descriptions are ours -->
+    <string name="settings_find_anad">ANAD Helpline</string>
+    <string name="settings_find_alliance">National Alliance for Eating Disorders</string>
+    <string name="settings_find_crisis_text_line">Crisis Text Line</string>
+    <string name="settings_find_provider">Find a treatment provider</string>
+    <string name="settings_find_beat">Beat</string>
+    <string name="settings_find_nedic">NEDIC</string>
+    <string name="settings_find_kids_help_phone">Kids Help Phone</string>
+    <string name="settings_find_butterfly">Butterfly</string>
+    <string name="settings_find_bodywhys">Bodywhys</string>
+    <string name="settings_find_edanz">EDANZ</string>
+    <string name="settings_find_about_peer">Peer support</string>
+    <string name="settings_find_about_therapist">Talk with a therapist</string>
+    <string name="settings_find_about_ed_helpline">Eating disorder helpline</string>
+    <string name="settings_find_about_families">Support for families and whānau</string>
+    <string name="settings_find_about_young">For young people, any worry</string>
+    <string name="settings_find_about_text_keyword">Text %1$s to %2$s</string>
+    <string name="settings_find_about_provider">Search for eating disorder care near you</string>
+
 </resources>

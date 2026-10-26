@@ -40,6 +40,9 @@ kotlin {
         }
 
         commonTest.dependencies {
+            // FindSupportEnabled, and WebLinkLauncher for the fake dialer.
+            implementation(projects.features.settings)
+            implementation(projects.libraries.navigation)
             implementation(projects.libraries.flowroutines.testing)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.nutrition)

@@ -7,11 +7,21 @@ interface Props {
   alt: string;
   /** Widest the image is drawn, in CSS pixels. Sets the srcset and sizes. */
   width?: number;
+  /** The sizes attribute. The default suits a shot that is about half the
+      screen wide on a phone. */
+  sizes?: string;
   class?: string;
   loading?: 'eager' | 'lazy';
 }
 
-const { src, alt, width = 320, class: className, loading = 'lazy' } = Astro.props;
+const {
+  src,
+  alt,
+  width = 320,
+  sizes = `(max-width: 880px) 45vw, ${width}px`,
+  class: className,
+  loading = 'lazy',
+} = Astro.props;
 ---
 
 <Picture
@@ -21,7 +31,7 @@ const { src, alt, width = 320, class: className, loading = 'lazy' } = Astro.prop
   fallbackFormat="webp"
   width={width * 2}
   widths={[width, width * 2]}
-  sizes={`(max-width: 880px) 45vw, ${width}px`}
+  sizes={sizes}
   quality={78}
   loading={loading}
   decoding="async"
@@ -33,7 +43,6 @@ const { src, alt, width = 320, class: className, loading = 'lazy' } = Astro.prop
   :global(img.shot) {
     width: 100%;
     border-radius: 13% / 6%;
-    border: 1px solid var(--line);
     box-shadow: var(--shadow-raised);
     background: var(--surface);
   }

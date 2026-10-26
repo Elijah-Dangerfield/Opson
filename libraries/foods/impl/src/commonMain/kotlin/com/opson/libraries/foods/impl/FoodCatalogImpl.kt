@@ -4,6 +4,7 @@ import com.opson.libraries.core.Catching
 import com.opson.libraries.foods.Confidence
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
+import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSearchResult
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.FoodTier
@@ -11,6 +12,10 @@ import com.opson.libraries.foods.Gtin
 import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
+import com.opson.libraries.foods.SearchOptions
+import com.opson.libraries.foods.SearchOrder
+import com.opson.libraries.foods.SearchSource
+import com.opson.libraries.foods.passesOffline
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
 import kotlinx.coroutines.flow.Flow
@@ -31,11 +36,11 @@ class FoodCatalogImpl(
     private val clock: Clock,
 ) : FoodCatalog {
 
-    override suspend fun search(query: String, limit: Int): Catching<FoodSearchResult> {
+    override suspend fun search(query: String, limit: Int, filter: FoodSearchFilter): Catching<FoodSearchResult> {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) return Catching.success(FoodSearchResult(query = "", foods = emptyList(), fromCache = false))
         val bounded = limit.coerceIn(1, MAX_LIMIT)
-        val online = api.search(trimmed, bounded)
+        val online = api.search(trimmed, bounded, filter)
         online.getOrNull()?.let { response ->
             return Catching.success(
                 FoodSearchResult(query = response.query, foods = response.foods.map { it.toDomain() }, fromCache = false),
@@ -44,8 +49,14 @@ class FoodCatalogImpl(
         // Out of reach (or the server failed): what the user has picked before
         // is better than an empty list in a grocery store basement.
         return Catching {
-            FoodSearchResult(query = trimmed, foods = searchCache(trimmed, bounded), fromCache = true)
+            val cached = searchCache(trimmed, bounded).filter { it.passesOffline(filter) }
+            val ordered = if (filter.order == SearchOrder.Name) cached.sortedBy { it.name.lowercase() } else cached
+            FoodSearchResult(query = trimmed, foods = ordered, fromCache = true)
         }
+    }
+
+    override suspend fun searchOptions(): Catching<SearchOptions> = api.searchOptions().map { response ->
+        SearchOptions(openFoodFacts = SearchSource.OpenFoodFacts.wire in response.sources)
     }
 
     override suspend fun detail(id: String): Catching<Food> {

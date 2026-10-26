@@ -59,6 +59,8 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
         scanEnabled = scanFlag(false),
         photoEnabled = photoFlag(false),
         voice = DescribeVoice(speech, voiceFlag(voiceOn), telemetry),
+        searchOptionsEnabled = searchOptionsFlag(false),
+        optionsTelemetry = RecordingSearchOptionsTelemetry(),
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {

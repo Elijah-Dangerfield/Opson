@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.navigation.NavDeepLinkRequest
 import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavUri
@@ -25,6 +26,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.opson.features.logger.LoggerRoute
+import com.opson.features.settings.FindSupportRoute
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.BuildInfo
@@ -298,7 +300,11 @@ private fun AppNavigation(
     // from a LaunchedEffect keyed on the name so we only touch the Sentry
     // scope when the route actually changes, not on every recomposition.
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRouteName = currentBackStackEntry?.destination?.routeClassNameOrNull()
+    // Find support is never logged: its route reaches neither the crash scope nor the jank
+    // monitor, so attribution stays with the screen beneath it.
+    val currentRouteName = currentBackStackEntry?.destination
+        ?.takeUnless { it.hasRoute<FindSupportRoute>() }
+        ?.routeClassNameOrNull()
     LaunchedEffect(currentRouteName) {
         currentRouteName?.let {
             telemetry.setCurrentRoute(it)

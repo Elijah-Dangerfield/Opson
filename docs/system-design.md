@@ -366,7 +366,8 @@ errors in the `ProblemResponse` envelope.
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/v1/sync` | Push and pull, section 6 |
-| GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. |
+| GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`), `sort` (`best`, `name`); without them the response is 0.1's. |
+| GET | `/v1/foods/search/options` | The `sources` and `categories` search takes here; `off` only with `FOOD_SEARCH_OFF_ENABLED`. |
 | GET | `/v1/foods/{id}` | Detail with portions and micros |
 | GET | `/v1/foods/barcode/{code}` | Catalog first, in any equivalent form of the code (UPC-A, EAN-13, GTIN-14, UPC-E), then each enabled outside source in tier order (Nutritionix when configured, Open Food Facts); cacheable answers are stored in `foods`. 404 `not_found` when nobody has it, 503 when no source could answer. |
 | POST | `/v1/foods/barcode-misses` | `{id, barcode}` after a 404 from the barcode route. 204, idempotent on the app's id. Region, platform and version from the `X-*` headers, GTIN computed server-side, no user id stored. |

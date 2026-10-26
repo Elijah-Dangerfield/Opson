@@ -19,6 +19,14 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-search", label = "Food search", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.searchState(policy), onAction = {})
         },
+        // release.searchOptions on: tabs, the options button and a source badge on every row. Badges carry no number.
+        LeakSurface(id = "logger-search-tabs", label = "Food search with options", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.optionsState(policy), onAction = {})
+        },
+        // The options sheet: sort, database, tabs. Nothing in it is a number in any mode.
+        LeakSurface(id = "logger-search-options", label = "Search options", showsCaloriesInFull = false) { _ ->
+            SearchOptionsSheetContent(state = LoggerFixtures.searchOptionsSheetState(), onAction = {})
+        },
         LeakSurface(id = "logger-search-empty", label = "Food search, no results", showsCaloriesInFull = false) { policy ->
             LoggerSheetContent(state = LoggerFixtures.searchEmptyState(policy), onAction = {})
         },
