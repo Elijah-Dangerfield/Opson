@@ -25,8 +25,16 @@
   font-display: swap;
 }
 
-/* Colors are the app's Espresso palette (Palette.kt). Its accent is the clay
-   of the app icon, and its neutrals are tinted toward the same hue. */
+/* Every color comes from the app (Palette.kt). The dark band is Pine's hero, the
+   color of the summary card in the screenshots. The accent is the clay of the app
+   icon, and on the dark band it uses the lighter clay the app uses in dark mode.
+   The page and text neutrals are Espresso's, which lean warm toward the clay.
+
+   Contrast (WCAG 2.x), every pair used for text:
+     ink #241C18 on bg 15.1, ink-soft 8.6, muted 5.6, clay links 5.0, pine titles 10.8
+     white on pine 12.0, on-hero-soft on pine 7.9, ink on light clay 7.3
+     ink on breakfast 6.2, white on lunch 4.8, snack 4.7, dinner 4.9, clay 5.5
+   The light clay button against pine is 5.2, past the 3:1 a control needs. */
 :root {
   --bg: #F5F3F2;
   --surface: #FFFFFF;
@@ -35,44 +43,47 @@
   --muted: #685F5B;
   --line: #E9E5E3;
   --soft: #F0ECEA;
+  --title: #143D37;
+
   --accent: #A4512D;
   --accent-tint: #F5E4DA;
   --on-accent: #FFFFFF;
-  --hero: #2D231E;
-  --on-hero: #F3EEEB;
-  --on-hero-muted: #C8C0BC;
 
-  /* Radii and shadows from Tokens.kt. */
-  --radius-card: 22px;
+  --hero: #143D37;
+  --on-hero: #FFFFFF;
+  --on-hero-soft: #CBD4D3;
+  --cta: #E39A6F;
+  --on-cta: #241C18;
+
+  /* The meal colors (Colors.meal): breakfast is the carbs orange, lunch the fat
+     blue, snack the fiber brown, dinner the protein pink. Lunch and dinner are a
+     step darker than in the app so white text on them passes AA. */
+  --breakfast: #E0892B;
+  --on-breakfast: #241C18;
+  --lunch: #3572C9;
+  --on-lunch: #FFFFFF;
+  --snack: #8E6E3A;
+  --on-snack: #FFFFFF;
+  --dinner: #C2406F;
+  --on-dinner: #FFFFFF;
+
+  /* Radii from Tokens.kt: input 14, card 22, sheet 28, pill for chips and
+     round buttons. */
   --radius-input: 14px;
+  --radius-card: 22px;
+  --radius-block: 28px;
+  --radius-pill: 999px; /* unslop-ignore: the app's pill shape (AppShapes.pill) */
   --shadow-raised: 0 8px 20px rgba(20, 20, 30, .14);
 
   --font: 'Atkinson Hyperlegible Next', system-ui, sans-serif;
-  --page: min(1120px, 100% - 40px);
-  color-scheme: light dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #15110F;
-    --surface: #201A17;
-    --ink: #F3EEEB;
-    --ink-soft: #C8C0BC;
-    --muted: #ADA49F;
-    --line: #2F2926;
-    --soft: #2A2421;
-    --accent: #E39A6F;
-    --accent-tint: #3A2A20;
-    --on-accent: #15110F;
-    --hero: #201A17;
-    --shadow-raised: 0 8px 20px rgba(0, 0, 0, .4);
-  }
+  --page: min(1180px, 100% - 32px);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  font: 400 17px/1.5 var(--font);
+  font: 400 17px/1.55 var(--font);
   background: var(--bg);
   color: var(--ink);
   min-height: 100vh;
@@ -89,13 +100,11 @@ a:hover { text-decoration-thickness: 2px; }
 
 h1, h2, h3 {
   font-weight: 800;
-  line-height: 1.12;
+  line-height: 1.08;
   letter-spacing: -0.02em;
   margin: 0;
   text-wrap: balance;
 }
-h1 { font-size: clamp(36px, 6vw, 60px); }
-h2 { font-size: clamp(28px, 4vw, 40px); }
 p { margin: 0; text-wrap: pretty; }
 
 .wrap { width: var(--page); margin-inline: auto; }
@@ -112,31 +121,42 @@ p { margin: 0; text-wrap: pretty; }
   border: 0;
 }
 
+/* The pill button. On the dark band it takes the light clay. */
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 0 22px;
+  min-height: 52px;
+  padding: 0 28px;
   border: 0;
-  border-radius: var(--radius-input);
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--on-accent);
-  font: 700 16px var(--font);
+  font: 800 17px var(--font);
   text-decoration: none;
   cursor: pointer;
 }
-.button:hover { filter: brightness(1.06); }
+.button:hover { filter: brightness(1.08); }
 .button:disabled { opacity: .6; cursor: progress; }
+.dark .button { background: var(--cta); color: var(--on-cta); }
+
+/* Anything on the dark band. */
+.dark {
+  background: var(--hero);
+  color: var(--on-hero);
+}
+.dark a { color: var(--on-hero); }
+.dark :focus-visible { outline-color: var(--cta); }
 
 /* Text pages: privacy, terms, contact, 404. */
-.page { padding: clamp(40px, 8vw, 80px) 0 clamp(64px, 10vw, 104px); }
-.page .wrap { max-width: 720px; }
+.page { padding: clamp(48px, 8vw, 88px) 0 clamp(72px, 10vw, 112px); }
+.page .wrap { max-width: 68ch; }
 .page-head { margin-bottom: 40px; }
-.page-head p { color: var(--muted); margin-top: 12px; font-size: 18px; }
+.page-head h1 { color: var(--title); font-size: clamp(40px, 6vw, 60px); }
+.page-head p { color: var(--muted); margin-top: 14px; font-size: 18px; }
 
 .prose { color: var(--ink-soft); font-size: 17px; line-height: 1.65; }
-.prose h2 { font-size: 24px; color: var(--ink); margin: 40px 0 12px; }
+.prose h2 { font-size: 26px; color: var(--title); margin: 44px 0 12px; }
 .prose h3 { font-size: 19px; color: var(--ink); margin: 28px 0 8px; }
 .prose p, .prose ul, .prose ol { margin: 0 0 14px; }
 .prose ul, .prose ol { padding-left: 22px; }
@@ -146,7 +166,6 @@ p { margin: 0; text-wrap: pretty; }
 
 .callout {
   background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  padding: 24px 26px;
+  padding: 26px 28px;
 }
