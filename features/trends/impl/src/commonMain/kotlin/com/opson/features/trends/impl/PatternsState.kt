@@ -91,7 +91,15 @@ object PatternsStateBuilder {
         val facts = MealPatterns.of(inputs.days, from, inputs.today, inputs.timeZone)
         val context = FormatContext(day = inputs.today)
         val sizes = if (policy.effectiveLevel(Metric.Calories, Surface.Week, context) == Visibility.Show) {
-            sizes(facts.energyPerMeal, policy, context)
+            // Today counts once its own calories are open. The week view is open in Delayed all
+            // day, so before the reveal today's meals would move these averages, and logging one
+            // would say roughly how big it was. Trends and Nutrients leave today out the same way.
+            val energy = if (policy.effectiveLevel(Metric.Calories, Surface.Today, context) == Visibility.Show) {
+                facts.energyPerMeal
+            } else {
+                MealPatterns.of(inputs.days, from, inputs.today.minus(1, DateTimeUnit.DAY), inputs.timeZone).energyPerMeal
+            }
+            sizes(energy, policy, context)
         } else {
             null
         }

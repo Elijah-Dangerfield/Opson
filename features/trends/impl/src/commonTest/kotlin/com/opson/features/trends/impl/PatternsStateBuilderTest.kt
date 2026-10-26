@@ -9,6 +9,7 @@ import kotlinx.datetime.DayOfWeek
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -68,6 +69,18 @@ class PatternsStateBuilderTest {
         assertEquals(MealSlot.meals, often.map { it.slot })
         assertTrue(often.all { it.of == 28 && it.days in 1..28 })
         assertNotNull(state.timing, "timing is not an amount")
+    }
+
+    @Test
+    fun delayed_beforeTheReveal_leavesTodayOutOfTheSizes() {
+        val inputs = TrendsFixtures.patternsInputs()
+        val beforeToday = TrendsFixtures.patternsInputs(days = inputs.days.filter { it.date < TrendsFixtures.today })
+        val noon = PatternsStateBuilder.build(inputs, TrendsFixtures.policy(PresetId.Delayed))
+        assertEquals(PatternsStateBuilder.build(beforeToday, TrendsFixtures.policy(PresetId.Delayed)).sizes, noon.sizes)
+
+        val evening = PatternsStateBuilder.build(inputs, TrendsFixtures.policy(PresetId.Delayed, clock = TrendsFixtures.evening))
+        assertEquals(build().sizes, evening.sizes, "after the reveal today counts, as in Full")
+        assertNotEquals(noon.sizes, evening.sizes)
     }
 
     @Test
