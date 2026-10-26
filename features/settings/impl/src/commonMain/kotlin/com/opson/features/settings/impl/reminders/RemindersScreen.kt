@@ -16,7 +16,6 @@ import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.SettingsRow
-import com.opson.features.settings.impl.TimeDialog
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Tone
@@ -30,6 +29,7 @@ import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonTone
+import com.opson.libraries.ui.components.dialog.TimePickerDialog
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
@@ -146,7 +146,7 @@ fun RemindersScreen(
         )
     }
     state.pickingRow?.let { row ->
-        TimeDialog(
+        TimePickerDialog(
             title = stringResource(Res.string.reminders_time_title, stringResource(row.slot.label)),
             initial = row.time,
             okLabel = stringResource(Res.string.reminders_time_ok),

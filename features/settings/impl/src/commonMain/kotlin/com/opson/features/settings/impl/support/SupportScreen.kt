@@ -263,7 +263,7 @@ private fun DeleteDialog(working: Boolean, onAction: (SupportAction) -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(AppTheme.colors.bg, SettingsDefaults.DialogShape)
+                .background(AppTheme.colors.bg, AppTheme.shapes.dialog)
                 .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
