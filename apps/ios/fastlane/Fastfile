@@ -21,6 +21,11 @@ BUILD_NUMBER_FILE = "build_number.txt"
 # Effective bundle id (the pbxproj hardcodes it; the xcconfig's $(TEAM_ID)
 # suffix never applies). Must match the ASC app record.
 APP_IDENTIFIER = "com.opson.Opson"
+# The home screen widget extension (0.2), embedded in the app. Its own App ID
+# and its own App Store profile, and the same App Group as the app
+# (group.com.opson.Opson). The export below has to name a profile for every
+# bundle inside the IPA or it fails on the one it can't sign.
+WIDGETS_IDENTIFIER = "com.opson.Opson.Widgets"
 
 platform :ios do
   before_all do
@@ -230,6 +235,18 @@ def build_and_upload(distribute_external:)
   )
   app_store_profile_name = lane_context[SharedValues::SIGH_NAME]
 
+  # Same again for the widget extension. Read SIGH_NAME straight after each
+  # call: the second call overwrites it. If the App Group capability was
+  # added to the App ID after a profile was made, that profile is invalid and
+  # sigh (readonly: false) makes a new one.
+  get_provisioning_profile(
+    api_key: api_key,
+    app_identifier: WIDGETS_IDENTIFIER,
+    output_path: Dir.tmpdir,
+    readonly: false,
+  )
+  widgets_profile_name = lane_context[SharedValues::SIGH_NAME]
+
   # Timestamp build number (YYYYMMDDHHMM, 12 digits, well under CFBundleVersion's
   # 18-digit cap). Always unique and strictly increasing, which App Store Connect
   # requires within a marketing version. Using GITHUB_RUN_NUMBER caused collisions
@@ -282,7 +299,10 @@ def build_and_upload(distribute_external:)
       signingStyle: "manual",
       signingCertificate: "Apple Distribution",
       teamID: team_id,
-      provisioningProfiles: { APP_IDENTIFIER => app_store_profile_name },
+      provisioningProfiles: {
+        APP_IDENTIFIER => app_store_profile_name,
+        WIDGETS_IDENTIFIER => widgets_profile_name,
+      },
     },
   )
 

@@ -9,11 +9,37 @@
 /* Begin PBXBuildFile section */
 		4A1E0B0C2F00000100A1B2C3 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A1E0B0C2F00000200A1B2C3 /* HealthKit.framework */; };
 		40F7ACE82EE5E1E70057F44F /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 40F7ACE72EE5E1E70057F44F /* Sentry */; };
+		5B1D0E0A2F10000200A1B2C3 /* OpsonWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5B1D0E0A2F10000100A1B2C3 /* OpsonWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5B1D0E0A2F10000E00A1B2C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B10249D7E69FD1F6F24AF226 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5B1D0E0A2F10000500A1B2C3;
+			remoteInfo = OpsonWidgetsExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5B1D0E0A2F10000C00A1B2C3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5B1D0E0A2F10000200A1B2C3 /* OpsonWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		4A1E0B0C2F00000200A1B2C3 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		43650040A35ABEE2FF88A523 /* Opson.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Opson.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5B1D0E0A2F10000100A1B2C3 /* OpsonWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OpsonWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -23,6 +49,13 @@
 				Info.plist,
 			);
 			target = 5A24C30AE7FA235620EF2687 /* iosApp */;
+		};
+		5B1D0E0A2F10000400A1B2C3 /* Exceptions for "OpsonWidgets" folder in "OpsonWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5B1D0E0A2F10000500A1B2C3 /* OpsonWidgetsExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -40,6 +73,14 @@
 			path = iosApp;
 			sourceTree = "<group>";
 		};
+		5B1D0E0A2F10000300A1B2C3 /* OpsonWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5B1D0E0A2F10000400A1B2C3 /* Exceptions for "OpsonWidgets" folder in "OpsonWidgetsExtension" target */,
+			);
+			path = OpsonWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,6 +90,13 @@
 			files = (
 				40F7ACE82EE5E1E70057F44F /* Sentry in Frameworks */,
 				4A1E0B0C2F00000100A1B2C3 /* HealthKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5B1D0E0A2F10000700A1B2C3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -67,6 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				43650040A35ABEE2FF88A523 /* Opson.app */,
+				5B1D0E0A2F10000100A1B2C3 /* OpsonWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +125,7 @@
 			children = (
 				8D47A0AC8E5C3B530E134DF3 /* Configuration */,
 				8EEEC16658FA3E2CD3B23C1D /* iosApp */,
+				5B1D0E0A2F10000300A1B2C3 /* OpsonWidgets */,
 				AAAD9064E8710953FC84629E /* Products */,
 				4A1E0B0C2F00000300A1B2C3 /* Frameworks */,
 			);
@@ -92,10 +142,12 @@
 				E57AEDA1E128D63D69DDED4D /* Sources */,
 				A2C1E895BBDC14C7E237DA04 /* Frameworks */,
 				EFDE597DCCBBBB16D45C7935 /* Resources */,
+				5B1D0E0A2F10000C00A1B2C3 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5B1D0E0A2F10000D00A1B2C3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				8EEEC16658FA3E2CD3B23C1D /* iosApp */,
@@ -107,6 +159,28 @@
 			productName = iosApp;
 			productReference = 43650040A35ABEE2FF88A523 /* Opson.app */;
 			productType = "com.apple.product-type.application";
+		};
+		5B1D0E0A2F10000500A1B2C3 /* OpsonWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5B1D0E0A2F10000900A1B2C3 /* Build configuration list for PBXNativeTarget "OpsonWidgetsExtension" */;
+			buildPhases = (
+				5B1D0E0A2F10000600A1B2C3 /* Sources */,
+				5B1D0E0A2F10000700A1B2C3 /* Frameworks */,
+				5B1D0E0A2F10000800A1B2C3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5B1D0E0A2F10000300A1B2C3 /* OpsonWidgets */,
+			);
+			name = OpsonWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = OpsonWidgetsExtension;
+			productReference = 5B1D0E0A2F10000100A1B2C3 /* OpsonWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -120,6 +194,9 @@
 				TargetAttributes = {
 					5A24C30AE7FA235620EF2687 = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					5B1D0E0A2F10000500A1B2C3 = {
+						CreatedOnToolsVersion = 26.1;
 					};
 				};
 			};
@@ -141,12 +218,20 @@
 			projectRoot = "";
 			targets = (
 				5A24C30AE7FA235620EF2687 /* iosApp */,
+				5B1D0E0A2F10000500A1B2C3 /* OpsonWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		EFDE597DCCBBBB16D45C7935 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5B1D0E0A2F10000800A1B2C3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -185,7 +270,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5B1D0E0A2F10000600A1B2C3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5B1D0E0A2F10000D00A1B2C3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5B1D0E0A2F10000500A1B2C3 /* OpsonWidgetsExtension */;
+			targetProxy = 5B1D0E0A2F10000E00A1B2C3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		3E3E9D6D0957D0FC01FB82C9 /* Release */ = {
@@ -383,6 +483,60 @@
 			};
 			name = Release;
 		};
+		5B1D0E0A2F10000A00A1B2C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = OpsonWidgets/OpsonWidgets.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MSMDV43SUS;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OpsonWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Opson;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.opson.Opson.Widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		5B1D0E0A2F10000B00A1B2C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = OpsonWidgets/OpsonWidgets.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MSMDV43SUS;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OpsonWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Opson;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.opson.Opson.Widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -400,6 +554,15 @@
 			buildConfigurations = (
 				7B685C662F9869741CDB6CE3 /* Debug */,
 				C51AAFA0B15C0183301DE1B1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5B1D0E0A2F10000900A1B2C3 /* Build configuration list for PBXNativeTarget "OpsonWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5B1D0E0A2F10000A00A1B2C3 /* Debug */,
+				5B1D0E0A2F10000B00A1B2C3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
