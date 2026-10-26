@@ -3,11 +3,12 @@ package com.opson.libraries.opson
 interface Telemetry {
     fun initialize()
 
-    fun setUser(
-        email: String?,
-        name: String?,
-        id: String?
-    )
+    /**
+     * Attributes later crash-reporting events to user [id], or to nobody when
+     * null. Only the id: an email or display name would ride along on every
+     * event, and both are personal data (review PRACTICES section 5).
+     */
+    fun setUser(id: String?)
 
     /**
      * Records the user's current navigation route on the crash-reporting

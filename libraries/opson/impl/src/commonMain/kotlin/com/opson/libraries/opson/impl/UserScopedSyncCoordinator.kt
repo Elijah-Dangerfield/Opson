@@ -20,7 +20,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * boot race can't happen against a level), re-sync on warm foreground and on
  * connectivity returning, retry failures with backoff while the account holds.
  *
- * Per-syncer loops are independent: a failing wallet sync retries alone
+ * Per-syncer loops are independent: a failing sync retries alone
  * without re-running the other stores, and each loop is single-flight with
  * trailing coalesce. Sign-out cancels in-flight syncs and pending backoff; a
  * user switch or a guest claiming their account (same id, `isAnonymous` flips)
