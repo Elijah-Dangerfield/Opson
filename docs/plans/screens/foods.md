@@ -1,12 +1,29 @@
 # Foods plan
 
-The Foods tab, Create a meal, and Add a custom food (with its Blind variant).
+The Foods tab, Create a meal, and Add a food (with its Blind variant).
 Read `shared.md` first.
 
 ## Source
-- Handoff: `README.md` section 4.9; `COMPETITIVE_REVIEW.md` "What changed".
-- Prototype markup: `Phone.dc.html` `is.foods` (494 to 533), `is.mealbuilder` (683 to 719), `is.customfood` (720 to 749).
-- Logic: `phone-logic.js` `makeRows`, `myFoods`, `saved`, `recents`, `mb`, `cf`, `cfFields`.
+- **Design v3 is the spec** (`docs/design/v3/CHANGES.md`, Foods row):
+  `foods.png` (11.1), `foods-create-meal.png` (11.2), `foods-add-food.png`
+  (11.3), `foods-add-food-blind.png` (11.4), and their notes in
+  `docs/design/v3/manifest.json`. v3 wins wherever it disagrees with the
+  handoff below.
+- Handoff, for copy and logic v3 does not show: `README.md` section 4.9;
+  `Phone.dc.html` `is.foods` (494 to 533), `is.mealbuilder` (683 to 719),
+  `is.customfood` (720 to 749); `phone-logic.js` `makeRows`, `myFoods`,
+  `saved`, `recents`, `mb`, `cf`, `cfFields`.
+
+What v3 changed from the handoff:
+
+| Was | v3 |
+|---|---|
+| "Create a meal" and "Add a custom food" as two list rows | Two side-by-side tiles, "Create a meal" and "Add a food" |
+| Your foods, then Saved meals, then Recent | **Saved meals first**, then Your foods, then Recent (below the fold) |
+| Create a meal has its own search and picks list | "Add a food" opens the **logger sheet in pick-for-this-meal mode**; one search UI |
+| `‹ Foods` text link and a large title | Android top app bar: close (X) and the title |
+| Custom food: Energy, Protein, Carbs, Fat, Fiber | Every field optional; Nutrient focus asks only protein and fiber; Blind shows no number fields |
+| Blind: "photograph the label" | Photo is 0.2, so the button and its sentence are not built (below) |
 
 Routes in `:features:foods` (`com.opson.features.foods`); impl in
 `:features:foods:impl` (`com.opson.features.foods.impl`).
@@ -18,83 +35,92 @@ Routes in `:features:foods` (`com.opson.features.foods`); impl in
 ### Route
 `FoodsRoute : TabRoute()`, `screen<>`.
 
+### Layout (v3 11.1)
+Large title "Foods"; a sticky search bar (a button that opens the logger with
+search focused); two tiles side by side (Create a meal, pink tile; Add a food,
+brown tile); the Saved meals card; the Your foods card; the Recent card; the
+data credit in caption type at the very end. Rows: bold name, a muted
+subtitle, the bare calories ("445"), a 40 dp tinted round + with a 48 dp
+target. Each card's section label sits inside it, above a hairline.
+
 ### State
 
 ```kotlin
 data class FoodsState(
     val loading: Boolean = true,
-    val yourFoods: List<FoodsRowUi>,
-    val savedMeals: List<SavedMealRowUi>,
-    val recent: List<FoodsRowUi>,
+    val savedMeals: List<FoodsRowUi> = emptyList(),
+    val yourFoods: List<FoodsRowUi> = emptyList(),
+    val recent: List<FoodsRowUi> = emptyList(),
 )
-data class FoodsRowUi(val ref: FoodRef, val name: String, val sub: String, val calories: Display)  // sub: "1 serving · Corner bakery"
-data class SavedMealRowUi(val id: String, val name: String, val foods: String, val calories: Display)
+data class FoodsRowUi(val target: FoodsTarget, val name: String, val sub: String, val calories: Display)
+sealed interface FoodsTarget { data class Meal(val id: String); data class Food(val ref: FoodRef) }
 ```
 
-`FoodsStateBuilder.build(inputs, policy)`. Calories resolve on `Foods` with no
-goal, so they show at Show and hide otherwise.
+Subtitles: a saved meal lists its foods' short names ("Oat porridge, banana,
+coffee"); a custom food is `brand · 1 roll` (brand left out when blank); a
+recent food is its amount. `FoodsStateBuilder.build(inputs, policy)`.
+Calories resolve on `Surface.Foods` in a bare context with no goal, so they
+show at Show and hide otherwise.
 
 ### Actions
 
 | Action | Does |
 |---|---|
-| `InputsArrived(inputs, policy)` | Custom foods, saved meals, recent foods. |
-| `SearchTapped` | Event `OpenLogger(focusSearch = true)`. The prototype opened the Log screen's search tab, which is not built; search lives in the Logger. |
-| `CreateMealTapped` | `OpenCreateMeal()`. |
-| `AddCustomFoodTapped` | `OpenCustomFood`. |
-| `FoodPlusTapped(ref)` | `OpenLogger(prePick = ref)`. |
-| `SavedMealPlusTapped(id)` | `OpenLogger(prePickSavedMeal = id)`. |
-| `TabReselected` | `ScrollToTop`. |
+| `InputsArrived(inputs)` | Custom foods, saved meals, recent foods. |
+| `PolicyArrived(policy)` | |
+| `SearchTapped` | Event `OpenLogger(LoggerRoute(focusSearch = true))`. |
+| `CreateMealTapped` | `OpenCreateMeal`. |
+| `AddFoodTapped` | `OpenAddFood`. |
+| `RowTapped(target)` / `RowAddTapped(target)` | `OpenLogger` with the food (`prePickFoodId`, `prePickIsCustom`) or the meal (`prePickSavedMealId`) already picked. |
 
-The prototype's + added straight to the logger's current slot. Here it opens
-the Logger with the food already picked, so the user chooses the meal and day,
-and adding still takes one more tap.
+Tapping the row or its + opens the Logger with it picked, so the user still
+chooses the meal and the day, and adding takes one more tap. A recent item
+with no food behind it (a quick number, a name-only line) is not listed, since
+there is nothing to pick. No tab-reselect scroll: the shell has no reselect
+hook yet.
 
 ### Events
-`OpenLogger(...)`, `OpenCreateMeal(fromDayIso?, fromSlot?)`, `OpenCustomFood`, `ScrollToTop`.
+`OpenLogger(route: LoggerRoute)`, `OpenCreateMeal`, `OpenAddFood`.
 
 ### Data
 `CustomFoodRepository.observeAll()`, `SavedMealRepository.observeAll()`,
-`DiaryRepository.observeRecentFoods(limit = 6)`, policy. All local.
-
-### Components
-Sticky search bar (`EdgeCard` styled field that is a button, `position:sticky`
-equivalent: a pinned item above the `LazyColumn`), `ListRow` with `IconTile`
-for the create rows, `FoodIconTile`, round + buttons at 44 dp.
+`DiaryRepository.recentFoods(limit = 6)`, `VisibilityPolicySource.policy`.
+All local, so offline changes nothing.
 
 ### Visibility surfaces
 Surface `Foods`.
 
 | Number | Metric | Show | Soften | Delay | Hide |
 |---|---|---|---|---|---|
-| Your foods, Saved meals, Recent row calories | calories | `190 kcal` | Hidden | Hidden until 9 pm / never for Coast | Hidden |
+| Saved meal, Your foods and Recent row calories | calories | `445` | Hidden | Hidden until reveal / never for Coast | Hidden |
 
-### Copy
+### Copy (`strings_foods.xml`)
 
 | Key | String |
 |---|---|
 | `foods_title` | Foods |
 | `foods_search` | Search foods, dishes, restaurants |
-| `foods_create_meal` / `_create_meal_sub` | Create a meal / Group foods you often eat together |
-| `foods_custom` / `_custom_sub` | Add a custom food / For anything we don't have |
-| `foods_yours` / `_yours_empty` | Your foods / Foods you make show up here and in search. |
+| `foods_create_meal` / `_create_meal_sub` | Create a meal / Group foods you eat together |
+| `foods_add_food` / `_add_food_sub` | Add a food / Something search doesn't have |
 | `foods_saved` | Saved meals |
+| `foods_yours` / `_yours_empty` | Your foods / Foods you make show up here and in search. |
 | `foods_recent` | Recent |
-| `foods_add_cd` | Add %s |
-| `foods_credit` (new) | Food data from USDA FoodData Central and Open Food Facts. Open Food Facts data is available under the Open Database License. |
+| `foods_add_cd` | Add %1$s |
+| `foods_credit` | Food data from USDA FoodData Central and Open Food Facts. Open Food Facts data is available under the Open Database License. |
 
-The credit sits at the end of the list in caption style. It is required by
-ODbL for Open Food Facts rows (system design section 8).
+The credit is required by ODbL for Open Food Facts rows (system design
+section 8).
 
 ### Edge cases
-Empty everything: create rows, the empty line under Your foods, Saved meals and
-Recent sections hidden when empty. Large text: row subtitles wrap. Offline: no
-change.
+Nothing saved: the tiles, the Your foods card with its empty line, and the
+credit; Saved meals and Recent are left out when empty. Large text: tiles grow
+taller together, subtitles wrap.
 
 ### Tests
-`FoodsViewModelTest` per action (events carry the right refs); builder test
-that Blind rows carry Hidden calories. Previews: Full populated, Blind, empty.
-`SURFACES`: `foods` (`showsCaloriesInFull = true`).
+`FoodsViewModelTest` per action (events carry the right refs);
+`FoodsStateBuilderTest`: section order and subtitles, Blind rows carry Hidden
+calories, Delayed hides before the reveal. Previews: `Foods` (Full), dark,
+Blind, empty. Leak surface `foods` (`showsCaloriesInFull = true`).
 
 ---
 
@@ -102,101 +128,136 @@ that Blind rows carry Hidden calories. Previews: Full populated, Blind, empty.
 
 ### Route
 `CreateMealRoute(fromDayIso: String? = null, fromSlot: MealSlot? = null)`,
-`screen<>` (system design section 10), typeMap for `MealSlot`. From the Meal
-sheet's "Save as a meal" it arrives pre-filled.
+`screen<>`, typeMap for `MealSlot?`. Opened from the Foods tile, and from
+Today's meal sheet "Save as a meal", which arrives pre-filled.
+
+### Layout (v3 11.2)
+Top app bar with a close X and "Create a meal". Card 1: Name field, "Usually
+at" chips (Breakfast, Lunch, Snack, Dinner; the picked one tinted with a
+check). Card 2, "In this meal": item rows (name, amount, bare calories, a
+round X), then a heavy rule and Total (macro line under it, calories on the
+right). Card 3: "+ Add a food". Save meal pinned to the bottom.
 
 ### State
 
 ```kotlin
 data class CreateMealState(
-    val name: String,
-    val usualSlot: MealSlot,                   // default Lunch, as MB0
-    val items: List<MealItemUi>,
-    val total: Display,                        // calories on Foods
-    val totalCount: Int,
-    val totalMacros: List<MacroPart>,          // macroLine(Compact)
-    val query: String,
-    val picks: List<PickUi>,                   // up to 6
-    val canSave: Boolean,                      // name not blank and at least one item
+    val name: String = "",
+    val usualSlot: MealSlot = MealSlot.Lunch,
+    val items: List<MealItemUi> = emptyList(),
+    val total: Display = Display.Hidden,       // calories on Foods
+    val totalMacros: List<MacroPart> = emptyList(), // macroLine(Compact)
+    val canSave: Boolean = false,              // name not blank and at least one item
 )
-data class MealItemUi(val name: String, val amount: String, val macros: List<MacroPart>, val calories: Display)
-data class PickUi(val ref: FoodRef, val name: String, val amount: String)
+data class MealItemUi(val name: String, val amount: String, val calories: Display)
 ```
+
+`CreateMealStateBuilder.build(draft: MealDraft, policy)`, where `MealDraft`
+is the name, slot and `List<LogDraft>` the view model holds.
 
 ### Actions
 
 | Action | Does |
 |---|---|
-| `PrefillArrived(slot, items)` | From `DiaryRepository.observeDay(fromDay)` once: name `My %s` (sentence name), `usualSlot = slot`, items copied. |
-| `InputsArrived(policy, recent)` | |
+| `PolicyArrived(policy)` | |
 | `NameTyped(text)` | |
 | `UsualSlotPicked(slot)` | |
 | `ItemRemoveTapped(index)` | |
-| `SearchTyped(text)` | Debounced `FoodCatalog.search(q, 6)`; empty query lists recent foods. |
-| `PickResultsArrived(query, rows)` | Dropped when stale. |
-| `PickAddTapped(ref)` | Appends the food at its default portion, Estimate. |
-| `SaveTapped` | Blank name: toast `Give the meal a name first.` No items: toast `Add at least one food first.` Otherwise `SavedMealRepository.save(name, usualSlot, item snapshots)`, toast, `Close`. |
-| `BackTapped` | `Close`. |
+| `AddFoodTapped` | Event `OpenPicker(requestId)`: the logger sheet as `LoggerRoute(pickForMeal = requestId)`. |
+| `FoodsPicked(items)` | From `MealPicks` when `requestId` matches: appended, then `consumed`. |
+| `SaveTapped` | Only reachable when `canSave`. `SavedMealRepository.create(name.trim(), usualSlot, items)`, toast, `Close`. |
+| `CloseTapped` | `Close`. |
+
+Prefill happens once in `init`: with `fromDayIso` and `fromSlot`, the day's
+items in that slot are copied (`LogItem.toDraft()`), the name is `My %1$s`
+(sentence name) and `usualSlot` is the slot (Uncategorized falls back to
+Lunch, since "Usually at" has no Uncategorized).
+
+### The pick-for-this-meal hand-off
+`LoggerRoute` gets `pickForMeal: String? = null`. When set, the logger sheet:
+- keeps its picks in a basket of its own, so the person's real basket is left alone;
+- shows "Add to / This meal" with no meal dropdown and no day;
+- shows no method chips, and offers only "Save the name only" when a search misses (Describe, Yesterday's and Just a number write to the diary);
+- toggles a food when its name is tapped (the amount sheet logs, so it is not opened);
+- on "Add to this meal", publishes the picks' drafts through `MealPicks.picked(PickedForMeal(requestId, drafts))`, clears its basket and closes. Nothing is written to the diary.
+
+`MealPicks` (in `:libraries:diary`, impl in `:libraries:diary:impl`) is a
+`StateFlow<PickedForMeal?>` with `picked` and `consumed`, the same shape as
+`RecentLogEvents`: the Create a meal view model is alive under the sheet, but a
+state rather than an event means a late collector still gets it.
 
 ### Data
-`SavedMealRepository.save`, `FoodCatalog.search`, `DiaryRepository.observeRecentFoods`,
-`DiaryRepository.observeDay` for prefill. Offline: search falls back to the cache.
+`SavedMealRepository.create`, `DiaryRepository.observeDay` for the prefill,
+`MealPicks`, the policy. All local.
 
 ### Visibility surfaces
 Surface `Foods`.
 
 | Number | Metric | Show | Soften | Delay | Hide |
 |---|---|---|---|---|---|
-| Item calories, Total | calories | `300 kcal` / `405 kcal` | Hidden | Hidden | Hidden |
-| Item and total macros | protein, carbs, fat | `10P 50C 6F` | omitted | omitted | omitted |
+| Item calories, Total | calories | `300` / `445 kcal` | Hidden | Hidden | Hidden |
+| Total macros | protein, carbs, fat | `13P 80C 8F` | omitted | omitted | omitted |
+
+When the macro line is empty, the total's subtitle is the count ("3 foods"),
+so a Blind total still says something.
 
 ### Copy
-`‹ Foods`; `Create a meal`; `Name`, placeholder `Usual breakfast`; `Usually at`
-with Breakfast / Lunch / Snack / Dinner; `In this meal`; remove description
-`Remove %s`; `Nothing yet. Add foods below.`; `Total`, sub `%1$d food` /
-`%1$d foods` then ` · ` and the macro line; `Add foods`; placeholder `Search
-foods`; add description `Add %s`; `Save meal` (disabled look until `canSave`,
-still tappable so the toast explains). Toasts: `Give the meal a name first.` /
-`Add at least one food first.` / `Meal saved. It's in the + sheet under Saved
-meals.` Prefill name `My %s`.
+`Create a meal`; close description `Close`; `Name`, placeholder `Usual
+breakfast`; `Usually at`; `In this meal`; remove description `Remove %1$s`;
+`Nothing yet. Add a food below.`; `Total`; `%1$d food` / `%1$d foods`; `Add a
+food`; `Save meal`. Toast `Meal saved. It's in the + sheet under Saved
+meals.` Prefill name `My %1$s`. The logger's title in pick mode: `This meal`;
+its button `Add to this meal`.
 
 ### Edge cases
-Prefill from an Uncategorized slot sets `usualSlot` to Lunch (Usually at has no
-Uncategorized). Duplicate names are allowed. Leaving with unsaved changes just
-leaves (no dialog in the handoff).
+Duplicate names are allowed. Leaving with unsaved changes just leaves (no
+dialog in the design). Picking the same food twice adds it twice (two
+portions).
 
 ### Tests
-`CreateMealViewModelTest`: prefill once, save guards and their toasts, remove,
-stale picks dropped, save payload. Previews: empty, demo (Sunday breakfast with
-two items) Full and Blind. `SURFACES`: `create-meal` (`showsCaloriesInFull = true`).
+`CreateMealViewModelTest`: prefill once, Uncategorized prefill picks Lunch,
+picks for another request are ignored, picks appended and consumed, remove,
+save guard and payload. `CreateMealStateBuilderTest`: totals, Blind hides
+calories and macros. Logger: `LoggerViewModelTest` covers pick mode (own
+basket, no chips, name tap toggles, Add hands the drafts back and writes
+nothing). Previews: `FoodsCreateMeal` (demo, Full), dark, Blind, empty. Leak
+surface `foods-create-meal` (`showsCaloriesInFull = true`).
 
 ---
 
-## Add a custom food
+## Add a food
 
 ### Route
-`CustomFoodRoute()`, `screen<>`.
+`AddFoodRoute()`, `screen<>`.
+
+### Layout (v3 11.3, 11.4)
+Top app bar with a close X and "Add a food". Card 1: Name, "Brand or where
+it's from · optional", "One serving is" (an amount field and unit chips).
+Card 2, when any field is asked: "Per serving" with "Fill in what you know"
+on the right, then the number fields two to a row. Card 2 in Blind (no
+fields): an eye-off tile, "Nutrition stays out of view", and one sentence.
+Save food pinned to the bottom.
 
 ### State
 
 ```kotlin
-data class CustomFoodState(
-    val name: String,
-    val brand: String,
-    val servingAmount: String,                 // default "1"
-    val servingUnit: ServingUnit,              // Serving | G | Piece | Cup
-    val fields: List<NutritionField>,          // only metrics whose level is not Hide
-    val partial: Boolean,                      // 0 < fields.size < 5
-    val labelOnly: Boolean,                    // fields empty: the Blind variant
-    val canSave: Boolean,                      // name not blank
-)
-data class NutritionField(val metric: Metric, val label: StringResource, val unit: StringResource, val text: String)
+data class AddFoodState(
+    val name: String = "",
+    val brand: String = "",
+    val servingAmount: String = "1",
+    val servingUnit: ServingUnit = ServingUnit.Serving,  // Serving | Piece | Grams | Cup
+    val fields: List<NutritionField> = emptyList(),      // only metrics whose level is not Hide
+    val canSave: Boolean = false,                        // name not blank
+) { val labelOnly: Boolean get() = fields.isEmpty() }
+data class NutritionField(val metric: Metric, val text: String)
 ```
 
-Field order: Energy (kcal), Protein (g), Carbs (g), Fat (g), Fiber (g). The
-filter uses `level(metric) != Hide` (configured level, as the prototype), so a
-Delayed user still sees and fills them. Typed text is the user's own input, not a
-policy number.
+Field order: Calories (kcal), Protein, Carbs, Fat, Fiber (g). The filter is
+the configured `level(metric) != Hide`, as the prototype: a Delayed user still
+fills them in, and Nutrient focus (protein and fiber softened, the rest
+hidden) asks only protein and fiber. Typed text is the user's own input, not a
+policy number. Units store as `serving`, `piece`, `g`, `cup` (grams as `g`,
+so `CustomFood.toDraft` fills grams).
 
 ### Actions
 
@@ -206,51 +267,42 @@ policy number.
 | `NameTyped`, `BrandTyped`, `ServingAmountTyped(text)` | Amount keeps digits and one decimal point. |
 | `ServingUnitPicked(unit)` | |
 | `NutritionTyped(metric, text)` | Digits and one decimal point. |
-| `SaveTapped` | Blank name: toast `Give the food a name first.` Else `CustomFoodRepository.save(...)`: an empty field saves `null` (unknown), never `0`, so a blank energy never shows as `0 kcal`. Toast, `Close`. |
-| `BackTapped` | `Close`. |
+| `SaveTapped` | Only reachable when `canSave`. `CustomFoodRepository.create(...)`: a blank field, or one the mode does not ask, saves `null` (unknown), never `0`. A blank amount saves 1. Toast, `Close`. |
+| `CloseTapped` | `Close`. |
 
 ### Data
-`CustomFoodRepository.save`. The new food appears first in Recent and in
-Logger search. Offline: local.
-
-### Components
-`TextField`s, `PillChip` units, `NumberField`s with unit suffix, `EdgeCard`
-notice for the Blind variant.
+`CustomFoodRepository.create`. The food shows in the Foods tab and first in
+Logger search (the logger puts custom matches before catalog ones).
 
 ### Visibility surfaces
-No resolved numbers. The fields themselves are gated: a metric at Hide has no
-field. Blind hides all five, so the screen shows the "Nutrition stays out of
-view" card.
+No resolved numbers. A metric at Hide has no field; Blind hides all five.
 
 | Field | Show / Soften / Delay | Hide |
 |---|---|---|
-| Energy, Protein, Carbs, Fat, Fiber | field shown | field and label removed |
+| Calories, Protein, Carbs, Fat, Fiber | field shown | field and label removed |
 
 ### Copy
-`‹ Foods`; `Add a custom food`; `Name`, placeholder `Lola's pandesal`; `Brand or
-where it's from (optional)`, placeholder `Corner bakery`; `One serving is`,
-amount description `Serving amount`, units serving / g / piece / cup;
-`Nutrition per serving`, `Optional. Fill in what you know from the label.`;
-labels Energy / Protein / Carbs / Fat / Fiber with kcal / g; partial note `Only
-the numbers your mode shows are asked for here.`; Blind card title `Nutrition
-stays out of view`; `Save food`. Toasts: `Give the food a name first.` / `%s
-saved. It shows up in search now.`
+`Add a food`; `Name`, placeholder `Lola's pandesal`; `Brand or where it's from
+· optional`, placeholder `Corner bakery`; `One serving is`, amount description
+`Serving amount`, units `serving` / `piece` / `grams` / `cup`; `Per serving`,
+`Fill in what you know`; labels Calories / Protein / Carbs / Fat / Fiber with
+kcal / g; Blind card `Nutrition stays out of view`, `A name is enough to save
+it.`; `Save food`. Toast `%1$s saved. It shows up in search now.`
 
-**Conflict resolved**: the Blind body in the handoff reads "A name is enough to
-save it. If you'd like the details on file, photograph the label and we'll keep
-it without showing it.", with a "Photograph the label" button. Photo is not in
-0.1, so the body is cut to `A name is enough to save it.` and the button is not
-built. Reason: the copy must not offer what the build cannot do.
+**Cut for 0.1**: v3's "Scan the label instead" (Full) and "Photograph the
+label" with its sentence (Blind) are photo features, which are 0.2. Not
+rendered, and the Blind body stops at "A name is enough to save it." Reason:
+the copy must not offer what the build cannot do.
 
 ### Edge cases
-Mode changes while open (from another device): fields rebuild and typed values
-for removed fields are dropped on save. A `0` the user typed is saved as `0`.
-Large text: fields stack one per row.
+Mode changes while open: fields rebuild, and text for a removed field is not
+saved. A `0` the user typed saves as `0`. Large text: the two-up fields keep
+their row and the labels wrap.
 
 ### Tests
-`CustomFoodViewModelTest`: field lists for Full (5), Nutrient focus (Protein,
-Fiber; partial note), Blind (label only); blank fields save null; input filters;
-save toast uses the trimmed name. Previews: Full, Nutrient focus, Blind.
-`SURFACES`: `custom-food`, with the fixture's Energy field holding `190`. The
-scan joins text in tree order, so Full reads `Energy 190 kcal` and matches
-(`showsCaloriesInFull = true`); Blind has no field, so nothing matches.
+`AddFoodViewModelTest`: Full asks five, Nutrient focus asks protein and fiber,
+Blind asks none; blank and unasked fields save null; input filters; save toast
+uses the trimmed name. Previews: `FoodsAddFood` (Full), dark, Nutrient focus,
+`FoodsAddFoodBlind`. Leak surfaces `foods-add-food` (Calories field holding
+120, so Full reads `120 kcal`; `showsCaloriesInFull = true`) and
+`foods-add-food-blind` (`false`).

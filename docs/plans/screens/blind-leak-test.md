@@ -129,8 +129,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 28 | Add menu | none | | dropped in design v3 (no header +) | |
 | 29 | Fasting | none | | 0.2, add when built | |
 | 30 | Logger with picked foods | `logger-picked` | logger | ported | yes |
-| 31 | Create a meal | `create-meal` | foods | ported (demo fixture) | yes |
-| 32 | Custom food | `custom-food` | foods | ported, Energy field holds 190 | yes |
+| 31 | Create a meal | `foods-create-meal` | foods | ported (demo fixture) | yes |
+| 32 | Custom food | `foods-add-food` | foods | v3 "Add a food", Calories field holds 120 | yes |
 | 33 | Targets | `targets` | settings | ported | yes |
 | new | | `today-groups-off`, `today-past`, `today-day-menu-armed` | today | | yes |
 | new | | `today-future` | today | | yes (a planned day shows planned energy) |
@@ -143,6 +143,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `trends-settings` | trends | | no |
 | new | | `pause-sheet` | settings | | no |
 | new | | `look-and-feel` | settings | | no |
+| new | | `foods-add-food-blind` | foods | v3 11.4; Add a food with no number fields | no |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and
