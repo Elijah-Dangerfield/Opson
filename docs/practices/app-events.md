@@ -130,6 +130,21 @@ miss are counted server-side instead, in `barcode_misses` with no account attach
 A pick from a scan logs with `logger.method_picked` `method=barcode`; "Save the name only" after a
 miss logs as `name_only`.
 
+### Voice log (0.2, behind `release.voice`)
+
+All from `LoggerViewModel` through `VoiceTelemetry` (`:features:logger:impl`), for the mic in
+Describe it. **No event carries the transcript, a word of it, or anything parsed from it**: what
+someone says is a meal in their own words. Length is a bucket, never a count. A spoken
+description that gets logged also fires `logger.method_picked` `method=describe`, as typed text
+does.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `voice.started` | `on_device` (the words are worked out on the phone), `permission` (`granted`: it already was, `asked`: the prompt was just answered yes) | The mic went live |
+| `voice.transcribed` | `words` (`1-3`, `4-7`, `8-15`, `16+`) | A session ended with words, which then go to Describe's parse |
+| `voice.permission_denied` | `can_ask_again` | The microphone (or on iOS, speech recognition) was refused, or the mic was tapped with it already off |
+| `voice.fallback` | `reason` (`no_recognizer`, `no_model`, `needs_connection`, `no_speech`, `busy`, `error`) | Voice could not help and offered typing instead: no recognizer on the phone, nothing said, no connection for a server recognizer, or an error with nothing heard |
+
 ### Watch and health apps (0.2, behind `release.health`)
 
 All from `RealHealthRepository` (`:libraries:health:impl`), the one place that asks the platform

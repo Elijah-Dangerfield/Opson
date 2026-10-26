@@ -45,6 +45,23 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
 - [ ] Try a real scan on an iPhone and an Android phone: a hit, a miss and a
       denied camera.
 
+## Voice log (`release.voice`)
+
+No entitlement or capability: Speech and the microphone need only their
+usage strings, which are already in `Info.plist` (the binary references
+them as soon as `:libraries:speech:impl` links, like the camera).
+
+- [ ] App Privacy: audio is not collected by Opson (it goes to the platform
+      recognizer and is not stored), so the label should not change. Confirm,
+      and say so in `legal/privacy.md`: on iOS, Apple processes the audio when
+      the phone cannot recognise the language on the device; on Android, the
+      phone's speech service does when there is no on-device recognizer.
+- [ ] Play Console: `RECORD_AUDIO` is declared from the build that links the
+      speech library. Check the Data safety form ("Audio" is not collected or
+      shared, processed ephemerally on the device or by the system service).
+- [ ] Try it on an iPhone and an Android phone: a spoken meal, a refused
+      mic, airplane mode, and a phone with no on-device model.
+
 ## Server, before any 0.2 build reaches people
 
 - [ ] Deploy the server to prod once 0.1 is through review. It carries the

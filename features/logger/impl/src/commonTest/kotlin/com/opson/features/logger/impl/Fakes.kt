@@ -37,10 +37,16 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.speech.Heard
+import com.opson.libraries.speech.MicPermission
+import com.opson.libraries.speech.SpeechAvailability
+import com.opson.libraries.speech.SpeechToText
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
@@ -188,6 +194,9 @@ class FakeFoodCatalog(
     val searches = mutableListOf<String>()
     val marked = mutableListOf<Food>()
 
+    /** Every text sent to be read, typed or spoken. */
+    val described = mutableListOf<String>()
+
     override suspend fun search(query: String, limit: Int): Catching<FoodSearchResult> {
         searches += query
         val hits = foods.filter { it.name.contains(query, ignoreCase = true) }
@@ -210,7 +219,10 @@ class FakeFoodCatalog(
         return barcodeResult
     }
 
-    override suspend fun describe(text: String): Catching<List<ParsedItem>> = describeResult
+    override suspend fun describe(text: String): Catching<List<ParsedItem>> {
+        described += text
+        return describeResult
+    }
 
     override fun observeFavorites(): Flow<List<Food>> = flowOf(emptyList())
 
@@ -338,4 +350,77 @@ class RecordingBarcodeTelemetry : BarcodeTelemetry {
 class FakeAppState(offline: Boolean = false) : AppState {
     override val isOffline = MutableStateFlow(offline)
     override val isBlockActive: StateFlow<Boolean> = MutableStateFlow(false)
+}
+
+/** `release.voice` as the remote config would set it. */
+fun voiceFlag(on: Boolean): VoiceLogEnabled = VoiceLogEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("voice" to on))
+    },
+)
+
+/**
+ * A recognizer the test speaks into: [say] delivers what it heard to the
+ * running session. [listening] is true while a session is open and nobody has
+ * cancelled it.
+ */
+class FakeSpeechToText(
+    var availability: SpeechAvailability = SpeechAvailability.Ready(onDevice = true),
+    var permission: MicPermission = MicPermission.Granted,
+) : SpeechToText {
+    private var session: Channel<Heard>? = null
+    var sessions = 0
+    var finished = 0
+    var settingsOpened = 0
+    val listening: Boolean get() = session != null
+
+    override fun availability(): SpeechAvailability = availability
+
+    override fun permission(): MicPermission = permission
+
+    override fun listen(): Flow<Heard> = flow {
+        val channel = Channel<Heard>(Channel.UNLIMITED)
+        session = channel
+        sessions++
+        try {
+            for (heard in channel) {
+                emit(heard)
+                if (heard !is Heard.Partial) break
+            }
+        } finally {
+            session = null
+        }
+    }
+
+    fun say(heard: Heard) {
+        checkNotNull(session) { "nothing is listening" }.trySend(heard)
+    }
+
+    override fun finishListening() {
+        finished++
+    }
+
+    override fun openSettings() {
+        settingsOpened++
+    }
+}
+
+class RecordingVoiceTelemetry : VoiceTelemetry {
+    val events = mutableListOf<String>()
+
+    override fun started(onDevice: Boolean, asked: Boolean) {
+        events += "started on_device=$onDevice asked=$asked"
+    }
+
+    override fun transcribed(words: WordBucket) {
+        events += "transcribed words=${words.wire}"
+    }
+
+    override fun permissionDenied(canAskAgain: Boolean) {
+        events += "permission_denied can_ask_again=$canAskAgain"
+    }
+
+    override fun fallback(reason: VoiceFallback) {
+        events += "fallback ${reason.wire}"
+    }
 }

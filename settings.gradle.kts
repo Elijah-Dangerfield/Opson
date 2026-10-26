@@ -120,6 +120,8 @@ if (!serverOnly) {
     include(":libraries:review:impl")
     include(":libraries:scanner")
     include(":libraries:scanner:impl")
+    include(":libraries:speech")
+    include(":libraries:speech:impl")
     include(":libraries:storage")
     include(":libraries:storage:impl")
     // No api sibling on purpose: the public surface is the `logEvent`

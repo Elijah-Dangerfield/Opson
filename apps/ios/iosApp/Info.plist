@@ -95,6 +95,19 @@
 	-->
 	<key>NSCameraUsageDescription</key>
 	<string>Opson uses the camera to read barcodes on food packs. No photos are taken or saved.</string>
+	<!--
+	  Voice log in Describe it (:libraries:speech:impl, Speech and AVFAudio from
+	  Kotlin). Same rule as the camera: the binary references SFSpeechRecognizer
+	  and AVAudioEngine from the build that links the library, even while
+	  release.voice hides the mic, and asking for either permission without its
+	  key crashes. The audio goes to Apple's recognizer only (on the phone when it
+	  supports the language), never into a file and never to Opson. Remove the
+	  keys only together with the library.
+	-->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Opson listens when you tap the mic, so you can say what you ate instead of typing it. Nothing is recorded or saved.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Opson turns what you say into text to fill in your meal. Your iPhone does this on the device when it can; otherwise Apple processes the audio. Opson never keeps the recording.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>

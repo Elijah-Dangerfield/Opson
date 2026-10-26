@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -23,6 +24,7 @@ import com.opson.libraries.navigation.nullableSerializableType
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.scanner.BarcodeCamera
+import com.opson.libraries.speech.MicPermissionPrompt
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheet
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetDefaults
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetState
@@ -45,6 +47,7 @@ class LoggerFeatureEntryPoint(
     private val howItFeltViewModelFactory: (HowItFeltRoute) -> HowItFeltViewModel,
     private val barcodeScanViewModelFactory: (BarcodeScanRoute) -> BarcodeScanViewModel,
     private val barcodeCamera: BarcodeCamera,
+    private val micPermissionPrompt: MicPermissionPrompt,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -137,6 +140,19 @@ class LoggerFeatureEntryPoint(
     private fun LoggerSheet(route: LoggerRoute, sheetState: BottomSheetState, router: Router) {
         val viewModel: LoggerViewModel = viewModel { loggerViewModelFactory(route) }
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+        // Only with release.voice on: off, nothing about the microphone is even composed.
+        val requestMic: (() -> Unit)? = if (state.describe.voice != null) {
+            LifecycleResumeEffect(viewModel) {
+                onPauseOrDispose { viewModel.takeAction(VoiceAction.ScreenPaused) }
+            }
+            micPermissionPrompt.rememberPermissionRequest { answer ->
+                viewModel.takeAction(VoiceAction.MicPermissionAnswered(answer))
+            }
+        } else {
+            null
+        }
+        // The event collector starts with the first composition, before the flag has been read into state.
+        val latestRequestMic by rememberUpdatedState(requestMic)
 
         viewModel.ObserveEvents { event ->
             when (event) {
@@ -163,6 +179,7 @@ class LoggerFeatureEntryPoint(
                 is LoggerEvent.ShowToast -> showToast(event.toast)
                 // Animate the sheet down first; its dismiss callback pops the route.
                 LoggerEvent.Dismiss -> sheetState.dismiss()
+                RequestMicPermission -> latestRequestMic?.invoke()
             }
         }
 
