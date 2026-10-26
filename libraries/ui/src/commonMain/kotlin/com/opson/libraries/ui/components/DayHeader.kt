@@ -78,8 +78,8 @@ fun DayHeader(
                 .padding(horizontal = 4.dp),
             horizontalAlignment = Alignment.Start,
         ) {
-            Text(text = title, typography = AppTheme.type.h1, color = AppTheme.colors.ink, maxLines = 1)
-            Text(text = subtitle, typography = AppTheme.type.secondaryStrong.Tabular, color = AppTheme.colors.muted, maxLines = 1)
+            Text(text = title, typography = AppTheme.type.dayLabel, color = AppTheme.colors.ink, maxLines = 1)
+            Text(text = subtitle, typography = AppTheme.type.secondarySmallStrong.Tabular, color = AppTheme.colors.muted, maxLines = 1)
         }
         HeaderIconButton(icon = nextIcon, onClick = onNext, enabled = nextEnabled)
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically, content = actions)

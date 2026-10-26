@@ -175,15 +175,15 @@ private fun WelcomeStep(
             Spacer(Modifier.height(Dimension.D900))
             Text(
                 text = stringResource(Res.string.onboarding_welcome_subtitle),
-                typography = AppTheme.type.h1,
+                typography = AppTheme.type.display,
                 color = AppTheme.colors.ink,
                 modifier = Modifier.semantics { heading() },
             )
             Spacer(Modifier.height(Dimension.D800))
             Text(
                 text = stringResource(Res.string.onboarding_welcome_body),
-                typography = AppTheme.type.body,
-                color = AppTheme.colors.muted,
+                typography = AppTheme.type.lead,
+                color = AppTheme.colors.inkSoft,
             )
             Spacer(Modifier.height(Dimension.D900))
             PlanCard()
@@ -405,15 +405,15 @@ private fun ColumnScope.RecommendationStep(
         Spacer(Modifier.height(Dimension.D300))
         Text(
             text = chosenLabel,
-            typography = AppTheme.type.h1,
+            typography = AppTheme.type.display,
             color = AppTheme.colors.ink,
             modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.height(Dimension.D200))
         Text(
             text = stringResource(state.chosen.line),
-            typography = AppTheme.type.body,
-            color = AppTheme.colors.muted,
+            typography = AppTheme.type.lead,
+            color = AppTheme.colors.inkSoft,
         )
         Spacer(Modifier.height(Dimension.D700))
 
@@ -530,8 +530,8 @@ private fun ColumnScope.AccountStep(
         Spacer(Modifier.height(Dimension.D500))
         Text(
             text = stringResource(Res.string.onboarding_account_body),
-            typography = AppTheme.type.body,
-            color = AppTheme.colors.muted,
+            typography = AppTheme.type.lead,
+            color = AppTheme.colors.inkSoft,
         )
         Spacer(Modifier.height(Dimension.D900))
 

@@ -53,7 +53,7 @@ fun MaskedTextField(
         keyboardActions = keyboardActions,
         visualTransformation = if (masked) PasswordVisualTransformation() else VisualTransformation.None,
         textAlign = TextAlign.Start,
-        typography = AppTheme.type.body,
+        typography = AppTheme.type.lead,
         fill = AppTheme.colors.bg,
         shape = AppTheme.shapes.input,
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 11.dp),

@@ -130,7 +130,7 @@ fun ActionChip(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(icon = icon, size = 20.dp, color = tone.content)
-            Text(text = label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 1)
+            Text(text = label, typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.ink, maxLines = 1)
         }
     }
 }

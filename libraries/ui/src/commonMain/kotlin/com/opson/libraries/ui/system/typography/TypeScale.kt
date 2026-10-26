@@ -18,6 +18,9 @@ import androidx.compose.ui.unit.sp
  * carry tabular figures; use them, or `.Tabular` on any other style, for every figure on screen.
  *
  * Components take already formatted strings. Nothing here formats a nutrition number.
+ *
+ * Sizes are design v3's, measured on the 3x export (ink width of known strings fitted against
+ * this font) and noted on each style as the size at the 16 sp base. Weights are the handoff's.
  */
 @Immutable
 class TypeScale internal constructor(
@@ -46,52 +49,61 @@ class TypeScale internal constructor(
         fontFeatureSettings = if (tabular) TABULAR_FIGURES else null,
     )
 
-    /** Tab screen title ("Foods", "Trends"). 2em, 800. */
-    val h1 = style("h1", 2f, FontWeight.ExtraBold, HEADING_LINE_HEIGHT, TIGHT_TRACKING, lineBreak = LineBreak.Heading)
+    /** The big onboarding titles (the welcome headline, the recommended mode). 2em (32), 800. */
+    val display = style("display", 2f, FontWeight.ExtraBold, HEADING_LINE_HEIGHT, TIGHT_TRACKING, lineBreak = LineBreak.Heading)
 
-    /** Title of a pushed screen (Nutrients, Weight, a More page). 1.75em, 800. */
-    val subH1 = style("sub-h1", 1.75f, FontWeight.ExtraBold, HEADING_LINE_HEIGHT, TIGHT_TRACKING, lineBreak = LineBreak.Heading)
+    /** Tab screen title ("Foods", "Trends"). 1.75em (28), 800. */
+    val h1 = style("h1", 1.75f, FontWeight.ExtraBold, HEADING_LINE_HEIGHT, TIGHT_TRACKING, lineBreak = LineBreak.Heading)
 
-    /** The day label in the Today header ("Today", "Thu, Oct 22"). 1.5em, 800. */
-    val dayLabel = style("day-label", 1.5f, FontWeight.ExtraBold, 1.1f, TIGHT_TRACKING)
+    /** A question or section headline (onboarding questions). 1.625em (26), 800. */
+    val subH1 = style("sub-h1", 1.625f, FontWeight.ExtraBold, HEADING_LINE_HEIGHT, TIGHT_TRACKING, lineBreak = LineBreak.Heading)
 
-    /** Sheet title. 1.25em, 800. */
+    /**
+     * The day label in the Today header ("Today", "Thu, Oct 22") and the title of a pushed page
+     * (Nutrients, Weight, a More page). 1.3125em (21), 800.
+     */
+    val dayLabel = style("day-label", 1.3125f, FontWeight.ExtraBold, 1.1f, TIGHT_TRACKING)
+
+    /** Sheet title. 1.25em (20), 800. */
     val sheetTitle = style("sheet-title", 1.25f, FontWeight.ExtraBold, HEADING_LINE_HEIGHT)
 
-    /** Card title ("Water", "Breakfast"). 1.0625em, 800. */
-    val cardTitle = style("card-title", 1.0625f, FontWeight.ExtraBold)
+    /** Card title ("Water", "Breakfast"). 1em (16), 800. */
+    val cardTitle = style("card-title", 1f, FontWeight.ExtraBold)
 
-    /** Body copy. 1em, 400. */
-    val body = style("body", 1f, FontWeight.Normal, lineBreak = LineBreak.Paragraph)
+    /** A page's lead paragraph and text the user types (search, inputs). 1em (16), 400. */
+    val lead = style("lead", 1f, FontWeight.Normal, lineBreak = LineBreak.Paragraph)
 
-    /** Row and option titles. 1em, 600. */
-    val bodyStrong = style("body-strong", 1f, FontWeight.SemiBold)
+    /** Body copy and list row text. 0.9375em (15), 400. */
+    val body = style("body", 0.9375f, FontWeight.Normal, lineBreak = LineBreak.Paragraph)
 
-    /** Emphasised row titles (food names, list rows). 1em, 700. */
-    val bodyBold = style("body-bold", 1f, FontWeight.Bold)
+    /** Row and option titles, segmented control labels. 0.9375em (15), 600. */
+    val bodyStrong = style("body-strong", 0.9375f, FontWeight.SemiBold)
 
-    /** Menu items and list actions. 0.9375em, 600. */
+    /** Emphasised row titles (food names, list rows, menu items). 0.9375em (15), 700. */
+    val bodyBold = style("body-bold", 0.9375f, FontWeight.Bold)
+
+    /** Menu items and list actions. 0.9375em (15), 600. */
     val menuItem = style("menu-item", 0.9375f, FontWeight.SemiBold)
 
-    /** Secondary copy. 0.875em, 400. */
-    val secondary = style("secondary", 0.875f, FontWeight.Normal, lineBreak = LineBreak.Paragraph)
+    /** Secondary copy: row subtitles, notes under a chart, axis labels. 0.75em (12), 400. */
+    val secondary = style("secondary", 0.75f, FontWeight.Normal, lineBreak = LineBreak.Paragraph)
 
-    /** Secondary labels on chips and segments. 0.875em, 600. */
-    val secondaryStrong = style("secondary-strong", 0.875f, FontWeight.SemiBold)
+    /** Labels on the hero and above a figure ("Eaten", "Trend"), chips. 0.8125em (13), 600. */
+    val secondaryStrong = style("secondary-strong", 0.8125f, FontWeight.SemiBold)
 
-    /** Subtitles under a row title, field labels. 0.8125em, 400. */
-    val secondarySmall = style("secondary-small", 0.8125f, FontWeight.Normal)
+    /** Subtitles under a row title. 0.75em (12), 400. */
+    val secondarySmall = style("secondary-small", 0.75f, FontWeight.Normal)
 
-    /** Field labels and small chips. 0.8125em, 600. */
-    val secondarySmallStrong = style("secondary-small-strong", 0.8125f, FontWeight.SemiBold)
+    /** Small labels: the date under a page title, "Add to" over the meal. 0.75em (12), 600. */
+    val secondarySmallStrong = style("secondary-small-strong", 0.75f, FontWeight.SemiBold)
 
-    /** Section labels inside a card ("Favorites", "Your foods"). 0.8125em, 700. */
+    /** Section labels ("Saved meals", "How sure are you?"). 0.8125em (13), 700. */
     val sectionLabel = style("section-label", 0.8125f, FontWeight.Bold)
 
-    /** Captions. 0.75em, 400. */
+    /** Captions. 0.75em (12), 400. */
     val caption = style("caption", 0.75f, FontWeight.Normal)
 
-    /** Ring labels and favorite names. 0.75em, 700. */
+    /** Ring labels and favorite names. 0.75em (12), 700. */
     val captionStrong = style("caption-strong", 0.75f, FontWeight.Bold)
 
     /**
@@ -100,26 +112,26 @@ class TypeScale internal constructor(
      */
     val overline = style("overline", 0.75f, FontWeight.ExtraBold, letterSpacingEm = 0.08f)
 
-    /** Bottom navigation labels. 0.6875em, 600 (800 when selected, use `.ExtraBold`). */
-    val navLabel = style("nav-label", 0.6875f, FontWeight.SemiBold)
+    /** Bottom navigation labels. 0.75em (12), 600 (800 when selected, use `.ExtraBold`). */
+    val navLabel = style("nav-label", 0.75f, FontWeight.SemiBold)
 
-    /** Primary call to action. 1em, 700. */
+    /** Primary call to action. 1em (16), 700. */
     val button = style("button", 1f, FontWeight.Bold)
 
-    /** Pill and compact buttons. 0.875em, 700. */
-    val buttonSmall = style("button-small", 0.875f, FontWeight.Bold)
+    /** Half-width, pill and compact buttons. 0.9375em (15), 700. */
+    val buttonSmall = style("button-small", 0.9375f, FontWeight.Bold)
 
-    /** A figure at body size. 1em, 700, tabular. */
+    /** A figure at row size ("6 of 7 days"). 1em (16), 700, tabular. */
     val numeric = style("numeric", 1f, FontWeight.Bold, tabular = true)
 
-    /** The amount in a stepper. 1.125em, 700, tabular. */
-    val numericLarge = style("numeric-large", 1.125f, FontWeight.Bold, tabular = true)
+    /** The amount in a stepper ("1 plate"). 1.375em (22), 700, tabular. */
+    val numericLarge = style("numeric-large", 1.375f, FontWeight.Bold, tabular = true)
 
-    /** A trailing figure on a row. 0.875em, 600, tabular. */
-    val numericSmall = style("numeric-small", 0.875f, FontWeight.SemiBold, tabular = true)
+    /** A trailing figure on a row. 0.8125em (13), 600, tabular. */
+    val numericSmall = style("numeric-small", 0.8125f, FontWeight.SemiBold, tabular = true)
 
-    /** The big figure on Day close ("1,245"). 2.5em, 700, tabular, tight. */
-    val figureDisplay = style("figure-display", 2.5f, FontWeight.Bold, 1f, TIGHT_TRACKING, tabular = true)
+    /** The big figure on Today and Weight ("1,245", "73.4"). 2.25em (36), 700, tabular, tight. */
+    val figureDisplay = style("figure-display", 2.25f, FontWeight.Bold, 1f, TIGHT_TRACKING, tabular = true)
 
     /** The word or count on Today's soft card ("Partway through", "2 of 4"). 1.375em, 800, tabular. */
     val figureHero = style("figure-hero", 1.375f, FontWeight.ExtraBold, tabular = true)

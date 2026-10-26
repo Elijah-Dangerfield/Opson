@@ -76,7 +76,7 @@ fun SearchField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
-        textStyle = AppTheme.type.body.style(ink.color),
+        textStyle = AppTheme.type.lead.style(ink.color),
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Search),
         cursorBrush = SolidColor(AppTheme.colors.accent.color),
@@ -95,7 +95,7 @@ fun SearchField(
                 Icon(icon = AppIcons.Search, size = 22.dp, color = AppTheme.colors.muted)
                 Box(modifier = Modifier.weight(1f).padding(vertical = 12.dp), propagateMinConstraints = true) {
                     if (value.isEmpty()) {
-                        Text(text = placeholder, typography = AppTheme.type.body, color = AppTheme.colors.muted, maxLines = 1)
+                        Text(text = placeholder, typography = AppTheme.type.lead, color = AppTheme.colors.muted, maxLines = 1)
                     }
                     innerTextField()
                 }
@@ -144,7 +144,7 @@ fun SingleLineField(
         keyboardActions = keyboardActions,
         visualTransformation = VisualTransformation.None,
         textAlign = TextAlign.Start,
-        typography = AppTheme.type.body,
+        typography = AppTheme.type.lead,
         fill = AppTheme.colors.surface,
         shape = AppTheme.shapes.inputLarge,
         contentPadding = PaddingValues(horizontal = 14.dp),

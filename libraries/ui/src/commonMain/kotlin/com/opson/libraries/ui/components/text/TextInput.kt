@@ -48,7 +48,7 @@ fun TextInput(
             keyboardActions = keyboardActions,
             visualTransformation = VisualTransformation.None,
             textAlign = TextAlign.Start,
-            typography = AppTheme.type.body,
+            typography = AppTheme.type.lead,
             fill = AppTheme.colors.bg,
             shape = AppTheme.shapes.inputLarge,
             contentPadding = PaddingValues(horizontal = 14.dp),

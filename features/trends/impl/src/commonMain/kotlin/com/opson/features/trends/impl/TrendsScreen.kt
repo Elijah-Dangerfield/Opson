@@ -402,7 +402,7 @@ private fun WeightCardView(card: WeightCard, onClick: () -> Unit) {
 
 @Composable
 private fun CardTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text = text, typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink, modifier = modifier)
+    Text(text = text, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, modifier = modifier)
 }
 
 /** A title over a muted subtitle, then [trailing] and the chevron that says the card opens a page. */

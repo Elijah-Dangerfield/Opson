@@ -89,7 +89,7 @@ fun NumberField(
             keyboardActions = keyboardActions,
             visualTransformation = VisualTransformation.None,
             textAlign = textAlign,
-            typography = AppTheme.type.body,
+            typography = AppTheme.type.lead,
             fill = AppTheme.colors.bg,
             shape = AppTheme.shapes.input,
             contentPadding = PaddingValues(horizontal = 12.dp),

@@ -81,8 +81,8 @@ fun ModesScreen(
         )
         Text(
             text = stringResource(Res.string.settings_modes_intro),
-            typography = AppTheme.type.secondary,
-            color = AppTheme.colors.ink,
+            typography = AppTheme.type.body,
+            color = AppTheme.colors.inkSoft,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         SectionLabel(stringResource(Res.string.settings_modes_presets_header))

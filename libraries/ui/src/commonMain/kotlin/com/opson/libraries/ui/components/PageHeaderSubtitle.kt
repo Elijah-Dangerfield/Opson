@@ -80,7 +80,7 @@ fun PageHeader(
                 modifier = Modifier.semantics { heading() },
             )
             if (subtitle != null) {
-                Text(text = subtitle, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted, maxLines = 1)
+                Text(text = subtitle, typography = AppTheme.type.secondarySmallStrong, color = AppTheme.colors.muted, maxLines = 1)
             }
         }
     }

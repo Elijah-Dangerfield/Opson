@@ -38,7 +38,7 @@ fun TextArea(
     minLines: Int = 3,
     enabled: Boolean = true,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    typography: TypographyResource = AppTheme.type.body,
+    typography: TypographyResource = AppTheme.type.lead,
     borderColor: ColorResource = AppTheme.colors.line,
 ) {
     InputBox(

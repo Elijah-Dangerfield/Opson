@@ -67,7 +67,7 @@ fun <T> SegmentedControl(
             ) {
                 Text(
                     text = label(option),
-                    typography = AppTheme.type.secondaryStrong,
+                    typography = AppTheme.type.bodyStrong,
                     color = if (isSelected) colors.ink else colors.muted,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
