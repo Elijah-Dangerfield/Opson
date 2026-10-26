@@ -9,6 +9,8 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandler
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.HttpTimeoutCapability
+import io.ktor.client.plugins.HttpTimeoutConfig
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -28,7 +30,12 @@ class HttpMealPhotoEstimatorTest : CoroutineTest() {
     private class FakeNetworkClient(handler: MockRequestHandler) : NetworkClient {
         private val http = HttpClient(MockEngine(handler)) {
             expectSuccess = true
-            install(HttpTimeout)
+            // As the app's client: every timeout at the 30 s default.
+            install(HttpTimeout) {
+                requestTimeoutMillis = 30_000
+                connectTimeoutMillis = 30_000
+                socketTimeoutMillis = 30_000
+            }
             install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         }
         override val client: HttpClient get() = http
@@ -83,6 +90,21 @@ class HttpMealPhotoEstimatorTest : CoroutineTest() {
         assertEquals(PhotoEstimate.TooMany, estimator(HttpStatusCode.TooManyRequests).estimate(byteArrayOf(1), null))
         assertEquals(PhotoEstimate.Failed(offline = false), estimator(HttpStatusCode.BadGateway).estimate(byteArrayOf(1), null))
         assertEquals(PhotoEstimate.Failed(offline = false), estimator(HttpStatusCode.PayloadTooLarge).estimate(byteArrayOf(1), null))
+    }
+
+    @Test
+    fun theWaitForTheModelOutlastsTheClientsDefaultTimeouts() = runUnitTest {
+        var timeouts: HttpTimeoutConfig? = null
+        HttpMealPhotoEstimator(
+            FakeNetworkClient { request ->
+                timeouts = request.getCapabilityOrNull(HttpTimeoutCapability)
+                respond("""{"items":[]}""", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        ).estimate(byteArrayOf(1), null)
+
+        // Nothing comes back until the model answers, so a 30 s socket timeout would cut it off.
+        assertEquals(HttpMealPhotoEstimator.TIMEOUT_MS, timeouts?.requestTimeoutMillis)
+        assertEquals(HttpMealPhotoEstimator.TIMEOUT_MS, timeouts?.socketTimeoutMillis)
     }
 
     @Test
