@@ -141,7 +141,7 @@ in Health Connect reads as not connected on the next `refresh()`.
 - **iOS**: `com.apple.developer.healthkit` (true) and
   `com.apple.developer.healthkit.access` (empty) in `iosApp.entitlements`;
   the HealthKit capability in the Xcode target; `HealthKit.framework` linked
-  (the Kotlin framework is static, so it does not bring its own link);
+  explicitly, as adding the capability in Xcode would;
   `NSHealthShareUsageDescription` in `Info.plist`. No
   `NSHealthUpdateUsageDescription`: Opson never writes.
 
@@ -186,6 +186,7 @@ are `(source, status, energy, today)`. Every amount is
 - `OpenSourceTapped`: `openSourceSettings()`.
 - `BackTapped`: `Close`.
 - `ScreenResumed`: `refresh()`, so returning from Health Connect's own screen updates the status.
+  More has the same action for its row.
 
 ## Events
 `Close`, `OpenLink(url)`, `ShowToast(toast)` ("Connected to Health Connect." / "Disconnected.").
@@ -212,7 +213,7 @@ The line is decided in `TodayStateBuilder`; the screen never checks a mode.
 - Hidden: `Your mode isn't showing energy numbers right now.`
 - Footer: `Health data stays on this phone. Opson doesn't send it anywhere.`
 - iOS disconnect note: `To remove access completely, open the Health app, tap your picture, then Apps.`
-- Toasts: `Connected to %1$s.`, `Disconnected.`
+- Toasts: `Connected.`, `Disconnected.`
 - More row: `Watch and health apps`, `Connected` / `Not connected`
 - Today: `Expended so far`
 

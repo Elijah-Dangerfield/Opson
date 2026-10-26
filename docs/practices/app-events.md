@@ -112,6 +112,19 @@ sheet's "What's prompting this?" answer.
 |---|---|---|
 | `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details, quick_number, name_only, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
 
+### Watch and health apps (0.2, behind `release.health`)
+
+All from `RealHealthRepository` (`:libraries:health:impl`), the one place that asks the platform
+store for anything, so no screen emits them. `source` is `apple_health` or `health_connect`, and it
+is the only attribute: **no event carries an energy value, a count of workouts or anything read
+from the store.** Health values never leave the device.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `health.connected` | `source` | Connect went through: Health Connect granted every permission, or HealthKit's sheet closed without an error (iOS never says whether reading was allowed) |
+| `health.permission_denied` | `source` | Connect came back without the permissions, or the prompt failed |
+| `health.disconnected` | `source` | Disconnect on Watch and health apps |
+
 ## Warn+ log forwarding (not events)
 
 Besides events, `GrafanaLogTree` forwards plain KLog lines at Warn and above to Loki as ordinary
