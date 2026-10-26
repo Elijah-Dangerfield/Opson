@@ -285,30 +285,6 @@ fun Modifier.dashedBorder(color: Color, radius: Dp, strokeWidth: Dp = 1.5.dp): M
     )
 }
 
-/** A soft rounded button with an icon and a label, for suggestions under a meal: "Yesterday's dinner", "Saved meals". */
-@Composable
-fun SuggestionButton(
-    label: String,
-    icon: IconResource,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .defaultMinSize(minHeight = MinTouchTarget)
-            .clip(AppTheme.shapes.inputLarge)
-            .background(AppTheme.colors.soft)
-            .semantics { role = Role.Button }
-            .bounceClick(scaleDown = 0.97f, onClick = onClick)
-            .padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(icon = icon, size = 22.dp, color = AppTheme.colors.ink)
-        Text(text = label, typography = AppTheme.type.menuItem.Bold, color = AppTheme.colors.ink, maxLines = 1)
-    }
-}
-
 /** A pill action: "Plan it" on the accent tint, or "Copy" on the solid accent when [solid]. 48 tall. */
 @Composable
 fun PillAction(
@@ -381,7 +357,6 @@ private fun DayHeaderPreview() {
                 ),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-                SuggestionButton(label = "Yesterday's dinner", icon = AppIcons.ContentCopy, onClick = {})
                 PillAction(label = "Plan it", onClick = {})
                 PillAction(label = "Copy", onClick = {}, solid = true)
             }

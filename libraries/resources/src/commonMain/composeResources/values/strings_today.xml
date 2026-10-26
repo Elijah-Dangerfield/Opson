@@ -79,9 +79,6 @@
     <string name="today_item_sub">%1$s · %2$s</string>
     <string name="today_meal_usually">Usually around %1$s</string>
     <string name="today_meal_around">Around %1$s</string>
-    <string name="today_meal_yesterday">Yesterday's %1$s</string>
-    <string name="today_meal_copy">Copy</string>
-    <string name="today_meal_saved">Saved meals</string>
     <string name="today_feel_prompt">How did it feel?</string>
     <string name="today_feel_pair">%1$s → %2$s</string>
     <string name="today_plan_title">Planned meals count as logged</string>
@@ -141,11 +138,8 @@
     <string name="today_note_title">Note, %1$s</string>
     <string name="today_note_placeholder">Where you were, who with, anything worth remembering</string>
     <string name="today_note_save">Save</string>
-    <string name="today_feel_title">How %1$s felt</string>
-    <string name="today_feel_subtitle">All optional. Only you see this.</string>
     <string name="today_feel_hunger">Hunger before</string>
     <string name="today_feel_fullness">Fullness after</string>
-    <string name="today_feel_mood">Mood, pick any</string>
     <string name="today_feel_save">Save</string>
 
     <!-- Water sheet -->
@@ -246,7 +240,6 @@
     <string name="today_weight">Weight</string>
     <string name="today_weight_this_morning">This morning · %1$s</string>
     <string name="today_weight_today">Today · %1$s</string>
-    <string name="today_weight_at">%1$s</string>
     <string name="today_summary_card">Summary card</string>
     <string name="today_summary_done">Done</string>
     <string name="today_summary_suggested">Suggested from your goals: %1$s</string>
