@@ -26,6 +26,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.jsonObject
 import kotlin.test.AfterTest
@@ -214,7 +216,9 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aChangeToADayTooFarAheadWaitsUntilTheServerWillTakeIt() = runUnitTest {
-        repo.addItems(LocalDate(2026, 10, 31), MealSlot.Lunch, listOf(draft("Planned")), LogMethod.Search)
+        // One day past what the server takes, counted from the fake clock's 2026-10-25.
+        val planned = LocalDate(2026, 10, 25).plus(SERVER_MAX_DAYS_AHEAD + 1, DateTimeUnit.DAY)
+        repo.addItems(planned, MealSlot.Lunch, listOf(draft("Planned")), LogMethod.Search)
 
         syncer.sync()
 
@@ -222,7 +226,7 @@ class DiarySyncerTest : CoroutineTest() {
         assertEquals(1, db.outbox.rows.size)
         assertTrue(logs.entries.isEmpty(), "holding a planned day is expected, not a warning")
 
-        clock.now = kotlin.time.Instant.parse("2026-10-29T12:00:00Z")
+        clock.now = kotlin.time.Instant.parse("2026-10-26T12:00:00Z")
         syncer.sync()
 
         assertEquals(1, api.requests.last().mutations.size)
