@@ -31,6 +31,7 @@ import platform.UIKit.UIImagePickerController
 import platform.UIKit.UIImagePickerControllerDelegateProtocol
 import platform.UIKit.UIImagePickerControllerOriginalImage
 import platform.UIKit.UIImagePickerControllerSourceType
+import platform.UIKit.UIModalPresentationOverFullScreen
 import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.UIKit.UIViewController
 import platform.darwin.DISPATCH_QUEUE_PRIORITY_DEFAULT
@@ -76,6 +77,10 @@ class IosMealPhotoPicker @Inject constructor() : MealPhotoPicker {
                     val picker = UIImagePickerController().apply {
                         sourceType = UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypeCamera
                         this.delegate = delegate
+                        // Over, not instead of, the Compose host: a plain full-screen presentation takes the
+                        // host's view away, and its lifecycle can stay below STARTED after the camera closes,
+                        // which wedges navigation (AGENTS.md, "Known landmines"). PHPicker is a page sheet already.
+                        modalPresentationStyle = UIModalPresentationOverFullScreen
                     }
                     presenter.presentViewController(picker, animated = true, completion = null)
                 }

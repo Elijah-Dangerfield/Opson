@@ -39,6 +39,9 @@ enum class PickSource {
 
     /** A scanned barcode the catalog knew. */
     Barcode,
+
+    /** A line Photo estimate read from a meal photo, as the person corrected it. */
+    Photo,
     ;
 
     /**
@@ -51,7 +54,8 @@ enum class PickSource {
         this == Search -> LogMethod.Search
         this == Favorite || this == Usual -> LogMethod.Favorite
         this == Saved -> LogMethod.Saved
-        this == Describe -> LogMethod.Describe
+        // A photo line is an estimate read for the person, like Describe; the server has no photo method.
+        this == Describe || this == Photo -> LogMethod.Describe
         this == Barcode -> LogMethod.Barcode
         else -> LogMethod.Recent
     }

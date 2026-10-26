@@ -74,6 +74,7 @@ import opson.libraries.resources.generated.resources.logger_matches
 import opson.libraries.resources.generated.resources.logger_meal_picker_cd
 import opson.libraries.resources.generated.resources.logger_method_ate
 import opson.libraries.resources.generated.resources.logger_method_describe
+import opson.libraries.resources.generated.resources.photo_method
 import opson.libraries.resources.generated.resources.logger_method_note
 import opson.libraries.resources.generated.resources.logger_method_number
 import opson.libraries.resources.generated.resources.logger_method_saved
@@ -239,6 +240,7 @@ private fun MethodChip(method: LoggerMethod, onAction: (LoggerAction) -> Unit) {
     val nutrients = colors.nutrients
     val plain = ToneColors(content = colors.ink, container = colors.soft)
     val chip = when (method) {
+        LoggerMethod.Photo -> Chip(stringResource(Res.string.photo_method), AppIcons.PhotoCamera, nutrients.protein, LoggerAction.PhotoTapped)
         LoggerMethod.DescribeIt -> Chip(stringResource(Res.string.logger_method_describe), AppIcons.Mic, nutrients.fat, LoggerAction.DescribeItTapped)
         is LoggerMethod.Yesterday -> Chip(
             stringResource(Res.string.logger_method_yesterday),

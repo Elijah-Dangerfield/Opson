@@ -47,6 +47,8 @@ data class LoggerChoices(
     val pickingForMeal: Boolean = false,
     /** `release.barcode`, read once when the sheet opens. */
     val scanAvailable: Boolean = false,
+    /** `release.photo`, read once when the sheet opens. */
+    val photoAvailable: Boolean = false,
 )
 
 /**
@@ -75,7 +77,7 @@ object LoggerStateBuilder {
             // A scan logs into this meal, so a meal being put together has no scanner.
             canScan = choices.scanAvailable && !choices.pickingForMeal,
             // The method chips all log straight to the diary, so pick mode has none.
-            methods = if (typing || choices.pickingForMeal) emptyList() else methods(inputs, policy, slot),
+            methods = if (typing || choices.pickingForMeal) emptyList() else methods(inputs, policy, slot, choices.photoAvailable),
             body = body(inputs, policy, slot, choices, bare),
             describe = DescribeUi(
                 text = choices.describeText,
@@ -123,7 +125,8 @@ object LoggerStateBuilder {
         return sections.usual + sections.recent
     }
 
-    private fun methods(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot): List<LoggerMethod> = buildList {
+    private fun methods(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot, photo: Boolean): List<LoggerMethod> = buildList {
+        if (photo) add(LoggerMethod.Photo)
         add(LoggerMethod.DescribeIt)
         if (inputs.dayBefore.items(slot).isNotEmpty()) add(LoggerMethod.Yesterday(slot))
         add(LoggerMethod.SavedMeals)

@@ -62,6 +62,7 @@ class LoggerViewModelTest : CoroutineTest() {
         route: LoggerRoute = LoggerRoute(slot = MealSlot.Dinner),
         at: Instant = NOON,
         scanOn: Boolean = false,
+        photoOn: Boolean = false,
     ) = LoggerViewModel(
         route = route,
         diary = diary,
@@ -79,6 +80,7 @@ class LoggerViewModelTest : CoroutineTest() {
         telemetry = telemetry,
         mealPicks = mealPicks,
         scanEnabled = scanFlag(scanOn),
+        photoEnabled = photoFlag(photoOn),
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {
@@ -118,6 +120,45 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(LoggerPane.Search, vm.state.pane)
         assertEquals("", vm.state.query)
         assertTrue(vm.state.canScan)
+    }
+
+    @Test
+    fun photoTappedOpensThePhotoSheetForThisDayAndMealWhenTheFlagIsOn() = runUnitTest {
+        val vm = vm(photoOn = true)
+        val events = events(vm)
+        settle()
+        assertEquals(LoggerMethod.Photo, vm.state.methods.first())
+
+        vm.takeAction(LoggerAction.PhotoTapped)
+        settle()
+
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenPhoto(LoggerFixtures.today, MealSlot.Dinner)), events)
+    }
+
+    @Test
+    fun withThePhotoFlagOffThereIsNoChipAndTheTapDoesNothing() = runUnitTest {
+        val vm = vm(photoOn = false)
+        val events = events(vm)
+        settle()
+        assertFalse(LoggerMethod.Photo in vm.state.methods)
+
+        vm.takeAction(LoggerAction.PhotoTapped)
+        settle()
+
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun pickingForAMealHasNoPhotoChip() = runUnitTest {
+        val vm = vm(LoggerRoute(pickForMeal = "meal-1"), photoOn = true)
+        val events = events(vm)
+        settle()
+        assertTrue(vm.state.methods.isEmpty())
+
+        vm.takeAction(LoggerAction.PhotoTapped)
+        settle()
+
+        assertTrue(events.isEmpty())
     }
 
     @Test

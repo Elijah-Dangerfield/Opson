@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -23,6 +24,7 @@ import com.opson.libraries.navigation.nullableSerializableType
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.scanner.BarcodeCamera
+import com.opson.libraries.scanner.MealPhotoPicker
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheet
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetDefaults
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetState
@@ -45,6 +47,9 @@ class LoggerFeatureEntryPoint(
     private val howItFeltViewModelFactory: (HowItFeltRoute) -> HowItFeltViewModel,
     private val barcodeScanViewModelFactory: (BarcodeScanRoute) -> BarcodeScanViewModel,
     private val barcodeCamera: BarcodeCamera,
+    private val photoEstimateViewModelFactory: (PhotoEstimateRoute) -> PhotoEstimateViewModel,
+    // A provider, so nothing about photos is built at launch; the sheet asks for it when it opens.
+    private val mealPhotoPicker: () -> MealPhotoPicker,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -108,6 +113,13 @@ class LoggerFeatureEntryPoint(
             BarcodeScanner(backStackEntry.toRoute<BarcodeScanRoute>(), router)
         }
 
+        // Only the logger's Photo chip opens it, and that chip is behind release.photo.
+        bottomSheet<PhotoEstimateRoute>(
+            typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
+        ) { backStackEntry, sheetState ->
+            PhotoEstimateSheet(backStackEntry.toRoute<PhotoEstimateRoute>(), sheetState, router)
+        }
+
         bottomSheet<HowItFeltRoute>(
             typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
         ) { backStackEntry, sheetState ->
@@ -160,6 +172,7 @@ class LoggerFeatureEntryPoint(
                 }
                 // Over the sheet, so Back from the scanner lands on the logger and its basket.
                 is LoggerEvent.OpenScanner -> router.navigate(BarcodeScanRoute(event.day.toString(), event.slot))
+                is LoggerEvent.OpenPhoto -> router.navigate(PhotoEstimateRoute(event.day.toString(), event.slot))
                 is LoggerEvent.ShowToast -> showToast(event.toast)
                 // Animate the sheet down first; its dismiss callback pops the route.
                 LoggerEvent.Dismiss -> sheetState.dismiss()
@@ -176,6 +189,51 @@ class LoggerFeatureEntryPoint(
             backgroundColor = AppTheme.colors.bg,
         ) {
             LoggerSheetContent(state = state, onAction = viewModel::takeAction)
+        }
+    }
+
+    @Composable
+    private fun PhotoEstimateSheet(route: PhotoEstimateRoute, sheetState: BottomSheetState, router: Router) {
+        val viewModel: PhotoEstimateViewModel = viewModel { photoEstimateViewModelFactory(route) }
+        val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+        val picker = remember { mealPhotoPicker() }
+        val launchCamera = picker.rememberCamera { viewModel.takeAction(PhotoEstimateAction.PhotoAnswered(it, fromCamera = true)) }
+        val launchLibrary = picker.rememberLibrary { viewModel.takeAction(PhotoEstimateAction.PhotoAnswered(it, fromCamera = false)) }
+        val requestPermission = barcodeCamera.rememberPermissionRequest { answer ->
+            viewModel.takeAction(PhotoEstimateAction.CameraPermissionAnswered(answer))
+        }
+
+        viewModel.ObserveEvents { event ->
+            when (event) {
+                PhotoEstimateEvent.LaunchCamera -> launchCamera()
+                PhotoEstimateEvent.LaunchLibrary -> launchLibrary()
+                PhotoEstimateEvent.RequestCameraPermission -> requestPermission()
+                // This sheet and the logger go; the logger comes back on Describe it, its basket intact.
+                is PhotoEstimateEvent.OpenDescribe -> router.batch {
+                    goBack()
+                    goBack()
+                    navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString(), start = LoggerStart.Describe))
+                }
+                // Both sheets go, as after the amount sheet's Add. Today takes it from RecentLogEvents.
+                is PhotoEstimateEvent.Logged -> router.batch {
+                    goBack()
+                    goBack()
+                    if (event.committed.askHowItFelt) navigate(HowItFeltRoute(event.day.toString(), event.committed.slot))
+                }
+                PhotoEstimateEvent.Dismiss -> sheetState.dismiss()
+            }
+        }
+
+        BottomSheet(
+            onDismissRequest = { router.goBack() },
+            state = sheetState,
+            heightFraction = BottomSheetDefaults.FullHeightFraction,
+            showDragHandle = true,
+            // Back while swapping a food returns to the list; the content handles that one.
+            shouldDismissOnBackPress = state.stage !is PhotoStage.Swap,
+            backgroundColor = AppTheme.colors.bg,
+        ) {
+            PhotoEstimateSheetContent(state = state, onAction = viewModel::takeAction)
         }
     }
 

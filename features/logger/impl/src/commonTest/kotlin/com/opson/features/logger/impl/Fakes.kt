@@ -48,6 +48,11 @@ import kotlinx.datetime.TimeZone
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
+import com.opson.libraries.scanner.PhotoPickResult
+import com.opson.libraries.scanner.MealPhotoPicker
+import com.opson.libraries.foods.PhotoEstimate
+import com.opson.libraries.foods.MealPhotoEstimator
+import androidx.compose.runtime.Composable
 
 /** Noon on the fixtures' today, before the 9 pm reveal. */
 val NOON: Instant = Instant.parse("2026-10-25T12:00:00Z")
@@ -338,4 +343,49 @@ class RecordingBarcodeTelemetry : BarcodeTelemetry {
 class FakeAppState(offline: Boolean = false) : AppState {
     override val isOffline = MutableStateFlow(offline)
     override val isBlockActive: StateFlow<Boolean> = MutableStateFlow(false)
+}
+
+/** `release.photo` as the remote config would set it. */
+fun photoFlag(on: Boolean): PhotoEstimateEnabled = PhotoEstimateEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("photo" to on))
+    },
+)
+
+/** Answers with [answer] and remembers what it was sent. */
+class FakeMealPhotoEstimator(var answer: PhotoEstimate = PhotoEstimate.Items(PhotoFixtures.items)) : MealPhotoEstimator {
+    val sent = mutableListOf<Pair<ByteArray, String?>>()
+
+    override suspend fun estimate(jpeg: ByteArray, note: String?): PhotoEstimate {
+        sent += jpeg to note
+        return answer
+    }
+}
+
+class FakeMealPhotoPicker(override val canTakePhoto: Boolean = true) : MealPhotoPicker {
+    @Composable
+    override fun rememberCamera(onResult: (PhotoPickResult) -> Unit): () -> Unit = {}
+
+    @Composable
+    override fun rememberLibrary(onResult: (PhotoPickResult) -> Unit): () -> Unit = {}
+}
+
+class RecordingPhotoTelemetry : PhotoTelemetry {
+    val events = mutableListOf<String>()
+
+    override fun started(fromCamera: Boolean) {
+        events += "started ${if (fromCamera) "camera" else "library"}"
+    }
+
+    override fun estimated(items: Int, matched: Int) {
+        events += "estimated items=$items matched=$matched"
+    }
+
+    override fun added(items: Int) {
+        events += "added items=$items"
+    }
+
+    override fun failed(reason: PhotoFailure) {
+        events += "failed ${reason.wire}"
+    }
 }

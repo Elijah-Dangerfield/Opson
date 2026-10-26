@@ -79,6 +79,7 @@ class LoggerViewModel(
     private val telemetry: LoggerTelemetry,
     private val mealPicks: MealPicks,
     scanEnabled: BarcodeScanEnabled,
+    photoEnabled: PhotoEstimateEnabled,
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
     initialStateArg = LoggerState(focusSearch = route.focusSearch, pane = route.start.pane, pickingForMeal = route.pickForMeal != null),
 ) {
@@ -100,6 +101,7 @@ class LoggerViewModel(
             focusNumber = route.start == LoggerStart.Number,
             pickingForMeal = route.pickForMeal != null,
             scanAvailable = scanEnabled(),
+            photoAvailable = photoEnabled(),
         ),
         policy = policySource.policy.value,
     )
@@ -176,6 +178,9 @@ class LoggerViewModel(
             LoggerAction.CloseTapped -> sendEvent(LoggerEvent.Dismiss)
             LoggerAction.BarcodeTapped -> if (model.choices.scanAvailable && pickForMeal == null) {
                 sendEvent(LoggerEvent.OpenScanner(day, slot()))
+            }
+            LoggerAction.PhotoTapped -> if (model.choices.photoAvailable && pickForMeal == null) {
+                sendEvent(LoggerEvent.OpenPhoto(day, slot()))
             }
         }
     }

@@ -48,8 +48,9 @@ data class LoggerState(
 /** The three faces of the sheet. Describe and Saved were the Log screen's tabs before design v3. */
 enum class LoggerPane { Search, Describe, Saved }
 
-/** The method chips, in the design's order. Photo is Later and not built. */
+/** The method chips, in the design's order. Photo is 0.2, behind `release.photo`. */
 sealed interface LoggerMethod {
+    data object Photo : LoggerMethod
     data object DescribeIt : LoggerMethod
     data class Yesterday(val slot: MealSlot) : LoggerMethod
     data object SavedMeals : LoggerMethod
@@ -164,6 +165,9 @@ sealed interface LoggerAction {
 
     /** The barcode button in the empty search bar. */
     data object BarcodeTapped : LoggerAction
+
+    /** The Photo chip. */
+    data object PhotoTapped : LoggerAction
 }
 
 sealed interface LoggerEvent {
@@ -171,6 +175,7 @@ sealed interface LoggerEvent {
     data class OpenMealNote(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenHowItFelt(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenScanner(val day: LocalDate, val slot: MealSlot) : LoggerEvent
+    data class OpenPhoto(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class ShowToast(val toast: Toast) : LoggerEvent
     data object Dismiss : LoggerEvent
 }

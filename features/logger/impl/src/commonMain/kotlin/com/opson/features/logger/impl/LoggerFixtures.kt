@@ -195,6 +195,7 @@ object LoggerFixtures {
         firstRun: Boolean = false,
         pickingForMeal: Boolean = false,
         scanAvailable: Boolean = false,
+        photoAvailable: Boolean = false,
     ): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(basket = basket, settings = settings, date = date, firstRun = firstRun),
         policy = policy,
@@ -204,6 +205,7 @@ object LoggerFixtures {
             search = search,
             pickingForMeal = pickingForMeal,
             scanAvailable = scanAvailable,
+            photoAvailable = photoAvailable,
         ),
     )
 

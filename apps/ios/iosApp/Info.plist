@@ -92,9 +92,14 @@
 	  without it the upload is rejected with ITMS-90683. Frames are only read
 	  for barcodes on the device and never stored, which is what the string
 	  says. Remove the key only together with the scanner.
+
+	  Photo estimate (release.photo) also takes one photo with the system
+	  camera, when the person asks for an estimate. It is held in memory, sent
+	  for the estimate and dropped, so "never saved" stays true. The library
+	  side uses PHPicker, which needs no NSPhotoLibraryUsageDescription.
 	-->
 	<key>NSCameraUsageDescription</key>
-	<string>Opson uses the camera to read barcodes on food packs. No photos are taken or saved.</string>
+	<string>Opson uses the camera to read barcodes on food packs, or to photograph a meal when you ask for an estimate. Photos are never saved.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>

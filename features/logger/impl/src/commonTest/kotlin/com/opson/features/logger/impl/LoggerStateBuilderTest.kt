@@ -85,7 +85,12 @@ class LoggerStateBuilderTest {
         query: String = "",
         search: SearchOutcome? = null,
         pane: LoggerPane = LoggerPane.Search,
-    ) = LoggerStateBuilder.build(inputs, policy, LoggerChoices(slot = slot, pane = pane, query = query, search = search))
+        photo: Boolean = false,
+    ) = LoggerStateBuilder.build(
+        inputs,
+        policy,
+        LoggerChoices(slot = slot, pane = pane, query = query, search = search, photoAvailable = photo),
+    )
 
     private fun Display.text(): String? = when (this) {
         is Display.Shown -> text
@@ -139,6 +144,15 @@ class LoggerStateBuilderTest {
         val row = assertIs<LoggerBody.Browse>(build(policy = overridden).body).recent.single()
 
         assertEquals(listOf("5P", "2F"), row.macros.map { it.text })
+    }
+
+    @Test
+    fun photoLeadsTheChipsOnlyWithTheFlagOn() {
+        assertEquals(LoggerMethod.Photo, build(photo = true).methods.first())
+        assertFalse(LoggerMethod.Photo in build(photo = false).methods)
+        // No numbers on the chip, so every mode offers it.
+        assertEquals(LoggerMethod.Photo, build(policy = policy(PresetId.Blind), photo = true).methods.first())
+        assertTrue(build(query = "rice", photo = true).methods.isEmpty())
     }
 
     @Test

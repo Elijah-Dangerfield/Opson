@@ -38,6 +38,16 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-scan-miss", label = "Barcode not found", showsCaloriesInFull = false) { _ ->
             BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed), onAction = {}, viewfinder = {})
         },
+        LeakSurface(id = "logger-photo", label = "Photo estimate", showsCaloriesInFull = true) { policy ->
+            PhotoEstimateSheetContent(state = PhotoFixtures.reviewState(policy, editing = true), onAction = {})
+        },
+        LeakSurface(id = "logger-photo-swap", label = "Photo estimate, swap a food", showsCaloriesInFull = true) { policy ->
+            PhotoEstimateSheetContent(state = PhotoFixtures.swapState(policy), onAction = {})
+        },
+        // The start names no number in any mode; the note a person types is theirs.
+        LeakSurface(id = "logger-photo-start", label = "Photo estimate, before the photo", showsCaloriesInFull = false) { policy ->
+            PhotoEstimateSheetContent(state = PhotoFixtures.startState(policy, note = PhotoFixtures.NOTE), onAction = {})
+        },
         LeakSurface(id = "logger-how-it-felt", label = "How it felt", showsCaloriesInFull = false) { _ ->
             HowItFeltSheetContent(state = LoggerFixtures.howItFeltState(), onAction = {})
         },
