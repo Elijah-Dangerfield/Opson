@@ -11,6 +11,10 @@ class ModesRoute : Route()
 @Serializable
 class TargetsRoute : Route()
 
+/** The goal style picker over Targets: a range, a set deficit, or different by day. */
+@Serializable
+class GoalStyleRoute : Route()
+
 /**
  * Water goal, glass size and units. [fromMore] picks the back label: Today's water sheet opens
  * it with `false` ("‹ Today"), the More list with `true` ("‹ More").

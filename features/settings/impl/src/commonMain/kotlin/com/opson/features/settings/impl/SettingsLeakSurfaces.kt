@@ -9,8 +9,11 @@ import com.opson.features.settings.impl.more.MoreStateBuilder
 import com.opson.features.settings.impl.pause.PauseSheetContent
 import com.opson.features.settings.impl.pause.PauseState
 import com.opson.features.settings.impl.pause.PauseSubject
+import com.opson.features.settings.impl.support.DeleteStep
 import com.opson.features.settings.impl.support.SupportScreen
 import com.opson.features.settings.impl.support.SupportState
+import com.opson.features.settings.impl.targets.GoalStyleSheetContent
+import com.opson.features.settings.impl.targets.GoalStyleStateBuilder
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsStateBuilder
 import com.opson.features.settings.impl.water.WaterSettingsScreen
@@ -25,8 +28,9 @@ import com.opson.libraries.nutrition.ui.leak.LeakSurface
  */
 object SettingsLeakSurfaces {
     val all: List<LeakSurface> = listOf(
-        LeakSurface(id = "more", label = "More", showsCaloriesInFull = true) { policy ->
-            MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings(policy.settings), policy), onAction = {})
+        // v3: no row on More carries an amount, in any mode.
+        LeakSurface(id = "more", label = "More", showsCaloriesInFull = false) { policy ->
+            MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})
         },
         LeakSurface(id = "modes", label = "Modes and numbers", showsCaloriesInFull = false) { policy ->
             ModesScreen(ModesStateBuilder.build(policy.settings, SettingsFixtures.timeZone), onAction = {})
@@ -37,6 +41,17 @@ object SettingsLeakSurfaces {
         LeakSurface(id = "targets", label = "Targets", showsCaloriesInFull = true) { policy ->
             TargetsScreen(TargetsStateBuilder.build(SettingsFixtures.settings(policy.settings), policy), onAction = {})
         },
+        LeakSurface(id = "targets-goal-style", label = "Goal style", showsCaloriesInFull = false) { policy ->
+            GoalStyleSheetContent(GoalStyleStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})
+        },
+        LeakSurface(id = "targets-deficit", label = "Targets, set deficit", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.deficitTargets)
+            TargetsScreen(TargetsStateBuilder.build(settings, policy, burnKcal = SettingsFixtures.BURN_KCAL), onAction = {})
+        },
+        LeakSurface(id = "targets-by-day", label = "Targets, different by day", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.byDayTargets)
+            TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 1), onAction = {})
+        },
         LeakSurface(id = "water-settings", label = "Water settings", showsCaloriesInFull = false) { policy ->
             WaterSettingsScreen(
                 WaterSettingsStateBuilder.build(SettingsFixtures.settings(policy.settings), backToMore = false),
@@ -45,6 +60,9 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "support", label = "Support", showsCaloriesInFull = false) { _ ->
             SupportScreen(SupportState(), onAction = {})
+        },
+        LeakSurface(id = "support-delete", label = "Support, delete everything", showsCaloriesInFull = false) { _ ->
+            SupportScreen(SupportState(delete = DeleteStep.Confirming), onAction = {})
         },
         LeakSurface(id = "look-and-feel", label = "Look and feel", showsCaloriesInFull = false) { policy ->
             LookAndFeelScreen(LookAndFeelStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})

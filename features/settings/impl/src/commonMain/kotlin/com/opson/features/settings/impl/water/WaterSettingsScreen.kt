@@ -9,9 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.opson.features.settings.impl.LightAndDark
 import com.opson.features.settings.impl.SettingsFixtures
+import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
+import com.opson.features.settings.impl.SettingsPreview
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.WaterUnit
@@ -19,7 +20,6 @@ import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
-import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
@@ -44,12 +44,12 @@ fun WaterSettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     SettingsPage(modifier = modifier) {
-        PageHeader(
+        SettingsHeader(
             title = stringResource(Res.string.settings_water_title),
             backLabel = stringResource(if (state.backToMore) Res.string.settings_back_more else Res.string.settings_back_today),
             onBack = { onAction(WaterSettingsAction.BackTapped) },
         )
-        EdgeCard(contentPadding = EdgeCardDefaults.ListPadding, verticalArrangement = Arrangement.Top) {
+        EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.ListPadding, verticalArrangement = Arrangement.Top) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.section),
                 verticalAlignment = Alignment.CenterVertically,
@@ -120,21 +120,21 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
     }
 }
 
-@Preview(widthDp = 800, heightDp = 700)
+@Preview
 @Composable
 private fun WaterSettingsFromTodayPreview() {
-    LightAndDark { WaterSettingsScreen(WaterSettingsStateBuilder.build(SettingsFixtures.settings(), backToMore = false), onAction = {}) }
+    SettingsPreview { WaterSettingsScreen(WaterSettingsStateBuilder.build(SettingsFixtures.settings(), backToMore = false), onAction = {}) }
 }
 
-@Preview(widthDp = 800, heightDp = 700)
+@Preview
 @Composable
-private fun WaterSettingsBlindFlOzPreview() {
+private fun WaterSettingsBlindFlOzDarkPreview() {
     val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind)).copy(waterUnit = WaterUnit.FlOz)
-    LightAndDark { WaterSettingsScreen(WaterSettingsStateBuilder.build(settings, backToMore = true), onAction = {}) }
+    SettingsPreview(dark = true) { WaterSettingsScreen(WaterSettingsStateBuilder.build(settings, backToMore = true), onAction = {}) }
 }
 
-@Preview(widthDp = 800, heightDp = 700)
+@Preview
 @Composable
 private fun WaterSettingsEmptyPreview() {
-    LightAndDark { WaterSettingsScreen(WaterSettingsState(), onAction = {}) }
+    SettingsPreview { WaterSettingsScreen(WaterSettingsState(), onAction = {}) }
 }

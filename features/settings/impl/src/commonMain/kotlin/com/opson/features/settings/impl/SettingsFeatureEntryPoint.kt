@@ -9,6 +9,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.home.FeedbackRoute
 import com.opson.features.onboarding.OnboardingRoute
+import com.opson.features.settings.GoalStyleRoute
 import com.opson.features.settings.LookAndFeelRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.MoreRoute
@@ -33,6 +34,9 @@ import com.opson.features.settings.impl.support.EXPORT_MIME_TYPE
 import com.opson.features.settings.impl.support.SupportEvent
 import com.opson.features.settings.impl.support.SupportScreen
 import com.opson.features.settings.impl.support.SupportViewModel
+import com.opson.features.settings.impl.targets.GoalStyleEvent
+import com.opson.features.settings.impl.targets.GoalStyleSheetContent
+import com.opson.features.settings.impl.targets.GoalStyleViewModel
 import com.opson.features.settings.impl.targets.TargetsEvent
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsViewModel
@@ -64,6 +68,7 @@ class SettingsFeatureEntryPoint(
     private val modesViewModel: () -> ModesViewModel,
     private val pauseViewModel: (NumbersChange) -> PauseViewModel,
     private val targetsViewModel: () -> TargetsViewModel,
+    private val goalStyleViewModel: () -> GoalStyleViewModel,
     private val waterSettingsViewModel: (backToMore: Boolean) -> WaterSettingsViewModel,
     private val lookAndFeelViewModel: () -> LookAndFeelViewModel,
     private val supportViewModel: () -> SupportViewModel,
@@ -94,7 +99,6 @@ class SettingsFeatureEntryPoint(
                 when (event) {
                     is ModesEvent.ShowToast -> show(event.toast)
                     is ModesEvent.OpenPause -> router.navigate(event.change.toRoute())
-                    ModesEvent.OpenTargets -> router.navigate(TargetsRoute())
                     ModesEvent.Close -> router.goBack()
                 }
             }
@@ -135,11 +139,30 @@ class SettingsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is TargetsEvent.ShowToast -> show(event.toast)
+                    TargetsEvent.OpenGoalStyle -> router.navigate(GoalStyleRoute())
                     TargetsEvent.OpenModes -> router.navigate(ModesRoute())
                     TargetsEvent.Close -> router.goBack()
                 }
             }
             TargetsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        bottomSheet<GoalStyleRoute> { _, sheetState ->
+            val viewModel: GoalStyleViewModel = viewModel { goalStyleViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    // Animate the sheet down first; its dismiss callback pops the route.
+                    GoalStyleEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            BottomSheet(
+                onDismissRequest = { router.goBack() },
+                state = sheetState,
+                backgroundColor = AppTheme.colors.bg,
+            ) {
+                GoalStyleSheetContent(state = state, onAction = viewModel::takeAction)
+            }
         }
 
         screen<WaterSettingsRoute> { backStackEntry ->

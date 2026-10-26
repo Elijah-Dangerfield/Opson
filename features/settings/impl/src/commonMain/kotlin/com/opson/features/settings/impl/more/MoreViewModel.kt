@@ -4,37 +4,31 @@ import androidx.lifecycle.viewModelScope
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
-import com.opson.libraries.nutrition.VisibilityPolicy
-import com.opson.libraries.nutrition.VisibilityPolicySource
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 
 @Inject
 class MoreViewModel(
     settingsRepository: SettingsRepository,
-    policySource: VisibilityPolicySource,
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
     init {
         viewModelScope.launch {
-            combine(settingsRepository.observe(), policySource.policy, MoreAction::InputsArrived)
-                .collect(::takeAction)
+            settingsRepository.observe().collect { takeAction(MoreAction.InputsArrived(it)) }
         }
     }
 
     override suspend fun handleAction(action: MoreAction) {
         when (action) {
-            is MoreAction.InputsArrived -> action.updateState { MoreStateBuilder.build(action.settings, action.policy) }
-            is MoreAction.RowTapped -> sendEvent(
-                when (action.row) {
-                    is MoreRow.Modes -> MoreEvent.OpenModes
-                    is MoreRow.Targets -> MoreEvent.OpenTargets
-                    MoreRow.Water -> MoreEvent.OpenWater
-                    MoreRow.LookAndFeel -> MoreEvent.OpenLookAndFeel
-                    MoreRow.Support -> MoreEvent.OpenSupport
-                },
-            )
+            is MoreAction.InputsArrived -> action.updateState { MoreStateBuilder.build(action.settings) }
+            is MoreAction.RowTapped -> when (action.row) {
+                is MoreRow.Modes -> sendEvent(MoreEvent.OpenModes)
+                MoreRow.Targets -> sendEvent(MoreEvent.OpenTargets)
+                MoreRow.LookAndFeel -> sendEvent(MoreEvent.OpenLookAndFeel)
+                is MoreRow.Water -> sendEvent(MoreEvent.OpenWater)
+                MoreRow.Support -> sendEvent(MoreEvent.OpenSupport)
+                MoreRow.Plan -> Unit
+            }
         }
     }
 }
@@ -48,6 +42,6 @@ sealed interface MoreEvent {
 }
 
 sealed interface MoreAction {
-    data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy) : MoreAction
+    data class InputsArrived(val settings: Settings) : MoreAction
     data class RowTapped(val row: MoreRow) : MoreAction
 }

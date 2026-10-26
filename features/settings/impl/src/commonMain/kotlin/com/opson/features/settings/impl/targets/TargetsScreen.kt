@@ -1,57 +1,112 @@
 package com.opson.features.settings.impl.targets
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.opson.features.settings.impl.LightAndDark
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.opson.features.settings.impl.SettingsDefaults
 import com.opson.features.settings.impl.SettingsFixtures
+import com.opson.features.settings.impl.SettingsPreview
+import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
-import com.opson.features.settings.impl.label
 import com.opson.libraries.diary.MacroMode
+import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.EdgeCard
-import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
-import com.opson.libraries.ui.components.LegendDot
-import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.button.FlatButton
-import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.libraries.ui.system.minTouchTarget
+import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
+import com.opson.system.background
 import com.opson.system.color.ToneColors
+import com.opson.system.thenIf
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_back_more
-import opson.libraries.resources.generated.resources.settings_targets_aim
+import opson.libraries.resources.generated.resources.settings_targets_burn_source
+import opson.libraries.resources.generated.resources.settings_targets_burn_source_body
+import opson.libraries.resources.generated.resources.settings_targets_deficit_about
+import opson.libraries.resources.generated.resources.settings_targets_deficit_burn
+import opson.libraries.resources.generated.resources.settings_targets_deficit_burn_unknown
+import opson.libraries.resources.generated.resources.settings_targets_deficit_goal
+import opson.libraries.resources.generated.resources.settings_targets_deficit_goal_unknown
+import opson.libraries.resources.generated.resources.settings_targets_deficit_less
+import opson.libraries.resources.generated.resources.settings_targets_deficit_more
+import opson.libraries.resources.generated.resources.settings_targets_deficit_title
 import opson.libraries.resources.generated.resources.settings_targets_floor_note
-import opson.libraries.resources.generated.resources.settings_targets_footer
+import opson.libraries.resources.generated.resources.settings_targets_goal_style
 import opson.libraries.resources.generated.resources.settings_targets_grams
 import opson.libraries.resources.generated.resources.settings_targets_grams_note
+import opson.libraries.resources.generated.resources.settings_targets_group_add
+import opson.libraries.resources.generated.resources.settings_targets_group_day
+import opson.libraries.resources.generated.resources.settings_targets_group_done
+import opson.libraries.resources.generated.resources.settings_targets_group_edit
+import opson.libraries.resources.generated.resources.settings_targets_group_every_day
+import opson.libraries.resources.generated.resources.settings_targets_group_numbered
+import opson.libraries.resources.generated.resources.settings_targets_group_other_days
+import opson.libraries.resources.generated.resources.settings_targets_group_range
+import opson.libraries.resources.generated.resources.settings_targets_group_remove
 import opson.libraries.resources.generated.resources.settings_targets_hidden_body
 import opson.libraries.resources.generated.resources.settings_targets_hidden_link
 import opson.libraries.resources.generated.resources.settings_targets_hidden_title
-import opson.libraries.resources.generated.resources.settings_targets_lower
+import opson.libraries.resources.generated.resources.settings_targets_high_end
+import opson.libraries.resources.generated.resources.settings_targets_high_end_inline
+import opson.libraries.resources.generated.resources.settings_targets_kcal
+import opson.libraries.resources.generated.resources.settings_targets_locked
+import opson.libraries.resources.generated.resources.settings_targets_low_end
+import opson.libraries.resources.generated.resources.settings_targets_low_end_inline
+import opson.libraries.resources.generated.resources.settings_targets_lower_end
+import opson.libraries.resources.generated.resources.settings_targets_macro_carbs
+import opson.libraries.resources.generated.resources.settings_targets_macro_fat
+import opson.libraries.resources.generated.resources.settings_targets_macro_protein
+import opson.libraries.resources.generated.resources.settings_targets_macro_split
 import opson.libraries.resources.generated.resources.settings_targets_macros_title
-import opson.libraries.resources.generated.resources.settings_targets_raise
-import opson.libraries.resources.generated.resources.settings_targets_range_label
+import opson.libraries.resources.generated.resources.settings_targets_raise_end
+import opson.libraries.resources.generated.resources.settings_targets_style_by_day
+import opson.libraries.resources.generated.resources.settings_targets_style_deficit
+import opson.libraries.resources.generated.resources.settings_targets_style_range
 import opson.libraries.resources.generated.resources.settings_targets_ratios
 import opson.libraries.resources.generated.resources.settings_targets_ratios_note
-import opson.libraries.resources.generated.resources.settings_targets_step_note
+import opson.libraries.resources.generated.resources.settings_targets_rule_big_day
+import opson.libraries.resources.generated.resources.settings_targets_rule_floor
 import opson.libraries.resources.generated.resources.settings_targets_title
+import opson.libraries.resources.generated.resources.settings_targets_week
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -62,166 +117,549 @@ fun TargetsScreen(
     modifier: Modifier = Modifier,
 ) {
     SettingsPage(modifier = modifier) {
-        PageHeader(
+        SettingsHeader(
             title = stringResource(Res.string.settings_targets_title),
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(TargetsAction.BackTapped) },
         )
-        if (state.visible) {
-            EnergyCard(state, onAction)
-            if (state.macros.isNotEmpty()) MacroCard(state, onAction)
-        } else {
+        if (!state.visible) {
             BackgroundCard(onAction)
+            return@SettingsPage
         }
-        Text(
-            text = stringResource(Res.string.settings_targets_footer),
-            typography = AppTheme.type.secondarySmall,
-            color = AppTheme.colors.muted,
-        )
+        GoalStyleCard(state.style, onAction)
+        state.range?.let { RangeEndsCard(it, onAction) }
+        state.deficit?.let { DeficitCards(it, onAction) }
+        if (state.style == StyleKind.ByDay) ByDayCards(state, onAction)
+        if (state.macros.isNotEmpty()) MacroCard(state, onAction)
     }
 }
 
+internal val StyleKind.label: StringResource
+    get() = when (this) {
+        StyleKind.Range -> Res.string.settings_targets_style_range
+        StyleKind.Deficit -> Res.string.settings_targets_style_deficit
+        StyleKind.ByDay -> Res.string.settings_targets_style_by_day
+    }
+
 @Composable
-private fun EnergyCard(state: TargetsState, onAction: (TargetsAction) -> Unit) {
+private fun GoalStyleCard(style: StyleKind, onAction: (TargetsAction) -> Unit) {
     EdgeCard(
         edgeToEdge = false,
-        contentPadding = EdgeCardDefaults.InsetPadding,
-        verticalArrangement = Arrangement.spacedBy(EdgeCardDefaults.SectionGap),
+        contentPadding = SettingsDefaults.CardInset,
+        onClick = { onAction(TargetsAction.GoalStyleTapped) },
     ) {
-        Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(Res.string.settings_targets_goal_style),
+                    typography = AppTheme.type.secondarySmallStrong,
+                    color = AppTheme.colors.muted,
+                )
+                Text(text = stringResource(style.label), typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink)
+            }
+            Icon(icon = AppIcons.ExpandMore, size = 26.dp, color = AppTheme.colors.muted)
+        }
+    }
+}
+
+@Composable
+private fun RangeEndsCard(range: RangeCard, onAction: (TargetsAction) -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+    ) {
+        EndSteppers(range.low, range.high, group = null, onAction = onAction)
+        RangeTrack(range.band)
+        if (range.lowLocked) {
             Text(
-                text = stringResource(Res.string.settings_targets_range_label),
-                typography = AppTheme.type.secondarySmallStrong,
+                text = stringResource(Res.string.settings_targets_floor_note),
+                typography = AppTheme.type.secondary,
                 color = AppTheme.colors.muted,
             )
+        }
+    }
+}
+
+@Composable
+private fun EndSteppers(low: EndStepper, high: EndStepper, group: Int?, onAction: (TargetsAction) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+        listOf(RangeEnd.Low to low, RangeEnd.High to high).forEach { (end, stepper) ->
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(if (end == RangeEnd.Low) Res.string.settings_targets_low_end else Res.string.settings_targets_high_end),
+                    typography = AppTheme.type.secondaryStrong,
+                    color = AppTheme.colors.muted,
+                )
+                EndStepperView(
+                    stepper = stepper,
+                    endName = stringResource(
+                        if (end == RangeEnd.Low) Res.string.settings_targets_low_end_inline else Res.string.settings_targets_high_end_inline,
+                    ),
+                    onStep = { up -> onAction(TargetsAction.StepTapped(end, up, group)) },
+                )
+            }
+        }
+    }
+}
+
+/** − value +, in a soft rounded well. A lock replaces − where the floor blocks it. */
+@Composable
+private fun EndStepperView(stepper: EndStepper, endName: String, onStep: (up: Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.inputLarge)
+            .background(AppTheme.colors.soft)
+            // The buttons' 48 dp tap areas already sit 4 dp inside the well's sides.
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when (stepper.down) {
+            StepState.Locked -> Box(modifier = Modifier.size(StepSize), contentAlignment = Alignment.Center) {
+                Icon(
+                    icon = AppIcons.Lock.described(stringResource(Res.string.settings_targets_locked)),
+                    size = 24.dp,
+                    color = AppTheme.colors.muted,
+                )
+            }
+            else -> StepButton(
+                icon = AppIcons.Remove.described(stringResource(Res.string.settings_targets_lower_end, endName)),
+                enabled = stepper.down == StepState.Open,
+                onClick = { onStep(false) },
+            )
+        }
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
             NutrientText(
                 metric = Metric.Calories,
-                display = state.range,
-                typography = AppTheme.type.dayLabel.Tabular,
+                display = stepper.value,
+                typography = AppTheme.type.numericLarge,
                 color = AppTheme.colors.ink,
-            )
-            NutrientPhrase(
-                metric = Metric.Calories,
-                display = state.aim,
-                phrase = { stringResource(Res.string.settings_targets_aim, it) },
-                typography = AppTheme.type.secondary.Tabular,
+                maxLines = 1,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-            StepButton(
-                text = stringResource(Res.string.settings_targets_lower),
-                icon = AppIcons.Remove,
-                dimmed = !state.canLower,
-                onClick = { onAction(TargetsAction.LowerTapped) },
-                modifier = Modifier.weight(1f),
-            )
-            StepButton(
-                text = stringResource(Res.string.settings_targets_raise),
-                icon = AppIcons.Add,
-                dimmed = false,
-                onClick = { onAction(TargetsAction.RaiseTapped) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Text(
-            text = stringResource(
-                if (state.canLower) Res.string.settings_targets_step_note else Res.string.settings_targets_floor_note,
-            ),
-            typography = AppTheme.type.secondarySmall,
-            color = AppTheme.colors.muted,
+        StepButton(
+            icon = AppIcons.Add.described(stringResource(Res.string.settings_targets_raise_end, endName)),
+            enabled = stepper.up == StepState.Open,
+            onClick = { onStep(true) },
         )
     }
 }
 
 @Composable
-private fun StepButton(
-    text: String,
-    icon: IconResource,
-    dimmed: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier,
+private fun StepButton(icon: IconResource, enabled: Boolean, onClick: () -> Unit, size: Dp = StepSize, container: ColorResource? = null) {
+    Box(
+        modifier = Modifier
+            .minTouchTarget()
+            .size(size)
+            .clip(AppTheme.shapes.input)
+            .background(container ?: AppTheme.colors.surface)
+            .semantics { role = Role.Button }
+            .bounceClick(enabled = enabled, scaleDown = 0.92f, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon = icon, size = 26.dp, color = if (enabled) AppTheme.colors.ink else AppTheme.colors.line)
+    }
+}
+
+/** The range as a band on a track, so moving either end is visible at a glance. */
+@Composable
+private fun RangeTrack(band: ClosedFloatingPointRange<Float>) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(10.dp)
+            .clip(AppTheme.shapes.pill)
+            .background(AppTheme.colors.track),
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = maxWidth * band.start)
+                .width(maxWidth * (band.endInclusive - band.start))
+                .fillMaxHeight()
+                .clip(AppTheme.shapes.pill)
+                .background(AppTheme.colors.accent),
+        )
+    }
+}
+
+@Composable
+private fun DeficitCards(deficit: DeficitCard, onAction: (TargetsAction) -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+    ) {
+        Text(
+            text = stringResource(Res.string.settings_targets_deficit_title),
+            typography = AppTheme.type.secondaryStrong,
+            color = AppTheme.colors.muted,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StepButton(
+                icon = AppIcons.Remove.described(stringResource(Res.string.settings_targets_deficit_less)),
+                enabled = deficit.canLower,
+                onClick = { onAction(TargetsAction.DeficitStepped(up = false)) },
+                size = 52.dp,
+                container = AppTheme.colors.soft,
+            )
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                NutrientText(
+                    metric = Metric.Calories,
+                    display = deficit.amount,
+                    typography = AppTheme.type.h1.Tabular,
+                    color = AppTheme.colors.ink,
+                )
+                Text(
+                    text = stringResource(Res.string.settings_targets_kcal),
+                    typography = AppTheme.type.bodyBold,
+                    color = AppTheme.colors.muted,
+                    modifier = Modifier.padding(bottom = 6.dp),
+                )
+            }
+            StepButton(
+                icon = AppIcons.Add.described(stringResource(Res.string.settings_targets_deficit_more)),
+                enabled = deficit.canRaise,
+                onClick = { onAction(TargetsAction.DeficitStepped(up = true)) },
+                size = 52.dp,
+                container = AppTheme.colors.soft,
+            )
+        }
+        HorizontalDivider(color = AppTheme.colors.line)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LabelledAmount(
+                label = stringResource(Res.string.settings_targets_deficit_burn),
+                strong = false,
+                display = deficit.burn,
+                metric = Metric.EnergyOut,
+                unknown = stringResource(Res.string.settings_targets_deficit_burn_unknown),
+            )
+            LabelledAmount(
+                label = stringResource(Res.string.settings_targets_deficit_goal),
+                strong = true,
+                display = deficit.goal,
+                metric = Metric.Calories,
+                unknown = stringResource(Res.string.settings_targets_deficit_goal_unknown),
+                phrase = Res.string.settings_targets_deficit_about,
+            )
+        }
+    }
+    EdgeCard(edgeToEdge = false, contentPadding = SettingsDefaults.CardInset) {
+        Text(
+            text = stringResource(Res.string.settings_targets_burn_source),
+            typography = AppTheme.type.cardTitle,
+            color = AppTheme.colors.ink,
+        )
+        Text(
+            text = stringResource(Res.string.settings_targets_burn_source_body),
+            typography = AppTheme.type.secondary,
+            color = AppTheme.colors.muted,
+        )
+    }
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Rule(AppIcons.Download, stringResource(Res.string.settings_targets_rule_floor))
+        Rule(AppIcons.EventRepeat, stringResource(Res.string.settings_targets_rule_big_day))
+    }
+}
+
+@Composable
+private fun LabelledAmount(
+    label: String,
+    strong: Boolean,
+    display: Display?,
+    metric: Metric,
+    unknown: String,
+    phrase: StringResource? = null,
 ) {
-    FlatButton(
-        text = text,
-        onClick = onClick,
-        icon = icon,
-        tone = FlatButtonTone.SoftOutlined,
-        centered = true,
-        dimmed = dimmed,
-        shape = AppTheme.shapes.input,
-        minHeight = FlatButtonDefaults.StepperMinHeight,
-        typography = AppTheme.type.buttonSmall,
-        modifier = modifier,
-    )
+    val typography = if (strong) AppTheme.type.bodyBold else AppTheme.type.body
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text = label, typography = typography, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+        when {
+            display == null || display is Display.Hidden -> Text(text = unknown, typography = typography, color = AppTheme.colors.muted)
+            phrase != null -> NutrientPhrase(
+                metric = metric,
+                display = display,
+                phrase = { stringResource(phrase, it) },
+                typography = typography.Tabular,
+                color = AppTheme.colors.ink,
+            )
+            else -> NutrientText(metric = metric, display = display, typography = typography.Tabular, color = AppTheme.colors.ink)
+        }
+    }
+}
+
+@Composable
+private fun Rule(icon: IconResource, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+        Icon(icon = icon, size = 24.dp, color = AppTheme.colors.accent)
+        Text(text = text, typography = AppTheme.type.body, color = AppTheme.colors.ink)
+    }
+}
+
+@Composable
+private fun ByDayCards(state: TargetsState, onAction: (TargetsAction) -> Unit) {
+    state.groups.forEach { group -> DayGroupCardView(group, onAction) }
+    if (state.canAddGroup) {
+        Row(
+            modifier = Modifier
+                .minTouchTarget()
+                .semantics { role = Role.Button }
+                .bounceClick(scaleDown = 0.97f, onClick = { onAction(TargetsAction.AddGroupTapped) })
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+        ) {
+            Icon(icon = AppIcons.Add, size = 24.dp, color = AppTheme.colors.accent)
+            Text(
+                text = stringResource(Res.string.settings_targets_group_add),
+                typography = AppTheme.type.cardTitle,
+                color = AppTheme.colors.accent,
+            )
+        }
+    }
+    if (state.week.isNotEmpty()) WeekStrip(state.week)
+}
+
+@Composable
+private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> Unit) {
+    val name = group.label.text()
+    val tone = groupTone(group.index)
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = name, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .minTouchTarget()
+                    .semantics { role = Role.Button }
+                    .bounceClick(scaleDown = 0.9f, onClick = { onAction(TargetsAction.EditGroupTapped(group.index)) }),
+                contentAlignment = Alignment.Center,
+            ) {
+                val editing = group.low != null
+                Icon(
+                    icon = (if (editing) AppIcons.Check else AppIcons.Edit).described(
+                        if (editing) {
+                            stringResource(Res.string.settings_targets_group_done)
+                        } else {
+                            stringResource(Res.string.settings_targets_group_edit, name)
+                        },
+                    ),
+                    size = 24.dp,
+                    color = AppTheme.colors.muted,
+                )
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            group.days.forEach { chip ->
+                DayChipView(
+                    chip = chip,
+                    tone = tone,
+                    description = stringResource(Res.string.settings_targets_group_day, DateCopy.longWeekday(chip.day), name),
+                    onClick = { onAction(TargetsAction.DayTapped(group.index, chip.day)) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        HorizontalDivider(color = AppTheme.colors.line)
+        if (group.low != null && group.high != null) {
+            EndSteppers(group.low, group.high, group = group.index, onAction = onAction)
+            if (group.removable) {
+                FlatButton(
+                    text = stringResource(Res.string.settings_targets_group_remove),
+                    onClick = { onAction(TargetsAction.RemoveGroupTapped(group.index)) },
+                    tone = FlatButtonTone.Outlined,
+                    centered = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.settings_targets_group_range),
+                    typography = AppTheme.type.body,
+                    color = AppTheme.colors.ink,
+                    modifier = Modifier.weight(1f),
+                )
+                NutrientText(
+                    metric = Metric.Calories,
+                    display = group.range,
+                    typography = AppTheme.type.bodyBold.Tabular,
+                    color = AppTheme.colors.ink,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayChipView(chip: DayChip, tone: ToneColors, description: String, onClick: () -> Unit, modifier: Modifier) {
+    Box(
+        modifier = modifier
+            .minTouchTarget()
+            .height(40.dp)
+            .clip(AppTheme.shapes.input)
+            .background(if (chip.inGroup) tone.container else AppTheme.colors.surface)
+            .thenIf(!chip.inGroup) { border(1.dp, AppTheme.colors.line.color, AppTheme.shapes.input) }
+            .semantics {
+                role = Role.Checkbox
+                selected = chip.inGroup
+                contentDescription = description
+            }
+            .bounceClick(scaleDown = 0.92f, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = DateCopy.shortWeekday(chip.day).take(1),
+            typography = AppTheme.type.bodyBold,
+            color = if (chip.inGroup) tone.content else AppTheme.colors.muted,
+        )
+    }
+}
+
+/** Each weekday as a bar raised to its group's level. */
+@Composable
+private fun WeekStrip(week: List<WeekBand>) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+    ) {
+        Text(
+            text = stringResource(Res.string.settings_targets_week),
+            typography = AppTheme.type.secondaryStrong,
+            color = AppTheme.colors.muted,
+        )
+        Row(modifier = Modifier.fillMaxWidth().height(WeekHeight), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            week.forEach { band ->
+                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    Box(
+                        modifier = Modifier
+                            .offset(y = (WeekHeight - WeekBarHeight) * (1f - band.position))
+                            .fillMaxWidth()
+                            .height(WeekBarHeight)
+                            .clip(AppTheme.shapes.input)
+                            .background(groupTone(band.groupIndex).container),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** A group's colour. Only tells groups apart: no group is better or worse. */
+@Composable
+private fun groupTone(index: Int): ToneColors {
+    val colors = AppTheme.colors
+    return when (index % 4) {
+        0 -> ToneColors(content = colors.accent, container = colors.accentTint)
+        1 -> ToneColors(content = colors.onAccent, container = colors.accent)
+        2 -> ToneColors(content = colors.bg, container = colors.ink)
+        else -> ToneColors(content = colors.ink, container = colors.line)
+    }
+}
+
+@Composable
+private fun GroupLabel.text(): String = when (this) {
+    GroupLabel.EveryDay -> stringResource(Res.string.settings_targets_group_every_day)
+    GroupLabel.OtherDays -> stringResource(Res.string.settings_targets_group_other_days)
+    is GroupLabel.Numbered -> stringResource(Res.string.settings_targets_group_numbered, number)
 }
 
 @Composable
 private fun MacroCard(state: TargetsState, onAction: (TargetsAction) -> Unit) {
-    EdgeCard(edgeToEdge = false) {
-        Text(
-            text = stringResource(Res.string.settings_targets_macros_title),
-            typography = AppTheme.type.bodyBold,
-            color = AppTheme.colors.ink,
-        )
-        SegmentedControl(
-            options = MacroMode.entries,
-            selected = state.macroMode,
-            onSelect = { onAction(TargetsAction.MacroModePicked(it)) },
-            label = {
-                stringResource(
-                    when (it) {
-                        MacroMode.Ratios -> Res.string.settings_targets_ratios
-                        MacroMode.Grams -> Res.string.settings_targets_grams
-                    },
-                )
-            },
-        )
-        Column {
-            state.macros.forEach { row -> MacroRow(row) }
-        }
-        Text(
-            text = stringResource(
-                when (state.macroMode) {
-                    MacroMode.Ratios -> Res.string.settings_targets_ratios_note
-                    MacroMode.Grams -> Res.string.settings_targets_grams_note
-                },
-            ),
-            typography = AppTheme.type.secondarySmall,
-            color = AppTheme.colors.muted,
-        )
-    }
-}
-
-@Composable
-private fun MacroRow(row: TargetMacroRow) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.row),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    val modeLabel = stringResource(
+        when (state.macroMode) {
+            MacroMode.Ratios -> Res.string.settings_targets_ratios
+            MacroMode.Grams -> Res.string.settings_targets_grams
+        },
+    )
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+        onClick = { onAction(TargetsAction.MacroCardTapped) },
     ) {
-        Row(
-            modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
-        ) {
-            LegendDot(color = macroColor(row.metric))
-            Text(text = stringResource(row.metric.label), typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
-            NutrientText(
-                metric = row.metric,
-                display = row.share,
-                typography = AppTheme.type.secondary.Tabular,
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(Res.string.settings_targets_macro_split),
+                typography = AppTheme.type.cardTitle,
+                color = AppTheme.colors.ink,
+                modifier = Modifier.weight(1f),
+            )
+            Text(text = modeLabel, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
+        }
+        Row(modifier = Modifier.fillMaxWidth().height(10.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            state.macros.forEach { macro ->
+                Box(
+                    modifier = Modifier
+                        .weight(macro.weight.coerceAtLeast(1f))
+                        .fillMaxHeight()
+                        .clip(AppTheme.shapes.pill)
+                        .background(macroColor(macro.metric)),
+                )
+            }
+        }
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            state.macros.forEach { macro ->
+                NutrientPhrase(
+                    metric = macro.metric,
+                    display = macro.grams,
+                    phrase = { stringResource(macro.metric.gramsPhrase, it) },
+                    typography = AppTheme.type.body.Tabular,
+                    color = AppTheme.colors.ink,
+                )
+            }
+        }
+        if (state.editingMacros) {
+            Text(
+                text = stringResource(Res.string.settings_targets_macros_title),
+                typography = AppTheme.type.secondaryStrong,
+                color = AppTheme.colors.muted,
+            )
+            SegmentedControl(
+                options = MacroMode.entries,
+                selected = state.macroMode,
+                onSelect = { onAction(TargetsAction.MacroModePicked(it)) },
+                label = {
+                    stringResource(
+                        when (it) {
+                            MacroMode.Ratios -> Res.string.settings_targets_ratios
+                            MacroMode.Grams -> Res.string.settings_targets_grams
+                        },
+                    )
+                },
+            )
+            Text(
+                text = stringResource(
+                    when (state.macroMode) {
+                        MacroMode.Ratios -> Res.string.settings_targets_ratios_note
+                        MacroMode.Grams -> Res.string.settings_targets_grams_note
+                    },
+                ),
+                typography = AppTheme.type.secondarySmall,
                 color = AppTheme.colors.muted,
             )
         }
-        NutrientText(
-            metric = row.metric,
-            display = row.grams,
-            typography = AppTheme.type.numeric,
-            color = AppTheme.colors.ink,
-        )
     }
-    HorizontalDivider(color = AppTheme.colors.line)
 }
+
+private val Metric.gramsPhrase: StringResource
+    get() = when (this) {
+        Metric.Protein -> Res.string.settings_targets_macro_protein
+        Metric.Carbs -> Res.string.settings_targets_macro_carbs
+        else -> Res.string.settings_targets_macro_fat
+    }
 
 @Composable
 private fun macroColor(metric: Metric): ColorResource {
@@ -236,7 +674,7 @@ private fun macroColor(metric: Metric): ColorResource {
 
 @Composable
 private fun BackgroundCard(onAction: (TargetsAction) -> Unit) {
-    EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.InsetPadding) {
+    EdgeCard(edgeToEdge = false, contentPadding = SettingsDefaults.CardInset) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
@@ -264,31 +702,58 @@ private fun BackgroundCard(onAction: (TargetsAction) -> Unit) {
     }
 }
 
-@Preview(widthDp = 800, heightDp = 800)
+private val StepSize = 40.dp
+private val WeekHeight = 56.dp
+private val WeekBarHeight = 20.dp
+
+@Preview
 @Composable
-private fun TargetsFullPreview() {
+private fun TargetsPreview() {
     val settings = SettingsFixtures.settings()
-    LightAndDark { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 
-@Preview(widthDp = 800, heightDp = 800)
+@Preview
 @Composable
-private fun TargetsAtTheFloorInGramsPreview() {
-    val settings = SettingsFixtures.settings().let {
-        it.copy(targets = it.targets.lower(scaleMacros = true)!!, macroMode = MacroMode.Grams)
+private fun TargetsDeficitPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.deficitTargets)
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), burnKcal = SettingsFixtures.BURN_KCAL),
+            onAction = {},
+        )
     }
-    LightAndDark { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 
-@Preview(widthDp = 800, heightDp = 600)
+@Preview
+@Composable
+private fun TargetsDeficitNoBurnYetPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.deficitTargets)
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun TargetsByDayPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets)
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun TargetsByDayEditingDarkPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets).copy(macroMode = MacroMode.Grams)
+    SettingsPreview(dark = true) {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 1, editingMacros = true),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
 @Composable
 private fun TargetsBlindPreview() {
     val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind))
-    LightAndDark { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
-}
-
-@Preview(widthDp = 800, heightDp = 600)
-@Composable
-private fun TargetsEmptyPreview() {
-    LightAndDark { TargetsScreen(TargetsState(), onAction = {}) }
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }

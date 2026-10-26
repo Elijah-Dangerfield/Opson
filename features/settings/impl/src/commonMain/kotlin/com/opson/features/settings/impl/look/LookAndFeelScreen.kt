@@ -7,9 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.opson.features.settings.impl.LightAndDark
 import com.opson.features.settings.impl.SettingsFixtures
+import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
+import com.opson.features.settings.impl.SettingsPreview
 import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.diary.TextSize
 import com.opson.libraries.diary.ThemeMode
@@ -17,7 +18,6 @@ import com.opson.libraries.diary.Tone
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.EdgeCard
-import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
@@ -58,7 +58,7 @@ fun LookAndFeelScreen(
     modifier: Modifier = Modifier,
 ) {
     SettingsPage(modifier = modifier) {
-        PageHeader(
+        SettingsHeader(
             title = stringResource(Res.string.settings_look_title),
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(LookAndFeelAction.BackTapped) },
@@ -164,15 +164,15 @@ private fun themeLabel(theme: ThemeMode): StringResource = when (theme) {
     ThemeMode.Dark -> Res.string.settings_look_theme_dark
 }
 
-@Preview(widthDp = 800, heightDp = 1000)
+@Preview
 @Composable
 private fun LookAndFeelDefaultsPreview() {
-    LightAndDark { LookAndFeelScreen(LookAndFeelStateBuilder.build(SettingsFixtures.settings()), onAction = {}) }
+    SettingsPreview { LookAndFeelScreen(LookAndFeelStateBuilder.build(SettingsFixtures.settings()), onAction = {}) }
 }
 
-@Preview(widthDp = 800, heightDp = 1000)
+@Preview
 @Composable
-private fun LookAndFeelChangedPreview() {
+private fun LookAndFeelChangedDarkPreview() {
     val settings = SettingsFixtures.settings().copy(
         palette = PaletteChoice.Espresso,
         theme = ThemeMode.Dark,
@@ -180,5 +180,5 @@ private fun LookAndFeelChangedPreview() {
         tone = Tone.Warm,
         askTags = false,
     )
-    LightAndDark { LookAndFeelScreen(LookAndFeelStateBuilder.build(settings), onAction = {}) }
+    SettingsPreview(dark = true) { LookAndFeelScreen(LookAndFeelStateBuilder.build(settings), onAction = {}) }
 }

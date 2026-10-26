@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The More tab and its pages. Verbatim from the handoff where it has the copy
-  (docs/design/handoff/Phone.dc.html), new lines per docs/plans/screens/settings.md.
+  The More tab and its pages. Verbatim from design v3 (docs/design/v3/) where it has the copy,
+  then the handoff (docs/design/handoff/Phone.dc.html), new lines per
+  docs/plans/screens/settings.md.
   Same rules as strings.xml: no backslash escapes, positional format specifiers.
 -->
 <resources>
@@ -12,20 +13,22 @@
     <string name="settings_saved">Saved.</string>
     <string name="settings_saved_fewer">Saved. Fewer numbers from now on.</string>
 
-    <!-- More -->
+    <!-- More (v3: three groups, no amounts in any subtitle) -->
     <string name="settings_more_title">More</string>
     <string name="settings_more_modes">Modes and numbers</string>
-    <string name="settings_more_modes_adjusted">%1$s, adjusted</string>
+    <string name="settings_more_modes_changed">%1$s, %2$s</string>
     <string name="settings_more_targets">Targets</string>
-    <string name="settings_more_targets_ratio">%1$s, ratio macros</string>
-    <string name="settings_more_targets_grams">%1$s, gram macros</string>
-    <string name="settings_more_targets_hidden">Out of view in this mode</string>
-    <string name="settings_more_water">Water</string>
-    <string name="settings_more_water_sub">Goal, glass size and units</string>
+    <string name="settings_more_targets_sub">Energy range and macro split</string>
     <string name="settings_more_look">Look and feel</string>
     <string name="settings_more_look_sub">Colors, text size and tone</string>
+    <string name="settings_more_water">Water</string>
+    <plurals name="settings_more_water_glasses">
+        <item quantity="one">%1$d glass</item>
+        <item quantity="other">%1$d glasses</item>
+    </plurals>
     <string name="settings_more_support">Support and sharing</string>
-    <string name="settings_more_support_sub">Helpline, export, delete</string>
+    <string name="settings_more_plan">Plan</string>
+    <string name="settings_more_plan_free">Free</string>
 
     <!-- Presets, label and line -->
     <string name="settings_preset_full">Full numbers</string>
@@ -35,7 +38,7 @@
     <string name="settings_preset_blind">Blind</string>
     <string name="settings_preset_blind_line">No calories anywhere in the app.</string>
     <string name="settings_preset_nutrient">Nutrient focus</string>
-    <string name="settings_preset_nutrient_line">Calories hidden. Protein and fiber as fill bars.</string>
+    <string name="settings_preset_nutrient_line">Calories hidden. Chosen nutrients as fill bars.</string>
     <string name="settings_preset_rhythm">Rhythm</string>
     <string name="settings_preset_rhythm_line">A meal checklist with reminders. Amounts optional.</string>
     <string name="settings_preset_explorer">Explorer</string>
@@ -52,7 +55,7 @@
     <!-- Metrics, as the per-number grid names them -->
     <string name="settings_metric_calories">Calories</string>
     <string name="settings_metric_remaining">Left in range</string>
-    <string name="settings_metric_energy_out">Energy expended</string>
+    <string name="settings_metric_energy_out">Watch energy</string>
     <string name="settings_metric_protein">Protein</string>
     <string name="settings_metric_carbs">Carbs</string>
     <string name="settings_metric_fat">Fat</string>
@@ -61,55 +64,128 @@
     <string name="settings_metric_weight">Weight</string>
     <string name="settings_metric_water">Water</string>
 
+    <!-- Metrics inside a sentence ("Showing calories again") -->
+    <string name="settings_metric_calories_inline">calories</string>
+    <string name="settings_metric_remaining_inline">what's left in range</string>
+    <string name="settings_metric_energy_out_inline">watch energy</string>
+    <string name="settings_metric_protein_inline">protein</string>
+    <string name="settings_metric_carbs_inline">carbs</string>
+    <string name="settings_metric_fat_inline">fat</string>
+    <string name="settings_metric_fiber_inline">fiber</string>
+    <string name="settings_metric_micros_inline">vitamins and minerals</string>
+    <string name="settings_metric_weight_inline">weight</string>
+    <string name="settings_metric_water_inline">water</string>
+
     <!-- Modes and numbers -->
     <string name="settings_modes_title">Modes and numbers</string>
     <string name="settings_modes_intro">Pick a starting point, then change any single number below. Showing fewer numbers applies right away.</string>
+    <string name="settings_modes_presets_header">Starting point</string>
+    <plurals name="settings_modes_changes">
+        <item quantity="one">%1$d change</item>
+        <item quantity="other">%1$d changes</item>
+    </plurals>
     <string name="settings_modes_matrix_header">Each number</string>
     <string name="settings_level_show">Show</string>
     <string name="settings_level_soft">Soft</string>
     <string name="settings_level_later">Later</string>
     <string name="settings_level_hide">Hide</string>
     <string name="settings_modes_cell">%1$s: %2$s</string>
-    <string name="settings_modes_footnote">Soft shows a word or a fill bar instead of an amount. Later keeps it locked until your reveal time.</string>
+    <string name="settings_modes_changed_from">Changed from %1$s</string>
+    <string name="settings_modes_footnote">Soft swaps the amount for a word or a fill bar. Later keeps it locked until your reveal time.</string>
     <string name="settings_modes_pause_title">Pause before showing more</string>
     <string name="settings_modes_pause_body">A short wait and a question before any number comes back.</string>
-    <string name="settings_modes_targets">Targets</string>
-    <string name="settings_modes_targets_sub">Energy range and macro split</string>
-    <string name="settings_modes_changed">Last changed by you, %1$s. App updates never change these.</string>
-    <string name="settings_modes_setup">Set by you during setup. App updates never change these.</string>
+    <string name="settings_modes_reveal_title">Reveal time</string>
+    <string name="settings_modes_reveal_body">For anything set to Later</string>
+    <string name="settings_modes_reveal_ok">OK</string>
+    <string name="settings_modes_reveal_cancel">Cancel</string>
+    <string name="settings_modes_changed">Last changed by you, %1$s. Updates never change these.</string>
+    <string name="settings_modes_setup">Set by you during setup. Updates never change these.</string>
 
     <!-- Pause before showing more (sheet) -->
-    <string name="settings_pause_title">Showing more numbers</string>
-    <string name="settings_pause_body">You asked for a pause here. %1$s will come back once the wait is over.</string>
-    <string name="settings_pause_body_pause">You asked for a pause here. Turning it off takes the same short wait.</string>
+    <string name="settings_pause_title_number">Showing %1$s again</string>
+    <string name="settings_pause_title_preset">Switching to %1$s</string>
+    <string name="settings_pause_title_pause">Turning off the pause</string>
+    <string name="settings_pause_title_reveal">Opening numbers earlier</string>
+    <string name="settings_pause_body_number">You asked for a pause before numbers come back. %1$s will show once the wait is over. Nothing changes if you close this.</string>
+    <string name="settings_pause_body_preset">You asked for a pause before numbers come back. %1$s will start once the wait is over. Nothing changes if you close this.</string>
+    <string name="settings_pause_body_pause">You asked for a pause before numbers come back. Turning it off takes the same short wait. Nothing changes if you close this.</string>
+    <string name="settings_pause_body_reveal">You asked for a pause before numbers come back. Later numbers will open at %1$s once the wait is over. Nothing changes if you close this.</string>
     <string name="settings_pause_reason_prompt">What's prompting this? Only you see the answer.</string>
     <string name="settings_pause_reason_curious">Curious</string>
-    <string name="settings_pause_reason_goal">Working toward a goal</string>
-    <string name="settings_pause_reason_worried">Worried I'm off track</string>
-    <string name="settings_pause_reason_asked">Someone asked me to</string>
-    <string name="settings_pause_wait">Opens in %1$ds</string>
-    <string name="settings_pause_show">Show them</string>
+    <string name="settings_pause_reason_planning">Planning a meal</string>
+    <string name="settings_pause_reason_provider">My provider asked</string>
+    <string name="settings_pause_reason_anxious">Feeling anxious</string>
+    <string name="settings_pause_reason_else">Something else</string>
     <string name="settings_pause_keep">Keep things as they are</string>
+    <string name="settings_pause_wait_number">Show %1$s in %2$s</string>
+    <string name="settings_pause_ready_number">Show %1$s</string>
+    <string name="settings_pause_wait_preset">Switch in %1$s</string>
+    <string name="settings_pause_ready_preset">Switch to %1$s</string>
+    <string name="settings_pause_wait_pause">Turn it off in %1$s</string>
+    <string name="settings_pause_ready_pause">Turn it off</string>
+    <string name="settings_pause_wait_reveal">Open earlier in %1$s</string>
+    <string name="settings_pause_ready_reveal">Open at %1$s</string>
     <string name="settings_pause_saved">Saved. You can hide them again any time.</string>
 
     <!-- Targets -->
     <string name="settings_targets_title">Targets</string>
-    <string name="settings_targets_range_label">Daily energy range</string>
-    <string name="settings_targets_aim">Aim for about %1$s, before activity</string>
-    <string name="settings_targets_lower">Lower</string>
-    <string name="settings_targets_raise">Raise</string>
-    <string name="settings_targets_step_note">Moves 50 kcal at a time.</string>
-    <string name="settings_targets_floor_note">Raising is always open. Going below where you started needs a floor set with a dietitian, so it's off for now.</string>
+    <string name="settings_targets_goal_style">Goal style</string>
+    <string name="settings_targets_style_range">A range</string>
+    <string name="settings_targets_style_range_line">Anywhere between a low and high end</string>
+    <string name="settings_targets_style_deficit">A set deficit</string>
+    <string name="settings_targets_style_deficit_line">A fixed amount under what you burn</string>
+    <string name="settings_targets_style_by_day">Different by day</string>
+    <string name="settings_targets_style_by_day_line">Say, more on training days</string>
+    <string name="settings_targets_low_end">Low end</string>
+    <string name="settings_targets_high_end">High end</string>
+    <string name="settings_targets_lower_end">Lower the %1$s</string>
+    <string name="settings_targets_raise_end">Raise the %1$s</string>
+    <string name="settings_targets_low_end_inline">low end</string>
+    <string name="settings_targets_high_end_inline">high end</string>
+    <string name="settings_targets_locked">Can't go lower yet</string>
+    <string name="settings_targets_floor_note">The low end can't go down until a dietitian sets a safe floor.</string>
     <string name="settings_targets_floor_toast">Going lower needs a floor set with a dietitian first.</string>
+    <string name="settings_targets_gap_toast">The two ends need at least 50 kcal between them.</string>
+    <string name="settings_targets_macro_split">Macro split</string>
+    <string name="settings_targets_macro_protein">%1$s protein</string>
+    <string name="settings_targets_macro_carbs">%1$s carbs</string>
+    <string name="settings_targets_macro_fat">%1$s fat</string>
     <string name="settings_targets_macros_title">Set macros using</string>
     <string name="settings_targets_ratios">Ratios</string>
     <string name="settings_targets_grams">Grams</string>
     <string name="settings_targets_ratios_note">Grams follow your energy target, so the split stays the same.</string>
     <string name="settings_targets_grams_note">Grams stay put when your energy target changes.</string>
+    <string name="settings_targets_deficit_title">Under what you burn, each day</string>
+    <string name="settings_targets_kcal">kcal</string>
+    <string name="settings_targets_deficit_less">Less under what you burn</string>
+    <string name="settings_targets_deficit_more">More under what you burn</string>
+    <string name="settings_targets_deficit_burn">You burn, 7-day average</string>
+    <string name="settings_targets_deficit_goal">Today's goal</string>
+    <string name="settings_targets_deficit_about">About %1$s</string>
+    <string name="settings_targets_deficit_burn_unknown">Not known yet</string>
+    <string name="settings_targets_deficit_goal_unknown">Your range, for now</string>
+    <string name="settings_targets_deficit_cap_toast">A bigger deficit needs a limit set with a dietitian first.</string>
+    <string name="settings_targets_burn_source">Work out what I burn from</string>
+    <string name="settings_targets_burn_source_body">Intake and weight trend is steadier. It needs about two weeks of logging first.</string>
+    <string name="settings_targets_rule_floor">Never below your floor, even on a low-burn day</string>
+    <string name="settings_targets_rule_big_day">After a big day, tomorrow's goal stays the same</string>
+    <string name="settings_targets_group_every_day">Every day</string>
+    <string name="settings_targets_group_other_days">Other days</string>
+    <string name="settings_targets_group_numbered">Day group %1$d</string>
+    <string name="settings_targets_group_range">Range</string>
+    <string name="settings_targets_group_edit">Edit %1$s</string>
+    <string name="settings_targets_group_done">Done</string>
+    <string name="settings_targets_group_remove">Remove this group</string>
+    <string name="settings_targets_group_day">%1$s, in %2$s</string>
+    <string name="settings_targets_group_add">Add another day group</string>
+    <string name="settings_targets_week">This week</string>
     <string name="settings_targets_hidden_title">Targets work in the background</string>
     <string name="settings_targets_hidden_body">They're out of view in this mode. To see or change them, show calories in Modes and numbers.</string>
     <string name="settings_targets_hidden_link">Modes and numbers</string>
-    <string name="settings_targets_footer">No extra credit for coming in under.</string>
+
+    <!-- Goal style (sheet) -->
+    <string name="settings_goal_style_title">Goal style</string>
+    <string name="settings_goal_style_done">Done</string>
 
     <!-- Water settings -->
     <string name="settings_water_title">Water</string>
@@ -153,6 +229,7 @@
     <string name="settings_support_hard_body">Free, confidential support from people who understand eating disorders.</string>
     <string name="settings_support_helpline">National Alliance for Eating Disorders helpline</string>
     <string name="settings_support_provider">Find a provider</string>
+    <string name="settings_support_opens_browser">Opens in your browser</string>
     <string name="settings_support_trusted">Trusted person</string>
     <string name="settings_support_trusted_sub">They approve turning numbers back on</string>
     <string name="settings_support_clinician">Dietitian, therapist or coach</string>
@@ -163,7 +240,8 @@
     <string name="settings_support_export">Export everything (CSV)</string>
     <string name="settings_send_feedback">Send feedback</string>
     <string name="settings_support_delete">Delete everything</string>
-    <string name="settings_support_delete_confirm">This removes every log and setting from this phone and from our server. It can't be undone.</string>
+    <string name="settings_support_delete_title">Delete everything?</string>
+    <string name="settings_support_delete_confirm">This removes every log and setting from this phone and from our server. It can't be undone. Export first if you'd like a copy.</string>
     <string name="settings_support_keep">Keep my data</string>
     <string name="settings_support_delete_button">Delete</string>
     <string name="settings_export_ready">Export ready: %1$s</string>

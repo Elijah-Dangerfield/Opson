@@ -9,6 +9,16 @@ import opson.libraries.resources.generated.resources.settings_level_later
 import opson.libraries.resources.generated.resources.settings_level_show
 import opson.libraries.resources.generated.resources.settings_level_soft
 import opson.libraries.resources.generated.resources.settings_metric_calories
+import opson.libraries.resources.generated.resources.settings_metric_calories_inline
+import opson.libraries.resources.generated.resources.settings_metric_carbs_inline
+import opson.libraries.resources.generated.resources.settings_metric_energy_out_inline
+import opson.libraries.resources.generated.resources.settings_metric_fat_inline
+import opson.libraries.resources.generated.resources.settings_metric_fiber_inline
+import opson.libraries.resources.generated.resources.settings_metric_micros_inline
+import opson.libraries.resources.generated.resources.settings_metric_protein_inline
+import opson.libraries.resources.generated.resources.settings_metric_remaining_inline
+import opson.libraries.resources.generated.resources.settings_metric_water_inline
+import opson.libraries.resources.generated.resources.settings_metric_weight_inline
 import opson.libraries.resources.generated.resources.settings_metric_carbs
 import opson.libraries.resources.generated.resources.settings_metric_energy_out
 import opson.libraries.resources.generated.resources.settings_metric_fat
@@ -86,6 +96,21 @@ internal val Metric.label: StringResource
         Metric.Micros -> Res.string.settings_metric_micros
         Metric.Weight -> Res.string.settings_metric_weight
         Metric.Water -> Res.string.settings_metric_water
+    }
+
+/** The metric inside a sentence: "Showing calories again". */
+internal val Metric.inline: StringResource
+    get() = when (this) {
+        Metric.Calories -> Res.string.settings_metric_calories_inline
+        Metric.Remaining -> Res.string.settings_metric_remaining_inline
+        Metric.EnergyOut -> Res.string.settings_metric_energy_out_inline
+        Metric.Protein -> Res.string.settings_metric_protein_inline
+        Metric.Carbs -> Res.string.settings_metric_carbs_inline
+        Metric.Fat -> Res.string.settings_metric_fat_inline
+        Metric.Fiber -> Res.string.settings_metric_fiber_inline
+        Metric.Micros -> Res.string.settings_metric_micros_inline
+        Metric.Weight -> Res.string.settings_metric_weight_inline
+        Metric.Water -> Res.string.settings_metric_water_inline
     }
 
 /** The grid's column names: Show, Soft, Later, Hide. */

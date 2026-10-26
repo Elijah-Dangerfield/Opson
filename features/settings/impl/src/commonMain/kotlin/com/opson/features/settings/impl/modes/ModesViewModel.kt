@@ -14,6 +14,7 @@ import com.opson.libraries.nutrition.Visibility
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
@@ -30,6 +31,8 @@ class ModesViewModel(
     private val numbersChanger: NumbersChanger,
 ) : SEAViewModel<ModesState, ModesEvent, ModesAction>(initialStateArg = ModesState()) {
 
+    private val timeZone: TimeZone get() = TimeZone.currentSystemDefault()
+
     init {
         viewModelScope.launch {
             settingsRepository.observe()
@@ -42,10 +45,11 @@ class ModesViewModel(
     override suspend fun handleAction(action: ModesAction) {
         when (action) {
             is ModesAction.InputsArrived -> action.updateState {
-                ModesStateBuilder.build(action.numbers, TimeZone.currentSystemDefault())
+                ModesStateBuilder.build(action.numbers, timeZone, pickingRevealTime = it.pickingRevealTime)
             }
             is ModesAction.PresetTapped -> {
-                if (state.presets.any { it.id == action.id && it.selected }) return
+                // Picking the current preset again clears its changes; with none, there is nothing to do.
+                if (state.presets.any { it.id == action.id && it.selected && it.changes == 0 }) return
                 request(NumbersChange.PickPreset(action.id))
             }
             is ModesAction.LevelTapped -> {
@@ -55,7 +59,13 @@ class ModesViewModel(
             ModesAction.PauseToggled -> {
                 if (state.pauseOn) request(NumbersChange.TurnOffPause) else numbersChanger.turnOnPause()
             }
-            ModesAction.TargetsTapped -> sendEvent(ModesEvent.OpenTargets)
+            ModesAction.RevealTimeTapped -> action.updateState { it.copy(pickingRevealTime = true) }
+            ModesAction.RevealTimeDismissed -> action.updateState { it.copy(pickingRevealTime = false) }
+            is ModesAction.RevealTimePicked -> {
+                action.updateState { it.copy(pickingRevealTime = false) }
+                if (action.time == state.revealAt) return
+                request(NumbersChange.SetRevealAt(action.time))
+            }
             ModesAction.BackTapped -> sendEvent(ModesEvent.Close)
         }
     }
@@ -73,7 +83,6 @@ class ModesViewModel(
 sealed interface ModesEvent {
     data class ShowToast(val toast: Toast) : ModesEvent
     data class OpenPause(val change: NumbersChange) : ModesEvent
-    data object OpenTargets : ModesEvent
     data object Close : ModesEvent
 }
 
@@ -82,6 +91,8 @@ sealed interface ModesAction {
     data class PresetTapped(val id: PresetId) : ModesAction
     data class LevelTapped(val metric: Metric, val level: Visibility) : ModesAction
     data object PauseToggled : ModesAction
-    data object TargetsTapped : ModesAction
+    data object RevealTimeTapped : ModesAction
+    data object RevealTimeDismissed : ModesAction
+    data class RevealTimePicked(val time: LocalTime) : ModesAction
     data object BackTapped : ModesAction
 }

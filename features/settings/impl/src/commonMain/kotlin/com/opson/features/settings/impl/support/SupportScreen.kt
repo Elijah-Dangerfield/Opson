@@ -4,22 +4,39 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.Dp
-import com.opson.features.settings.impl.LightAndDark
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.opson.features.settings.impl.SettingsCard
+import com.opson.features.settings.impl.SettingsDefaults
+import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
+import com.opson.features.settings.impl.SettingsPreview
+import com.opson.features.settings.impl.SettingsRow
+import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.EdgeCard
-import com.opson.libraries.ui.components.EdgeCardDefaults
-import com.opson.libraries.ui.components.ListRow
-import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.button.FlatButton
-import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone
+import com.opson.libraries.ui.components.dialog.Dialog
+import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
+import com.opson.libraries.ui.components.icon.IconResource
+import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.libraries.ui.system.minTouchTarget
 import com.opson.system.AppTheme
+import com.opson.system.background
+import com.opson.system.thenIf
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_delete_failed
@@ -34,11 +51,13 @@ import opson.libraries.resources.generated.resources.settings_support_data_title
 import opson.libraries.resources.generated.resources.settings_support_delete
 import opson.libraries.resources.generated.resources.settings_support_delete_button
 import opson.libraries.resources.generated.resources.settings_support_delete_confirm
+import opson.libraries.resources.generated.resources.settings_support_delete_title
 import opson.libraries.resources.generated.resources.settings_support_export
 import opson.libraries.resources.generated.resources.settings_support_hard_body
 import opson.libraries.resources.generated.resources.settings_support_hard_title
 import opson.libraries.resources.generated.resources.settings_support_helpline
 import opson.libraries.resources.generated.resources.settings_support_keep
+import opson.libraries.resources.generated.resources.settings_support_opens_browser
 import opson.libraries.resources.generated.resources.settings_support_provider
 import opson.libraries.resources.generated.resources.settings_support_title
 import opson.libraries.resources.generated.resources.settings_support_trusted
@@ -53,135 +72,191 @@ fun SupportScreen(
     modifier: Modifier = Modifier,
 ) {
     SettingsPage(modifier = modifier) {
-        PageHeader(
+        SettingsHeader(
             title = stringResource(Res.string.settings_support_title),
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(SupportAction.BackTapped) },
         )
         EdgeCard(
             edgeToEdge = false,
-            contentPadding = EdgeCardDefaults.InsetPadding,
+            contentPadding = SettingsDefaults.CardInset,
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            Text(
-                text = stringResource(Res.string.settings_support_hard_title),
-                typography = AppTheme.type.bodyStrong,
-                color = AppTheme.colors.ink,
-            )
-            Text(
-                text = stringResource(Res.string.settings_support_hard_body),
-                typography = AppTheme.type.secondary,
-                color = AppTheme.colors.muted,
-            )
-            FlatButton(
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(Res.string.settings_support_hard_title),
+                    typography = AppTheme.type.cardTitle,
+                    color = AppTheme.colors.ink,
+                )
+                Text(
+                    text = stringResource(Res.string.settings_support_hard_body),
+                    typography = AppTheme.type.body,
+                    color = AppTheme.colors.muted,
+                )
+            }
+            val opens = stringResource(Res.string.settings_support_opens_browser)
+            CardButton(
                 text = stringResource(Res.string.settings_support_helpline),
+                trailing = AppIcons.OpenInNew.described(opens),
                 onClick = { onAction(SupportAction.HelplineTapped) },
-                modifier = Modifier.fillMaxWidth(),
             )
-            FlatButton(
+            CardButton(
                 text = stringResource(Res.string.settings_support_provider),
+                trailing = AppIcons.OpenInNew.described(opens),
                 onClick = { onAction(SupportAction.FindProviderTapped) },
-                modifier = Modifier.fillMaxWidth(),
             )
         }
-        EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.ListPadding, verticalArrangement = Arrangement.Top) {
+        SettingsCard {
             val later = stringResource(Res.string.settings_support_coming_later)
-            ListRow(
+            SettingsRow(
                 title = stringResource(Res.string.settings_support_trusted),
                 subtitle = stringResource(Res.string.settings_support_trusted_sub),
+                icon = null,
                 trailingText = later,
                 showDivider = true,
             )
-            ListRow(
+            SettingsRow(
                 title = stringResource(Res.string.settings_support_clinician),
                 subtitle = stringResource(Res.string.settings_support_clinician_sub),
+                icon = null,
                 trailingText = later,
             )
         }
         DataCard(state, onAction)
     }
-}
-
-@Composable
-private fun DataCard(state: SupportState, onAction: (SupportAction) -> Unit) {
-    EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.InsetPadding) {
-        Text(
-            text = stringResource(Res.string.settings_support_data_title),
-            typography = AppTheme.type.bodyStrong,
-            color = AppTheme.colors.ink,
-        )
-        Text(
-            text = stringResource(Res.string.settings_support_data_body),
-            typography = AppTheme.type.secondary,
-            color = AppTheme.colors.muted,
-        )
-        FlatButton(
-            text = stringResource(Res.string.settings_support_export),
-            onClick = { onAction(SupportAction.ExportTapped) },
-            enabled = state.export != ExportStatus.Working,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (state.export == ExportStatus.Failed) Note(stringResource(Res.string.settings_export_offline))
-        when (val delete = state.delete) {
-            DeleteStep.Idle, is DeleteStep.Failed -> {
-                FlatButton(
-                    text = stringResource(Res.string.settings_support_delete),
-                    onClick = { onAction(SupportAction.DeleteTapped) },
-                    tone = FlatButtonTone.Outlined,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (delete is DeleteStep.Failed) {
-                    Note(
-                        stringResource(
-                            if (delete.offline) Res.string.settings_delete_offline else Res.string.settings_delete_failed,
-                        ),
-                    )
-                }
-            }
-            DeleteStep.Confirming, DeleteStep.Deleting -> DeleteConfirm(working = delete == DeleteStep.Deleting, onAction)
-        }
-        FlatButton(
-            text = stringResource(Res.string.settings_send_feedback),
-            onClick = { onAction(SupportAction.SendFeedbackTapped) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+    if (state.delete == DeleteStep.Confirming || state.delete == DeleteStep.Deleting) {
+        DeleteDialog(working = state.delete == DeleteStep.Deleting, onAction = onAction)
     }
 }
 
 @Composable
-private fun DeleteConfirm(working: Boolean, onAction: (SupportAction) -> Unit) {
-    Column(
+private fun DataCard(state: SupportState, onAction: (SupportAction) -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = stringResource(Res.string.settings_support_data_title),
+                typography = AppTheme.type.cardTitle,
+                color = AppTheme.colors.ink,
+            )
+            Text(
+                text = stringResource(Res.string.settings_support_data_body),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.muted,
+            )
+        }
+        CardButton(
+            text = stringResource(Res.string.settings_support_export),
+            leading = AppIcons.Download,
+            enabled = state.export != ExportStatus.Working,
+            onClick = { onAction(SupportAction.ExportTapped) },
+        )
+        if (state.export == ExportStatus.Failed) Note(stringResource(Res.string.settings_export_offline))
+        CardButton(
+            text = stringResource(Res.string.settings_support_delete),
+            leading = AppIcons.Delete,
+            leadingColor = AppTheme.colors.muted,
+            outlined = true,
+            onClick = { onAction(SupportAction.DeleteTapped) },
+        )
+        (state.delete as? DeleteStep.Failed)?.let { failed ->
+            Note(stringResource(if (failed.offline) Res.string.settings_delete_offline else Res.string.settings_delete_failed))
+        }
+        CardButton(
+            text = stringResource(Res.string.settings_send_feedback),
+            onClick = { onAction(SupportAction.SendFeedbackTapped) },
+        )
+    }
+}
+
+/** A rounded button inside a card: soft fill (or a line border), an optional icon at either end. */
+@Composable
+private fun CardButton(
+    text: String,
+    onClick: () -> Unit,
+    leading: IconResource? = null,
+    leadingColor: ColorResource = AppTheme.colors.accent,
+    trailing: IconResource? = null,
+    outlined: Boolean = false,
+    enabled: Boolean = true,
+) {
+    val shape = AppTheme.shapes.inputLarge
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(Dp.Hairline, AppTheme.colors.line.color, AppTheme.shapes.inputLarge)
-            .padding(AppTheme.spacing.section),
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+            .minTouchTarget()
+            .defaultMinSize(minHeight = 52.dp)
+            .clip(shape)
+            .thenIf(!outlined) { background(AppTheme.colors.soft) }
+            .thenIf(outlined) { border(1.dp, AppTheme.colors.line.color, shape) }
+            .semantics { role = Role.Button }
+            .bounceClick(enabled = enabled, scaleDown = 0.98f, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
+        if (leading != null) Icon(icon = leading, size = 24.dp, color = leadingColor)
         Text(
-            text = stringResource(Res.string.settings_support_delete_confirm),
-            typography = AppTheme.type.secondary,
-            color = AppTheme.colors.ink,
+            text = text,
+            typography = AppTheme.type.cardTitle,
+            color = if (enabled) AppTheme.colors.ink else AppTheme.colors.muted,
+            modifier = Modifier.weight(1f),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-            FlatButton(
-                text = stringResource(Res.string.settings_support_keep),
-                onClick = { onAction(SupportAction.KeepMyDataTapped) },
-                centered = true,
-                enabled = !working,
-                shape = AppTheme.shapes.input,
-                minHeight = FlatButtonDefaults.CompactMinHeight,
-                modifier = Modifier.weight(1f),
+        if (trailing != null) Icon(icon = trailing, size = 24.dp, color = AppTheme.colors.accent)
+    }
+}
+
+/**
+ * Design v3: a modal dialog, so it can't be confirmed by accident while scrolling. The safe
+ * choice is the accent; Delete stays neutral, because the app has no red. Tapping outside or
+ * back keeps the data, except while the delete is already running.
+ */
+@Composable
+private fun DeleteDialog(working: Boolean, onAction: (SupportAction) -> Unit) {
+    Dialog(onDismissRequest = { if (!working) onAction(SupportAction.KeepMyDataTapped) }) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(AppTheme.colors.bg, SettingsDefaults.DialogShape)
+                .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+        ) {
+            Icon(icon = AppIcons.Delete, size = 26.dp, color = AppTheme.colors.muted)
+            Text(
+                text = stringResource(Res.string.settings_support_delete_title),
+                typography = AppTheme.type.dayLabel,
+                color = AppTheme.colors.ink,
+                textAlign = TextAlign.Center,
             )
-            FlatButton(
-                text = stringResource(Res.string.settings_support_delete_button),
-                onClick = { onAction(SupportAction.DeleteConfirmed) },
-                tone = FlatButtonTone.Accent,
-                centered = true,
-                enabled = !working,
-                shape = AppTheme.shapes.input,
-                minHeight = FlatButtonDefaults.CompactMinHeight,
-                modifier = Modifier.weight(1f),
+            Text(
+                text = stringResource(Res.string.settings_support_delete_confirm),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.muted,
+                textAlign = TextAlign.Center,
             )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+            ) {
+                FlatButton(
+                    text = stringResource(Res.string.settings_support_keep),
+                    onClick = { onAction(SupportAction.KeepMyDataTapped) },
+                    tone = FlatButtonTone.AccentText,
+                    enabled = !working,
+                    typography = AppTheme.type.button,
+                )
+                FlatButton(
+                    text = stringResource(Res.string.settings_support_delete_button),
+                    onClick = { onAction(SupportAction.DeleteConfirmed) },
+                    tone = FlatButtonTone.Text,
+                    enabled = !working,
+                    typography = AppTheme.type.button,
+                )
+            }
         }
     }
 }
@@ -191,22 +266,22 @@ private fun Note(text: String) {
     Text(text = text, typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
 }
 
-@Preview(widthDp = 800, heightDp = 1000)
+@Preview
 @Composable
 private fun SupportPreview() {
-    LightAndDark { SupportScreen(SupportState(), onAction = {}) }
+    SettingsPreview { SupportScreen(SupportState(), onAction = {}) }
 }
 
-@Preview(widthDp = 800, heightDp = 1000)
+@Preview
 @Composable
-private fun SupportConfirmingPreview() {
-    LightAndDark { SupportScreen(SupportState(delete = DeleteStep.Confirming), onAction = {}) }
+private fun SupportDeletePreview() {
+    SettingsPreview { SupportScreen(SupportState(delete = DeleteStep.Confirming), onAction = {}) }
 }
 
-@Preview(widthDp = 800, heightDp = 1000)
+@Preview
 @Composable
-private fun SupportOfflinePreview() {
-    LightAndDark {
+private fun SupportOfflineDarkPreview() {
+    SettingsPreview(dark = true) {
         SupportScreen(SupportState(export = ExportStatus.Failed, delete = DeleteStep.Failed(offline = true)), onAction = {})
     }
 }

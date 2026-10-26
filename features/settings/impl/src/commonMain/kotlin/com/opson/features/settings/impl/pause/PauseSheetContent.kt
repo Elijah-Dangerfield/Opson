@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.opson.features.settings.impl.LightAndDark
+import androidx.compose.ui.unit.dp
+import com.opson.features.settings.impl.SettingsPreview
+import com.opson.features.settings.impl.inline
 import com.opson.features.settings.impl.label
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
@@ -18,25 +20,44 @@ import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.chip.PillChip
+import com.opson.libraries.ui.components.chip.PillChipStyle
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
+import kotlinx.datetime.LocalTime
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.settings_pause_body
+import opson.libraries.resources.generated.resources.settings_pause_body_number
 import opson.libraries.resources.generated.resources.settings_pause_body_pause
+import opson.libraries.resources.generated.resources.settings_pause_body_preset
+import opson.libraries.resources.generated.resources.settings_pause_body_reveal
 import opson.libraries.resources.generated.resources.settings_pause_keep
-import opson.libraries.resources.generated.resources.settings_pause_reason_asked
+import opson.libraries.resources.generated.resources.settings_pause_ready_number
+import opson.libraries.resources.generated.resources.settings_pause_ready_pause
+import opson.libraries.resources.generated.resources.settings_pause_ready_preset
+import opson.libraries.resources.generated.resources.settings_pause_ready_reveal
+import opson.libraries.resources.generated.resources.settings_pause_reason_anxious
 import opson.libraries.resources.generated.resources.settings_pause_reason_curious
-import opson.libraries.resources.generated.resources.settings_pause_reason_goal
+import opson.libraries.resources.generated.resources.settings_pause_reason_else
+import opson.libraries.resources.generated.resources.settings_pause_reason_planning
 import opson.libraries.resources.generated.resources.settings_pause_reason_prompt
-import opson.libraries.resources.generated.resources.settings_pause_reason_worried
-import opson.libraries.resources.generated.resources.settings_pause_show
-import opson.libraries.resources.generated.resources.settings_pause_title
-import opson.libraries.resources.generated.resources.settings_pause_wait
+import opson.libraries.resources.generated.resources.settings_pause_reason_provider
+import opson.libraries.resources.generated.resources.settings_pause_title_number
+import opson.libraries.resources.generated.resources.settings_pause_title_pause
+import opson.libraries.resources.generated.resources.settings_pause_title_preset
+import opson.libraries.resources.generated.resources.settings_pause_title_reveal
+import opson.libraries.resources.generated.resources.settings_pause_wait_number
+import opson.libraries.resources.generated.resources.settings_pause_wait_pause
+import opson.libraries.resources.generated.resources.settings_pause_wait_preset
+import opson.libraries.resources.generated.resources.settings_pause_wait_reveal
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/** The pause sheet's body, apart from the `BottomSheet` so previews and the leak test can draw it. */
+/**
+ * The pause sheet's body, apart from the `BottomSheet` so previews and the leak test can draw it.
+ *
+ * Design v3: "Keep things as they are" is the primary button, and the countdown is the quiet
+ * one, filling in as the wait runs down.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PauseSheetContent(
@@ -44,98 +65,150 @@ fun PauseSheetContent(
     onAction: (PauseAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val copy = copyFor(state.subject, countdown = state.countdown.takeIf { state.secondsLeft > 0 })
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = AppTheme.spacing.page, vertical = AppTheme.spacing.section),
+            .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, top = 10.dp, bottom = AppTheme.spacing.page),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
     ) {
         SheetHandle(modifier = Modifier.align(Alignment.CenterHorizontally))
-        Text(
-            text = stringResource(Res.string.settings_pause_title),
-            typography = AppTheme.type.sheetTitle,
-            color = AppTheme.colors.ink,
-        )
-        Text(text = body(state.subject), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
-        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+            Text(text = copy.title, typography = AppTheme.type.dayLabel, color = AppTheme.colors.ink)
+            Text(text = copy.body, typography = AppTheme.type.body, color = AppTheme.colors.muted)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = stringResource(Res.string.settings_pause_reason_prompt),
-                typography = AppTheme.type.secondarySmallStrong,
+                typography = AppTheme.type.secondaryStrong,
                 color = AppTheme.colors.muted,
             )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
-                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
-            ) {
+            // The chips' 48 dp tap areas sit edge to edge, which draws the gap between rows.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                 PauseReason.entries.forEach { reason ->
                     PillChip(
                         label = stringResource(reason.label),
                         selected = state.reason == reason,
                         onClick = { onAction(PauseAction.ReasonPicked(reason)) },
+                        style = PillChipStyle.Tint,
                     )
                 }
             }
         }
-        FlatButton(
-            text = if (state.secondsLeft > 0) {
-                stringResource(Res.string.settings_pause_wait, state.secondsLeft)
-            } else {
-                stringResource(Res.string.settings_pause_show)
-            },
-            onClick = { onAction(PauseAction.ShowThemTapped) },
-            tone = FlatButtonTone.Ink,
-            centered = true,
-            enabled = state.canShow,
-            minHeight = FlatButtonDefaults.TallMinHeight,
-            typography = AppTheme.type.button.Tabular,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        FlatButton(
-            text = stringResource(Res.string.settings_pause_keep),
-            onClick = { onAction(PauseAction.KeepAsTheyAreTapped) },
-            centered = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+            FlatButton(
+                text = stringResource(Res.string.settings_pause_keep),
+                onClick = { onAction(PauseAction.KeepAsTheyAreTapped) },
+                tone = FlatButtonTone.Accent,
+                centered = true,
+                minHeight = FlatButtonDefaults.TallMinHeight,
+                typography = AppTheme.type.button,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            FlatButton(
+                text = copy.button,
+                onClick = { onAction(PauseAction.ShowThemTapped) },
+                tone = FlatButtonTone.Soft,
+                centered = true,
+                enabled = state.canShow,
+                progress = if (state.secondsLeft > 0) state.waited else null,
+                minHeight = FlatButtonDefaults.TallMinHeight,
+                typography = AppTheme.type.button.Tabular,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
+/** The sheet's words for one subject. [button] says the wait while [countdown] runs, then what applies. */
+private class PauseCopy(val title: String, val body: String, val button: String)
+
 @Composable
-private fun body(subject: PauseSubject): String = when (subject) {
-    is PauseSubject.Preset -> stringResource(Res.string.settings_pause_body, stringResource(subject.id.label))
-    is PauseSubject.Number -> stringResource(Res.string.settings_pause_body, stringResource(subject.metric.label))
-    PauseSubject.ThePause -> stringResource(Res.string.settings_pause_body_pause)
-    is PauseSubject.RevealTime -> stringResource(Res.string.settings_pause_body_pause)
+private fun copyFor(subject: PauseSubject, countdown: String?): PauseCopy = when (subject) {
+    is PauseSubject.Number -> {
+        val inline = stringResource(subject.metric.inline)
+        PauseCopy(
+            title = stringResource(Res.string.settings_pause_title_number, inline),
+            body = stringResource(Res.string.settings_pause_body_number, stringResource(subject.metric.label)),
+            button = if (countdown != null) {
+                stringResource(Res.string.settings_pause_wait_number, inline, countdown)
+            } else {
+                stringResource(Res.string.settings_pause_ready_number, inline)
+            },
+        )
+    }
+    is PauseSubject.Preset -> {
+        val label = stringResource(subject.id.label)
+        PauseCopy(
+            title = stringResource(Res.string.settings_pause_title_preset, label),
+            body = stringResource(Res.string.settings_pause_body_preset, label),
+            button = if (countdown != null) {
+                stringResource(Res.string.settings_pause_wait_preset, countdown)
+            } else {
+                stringResource(Res.string.settings_pause_ready_preset, label)
+            },
+        )
+    }
+    PauseSubject.ThePause -> PauseCopy(
+        title = stringResource(Res.string.settings_pause_title_pause),
+        body = stringResource(Res.string.settings_pause_body_pause),
+        button = if (countdown != null) {
+            stringResource(Res.string.settings_pause_wait_pause, countdown)
+        } else {
+            stringResource(Res.string.settings_pause_ready_pause)
+        },
+    )
+    is PauseSubject.RevealTime -> PauseCopy(
+        title = stringResource(Res.string.settings_pause_title_reveal),
+        body = stringResource(Res.string.settings_pause_body_reveal, subject.text),
+        button = if (countdown != null) {
+            stringResource(Res.string.settings_pause_wait_reveal, countdown)
+        } else {
+            stringResource(Res.string.settings_pause_ready_reveal, subject.text)
+        },
+    )
 }
 
 private val PauseReason.label: StringResource
     get() = when (this) {
         PauseReason.Curious -> Res.string.settings_pause_reason_curious
-        PauseReason.WorkingTowardAGoal -> Res.string.settings_pause_reason_goal
-        PauseReason.WorriedOffTrack -> Res.string.settings_pause_reason_worried
-        PauseReason.SomeoneAsked -> Res.string.settings_pause_reason_asked
+        PauseReason.PlanningAMeal -> Res.string.settings_pause_reason_planning
+        PauseReason.ProviderAsked -> Res.string.settings_pause_reason_provider
+        PauseReason.FeelingAnxious -> Res.string.settings_pause_reason_anxious
+        PauseReason.SomethingElse -> Res.string.settings_pause_reason_else
     }
 
-@Preview(widthDp = 800, heightDp = 480)
+@Preview
 @Composable
-private fun PauseFromBlindPreview() {
-    LightAndDark {
-        PauseSheetContent(PauseState(subject = PauseSubject.Preset(PresetId.Full), secondsLeft = 7), onAction = {})
-    }
-}
-
-@Preview(widthDp = 800, heightDp = 480)
-@Composable
-private fun PauseReadyPreview() {
-    LightAndDark {
+private fun ModesPausePreview() {
+    SettingsPreview {
         PauseSheetContent(
-            PauseState(subject = PauseSubject.Number(Metric.Water), secondsLeft = 0, reason = PauseReason.Curious),
+            PauseState(subject = PauseSubject.Number(Metric.Calories), secondsLeft = 7, reason = PauseReason.PlanningAMeal),
             onAction = {},
         )
     }
 }
 
-@Preview(widthDp = 800, heightDp = 480)
+@Preview
 @Composable
-private fun PauseTurningItOffPreview() {
-    LightAndDark { PauseSheetContent(PauseState(subject = PauseSubject.ThePause, secondsLeft = 3), onAction = {}) }
+private fun ModesPauseReadyDarkPreview() {
+    SettingsPreview(dark = true) {
+        PauseSheetContent(PauseState(subject = PauseSubject.Preset(PresetId.Full), secondsLeft = 0), onAction = {})
+    }
+}
+
+@Preview
+@Composable
+private fun ModesPauseTurningItOffPreview() {
+    SettingsPreview {
+        PauseSheetContent(PauseState(subject = PauseSubject.ThePause, secondsLeft = 3), onAction = {})
+    }
+}
+
+@Preview
+@Composable
+private fun ModesPauseRevealEarlierPreview() {
+    SettingsPreview {
+        PauseSheetContent(PauseState(subject = PauseSubject.RevealTime(LocalTime(19, 30)), secondsLeft = 5), onAction = {})
+    }
 }

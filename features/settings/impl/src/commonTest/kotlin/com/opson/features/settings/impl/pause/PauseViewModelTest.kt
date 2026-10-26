@@ -9,6 +9,7 @@ import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.datetime.LocalTime
 import kotlinx.coroutines.test.runCurrent
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_pause_saved
@@ -47,6 +48,22 @@ class PauseViewModelTest : CoroutineTest() {
             PauseViewModel(NumbersChange.PickPreset(PresetId.Full), changer).state.subject,
         )
         assertEquals(PauseSubject.ThePause, PauseViewModel(NumbersChange.TurnOffPause, changer).state.subject)
+        assertEquals(
+            PauseSubject.RevealTime(LocalTime(19, 30)),
+            PauseViewModel(NumbersChange.SetRevealAt(LocalTime(19, 30)), changer).state.subject,
+        )
+    }
+
+    @Test
+    fun theCountdownReadsAsAClockAndFillsInAsItRuns() {
+        val start = PauseState(PauseSubject.ThePause)
+        val sevenLeft = start.copy(secondsLeft = 7)
+
+        assertEquals("0:10", start.countdown)
+        assertEquals("0:07", sevenLeft.countdown)
+        assertEquals(0f, start.waited)
+        assertEquals(0.3f, sevenLeft.waited, 0.0001f)
+        assertEquals(1f, start.copy(secondsLeft = 0).waited)
     }
 
     @Test
@@ -136,10 +153,10 @@ class PauseViewModelTest : CoroutineTest() {
         vm.takeAction(PauseAction.ReasonPicked(PauseReason.Curious))
         assertEquals(PauseReason.Curious, vm.state.reason)
 
-        vm.takeAction(PauseAction.ReasonPicked(PauseReason.SomeoneAsked))
-        assertEquals(PauseReason.SomeoneAsked, vm.state.reason)
+        vm.takeAction(PauseAction.ReasonPicked(PauseReason.ProviderAsked))
+        assertEquals(PauseReason.ProviderAsked, vm.state.reason)
 
-        vm.takeAction(PauseAction.ReasonPicked(PauseReason.SomeoneAsked))
+        vm.takeAction(PauseAction.ReasonPicked(PauseReason.ProviderAsked))
         assertNull(vm.state.reason)
     }
 }

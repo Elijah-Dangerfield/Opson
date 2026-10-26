@@ -13,6 +13,7 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.nutrition.Visibility
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_saved
@@ -40,10 +41,47 @@ class ModesTest : CoroutineTest() {
     }
 
     @Test
-    fun anAdjustedPresetSelectsNoRow() {
-        val state = ModesStateBuilder.build(SettingsFixtures.adjusted, TimeZone.UTC)
+    fun aChangedPresetStaysSelectedWithItsChangeCount() {
+        val state = ModesStateBuilder.build(SettingsFixtures.fuelWithACarbsChange, TimeZone.UTC)
 
-        assertTrue(state.presets.none { it.selected })
+        assertEquals(listOf(PresetRow(PresetId.Fuel, selected = true, changes = 1)), state.presets.filter { it.selected })
+        assertTrue(state.presets.filterNot { it.selected }.all { it.changes == 0 })
+    }
+
+    @Test
+    fun anOverrideEqualToThePresetIsNotAChange() {
+        val fuelProtein = Presets[PresetId.Fuel].level(Metric.Protein)
+        val state = ModesStateBuilder.build(NumbersSettings(PresetId.Fuel, overrides = mapOf(Metric.Protein to fuelProtein)), TimeZone.UTC)
+
+        assertEquals(0, state.presets.single { it.selected }.changes)
+        assertTrue(state.matrix.all { it.changedFrom == null })
+    }
+
+    @Test
+    fun aChangedRowSaysWhatItWas() {
+        val state = ModesStateBuilder.build(SettingsFixtures.fuelWithACarbsChange, TimeZone.UTC)
+
+        assertEquals(
+            MatrixRow(Metric.Carbs, Visibility.Show, changedFrom = Presets[PresetId.Fuel].level(Metric.Carbs)),
+            state.matrix.single { it.metric == Metric.Carbs },
+        )
+        assertEquals(listOf(Metric.Carbs), state.matrix.filter { it.changedFrom != null }.map { it.metric })
+    }
+
+    @Test
+    fun theMatrixIsTheOnlyPlaceForWeightAndVitamins() {
+        val metrics = ModesStateBuilder.build(NumbersSettings(), TimeZone.UTC).matrix.map { it.metric }
+
+        assertTrue(Metric.Weight in metrics && Metric.Micros in metrics)
+    }
+
+    @Test
+    fun theRevealTimeIsShownAsAClockTime() {
+        val nine = ModesStateBuilder.build(NumbersSettings(), TimeZone.UTC)
+        val custom = ModesStateBuilder.build(NumbersSettings(revealAt = LocalTime(19, 30)), TimeZone.UTC)
+
+        assertEquals("9:00 PM", nine.revealAtText)
+        assertEquals("7:30 PM", custom.revealAtText)
     }
 
     @Test
@@ -127,13 +165,49 @@ class ModesTest : CoroutineTest() {
     }
 
     @Test
-    fun tappingTheCurrentPresetWithOverridesClearsThem() = runUnitTest {
+    fun tappingTheCurrentPresetWithChangesClearsThem() = runUnitTest {
         val changer = FakeNumbersChanger()
-        val vm = viewModel(SettingsFixtures.adjusted, changer)
+        val vm = viewModel(SettingsFixtures.fuelWithACarbsChange, changer)
 
-        vm.takeAction(ModesAction.PresetTapped(PresetId.Full))
+        vm.takeAction(ModesAction.PresetTapped(PresetId.Fuel))
 
-        assertEquals(listOf<NumbersChange>(NumbersChange.PickPreset(PresetId.Full)), changer.requested)
+        assertEquals(listOf<NumbersChange>(NumbersChange.PickPreset(PresetId.Fuel)), changer.requested)
+    }
+
+    @Test
+    fun theRevealTimePickerOpensAndCloses() = runUnitTest {
+        val vm = viewModel()
+
+        vm.takeAction(ModesAction.RevealTimeTapped)
+        assertTrue(vm.state.pickingRevealTime)
+
+        vm.takeAction(ModesAction.RevealTimeDismissed)
+        assertEquals(false, vm.state.pickingRevealTime)
+    }
+
+    @Test
+    fun pickingARevealTimeGoesThroughTheChanger() = runUnitTest {
+        val changer = FakeNumbersChanger { NumbersOutcome.NeedsPause }
+        val vm = viewModel(NumbersSettings(PresetId.Delayed, pauseBeforeMore = true), changer)
+        val events = eventsOf(vm)
+
+        vm.takeAction(ModesAction.RevealTimeTapped)
+        vm.takeAction(ModesAction.RevealTimePicked(LocalTime(19, 0)))
+
+        val change = NumbersChange.SetRevealAt(LocalTime(19, 0))
+        assertEquals(listOf<NumbersChange>(change), changer.requested)
+        assertEquals(listOf<ModesEvent>(ModesEvent.OpenPause(change)), events)
+        assertEquals(false, vm.state.pickingRevealTime)
+    }
+
+    @Test
+    fun pickingTheSameRevealTimeDoesNothing() = runUnitTest {
+        val changer = FakeNumbersChanger()
+        val vm = viewModel(NumbersSettings(PresetId.Delayed), changer)
+
+        vm.takeAction(ModesAction.RevealTimePicked(NumbersSettings.DEFAULT_REVEAL_AT))
+
+        assertTrue(changer.requested.isEmpty())
     }
 
     @Test
@@ -172,13 +246,12 @@ class ModesTest : CoroutineTest() {
     }
 
     @Test
-    fun targetsAndBackNavigate() = runUnitTest {
+    fun backCloses() = runUnitTest {
         val vm = viewModel()
         val events = eventsOf(vm)
 
-        vm.takeAction(ModesAction.TargetsTapped)
         vm.takeAction(ModesAction.BackTapped)
 
-        assertEquals(listOf(ModesEvent.OpenTargets, ModesEvent.Close), events)
+        assertEquals(listOf<ModesEvent>(ModesEvent.Close), events)
     }
 }
