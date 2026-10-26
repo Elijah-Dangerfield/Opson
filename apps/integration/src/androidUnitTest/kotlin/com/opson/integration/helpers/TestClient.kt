@@ -1,130 +1,287 @@
 package com.opson.integration.helpers
 
 import com.opson.features.home.impl.HomeViewModel
+import com.opson.libraries.config.AppConfigFlow
+import com.opson.libraries.config.AppConfigRepository
+import com.opson.libraries.config.impl.data.ConfigCacheImpl
+import com.opson.libraries.config.impl.data.ConfigOverrideRepositoryImpl
+import com.opson.libraries.config.impl.data.RemoteConfigRemoteDataSource
+import com.opson.libraries.config.impl.model.FallbackConfigMap
+import com.opson.libraries.config.impl.repository.OfflineFirstAppConfigRepository
+import com.opson.libraries.config.impl.serialization.ConfigJsonConverter
 import com.opson.libraries.core.AuthGate
 import com.opson.libraries.core.AuthRequirement
 import com.opson.libraries.core.AuthVerdict
+import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.FastingReleaseFlag
+import com.opson.libraries.diary.FastingRepository
+import com.opson.libraries.diary.LogDraft
+import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.SavedMealRepository
+import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.WeightRepository
+import com.opson.libraries.diary.impl.AuthActiveUserSource
+import com.opson.libraries.diary.impl.CustomFoodRepositoryImpl
+import com.opson.libraries.diary.impl.DiaryRepositoryImpl
+import com.opson.libraries.diary.impl.DiarySyncApi
+import com.opson.libraries.diary.impl.DiarySyncer
+import com.opson.libraries.diary.impl.DiaryTables
+import com.opson.libraries.diary.impl.DiaryWriter
+import com.opson.libraries.diary.impl.FastingRepositoryImpl
+import com.opson.libraries.diary.impl.HttpDiarySyncApi
+import com.opson.libraries.diary.impl.SavedMealRepositoryImpl
+import com.opson.libraries.diary.impl.SettingsRepositoryImpl
+import com.opson.libraries.diary.impl.SettingsStore
+import com.opson.libraries.diary.impl.SystemLocalCalendar
+import com.opson.libraries.diary.impl.WeightRepositoryImpl
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.DefaultDispatcherProvider
+import com.opson.libraries.foods.BarcodeMissReporter
+import com.opson.libraries.foods.FoodCatalog
+import com.opson.libraries.foods.MealPhotoEstimator
+import com.opson.libraries.foods.impl.FoodCatalogImpl
+import com.opson.libraries.foods.impl.HttpBarcodeMissReporter
+import com.opson.libraries.foods.impl.HttpFoodApi
+import com.opson.libraries.foods.impl.HttpMealPhotoEstimator
 import com.opson.libraries.identity.auth.AuthRepository
-import com.opson.libraries.identity.auth.AuthState
-import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.impl.HttpProfileApi
+import com.opson.libraries.identity.impl.auth.GatewayAuthTokenProvider
 import com.opson.libraries.identity.impl.auth.PendingGuestAccountStore
+import com.opson.libraries.identity.impl.auth.SupabaseAuthRepositoryImpl
 import com.opson.libraries.identity.impl.profile.PendingProfileEditStore
 import com.opson.libraries.identity.impl.profile.ProfileCache
 import com.opson.libraries.identity.impl.profile.ProfileRepositoryImpl
+import com.opson.libraries.identity.impl.profile.UserScopedProfileCacheCleaner
 import com.opson.libraries.identity.profile.ProfileRepository
-import com.opson.libraries.networking.AuthTokenProvider
 import com.opson.libraries.networking.InstallIdProvider
 import com.opson.libraries.networking.NetworkConfig
 import com.opson.libraries.networking.SessionIdProvider
 import com.opson.libraries.networking.impl.AccessDeniedBusImpl
+import com.opson.libraries.networking.impl.BearerTokenInvalidator
 import com.opson.libraries.networking.impl.DefaultClientHeadersProvider
 import com.opson.libraries.networking.impl.NetworkClientImpl
 import com.opson.libraries.networking.impl.NetworkReachabilityImpl
 import com.opson.libraries.networking.impl.SessionRejectionBusImpl
-import com.opson.libraries.storage.Cache
-import com.opson.libraries.storage.CacheFactory
-import com.opson.libraries.storage.CacheJsonSerializer
+import com.opson.libraries.opson.AppEvents
+import com.opson.libraries.opson.impl.AppEventDispatcher
+import com.opson.libraries.opson.impl.DefaultUserScopedDataReset
+import com.opson.libraries.storage.impl.UserScopedDaoCleaner
+import com.opson.libraries.storage.impl.db.AppDatabase
+import com.opson.libraries.storage.impl.db.RealAppDatabaseProvider
+import com.opson.libraries.storage.impl.db.RoomDatabaseTransactor
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.json.Json
 import java.util.UUID
 
 /**
- * One end-to-end test user: the REAL client stack — [NetworkClientImpl] with the
- * real headers provider / reachability / buses, a real [HttpProfileApi], and a
- * real [ProfileRepositoryImpl] driving `GET /v1/me` — pointed at [serverUrl].
- * Build a real [HomeViewModel] on demand with [homeVm]. This is the worked
- * example of the harness shape: real client → real TCP → real server → real DB.
+ * One phone: the app's real code from the repositories down — the diary and its
+ * outbox, the sync engine, settings, fasting, the food catalog, photo estimates,
+ * auth and the user-change reset, remote config, the network client and its
+ * DTOs — over the app's real [AppDatabase] (in memory) and pointed at
+ * [serverUrl]. Each part is built the way the app's DI graph builds it;
+ * TestClient only does the graph's job by hand.
  *
- * [userId] is the JWT `sub` AND the identity the fake [AuthRepository] reports,
- * so what the client believes lines up with what the server sees.
- *
- * The seams that stay fake are exactly the ones a device would own: auth-state
- * resolution (a canned Authenticated session — the token side is real, see
- * [IntegrationAuth]), and on-disk persistence (in-memory [CacheFactory]).
+ * The seams that stay fake are the ones the phone itself owns (see
+ * DeviceSeams.kt): the Supabase SDK, on-disk caches, the lifecycle and the
+ * clock. A new TestClient is a fresh install. [signedInAs] null is an install
+ * nobody has signed in on yet; otherwise the Supabase SDK already holds a
+ * session for that user, as after a sign-in.
  */
 class TestClient(
     serverUrl: String,
-    val userId: String = randomUserId(),
+    signedInAs: String?,
+    newAccount: () -> String,
+    val clock: TestClock = TestClock(),
+    requestTimeoutMillis: Long = 30_000,
 ) {
-    // One app-lifetime scope per client. The repository's background collectors
-    // live here so [close] can quiesce a client's work before the server stops.
-    private val appScope = AppCoroutineScope(DefaultDispatcherProvider())
+    // One app-lifetime scope per client. Every background collector lives here
+    // so [close] can quiesce a client's work before the server stops.
+    private val dispatchers = DefaultDispatcherProvider()
+    private val appScope = AppCoroutineScope(dispatchers)
+    private val cacheFactory = InMemoryCacheFactory()
+    val lifecycle = TestLifecycle()
 
-    private val config = object : NetworkConfig {
-        override val baseUrl: String = serverUrl
-    }
-
+    // ── Network ──────────────────────────────────────────────────────────────
+    val gateway = StubSupabaseGateway(signedInAs, newAccount)
+    private val sessionRejectionBus = SessionRejectionBusImpl()
+    private val tokenProvider = GatewayAuthTokenProvider(gateway, sessionRejectionBus)
     private val networkClient = NetworkClientImpl(
-        config = config,
-        tokenProvider = TokenProvider(userId),
-        headersProvider = DefaultClientHeadersProvider(FixedInstallId, FixedSessionId),
+        config = object : NetworkConfig {
+            override val baseUrl: String = serverUrl
+            override val requestTimeoutMillis: Long = requestTimeoutMillis
+        },
+        tokenProvider = tokenProvider,
+        headersProvider = DefaultClientHeadersProvider(InstallId(), SessionId()),
         reachability = NetworkReachabilityImpl(appScope),
         accessDeniedBus = AccessDeniedBusImpl(),
-        sessionRejectionBus = SessionRejectionBusImpl(),
+        sessionRejectionBus = sessionRejectionBus,
         authGate = { AlwaysReadyAuthGate },
     )
 
-    private val cacheFactory: CacheFactory = InMemoryCacheFactory()
+    // ── Device database ──────────────────────────────────────────────────────
+    val database: AppDatabase = RealAppDatabaseProvider(InMemoryAppDatabase, dispatchers).database
+    private val transactor = RoomDatabaseTransactor(
+        object : com.opson.libraries.storage.impl.db.AppDatabaseProvider {
+            override val database: AppDatabase = this@TestClient.database
+        },
+    )
+    val tables = DiaryTables(
+        entries = database.logEntryDao(),
+        days = database.dayRecordDao(),
+        feelings = database.mealFeelingDao(),
+        weighIns = database.weighInDao(),
+        customFoods = database.customFoodDao(),
+        savedMeals = database.savedMealDao(),
+        fasts = database.fastDao(),
+        outbox = database.outboxDao(),
+        syncState = database.syncStateDao(),
+        transactor = transactor,
+    )
+
+    // ── Auth and who is signed in ────────────────────────────────────────────
+    // The app hands AuthActiveUserSource a provider because the auth repository
+    // depends (through the user-change reset) on stores that depend on it. The
+    // provider is first called from a coroutine that can start before this
+    // constructor reaches the repository, so it waits for it.
+    private val authReady = CompletableDeferred<AuthRepository>()
+    private val activeUser = AuthActiveUserSource({ runBlocking { authReady.await() } }, appScope)
+
+    // ── Remote config ────────────────────────────────────────────────────────
+    private val configJson = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+    private val configConverter = ConfigJsonConverter(configJson)
+    private val configCache = ConfigCacheImpl(cacheFactory)
+    private val appEventBus = AppEventDispatcher(listeners = emptySet(), appLifecycle = lifecycle)
+    val appConfig: AppConfigRepository = OfflineFirstAppConfigRepository(
+        dispatcherProvider = dispatchers,
+        remoteConfigDataSource = RemoteConfigRemoteDataSource(dispatchers, networkClient, tokenProvider, configConverter),
+        configCache = configCache,
+        converter = configConverter,
+        fallbackConfig = BundledFallback(configConverter),
+        configOverrideRepository = ConfigOverrideRepositoryImpl(configCache, configConverter, appScope),
+        appEvents = AppEvents(appEventBus),
+        clock = clock,
+        appScope = appScope,
+    )
+    val appConfigFlow = AppConfigFlow(appConfig)
+    val fastingRelease = FastingReleaseFlag(appConfig.config())
+
+    // ── Diary, settings, sync ────────────────────────────────────────────────
+    private val calendar = SystemLocalCalendar(clock)
+    private val settingsStore = SettingsStore(cacheFactory, tables.outbox, transactor, clock, activeUser, appScope)
+    val syncApi: DiarySyncApi = HttpDiarySyncApi(networkClient)
+    val sync = DiarySyncer(syncApi, tables, settingsStore, activeUser, appScope, clock)
+    private val writer = DiaryWriter(tables, clock, sync)
+    val settings: SettingsRepository = SettingsRepositoryImpl(settingsStore, sync)
+    private val fastingImpl = FastingRepositoryImpl(tables, writer, settings, fastingRelease, calendar, clock)
+    val fasting: FastingRepository = fastingImpl
+    val diary: DiaryRepository = DiaryRepositoryImpl(tables, writer, settings, calendar, fastEnder = fastingImpl)
+    val weights: WeightRepository = WeightRepositoryImpl(tables, writer)
+    val customFoods: CustomFoodRepository = CustomFoodRepositoryImpl(tables, writer)
+    val savedMeals: SavedMealRepository = SavedMealRepositoryImpl(tables, writer)
+
+    // ── Foods ────────────────────────────────────────────────────────────────
+    val foods: FoodCatalog = FoodCatalogImpl(HttpFoodApi(networkClient), database.foodCacheDao(), clock)
+    val photoEstimator: MealPhotoEstimator = HttpMealPhotoEstimator(networkClient)
+    val barcodeMisses: BarcodeMissReporter = HttpBarcodeMissReporter(networkClient)
+
+    // ── Account ──────────────────────────────────────────────────────────────
+    private val profileApi = HttpProfileApi(networkClient)
+    private val profileCache = ProfileCache(cacheFactory)
+    val auth: AuthRepository = SupabaseAuthRepositoryImpl(
+        gateway = gateway,
+        profileApi = profileApi,
+        appEventBus = appEventBus,
+        userScopedDataReset = DefaultUserScopedDataReset(
+            clearers = setOf(
+                UserScopedDaoCleaner(
+                    setOf(
+                        database.exampleUserDataDao(), database.logEntryDao(), database.dayRecordDao(),
+                        database.mealFeelingDao(), database.weighInDao(), database.customFoodDao(),
+                        database.savedMealDao(), database.outboxDao(), database.syncStateDao(),
+                        database.foodCacheDao(), database.fastDao(),
+                    ),
+                ),
+                settingsStore,
+                UserScopedProfileCacheCleaner(profileCache),
+            ),
+            stoppers = setOf(sync),
+        ),
+        tokenInvalidator = BearerTokenInvalidator(networkClient),
+        sessionRejectionBus = sessionRejectionBus,
+        appScope = appScope,
+    ).also { authReady.complete(it) }
 
     /**
      * The real repository over the real API — its init collector resolves the
-     * profile from `/v1/me` as soon as the fake auth emits Authenticated.
+     * profile from `/v1/me` as soon as auth emits Authenticated.
      */
     val profileRepository: ProfileRepository = ProfileRepositoryImpl(
-        authRepository = FakeAuthRepository(userId),
-        profileApi = HttpProfileApi(networkClient),
-        profileCache = ProfileCache(cacheFactory),
+        authRepository = auth,
+        profileApi = profileApi,
+        profileCache = profileCache,
         pendingGuestAccountStore = PendingGuestAccountStore(cacheFactory),
         pendingProfileEditStore = PendingProfileEditStore(cacheFactory),
         appScope = appScope,
     )
 
+    /** The signed-in user's id, or null. */
+    val userId: String? get() = gateway.currentSession()?.userId
+
     /** Build the real home VM for this user. Mirrors how the entry point constructs it. */
     fun homeVm(): HomeViewModel = HomeViewModel(profileRepository)
 
-    /** Cancel this client's background work (profile resolve collector, etc.). */
-    fun close() = appScope.cancel()
+    fun today(): LocalDate = calendar.today()
 
-    private class TokenProvider(private val userId: String) : AuthTokenProvider {
-        override suspend fun awaitReady() = Unit
-        override suspend fun accessToken(): String = IntegrationAuth.mintJwt(userId)
-        override suspend fun refreshAccessToken(): String = IntegrationAuth.mintJwt(userId)
+    /** Push and pull now, the way pull-to-refresh does. */
+    suspend fun syncNow(): Result<Unit> = sync.syncNow()
+
+    /** Logs one food the way the logger's amount sheet does. */
+    suspend fun log(
+        name: String,
+        kcal: Double,
+        day: LocalDate = today(),
+        slot: MealSlot = MealSlot.Lunch,
+        foodId: String? = null,
+        method: LogMethod = LogMethod.Search,
+    ): LogItem = diary.addItems(
+        day = day,
+        slot = slot,
+        items = listOf(LogDraft(name = name, precision = Precision.Estimate, foodId = foodId, amountText = "1 bowl", grams = 300.0, kcal = kcal)),
+        method = method,
+    ).single()
+
+    /** Changes waiting in the outbox. */
+    suspend fun pendingChanges(): Int = tables.outbox.count()
+
+    /** Cancel this client's background work and close its database. */
+    fun close() {
+        appScope.cancel()
+        database.close()
     }
 
-    private object FixedInstallId : InstallIdProvider {
+    /** The shipped fallback is `{}`; read from compose resources on a phone, which the host JVM has none of. */
+    private class BundledFallback(converter: ConfigJsonConverter) : FallbackConfigMap(converter) {
+        override val map: Map<String, *> = emptyMap<String, Any?>()
+    }
+
+    private class InstallId : InstallIdProvider {
         private val id = UUID.randomUUID().toString()
         override fun current(): String = id
     }
 
-    private object FixedSessionId : SessionIdProvider {
+    private class SessionId : SessionIdProvider {
         private val id = UUID.randomUUID().toString()
         override fun current(): String = id
-    }
-
-    /** Always signed in as [userId]; the rest is unused by the profile flow. */
-    private class FakeAuthRepository(userId: String) : AuthRepository {
-        private val state: AuthState =
-            AuthState.Authenticated(userId = userId, isAnonymous = true, email = null)
-
-        override suspend fun current(): AuthState = state
-        override fun observe(): Flow<AuthState> = flowOf(state)
-        override suspend fun retry(): AuthState = state
-        override suspend fun signInWithEmail(email: String, password: String) = error("unused")
-        override suspend fun signUpWithEmail(email: String, password: String) = error("unused")
-        override suspend fun refreshSession() = error("unused")
-        override suspend fun resendVerificationEmail(email: String) = error("unused")
-        override suspend fun sendPasswordResetEmail(email: String) = error("unused")
-        override suspend fun signOut() = Unit
-        override suspend fun deleteAccount() = error("unused")
-        override suspend fun linkOAuthIdentity(provider: OAuthProvider) = error("unused")
-        override suspend fun signInWithOAuth(provider: OAuthProvider) = error("unused")
-        override suspend fun linkEmailIdentity(email: String, password: String) = error("unused")
     }
 }
 
@@ -134,43 +291,4 @@ internal fun randomUserId(): String = UUID.randomUUID().toString()
 internal object AlwaysReadyAuthGate : AuthGate {
     override fun verdict(requirement: AuthRequirement): AuthVerdict = AuthVerdict.Ready
     override suspend fun awaitVerdict(requirement: AuthRequirement): AuthVerdict = AuthVerdict.Ready
-}
-
-/**
- * In-memory [CacheFactory] — the production stores ([ProfileCache], the pending
- * stores) are concrete classes over this seam, so an in-memory factory lets the
- * harness run the REAL store logic with no file system underneath.
- */
-private class InMemoryCacheFactory : CacheFactory {
-
-    override fun <T : Any> inMemory(defaultValue: () -> T): Cache<T> =
-        HarnessCache { defaultValue() }
-
-    override fun <T : Any> persistent(
-        name: String,
-        serializer: CacheJsonSerializer<T>,
-        loadEagerly: Boolean,
-    ): Cache<T> = HarnessCache { serializer.read(null) }
-
-    /** Null state = "not yet loaded"; [get] seeds it from the default lazily. */
-    private class HarnessCache<T : Any>(
-        private val default: suspend () -> T,
-    ) : Cache<T> {
-        private val state = MutableStateFlow<T?>(null)
-
-        override val updates: Flow<T> = state.filterNotNull()
-
-        override suspend fun get(): T {
-            state.compareAndSet(null, default())
-            return checkNotNull(state.value)
-        }
-
-        override suspend fun set(value: T) {
-            state.value = value
-        }
-
-        override suspend fun clear() {
-            state.value = default()
-        }
-    }
 }
