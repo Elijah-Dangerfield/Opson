@@ -17,10 +17,10 @@ class BasketStoreTest : CoroutineTest() {
 
         store.toggle(banana)
         store.toggle(yogurt)
-        assertEquals(listOf("f:banana", "f:yogurt"), store.basket.value.map { it.key })
+        assertEquals(listOf("f:arroz", "f:sinangag"), store.basket.value.map { it.key })
 
         store.toggle(banana)
-        assertEquals(listOf("f:yogurt"), store.basket.value.map { it.key })
+        assertEquals(listOf("f:sinangag"), store.basket.value.map { it.key })
     }
 
     @Test
@@ -31,8 +31,19 @@ class BasketStoreTest : CoroutineTest() {
 
         store.upsert(banana.copy(hunger = Hunger.Peckish))
 
-        assertEquals(listOf("f:banana", "f:yogurt"), store.basket.value.map { it.key })
+        assertEquals(listOf("f:arroz", "f:sinangag"), store.basket.value.map { it.key })
         assertEquals(Hunger.Peckish, store.basket.value.first().hunger)
+    }
+
+    @Test
+    fun removeWhereTakesOutOnlyTheMatchingPicks() {
+        val store = BasketStore()
+        store.upsert(banana)
+        LoggerFixtures.parsed.forEachIndexed { index, item -> store.upsert(item.toDescribedItem(index)) }
+
+        store.removeWhere { it.source == PickSource.Describe }
+
+        assertEquals(listOf(banana), store.basket.value)
     }
 
     @Test

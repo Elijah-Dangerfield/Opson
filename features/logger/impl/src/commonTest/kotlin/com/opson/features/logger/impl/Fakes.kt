@@ -12,8 +12,10 @@ import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.diary.SelectedDay
@@ -50,6 +52,7 @@ fun policy(preset: PresetId, at: Instant = NOON): VisibilityPolicy =
 class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
     private val daysState = MutableStateFlow(days.associateBy { it.date })
     val favorites = MutableStateFlow<List<LogItem>>(emptyList())
+    private var nextId = 0
     val usual = MutableStateFlow<Map<MealSlot, List<LogItem>>>(emptyMap())
     val recent = MutableStateFlow<List<LogItem>>(emptyList())
 
@@ -69,9 +72,9 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
 
     override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> {
         added += Added(day, slot, items, method)
-        return items.mapIndexed { index, draft ->
+        return items.map { draft ->
             LogItem(
-                id = "new-$index",
+                id = "new-${nextId++}",
                 day = day,
                 slot = slot,
                 loggedAt = NOON,
@@ -136,7 +139,11 @@ class FakeCustomFoodRepository(foods: List<CustomFood> = emptyList()) : CustomFo
 
     override suspend fun get(id: String): CustomFood? = foods.value.firstOrNull { it.id == id }
 
-    override suspend fun create(draft: CustomFoodDraft): CustomFood = error("The logger never creates a custom food")
+    override suspend fun create(draft: CustomFoodDraft): CustomFood {
+        val food = CustomFood(id = "made-${foods.value.size}", name = draft.name, servingAmount = draft.servingAmount, servingUnit = draft.servingUnit)
+        foods.value = foods.value + food
+        return food
+    }
 
     override suspend fun update(food: CustomFood) = Unit
 
@@ -216,6 +223,22 @@ class FakeSelectedDay(day: LocalDate = LoggerFixtures.today) : SelectedDay {
     override fun select(day: LocalDate) {
         date.value = day
     }
+}
+
+class FakeRecentLogEvents : RecentLogEvents {
+    override val latest = MutableStateFlow<LoggedToMeal?>(null)
+    val logged = mutableListOf<LoggedToMeal>()
+
+    override fun logged(event: LoggedToMeal) {
+        logged += event
+        latest.value = event
+    }
+
+    override fun consumed(event: LoggedToMeal) {
+        if (latest.value == event) latest.value = null
+    }
+
+    override suspend fun undo(event: LoggedToMeal) = consumed(event)
 }
 
 class RecordingTelemetry : LoggerTelemetry {

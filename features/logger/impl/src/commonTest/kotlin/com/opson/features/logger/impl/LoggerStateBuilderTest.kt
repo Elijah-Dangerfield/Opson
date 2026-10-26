@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
@@ -19,7 +20,6 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
-import com.opson.libraries.core.fixed
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -30,9 +30,9 @@ import kotlin.time.Clock
 
 /**
  * [LoggerStateBuilder] across the visibility levels the plan's surface table
- * lists, plus the body and chip rules. Every number is checked as the policy
- * resolved it; formatting itself is `:libraries:nutrition`'s to test. The
- * view model's wiring is in [LoggerViewModelTest].
+ * lists, plus the body, pane and chip rules. Every number is checked as the
+ * policy resolved it; formatting itself is `:libraries:nutrition`'s to test.
+ * The view model's wiring is in [LoggerViewModelTest].
  */
 class LoggerStateBuilderTest {
     private val today = LoggerFixtures.today
@@ -63,24 +63,20 @@ class LoggerStateBuilderTest {
         fat = fat,
     )
 
-    private fun day(date: LocalDate = today, vararg items: LogItem, ate: Set<MealSlot> = emptySet()) = Day(
+    private fun day(date: LocalDate = today, vararg items: LogItem) = Day(
         date = date,
         itemsBySlot = MealSlot.entries.associateWith { slot -> items.filter { it.slot == slot } },
-        ateNoDetails = ate,
     )
 
-    private val bigBreakfast = item("Breakfast plate", kcal = 1245.0, protein = 47.0, carbs = 160.0, fat = 41.0)
-
     private fun inputs(
-        day: Day = day(today, bigBreakfast),
+        day: Day = day(today),
         dayBefore: Day = Day.empty(yesterday),
         settings: Settings = Settings(),
         basket: List<BasketItem> = emptyList(),
-        favorites: List<LogItem> = listOf(item("Banana"), item("Yogurt"), item("Rice"), item("Adobo")),
         usual: Map<MealSlot, List<LogItem>> = emptyMap(),
         recent: List<LogItem> = listOf(item("Oats")),
         custom: List<CustomFood> = emptyList(),
-    ) = LoggerInputs(today, day, dayBefore, settings, basket, favorites, usual, recent, custom)
+    ) = LoggerInputs(today, day, dayBefore, settings, basket, usual, recent, custom, LoggerFixtures.savedMeals)
 
     private fun build(
         inputs: LoggerInputs = inputs(),
@@ -88,7 +84,8 @@ class LoggerStateBuilderTest {
         slot: MealSlot = MealSlot.Dinner,
         query: String = "",
         search: SearchOutcome? = null,
-    ) = LoggerStateBuilder.build(inputs, policy, slot, query, search)
+        pane: LoggerPane = LoggerPane.Search,
+    ) = LoggerStateBuilder.build(inputs, policy, LoggerChoices(slot = slot, pane = pane, query = query, search = search))
 
     private fun Display.text(): String? = when (this) {
         is Display.Shown -> text
@@ -97,56 +94,36 @@ class LoggerStateBuilderTest {
     }
 
     @Test
-    fun fullShowsTheDaysTotalsAgainstTheGoalsWithASlash() {
-        val state = build()
+    fun rowsShowBareEnergyAndCompactMacrosInFull() {
+        val row = assertIs<LoggerBody.Browse>(build().body).recent.single()
 
-        assertEquals(
-            listOf("1,245 / 2,100", "47 / 120 g", "160 / 250 g", "41 / 70 g"),
-            state.totals?.map { it.display.text() },
-        )
-        assertNull(state.mealChecks)
-    }
-
-    @Test
-    fun blindShowsMealChecksInsteadOfTotals() {
-        val state = build(inputs(day = day(today, bigBreakfast, ate = setOf(MealSlot.Lunch))), policy(PresetId.Blind))
-
-        assertNull(state.totals)
-        assertEquals(
-            listOf(
-                MealCheck(MealSlot.Breakfast, true),
-                MealCheck(MealSlot.Lunch, true),
-                MealCheck(MealSlot.Snack, false),
-                MealCheck(MealSlot.Dinner, false),
-            ),
-            state.mealChecks,
-        )
+        assertEquals("100", row.calories.text(), "v3 draws a row's energy without the unit")
+        assertEquals(listOf("5P", "10C", "2F"), row.macros.map { it.text })
     }
 
     @Test
     fun blindShowsNoNumberAnywhere() {
-        val state = build(
-            inputs(basket = listOf(FoodPick("f:banana", FoodRef.Catalog("banana"), item("Banana").toDraft(), PickSource.Search).toBasketItem())),
-            policy(PresetId.Blind),
-        )
+        val banana = FoodPick("f:banana", FoodRef.Catalog("banana"), item("Banana").toDraft(), PickSource.Search).toBasketItem()
+        val described = LoggerFixtures.parsed.mapIndexed { index, parsed -> parsed.toDescribedItem(index) }
+        val blind = policy(PresetId.Blind)
+        val state = build(inputs(basket = listOf(banana) + described), blind)
 
         val browse = assertIs<LoggerBody.Browse>(state.body)
-        (browse.favorites + browse.usual + browse.recent).forEach { row ->
+        (browse.usual + browse.recent).forEach { row ->
             assertEquals(Display.Hidden, row.calories)
             assertTrue(row.macros.isEmpty())
         }
         assertEquals(Display.Hidden, state.basket?.calories)
+        assertTrue(state.describe.lines.all { it.calories == Display.Hidden })
+        assertTrue(state.saved.meals.all { it.calories == Display.Hidden })
+        val results = assertIs<LoggerBody.Results>(LoggerFixtures.searchState(blind).body)
+        assertTrue(results.rows.all { it.calories == Display.Hidden && it.macros.isEmpty() })
     }
 
     @Test
-    fun fuelShowsSoftEnergyAndProteinInTheStripAndNoEnergyOnRows() {
-        val state = build(policy = policy(PresetId.Fuel))
+    fun fuelHidesRowEnergyButKeepsProtein() {
+        val row = assertIs<LoggerBody.Browse>(build(policy = policy(PresetId.Fuel)).body).recent.single()
 
-        assertEquals(listOf(Metric.Calories, Metric.Protein), state.totals?.map { it.metric })
-        assertIs<Display.Soft>(state.totals?.first()?.display)
-        assertIs<Display.Shown>(state.totals?.last()?.display)
-
-        val row = assertIs<LoggerBody.Browse>(state.body).recent.single()
         assertEquals(Display.Hidden, row.calories, "a row has no goal, so a softened energy hides")
         assertEquals(listOf(Metric.Protein), row.macros.map { it.metric })
     }
@@ -165,38 +142,24 @@ class LoggerStateBuilderTest {
     }
 
     @Test
-    fun delayedNumbersStayClosedTodayAndOpenOnAPastDay() {
-        val delayed = policy(PresetId.Delayed)
-
-        assertNull(build(policy = delayed).totals)
-        assertTrue(build(inputs(day = day(yesterday, bigBreakfast.copy(day = yesterday))), delayed).totals.orEmpty().isNotEmpty())
-    }
-
-    @Test
-    fun methodsFollowTheWaterAndCalorieLevels() {
+    fun methodsFollowTheCalorieLevelAndTheSlot() {
         assertEquals(
-            listOf(
-                LoggerMethod.DescribeIt,
-                LoggerMethod.Water,
-                LoggerMethod.SavedMeals,
-                LoggerMethod.AteNoDetails,
-                LoggerMethod.WeighIn,
-                LoggerMethod.JustANumber,
-            ),
+            listOf(LoggerMethod.DescribeIt, LoggerMethod.SavedMeals, LoggerMethod.AteNoDetails, LoggerMethod.JustANumber),
             build().methods,
         )
 
         val blind = build(policy = policy(PresetId.Blind)).methods
         assertTrue(LoggerMethod.AddANote in blind)
         assertFalse(LoggerMethod.JustANumber in blind)
-        assertTrue(LoggerMethod.Water in blind, "Blind softens water rather than hiding it")
+    }
 
-        val noWater = VisibilityPolicy(
-            NumbersSettings(preset = PresetId.Full, overrides = mapOf(Metric.Water to Visibility.Hide)),
-            Clock.fixed(NOON),
-            TimeZone.UTC,
-        )
-        assertFalse(LoggerMethod.Water in build(policy = noWater).methods)
+    @Test
+    fun theChipsAndTheDayStepAsideWhileTyping() {
+        val typing = build(query = "ri")
+
+        assertTrue(typing.methods.isEmpty())
+        assertTrue(typing.typing)
+        assertFalse(build().typing)
     }
 
     @Test
@@ -214,25 +177,26 @@ class LoggerStateBuilderTest {
         assertEquals(listOf(MealSlot.Uncategorized), state.slots)
         assertEquals(MealSlot.Uncategorized, state.slot)
         assertFalse(LoggerMethod.AteNoDetails in state.methods)
-        assertEquals(listOf(MealCheck(MealSlot.Uncategorized, false)), build(inputs(settings = Settings(mealGroups = false)), policy(PresetId.Blind)).mealChecks)
     }
 
     @Test
-    fun theHeaderNamesTheDayOnlyWhenItIsNotToday() {
-        assertNull(build().otherDay)
-        assertEquals(RelativeDay.Yesterday, build(inputs(day = Day.empty(yesterday))).otherDay)
+    fun theDayLabelSaysWhichDay() {
+        assertEquals(RelativeDay.Today, build().day)
+        assertEquals(RelativeDay.Yesterday, build(inputs(day = Day.empty(yesterday))).day)
     }
 
     @Test
-    fun usualFallsBackToTheFirstFavoritesAsSuggested() {
-        val suggested = assertIs<LoggerBody.Browse>(build().body)
-        assertEquals(UsualTitle.Suggested, suggested.usualTitle)
-        assertEquals(listOf("Banana", "Yogurt", "Rice"), suggested.usual.map { it.name })
+    fun usualAtTheMealComesFirstAndIsNotRepeatedUnderRecent() {
+        val browse = assertIs<LoggerBody.Browse>(
+            build(inputs(usual = mapOf(MealSlot.Dinner to listOf(item("Adobo"))), recent = listOf(item("Adobo"), item("Oats")))).body,
+        )
 
-        val usual = assertIs<LoggerBody.Browse>(build(inputs(usual = mapOf(MealSlot.Dinner to listOf(item("Adobo"))))).body)
-        assertEquals(UsualTitle.UsualAt(MealSlot.Dinner), usual.usualTitle)
-        assertEquals(listOf("Adobo"), usual.usual.map { it.name })
-        assertEquals(PickSource.Usual, usual.usual.single().source)
+        assertEquals(MealSlot.Dinner, browse.slot)
+        assertEquals(listOf("Adobo"), browse.usual.map { it.name })
+        assertEquals(PickSource.Usual, browse.usual.single().source)
+        assertEquals(listOf("Oats"), browse.recent.map { it.name })
+
+        assertTrue(assertIs<LoggerBody.Browse>(build().body).usual.isEmpty(), "nothing usual yet: Recent only")
     }
 
     @Test
@@ -240,51 +204,89 @@ class LoggerStateBuilderTest {
         val recent = listOf(item("Quick add", foodId = null), item("Oats"))
         assertEquals(listOf("Oats"), assertIs<LoggerBody.Browse>(build(inputs(recent = recent)).body).recent.map { it.name })
 
-        assertEquals(LoggerBody.FirstRun, build(inputs(favorites = emptyList(), recent = emptyList())).body)
+        assertEquals(LoggerBody.FirstRun, build(inputs(recent = emptyList())).body)
     }
 
     @Test
     fun aDiaryPickIsAnEstimateOfTheSameAmountAgain() {
-        val inputs = inputs()
-        val pick = LoggerStateBuilder.picks(inputs, MealSlot.Dinner, "", null).first { it.source == PickSource.Recent }
+        val pick = LoggerStateBuilder.picks(inputs(), MealSlot.Dinner, "", null).first { it.source == PickSource.Recent }
 
         assertEquals(Precision.Estimate, pick.draft.precision, "the original was weighed; logging it again is not")
         assertEquals(LogMethod.Recent, pick.draft.method)
     }
 
     @Test
-    fun searchShowsTheUsersOwnFoodsFirst() {
+    fun searchShowsTheUsersOwnFoodsFirstWithTheBrandLine() {
         val granola = CustomFood(id = "g1", name = "Rice granola", servingAmount = 1.0, servingUnit = "bar", kcal = 190.0)
-        val search = SearchOutcome("rice", listOf(LoggerFixtures.rice, LoggerFixtures.friedRice), offline = false)
+        val search = SearchOutcome("rice", listOf(LoggerFixtures.rice, LoggerFixtures.sinangag), offline = false)
 
         val results = assertIs<LoggerBody.Results>(build(inputs(custom = listOf(granola)), query = "rice", search = search).body)
 
         assertEquals(listOf("c:g1", "f:rice", "f:sinangag"), results.rows.map { it.key })
-        assertEquals("Garlic fried rice", results.rows.last().shortName)
+        assertEquals("Filipino", results.rows.last().subtitle)
+        assertNull(results.rows[1].subtitle)
         assertFalse(results.offline)
     }
 
     @Test
-    fun searchWaitsForTheCatalogAndSaysWhenItIsOffline() {
+    fun searchWaitsForTheCatalogAndAMissCarriesTheTerm() {
         assertEquals(LoggerBody.Searching, build(query = "rice").body)
         assertEquals(LoggerBody.Searching, build(query = "rice", search = SearchOutcome("ric", emptyList(), false)).body, "an older answer")
-        assertEquals(LoggerBody.NoResults(offline = true), build(query = "pancit", search = SearchOutcome("pancit", emptyList(), true)).body)
+        assertEquals(
+            LoggerBody.NoResults(query = "kare-kare", offline = true),
+            build(query = " kare-kare ", search = SearchOutcome("kare-kare", emptyList(), true)).body,
+        )
         assertTrue(assertIs<LoggerBody.Results>(build(query = "rice", search = SearchOutcome("rice", listOf(LoggerFixtures.rice), true)).body).offline)
     }
 
     @Test
-    fun pickedFoodsAreCheckedEverywhereAndSummedInTheFooter() {
+    fun pickedFoodsAreCheckedAndSummedInTheFooter() {
         val state = LoggerFixtures.loggerState(policy(PresetId.Full), basket = LoggerFixtures.pickedBasket())
 
         val browse = assertIs<LoggerBody.Browse>(state.body)
-        assertTrue(browse.favorites.first { it.key == "f:banana" }.picked)
-        assertTrue(browse.recent.first { it.key == "f:banana" }.picked)
-        assertFalse(browse.favorites.first { it.key == "f:rice" }.picked)
+        assertTrue(browse.usual.first { it.key == "f:arroz" }.picked)
+        assertFalse(browse.usual.first { it.key == "f:salad" }.picked)
         val footer = state.basket!!
         assertEquals(2, footer.count)
-        assertEquals("Banana, Greek yogurt", footer.names)
-        assertEquals("205 kcal", footer.calories.text())
+        assertEquals("Arroz con pollo, Garlic fried rice", footer.names)
+        assertEquals("813 kcal", footer.calories.text())
         assertEquals(MealSlot.Dinner, footer.slot)
+    }
+
+    @Test
+    fun describeAndSavedHaveNoFooter() {
+        val basket = LoggerFixtures.pickedBasket()
+
+        assertNull(build(inputs(basket = basket), pane = LoggerPane.Describe).basket)
+        assertNull(build(inputs(basket = basket), pane = LoggerPane.Saved).basket)
+    }
+
+    @Test
+    fun describeLinesAreTheDescribedPicks() {
+        val state = LoggerFixtures.describeState(policy(PresetId.Full))
+
+        assertEquals(LoggerPane.Describe, state.pane)
+        assertEquals(MealSlot.Breakfast, state.slot)
+        assertEquals(listOf("Egg, large", "Toast, white"), state.describe.lines.map { it.name })
+        assertEquals(listOf("2", "1 slice"), state.describe.lines.map { it.amount })
+        assertEquals(listOf("156", "80"), state.describe.lines.map { it.calories.text() })
+        assertEquals(FoodRef.Catalog("egg"), state.describe.lines.first().ref)
+    }
+
+    @Test
+    fun justANumberIsOnlyOfferedWhenCaloriesShow() {
+        assertTrue(LoggerFixtures.describeState(policy(PresetId.Full)).describe.canNumber)
+        assertFalse(LoggerFixtures.describeState(policy(PresetId.Blind)).describe.canNumber)
+        assertFalse(LoggerFixtures.describeState(policy(PresetId.Mindful)).describe.canNumber)
+    }
+
+    @Test
+    fun savedMealsListTheirFoodsAndEnergy() {
+        val meal = LoggerFixtures.savedState(policy(PresetId.Full)).saved.meals.first()
+
+        assertEquals("Sunday breakfast", meal.name)
+        assertEquals("Greek yogurt, Banana", meal.foods)
+        assertEquals("205 kcal", meal.calories.text())
     }
 
     @Test
