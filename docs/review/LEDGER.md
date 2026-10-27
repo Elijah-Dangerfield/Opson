@@ -504,21 +504,21 @@ keeps existing ticks.
 
 ## features-other (15 files)
 
-- [ ] `features/home/build.gradle.kts`
-- [ ] `features/home/impl/build.gradle.kts`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeFeatureEntryPoint.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeViewModel.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportScreen.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportViewModel.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackRepository.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackScreen.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModel.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/HomeViewModelTest.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackRepositoryImplTest.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModelTest.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenario.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
-- [ ] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
+- [x] `features/home/build.gradle.kts`
+- [x] `features/home/impl/build.gradle.kts`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeFeatureEntryPoint.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeViewModel.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportScreen.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportViewModel.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackRepository.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackScreen.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModel.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/HomeViewModelTest.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackRepositoryImplTest.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModelTest.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenario.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
+- [x] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
 
 ## logger (81 files)
 
