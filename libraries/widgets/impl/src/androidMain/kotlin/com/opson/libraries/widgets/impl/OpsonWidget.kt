@@ -42,7 +42,6 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.widgets.WidgetColors
 import com.opson.libraries.widgets.WidgetDay
 import com.opson.libraries.widgets.WidgetEnergy
@@ -102,7 +101,7 @@ class OpsonWidgetReceiver : GlanceAppWidgetReceiver() {
 internal fun OpsonWidgetContent(snapshot: WidgetSnapshot?, today: LocalDate, appName: String, fallback: String) {
     val context = LocalContext.current
     val small = LocalSize.current.width < OpsonWidget.MEDIUM.width
-    val colors = snapshot?.colors ?: WidgetPalette.colors(PaletteChoice.Pine)
+    val colors = snapshot?.colors ?: WidgetPalette.colors
     val day = snapshot?.dayFor(today)
     Box(modifier = GlanceModifier.fillMaxSize().appWidgetBackground().clickable(open(context, link = null))) {
         Image(

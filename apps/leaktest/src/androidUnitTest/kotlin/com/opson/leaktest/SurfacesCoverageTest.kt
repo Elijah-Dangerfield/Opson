@@ -111,7 +111,7 @@ class SurfacesCoverageTest {
                 "logger", "logger-picked", "logger-search", "logger-search-empty", "logger-describe",
                 "logger-saved", "logger-amount", "logger-amount-nutrients",
                 "logger-photo", "logger-photo-swap", "logger-photo-start",
-                "logger-describe-voice",
+                "logger-describe-voice", "logger-describe-edited", "logger-describe-find",
                 "logger-search-tabs", "logger-search-options",
                 "logger-uncategorized", "logger-amount-units",
                 "logger-scan-amount", "logger-scan-miss",
@@ -143,7 +143,7 @@ class SurfacesCoverageTest {
             "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
             "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
             "logger-describe-voice", "logger-search-tabs", "logger-uncategorized", "logger-amount-units",
-            "logger-scan-amount", "logger-amount-nutrients",
+            "logger-scan-amount", "logger-amount-nutrients", "logger-describe-edited", "logger-describe-find",
             "widget", "widgets",
         )
     }

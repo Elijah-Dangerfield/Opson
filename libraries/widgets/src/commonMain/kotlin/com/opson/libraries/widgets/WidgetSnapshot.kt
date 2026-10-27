@@ -89,7 +89,7 @@ data class WidgetMeal(
     val description: String,
 )
 
-/** The person's palette in both appearances. The widget follows the system's. */
+/** The app's colours in both appearances. The widget follows the system's. */
 @Serializable
 data class WidgetColors(
     val light: WidgetSwatch,
@@ -97,7 +97,7 @@ data class WidgetColors(
 )
 
 /**
- * The theme tokens a widget uses, as `#RRGGBB`. From the app's own palette, so the widget's colours
+ * The theme tokens a widget uses, as `#RRGGBB`. From the app's own theme, so the widget's colours
  * live in one place.
  *
  * @property bar the eaten bar's fill. v3 draws it in ink.

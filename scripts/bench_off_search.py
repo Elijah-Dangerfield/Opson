@@ -179,39 +179,39 @@ def bounded_sql(query: str, country: str) -> str | None:
         return None
     return f"""
 WITH exact AS (
-    SELECT o.id FROM off_foods o
+    SELECT o.ctid FROM off_foods o
     WHERE lower(o.name) = ANY (string_to_array({lit(t['variants'])}, '|'))
     LIMIT {CAP_EXACT}
 ),
 words AS (
-    SELECT o.id FROM off_foods o
+    SELECT o.ctid FROM off_foods o
     WHERE o.search @@ to_tsquery('simple', {lit(t['prefix_ts'])})
     LIMIT {CAP_WORDS}
 ),
 exact_here AS (
-    SELECT o.id FROM off_foods o
+    SELECT o.ctid FROM off_foods o
     WHERE lower(o.name) = ANY (string_to_array({lit(t['variants'])}, '|'))
       AND o.countries_tags @> ARRAY[{lit(country)}]
     LIMIT {CAP_EXACT}
 ),
 words_here AS (
-    SELECT o.id FROM off_foods o
+    SELECT o.ctid FROM off_foods o
     WHERE o.search @@ to_tsquery('simple', {lit(t['prefix_ts'])})
       AND o.countries_tags @> ARRAY[{lit(country)}]
     LIMIT {CAP_WORDS}
 ),
 hits AS (
-    SELECT id FROM exact UNION SELECT id FROM words UNION SELECT id FROM exact_here UNION SELECT id FROM words_here
+    SELECT ctid FROM exact UNION SELECT ctid FROM words UNION SELECT ctid FROM exact_here UNION SELECT ctid FROM words_here
 ),
 typos AS (
-    SELECT o.id FROM off_foods o
+    SELECT o.ctid FROM off_foods o
     WHERE (SELECT count(*) FROM hits) < {LIMIT}
       AND {lit(t['normalized'])} OPERATOR(extensions.<%) lower(o.name)
     LIMIT {CAP_SIMILAR}
 ),
 candidates AS (
     SELECT o.* FROM off_foods o
-    WHERE o.id IN (SELECT id FROM hits UNION SELECT id FROM typos)
+    WHERE o.ctid = ANY (ARRAY(SELECT ctid FROM hits UNION SELECT ctid FROM typos))
 ),
 scored AS (
     SELECT c.id, c.name, c.brand, c.scans,

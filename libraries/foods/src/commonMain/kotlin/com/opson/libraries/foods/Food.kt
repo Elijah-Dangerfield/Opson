@@ -115,7 +115,10 @@ enum class Confidence(val wire: String) {
 /**
  * One phrase from "Describe it" ("2 eggs"), already matched to a food and
  * scaled to the whole amount. Always an estimate. [foodId] and the nutrients
- * are null when nothing in the catalog matched.
+ * are null when nothing in the catalog matched. [food] is the matched food
+ * itself and [alternatives] the next best foods for the same words, so the
+ * amount can change and the food can be swapped without asking again; both
+ * are empty from a server older than 0.2.
  */
 data class ParsedItem(
     val text: String,
@@ -133,6 +136,8 @@ data class ParsedItem(
     val fat: Double? = null,
     val fiber: Double? = null,
     val micros: Map<String, Double>? = null,
+    val food: Food? = null,
+    val alternatives: List<Food> = emptyList(),
 )
 
 data class FoodSearchResult(
@@ -157,6 +162,13 @@ interface FoodCatalog {
      * [filter] narrows or reorders it ([FoodSearchFilter.None] is 0.1's search).
      */
     suspend fun search(query: String, limit: Int = 25, filter: FoodSearchFilter = FoodSearchFilter.None): Catching<FoodSearchResult>
+
+    /**
+     * What the server answered for this search in the last few minutes, held
+     * in memory, or null. No network, so a caller can show it before
+     * debouncing; [search] answers from it too.
+     */
+    fun recentSearch(query: String, limit: Int = 25, filter: FoodSearchFilter = FoodSearchFilter.None): FoodSearchResult? = null
 
     /** Which search options this server offers. Online only. */
     suspend fun searchOptions(): Catching<SearchOptions>

@@ -43,8 +43,8 @@ Built on reality (re-plan, 2026-10-26):
   `:libraries:nutrition:ui`, `NutrientPhrase` renders a resolved number inside a
   sentence ("Aim for about 2,100 kcal, before activity"), tagged, and renders
   nothing when the number is hidden.
-- The app root themes from `Settings.palette` / `theme` / `textSize` through
-  `UserAppTheme` in `apps/compose`, which collects only those three fields.
+- The app root themes from `Settings.theme` / `textSize` through
+  `UserAppTheme` in `apps/compose`, which collects only those two fields.
 - Each page lists a `LeakSurface` in `SettingsLeakSurfaces.all`, built from
   `SettingsFixtures` through the page's real `XStateBuilder`.
 
@@ -82,7 +82,7 @@ are the behaviour spec and win over v3):
 
 Kept different on purpose:
 
-- More keeps **Look and feel** (the design drops it): palette, theme and text size
+- More keeps **Look and feel** (the design drops it): Appearance and text size
   have no other home.
 - Modes keeps `Every number visible, all day.` for Full numbers and `A meal
   checklist. Amounts optional.` for Rhythm. The design's versions advertise watch
@@ -557,21 +557,22 @@ deletes nothing locally, the dialog closes on Keep. Previews: `support`,
 ## Look and feel (new, 0.1)
 
 `LookAndFeelRoute()`. Not in the handoff as a page. It exists because system
-design section 11 makes palette and large text settings, and because "Stop
-asking these" and tone need a home while Reminders is 0.2.
+design section 11 makes appearance and large text settings, and because "Stop
+asking these" and tone need a home while Reminders is 0.2. Design sync 4 took
+the palette picker out: Slate is the only scheme.
 
 ```kotlin
 data class LookAndFeelState(
-    val palette: Palette, val theme: ThemeMode, val textSize: TextSize,
+    val theme: ThemeMode, val textSize: TextSize,
     val weightUnit: WeightUnit, val tone: Tone, val askTags: Boolean,
 )
 ```
 
-Actions: `PalettePicked`, `ThemePicked`, `TextSizePicked`, `WeightUnitPicked`,
+Actions: `ThemePicked`, `TextSizePicked`, `WeightUnitPicked`,
 `TonePicked`, `HungerQuestionsToggled`, `BackTapped`. Plain settings writes.
 
-Copy (new unless marked): `Look and feel`; `Colors`: Pine / Espresso / Clay /
-Plum; `Theme`: Match phone / Light / Dark; `Text size`: Normal / Large; `Weight
+Copy (new unless marked): `Look and feel`; `Appearance`: System / Light /
+Dark (design sync 4); `Text size`: Normal / Large; `Weight
 units`: kg / lb; verbatim from Reminders: `How we talk to you`, `Plain` / `Warm`,
 `Example: %s` with `"Nothing logged."` / `"Nothing here yet. Add it whenever."`,
 `Hunger and fullness questions` / `Asked when you add food. Always skippable.`

@@ -34,6 +34,20 @@ class DescribeAndPhotoTest : IntegrationTest() {
     }
 
     @Test
+    fun describe_bringsTheFoodAndWhatToSwapTo() = integration {
+        val plain = server.seedFood("$word cake, plain", kcalPer100g = 300.0, portionsJson = """[{"label":"1 piece","grams":80}]""")
+        val iced = server.seedFood("$word cake, iced", kcalPer100g = 380.0, portionsJson = """[{"label":"1 piece","grams":90}]""")
+        val phone = client()
+
+        val item = phone.foods.describe("2 pieces of $word cake").getOrThrow().single()
+
+        assertEquals(plain, item.food?.id, "the food itself, so the amount can change on the phone")
+        assertEquals(listOf("1 piece"), item.food?.portions?.map { it.label })
+        assertEquals(listOf(iced), item.alternatives.map { it.id })
+        assertEquals(160.0, item.grams)
+    }
+
+    @Test
     fun photo_comesBackAsTheSameRowsDescribeGives() = integration {
         val broccoli = server.seedFood("$word broccoli", kcalPer100g = 35.0, portionsJson = """[{"label":"1 cup","grams":156}]""")
         server.upstreams.photoFoods = listOf(PhotoFood("$word broccoli", quantity = 1.0, unit = "cup", grams = 150.0))

@@ -1,5 +1,6 @@
 package com.opson.server.data
 
+import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodSearchEventsTable
 import com.opson.server.db.FoodsTable
@@ -243,6 +244,44 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
             FoodSearchEventsTable.selectAll().orderBy(FoodSearchEventsTable.id).map { it[FoodSearchEventsTable.queryNorm] to it[FoodSearchEventsTable.resultCount] }
         }
         assertEquals(listOf("banana" to 1, "zzzz unknown food" to 0), events)
+    }
+
+    @Test
+    fun withTheCacheOnARepeatedSearchIsAnsweredFromMemoryAndStillRecorded() = runTest {
+        val cached = PostgresFoodCatalogRepository(database, clock, FoodSourcesConfig(searchCacheEntries = 10))
+        seed("Banana, raw")
+        assertEquals(listOf("Banana, raw"), cached.search("banana", 10).map { it.food.name })
+
+        seed("Bananas, dried")
+        assertEquals(listOf("Banana, raw"), cached.search("Banana ", 10).map { it.food.name }, "the same normalized query")
+        assertEquals(2, cached.search("banana", 10, filter = SearchFilter(sort = SearchSort.Name)).size, "a filter is another question")
+
+        val events = database.blockingTransaction {
+            FoodSearchEventsTable.selectAll().map { it[FoodSearchEventsTable.queryNorm] to it[FoodSearchEventsTable.resultCount] }
+        }
+        assertEquals(listOf("banana" to 1, "banana" to 1, "banana" to 2), events, "a cached answer is recorded like any other")
+    }
+
+    @Test
+    fun anExternalProductClearsTheCacheSoSearchFindsIt() = runTest {
+        val cached = PostgresFoodCatalogRepository(database, clock, FoodSourcesConfig(searchCacheEntries = 10))
+        assertEquals(emptyList(), cached.search("hazelnut spread", 10, record = false))
+        cached.upsertExternalProduct(
+            CatalogSource.OpenFoodFacts,
+            ExternalProduct("3017620422003", "Hazelnut spread", "Acme", Nutrients(kcal = 539.0), micros = emptyMap(), portions = emptyList()),
+        )
+        assertEquals(listOf("Hazelnut spread"), cached.search("hazelnut spread", 10, record = false).map { it.food.name })
+    }
+
+    @Test
+    fun whenGenericFoodsFillThePageANamedBrandStillPlaces() = runTest {
+        // Generic matches fill a page of one, so only Branded rows whose brand carries a query word are read.
+        seed("Cereal, Cheerios", source = "usda_sr")
+        seed("Cheerios Cereal", source = "usda_branded", brand = "Cheerios", barcode = "00016000275287")
+        seed("Cheerios Snack Mix", source = "usda_branded", brand = "Acme", barcode = "00016000275294")
+
+        assertEquals(listOf("Cheerios Cereal"), names("cheerios", limit = 1))
+        assertEquals(listOf("Cheerios Cereal", "Cereal, Cheerios", "Cheerios Snack Mix"), names("cheerios", limit = 3))
     }
 
     @Test

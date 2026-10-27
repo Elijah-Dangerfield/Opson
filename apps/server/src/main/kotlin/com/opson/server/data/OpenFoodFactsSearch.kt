@@ -32,6 +32,11 @@ import java.util.Locale
  *  - a typo fallback on trigram word similarity, up to [CAP_SIMILAR], only
  *    when those found fewer than the limit.
  * That is at most about 850 rows scored, whatever the query.
+ * The candidates are carried as `ctid`s, not ids, and scored through a TID
+ * scan: going back by id walked the primary key for every candidate, a
+ * random read each on a cold cache, which was over half of a cold search's
+ * reads (about 650 of 920 for "chicken" on dev). A ctid is stable within one
+ * statement's snapshot, which is all it is used for.
  * Then the same match tiers as the catalog, a match on the name before one
  * only through the brand, the caller's country first, whole words, and
  * scans. `scripts/bench_off_search.py` mirrors this statement; change both.
@@ -75,33 +80,33 @@ internal object OpenFoodFactsSearch {
     /** The column names here are what `ResultSet.toFood` in the repository reads. */
     val SQL = """
         WITH exact AS (
-            SELECT o.id FROM off_foods o
+            SELECT o.ctid FROM off_foods o
             WHERE lower(o.name) = ANY (string_to_array(?, '|'))
             LIMIT ?
         ),
         words AS (
-            SELECT o.id FROM off_foods o
+            SELECT o.ctid FROM off_foods o
             WHERE o.search @@ to_tsquery('simple', ?)
             LIMIT ?
         ),
         exact_here AS (
-            SELECT o.id FROM off_foods o
+            SELECT o.ctid FROM off_foods o
             WHERE lower(o.name) = ANY (string_to_array(?, '|'))
               AND o.countries_tags @> ARRAY[?::text]
             LIMIT ?
         ),
         words_here AS (
-            SELECT o.id FROM off_foods o
+            SELECT o.ctid FROM off_foods o
             WHERE o.search @@ to_tsquery('simple', ?)
               AND o.countries_tags @> ARRAY[?::text]
             LIMIT ?
         ),
         hits AS (
-            SELECT id FROM exact UNION SELECT id FROM words
-            UNION SELECT id FROM exact_here UNION SELECT id FROM words_here
+            SELECT ctid FROM exact UNION SELECT ctid FROM words
+            UNION SELECT ctid FROM exact_here UNION SELECT ctid FROM words_here
         ),
         typos AS (
-            SELECT o.id FROM off_foods o
+            SELECT o.ctid FROM off_foods o
             WHERE (SELECT count(*) FROM hits) < ?
               AND ? OPERATOR(extensions.<%) lower(o.name)
             LIMIT ?
@@ -130,7 +135,7 @@ internal object OpenFoodFactsSearch {
                    coalesce(o.countries_tags @> ARRAY[p.country], false) AS in_country,
                    extensions.similarity(lower(o.name), p.normalized) AS sim
             FROM off_foods o CROSS JOIN p
-            WHERE o.id IN (SELECT id FROM hits UNION SELECT id FROM typos)
+            WHERE o.ctid = ANY (ARRAY(SELECT ctid FROM hits UNION SELECT ctid FROM typos))
         )
         SELECT s.* FROM scored s
         ORDER BY (s.match_tier = 4),

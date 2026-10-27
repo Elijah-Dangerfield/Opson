@@ -65,7 +65,11 @@ data class Settings(
     val askTags: Boolean = true,
     val tone: Tone = Tone.Plain,
     val bigDayEvent: EventLevel = EventLevel.Full,
-    val palette: PaletteChoice = PaletteChoice.Pine,
+    /**
+     * Appearance: System, Light or Dark. There is one color scheme, Slate (design sync 4), so
+     * 0.1's `palette` key is no longer read or written. A 0.1 phone still finds its own value on
+     * the server, because the merge keeps keys a save leaves out.
+     */
     val theme: ThemeMode = ThemeMode.System,
     val textSize: TextSize = TextSize.Normal,
     val onboarding: OnboardingAnswers = OnboardingAnswers(),
@@ -268,25 +272,6 @@ enum class EventLevel {
 
     @SerialName("full")
     Full,
-}
-
-/**
- * The brand palette. Kept here as a key so this module does not depend on
- * `:libraries:ui`; the shell maps it to the theme's palette.
- */
-@Serializable
-enum class PaletteChoice {
-    @SerialName("pine")
-    Pine,
-
-    @SerialName("espresso")
-    Espresso,
-
-    @SerialName("clay")
-    Clay,
-
-    @SerialName("plum")
-    Plum,
 }
 
 @Serializable

@@ -228,6 +228,11 @@ class FakeFoodCatalog(
         return Catching.success(FoodSearchResult(query = query, foods = hits, fromCache = !online))
     }
 
+    /** What [recentSearch] answers, by query: searches the catalog remembers. */
+    val remembered = mutableMapOf<String, FoodSearchResult>()
+
+    override fun recentSearch(query: String, limit: Int, filter: FoodSearchFilter): FoodSearchResult? = remembered[query]
+
     override suspend fun searchOptions(): Catching<SearchOptions> {
         optionsAsked++
         return options

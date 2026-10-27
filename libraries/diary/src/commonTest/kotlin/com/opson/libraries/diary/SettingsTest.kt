@@ -88,7 +88,6 @@ class SettingsTest {
         assertEquals(Targets.Default, s.targets)
         assertEquals(MacroMode.Ratios, s.macroMode)
         assertEquals(WeightUnit.Kg, s.weightUnit)
-        assertEquals(PaletteChoice.Pine, s.palette)
         assertEquals(ThemeMode.System, s.theme)
         assertEquals(TextSize.Normal, s.textSize)
         assertNull(s.sprintStartedOn)
@@ -114,7 +113,7 @@ class SettingsTest {
             waterUnit = WaterUnit.FlOz,
             weightUnit = WeightUnit.Lb,
             fastPlan = FastingPlan.SixteenEight,
-            palette = PaletteChoice.Espresso,
+            theme = ThemeMode.Dark,
             onboarding = OnboardingAnswers(why = listOf("curious"), feel = "rather_not", hard = true),
             mealTimes = MealTimes(breakfast = LocalTime(7, 15), dinner = LocalTime(18, 45)),
             remindersChosen = true,
@@ -280,6 +279,14 @@ class SettingsTest {
             """{"mealTimes":{"breakfast":"brunch","dinner":"18:30"}}""",
         )
         assertEquals(MealTimes(dinner = LocalTime(18, 30)), broken.mealTimes)
+    }
+
+    @Test
+    fun a01PaletteIsDropped_andTheAppearanceKept() {
+        val old = SettingsJson.decodeFromString(Settings.serializer(), """{"palette":"espresso","theme":"dark","tone":"warm"}""")
+
+        assertEquals(Settings(theme = ThemeMode.Dark, tone = Tone.Warm), old)
+        assertFalse("palette" in SettingsJson.encodeToJsonElement(Settings.serializer(), old).jsonObject, "the server keeps 0.1's own")
     }
 
     @Test

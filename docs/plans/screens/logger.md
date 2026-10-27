@@ -276,9 +276,9 @@ sealed interface LoggerBody {
     data class Results(val rows: List<FoodRowUi>, val offline: Boolean)
     data class NoResults(val query: String, val offline: Boolean)
 }
-data class DescribeUi(text, status: DescribeStatus, lines: List<DescribedLine>, canNumber: Boolean,
-    number: String, focusNumber: Boolean)
-data class DescribedLine(key, ref: FoodRef?, name, sub /* "2 · Estimate" */, calories: Display /* bare */)
+data class DescribeUi(text, status: DescribeStatus, lines: List<DescribedLine>, total: DescribeTotal?,
+    find: DescribeFindUi?, canNumber: Boolean, number: String, focusNumber: Boolean)
+// Lines, their controls, the total and the find pane: describe.md.
 data class SavedUi(val meals: List<SavedMealUi>)
 data class SavedMealUi(id, name, foods, calories: Display)
 data class BasketFooter(count, names, calories: Display, slot)
@@ -293,7 +293,8 @@ dayBefore, settings, basket, usualBySlot, recent, customFoods, savedMeals)`.
 - Search results: the user's custom foods whose name or brand matches, then the
   catalog's, deduplicated by key. The subtitle is the brand (the catalog has no
   cuisine field yet; when it does, cuisine goes first).
-- Describe lines are the basket items with source Describe, in order.
+- Describe lines are `LoggerChoices.review`'s rows (describe.md); the basket
+  holds exactly those rows as source Describe.
 - Row and line energy use a bare format context ("525"); the footer keeps the
   unit ("813 kcal").
 
@@ -318,8 +319,8 @@ dayBefore, settings, basket, usualBySlot, recent, customFoods, savedMeals)`.
 | `JustANumberTapped` | Pane Describe, number field focused. |
 | `AddANoteTapped` | Event `OpenMealNote(day, slot)`. |
 | `DescribeTyped(text)` | Debounced 700 ms `FoodCatalog.describe(text)`; stale answers dropped. |
-| `DescribeArrived(text, items)` / `DescribeFailed(text)` | Replaces the Describe items in the basket; empty or failed is `Failed`, offline is `Offline`. |
-| `DescribedLineEditTapped(line)` | Event `OpenAmount(ref, Describe)` (lines with a food only). |
+| `DescribeArrived(text, items)` / `DescribeFailed(text)` | Replaces the read lines, keeping lines the person changed or added (describe.md); empty or failed is `Failed`, offline is `Offline`. |
+| `DescribeReviewAction` | Per-line amount, unit, swap, remove and find (describe.md). |
 | `NumberTyped(text)` / `AddNumberTapped` | Digits only; n > 0 and calories not Hide logs "Quick add" (`QuickNumber`) on its own, `LoggedToMeal`, `Dismiss`. |
 | `BackTapped` | Describe / Saved back to Search; leaving Describe drops its lines. System back does the same. |
 | `AddToMealTapped` | `BasketCommitter.commit`, then `OpenHowItFelt(day, slot)` or `Dismiss`. |

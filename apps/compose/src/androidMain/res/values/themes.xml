@@ -14,6 +14,6 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
-    <!-- Splash background matches the app theme background (ColorResource.Gray50) -->
-    <color name="splash_background">#FAFAFA</color>
+    <!-- Splash background is Slate's light bg, the page colour the app opens on -->
+    <color name="splash_background">#EEF1F6</color>
 </resources>

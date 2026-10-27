@@ -58,7 +58,7 @@ class FoodRoutesTest {
         }
     }
 
-    private class FakeDescriber : FoodDescriber {
+    private inner class FakeDescriber : FoodDescriber {
         val texts = mutableListOf<String>()
         override suspend fun describe(text: String): List<DescribedItem> {
             texts += text
@@ -66,7 +66,7 @@ class FoodRoutesTest {
                 DescribedItem(
                     text = "2 eggs", name = "Egg, whole", foodId = UUID.randomUUID(), quantity = 2.0, unit = null,
                     amountText = "2", portionLabel = "1 large", grams = 100.0, nutrients = Nutrients(kcal = 143.0),
-                    micros = emptyMap(), confidence = DescribeConfidence.High,
+                    micros = emptyMap(), confidence = DescribeConfidence.High, food = bread, alternatives = listOf(banana),
                 ),
             )
         }
@@ -272,6 +272,10 @@ class FoodRoutesTest {
             assertEquals("high", item.confidence)
             assertEquals(100.0, item.grams)
             assertEquals(143.0, item.kcal)
+            // 0.2 adds the food and what to swap to; 0.1 ignores both.
+            assertEquals(bread.id.toString(), item.food?.id)
+            assertEquals(bread.portions.size, item.food?.portions?.size)
+            assertEquals(listOf(banana.id.toString()), item.alternatives.map { it.id })
             assertEquals(listOf("2 eggs"), describer.texts)
         }
     }

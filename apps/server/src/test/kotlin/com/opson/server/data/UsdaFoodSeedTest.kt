@@ -94,7 +94,8 @@ class UsdaFoodSeedTest : DatabaseTest() {
         assertTrue(restaurant.isNotEmpty())
 
         val described = CatalogFoodDescriber(catalog).describe("2 eggs and a medium banana")
-        assertEquals(listOf("Egg, whole, raw", "Banana, raw"), described.map { it.name })
+        // Eggs said plainly are cooked eggs (CommonFoods), not raw ones.
+        assertEquals(listOf("Egg, whole, cooked, NS as to cooking method", "Banana, raw"), described.map { it.name })
         assertEquals(listOf(100.0, 118.0), described.map { it.grams })
     }
 }
