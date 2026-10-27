@@ -207,7 +207,11 @@ interface DiarySync {
      */
     val rejections: Flow<SyncRejection>
 
-    /** Push and pull now, for pull-to-refresh. Shares a sync already in flight. */
+    /**
+     * Push and pull now, for pull-to-refresh. With a sync already in flight it
+     * waits for that one and runs another, since the one in flight may have
+     * pulled before the call.
+     */
     suspend fun syncNow(): Result<Unit>
 }
 
