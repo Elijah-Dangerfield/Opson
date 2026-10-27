@@ -655,8 +655,6 @@ object TodayStateBuilder {
                 )
             },
             ateNoDetails = items.isEmpty() && slot in day.ateNoDetails,
-            // How it felt shows as chips in Mindful only (design sync 2); the day's check-in asks the rest.
-            feel = emptyList(),
             note = feeling?.note?.trim()?.takeIf { it.isNotEmpty() },
             fileable = inputs.selectOn && slot == MealSlot.Uncategorized && items.isNotEmpty() && groupsOn(inputs),
         )

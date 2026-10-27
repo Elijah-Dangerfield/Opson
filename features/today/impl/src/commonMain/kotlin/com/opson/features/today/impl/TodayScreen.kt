@@ -710,7 +710,6 @@ private fun FullMeal(card: MealCard, state: TodayState, onAction: (TodayAction) 
                 calories = item.calories,
             )
         },
-        feel = card.feel.map { stringResource(it) },
         note = card.note,
         highlighted = state.highlight == card.slot,
         onHeaderClick = if (selection != null) ({ onAction(TodayAction.MealHeaderToggled(card.slot)) }) else null,

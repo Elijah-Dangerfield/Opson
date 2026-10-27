@@ -138,7 +138,6 @@ class TodayStateBuilderTest {
         assertEquals(listOf("13P", "80C", "8F"), breakfast.macros.map { it.text })
         assertEquals("445 kcal", breakfast.calories.text())
         assertEquals("300", breakfast.items.first().calories.text(), "the header carries the unit")
-        assertTrue(breakfast.feel.isEmpty(), "how it felt shows as chips in Mindful only")
     }
 
     @Test

@@ -307,7 +307,6 @@ data class MealCard(
     val items: List<ItemRowUi>,
     /** Marked "ate, no details": the card says so instead of listing items. */
     val ateNoDetails: Boolean,
-    val feel: List<StringResource>,
     val note: String?,
     /** Uncategorized with `release.todaySelect`: "Move to…" files its foods into a meal. */
     val fileable: Boolean = false,
