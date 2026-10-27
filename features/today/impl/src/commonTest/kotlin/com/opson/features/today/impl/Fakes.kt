@@ -38,6 +38,9 @@ import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
@@ -203,6 +206,14 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
 
     override suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?) {
         checkIns += day to checkIn
+    }
+}
+
+/** This diary with its days unread until [open] turns true, as a slow first read leaves a screen loading. */
+fun FakeDiaryRepository.heldUntil(open: StateFlow<Boolean>): DiaryRepository = object : DiaryRepository by this@heldUntil {
+    override fun observeDay(date: LocalDate): Flow<Day> = flow {
+        open.first { it }
+        emitAll(this@heldUntil.observeDay(date))
     }
 }
 

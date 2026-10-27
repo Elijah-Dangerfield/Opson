@@ -162,6 +162,7 @@ class DayCloseViewModel(
 ) : SEAViewModel<DayCloseState, DayCloseEvent, DayCloseAction>(initialStateArg = DayCloseState()) {
 
     private var model = Model()
+    private var closing = false
 
     private data class Model(
         val inputs: DayCloseInputs? = null,
@@ -218,6 +219,10 @@ class DayCloseViewModel(
             DayCloseAction.SupportTapped -> sendEvent(DayCloseEvent.OpenSupport)
             DayCloseAction.CommitmentTapped -> action.rebuild { copy(committed = true) }
             DayCloseAction.DoneTapped -> {
+                // Done shows while the day loads; before it is read the note field is still empty, and
+                // saving that would wipe the note already there. Once closing, a second tap does nothing.
+                if (model.inputs == null || closing) return
+                closing = true
                 diary.setDayNote(day, model.note.trim().ifEmpty { null })
                 // Only where it was asked: a feeling picked under another mode is left as it was.
                 if (state.feeling != null && model.feeling != model.inputs?.day?.feeling) diary.setDayFeeling(day, model.feeling)

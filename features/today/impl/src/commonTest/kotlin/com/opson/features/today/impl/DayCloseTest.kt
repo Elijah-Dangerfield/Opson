@@ -27,6 +27,7 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Targets
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
@@ -247,6 +248,50 @@ class DayCloseTest : CoroutineTest() {
         vm.takeAction(DayCloseAction.DoneTapped)
 
         assertEquals(listOf<Pair<kotlinx.datetime.LocalDate, String?>>(TodayFixtures.today to "Lola's birthday"), diary.notes)
+        assertEquals(listOf(TodayFixtures.today), diary.closed)
+        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
+    }
+
+    /**
+     * Done shows while the day loads (with a health store, until it answers). Tapped then, it once
+     * saved the empty field over the day's note.
+     */
+    @Test
+    fun doneBeforeTheDayIsRead_keepsTheNoteAndStays() = runUnitTest {
+        val open = MutableStateFlow(false)
+        val vm = DayCloseViewModel(
+            day = TodayFixtures.today,
+            diary = diary.heldUntil(open),
+            settingsRepository = FakeSettingsRepository(),
+            policySource = FakePolicySource(),
+            calendar = FakeCalendar(),
+            health = FakeHealthRepository(),
+            healthFlag = healthFlag(false),
+            checkIns = diary,
+            checkInEnabled = checkInFlag(false),
+            goalsAndEnergy = goalsAndEnergyFlag(),
+            burnedRepository = FakeBurnedRepository(),
+        )
+        val events = mutableListOf<DayCloseEvent>()
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+
+        vm.takeAction(DayCloseAction.DoneTapped)
+
+        assertEquals(0, diary.writes)
+        assertTrue(events.isEmpty())
+        open.value = true
+        assertEquals("Dinner at Lola's", vm.state.note)
+    }
+
+    @Test
+    fun aSecondDoneWhileLeavingWritesAndLeavesOnce() = runUnitTest {
+        val vm = vm()
+        val events = mutableListOf<DayCloseEvent>()
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+
+        vm.takeAction(DayCloseAction.DoneTapped)
+        vm.takeAction(DayCloseAction.DoneTapped)
+
         assertEquals(listOf(TodayFixtures.today), diary.closed)
         assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
     }
