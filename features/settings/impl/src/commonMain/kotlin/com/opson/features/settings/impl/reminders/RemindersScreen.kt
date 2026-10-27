@@ -35,6 +35,8 @@ import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.reminders_big_day_body
 import opson.libraries.resources.generated.resources.reminders_big_day_title
+import opson.libraries.resources.generated.resources.reminders_checkin_body
+import opson.libraries.resources.generated.resources.reminders_checkin_title
 import opson.libraries.resources.generated.resources.reminders_level_full
 import opson.libraries.resources.generated.resources.reminders_level_off
 import opson.libraries.resources.generated.resources.reminders_level_subtle
@@ -138,6 +140,14 @@ fun RemindersScreen(
             checked = state.askTags,
             onToggle = { onAction(RemindersAction.HungerQuestionsToggled) },
         )
+        state.checkIn?.let { checked ->
+            SwitchCard(
+                title = Res.string.reminders_checkin_title,
+                body = Res.string.reminders_checkin_body,
+                checked = checked,
+                onToggle = { onAction(RemindersAction.CheckInToggled) },
+            )
+        }
         Text(
             text = stringResource(Res.string.reminders_no_evening),
             typography = AppTheme.type.secondarySmall,
@@ -212,9 +222,19 @@ private val EventLevel.label: StringResource
         EventLevel.Full -> Res.string.reminders_level_full
     }
 
+/** The design's page: `release.checkIn` on, so Check in at day close ends it. */
 @Preview
 @Composable
 private fun RemindersPreview() {
+    SettingsPreview {
+        RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet, checkInReleased = true), onAction = {})
+    }
+}
+
+/** `release.checkIn` off: no check-in row. */
+@Preview
+@Composable
+private fun RemindersNoCheckInPreview() {
     SettingsPreview { RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet), onAction = {}) }
 }
 

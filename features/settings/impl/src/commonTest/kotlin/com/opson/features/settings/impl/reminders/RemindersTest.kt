@@ -3,6 +3,7 @@ package com.opson.features.settings.impl.reminders
 import com.opson.features.settings.impl.FakeNotificationPermissions
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
+import com.opson.features.settings.impl.checkInFlag
 import com.opson.features.settings.impl.eventsOf
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
@@ -16,6 +17,7 @@ import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -27,9 +29,10 @@ class RemindersTest : CoroutineTest() {
     private fun vm(
         settings: Settings = SettingsFixtures.settings(),
         permissions: FakeNotificationPermissions = FakeNotificationPermissions(),
+        checkIn: Boolean = false,
     ): Triple<RemindersViewModel, FakeSettingsRepository, FakeNotificationPermissions> {
         val repository = FakeSettingsRepository(settings)
-        return Triple(RemindersViewModel(repository, permissions), repository, permissions)
+        return Triple(RemindersViewModel(repository, permissions, checkInFlag(checkIn)), repository, permissions)
     }
 
     // The builder
@@ -72,7 +75,36 @@ class RemindersTest : CoroutineTest() {
         }
     }
 
+    @Test
+    fun theCheckInRowShowsOnlyWithItsFlag_andReadsTheSetting() {
+        assertNull(RemindersStateBuilder.build(SettingsFixtures.remindersSet).checkIn)
+        assertEquals(true, RemindersStateBuilder.build(SettingsFixtures.remindersSet, checkInReleased = true).checkIn)
+        assertEquals(false, RemindersStateBuilder.build(SettingsFixtures.remindersSet.copy(checkIn = false), checkInReleased = true).checkIn)
+    }
+
     // The view model
+
+    @Test
+    fun checkInToggled_turnsTheDayCloseCardOffAndOn() = runUnitTest {
+        val (vm, repository) = vm(settings = SettingsFixtures.remindersSet, checkIn = true)
+        assertEquals(true, vm.state.checkIn)
+
+        vm.takeAction(RemindersAction.CheckInToggled)
+        assertFalse(repository.state.value.checkIn)
+        assertEquals(false, vm.state.checkIn)
+
+        vm.takeAction(RemindersAction.CheckInToggled)
+        assertTrue(repository.state.value.checkIn)
+    }
+
+    @Test
+    fun checkInFlagOff_noRow_andAToggleWritesNothing() = runUnitTest {
+        val (vm, repository) = vm(settings = SettingsFixtures.remindersSet, checkIn = false)
+        assertNull(vm.state.checkIn)
+
+        vm.takeAction(RemindersAction.CheckInToggled)
+        assertTrue(repository.state.value.checkIn)
+    }
 
     @Test
     fun settingsAndPermissionArriveAsState() = runUnitTest {
