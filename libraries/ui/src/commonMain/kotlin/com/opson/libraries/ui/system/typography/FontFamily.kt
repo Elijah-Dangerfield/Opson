@@ -9,11 +9,12 @@ import opson.libraries.resources.generated.resources.atkinson_hyperlegible_next_
 import opson.libraries.resources.generated.resources.atkinson_hyperlegible_next_medium
 import opson.libraries.resources.generated.resources.atkinson_hyperlegible_next_regular
 import opson.libraries.resources.generated.resources.atkinson_hyperlegible_next_semibold
+import opson.libraries.resources.generated.resources.young_serif_regular
 import opson.libraries.resources.generated.resources.Res as SharedRes
 
 /**
  * Atkinson Hyperlegible Next (SIL OFL 1.1, license next to the files in `:libraries:resources`),
- * the app's only text face. Static instances of the five weights the handoff uses rather than the
+ * the app's text face. Static instances of the five weights the handoff uses rather than the
  * variable font, so every platform resolves the same glyphs without relying on variation support.
  */
 val AppFontFamily: FontFamily
@@ -25,8 +26,11 @@ val AppFontFamily: FontFamily
         Font(resource = SharedRes.font.atkinson_hyperlegible_next_extrabold, weight = FontWeight.ExtraBold),
     )
 
-/** The wordmark: Atkinson Hyperlegible Next at its heaviest, as the store art draws it. */
+/**
+ * The wordmark's face: Young Serif (SIL OFL 1.1, license next to the file in `:libraries:resources`),
+ * the logo lockup's typeface. It has one weight, so every Brand style sets Normal.
+ */
 val BrandFontFamily: FontFamily
     @Composable get() = FontFamily(
-        Font(resource = SharedRes.font.atkinson_hyperlegible_next_extrabold, weight = FontWeight.Normal),
+        Font(resource = SharedRes.font.young_serif_regular, weight = FontWeight.Normal),
     )

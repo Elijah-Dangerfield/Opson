@@ -512,7 +512,11 @@ theme.
 
 - **Type:** Atkinson Hyperlegible Next (OFL), weights 400 to 800, bundled in
   `:libraries:resources`. Tabular figures on every number. Base 16 sp, large
-  text 19 sp as a setting.
+  text 19 sp as a setting. The wordmark alone is Young Serif (OFL), also in
+  `:libraries:resources`, as `BrandFontFamily`.
+- **Logo:** the 4f bowl. Masters in `docs/design/brand/`; `OpsonLoader` and
+  `OpsonLockup` in `:libraries:ui` draw it in the app, steam animated. On a dark
+  ground it sits on a white disc.
 - **Colour:** one scheme, Slate, in light and dark (design sync 4, 13.0).
   Appearance (System, Light or Dark) is the only colour setting. Nutrient
   colours tell nutrients apart and never mean over or under; energy out uses

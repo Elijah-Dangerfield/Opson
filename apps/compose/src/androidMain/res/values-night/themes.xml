@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Opson" parent="Base.Theme.Opson">
+        <!--
+          The mark's ink outline disappears on a dark ground, so it sits on a white disc, as the
+          dark lockup has it. The system draws this colour as that disc behind splash_icon.
+        -->
+        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">#FFFFFF</item>
+        <!-- Light status bar icons on the dark page -->
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!-- Slate's dark bg -->
+    <color name="splash_background">#1B2130</color>
+</resources>

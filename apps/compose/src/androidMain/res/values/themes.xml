@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base app theme with SplashScreen API support -->
-    <style name="Theme.Opson" parent="android:Theme.Material.Light.NoActionBar">
+    <!-- What the light and dark app themes share. values-night/themes.xml has the dark one. -->
+    <style name="Base.Theme.Opson" parent="android:Theme.Material.Light.NoActionBar">
         <!-- Splash screen background -->
         <!-- API 31+ only. Older versions ignore it and show windowBackground, which is the same colour. -->
         <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/splash_background</item>
+        <!-- The mark, light or dark (drawable-night), instead of the whole launcher icon. API 31+ only. -->
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@drawable/splash_icon</item>
         <!-- Status bar and nav bar colors -->
         <item name="android:statusBarColor">@color/splash_background</item>
         <item name="android:navigationBarColor">@color/splash_background</item>
         <!-- Window background for after splash -->
         <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+
+    <style name="Theme.Opson" parent="Base.Theme.Opson">
         <!-- Dark status bar icons -->
         <item name="android:windowLightStatusBar">true</item>
     </style>

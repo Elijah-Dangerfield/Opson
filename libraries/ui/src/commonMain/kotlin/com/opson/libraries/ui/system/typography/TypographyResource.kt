@@ -178,7 +178,7 @@ interface CaptionTypography {
 
 /**
  * The legacy role-named scale (`AppTheme.typography.Body.B500`, ...). Every group renders in
- * [AppFontFamily]; only Brand keeps its script face. New code should use `AppTheme.type`.
+ * [AppFontFamily]; only Brand uses the wordmark face, [BrandFontFamily]. New code should use `AppTheme.type`.
  */
 @Composable
 fun rememberTypography(): Typography {

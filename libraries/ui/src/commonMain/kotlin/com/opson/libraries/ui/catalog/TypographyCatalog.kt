@@ -15,7 +15,7 @@ import com.opson.system.typography.TypographyResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 private const val TYPE_SUBTITLE =
-    "All in Atkinson Hyperlegible Next except Brand, the script face. Higher number = bigger. " +
+    "All in Atkinson Hyperlegible Next except Brand, the wordmark face (Young Serif). Higher number = bigger. " +
         "Modifiers chain off any token: .Italic, .Bold, .SemiBold, …"
 
 /** The type page body. Split into two halves so [DesignSystemPreview] can lay it out in two

@@ -1,6 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect width="1024" height="1024" fill="#A4512D"/>
-  <path fill="#FFFFFF" fill-rule="evenodd"
-        d="M252,512 a260,260 0 1,0 520,0 a260,260 0 1,0 -520,0 Z
-           M315.01,532 A198,198 0 1,1 708.99,532 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 18 100 100">
+  <style>.disc{fill:none}@media (prefers-color-scheme:dark){.disc{fill:#FFFFFF}}</style>
+  <circle class="disc" cx="50" cy="68" r="50"/>
+  <g stroke="#18202E" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <circle cx="30" cy="55" r="12" fill="#E0892B"/>
+    <circle cx="71" cy="56" r="11" fill="#D1477A"/>
+    <ellipse cx="50" cy="52" rx="14" ry="11" fill="#FBF7EF"/>
+    <circle cx="52" cy="52" r="5" fill="#F0AC66"/>
+    <path d="M10 60H90C90 81 72 95 50 95S10 81 10 60Z" fill="#1F7F78"/>
+    <rect x="6" y="55" width="88" height="9" rx="4.5" fill="#17635D"/>
+  </g>
 </svg>

@@ -24,10 +24,16 @@ to them. They are estimates and can be wrong.
 - **NEVO.** Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven.
   [Dutch Food Composition Database](https://www.rivm.nl/en/dutch-food-composition-database).
 
-## Typeface
+## Typefaces
 
 **Atkinson Hyperlegible Next**, by the Braille Institute of America. Copyright
 2020-2024 The Atkinson Hyperlegible Next Project Authors. Licensed under the
+[SIL Open Font License, Version 1.1](https://openfontlicense.org/).
+
+**Young Serif**, by Bastien Sozeau, sets the Opson wordmark. Copyright 2023
+The Young Serif Project Authors
+([github.com/noirblancrouge/YoungSerif](https://github.com/noirblancrouge/YoungSerif)).
+Licensed under the
 [SIL Open Font License, Version 1.1](https://openfontlicense.org/).
 
 ## Open-source software

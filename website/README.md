@@ -29,7 +29,9 @@ Run these inside `website/`.
 - `src/content/site-privacy.md`: the website's own privacy wording
 - `src/styles/global.css`: colors, type and shared rules
 - `src/fonts/`: Atkinson Hyperlegible Next, subset to Latin (OFL)
-- `public/`: favicon (the app icon) and `.nojekyll`
+- `public/`: the logo files (`favicon.svg`, the bowl without steam; `opson-mark.svg`, the
+  mark on its white disc for the dark nav; `apple-touch-icon.png`; `og-image.png`, the
+  link preview card) and `.nojekyll`. Sources are in `docs/design/brand/`
 
 Some content comes from elsewhere in the repo at build time, so there is
 nothing to keep in sync by hand:
@@ -45,7 +47,7 @@ nothing to keep in sync by hand:
 
 The layout borrows cronometer.com's shape: a dark band with the headline, the
 form and a phone, then one colored block per feature. The colors are the
-app's: Pine's dark green for the band, the icon's clay (`#A4512D`) as the
+app's: Pine's dark green for the band, the first app icon's clay (`#A4512D`) as the
 accent, and the four meal colors for the blocks. `global.css` lists the
 contrast of every text pair. The site is light only.
 

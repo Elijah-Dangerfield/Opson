@@ -1,19 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The themed-icon layer. Android 13+ tints this with the user's wallpaper
-  colours and drops the background, so it must be one flat colour with real
-  transparency around it. Same ring as ic_launcher_foreground, with the
-  half-moon cut out rather than painted, so the tint shows the shape.
-
-  Keep the artwork inside the 66dp circle centred in this 108dp canvas.
+  The themed-icon layer. Android 13+ tints this with the user's wallpaper colours and drops the
+  background, so it is one flat colour with real gaps where the colour mark has ink outlines.
+  Same placement as ic_launcher_foreground, well inside the 66dp safe circle.
+  Source: docs/design/brand/opson-icon-flat.svg.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M35.7,54 a18.3,18.3 0 1,0 36.6,0 a18.3,18.3 0 1,0 -36.6,0 Z M40.135,55.408 A13.936,13.936 0 1,1 67.865,55.408 Z" />
+    <group android:scaleX="0.390625" android:scaleY="0.390625" android:translateX="34.4688" android:translateY="33.6250">
+        <path android:pathData="M36 38c-5-5-5-10 0-15s5-10 0-15" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M60 38c-5-5-5-10 0-15s5-10 0-15" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <group android:name="toppings">
+            <clip-path android:pathData="M-4,-4H104V51H-4ZM32,52a18,15 0 1,0 36,0a18,15 0 1,0 -36,0Z" />
+            <path android:pathData="M18,55a12,12 0 1,0 24,0a12,12 0 1,0 -24,0Z" android:fillColor="#FFFFFF" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+            <path android:pathData="M60,56a11,11 0 1,0 22,0a11,11 0 1,0 -22,0Z" android:fillColor="#FFFFFF" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        </group>
+        <group android:name="egg">
+            <clip-path android:pathData="M-4,-4H104V51H-4Z" />
+            <path android:pathData="M36,52a14,11 0 1,0 28,0a14,11 0 1,0 -28,0Z" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+            <path android:pathData="M47,52a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z" android:fillColor="#FFFFFF" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        </group>
+        <path android:pathData="M10.5,55H89.5A4.5,4.5 0 0,1 89.5,64H10.5A4.5,4.5 0 0,1 10.5,55Z" android:fillColor="#FFFFFF" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <group android:name="bowl">
+            <clip-path android:pathData="M-4,68H104V104H-4Z" />
+            <path android:pathData="M10 60H90C90 81 72 95 50 95S10 81 10 60Z" android:fillColor="#FFFFFF" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        </group>
+    </group>
 </vector>

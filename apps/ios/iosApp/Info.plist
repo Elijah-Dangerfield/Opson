@@ -126,6 +126,21 @@
 	<string>Opson listens when you tap the mic, so you can say what you ate instead of typing it. Nothing is recorded or saved.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Opson turns what you say into text to fill in your meal. Your iPhone does this on the device when it can; otherwise Apple processes the audio. Opson never keeps the recording.</string>
+	<!--
+	  The launch screen: the mark centred on the page colour, light or dark, both
+	  from the asset catalog (LaunchMark, LaunchBackground). The mark is drawn at
+	  the size and place of the boot loader (BootLoadingScreen), so the first
+	  Compose frame starts the steam on the bowl that was already there.
+	  INFOPLIST_KEY_UILaunchScreen_Generation in the target only fills in an
+	  empty dictionary when this file has none.
+	-->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchMark</string>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="-4 -4 108 108">
+  <defs>
+
+    <clipPath id="toppings">
+      <path d="M-4 -4H104V51H-4ZM32,52a18,15 0 1,0 36,0a18,15 0 1,0 -36,0Z"/>
+    </clipPath>
+
+    <clipPath id="above-rim">
+      <path d="M-4 -4H104V51H-4Z"/>
+    </clipPath>
+
+    <clipPath id="below-rim">
+      <path d="M-4 68H104V104H-4Z"/>
+    </clipPath>
+</defs>
+
+  <g fill="#FFFFFF" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+
+    <path fill="none" d="M36 38c-5-5-5-10 0-15s5-10 0-15"/>
+
+    <path fill="none" d="M60 38c-5-5-5-10 0-15s5-10 0-15"/>
+
+    <g clip-path="url(#toppings)">
+      <circle cx="30" cy="55" r="12"/>
+      <circle cx="71" cy="56" r="11"/>
+    </g>
+
+    <g clip-path="url(#above-rim)">
+      <ellipse cx="50" cy="52" rx="14" ry="11" fill="none"/>
+      <circle cx="52" cy="52" r="5"/>
+    </g>
+
+    <rect x="6" y="55" width="88" height="9" rx="4.5"/>
+
+    <path clip-path="url(#below-rim)" d="M10 60H90C90 81 72 95 50 95S10 81 10 60Z"/>
+</g>
+</svg>
