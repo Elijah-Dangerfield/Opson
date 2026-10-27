@@ -232,6 +232,21 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
       and one number and a surplus on Today, Close the day, Trends and the
       widget, before flipping the flag.
 
+## Exercise (`release.exercise`, needs `release.goalsAndEnergy`)
+
+- [ ] Deploy V24 (`exercises`) before flipping the flag. A server without it
+      refuses every exercise as `unknown_entity` and the phone rolls it back.
+- [ ] TODO(clinician): confirm exercise is never offered to someone who said
+      numbers have been hard, and the everyday activity levels and default
+      (Mostly sitting, resting × 0.2). Rule and sources in
+      `docs/research/energy-expenditure.md`.
+- [ ] A phone that synced on a build without exercise has its cursor past
+      exercises logged meanwhile on another phone, and does not pull those
+      after updating. Flip the flag only once both phones are likely on the new
+      build, or accept that gap.
+- [ ] Log, edit and delete an entry on two phones, with and without a health
+      app connected, and check Burned on Today and Energy today.
+
 ## Today actions, design sync 4 (`release.todaySelect`, `release.foodActions`)
 
 - [ ] Drag foods between meals on a phone, with the list scrolling under the

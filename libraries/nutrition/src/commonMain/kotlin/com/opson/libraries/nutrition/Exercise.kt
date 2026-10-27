@@ -131,8 +131,11 @@ data class ExerciseTotals(val allKcal: Int, val notOnWatchKcal: Int) {
     }
 }
 
-/** What the health app read as activity for the day, in whole kcal. */
-data class HealthActivity(val movementKcal: Int, val workoutKcal: Int?)
+/**
+ * What the health app read as activity for the day, in whole kcal. Only made when it read one of
+ * the two: a store that answered with neither has not read activity, and the manual side counts.
+ */
+data class HealthActivity(val movementKcal: Int?, val workoutKcal: Int?)
 
 /**
  * The one rule for where a day's activity comes from (docs/research/energy-expenditure.md):

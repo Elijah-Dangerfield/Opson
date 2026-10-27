@@ -1,17 +1,22 @@
 package com.opson.libraries.health.impl
 
+import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeightRepository
+import com.opson.libraries.diary.totals
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.HealthActivity
 import com.opson.libraries.nutrition.RestingEnergies
+import com.opson.libraries.nutrition.burnedFor
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -30,7 +35,9 @@ import kotlin.math.roundToInt
 
 /**
  * [BurnedRepository] from settings, the latest weigh-in and, with `release.health` on and a store
- * connected, the health app. Holds nothing: every value is read while a flow is collected.
+ * connected, the health app. With `release.exercise` on, everyday activity and the day's logged
+ * exercise too, taken or left by [burnedFor]'s rule so the health app's activity and the manual
+ * side never add up. Holds nothing: every value is read while a flow is collected.
  *
  * The health app's resting energy is a whole day's, so it is the most recent full day the store
  * has, within the last week, never today's so far.
@@ -44,18 +51,24 @@ class RealBurnedRepository(
     private val health: HealthRepository,
     private val healthFlag: HealthReleaseFlag,
     private val calendar: LocalCalendar,
+    private val exercise: ExerciseRepository,
+    private val exerciseRelease: ExerciseRelease,
 ) : BurnedRepository {
 
-    override fun burned(day: LocalDate): Flow<Burned?> =
-        combine(settingsRepository.settings, latestWeightKg(), healthResting(), activity(day)) { settings, kg, healthKcal, activity ->
+    override fun burned(day: LocalDate): Flow<Burned?> {
+        val manual = exerciseRelease.isOn()
+        val logged = if (manual) exercise.observeDay(day).map { it.totals() } else flowOf(null)
+        return combine(settingsRepository.settings, latestWeightKg(), healthResting(), activity(day), logged) { settings, kg, healthKcal, activity, totals ->
             val resting = resting(settings, kg, healthKcal) ?: return@combine null
-            Burned(
+            burnedFor(
                 resting = resting,
-                movementKcal = activity?.movementKcal?.wholeKcal(),
-                workoutKcal = activity?.workoutKcal?.wholeKcal(),
+                health = activity?.toHealthActivity(),
+                everyday = settings.everydayActivity.takeIf { manual },
+                exercise = totals,
                 activityCounted = settings.activityInBurned,
             )
         }.distinctUntilChanged()
+    }
 
     override fun restingChoices(): Flow<RestingChoices> =
         combine(settingsRepository.settings, latestWeightKg(), healthResting()) { settings, kg, healthKcal ->
@@ -96,6 +109,13 @@ class RealBurnedRepository(
 
     private fun activity(day: LocalDate): Flow<EnergyExpended?> = connected().flatMapLatest { connected ->
         if (connected) health.energy(day, calendar.timeZone()) else flowOf(null)
+    }
+
+    /** Null when the store read neither part, so the day falls back to everyday activity and logged exercise. */
+    private fun EnergyExpended.toHealthActivity(): HealthActivity? {
+        val movement = movementKcal?.wholeKcal()
+        val workouts = workoutKcal?.wholeKcal()
+        return if (movement == null && workouts == null) null else HealthActivity(movement, workouts)
     }
 
     private fun Double.wholeKcal(): Int? = takeIf { it.isFinite() }?.roundToInt()

@@ -22,5 +22,6 @@
   { "path": "release.todaySelect", "type": "boolean", "default": false, "description": "Select foods on Today, drag them between meals, swipe a food to delete it, and file Uncategorized foods" },
   { "path": "release.checkIn", "type": "boolean", "default": false, "description": "The once-a-day check-in on Close the day" },
   { "path": "release.foodActions", "type": "boolean", "default": false, "description": "A food's menu on Today: change amount, move, copy to another day, edit a copy, favorite" },
-  { "path": "release.goalsAndEnergy", "type": "boolean", "default": false, "description": "Targets: one number and a set surplus; Burned, Resting energy and Energy today" }
+  { "path": "release.goalsAndEnergy", "type": "boolean", "default": false, "description": "Targets: one number and a set surplus; Burned, Resting energy and Energy today" },
+  { "path": "release.exercise", "type": "boolean", "default": false, "description": "Exercise logged by hand and everyday activity, counted in Burned; needs goalsAndEnergy" }
 ]
