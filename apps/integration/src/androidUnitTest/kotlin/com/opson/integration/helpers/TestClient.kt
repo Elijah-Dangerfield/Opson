@@ -18,6 +18,7 @@ import com.opson.libraries.core.AuthGate
 import com.opson.libraries.core.AuthRequirement
 import com.opson.libraries.core.AuthVerdict
 import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.FastingReleaseFlag
@@ -228,7 +229,9 @@ class TestClient(
     val settings: SettingsRepository = SettingsRepositoryImpl(settingsStore, sync)
     private val fastingImpl = FastingRepositoryImpl(tables, writer, settings, fastingRelease, calendar, clock)
     val fasting: FastingRepository = fastingImpl
-    val diary: DiaryRepository = DiaryRepositoryImpl(tables, writer, settings, calendar, fastEnder = fastingImpl)
+    private val diaryImpl = DiaryRepositoryImpl(tables, writer, settings, calendar, fastEnder = fastingImpl)
+    val diary: DiaryRepository = diaryImpl
+    val checkIns: DayCheckIns = diaryImpl
     val weights: WeightRepository = WeightRepositoryImpl(tables, writer)
     val customFoods: CustomFoodRepository = CustomFoodRepositoryImpl(tables, writer)
     val savedMeals: SavedMealRepository = SavedMealRepositoryImpl(tables, writer)
