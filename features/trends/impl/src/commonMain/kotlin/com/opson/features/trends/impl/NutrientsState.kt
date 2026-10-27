@@ -30,6 +30,8 @@ data class NutrientsInputs(
     val fromTrends: Boolean,
     val settings: Settings,
     val days: List<Day>,
+    /** The day's Burned with `release.goalsAndEnergy`, what a set deficit or surplus aims at. */
+    val burnedKcal: Int? = null,
 )
 
 data class NutrientsState(
@@ -125,7 +127,11 @@ object NutrientsStateBuilder {
 
         // The day's own goal on a day, the one the week chart draws for its average.
         val preset = inputs.settings.numbers.preset
-        val goal = if (inputs.range == NutrientsRange.Day) targets.rangeFor(inputs.day, preset) else targets.spanGoal(preset)
+        val goal = if (inputs.range == NutrientsRange.Day) {
+            targets.rangeFor(inputs.day, preset, inputs.burnedKcal)
+        } else {
+            targets.spanGoal(preset, inputs.burnedKcal)
+        }
         val scale = goal.maxKcal * ENERGY_HEADROOM
         val eaten = policy.resolve(Metric.Calories, values?.kcal, surface, base.copy(of = scale, goal = GoalStyle.None))
         val energy = if (eaten is Display.Hidden) {

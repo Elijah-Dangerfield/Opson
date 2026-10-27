@@ -43,6 +43,11 @@ data class TrendsInputs(
      * is off, no health app is connected, or the read failed.
      */
     val expended: Map<LocalDate, EnergyExpended>? = null,
+    /**
+     * Today's Burned with `release.goalsAndEnergy`: what a set deficit or surplus aims at. The
+     * chart draws one goal for the span, so today's stands in for each day's.
+     */
+    val burnedKcal: Int? = null,
 )
 
 /** The Trends tab, top to bottom. Each card is `null` when it is off or the mode has nothing to put on it. */
@@ -212,7 +217,7 @@ object TrendsStateBuilder {
         context: FormatContext,
     ): IntakeCard? {
         if (!showsIntake(policy, context)) return null
-        val goal = inputs.settings.targets.spanGoal(inputs.settings.numbers.preset)
+        val goal = inputs.settings.targets.spanGoal(inputs.settings.numbers.preset, inputs.burnedKcal)
         val scale = chartScale(goal)
         val tracked = mutableListOf<Double>()
         var inProgress = IntakeCaption.Plain

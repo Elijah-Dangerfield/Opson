@@ -1,4 +1,4 @@
-package com.opson.features.settings
+package com.opson.libraries.health
 
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.config.FlagConfigValue

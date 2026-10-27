@@ -11,6 +11,7 @@ import androidx.navigation.toRoute
 import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.EditCopyRoute
 import com.opson.features.logger.LoggerRoute
+import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.FindSupportRoute
@@ -278,6 +279,7 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenCalendar -> router.navigate(CalendarRoute(event.day.toString()))
             is TodayEvent.OpenDayClose -> router.navigate(DayCloseRoute(event.day.toString()))
             is TodayEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
+            TodayEvent.OpenEnergyToday -> router.navigate(EnergyTodayRoute())
             is TodayEvent.OpenLogger -> router.navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString()))
             TodayEvent.OpenWeight -> router.navigate(WeightRoute())
             TodayEvent.OpenTodayCards -> router.navigate(TodayCardsRoute())

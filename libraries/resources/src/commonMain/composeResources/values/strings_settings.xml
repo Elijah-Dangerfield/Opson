@@ -359,4 +359,37 @@
     <string name="settings_find_directory_about">Free lines in most other countries</string>
     <string name="settings_loading_cd">Loading</string>
 
+    <!-- More › Today screen (design sync 4, 13.6) -->
+    <string name="settings_more_today">Today screen</string>
+    <string name="settings_more_today_sub">Summary card and list</string>
+    <string name="settings_today_title">Today screen</string>
+    <string name="settings_today_summary_card">Summary card</string>
+    <string name="settings_today_preset_in_out">In and out</string>
+    <string name="settings_today_preset_range_bar">Range bar</string>
+    <string name="settings_today_preset_rings">Rings</string>
+    <string name="settings_today_preset_equation">Equation</string>
+    <string name="settings_today_needs_single">Needs a single target</string>
+    <string name="settings_today_main_number">Main number</string>
+    <string name="settings_today_main_follow">Follow my goal</string>
+    <string name="settings_today_main_goal">To your range</string>
+    <string name="settings_today_main_balance">Deficit or surplus</string>
+    <string name="settings_today_main_eaten">Eaten</string>
+    <string name="settings_today_follow_range">Range shows To your range</string>
+    <string name="settings_today_follow_exact">One number shows Left to target</string>
+    <string name="settings_today_follow_deficit">Set deficit shows Deficit</string>
+    <string name="settings_today_follow_surplus">Set surplus shows To your surplus</string>
+    <string name="settings_today_follow_by_day">Different by day shows To your range</string>
+    <string name="settings_today_card_pages">Card pages</string>
+    <string name="settings_today_pages_energy">Energy</string>
+    <string name="settings_today_pages_energy_macros">Energy, Macros</string>
+    <string name="settings_today_on_card">On the card</string>
+    <string name="settings_today_burned_breakdown">Burned breakdown</string>
+    <string name="settings_today_burned_breakdown_line">Resting and active</string>
+    <string name="settings_today_meals_count">Meals count</string>
+    <string name="settings_today_nutrients_link">Nutrients link</string>
+    <string name="settings_today_in_list">In the list</string>
+    <string name="settings_today_water">Water</string>
+    <string name="settings_today_weight">Weight on days you weigh in</string>
+    <string name="settings_today_close_day">Close the day</string>
+    <string name="settings_today_card_from_mode">In this mode the card's layout comes from the mode.</string>
 </resources>

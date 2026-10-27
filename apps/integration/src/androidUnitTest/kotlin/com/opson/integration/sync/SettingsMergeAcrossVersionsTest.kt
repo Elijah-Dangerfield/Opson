@@ -4,7 +4,9 @@ import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.awaitState
 import com.opson.integration.helpers.randomUserId
 import com.opson.libraries.core.Catching
+import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.MealTimes
+import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.diary.impl.DiarySyncApi
 import com.opson.libraries.diary.impl.wire.SyncRequestDto
 import com.opson.libraries.diary.impl.wire.SyncResponseDto
@@ -216,6 +218,49 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
     }
 
     @Test
+    fun aV01Save_keepsTheTodayScreenSettings() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        newPhone.settings.update {
+            it.copy(
+                todayCard = SummaryCardPreset.Equation,
+                todayMainNumber = MainNumberChoice.Eaten,
+                todayMainNumberByStyle = mapOf("range" to "balance"),
+                todayMealsCount = true,
+                todayWater = false,
+                todayCloseDay = false,
+            )
+        }
+        newPhone.syncNow().getOrThrow()
+
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        oldPhone.settings.update { it.copy(waterGlasses = 6) }
+        oldPhone.syncNow().getOrThrow()
+
+        val stored = server.query(
+            "SELECT settings->>'todayCard' AS card, settings->'todayMainNumberByStyle'->>'range' AS remembered, " +
+                "(settings->>'waterGlasses')::int AS glasses FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals(6, stored["glasses"], "the 0.1 save landed")
+        assertEquals("equation", stored["card"], "the merge kept todayCard")
+        assertEquals("balance", stored["remembered"], "the merge kept todayMainNumberByStyle")
+
+        newPhone.syncNow().getOrThrow()
+        val settings = newPhone.settings.settings.awaitState { it.waterGlasses == 6 }
+        assertEquals(SummaryCardPreset.Equation, settings.todayCard)
+        assertEquals(MainNumberChoice.Eaten, settings.todayMainNumber)
+        assertEquals(mapOf("range" to "balance"), settings.todayMainNumberByStyle)
+        assertEquals(true, settings.todayMealsCount)
+        assertFalse(settings.todayWater)
+        assertFalse(settings.todayCloseDay)
+    }
+
+    @Test
     fun pickingAPresetClearsThePhotosChoice_onTheServerToo() = integration {
         val user = randomUserId()
         val phone = client(user)
@@ -319,6 +364,8 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         val V02_KEYS = setOf(
             "mealTimes", "exerciseRange", "checkIn", "progressPhotos", "targetStyle",
             "restingSource", "restingOwnKcal", "activityInBurned", "birthYear", "heightCm", "bodySex",
+            "todayCard", "todayMainNumber", "todayMainNumberByStyle", "todayBurnedBreakdown", "todayMealsCount",
+            "todayNutrientsLink", "todayWater", "todayWeight", "todayCloseDay",
             "mode", "modeTimerEnded",
         )
 

@@ -9,7 +9,9 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
+import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -41,6 +43,8 @@ class TrendsViewModel(
     private val clock: Clock,
     private val health: HealthRepository,
     healthFlag: HealthReleaseFlag,
+    goalsAndEnergy: GoalsAndEnergyEnabled,
+    burnedRepository: BurnedRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<TrendsState, TrendsEvent, TrendsAction>(initialStateArg = TrendsState()) {
 
@@ -64,9 +68,11 @@ class TrendsViewModel(
 
         val expended = if (healthFlag()) expended() else flowOf(null)
 
-        combine(settingsRepository.settings, policySource.policy, records, expended) { settings, policy, records, expended ->
+        val burned = if (goalsAndEnergy()) span.flatMapLatest { burnedRepository.burned(it.today) } else flowOf(null)
+
+        combine(settingsRepository.settings, policySource.policy, records, expended, burned) { settings, policy, records, expended, burned ->
             TrendsAction.InputsArrived(
-                TrendsInputs(records.today, settings, records.days, records.weighIns, timeZone, expended),
+                TrendsInputs(records.today, settings, records.days, records.weighIns, timeZone, expended, burned?.totalKcal),
                 policy,
             )
         }.collectIn(viewModelScope) { takeAction(it) }

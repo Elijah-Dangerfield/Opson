@@ -123,10 +123,10 @@ object TodayStateBuilder {
             } else {
                 null
             },
-            water = if (future) null else water(day, inputs.settings, policy, context),
+            water = if (future || !listRow(inputs) { it.todayWater }) null else water(day, inputs.settings, policy, context),
             meals = if (future) planned(inputs, policy, context, groupsOn) else meals(inputs, policy, context, layout, groupsOn),
             // Nothing logged, nothing to close yet (design sync 2, 2.2); the ⋮ menu still offers it.
-            closeDay = if (future || untracked || !day.hasLogged) null else CloseDayCard(closed = day.isClosed(today)),
+            closeDay = if (future || untracked || !day.hasLogged || !listRow(inputs) { it.todayCloseDay }) null else CloseDayCard(closed = day.isClosed(today)),
             highlight = highlight,
             added = added?.takeIf { it.day == date }?.let { AddedNotice(it.slot, it.itemIds.size) },
             untracked = untracked,
@@ -135,7 +135,7 @@ object TodayStateBuilder {
             summaryPage = settings.todaySummaryPage.coerceIn(0, pageCount - 1),
             collapsed = compact != null && settings.todaySummaryCollapsed,
             compact = compact,
-            weight = if (summaryOn && !future) weightRow(inputs, policy, context) else null,
+            weight = if (summaryOn && !future && listRow(inputs) { it.todayWeight }) weightRow(inputs, policy, context) else null,
             selectTools = inputs.selectOn,
             foodMenus = inputs.foodActionsOn,
             selection = selecting?.let { selection(it, day, ui.step) },
@@ -145,6 +145,9 @@ object TodayStateBuilder {
         )
     }
 
+    /** A list row More › Today screen can turn off on Today alone (design sync 4, 13.6a). */
+    private fun listRow(inputs: TodayInputs, on: (Settings) -> Boolean): Boolean = !inputs.goalsAndEnergyOn || on(inputs.settings)
+
     /** "Rice pudding" reads "rice pudding" mid-sentence; "BBQ chips" stays as it is. */
     internal fun inSentence(name: String): String =
         if (name.length < 2 || name[1].isUpperCase()) name else name.replaceFirstChar { it.lowercaseChar() }
@@ -152,7 +155,7 @@ object TodayStateBuilder {
     private fun summary(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext): TodaySummary? {
         val day = inputs.day
         val settings = inputs.settings
-        val range = todayRange(settings, day, inputs.today, inputs.expended)
+        val range = todayRange(settings, day, inputs.today, inputs.expended, inputs.burned)
         val eaten = day.totals().kcal.known
         val delayed = policy.level(Metric.Calories) == Visibility.Delay
         val shown = policy.effectiveLevel(Metric.Calories, Surface.Today, context) == Visibility.Show
@@ -172,7 +175,7 @@ object TodayStateBuilder {
     private fun energy(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, eaten: Double): TodaySummary.Energy {
         val day = inputs.day
         val settings = inputs.settings
-        val range = todayRange(settings, day, inputs.today, inputs.expended)
+        val range = todayRange(settings, day, inputs.today, inputs.expended, inputs.burned)
         val scaleMax = range.maxKcal * BAR_HEADROOM
         val empty = day.allItems.isEmpty() && day.ateNoDetails.isEmpty()
         val summaryOn = inputs.summaryOn
@@ -192,6 +195,12 @@ object TodayStateBuilder {
             stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range) else emptyList(),
             macrosPage = if (summaryOn && !empty && settings.todayMacrosPage) macrosPage(day, settings, policy, context, eaten) else null,
             singleGoal = range.single,
+            // Only Full numbers' card: outside it (Later after its reveal, too) the mode sets the layout.
+            card = if (inputs.goalsAndEnergyOn && policy.preset.today == TodayLayout.Full && policy.level(Metric.Calories) == Visibility.Show) {
+                EnergyCardBuilder.build(inputs, policy, context, eaten, range, if (empty) emptyList() else barParts(day, policy, context, eaten))
+            } else {
+                null
+            },
         )
     }
 

@@ -1,14 +1,20 @@
 package com.opson.features.settings.impl.targets
 
 import androidx.lifecycle.viewModelScope
-import com.opson.features.settings.GoalsAndEnergyEnabled
 import com.opson.features.settings.impl.Toast
+import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsStateBuilder
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.SummaryCardPreset
+import com.opson.libraries.diary.forgetMainNumber
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.GoalsAndEnergyEnabled
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.RangeEnd
@@ -17,9 +23,6 @@ import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
-import com.opson.libraries.health.HealthReleaseFlag
-import com.opson.libraries.health.HealthRepository
-import com.opson.libraries.health.HealthStatus
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -135,19 +138,22 @@ class TargetsViewModel(
     /**
      * Writes [kind] unless it is already the style. Checked again inside the write: a mode change
      * since the page drew must not let a deficit or surplus through where it is not offered, nor
-     * one number or a surplus with the flag off.
+     * one number or a surplus with the flag off. A new style starts on its own main number on
+     * Today, and a card on Rings goes back to In and out once the goal is a range (13.6c).
      */
     private suspend fun pickStyle(kind: StyleKind) {
-        change { current ->
+        settingsRepository.update { current ->
             val offered = TargetsStateBuilder.offered(StyleKind.of(current.targets.style), current.numbers.preset, goalsAndEnergy())
-            if (kind !in offered || kind == StyleKind.of(current.targets.style)) return@change null
-            when (kind) {
+            if (kind !in offered || kind == StyleKind.of(current.targets.style)) return@update current
+            val targets = when (kind) {
                 StyleKind.Range -> current.targets.useRange()
                 StyleKind.Exact -> current.targets.useExact()
                 StyleKind.Deficit -> current.targets.useDeficit(burnKcal())
                 StyleKind.Surplus -> current.targets.useSurplus(burnKcal())
                 StyleKind.ByDay -> current.targets.useByDay()
             }
+            val rings = current.todayCard == SummaryCardPreset.Rings && !TodayScreenSettingsStateBuilder.singleTarget(targets.style)
+            current.copy(targets = targets, todayCard = if (rings) SummaryCardPreset.InOut else current.todayCard).forgetMainNumber()
         }
         editingGroup = null
     }

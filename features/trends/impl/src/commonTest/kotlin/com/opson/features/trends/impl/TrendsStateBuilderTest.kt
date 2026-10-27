@@ -371,6 +371,17 @@ class TrendsStateBuilderTest {
     }
 
     @Test
+    fun aSurplus_drawsOnTodaysBurned_whenItIsKnown() {
+        val settings = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300, 300)))
+        val state = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(settings).copy(burnedKcal = 2180), TrendsFixtures.policy(PresetId.Full))
+        val intake = assertNotNull(state.intake)
+
+        // 2,180 plus 300, on a scale of 3,000.
+        assertEquals(2480f / 3000f, intake.band.start)
+        assertTrue(intake.singleGoal)
+    }
+
+    @Test
     fun byDay_drawsOneBandOverEveryGroupsGoal() {
         val byDay = Targets.Default.copy(
             style = TargetStyle.ByDay(

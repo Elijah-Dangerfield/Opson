@@ -295,4 +295,34 @@
     <string name="today_checkin_mood_tired">Tired</string>
     <string name="today_checkin_mood_low">Low</string>
     <string name="today_checkin_mood_happy">Happy</string>
+
+    <!-- Summary card, design sync 4 (13.1, 13.2a, 13.2b, 13.6c) -->
+    <string name="today_card_to_range">To your range</string>
+    <string name="today_card_left">Left to target</string>
+    <string name="today_card_to_surplus">To your surplus</string>
+    <string name="today_card_deficit">Deficit</string>
+    <string name="today_card_surplus">Surplus</string>
+    <string name="today_card_eaten">Eaten</string>
+    <string name="today_card_burned">Burned</string>
+    <string name="today_card_ring_to_range">To range</string>
+    <string name="today_card_ring_left">Left</string>
+    <string name="today_card_ring_to_surplus">To surplus</string>
+    <string name="today_card_switch_cd">Switch the main number</string>
+    <string name="today_card_energy">Energy</string>
+    <string name="today_card_kcal">kcal</string>
+    <string name="today_card_range">Range %1$s</string>
+    <string name="today_card_target">Target %1$s</string>
+    <string name="today_card_goal_deficit">Goal %1$s a day</string>
+    <string name="today_card_goal_surplus">Goal +%1$s a day</string>
+    <string name="today_card_resting">Resting %1$s</string>
+    <string name="today_card_active">Active %1$s</string>
+    <string name="today_card_target_left"> · %1$s left at your goal</string>
+    <string name="today_card_target_moves">Target %1$s · moves with what you burn</string>
+    <string name="today_card_target_follows">Target %1$s · follows what you burn</string>
+    <string name="today_card_legend_range">Your range</string>
+    <string name="today_card_legend_target">Your target</string>
+    <string name="today_card_to_range_line">%1$s to your range</string>
+    <string name="today_card_left_line">%1$s left to target</string>
+    <string name="today_card_to_surplus_line">%1$s to your surplus</string>
+    <string name="today_card_meals">%1$d of %2$d meals</string>
 </resources>

@@ -29,7 +29,7 @@ class TrendsViewModelTest : CoroutineTest() {
     private val health = FakeHealthRepository()
 
     private fun vm(healthOn: Boolean = false) =
-        TrendsViewModel(diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, health, healthFlag(healthOn), TrendsFixtures.timeZone)
+        TrendsViewModel(diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, health, healthFlag(healthOn), goalsAndEnergyFlag(), FakeBurnedRepository(), TrendsFixtures.timeZone)
 
     @Test
     fun healthFlagOff_noExpendedCard_andTheStoreIsNeverRead() = runUnitTest {
@@ -52,7 +52,8 @@ class TrendsViewModelTest : CoroutineTest() {
     fun healthFlagOn_butNothingConnected_noCard() = runUnitTest {
         val notConnected = FakeHealthRepository(initial = HealthStatus.NotConnected)
         val vm = TrendsViewModel(
-            diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, notConnected, healthFlag(true), TrendsFixtures.timeZone,
+            diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, notConnected, healthFlag(true), goalsAndEnergyFlag(), FakeBurnedRepository(),
+            TrendsFixtures.timeZone,
         )
         assertNull(vm.state.expended)
         assertNotNull(vm.state.intake, "the rest of the page is there")

@@ -25,6 +25,8 @@ import com.opson.features.settings.RemindersRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.TargetsRoute
+import com.opson.features.settings.TodayScreenChoiceRoute
+import com.opson.features.settings.TodayScreenSettingsRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.WidgetsRoute
 import com.opson.features.settings.impl.energy.EnergyTodayEvent
@@ -72,6 +74,13 @@ import com.opson.features.settings.impl.support.SupportViewModel
 import com.opson.features.settings.impl.targets.TargetsEvent
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsViewModel
+import com.opson.features.settings.impl.todayscreen.TodayScreenChoice
+import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceEvent
+import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceSheetContent
+import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceViewModel
+import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsEvent
+import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsScreen
+import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsViewModel
 import com.opson.features.settings.impl.water.WaterSettingsEvent
 import com.opson.features.settings.impl.water.WaterSettingsScreen
 import com.opson.features.settings.impl.water.WaterSettingsViewModel
@@ -108,6 +117,8 @@ class SettingsFeatureEntryPoint(
     private val targetsViewModel: () -> TargetsViewModel,
     private val restingEnergyViewModel: () -> RestingEnergyViewModel,
     private val energyTodayViewModel: () -> EnergyTodayViewModel,
+    private val todayScreenSettingsViewModel: () -> TodayScreenSettingsViewModel,
+    private val todayScreenChoiceViewModel: (TodayScreenChoice) -> TodayScreenChoiceViewModel,
     private val waterSettingsViewModel: (backToMore: Boolean) -> WaterSettingsViewModel,
     private val lookAndFeelViewModel: () -> LookAndFeelViewModel,
     private val supportViewModel: () -> SupportViewModel,
@@ -128,6 +139,7 @@ class SettingsFeatureEntryPoint(
                     when (event) {
                         MoreEvent.OpenModes -> ModesRoute()
                         MoreEvent.OpenTargets -> TargetsRoute()
+                        MoreEvent.OpenTodayScreen -> TodayScreenSettingsRoute()
                         MoreEvent.OpenWater -> WaterSettingsRoute(fromMore = true)
                         MoreEvent.OpenLookAndFeel -> LookAndFeelRoute()
                         MoreEvent.OpenSupport -> SupportRoute()
@@ -233,6 +245,34 @@ class SettingsFeatureEntryPoint(
                 }
             }
             RestingEnergyScreen(state = state, onAction = viewModel::takeAction, fromEnergyToday = route.fromEnergyToday)
+        }
+
+        // Registered whatever release.goalsAndEnergy says, as the pages above.
+        screen<TodayScreenSettingsRoute> {
+            val viewModel: TodayScreenSettingsViewModel = viewModel { todayScreenSettingsViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is TodayScreenSettingsEvent.OpenChoice -> router.navigate(TodayScreenChoiceRoute(event.choice.wire))
+                    TodayScreenSettingsEvent.Close -> router.goBack()
+                }
+            }
+            TodayScreenSettingsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        bottomSheet<TodayScreenChoiceRoute> { backStackEntry, sheetState ->
+            val choice = TodayScreenChoice.fromWire(backStackEntry.toRoute<TodayScreenChoiceRoute>().choice)
+            val viewModel: TodayScreenChoiceViewModel = viewModel { todayScreenChoiceViewModel(choice) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    // Animate the sheet down first; its dismiss callback pops the route.
+                    TodayScreenChoiceEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            BottomSheet(onDismissRequest = { router.goBack() }, state = sheetState, backgroundColor = AppTheme.colors.bg) {
+                TodayScreenChoiceSheetContent(state = state, onAction = viewModel::takeAction)
+            }
         }
 
         screen<EnergyTodayRoute> {

@@ -1,19 +1,82 @@
 package com.opson.features.today.impl.dayclose
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.opson.libraries.diary.CheckInEnabled
+import androidx.lifecycle.viewModelScope
+import com.opson.features.today.impl.text
 import com.opson.libraries.diary.CheckIn
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.DayCheckIns
+import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.Energy
+import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.Sleep
+import com.opson.libraries.diary.ui.BigDayHeroCard
+import com.opson.libraries.diary.ui.DayTotalsCard
+import com.opson.libraries.diary.ui.LabelValueCard
+import com.opson.libraries.diary.ui.LabelledLineCard
+import com.opson.libraries.diary.ui.LoggedMealsCard
+import com.opson.libraries.diary.ui.RangeSentence
+import com.opson.libraries.diary.ui.SectionLabel
+import com.opson.libraries.diary.ui.SummaryMacro
+import com.opson.libraries.diary.ui.TodayCard
+import com.opson.libraries.diary.ui.label
+import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.GoalsAndEnergyEnabled
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
+import com.opson.libraries.ui.components.InfoBanner
+import com.opson.libraries.ui.components.PageHeader
+import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SegmentedControl
+import com.opson.libraries.ui.components.button.FlatButton
+import com.opson.libraries.ui.components.button.FlatButtonDefaults
+import com.opson.libraries.ui.components.button.FlatButtonTone
+import com.opson.libraries.ui.components.chip.ChoiceChip
+import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
+import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.components.text.TextArea
+import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.libraries.ui.time.DateCopy
+import com.opson.system.AppTheme
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
+import me.tatarka.inject.annotations.Assisted
+import me.tatarka.inject.annotations.Inject
+import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_checkin_energy
 import opson.libraries.resources.generated.resources.today_checkin_energy_good
 import opson.libraries.resources.generated.resources.today_checkin_energy_low
@@ -37,106 +100,46 @@ import opson.libraries.resources.generated.resources.today_checkin_sleep_good
 import opson.libraries.resources.generated.resources.today_checkin_sleep_ok
 import opson.libraries.resources.generated.resources.today_checkin_sleep_poor
 import opson.libraries.resources.generated.resources.today_checkin_title
+import opson.libraries.resources.generated.resources.today_count_value
+import opson.libraries.resources.generated.resources.today_dayclose_above
 import opson.libraries.resources.generated.resources.today_dayclose_above_goal
 import opson.libraries.resources.generated.resources.today_dayclose_above_goal_other_day
+import opson.libraries.resources.generated.resources.today_dayclose_above_other_day
+import opson.libraries.resources.generated.resources.today_dayclose_back
+import opson.libraries.resources.generated.resources.today_dayclose_below
 import opson.libraries.resources.generated.resources.today_dayclose_below_goal
-import opson.libraries.resources.generated.resources.today_dayclose_inside_goal
-import opson.libraries.resources.generated.resources.today_dayclose_loading_cd
+import opson.libraries.resources.generated.resources.today_dayclose_big_day
+import opson.libraries.resources.generated.resources.today_dayclose_caption
+import opson.libraries.resources.generated.resources.today_dayclose_commit_can
+import opson.libraries.resources.generated.resources.today_dayclose_commit_normal
+import opson.libraries.resources.generated.resources.today_dayclose_committed
+import opson.libraries.resources.generated.resources.today_dayclose_done
 import opson.libraries.resources.generated.resources.today_dayclose_expended
-import opson.libraries.resources.generated.resources.today_dayclose_support
-import opson.libraries.resources.generated.resources.today_dayclose_tomorrow_goal
-import opson.libraries.resources.generated.resources.today_dayclose_why_not
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewModelScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.semantics.Role
-import com.opson.libraries.diary.DayFeeling
-import com.opson.libraries.diary.ui.TodayCard
-import com.opson.libraries.ui.components.chip.ChoiceChip
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_busy
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_good
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_hard
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_label
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_steady
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_tired
-import org.jetbrains.compose.resources.StringResource
-import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.ui.BigDayHeroCard
-import com.opson.libraries.diary.ui.LabelValueCard
-import com.opson.libraries.diary.ui.LoggedMealsCard
-import com.opson.libraries.diary.ui.RangeSentence
-import com.opson.libraries.diary.ui.SummaryMacro
-import com.opson.libraries.diary.ui.label
-import com.opson.libraries.ui.components.InfoBanner
-import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.system.color.ColorResource
-import com.opson.libraries.ui.time.DateCopy
-import opson.libraries.resources.generated.resources.today_count_value
-import opson.libraries.resources.generated.resources.today_dayclose_above
-import opson.libraries.resources.generated.resources.today_dayclose_above_other_day
-import opson.libraries.resources.generated.resources.today_dayclose_below
-import opson.libraries.resources.generated.resources.today_dayclose_caption
 import opson.libraries.resources.generated.resources.today_dayclose_inside
+import opson.libraries.resources.generated.resources.today_dayclose_inside_goal
 import opson.libraries.resources.generated.resources.today_dayclose_kcal
-import opson.libraries.resources.generated.resources.today_dayclose_meals
-import opson.libraries.resources.generated.resources.today_dayclose_revealed_body
-import opson.libraries.resources.generated.resources.today_dayclose_revealed_title
-import com.opson.features.today.impl.text
-import com.opson.libraries.diary.DiaryRepository
-import com.opson.libraries.diary.LocalCalendar
-import com.opson.libraries.diary.SettingsRepository
-import com.opson.libraries.diary.ui.LabelledLineCard
-import com.opson.libraries.diary.ui.DayTotalsCard
-import com.opson.libraries.diary.ui.SectionLabel
-import com.opson.libraries.flowroutines.SEAViewModel
-import com.opson.libraries.nutrition.Metric
-import com.opson.libraries.nutrition.VisibilityPolicy
-import com.opson.libraries.nutrition.VisibilityPolicySource
-import com.opson.libraries.nutrition.ui.NutrientText
-import com.opson.libraries.ui.components.DelayedLoadingIndicator
-import com.opson.libraries.ui.components.PageHeader
-import com.opson.libraries.ui.components.Screen
-import com.opson.libraries.ui.components.button.FlatButton
-import com.opson.libraries.ui.components.button.FlatButtonDefaults
-import com.opson.libraries.ui.components.button.FlatButtonTone
-import com.opson.libraries.ui.components.text.Text
-import com.opson.libraries.ui.components.text.TextArea
-import com.opson.system.AppTheme
-import com.opson.libraries.health.EnergyExpended
-import com.opson.libraries.health.HealthReleaseFlag
-import com.opson.libraries.health.HealthRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
-import me.tatarka.inject.annotations.Assisted
-import me.tatarka.inject.annotations.Inject
-import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.today_dayclose_back
-import opson.libraries.resources.generated.resources.today_dayclose_big_day
-import opson.libraries.resources.generated.resources.today_dayclose_commit_can
-import opson.libraries.resources.generated.resources.today_dayclose_commit_normal
-import opson.libraries.resources.generated.resources.today_dayclose_committed
-import opson.libraries.resources.generated.resources.today_dayclose_done
+import opson.libraries.resources.generated.resources.today_dayclose_loading_cd
 import opson.libraries.resources.generated.resources.today_dayclose_logged_that_day
 import opson.libraries.resources.generated.resources.today_dayclose_logged_today
+import opson.libraries.resources.generated.resources.today_dayclose_meals
 import opson.libraries.resources.generated.resources.today_dayclose_note_label
 import opson.libraries.resources.generated.resources.today_dayclose_note_label_other_day
 import opson.libraries.resources.generated.resources.today_dayclose_note_placeholder
+import opson.libraries.resources.generated.resources.today_dayclose_revealed_body
+import opson.libraries.resources.generated.resources.today_dayclose_revealed_title
 import opson.libraries.resources.generated.resources.today_dayclose_soft_label
 import opson.libraries.resources.generated.resources.today_dayclose_soft_label_other_day
+import opson.libraries.resources.generated.resources.today_dayclose_support
 import opson.libraries.resources.generated.resources.today_dayclose_tomorrow
+import opson.libraries.resources.generated.resources.today_dayclose_tomorrow_goal
+import opson.libraries.resources.generated.resources.today_dayclose_why_not
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -154,6 +157,8 @@ class DayCloseViewModel(
     private val healthFlag: HealthReleaseFlag,
     private val checkIns: DayCheckIns,
     private val checkInEnabled: CheckInEnabled,
+    private val goalsAndEnergy: GoalsAndEnergyEnabled,
+    private val burnedRepository: BurnedRepository,
 ) : SEAViewModel<DayCloseState, DayCloseEvent, DayCloseAction>(initialStateArg = DayCloseState()) {
 
     private var model = Model()
@@ -170,9 +175,9 @@ class DayCloseViewModel(
 
     init {
         viewModelScope.launch {
-            combine(diary.observeDay(day), settingsRepository.settings, policySource.policy, expended()) { d, settings, policy, expended ->
+            combine(diary.observeDay(day), settingsRepository.settings, policySource.policy, expended(), burned()) { d, settings, policy, expended, burned ->
                 val checkInOn = checkInEnabled() && settings.checkIn
-                DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn), policy)
+                DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn, burned = burned), policy)
             }.collect(::takeAction)
         }
     }
@@ -182,6 +187,9 @@ class DayCloseViewModel(
         val today = calendar.today()
         return if (healthFlag() && day == today) health.energy(today, calendar.timeZone()) else flowOf(null)
     }
+
+    /** The day's Burned, what a set deficit or surplus aims at. With `release.goalsAndEnergy` off nothing reads it. */
+    private fun burned(): Flow<Burned?> = if (goalsAndEnergy()) burnedRepository.burned(day) else flowOf(null)
 
     override suspend fun handleAction(action: DayCloseAction) {
         when (action) {

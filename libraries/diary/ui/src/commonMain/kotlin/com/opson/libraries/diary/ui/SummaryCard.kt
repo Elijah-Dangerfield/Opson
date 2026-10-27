@@ -301,6 +301,7 @@ private fun SplitBar(segments: List<RangeBarSegment>, tag: Metric) {
 /**
  * Under both pages: the page dots ([pageCount] over one), Nutrients, and the collapse chevron
  * ([collapseIcon]; null leaves it out). With the flag off it is the Nutrients link alone.
+ * [showNutrients] false leaves the link out (More › Today screen's "Nutrients link").
  */
 @Composable
 fun SummaryFooter(
@@ -312,12 +313,13 @@ fun SummaryFooter(
     onPageSelected: (Int) -> Unit = {},
     collapseIcon: IconResource? = null,
     onCollapse: () -> Unit = {},
+    showNutrients: Boolean = true,
     leading: @Composable RowScope.() -> Unit = {},
 ) {
     Row(modifier = modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         if (pageCount > 1) PageIndicator(pageCount = pageCount, currentPage = page, onPageSelected = onPageSelected)
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { leading() }
-        SummaryLink(text = nutrientsLabel, onClick = onNutrients)
+        if (showNutrients) SummaryLink(text = nutrientsLabel, onClick = onNutrients)
         if (collapseIcon != null) {
             // Quiet, not an action colour: the chevron changes the view, it does not do anything.
             RoundIconButton(

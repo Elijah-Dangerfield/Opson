@@ -16,13 +16,16 @@ import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.LoggedToMeal
+import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ModeTimerEnded
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.ui.FastingStatusFixtures
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.NumbersSettings
@@ -68,6 +71,7 @@ private fun Today(
     ui: TodayUi = TodayUi(),
     firstRow: Int = 0,
     drag: FoodDrag = rememberFoodDrag(),
+    burned: Burned? = null,
 ) {
     TodayScreen(
         state = TodayFixtures.todayState(
@@ -82,6 +86,8 @@ private fun Today(
             weighIns = weighIns,
             ui = ui,
             foodActionsOn = flagsOn,
+            goalsAndEnergyOn = burned != null,
+            burned = burned,
         ),
         onAction = {},
         drag = drag,
@@ -105,6 +111,55 @@ private fun TodayFullDarkPreview() = Phone(dark = true) { TodayFull() }
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayFullLargeTextPreview() = Phone(largeText = true) { TodayFull() }
+
+/** Design sync 4's card in each preset over Burned (`release.goalsAndEnergy`), dark as the design draws it. */
+@Composable
+private fun TodayV4(settings: Settings = Settings()) =
+    Today(full, settings = settings, expended = TodayFixtures.expended, burned = TodayFixtures.burned)
+
+/** 13.1 1d, the default: In and out, the main number To your range. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryInOutPreview() = Phone(dark = true) { TodayV4() }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryInOutLightPreview() = Phone { TodayV4() }
+
+/** 13.1 1c: one bar, Burned as a tick. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryRangeBarPreview() = Phone(dark = true) { TodayV4(Settings(todayCard = SummaryCardPreset.RangeBar)) }
+
+/** 13.1 1a with a single target, as the app allows it (13.6c is the one-number version). */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryRingsPreview() = Phone(dark = true) { TodayV4(TodayFixtures.oneNumber.copy(todayCard = SummaryCardPreset.Rings)) }
+
+/** 13.1 1b: Eaten − Burned = Deficit. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryEquationPreview() =
+    Phone(dark = true) { TodayV4(Settings(todayCard = SummaryCardPreset.Equation, todayMainNumber = MainNumberChoice.Balance)) }
+
+/** 13.2a: a set deficit of 500, the main number Deficit, the target 1,680. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayDeficitGoalPreview() = Phone(dark = true) { TodayV4(TodayFixtures.deficit500) }
+
+/** 13.2b: a set surplus of 300, the main number To your surplus, the target 2,480. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySurplusGoalPreview() = Phone(dark = true) { TodayV4(TodayFixtures.surplus300) }
+
+/** 13.6c: one number, 2,100, as rings; the third ring Left. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayRingsPreview() = Phone(dark = true) { TodayV4(TodayFixtures.oneNumber.copy(todayCard = SummaryCardPreset.Rings, todayWater = false)) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryInOutLargeTextPreview() = Phone(largeText = true) { TodayV4() }
 
 /** Both release flags off: the refined v3 card, macros as columns, no dots, no chevron, no swipe. */
 @Preview(widthDp = 390, heightDp = 844)

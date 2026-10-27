@@ -75,6 +75,8 @@ class TodayViewModelTest : CoroutineTest() {
         selectOn: Boolean = false,
         foodActionsOn: Boolean = false,
         healthRepository: HealthRepository = health,
+        goalsAndEnergyOn: Boolean = false,
+        burnedRepository: FakeBurnedRepository = FakeBurnedRepository(),
     ) = TodayViewModel(
         diary = diary,
         settingsRepository = settings,
@@ -93,6 +95,8 @@ class TodayViewModelTest : CoroutineTest() {
         summaryEnabled = summaryFlag(summaryOn),
         selectEnabled = selectFlag(selectOn),
         foodActionsEnabled = foodActionsFlag(foodActionsOn),
+        goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergyOn),
+        burnedRepository = burnedRepository,
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -865,5 +869,34 @@ class TodayViewModelTest : CoroutineTest() {
         vm.takeAction(TodayAction.PreviousDayTapped)
 
         assertNull(vm.state.selection)
+    }
+
+    // --- design sync 4's summary card ---
+
+    @Test
+    fun mainNumberToggled_remembersTheSwitchForTheGoalStyle() = runUnitTest {
+        val vm = vm(summaryOn = true, goalsAndEnergyOn = true, burnedRepository = FakeBurnedRepository(TodayFixtures.burned))
+        assertEquals(MainKind.ToRange, (vm.state.summary as TodaySummary.Energy).card?.main?.kind)
+
+        vm.takeAction(TodayAction.MainNumberToggled)
+
+        assertEquals(mapOf("range" to "balance"), settings.state.value.todayMainNumberByStyle)
+        assertEquals(MainKind.Deficit, (vm.state.summary as TodaySummary.Energy).card?.main?.kind)
+    }
+
+    @Test
+    fun withTheFlagOff_burnedIsNotRead_andTheToggleDoesNothing() = runUnitTest {
+        val vm = vm(summaryOn = true, burnedRepository = FakeBurnedRepository(TodayFixtures.burned))
+        assertNull((vm.state.summary as TodaySummary.Energy).card)
+        vm.takeAction(TodayAction.MainNumberToggled)
+        assertEquals(emptyMap(), settings.state.value.todayMainNumberByStyle)
+    }
+
+    @Test
+    fun energyTapped_opensEnergyToday() = runUnitTest {
+        val vm = vm(summaryOn = true, goalsAndEnergyOn = true)
+        val events = events(vm)
+        vm.takeAction(TodayAction.EnergyTapped)
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenEnergyToday), events)
     }
 }
