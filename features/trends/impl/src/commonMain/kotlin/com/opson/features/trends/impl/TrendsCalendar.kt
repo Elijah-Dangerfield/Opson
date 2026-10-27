@@ -76,12 +76,12 @@ object TrendsCalendar {
         else -> TrendsSpan(range, weekStarts(today, weekStart, barCount(range)).first(), today)
     }
 
-    /** The week before [window]: Coast's last weekly check. */
+    /** The week before [window]: the last weekly check, for Later's weekly reveal. */
     fun previousWeek(window: WeekWindow): WeekWindow =
         WeekWindow(window.start.minus(DAYS_IN_WEEK, DateTimeUnit.DAY), window.end.minus(DAYS_IN_WEEK, DateTimeUnit.DAY))
 
     /**
-     * The first date Trends needs: the span, the week before the window (Coast's
+     * The first date Trends needs: the span, the week before the window (the weekly reveal's
      * last check) and the new-food lookback before them, so one `observeDays`
      * covers every card.
      */

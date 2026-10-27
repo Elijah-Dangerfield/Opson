@@ -154,7 +154,7 @@ class EditCopyTest : CoroutineTest() {
 
     @Test
     fun nutrientsFirst_softWordsAreNoPlaceForANumber_soNoneIsAsked() = runUnitTest {
-        val vm = vm(PresetId.Nutrient)
+        val vm = vm(PresetId.NutrientsFirst)
 
         assertTrue(vm.state.fields.isEmpty())
         vm.takeAction(EditCopyAction.SaveTapped)
@@ -163,7 +163,7 @@ class EditCopyTest : CoroutineTest() {
 
     @Test
     fun inBlind_noNumberIsShown() = runUnitTest {
-        assertTrue(vm(PresetId.Blind).state.fields.isEmpty())
+        assertTrue(vm(PresetId.NoNumbers).state.fields.isEmpty())
     }
 
     @Test

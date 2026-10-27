@@ -3,14 +3,14 @@
   Onboarding: Welcome and the plan, three questions, the optional statement,
   the starting mode and the optional account step. Copy is design v3's
   (docs/design/v3/onboarding-*.png) word for word where it has it; the
-  exceptions are marked. Preset labels repeat the Modes table in
-  docs/plans/screens/settings.md until a shared preset resource exists.
+  exceptions are marked. Preset labels are the shared ones in strings_modes.xml.
 -->
 <resources>
     <!-- Welcome. The design's "Friendly Tracking" is a placeholder for the app name. -->
     <string name="onboarding_welcome_title" translatable="false">Opson</string>
     <string name="onboarding_welcome_subtitle">Write down what you eat. See as many numbers as you want, or none.</string>
     <string name="onboarding_welcome_body">You can show, soften, save for later or hide every number, and change it whenever you like.</string>
+    <string name="onboarding_welcome_not_medical">Opson is a food log, not medical advice. Food values are estimates.</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_skip_all">Skip and start logging</string>
     <string name="onboarding_have_account">Have an account?</string>
@@ -85,7 +85,6 @@
     <string name="onboarding_preview_calorie_amounts">Calorie amounts</string>
     <string name="onboarding_preview_energy_word">A word for energy, like “partway”</string>
     <string name="onboarding_preview_calories_later">Calories, once the day is closed</string>
-    <string name="onboarding_preview_calories_weekly">Calories, once a week</string>
     <string name="onboarding_preview_calories_hidden">Calorie amounts and watch energy</string>
     <string name="onboarding_preview_macro_amounts">Protein, carbs, fat and fiber amounts</string>
     <string name="onboarding_preview_protein_fiber_amounts">Protein and fiber amounts</string>
@@ -102,31 +101,8 @@
     <string name="onboarding_preview_weight_trend">Weight shows as a trend only</string>
     <string name="onboarding_preview_weight_hidden">Weight</string>
     <string name="onboarding_preview_meal_by_meal">What you ate, meal by meal</string>
-    <string name="onboarding_preview_meal_checklist">A checklist of your meals</string>
-    <string name="onboarding_preview_new_foods">The new foods you try</string>
     <string name="onboarding_preview_how_meals_felt">How each meal felt</string>
 
-    <!-- Preset labels and one-line descriptions under the name -->
-    <string name="onboarding_preset_full">Full numbers</string>
-    <string name="onboarding_preset_full_line">Every number, as it is.</string>
-    <string name="onboarding_preset_delayed">Delayed reveal</string>
-    <string name="onboarding_preset_delayed_line">Log all day. Totals open at a time you pick.</string>
-    <string name="onboarding_preset_blind">Blind</string>
-    <string name="onboarding_preset_blind_line">Log food without any numbers.</string>
-    <string name="onboarding_preset_nutrient">Nutrient focus</string>
-    <string name="onboarding_preset_nutrient_line">The nutrients in your food come first.</string>
-    <string name="onboarding_preset_rhythm">Rhythm</string>
-    <string name="onboarding_preset_rhythm_line">Regular meals come first.</string>
-    <string name="onboarding_preset_explorer">Explorer</string>
-    <string name="onboarding_preset_explorer_line">Trying new foods comes first.</string>
-    <string name="onboarding_preset_mindful">Mindful</string>
-    <string name="onboarding_preset_mindful_line">How eating feels comes first.</string>
-    <string name="onboarding_preset_fuel">Fuel</string>
-    <string name="onboarding_preset_fuel_line">Eating enough comes first.</string>
-    <string name="onboarding_preset_sprint">Sprint</string>
-    <string name="onboarding_preset_sprint_line">Track for two weeks to learn, then take a break.</string>
-    <string name="onboarding_preset_coast">Coast</string>
-    <string name="onboarding_preset_coast_line">Light logging and one weekly check.</string>
 
     <!--
       The account step: optional and last. The design's first reassurance line reads

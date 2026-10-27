@@ -17,7 +17,6 @@ import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.FindSupportRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.ModesRoute
-import com.opson.features.settings.RemindersRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
 import com.opson.features.today.DayCloseRoute
@@ -282,14 +281,9 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
             TodayEvent.OpenEnergyToday -> router.navigate(EnergyTodayRoute())
             is TodayEvent.OpenLogger -> router.navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString()))
-            is TodayEvent.OpenLoggerWithFood -> router.navigate(
-                LoggerRoute(dayIso = event.day.toString(), prePickFoodId = event.foodId, prePickIsCustom = event.isCustom),
-            )
             TodayEvent.OpenWeight -> router.navigate(WeightRoute())
-            is TodayEvent.OpenMealFeel -> router.navigate(MealFeelRoute(event.day.toString(), event.slot))
             TodayEvent.OpenTodayCards -> router.navigate(TodayCardsRoute())
             TodayEvent.OpenFasting -> router.navigate(FastingRoute())
-            TodayEvent.OpenReminders -> router.navigate(RemindersRoute())
             is TodayEvent.OpenDayNote -> router.navigate(DayNoteRoute(event.day.toString()))
             is TodayEvent.OpenMealSheet -> router.navigate(MealSheetRoute(event.day.toString(), event.slot))
             is TodayEvent.OpenItemSheet -> router.navigate(ItemSheetRoute(event.day.toString(), event.entryId))

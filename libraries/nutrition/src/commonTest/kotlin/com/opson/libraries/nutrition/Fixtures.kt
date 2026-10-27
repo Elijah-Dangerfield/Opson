@@ -28,7 +28,12 @@ internal fun policy(
     overrides: Map<Metric, Visibility> = emptyMap(),
     now: LocalDateTime = MORNING,
     zone: TimeZone = TimeZone.UTC,
-) = VisibilityPolicy(NumbersSettings(preset = preset, overrides = overrides), clockAt(now, zone), zone)
+    revealOn: RevealOn = RevealOn.DayClose,
+) = VisibilityPolicy(NumbersSettings(preset = preset, overrides = overrides, revealOn = revealOn), clockAt(now, zone), zone)
+
+/** Later with its totals opening once a week: what Coast became. */
+internal fun weekly(now: LocalDateTime = MORNING, overrides: Map<Metric, Visibility> = emptyMap()) =
+    policy(PresetId.Later, overrides = overrides, now = now, revealOn = RevealOn.Week)
 
 /** Full numbers with every metric shown, micros included, for format tests. */
 internal fun showAll(now: LocalDateTime = MORNING) =

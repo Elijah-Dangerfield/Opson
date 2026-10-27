@@ -137,6 +137,7 @@ import opson.libraries.resources.generated.resources.logger_micros_vitamins
 import opson.libraries.resources.generated.resources.logger_precision_estimate
 import opson.libraries.resources.generated.resources.logger_precision_named
 import opson.libraries.resources.generated.resources.logger_precision_weighed
+import opson.libraries.resources.generated.resources.logger_source_nevo
 import opson.libraries.resources.generated.resources.logger_source_off
 import opson.libraries.resources.generated.resources.logger_source_usda
 import opson.libraries.resources.generated.resources.logger_source_yours
@@ -196,6 +197,8 @@ private fun AmountColumn(state: AmountState, onAction: (AmountAction) -> Unit, s
                 Text(text = stringResource(Res.string.logger_amount_missing), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
             } else if (state.loading) {
                 DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_amount_loading_cd))
+            } else if (state.noNumbers != null) {
+                NoNumbersAmount(state, state.noNumbers, onAction)
             } else {
                 if (state.showAmount) AmountCard(state, onAction)
                 WhenCard(state, onAction)
@@ -205,7 +208,11 @@ private fun AmountColumn(state: AmountState, onAction: (AmountAction) -> Unit, s
                 state.source?.let { SourceCaption(it) }
             }
         }
-        if (!state.loading && !state.missing) Buttons(state, onAction)
+        when {
+            state.loading || state.missing -> Unit
+            state.noNumbers != null -> AddButton(state, onAction)
+            else -> Buttons(state, onAction)
+        }
     }
 }
 
@@ -311,7 +318,7 @@ private fun QuickChip(quick: QuickAmount, modifier: Modifier, onClick: () -> Uni
 
 /** "plate · 350 g ⌄": each unit with its weight, the selected one checked, then "Custom size…". */
 @Composable
-private fun UnitMenu(state: AmountState, onAction: (AmountAction) -> Unit, modifier: Modifier) {
+internal fun UnitMenu(state: AmountState, onAction: (AmountAction) -> Unit, modifier: Modifier) {
     var open by remember { mutableStateOf(false) }
     val unit = state.unit ?: return
     val label = listOfNotNull(unit.label, unit.grams).joinToString(UNIT_SEPARATOR)
@@ -717,6 +724,7 @@ private val FoodOrigin.label: StringResource
     get() = when (this) {
         FoodOrigin.Usda -> Res.string.logger_source_usda
         FoodOrigin.OpenFoodFacts -> Res.string.logger_source_off
+        FoodOrigin.Nevo -> Res.string.logger_source_nevo
         FoodOrigin.Yours -> Res.string.logger_source_yours
     }
 

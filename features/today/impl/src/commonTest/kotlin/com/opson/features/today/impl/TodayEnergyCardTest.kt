@@ -137,9 +137,10 @@ class TodayEnergyCardTest {
 
     @Test
     fun outsideFullNumbers_theCardComesFromTheMode() {
-        listOf(PresetId.Fuel, PresetId.Blind, PresetId.Rhythm, PresetId.Nutrient).forEach { preset ->
+        listOf(PresetId.NutrientsFirst, PresetId.Later, PresetId.NoNumbers).forEach { preset ->
             assertNull(card(policy = policy(preset)), "$preset")
         }
+        assertNull(card(policy = policy(PresetId.Later, at = TodayFixtures.evening)), "Later, after its reveal")
     }
 
     @Test

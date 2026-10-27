@@ -263,7 +263,7 @@ class DescribeReviewViewModelTest : CoroutineTest() {
 
     @Test
     fun withCaloriesHiddenNoLineIsWeighed() = runUnitTest {
-        policySource.policy.value = policy(PresetId.Blind)
+        policySource.policy.value = policy(PresetId.NoNumbers)
         catalog.describeResult = Catching.success(listOf(LoggerFixtures.parsed[0].copy(portionLabel = null)))
         val vm = described("2 eggs")
 

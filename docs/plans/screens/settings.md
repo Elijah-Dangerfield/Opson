@@ -131,8 +131,9 @@ data class FindSupportState(
 
 The list (`SupportDirectory`, in the impl) ships with the app and works
 offline: US, UK, Canada, Australia, Ireland and New Zealand, each a crisis line
-and its eating-disorder lines. Every entry carries its source and `TODO(launch):
-verify` the number and hours, then each quarter.
+and its eating-disorder lines. Every entry carries its source. All were checked
+on the organisations' sites on 2026-10-27 (`docs/legal-review-2026-10.md`);
+recheck each quarter.
 
 **Never logged, synced or shared**: no app event, the chosen country is not
 saved, the launcher's failures are swallowed, and `App.kt` doesn't report
@@ -536,9 +537,10 @@ data class SupportState(
 | `DeleteConfirmed` | `Deleting`, `AuthRepository.deleteAccount()` (`DELETE /v1/me` cascades every table). Success: the auth orchestrator's `UserScopedDataReset` wipes Room, the outbox and the settings cache and resets `hasUserOnboarded` (`resetAccountScoped`), all before the signed-out state is emitted; then toast and event `GoToOnboarding` (`OnboardingRoute`, clearing the stack). `NetworkError`: `Failed(offline = true)`. Any other outcome: `Failed(offline = false)`. Nothing is deleted locally on failure. |
 | `BackTapped` | `Close`. |
 
-`HELPLINE_URL` and `PROVIDER_URL` are constants in the impl with
-`TODO(launch): verify`. The handoff gives only allianceforeatingdisorders.com,
-so both point there until someone checks the real pages. Do not guess a path.
+`HELPLINE_URL` is the Alliance's Find treatment page, which has the helpline
+number, its hours and the 988 note; `PROVIDER_URL` is findEDhelp, its provider
+directory. Both checked 2026-10-27. Support ends with an About Opson card: the
+not-medical-advice note and links to the privacy policy, terms and credits.
 
 **Conflict resolved:** the handoff says `Kept on this phone. No ad tracking.`
 and the delete confirm says `This removes every log, photo and setting from this

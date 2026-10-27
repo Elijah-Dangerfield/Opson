@@ -110,7 +110,7 @@ class TrendsViewModelTest : CoroutineTest() {
     fun policyChange_rebuilds() = runUnitTest {
         val vm = vm()
         assertNotNull(vm.state.intake)
-        policy.policy.value = TrendsFixtures.policy(PresetId.Blind)
+        policy.policy.value = TrendsFixtures.policy(PresetId.NoNumbers)
         assertNull(vm.state.intake)
     }
 

@@ -23,7 +23,6 @@ import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.Energy
-import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
@@ -31,7 +30,7 @@ import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.MealTimes
+import com.opson.libraries.diary.ModeTimerEnded
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Precision
@@ -39,6 +38,8 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.ModeTiming
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.RestingEnergy
@@ -213,22 +214,10 @@ object TodayFixtures {
         return Day(date = date, itemsBySlot = mapOf(MealSlot.Breakfast to breakfast(date), MealSlot.Lunch to lunch(date)))
     }
 
-    fun explorer(): ExplorerStats = ExplorerStats(
-        safeFoods = listOf("Rice", "Banana", "Chicken adobo", "Toast", "Greek yogurt", "Apples"),
-        newFoods = listOf(
-            NewFoodSeen("Poutine", today.minus(DatePeriod(days = 1))),
-            NewFoodSeen("Rice pudding", today.minus(DatePeriod(days = 3))),
-            NewFoodSeen("Chicken kabsa", today.minus(DatePeriod(days = 5))),
-        ),
-        bridge = FoodBridge(from = "Rice", to = "Rice pudding", shared = "rice", foodId = "rice-pudding"),
-    )
-
     fun inputs(
         day: Day = day(),
         settings: Settings = Settings(),
-        explorer: ExplorerStats? = explorer(),
         dayBefore: Day = if (day.date == today) yesterday() else Day.empty(day.date.minus(DatePeriod(days = 1))),
-        remindersOn: Boolean = false,
         expended: EnergyExpended? = null,
         summaryOn: Boolean = false,
         selectOn: Boolean = false,
@@ -242,8 +231,6 @@ object TodayFixtures {
         day = day,
         dayBefore = dayBefore,
         settings = settings,
-        explorer = explorer,
-        remindersOn = remindersOn,
         expended = expended,
         summaryOn = summaryOn,
         selectOn = selectOn,
@@ -306,7 +293,6 @@ object TodayFixtures {
         clearArmed: Boolean = false,
         highlight: MealSlot? = null,
         added: LoggedToMeal? = null,
-        remindersOn: Boolean = false,
         expended: EnergyExpended? = null,
         summaryOn: Boolean = false,
         selectOn: Boolean = false,
@@ -319,7 +305,6 @@ object TodayFixtures {
         inputs(
             day,
             settings,
-            remindersOn = remindersOn,
             expended = expended,
             summaryOn = summaryOn,
             selectOn = selectOn,
@@ -399,10 +384,17 @@ object TodayFixtures {
 
     fun dayNoteState(): DayNoteState = DayNoteState(draft = "Dinner at Lola's, a lazy Sunday", isToday = true, loaded = true)
 
-    /** Meal reminders on at Subtle, dinner at 7:15 pm (v3 `today-rhythm.png`). */
-    val remindersSet: Settings = Settings(
-        remindersChosen = true,
-        remindersEvent = EventLevel.Subtle,
-        mealTimes = MealTimes(dinner = LocalTime(19, 15)),
+    /** End after a set time switched Full numbers away today. */
+    val timerEnded: Settings = Settings(modeTimerEnded = ModeTimerEnded(on = today, from = PresetId.Full))
+
+    /**
+     * The timer ran out two weeks after it started, on a switch to Full numbers that waits for
+     * the pause: the person's own mode with it, so the banner offers the switch.
+     */
+    fun timerWaiting(policy: VisibilityPolicy): Settings = Settings(
+        numbers = policy.settings.copy(
+            pauseBeforeMore = true,
+            endAfter = ModeTiming(startedOn = today.minus(DatePeriod(days = 14)), weeks = 2, then = PresetId.Full),
+        ),
     )
 }

@@ -47,7 +47,7 @@ data class DayCloseState(
     val bigDay: BigDayCard? = null,
     /** "Meals 4 of 4" beside revealed totals. */
     val mealsLine: MealsLine? = null,
-    /** Calories hidden (Blind, Coast): which meals were logged, as chips. */
+    /** Calories hidden (No numbers, Later weekly): which meals were logged, as chips. */
     val loggedMeals: Set<MealSlot>? = null,
     /**
      * "How did today feel?" (4.5), offered beside [loggedMeals]: the choices and the one picked,
@@ -131,9 +131,9 @@ data class DayCloseInputs(
 )
 
 /**
- * Day close as a pure function. Surface [Surface.DayClose], where delayed numbers open (Coast's
- * open only on the week view, so Coast lands on the logged meals). The big-day card needs
- * calories fully shown and the day past its range, so Blind can never infer one; tomorrow
+ * Day close as a pure function. Surface [Surface.DayClose], where delayed numbers open (weekly
+ * ones open only on the week view, so Later weekly lands on the logged meals). The big-day card
+ * needs calories fully shown and the day past its range, so No numbers can never infer one; tomorrow
  * is tomorrow's own goal from `Targets.rangeFor`, which reads the settings and the date and
  * nothing eaten, so nothing here can move it.
  */

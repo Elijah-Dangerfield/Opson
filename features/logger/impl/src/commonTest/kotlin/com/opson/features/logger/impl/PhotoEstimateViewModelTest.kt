@@ -380,7 +380,7 @@ class PhotoEstimateViewModelTest : CoroutineTest() {
     fun hidingCaloriesMidReviewMovesWeightsToMeasures() = runUnitTest {
         val vm = reviewing()
         assertEquals("120 g", vm.review.rows.first().amount)
-        policySource.policy.value = policy(PresetId.Blind)
+        policySource.policy.value = policy(PresetId.NoNumbers)
         settle()
         assertEquals("1 piece", vm.review.rows.first().amount)
     }

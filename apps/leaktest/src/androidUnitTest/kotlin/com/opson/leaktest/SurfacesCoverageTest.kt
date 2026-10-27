@@ -58,23 +58,20 @@ class SurfacesCoverageTest {
     }
 
     @Test
-    fun everyPresetThatDoesNotShowCaloriesIsTested() {
-        assertEquals(
-            setOf(
-                PresetId.Delayed, PresetId.Blind, PresetId.Nutrient, PresetId.Rhythm,
-                PresetId.Explorer, PresetId.Mindful, PresetId.Fuel, PresetId.Coast,
-            ),
-            PRESETS_UNDER_TEST.toSet(),
-        )
+    fun everyModeThatDoesNotShowCaloriesIsTested_noNumbersFirst() {
+        assertEquals(listOf("no_numbers", "nutrients_first", "later", "later-weekly"), MODES_UNDER_TEST.map { it.name })
+        assertEquals(PresetId.entries.toSet() - PresetId.Full, MODES_UNDER_TEST.map { it.settings.preset }.toSet())
     }
 
     @Test
-    fun everyDesignedRevealNamesARealSurfaceInATestedPreset() {
+    fun everyDesignedRevealNamesARealSurfaceInATestedMode() {
         val ids = SURFACES.map { it.id }.toSet()
-        REVEALED_BY_DESIGN.keys.forEach { (preset, id) ->
+        val modes = MODES_UNDER_TEST.map { it.name }.toSet()
+        REVEALED_BY_DESIGN.keys.forEach { (mode, id) ->
             assertTrue(id in ids, "REVEALED_BY_DESIGN names $id, which no feature lists any more")
-            assertTrue(preset in PRESETS_UNDER_TEST, "REVEALED_BY_DESIGN names $preset, which the leak test does not run")
+            assertTrue(mode in modes, "REVEALED_BY_DESIGN names $mode, which the leak test does not run")
         }
+        assertTrue(REVEALED_BY_DESIGN.keys.none { (mode, _) -> mode == "no_numbers" }, "No numbers reveals nothing, anywhere")
     }
 
     /**
@@ -101,7 +98,7 @@ class SurfacesCoverageTest {
                 "today", "today-big-day", "today-added", "today-untracked", "today-groups-off", "today-past", "today-future",
                 "today-day-menu", "today-day-menu-armed", "today-cards", "calendar", "meal-sheet", "meal-note",
                 "meal-feel", "water-sheet", "item-sheet", "day-note", "day-close", "day-close-big-day",
-                "today-reminders",
+                "today-timer-ended", "today-timer-waiting",
                 "today-expended", "today-exercise",
                 "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
                 "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
@@ -124,7 +121,7 @@ class SurfacesCoverageTest {
                 "weight", "patterns", "patterns-blind", "progress-photos", "progress-photos-compare",
             ),
             "SettingsLeakSurfaces" to listOf(
-                "more", "modes", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
+                "more", "modes", "modes-end-after", "modes-each-number", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
                 "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
                 "resting-energy", "energy-today", "today-screen-settings",
                 "water-settings", "support", "support-delete", "support-find", "look-and-feel",
@@ -144,7 +141,7 @@ class SurfacesCoverageTest {
             "targets", "targets-deficit", "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
             "targets-goal-style", "energy-today",
             "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
-            "today-reminders", "today-expended", "today-exercise", "integrations",
+            "today-timer-ended", "today-timer-waiting", "today-expended", "today-exercise", "integrations",
             "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
             "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
             "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "edit-a-copy",

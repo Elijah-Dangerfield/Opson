@@ -11,7 +11,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // off the pane is LoggerDescribePreview and LoggerDescribeEmptyPreview, unchanged from 0.1.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
-private val blind = previewVisibilityPolicy(PresetId.Blind)
+private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
 
 @Composable
 private fun Describe(state: LoggerState, dark: Boolean = false) = PreviewContent(darkTheme = dark) {

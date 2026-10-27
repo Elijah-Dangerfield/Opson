@@ -54,8 +54,8 @@ val FoodSource.isUsda: Boolean
 fun Food.passesOffline(filter: FoodSearchFilter): Boolean {
     val category = when (filter.category) {
         null -> true
-        // Tiers 1 and 2 are exactly USDA's sources, and a food cached before tiers existed still has its source.
-        SearchCategory.Common -> source.isUsda
+        // Tiers 1 and 2 are exactly USDA's sources and NEVO, and a food cached before tiers existed still has its source.
+        SearchCategory.Common -> source.isUsda || source == FoodSource.Nevo
         SearchCategory.Restaurant, SearchCategory.Beverage -> false
     }
     val source = when (filter.source) {

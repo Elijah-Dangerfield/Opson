@@ -83,6 +83,6 @@ class TodayExpendedTest {
 
     @Test
     fun blind_showsNoLine() {
-        assertEquals(null, build(PresetId.Blind).summary as? TodaySummary.Energy)
+        assertEquals(null, build(PresetId.NoNumbers).summary as? TodaySummary.Energy)
     }
 }

@@ -88,7 +88,7 @@ data class SupportLine(
         get() = when (reach) {
             is Reach.Call -> reach.number.shown
             is Reach.Text -> reach.number.shown
-            is Reach.Web -> reach.url.removePrefix("https://").removePrefix("www.")
+            is Reach.Web -> reach.url.removePrefix("https://").removePrefix("www.").removeSuffix("/")
         }
 
     val url: String
@@ -98,6 +98,12 @@ data class SupportLine(
             is Reach.Web -> reach.url
         }
 }
+
+/**
+ * Find A Helpline, run by ThroughLine, for every country without a list here. The International
+ * Association for Suicide Prevention points to it too. Checked 2026-10-27.
+ */
+const val FIND_A_HELPLINE_URL = "https://findahelpline.com/"
 
 /** A country's 24/7 crisis line: one number to call, one to text (often the same). */
 data class CrisisLine(
@@ -119,9 +125,10 @@ data class CountryLines(val crisis: CrisisLine, val lines: List<SupportLine>)
  * The list Find support and Support's crisis row read. It ships with the app, so it works
  * offline, and nothing about it is fetched, logged or synced.
  *
- * TODO(launch): verify every number, keyword and hours against its source before launch, and
- * recheck each quarter. Each entry names its source; none of them has been checked by a person
- * yet. Hours are not claimed for any line except the crisis lines, which are 24/7.
+ * Every number, keyword and source below was checked on the organisation's own site on
+ * 2026-10-27 (docs/legal-review-2026-10.md). Recheck each quarter: services rename and domains
+ * lapse (EDANZ's old domain now redirects to an unrelated site). Hours are not claimed for any
+ * line except the crisis lines, which are 24/7; the eating-disorder lines keep office hours.
  */
 object SupportDirectory {
 
@@ -134,8 +141,6 @@ object SupportDirectory {
         SupportCountry.NewZealand -> newZealand
     }
 
-    // TODO(launch): verify. Source: https://988lifeline.org, https://anad.org,
-    // https://www.allianceforeatingdisorders.com, https://www.crisistextline.org.
     private val unitedStates = CountryLines(
         crisis = CrisisLine(
             country = SupportCountry.UnitedStates,
@@ -150,7 +155,7 @@ object SupportDirectory {
                 name = Res.string.settings_find_anad,
                 about = Res.string.settings_find_about_peer,
                 reach = Reach.Call(PhoneNumber("1-888-375-7767", "18883757767")),
-                source = "https://anad.org",
+                source = "https://anad.org/get-support/eating-disorders-helpline/",
             ),
             SupportLine(
                 id = "us-alliance",
@@ -158,7 +163,7 @@ object SupportDirectory {
                 name = Res.string.settings_find_alliance,
                 about = Res.string.settings_find_about_therapist,
                 reach = Reach.Call(PhoneNumber("1-866-662-1235", "18666621235")),
-                source = "https://www.allianceforeatingdisorders.com",
+                source = HELPLINE_URL,
             ),
             SupportLine(
                 id = "us-crisis-text-line",
@@ -169,8 +174,7 @@ object SupportDirectory {
                 reach = Reach.Text(PhoneNumber("741741", "741741")),
                 source = "https://www.crisistextline.org",
             ),
-            // TODO(launch): point this at the Alliance's own provider search once someone has
-            // checked the page. The handoff gives only the home page; don't guess a path.
+            // findEDhelp, the Alliance's own directory of eating disorder care.
             SupportLine(
                 id = "us-provider",
                 country = SupportCountry.UnitedStates,
@@ -182,15 +186,15 @@ object SupportDirectory {
         ),
     )
 
-    // TODO(launch): verify. Source: https://www.samaritans.org, https://giveusashout.org,
-    // https://www.beateatingdisorders.org.uk.
+    // Beat's number is its England line. Scotland (0808 801 0432), Wales (0808 801 0433) and
+    // Northern Ireland (0808 801 0434) have their own; all are free from anywhere in the UK.
     private val unitedKingdom = CountryLines(
         crisis = CrisisLine(
             country = SupportCountry.UnitedKingdom,
             call = PhoneNumber("116 123", "116123"),
             text = PhoneNumber("85258", "85258"),
             textKeyword = "SHOUT",
-            source = "https://www.samaritans.org, https://giveusashout.org",
+            source = "https://www.samaritans.org, https://giveusashout.org/get-help/",
         ),
         lines = listOf(
             SupportLine(
@@ -199,12 +203,11 @@ object SupportDirectory {
                 name = Res.string.settings_find_beat,
                 about = Res.string.settings_find_about_ed_helpline,
                 reach = Reach.Call(PhoneNumber("0808 801 0677", "08088010677")),
-                source = "https://www.beateatingdisorders.org.uk",
+                source = "https://www.beateatingdisorders.org.uk/get-information-and-support/get-help-for-myself/support-now/",
             ),
         ),
     )
 
-    // TODO(launch): verify. Source: https://988.ca, https://nedic.ca, https://kidshelpphone.ca.
     private val canada = CountryLines(
         crisis = CrisisLine(
             country = SupportCountry.Canada,
@@ -232,7 +235,6 @@ object SupportDirectory {
         ),
     )
 
-    // TODO(launch): verify. Source: https://www.lifeline.org.au, https://butterfly.org.au.
     private val australia = CountryLines(
         crisis = CrisisLine(
             country = SupportCountry.Australia,
@@ -252,15 +254,14 @@ object SupportDirectory {
         ),
     )
 
-    // TODO(launch): verify. Source: https://www.samaritans.org/ireland, https://text50808.ie,
-    // https://www.bodywhys.ie.
+    // 50808 is now called Text About It; it takes HELLO or TALK.
     private val ireland = CountryLines(
         crisis = CrisisLine(
             country = SupportCountry.Ireland,
             call = PhoneNumber("116 123", "116123"),
             text = PhoneNumber("50808", "50808"),
             textKeyword = "HELLO",
-            source = "https://www.samaritans.org/ireland, https://text50808.ie",
+            source = "https://www.samaritans.org/samaritans-ireland/, https://www.textaboutit.ie",
         ),
         lines = listOf(
             SupportLine(
@@ -269,12 +270,12 @@ object SupportDirectory {
                 name = Res.string.settings_find_bodywhys,
                 about = Res.string.settings_find_about_ed_helpline,
                 reach = Reach.Call(PhoneNumber("01 210 7906", "012107906")),
-                source = "https://www.bodywhys.ie",
+                source = "https://www.bodywhys.ie/recovery-support-treatment/support-services-2/helpline/",
             ),
         ),
     )
 
-    // TODO(launch): verify. Source: https://1737.org.nz, https://www.edanz.org.nz.
+    // EDANZ moved to ed.org.nz; edanz.org.nz redirects somewhere else entirely.
     private val newZealand = CountryLines(
         crisis = CrisisLine(
             country = SupportCountry.NewZealand,
@@ -289,7 +290,7 @@ object SupportDirectory {
                 name = Res.string.settings_find_edanz,
                 about = Res.string.settings_find_about_families,
                 reach = Reach.Call(PhoneNumber("0800 233 269", "0800233269")),
-                source = "https://www.edanz.org.nz",
+                source = "https://www.ed.org.nz",
             ),
         ),
     )

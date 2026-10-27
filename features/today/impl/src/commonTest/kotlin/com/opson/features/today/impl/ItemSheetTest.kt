@@ -56,7 +56,7 @@ class ItemSheetTest : CoroutineTest() {
 
     @Test
     fun theHeadersEnergy_followsThePolicy() = runUnitTest {
-        assertNull(sheet(preset = PresetId.Blind).state.calories.text())
+        assertNull(sheet(preset = PresetId.NoNumbers).state.calories.text())
     }
 
     @Test

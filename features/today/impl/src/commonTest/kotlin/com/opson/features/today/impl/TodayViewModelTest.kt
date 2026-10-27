@@ -12,6 +12,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -28,8 +29,6 @@ import opson.libraries.resources.generated.resources.today_toast_cleared
 import opson.libraries.resources.generated.resources.today_toast_copied_foods_other
 import opson.libraries.resources.generated.resources.today_toast_copied_previous
 import opson.libraries.resources.generated.resources.today_toast_copied_tomorrow
-import com.opson.libraries.config.AppConfigMap
-import com.opson.libraries.reminders.RemindersEnabled
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -91,11 +90,6 @@ class TodayViewModelTest : CoroutineTest() {
         fasting = fasting,
         fastingRelease = FastingRelease { fastingReleased },
         ticker = MinuteTicker { flowOf(clock.now) },
-        remindersEnabled = RemindersEnabled(
-            object : AppConfigMap() {
-                override val map: Map<String, *> = mapOf("release" to mapOf("reminders" to true))
-            },
-        ),
         editor = diary,
         weights = weights,
         summaryEnabled = summaryFlag(summaryOn),
@@ -241,11 +235,10 @@ class TodayViewModelTest : CoroutineTest() {
         val events = events(vm)
 
         vm.takeAction(TodayAction.CloseDayCardTapped)
-        vm.takeAction(TodayAction.RevealedTapped)
         selectedDay.select(tomorrow)
         vm.takeAction(TodayAction.CloseDayCardTapped)
 
-        assertEquals(listOf<TodayEvent>(TodayEvent.OpenDayClose(today), TodayEvent.OpenDayClose(today)), events)
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenDayClose(today)), events)
     }
 
     @Test
@@ -254,18 +247,14 @@ class TodayViewModelTest : CoroutineTest() {
         val events = events(vm)
 
         vm.takeAction(TodayAction.MealTileTapped(MealSlot.Lunch))
-        vm.takeAction(TodayAction.RhythmLogTapped(MealSlot.Dinner))
         vm.takeAction(TodayAction.PlanItTapped(MealSlot.Snack))
         vm.takeAction(TodayAction.MealPlusTapped(MealSlot.Breakfast))
-        vm.takeAction(TodayAction.FeelPromptTapped(MealSlot.Snack))
 
         assertEquals(
             listOf(
                 TodayEvent.OpenLogger(today, MealSlot.Lunch),
-                TodayEvent.OpenLogger(today, MealSlot.Dinner),
                 TodayEvent.OpenLogger(today, MealSlot.Snack),
                 TodayEvent.OpenMealSheet(today, MealSlot.Breakfast),
-                TodayEvent.OpenMealFeel(today, MealSlot.Snack),
             ),
             events,
         )
@@ -376,39 +365,13 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun iTriedItOpensTheLoggerWithTheBridgeFoodAndPutsTheCardAway() = runUnitTest {
-        explorerWithABridge()
+    fun theTimerBannersSwitch_opensThePauseForIt() = runUnitTest {
         val vm = vm()
         val events = events(vm)
-        assertEquals(FoodBridgeCard(from = "jasmine rice", to = "rice pudding", shared = "rice"), vm.state.bridge)
 
-        vm.takeAction(TodayAction.BridgeTriedTapped)
+        vm.takeAction(TodayAction.TimedSwitchTapped(PresetId.Full))
 
-        assertEquals(listOf<TodayEvent>(TodayEvent.OpenLoggerWithFood(today, "pudding", isCustom = false)), events)
-        assertNull(vm.state.bridge)
-    }
-
-    @Test
-    fun notTodayPutsTheCardAwayAndRecordsNothing() = runUnitTest {
-        explorerWithABridge()
-        val vm = vm()
-
-        vm.takeAction(TodayAction.BridgeNotTodayTapped)
-
-        assertNull(vm.state.bridge)
-        assertEquals(0, diary.writes)
-        vm.takeAction(TodayAction.NextDayTapped)
-        vm.takeAction(TodayAction.PreviousDayTapped)
-        assertNull(vm.state.bridge, "still today, still put away")
-    }
-
-    /** Jasmine rice most days, rice pudding once last week. */
-    private fun explorerWithABridge() {
-        val rice = TodayFixtures.day().items(MealSlot.Lunch).last()
-        val pudding = rice.copy(id = "pudding-1", name = "Rice pudding", foodId = "pudding", day = today.minus(DatePeriod(days = 4)))
-        diary.frequent.value = listOf(rice)
-        diary.days.value = mapOf(today to TodayFixtures.day(), pudding.day to Day(pudding.day, itemsBySlot = mapOf(MealSlot.Snack to listOf(pudding))))
-        policySource.policy.value = policy(PresetId.Explorer)
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenPause(NumbersChange.PickPreset(PresetId.Full))), events)
     }
 
     @Test
@@ -429,25 +392,6 @@ class TodayViewModelTest : CoroutineTest() {
         vm.takeAction(TodayAction.WaterPlusTapped)
 
         assertEquals(listOf(TodayEvent.OpenItemSheet(today, "adobo-$today"), TodayEvent.OpenWaterSheet(today)), events)
-    }
-
-    @Test
-    fun alreadyAteMarksTheMeal() = runUnitTest {
-        val vm = vm()
-
-        vm.takeAction(TodayAction.AlreadyAteTapped(MealSlot.Dinner))
-
-        assertEquals(listOf(today to MealSlot.Dinner), diary.ateNoDetails)
-    }
-
-    @Test
-    fun theRhythmReminderLineOpensReminders_andTheFlagReachesTheState() = runUnitTest {
-        val vm = vm()
-        val events = events(vm)
-
-        vm.takeAction(TodayAction.RemindersTapped)
-
-        assertEquals(listOf<TodayEvent>(TodayEvent.OpenReminders), events)
     }
 
     @Test
@@ -535,19 +479,10 @@ class TodayViewModelTest : CoroutineTest() {
     fun aNewPolicyRebuildsTheCards() = runUnitTest {
         val vm = vm()
 
-        policySource.policy.value = policy(PresetId.Blind)
+        policySource.policy.value = policy(PresetId.NoNumbers)
 
-        assertTrue(vm.state.summary is TodaySummary.Counted)
-    }
-
-    @Test
-    fun explorerCollectsFoodsOnlyInItsLayout() = runUnitTest {
-        diary.frequent.value = TodayFixtures.day().allItems.take(2)
-        policySource.policy.value = policy(PresetId.Explorer)
-        settings.state.value = Settings()
-        val vm = vm()
-
-        assertEquals(listOf("Oat porridge with milk", "Banana"), vm.state.safeFoods)
+        assertNull(vm.state.summary, "No numbers' meal timeline stands in for the card")
+        assertNotNull(vm.state.mealTiles)
     }
 
     @Test
@@ -598,7 +533,7 @@ class TodayViewModelTest : CoroutineTest() {
                     fasting = true,
                     onboarding = OnboardingAnswers(hard = hard),
                 )
-                val shows = !hard && (preset == PresetId.Full || preset == PresetId.Sprint)
+                val shows = !hard && (preset == PresetId.Full || preset == PresetId.Full)
                 assertEquals(shows, vm().state.fasting != null, "$preset, hard=$hard")
             }
         }

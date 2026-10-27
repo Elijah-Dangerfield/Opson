@@ -42,7 +42,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theModesRowCountsTheChanges() {
-        assertEquals(MoreRow.Modes(PresetId.Fuel, changes = 1), build(SettingsFixtures.fuelWithACarbsChange).groups[0][0])
+        assertEquals(MoreRow.Modes(PresetId.NutrientsFirst, changes = 1), build(SettingsFixtures.nutrientsFirstWithACarbsChange).groups[0][0])
         assertEquals(MoreRow.Modes(PresetId.Full, changes = 2), build(SettingsFixtures.adjusted).groups[0][0])
     }
 
@@ -92,7 +92,7 @@ class MoreTest : CoroutineTest() {
     fun fastingSitsAfterWaterOnlyInFullAndSprint() {
         PresetId.entries.forEach { preset ->
             val extras = withFasting(preset).groups[1]
-            val expected = if (preset == PresetId.Full || preset == PresetId.Sprint) {
+            val expected = if (preset == PresetId.Full || preset == PresetId.Full) {
                 listOf(MoreRow.Water(glasses = 8), MoreRow.Fasting(on = false, plan = FastingPlan.FourteenTen))
             } else {
                 listOf(MoreRow.Water(glasses = 8))
@@ -116,7 +116,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theFastingRowSaysOnWithThePlan() {
-        assertEquals(MoreRow.Fasting(on = true, plan = FastingPlan.FourteenTen), withFasting(PresetId.Sprint, on = true).groups[1][1])
+        assertEquals(MoreRow.Fasting(on = true, plan = FastingPlan.FourteenTen), withFasting(PresetId.Full, on = true).groups[1][1])
     }
 
     @Test
@@ -147,7 +147,7 @@ class MoreTest : CoroutineTest() {
         )
         assertEquals(
             listOf(MoreRow.Water(glasses = 8), MoreRow.Widgets),
-            MoreStateBuilder.build(SettingsFixtures.settings(NumbersSettings(PresetId.Blind)), widgetsOn = true).groups[1],
+            MoreStateBuilder.build(SettingsFixtures.settings(NumbersSettings(PresetId.NoNumbers)), widgetsOn = true).groups[1],
             "in a mode without fasting",
         )
     }

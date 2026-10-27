@@ -23,6 +23,7 @@ import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Targets
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -147,7 +148,7 @@ class DayCloseTest : CoroutineTest() {
 
     @Test
     fun fuelIsASoftLineAndNeverABigDay() {
-        val state = build(PresetId.Fuel, bigDay = true)
+        val state = build(PresetId.NutrientsFirst, bigDay = true)
 
         assertIs<Display.Soft>(state.soft)
         assertNull(state.totals)
@@ -156,7 +157,7 @@ class DayCloseTest : CoroutineTest() {
 
     @Test
     fun delayedOpensHereTodayWithANoteThatItLocksAgain() {
-        val state = build(PresetId.Delayed)
+        val state = build(PresetId.Later)
 
         assertNotNull(state.totals)
         assertTrue(state.revealNote)
@@ -166,16 +167,17 @@ class DayCloseTest : CoroutineTest() {
     @Test
     fun delayedOnAPastDayHasNoRelockNote() {
         val past = TodayFixtures.today.plus(DatePeriod(days = -2))
-        val state = TodayFixtures.dayCloseState(policy(PresetId.Delayed), date = past)
+        val state = TodayFixtures.dayCloseState(policy(PresetId.Later), date = past)
 
         assertNotNull(state.totals)
         assertEquals(false, state.revealNote)
     }
 
     @Test
-    fun coastAndBlindShowTheLoggedMealsAndNoBigDay() {
-        listOf(PresetId.Coast, PresetId.Blind).forEach { preset ->
-            val state = build(preset, bigDay = true)
+    fun weeklyLaterAndNoNumbersShowTheLoggedMealsAndNoBigDay() {
+        listOf(policy(PresetId.Later, revealOn = RevealOn.Week), policy(PresetId.NoNumbers)).forEach { policy ->
+            val state = TodayFixtures.dayCloseState(policy, bigDay = true)
+            val preset = policy.settings.preset
             assertEquals(MealSlot.meals.toSet(), state.loggedMeals, "$preset")
             assertNull(state.totals)
             assertNull(state.bigDay, "a big day can't be inferred in $preset")
@@ -258,16 +260,16 @@ class DayCloseTest : CoroutineTest() {
 
     @Test
     fun howTodayFeltIsOfferedOnlyBesideTheLoggedMeals() {
-        val blind = TodayFixtures.dayCloseState(policy(PresetId.Blind), feeling = DayFeeling.Tired)
+        val blind = TodayFixtures.dayCloseState(policy(PresetId.NoNumbers), feeling = DayFeeling.Tired)
         assertEquals(FeelingChoice(DayFeeling.entries, DayFeeling.Tired), blind.feeling)
         assertEquals(listOf("steady", "busy", "tired", "good", "hard"), DayFeeling.entries.map { it.wire }, "the design's order")
         assertNull(build(PresetId.Full).feeling, "with totals on show the screen already has its say")
-        assertNull(build(PresetId.Fuel).feeling)
+        assertNull(build(PresetId.NutrientsFirst).feeling)
     }
 
     @Test
     fun aFeelingTapPicksItAndTappingItAgainClearsIt() = runUnitTest {
-        policySourceForFeeling.policy.value = policy(PresetId.Blind)
+        policySourceForFeeling.policy.value = policy(PresetId.NoNumbers)
         val vm = vm(policySource = policySourceForFeeling)
 
         vm.takeAction(DayCloseAction.FeelingTapped(DayFeeling.Steady))
@@ -282,7 +284,7 @@ class DayCloseTest : CoroutineTest() {
     @Test
     fun theFeelingPrefillsAndIsSavedOnDoneButNeverOnBack() = runUnitTest {
         diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(feeling = DayFeeling.Good))
-        policySourceForFeeling.policy.value = policy(PresetId.Blind)
+        policySourceForFeeling.policy.value = policy(PresetId.NoNumbers)
         val vm = vm(policySource = policySourceForFeeling)
         assertEquals(DayFeeling.Good, vm.state.feeling?.picked)
 
@@ -297,7 +299,7 @@ class DayCloseTest : CoroutineTest() {
     @Test
     fun anUnchangedFeelingIsNotWrittenAgain() = runUnitTest {
         diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(feeling = DayFeeling.Good))
-        policySourceForFeeling.policy.value = policy(PresetId.Blind)
+        policySourceForFeeling.policy.value = policy(PresetId.NoNumbers)
         val vm = vm(policySource = policySourceForFeeling)
 
         vm.takeAction(DayCloseAction.DoneTapped)
@@ -321,19 +323,19 @@ class DayCloseTest : CoroutineTest() {
 
     @Test
     fun theCheckInIsOfferedInEveryMode_onlyWithTheFlag_andTakesTheFeelingsPlace() {
-        listOf(PresetId.Full, PresetId.Blind, PresetId.Fuel, PresetId.Delayed).forEach { preset ->
+        listOf(PresetId.Full, PresetId.NoNumbers, PresetId.NutrientsFirst, PresetId.Later).forEach { preset ->
             val on = TodayFixtures.dayCloseState(policy(preset), checkInOn = true)
             assertNotNull(on.checkIn, "$preset")
             assertNull(on.feeling, "$preset")
             assertNull(TodayFixtures.dayCloseState(policy(preset)).checkIn, "$preset with the flag off")
         }
-        assertNotNull(TodayFixtures.dayCloseState(policy(PresetId.Blind)).feeling, "Blind keeps its feeling with the flag off")
+        assertNotNull(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers)).feeling, "Blind keeps its feeling with the flag off")
     }
 
     @Test
     fun expendedFromTheWatch_showsAtShow_andOnlyToday() {
         assertEquals("1,990 kcal", TodayFixtures.dayCloseState(policy(PresetId.Full), expended = TodayFixtures.expended).expended.text())
-        assertIs<Display.Hidden>(TodayFixtures.dayCloseState(policy(PresetId.Blind), expended = TodayFixtures.expended).expended)
+        assertIs<Display.Hidden>(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers), expended = TodayFixtures.expended).expended)
         assertIs<Display.Hidden>(
             TodayFixtures.dayCloseState(policy(PresetId.Full), expended = TodayFixtures.expended, date = TodayFixtures.pastDay().date).expended,
         )

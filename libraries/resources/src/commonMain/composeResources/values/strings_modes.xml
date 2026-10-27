@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The four modes and End after a set time (design sync 4, 13.5), shared by Modes and numbers,
+  onboarding's recommendation and Today. Copy is the design's word for word where it has it.
+  Same rules as strings.xml: no backslash escapes, positional format specifiers.
+-->
+<resources>
+    <!-- Presets, label and line (13.5a) -->
+    <string name="modes_preset_full">Full numbers</string>
+    <string name="modes_preset_full_line">Calories, macros and energy, all visible.</string>
+    <string name="modes_preset_nutrients_first">Nutrients first</string>
+    <string name="modes_preset_nutrients_first_line">Protein, fiber and water up front. Calories as a fill bar.</string>
+    <string name="modes_preset_later">Later</string>
+    <string name="modes_preset_later_line">Log all day. Totals open at a time you pick.</string>
+    <string name="modes_preset_no_numbers">No numbers</string>
+    <string name="modes_preset_no_numbers_line">Meals, timing and how they felt. No amounts anywhere.</string>
+
+    <!-- End after a set time -->
+    <string name="modes_end_after_title">End after a set time</string>
+    <string name="modes_end_after_off">Switch to another mode on a set day</string>
+    <!-- "2 weeks, then No numbers" -->
+    <string name="modes_end_after_on">%1$s, then %2$s</string>
+    <plurals name="modes_weeks">
+        <item quantity="one">%1$d week</item>
+        <item quantity="other">%1$d weeks</item>
+    </plurals>
+    <string name="modes_end_after_length">How long</string>
+    <string name="modes_end_after_then">Then switch to</string>
+    <string name="modes_end_after_ends">Switches on %1$s</string>
+
+    <!-- Each number -->
+    <string name="modes_each_number_title">Each number</string>
+    <string name="modes_each_number_body">Fine-tune any single number</string>
+    <string name="modes_back_modes">‹ Modes and numbers</string>
+
+    <!-- When Later opens -->
+    <string name="modes_reveal_weekly_title">Once a week</string>
+    <string name="modes_reveal_weekly_body">Totals open on the week view, on its last day</string>
+
+    <!-- Today in Nutrients first (13.5b) -->
+    <string name="modes_soft_label">Today</string>
+
+    <!-- Today in Later, before the reveal (13.5c). The time follows the person's reveal time. -->
+    <string name="modes_locked_title">Totals open at %1$s</string>
+    <string name="modes_locked_counts">%1$s · %2$s</string>
+    <plurals name="modes_foods">
+        <item quantity="one">%1$d food</item>
+        <item quantity="other">%1$d foods</item>
+    </plurals>
+
+    <!-- Today in No numbers (13.5d) -->
+    <string name="modes_timeline_title">Meals today</string>
+    <string name="modes_timeline_usual">~%1$s</string>
+    <string name="modes_timeline_done_cd">%1$s, done</string>
+    <string name="modes_timeline_open_cd">%1$s, not yet</string>
+
+    <!-- Food detail in No numbers (13.5e) -->
+    <string name="modes_amount_title">Amount</string>
+    <string name="modes_amount_field">Amount</string>
+    <string name="modes_hunger_question">How hungry were you? Optional</string>
+    <string name="modes_hunger_not_really">Not really</string>
+    <string name="modes_hunger_a_little">A little</string>
+    <string name="modes_hunger_hungry">Hungry</string>
+    <string name="modes_hunger_very">Very</string>
+
+    <!-- Today, when End after a set time runs out -->
+    <string name="modes_timer_ended">Your time on %1$s is up. You're on %2$s now.</string>
+    <string name="modes_timer_waiting">Your time on %1$s is up. Switch to %2$s when you're ready.</string>
+    <string name="modes_timer_switch">Switch to %1$s</string>
+</resources>

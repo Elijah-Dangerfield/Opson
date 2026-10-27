@@ -100,7 +100,7 @@ class TargetStyleTest {
     fun aRange_isTheSameGoalEveryDay() {
         val goal = base.rangeFor(monday, PresetId.Full)
         assertEquals(DayGoal.Range(1900, 2300, 2100), goal)
-        assertEquals(goal, base.rangeFor(thursday, PresetId.Blind))
+        assertEquals(goal, base.rangeFor(thursday, PresetId.NoNumbers))
     }
 
     @Test
@@ -134,7 +134,7 @@ class TargetStyleTest {
         assertEquals(DayGoal.About(1800), low.rangeFor(monday, PresetId.Full, burnKcal = 1900))
         // With the floor at the default start, 2,100.
         val atStart = base.copy(style = TargetStyle.Deficit(kcal = 300, startingKcal = 300))
-        assertEquals(DayGoal.About(2100), atStart.rangeFor(monday, PresetId.Sprint, burnKcal = 2172))
+        assertEquals(DayGoal.About(2100), atStart.rangeFor(monday, PresetId.Full, burnKcal = 2172))
     }
 
     @Test
@@ -145,7 +145,7 @@ class TargetStyleTest {
         PresetId.entries.filterNot(TargetStyle::deficitAllowed).forEach { preset ->
             assertEquals(range, targets.rangeFor(monday, preset, burnKcal = 2172), preset.name)
         }
-        assertEquals(setOf(PresetId.Full, PresetId.Sprint), PresetId.entries.filter(TargetStyle::deficitAllowed).toSet())
+        assertEquals(setOf(PresetId.Full, PresetId.Full), PresetId.entries.filter(TargetStyle::deficitAllowed).toSet())
     }
 
     @Test
@@ -173,8 +173,8 @@ class TargetStyleTest {
                 .step(RangeEnd.High, up = true, group = 1)
                 ?.step(RangeEnd.Low, up = true, group = 1),
         )
-        assertEquals(DayGoal.Range(1950, 2350, 2150, groupIndex = 1), training.rangeFor(monday, PresetId.Fuel))
-        assertEquals(DayGoal.Range(1900, 2300, 2100, groupIndex = 0), training.rangeFor(thursday, PresetId.Fuel))
+        assertEquals(DayGoal.Range(1950, 2350, 2150, groupIndex = 1), training.rangeFor(monday, PresetId.NutrientsFirst))
+        assertEquals(DayGoal.Range(1900, 2300, 2100, groupIndex = 0), training.rangeFor(thursday, PresetId.NutrientsFirst))
     }
 
     @Test

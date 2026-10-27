@@ -8,7 +8,7 @@ import java.util.UUID
  * someone accountable stands behind the numbers.
  */
 enum class FoodTier(val wire: Int) {
-    /** USDA Foundation, SR Legacy, FNDDS: generic foods, lab or survey data. */
+    /** USDA Foundation, SR Legacy, FNDDS and NEVO: generic foods, lab or survey data. */
     Reference(1),
 
     /** USDA Branded Foods: the manufacturer's nutrition label. */
@@ -28,11 +28,14 @@ enum class FoodTier(val wire: Int) {
     }
 }
 
-/** Where a catalog food came from. Wire values match the `foods.source` CHECK (V10). */
+/** Where a catalog food came from. Wire values match the `foods.source` CHECK (V20). */
 enum class CatalogSource(val wire: String, val tier: FoodTier) {
     UsdaFoundation("usda_foundation", FoodTier.Reference),
     UsdaSr("usda_sr", FoodTier.Reference),
     UsdaFndds("usda_fndds", FoodTier.Reference),
+
+    /** The Dutch food composition table (RIVM), from scripts/import_nevo_foods.py. Search gates it ([SearchFilter.nevo]). */
+    Nevo("nevo", FoodTier.Reference),
     UsdaBranded("usda_branded", FoodTier.Label),
     Nutritionix("nutritionix", FoodTier.Licensed),
     OpenFoodFacts("off", FoodTier.Community),
@@ -89,11 +92,16 @@ enum class MatchTier { Exact, Head, Prefix, FullText, Similar }
  * The Logger's search options (`category`, `source`, `sort` on
  * `/v1/foods/search`). [None] is the search 0.1 calls, and must stay exactly
  * that: same statement, same results.
+ *
+ * [nevo] lets NEVO's foods in. RIVM allows them only with its citation, so
+ * they go to a client that shows it (`credits=nevo`), never to 0.1, which
+ * can't. Describe searches with [None], so it never picks them either.
  */
 data class SearchFilter(
     val category: SearchCategory? = null,
     val source: SearchSource? = null,
     val sort: SearchSort = SearchSort.BestMatch,
+    val nevo: Boolean = false,
 ) {
     /** Whether Open Food Facts' own table can answer: it has no categories, and `usda` excludes it. */
     val allowsOpenFoodFacts: Boolean get() = category == null && source != SearchSource.Usda

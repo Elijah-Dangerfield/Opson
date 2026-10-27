@@ -112,7 +112,7 @@ class LoggerStateBuilderTest {
     @Test
     fun blindShowsNoNumberAnywhere() {
         val banana = FoodPick("f:banana", FoodRef.Catalog("banana"), item("Banana").toDraft(), PickSource.Search).toBasketItem()
-        val blind = policy(PresetId.Blind)
+        val blind = policy(PresetId.NoNumbers)
         val state = build(inputs(basket = listOf(banana)), blind)
 
         val browse = assertIs<LoggerBody.Browse>(state.body)
@@ -132,11 +132,19 @@ class LoggerStateBuilderTest {
     }
 
     @Test
-    fun fuelHidesRowEnergyButKeepsProtein() {
-        val row = assertIs<LoggerBody.Browse>(build(policy = policy(PresetId.Fuel)).body).recent.single()
+    fun nutrientsFirstHidesRowEnergyAndWords_keepingAProteinShownByChoice() {
+        val row = assertIs<LoggerBody.Browse>(build(policy = policy(PresetId.NutrientsFirst)).body).recent.single()
 
         assertEquals(Display.Hidden, row.calories, "a row has no goal, so a softened energy hides")
-        assertEquals(listOf(Metric.Protein), row.macros.map { it.metric })
+        assertEquals(emptyList(), row.macros, "a softened macro has no goal on a row either")
+
+        val proteinShown = VisibilityPolicy(
+            NumbersSettings(preset = PresetId.NutrientsFirst, overrides = mapOf(Metric.Protein to Visibility.Show)),
+            Clock.fixed(NOON),
+            TimeZone.UTC,
+        )
+        val shown = assertIs<LoggerBody.Browse>(build(policy = proteinShown).body).recent.single()
+        assertEquals(listOf(Metric.Protein), shown.macros.map { it.metric })
     }
 
     @Test
@@ -157,7 +165,7 @@ class LoggerStateBuilderTest {
         assertEquals(LoggerMethod.Photo, build(photo = true).methods.first())
         assertFalse(LoggerMethod.Photo in build(photo = false).methods)
         // No numbers on the chip, so every mode offers it.
-        assertEquals(LoggerMethod.Photo, build(policy = policy(PresetId.Blind), photo = true).methods.first())
+        assertEquals(LoggerMethod.Photo, build(policy = policy(PresetId.NoNumbers), photo = true).methods.first())
         assertTrue(build(query = "rice", photo = true).methods.isEmpty())
     }
 
@@ -166,7 +174,7 @@ class LoggerStateBuilderTest {
         assertEquals(listOf(LoggerMethod.DescribeIt, LoggerMethod.SavedMeals), build().methods)
         assertEquals(listOf(LoggerMethod.AteNoDetails, LoggerMethod.JustANumber), build().quickMethods)
 
-        val blind = build(policy = policy(PresetId.Blind)).quickMethods
+        val blind = build(policy = policy(PresetId.NoNumbers)).quickMethods
         assertTrue(LoggerMethod.AddANote in blind)
         assertFalse(LoggerMethod.JustANumber in blind)
         assertEquals(listOf(LoggerMethod.JustANumber), build(slot = MealSlot.Uncategorized).quickMethods, "Uncategorized is not a meal")
@@ -342,7 +350,7 @@ class LoggerStateBuilderTest {
 
     @Test
     fun withCaloriesHiddenALineIsNeverCountedInGrams() {
-        val hidden = LoggerFixtures.describeState(policy(PresetId.Blind)).describe.lines.first()
+        val hidden = LoggerFixtures.describeState(policy(PresetId.NoNumbers)).describe.lines.first()
         assertEquals(listOf("large", "cup"), hidden.units)
     }
 
@@ -365,8 +373,8 @@ class LoggerStateBuilderTest {
     @Test
     fun justANumberIsOnlyOfferedWhenCaloriesShow() {
         assertTrue(LoggerFixtures.describeState(policy(PresetId.Full)).describe.canNumber)
-        assertFalse(LoggerFixtures.describeState(policy(PresetId.Blind)).describe.canNumber)
-        assertFalse(LoggerFixtures.describeState(policy(PresetId.Mindful)).describe.canNumber)
+        assertFalse(LoggerFixtures.describeState(policy(PresetId.NoNumbers)).describe.canNumber)
+        assertFalse(LoggerFixtures.describeState(policy(PresetId.NoNumbers)).describe.canNumber)
     }
 
     @Test
@@ -390,7 +398,7 @@ class LoggerStateBuilderTest {
             "a meal being put together logs nothing, so it has nothing to scan into",
         )
         // Blind changes no part of it: the button carries no number.
-        assertTrue(LoggerStateBuilder.build(inputs(), policy(PresetId.Blind), choices.copy(scanAvailable = true)).canScan)
+        assertTrue(LoggerStateBuilder.build(inputs(), policy(PresetId.NoNumbers), choices.copy(scanAvailable = true)).canScan)
     }
 
     @Test

@@ -51,12 +51,6 @@
     <string name="reminders_water_row_body">One mid-morning, one mid-afternoon.</string>
 
     <!-- Today, Rhythm -->
-    <string name="reminders_rhythm_next">%1$s reminder</string>
-    <string name="reminders_rhythm_next_body">%1$s, only if %2$s isn't logged</string>
-    <string name="reminders_rhythm_change">Change times</string>
-    <string name="reminders_rhythm_off">Meal reminders</string>
-    <string name="reminders_rhythm_off_body">Off</string>
-    <string name="reminders_rhythm_set_up">Set up</string>
 
     <!-- The notification. Plain is v3's; warm keys end in _warm. -->
     <string name="reminders_note_breakfast">Breakfast isn't logged yet</string>

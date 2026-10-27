@@ -64,7 +64,7 @@ class IntegrationsStateBuilderTest {
 
     @Test
     fun blind_hidesIt() {
-        assertEquals(ExpendedCard.Hidden, build(policy = SettingsFixtures.policy(PresetId.Blind)).expended)
+        assertEquals(ExpendedCard.Hidden, build(policy = SettingsFixtures.policy(PresetId.NoNumbers)).expended)
     }
 
     @Test
@@ -81,9 +81,9 @@ class IntegrationsStateBuilderTest {
 
     @Test
     fun delayed_hidesItBeforeTheReveal_andShowsItAfter() {
-        assertEquals(ExpendedCard.Hidden, build(policy = SettingsFixtures.policy(PresetId.Delayed)).expended)
+        assertEquals(ExpendedCard.Hidden, build(policy = SettingsFixtures.policy(PresetId.Later)).expended)
         val evening = VisibilityPolicy(
-            NumbersSettings(PresetId.Delayed),
+            NumbersSettings(PresetId.Later),
             object : Clock {
                 override fun now() = Instant.parse("2026-10-25T21:30:00Z")
             },

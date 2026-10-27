@@ -4,6 +4,14 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.modes_preset_full
+import opson.libraries.resources.generated.resources.modes_preset_full_line
+import opson.libraries.resources.generated.resources.modes_preset_later
+import opson.libraries.resources.generated.resources.modes_preset_later_line
+import opson.libraries.resources.generated.resources.modes_preset_no_numbers
+import opson.libraries.resources.generated.resources.modes_preset_no_numbers_line
+import opson.libraries.resources.generated.resources.modes_preset_nutrients_first
+import opson.libraries.resources.generated.resources.modes_preset_nutrients_first_line
 import opson.libraries.resources.generated.resources.settings_level_hide
 import opson.libraries.resources.generated.resources.settings_level_later
 import opson.libraries.resources.generated.resources.settings_level_show
@@ -28,26 +36,6 @@ import opson.libraries.resources.generated.resources.settings_metric_protein
 import opson.libraries.resources.generated.resources.settings_metric_remaining
 import opson.libraries.resources.generated.resources.settings_metric_water
 import opson.libraries.resources.generated.resources.settings_metric_weight
-import opson.libraries.resources.generated.resources.settings_preset_blind
-import opson.libraries.resources.generated.resources.settings_preset_blind_line
-import opson.libraries.resources.generated.resources.settings_preset_coast
-import opson.libraries.resources.generated.resources.settings_preset_coast_line
-import opson.libraries.resources.generated.resources.settings_preset_delayed
-import opson.libraries.resources.generated.resources.settings_preset_delayed_line
-import opson.libraries.resources.generated.resources.settings_preset_explorer
-import opson.libraries.resources.generated.resources.settings_preset_explorer_line
-import opson.libraries.resources.generated.resources.settings_preset_fuel
-import opson.libraries.resources.generated.resources.settings_preset_fuel_line
-import opson.libraries.resources.generated.resources.settings_preset_full
-import opson.libraries.resources.generated.resources.settings_preset_full_line
-import opson.libraries.resources.generated.resources.settings_preset_mindful
-import opson.libraries.resources.generated.resources.settings_preset_mindful_line
-import opson.libraries.resources.generated.resources.settings_preset_nutrient
-import opson.libraries.resources.generated.resources.settings_preset_nutrient_line
-import opson.libraries.resources.generated.resources.settings_preset_rhythm
-import opson.libraries.resources.generated.resources.settings_preset_rhythm_line
-import opson.libraries.resources.generated.resources.settings_preset_sprint
-import opson.libraries.resources.generated.resources.settings_preset_sprint_line
 import org.jetbrains.compose.resources.StringResource
 
 /*
@@ -57,31 +45,19 @@ import org.jetbrains.compose.resources.StringResource
 
 internal val PresetId.label: StringResource
     get() = when (this) {
-        PresetId.Full -> Res.string.settings_preset_full
-        PresetId.Delayed -> Res.string.settings_preset_delayed
-        PresetId.Blind -> Res.string.settings_preset_blind
-        PresetId.Nutrient -> Res.string.settings_preset_nutrient
-        PresetId.Rhythm -> Res.string.settings_preset_rhythm
-        PresetId.Explorer -> Res.string.settings_preset_explorer
-        PresetId.Mindful -> Res.string.settings_preset_mindful
-        PresetId.Fuel -> Res.string.settings_preset_fuel
-        PresetId.Sprint -> Res.string.settings_preset_sprint
-        PresetId.Coast -> Res.string.settings_preset_coast
+        PresetId.Full -> Res.string.modes_preset_full
+        PresetId.NutrientsFirst -> Res.string.modes_preset_nutrients_first
+        PresetId.Later -> Res.string.modes_preset_later
+        PresetId.NoNumbers -> Res.string.modes_preset_no_numbers
     }
 
-/** The one-line description under a preset ("No calories anywhere in the app."). */
+/** The one-line description under a preset ("Log all day. Totals open at a time you pick."). */
 internal val PresetId.line: StringResource
     get() = when (this) {
-        PresetId.Full -> Res.string.settings_preset_full_line
-        PresetId.Delayed -> Res.string.settings_preset_delayed_line
-        PresetId.Blind -> Res.string.settings_preset_blind_line
-        PresetId.Nutrient -> Res.string.settings_preset_nutrient_line
-        PresetId.Rhythm -> Res.string.settings_preset_rhythm_line
-        PresetId.Explorer -> Res.string.settings_preset_explorer_line
-        PresetId.Mindful -> Res.string.settings_preset_mindful_line
-        PresetId.Fuel -> Res.string.settings_preset_fuel_line
-        PresetId.Sprint -> Res.string.settings_preset_sprint_line
-        PresetId.Coast -> Res.string.settings_preset_coast_line
+        PresetId.Full -> Res.string.modes_preset_full_line
+        PresetId.NutrientsFirst -> Res.string.modes_preset_nutrients_first_line
+        PresetId.Later -> Res.string.modes_preset_later_line
+        PresetId.NoNumbers -> Res.string.modes_preset_no_numbers_line
     }
 
 internal val Metric.label: StringResource

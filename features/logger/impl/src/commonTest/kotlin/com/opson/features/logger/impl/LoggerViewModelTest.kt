@@ -355,7 +355,7 @@ class LoggerViewModelTest : CoroutineTest() {
     /** Design sync 2, 3.10: How it felt opens only from a meal card, never after an add. */
     @Test
     fun noHowItFeltFollowsAnAddEvenWhenTheModeAsksOrHungerQuestionsAreOn() = runUnitTest {
-        settings.state.value = Settings(askTags = true, numbers = NumbersSettings(preset = PresetId.Mindful))
+        settings.state.value = Settings(askTags = true, numbers = NumbersSettings(preset = PresetId.NoNumbers))
         val vm = vm()
         val events = events(vm)
         basket.upsert(LoggerFixtures.pickedBasket().first())
@@ -705,7 +705,7 @@ class LoggerViewModelTest : CoroutineTest() {
 
     @Test
     fun aNumberIsRefusedWhenCaloriesAreHidden() = runUnitTest {
-        policySource.policy.value = policy(PresetId.Blind)
+        policySource.policy.value = policy(PresetId.NoNumbers)
         val vm = vm()
         vm.takeAction(LoggerAction.NumberTyped("450"))
 
@@ -789,7 +789,7 @@ class LoggerViewModelTest : CoroutineTest() {
         val vm = vm()
         assertTrue(LoggerMethod.JustANumber in vm.state.quickMethods)
 
-        policySource.policy.value = policy(PresetId.Blind)
+        policySource.policy.value = policy(PresetId.NoNumbers)
 
         assertTrue(LoggerMethod.AddANote in vm.state.quickMethods)
     }

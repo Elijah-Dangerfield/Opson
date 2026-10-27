@@ -105,7 +105,7 @@ class TargetsGoalStylesTest : CoroutineTest() {
 
     @Test
     fun noModeWithoutShownCaloriesSeesEitherStyle() {
-        listOf(PresetId.Fuel, PresetId.Delayed, PresetId.Coast, PresetId.Blind, PresetId.Nutrient).forEach { preset ->
+        listOf(PresetId.NutrientsFirst, PresetId.Later, PresetId.Later, PresetId.NoNumbers, PresetId.NutrientsFirst).forEach { preset ->
             listOf(SettingsFixtures.exactTargets, SettingsFixtures.surplusTargets, SettingsFixtures.shapedByDayTargets).forEach { targets ->
                 val state = build(targets, NumbersSettings(preset), burned = SettingsFixtures.burned, editingGroup = 1)
                 assertEquals(TargetsState(visible = false), state, "in $preset")

@@ -7,6 +7,7 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
 import com.opson.libraries.diary.SavedMeal
@@ -410,6 +411,15 @@ object LoggerFixtures {
         val choice = AmountChoice.initial(food, MealSlot.Dinner, settings.unitsFor(ref.key))
             .copy(precision = precision, nutrientsOpen = nutrientsOpen)
         return AmountStateBuilder.build(food, choice, amountInputs(policy, settings), ref, PickSource.Usual)
+    }
+
+    /** 13.5e in No numbers: two plates typed for a snack, "A little" picked for how hungry. */
+    fun noNumbersAmountState(policy: VisibilityPolicy): AmountState {
+        val food = AmountFood.Catalog(arroz)
+        val ref = FoodRef.Catalog(arroz.id)
+        val choice = AmountChoice.initial(food, MealSlot.Snack, arrozSizes.unitsFor(ref.key))
+            .copy(typed = "2", quantity = 2.0, hunger = Hunger.Peckish)
+        return AmountStateBuilder.build(food, choice, amountInputs(policy, arrozSizes), ref, PickSource.Usual)
     }
 
     /** The Custom size dialog open over 3.3, "my bowl" half typed. */

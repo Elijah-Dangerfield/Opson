@@ -82,7 +82,7 @@ class CreateMealTest : CoroutineTest() {
 
     @Test
     fun blindHidesEveryAmountAndEveryMacro() {
-        val state = FoodsFixtures.createMealState(policy(PresetId.Blind))
+        val state = FoodsFixtures.createMealState(policy(PresetId.NoNumbers))
 
         assertTrue(state.items.all { it.calories == Display.Hidden })
         assertEquals(Display.Hidden, state.total)

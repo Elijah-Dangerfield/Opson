@@ -45,10 +45,11 @@ sealed interface TargetStyle {
         const val MAX_GROUPS = 4
 
         /**
-         * A set deficit is offered in Full numbers and Sprint only (design v3); in every other
-         * mode the option is hidden and a deficit chosen earlier falls back to the range.
+         * A set deficit is offered in Full numbers only (Sprint, which also had it, is Full numbers
+         * now); in every other mode the option is hidden and a deficit chosen earlier falls back
+         * to the range.
          */
-        fun deficitAllowed(preset: PresetId): Boolean = preset == PresetId.Full || preset == PresetId.Sprint
+        fun deficitAllowed(preset: PresetId): Boolean = preset == PresetId.Full
 
         /**
          * A set surplus is offered where a deficit is (design sync 4: both are Full numbers

@@ -109,7 +109,7 @@ object PatternsStateBuilder {
         val from = inputs.today.minus(DAYS - 1, DateTimeUnit.DAY)
         val facts = MealPatterns.of(inputs.days, from, inputs.today, inputs.timeZone)
         val context = FormatContext(day = inputs.today)
-        // On the week view a weekly reveal (Coast) opens with the check on the last day of the
+        // On the week view a weekly reveal (Later, weekly) opens with the check on the last day of the
         // week holding today, by the user's week start, not on whichever day today is.
         val weekEnd = TrendsCalendar.weekStartOf(inputs.today, inputs.settings.weekStart)
             .plus(TrendsCalendar.DAYS_IN_WEEK - 1, DateTimeUnit.DAY)

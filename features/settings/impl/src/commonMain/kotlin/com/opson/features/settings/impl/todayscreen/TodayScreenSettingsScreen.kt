@@ -337,7 +337,7 @@ private fun TodayScreenSettingsOneNumberPreview() {
 @Composable
 private fun TodayScreenSettingsFromModePreview() {
     SettingsPreview {
-        TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind))), onAction = {})
+        TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset = PresetId.NoNumbers))), onAction = {})
     }
 }
 

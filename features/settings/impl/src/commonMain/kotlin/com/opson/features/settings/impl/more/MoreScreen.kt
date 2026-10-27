@@ -198,7 +198,7 @@ private fun MoreFlagsOffPreview() {
 @Preview
 @Composable
 private fun MoreFuelWithAChangeDarkPreview() {
-    val settings = SettingsFixtures.settings(SettingsFixtures.fuelWithACarbsChange)
+    val settings = SettingsFixtures.settings(SettingsFixtures.nutrientsFirstWithACarbsChange)
     SettingsPreview(dark = true) { MoreScreen(MoreStateBuilder.build(settings), onAction = {}) }
 }
 
@@ -233,6 +233,6 @@ private fun MoreWithHealthPreview() {
 @Preview
 @Composable
 private fun MoreBlindPreview() {
-    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind))
+    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.NoNumbers))
     SettingsPreview { MoreScreen(MoreStateBuilder.build(settings), onAction = {}) }
 }

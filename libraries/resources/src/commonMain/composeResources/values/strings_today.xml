@@ -28,17 +28,10 @@
     <string name="today_macro_carbs">Carbs</string>
     <string name="today_macro_fat">Fat</string>
     <string name="today_macro_fiber">Fiber</string>
-    <string name="today_soft_meals">Meals</string>
     <string name="today_soft_energy">Energy</string>
     <string name="today_count_value">%1$d of %2$d</string>
     <string name="today_focus_title">Your focus today</string>
-    <string name="today_locked_day_title">Totals open at 9:00 pm</string>
     <string name="today_locked_week_title">Saved for your weekly check</string>
-    <string name="today_locked_day_body">Log as you go. There's nothing to check until then.</string>
-    <string name="today_locked_day_body_warm">Keep logging as you go. Nothing to check until tonight.</string>
-    <string name="today_locked_week_body">Log as much or as little as you like. Totals show up once a week.</string>
-    <string name="today_revealed_title">Your totals are open</string>
-    <string name="today_revealed_body">See them in Close the day. They lock again tomorrow morning.</string>
     <string name="today_counted_label">So far today</string>
     <string name="today_counted_label_other_day">That day</string>
     <string name="today_counted_none">No meals yet</string>
@@ -49,28 +42,9 @@
     <string name="today_counted_next">%1$s is usually around %2$s.</string>
     <string name="today_counts_meals_one">%1$d meal logged</string>
     <string name="today_counts_meals_other">%1$d meals logged</string>
-    <string name="today_counts_glasses_one">%1$d glass</string>
-    <string name="today_counts_glasses_other">%1$d glasses</string>
-    <string name="today_new_this_month">New this month</string>
-    <string name="today_new_count_one">%1$d food</string>
-    <string name="today_new_count_other">%1$d foods</string>
-    <string name="today_explorer_new_empty">Nothing new yet this month.</string>
-    <string name="today_banner_sprint">Sprint, day %1$d of 14. Tracking takes a break on %2$s.</string>
-    <string name="today_banner_sprint_done">Sprint is done. Pick what's next in Modes and numbers.</string>
 
-    <!-- Meal tiles, Rhythm, Explorer -->
-    <string name="today_tile_items_one">%1$d food · %2$s</string>
-    <string name="today_tile_items_other">%1$d foods · %2$s</string>
+    <!-- A meal marked eaten with no details -->
     <string name="today_tile_ate">Ate, no details</string>
-    <string name="today_rhythm_title">Meals today</string>
-    <string name="today_rhythm_logged">%1$s · planned around %2$s</string>
-    <string name="today_rhythm_ate">Ate, no details · planned around %1$s</string>
-    <string name="today_rhythm_planned">Planned around %1$s</string>
-    <string name="today_rhythm_already_ate">Already ate</string>
-    <string name="today_rhythm_log">Log it</string>
-    <string name="today_what_you_had">What you had</string>
-    <string name="today_explorer_safe">Safe foods</string>
-    <string name="today_explorer_safe_empty">Foods you log often show up here.</string>
 
     <!-- Water and meal cards -->
     <string name="today_water">Water</string>
@@ -80,7 +54,6 @@
     <string name="today_item_sub">%1$s · %2$s</string>
     <string name="today_meal_usually">Usually around %1$s</string>
     <string name="today_meal_around">Around %1$s</string>
-    <string name="today_feel_prompt">How did it feel?</string>
     <string name="today_feel_pair">%1$s → %2$s</string>
     <string name="today_plan_title">Planned meals count as logged</string>
     <string name="today_plan_body">Edit anything tomorrow if plans change.</string>
@@ -171,10 +144,6 @@
     <string name="today_untracked_title">Not tracking this day</string>
     <string name="today_untracked_body">Trends leaves a gap here, not a low day.</string>
     <string name="today_untracked_action">Track it again</string>
-    <string name="today_bridge_title">A small step from %1$s</string>
-    <string name="today_bridge_body">You've had %1$s before, and it has %2$s in it too.</string>
-    <string name="today_bridge_tried">I tried it</string>
-    <string name="today_bridge_not_today">Not today</string>
     <string name="today_toast_marked_eaten">Marked %1$s as eaten.</string>
     <string name="today_toast_note_saved">Note saved to %1$s.</string>
     <string name="today_toast_feel_saved">Saved. Only you see this.</string>

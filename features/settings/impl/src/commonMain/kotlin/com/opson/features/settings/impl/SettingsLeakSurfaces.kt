@@ -13,6 +13,7 @@ import com.opson.features.settings.impl.integrations.IntegrationsScreen
 import com.opson.features.settings.impl.integrations.LeaveOutSheetContent
 import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelStateBuilder
+import com.opson.features.settings.impl.modes.EachNumberScreen
 import com.opson.features.settings.impl.modes.ModesScreen
 import com.opson.features.settings.impl.modes.ModesStateBuilder
 import com.opson.features.settings.impl.more.MoreScreen
@@ -65,6 +66,14 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "modes", label = "Modes and numbers", showsCaloriesInFull = false) { policy ->
             ModesScreen(ModesStateBuilder.build(policy.settings, SettingsFixtures.timeZone, photosReleased = true), onAction = {})
+        },
+        // Design sync 4: End after a set time open, its length and next mode named, never an amount.
+        LeakSurface(id = "modes-end-after", label = "Modes and numbers, End after a set time", showsCaloriesInFull = false) { policy ->
+            val timed = policy.settings.copy(endAfter = SettingsFixtures.fullForTwoWeeks.endAfter)
+            ModesScreen(ModesStateBuilder.build(timed, SettingsFixtures.timeZone, editingEndAfter = true), onAction = {})
+        },
+        LeakSurface(id = "modes-each-number", label = "Each number", showsCaloriesInFull = false) { policy ->
+            EachNumberScreen(ModesStateBuilder.build(policy.settings, SettingsFixtures.timeZone, photosReleased = true), onAction = {})
         },
         LeakSurface(id = "pause-sheet", label = "Pause before showing more", showsCaloriesInFull = false) { _ ->
             PauseSheetContent(PauseState(subject = PauseSubject.Preset(PresetId.Full), secondsLeft = 7), onAction = {})

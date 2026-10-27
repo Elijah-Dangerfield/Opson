@@ -1,7 +1,6 @@
 package com.opson.leaktest
 
 import androidx.compose.ui.test.junit4.createComposeRule
-import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 import org.junit.Rule
@@ -13,10 +12,11 @@ import kotlin.test.fail
 
 /**
  * The handoff's acceptance test: with calories hidden, no surface shows a calorie amount or an
- * "N left". Every surface in [SURFACES], in every preset in [PRESETS_UNDER_TEST] (Blind first),
+ * "N left". Every surface in [SURFACES], in every mode in [MODES_UNDER_TEST] (No numbers first),
  * must compose no node tagged `metric:calories`, `metric:remaining` or `metric:energyOut`, and no
- * text matching [LEAK]. Softened presets may tag a word, never a digit. Delayed presets run at
- * [NOW], before the reveal, and may show only what [REVEALED_BY_DESIGN] lists.
+ * text matching [LEAK]. Softened modes may tag a word, never a digit. Later runs at [NOW], before
+ * the reveal, each day and weekly, and may show only what [REVEALED_BY_DESIGN] lists. No numbers
+ * may show nothing at all.
  *
  * A failure here is a real leak until proven otherwise: the policy is the only formatter, so a hit
  * means a composable formatted a number itself or a fixture built a `Display` around the policy.
@@ -27,18 +27,18 @@ import kotlin.test.fail
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h4000dp")
-class BlindModeLeakTest(private val surface: LeakSurface, private val preset: PresetId) {
+class BlindModeLeakTest(private val surface: LeakSurface, private val mode: LeakMode) {
 
     @get:Rule
     val compose = createComposeRule()
 
     @Test
     fun showsNoCalorieAmount() {
-        val policy = policyFor(preset)
+        val policy = mode.policy()
         compose.render(surface, policy)
         val scan = compose.scan()
 
-        val allowed = (REVEALED_BY_DESIGN[preset to surface.id] as? Reveal.Only)?.values.orEmpty()
+        val allowed = (REVEALED_BY_DESIGN[mode.name to surface.id] as? Reveal.Only)?.values.orEmpty()
         val tagged = scan.tagged.filterNot { tag ->
             tag.text in allowed || (policy.level(tag.metric) == Visibility.Soften && tag.text.none(Char::isDigit))
         }
@@ -47,7 +47,7 @@ class BlindModeLeakTest(private val surface: LeakSurface, private val preset: Pr
 
         fail(
             buildString {
-                appendLine("${surface.id} (${surface.label}) shows calories in $preset")
+                appendLine("${surface.id} (${surface.label}) shows calories in $mode")
                 tagged.forEach { appendLine("  tagged: $it") }
                 hits.forEach { appendLine("  text: $it") }
             },
@@ -57,10 +57,10 @@ class BlindModeLeakTest(private val surface: LeakSurface, private val preset: Pr
     companion object {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0} in {1}")
-        fun cases(): List<Array<Any>> = PRESETS_UNDER_TEST.flatMap { preset ->
+        fun cases(): List<Array<Any>> = MODES_UNDER_TEST.flatMap { mode ->
             SURFACES
-                .filterNot { REVEALED_BY_DESIGN[preset to it.id] is Reveal.WholeSurface }
-                .map { arrayOf<Any>(it, preset) }
+                .filterNot { REVEALED_BY_DESIGN[mode.name to it.id] is Reveal.WholeSurface }
+                .map { arrayOf<Any>(it, mode) }
         }
     }
 }
