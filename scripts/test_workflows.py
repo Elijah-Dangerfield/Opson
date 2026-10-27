@@ -29,6 +29,18 @@ def workflow(name: str) -> str:
     return (WORKFLOWS / name).read_text()
 
 
+@unittest.skipUnless(shutil.which("ruby"), "needs ruby for its YAML parser")
+class WorkflowSyntaxTest(unittest.TestCase):
+    def test_every_workflow_is_valid_yaml(self):
+        # A workflow that doesn't parse fails only when its trigger fires,
+        # which for release.yml is the day of a release.
+        result = subprocess.run(
+            ["ruby", "-ryaml", "-e", "ARGV.each { |path| YAML.load_file(path) }", *map(str, WORKFLOWS.glob("*.yml"))],
+            capture_output=True, text=True, timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
 class RubyVersionTest(unittest.TestCase):
     # Gemfile.lock resolves excon 1.8.0, whose gemspec needs Ruby >= 3.3.0. A job
     # on an older Ruby dies in `bundle install` before fastlane starts.
