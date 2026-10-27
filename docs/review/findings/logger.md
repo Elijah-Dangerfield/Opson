@@ -48,7 +48,7 @@ from [PRACTICES.md](../PRACTICES.md), what breaks, and its fate.
   `LoggerViewModelTest.aSecondTapWhileTheSheetClosesWritesNothingMore` and
   `aSecondNumberWhileTheSheetClosesAddsNothingMore`.
 
-## 4. "% of energy" on the amount sheet did not match Today and did not make 100: fixed, shared helper deferred (cross-slice)
+## 4. "% of energy" on the amount sheet did not match Today and did not make 100: fixed
 
 - **Where:** `AmountSheet.kt` `AmountStateBuilder.portion` divided each macro's energy by the
   label's kcal; `TodayStateBuilder.macrosPage` divides by the energy of the macros on show.
@@ -59,12 +59,10 @@ from [PRACTICES.md](../PRACTICES.md), what breaks, and its fate.
   sheet uses Today's rule: the shares make 100, and with a macro hidden the gap they leave no
   longer gives the hidden macro's share away. `AmountTest.theSharesOfEnergyAreOfTheMacrosOwnEnergySoTheyMakeAHundred`
   and `aHiddenMacroIsLeftOutOfTheShares`.
-- **Deferred (cross-slice):** the rule now lives in two builders. Put it once in
-  `:libraries:nutrition`, e.g. `MacroShares.kt`:
-  `fun macroEnergyShares(protein: Double?, carbs: Double?, fat: Double?, shown: (Metric) -> Boolean): Map<Metric, Double>`
-  returning each shown macro's percent of the shown macros' energy (4, 4 and 9 kcal per gram),
-  and call it from `AmountStateBuilder.portion` (the `shownEnergy` block) and
-  `TodayStateBuilder.macrosPage` (the `shown`/`total` block).
+- **Fixed later (cross-slice):** "fix(nutrition): one rule for a macro's share of energy".
+  `macroEnergyShares` in `:libraries:nutrition` (`MacroShares.kt`) is the rule, and both builders
+  call it. A softened macro now hides on "This portion" as the spec's table says; before, it read a
+  soft word against the other macros' energy. `AmountTest.aSoftenedMacroHidesOnThePortion`.
 
 ## 5. The keyboard stayed up over sheets opened from search: fixed
 
@@ -129,15 +127,16 @@ from [PRACTICES.md](../PRACTICES.md), what breaks, and its fate.
 - **Rule:** §2 "No `!!` on data from the network, disk or the user"; the draft's quantity comes
   from a basket item. Now a smart cast. Same commit as 7.
 
-## 11. A barcode miss report can be lost when the scanner closes: deferred
+## 11. A barcode miss report could be lost when the scanner closed: fixed (cross-slice)
 
 - **Where:** `BarcodeScanViewModel.kt:83`, `viewModelScope.launch { missReporter.report(code) }`.
 - **Rule:** §2 structured concurrency, the right owner for work that outlives the screen.
-- **Failure:** "Search instead" right after a miss clears the view model and cancels the report,
-  so the dashboard undercounts the catalog's gaps for exactly the people who move on fastest.
-- **Why deferred:** the fix is to run the report in the injected `AppCoroutineScope` (or have
-  `BarcodeMissReporter` queue it), which changes the reporter's contract in `:libraries:foods`.
-  Telemetry only; no user-facing effect.
+- **Failure:** "Search instead" right after a miss cleared the view model and cancelled the report,
+  so the dashboard undercounted the catalog's gaps for exactly the people who move on fastest.
+- **Fix:** "fix(foods): a barcode miss report survives the scanner closing".
+  `HttpBarcodeMissReporter` runs the call in the injected `AppCoroutineScope` and joins it, so a
+  caller can still wait for it but cancelling the caller no longer cancels the report.
+  `HttpBarcodeMissReporterTest.cancellingTheCallerDoesNotCancelTheReport`.
 
 ## Not a problem
 

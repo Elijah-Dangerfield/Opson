@@ -195,7 +195,7 @@ class TestClient(
     // ── Foods ────────────────────────────────────────────────────────────────
     val foods: FoodCatalog = FoodCatalogImpl(HttpFoodApi(networkClient), database.foodCacheDao(), clock)
     val photoEstimator: MealPhotoEstimator = HttpMealPhotoEstimator(networkClient)
-    val barcodeMisses: BarcodeMissReporter = HttpBarcodeMissReporter(networkClient)
+    val barcodeMisses: BarcodeMissReporter = HttpBarcodeMissReporter(networkClient, appScope)
 
     // ── Account ──────────────────────────────────────────────────────────────
     private val profileApi = HttpProfileApi(networkClient)

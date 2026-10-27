@@ -260,7 +260,7 @@ class DiaryRepositoryImpl(
     }
 
     override fun recentFoods(limit: Int): Flow<List<LogItem>> =
-        tables.entries.observeLatest(RECENT_SCAN).map { rows ->
+        tables.entries.observeLatestFoods(RECENT_SCAN).map { rows ->
             rows.mapNotNull { it.toDomain() }.distinctBy { it.foodKey() }.take(limit)
         }
 

@@ -26,6 +26,8 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WaterProgress
 import com.opson.libraries.nutrition.WeightTrend
+import com.opson.libraries.nutrition.macroEnergy
+import com.opson.libraries.nutrition.macroEnergyShares
 import com.opson.libraries.nutrition.macroLine
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.nutrition.share
@@ -84,10 +86,6 @@ object TodayStateBuilder {
     /** The eaten bar runs to 20% past the top of the range, so the range box sits inside it. */
     private const val BAR_HEADROOM = 1.2
     private const val SPRINT_DAYS = 14
-    private const val KCAL_PER_G_PROTEIN = 4.0
-    private const val KCAL_PER_G_CARBS = 4.0
-    private const val KCAL_PER_G_FAT = 9.0
-    private const val PERCENT = 100.0
 
     /** A sliver under this share of the bar is not drawn. */
     private const val MIN_PART = 0.01
@@ -220,22 +218,14 @@ object TodayStateBuilder {
 
     /** Protein, carbs and fat by their energy, end to end; a macro not on show and energy no macro explains are one neutral piece. */
     private fun barParts(day: Day, policy: VisibilityPolicy, context: FormatContext, eaten: Double): List<BarPart> {
-        val kcal = macroEnergy(day)
+        val totals = day.totals()
+        val kcal = macroEnergy(totals.protein.known, totals.carbs.known, totals.fat.known)
         val total = maxOf(eaten, kcal.values.sum())
         if (total <= 0.0) return emptyList()
         val shown = kcal.filter { (metric, energy) -> energy > 0.0 && policy.effectiveLevel(metric, Surface.Today, context) == Visibility.Show }
         val rest = total - shown.values.sum()
         return shown.map { (metric, energy) -> BarPart(metric, (energy / total).toFloat()) } +
             listOfNotNull(BarPart(null, (rest / total).toFloat()).takeIf { rest / total > MIN_PART })
-    }
-
-    private fun macroEnergy(day: Day): Map<Metric, Double> {
-        val totals = day.totals()
-        return linkedMapOf(
-            Metric.Protein to totals.protein.known * KCAL_PER_G_PROTEIN,
-            Metric.Carbs to totals.carbs.known * KCAL_PER_G_CARBS,
-            Metric.Fat to totals.fat.known * KCAL_PER_G_FAT,
-        )
     }
 
     /** Page 1's stats, in the person's order (or the goals' suggestion), the ones the levels hide left out. */
@@ -304,16 +294,12 @@ object TodayStateBuilder {
     private fun macrosPage(day: Day, settings: Settings, policy: VisibilityPolicy, context: FormatContext, eaten: Double): MacrosPage? {
         val rows = macroTiles(day, settings, policy, context, GoalStyle.Slash)
         if (rows.isEmpty()) return null
-        val shown = macroEnergy(day).filterKeys { policy.effectiveLevel(it, Surface.Today, context) == Visibility.Show }
-        val total = shown.values.sum()
-        val shares = if (total <= 0.0) {
-            emptyList()
-        } else {
-            shown.map { (metric, energy) ->
-                val percent = energy / total * PERCENT
-                MacroShare(metric, macroLabel(metric), policy.share(metric, percent, Surface.Today, context), percent.toFloat())
-            }.filter { it.share !is Display.Hidden && it.weight > 0f }
-        }
+        val totals = day.totals()
+        val shares = macroEnergyShares(totals.protein.known, totals.carbs.known, totals.fat.known) {
+            policy.effectiveLevel(it, Surface.Today, context) == Visibility.Show
+        }.map { (metric, percent) ->
+            MacroShare(metric, macroLabel(metric), policy.share(metric, percent, Surface.Today, context), percent.toFloat())
+        }.filter { it.share !is Display.Hidden && it.weight > 0f }
         return MacrosPage(
             eaten = policy.resolve(Metric.Calories, eaten, Surface.Today, context.copy(of = null, bare = false)),
             rows = rows,
@@ -669,8 +655,6 @@ object TodayStateBuilder {
                 )
             },
             ateNoDetails = items.isEmpty() && slot in day.ateNoDetails,
-            // How it felt shows as chips in Mindful only (design sync 2); the day's check-in asks the rest.
-            feel = emptyList(),
             note = feeling?.note?.trim()?.takeIf { it.isNotEmpty() },
             fileable = inputs.selectOn && slot == MealSlot.Uncategorized && items.isNotEmpty() && groupsOn(inputs),
         )

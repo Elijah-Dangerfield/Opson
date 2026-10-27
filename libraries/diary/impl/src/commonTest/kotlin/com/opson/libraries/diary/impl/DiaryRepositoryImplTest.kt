@@ -25,6 +25,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * [DiaryRepositoryImpl] over an in-memory database: that each write lands
@@ -221,6 +222,24 @@ class DiaryRepositoryImplTest : CoroutineTest() {
         val usual = repo.usualAt(MealSlot.Breakfast).first()
 
         assertEquals(listOf("Oats", "Eggs"), usual.map { it.name })
+    }
+
+    /** The Foods tab drops what has no food behind it, so counting those left Recent short of six. */
+    @Test
+    fun recentFoodsSkipsQuickNumbersAndNameOnlyLines() = runUnitTest {
+        val foods = listOf("Oats", "Eggs", "Rice", "Adobo", "Banana", "Yogurt")
+        foods.forEach { name ->
+            repo.addItems(today, MealSlot.Lunch, listOf(draft(name).copy(foodId = "f-$name")), LogMethod.Search)
+            clock.now += 1.minutes
+            repo.addItems(today, MealSlot.Lunch, listOf(draft("Quick number", kcal = 300.0)), LogMethod.QuickNumber)
+            clock.now += 1.minutes
+            repo.addItems(today, MealSlot.Lunch, listOf(draft("Something at the market")), LogMethod.Search)
+            clock.now += 1.minutes
+        }
+
+        val recent = repo.recentFoods(limit = 6).first()
+
+        assertEquals(foods.reversed(), recent.map { it.name })
     }
 
     @Test

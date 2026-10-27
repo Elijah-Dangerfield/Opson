@@ -356,10 +356,9 @@ private const val SUBTITLE_SEPARATOR = " · "
 /**
  * A meal with its items (2.1): the [MealHeader] with [headerTrailing] (the + , or Move to… on
  * Uncategorized), each item drawn by [itemRow] (a plain row, a swipe row, a tickable row while
- * selecting, or its own confirmation), how it felt as chips (Mindful) and the note.
+ * selecting, or its own confirmation), and the note.
  * [onHeaderClick] makes the header a target: while selecting it toggles the meal's foods.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TodayMealCard(
     icon: IconResource,
@@ -372,7 +371,6 @@ fun TodayMealCard(
     items: List<MealCardItem>,
     note: String?,
     modifier: Modifier = Modifier,
-    feel: List<String> = emptyList(),
     highlighted: Boolean = false,
     onHeaderClick: (() -> Unit)? = null,
     headerTrailing: @Composable RowScope.() -> Unit = {},
@@ -402,11 +400,6 @@ fun TodayMealCard(
         )
         Column(Modifier.padding(end = 6.dp)) {
             items.forEach { item -> itemRow(item) }
-        }
-        if (feel.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-                feel.forEach { PillTag(label = it) }
-            }
         }
         if (note != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

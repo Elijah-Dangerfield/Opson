@@ -64,7 +64,7 @@ keeps existing ticks.
 - [x] `scripts/test_import_usda_foods.py`
 - [x] `scripts/test_review_ledger.py`
 
-## apps-shells (55 files)
+## apps-shells (56 files)
 
 - [x] `apps/admin/build.gradle.kts`
 - [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminApi.kt`
@@ -90,6 +90,7 @@ keeps existing ticks.
 - [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/RevertTest.kt`
 - [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/ValidationTest.kt`
 - [x] `apps/compose/build.gradle.kts`
+- [ ] `apps/compose/proguard-rules.pro`
 - [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidActivityProvider.kt`
 - [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidAppComponent.kt`
 - [x] `apps/compose/src/androidMain/kotlin/com/opson/MainActivity.kt`
@@ -105,20 +106,20 @@ keeps existing ticks.
 - [x] `apps/compose/src/commonMain/kotlin/com/opson/ShakeHandler.kt`
 - [x] `apps/compose/src/commonMain/kotlin/com/opson/SplashScreen.kt`
 - [x] `apps/compose/src/commonMain/kotlin/com/opson/UserTheme.kt`
-- [x] `apps/compose/src/commonTest/kotlin/com/opson/ComposeAppCommonTest.kt`
+- [ ] `apps/compose/src/commonTest/kotlin/com/opson/AppViewModelTest.kt`
+- [ ] `apps/compose/src/commonTest/kotlin/com/opson/DeepLinkLogTest.kt`
 - [x] `apps/compose/src/commonTest/kotlin/com/opson/OpsonNetworkConfigTest.kt`
 - [x] `apps/compose/src/commonTest/kotlin/com/opson/UserThemeTest.kt`
 - [x] `apps/compose/src/iosMain/kotlin/com/opson/IosAppComponent.kt`
 - [x] `apps/compose/src/iosMain/kotlin/com/opson/MainViewController.kt`
 - [x] `apps/compose/src/iosMain/kotlin/com/opson/SwiftUsageBridge.kt`
+- [ ] `apps/ios/Configuration/Config.xcconfig`
 - [x] `apps/ios/iosApp/Platform/FileSharePresenter.swift`
 - [x] `apps/ios/iosApp/Platform/IOSAppleSignInCoordinator.swift`
 - [x] `apps/ios/iosApp/Platform/IOSNativeViewFactory.swift`
 - [x] `apps/ios/iosApp/Platform/IOSSecureSessionStorage.swift`
 - [x] `apps/ios/iosApp/Platform/IOSWidgetBridge.swift`
-- [x] `apps/ios/iosApp/Platform/KotlinPrimitives.swift`
 - [x] `apps/ios/iosApp/Platform/Logger+MessageScope.swift`
-- [x] `apps/ios/iosApp/Platform/PermissionManager.swift`
 - [x] `apps/ios/iosApp/Platform/ReviewLauncher.swift`
 - [x] `apps/ios/iosApp/iOSApp.swift`
 
@@ -211,11 +212,14 @@ keeps existing ticks.
 - [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenIds.kt`
 - [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenResult.kt`
 
-## server (174 files)
+## server (177 files)
 
+- [ ] `apps/server/Dockerfile`
 - [ ] `apps/server/build.gradle.kts`
 - [ ] `apps/server/docker-compose.yml`
 - [ ] `apps/server/docker/init-auth.sql`
+- [ ] `apps/server/fly.prod.toml`
+- [ ] `apps/server/fly.toml`
 - [ ] `apps/server/src/main/kotlin/com/opson/server/Application.kt`
 - [ ] `apps/server/src/main/kotlin/com/opson/server/Main.kt`
 - [ ] `apps/server/src/main/kotlin/com/opson/server/config/Env.kt`
@@ -443,7 +447,7 @@ keeps existing ticks.
 - [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/AuthRoutes.kt`
 - [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/OnboardingRoute.kt`
 
-## features-other (13 files)
+## features-other (14 files)
 
 - [x] `features/home/build.gradle.kts`
 - [x] `features/home/impl/build.gradle.kts`
@@ -455,6 +459,7 @@ keeps existing ticks.
 - [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackScreen.kt`
 - [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModel.kt`
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/HomeViewModelTest.kt`
+- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModelTest.kt`
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenario.kt`
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
 - [x] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
@@ -525,7 +530,7 @@ keeps existing ticks.
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/VoiceStateBuilderTest.kt`
 - [x] `features/logger/src/commonMain/kotlin/com/opson/features/logger/LoggerRoute.kt`
 
-## settings (73 files)
+## settings (72 files)
 
 - [x] `features/settings/build.gradle.kts`
 - [x] `features/settings/impl/build.gradle.kts`
@@ -535,7 +540,6 @@ keeps existing ticks.
 - [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFixtures.kt`
 - [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsLeakSurfaces.kt`
 - [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsPage.kt`
-- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/TimeDialog.kt`
 - [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingScreen.kt`
 - [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingState.kt`
 - [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingViewModel.kt`
@@ -712,7 +716,7 @@ keeps existing ticks.
 - [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsSettingsRoute.kt`
 - [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/WeightRoute.kt`
 
-## domain-diary-nutrition (122 files)
+## domain-diary-nutrition (124 files)
 
 - [x] `libraries/diary/build.gradle.kts`
 - [x] `libraries/diary/impl/build.gradle.kts`
@@ -791,6 +795,7 @@ keeps existing ticks.
 - [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Display.kt`
 - [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Fasting.kt`
 - [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroLine.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroShares.kt`
 - [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Metric.kt`
 - [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MicroWireKeys.kt`
 - [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Micronutrient.kt`
@@ -813,6 +818,7 @@ keeps existing ticks.
 - [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/FormatTest.kt`
 - [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/GoalStyleTest.kt`
 - [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroLineTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroSharesTest.kt`
 - [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MathTest.kt`
 - [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroPercentsTest.kt`
 - [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroWireKeysTest.kt`
@@ -837,7 +843,7 @@ keeps existing ticks.
 - [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientValue.kt`
 - [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/leak/LeakSurface.kt`
 
-## platform-libraries (98 files)
+## platform-libraries (99 files)
 
 - [x] `libraries/foods/build.gradle.kts`
 - [x] `libraries/foods/impl/build.gradle.kts`
@@ -846,6 +852,7 @@ keeps existing ticks.
 - [x] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/HttpBarcodeMissReporter.kt`
 - [x] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/HttpMealPhotoEstimator.kt`
 - [x] `libraries/foods/impl/src/commonTest/kotlin/com/opson/libraries/foods/impl/FoodCatalogImplTest.kt`
+- [x] `libraries/foods/impl/src/commonTest/kotlin/com/opson/libraries/foods/impl/HttpBarcodeMissReporterTest.kt`
 - [x] `libraries/foods/impl/src/commonTest/kotlin/com/opson/libraries/foods/impl/HttpMealPhotoEstimatorTest.kt`
 - [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/BarcodeMissReporter.kt`
 - [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/Food.kt`
@@ -938,14 +945,13 @@ keeps existing ticks.
 - [x] `libraries/widgets/src/commonTest/kotlin/com/opson/libraries/widgets/WidgetSnapshotBuilderTest.kt`
 - [x] `libraries/widgets/src/iosMain/kotlin/com/opson/libraries/widgets/WidgetBridge.kt`
 
-## ui-library (181 files)
+## ui-library (126 files)
 
 - [x] `libraries/resources/build.gradle.kts`
-- [x] `libraries/resources/src/commonMain/kotlin/com/opsone/libraries/resources/Resources.kt`
 - [x] `libraries/ui/build.gradle.kts`
-- [x] `libraries/ui/src/androidMain/kotlin/com/opson/libraries/ui/ImageUtils.android.kt`
 - [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextFieldSemanticsTest.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/ImageUtils.kt`
+- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextTest.kt`
+- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/system/BounceClickTest.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/NoScreenshot.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/Preview.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ButtonCatalog.kt`
@@ -956,13 +962,8 @@ keeps existing ticks.
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/FormCatalog.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/RadiiCatalog.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/TypographyCatalog.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/AnchoredContent.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BadgedBox.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Banner.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BarChart.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BottomBar.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BottomNavBar.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Card.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChecklistRow.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChevronLink.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChoiceRow.kt`
@@ -971,18 +972,11 @@ keeps existing ticks.
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DayHeader.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DelayedLoadingIndicator.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Dots.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DropDown.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/EdgeCard.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/FormField.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/FullScreenLoader.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Grid.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroBlock.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroParts.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HorizontalDivider.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/IntakeBarChart.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LegendDot.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LinearProgressIndicator.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ListItem.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ListRow.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LoopingAnimation.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/MenuPopover.kt`
@@ -991,16 +985,13 @@ keeps existing ticks.
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PageHeaderSubtitle.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PhotoThumbnail.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Progress.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ProgressRow.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PromptCard.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ScanFrame.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Screen.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SectionCard.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SegmentedControl.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SelectableCard.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetHeader.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetMenu.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Slider.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Snackbar.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Stepper.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/StripedBar.kt`
@@ -1015,11 +1006,8 @@ keeps existing ticks.
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/BasicButton.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/Button.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/FlatButton.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/Checkbox.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/CircleCheckbox.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/SquareCheck.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/chip/PillChip.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/chip/SelectChip.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/BasicDialog.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/Dialog.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/DialogHostState.kt`
@@ -1027,7 +1015,6 @@ keeps existing ticks.
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ModalContent.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ShakeDialog.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/TimePickerDialog.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BasicBottomSheet.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheet.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetDefaults.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetState.kt`
@@ -1036,91 +1023,56 @@ keeps existing ticks.
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/SheetFrame.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/header/Header.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/AppIcons.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/CircleIcon.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icon.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconButton.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconTile.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icons.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/Fruit.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/Home.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/ShortCut.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/SnowFlake.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/TipJar.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/bar-chart-outlined.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/bar-chart.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/eraser.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioButton.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioGroup.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioMatrix.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioRow.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/AsteriskText.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BasicTextField.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BoldPrefixedText.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BulletRow.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/ClickableText.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/HtmlTextExt.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/InputBox.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/MaskedTextField.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/NumberField.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlineInputField.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlinedText.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlinedTextField.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/SearchField.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/Text.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextArea.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextInput.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TypedText.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TypeeriterEffect.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/UnderlineInputField.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/UnderlineTextField.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/debug/RecompositionCounter.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/PresenterSnackbarHost.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/SnackBarPresenter.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Alignments.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/AnimatePlacement.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/AppTheme.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Border.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/BounceClick.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/DimensionResource.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Elevation.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/FieldState.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Local.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/LoremIpsum.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ModifierExt.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Outlines.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/PaddingValuesExt.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Point.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Pulsate.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Radius.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ScrollBar.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Selectable.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Shapes.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Size.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Spacers.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Span.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ThrottledCallback.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Toggle.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Tokens.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/TouchTarget.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Util.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/ColorResource.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Colors.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Palette.kt`
-- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/fadingEdges.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/FontFamily.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypeScale.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypographyResource.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/time/RelativeDay.kt`
-- [x] `libraries/ui/src/commonTest/kotlin/com/opson/SharedCommonTest.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/BarFillTest.kt`
-- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/PlaceAgainstAnchorTest.kt`
+- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetStateSaverTest.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/NumberInputTest.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/TypedTextTest.kt`
+- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/snackbar/SnackbarMessageTest.kt`
+- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/system/color/ColorResourceTest.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/time/RelativeDayTest.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/system/color/NeutralsTest.kt`
-- [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/ImageUtils.ios.kt`
 - [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/nativeviews/NativeViewFactory.kt`
-- [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/system/color/ColorResource+UIColor.kt`
 
 ## core-libraries (371 files)
 

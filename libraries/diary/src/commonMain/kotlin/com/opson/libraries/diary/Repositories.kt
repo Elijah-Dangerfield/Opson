@@ -83,7 +83,11 @@ interface DiaryRepository {
     /** This day's meal groups; null goes back to following [Settings.mealGroups]. */
     suspend fun setMealGroups(day: LocalDate, on: Boolean?)
 
-    /** The most recently logged distinct foods, newest first, for the logger's Recent row. */
+    /**
+     * The most recently logged distinct foods, newest first, for the logger's Recent row and the
+     * Foods tab. Only entries logged from a food count: a quick number or a name-only line has
+     * nothing to pick again, so it would only push a food off the list.
+     */
     fun recentFoods(limit: Int = 6): Flow<List<LogItem>>
 
     /**

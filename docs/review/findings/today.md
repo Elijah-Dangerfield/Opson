@@ -84,15 +84,14 @@
   it would mean inventing both. The parts exist: `TimePickerDialog` in `:libraries:ui`, and
   `DiaryRepository.updateItem` to rewrite `loggedAt` after `DiaryItemEditor.moveItems`.
 
-## 8. `MealCard.feel` is always empty: deferred (cross-slice)
+## 8. `MealCard.feel` was always empty: fixed (cross-slice)
 
-- **Where:** `TodayStateBuilder.mealCard` sets `feel = emptyList()`; `TodayScreen.FullMeal` passes
+- **Where:** `TodayStateBuilder.mealCard` set `feel = emptyList()`; `TodayScreen.FullMeal` passed
   it to `TodayMealCard`.
 - **Rule:** §1 "No dead code".
-- **Why deferred:** removing the field leaves `TodayMealCard`'s `feel` parameter in
-  `:libraries:diary:ui` with no caller passing anything, so both should go together: drop
-  `MealCard.feel` (and the assertion at `TodayStateBuilderTest.kt:113`) and `TodayMealCard`'s
-  `feel` parameter.
+- **Fix:** "refactor(today): drop the meal card's always-empty feel chips". `MealCard.feel`, its
+  assertion in `TodayStateBuilderTest`, and `TodayMealCard`'s `feel` parameter and chip row in
+  `:libraries:diary:ui` are gone. Mindful's feel chips (`MealEntry.Compact`, `JournalEntry`) stay.
 
 ## 9. "Different by day" never reached Today or Close the day: fixed
 
