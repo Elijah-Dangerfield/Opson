@@ -43,7 +43,7 @@ class QueryPlanTest : DatabaseTest() {
 
     @Test
     fun syncPullReadsEachTableByUserAndCursor() {
-        for (table in listOf("log_entries", "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts")) {
+        for (table in listOf("log_entries", "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts", "exercises")) {
             val plan = plan(
                 "SELECT * FROM $table WHERE user_id = ? AND server_seq > ? ORDER BY server_seq LIMIT 501",
                 listOf(user, LongColumnType() to 0L),

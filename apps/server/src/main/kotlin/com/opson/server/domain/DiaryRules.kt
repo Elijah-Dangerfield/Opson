@@ -58,6 +58,12 @@ object DiaryRules {
     /** The longest a fast may be, and its largest goal. TODO(clinician): confirm the cap. */
     const val MAX_FAST_HOURS = 16
 
+    /** An exercise entry: a day long at most, and a ceiling that only catches a stray digit. */
+    const val MAX_EXERCISE_MINUTES = 24 * 60
+    const val MAX_EXERCISE_KCAL = 5000
+    const val MAX_EXERCISE_ACTIVITY = 40
+    const val MAX_EXERCISE_NAME = 80
+
     /**
      * [row] with every time more than [MAX_CLOCK_SKEW] past [now] replaced by
      * [now]. Such a time comes from a phone whose clock is wrong, not from the
@@ -78,6 +84,7 @@ object DiaryRules {
             is SavedMeal -> row.copy(clientUpdatedAt = updatedAt)
             is UserSettings -> row.copy(changedAt = row.changedAt?.clamped(), clientUpdatedAt = updatedAt)
             is Fast -> row.copy(startedAt = row.startedAt.clamped(), endedAt = row.endedAt?.clamped(), clientUpdatedAt = updatedAt)
+            is Exercise -> row.copy(startedAt = row.startedAt.clamped(), clientUpdatedAt = updatedAt)
         }
     }
 
@@ -91,6 +98,7 @@ object DiaryRules {
             is SavedMeal -> validateSavedMeal(row)
             is UserSettings -> jsonSize("settings", row.settingsJson)
             is Fast -> validateFast(row, now)
+            is Exercise -> validateExercise(row, now)
         }
     }
 
@@ -135,6 +143,17 @@ object DiaryRules {
                 else -> null
             }
     }
+
+    private fun validateExercise(row: Exercise, now: Instant): String? =
+        dayError(row.day, now)
+            ?: text("activity", row.activity, MAX_EXERCISE_ACTIVITY, required = true)
+            ?: text("name", row.name, MAX_EXERCISE_NAME)
+            ?: when {
+                row.startedAt < MIN_INSTANT -> "startedAtEpochMs is too old"
+                row.minutes !in 1..MAX_EXERCISE_MINUTES -> "minutes is out of range"
+                row.kcal !in 0..MAX_EXERCISE_KCAL -> "kcal is out of range"
+                else -> null
+            }
 
     private fun validateWeighIn(row: WeighIn): String? = when {
         !row.kg.isFinite() || row.kg <= 0.0 || row.kg > MAX_KG -> "kg is out of range"

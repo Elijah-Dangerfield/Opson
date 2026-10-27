@@ -6,6 +6,7 @@ import com.opson.server.db.LogEntriesTable
 import com.opson.server.domain.CustomFood
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryRules
+import com.opson.server.domain.Exercise
 import com.opson.server.domain.Fast
 import com.opson.server.domain.MealFeeling
 import com.opson.server.domain.MealSlot
@@ -291,6 +292,53 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
 
         assertEquals(listOf("other-device"), late.applied)
         assertEquals(listOf(ended), late.changes.fasts)
+    }
+
+    private fun exercise(
+        id: UUID = UUID.fromString("33333333-3333-4333-8333-333333333333"),
+        minutes: Int = 30,
+        updatedAt: kotlin.time.Instant = evening,
+        deleted: Boolean = false,
+    ) = Exercise(
+        id = id,
+        day = DAY,
+        startedAt = evening,
+        activity = "cycling",
+        name = null,
+        minutes = minutes,
+        kcal = minutes * 7,
+        kcalTyped = false,
+        notOnWatch = true,
+        clientUpdatedAt = updatedAt,
+        deleted = deleted,
+    )
+
+    @Test
+    fun exercisesArePulledOnlyByAClientThatAsks_andAnEditOrDeleteWinsByTime() = runTest {
+        val user = seedAuthUser()
+        val pushed = repo.sync(user, 0, listOf(mutation(exercise(), "e1")))
+        assertEquals(listOf("e1"), pushed.applied)
+        assertNull(pushed.changes.exercises, "a client that did not ask never sees the key")
+
+        val edited = exercise(minutes = 45, updatedAt = evening + 1.hours)
+        repo.sync(user, 0, listOf(mutation(edited)), pullExercises = true)
+        val stale = repo.sync(user, 0, listOf(mutation(exercise(), "late")), pullExercises = true)
+        assertEquals(listOf("late"), stale.applied, "an older write is done with, not refused")
+        assertEquals(listOf(edited), stale.changes.exercises)
+
+        val gone = exercise(minutes = 45, updatedAt = evening + 2.hours, deleted = true)
+        assertEquals(listOf(gone), repo.sync(user, 0, listOf(mutation(gone)), pullExercises = true).changes.exercises)
+    }
+
+    @Test
+    fun anotherUsersExerciseIdCannotBeOverwritten() = runTest {
+        val a = seedAuthUser()
+        val b = seedAuthUser()
+        repo.sync(a, 0, listOf(mutation(exercise())))
+        repo.sync(b, 0, listOf(mutation(exercise(minutes = 90, updatedAt = evening + 1.hours))))
+
+        assertEquals(listOf(exercise()), repo.sync(a, 0, emptyList(), pullExercises = true).changes.exercises)
+        assertEquals(emptyList(), repo.sync(b, 0, emptyList(), pullExercises = true).changes.exercises)
     }
 
     @Test

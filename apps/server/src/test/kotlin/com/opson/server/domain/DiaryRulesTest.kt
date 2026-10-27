@@ -185,4 +185,21 @@ class DiaryRulesTest {
         assertEquals(now, (DiaryRules.clampClock(fast(startedAt = now + 25.hours), now) as Fast).startedAt)
         assertEquals("day is in the future", DiaryRules.validate(fast(day = today.plusDays(9)), now))
     }
+
+    private fun exercise(minutes: Int = 30, kcal: Int = 200, activity: String = "walking", name: String? = null, startedAt: Instant = now) =
+        Exercise(UUID.randomUUID(), today, startedAt, activity, name, minutes, kcal, kcalTyped = false, notOnWatch = false, clientUpdatedAt = now, deleted = false)
+
+    @Test
+    fun anExerciseIsADayLongAtMost_andCountsAtMost5000() {
+        assertNull(DiaryRules.validate(exercise(), now))
+        assertNull(DiaryRules.validate(exercise(minutes = 1440, kcal = 5000), now))
+        assertNull(DiaryRules.validate(exercise(kcal = 0), now), "yoga can count nothing")
+        assertEquals("minutes is out of range", DiaryRules.validate(exercise(minutes = 0), now))
+        assertEquals("minutes is out of range", DiaryRules.validate(exercise(minutes = 1441), now))
+        assertEquals("kcal is out of range", DiaryRules.validate(exercise(kcal = 5001), now))
+        assertEquals("kcal is out of range", DiaryRules.validate(exercise(kcal = -1), now))
+        assertEquals("activity is required", DiaryRules.validate(exercise(activity = " "), now))
+        assertEquals("name is longer than 80 characters", DiaryRules.validate(exercise(activity = "other", name = "x".repeat(81)), now))
+        assertEquals(now, (DiaryRules.clampClock(exercise(startedAt = now + 25.hours), now) as Exercise).startedAt)
+    }
 }
