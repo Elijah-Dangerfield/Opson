@@ -218,8 +218,8 @@ class WidgetSnapshotBuilderTest {
         assertEquals("#EEF1F6", slate.light.background)
         assertEquals("#18202E", slate.light.bar)
         assertEquals("#C4920A", slate.light.meals.getValue("breakfast").content)
-        assertEquals("#F7924A", slate.dark.accent)
-        assertEquals("#1B2130", slate.dark.background)
+        assertEquals("#FA9E5C", slate.dark.accent)
+        assertEquals("#161B27", slate.dark.background)
     }
 
     @Test

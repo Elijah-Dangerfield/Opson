@@ -111,37 +111,40 @@ internal val SlateLight = SchemeColors(
  * Slate, dark. Mid blue-grey rather than near-black, so off-white text does not bloom. Not on the
  * sheet, so derived or measured on the Round 4 dark screens:
  *
+ * - **bg** is a step below the sheet's #1B2130 (#161B27), and the accent and data colors a step
+ *   brighter than the sheet's, after the owner tried dark mode on a phone (2026-10-27): the page
+ *   read flat against the cards and the macro colors read dull. Cards keep the sheet's surface.
  * - **inkSoft**, **hero**: as light.
- * - **accent** is a lit pumpkin, #F7924A: text on bg (7.0), surface (6.1), raised (5.3) and its
- *   tint (5.5). Redder and fuller than the logo's egg (#F0AC66), so it reads as the same orange as
+ * - **accent** is a lit pumpkin, #FA9E5C: text on bg (8.3), surface (6.7), raised (5.8) and its
+ *   tint (6.1). Redder and fuller than the logo's egg (#F0AC66), so it reads as the same orange as
  *   the light theme's and stays clear of the carbs color.
- * - **onAccent** is a near-black brown (8.0 on the accent), as the + on the add button was a
+ * - **onAccent** is a near-black brown (8.8 on the accent), as the + on the add button was a
  *   near-black teal (`today-later.png`), not bg.
- * - **activeEnergy** stays the bowl teal it was. Burned is cool on purpose (see [Colors]).
+ * - **activeEnergy** stays a bowl teal. Burned is cool on purpose (see [Colors]).
  * - **scrim** is the sheet's #0B0E14 at 63%, measured under the add sheet (`add-sheet-half.png`).
- * - **Nutrient tints** are the meal tiles (`today-select-v4.png`, `today-later.png`), except
- *   carbs, which went gold with the light theme's: #F2CC66 on #3F3822.
+ * - **Nutrient colors** are at least 6.9:1 on the surface. Their tints are the meal tiles
+ *   (`today-select-v4.png`, `today-later.png`), carbs gold with the light theme's: #F7D67A on #3F3822.
  */
 internal val SlateDark = SchemeColors(
-    bg = Color(0xFF1B2130),
+    bg = Color(0xFF161B27),
     surface = Color(0xFF242C3C),
     raised = Color(0xFF2D3647),
     line = Color(0xFF323B4D),
     ink = Color(0xFFE6EAF2),
     inkSoft = Color(0xFFB6BECC),
     muted = Color(0xFF98A2B4),
-    accent = Color(0xFFF7924A),
+    accent = Color(0xFFFA9E5C),
     accentTint = Color(0xFF4A2C17),
     onAccent = Color(0xFF1F120A),
     hero = Color(0xFF2D3647),
     scrim = Color(0xA10B0E14),
-    restingEnergy = Color(0xFF8A96B2),
-    activeEnergy = Color(0xFF6CCBBF),
+    restingEnergy = Color(0xFF9AA6C1),
+    activeEnergy = Color(0xFF7FD8CC),
     nutrients = NutrientColors(
-        protein = tone("protein", 0xFFEE8BAE, 0xFF43293A),
-        carbs = tone("carbs", 0xFFF2CC66, 0xFF3F3822),
-        fat = tone("fat", 0xFF84AEF0, 0xFF263552),
-        fiber = tone("fiber", 0xFFCBA97A, 0xFF3B3329),
+        protein = tone("protein", 0xFFF59CBD, 0xFF43293A),
+        carbs = tone("carbs", 0xFFF7D67A, 0xFF3F3822),
+        fat = tone("fat", 0xFF97BCF7, 0xFF263552),
+        fiber = tone("fiber", 0xFFD9B98C, 0xFF3B3329),
     ),
 )
 

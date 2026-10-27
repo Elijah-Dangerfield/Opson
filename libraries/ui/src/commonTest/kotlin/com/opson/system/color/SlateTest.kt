@@ -50,6 +50,27 @@ class SlateTest {
         }
     }
 
+    /**
+     * Dark mode's macro colors draw bars, dots and macro names on a card and on the page, and are
+     * bright enough to carry text there. Light's carbs gold is a fill color (2.8:1 on white), so
+     * light is not held to this.
+     */
+    @Test
+    fun darkNutrientColors_meetAa_onTheCardAndThePage() {
+        val c = appColors(true)
+        val n = c.nutrients
+        listOf(n.protein, n.carbs, n.fat, n.fiber).forEach { tone ->
+            listOf(c.surface, c.bg, c.soft).forEach { assertContrast(tone.content, it, AA, c) }
+        }
+    }
+
+    /** Dark mode's page sits below its cards, so a card reads as a card. */
+    @Test
+    fun dark_pageIsDarkerThanItsCards() {
+        val dark = appColors(true)
+        assertTrue(luminance(dark.bg.color) < luminance(dark.surface.color))
+    }
+
     @Test
     fun inkSoft_isInkToMutedInOklabAtTheEarlierPalettesFraction() {
         listOf(SlateLight, SlateDark).forEach { scheme ->
