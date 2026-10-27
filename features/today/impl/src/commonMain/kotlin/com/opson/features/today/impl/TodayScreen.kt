@@ -1,8 +1,8 @@
 package com.opson.features.today.impl
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +31,9 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.ui.FastingTodayCard
 import com.opson.libraries.diary.ui.FoodListCard
@@ -59,6 +62,7 @@ import com.opson.libraries.ui.components.ChecklistAction
 import com.opson.libraries.ui.components.ChecklistRow
 import com.opson.libraries.ui.components.CountChip
 import com.opson.libraries.ui.components.DayHeader
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HeaderIconButton
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -87,6 +91,7 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.time.RelativeDay
 import com.opson.system.AppTheme
+import com.opson.system.background
 import com.opson.system.color.ToneColors
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -123,6 +128,7 @@ import opson.libraries.resources.generated.resources.today_explorer_safe_empty
 import opson.libraries.resources.generated.resources.today_feel_pair
 import opson.libraries.resources.generated.resources.today_feel_prompt
 import opson.libraries.resources.generated.resources.today_item_sub
+import opson.libraries.resources.generated.resources.today_loading_cd
 import opson.libraries.resources.generated.resources.today_label_today
 import opson.libraries.resources.generated.resources.today_label_tomorrow
 import opson.libraries.resources.generated.resources.today_label_yesterday
@@ -190,7 +196,7 @@ fun TodayScreen(
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
 ) {
-    val rows = todayRows(state)
+    val rows = remember(state) { todayRows(state) }
     val scope = rememberCoroutineScope()
     // Back leaves selecting, or puts a row's confirmation away, before it leaves Today.
     BackHandler(enabled = state.selection != null) { onAction(TodayAction.SelectionClosed) }
@@ -226,7 +232,8 @@ fun TodayScreen(
             if (state.collapsed && compact != null && selection == null) {
                 CollapsedSummary(compact, onAction, Modifier.padding(start = AppTheme.spacing.row, end = AppTheme.spacing.row, bottom = AppTheme.spacing.section))
             }
-            Box(Modifier.weight(1f).fillMaxWidth()) {
+            // Clipped so the sticky bar slides out from under the header rather than over it.
+            Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     state = listState,
@@ -256,16 +263,25 @@ fun TodayScreen(
     }
 }
 
-/** The sticky bar under the header (2.1c), sliding in once the card has scrolled away. */
+/**
+ * The sticky bar under the header (2.1c), sliding in once the card has scrolled away. Its surface
+ * stays opaque the whole way, so the rows under it never show through; only what is on it fades,
+ * and in the draw phase.
+ */
 @Composable
 private fun StickyLayer(compact: CompactSummary?, visible: Boolean, page: Int, onScrollToTop: () -> Unit, modifier: Modifier = Modifier) {
     AnimatedVisibility(
         visible = compact != null && visible,
-        enter = fadeIn() + slideInVertically { -it / 2 },
-        exit = fadeOut() + slideOutVertically { -it / 2 },
+        enter = slideInVertically { -it / 2 },
+        exit = slideOutVertically { -it / 2 },
         modifier = modifier,
     ) {
-        compact?.let { StickyBar(it, page, onScrollToTop = onScrollToTop) }
+        val contentAlpha = transition.animateFloat(label = "StickyContent") { if (it == EnterExitState.Visible) 1f else 0f }
+        compact?.let {
+            Box(Modifier.clip(AppTheme.shapes.card).background(AppTheme.colors.surface)) {
+                StickyBar(it, page, onScrollToTop = onScrollToTop, modifier = Modifier.graphicsLayer { alpha = contentAlpha.value })
+            }
+        }
     }
 }
 
@@ -304,6 +320,8 @@ private fun BottomBars(state: TodayState, onAction: (TodayAction) -> Unit) {
 internal sealed interface TodayRow {
     val key: String
 
+    /** The day has not been read yet; the header already shows which day it is. */
+    data object Loading : TodayRow { override val key = "loading" }
     data class Banner(val banner: TodayBanner) : TodayRow { override val key = "banner" }
     data object Planning : TodayRow { override val key = "planning" }
     data class Summary(val summary: TodaySummary) : TodayRow { override val key = "summary" }
@@ -323,6 +341,10 @@ internal sealed interface TodayRow {
 }
 
 internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
+    if (state.loading) {
+        add(TodayRow.Loading)
+        return@buildList
+    }
     state.banner?.let { add(TodayRow.Banner(it)) }
     if (state.planning) add(TodayRow.Planning)
     // Collapsed, the card is the pinned line above the list instead.
@@ -347,6 +369,7 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
 @Composable
 private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayAction) -> Unit) {
     when (row) {
+        TodayRow.Loading -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.today_loading_cd))
         is TodayRow.Banner -> Banner(text = stringResource(row.banner.text, *row.banner.args.toTypedArray()))
         TodayRow.Planning -> InfoBanner(
             icon = AppIcons.EventNote,

@@ -37,6 +37,8 @@
     <string name="logger_not_here_save">save the name</string>
     <string name="logger_offline_results">Search needs a connection. Showing foods you've used before.</string>
     <string name="logger_searching_cd">Searching</string>
+    <string name="logger_loading_cd">Loading your foods</string>
+    <string name="logger_saved_loading_cd">Loading your saved meals</string>
     <string name="logger_first_run">Search for anything you ate. Foods you log show up here next time.</string>
 
     <!-- No results -->

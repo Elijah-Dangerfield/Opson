@@ -24,6 +24,7 @@ import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.reminders.RemindersEnabled
+import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -85,7 +86,7 @@ class TodayViewModel(
     private val summaryEnabled: TodaySummaryEnabled,
     private val selectEnabled: TodaySelectEnabled,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
-    initialStateArg = TodayState(day = selectedDay.date.value),
+    initialStateArg = TodayState(day = selectedDay.date.value, dayLabel = RelativeDay.of(selectedDay.date.value, calendar.today())),
 ) {
     private var model = Model(policy = policySource.policy.value)
     private var highlightJob: Job? = null

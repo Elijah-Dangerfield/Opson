@@ -1,8 +1,8 @@
 package com.opson.features.logger.impl
 
-import com.opson.libraries.diary.Hunger
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import kotlin.test.Test
+import kotlin.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -29,10 +29,10 @@ class BasketStoreTest : CoroutineTest() {
         store.upsert(banana)
         store.upsert(yogurt)
 
-        store.upsert(banana.copy(hunger = Hunger.Peckish))
+        store.upsert(banana.copy(loggedAt = Instant.fromEpochSeconds(0)))
 
         assertEquals(listOf("f:arroz", "f:sinangag"), store.basket.value.map { it.key })
-        assertEquals(Hunger.Peckish, store.basket.value.first().hunger)
+        assertEquals(Instant.fromEpochSeconds(0), store.basket.value.first().loggedAt)
     }
 
     @Test

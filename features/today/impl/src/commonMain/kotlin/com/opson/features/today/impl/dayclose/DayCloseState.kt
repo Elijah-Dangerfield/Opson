@@ -22,7 +22,9 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.ui.time.RelativeDay
 import com.opson.libraries.health.EnergyExpended
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_dayclose_title
 import opson.libraries.resources.generated.resources.today_dayclose_title_warm
@@ -124,7 +126,8 @@ data class DayCloseInputs(
  * Day close as a pure function. Surface [Surface.DayClose], where delayed numbers open (Coast's
  * open only on the week view, so Coast lands on the logged meals). The big-day card needs
  * calories fully shown and the day past its range, so Blind can never infer one; tomorrow
- * comes from `Targets.tomorrow()`, which takes no inputs, so nothing here can move it.
+ * is tomorrow's own goal from `Targets.rangeFor`, which reads the settings and the date and
+ * nothing eaten, so nothing here can move it.
  */
 object DayCloseStateBuilder {
     fun build(
@@ -160,7 +163,7 @@ object DayCloseStateBuilder {
         } else {
             null
         }
-        val tomorrow = settings.targets.tomorrow()
+        val tomorrow = settings.targets.rangeFor(day.date.plus(1, DateTimeUnit.DAY), settings.numbers.preset)
         val revealed = isToday && shown && policy.level(Metric.Calories) == Visibility.Delay
         return DayCloseState(
             loading = false,

@@ -70,6 +70,9 @@ class PhotoEstimateViewModel(
     private var searchJob: Job? = null
     private var nextKey = 0
 
+    /** Logged, and the sheets are closing: a second Add queued behind the first would log the lines again. */
+    private var logged = false
+
     init {
         viewModelScope.launch {
             combine(diary.observeDay(day), basketStore.basket) { d, basket -> PhotoInputs(calendar.today(), d, basket) }
@@ -264,9 +267,10 @@ class PhotoEstimateViewModel(
 
     private suspend fun addToMeal() {
         val rows = model.rows
-        if (model.step != PhotoStep.Review || model.swap != null) return
+        if (logged || model.step != PhotoStep.Review || model.swap != null) return
         rows.forEach { basketStore.upsert(it.toBasketItem()) }
         val committed = committer.commit(day, slot) ?: return
+        logged = true
         telemetry.added(items = rows.size)
         sendEvent(PhotoEstimateEvent.Logged(day, committed))
     }

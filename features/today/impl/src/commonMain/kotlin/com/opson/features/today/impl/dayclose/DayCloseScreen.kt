@@ -37,6 +37,7 @@ import opson.libraries.resources.generated.resources.today_checkin_sleep_good
 import opson.libraries.resources.generated.resources.today_checkin_sleep_ok
 import opson.libraries.resources.generated.resources.today_checkin_sleep_poor
 import opson.libraries.resources.generated.resources.today_checkin_title
+import opson.libraries.resources.generated.resources.today_dayclose_loading_cd
 import opson.libraries.resources.generated.resources.today_dayclose_expended
 import opson.libraries.resources.generated.resources.today_dayclose_support
 import opson.libraries.resources.generated.resources.today_dayclose_why_not
@@ -97,6 +98,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.button.FlatButton
@@ -247,7 +249,11 @@ fun DayCloseScreen(
                     backLabel = stringResource(Res.string.today_dayclose_back, state.backLabel.text()),
                     onBack = { onAction(DayCloseAction.BackTapped) },
                 )
-                if (state.loading) return@Column
+                if (state.loading) {
+                    // Waits on the day and, with release.health, on the health store's first reading.
+                    DelayedLoadingIndicator(contentDescription = stringResource(Res.string.today_dayclose_loading_cd))
+                    return@Column
+                }
                 if (state.revealNote) {
                     InfoBanner(
                         icon = AppIcons.Lock,
