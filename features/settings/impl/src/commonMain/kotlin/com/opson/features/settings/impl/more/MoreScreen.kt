@@ -147,6 +147,7 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         MoreRow.Widgets -> SettingsRow(
             title = stringResource(Res.string.widgets_title),
             icon = AppIcons.Widgets,
+            quietIcon = true,
             showDivider = showDivider,
             onClick = onClick,
         )

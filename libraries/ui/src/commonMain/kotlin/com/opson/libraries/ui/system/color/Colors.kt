@@ -37,12 +37,13 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * The first block is the handoff's own vocabulary (`--bg`, `--surface`, `--ink`, ...), which is
  * what new code should use. The older role names below it (`text`, `surfacePrimary`, ...) are kept
  * so existing screens keep compiling, and each one points at a handoff token.
+ *
+ * There is one scheme, Slate, in light and dark ([SlateLight], [SlateDark]).
  */
 @Immutable
 @Suppress("LongParameterList")
 interface Colors {
 
-    val palette: Palette
     val isDark: Boolean
 
     /* Handoff base tokens */
@@ -56,11 +57,14 @@ interface Colors {
     val inkSoft: ColorResource
     val muted: ColorResource
     val line: ColorResource
+    /** Behind a bar or a switch that is off. Slate draws it in the line color. */
     val track: ColorResource
+    /** Slate's "Raised": icon tiles, Uncategorized, round buttons on a card, the select-mode bar. */
     val soft: ColorResource
     val onAccent: ColorResource
 
-    /* Brand palette */
+    /* Accent and hero */
+    /** A block that sets itself apart from the cards, with [onHero] text. Round 4 has none of its own. */
     val hero: ColorResource
     /** Text and icons on [hero]. White in both themes. */
     val onHero: ColorResource
@@ -73,7 +77,7 @@ interface Colors {
     /** The 14% white wash behind round buttons on [hero]. */
     val heroWash: ColorResource
     val accent: ColorResource
-    /** Bars and rings that use the brand color. Same value as [accent] in every palette today. */
+    /** Bars and rings that use the accent. Same value as [accent]. */
     val fill: ColorResource
     /** The soft accent tint behind round + buttons and selected rows. */
     val accentTint: ColorResource
@@ -83,6 +87,15 @@ interface Colors {
     val scrim: ColorResource
     /** Behind a popover menu, lighter than [scrim]. */
     val popoverScrim: ColorResource
+
+    /*
+     * Energy out. Cool colors on purpose, so Burned never looks like Eaten, whose bar is split by
+     * the warm nutrient colors. Like those, neither one means good or bad.
+     */
+    /** The resting part of Burned. */
+    val restingEnergy: ColorResource
+    /** The activity part of Burned. */
+    val activeEnergy: ColorResource
 
     /* Nutrients and meals */
     val nutrients: NutrientColors
@@ -144,46 +157,47 @@ interface StatusColor {
     val bad: ColorResource
 }
 
-/** Builds the full token set for one palette in one theme. */
-fun appColors(palette: Palette = Palette.Pine, dark: Boolean = false): Colors = AppColors(palette, dark)
+/** Builds the full token set for light or dark. */
+fun appColors(dark: Boolean = false): Colors = AppColors(dark)
 
 private val defaultColors: Colors = appColors()
 
 @Suppress("MagicNumber")
 private class AppColors(
-    override val palette: Palette,
     override val isDark: Boolean,
 ) : Colors {
-    private val base = palette.base(isDark)
-    private val brand = palette.brand(isDark)
+    private val scheme = if (isDark) SlateDark else SlateLight
     private val prefix = if (isDark) "dark" else "light"
 
     private fun named(color: Color, name: String) = ColorResource.FromColor(color, "$prefix-$name")
 
-    override val bg = named(base.bg, "bg")
-    override val surface = named(base.surface, "surface")
-    override val ink = named(base.ink, "ink")
-    override val inkSoft = named(base.inkSoft, "ink-soft")
-    override val muted = named(base.muted, "muted")
-    override val line = named(base.line, "line")
-    override val track = named(base.track, "track")
-    override val soft = named(base.soft, "soft")
-    override val onAccent = named(base.onAccent, "on-accent")
+    override val bg = named(scheme.bg, "bg")
+    override val surface = named(scheme.surface, "surface")
+    override val ink = named(scheme.ink, "ink")
+    override val inkSoft = named(scheme.inkSoft, "ink-soft")
+    override val muted = named(scheme.muted, "muted")
+    override val line = named(scheme.line, "line")
+    override val track = named(scheme.line, "track")
+    override val soft = named(scheme.raised, "raised")
+    override val onAccent = named(scheme.onAccent, "on-accent")
 
-    override val hero = named(brand.hero, "${palette.name.lowercase()}-hero")
+    override val hero = named(scheme.hero, "hero")
     override val onHero = named(Color.White, "on-hero")
     override val onHeroMuted = named(Color.White.copy(alpha = 0.7f), "on-hero-muted")
     override val heroTrack = named(Color.White.copy(alpha = 0.13f), "hero-track")
     override val heroBarTrack = named(Color.White.copy(alpha = 0.14f), "hero-bar-track")
     override val heroWash = named(Color.White.copy(alpha = 0.14f), "hero-wash")
-    override val accent = named(brand.accent, "${palette.name.lowercase()}-accent")
+    override val accent = named(scheme.accent, "accent")
     override val fill = accent
-    override val accentTint = named(brand.tint, "${palette.name.lowercase()}-tint")
+    override val accentTint = named(scheme.accentTint, "accent-tint")
 
-    override val scrim = named(Color(0x730A0C14), "scrim")
-    override val popoverScrim = named(Color(0x330A0C14), "popover-scrim")
+    override val scrim = named(scheme.scrim, "scrim")
+    override val popoverScrim = named(scheme.scrim.copy(alpha = 0.2f), "popover-scrim")
 
-    override val nutrients = if (isDark) DarkNutrients else LightNutrients
+    override val restingEnergy = named(scheme.restingEnergy, "resting-energy")
+    override val activeEnergy = named(scheme.activeEnergy, "active-energy")
+
+    override val nutrients = scheme.nutrients
 
     override val accentPrimary = accent
     override val onAccentPrimary = onAccent

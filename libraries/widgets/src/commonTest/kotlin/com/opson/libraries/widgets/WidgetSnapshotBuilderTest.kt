@@ -2,7 +2,6 @@ package com.opson.libraries.widgets
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -18,7 +17,6 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -189,14 +187,14 @@ class WidgetSnapshotBuilderTest {
     }
 
     @Test
-    fun colours_comeFromThePalette() {
-        val pine = WidgetPalette.colors(PaletteChoice.Pine)
-        assertEquals("#1D7A6B", pine.light.accent)
-        assertEquals("#F2F4F3", pine.light.background)
-        assertEquals("#16201E", pine.light.bar)
-        assertEquals("#E0892B", pine.light.meals.getValue("breakfast").content)
-        assertEquals("#5CC2AE", pine.dark.accent)
-        assertNotEquals(pine, WidgetPalette.colors(PaletteChoice.Plum))
+    fun colours_areSlate() {
+        val slate = build(PresetId.Full).colors
+        assertEquals("#1F7F78", slate.light.accent)
+        assertEquals("#EEF1F6", slate.light.background)
+        assertEquals("#18202E", slate.light.bar)
+        assertEquals("#E0892B", slate.light.meals.getValue("breakfast").content)
+        assertEquals("#6CCBBF", slate.dark.accent)
+        assertEquals("#1B2130", slate.dark.background)
     }
 
     @Test

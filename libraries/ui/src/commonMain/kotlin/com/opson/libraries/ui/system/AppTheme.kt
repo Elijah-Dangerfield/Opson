@@ -17,7 +17,6 @@ import com.opson.libraries.ui.system.LocalContentColor
 import com.opson.libraries.ui.system.LocalTypeScale
 import com.opson.libraries.ui.system.LocalTypography
 import com.opson.system.color.Colors
-import com.opson.system.color.Palette
 import com.opson.system.color.appColors
 import com.opson.system.typography.AppFontFamily
 import com.opson.system.typography.TypeScale
@@ -60,17 +59,16 @@ object AppTheme {
 }
 
 /**
- * The app theme. [palette] is the user's brand pick, [darkTheme] follows the system unless the
- * caller overrides it, and [largeText] moves the type base from 16 to 19 sp.
+ * The app theme: Slate, light or dark. [darkTheme] follows the system unless the caller overrides
+ * it (the user's Appearance pick), and [largeText] moves the type base from 16 to 19 sp.
  */
 @Composable
 fun AppTheme(
-    palette: Palette = Palette.Pine,
     darkTheme: Boolean = isSystemInDarkTheme(),
     largeText: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colors = remember(palette, darkTheme) { appColors(palette, darkTheme) }
+    val colors = remember(darkTheme) { appColors(darkTheme) }
 
     val textSelectionColors = TextSelectionColors(
         handleColor = colors.accent.color,

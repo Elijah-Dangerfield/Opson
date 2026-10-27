@@ -60,7 +60,7 @@ date ticks (midnight, foreground) ┘                │
     val days: List<WidgetDay>,     // today, then tomorrow as an empty day
     val logLabel: String,          // "Log food", the + button's label
     val logLink: String,           // "opson://widget/log"
-    val colors: WidgetColors,      // light and dark swatches from the user's palette
+    val colors: WidgetColors,      // light and dark swatches from the app's theme
 )
 @Serializable data class WidgetDay(
     val day: String,               // ISO date this entry is for
@@ -111,7 +111,7 @@ level alone. No widget code asks which mode is on.
 from `AppConfigFlow` and nothing else. While the flag is on it collects the
 snapshot source and publishes each distinct snapshot. Inputs that move it:
 today's day (any log, ate-no-details, untracked), settings (mode, targets,
-palette, meal groups), the policy, the date (midnight timer and every
+meal groups), the policy, the date (midnight timer and every
 foreground). On a flip from on to off within a run it clears the published
 snapshot, so the widget falls back to "Open Opson". With the flag off at
 launch nothing is read, written or reloaded.
@@ -193,12 +193,12 @@ the same two lines in the extension.
   1,245 kcal and range; every preset that doesn't show calories gets no energy,
   and the JSON of its snapshot has no digit near "kcal" and no "N left";
   Fuel and Delayed after 9 pm still get meals; tomorrow is an empty day;
-  groups off, untracked, colours follow the palette.
+  groups off, untracked, colours are Slate's.
 - `NextMealTest` (with the link parsing).
 - `VisibilityPolicyRevealTest`: `Surface.Widget` never reveals a delayed number.
 - `WidgetRefresherTest`: flag off publishes nothing and reads nothing; on
   publishes; a change republishes; on to off clears; unknown settings wait.
-- `WidgetSourceAndOpenerTest`: the source rebuilds on a log, a mode or palette change and a new day, drops equal snapshots, waits for known settings; the log link emits a Logger open for the next meal.
+- `WidgetSourceAndOpenerTest`: the source rebuilds on a log, a mode or meal groups change and a new day, drops equal snapshots, waits for known settings; the log link emits a Logger open for the next meal.
 - `WidgetsViewModelTest`, `MoreTest` (the row with the flag on and off).
 - Leak test: `widget` (the snapshot through `WidgetCard`, both days, both
   sizes) and `widgets` (the page) in `SettingsLeakSurfaces`, both
