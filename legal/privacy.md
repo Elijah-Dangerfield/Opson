@@ -55,9 +55,12 @@ It is then copied to our server so it survives a lost phone or a reinstall. The
 server runs on [Fly.io](https://fly.io/legal/privacy-policy) and the database is
 hosted by [Supabase](https://supabase.com/privacy), in the United States.
 
-Your phone's own backups (iCloud Backup or Google backup) may include the copy
-of your log kept on the phone. Those backups belong to your Apple or Google
-account, and we cannot see them.
+The copy of your log kept on the phone, and the app's settings, are left out of
+your phone's own backups (iCloud Backup, a computer backup, Google backup and
+phone-to-phone transfers). A new phone gets your log back from our server when
+you sign in. A backup made with an older version of the app may still hold a
+copy. Those backups belong to your Apple or Google account, and we cannot see
+them.
 
 ## What else the app sends
 
