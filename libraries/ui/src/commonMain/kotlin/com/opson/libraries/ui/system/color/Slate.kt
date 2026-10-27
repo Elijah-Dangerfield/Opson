@@ -73,9 +73,14 @@ internal data class SchemeColors(
  * - **scrim** is the sheet's #363D4C at the handoff's 45%.
  * - **Nutrient tints** are unchanged: the light nutrient colors are the same hex as before.
  *
- * WCAG AA, checked by `SlateTest`: ink, inkSoft and muted pass on bg, surface and raised. The
- * accent passes as text on the surface (4.8) but not on bg (4.25) or raised (4.0), so accent text
- * belongs on a card; on bg it is for icons, fills and large text, which need 3:1.
+ * - **accent** is the logo's squash (#E0892B) burnt down to #A3500A. The squash itself is 2.7:1 on
+ *   white and white on it is 2.7:1, so it can carry neither text nor a white label. The burnt one
+ *   is text on surface (5.7), bg (5.0), raised (4.7) and its tint (4.7), and white on it is 5.7, so
+ *   buttons keep white labels. It sits between the danger brick and the fiber brown: yellower
+ *   than one, fuller than the other.
+ * - **accentTint** is a pale peach, not the carbs tint, so a selected row never reads as breakfast.
+ *
+ * WCAG AA, checked by `SlateTest`: ink, inkSoft, muted and the accent pass on bg, surface and raised.
  */
 internal val SlateLight = SchemeColors(
     bg = Color(0xFFEEF1F6),
@@ -85,9 +90,8 @@ internal val SlateLight = SchemeColors(
     ink = Color(0xFF18202E),
     inkSoft = Color(0xFF3F485A),
     muted = Color(0xFF5A6478),
-    // The design's #1F7F78, one step darker so accent text passes AA on the page, raised and tint too.
-    accent = Color(0xFF0F766F),
-    accentTint = Color(0xFFD8EEEB),
+    accent = Color(0xFFA3500A),
+    accentTint = Color(0xFFFCE7D8),
     onAccent = Color(0xFFFFFFFF),
     hero = Color(0xFF2D3647),
     scrim = Color(0x73363D4C),
@@ -106,7 +110,12 @@ internal val SlateLight = SchemeColors(
  * sheet, so derived or measured on the Round 4 dark screens:
  *
  * - **inkSoft**, **hero**: as light.
- * - **onAccent** is the near-black teal of the + on the add button (`today-later.png`), not bg.
+ * - **accent** is a lit pumpkin, #F7924A: text on bg (7.0), surface (6.1), raised (5.3) and its
+ *   tint (5.7). Redder and fuller than the logo's egg (#F0AC66), so it reads as the same orange as
+ *   the light theme's and stays clear of the carbs color.
+ * - **onAccent** is a near-black brown (8.0 on the accent), as the + on the add button was a
+ *   near-black teal (`today-later.png`), not bg.
+ * - **activeEnergy** stays the bowl teal it was. Burned is cool on purpose (see [Colors]).
  * - **scrim** is the sheet's #0B0E14 at 63%, measured under the add sheet (`add-sheet-half.png`).
  * - **Nutrient tints** are the meal tiles (`today-select-v4.png`, `today-later.png`).
  */
@@ -118,9 +127,9 @@ internal val SlateDark = SchemeColors(
     ink = Color(0xFFE6EAF2),
     inkSoft = Color(0xFFB6BECC),
     muted = Color(0xFF98A2B4),
-    accent = Color(0xFF6CCBBF),
-    accentTint = Color(0xFF22403F),
-    onAccent = Color(0xFF0F1E1D),
+    accent = Color(0xFFF7924A),
+    accentTint = Color(0xFF452B1E),
+    onAccent = Color(0xFF1F120A),
     hero = Color(0xFF2D3647),
     scrim = Color(0xA10B0E14),
     restingEnergy = Color(0xFF8A96B2),
