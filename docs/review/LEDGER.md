@@ -420,19 +420,19 @@ keeps existing ticks.
 
 ## features-other (13 files)
 
-- [ ] `features/home/build.gradle.kts`
-- [ ] `features/home/impl/build.gradle.kts`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeFeatureEntryPoint.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeViewModel.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportScreen.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportViewModel.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackRepository.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackScreen.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModel.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/HomeViewModelTest.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenario.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
-- [ ] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
+- [x] `features/home/build.gradle.kts`
+- [x] `features/home/impl/build.gradle.kts`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeFeatureEntryPoint.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeViewModel.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportScreen.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportViewModel.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackRepository.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackScreen.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModel.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/HomeViewModelTest.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenario.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
+- [x] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
 
 ## logger (63 files)
 
@@ -502,79 +502,79 @@ keeps existing ticks.
 
 ## settings (73 files)
 
-- [ ] `features/settings/build.gradle.kts`
-- [ ] `features/settings/impl/build.gradle.kts`
-- [ ] `features/settings/impl/src/androidMain/kotlin/com/opson/features/settings/impl/support/AndroidDeviceRegion.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsCopy.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFeatureEntryPoint.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFixtures.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsLeakSurfaces.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsPage.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/TimeDialog.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsFixtures.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/LeaveOutDay.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseSheetContent.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/ReminderNotification.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/DeviceRegion.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportDirectory.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/GoalStyleSheetContent.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/GoalStyleViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseRow.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/Widgets.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModel.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/SettingsFakes.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/fasting/FastingTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/ExerciseAndLeftOutStateTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/HealthFakes.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsStateBuilderTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/LeaveOutViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/modes/ModesTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/more/MoreTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/pause/PauseViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/reminders/RemindersTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/FindSupportTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/SupportViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/water/WaterSettingsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModelTest.kt`
-- [ ] `features/settings/impl/src/iosMain/kotlin/com/opson/features/settings/impl/support/IosDeviceRegion.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/FindSupportEnabled.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRoute.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/PauseBeforeMoreRoute.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/SettingsRoutes.kt`
-- [ ] `features/settings/src/commonTest/kotlin/com/opson/features/settings/PauseBeforeMoreRouteTest.kt`
+- [x] `features/settings/build.gradle.kts`
+- [x] `features/settings/impl/build.gradle.kts`
+- [x] `features/settings/impl/src/androidMain/kotlin/com/opson/features/settings/impl/support/AndroidDeviceRegion.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsCopy.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFeatureEntryPoint.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFixtures.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsLeakSurfaces.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsPage.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/TimeDialog.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsFixtures.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/LeaveOutDay.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseSheetContent.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/ReminderNotification.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/DeviceRegion.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportDirectory.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/GoalStyleSheetContent.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/GoalStyleViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseRow.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/Widgets.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModel.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/SettingsFakes.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/fasting/FastingTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/ExerciseAndLeftOutStateTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/HealthFakes.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsStateBuilderTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/LeaveOutViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/modes/ModesTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/more/MoreTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/pause/PauseViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/reminders/RemindersTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/FindSupportTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/SupportViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/water/WaterSettingsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModelTest.kt`
+- [x] `features/settings/impl/src/iosMain/kotlin/com/opson/features/settings/impl/support/IosDeviceRegion.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/FindSupportEnabled.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRoute.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/PauseBeforeMoreRoute.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/SettingsRoutes.kt`
+- [x] `features/settings/src/commonTest/kotlin/com/opson/features/settings/PauseBeforeMoreRouteTest.kt`
 
 ## today (45 files)
 
@@ -626,66 +626,66 @@ keeps existing ticks.
 
 ## trends (60 files)
 
-- [ ] `features/trends/build.gradle.kts`
-- [ ] `features/trends/impl/build.gradle.kts`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsCalendar.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFeatureEntryPoint.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFixtures.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLabels.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLeakSurfaces.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsPreviews.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsSettingsSheet.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsSettingsViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeekAverages.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightCurve.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CaptureScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CaptureViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoLock.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoParts.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosFixtures.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosViewModel.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/Fakes.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/NutrientsStateBuilderTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/NutrientsViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsStateBuilderTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsCalendarTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsSettingsViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsStateBuilderTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/WeightStateBuilderTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/WeightViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/CaptureViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/CompareViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoFakes.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoLockTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosViewModelTest.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/NutrientsRoute.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/PatternsRoute.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/ProgressPhotosRoutes.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsRoute.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsSettingsRoute.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/WeightRoute.kt`
+- [x] `features/trends/build.gradle.kts`
+- [x] `features/trends/impl/build.gradle.kts`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsCalendar.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFeatureEntryPoint.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFixtures.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLabels.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLeakSurfaces.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsPreviews.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsSettingsSheet.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsSettingsViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeekAverages.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightCurve.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CaptureScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CaptureViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoLock.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoParts.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosFixtures.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosViewModel.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/Fakes.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/NutrientsStateBuilderTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/NutrientsViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsStateBuilderTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsCalendarTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsSettingsViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsStateBuilderTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/WeightStateBuilderTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/WeightViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/CaptureViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/CompareViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoFakes.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoLockTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosViewModelTest.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/NutrientsRoute.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/PatternsRoute.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/ProgressPhotosRoutes.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsRoute.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsSettingsRoute.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/WeightRoute.kt`
 
 ## domain-diary-nutrition (122 files)
 
