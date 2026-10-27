@@ -64,9 +64,10 @@ Astro resizes them to WebP at 1x and 2x when it builds.
 
 The layout borrows cronometer.com's shape: a dark band with the headline, the
 form and a phone, then one colored block per feature. The colors are the
-app's: Pine's dark green for the band, the first app icon's clay (`#A4512D`) as the
-accent, and the four meal colors for the blocks. `global.css` lists the
-contrast of every text pair. The site is light only.
+app's (`Slate.kt`): its ink (`#18202E`) for the band, the orange accent
+(`#A3500A`, and the lighter `#F7924A` for buttons on the band), the logo's teal
+bowl as the second color, and the four meal colors for the blocks. `global.css`
+lists the contrast of every text pair. The site is light only.
 
 ## The waitlist
 

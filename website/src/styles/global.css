@@ -25,41 +25,53 @@
   font-display: swap;
 }
 
-/* Every color comes from the app (Palette.kt). The dark band is Pine's hero, the
-   color of the summary card in the screenshots. The accent is the clay of the app
-   icon, and on the dark band it uses the lighter clay the app uses in dark mode.
-   The page and text neutrals are Espresso's, which lean warm toward the clay.
+/* Every color comes from the app (libraries/ui/.../color/Slate.kt) or its logo.
+   The brand is the orange accent on ink, so the dark band, the nav and the closing
+   block are the app's ink, the color of the logo's outlines. Links and buttons on
+   the page take the app's light accent, the logo's squash burnt down to #A3500A.
+   On the ink band the button takes the app's dark accent, the lit pumpkin, with
+   the near-black label the app puts on it. The logo's teal bowl is the second
+   color: it holds the block about your data and colors the titles on the text
+   pages. The page neutrals are Slate's.
 
    Contrast (WCAG 2.x), every pair used for text:
-     ink #241C18 on bg 15.1, ink-soft 8.6, muted 5.6, clay links 5.0, pine titles 10.8
-     white on pine 12.0, on-hero-soft on pine 7.9, ink on light clay 7.3
-     ink on breakfast 6.0, white on lunch 4.8, snack 4.7, dinner 4.9, clay 5.5
-   The light clay button against pine is 5.2, past the 3:1 a control needs. */
+     ink #18202E on bg 14.4, on surface 16.3; ink-soft 8.1, muted 5.3 on bg
+     accent links #A3500A on bg 5.0, on surface 5.7, on accent-tint 4.7
+     bowl titles #17635D on bg 6.2, on surface 7.1
+     white on ink 16.3, on-hero-soft #B6BECC on ink 8.7
+     label #1F120A on pumpkin 8.0, white on accent 5.7, white on bowl 7.1
+     ink on breakfast 5.8, white on lunch 4.8, snack 4.7, dinner 4.9
+   The pumpkin button against ink is 7.1, past the 3:1 a control needs. */
 :root {
-  --bg: #F5F3F2;
+  --bg: #EEF1F6;
   --surface: #FFFFFF;
-  --ink: #241C18;
-  --ink-soft: #4C443F;
-  --muted: #685F5B;
-  --line: #E9E5E3;
-  --soft: #F0ECEA;
-  --title: #143D37;
+  --ink: #18202E;
+  --ink-soft: #3F485A;
+  --muted: #5A6478;
+  --line: #E0E5ED;
+  --soft: #E7EBF2;
+  --title: #17635D;
 
-  --accent: #A4512D;
-  --accent-tint: #F5E4DA;
+  --accent: #A3500A;
+  --accent-tint: #FCE7D8;
   --on-accent: #FFFFFF;
 
-  --hero: #143D37;
+  --hero: #18202E;
   --on-hero: #FFFFFF;
-  --on-hero-soft: #CBD4D3;
-  --cta: #E39A6F;
-  --on-cta: #241C18;
+  --on-hero-soft: #B6BECC;
+  --cta: #F7924A;
+  --on-cta: #1F120A;
+
+  /* The logo's bowl at its rim's shade (#17635D, not the body's #1F7F78), so
+     white text on it is 7.1 rather than 4.8. */
+  --bowl: #17635D;
+  --on-bowl: #FFFFFF;
 
   /* The meal colors (Colors.meal): breakfast is the carbs gold, lunch the fat
      blue, snack the fiber brown, dinner the protein pink. Lunch and dinner are a
      step darker than in the app so white text on them passes AA. */
   --breakfast: #C4920A;
-  --on-breakfast: #241C18;
+  --on-breakfast: #18202E;
   --lunch: #3572C9;
   --on-lunch: #FFFFFF;
   --snack: #8E6E3A;
@@ -124,7 +136,7 @@ p { margin: 0; text-wrap: pretty; }
   border: 0;
 }
 
-/* The pill button. On the dark band it takes the light clay. */
+/* The pill button. On the ink band it takes the pumpkin. */
 .button {
   display: inline-flex;
   align-items: center;
