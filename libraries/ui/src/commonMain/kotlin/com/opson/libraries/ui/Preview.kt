@@ -8,11 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.opson.libraries.ui.components.AppBottomBar
-import com.opson.libraries.ui.components.BottomBarItem
 import com.opson.libraries.ui.components.dialog.DialogHost
 import com.opson.libraries.ui.components.dialog.LocalDialogHostState
 import com.opson.libraries.ui.components.dialog.rememberDialogHostState
@@ -33,44 +30,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-sealed class PreviewBottomBar(val render: @Composable () -> Unit) {
-
-    object None: PreviewBottomBar({})
-
-    object Home : PreviewBottomBar({
-        AppBottomBar(
-            items = listOf(
-                BottomBarItem.Home(isSelected = true),
-                BottomBarItem.Activity(isSelected = false),
-                BottomBarItem.Profile(isSelected = false),
-            ),
-            onItemClick = {},
-        )
-    })
-
-    object Activity : PreviewBottomBar({
-        AppBottomBar(
-            items = listOf(
-                BottomBarItem.Home(isSelected = false),
-                BottomBarItem.Activity(isSelected = true),
-                BottomBarItem.Profile(isSelected = false),
-            ),
-            onItemClick = {},
-        )
-    })
-
-    object Profile : PreviewBottomBar({
-        AppBottomBar(
-            items = listOf(
-                BottomBarItem.Home(isSelected = false),
-                BottomBarItem.Activity(isSelected = false),
-                BottomBarItem.Profile(isSelected = true),
-            ),
-            onItemClick = {},
-        )
-    })
-}
-
 /**
  * A composable that is suitable as the root for any composable preview
  *
@@ -82,7 +41,6 @@ fun PreviewContent(
     appState: AppState = PreviewAppState,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     backgroundColor: ColorResource? = ThemeBackground,
-    bottomBar: PreviewBottomBar = PreviewBottomBar.None,
     palette: Palette = Palette.Pine,
     darkTheme: Boolean = false,
     largeText: Boolean = false,
@@ -104,10 +62,6 @@ fun PreviewContent(
                     .padding(contentPadding),
             ) {
                 content()
-                Box(Modifier.align(Alignment.BottomCenter)) {
-                    bottomBar.render()
-                }
-
                 DialogHost(
                     modifier = Modifier.matchParentSize(),
                     hostState = dialogHostState

@@ -39,8 +39,9 @@ fun BasicDialog(
         scrimColor = scrimColor,
         contentAlignment = contentAlignment
     ) {
+        // The caller's modifier already went to Dialog; applying it here too would size the content twice.
         ModalContent(
-            modifier = modifier.padding(
+            modifier = Modifier.padding(
                 top = Dimension.D800,
                 start = Dimension.D800,
                 end = Dimension.D800,
@@ -125,7 +126,7 @@ private fun PreviewDialog() {
                 }
             },
             bottomContent = {
-                Button(onClick = { /*TODO*/ }) {
+                Button(onClick = {}) {
                     Text(text = "Bottom Content")
                 }
             },

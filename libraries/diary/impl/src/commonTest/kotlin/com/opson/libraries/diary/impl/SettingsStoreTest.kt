@@ -140,6 +140,28 @@ class SettingsStoreTest : CoroutineTest() {
     }
 
     @Test
+    fun beforeAuthAnswers_onlySettingsAPullLandedInAreKnown() = runUnitTest {
+        // A phone signed in to an account whose first pull never landed (offline), then restarted:
+        // the stored copy is the defaults, Full numbers, and must not show until auth answers.
+        user.user.value = ActiveUser.Unresolved
+        assertFalse(store.isKnown.value, "defaults no pull reached are nobody's settings")
+
+        user.user.value = ActiveUser.SignedIn("user-a")
+        store.markPulled("user-a", pulledSettings = true)
+        user.user.value = ActiveUser.Unresolved
+        assertTrue(store.isKnown.value, "the next cold boot trusts what user-a's pull left")
+    }
+
+    @Test
+    fun nobodySignedIn_isKnownOnceAuthSaysSo() = runUnitTest {
+        user.user.value = ActiveUser.Unresolved
+        assertFalse(store.isKnown.value)
+
+        user.user.value = ActiveUser.SignedOut
+        assertTrue(store.isKnown.value, "a fresh install has nothing else to wait for")
+    }
+
+    @Test
     fun aRefusedChangeRestoresTheCopyBeforeIt() = runUnitTest {
         store.applyPulled(row(Settings(palette = PaletteChoice.Plum), updatedAt = 5))
         store.update(stampNumbersChange = true) { it.copy(palette = PaletteChoice.Clay) }

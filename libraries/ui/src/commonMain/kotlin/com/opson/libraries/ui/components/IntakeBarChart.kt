@@ -44,10 +44,9 @@ data class IntakeBar(val label: String, val fraction: Float?, val isCurrent: Boo
  * colour that changed with the amount would mean over or under. The bar still
  * in progress is striped and its label bold.
  *
- * Deliberately not the template's `BarChart`, which this would otherwise
- * extend: that one draws a numeric axis from a value formatter, and a calorie
- * axis is a calorie amount on screen. Nothing here can print a number; heights
- * and the band arrive as fractions of a scale the builder chose.
+ * There is deliberately no numeric axis: a calorie axis is a calorie amount on
+ * screen. Nothing here can print a number; heights and the band arrive as
+ * fractions of a scale the builder chose.
  *
  * [band] is in the same fractions, `min..max`. Pass `null` for no band.
  */

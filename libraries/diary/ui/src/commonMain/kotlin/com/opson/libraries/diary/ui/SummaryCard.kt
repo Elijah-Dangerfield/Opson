@@ -45,7 +45,7 @@ import com.opson.libraries.nutrition.ui.testTag
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.HorizontalDivider
-import com.opson.libraries.ui.components.MinTouchTarget
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.PageIndicator
 import com.opson.libraries.ui.components.RangeBar
 import com.opson.libraries.ui.components.RangeBarDefaults

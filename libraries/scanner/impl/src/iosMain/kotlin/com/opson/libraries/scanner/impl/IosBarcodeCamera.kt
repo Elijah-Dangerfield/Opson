@@ -37,12 +37,11 @@ import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
 import platform.UIKit.UIColor
 import platform.UIKit.UIView
-import platform.darwin.DISPATCH_QUEUE_PRIORITY_DEFAULT
 import platform.darwin.NSObject
 import platform.darwin.NSObjectProtocol
 import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_global_queue
 import platform.darwin.dispatch_get_main_queue
+import platform.darwin.dispatch_queue_create
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
@@ -142,7 +141,7 @@ private class CaptureSession(onCode: (ScannedCode) -> Unit, private val onUnavai
             ) { _ -> unavailable() }
         }
         // startRunning blocks until the camera is up, so never on the main thread.
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.toLong(), 0uL)) {
+        dispatch_async(captureQueue) {
             if (!session.running) session.startRunning()
             if (!session.running) dispatch_async(dispatch_get_main_queue()) { unavailable() }
         }
@@ -160,7 +159,7 @@ private class CaptureSession(onCode: (ScannedCode) -> Unit, private val onUnavai
         stopped = true
         observers.forEach { NSNotificationCenter.defaultCenter.removeObserver(it) }
         observers.clear()
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.toLong(), 0uL)) {
+        dispatch_async(captureQueue) {
             if (session.running) session.stopRunning()
         }
     }
@@ -198,6 +197,14 @@ private class MetadataDelegate(private val onCode: (ScannedCode) -> Unit) :
             ?.let(onCode)
     }
 }
+
+/**
+ * Where every capture session, this one's and the still camera's, starts and stops. Serial, so a
+ * stop always runs after the start before it. On a concurrent queue, a screen closed (or a camera
+ * flipped) while its session was still coming up could have its stop find nothing running yet,
+ * and the start then left the camera on with nothing showing it.
+ */
+internal val captureQueue = dispatch_queue_create("com.opson.scanner.capture", null)
 
 private val FORMATS: Map<String?, BarcodeFormat> = mapOf(
     AVMetadataObjectTypeEAN13Code to BarcodeFormat.Ean13,

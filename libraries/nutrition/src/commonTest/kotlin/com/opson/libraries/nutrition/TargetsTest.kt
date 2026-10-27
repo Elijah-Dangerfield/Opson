@@ -1,5 +1,7 @@
 package com.opson.libraries.nutrition
 
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -110,6 +112,18 @@ class TargetsTest {
         assertEquals(EnergyRange(2510, 2310, 2710, 410), base.today(ExerciseAdjustment.All, 260, 150))
         assertEquals(EnergyRange(2305, 2105, 2505, 205), base.today(ExerciseAdjustment.Some, 260, 150))
         assertEquals(EnergyRange(2100, 1900, 2300, 0), base.today(ExerciseAdjustment.None, 260, 150))
+    }
+
+    @Test
+    fun today_startsFromTheDaysOwnGoal() {
+        val saturday = LocalDate(2026, 10, 24)
+        val weekend = DayGroup(setOf(DayOfWeek.SATURDAY), minKcal = 2300, maxKcal = 2700)
+        val rest = DayGroup(DayOfWeek.entries.toSet() - weekend.days, minKcal = 1900, maxKcal = 2300)
+        val byDay = base.copy(style = TargetStyle.ByDay(listOf(rest, weekend)))
+
+        val goal = byDay.rangeFor(saturday, PresetId.Full)
+
+        assertEquals(EnergyRange(2600, 2400, 2800, 100), byDay.today(ExerciseAdjustment.All, 100, 0, goal))
     }
 
     @Test

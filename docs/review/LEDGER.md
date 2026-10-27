@@ -461,69 +461,69 @@ keeps existing ticks.
 
 ## logger (63 files)
 
-- [ ] `features/logger/build.gradle.kts`
-- [ ] `features/logger/impl/build.gradle.kts`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AmountCustomSize.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AmountSheet.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AmountSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AmountViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScan.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanPreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanScreen.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/Basket.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BasketCommitter.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoice.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoiceViews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/HowItFelt.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/HowItFeltSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerCommon.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFeatureEntryPoint.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerLeakSurfaces.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPanes.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerState.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerStateBuilder.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/NameOnlyPick.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimate.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimatePreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilder.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptions.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheet.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceLogEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoicePreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceTelemetry.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/AmountTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BasketStoreTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeVoiceViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/Fakes.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/HowItFeltTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoRowsTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/VoiceStateBuilderTest.kt`
-- [ ] `features/logger/src/commonMain/kotlin/com/opson/features/logger/LoggerRoute.kt`
+- [x] `features/logger/build.gradle.kts`
+- [x] `features/logger/impl/build.gradle.kts`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AmountCustomSize.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AmountSheet.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AmountSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AmountViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScan.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanPreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanScreen.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/Basket.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BasketCommitter.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoice.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoiceViews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/HowItFelt.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/HowItFeltSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerCommon.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFeatureEntryPoint.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerLeakSurfaces.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPanes.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerState.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerStateBuilder.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/NameOnlyPick.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimate.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimatePreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilder.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptions.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheet.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceLogEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoicePreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceTelemetry.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/AmountTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BasketStoreTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeVoiceViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/Fakes.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/HowItFeltTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoRowsTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/VoiceStateBuilderTest.kt`
+- [x] `features/logger/src/commonMain/kotlin/com/opson/features/logger/LoggerRoute.kt`
 
 ## settings (73 files)
 
@@ -603,51 +603,51 @@ keeps existing ticks.
 
 ## today (45 files)
 
-- [ ] `features/today/build.gradle.kts`
-- [ ] `features/today/impl/build.gradle.kts`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/ExerciseRange.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/ExplorerStats.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/FoodBridges.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/SummaryStats.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayExpendedPreviews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFastingCard.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFeatureEntryPoint.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFixtures.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayLeakSurfaces.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayPreviews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayReleaseFlags.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayScreen.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySelectViews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySheetRoutes.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayState.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayStateBuilder.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySummaryViews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayViewModel.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/calendar/CalendarSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/cards/TodayCardsSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/DayCloseScreen.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/DayCloseState.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/WhyNotCutBackSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/daynote/DayNoteSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/item/ItemSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealFeelSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealNoteSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/water/WaterSheet.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/DayCloseTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/ExerciseRangeTodayTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/Fakes.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/FoodBridgesTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/HealthFakes.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/SheetsTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayCardsSummaryTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayExpendedTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayStateBuilderTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodaySummaryBuilderTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayViewModelTest.kt`
-- [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/DayCloseRoute.kt`
-- [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/MealNoteRoute.kt`
-- [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/TodayRoute.kt`
+- [x] `features/today/build.gradle.kts`
+- [x] `features/today/impl/build.gradle.kts`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/ExerciseRange.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/ExplorerStats.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/FoodBridges.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/SummaryStats.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayExpendedPreviews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFastingCard.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFeatureEntryPoint.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFixtures.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayLeakSurfaces.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayPreviews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayReleaseFlags.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayScreen.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySelectViews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySheetRoutes.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayState.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayStateBuilder.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySummaryViews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayViewModel.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/calendar/CalendarSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/cards/TodayCardsSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/DayCloseScreen.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/DayCloseState.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/WhyNotCutBackSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/daynote/DayNoteSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/item/ItemSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealFeelSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealNoteSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/water/WaterSheet.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/DayCloseTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/ExerciseRangeTodayTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/Fakes.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/FoodBridgesTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/HealthFakes.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/SheetsTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayCardsSummaryTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayExpendedTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayStateBuilderTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodaySummaryBuilderTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayViewModelTest.kt`
+- [x] `features/today/src/commonMain/kotlin/com/opson/features/today/DayCloseRoute.kt`
+- [x] `features/today/src/commonMain/kotlin/com/opson/features/today/MealNoteRoute.kt`
+- [x] `features/today/src/commonMain/kotlin/com/opson/features/today/TodayRoute.kt`
 
 ## trends (60 files)
 
@@ -714,413 +714,413 @@ keeps existing ticks.
 
 ## domain-diary-nutrition (122 files)
 
-- [ ] `libraries/diary/build.gradle.kts`
-- [ ] `libraries/diary/impl/build.gradle.kts`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ActiveUser.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryStore.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncApi.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncer.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/HttpDataExport.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/Mappers.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/MealPicksImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecentLogEventsImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecordRepositories.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SelectedDayImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChanger.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsStore.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySource.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/wire/SyncWire.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImplTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerDebounceTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/Fakes.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImplTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/RecentLogEventsTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChangerTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsStoreTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySourceTest.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/DataExport.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Day.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FastingReleaseFlag.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Fasts.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FoodKind.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/HouseholdAmount.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LocalCalendar.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LogItem.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPatterns.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPicks.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlot.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlotPicker.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/NumbersChanger.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/RecentLogEvents.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Records.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Repositories.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SelectedDay.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Settings.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SettingsSerializers.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryDaos.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryEntities.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/DayTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ExerciseRangeSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FastsTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodKindTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodPrefsSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HouseholdAmountTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealPatternsTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealSlotPickerTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SearchOptionsSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SettingsTest.kt`
-- [ ] `libraries/diary/ui/build.gradle.kts`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DayTotals.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DiaryItemRow.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FastingCards.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FavoriteFoodTile.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodIconTile.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodPickRow.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowActions.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowsCard.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/Labels.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/MealSlotStyle.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/NutrientTile.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/SummaryCard.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/TodayCards.kt`
-- [ ] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/FoodTintTest.kt`
-- [ ] `libraries/nutrition/build.gradle.kts`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Display.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Fasting.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroLine.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Metric.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MicroWireKeys.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Micronutrient.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersChange.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersSettings.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutrientAmounts.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutritionFormatter.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Presets.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RangeAndShare.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RingValue.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/TargetStyle.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Targets.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Units.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicy.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicySource.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WaterProgress.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WeightTrend.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseRangeTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/Fixtures.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/FormatTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/GoalStyleTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroLineTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MathTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroPercentsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroWireKeysTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersChangeTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersSettingsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NutrientAmountsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PresetsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RangeAndShareTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RingValueTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetStyleTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyResolveTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyRevealTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/WaterProgressTest.kt`
-- [ ] `libraries/nutrition/ui/build.gradle.kts`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/LocalVisibilityPolicy.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/MacroLine.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFigure.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFillBar.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientPhrase.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientRingLabel.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientValue.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/leak/LeakSurface.kt`
+- [x] `libraries/diary/build.gradle.kts`
+- [x] `libraries/diary/impl/build.gradle.kts`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ActiveUser.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryStore.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncApi.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncer.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/HttpDataExport.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/Mappers.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/MealPicksImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecentLogEventsImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecordRepositories.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SelectedDayImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChanger.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsStore.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySource.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/wire/SyncWire.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImplTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerDebounceTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/Fakes.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImplTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/RecentLogEventsTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChangerTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsStoreTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySourceTest.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/DataExport.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Day.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FastingReleaseFlag.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Fasts.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FoodKind.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/HouseholdAmount.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LocalCalendar.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LogItem.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPatterns.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPicks.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlot.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlotPicker.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/NumbersChanger.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/RecentLogEvents.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Records.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Repositories.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SelectedDay.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Settings.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SettingsSerializers.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryDaos.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryEntities.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/DayTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ExerciseRangeSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FastsTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodKindTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodPrefsSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HouseholdAmountTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealPatternsTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealSlotPickerTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SearchOptionsSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SettingsTest.kt`
+- [x] `libraries/diary/ui/build.gradle.kts`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DayTotals.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DiaryItemRow.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FastingCards.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FavoriteFoodTile.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodIconTile.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodPickRow.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowActions.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowsCard.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/Labels.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/MealSlotStyle.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/NutrientTile.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/SummaryCard.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/TodayCards.kt`
+- [x] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/FoodTintTest.kt`
+- [x] `libraries/nutrition/build.gradle.kts`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Display.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Fasting.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroLine.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Metric.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MicroWireKeys.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Micronutrient.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersChange.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersSettings.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutrientAmounts.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutritionFormatter.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Presets.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RangeAndShare.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RingValue.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/TargetStyle.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Targets.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Units.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicy.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicySource.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WaterProgress.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WeightTrend.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseRangeTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/Fixtures.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/FormatTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/GoalStyleTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroLineTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MathTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroPercentsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroWireKeysTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersChangeTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersSettingsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NutrientAmountsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PresetsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RangeAndShareTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RingValueTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetStyleTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyResolveTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyRevealTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/WaterProgressTest.kt`
+- [x] `libraries/nutrition/ui/build.gradle.kts`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/LocalVisibilityPolicy.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/MacroLine.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFigure.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFillBar.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientPhrase.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientRingLabel.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientValue.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/leak/LeakSurface.kt`
 
 ## platform-libraries (98 files)
 
-- [ ] `libraries/foods/build.gradle.kts`
-- [ ] `libraries/foods/impl/build.gradle.kts`
-- [ ] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/FoodApi.kt`
-- [ ] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/FoodCatalogImpl.kt`
-- [ ] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/HttpBarcodeMissReporter.kt`
-- [ ] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/HttpMealPhotoEstimator.kt`
-- [ ] `libraries/foods/impl/src/commonTest/kotlin/com/opson/libraries/foods/impl/FoodCatalogImplTest.kt`
-- [ ] `libraries/foods/impl/src/commonTest/kotlin/com/opson/libraries/foods/impl/HttpMealPhotoEstimatorTest.kt`
-- [ ] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/BarcodeMissReporter.kt`
-- [ ] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/Food.kt`
-- [ ] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/FoodAmount.kt`
-- [ ] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/FoodRef.kt`
-- [ ] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/FoodSearchFilter.kt`
-- [ ] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/Gtin.kt`
-- [ ] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/MealPhotoEstimator.kt`
-- [ ] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/PortionAmount.kt`
-- [ ] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/db/FoodCache.kt`
-- [ ] `libraries/foods/src/commonTest/kotlin/com/opson/libraries/foods/FoodAmountTest.kt`
-- [ ] `libraries/foods/src/commonTest/kotlin/com/opson/libraries/foods/GtinTest.kt`
-- [ ] `libraries/foods/src/commonTest/kotlin/com/opson/libraries/foods/PortionAmountTest.kt`
-- [ ] `libraries/health/build.gradle.kts`
-- [ ] `libraries/health/impl/build.gradle.kts`
-- [ ] `libraries/health/impl/src/androidMain/kotlin/com/opson/libraries/health/impl/HealthConnectReader.kt`
-- [ ] `libraries/health/impl/src/androidMain/kotlin/com/opson/libraries/health/impl/HealthPermissionsRationaleActivity.kt`
-- [ ] `libraries/health/impl/src/commonMain/kotlin/com/opson/libraries/health/impl/HealthReader.kt`
-- [ ] `libraries/health/impl/src/commonMain/kotlin/com/opson/libraries/health/impl/RealHealthRepository.kt`
-- [ ] `libraries/health/impl/src/commonTest/kotlin/com/opson/libraries/health/impl/RealHealthRepositoryTest.kt`
-- [ ] `libraries/health/impl/src/iosMain/kotlin/com/opson/libraries/health/impl/HealthKitReader.kt`
-- [ ] `libraries/health/src/commonMain/kotlin/com/opson/libraries/health/HealthReleaseFlag.kt`
-- [ ] `libraries/health/src/commonMain/kotlin/com/opson/libraries/health/HealthRepository.kt`
-- [ ] `libraries/health/src/commonTest/kotlin/com/opson/libraries/health/EnergyExpendedTest.kt`
-- [ ] `libraries/reminders/build.gradle.kts`
-- [ ] `libraries/reminders/impl/build.gradle.kts`
-- [ ] `libraries/reminders/impl/src/androidMain/kotlin/com/opson/libraries/reminders/impl/AndroidLocalNotifications.kt`
-- [ ] `libraries/reminders/impl/src/androidMain/kotlin/com/opson/libraries/reminders/impl/ReminderPosting.kt`
-- [ ] `libraries/reminders/impl/src/androidMain/kotlin/com/opson/libraries/reminders/impl/ReminderReceivers.kt`
-- [ ] `libraries/reminders/impl/src/commonMain/kotlin/com/opson/libraries/reminders/impl/ComposeReminderStrings.kt`
-- [ ] `libraries/reminders/impl/src/commonMain/kotlin/com/opson/libraries/reminders/impl/ReminderCoordinator.kt`
-- [ ] `libraries/reminders/impl/src/commonMain/kotlin/com/opson/libraries/reminders/impl/ReminderWire.kt`
-- [ ] `libraries/reminders/impl/src/commonTest/kotlin/com/opson/libraries/reminders/impl/ReminderCoordinatorTest.kt`
-- [ ] `libraries/reminders/impl/src/commonTest/kotlin/com/opson/libraries/reminders/impl/ReminderFakes.kt`
-- [ ] `libraries/reminders/impl/src/iosMain/kotlin/com/opson/libraries/reminders/impl/IosLocalNotifications.kt`
-- [ ] `libraries/reminders/impl/src/iosMain/kotlin/com/opson/libraries/reminders/impl/IosReminderDelegate.kt`
-- [ ] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/LocalNotifications.kt`
-- [ ] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/Reminder.kt`
-- [ ] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/ReminderActions.kt`
-- [ ] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/ReminderCopy.kt`
-- [ ] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/ReminderEvents.kt`
-- [ ] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/ReminderPlanner.kt`
-- [ ] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/RemindersEnabled.kt`
-- [ ] `libraries/reminders/src/commonTest/kotlin/com/opson/libraries/reminders/ReminderCopyTest.kt`
-- [ ] `libraries/reminders/src/commonTest/kotlin/com/opson/libraries/reminders/ReminderPlannerTest.kt`
-- [ ] `libraries/scanner/build.gradle.kts`
-- [ ] `libraries/scanner/impl/build.gradle.kts`
-- [ ] `libraries/scanner/impl/src/androidMain/kotlin/com/opson/libraries/scanner/impl/AndroidBarcodeCamera.kt`
-- [ ] `libraries/scanner/impl/src/androidMain/kotlin/com/opson/libraries/scanner/impl/AndroidCameraPermissions.kt`
-- [ ] `libraries/scanner/impl/src/androidMain/kotlin/com/opson/libraries/scanner/impl/AndroidMealPhotoPicker.kt`
-- [ ] `libraries/scanner/impl/src/androidMain/kotlin/com/opson/libraries/scanner/impl/AndroidStillCamera.kt`
-- [ ] `libraries/scanner/impl/src/iosMain/kotlin/com/opson/libraries/scanner/impl/IosBarcodeCamera.kt`
-- [ ] `libraries/scanner/impl/src/iosMain/kotlin/com/opson/libraries/scanner/impl/IosCameraPermissions.kt`
-- [ ] `libraries/scanner/impl/src/iosMain/kotlin/com/opson/libraries/scanner/impl/IosMealPhotoPicker.kt`
-- [ ] `libraries/scanner/impl/src/iosMain/kotlin/com/opson/libraries/scanner/impl/IosStillCamera.kt`
-- [ ] `libraries/scanner/src/commonMain/kotlin/com/opson/libraries/scanner/BarcodeCamera.kt`
-- [ ] `libraries/scanner/src/commonMain/kotlin/com/opson/libraries/scanner/MealPhotoPicker.kt`
-- [ ] `libraries/scanner/src/commonMain/kotlin/com/opson/libraries/scanner/StillCamera.kt`
-- [ ] `libraries/speech/build.gradle.kts`
-- [ ] `libraries/speech/impl/build.gradle.kts`
-- [ ] `libraries/speech/impl/src/androidMain/kotlin/com/opson/libraries/speech/impl/AndroidSpeechToText.kt`
-- [ ] `libraries/speech/impl/src/commonMain/kotlin/com/opson/libraries/speech/impl/MicSession.kt`
-- [ ] `libraries/speech/impl/src/commonTest/kotlin/com/opson/libraries/speech/impl/MicSessionTest.kt`
-- [ ] `libraries/speech/impl/src/iosMain/kotlin/com/opson/libraries/speech/impl/IosSpeechToText.kt`
-- [ ] `libraries/speech/src/commonMain/kotlin/com/opson/libraries/speech/SpeechToText.kt`
-- [ ] `libraries/widgets/build.gradle.kts`
-- [ ] `libraries/widgets/impl/build.gradle.kts`
-- [ ] `libraries/widgets/impl/src/androidMain/kotlin/com/opson/libraries/widgets/impl/AndroidWidgetPublisher.kt`
-- [ ] `libraries/widgets/impl/src/androidMain/kotlin/com/opson/libraries/widgets/impl/OpsonWidget.kt`
-- [ ] `libraries/widgets/impl/src/androidMain/kotlin/com/opson/libraries/widgets/impl/OpsonWidgetPreviews.kt`
-- [ ] `libraries/widgets/impl/src/commonMain/kotlin/com/opson/libraries/widgets/impl/ComposeWidgetStrings.kt`
-- [ ] `libraries/widgets/impl/src/commonMain/kotlin/com/opson/libraries/widgets/impl/RealWidgetSnapshotSource.kt`
-- [ ] `libraries/widgets/impl/src/commonMain/kotlin/com/opson/libraries/widgets/impl/WidgetOpener.kt`
-- [ ] `libraries/widgets/impl/src/commonMain/kotlin/com/opson/libraries/widgets/impl/WidgetRefresher.kt`
-- [ ] `libraries/widgets/impl/src/commonTest/kotlin/com/opson/libraries/widgets/impl/WidgetFakes.kt`
-- [ ] `libraries/widgets/impl/src/commonTest/kotlin/com/opson/libraries/widgets/impl/WidgetRefresherTest.kt`
-- [ ] `libraries/widgets/impl/src/commonTest/kotlin/com/opson/libraries/widgets/impl/WidgetSourceAndOpenerTest.kt`
-- [ ] `libraries/widgets/impl/src/iosMain/kotlin/com/opson/libraries/widgets/impl/IosWidgetPublisher.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetCard.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetCardPreviews.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetCopy.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetEvents.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetFixtures.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetLinks.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetPalette.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetSnapshot.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetSnapshotBuilder.kt`
-- [ ] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetsEnabled.kt`
-- [ ] `libraries/widgets/src/commonTest/kotlin/com/opson/libraries/widgets/NextMealTest.kt`
-- [ ] `libraries/widgets/src/commonTest/kotlin/com/opson/libraries/widgets/WidgetSnapshotBuilderTest.kt`
-- [ ] `libraries/widgets/src/iosMain/kotlin/com/opson/libraries/widgets/WidgetBridge.kt`
+- [x] `libraries/foods/build.gradle.kts`
+- [x] `libraries/foods/impl/build.gradle.kts`
+- [x] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/FoodApi.kt`
+- [x] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/FoodCatalogImpl.kt`
+- [x] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/HttpBarcodeMissReporter.kt`
+- [x] `libraries/foods/impl/src/commonMain/kotlin/com/opson/libraries/foods/impl/HttpMealPhotoEstimator.kt`
+- [x] `libraries/foods/impl/src/commonTest/kotlin/com/opson/libraries/foods/impl/FoodCatalogImplTest.kt`
+- [x] `libraries/foods/impl/src/commonTest/kotlin/com/opson/libraries/foods/impl/HttpMealPhotoEstimatorTest.kt`
+- [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/BarcodeMissReporter.kt`
+- [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/Food.kt`
+- [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/FoodAmount.kt`
+- [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/FoodRef.kt`
+- [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/FoodSearchFilter.kt`
+- [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/Gtin.kt`
+- [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/MealPhotoEstimator.kt`
+- [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/PortionAmount.kt`
+- [x] `libraries/foods/src/commonMain/kotlin/com/opson/libraries/foods/db/FoodCache.kt`
+- [x] `libraries/foods/src/commonTest/kotlin/com/opson/libraries/foods/FoodAmountTest.kt`
+- [x] `libraries/foods/src/commonTest/kotlin/com/opson/libraries/foods/GtinTest.kt`
+- [x] `libraries/foods/src/commonTest/kotlin/com/opson/libraries/foods/PortionAmountTest.kt`
+- [x] `libraries/health/build.gradle.kts`
+- [x] `libraries/health/impl/build.gradle.kts`
+- [x] `libraries/health/impl/src/androidMain/kotlin/com/opson/libraries/health/impl/HealthConnectReader.kt`
+- [x] `libraries/health/impl/src/androidMain/kotlin/com/opson/libraries/health/impl/HealthPermissionsRationaleActivity.kt`
+- [x] `libraries/health/impl/src/commonMain/kotlin/com/opson/libraries/health/impl/HealthReader.kt`
+- [x] `libraries/health/impl/src/commonMain/kotlin/com/opson/libraries/health/impl/RealHealthRepository.kt`
+- [x] `libraries/health/impl/src/commonTest/kotlin/com/opson/libraries/health/impl/RealHealthRepositoryTest.kt`
+- [x] `libraries/health/impl/src/iosMain/kotlin/com/opson/libraries/health/impl/HealthKitReader.kt`
+- [x] `libraries/health/src/commonMain/kotlin/com/opson/libraries/health/HealthReleaseFlag.kt`
+- [x] `libraries/health/src/commonMain/kotlin/com/opson/libraries/health/HealthRepository.kt`
+- [x] `libraries/health/src/commonTest/kotlin/com/opson/libraries/health/EnergyExpendedTest.kt`
+- [x] `libraries/reminders/build.gradle.kts`
+- [x] `libraries/reminders/impl/build.gradle.kts`
+- [x] `libraries/reminders/impl/src/androidMain/kotlin/com/opson/libraries/reminders/impl/AndroidLocalNotifications.kt`
+- [x] `libraries/reminders/impl/src/androidMain/kotlin/com/opson/libraries/reminders/impl/ReminderPosting.kt`
+- [x] `libraries/reminders/impl/src/androidMain/kotlin/com/opson/libraries/reminders/impl/ReminderReceivers.kt`
+- [x] `libraries/reminders/impl/src/commonMain/kotlin/com/opson/libraries/reminders/impl/ComposeReminderStrings.kt`
+- [x] `libraries/reminders/impl/src/commonMain/kotlin/com/opson/libraries/reminders/impl/ReminderCoordinator.kt`
+- [x] `libraries/reminders/impl/src/commonMain/kotlin/com/opson/libraries/reminders/impl/ReminderWire.kt`
+- [x] `libraries/reminders/impl/src/commonTest/kotlin/com/opson/libraries/reminders/impl/ReminderCoordinatorTest.kt`
+- [x] `libraries/reminders/impl/src/commonTest/kotlin/com/opson/libraries/reminders/impl/ReminderFakes.kt`
+- [x] `libraries/reminders/impl/src/iosMain/kotlin/com/opson/libraries/reminders/impl/IosLocalNotifications.kt`
+- [x] `libraries/reminders/impl/src/iosMain/kotlin/com/opson/libraries/reminders/impl/IosReminderDelegate.kt`
+- [x] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/LocalNotifications.kt`
+- [x] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/Reminder.kt`
+- [x] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/ReminderActions.kt`
+- [x] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/ReminderCopy.kt`
+- [x] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/ReminderEvents.kt`
+- [x] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/ReminderPlanner.kt`
+- [x] `libraries/reminders/src/commonMain/kotlin/com/opson/libraries/reminders/RemindersEnabled.kt`
+- [x] `libraries/reminders/src/commonTest/kotlin/com/opson/libraries/reminders/ReminderCopyTest.kt`
+- [x] `libraries/reminders/src/commonTest/kotlin/com/opson/libraries/reminders/ReminderPlannerTest.kt`
+- [x] `libraries/scanner/build.gradle.kts`
+- [x] `libraries/scanner/impl/build.gradle.kts`
+- [x] `libraries/scanner/impl/src/androidMain/kotlin/com/opson/libraries/scanner/impl/AndroidBarcodeCamera.kt`
+- [x] `libraries/scanner/impl/src/androidMain/kotlin/com/opson/libraries/scanner/impl/AndroidCameraPermissions.kt`
+- [x] `libraries/scanner/impl/src/androidMain/kotlin/com/opson/libraries/scanner/impl/AndroidMealPhotoPicker.kt`
+- [x] `libraries/scanner/impl/src/androidMain/kotlin/com/opson/libraries/scanner/impl/AndroidStillCamera.kt`
+- [x] `libraries/scanner/impl/src/iosMain/kotlin/com/opson/libraries/scanner/impl/IosBarcodeCamera.kt`
+- [x] `libraries/scanner/impl/src/iosMain/kotlin/com/opson/libraries/scanner/impl/IosCameraPermissions.kt`
+- [x] `libraries/scanner/impl/src/iosMain/kotlin/com/opson/libraries/scanner/impl/IosMealPhotoPicker.kt`
+- [x] `libraries/scanner/impl/src/iosMain/kotlin/com/opson/libraries/scanner/impl/IosStillCamera.kt`
+- [x] `libraries/scanner/src/commonMain/kotlin/com/opson/libraries/scanner/BarcodeCamera.kt`
+- [x] `libraries/scanner/src/commonMain/kotlin/com/opson/libraries/scanner/MealPhotoPicker.kt`
+- [x] `libraries/scanner/src/commonMain/kotlin/com/opson/libraries/scanner/StillCamera.kt`
+- [x] `libraries/speech/build.gradle.kts`
+- [x] `libraries/speech/impl/build.gradle.kts`
+- [x] `libraries/speech/impl/src/androidMain/kotlin/com/opson/libraries/speech/impl/AndroidSpeechToText.kt`
+- [x] `libraries/speech/impl/src/commonMain/kotlin/com/opson/libraries/speech/impl/MicSession.kt`
+- [x] `libraries/speech/impl/src/commonTest/kotlin/com/opson/libraries/speech/impl/MicSessionTest.kt`
+- [x] `libraries/speech/impl/src/iosMain/kotlin/com/opson/libraries/speech/impl/IosSpeechToText.kt`
+- [x] `libraries/speech/src/commonMain/kotlin/com/opson/libraries/speech/SpeechToText.kt`
+- [x] `libraries/widgets/build.gradle.kts`
+- [x] `libraries/widgets/impl/build.gradle.kts`
+- [x] `libraries/widgets/impl/src/androidMain/kotlin/com/opson/libraries/widgets/impl/AndroidWidgetPublisher.kt`
+- [x] `libraries/widgets/impl/src/androidMain/kotlin/com/opson/libraries/widgets/impl/OpsonWidget.kt`
+- [x] `libraries/widgets/impl/src/androidMain/kotlin/com/opson/libraries/widgets/impl/OpsonWidgetPreviews.kt`
+- [x] `libraries/widgets/impl/src/commonMain/kotlin/com/opson/libraries/widgets/impl/ComposeWidgetStrings.kt`
+- [x] `libraries/widgets/impl/src/commonMain/kotlin/com/opson/libraries/widgets/impl/RealWidgetSnapshotSource.kt`
+- [x] `libraries/widgets/impl/src/commonMain/kotlin/com/opson/libraries/widgets/impl/WidgetOpener.kt`
+- [x] `libraries/widgets/impl/src/commonMain/kotlin/com/opson/libraries/widgets/impl/WidgetRefresher.kt`
+- [x] `libraries/widgets/impl/src/commonTest/kotlin/com/opson/libraries/widgets/impl/WidgetFakes.kt`
+- [x] `libraries/widgets/impl/src/commonTest/kotlin/com/opson/libraries/widgets/impl/WidgetRefresherTest.kt`
+- [x] `libraries/widgets/impl/src/commonTest/kotlin/com/opson/libraries/widgets/impl/WidgetSourceAndOpenerTest.kt`
+- [x] `libraries/widgets/impl/src/iosMain/kotlin/com/opson/libraries/widgets/impl/IosWidgetPublisher.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetCard.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetCardPreviews.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetCopy.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetEvents.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetFixtures.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetLinks.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetPalette.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetSnapshot.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetSnapshotBuilder.kt`
+- [x] `libraries/widgets/src/commonMain/kotlin/com/opson/libraries/widgets/WidgetsEnabled.kt`
+- [x] `libraries/widgets/src/commonTest/kotlin/com/opson/libraries/widgets/NextMealTest.kt`
+- [x] `libraries/widgets/src/commonTest/kotlin/com/opson/libraries/widgets/WidgetSnapshotBuilderTest.kt`
+- [x] `libraries/widgets/src/iosMain/kotlin/com/opson/libraries/widgets/WidgetBridge.kt`
 
 ## ui-library (181 files)
 
-- [ ] `libraries/resources/build.gradle.kts`
-- [ ] `libraries/resources/src/commonMain/kotlin/com/opsone/libraries/resources/Resources.kt`
-- [ ] `libraries/ui/build.gradle.kts`
-- [ ] `libraries/ui/src/androidMain/kotlin/com/opson/libraries/ui/ImageUtils.android.kt`
-- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextFieldSemanticsTest.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/ImageUtils.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/NoScreenshot.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/Preview.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ButtonCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/Catalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ColorCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/DesignSystemGallery.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/DesignSystemPreview.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/FormCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/RadiiCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/TypographyCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/AnchoredContent.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BadgedBox.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Banner.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BarChart.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BottomBar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BottomNavBar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Card.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChecklistRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChevronLink.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChoiceRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/CircularProgressIndicator.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/CyclingLoadingMessage.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DayHeader.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DelayedLoadingIndicator.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Dots.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DropDown.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/EdgeCard.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/FormField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/FullScreenLoader.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Grid.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroBlock.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroParts.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HorizontalDivider.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/IntakeBarChart.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LegendDot.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LinearProgressIndicator.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ListItem.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ListRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LoopingAnimation.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/MenuPopover.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/MonthGrid.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PageHeader.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PageHeaderSubtitle.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PhotoThumbnail.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Progress.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ProgressRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PromptCard.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ScanFrame.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Screen.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SectionCard.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SegmentedControl.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SelectableCard.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetHeader.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetMenu.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Slider.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Snackbar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Stepper.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/StripedBar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Surface.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SwipePages.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Switch.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TapField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Timeline.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TintTile.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TrendLine.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/UndoBar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/BasicButton.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/Button.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/FlatButton.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/Checkbox.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/CircleCheckbox.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/SquareCheck.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/chip/PillChip.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/chip/SelectChip.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/BasicDialog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/Dialog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/DialogHostState.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/DialogState.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ModalContent.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ShakeDialog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/TimePickerDialog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BasicBottomSheet.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheet.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetDefaults.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetState.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetValue.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/ExpandOnDragUp.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/SheetFrame.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/header/Header.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/AppIcons.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/CircleIcon.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icon.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconButton.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconTile.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icons.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/Fruit.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/Home.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/ShortCut.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/SnowFlake.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/TipJar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/bar-chart-outlined.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/bar-chart.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/eraser.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioButton.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioGroup.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioMatrix.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/AsteriskText.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BasicTextField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BoldPrefixedText.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BulletRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/ClickableText.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/HtmlTextExt.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/InputBox.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/MaskedTextField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/NumberField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlineInputField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlinedText.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlinedTextField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/SearchField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/Text.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextArea.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextInput.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TypedText.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TypeeriterEffect.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/UnderlineInputField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/UnderlineTextField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/debug/RecompositionCounter.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/PresenterSnackbarHost.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/SnackBarPresenter.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Alignments.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/AnimatePlacement.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/AppTheme.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Border.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/BounceClick.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/DimensionResource.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Elevation.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/FieldState.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Local.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/LoremIpsum.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ModifierExt.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Outlines.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/PaddingValuesExt.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Point.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Pulsate.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Radius.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ScrollBar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Selectable.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Shapes.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Size.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Spacers.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Span.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ThrottledCallback.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Toggle.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Tokens.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/TouchTarget.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Util.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/ColorResource.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Colors.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Palette.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/fadingEdges.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/FontFamily.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypeScale.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypographyResource.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/time/RelativeDay.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/SharedCommonTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/BarFillTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/PlaceAgainstAnchorTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/NumberInputTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/TypedTextTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/time/RelativeDayTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/system/color/NeutralsTest.kt`
-- [ ] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/ImageUtils.ios.kt`
-- [ ] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/nativeviews/NativeViewFactory.kt`
-- [ ] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/system/color/ColorResource+UIColor.kt`
+- [x] `libraries/resources/build.gradle.kts`
+- [x] `libraries/resources/src/commonMain/kotlin/com/opsone/libraries/resources/Resources.kt`
+- [x] `libraries/ui/build.gradle.kts`
+- [x] `libraries/ui/src/androidMain/kotlin/com/opson/libraries/ui/ImageUtils.android.kt`
+- [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextFieldSemanticsTest.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/ImageUtils.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/NoScreenshot.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/Preview.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ButtonCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/Catalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ColorCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/DesignSystemGallery.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/DesignSystemPreview.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/FormCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/RadiiCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/TypographyCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/AnchoredContent.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BadgedBox.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Banner.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BarChart.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BottomBar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BottomNavBar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Card.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChecklistRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChevronLink.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChoiceRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/CircularProgressIndicator.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/CyclingLoadingMessage.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DayHeader.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DelayedLoadingIndicator.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Dots.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DropDown.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/EdgeCard.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/FormField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/FullScreenLoader.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Grid.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroBlock.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroParts.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HorizontalDivider.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/IntakeBarChart.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LegendDot.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LinearProgressIndicator.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ListItem.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ListRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LoopingAnimation.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/MenuPopover.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/MonthGrid.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PageHeader.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PageHeaderSubtitle.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PhotoThumbnail.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Progress.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ProgressRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PromptCard.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ScanFrame.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Screen.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SectionCard.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SegmentedControl.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SelectableCard.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetHeader.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetMenu.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Slider.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Snackbar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Stepper.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/StripedBar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Surface.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SwipePages.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Switch.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TapField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Timeline.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TintTile.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TrendLine.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/UndoBar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/BasicButton.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/Button.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/FlatButton.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/Checkbox.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/CircleCheckbox.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/SquareCheck.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/chip/PillChip.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/chip/SelectChip.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/BasicDialog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/Dialog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/DialogHostState.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/DialogState.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ModalContent.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ShakeDialog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/TimePickerDialog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BasicBottomSheet.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheet.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetDefaults.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetState.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetValue.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/ExpandOnDragUp.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/SheetFrame.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/header/Header.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/AppIcons.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/CircleIcon.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icon.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconButton.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconTile.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icons.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/Fruit.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/Home.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/ShortCut.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/SnowFlake.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/TipJar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/bar-chart-outlined.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/bar-chart.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/eraser.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioButton.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioGroup.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioMatrix.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/AsteriskText.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BasicTextField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BoldPrefixedText.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BulletRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/ClickableText.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/HtmlTextExt.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/InputBox.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/MaskedTextField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/NumberField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlineInputField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlinedText.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlinedTextField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/SearchField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/Text.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextArea.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextInput.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TypedText.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TypeeriterEffect.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/UnderlineInputField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/UnderlineTextField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/debug/RecompositionCounter.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/PresenterSnackbarHost.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/SnackBarPresenter.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Alignments.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/AnimatePlacement.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/AppTheme.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Border.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/BounceClick.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/DimensionResource.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Elevation.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/FieldState.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Local.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/LoremIpsum.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ModifierExt.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Outlines.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/PaddingValuesExt.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Point.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Pulsate.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Radius.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ScrollBar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Selectable.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Shapes.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Size.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Spacers.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Span.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ThrottledCallback.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Toggle.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Tokens.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/TouchTarget.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Util.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/ColorResource.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Colors.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Palette.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/fadingEdges.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/FontFamily.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypeScale.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypographyResource.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/time/RelativeDay.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/SharedCommonTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/BarFillTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/PlaceAgainstAnchorTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/NumberInputTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/TypedTextTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/time/RelativeDayTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/system/color/NeutralsTest.kt`
+- [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/ImageUtils.ios.kt`
+- [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/nativeviews/NativeViewFactory.kt`
+- [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/system/color/ColorResource+UIColor.kt`
 
 ## core-libraries (371 files)
 

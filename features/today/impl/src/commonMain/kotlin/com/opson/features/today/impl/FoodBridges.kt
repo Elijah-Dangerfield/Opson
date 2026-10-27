@@ -93,10 +93,13 @@ object FoodBridges {
     /** "Greek yogurt, plain" is {greek, yogurt}; "Apples" is {apple}. In the name's order. */
     internal fun words(name: String): List<String> =
         ExplorerStatsBuilder.shortName(name).lowercase()
-            .split(Regex("[^\\p{L}]+"))
+            .split(notLetters)
             .filter { it.length >= MIN_WORD && it !in ignored }
             .map { if (it.length > MIN_WORD && it.endsWith('s') && pluralEndings.none(it::endsWith)) it.dropLast(1) else it }
             .distinct()
+
+    /** Compiled once: [words] runs for every candidate against every anchor on each rebuild. */
+    private val notLetters = Regex("[^\\p{L}]+")
 
     /** Endings that look plural and are not: "glass", "hummus", "couscous", "tahini" never loses an s anyway. */
     private val pluralEndings = listOf("ss", "us", "is")

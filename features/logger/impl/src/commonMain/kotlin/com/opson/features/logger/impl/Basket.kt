@@ -1,7 +1,5 @@
 package com.opson.features.logger.impl
 
-import com.opson.libraries.diary.Fullness
-import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.foods.Food
@@ -74,8 +72,6 @@ data class BasketItem(
     val draft: LogDraft,
     val source: PickSource,
     val food: Food? = null,
-    val hunger: Hunger? = null,
-    val fullness: Fullness? = null,
     /** When it was eaten, if the amount sheet's Time changed it; null logs it as now. */
     val loggedAt: Instant? = null,
 )

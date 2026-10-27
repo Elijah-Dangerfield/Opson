@@ -26,7 +26,7 @@ import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.opson.libraries.ui.components.PodawanSnackbarVisuals
+import com.opson.libraries.ui.components.AppSnackbarVisuals
 import com.opson.libraries.ui.components.Snackbar
 import com.opson.libraries.ui.components.snackBarData
 import com.opson.libraries.core.Catching
@@ -51,15 +51,13 @@ fun PresenterSnackbarHost(
                     launch {
                         delay(message.delayBy)
                         if (isActive) {
-                            val result = hostState.showSnackbar(message.toVisuals())
-                            SnackBarPresenter.onResult(message.id, result)
+                            message.deliver(hostState.showSnackbar(message.toVisuals()))
                         }
                     }
                 } else {
-                    val result = hostState.showSnackbar(message.toVisuals())
-                    SnackBarPresenter.onResult(message.id, result)
+                    message.deliver(hostState.showSnackbar(message.toVisuals()))
                 }
-            }.logOnFailure("Could not display snackbar $message")
+            }.logOnFailure("Could not display snackbar ${message.id}")
         }
     }
 
@@ -88,7 +86,7 @@ fun PresenterSnackbarHost(
 
 @Composable
 private fun SwipeDismissSnackbar(data: SnackbarData) {
-    val visuals = data.visuals as? PodawanSnackbarVisuals ?: return
+    val visuals = data.visuals as? AppSnackbarVisuals ?: return
     key(visuals.id) {
         val dismissState = rememberSwipeToDismissBoxState(
             confirmValueChange = { value ->
@@ -178,7 +176,7 @@ private fun SwipeDismissSnackbar(data: SnackbarData) {
                     }
             ) {
                 Snackbar(
-                    podawanSnackbarData = snackBarData(
+                    data = snackBarData(
                         visuals = visuals,
                         onAction = data::performAction,
                         onDismiss = data::dismiss

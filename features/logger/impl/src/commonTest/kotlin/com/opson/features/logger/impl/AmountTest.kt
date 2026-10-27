@@ -99,6 +99,36 @@ class AmountTest : CoroutineTest() {
         assertEquals("1", state.count)
     }
 
+    /**
+     * Smoked salmon, labelled 150 kcal with 18 g protein and 9 g fat: against the label that read 48%
+     * and 54%. Against the macros' own energy, 72 and 81 kcal, it is 47% and 53%, as Today's macros page says.
+     */
+    @Test
+    fun theSharesOfEnergyAreOfTheMacrosOwnEnergySoTheyMakeAHundred() {
+        val salmon = LoggerFixtures.food(id = "salmon", name = "Smoked salmon", portion = "1 pack", grams = 100.0, kcal = 150.0, protein = 18.0, carbs = 0.0, fat = 9.0)
+        val food = AmountFood.Catalog(salmon)
+        val state = AmountStateBuilder.build(
+            food,
+            AmountChoice.initial(food, MealSlot.Dinner),
+            LoggerFixtures.amountInputs(policy(PresetId.Full), Settings()),
+            FoodRef.Catalog("salmon"),
+            PickSource.Search,
+        )
+
+        val shares = assertNotNull(state.portion).macros.associate { it.metric to it.share.text() }
+        assertEquals("47%", shares[Metric.Protein])
+        assertEquals("53%", shares[Metric.Fat])
+    }
+
+    /** With fat hidden, the shares are of protein and carbs alone, so the gap they leave says nothing about fat. */
+    @Test
+    fun aHiddenMacroIsLeftOutOfTheShares() {
+        val portion = assertNotNull(build(withLevel(Metric.Fat, Visibility.Hide)).portion)
+
+        val percents = portion.macros.mapNotNull { (it.share as? Display.Shown)?.text?.removeSuffix("%")?.toInt() }
+        assertEquals(100, percents.sum(), "rounded, protein and carbs make the whole")
+    }
+
     @Test
     fun theUnitMenuShowsEachUnitsWeightAndGramsHasNone() {
         val state = build(policy(PresetId.Full), settings = Settings().withUnit("f:arroz", FoodUnit("my bowl", 420.0)))
@@ -382,6 +412,21 @@ class AmountTest : CoroutineTest() {
         val event = assertIs<AmountEvent.Logged>(events.single())
         assertEquals(LoggerFixtures.today, event.day)
         assertEquals(Committed(MealSlot.Dinner, logged.itemIds), event.committed)
+    }
+
+    /** The sheet animates down after Add; a second tap in that time is queued behind the first and must log nothing. */
+    @Test
+    fun aSecondTapOnAddWhileTheSheetClosesLogsNothingMore() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+
+        vm.takeAction(AmountAction.AddToMealTapped)
+        vm.takeAction(AmountAction.AddToMealTapped)
+        vm.takeAction(AmountAction.PickAndKeepGoingTapped)
+
+        assertEquals(1, diary.added.size)
+        assertTrue(basket.basket.value.isEmpty(), "the food is not put back in the basket the add just cleared")
+        assertEquals(1, events.size)
     }
 
     @Test

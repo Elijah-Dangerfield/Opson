@@ -28,7 +28,7 @@ import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.HorizontalDivider
-import com.opson.libraries.ui.components.MinTouchTarget
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonDefaults
@@ -164,8 +164,9 @@ private fun Actions(selection: Selection, onAction: (TodayAction) -> Unit) {
         }
         HorizontalDivider(color = AppTheme.colors.line)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            // TODO(design-sync-2): "Save as meal" from the picks. Create a meal takes a slot today, not a
-            // set of foods, and lives in Foods' module; add a foods-api route that takes entry ids.
+            // TODO(design-sync-2): "Save as meal" from the picks, first in the design's row. Create a meal
+            // takes a day and slot (`CreateMealRoute`), not a set of foods; it needs an entry-ids argument
+            // in :features:foods before this button can exist.
             PanelAction(AppIcons.ContentCopy, stringResource(Res.string.today_select_copy)) { onAction(TodayAction.CopyToTapped) }
             PanelAction(AppIcons.Schedule, stringResource(Res.string.today_select_move)) { onAction(TodayAction.MoveTapped) }
             PanelAction(AppIcons.Delete, stringResource(Res.string.today_select_remove)) { onAction(TodayAction.RemoveSelectedTapped) }
@@ -232,8 +233,9 @@ private fun CopyTo(step: SelectStep.CopyTo, onAction: (TodayAction) -> Unit) {
     }
 }
 
-// TODO(design-sync-2): Move also changes the time (2.12). The time picker lives in Settings' module;
-// lift it into :libraries:ui, then add a time row here that rewrites `loggedAt`.
+// TODO(design-sync-2): Move also changes the time (2.12, "Move changes the meal or time"). The design
+// has no frame or copy for the time control, so it waits for one; `TimePickerDialog` in :libraries:ui
+// and `DiaryRepository.updateItem` (rewriting `loggedAt`) are all it needs.
 @Composable
 private fun MoveTo(step: SelectStep.MoveTo, onAction: (TodayAction) -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {

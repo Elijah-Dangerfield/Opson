@@ -39,11 +39,21 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
+import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.health.EnergyExpended
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
  * [TodayViewModel], one test per action: what it writes, what it sends, and the outline on a
  * meal that just changed. Which cards exist is [TodayStateBuilderTest]'s.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class TodayViewModelTest : CoroutineTest() {
     private val today = TodayFixtures.today
     private val yesterday = today.minus(DatePeriod(days = 1))
@@ -64,6 +74,7 @@ class TodayViewModelTest : CoroutineTest() {
         healthOn: Boolean = false,
         summaryOn: Boolean = false,
         selectOn: Boolean = false,
+        healthRepository: HealthRepository = health,
     ) = TodayViewModel(
         diary = diary,
         settingsRepository = settings,
@@ -72,7 +83,7 @@ class TodayViewModelTest : CoroutineTest() {
         calendar = FakeCalendar(),
         recentLogEvents = recentLogEvents,
         clock = clock,
-        health = health,
+        health = healthRepository,
         healthFlag = healthFlag(healthOn),
         fasting = fasting,
         fastingRelease = FastingRelease { fastingReleased },
@@ -92,6 +103,24 @@ class TodayViewModelTest : CoroutineTest() {
         val events = mutableListOf<TodayEvent>()
         backgroundScope.launch { vm.eventFlow.toList(events) }
         return events
+    }
+
+    /** The day waits for the health store's first reading; until then the list is the spinner, not a blank page. */
+    @Test
+    fun healthStoreStillAnswering_keepsTodayLoading_untilItDoes() = runUnitTest {
+        val health = FakeHealthRepository(connected = true, energy = TodayFixtures.expended)
+        val gate = MutableStateFlow(false)
+        val slow = object : HealthRepository by health {
+            override fun energy(day: LocalDate, timeZone: TimeZone): Flow<EnergyExpended?> =
+                gate.filter { it }.flatMapLatest { health.energy(day, timeZone) }
+        }
+        val vm = vm(healthOn = true, healthRepository = slow)
+
+        assertTrue(vm.state.loading)
+        assertEquals(listOf<TodayRow>(TodayRow.Loading), todayRows(vm.state))
+
+        gate.value = true
+        assertFalse(vm.state.loading)
     }
 
     @Test

@@ -51,7 +51,7 @@ import com.opson.libraries.ui.components.HeroCard
 import com.opson.libraries.ui.components.HeroWashButton
 import com.opson.libraries.ui.components.HeroWashPanel
 import com.opson.libraries.ui.components.HorizontalDivider
-import com.opson.libraries.ui.components.MinTouchTarget
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.SegmentedBar
 import com.opson.libraries.ui.components.chip.PillTag
 import com.opson.libraries.ui.components.chip.PillTagSize
@@ -724,7 +724,6 @@ fun LabelledLineCard(
 }
 
 private const val LABEL_ALPHA = 0.72f
-private const val TRACK_ALPHA = 0.16f
 
 @Suppress("VerifyStrings")
 @Preview(widthDp = 390)

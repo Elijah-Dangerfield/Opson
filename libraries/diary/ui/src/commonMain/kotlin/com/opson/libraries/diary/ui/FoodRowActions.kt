@@ -52,7 +52,7 @@ import com.opson.libraries.nutrition.ui.currentVisibilityPolicy
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.HorizontalDivider
-import com.opson.libraries.ui.components.MinTouchTarget
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone

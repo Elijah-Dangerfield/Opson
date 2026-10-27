@@ -147,8 +147,7 @@ interface StatusColor {
 /** Builds the full token set for one palette in one theme. */
 fun appColors(palette: Palette = Palette.Pine, dark: Boolean = false): Colors = AppColors(palette, dark)
 
-/** Pine, light. Kept for code that needs colors outside a composition. */
-val defaultColors: Colors = appColors()
+private val defaultColors: Colors = appColors()
 
 @Suppress("MagicNumber")
 private class AppColors(
@@ -635,7 +634,7 @@ private fun PaletteGridSection(colors: Colors) {
 }
 
 @Composable
-fun PreviewColorSwatch(colors: Colors) {
+private fun PreviewColorSwatch(colors: Colors) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
