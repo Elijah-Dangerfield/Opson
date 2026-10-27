@@ -5,48 +5,64 @@ Each reviewer ticks the files in its slice as it reviews them. Findings go in
 keeps existing ticks.
 
 
-## scripts-ops-ci (40 files)
+## scripts-ops-ci (56 files)
 
-- [ ] `.github/workflows/auto-merge.yml`
-- [ ] `.github/workflows/baseline-profile.yml`
-- [ ] `.github/workflows/beta.yml`
-- [ ] `.github/workflows/ci.yml`
-- [ ] `.github/workflows/commitlint.yml`
-- [ ] `.github/workflows/food-catalog-refresh.yml`
-- [ ] `.github/workflows/legal-sync.yml`
-- [ ] `.github/workflows/pages.yml`
-- [ ] `.github/workflows/release-please.yml`
-- [ ] `.github/workflows/release.yml`
-- [ ] `.github/workflows/retag-release.yml`
-- [ ] `.github/workflows/server-deploy-prod.yml`
-- [ ] `.github/workflows/server-deploy.yml`
-- [ ] `ops/grafana/generate_db_dashboards.py`
-- [ ] `scripts/backfill_default_portions.py`
-- [ ] `scripts/backfill_food_categories.py`
-- [ ] `scripts/bench_off_search.py`
-- [ ] `scripts/beta_ios.sh`
-- [ ] `scripts/cleanup.sh`
-- [ ] `scripts/create_module.main.kts`
-- [ ] `scripts/design_sync.main.kts`
-- [ ] `scripts/dev/drive.py`
-- [ ] `scripts/import_off_foods.py`
-- [ ] `scripts/import_usda_foods.py`
-- [ ] `scripts/install_hooks.sh`
-- [ ] `scripts/ios_launch_smoke.sh`
-- [ ] `scripts/lib/setup_store.main.kts`
-- [ ] `scripts/load_off_watched.sh`
-- [ ] `scripts/search_relevance_fixture.py`
-- [ ] `scripts/setup.main.kts`
-- [ ] `scripts/setup_credentials.main.kts`
-- [ ] `scripts/setup_fly.main.kts`
-- [ ] `scripts/setup_github_secrets.main.kts`
-- [ ] `scripts/setup_legal_sync.sh`
-- [ ] `scripts/setup_sentry.main.kts`
-- [ ] `scripts/setup_sentry_ci.sh`
-- [ ] `scripts/setup_supabase.main.kts`
-- [ ] `scripts/test_backfill_food_categories.py`
-- [ ] `scripts/test_import_off_foods.py`
-- [ ] `scripts/test_import_usda_foods.py`
+- [x] `.githooks/commit-msg`
+- [x] `.githooks/post-commit`
+- [x] `.githooks/pre-push`
+- [x] `.github/workflows/auto-merge.yml`
+- [x] `.github/workflows/baseline-profile.yml`
+- [x] `.github/workflows/beta.yml`
+- [x] `.github/workflows/ci.yml`
+- [x] `.github/workflows/commitlint.yml`
+- [x] `.github/workflows/food-catalog-refresh.yml`
+- [x] `.github/workflows/legal-sync.yml`
+- [x] `.github/workflows/pages.yml`
+- [x] `.github/workflows/release-please.yml`
+- [x] `.github/workflows/release.yml`
+- [x] `.github/workflows/retag-release.yml`
+- [x] `.github/workflows/server-deploy-prod.yml`
+- [x] `.github/workflows/server-deploy.yml`
+- [x] `apps/ios/fastlane/Appfile`
+- [x] `apps/ios/fastlane/Fastfile`
+- [x] `ops/grafana/app-health.json`
+- [x] `ops/grafana/connectivity.json`
+- [x] `ops/grafana/foods.json`
+- [x] `ops/grafana/generate_db_dashboards.py`
+- [x] `ops/grafana/logging.json`
+- [x] `ops/grafana/modes.json`
+- [x] `ops/grafana/onboarding-funnel.json`
+- [x] `ops/grafana/pulse.json`
+- [x] `ops/grafana/retention.json`
+- [x] `scripts/backfill_default_portions.py`
+- [x] `scripts/backfill_food_categories.py`
+- [x] `scripts/bench_off_search.py`
+- [x] `scripts/beta_ios.sh`
+- [x] `scripts/cleanup.sh`
+- [x] `scripts/create_module.main.kts`
+- [x] `scripts/design_sync.main.kts`
+- [x] `scripts/dev/drive.py`
+- [x] `scripts/import_off_foods.py`
+- [x] `scripts/import_usda_foods.py`
+- [x] `scripts/install_hooks.sh`
+- [x] `scripts/ios_launch_smoke.sh`
+- [x] `scripts/lib/setup_store.main.kts`
+- [x] `scripts/load_off_watched.sh`
+- [x] `scripts/review_ledger.py`
+- [x] `scripts/search_relevance_fixture.py`
+- [x] `scripts/setup.main.kts`
+- [x] `scripts/setup_credentials.main.kts`
+- [x] `scripts/setup_fly.main.kts`
+- [x] `scripts/setup_github_secrets.main.kts`
+- [x] `scripts/setup_legal_sync.sh`
+- [x] `scripts/setup_sentry.main.kts`
+- [x] `scripts/setup_sentry_ci.sh`
+- [x] `scripts/setup_supabase.main.kts`
+- [x] `scripts/test_backfill_default_portions.py`
+- [x] `scripts/test_backfill_food_categories.py`
+- [x] `scripts/test_import_off_foods.py`
+- [x] `scripts/test_import_usda_foods.py`
+- [x] `scripts/test_review_ledger.py`
 
 ## apps-shells (55 files)
 
@@ -106,85 +122,94 @@ keeps existing ticks.
 - [ ] `apps/ios/iosApp/Platform/ReviewLauncher.swift`
 - [ ] `apps/ios/iosApp/iOSApp.swift`
 
-## build-config (36 files)
+## build-config (45 files)
 
-- [ ] `apps/baselineprofile/build.gradle.kts`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/BenchmarkJourney.kt`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/JourneyProfileGenerator.kt`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/MinifiedReleaseSmokeTest.kt`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/StartupProfileGenerator.kt`
-- [ ] `build-logic/build.gradle.kts`
-- [ ] `build-logic/settings.gradle.kts`
-- [ ] `build-logic/src/main/java/com/opson/ext/ConfigurationExtension.kt`
-- [ ] `build-logic/src/main/java/com/opson/ext/ExtDsl.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/ApplicationConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/ComposeMultiplatformConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/FeatureConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/KotlinMultiplatformConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/AndroidConfiguration.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/ComposeMetrics.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/GitHooks.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/KotlinMultiplatform.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/ModuleBoundaries.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/ProjectExtensions.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/SharedConstants.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/Signing.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/Versioning.kt`
-- [ ] `build.gradle.kts`
-- [ ] `config/detekt/detekt.yml`
-- [ ] `detekt-rules/build.gradle.kts`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/AnimatedStateReadInComposition.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/ClassNameInTelemetryAttribute.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/HardcodedDisplay.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/OpsonRuleSetProvider.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/ScrollInsideBottomSheet.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/VerifyStrings.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/AnimatedStateReadInCompositionTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/HardcodedDisplayTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/RuleHarness.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/ScrollInsideBottomSheetTest.kt`
-- [ ] `settings.gradle.kts`
+- [x] `.release-please-manifest.json`
+- [x] `apps/baselineprofile/build.gradle.kts`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/BenchmarkJourney.kt`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/JourneyProfileGenerator.kt`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/MinifiedReleaseSmokeTest.kt`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/StartupProfileGenerator.kt`
+- [x] `build-logic/build.gradle.kts`
+- [x] `build-logic/settings.gradle.kts`
+- [x] `build-logic/src/main/java/com/opson/ext/ConfigurationExtension.kt`
+- [x] `build-logic/src/main/java/com/opson/ext/ExtDsl.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/ApplicationConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/ComposeMultiplatformConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/FeatureConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/KotlinMultiplatformConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/util/AndroidConfiguration.kt`
+- [x] `build-logic/src/main/java/com/opson/util/ComposeMetrics.kt`
+- [x] `build-logic/src/main/java/com/opson/util/GitHooks.kt`
+- [x] `build-logic/src/main/java/com/opson/util/KotlinMultiplatform.kt`
+- [x] `build-logic/src/main/java/com/opson/util/ModuleBoundaries.kt`
+- [x] `build-logic/src/main/java/com/opson/util/ProjectExtensions.kt`
+- [x] `build-logic/src/main/java/com/opson/util/SharedConstants.kt`
+- [x] `build-logic/src/main/java/com/opson/util/Signing.kt`
+- [x] `build-logic/src/main/java/com/opson/util/Versioning.kt`
+- [x] `build.gradle.kts`
+- [x] `config/detekt/detekt.yml`
+- [x] `detekt-rules/build.gradle.kts`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/AnimatedStateReadInComposition.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/ClassNameInTelemetryAttribute.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/HardcodedDisplay.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/OpsonRuleSetProvider.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/ScrollInsideBottomSheet.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/VerifyStrings.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/AnimatedStateReadInCompositionTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/ClassNameInTelemetryAttributeTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/HardcodedDisplayTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/RuleHarness.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/ScrollInsideBottomSheetTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/VerifyStringsTest.kt`
+- [x] `gradle.properties`
+- [x] `gradle/libs.versions.toml`
+- [x] `gradle/wrapper/gradle-wrapper.properties`
+- [x] `release-please-config.json`
+- [x] `settings.gradle.kts`
+- [x] `telemetry.properties`
+- [x] `versions.properties`
 
 ## test-apps (38 files)
 
-- [ ] `apps/integration/build.gradle.kts`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/android/database/SQLException.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/DeleteEverythingTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/ConfigManifestRegistryDriftTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/RemoteFlagTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/errors/ErrorSurfacesTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/fasting/FastingSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/DescribeAndPhotoTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/FoodSearchAndBarcodeTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/DeviceSeams.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FakeUpstreams.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FaultProxy.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/InProcessServer.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationAuth.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/ServerCalls.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/TestClient.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/onboarding/GuestOnboardingSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/security/SyncAuthorizationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/setup/HarnessSmokeTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/OfflineOutboxTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/SettingsMergeAcrossVersionsTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/TwoDeviceSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/telemetry/DashboardQueryContractTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/waitlist/WaitlistTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/resources/init-auth.sql`
-- [ ] `apps/leaktest/build.gradle.kts`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindMealGapsTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindModeLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/EnergyOutHiddenLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakScan.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakTestControlTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/Surfaces.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/SurfacesCoverageTest.kt`
-- [ ] `apps/screenshots/build.gradle.kts`
-- [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/PreviewScreenshotTest.kt`
-- [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenIds.kt`
-- [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenResult.kt`
+- [x] `apps/integration/build.gradle.kts`
+- [x] `apps/integration/src/androidUnitTest/kotlin/android/database/SQLException.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/DeleteEverythingTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/ConfigManifestRegistryDriftTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/RemoteFlagTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/errors/ErrorSurfacesTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/fasting/FastingSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/DescribeAndPhotoTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/FoodSearchAndBarcodeTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/DeviceSeams.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FakeUpstreams.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FaultProxy.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/InProcessServer.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationAuth.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/ServerCalls.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/TestClient.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/onboarding/GuestOnboardingSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/security/SyncAuthorizationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/setup/HarnessSmokeTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/OfflineOutboxTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/SettingsMergeAcrossVersionsTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/TwoDeviceSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/telemetry/DashboardQueryContractTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/waitlist/WaitlistTest.kt`
+- [x] `apps/integration/src/androidUnitTest/resources/init-auth.sql`
+- [x] `apps/leaktest/build.gradle.kts`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindMealGapsTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindModeLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/EnergyOutHiddenLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakScan.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakTestControlTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/Surfaces.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/SurfacesCoverageTest.kt`
+- [x] `apps/screenshots/build.gradle.kts`
+- [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/PreviewScreenshotTest.kt`
+- [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenIds.kt`
+- [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenResult.kt`
 
 ## server (174 files)
 
