@@ -184,7 +184,7 @@ keeps existing ticks.
 - [ ] `telemetry.properties`
 - [ ] `versions.properties`
 
-## test-apps (46 files)
+## test-apps (47 files)
 
 - [ ] `apps/integration/build.gradle.kts`
 - [ ] `apps/integration/src/androidUnitTest/kotlin/android/database/SQLException.kt`
@@ -196,6 +196,7 @@ keeps existing ticks.
 - [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/FlagTargetingTest.kt`
 - [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/RemoteFlagTest.kt`
 - [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/errors/ErrorSurfacesTest.kt`
+- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/exercise/ExerciseSyncTest.kt`
 - [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/fasting/FastingSyncTest.kt`
 - [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/DescribeAndPhotoTest.kt`
 - [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/FoodSearchAndBarcodeTest.kt`
@@ -233,7 +234,7 @@ keeps existing ticks.
 - [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenIds.kt`
 - [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenResult.kt`
 
-## server-data (89 files)
+## server-data (90 files)
 
 - [ ] `apps/server/src/main/kotlin/com/opson/server/data/AnthropicEstimateProvider.kt`
 - [ ] `apps/server/src/main/kotlin/com/opson/server/data/AppConfigTargetingEngine.kt`
@@ -283,6 +284,7 @@ keeps existing ticks.
 - [ ] `apps/server/src/main/resources/db/migration/V21__precision_label.sql`
 - [ ] `apps/server/src/main/resources/db/migration/V22__support_views.sql`
 - [ ] `apps/server/src/main/resources/db/migration/V23__apple_refresh_tokens.sql`
+- [ ] `apps/server/src/main/resources/db/migration/V24__exercises.sql`
 - [ ] `apps/server/src/main/resources/db/migration/V2__fk_auth_users.sql`
 - [ ] `apps/server/src/main/resources/db/migration/V3__player_reports.sql`
 - [ ] `apps/server/src/main/resources/db/migration/V4__app_config.sql`
@@ -518,7 +520,7 @@ keeps existing ticks.
 - [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
 - [ ] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
 
-## logger (75 files)
+## logger (81 files)
 
 - [ ] `features/logger/build.gradle.kts`
 - [ ] `features/logger/impl/build.gradle.kts`
@@ -534,6 +536,11 @@ keeps existing ticks.
 - [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeReviewViews.kt`
 - [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoice.kt`
 - [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoiceViews.kt`
+- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseFixtures.kt`
+- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetContent.kt`
+- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetPreviews.kt`
+- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetState.kt`
+- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModel.kt`
 - [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetail.kt`
 - [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailContent.kt`
 - [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailCustomSize.kt`
@@ -581,6 +588,7 @@ keeps existing ticks.
 - [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeReviewViewModelTest.kt`
 - [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeRowsTest.kt`
 - [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeVoiceViewModelTest.kt`
+- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModelTest.kt`
 - [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/Fakes.kt`
 - [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodDetailTest.kt`
 - [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodSearchStateBuilderTest.kt`
@@ -596,7 +604,7 @@ keeps existing ticks.
 - [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/VoiceStateBuilderTest.kt`
 - [ ] `features/logger/src/commonMain/kotlin/com/opson/features/logger/LoggerRoute.kt`
 
-## settings (101 files)
+## settings (103 files)
 
 - [ ] `features/qa/build.gradle.kts`
 - [ ] `features/qa/impl/build.gradle.kts`
@@ -685,8 +693,10 @@ keeps existing ticks.
 - [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/CreditsTest.kt`
 - [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/FindSupportTest.kt`
 - [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/SupportViewModelTest.kt`
+- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsBurnAndDaysTest.kt`
 - [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseTest.kt`
 - [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsGoalStylesTest.kt`
+- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsMacroEditorTest.kt`
 - [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsTest.kt`
 - [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsTest.kt`
 - [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/water/WaterSettingsTest.kt`
@@ -700,7 +710,7 @@ keeps existing ticks.
 - [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/SettingsRoutes.kt`
 - [ ] `features/settings/src/commonTest/kotlin/com/opson/features/settings/PauseBeforeMoreRouteTest.kt`
 
-## today (48 files)
+## today (58 files)
 
 - [ ] `features/today/build.gradle.kts`
 - [ ] `features/today/impl/build.gradle.kts`
@@ -715,6 +725,7 @@ keeps existing ticks.
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFixtures.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayLeakSurfaces.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayModeViews.kt`
+- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayNutrientsPage.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayPreviews.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayReleaseFlags.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayScreen.kt`
@@ -724,6 +735,9 @@ keeps existing ticks.
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayStateBuilder.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySummaryViews.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayViewModel.kt`
+- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/burned/TodayBurned.kt`
+- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/burned/TodayBurnedCard.kt`
+- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/burned/TodayBurnedPreviews.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/calendar/Calendar.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/cards/TodayCardsSheet.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/DayCloseScreen.kt`
@@ -733,6 +747,9 @@ keeps existing ticks.
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/item/ItemSheet.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealNoteSheet.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealSheet.kt`
+- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/notes/NotesScreen.kt`
+- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/notes/NotesState.kt`
+- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/notes/TodayNotesListLink.kt`
 - [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/water/WaterSheet.kt`
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/BurnedFakes.kt`
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/DayCloseTest.kt`
@@ -740,6 +757,7 @@ keeps existing ticks.
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/Fakes.kt`
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/HealthFakes.kt`
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/ItemSheetTest.kt`
+- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/NotesTest.kt`
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/SheetsTest.kt`
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayCardsSummaryTest.kt`
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayEnergyCardTest.kt`
@@ -747,11 +765,13 @@ keeps existing ticks.
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayStateBuilderTest.kt`
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodaySummaryBuilderTest.kt`
 - [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayViewModelTest.kt`
+- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/burned/TodayBurnedTest.kt`
 - [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/DayCloseRoute.kt`
 - [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/MealNoteRoute.kt`
+- [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/NotesRoute.kt`
 - [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/TodayRoute.kt`
 
-## trends (61 files)
+## trends (64 files)
 
 - [ ] `features/trends/build.gradle.kts`
 - [ ] `features/trends/impl/build.gradle.kts`
@@ -764,6 +784,7 @@ keeps existing ticks.
 - [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsCalendar.kt`
 - [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFeatureEntryPoint.kt`
 - [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFixtures.kt`
+- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsJournal.kt`
 - [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLabels.kt`
 - [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLeakSurfaces.kt`
 - [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsPreviews.kt`
@@ -797,6 +818,7 @@ keeps existing ticks.
 - [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsStateBuilderTest.kt`
 - [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsViewModelTest.kt`
 - [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsCalendarTest.kt`
+- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsJournalTest.kt`
 - [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsSettingsViewModelTest.kt`
 - [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsStateBuilderTest.kt`
 - [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsViewModelTest.kt`
@@ -808,6 +830,7 @@ keeps existing ticks.
 - [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoLockTest.kt`
 - [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoViewModelTest.kt`
 - [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosViewModelTest.kt`
+- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/NotesListLink.kt`
 - [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/NutrientsRoute.kt`
 - [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/PatternsRoute.kt`
 - [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/ProgressPhotosRoutes.kt`
@@ -815,7 +838,7 @@ keeps existing ticks.
 - [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsSettingsRoute.kt`
 - [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/WeightRoute.kt`
 
-## domain-diary-nutrition (143 files)
+## domain-diary-nutrition (155 files)
 
 - [ ] `libraries/diary/build.gradle.kts`
 - [ ] `libraries/diary/impl/build.gradle.kts`
@@ -824,6 +847,7 @@ keeps existing ticks.
 - [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryStore.kt`
 - [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncApi.kt`
 - [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncer.kt`
+- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImpl.kt`
 - [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImpl.kt`
 - [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/HttpDataExport.kt`
 - [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/Mappers.kt`
@@ -838,6 +862,7 @@ keeps existing ticks.
 - [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImplTest.kt`
 - [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerDebounceTest.kt`
 - [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerTest.kt`
+- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImplTest.kt`
 - [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/Fakes.kt`
 - [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImplTest.kt`
 - [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/RecentLogEventsTest.kt`
@@ -848,12 +873,14 @@ keeps existing ticks.
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/DataExport.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Day.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/EatenUncertaintyOfDay.kt`
+- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Exercise.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FastingReleaseFlag.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Fasts.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FoodKind.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/HouseholdAmount.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LocalCalendar.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LogItem.kt`
+- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealJournal.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPatterns.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPicks.kt`
 - [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlot.kt`
@@ -878,6 +905,7 @@ keeps existing ticks.
 - [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HouseholdAmountTest.kt`
 - [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HungerTest.kt`
 - [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/LogItemQuantityTest.kt`
+- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealJournalTest.kt`
 - [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealPatternsTest.kt`
 - [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealSlotPickerTest.kt`
 - [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ModeSettingWireTest.kt`
@@ -888,9 +916,10 @@ keeps existing ticks.
 - [ ] `libraries/diary/ui/build.gradle.kts`
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DayTotals.kt`
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DiaryItemRow.kt`
+- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/ExerciseLabels.kt`
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FastingCards.kt`
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FavoriteFoodTile.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodIconTile.kt`
+- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodIcon.kt`
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodPickRow.kt`
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowActions.kt`
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowsCard.kt`
@@ -899,13 +928,16 @@ keeps existing ticks.
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/NutrientTile.kt`
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/SummaryCard.kt`
 - [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/TodayCards.kt`
+- [ ] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/ExerciseLabelsTest.kt`
 - [ ] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/FoodTintTest.kt`
 - [ ] `libraries/nutrition/build.gradle.kts`
 - [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Burned.kt`
 - [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Display.kt`
 - [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/EatenUncertainty.kt`
+- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Exercise.kt`
 - [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Fasting.kt`
 - [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/LegacyPreset.kt`
+- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroGoals.kt`
 - [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroLine.kt`
 - [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroShares.kt`
 - [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Metric.kt`
@@ -930,10 +962,12 @@ keeps existing ticks.
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/EatenUncertaintyTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExactAndSurplusTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseRangeTest.kt`
+- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/Fixtures.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/FormatTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/GoalStyleTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/LegacyPresetTest.kt`
+- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroGoalsTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroLineTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroSharesTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MathTest.kt`
@@ -943,6 +977,7 @@ keeps existing ticks.
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersChangeTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersSettingsTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NutrientAmountsTest.kt`
+- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PerDayGoalsTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PresetsTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RangeAndShareTest.kt`
 - [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RingValueTest.kt`
@@ -961,7 +996,7 @@ keeps existing ticks.
 - [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientValue.kt`
 - [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/leak/LeakSurface.kt`
 
-## platform-libraries (165 files)
+## platform-libraries (166 files)
 
 - [ ] `libraries/foods/build.gradle.kts`
 - [ ] `libraries/foods/impl/build.gradle.kts`
@@ -997,6 +1032,7 @@ keeps existing ticks.
 - [ ] `libraries/health/impl/src/commonTest/kotlin/com/opson/libraries/health/impl/RealHealthRepositoryTest.kt`
 - [ ] `libraries/health/impl/src/iosMain/kotlin/com/opson/libraries/health/impl/HealthKitReader.kt`
 - [ ] `libraries/health/src/commonMain/kotlin/com/opson/libraries/health/BurnedRepository.kt`
+- [ ] `libraries/health/src/commonMain/kotlin/com/opson/libraries/health/ExerciseReleaseFlag.kt`
 - [ ] `libraries/health/src/commonMain/kotlin/com/opson/libraries/health/GoalsAndEnergyEnabled.kt`
 - [ ] `libraries/health/src/commonMain/kotlin/com/opson/libraries/health/HealthReleaseFlag.kt`
 - [ ] `libraries/health/src/commonMain/kotlin/com/opson/libraries/health/HealthRepository.kt`
@@ -1352,8 +1388,8 @@ keeps existing ticks.
 - [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/AppIcons.kt`
 - [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icon.kt`
 - [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconButton.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconTile.kt`
 - [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icons.kt`
+- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/ToneIcon.kt`
 - [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/Fruit.kt`
 - [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioMatrix.kt`
 - [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioRow.kt`
