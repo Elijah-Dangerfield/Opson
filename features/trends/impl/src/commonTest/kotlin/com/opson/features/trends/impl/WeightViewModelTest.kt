@@ -151,15 +151,16 @@ class WeightViewModelTest : CoroutineTest() {
 
     @Test
     fun photosHiddenByTheModesThatHideThem() = runUnitTest {
-        listOf(PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NutrientsFirst).forEach { preset ->
+        listOf(PresetId.NoNumbers, PresetId.MacrosOnly).forEach { preset ->
             assertNull(vm(photosOn = true, preset = preset).state.photos, "$preset hides progress photos by default")
         }
-        assertNotNull(vm(photosOn = true, preset = PresetId.Later).state.photos)
+        assertNotNull(vm(photosOn = true, numbers = NumbersSettings.later()).state.photos)
+        assertNotNull(vm(photosOn = true, preset = PresetId.MacrosWithGrams).state.photos)
     }
 
     @Test
     fun photosFollowModes_showOrHide_overThePresetsDefault() = runUnitTest {
-        val shownInFuel = TrendsFixtures.policy(PresetId.NutrientsFirst).settings.copy(progressPhotos = true)
+        val shownInFuel = TrendsFixtures.policy(PresetId.MacrosOnly).settings.copy(progressPhotos = true)
         assertNotNull(vm(photosOn = true, numbers = shownInFuel).state.photos)
 
         val hiddenInFull = NumbersSettings(PresetId.Full, progressPhotos = false)

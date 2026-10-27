@@ -120,6 +120,15 @@
     <string name="trends_weight_hidden_title">Weight is hidden</string>
     <string name="trends_weight_hidden_body">You can still log it. Digits turn into dots as you type, and nothing shows afterwards.</string>
     <string name="trends_weight_log">Log a weigh-in</string>
+    <!-- Empty states: what shows up here, and when. -->
+    <string name="trends_weight_empty">Once you start weighing in, your graph shows up here.</string>
+    <string name="trends_weight_empty_action">Add a weigh-in</string>
+    <string name="trends_weight_none_in_range">No weigh-ins in this stretch. Try a longer range.</string>
+    <string name="trends_weight_one_reading">One more weigh-in and the line starts.</string>
+    <string name="trends_eaten_empty">Once you log a day, your week shows up here.</string>
+    <string name="trends_patterns_empty">Your patterns show up here after a few days of logging.</string>
+    <string name="trends_nutrients_empty_day">Nothing logged on this day yet. Its nutrients show up here once you do.</string>
+    <string name="trends_nutrients_empty_week">Nothing logged this week yet. Your averages show up here once you do.</string>
     <string name="trends_weight_unit_kg">kg</string>
     <string name="trends_weight_unit_lb">lb</string>
     <string name="trends_weight_save">Save</string>

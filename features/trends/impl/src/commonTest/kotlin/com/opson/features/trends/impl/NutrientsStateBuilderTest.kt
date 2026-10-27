@@ -7,11 +7,13 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.nutrition.Visibility
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -100,35 +102,35 @@ class NutrientsStateBuilderTest {
 
     @Test
     fun delayed_weekAverage_isRevealed() {
-        val state = build(NutrientsRange.WeekAverage, PresetId.Later)
+        val state = build(NutrientsRange.WeekAverage, overrides = Presets.laterLevels)
         assertIs<Display.Shown>(assertNotNull(state.energy).eaten)
         assertEquals(true, state.microsOff)
     }
 
     @Test
     fun delayed_day_staysShutUntilNinePm() {
-        val noon = build(preset = PresetId.Later)
+        val noon = build(overrides = Presets.laterLevels)
         assertNull(noon.energy)
         assertNull(noon.macros)
-        val evening = build(preset = PresetId.Later, policyAt = LocalTime(21, 30))
+        val evening = build(overrides = Presets.laterLevels, policyAt = LocalTime(21, 30))
         assertIs<Display.Shown>(assertNotNull(evening.energy).eaten)
     }
 
     @Test
-    fun nutrientsFirst_energyIsASoftWordWithNoRange_proteinAndFiberAreWords() {
-        val state = build(preset = PresetId.NutrientsFirst)
+    fun softCalories_energyIsASoftWordWithNoRange_macrosAreWords() {
+        val state = build(preset = PresetId.MacrosOnly, overrides = mapOf(Metric.Calories to Visibility.Soften))
         val energy = assertNotNull(state.energy)
         assertNotNull(assertIs<Display.Soft>(energy.eaten).text)
         assertEquals(Display.Hidden, energy.range, "a range has no soft word")
         val rows = assertNotNull(state.macros)
-        assertEquals(listOf(Metric.Protein, Metric.Fiber), rows.map { it.metric })
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), rows.map { it.metric })
         assertIs<Display.Soft>(rows[0].display)
     }
 
     @Test
     fun weekly_weekAverage_waitsForTheWeeklyCheck() {
-        assertNull(build(NutrientsRange.WeekAverage, PresetId.Later, revealOn = RevealOn.Week).energy)
-        val evening = build(NutrientsRange.WeekAverage, PresetId.Later, policyAt = LocalTime(21, 30), revealOn = RevealOn.Week)
+        assertNull(build(NutrientsRange.WeekAverage, overrides = Presets.laterLevels, revealOn = RevealOn.Week).energy)
+        val evening = build(NutrientsRange.WeekAverage, overrides = Presets.laterLevels, policyAt = LocalTime(21, 30), revealOn = RevealOn.Week)
         assertIs<Display.Shown>(assertNotNull(evening.energy).eaten)
     }
 
@@ -161,8 +163,20 @@ class NutrientsStateBuilderTest {
     }
 
     @Test
-    fun emptyDay_isARealZero() {
+    fun emptyDay_isTheEmptyCard_notAPageOfZeros() {
         val state = build(inputs = TrendsFixtures.nutrientsInputs(days = emptyList()))
-        assertEquals("0 of 120 g", assertIs<Display.Shown>(assertNotNull(state.macros).single { it.metric == Metric.Protein }.display).text)
+        assertTrue(state.empty)
+        assertNull(state.energy)
+        assertNull(state.macros)
+        assertNull(state.micros)
+        assertFalse(state.microsOff)
+    }
+
+    @Test
+    fun emptyWeek_isTheEmptyCard_andNoNumbersStillSaysNothingShowsHere() {
+        assertTrue(build(NutrientsRange.WeekAverage, inputs = TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage, days = emptyList())).empty)
+        val blind = build(preset = PresetId.NoNumbers, inputs = TrendsFixtures.nutrientsInputs(days = emptyList()))
+        assertFalse(blind.empty)
+        assertTrue(blind.nothing)
     }
 }

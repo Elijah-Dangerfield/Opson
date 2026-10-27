@@ -9,7 +9,7 @@ import kotlinx.datetime.plus
  * (0.1 phones keep writing them), and writing a `numbers.preset` those phones understand.
  *
  * The levels are 0.1's, frozen, with one deliberate exception: Full and Sprint show vitamins and
- * minerals, as Full numbers does since 2026-10-27 (`docs/decisions.md`), so a Full user is not
+ * minerals, as All numbers does since 2026-10-27 (`docs/decisions.md`), so a Full user is not
  * migrated into a micros override. A 0.1 build reading "full" hides them, which is fewer.
  */
 enum class LegacyPreset(
@@ -21,11 +21,11 @@ enum class LegacyPreset(
     internal val progressPhotos: Boolean = true,
 ) {
     Full("full", PresetId.Full, fullVis),
-    Delayed("delayed", PresetId.Later, gentle(fill(Visibility.Delay) + mapOf(Metric.Micros to Visibility.Hide, Metric.Weight to Visibility.Soften))),
+    Delayed("delayed", PresetId.Full, gentle(fill(Visibility.Delay) + mapOf(Metric.Micros to Visibility.Hide, Metric.Weight to Visibility.Soften))),
     Blind("blind", PresetId.NoNumbers, gentle(fill(Visibility.Hide)), progressPhotos = false),
     Nutrient(
         "nutrient",
-        PresetId.NutrientsFirst,
+        PresetId.MacrosOnly,
         gentle(fill(Visibility.Hide) + mapOf(Metric.Protein to Visibility.Soften, Metric.Fiber to Visibility.Soften, Metric.Weight to Visibility.Soften)),
     ),
     Rhythm("rhythm", PresetId.NoNumbers, gentle(fill(Visibility.Hide)), progressPhotos = false),
@@ -33,7 +33,7 @@ enum class LegacyPreset(
     Mindful("mindful", PresetId.NoNumbers, gentle(fill(Visibility.Hide)), progressPhotos = false),
     Fuel(
         "fuel",
-        PresetId.NutrientsFirst,
+        PresetId.MacrosOnly,
         gentle(
             fill(Visibility.Hide) + mapOf(
                 Metric.Calories to Visibility.Soften,
@@ -47,7 +47,7 @@ enum class LegacyPreset(
     Sprint("sprint", PresetId.Full, fullVis),
     Coast(
         "coast",
-        PresetId.Later,
+        PresetId.Full,
         gentle(fill(Visibility.Hide) + mapOf(Metric.Calories to Visibility.Delay, Metric.Weight to Visibility.Soften)),
         revealOn = RevealOn.Week,
     ),
@@ -64,13 +64,13 @@ enum class LegacyPreset(
          * every level the new preset would set differently is kept as an override, so nobody lands
          * on more numbers (or fewer) than they had. Photos the same.
          *
-         * Sprint becomes Full numbers with End after a set time: [SPRINT_DAYS] from
+         * Sprint becomes All numbers with End after a set time: [SPRINT_DAYS] from
          * [sprintStartedOn], then No numbers, which is what Sprint promised ("Track for two weeks
          * to learn, then take a break"). A sprint whose days are already over switches the first
          * time the timer is checked, with the notice on Today; that is fewer numbers, never more.
          * No start date, no timer.
          *
-         * `null` for a key that is neither legacy nor current, which callers read fail-closed.
+         * `null` for a key that is neither legacy, current nor retired, which callers read fail-closed.
          */
         fun migrate(
             key: String,
@@ -78,7 +78,7 @@ enum class LegacyPreset(
             progressPhotos: Boolean?,
             sprintStartedOn: LocalDate?,
         ): Migrated? {
-            val legacy = fromKey(key) ?: return PresetId.fromKey(key)?.let { Migrated(it, overrides, RevealOn.DayClose, progressPhotos, null) }
+            val legacy = fromKey(key) ?: return RetiredPreset.read(key, overrides)?.let { (preset, kept) -> Migrated(preset, kept, RevealOn.DayClose, progressPhotos, null) }
             val target = Presets[legacy.becomes]
             val kept = Metric.entries.mapNotNull { metric ->
                 val level = overrides[metric] ?: legacy.vis.getValue(metric)
@@ -96,10 +96,14 @@ enum class LegacyPreset(
          * so its levels match as closely as an old preset can, with the rest as overrides.
          */
         fun closestTo(settings: NumbersSettings): Pair<LegacyPreset, Map<Metric, Visibility>> {
+            val delayed = Metric.entries.any { settings.level(it) == Visibility.Delay }
             val legacy = when (settings.preset) {
-                PresetId.Full -> Full
-                PresetId.NutrientsFirst -> Fuel
-                PresetId.Later -> if (settings.revealOn == RevealOn.Week) Coast else Delayed
+                PresetId.Full, PresetId.MacrosWithGrams -> when {
+                    delayed && settings.revealsWeekly -> Coast
+                    delayed -> Delayed
+                    else -> Full
+                }
+                PresetId.MacrosOnly -> Nutrient
                 PresetId.NoNumbers -> Blind
             }
             val overrides = Metric.entries.mapNotNull { metric ->

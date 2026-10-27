@@ -71,7 +71,7 @@ class LeaveOutDayRoute : Route()
 
 /**
  * Fasting (0.2, `release.fasting`): the status card, the timer switch, the Today card and the
- * eating window. Only reached where fasting is offered (Full numbers, and never for someone
+ * eating window. Only reached where fasting is offered (All numbers, and never for someone
  * who agreed numbers have been hard).
  */
 @Serializable

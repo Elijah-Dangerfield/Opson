@@ -117,7 +117,7 @@ class FastingRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun startDue_nothingWhenTheModeDoesNotOfferFasting() = runUnitTest {
-        settings.state.value = timerOn().copy(numbers = NumbersSettings(preset = PresetId.NutrientsFirst))
+        settings.state.value = timerOn().copy(numbers = NumbersSettings(preset = PresetId.MacrosOnly))
         fasting.startDue()
         assertTrue(db.fasts.rows.isEmpty())
     }

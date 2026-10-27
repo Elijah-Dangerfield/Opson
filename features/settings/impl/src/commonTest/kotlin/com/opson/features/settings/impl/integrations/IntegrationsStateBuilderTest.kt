@@ -81,9 +81,9 @@ class IntegrationsStateBuilderTest {
 
     @Test
     fun delayed_hidesItBeforeTheReveal_andShowsItAfter() {
-        assertEquals(ExpendedCard.Hidden, build(policy = SettingsFixtures.policy(PresetId.Later)).expended)
+        assertEquals(ExpendedCard.Hidden, build(policy = SettingsFixtures.policy(NumbersSettings.later())).expended)
         val evening = VisibilityPolicy(
-            NumbersSettings(PresetId.Later),
+            NumbersSettings.later(),
             object : Clock {
                 override fun now() = Instant.parse("2026-10-25T21:30:00Z")
             },

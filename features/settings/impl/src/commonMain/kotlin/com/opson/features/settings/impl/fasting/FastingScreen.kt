@@ -209,7 +209,7 @@ private fun FastingOffPreview() {
 @Preview
 @Composable
 private fun FastingNotInThisModePreview() {
-    SettingsPreview { FastingScreen(FastingFixtures.state(FastingFixtures.settings(preset = PresetId.NutrientsFirst)), onAction = {}) }
+    SettingsPreview { FastingScreen(FastingFixtures.state(FastingFixtures.settings(preset = PresetId.MacrosOnly)), onAction = {}) }
 }
 
 @Preview

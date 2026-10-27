@@ -42,7 +42,7 @@ class TodayScreenSettingsTest : CoroutineTest() {
 
     @Test
     fun outsideFullNumbers_theCardComesFromTheMode() {
-        listOf(PresetId.NutrientsFirst, PresetId.Later, PresetId.NoNumbers).forEach { preset ->
+        listOf(PresetId.MacrosWithGrams, PresetId.MacrosOnly, PresetId.NoNumbers).forEach { preset ->
             assertFalse(TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset = preset))).cardArranged, "$preset")
         }
     }

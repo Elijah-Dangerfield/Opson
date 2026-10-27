@@ -514,7 +514,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         runCurrent()
 
         assertNull(vm.state.picked)
-        assertEquals(PresetId.Later, vm.state.recommended)
+        assertEquals(PresetId.MacrosWithGrams, vm.state.recommended)
         assertFalse(PresetId.Full in vm.state.alternatives)
         assertFalse(PresetId.Full in vm.state.alternatives)
     }
@@ -623,31 +623,31 @@ class OnboardingViewModelTest : CoroutineTest() {
         val vm = atRecommendation()
 
         assertEquals(PresetId.Full, vm.state.chosen)
-        assertEquals(listOf(PresetId.NoNumbers, PresetId.Later, PresetId.NutrientsFirst), vm.state.alternatives)
+        assertEquals(listOf(PresetId.NoNumbers, PresetId.MacrosOnly, PresetId.MacrosWithGrams), vm.state.alternatives)
         assertEquals(ModePreview.of(Presets.Full), vm.state.preview)
     }
 
     @Test
-    fun theDesignsAnswers_recommendNutrientsFirst_andPreviewIt() = runUnitTest {
+    fun theDesignsAnswers_recommendMacrosOnly_andPreviewIt() = runUnitTest {
         val vm = atRecommendation(answers = designAnswers)
 
-        assertEquals(PresetId.NutrientsFirst, vm.state.chosen)
-        assertEquals(listOf(PresetId.NoNumbers, PresetId.Later), vm.state.alternatives)
-        assertEquals(ModePreview.of(Presets.NutrientsFirst), vm.state.preview)
+        assertEquals(PresetId.MacrosOnly, vm.state.chosen)
+        assertEquals(listOf(PresetId.NoNumbers, PresetId.MacrosWithGrams), vm.state.alternatives)
+        assertEquals(ModePreview.of(Presets.MacrosOnly), vm.state.preview)
     }
 
     @Test
     fun alternativeTapped_picksIt_andTheRecommendationBecomesAnAlternative() = runUnitTest {
         val vm = atRecommendation(answers = designAnswers)
 
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Later))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.MacrosWithGrams))
         runCurrent()
 
-        assertEquals(PresetId.Later, vm.state.chosen)
-        assertEquals(PresetId.NutrientsFirst, vm.state.recommended)
-        assertFalse(PresetId.Later in vm.state.alternatives)
-        assertEquals(PresetId.NutrientsFirst, vm.state.alternatives.first())
-        assertEquals(ModePreview.of(Presets.Later), vm.state.preview)
+        assertEquals(PresetId.MacrosWithGrams, vm.state.chosen)
+        assertEquals(PresetId.MacrosOnly, vm.state.recommended)
+        assertFalse(PresetId.MacrosWithGrams in vm.state.alternatives)
+        assertEquals(PresetId.MacrosOnly, vm.state.alternatives.first())
+        assertEquals(ModePreview.of(Presets.MacrosWithGrams), vm.state.preview)
     }
 
     @Test
@@ -670,14 +670,14 @@ class OnboardingViewModelTest : CoroutineTest() {
 
         assertTrue(vm.state.showAllModes)
         assertEquals(
-            Presets.all.map { it.id } - setOf(PresetId.NutrientsFirst, PresetId.Full, PresetId.Full),
+            Presets.all.map { it.id } - setOf(PresetId.MacrosOnly, PresetId.Full),
             vm.state.alternatives,
         )
 
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Later))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.MacrosWithGrams))
         runCurrent()
-        assertEquals(PresetId.Later, vm.state.chosen)
-        assertTrue(PresetId.NutrientsFirst in vm.state.alternatives, "the list stays whole after a pick")
+        assertEquals(PresetId.MacrosWithGrams, vm.state.chosen)
+        assertTrue(PresetId.MacrosOnly in vm.state.alternatives, "the list stays whole after a pick")
     }
 
     // ---------- Saving the mode ----------

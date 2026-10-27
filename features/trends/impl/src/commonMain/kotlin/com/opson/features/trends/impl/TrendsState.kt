@@ -86,7 +86,10 @@ data class IntakeCard(
     val caption: IntakeCaption,
     /** The goal is one number (one number, a deficit or a surplus): the caption calls it a line, not a band. */
     val singleGoal: Boolean = false,
-)
+) {
+    /** Nothing logged in the span, today included: the card says what will show up instead of an empty chart. */
+    val empty: Boolean get() = bars.all { it.fraction == null }
+}
 
 /** What the caption under the chart explains: the band, and the striped bar when there is one. */
 enum class IntakeCaption { Plain, TodayInProgress, WeekInProgress }

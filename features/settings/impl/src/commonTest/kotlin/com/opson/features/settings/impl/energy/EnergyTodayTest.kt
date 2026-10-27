@@ -92,7 +92,7 @@ class EnergyTodayTest : CoroutineTest() {
 
     @Test
     fun hiddenCalories_showNoEnergyAtAll() {
-        listOf(PresetId.NoNumbers, PresetId.NutrientsFirst, PresetId.NutrientsFirst).forEach { preset ->
+        listOf(PresetId.NoNumbers, PresetId.MacrosOnly, PresetId.MacrosOnly).forEach { preset ->
             val state = build(preset)
             assertNull(state.eaten, "$preset")
             assertNull(state.balance, "$preset")

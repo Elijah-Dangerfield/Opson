@@ -9,7 +9,10 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Visibility
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -51,7 +54,7 @@ class FoodsTabTest : CoroutineTest() {
 
     @Test
     fun everyHidingModeHidesEveryRowsCalories() {
-        listOf(PresetId.NoNumbers, PresetId.NutrientsFirst, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers).forEach { preset ->
+        listOf(PresetId.NoNumbers, PresetId.MacrosOnly, PresetId.MacrosWithGrams).forEach { preset ->
             val state = FoodsFixtures.foodsState(policy(preset))
             val rows = state.savedMeals + state.yourFoods + state.recent
             assertTrue(rows.all { it.calories == Display.Hidden }, "$preset")
@@ -60,14 +63,15 @@ class FoodsTabTest : CoroutineTest() {
 
     @Test
     fun aSoftenedModeHasNoWordForARowAndHidesIt() {
-        val rows = FoodsFixtures.foodsState(policy(PresetId.NutrientsFirst)).savedMeals
+        val softCalories = NumbersSettings(PresetId.MacrosOnly, overrides = mapOf(Metric.Calories to Visibility.Soften))
+        val rows = FoodsFixtures.foodsState(policy(softCalories)).savedMeals
         assertTrue(rows.all { it.calories == Display.Hidden })
     }
 
     @Test
     fun delayedOpensAtTheRevealTime() {
-        assertTrue(FoodsFixtures.foodsState(policy(PresetId.Later)).savedMeals.all { it.calories == Display.Hidden })
-        val evening = FoodsFixtures.foodsState(policy(PresetId.Later, at = Instant.parse("2026-10-25T21:30:00Z")))
+        assertTrue(FoodsFixtures.foodsState(policy(NumbersSettings.later())).savedMeals.all { it.calories == Display.Hidden })
+        val evening = FoodsFixtures.foodsState(policy(NumbersSettings.later(), at = Instant.parse("2026-10-25T21:30:00Z")))
         assertEquals("445", (evening.savedMeals.first().calories as Display.Shown).text)
     }
 

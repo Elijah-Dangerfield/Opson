@@ -87,7 +87,7 @@ class VisibilityPolicyResolveTest {
     @Test
     fun weight_softensToTrendOnlyWithNoBar() {
         assertEquals(Display.Soft("Trend only", null), soft.resolve(Metric.Weight, 72.6, Surface.Weight))
-        assertEquals(Display.Soft("Trend only", null), policy(PresetId.NutrientsFirst).resolve(Metric.Weight, 72.6, Surface.Today))
+        assertEquals(Display.Soft("Trend only", null), policy(PresetId.MacrosOnly).resolve(Metric.Weight, 72.6, Surface.Today))
     }
 
     @Test
@@ -112,11 +112,23 @@ class VisibilityPolicyResolveTest {
     }
 
     @Test
-    fun nutrientsFirst_softensCaloriesAndProtein() {
-        val nutrientsFirst = policy(PresetId.NutrientsFirst)
-        assertEquals("In your range", nutrientsFirst.text(Metric.Calories, 2100.0, FormatContext(of = 2100.0)))
-        assertEquals("Building", nutrientsFirst.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
-        assertNull(nutrientsFirst.text(Metric.Carbs, 47.0, FormatContext(of = 250.0)))
+    fun macrosOnly_softensEveryMacro_andHidesCalories() {
+        val macrosOnly = policy(PresetId.MacrosOnly)
+        assertNull(macrosOnly.text(Metric.Calories, 2100.0, FormatContext(of = 2100.0)))
+        assertEquals("Building", macrosOnly.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
+        assertEquals("Building", macrosOnly.text(Metric.Carbs, 47.0, FormatContext(of = 250.0)))
+        assertEquals(Display.Soft("Getting there", 0.5f), macrosOnly.resolve(Metric.Fat, 35.0, Surface.Today, FormatContext(of = 70.0)))
+    }
+
+    @Test
+    fun macrosWithGrams_showsGrams_andHidesEveryEnergyNumber() {
+        val grams = policy(PresetId.MacrosWithGrams)
+        assertEquals("47 of 120 g", grams.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
+        listOf(Metric.Calories, Metric.Remaining, Metric.EnergyOut).forEach { metric ->
+            Surface.entries.forEach { surface ->
+                assertEquals(Display.Hidden, grams.resolve(metric, 1245.0, surface, FormatContext(of = 2100.0)), "$metric $surface")
+            }
+        }
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.diary.rememberMainNumber
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -137,10 +138,11 @@ class TodayEnergyCardTest {
 
     @Test
     fun outsideFullNumbers_theCardComesFromTheMode() {
-        listOf(PresetId.NutrientsFirst, PresetId.Later, PresetId.NoNumbers).forEach { preset ->
+        listOf(PresetId.MacrosWithGrams, PresetId.MacrosOnly, PresetId.NoNumbers).forEach { preset ->
             assertNull(card(policy = policy(preset)), "$preset")
         }
-        assertNull(card(policy = policy(PresetId.Later, at = TodayFixtures.evening)), "Later, after its reveal")
+        assertNull(card(policy = policy(NumbersSettings.later())), "Later")
+        assertNull(card(policy = policy(NumbersSettings.later(), at = TodayFixtures.evening)), "Later, after its reveal")
     }
 
     @Test

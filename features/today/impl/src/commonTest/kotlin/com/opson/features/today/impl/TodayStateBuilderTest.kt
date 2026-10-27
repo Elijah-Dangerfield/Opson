@@ -55,12 +55,25 @@ class TodayStateBuilderTest {
         overrides: Map<Metric, Visibility> = emptyMap(),
         menuOpen: Boolean = false,
         clearArmed: Boolean = false,
+    ): TodayState = build(NumbersSettings(preset), day, settings, at, overrides, menuOpen, clearArmed)
+
+    private fun build(
+        numbers: NumbersSettings,
+        day: Day = TodayFixtures.day(),
+        settings: Settings = Settings(),
+        at: Instant = TodayFixtures.noon,
+        overrides: Map<Metric, Visibility> = emptyMap(),
+        menuOpen: Boolean = false,
+        clearArmed: Boolean = false,
     ): TodayState = TodayStateBuilder.build(
         TodayFixtures.inputs(day, settings),
-        policy(preset, at, overrides),
+        policy(numbers, at, overrides),
         menuOpen,
         clearArmed,
     )
+
+    /** Every number on Later, what the Later mode was. */
+    private val later = NumbersSettings.later()
 
     @Test
     fun fullShowsEatenAgainstTheRangeAndEveryMeal() {
@@ -142,7 +155,7 @@ class TodayStateBuilderTest {
 
     @Test
     fun laterAtNoonLocksTotals_countsWhatIsLogged_andKeepsTheWaterGlasses() {
-        val state = build(PresetId.Later)
+        val state = build(later)
 
         val foods = TodayFixtures.day().allItems.size
         assertEquals(TodaySummary.Locked(opensAt = LocalTime(21, 0), weekly = false, meals = 3, foods = foods), state.summary)
@@ -157,16 +170,16 @@ class TodayStateBuilderTest {
 
     @Test
     fun laterOpensAtTheRevealTime_asTheFullNumbersCard() {
-        assertIs<TodaySummary.Energy>(build(PresetId.Later, at = Instant.parse("2026-10-25T21:00:00Z")).summary)
-        assertIs<TodaySummary.Energy>(build(PresetId.Later, day = TodayFixtures.pastDay()).summary, "a past day is simply open")
-        val sevenThirty = Settings(numbers = NumbersSettings(PresetId.Later, revealAt = LocalTime(19, 30)))
+        assertIs<TodaySummary.Energy>(build(later, at = Instant.parse("2026-10-25T21:00:00Z")).summary)
+        assertIs<TodaySummary.Energy>(build(later, day = TodayFixtures.pastDay()).summary, "a past day is simply open")
+        val sevenThirty = Settings(numbers = NumbersSettings.later().copy(revealAt = LocalTime(19, 30)))
         val locked = TodayStateBuilder.build(TodayFixtures.inputs(settings = sevenThirty), VisibilityPolicy(sevenThirty.numbers, Clock.fixed(TodayFixtures.noon), TodayFixtures.timeZone))
         assertEquals(LocalTime(19, 30), assertIs<TodaySummary.Locked>(locked.summary).opensAt, "the person's own reveal time")
     }
 
     @Test
     fun laterWeekly_staysLockedForTheWeek_evenInTheEvening() {
-        val weekly = NumbersSettings(PresetId.Later, revealOn = RevealOn.Week)
+        val weekly = NumbersSettings.later().copy(revealOn = RevealOn.Week)
         val evening = VisibilityPolicy(weekly, Clock.fixed(Instant.parse("2026-10-25T21:30:00Z")), TodayFixtures.timeZone)
 
         val locked = assertIs<TodaySummary.Locked>(TodayStateBuilder.build(TodayFixtures.inputs(), evening).summary)
@@ -208,31 +221,48 @@ class TodayStateBuilderTest {
     }
 
     @Test
-    fun nutrientsFirst_countsMeals_andShowsProteinFiberAndEnergyAsWords() {
-        val soft = assertIs<TodaySummary.Soft>(build(PresetId.NutrientsFirst).summary)
+    fun softCalories_countMeals_andShowTheMacrosAndEnergyAsWords() {
+        val softCalories = mapOf(Metric.Calories to Visibility.Soften)
+        val soft = assertIs<TodaySummary.Soft>(build(PresetId.MacrosOnly, overrides = softCalories).summary)
 
         assertEquals(MealCount(3, 4), soft.mealCount)
-        assertEquals(listOf(Metric.Protein, Metric.Fiber), soft.rows.map { it.metric })
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), soft.rows.map { it.metric })
         assertTrue(soft.rows.all { it.display is Display.Soft })
         assertEquals("Partway through", soft.energy.text())
-        val breakfast = assertIs<MealEntry.Full>(build(PresetId.NutrientsFirst).meals.first()).card
+    }
+
+    @Test
+    fun softCalories_withAProteinShownByChoice_showsItsAmount() {
+        val overrides = mapOf(Metric.Calories to Visibility.Soften, Metric.Protein to Visibility.Show)
+        val soft = assertIs<TodaySummary.Soft>(build(PresetId.MacrosOnly, overrides = overrides).summary)
+        assertEquals("51 of 120 g", soft.rows.first().display.text())
+    }
+
+    @Test
+    fun macrosOnly_isTheFocusCardInWords_withNoCaloriesAndNoGrams() {
+        val state = build(PresetId.MacrosOnly)
+        val focus = assertIs<TodaySummary.Focus>(state.summary)
+
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), focus.rows.map { it.metric })
+        assertTrue(focus.rows.all { it.display is Display.Soft })
+        val breakfast = assertIs<MealEntry.Full>(state.meals.first()).card
         assertTrue(breakfast.macros.isEmpty(), "words never join a macro line")
         assertEquals(Display.Hidden, breakfast.calories)
         assertEquals(Precision.Weighed, breakfast.items.first().precision, "rows keep how sure")
     }
 
     @Test
-    fun nutrientsFirst_withAProteinShownByChoice_showsItsAmount() {
-        val soft = assertIs<TodaySummary.Soft>(build(PresetId.NutrientsFirst, overrides = mapOf(Metric.Protein to Visibility.Show)).summary)
-        assertEquals("51 of 120 g", soft.rows.first().display.text())
-    }
+    fun macrosWithGrams_isTheFocusCardInGrams_withNoCaloriesAnywhere() {
+        val state = build(PresetId.MacrosWithGrams)
+        val focus = assertIs<TodaySummary.Focus>(state.summary)
 
-    @Test
-    fun caloriesHiddenWithNutrientsVisible_isTheFocusCard() {
-        val focus = assertIs<TodaySummary.Focus>(build(PresetId.NutrientsFirst, overrides = mapOf(Metric.Calories to Visibility.Hide)).summary)
-
-        assertEquals(listOf(Metric.Protein, Metric.Fiber), focus.rows.map { it.metric })
-        assertTrue(focus.rows.all { it.display is Display.Soft })
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), focus.rows.map { it.metric })
+        assertTrue(focus.rows.all { it.display is Display.Shown })
+        assertEquals("51 of 120 g", focus.rows.first().display.text())
+        val breakfast = assertIs<MealEntry.Full>(state.meals.first()).card
+        assertEquals(Display.Hidden, breakfast.calories)
+        assertTrue(breakfast.macros.isNotEmpty(), "grams join the macro line")
+        assertTrue(breakfast.items.all { it.calories == Display.Hidden }, "no food row spells its energy")
     }
 
     @Test
@@ -251,10 +281,10 @@ class TodayStateBuilderTest {
             numbers = NumbersSettings(
                 preset = PresetId.NoNumbers,
                 pauseBeforeMore = true,
-                endAfter = ModeTiming(startedOn = TodayFixtures.today.minus(DatePeriod(days = 14)), weeks = 2, then = PresetId.Later),
+                endAfter = ModeTiming(startedOn = TodayFixtures.today.minus(DatePeriod(days = 14)), weeks = 2, then = PresetId.MacrosWithGrams),
             ),
         )
-        assertEquals(TodayBanner(from = PresetId.NoNumbers, to = PresetId.Later, waiting = true), build(PresetId.NoNumbers, settings = waiting).banner)
+        assertEquals(TodayBanner(from = PresetId.NoNumbers, to = PresetId.MacrosWithGrams, waiting = true), build(PresetId.NoNumbers, settings = waiting).banner)
     }
 
     @Test
@@ -332,7 +362,7 @@ class TodayStateBuilderTest {
 
     @Test
     fun anUntrackedDayIsCalm_itsMealsStayButNothingReadsItAsADay() {
-        listOf(PresetId.Full, PresetId.NutrientsFirst, PresetId.Later, PresetId.NoNumbers).forEach { preset ->
+        (PresetId.entries.map(::NumbersSettings) + later).forEach { preset ->
             val state = build(preset, day = TodayFixtures.untrackedDay(), menuOpen = true)
             assertTrue(state.untracked, "$preset")
             assertNull(state.summary, "no hero card to measure it by in $preset")

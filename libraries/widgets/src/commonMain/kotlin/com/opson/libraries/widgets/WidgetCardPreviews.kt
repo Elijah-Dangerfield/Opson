@@ -65,11 +65,11 @@ private fun WidgetBlindDarkPreview() {
     WidgetPreviewPair(PresetId.NoNumbers, dark = true)
 }
 
-/** Nutrients first softens calories: the circles, not a soft word. */
+/** Macros only: no calories, the macros as words. */
 @Preview
 @Composable
 private fun WidgetFuelPreview() {
-    WidgetPreviewPair(PresetId.NutrientsFirst)
+    WidgetPreviewPair(PresetId.MacrosOnly)
 }
 
 /** Meal groups off in Blind: nothing to tick, so a line instead. */

@@ -26,6 +26,7 @@ import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.ui.components.ColorDot
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
+import com.opson.libraries.ui.components.EmptyCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.ListRow
@@ -55,6 +56,8 @@ import opson.libraries.resources.generated.resources.trends_micros_off_link
 import opson.libraries.resources.generated.resources.trends_micros_off_title
 import opson.libraries.resources.generated.resources.trends_nutrients_day
 import opson.libraries.resources.generated.resources.trends_nutrients_goal
+import opson.libraries.resources.generated.resources.trends_nutrients_empty_day
+import opson.libraries.resources.generated.resources.trends_nutrients_empty_week
 import opson.libraries.resources.generated.resources.trends_nutrients_nothing
 import opson.libraries.resources.generated.resources.trends_nutrients_range
 import opson.libraries.resources.generated.resources.trends_nutrients_title
@@ -150,6 +153,17 @@ internal fun NutrientsContent(
                 text = stringResource(Res.string.trends_micros_caption),
                 typography = AppTheme.type.body,
                 color = AppTheme.colors.muted,
+            )
+        }
+        if (state.empty) {
+            EmptyCard(
+                message = stringResource(
+                    when (state.range) {
+                        NutrientsRange.Day -> Res.string.trends_nutrients_empty_day
+                        NutrientsRange.WeekAverage -> Res.string.trends_nutrients_empty_week
+                    },
+                ),
+                icon = AppIcons.Science,
             )
         }
         if (state.microsOff) MicrosOffCard(onModes = { onAction(NutrientsAction.ModesTapped) })

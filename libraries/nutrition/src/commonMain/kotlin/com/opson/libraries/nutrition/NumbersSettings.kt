@@ -37,7 +37,7 @@ data class NumbersSettings(
 
     fun score(): Int = Metric.entries.sumOf { level(it).score }
 
-    /** "Full numbers, adjusted" in the prototype: the preset no longer describes what is on screen. */
+    /** "All numbers, adjusted" in the prototype: the preset no longer describes what is on screen. */
     val isAdjusted: Boolean get() = overrides.isNotEmpty() || progressPhotos != null
 
     /** Whether the Progress photos row shows on Weight: the person's choice, else the preset's. */
@@ -102,5 +102,15 @@ data class NumbersSettings(
     companion object {
         /** 9:00 pm, the prototype's fixed reveal and the default for everyone who has not picked one. */
         val DEFAULT_REVEAL_AT: LocalTime = LocalTime(21, 0)
+
+        /**
+         * All numbers with every number on Later ([Presets.laterLevels]), opening each day or once
+         * a week: what the Later mode was, and what a Later user is migrated to ([RetiredPreset]).
+         */
+        fun later(revealOn: RevealOn = RevealOn.DayClose): NumbersSettings = NumbersSettings(
+            preset = PresetId.Full,
+            overrides = RetiredPreset.Later.migrate(emptyMap()).second,
+            revealOn = revealOn,
+        )
     }
 }

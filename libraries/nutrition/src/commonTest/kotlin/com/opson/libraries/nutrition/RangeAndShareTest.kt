@@ -31,7 +31,7 @@ class RangeAndShareTest {
 
     @Test
     fun range_delayOpensOnDayCloseOnly() {
-        val delayed = policy(PresetId.Later)
+        val delayed = later()
         assertEquals(Display.Hidden, delayed.resolveRange(Metric.Calories, 1900.0, 2300.0, Surface.Settings))
         assertEquals(
             Display.Shown("1,900 to 2,300"),
@@ -59,9 +59,9 @@ class RangeAndShareTest {
 
     @Test
     fun share_hiddenWhenTheMacroIsSoftOrHidden() {
-        val proteinShown = policy(PresetId.NutrientsFirst, overrides = mapOf(Metric.Protein to Visibility.Show))
+        val proteinShown = policy(PresetId.MacrosOnly, overrides = mapOf(Metric.Protein to Visibility.Show))
         assertEquals(Display.Hidden, proteinShown.share(Metric.Carbs, 48.0, Surface.Settings))
-        val softProtein = policy(PresetId.NutrientsFirst)
+        val softProtein = policy(PresetId.MacrosOnly)
         assertEquals(Display.Hidden, softProtein.share(Metric.Protein, 23.0, Surface.Settings))
         assertEquals(Display.Shown("23%"), proteinShown.share(Metric.Protein, 23.0, Surface.Settings))
     }
@@ -75,7 +75,8 @@ class RangeAndShareTest {
     fun energyShare_onlyWhenCaloriesShow() {
         assertEquals(Display.Shown("21%"), policy(PresetId.Full).energyShare(21.2, Surface.Week))
         assertEquals(Display.Hidden, policy(PresetId.NoNumbers).energyShare(21.2, Surface.Week))
-        assertEquals(Display.Hidden, policy(PresetId.NutrientsFirst).energyShare(21.2, Surface.Week))
+        assertEquals(Display.Hidden, policy(PresetId.MacrosOnly).energyShare(21.2, Surface.Week))
+        assertEquals(Display.Hidden, policy(PresetId.MacrosWithGrams).energyShare(21.2, Surface.Week))
         assertEquals(Display.Hidden, policy(PresetId.Full).energyShare(Double.NaN, Surface.Week))
     }
 }

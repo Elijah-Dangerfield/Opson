@@ -122,7 +122,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theModesRowCountsTheChanges() {
-        assertEquals(MoreRow.Modes(PresetId.NutrientsFirst, changes = 1), build(SettingsFixtures.nutrientsFirstWithACarbsChange).groups[0][0])
+        assertEquals(MoreRow.Modes(PresetId.MacrosOnly, changes = 1), build(SettingsFixtures.nutrientsFirstWithACarbsChange).groups[0][0])
         assertEquals(MoreRow.Modes(PresetId.Full, changes = 2), build(SettingsFixtures.adjusted).groups[0][0])
     }
 

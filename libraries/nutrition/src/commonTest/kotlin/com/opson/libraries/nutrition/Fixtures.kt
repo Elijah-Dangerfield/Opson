@@ -31,11 +31,22 @@ internal fun policy(
     revealOn: RevealOn = RevealOn.DayClose,
 ) = VisibilityPolicy(NumbersSettings(preset = preset, overrides = overrides, revealOn = revealOn), clockAt(now, zone), zone)
 
+/** Every number on Later ([NumbersSettings.later]), with [overrides] on top. */
+internal fun later(
+    overrides: Map<Metric, Visibility> = emptyMap(),
+    now: LocalDateTime = MORNING,
+    zone: TimeZone = TimeZone.UTC,
+    revealOn: RevealOn = RevealOn.DayClose,
+): VisibilityPolicy {
+    val settings = NumbersSettings.later(revealOn)
+    return VisibilityPolicy(settings.copy(overrides = settings.overrides + overrides), clockAt(now, zone), zone)
+}
+
 /** Later with its totals opening once a week: what Coast became. */
 internal fun weekly(now: LocalDateTime = MORNING, overrides: Map<Metric, Visibility> = emptyMap()) =
-    policy(PresetId.Later, overrides = overrides, now = now, revealOn = RevealOn.Week)
+    later(overrides = overrides, now = now, revealOn = RevealOn.Week)
 
-/** Full numbers with every metric shown, micros included, for format tests. */
+/** All numbers with every metric shown, micros included, for format tests. */
 internal fun showAll(now: LocalDateTime = MORNING) =
     policy(PresetId.Full, overrides = mapOf(Metric.Micros to Visibility.Show), now = now)
 

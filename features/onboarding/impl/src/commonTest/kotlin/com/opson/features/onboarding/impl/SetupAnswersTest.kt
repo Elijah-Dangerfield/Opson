@@ -142,6 +142,6 @@ class SetupAnswersTest {
         // onboarding's own pick is "set during setup".
         val stamped = Settings(numbers = NumbersSettings(changedAt = Instant.parse("2026-01-01T00:00:00Z")))
 
-        assertNull(stamped.startingWith(PresetId.Later, SetupAnswers()).numbers.changedAt)
+        assertNull(stamped.startingWith(PresetId.MacrosOnly, SetupAnswers()).numbers.changedAt)
     }
 }

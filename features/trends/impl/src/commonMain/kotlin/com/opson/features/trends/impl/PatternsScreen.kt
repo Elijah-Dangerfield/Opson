@@ -28,6 +28,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.ColorDot
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
+import com.opson.libraries.ui.components.EmptyCard
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -36,6 +37,7 @@ import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.ShareBar
 import com.opson.libraries.ui.components.TimelineAxis
 import com.opson.libraries.ui.components.TimelineTrack
+import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
@@ -46,6 +48,7 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_back
 import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_patterns_and
+import opson.libraries.resources.generated.resources.trends_patterns_empty
 import opson.libraries.resources.generated.resources.trends_patterns_axis_12p
 import opson.libraries.resources.generated.resources.trends_patterns_axis_3p
 import opson.libraries.resources.generated.resources.trends_patterns_axis_6a
@@ -108,6 +111,10 @@ internal fun PatternsContent(
         )
         if (state.loading) {
             DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
+            return@Column
+        }
+        if (state.empty) {
+            EmptyCard(message = stringResource(Res.string.trends_patterns_empty), icon = AppIcons.Insights)
             return@Column
         }
         state.timing?.let { TimingCardView(it) }

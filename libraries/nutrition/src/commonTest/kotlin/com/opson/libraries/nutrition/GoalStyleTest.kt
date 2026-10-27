@@ -61,7 +61,7 @@ class GoalStyleTest {
 
     @Test
     fun style_neverChangesSoftWords() {
-        val fuel = policy(PresetId.NutrientsFirst)
+        val fuel = policy(PresetId.MacrosOnly, overrides = mapOf(Metric.Calories to Visibility.Soften))
         GoalStyle.entries.forEach { goal ->
             assertEquals(
                 "Partway through",

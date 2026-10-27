@@ -1,8 +1,10 @@
 package com.opson.features.today.impl
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.ui.CompactAmount
@@ -93,19 +95,36 @@ internal fun Summary(summary: TodaySummary, state: TodayState, onAction: (TodayA
 
 /**
  * The calories-shown card (2.1, 2.1b): the energy page and, when on, the macros page, swiping in
- * one card of one height, with the dots, Nutrients and the collapse chevron under both.
+ * one card of one height, with Nutrients and the collapse chevron under both and the page dots
+ * centred under the card.
  */
 @Composable
 private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAction: (TodayAction) -> Unit) {
-    val tools = state.summaryTools
     val macrosPage = summary.macrosPage
     val pageCount = if (macrosPage != null) 2 else 1
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        EnergyCard(summary, state, onAction)
+        if (pageCount > 1) {
+            PageIndicator(
+                pageCount = pageCount,
+                currentPage = state.summaryPage,
+                onPageSelected = { onAction(TodayAction.SummaryPageShown(it)) },
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun EnergyCard(summary: TodaySummary.Energy, state: TodayState, onAction: (TodayAction) -> Unit) {
+    val tools = state.summaryTools
+    val macrosPage = summary.macrosPage
     SummaryCard(
         onLongClick = if (tools) ({ onAction(TodayAction.SummaryLongPressed) }) else null,
         longClickLabel = stringResource(Res.string.today_customise_cd),
     ) {
         if (macrosPage != null) {
-            SwipePages(page = state.summaryPage, pageCount = pageCount, onPageChange = { onAction(TodayAction.SummaryPageShown(it)) }) { page ->
+            SwipePages(page = state.summaryPage, pageCount = 2, onPageChange = { onAction(TodayAction.SummaryPageShown(it)) }) { page ->
                 if (page == 0) FirstPage(summary, onAction) else MacrosPageContent(macrosPage)
             }
         } else {
@@ -114,9 +133,6 @@ private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAct
         SummaryFooter(
             nutrientsLabel = stringResource(Res.string.today_summary_nutrients),
             onNutrients = { onAction(TodayAction.NutrientsTapped) },
-            pageCount = pageCount,
-            page = state.summaryPage,
-            onPageSelected = { onAction(TodayAction.SummaryPageShown(it)) },
             collapseIcon = if (tools && !summary.empty) AppIcons.ExpandLess.described(stringResource(Res.string.today_collapse_cd)) else null,
             onCollapse = { onAction(TodayAction.CollapseTapped) },
             showNutrients = summary.card?.nutrientsLink ?: true,

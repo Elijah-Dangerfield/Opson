@@ -47,26 +47,23 @@ data class LeakMode(val name: String, val settings: NumbersSettings) {
 
 /**
  * Every mode that does not show calories, derived so a new preset is covered the day it is added,
- * No numbers first:
+ * No numbers first, then every number on Later:
  *
- * - Hide (No numbers, where Blind, Rhythm, Mindful and Explorer went): nothing at all.
- * - Soften (Nutrients first): a word may carry the calories tag, but never a digit.
- * - Delay (Later), at [NOW], before the reveal: nothing, apart from [REVEALED_BY_DESIGN]. Run each
- *   day and weekly (where Coast went), since the two open on different surfaces.
+ * - Hide (No numbers, where Blind, Rhythm, Mindful and Explorer went, and the two macro modes):
+ *   nothing at all.
+ * - Delay ([NumbersSettings.later], what the Later mode was), at [NOW], before the reveal:
+ *   nothing, apart from [REVEALED_BY_DESIGN]. Run each day and weekly (where Coast went), since
+ *   the two open on different surfaces. No preset delays anything any more, but each number can
+ *   still be set to Later, and a Later user migrated keeps exactly this.
  *
  * [SurfacesCoverageTest] pins the set, so a preset that starts showing calories is noticed.
  */
 internal val MODES_UNDER_TEST: List<LeakMode> = Presets.all
     .filter { it.level(Metric.Calories) != Visibility.Show }
     .sortedBy { preset -> Metric.entries.sumOf { preset.level(it).score } }
-    .flatMap { preset ->
-        val mode = LeakMode(preset.id.key, NumbersSettings(preset = preset.id))
-        if (Metric.entries.none { preset.level(it) == Visibility.Delay }) {
-            listOf(mode)
-        } else {
-            listOf(mode, LeakMode("${preset.id.key}-weekly", mode.settings.copy(revealOn = RevealOn.Week)))
-        }
-    }
+    .map { preset -> LeakMode(preset.id.key, NumbersSettings(preset = preset.id)) } +
+    LeakMode("later", NumbersSettings.later()) +
+    LeakMode("later-weekly", NumbersSettings.later(RevealOn.Week))
 
 /**
  * Noon on the fixtures' day (2026-10-25, a Sunday, UTC), before the 9 pm reveal and before the
@@ -116,7 +113,7 @@ internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
 
     listOf("trends", "trends-blind", "trends-coast").forEach { put("later-weekly" to it, lastCheckOpens) }
 
-    listOf("later", "later-weekly", "nutrients_first").forEach { mode ->
+    listOf("later", "later-weekly").forEach { mode ->
         listOf("foods-add-food", "foods-add-food-blind").forEach { put(mode to it, typedLabel) }
     }
 }

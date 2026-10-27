@@ -226,7 +226,8 @@ object TargetsStateBuilder {
     ): TargetsState {
         val targets = settings.targets
         if (policy.level(Metric.Calories) != Visibility.Show) {
-            return TargetsState(visible = false, macroMode = settings.macroMode)
+            // No calorie goal, but macros on show (Macros with grams) keep their gram targets.
+            return TargetsState(visible = false, macroMode = settings.macroMode, macros = macros(targets, policy), editingMacros = editingMacros)
         }
         val preset = settings.numbers.preset
         val burnKcal = burned?.totalKcal
@@ -266,7 +267,7 @@ object TargetsStateBuilder {
 
     /**
      * The styles the list offers: a set deficit and a set surplus only where the mode offers them
-     * (Full numbers), one number and a surplus with `release.goalsAndEnergy` or when already saved.
+     * (All numbers), one number and a surplus with `release.goalsAndEnergy` or when already saved.
      */
     fun offered(saved: StyleKind, preset: PresetId, goalsAndEnergy: Boolean): List<StyleKind> = StyleKind.entries.filter {
         when (it) {

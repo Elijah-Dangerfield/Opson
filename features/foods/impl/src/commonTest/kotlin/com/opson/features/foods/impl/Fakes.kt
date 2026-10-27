@@ -35,12 +35,13 @@ import kotlin.time.Instant
 /** Noon on the fixtures' today, before the 9 pm reveal. */
 val NOON: Instant = Instant.parse("2026-10-25T12:00:00Z")
 
-fun policy(preset: PresetId, at: Instant = NOON): VisibilityPolicy =
-    VisibilityPolicy(NumbersSettings(preset = preset), Clock.fixed(at), TimeZone.UTC)
+fun policy(preset: PresetId, at: Instant = NOON): VisibilityPolicy = policy(NumbersSettings(preset = preset), at)
 
-/** Nutrients first with calories hidden: where someone who had Nutrient focus lands. */
+fun policy(numbers: NumbersSettings, at: Instant = NOON): VisibilityPolicy = VisibilityPolicy(numbers, Clock.fixed(at), TimeZone.UTC)
+
+/** Macros only with carbs and fat hidden: where someone who had Nutrient focus lands. */
 fun nutrientFocus(): VisibilityPolicy =
-    VisibilityPolicy(NumbersSettings(PresetId.NutrientsFirst, overrides = mapOf(Metric.Calories to Visibility.Hide)), Clock.fixed(NOON), TimeZone.UTC)
+    policy(NumbersSettings(PresetId.MacrosOnly, overrides = mapOf(Metric.Carbs to Visibility.Hide, Metric.Fat to Visibility.Hide)))
 
 class FakePolicySource(preset: PresetId = PresetId.Full) : VisibilityPolicySource {
     override val policy = MutableStateFlow(policy(preset))

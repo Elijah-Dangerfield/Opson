@@ -115,7 +115,7 @@ object SettingsFixtures {
         macroMode = MacroMode.Ratios,
     )
 
-    /** Full numbers with two numbers changed and the pause on, changed on Oct 25 at 9:41 pm. */
+    /** All numbers with two numbers changed and the pause on, changed on Oct 25 at 9:41 pm. */
     val adjusted: NumbersSettings = NumbersSettings(
         preset = PresetId.Full,
         overrides = mapOf(Metric.Weight to Visibility.Soften, Metric.Remaining to Visibility.Hide),
@@ -124,7 +124,7 @@ object SettingsFixtures {
     )
 
     /**
-     * Design sync 4 `modes-v4` (13.5a): Full numbers, End after a set time on (2 weeks, then No
+     * Design sync 4 `modes-v4` (13.5a): All numbers, End after a set time on (2 weeks, then No
      * numbers), the pause on, changed Oct 25 at 8:14 pm.
      */
     val fullForTwoWeeks: NumbersSettings = NumbersSettings(
@@ -134,9 +134,9 @@ object SettingsFixtures {
         changedAt = Instant.parse("2026-10-25T20:14:00Z"),
     )
 
-    /** Nutrients first with carbs moved from Hide to Show and the pause on: one change on Each number. */
+    /** Macros only (once Nutrients first) with carbs moved from Soft to Show and the pause on: one change on Each number. */
     val nutrientsFirstWithACarbsChange: NumbersSettings = NumbersSettings(
-        preset = PresetId.NutrientsFirst,
+        preset = PresetId.MacrosOnly,
         overrides = mapOf(Metric.Carbs to Visibility.Show),
         pauseBeforeMore = true,
         changedAt = Instant.parse("2026-10-25T20:14:00Z"),

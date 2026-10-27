@@ -1,7 +1,10 @@
 package com.opson.features.onboarding.impl
 
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.ModePreset
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
+import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.Visibility
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,25 +19,31 @@ class ModePreviewTest {
     private val subjects = listOf(Metric.Calories, Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber, Metric.Weight)
 
     @Test
-    fun nutrientsFirst_readsAsWordsAndBars() {
-        val preview = ModePreview.of(Presets.NutrientsFirst)
+    fun macrosOnly_readsAsBars_withCaloriesKeptOut() {
+        val preview = ModePreview.of(Presets.MacrosOnly)
 
         assertEquals(
             listOf(
                 PreviewLine(PreviewMark.Shown, PreviewItem.MealCount),
-                PreviewLine(PreviewMark.Softened, PreviewItem.EnergyWord),
-                PreviewLine(PreviewMark.Softened, PreviewItem.ProteinFiberBars),
+                PreviewLine(PreviewMark.Softened, PreviewItem.MacroBars),
             ),
             preview.seen,
         )
         assertEquals(
             listOf(
                 PreviewLine(PreviewMark.Hidden, PreviewItem.CaloriesHidden),
-                PreviewLine(PreviewMark.Hidden, PreviewItem.CarbsFatHidden),
                 PreviewLine(PreviewMark.Softened, PreviewItem.WeightTrend),
             ),
             preview.keptOut,
         )
+    }
+
+    @Test
+    fun macrosWithGrams_showsTheGrams_andKeepsCaloriesOut() {
+        val preview = ModePreview.of(Presets.MacrosWithGrams)
+
+        assertEquals(listOf(PreviewItem.MacroAmounts, PreviewItem.WeightAmounts), preview.seen.map { it.item })
+        assertEquals(listOf(PreviewLine(PreviewMark.Hidden, PreviewItem.CaloriesHidden)), preview.keptOut)
     }
 
     @Test
@@ -104,7 +113,8 @@ class ModePreviewTest {
     fun delayedNumbers_sayWhenTheyOpen() {
         assertEquals(
             listOf(PreviewItem.CaloriesLater, PreviewItem.MacrosLater),
-            ModePreview.of(Presets.Later).seen.map { it.item },
+            // Later is no longer a mode, but each number can still be set to it.
+            ModePreview.of(ModePreset(PresetId.Full, TodayLayout.Full, Presets.laterLevels)).seen.map { it.item },
         )
     }
 }

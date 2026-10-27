@@ -87,7 +87,7 @@ object OnboardingFixtures {
         .withViews(policy)
 
     /** The meal times step after the design's answers (eating regularly), with a later breakfast. */
-    fun meals(): OnboardingState = setup(OnboardingStep.Meals, DesignAnswers, goalsAndEnergy = false, policy(PresetId.NutrientsFirst))
+    fun meals(): OnboardingState = setup(OnboardingStep.Meals, DesignAnswers, goalsAndEnergy = false, policy(PresetId.MacrosOnly))
         .copy(mealTimes = MealTimes(breakfast = LocalTime(9, 30)))
 
     private fun setup(step: OnboardingStep, answers: SetupAnswers, goalsAndEnergy: Boolean, policy: VisibilityPolicy) = OnboardingState(

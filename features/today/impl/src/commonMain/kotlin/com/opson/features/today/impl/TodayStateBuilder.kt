@@ -66,7 +66,7 @@ data class TodayUi(
  * mode layouts, 13.5b to 13.5d), so previews and the leak test run the same mapping as the app.
  *
  * The hero card comes from the layout (`policy.preset.today`) and the calorie level: shown is
- * the eaten bar (also once Later's totals open), softened is Nutrients first's words and bars,
+ * the eaten bar (also once Later's totals open), softened is words and bars (Nutrients first's card),
  * delayed is the lock with what is logged so far, hidden with a nutrient visible is the focus
  * card, and nothing visible is the meal count, or No numbers' meal timeline. Nothing here asks
  * which mode is on, except the End after a set time banner, which names the modes.
@@ -161,7 +161,7 @@ object TodayStateBuilder {
         val soft = policy.resolve(Metric.Calories, eaten, Surface.Today, context.copy(of = range.targetKcal.toDouble(), bare = true))
 
         return when {
-            // Later, once open: the Full numbers card for the rest of the day (13.5c).
+            // Later, once open: the All numbers card for the rest of the day (13.5c).
             shown -> energy(inputs, policy, context, eaten)
             delayed -> locked(day, policy)
             soft is Display.Soft -> softCard(inputs, policy, context, soft)
@@ -194,7 +194,7 @@ object TodayStateBuilder {
             stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range) else emptyList(),
             macrosPage = if (summaryOn && !empty && settings.todayMacrosPage) macrosPage(day, settings, policy, context, eaten) else null,
             singleGoal = range.single,
-            // Only Full numbers' card: outside it (Later after its reveal, too) the mode sets the layout.
+            // Only All numbers' card: outside it (Later after its reveal, too) the mode sets the layout.
             card = if (inputs.goalsAndEnergyOn && policy.preset.today == TodayLayout.Full && policy.level(Metric.Calories) == Visibility.Show) {
                 EnergyCardBuilder.build(inputs, policy, context, eaten, range, if (empty) emptyList() else barParts(day, policy, context, eaten))
             } else {

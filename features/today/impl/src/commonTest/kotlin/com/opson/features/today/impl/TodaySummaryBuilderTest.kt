@@ -6,6 +6,7 @@ import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
@@ -157,7 +158,8 @@ class TodaySummaryBuilderTest {
     fun deficitSoFarIsOfferedOnlyWhereDeficitsAre() {
         assertTrue(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Full)))
         assertTrue(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Full)))
-        assertFalse(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.NutrientsFirst)))
+        assertFalse(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.MacrosOnly)))
+        assertFalse(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.MacrosWithGrams)))
     }
 
     @Test
@@ -227,16 +229,20 @@ class TodaySummaryBuilderTest {
     }
 
     @Test
-    fun nutrientsFirstCompactsToMealsAndProtein_caloriesHiddenToTheWords_laterToTheCount() {
-        val first = assertNotNull(build(policy(PresetId.NutrientsFirst)).compact).pages.single().parts
+    fun softCaloriesCompactToMealsAndProtein_macrosOnlyToTheWords_gramsToTheAmounts_laterToTheCount() {
+        val softCalories = policy(PresetId.MacrosOnly, overrides = mapOf(Metric.Calories to Visibility.Soften))
+        val first = assertNotNull(build(softCalories).compact).pages.single().parts
         assertEquals(CompactPart.Meals(3, 4), first[0])
         assertEquals(Metric.Protein, assertIs<CompactPart.Amount>(first[1]).metric)
 
-        val hidden = policy(PresetId.NutrientsFirst, overrides = mapOf(Metric.Calories to Visibility.Hide))
-        val words = assertNotNull(build(hidden).compact).pages.single().parts
-        assertTrue(words.all { it is CompactPart.Amount && it.display is Display.Soft })
+        val words = assertNotNull(build(policy(PresetId.MacrosOnly)).compact).pages.single().parts
+        assertTrue(words.isNotEmpty() && words.all { it is CompactPart.Amount && it.display is Display.Soft })
 
-        val delayed = assertNotNull(build(policy(PresetId.Later)).compact).pages.single().parts
+        val grams = assertNotNull(build(policy(PresetId.MacrosWithGrams)).compact).pages.single().parts
+        assertTrue(grams.isNotEmpty() && grams.all { it is CompactPart.Amount && it.display is Display.Shown })
+        assertTrue(grams.none { (it as CompactPart.Amount).metric == Metric.Calories })
+
+        val delayed = assertNotNull(build(policy(NumbersSettings.later())).compact).pages.single().parts
         assertEquals(listOf<CompactPart>(CompactPart.Logged(3)), delayed)
     }
 
@@ -252,7 +258,7 @@ class TodaySummaryBuilderTest {
         assertEquals("73.9 kg", full.display.text())
         assertTrue(full.morning)
 
-        assertEquals("Steady", build(policy(PresetId.Later)).weight?.display?.text(), "Delayed softens weight to its trend word")
+        assertEquals("Steady", build(policy(NumbersSettings.later())).weight?.display?.text(), "Delayed softens weight to its trend word")
         assertNull(build(policy(PresetId.NoNumbers)).weight, "hidden weight, no row")
         assertNull(build(day = TodayFixtures.day(TodayFixtures.today.minus(DatePeriod(days = 20)))).weight, "no weigh-in that day")
     }

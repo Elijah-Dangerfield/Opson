@@ -23,7 +23,7 @@ class ProgressPhotosSettingTest {
 
     @Test
     fun aChoiceTravelsAsATopLevelKey_notInsideNumbers() {
-        val shown = Settings(numbers = NumbersSettings(preset = PresetId.NutrientsFirst, progressPhotos = true))
+        val shown = Settings(numbers = NumbersSettings(preset = PresetId.MacrosOnly, progressPhotos = true))
         val json = encode(shown)
 
         assertEquals(true, json.getValue("progressPhotos").jsonPrimitive.boolean)

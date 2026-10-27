@@ -33,15 +33,15 @@ class LegacyPresetTest {
         assertEquals(
             mapOf(
                 "full" to PresetId.Full,
-                "delayed" to PresetId.Later,
+                "delayed" to PresetId.Full,
                 "blind" to PresetId.NoNumbers,
-                "nutrient" to PresetId.NutrientsFirst,
+                "nutrient" to PresetId.MacrosOnly,
                 "rhythm" to PresetId.NoNumbers,
                 "explorer" to PresetId.NoNumbers,
                 "mindful" to PresetId.NoNumbers,
-                "fuel" to PresetId.NutrientsFirst,
+                "fuel" to PresetId.MacrosOnly,
                 "sprint" to PresetId.Full,
-                "coast" to PresetId.Later,
+                "coast" to PresetId.Full,
             ),
             LegacyPreset.entries.associate { it.key to migrate(it.key).preset },
         )
@@ -72,22 +72,30 @@ class LegacyPresetTest {
 
     @Test
     fun aPresetThatMatches_carriesNoOverrides() {
-        listOf("full", "delayed", "blind", "rhythm", "mindful").forEach { assertEquals(emptyMap(), migrate(it).overrides, it) }
+        listOf("full", "blind", "rhythm", "mindful").forEach { assertEquals(emptyMap(), migrate(it).overrides, it) }
     }
 
     @Test
-    fun nutrientFocus_keepsCaloriesHidden() {
-        // Nutrients first softens calories; Nutrient focus hid them. Showing a word would be a raise.
-        assertEquals(mapOf(Metric.Calories to Hide), migrate("nutrient").overrides)
+    fun nutrientFocus_keepsCarbsAndFatHidden() {
+        // Macros only softens every macro; Nutrient focus hid carbs and fat. Showing a word would be a raise.
+        assertEquals(mapOf(Metric.Carbs to Hide, Metric.Fat to Hide), migrate("nutrient").overrides)
     }
 
     @Test
-    fun fuel_keepsProteinAndFiberAsAmounts() {
-        assertEquals(mapOf(Metric.Protein to Show, Metric.Fiber to Show), migrate("fuel").overrides)
+    fun fuel_keepsProteinAndFiberAsAmounts_andCaloriesAsAWord() {
+        assertEquals(
+            mapOf(Metric.Calories to Soften, Metric.Protein to Show, Metric.Carbs to Hide, Metric.Fat to Hide, Metric.Fiber to Show),
+            migrate("fuel").overrides,
+        )
     }
 
     @Test
-    fun coast_becomesLaterWeekly_withEverythingButCaloriesStillHidden() {
+    fun delayed_becomesAllNumbers_withEveryNumberStillOnLater() {
+        assertEquals(NumbersSettings.later(), migrate("delayed").settings())
+    }
+
+    @Test
+    fun coast_becomesAllNumbersOnLaterWeekly_withEverythingButCaloriesStillHidden() {
         val coast = migrate("coast")
         assertEquals(RevealOn.Week, coast.revealOn)
         assertEquals(Delay, coast.settings().level(Metric.Calories))
@@ -100,7 +108,7 @@ class LegacyPresetTest {
     @Test
     fun photos_stayWhereThePresetHadThem() {
         assertEquals(true, migrate("explorer").progressPhotos, "Explorer showed photos; No numbers hides them")
-        assertEquals(true, migrate("nutrient").progressPhotos, "Nutrient focus showed photos; Nutrients first hides them")
+        assertEquals(true, migrate("nutrient").progressPhotos, "Nutrient focus showed photos; Macros only hides them")
         assertNull(migrate("blind").progressPhotos)
         assertNull(migrate("fuel").progressPhotos)
         assertEquals(false, migrate("full", photos = false).progressPhotos, "a choice the person made is kept")
@@ -127,10 +135,15 @@ class LegacyPresetTest {
     }
 
     @Test
-    fun aCurrentKey_readsAsItself_andAnUnknownOneAsNull() {
+    fun aCurrentKey_readsAsItself_aRetiredOneAsWhatReplacedIt_andAnUnknownOneAsNull() {
+        val grams = migrate("macros_grams", mapOf(Metric.Water to Hide))
+        assertEquals(PresetId.MacrosWithGrams, grams.preset)
+        assertEquals(mapOf(Metric.Water to Hide), grams.overrides)
         val later = migrate("later", mapOf(Metric.Water to Hide))
-        assertEquals(PresetId.Later, later.preset)
-        assertEquals(mapOf(Metric.Water to Hide), later.overrides)
+        assertEquals(PresetId.Full, later.preset)
+        assertEquals(Hide, later.overrides[Metric.Water])
+        assertEquals(Delay, later.overrides[Metric.Calories])
+        assertEquals(PresetId.MacrosOnly, migrate("nutrients_first").preset)
         assertNull(LegacyPreset.migrate("strict", emptyMap(), null, null))
     }
 
@@ -138,10 +151,11 @@ class LegacyPresetTest {
     fun closestTo_givesAnOldPhoneTheSameLevels() {
         val settings = listOf(
             NumbersSettings(),
-            NumbersSettings(preset = PresetId.NutrientsFirst),
-            NumbersSettings(preset = PresetId.NutrientsFirst, overrides = mapOf(Metric.Calories to Hide)),
-            NumbersSettings(preset = PresetId.Later),
-            NumbersSettings(preset = PresetId.Later, revealOn = RevealOn.Week),
+            NumbersSettings(preset = PresetId.MacrosWithGrams),
+            NumbersSettings(preset = PresetId.MacrosOnly),
+            NumbersSettings(preset = PresetId.MacrosOnly, overrides = mapOf(Metric.Calories to Soften)),
+            NumbersSettings.later(),
+            NumbersSettings.later(RevealOn.Week),
             NumbersSettings(preset = PresetId.NoNumbers),
             NumbersSettings(preset = PresetId.NoNumbers, overrides = mapOf(Metric.Weight to Soften)),
         )
@@ -151,13 +165,14 @@ class LegacyPresetTest {
                 assertEquals(numbers.level(metric), overrides[metric] ?: legacy.vis.getValue(metric), "$numbers, $metric")
             }
         }
-        assertEquals(LegacyPreset.Coast, LegacyPreset.closestTo(NumbersSettings(preset = PresetId.Later, revealOn = RevealOn.Week)).first)
+        assertEquals(LegacyPreset.Coast, LegacyPreset.closestTo(NumbersSettings.later(RevealOn.Week)).first)
+        assertEquals(LegacyPreset.Delayed, LegacyPreset.closestTo(NumbersSettings.later()).first)
         assertEquals(LegacyPreset.Blind to emptyMap<Metric, Visibility>(), LegacyPreset.closestTo(NumbersSettings(preset = PresetId.NoNumbers)))
     }
 
     @Test
     fun aRoundTripThroughAnOldPhone_landsWhereItStarted() {
-        val start = NumbersSettings(preset = PresetId.NutrientsFirst, overrides = mapOf(Metric.Carbs to Soften))
+        val start = NumbersSettings(preset = PresetId.MacrosOnly, overrides = mapOf(Metric.Carbs to Show))
         val (legacy, overrides) = LegacyPreset.closestTo(start)
         val back = migrate(legacy.key, overrides).settings()
         assertEquals(start.preset, back.preset)

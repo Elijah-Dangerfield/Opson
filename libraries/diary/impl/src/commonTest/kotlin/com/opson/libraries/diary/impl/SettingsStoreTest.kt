@@ -143,7 +143,7 @@ class SettingsStoreTest : CoroutineTest() {
     @Test
     fun beforeAuthAnswers_onlySettingsAPullLandedInAreKnown() = runUnitTest {
         // A phone signed in to an account whose first pull never landed (offline), then restarted:
-        // the stored copy is the defaults, Full numbers, and must not show until auth answers.
+        // the stored copy is the defaults, All numbers, and must not show until auth answers.
         user.user.value = ActiveUser.Unresolved
         assertFalse(store.isKnown.value, "defaults no pull reached are nobody's settings")
 

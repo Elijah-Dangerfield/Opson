@@ -41,7 +41,7 @@ import kotlin.time.Instant
  * Two things here are safety rules, not conveniences:
  *
  * - **No numbers until the settings are known.** On a phone signed into an
- *   existing account, the local settings are defaults (Full numbers) until the
+ *   existing account, the local settings are defaults (All numbers) until the
  *   first pull lands. Serving those would flash every number at someone who
  *   chose to see none. No numbers is the only safe guess.
  * - **A new policy at the reveal time and at midnight.** Later numbers open

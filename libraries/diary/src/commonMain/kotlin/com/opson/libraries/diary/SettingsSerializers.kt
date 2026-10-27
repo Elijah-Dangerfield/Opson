@@ -13,6 +13,7 @@ import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
+import com.opson.libraries.nutrition.RetiredPreset
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
@@ -77,9 +78,17 @@ internal open class KeyedEnumSerializer<E : Enum<E>>(
     fun fromKey(value: String): E? = values.firstOrNull { key(it) == value }
 }
 
-/** A preset by its key. Only names one in copy ("Your time on Full numbers is up"), never decides a level. */
+/**
+ * A preset by its key. Only names one in copy ("Your time on All numbers is up"), never decides a
+ * level. A retired key names what replaced it.
+ */
 internal object PresetKeySerializer :
-    KeyedEnumSerializer<PresetId>("opson.PresetId", PresetId.entries, PresetId::key, PresetId.NoNumbers)
+    KeyedEnumSerializer<PresetId>("opson.PresetId", PresetId.entries, PresetId::key, PresetId.NoNumbers) {
+    override fun deserialize(decoder: Decoder): PresetId {
+        val key = decoder.decodeString()
+        return fromKey(key) ?: RetiredPreset.read(key, emptyMap())?.first ?: PresetId.NoNumbers
+    }
+}
 
 internal val Visibility.key: String get() = name.lowercase()
 
@@ -173,8 +182,8 @@ private class NumbersWire(
 )
 
 /**
- * The top-level `mode` (design sync 4): the preset as one of the four, its overrides, when Later's
- * totals open, and End after a set time. Written whole with the 0.1 `numbers` beside it, both
+ * The top-level `mode` (design sync 4): the preset as one of the four (a retired one reads as what
+ * replaced it), its overrides, when Later's totals open, and End after a set time. Written whole with the 0.1 `numbers` beside it, both
  * stamped [changedAtEpochMs].
  */
 @Serializable
@@ -241,11 +250,14 @@ internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
             revealAt = wire.revealAt?.let(::revealAtFromWire) ?: NumbersSettings.DEFAULT_REVEAL_AT,
             progressPhotos = wire.progressPhotos,
         )
-        val preset = mode?.let { PresetId.fromKey(it.preset) }
-        if (mode != null && preset != null) {
+        // A mode this build retired reads as what replaced it (RetiredPreset): Nutrients first is
+        // Macros only, Later is All numbers with each number still on Later.
+        val read = mode?.let { RetiredPreset.read(it.preset, it.overrides) }
+        if (mode != null && read != null) {
+            val (preset, overrides) = read
             return base.copy(
                 preset = preset,
-                overrides = mode.overrides,
+                overrides = overrides,
                 revealOn = revealOnFromWire(mode.revealOn),
                 endAfter = mode.endAfter?.toTiming(),
             )
@@ -264,7 +276,7 @@ internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
 
     /** Readable by this build, and not overtaken by a later change an old phone made to `numbers`. */
     private fun ModeWire.isCurrent(wire: NumbersWire): Boolean {
-        if (PresetId.fromKey(preset) == null) return false
+        if (RetiredPreset.read(preset, overrides) == null) return false
         val numbersChanged = wire.changedAtEpochMs ?: return true
         val modeChanged = changedAtEpochMs ?: return false
         return modeChanged >= numbersChanged
@@ -276,9 +288,9 @@ internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
         else -> RevealOn.Week
     }
 
-    /** A timer whose next preset this build can't read is dropped rather than guessed. */
+    /** A timer whose next preset this build can't read, or that ended in Later, is dropped rather than guessed. */
     private fun EndAfterWire.toTiming(): ModeTiming? =
-        PresetId.fromKey(then)?.let { ModeTiming(startedOn = startedOn, weeks = weeks.coerceAtLeast(1), then = it) }
+        RetiredPreset.timerTarget(then)?.let { ModeTiming(startedOn = startedOn, weeks = weeks.coerceAtLeast(1), then = it) }
 
     /** Hours and minutes only: a reveal time has no seconds, and `"21:00"` reads the same everywhere. */
     private fun LocalTime.toWire(): String =

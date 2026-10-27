@@ -17,7 +17,7 @@ import kotlin.time.Instant
 object TodayFastingCard {
 
     /**
-     * Whether the card exists: fasting offered (the flag, Full numbers, and never after the
+     * Whether the card exists: fasting offered (the flag, All numbers, and never after the
      * statement), the timer on, "Card on Today" on, and the day on show is today.
      */
     fun shows(settings: Settings, released: Boolean, day: LocalDate, today: LocalDate): Boolean =

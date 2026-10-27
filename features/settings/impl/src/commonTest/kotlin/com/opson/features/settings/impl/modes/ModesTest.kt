@@ -47,14 +47,14 @@ class ModesTest : CoroutineTest() {
     fun aChangedPresetStaysSelectedWithItsChangeCount() {
         val state = ModesStateBuilder.build(SettingsFixtures.nutrientsFirstWithACarbsChange, TimeZone.UTC)
 
-        assertEquals(listOf(PresetRow(PresetId.NutrientsFirst, selected = true, changes = 1)), state.presets.filter { it.selected })
+        assertEquals(listOf(PresetRow(PresetId.MacrosOnly, selected = true, changes = 1)), state.presets.filter { it.selected })
         assertTrue(state.presets.filterNot { it.selected }.all { it.changes == 0 })
     }
 
     @Test
     fun anOverrideEqualToThePresetIsNotAChange() {
-        val fuelProtein = Presets[PresetId.NutrientsFirst].level(Metric.Protein)
-        val state = ModesStateBuilder.build(NumbersSettings(PresetId.NutrientsFirst, overrides = mapOf(Metric.Protein to fuelProtein)), TimeZone.UTC)
+        val fuelProtein = Presets[PresetId.MacrosOnly].level(Metric.Protein)
+        val state = ModesStateBuilder.build(NumbersSettings(PresetId.MacrosOnly, overrides = mapOf(Metric.Protein to fuelProtein)), TimeZone.UTC)
 
         assertEquals(0, state.presets.single { it.selected }.changes)
         assertTrue(state.matrix.all { it.changedFrom == null })
@@ -65,7 +65,7 @@ class ModesTest : CoroutineTest() {
         val state = ModesStateBuilder.build(SettingsFixtures.nutrientsFirstWithACarbsChange, TimeZone.UTC)
 
         assertEquals(
-            MatrixRow(Metric.Carbs, Visibility.Show, changedFrom = Presets[PresetId.NutrientsFirst].level(Metric.Carbs)),
+            MatrixRow(Metric.Carbs, Visibility.Show, changedFrom = Presets[PresetId.MacrosOnly].level(Metric.Carbs)),
             state.matrix.single { it.metric == Metric.Carbs },
         )
         assertEquals(listOf(Metric.Carbs), state.matrix.filter { it.changedFrom != null }.map { it.metric })
@@ -80,19 +80,19 @@ class ModesTest : CoroutineTest() {
 
     @Test
     fun theRevealTimeIsShownAsAClockTime_onlyWhileSomethingIsLater() {
-        val nine = ModesStateBuilder.build(NumbersSettings(PresetId.Later), TimeZone.UTC)
-        val custom = ModesStateBuilder.build(NumbersSettings(PresetId.Later, revealAt = LocalTime(19, 30)), TimeZone.UTC)
+        val nine = ModesStateBuilder.build(NumbersSettings.later(), TimeZone.UTC)
+        val custom = ModesStateBuilder.build(NumbersSettings.later().copy(revealAt = LocalTime(19, 30)), TimeZone.UTC)
 
         assertEquals("9:00 PM", nine.reveal?.timeText)
         assertEquals("7:30 PM", custom.reveal?.timeText)
-        assertNull(ModesStateBuilder.build(NumbersSettings(), TimeZone.UTC).reveal, "nothing is Later in Full numbers")
+        assertNull(ModesStateBuilder.build(NumbersSettings(), TimeZone.UTC).reveal, "nothing is Later in All numbers")
         val oneLater = NumbersSettings(overrides = mapOf(Metric.Weight to Visibility.Delay))
         assertEquals(false, ModesStateBuilder.build(oneLater, TimeZone.UTC).reveal?.weekly)
     }
 
     @Test
     fun weeklyReveal_isShownOnTheRevealRow() {
-        val weekly = ModesStateBuilder.build(NumbersSettings(PresetId.Later, revealOn = RevealOn.Week), TimeZone.UTC)
+        val weekly = ModesStateBuilder.build(NumbersSettings.later().copy(revealOn = RevealOn.Week), TimeZone.UTC)
 
         assertEquals(true, weekly.reveal?.weekly)
     }
@@ -105,12 +105,12 @@ class ModesTest : CoroutineTest() {
         assertEquals(SettingsFixtures.fullForTwoWeeks.endAfter, state.endAfter.timing)
         assertEquals("Nov 8", state.endAfter.endsOnText)
         assertTrue(state.endAfter.editing)
-        assertEquals(listOf(PresetId.NutrientsFirst, PresetId.Later, PresetId.NoNumbers), state.endAfter.thenChoices, "never the current one")
+        assertEquals(listOf(PresetId.MacrosWithGrams, PresetId.MacrosOnly, PresetId.NoNumbers), state.endAfter.thenChoices, "never the current one")
     }
 
     @Test
     fun theGridShowsConfiguredLevelsDelayIncluded() {
-        val state = ModesStateBuilder.build(NumbersSettings(PresetId.Later), TimeZone.UTC)
+        val state = ModesStateBuilder.build(NumbersSettings.later(), TimeZone.UTC)
 
         assertEquals(Metric.entries, state.matrix.map { it.metric })
         assertEquals(Visibility.Delay, state.matrix.single { it.metric == Metric.Calories }.level)
@@ -129,9 +129,9 @@ class ModesTest : CoroutineTest() {
 
     @Test
     fun thePhotosRow_onlyWithItsFlag_followingThePresetUntilChanged() {
-        assertNull(ModesStateBuilder.build(NumbersSettings(PresetId.NutrientsFirst), TimeZone.UTC).photos)
+        assertNull(ModesStateBuilder.build(NumbersSettings(PresetId.MacrosOnly), TimeZone.UTC).photos)
 
-        assertEquals(PhotosRow(shown = false), ModesStateBuilder.build(NumbersSettings(PresetId.NutrientsFirst), TimeZone.UTC, photosReleased = true).photos)
+        assertEquals(PhotosRow(shown = false), ModesStateBuilder.build(NumbersSettings(PresetId.MacrosOnly), TimeZone.UTC, photosReleased = true).photos)
         assertEquals(PhotosRow(shown = true), ModesStateBuilder.build(NumbersSettings(PresetId.Full), TimeZone.UTC, photosReleased = true).photos)
     }
 
@@ -152,7 +152,7 @@ class ModesTest : CoroutineTest() {
     @Test
     fun photosTapped_goesThroughTheChanger_andOpensThePauseWhenItSaysSo() = runUnitTest {
         val changer = FakeNumbersChanger { NumbersOutcome.NeedsPause }
-        val vm = viewModel(NumbersSettings(PresetId.NutrientsFirst, pauseBeforeMore = true), changer, photos = true)
+        val vm = viewModel(NumbersSettings(PresetId.MacrosOnly, pauseBeforeMore = true), changer, photos = true)
         val events = eventsOf(vm)
 
         vm.takeAction(ModesAction.PhotosTapped(shown = false))
@@ -167,7 +167,7 @@ class ModesTest : CoroutineTest() {
     @Test
     fun photosFlagOff_noRow_andATapDoesNothing() = runUnitTest {
         val changer = FakeNumbersChanger()
-        val vm = viewModel(NumbersSettings(PresetId.NutrientsFirst), changer, photos = false)
+        val vm = viewModel(NumbersSettings(PresetId.MacrosOnly), changer, photos = false)
 
         assertNull(vm.state.photos)
         vm.takeAction(ModesAction.PhotosTapped(shown = true))
@@ -239,9 +239,9 @@ class ModesTest : CoroutineTest() {
         val changer = FakeNumbersChanger()
         val vm = viewModel(SettingsFixtures.nutrientsFirstWithACarbsChange, changer)
 
-        vm.takeAction(ModesAction.PresetTapped(PresetId.NutrientsFirst))
+        vm.takeAction(ModesAction.PresetTapped(PresetId.MacrosOnly))
 
-        assertEquals(listOf<NumbersChange>(NumbersChange.PickPreset(PresetId.NutrientsFirst)), changer.requested)
+        assertEquals(listOf<NumbersChange>(NumbersChange.PickPreset(PresetId.MacrosOnly)), changer.requested)
     }
 
     @Test
@@ -259,13 +259,13 @@ class ModesTest : CoroutineTest() {
     }
 
     @Test
-    fun endAfterOn_fromNoNumbers_offersLater() = runUnitTest {
+    fun endAfterOn_fromNoNumbers_offersMacrosOnly() = runUnitTest {
         val changer = FakeNumbersChanger()
         val vm = viewModel(NumbersSettings(PresetId.NoNumbers), changer)
 
         vm.takeAction(ModesAction.EndAfterToggled)
 
-        assertEquals(listOf<Pair<Int, PresetId>?>(2 to PresetId.Later), changer.timers)
+        assertEquals(listOf<Pair<Int, PresetId>?>(2 to PresetId.MacrosOnly), changer.timers)
     }
 
     @Test
@@ -287,10 +287,10 @@ class ModesTest : CoroutineTest() {
         val vm = viewModel(SettingsFixtures.fullForTwoWeeks, changer)
 
         vm.takeAction(ModesAction.EndAfterWeeksPicked(4))
-        vm.takeAction(ModesAction.EndAfterThenPicked(PresetId.Later))
+        vm.takeAction(ModesAction.EndAfterThenPicked(PresetId.MacrosOnly))
         vm.takeAction(ModesAction.EndAfterWeeksPicked(2))
 
-        assertEquals(listOf<Pair<Int, PresetId>?>(4 to PresetId.NoNumbers, 2 to PresetId.Later), changer.timers, "picking what it already is does nothing")
+        assertEquals(listOf<Pair<Int, PresetId>?>(4 to PresetId.NoNumbers, 2 to PresetId.MacrosOnly), changer.timers, "picking what it already is does nothing")
     }
 
     @Test
@@ -306,7 +306,7 @@ class ModesTest : CoroutineTest() {
     @Test
     fun revealingEachDayInsteadOfWeekly_goesThroughTheChanger() = runUnitTest {
         val changer = FakeNumbersChanger { NumbersOutcome.NeedsPause }
-        val vm = viewModel(NumbersSettings(PresetId.Later, revealOn = RevealOn.Week, pauseBeforeMore = true), changer)
+        val vm = viewModel(NumbersSettings.later().copy(revealOn = RevealOn.Week, pauseBeforeMore = true), changer)
         val events = eventsOf(vm)
 
         vm.takeAction(ModesAction.RevealWeeklyToggled)
@@ -318,7 +318,7 @@ class ModesTest : CoroutineTest() {
 
     @Test
     fun theRevealTimePickerOpensAndCloses() = runUnitTest {
-        val vm = viewModel(NumbersSettings(PresetId.Later))
+        val vm = viewModel(NumbersSettings.later())
 
         vm.takeAction(ModesAction.RevealTimeTapped)
         assertTrue(vm.state.pickingRevealTime)
@@ -330,7 +330,7 @@ class ModesTest : CoroutineTest() {
     @Test
     fun pickingARevealTimeGoesThroughTheChanger() = runUnitTest {
         val changer = FakeNumbersChanger { NumbersOutcome.NeedsPause }
-        val vm = viewModel(NumbersSettings(PresetId.Later, pauseBeforeMore = true), changer)
+        val vm = viewModel(NumbersSettings.later().copy(pauseBeforeMore = true), changer)
         val events = eventsOf(vm)
 
         vm.takeAction(ModesAction.RevealTimeTapped)
@@ -345,7 +345,7 @@ class ModesTest : CoroutineTest() {
     @Test
     fun pickingTheSameRevealTimeDoesNothing() = runUnitTest {
         val changer = FakeNumbersChanger()
-        val vm = viewModel(NumbersSettings(PresetId.Later), changer)
+        val vm = viewModel(NumbersSettings.later(), changer)
 
         vm.takeAction(ModesAction.RevealTimePicked(NumbersSettings.DEFAULT_REVEAL_AT))
 
@@ -401,10 +401,10 @@ class ModesTest : CoroutineTest() {
 
     @Test
     fun weightsTrendOnlyIsTheSoftColumn_andAChangeIsMarked() {
-        val fuel = ModesStateBuilder.build(NumbersSettings(PresetId.NutrientsFirst), TimeZone.UTC)
+        val fuel = ModesStateBuilder.build(NumbersSettings(PresetId.MacrosOnly), TimeZone.UTC)
         assertEquals(MatrixRow(Metric.Weight, Visibility.Soften), fuel.matrix.single { it.metric == Metric.Weight })
 
-        val hidden = NumbersSettings(PresetId.NutrientsFirst, overrides = mapOf(Metric.Weight to Visibility.Hide))
+        val hidden = NumbersSettings(PresetId.MacrosOnly, overrides = mapOf(Metric.Weight to Visibility.Hide))
         val state = ModesStateBuilder.build(hidden, TimeZone.UTC)
         assertEquals(MatrixRow(Metric.Weight, Visibility.Hide, changedFrom = Visibility.Soften), state.matrix.single { it.metric == Metric.Weight })
         assertEquals(1, state.presets.single { it.selected }.changes)
@@ -412,7 +412,7 @@ class ModesTest : CoroutineTest() {
 
     @Test
     fun weightBackToNumbersWaitsForThePause_hidingItDoesNot() {
-        val trendOnlyPaused = NumbersSettings(PresetId.NutrientsFirst, pauseBeforeMore = true)
+        val trendOnlyPaused = NumbersSettings(PresetId.MacrosOnly, pauseBeforeMore = true)
 
         assertTrue(NumbersChange.Override(Metric.Weight, Visibility.Show).needsPause(trendOnlyPaused))
         assertEquals(false, NumbersChange.Override(Metric.Weight, Visibility.Hide).needsPause(trendOnlyPaused))
@@ -422,7 +422,7 @@ class ModesTest : CoroutineTest() {
     @Test
     fun hidingWeightAppliesAndSaysFewer() = runUnitTest {
         val changer = FakeNumbersChanger { NumbersOutcome.Applied(fewer = true) }
-        val vm = viewModel(NumbersSettings(PresetId.NutrientsFirst, pauseBeforeMore = true), changer)
+        val vm = viewModel(NumbersSettings(PresetId.MacrosOnly, pauseBeforeMore = true), changer)
         val events = eventsOf(vm)
 
         vm.takeAction(ModesAction.LevelTapped(Metric.Weight, Visibility.Hide))
@@ -434,7 +434,7 @@ class ModesTest : CoroutineTest() {
     @Test
     fun weightAlreadyAtTrendOnlyIsANoOp() = runUnitTest {
         val changer = FakeNumbersChanger()
-        val vm = viewModel(NumbersSettings(PresetId.NutrientsFirst), changer)
+        val vm = viewModel(NumbersSettings(PresetId.MacrosOnly), changer)
 
         vm.takeAction(ModesAction.LevelTapped(Metric.Weight, Visibility.Soften))
 

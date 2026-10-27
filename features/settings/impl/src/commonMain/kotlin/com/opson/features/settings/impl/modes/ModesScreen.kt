@@ -21,7 +21,6 @@ import com.opson.features.settings.impl.label
 import com.opson.features.settings.impl.line
 import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.NumbersSettings
-import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.EdgeCard
@@ -300,7 +299,7 @@ private fun LevelMatrix(matrix: List<MatrixRow>, photos: PhotosRow?, onAction: (
     }
 }
 
-/** The design's page (13.5a): Full numbers for two weeks, then No numbers, with the pause on. */
+/** The design's page (13.5a): All numbers for two weeks, then No numbers, with the pause on. */
 @Preview
 @Composable
 private fun ModesV4Preview() {
@@ -318,7 +317,7 @@ private fun ModesEndAfterPreview() {
     }
 }
 
-/** Nutrients first with one change, so the badge shows. */
+/** Macros only with one change, so the badge shows. */
 @Preview
 @Composable
 private fun ModesPreview() {
@@ -327,13 +326,13 @@ private fun ModesPreview() {
     }
 }
 
-/** Later, with the reveal time and the weekly switch it brings, and the picker open. */
+/** Every number on Later, with the reveal time and the weekly switch it brings, and the picker open. */
 @Preview
 @Composable
 private fun ModesRevealTimePreview() {
     SettingsPreview {
         ModesScreen(
-            ModesStateBuilder.build(NumbersSettings(preset = PresetId.Later), SettingsFixtures.timeZone, pickingRevealTime = true),
+            ModesStateBuilder.build(NumbersSettings.later(), SettingsFixtures.timeZone, pickingRevealTime = true),
             onAction = {},
         )
     }
@@ -351,7 +350,7 @@ private fun EachNumberPreview() {
     }
 }
 
-/** Photos switched on in Nutrients first, which hides them by default: a change like any other. */
+/** Photos switched on in Macros only, which hides them by default: a change like any other. */
 @Preview
 @Composable
 private fun EachNumberPhotosShownPreview() {

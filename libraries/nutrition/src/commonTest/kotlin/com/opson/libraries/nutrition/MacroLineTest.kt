@@ -73,27 +73,32 @@ class MacroLineTest {
 
     @Test
     fun gentleModes_haveNoLineAtAll() {
-        listOf(PresetId.NoNumbers, PresetId.NutrientsFirst, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.Later)
-            .forEach { preset ->
-                assertEquals(emptyList(), policy(preset).macroLine(banana, Surface.Today), "$preset")
+        listOf(policy(PresetId.NoNumbers), policy(PresetId.MacrosOnly), later())
+            .forEach { policy ->
+                assertEquals(emptyList(), policy.macroLine(banana, Surface.Today), "${policy.settings}")
             }
     }
 
     @Test
-    fun nutrientsFirst_showsNoAmountInTheLine() {
-        // Protein is a word in Nutrients first, and words never join a macro line.
-        assertEquals(emptyList(), policy(PresetId.NutrientsFirst).macroLine(banana, Surface.Today))
-        val proteinShown = policy(PresetId.NutrientsFirst, overrides = mapOf(Metric.Protein to Visibility.Show))
+    fun macrosWithGrams_spellsTheGrams() {
+        assertEquals(listOf("1 g protein", "27 g carbs", "0 g fat"), policy(PresetId.MacrosWithGrams).macroLine(banana, Surface.Today).map { it.text })
+    }
+
+    @Test
+    fun macrosOnly_showsNoAmountInTheLine() {
+        // Every macro is a word in Macros only, and words never join a macro line.
+        assertEquals(emptyList(), policy(PresetId.MacrosOnly).macroLine(banana, Surface.Today))
+        val proteinShown = policy(PresetId.MacrosOnly, overrides = mapOf(Metric.Protein to Visibility.Show))
         assertEquals(listOf("1 g protein"), proteinShown.macroLine(banana, Surface.Today).map { it.text })
     }
 
     @Test
     fun delayed_followsTheReveal() {
-        assertEquals(emptyList(), policy(PresetId.Later).macroLine(banana, Surface.Today))
-        assertEquals(3, policy(PresetId.Later).macroLine(banana, Surface.DayClose).size)
+        assertEquals(emptyList(), later().macroLine(banana, Surface.Today))
+        assertEquals(3, later().macroLine(banana, Surface.DayClose).size)
         assertEquals(
             3,
-            policy(PresetId.Later).macroLine(banana, Surface.Today, FormatContext(day = YESTERDAY)).size,
+            later().macroLine(banana, Surface.Today, FormatContext(day = YESTERDAY)).size,
         )
     }
 }

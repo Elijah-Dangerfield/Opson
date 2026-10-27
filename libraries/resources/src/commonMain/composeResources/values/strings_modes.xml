@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The four modes and End after a set time (design sync 4, 13.5), shared by Modes and numbers,
-  onboarding's recommendation and Today. Copy is the design's word for word where it has it.
+  The four modes (all numbers, macros with grams, macros only, no numbers) and End after a set
+  time, shared by Modes and numbers, onboarding's recommendation and Today. Copy is the design's word for word where it has it.
   Same rules as strings.xml: no backslash escapes, positional format specifiers.
 -->
 <resources>
     <!-- Presets, label and line (13.5a) -->
-    <string name="modes_preset_full">Full numbers</string>
-    <string name="modes_preset_full_line">Calories, macros and energy, all visible.</string>
-    <string name="modes_preset_nutrients_first">Nutrients first</string>
-    <string name="modes_preset_nutrients_first_line">Protein, fiber and water up front. Calories as a fill bar.</string>
-    <string name="modes_preset_later">Later</string>
-    <string name="modes_preset_later_line">Log all day. Totals open at a time you pick.</string>
+    <string name="modes_preset_full">All numbers</string>
+    <string name="modes_preset_full_line">Calories, energy and macros in grams.</string>
+    <string name="modes_preset_macros_grams">Macros with grams</string>
+    <string name="modes_preset_macros_grams_line">Protein, carbs, fat and fiber in grams. No calories.</string>
+    <string name="modes_preset_macros_only">Macros only</string>
+    <string name="modes_preset_macros_only_line">Protein, carbs, fat and fiber as bars. No grams, no calories.</string>
     <string name="modes_preset_no_numbers">No numbers</string>
     <string name="modes_preset_no_numbers_line">Meals, timing and how they felt. No amounts anywhere.</string>
 
@@ -37,10 +37,10 @@
     <string name="modes_reveal_weekly_title">Once a week</string>
     <string name="modes_reveal_weekly_body">Totals open on the week view, on its last day</string>
 
-    <!-- Today in Nutrients first (13.5b) -->
+    <!-- Today with calories as a word (any mode with calories set to Soft) -->
     <string name="modes_soft_label">Today</string>
 
-    <!-- Today in Later, before the reveal (13.5c). The time follows the person's reveal time. -->
+    <!-- Today with calories on Later, before the reveal. The time follows the person's reveal time. -->
     <string name="modes_locked_title">Totals open at %1$s</string>
     <string name="modes_locked_counts">%1$s · %2$s</string>
     <plurals name="modes_foods">

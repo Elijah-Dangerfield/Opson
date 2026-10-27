@@ -57,9 +57,9 @@ class SettingsVisibilityPolicySourceTest : CoroutineTest() {
     fun followsAPresetChange() = runUnitTest {
         val source = live(FakeCalendar())
         runCurrent()
-        settings.state.value = Settings(numbers = NumbersSettings(preset = PresetId.NutrientsFirst))
+        settings.state.value = Settings(numbers = NumbersSettings(preset = PresetId.MacrosOnly))
         runCurrent()
-        assertEquals(PresetId.NutrientsFirst, source.policy.value.settings.preset)
+        assertEquals(PresetId.MacrosOnly, source.policy.value.settings.preset)
     }
 
     @Test
@@ -80,7 +80,7 @@ class SettingsVisibilityPolicySourceTest : CoroutineTest() {
 
     @Test
     fun aNewPolicyArrivesAtTheUsersOwnRevealTime() = runUnitTest {
-        settings.state.value = Settings(numbers = NumbersSettings(preset = PresetId.Later, revealAt = LocalTime(19, 30)))
+        settings.state.value = Settings(numbers = NumbersSettings.later().copy(revealAt = LocalTime(19, 30)))
         clock.now = Instant.parse("2026-10-25T19:28:00Z")
         val source = live(FakeCalendar())
         runCurrent()
@@ -98,7 +98,7 @@ class SettingsVisibilityPolicySourceTest : CoroutineTest() {
         val source = live(FakeCalendar())
         runCurrent()
         // 8:58 pm, waiting for 9. The user moves the reveal to 11 pm.
-        settings.state.value = Settings(numbers = NumbersSettings(preset = PresetId.Later, revealAt = LocalTime(23, 0)))
+        settings.state.value = Settings(numbers = NumbersSettings.later().copy(revealAt = LocalTime(23, 0)))
         runCurrent()
         val afterChange = source.policy.value
 

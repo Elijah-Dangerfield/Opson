@@ -59,8 +59,8 @@ class SurfacesCoverageTest {
 
     @Test
     fun everyModeThatDoesNotShowCaloriesIsTested_noNumbersFirst() {
-        assertEquals(listOf("no_numbers", "nutrients_first", "later", "later-weekly"), MODES_UNDER_TEST.map { it.name })
-        assertEquals(PresetId.entries.toSet() - PresetId.Full, MODES_UNDER_TEST.map { it.settings.preset }.toSet())
+        assertEquals(listOf("no_numbers", "macros_only", "macros_grams", "later", "later-weekly"), MODES_UNDER_TEST.map { it.name })
+        assertEquals(PresetId.entries.toSet(), MODES_UNDER_TEST.map { it.settings.preset }.toSet(), "every preset but All numbers, and Later on it")
     }
 
     @Test

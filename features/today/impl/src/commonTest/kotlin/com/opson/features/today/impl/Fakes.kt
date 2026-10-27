@@ -51,8 +51,17 @@ fun policy(
     overrides: Map<Metric, Visibility> = emptyMap(),
     pause: Boolean = false,
     revealOn: RevealOn = RevealOn.DayClose,
+): VisibilityPolicy = policy(NumbersSettings(preset = preset), at, overrides, pause, revealOn)
+
+/** [numbers] with [overrides] on top of its own: `policy(NumbersSettings.later())` is every number on Later. */
+fun policy(
+    numbers: NumbersSettings,
+    at: Instant = TodayFixtures.noon,
+    overrides: Map<Metric, Visibility> = emptyMap(),
+    pause: Boolean = false,
+    revealOn: RevealOn = numbers.revealOn,
 ): VisibilityPolicy = VisibilityPolicy(
-    NumbersSettings(preset = preset, overrides = overrides, pauseBeforeMore = pause, revealOn = revealOn),
+    numbers.copy(overrides = numbers.overrides + overrides, pauseBeforeMore = pause, revealOn = revealOn),
     Clock.fixed(at),
     TimeZone.UTC,
 )

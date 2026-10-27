@@ -12,7 +12,7 @@ import com.opson.libraries.nutrition.Visibility
 
 /**
  * More › Today screen (design sync 4, 13.6a). Arranges Today, never shows more: no amount
- * appears here, and outside Full numbers ([cardArranged] false) the card's layout comes from the
+ * appears here, and outside All numbers ([cardArranged] false) the card's layout comes from the
  * mode, so only the list's rows can be changed.
  */
 data class TodayScreenSettingsState(
@@ -69,6 +69,6 @@ object TodayScreenSettingsStateBuilder {
     fun singleTarget(style: TargetStyle): Boolean =
         style is TargetStyle.Exact || style is TargetStyle.Deficit || style is TargetStyle.Surplus
 
-    /** The card is arranged here only in a mode whose Today is Full numbers' card: that layout, calories on show. */
+    /** The card is arranged here only in a mode whose Today is All numbers' card: that layout, calories on show. */
     fun arranged(preset: PresetId): Boolean = Presets[preset].let { it.today == TodayLayout.Full && it.level(Metric.Calories) == Visibility.Show }
 }

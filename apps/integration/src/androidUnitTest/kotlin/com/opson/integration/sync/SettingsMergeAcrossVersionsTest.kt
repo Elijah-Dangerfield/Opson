@@ -266,9 +266,9 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         val phone = client(user)
         phone.syncNow().getOrThrow()
         phone.settings.isKnown.awaitState { it }
-        phone.settings.update { it.copy(numbers = it.numbers.copy(preset = PresetId.NutrientsFirst, progressPhotos = true)) }
+        phone.settings.update { it.copy(numbers = it.numbers.copy(preset = PresetId.MacrosOnly, progressPhotos = true)) }
         phone.syncNow().getOrThrow()
-        phone.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.NutrientsFirst, Instant.parse("2026-10-25T20:00:00Z"))) }
+        phone.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.MacrosOnly, Instant.parse("2026-10-25T20:00:00Z"))) }
         phone.syncNow().getOrThrow()
 
         val secondPhone = client(user)
@@ -285,7 +285,7 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         newPhone.syncNow().getOrThrow()
         newPhone.settings.isKnown.awaitState { it }
         val timer = ModeTiming(startedOn = LocalDate(2026, 10, 20), weeks = 2, then = PresetId.NoNumbers)
-        val chosen = NumbersSettings(preset = PresetId.NutrientsFirst, endAfter = timer, changedAt = Instant.parse("2026-10-25T20:14:00Z"))
+        val chosen = NumbersSettings(preset = PresetId.MacrosOnly, endAfter = timer, changedAt = Instant.parse("2026-10-25T20:14:00Z"))
         newPhone.settings.update(stampNumbersChange = false) { it.withNumbers(chosen) }
         newPhone.syncNow().getOrThrow()
 
@@ -301,12 +301,12 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
             user,
         ).single()
         assertEquals(10, stored["glasses"], "the 0.1 save landed")
-        assertEquals("nutrients_first", stored["mode"], "the merge kept the mode")
-        assertEquals("fuel", stored["old_preset"], "0.1 reads a preset it knows, with the same levels")
+        assertEquals("macros_only", stored["mode"], "the merge kept the mode")
+        assertEquals("nutrient", stored["old_preset"], "0.1 reads a preset it knows, with the same levels")
 
         newPhone.syncNow().getOrThrow()
         val settings = newPhone.settings.settings.awaitState { it.waterGlasses == 10 }
-        assertEquals(PresetId.NutrientsFirst, settings.numbers.preset)
+        assertEquals(PresetId.MacrosOnly, settings.numbers.preset)
         assertEquals(emptyMap(), settings.numbers.overrides)
         assertEquals(timer, settings.numbers.endAfter)
     }
@@ -324,14 +324,17 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         val oldPhone = client(user, wrapSync = ::OldClientWire)
         oldPhone.syncNow().getOrThrow()
         oldPhone.settings.isKnown.awaitState { it }
-        val coast = NumbersSettings(preset = PresetId.Later, revealOn = RevealOn.Week, overrides = COAST_HIDES)
+        val later = NumbersSettings.later(RevealOn.Week)
+        val coast = later.copy(overrides = later.overrides + COAST_HIDES)
         oldPhone.settings.update { it.withNumbers(coast.copy(changedAt = Instant.parse("2026-10-26T08:00:00Z"))) }
         oldPhone.syncNow().getOrThrow()
         val sent = server.query("SELECT settings->'numbers'->>'preset' AS old_preset FROM user_settings WHERE user_id = ?::uuid", user).single()
         assertEquals("coast", sent["old_preset"])
 
         newPhone.syncNow().getOrThrow()
-        val numbers = newPhone.settings.settings.awaitState { it.numbers.preset == PresetId.Later }.numbers
+        // Coast migrates to All numbers with calories on Later and the rest of what it hid kept hidden.
+        val numbers = newPhone.settings.settings.awaitState { it.numbers.revealOn == RevealOn.Week }.numbers
+        assertEquals(PresetId.Full, numbers.preset)
         assertEquals(RevealOn.Week, numbers.revealOn)
         Metric.entries.forEach { assertEquals(coast.level(it), numbers.level(it), it.name) }
     }
