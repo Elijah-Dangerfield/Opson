@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -164,9 +165,11 @@ fun AmountSheetContent(
      * a screenshot cannot see.
      */
     unitMenuShown: Boolean = false,
+    /** Where the cards start. A preview passes one at the bottom so All nutrients is on screen. */
+    scrollState: ScrollState = rememberScrollState(),
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        AmountColumn(state, onAction)
+        AmountColumn(state, onAction, scrollState)
         if (unitMenuShown) {
             MenuPopover(modifier = Modifier.align(Alignment.TopEnd).padding(top = UNIT_MENU_TOP, end = AppTheme.spacing.page)) {
                 UnitMenuItems(state, onAction, close = {})
@@ -177,13 +180,13 @@ fun AmountSheetContent(
 }
 
 @Composable
-private fun AmountColumn(state: AmountState, onAction: (AmountAction) -> Unit) {
+private fun AmountColumn(state: AmountState, onAction: (AmountAction) -> Unit, scrollState: ScrollState) {
     Column(modifier = Modifier.fillMaxSize()) {
         Header(state, onAction)
         Column(
             modifier = Modifier
                 .weight(1f)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, bottom = AppTheme.spacing.page),
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
