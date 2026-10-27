@@ -6,8 +6,12 @@ import com.opson.libraries.foods.SearchOrder
 import com.opson.libraries.networking.NetworkClient
 import com.opson.libraries.networking.authedCall
 import com.opson.libraries.networking.retry.RetryPolicy
+import com.opson.libraries.networking.retry.isTransientNetworkFailure
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.plugins.ResponseException
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
@@ -21,6 +25,7 @@ import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import kotlin.time.Duration.Companion.milliseconds
 
 /*
  * Wire DTOs for `/v1/foods/...` and `/v1/describe`, mirrored from the server's
@@ -115,8 +120,9 @@ interface FoodApi {
 class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
 
     override suspend fun search(query: String, limit: Int, filter: FoodSearchFilter): Catching<FoodSearchResponse> =
-        networkClient.authedCall("foods.search", retry = RetryPolicy.idempotent()) { client ->
+        networkClient.authedCall("foods.search", retry = SEARCH_RETRY) { client ->
             client.get("/v1/foods/search") {
+                timeout { requestTimeoutMillis = SEARCH_TIMEOUT_MS }
                 parameter("q", query)
                 parameter("limit", limit)
                 // Only what differs from the default, so an unfiltered search is the exact call 0.1 makes.
@@ -152,4 +158,19 @@ class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
                 setBody(DescribeRequest(text))
             }.body<DescribeResponse>()
         }
+
+    internal companion object {
+        /**
+         * Search is typed: someone is waiting, and the next keystroke asks
+         * again anyway. A 503 busy or a timeout means the database is behind,
+         * and three more tries (up to 23 s with backoff) only added to its
+         * load while the person watched a spinner; offline results show
+         * instead. A dropped connection is retried once, quickly.
+         */
+        val SEARCH_RETRY: RetryPolicy = RetryPolicy.exponential(initial = 200.milliseconds, retries = 1)
+            .retryIf { it !is ResponseException && it !is HttpRequestTimeoutException && isTransientNetworkFailure(it) }
+
+        /** The server gives a search 5 s and the pool 3 s before it answers busy. */
+        const val SEARCH_TIMEOUT_MS = 10_000L
+    }
 }

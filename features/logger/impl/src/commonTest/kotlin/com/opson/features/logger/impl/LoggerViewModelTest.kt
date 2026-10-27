@@ -13,6 +13,7 @@ import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.FoodSearchResult
 import com.opson.libraries.foods.SearchCategory
 import com.opson.libraries.foods.SearchOptions
 import com.opson.libraries.foods.SearchOrder
@@ -241,6 +242,20 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(listOf("rice"), catalog.searches)
         val results = assertIs<LoggerBody.Results>(vm.state.body)
         assertEquals(listOf("f:rice", "f:sinangag"), results.rows.map { it.key })
+    }
+
+    @Test
+    fun aQueryTheCatalogRemembersShowsWithoutWaitingOrAsking() = runUnitTest {
+        catalog.remembered["rice"] = FoodSearchResult("rice", listOf(LoggerFixtures.rice), fromCache = false)
+        val vm = vm()
+
+        vm.takeAction(LoggerAction.SearchTyped("rice b"))
+        vm.takeAction(LoggerAction.SearchTyped("rice"))
+        runCurrent()
+
+        assertEquals(listOf("f:rice"), assertIs<LoggerBody.Results>(vm.state.body).rows.map { it.key })
+        advanceTimeBy(1_000)
+        assertTrue(catalog.searches.isEmpty(), "no debounce and no round trip")
     }
 
     @Test

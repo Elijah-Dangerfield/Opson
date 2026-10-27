@@ -23,6 +23,8 @@ import com.opson.server.domain.SearchCategory
 import com.opson.server.domain.SearchFilter
 import com.opson.server.domain.SearchSort
 import com.opson.server.domain.SearchSource
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -50,6 +52,7 @@ import java.sql.ResultSet
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Postgres-backed [FoodCatalogRepository].
@@ -90,6 +93,17 @@ class PostgresFoodCatalogRepository(
     private val sources: FoodSourcesConfig = FoodSourcesConfig(),
 ) : FoodCatalogRepository {
 
+    private val cache = SearchResultCache(sources.searchCacheEntries, sources.searchCacheSeconds.seconds, clock)
+
+    /**
+     * An answer from [cache] when it has one ([SearchResultCache]); every
+     * search is still recorded.
+     * With Open Food Facts on, the catalog and `off_foods` statements run at
+     * once, each in its own transaction on its own connection, so a search
+     * waits for the slower of the two rather than both. Neither transaction
+     * waits on the other, so a full pool cannot deadlock them. The search
+     * event is written after, in a transaction of its own.
+     */
     override suspend fun search(
         query: String,
         limit: Int,
@@ -97,29 +111,17 @@ class PostgresFoodCatalogRepository(
         country: String?,
         openFoodFacts: Boolean,
         filter: SearchFilter,
-    ): List<FoodMatch> =
-        database.transaction {
-            val normalized = FoodCatalogRepository.normalizeQuery(query)
-            val terms = SearchTerms.of(normalized)
-            val capped = limit.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
-            val ranked = when {
-                terms == null -> emptyList()
-                openFoodFacts && sources.searchOpenFoodFacts && filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms) -> {
-                    // The merge drops copies of one product, so each side brings more than a page.
-                    val fetch = (capped * 2).coerceAtMost(FoodCatalogRepository.MAX_LIMIT)
-                    OpenFoodFactsSearch.merge(
-                        catalog = runSearch(terms, fetch, filter),
-                        openFoodFacts = runOpenFoodFactsSearch(terms, fetch, OpenFoodFactsSearch.countryTag(country)),
-                        limit = capped,
-                    )
-                }
-                else -> runSearch(terms, capped, filter)
-            }
-            val matches = when (filter.sort) {
-                SearchSort.BestMatch -> ranked
-                SearchSort.Name -> ranked.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.food.name })
-            }
-            if (record && normalized.isNotEmpty()) {
+    ): List<FoodMatch> {
+        val normalized = FoodCatalogRepository.normalizeQuery(query)
+        val terms = SearchTerms.of(normalized)
+        val capped = limit.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
+        val withOpenFoodFacts = terms != null && openFoodFacts && sources.searchOpenFoodFacts &&
+            filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms)
+        val countryTag = if (withOpenFoodFacts) OpenFoodFactsSearch.countryTag(country) else null
+        val key = SearchResultCache.Key(normalized, capped, filter, withOpenFoodFacts, countryTag)
+        val matches = cache.get(key) ?: rank(terms, capped, filter, withOpenFoodFacts, countryTag).also { cache.put(key, it) }
+        if (record && normalized.isNotEmpty()) {
+            database.transaction {
                 FoodSearchEventsTable.insert {
                     it[at] = clock.now().toJavaInstant()
                     it[queryNorm] = normalized
@@ -127,8 +129,33 @@ class PostgresFoodCatalogRepository(
                     it[picked] = false
                 }
             }
-            matches
         }
+        return matches
+    }
+
+    private suspend fun rank(
+        terms: SearchTerms?,
+        limit: Int,
+        filter: SearchFilter,
+        withOpenFoodFacts: Boolean,
+        countryTag: String?,
+    ): List<FoodMatch> {
+        val ranked = when {
+            terms == null -> emptyList()
+            withOpenFoodFacts -> coroutineScope {
+                // The merge drops copies of one product, so each side brings more than a page.
+                val fetch = (limit * 2).coerceAtMost(FoodCatalogRepository.MAX_LIMIT)
+                val off = async { database.transaction { runOpenFoodFactsSearch(terms, fetch, countryTag) } }
+                val catalog = database.transaction { runSearch(terms, fetch, filter) }
+                OpenFoodFactsSearch.merge(catalog = catalog, openFoodFacts = off.await(), limit = limit)
+            }
+            else -> database.transaction { runSearch(terms, limit, filter) }
+        }
+        return when (filter.sort) {
+            SearchSort.BestMatch -> ranked
+            SearchSort.Name -> ranked.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.food.name })
+        }
+    }
 
     override val searchesOpenFoodFacts: Boolean get() = sources.searchOpenFoodFacts
 
@@ -223,6 +250,9 @@ class PostgresFoodCatalogRepository(
             .where { (FoodsTable.sourceKind eq source.wire) and (FoodsTable.sourceId eq product.barcode) }
             .single()
             .toFood()
+    }.also {
+        // Once committed: a new or renamed product may now match a cached query.
+        cache.clear()
     }
 
     override suspend fun recordBarcodeLookup(barcode: String, outcome: BarcodeOutcome) {
@@ -320,7 +350,16 @@ class PostgresFoodCatalogRepository(
          * The column order here is what [toFood] on a ResultSet reads.
          *
          * Candidates: names starting with the query, and full text over name
-         * and brand. The typo fallback (trigram similarity of the whole name,
+         * and brand. Generic rows are read first. Branded rows (430,000 of
+         * the 445,000) are read in full only when fewer than the limit of
+         * generic rows match, or, for a query that may name a brand, fewer
+         * than the limit match on the name. Otherwise those generic rows fill
+         * the page ahead of any Branded row (rules 2 and 4 below), so only a
+         * Branded row whose brand carries a query word can still place, as a
+         * named brand (rule 3), and only those are read. "chicken" matches
+         * 13,822 Branded rows and 192 of them by brand; scoring all of them
+         * took 0.9 s on dev, the same page now about 0.13 s.
+         * The typo fallback (trigram similarity of the whole name,
          * or of its best-matching words) only runs when those are fewer than
          * the limit, or include no generic food: with Branded Foods loaded a
          * misspelling like "avacado" still finds the products that spell it
@@ -350,22 +389,34 @@ class PostgresFoodCatalogRepository(
          */
         private fun searchSqlWith(condition: String): String = """
             WITH generic AS (
-                SELECT f.* FROM foods f
+                SELECT $CANDIDATE FROM foods f
                 WHERE f.tier = 1$condition
                   AND (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
+            ),
+            gate AS (
+                SELECT count(*) AS matched,
+                       count(*) FILTER (WHERE g.brand IS NULL
+                                        OR to_tsvector('simple', g.name) @@ to_tsquery('simple', ?)) AS named
+                FROM generic g
             ),
             direct AS (
                 SELECT * FROM generic
                 UNION ALL
-                SELECT f.* FROM foods f
+                SELECT $CANDIDATE FROM foods f
                 WHERE f.tier > 1$condition
-                  AND (? OR (SELECT count(*) FROM generic) < ?)
+                  AND ((SELECT matched FROM gate) < ? OR (? AND (SELECT named FROM gate) < ?))
+                  AND (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
+                UNION ALL
+                SELECT $CANDIDATE FROM foods f
+                WHERE f.tier > 1$condition
+                  AND ? AND (SELECT named FROM gate) >= ?
+                  AND lower(f.brand) LIKE ANY (string_to_array(?, '|'))
                   AND (lower(f.name) LIKE ? OR f.search @@ to_tsquery('simple', ?))
             ),
             candidates AS (
                 SELECT * FROM direct
                 UNION ALL
-                SELECT f.* FROM foods f
+                SELECT $CANDIDATE FROM foods f
                 WHERE ((SELECT count(*) FROM direct) < ?
                        OR NOT EXISTS (SELECT 1 FROM direct d
                                       WHERE d.tier = 1 OR lower(d.brand) LIKE ANY (string_to_array(?, '|'))))
@@ -392,10 +443,7 @@ class PostgresFoodCatalogRepository(
                 FROM candidates c
             ),
             scored AS (
-                SELECT n.id, n.source, n.source_id, n.name, n.brand, n.barcode,
-                       n.kcal_100g, n.protein_100g, n.carbs_100g, n.fat_100g, n.fiber_100g,
-                       n.micros::text AS micros, n.portions::text AS portions, n.popularity,
-                       n.tier, n.verified,
+                SELECT n.id, n.name, n.brand, n.popularity, n.tier, n.verified,
                        CASE
                            WHEN n.lname = ANY (p.variants) THEN 0
                            WHEN btrim(split_part(n.lname, ',', 1)) = ANY (p.variants)
@@ -434,9 +482,31 @@ class PostgresFoodCatalogRepository(
                            AND NOT bool_or(s.tier = 1 AND s.match_tier < 4) OVER ()
                            AND NOT bool_or(s.brand_hit) OVER () AS rescue
                 FROM scored s
+            ),
+            top AS (
+                SELECT r.* FROM ranked r
+                ORDER BY $RANK_ORDER
+                LIMIT ?
             )
-            SELECT r.* FROM ranked r
-            ORDER BY NOT (r.match_tier < 4 OR r.rescue),
+            SELECT f.id, f.source, f.source_id, f.name, f.brand, f.barcode,
+                   f.kcal_100g, f.protein_100g, f.carbs_100g, f.fat_100g, f.fiber_100g,
+                   f.micros::text AS micros, f.portions::text AS portions, f.tier, f.verified,
+                   r.match_tier, r.sim
+            FROM top r JOIN foods f ON f.id = r.id
+            ORDER BY $RANK_ORDER
+        """.trimIndent()
+
+        /**
+         * What candidates carry: enough to rank. A page's nutrients, micros
+         * and portions are read for the page only, so ranking thousands of
+         * rows ("c" matches 7,800 generic foods) doesn't carry each one's
+         * JSON through the window and spill it to disk.
+         */
+        private const val CANDIDATE = "f.id, f.name, f.brand, f.tier, f.verified, f.popularity, f.search"
+
+        /** The ranking, over `r` with the columns of `ranked`; see [searchSqlWith]. */
+        private val RANK_ORDER = """
+            NOT (r.match_tier < 4 OR r.rescue),
                      (r.name_hit OR r.rescue) DESC,
                      r.brand_named DESC,
                      (r.tier > 1),
@@ -450,7 +520,6 @@ class PostgresFoodCatalogRepository(
                      r.popularity DESC,
                      length(r.name),
                      r.name
-            LIMIT ?
         """.trimIndent()
 
         /** What [SEARCH_SQL] binds, in its order. */
@@ -459,10 +528,17 @@ class PostgresFoodCatalogRepository(
             return listOf<Pair<IColumnType<*>, Any?>>(
                 text to terms.likePrefix, // generic: prefix
                 text to terms.prefixTsQuery, // generic: full text
-                BooleanColumnType() to terms.canNameBrand, // Branded: always when a brand may be named,
-                IntegerColumnType() to limit, // otherwise only below this many generic matches
+                text to terms.prefixTsQuery, // gate: generic matches on the name
+                IntegerColumnType() to limit, // every Branded match below this many generic matches,
+                BooleanColumnType() to terms.canNameBrand, // or, when a brand may be named,
+                IntegerColumnType() to limit, // below this many generic matches on the name
                 text to terms.likePrefix, // Branded: prefix
                 text to terms.prefixTsQuery, // Branded: full text
+                BooleanColumnType() to terms.canNameBrand, // otherwise, when a brand may be named,
+                IntegerColumnType() to limit, // only Branded rows whose brand
+                text to terms.likeWords, // carries a query word
+                text to terms.likePrefix, // Branded by brand: prefix
+                text to terms.prefixTsQuery, // Branded by brand: full text
                 IntegerColumnType() to limit, // typo fallback below this many direct matches,
                 text to terms.likeWords, // or with no generic match and no brand carrying a query word
                 text to terms.normalized, // fallback: trigram similarity

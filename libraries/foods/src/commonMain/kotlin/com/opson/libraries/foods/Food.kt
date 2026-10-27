@@ -158,6 +158,13 @@ interface FoodCatalog {
      */
     suspend fun search(query: String, limit: Int = 25, filter: FoodSearchFilter = FoodSearchFilter.None): Catching<FoodSearchResult>
 
+    /**
+     * What the server answered for this search in the last few minutes, held
+     * in memory, or null. No network, so a caller can show it before
+     * debouncing; [search] answers from it too.
+     */
+    fun recentSearch(query: String, limit: Int = 25, filter: FoodSearchFilter = FoodSearchFilter.None): FoodSearchResult? = null
+
     /** Which search options this server offers. Online only. */
     suspend fun searchOptions(): Catching<SearchOptions>
 

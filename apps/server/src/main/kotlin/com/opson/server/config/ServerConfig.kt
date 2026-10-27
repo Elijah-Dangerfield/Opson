@@ -103,15 +103,30 @@ data class FoodSourcesConfig(
      * tests point it at a stand-in so a barcode miss does not leave the machine.
      */
     val openFoodFactsUrl: String = OPEN_FOOD_FACTS_URL,
+    /**
+     * How many search answers the server keeps in memory
+     * (`FOOD_SEARCH_CACHE_ENTRIES`, default [DEFAULT_SEARCH_CACHE_ENTRIES];
+     * 0 turns it off), each for [searchCacheSeconds]
+     * (`FOOD_SEARCH_CACHE_SECONDS`). Off unless set here, so a test that
+     * writes a food and searches again sees it.
+     */
+    val searchCacheEntries: Int = 0,
+    val searchCacheSeconds: Long = DEFAULT_SEARCH_CACHE_SECONDS,
 ) {
     companion object {
         fun fromEnv(env: Env): FoodSourcesConfig = FoodSourcesConfig(
             nutritionix = NutritionixConfig.fromEnv(env),
             searchOpenFoodFacts = env["FOOD_SEARCH_OFF_ENABLED"]?.trim()?.lowercase() == "true",
             anthropic = AnthropicConfig.fromEnv(env),
+            searchCacheEntries = env.int("FOOD_SEARCH_CACHE_ENTRIES", default = DEFAULT_SEARCH_CACHE_ENTRIES),
+            searchCacheSeconds = env.long("FOOD_SEARCH_CACHE_SECONDS", default = DEFAULT_SEARCH_CACHE_SECONDS),
         )
 
         const val OPEN_FOOD_FACTS_URL = "https://world.openfoodfacts.org"
+
+        /** A page of 25 foods with their micros is up to about 60 KB on the heap: about 15 MB of the 256 MB at most. */
+        const val DEFAULT_SEARCH_CACHE_ENTRIES = 256
+        const val DEFAULT_SEARCH_CACHE_SECONDS = 300L
     }
 }
 
