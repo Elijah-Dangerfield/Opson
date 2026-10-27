@@ -1,5 +1,6 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.ActivityLevel
 import com.opson.libraries.nutrition.BodyProfile
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.ExerciseAdjustment
@@ -159,6 +160,12 @@ data class Settings(
     val restingOwnKcal: Int? = null,
     /** "Add activity to Burned". Off, Burned is resting energy only. */
     val activityInBurned: Boolean = true,
+    /**
+     * How active an ordinary day is: Burned's everyday movement while no health app reads it, so
+     * a deficit or surplus works without one. A top-level key, as the rest of Burned's.
+     */
+    @Serializable(with = ActivityLevelSerializer::class)
+    val activityLevel: ActivityLevel = ActivityLevel.Default,
     val birthYear: Int? = null,
     val heightCm: Double? = null,
     @Serializable(with = BodySexSerializer::class)

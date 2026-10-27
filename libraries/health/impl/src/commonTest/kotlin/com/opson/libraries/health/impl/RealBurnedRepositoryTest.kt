@@ -12,6 +12,7 @@ import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.nutrition.ActivityLevel
 import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Burned
@@ -53,7 +54,19 @@ class RealBurnedRepositoryTest {
     @Test
     fun calculated_fromTheLatestWeighIn() = runTest {
         val burned = repository(health = FakeHealth(connected = false)).burned(today).first()
-        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated), activityCounted = true), burned)
+        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated), activityCounted = true, everydayKcal = 290), burned)
+        assertEquals(1720, burned?.totalKcal, "sedentary until the person says otherwise: 1,430 plus 0.2 of it")
+    }
+
+    @Test
+    fun withNoHealthApp_theActivityLevelIsTheDaysMovement() = runTest {
+        val light = repository(settings = profiled.copy(activityLevel = ActivityLevel.Light), health = FakeHealth(connected = false)).burned(today).first()
+        assertEquals(true, light?.movementEstimated)
+        assertEquals(1430 + 540, light?.totalKcal)
+        // Connected, the reading wins and the level is not used.
+        val connected = repository(settings = profiled.copy(activityLevel = ActivityLevel.Active)).burned(today).first()
+        assertEquals(false, connected?.movementEstimated)
+        assertEquals(1430 + 570, connected?.totalKcal)
     }
 
     @Test
@@ -89,7 +102,7 @@ class RealBurnedRepositoryTest {
     fun withReleaseHealthOff_theStoreIsNeverAsked() = runTest {
         val health = FakeHealth()
         val burned = repository(settings = profiled.copy(restingSource = RestingSource.Health), health = health, healthOn = false).burned(today).first()
-        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated)), burned)
+        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated), everydayKcal = 290), burned)
         assertEquals(0, health.reads)
         assertNull(repository(healthOn = false).restingChoices().first().healthSource)
     }

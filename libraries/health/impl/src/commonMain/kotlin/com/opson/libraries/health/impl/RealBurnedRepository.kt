@@ -54,6 +54,8 @@ class RealBurnedRepository(
                 movementKcal = activity?.movementKcal?.wholeKcal(),
                 workoutKcal = activity?.workoutKcal?.wholeKcal(),
                 activityCounted = settings.activityInBurned,
+                // Stands in for movement only while nothing reads it (Burned.movementEstimated).
+                everydayKcal = settings.activityLevel.everydayKcal(resting.kcal),
             )
         }.distinctUntilChanged()
 
