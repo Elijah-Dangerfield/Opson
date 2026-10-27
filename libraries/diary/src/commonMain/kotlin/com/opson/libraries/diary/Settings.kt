@@ -28,7 +28,7 @@ import kotlinx.serialization.Serializable
  * Adding a field is non-breaking: missing keys decode to the default. Settings
  * only change when the user changes them. The server merges a write into what it
  * has one level deep, so a new field is a new top-level key: [SettingsSerializer]
- * lifts the one that lives under [numbers] out to the top.
+ * lifts the ones that live under [numbers] and [targets] (the goal style) out to the top.
  */
 @OptIn(ExperimentalSerializationApi::class)
 @KeepGeneratedSerializer

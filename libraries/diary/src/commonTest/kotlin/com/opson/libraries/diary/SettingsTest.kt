@@ -2,6 +2,8 @@ package com.opson.libraries.diary
 
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.ExerciseAdjustment
+import com.opson.libraries.nutrition.GroupShape
+import com.opson.libraries.nutrition.MAX_SURPLUS_KCAL
 import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.FastingPlan
@@ -15,8 +17,11 @@ import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -180,15 +185,44 @@ class SettingsTest {
         val byDay = requireNotNull(Targets.Default.useByDay().addDayGroup())
             .moveDay(DayOfWeek.MONDAY, 1)
             .step(RangeEnd.High, up = true, group = 1)!!
+        val shaped = byDay.shapeGroup(1, GroupShape.Surplus(0))!!.stepSurplus(up = true, group = 1)!!.shapeGroup(0, GroupShape.Exact)!!
         listOf(
             Targets.Default,
             Targets.Default.useDeficit(burnKcal = 2420).stepDeficit(up = false)!!,
             byDay,
+            shaped,
             Targets.Default.step(RangeEnd.Low, up = true)!!,
+            Targets.Default.useExact().stepNumber(up = true)!!,
+            Targets.Default.useSurplus(burnKcal = null).stepSurplus(up = true)!!,
         ).forEach { targets ->
             val s = Settings(targets = targets)
             assertEquals(s, SettingsJson.decodeFromString(Settings.serializer(), SettingsJson.encodeToString(Settings.serializer(), s)))
         }
+    }
+
+    @Test
+    fun theGoalStyleTravelsAsATopLevelKey_soA01SaveOfTargetsCannotDropIt() {
+        val s = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300)))
+        val json = SettingsJson.encodeToJsonElement(Settings.serializer(), s).jsonObject
+
+        assertEquals("surplus", json.getValue("targetStyle").jsonObject.getValue("kind").jsonPrimitive.content)
+        assertFalse("style" in json.getValue("targets").jsonObject, "nothing inside targets for a 0.1 save to lose")
+        // A plain range is written too, so a change back to it reaches the server's merge.
+        assertEquals("range", SettingsJson.encodeToJsonElement(Settings.serializer(), Settings()).jsonObject
+            .getValue("targetStyle").jsonObject.getValue("kind").jsonPrimitive.content)
+    }
+
+    @Test
+    fun aStyleSavedInsideTargets_beforeItMovedUp_stillReads_andTheTopLevelOneWins() {
+        val targets = """"energyKcal":2100,"minKcal":1900,"maxKcal":2300,"proteinG":120,"carbsG":250,"fatG":70,"fiberG":30"""
+        fun decode(json: String) = SettingsJson.decodeFromString(Settings.serializer(), json).targets.style
+
+        assertEquals(TargetStyle.Exact, decode("""{"targets":{$targets,"style":{"kind":"exact"}}}"""))
+        assertEquals(
+            TargetStyle.Surplus(200),
+            decode("""{"targets":{$targets,"style":{"kind":"exact"}},"targetStyle":{"kind":"surplus","surplusKcal":200}}"""),
+        )
+        assertEquals(TargetStyle.Range, decode("""{"targets":{$targets},"targetStyle":null}"""))
     }
 
     @Test
@@ -220,6 +254,19 @@ class SettingsTest {
         val groups = (repaired as TargetStyle.ByDay).groups
         assertEquals(DayOfWeek.entries.toSet() - DayOfWeek.SATURDAY, groups[0].days)
         assertEquals(DayGroup(setOf(DayOfWeek.SATURDAY), 1900, 2300), groups[1])
+
+        // A surplus past the cap is held at it, the style's and a group's; an unknown group shape is a range.
+        assertEquals(TargetStyle.Surplus(MAX_SURPLUS_KCAL), decode("""{"kind":"surplus","surplusKcal":5000}"""))
+        assertEquals(TargetStyle.Surplus(0), decode("""{"kind":"surplus","surplusKcal":-300}"""))
+        val shapes = decode(
+            """{"kind":"by_day","groups":[{"days":["mon"],"minKcal":1900,"maxKcal":2300,"shape":"surplus","surplusKcal":9000},""" +
+                """{"days":["tue"],"minKcal":1900,"maxKcal":2300,"shape":"exact"},""" +
+                """{"days":["wed"],"minKcal":1900,"maxKcal":2300,"shape":"binge"}]}""",
+        )
+        assertEquals(
+            listOf(GroupShape.Surplus(MAX_SURPLUS_KCAL), GroupShape.Exact, GroupShape.Range),
+            (shapes as TargetStyle.ByDay).groups.map { it.shape },
+        )
     }
 
     @Test
