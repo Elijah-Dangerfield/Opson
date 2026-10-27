@@ -193,7 +193,7 @@ class GuestSessionHealer(
             is AccountCreationState.Succeeded ->
                 logger.i { "heal source=$source mint=success — UserChanged fan-out will re-sync everything" }
             is AccountCreationState.Failed ->
-                logger.w { "heal source=$source mint=failed (${result.cause?.message}) — will retry on next trigger" }
+                logger.w { "heal source=$source mint=failed (${result.cause?.let { it::class.simpleName }}) — will retry on next trigger" }
             else ->
                 logger.w { "heal source=$source mint=unexpected(${result::class.simpleName})" }
         }
