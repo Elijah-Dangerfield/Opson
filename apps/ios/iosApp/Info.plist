@@ -45,14 +45,20 @@
 	  Read-only HealthKit: active energy, resting energy and workouts, for
 	  "Expended so far" (HealthKitReader). The prompt only appears when someone
 	  taps Connect under More, Watch and health apps, which ships behind the
-	  release.health flag. There is deliberately no NSHealthUpdateUsageDescription:
-	  Opson never writes to Health, and declaring it would be a claim the
-	  binary does not back. The entitlement, com.apple.developer.healthkit, is
+	  release.health flag. The entitlement, com.apple.developer.healthkit, is
 	  only in iosAppDebug.entitlements until 0.2 ships: Release signing fails
 	  until the bundle id has the HealthKit capability in the developer portal.
+
+	  NSHealthUpdateUsageDescription is here although Opson never writes to
+	  Health. HealthKitReader calls requestAuthorizationToShareTypes (with no
+	  share types), and App Store Connect rejects any binary that references
+	  that API without the key (ITMS-90683, build 700 on 2026-10-27). The
+	  string says plainly that nothing is written.
 	-->
 	<key>NSHealthShareUsageDescription</key>
 	<string>Opson reads your active energy, resting energy and workouts to show what you've expended today. It stays on your phone.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Opson only reads from Health. It never writes or changes anything there.</string>
 	<!--
 	  The export compliance answer, stated once here instead of by hand on every
 	  upload. Without it a build finishes processing and then sits in TestFlight
