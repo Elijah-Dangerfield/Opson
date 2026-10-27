@@ -43,7 +43,6 @@ import kotlinx.datetime.toLocalDateTime
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.logger_toast_ate
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -159,7 +158,6 @@ class LoggerViewModel(
                 telemetry.methodPicked(LogVia.Note, items = 0)
                 sendEvent(LoggerEvent.OpenMealNote(day, slot()))
             }
-            LoggerAction.AteNoDetailsTapped -> ateNoDetails()
             LoggerAction.FastingTapped -> sendEvent(LoggerEvent.OpenFasting)
             is LoggerAction.RecentAddTapped -> recentAdd(action.row)
             is LoggerAction.RecentNameTapped -> sendEvent(LoggerEvent.OpenFoodDetail(action.row.ref, action.row.source, day, slot()))
@@ -383,16 +381,6 @@ class LoggerViewModel(
         val ml = settingsRepository.settings.value.glassMl
         diary.addWater(day, ml)
         sendEvent(LoggerEvent.WaterAdded(day, ml))
-        sendEvent(LoggerEvent.Dismiss)
-    }
-
-    private suspend fun ateNoDetails() {
-        if (written) return
-        written = true
-        val slot = slot()
-        diary.setAteNoDetails(day, slot, ate = true)
-        telemetry.methodPicked(LogVia.AteNoDetails, items = 0)
-        sendEvent(LoggerEvent.ShowToast(Toast(Res.string.logger_toast_ate, listOf(slot.sentenceName))))
         sendEvent(LoggerEvent.Dismiss)
     }
 

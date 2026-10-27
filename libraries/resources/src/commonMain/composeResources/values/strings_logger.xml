@@ -59,7 +59,6 @@
     <string name="logger_saved_empty">Saved meals show up here. Make one under Foods.</string>
 
     <!-- Toasts -->
-    <string name="logger_toast_ate">Marked %1$s as eaten.</string>
 
     <!-- Food detail -->
     <string name="logger_precision_weighed">Weighed</string>

@@ -32,13 +32,11 @@ import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_all_food
 import opson.libraries.resources.generated.resources.today_meal_add_food
-import opson.libraries.resources.generated.resources.today_meal_ate
 import opson.libraries.resources.generated.resources.today_meal_copy_day_before
 import opson.libraries.resources.generated.resources.today_meal_copy_yesterday
 import opson.libraries.resources.generated.resources.today_meal_note
 import opson.libraries.resources.generated.resources.today_meal_save_as_meal
 import opson.libraries.resources.generated.resources.today_toast_added_to
-import opson.libraries.resources.generated.resources.today_toast_marked_eaten
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -61,7 +59,6 @@ sealed interface MealSheetItem {
 
     /** Only when the day before has this meal. "Yesterday's" when the day is today. */
     data class CopyFromDayBefore(val dayIsToday: Boolean) : MealSheetItem
-    data object AteNoDetails : MealSheetItem
 
     /** Only when this meal has items. */
     data object SaveAsMeal : MealSheetItem
@@ -72,7 +69,6 @@ sealed interface MealSheetAction {
     data object AddFoodTapped : MealSheetAction
     data object NoteTapped : MealSheetAction
     data object CopyFromDayBeforeTapped : MealSheetAction
-    data object AteNoDetailsTapped : MealSheetAction
     data object SaveAsMealTapped : MealSheetAction
     data object CloseTapped : MealSheetAction
 }
@@ -95,7 +91,6 @@ object MealSheetStateBuilder {
                 add(MealSheetItem.AddFood)
                 add(MealSheetItem.Note)
                 if (dayBefore.items(slot).isNotEmpty()) add(MealSheetItem.CopyFromDayBefore(dayIsToday = day.date == today))
-                if (slot.isMeal) add(MealSheetItem.AteNoDetails)
                 if (day.items(slot).isNotEmpty()) add(MealSheetItem.SaveAsMeal)
             },
         )
@@ -112,7 +107,7 @@ class MealSheetViewModel(
 ) : SEAViewModel<MealSheetState, MealSheetEvent, MealSheetAction>(
     initialStateArg = MealSheetState(slot = slot, title = slot.label),
 ) {
-    /** Copied or marked, and the sheet is closing: a second tap queued behind the first would copy the meal again. */
+    /** Copied, and the sheet is closing: a second tap queued behind the first would copy the meal again. */
     private var written = false
 
     init {
@@ -137,12 +132,6 @@ class MealSheetViewModel(
                 written = true
                 diary.copySlot(fromDay = day.minus(DatePeriod(days = 1)), toDay = day, slot = slot)
                 sendEvent(MealSheetEvent.ShowToast(Toast(Res.string.today_toast_added_to, listOf(slot.sentenceName))))
-                sendEvent(MealSheetEvent.Dismiss)
-            }
-            MealSheetAction.AteNoDetailsTapped -> if (!written) {
-                written = true
-                diary.setAteNoDetails(day, slot, ate = true)
-                sendEvent(MealSheetEvent.ShowToast(Toast(Res.string.today_toast_marked_eaten, listOf(slot.sentenceName))))
                 sendEvent(MealSheetEvent.Dismiss)
             }
             MealSheetAction.SaveAsMealTapped -> sendEvent(MealSheetEvent.OpenCreateMeal(day, slot))
@@ -175,7 +164,6 @@ fun MealSheetContent(
                         AppIcons.History,
                         MealSheetAction.CopyFromDayBeforeTapped,
                     )
-                    MealSheetItem.AteNoDetails -> Triple(stringResource(Res.string.today_meal_ate), AppIcons.CheckCircle, MealSheetAction.AteNoDetailsTapped)
                     MealSheetItem.SaveAsMeal -> Triple(stringResource(Res.string.today_meal_save_as_meal), AppIcons.BookmarkAdd, MealSheetAction.SaveAsMealTapped)
                 }
                 SheetMenuRow(label = label, icon = icon, onClick = { onAction(action) }, showDivider = index < state.items.lastIndex)

@@ -109,7 +109,6 @@ object LoggerStateBuilder {
         add(AddAction.Water)
         add(AddAction.WeighIn)
         add(AddAction.Note)
-        if (slot.isMeal) add(AddAction.AteNoDetails)
         if (inputs.settings.fastingTimerOn(choices.fastingReleased)) add(AddAction.Fasting)
     }
 

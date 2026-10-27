@@ -21,7 +21,6 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.logger_toast_ate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -101,7 +100,7 @@ class LoggerViewModelTest : CoroutineTest() {
             listOf(
                 AddAction.SearchFood, AddAction.ScanBarcode, AddAction.Photo, AddAction.SayOrType(voice = true), AddAction.SavedMeals,
                 AddAction.CopyMeal(MealSlot.Dinner), AddAction.Water, AddAction.WeighIn, AddAction.Note,
-                AddAction.AteNoDetails, AddAction.Fasting,
+                AddAction.Fasting,
             ),
             vm.state.actions,
         )
@@ -196,18 +195,6 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(listOf(LogVia.Yesterday to 2), telemetry.events)
     }
 
-    @Test
-    fun ateNoDetailsMarksTheMeal() = runUnitTest {
-        val vm = vm()
-        val events = events(vm)
-
-        vm.takeAction(LoggerAction.AteNoDetailsTapped)
-
-        assertEquals(listOf(LoggerFixtures.today to MealSlot.Dinner), diary.ateNoDetails)
-        assertEquals(LoggerEvent.ShowToast(Toast(Res.string.logger_toast_ate, listOf(MealSlot.Dinner.sentenceName))), events.first())
-        assertEquals(LoggerEvent.Dismiss, events.last())
-    }
-
     /** The sheet animates down after a write; a second tap in that time is queued behind the first. */
     @Test
     fun aSecondTapWhileTheSheetClosesWritesNothingMore() = runUnitTest {
@@ -219,12 +206,10 @@ class LoggerViewModelTest : CoroutineTest() {
         vm.takeAction(LoggerAction.CopyMealTapped)
         vm.takeAction(LoggerAction.NumberTyped("450"))
         vm.takeAction(LoggerAction.AddNumberTapped)
-        vm.takeAction(LoggerAction.AteNoDetailsTapped)
         vm.takeAction(LoggerAction.WaterTapped)
 
         assertEquals(1, diary.copied.size)
         assertTrue(diary.added.isEmpty())
-        assertTrue(diary.ateNoDetails.isEmpty())
         assertTrue(diary.water.isEmpty())
         assertEquals(listOf<LoggerEvent>(LoggerEvent.Dismiss), events)
     }
@@ -468,8 +453,8 @@ class LoggerViewModelTest : CoroutineTest() {
         val vm = vm()
 
         assertEquals(RelativeDay.Yesterday, vm.state.day)
-        vm.takeAction(LoggerAction.AteNoDetailsTapped)
-        assertEquals(yesterday, diary.ateNoDetails.single().first)
+        vm.takeAction(LoggerAction.WaterTapped)
+        assertEquals(yesterday, diary.water.single().first)
     }
 
     private val midMorning: Instant = Instant.parse("2026-10-25T10:40:00Z")
@@ -499,7 +484,6 @@ class LoggerViewModelTest : CoroutineTest() {
 
         assertEquals(MealSlot.Uncategorized, vm.state.slot)
         assertEquals(MealSlot.Uncategorized, vm.state.slots.last())
-        assertFalse(AddAction.AteNoDetails in vm.state.actions, "Uncategorized has no ate mark")
     }
 
     @Test

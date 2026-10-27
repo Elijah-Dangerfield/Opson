@@ -62,9 +62,6 @@ sealed interface AddAction {
     data object WeighIn : AddAction
     data object Note : AddAction
 
-    /** Only for a real meal: Uncategorized has no "ate" mark. */
-    data object AteNoDetails : AddAction
-
     /** `release.fasting`, offered in this mode, and the timer on. */
     data object Fasting : AddAction
 }
@@ -142,7 +139,6 @@ sealed interface LoggerAction {
     data object WaterTapped : LoggerAction
     data object WeighInTapped : LoggerAction
     data object NoteTapped : LoggerAction
-    data object AteNoDetailsTapped : LoggerAction
     data object FastingTapped : LoggerAction
 
     /** Recent's + at full height: logs it at its last amount, and ✓ takes it back out. */

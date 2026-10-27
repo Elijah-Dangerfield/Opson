@@ -101,13 +101,12 @@
     <string name="today_meal_note">Note</string>
     <string name="today_meal_copy_yesterday">Copy yesterday's %1$s</string>
     <string name="today_meal_copy_day_before">Copy %1$s from the day before</string>
-    <string name="today_meal_ate">Ate, no details</string>
     <string name="today_meal_save_as_meal">Save as a meal</string>
 
     <!-- A meal's Note: how hungry, and a few words -->
     <string name="today_note_title">Note, %1$s</string>
     <string name="today_note_subtitle">Both optional, and only you see them.</string>
-    <string name="today_note_hunger">How hungry</string>
+    <string name="today_note_hunger">Hunger level</string>
     <string name="today_note_placeholder">Where you were, who with, anything worth remembering</string>
     <string name="today_note_save">Save</string>
 
@@ -141,7 +140,6 @@
     <string name="today_untracked_title">Not tracking this day</string>
     <string name="today_untracked_body">Trends leaves a gap here, not a low day.</string>
     <string name="today_untracked_action">Track it again</string>
-    <string name="today_toast_marked_eaten">Marked %1$s as eaten.</string>
     <string name="today_toast_note_saved">Note saved to %1$s.</string>
     <string name="today_toast_removed">Removed from %1$s.</string>
     <string name="today_toast_daynote_saved">Note saved.</string>

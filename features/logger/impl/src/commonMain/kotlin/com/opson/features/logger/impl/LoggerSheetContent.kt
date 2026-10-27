@@ -54,7 +54,6 @@ import com.opson.system.AppTheme
 import com.opson.system.background
 import com.opson.system.color.ToneColors
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.adding_action_ate
 import opson.libraries.resources.generated.resources.adding_action_copy
 import opson.libraries.resources.generated.resources.adding_action_copy_cd
 import opson.libraries.resources.generated.resources.adding_action_describe
@@ -297,7 +296,6 @@ private fun AddAction.tile(): Tile {
         AddAction.Water -> Tile(stringResource(Res.string.adding_action_water), AppIcons.WaterDrop, body, LoggerAction.WaterTapped)
         AddAction.WeighIn -> Tile(stringResource(Res.string.adding_action_weigh), AppIcons.MonitorWeight, body, LoggerAction.WeighInTapped)
         AddAction.Note -> Tile(stringResource(Res.string.adding_action_note), AppIcons.EditNote, note, LoggerAction.NoteTapped)
-        AddAction.AteNoDetails -> Tile(stringResource(Res.string.adding_action_ate), AppIcons.Restaurant, food, LoggerAction.AteNoDetailsTapped)
         AddAction.Fasting -> Tile(stringResource(Res.string.adding_action_fasting), AppIcons.HourglassTop, body, LoggerAction.FastingTapped)
     }
 }

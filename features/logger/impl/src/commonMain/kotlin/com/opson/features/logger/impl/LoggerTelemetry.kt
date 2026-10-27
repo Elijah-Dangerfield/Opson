@@ -16,7 +16,6 @@ enum class LogVia(val wire: String) {
     Foods("foods"),
     Describe("describe"),
     Yesterday("yesterday"),
-    AteNoDetails("ate_no_details"),
     QuickNumber("quick_number"),
     NameOnly("name_only"),
     Barcode("barcode"),

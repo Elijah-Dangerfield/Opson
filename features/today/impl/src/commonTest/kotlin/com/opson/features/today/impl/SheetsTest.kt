@@ -126,9 +126,12 @@ class SheetsTest : CoroutineTest() {
         val lunch = MealSheetStateBuilder.build(MealSlot.Lunch, today, TodayFixtures.day(), TodayFixtures.yesterday(), Settings())
         assertTrue(lunch.items.none { it is MealSheetItem.CopyFromDayBefore })
         assertTrue(MealSheetItem.SaveAsMeal in lunch.items)
+    }
 
-        val loose = MealSheetStateBuilder.build(MealSlot.Uncategorized, today, TodayFixtures.day(), Day.empty(yesterday), Settings())
-        assertTrue(MealSheetItem.AteNoDetails !in loose.items)
+    @Test
+    fun mealSheetHasNoAteWithNoDetails() {
+        val dinner = MealSheetStateBuilder.build(MealSlot.Dinner, today, TodayFixtures.day(), Day.empty(yesterday), Settings())
+        assertEquals(listOf(MealSheetItem.AddFood, MealSheetItem.Note), dinner.items)
     }
 
     @Test
@@ -151,10 +154,6 @@ class SheetsTest : CoroutineTest() {
         )
         assertEquals(listOf(Triple(yesterday, today, MealSlot.Dinner)), diary.copiedSlots)
         assertEquals(1, events.count { it == MealSheetEvent.Dismiss })
-
-        val other = MealSheetViewModel(today, MealSlot.Dinner, diary, FakeSettingsRepository(), FakeCalendar())
-        other.takeAction(MealSheetAction.AteNoDetailsTapped)
-        assertEquals(listOf(today to MealSlot.Dinner), diary.ateNoDetails)
     }
 
     /** The sheet animates down after a write; a second tap in that time is queued behind the first. */
@@ -164,10 +163,8 @@ class SheetsTest : CoroutineTest() {
 
         vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
         vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
-        vm.takeAction(MealSheetAction.AteNoDetailsTapped)
 
         assertEquals(1, diary.copiedSlots.size)
-        assertTrue(diary.ateNoDetails.isEmpty())
     }
 
     // A meal's Note

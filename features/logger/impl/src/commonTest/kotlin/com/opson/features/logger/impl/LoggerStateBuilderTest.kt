@@ -86,7 +86,7 @@ class LoggerStateBuilderTest {
             listOf(
                 AddAction.SearchFood, AddAction.ScanBarcode, AddAction.Photo, AddAction.SayOrType(voice = true), AddAction.SavedMeals,
                 AddAction.CopyMeal(MealSlot.Dinner), AddAction.Water, AddAction.WeighIn, AddAction.Note,
-                AddAction.AteNoDetails, AddAction.Fasting,
+                AddAction.Fasting,
             ),
             actions,
         )
@@ -97,7 +97,7 @@ class LoggerStateBuilderTest {
         assertEquals(
             listOf(
                 AddAction.SearchFood, AddAction.SayOrType(voice = false), AddAction.SavedMeals,
-                AddAction.Water, AddAction.WeighIn, AddAction.Note, AddAction.AteNoDetails,
+                AddAction.Water, AddAction.WeighIn, AddAction.Note,
             ),
             build().actions,
         )
@@ -120,20 +120,11 @@ class LoggerStateBuilderTest {
     }
 
     @Test
-    fun uncategorizedHasNoAteMark() {
-        val state = LoggerFixtures.uncategorizedState(policy(PresetId.Full))
-
-        assertEquals(MealSlot.Uncategorized, state.slot)
-        assertFalse(AddAction.AteNoDetails in state.actions)
-    }
-
-    @Test
     fun mealGroupsOffOffersOnlyUncategorized() {
         val state = build(inputs(settings = Settings(mealGroups = false)))
 
         assertEquals(listOf(MealSlot.Uncategorized), state.slots)
         assertEquals(MealSlot.Uncategorized, state.slot)
-        assertFalse(AddAction.AteNoDetails in state.actions)
     }
 
     @Test
