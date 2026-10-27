@@ -36,12 +36,16 @@ const val UNCONFIGURED_SUPABASE_ANON_KEY = "set-supabase-anonKey-in-local-proper
 
 data class SupabaseMetadata(
     val projectId: String,
-    val anonKey: String
+    val anonKey: String,
+    val prodProjectId: String,
+    val prodAnonKey: String,
 ) {
-    val url: String = projectId.takeIf { it.isNotBlank() }
-        ?.let { "https://$it.supabase.co" }
-        ?: ""
+    val url: String = supabaseUrl(projectId)
+    val prodUrl: String = supabaseUrl(prodProjectId)
 }
+
+private fun supabaseUrl(projectId: String): String =
+    projectId.takeIf { it.isNotBlank() }?.let { "https://$it.supabase.co" } ?: ""
 
 /**
  * Resolves the app's version/build metadata with this precedence:
@@ -170,9 +174,26 @@ fun Project.loadSupabaseMetadata(): SupabaseMetadata {
         )
     }
 
+    // Prod comes from the committed supabase.properties, so a release build
+    // never depends on what a developer has in local.properties. The env vars
+    // are only there to point a one-off build at another project.
+    val committed = Properties()
+    val committedFile = rootProject.file("supabase.properties")
+    if (committedFile.exists()) {
+        FileInputStream(committedFile).use(committed::load)
+    }
+    val prodProjectId = env("SUPABASE_PROD_PROJECT_ID")
+        ?: committed.stringOrNull("supabase.prod.projectId")
+        ?: UNCONFIGURED_SUPABASE_PROJECT_ID
+    val prodAnonKey = env("SUPABASE_PROD_ANON_KEY")
+        ?: committed.stringOrNull("supabase.prod.anonKey")
+        ?: UNCONFIGURED_SUPABASE_ANON_KEY
+
     return SupabaseMetadata(
         projectId = projectId,
-        anonKey = anonKey
+        anonKey = anonKey,
+        prodProjectId = prodProjectId,
+        prodAnonKey = prodAnonKey,
     )
 }
 
@@ -180,6 +201,9 @@ fun BuildConfigExtension.writeSupabaseMetadata(metadata: SupabaseMetadata) {
     buildConfigField("String", "SUPABASE_PROJECT_ID", "\"${metadata.projectId}\"")
     buildConfigField("String", "SUPABASE_URL", "\"${metadata.url}\"")
     buildConfigField("String", "SUPABASE_ANON_KEY", "\"${metadata.anonKey}\"")
+    buildConfigField("String", "SUPABASE_PROD_PROJECT_ID", "\"${metadata.prodProjectId}\"")
+    buildConfigField("String", "SUPABASE_PROD_URL", "\"${metadata.prodUrl}\"")
+    buildConfigField("String", "SUPABASE_PROD_ANON_KEY", "\"${metadata.prodAnonKey}\"")
 }
 
 data class TelemetryMetadata(
