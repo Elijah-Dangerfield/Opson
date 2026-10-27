@@ -1,5 +1,6 @@
 package com.opson.server.data
 
+import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodSearchEventsTable
 import com.opson.server.db.FoodsTable
@@ -243,6 +244,33 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
             FoodSearchEventsTable.selectAll().orderBy(FoodSearchEventsTable.id).map { it[FoodSearchEventsTable.queryNorm] to it[FoodSearchEventsTable.resultCount] }
         }
         assertEquals(listOf("banana" to 1, "zzzz unknown food" to 0), events)
+    }
+
+    @Test
+    fun withTheCacheOnARepeatedSearchIsAnsweredFromMemoryAndStillRecorded() = runTest {
+        val cached = PostgresFoodCatalogRepository(database, clock, FoodSourcesConfig(searchCacheEntries = 10))
+        seed("Banana, raw")
+        assertEquals(listOf("Banana, raw"), cached.search("banana", 10).map { it.food.name })
+
+        seed("Bananas, dried")
+        assertEquals(listOf("Banana, raw"), cached.search("Banana ", 10).map { it.food.name }, "the same normalized query")
+        assertEquals(2, cached.search("banana", 10, filter = SearchFilter(sort = SearchSort.Name)).size, "a filter is another question")
+
+        val events = database.blockingTransaction {
+            FoodSearchEventsTable.selectAll().map { it[FoodSearchEventsTable.queryNorm] to it[FoodSearchEventsTable.resultCount] }
+        }
+        assertEquals(listOf("banana" to 1, "banana" to 1, "banana" to 2), events, "a cached answer is recorded like any other")
+    }
+
+    @Test
+    fun anExternalProductClearsTheCacheSoSearchFindsIt() = runTest {
+        val cached = PostgresFoodCatalogRepository(database, clock, FoodSourcesConfig(searchCacheEntries = 10))
+        assertEquals(emptyList(), cached.search("hazelnut spread", 10, record = false))
+        cached.upsertExternalProduct(
+            CatalogSource.OpenFoodFacts,
+            ExternalProduct("3017620422003", "Hazelnut spread", "Acme", Nutrients(kcal = 539.0), micros = emptyMap(), portions = emptyList()),
+        )
+        assertEquals(listOf("Hazelnut spread"), cached.search("hazelnut spread", 10, record = false).map { it.food.name })
     }
 
     @Test

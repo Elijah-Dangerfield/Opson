@@ -52,6 +52,7 @@ import java.sql.ResultSet
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Postgres-backed [FoodCatalogRepository].
@@ -92,7 +93,11 @@ class PostgresFoodCatalogRepository(
     private val sources: FoodSourcesConfig = FoodSourcesConfig(),
 ) : FoodCatalogRepository {
 
+    private val cache = SearchResultCache(sources.searchCacheEntries, sources.searchCacheSeconds.seconds, clock)
+
     /**
+     * An answer from [cache] when it has one ([SearchResultCache]); every
+     * search is still recorded.
      * With Open Food Facts on, the catalog and `off_foods` statements run at
      * once, each in its own transaction on its own connection, so a search
      * waits for the slower of the two rather than both. Neither transaction
@@ -113,7 +118,8 @@ class PostgresFoodCatalogRepository(
         val withOpenFoodFacts = terms != null && openFoodFacts && sources.searchOpenFoodFacts &&
             filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms)
         val countryTag = if (withOpenFoodFacts) OpenFoodFactsSearch.countryTag(country) else null
-        val matches = rank(terms, capped, filter, withOpenFoodFacts, countryTag)
+        val key = SearchResultCache.Key(normalized, capped, filter, withOpenFoodFacts, countryTag)
+        val matches = cache.get(key) ?: rank(terms, capped, filter, withOpenFoodFacts, countryTag).also { cache.put(key, it) }
         if (record && normalized.isNotEmpty()) {
             database.transaction {
                 FoodSearchEventsTable.insert {
@@ -244,6 +250,9 @@ class PostgresFoodCatalogRepository(
             .where { (FoodsTable.sourceKind eq source.wire) and (FoodsTable.sourceId eq product.barcode) }
             .single()
             .toFood()
+    }.also {
+        // Once committed: a new or renamed product may now match a cached query.
+        cache.clear()
     }
 
     override suspend fun recordBarcodeLookup(barcode: String, outcome: BarcodeOutcome) {
