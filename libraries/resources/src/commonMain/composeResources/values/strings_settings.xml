@@ -167,6 +167,8 @@
     <string name="settings_targets_deficit_burn_unknown">Not known yet</string>
     <string name="settings_targets_deficit_goal_unknown">Your range, for now</string>
     <string name="settings_targets_deficit_cap_toast">A bigger deficit needs a limit set with a dietitian first.</string>
+    <string name="settings_targets_deficit_locked">Can't go higher yet</string>
+    <string name="settings_targets_deficit_cap_note">The deficit can't grow past where it started until a dietitian sets a limit.</string>
     <string name="settings_targets_burn_source">Work out what I burn from</string>
     <string name="settings_targets_burn_source_body">Intake and weight trend is steadier. It needs about two weeks of logging first.</string>
     <string name="settings_targets_rule_floor">Never below your floor, even on a low-burn day</string>

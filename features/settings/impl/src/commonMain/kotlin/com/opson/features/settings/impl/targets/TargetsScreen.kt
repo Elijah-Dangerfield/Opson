@@ -69,9 +69,11 @@ import opson.libraries.resources.generated.resources.settings_targets_burn_sourc
 import opson.libraries.resources.generated.resources.settings_targets_deficit_about
 import opson.libraries.resources.generated.resources.settings_targets_deficit_burn
 import opson.libraries.resources.generated.resources.settings_targets_deficit_burn_unknown
+import opson.libraries.resources.generated.resources.settings_targets_deficit_cap_note
 import opson.libraries.resources.generated.resources.settings_targets_deficit_goal
 import opson.libraries.resources.generated.resources.settings_targets_deficit_goal_unknown
 import opson.libraries.resources.generated.resources.settings_targets_deficit_less
+import opson.libraries.resources.generated.resources.settings_targets_deficit_locked
 import opson.libraries.resources.generated.resources.settings_targets_deficit_more
 import opson.libraries.resources.generated.resources.settings_targets_deficit_title
 import opson.libraries.resources.generated.resources.settings_targets_floor_note
@@ -351,7 +353,7 @@ private fun DeficitCards(deficit: DeficitCard, onAction: (TargetsAction) -> Unit
         Row(verticalAlignment = Alignment.CenterVertically) {
             StepButton(
                 icon = AppIcons.Remove.described(stringResource(Res.string.settings_targets_deficit_less)),
-                enabled = deficit.canLower,
+                enabled = deficit.down == StepState.Open,
                 onClick = { onAction(TargetsAction.DeficitStepped(up = false)) },
                 size = 52.dp,
                 container = AppTheme.colors.soft,
@@ -374,12 +376,32 @@ private fun DeficitCards(deficit: DeficitCard, onAction: (TargetsAction) -> Unit
                     modifier = Modifier.padding(bottom = 6.dp),
                 )
             }
-            StepButton(
-                icon = AppIcons.Add.described(stringResource(Res.string.settings_targets_deficit_more)),
-                enabled = deficit.canRaise,
-                onClick = { onAction(TargetsAction.DeficitStepped(up = true)) },
-                size = 52.dp,
-                container = AppTheme.colors.soft,
+            if (deficit.up == StepState.Locked) {
+                Box(
+                    modifier = Modifier.size(52.dp).clip(AppTheme.shapes.input).background(AppTheme.colors.soft),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        icon = AppIcons.LockOutlined.described(stringResource(Res.string.settings_targets_deficit_locked)),
+                        size = 22.dp,
+                        color = AppTheme.colors.muted,
+                    )
+                }
+            } else {
+                StepButton(
+                    icon = AppIcons.Add.described(stringResource(Res.string.settings_targets_deficit_more)),
+                    enabled = deficit.up == StepState.Open,
+                    onClick = { onAction(TargetsAction.DeficitStepped(up = true)) },
+                    size = 52.dp,
+                    container = AppTheme.colors.soft,
+                )
+            }
+        }
+        if (deficit.up == StepState.Locked) {
+            Text(
+                text = stringResource(Res.string.settings_targets_deficit_cap_note),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
             )
         }
         HorizontalDivider(color = AppTheme.colors.line)
@@ -794,6 +816,13 @@ private fun TargetsDeficitPreview() {
 @Composable
 private fun TargetsDeficitNoBurnYetPreview() {
     val settings = SettingsFixtures.settings(targets = SettingsFixtures.deficitTargets)
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun TargetsDeficitAtCapPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.newDeficitTargets)
     SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 
