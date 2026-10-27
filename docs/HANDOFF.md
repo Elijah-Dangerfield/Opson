@@ -68,7 +68,7 @@ What has to happen before 0.2 ships is in `docs/plans/0.2/release-checklist.md`.
 
 ## Design sync
 
-App screens are published for Claude Design at
+All 449 app screens are published for Claude Design at
 https://raw.githubusercontent.com/Elijah-Dangerfield/Opson/design-sync/app/manifest.json.
 Export the design as PNGs named by those ids and run
 `scripts/design_sync.main.kts import <path>`.
