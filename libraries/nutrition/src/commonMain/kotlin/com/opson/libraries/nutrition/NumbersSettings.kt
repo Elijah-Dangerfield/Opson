@@ -46,7 +46,7 @@ data class NumbersSettings(
     /** Photos set apart from the preset's own choice: one of the "1 change" on Modes. */
     val progressPhotosChanged: Boolean get() = progressPhotos != null && progressPhotos != Presets[preset].progressPhotos
 
-    /** Delayed numbers open once a week, on the week view, rather than each day. */
+    /** Later numbers open once a week, on the week view, rather than each day. */
     val revealsWeekly: Boolean get() = revealOn == RevealOn.Week
 
     /**

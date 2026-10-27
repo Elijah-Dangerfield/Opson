@@ -67,7 +67,7 @@ private fun WidgetBlindDarkPreview() {
     WidgetPreviewPair(PresetId.NoNumbers, dark = true)
 }
 
-/** Fuel softens calories: the circles, not a soft word. */
+/** Nutrients first softens calories: the circles, not a soft word. */
 @Preview
 @Composable
 private fun WidgetFuelPreview() {

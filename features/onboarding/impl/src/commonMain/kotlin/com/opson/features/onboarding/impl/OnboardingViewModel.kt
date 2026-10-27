@@ -38,8 +38,8 @@ import me.tatarka.inject.annotations.Inject
  *      recommendation ([ModeRecommender]). Every step can be skipped and
  *      nothing asks again later.
  *   3. **Recommendation**: the mode, what you'll see and what stays out of view
- *      ([ModePreview]), three alternatives and All modes. Full numbers and
- *      Sprint are never offered to someone who agreed numbers have been hard.
+ *      ([ModePreview]), the other modes and All modes. Full numbers is never
+ *      offered to someone who agreed numbers have been hard.
  *   4. **Account**: claim the guest with Apple, Google or email, or keep it on
  *      this phone. Skipping is normal. Shown only where one of those is on
  *      ([OnboardingState.canSignIn]): in 0.1 that is Apple, so iOS.

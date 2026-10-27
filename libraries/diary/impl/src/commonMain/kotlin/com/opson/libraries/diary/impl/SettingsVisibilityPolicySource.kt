@@ -44,7 +44,7 @@ import kotlin.time.Instant
  *   existing account, the local settings are defaults (Full numbers) until the
  *   first pull lands. Serving those would flash every number at someone who
  *   chose to see none. No numbers is the only safe guess.
- * - **A new policy at the reveal time and at midnight.** Delayed numbers open
+ * - **A new policy at the reveal time and at midnight.** Later numbers open
  *   at the user's reveal time ([NumbersSettings.revealAt], 9 pm unless they
  *   picked another). The policy reads the clock when it resolves, but screens
  *   only re-resolve when the policy they hold changes, so without a fresh
