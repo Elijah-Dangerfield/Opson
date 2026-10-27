@@ -10,8 +10,6 @@ import opson.libraries.resources.generated.resources.atkinson_hyperlegible_next_
 import opson.libraries.resources.generated.resources.atkinson_hyperlegible_next_regular
 import opson.libraries.resources.generated.resources.atkinson_hyperlegible_next_semibold
 import opson.libraries.resources.generated.resources.Res as SharedRes
-import opson.libraries.ui.generated.resources.Res
-import opson.libraries.ui.generated.resources.lust_script_regular
 
 /**
  * Atkinson Hyperlegible Next (SIL OFL 1.1, license next to the files in `:libraries:resources`),
@@ -27,9 +25,8 @@ val AppFontFamily: FontFamily
         Font(resource = SharedRes.font.atkinson_hyperlegible_next_extrabold, weight = FontWeight.ExtraBold),
     )
 
+/** The wordmark: Atkinson Hyperlegible Next at its heaviest, as the store art draws it. */
 val BrandFontFamily: FontFamily
     @Composable get() = FontFamily(
-        Font(
-            resource = Res.font.lust_script_regular, weight = FontWeight.Normal
-        ),
+        Font(resource = SharedRes.font.atkinson_hyperlegible_next_extrabold, weight = FontWeight.Normal),
     )
