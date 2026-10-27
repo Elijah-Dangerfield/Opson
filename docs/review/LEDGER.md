@@ -90,7 +90,7 @@ keeps existing ticks.
 - [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/RevertTest.kt`
 - [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/ValidationTest.kt`
 - [x] `apps/compose/build.gradle.kts`
-- [ ] `apps/compose/proguard-rules.pro`
+- [x] `apps/compose/proguard-rules.pro`
 - [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidActivityProvider.kt`
 - [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidAppComponent.kt`
 - [x] `apps/compose/src/androidMain/kotlin/com/opson/MainActivity.kt`
@@ -106,14 +106,14 @@ keeps existing ticks.
 - [x] `apps/compose/src/commonMain/kotlin/com/opson/ShakeHandler.kt`
 - [x] `apps/compose/src/commonMain/kotlin/com/opson/SplashScreen.kt`
 - [x] `apps/compose/src/commonMain/kotlin/com/opson/UserTheme.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/AppViewModelTest.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/DeepLinkLogTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/AppViewModelTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/DeepLinkLogTest.kt`
 - [x] `apps/compose/src/commonTest/kotlin/com/opson/OpsonNetworkConfigTest.kt`
 - [x] `apps/compose/src/commonTest/kotlin/com/opson/UserThemeTest.kt`
 - [x] `apps/compose/src/iosMain/kotlin/com/opson/IosAppComponent.kt`
 - [x] `apps/compose/src/iosMain/kotlin/com/opson/MainViewController.kt`
 - [x] `apps/compose/src/iosMain/kotlin/com/opson/SwiftUsageBridge.kt`
-- [ ] `apps/ios/Configuration/Config.xcconfig`
+- [x] `apps/ios/Configuration/Config.xcconfig`
 - [x] `apps/ios/iosApp/Platform/FileSharePresenter.swift`
 - [x] `apps/ios/iosApp/Platform/IOSAppleSignInCoordinator.swift`
 - [x] `apps/ios/iosApp/Platform/IOSNativeViewFactory.swift`
@@ -214,12 +214,12 @@ keeps existing ticks.
 
 ## server (176 files)
 
-- [ ] `apps/server/Dockerfile`
+- [x] `apps/server/Dockerfile`
 - [x] `apps/server/build.gradle.kts`
 - [x] `apps/server/docker-compose.yml`
 - [x] `apps/server/docker/init-auth.sql`
-- [ ] `apps/server/fly.prod.toml`
-- [ ] `apps/server/fly.toml`
+- [x] `apps/server/fly.prod.toml`
+- [x] `apps/server/fly.toml`
 - [x] `apps/server/src/main/kotlin/com/opson/server/Application.kt`
 - [x] `apps/server/src/main/kotlin/com/opson/server/Main.kt`
 - [x] `apps/server/src/main/kotlin/com/opson/server/config/Env.kt`
@@ -281,7 +281,7 @@ keeps existing ticks.
 - [x] `apps/server/src/main/kotlin/com/opson/server/plugins/AccessControl.kt`
 - [x] `apps/server/src/main/kotlin/com/opson/server/plugins/AdminWeb.kt`
 - [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Authentication.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/BodyLimit.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/BodyLimit.kt`
 - [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Cors.kt`
 - [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Errors.kt`
 - [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Observability.kt`
@@ -316,7 +316,7 @@ keeps existing ticks.
 - [x] `apps/server/src/main/resources/db/migration/V16__waitlist.sql`
 - [x] `apps/server/src/main/resources/db/migration/V17__food_category.sql`
 - [x] `apps/server/src/main/resources/db/migration/V18__day_check_in.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V19__rls_on_early_tables.sql`
+- [x] `apps/server/src/main/resources/db/migration/V19__rls_on_early_tables.sql`
 - [x] `apps/server/src/main/resources/db/migration/V1__profiles.sql`
 - [x] `apps/server/src/main/resources/db/migration/V2__fk_auth_users.sql`
 - [x] `apps/server/src/main/resources/db/migration/V3__player_reports.sql`
@@ -326,7 +326,7 @@ keeps existing ticks.
 - [x] `apps/server/src/main/resources/db/migration/V7__food_catalog.sql`
 - [x] `apps/server/src/main/resources/db/migration/V8__diary.sql`
 - [x] `apps/server/src/main/resources/db/migration/V9__analytics.sql`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/FullStackFoodLatencyTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/FullStackFoodLatencyTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/FullStackMeTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/FullStackSyncTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/config/EnvTest.kt`
@@ -348,7 +348,7 @@ keeps existing ticks.
 - [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigManifestRepositoryTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigSourceTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresBarcodeMissRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresExportRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresExportRepositoryTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresFoodCatalogRepositoryTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresModerationRepositoryTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresProfileRepositoryTest.kt`
@@ -358,8 +358,8 @@ keeps existing ticks.
 - [x] `apps/server/src/test/kotlin/com/opson/server/data/UsdaFoodSeedTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseSchemaTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTimeoutTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/QueryPlanTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTimeoutTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/QueryPlanTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/domain/BarcodesTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/domain/DescribeParserTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/domain/DiaryRulesTest.kt`
@@ -370,9 +370,9 @@ keeps existing ticks.
 - [x] `apps/server/src/test/kotlin/com/opson/server/http/ClientContextTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/plugins/AdminWebTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/plugins/BanEnforcementTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/plugins/BanGateTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/plugins/BodyLimitTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/plugins/StatusPagesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/plugins/BanGateTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/plugins/BodyLimitTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/plugins/StatusPagesTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/plugins/TelemetryTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/routes/BarcodeMissRoutesTest.kt`
 - [x] `apps/server/src/test/kotlin/com/opson/server/routes/ConfigAdminRoutesTest.kt`
@@ -458,8 +458,8 @@ keeps existing ticks.
 - [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackScreen.kt`
 - [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModel.kt`
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/HomeViewModelTest.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackRepositoryImplTest.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModelTest.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackRepositoryImplTest.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModelTest.kt`
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenario.kt`
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
 - [x] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
@@ -950,8 +950,8 @@ keeps existing ticks.
 - [x] `libraries/resources/build.gradle.kts`
 - [x] `libraries/ui/build.gradle.kts`
 - [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextFieldSemanticsTest.kt`
-- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextTest.kt`
-- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/system/BounceClickTest.kt`
+- [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextTest.kt`
+- [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/system/BounceClickTest.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/NoScreenshot.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/Preview.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ButtonCatalog.kt`
@@ -1065,11 +1065,11 @@ keeps existing ticks.
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypographyResource.kt`
 - [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/time/RelativeDay.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/BarFillTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetStateSaverTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetStateSaverTest.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/NumberInputTest.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/TypedTextTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/snackbar/SnackbarMessageTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/system/color/ColorResourceTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/snackbar/SnackbarMessageTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/system/color/ColorResourceTest.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/time/RelativeDayTest.kt`
 - [x] `libraries/ui/src/commonTest/kotlin/com/opson/system/color/NeutralsTest.kt`
 - [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/nativeviews/NativeViewFactory.kt`
