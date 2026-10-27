@@ -686,20 +686,6 @@ class LoggerViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun editingADescribedLineOpensItsAmount() = runUnitTest {
-        val vm = vm()
-        val events = events(vm)
-        val line = LoggerFixtures.describeState(policy(PresetId.Full)).describe.lines.first()
-
-        vm.takeAction(LoggerAction.DescribedLineEditTapped(line))
-
-        assertEquals(
-            listOf<LoggerEvent>(LoggerEvent.OpenAmount(FoodRef.Catalog("egg"), PickSource.Describe, LoggerFixtures.today, MealSlot.Dinner)),
-            events,
-        )
-    }
-
-    @Test
     fun justANumberLogsQuickAddOnItsOwn() = runUnitTest {
         val vm = vm()
         val events = events(vm)

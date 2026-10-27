@@ -23,20 +23,22 @@ object VoiceFixtures {
         text: String = "",
         parsedLines: Boolean = false,
         enabled: Boolean = true,
-    ): LoggerState = LoggerStateBuilder.build(
-        inputs = LoggerFixtures.inputs(
-            basket = if (parsedLines) LoggerFixtures.parsed.mapIndexed { index, item -> item.toDescribedItem(index) } else emptyList(),
-        ),
-        policy = policy,
-        choices = LoggerChoices(
-            slot = MealSlot.Breakfast,
-            pane = LoggerPane.Describe,
-            describeText = text,
-            describeStatus = if (parsedLines) DescribeStatus.Parsed else DescribeStatus.Idle,
-            voiceEnabled = enabled,
-            voice = voice,
-        ),
-    )
+    ): LoggerState {
+        val review = if (parsedLines) LoggerFixtures.describeReview(policy) else DescribeReview()
+        return LoggerStateBuilder.build(
+            inputs = LoggerFixtures.inputs(basket = review.rows.map { it.toBasketItem() }),
+            policy = policy,
+            choices = LoggerChoices(
+                slot = MealSlot.Breakfast,
+                pane = LoggerPane.Describe,
+                describeText = text,
+                describeStatus = if (parsedLines) DescribeStatus.Parsed else DescribeStatus.Idle,
+                review = review,
+                voiceEnabled = enabled,
+                voice = voice,
+            ),
+        )
+    }
 
     /** Partway through saying it: the words so far fill the field live. */
     fun listening(policy: VisibilityPolicy): LoggerState =

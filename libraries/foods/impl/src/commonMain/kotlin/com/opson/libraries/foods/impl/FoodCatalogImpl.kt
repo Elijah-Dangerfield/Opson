@@ -180,4 +180,6 @@ internal fun DescribedItemDto.toDomain(): ParsedItem = ParsedItem(
     fat = fat,
     fiber = fiber,
     micros = micros,
+    food = food?.toDomain(),
+    alternatives = alternatives.map { it.toDomain() },
 )

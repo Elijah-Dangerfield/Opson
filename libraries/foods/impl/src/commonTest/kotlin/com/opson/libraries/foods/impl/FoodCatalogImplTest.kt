@@ -42,6 +42,23 @@ class FoodCatalogImplTest : CoroutineTest() {
     private val catalog = FoodCatalogImpl(api, cache, clock)
 
     @Test
+    fun describeCarriesTheMatchedFoodAndItsAlternatives() = runUnitTest {
+        val item = DescribedItemDto(
+            text = "some rice", name = "rice", foodId = "rice", quantity = 1.0, amountText = "1 cup",
+            portionLabel = "1 cup", grams = 158.0, kcal = 205.0, confidence = "high",
+            food = rice, alternatives = listOf(yogurt),
+        )
+        api.describeResult = Result.success(DescribeResponse(listOf(item, item.copy(food = null, alternatives = emptyList()))))
+
+        val (matched, fromAnOlderServer) = catalog.describe("some rice").getOrThrow()
+
+        assertEquals(rice.toDomain(), matched.food)
+        assertEquals(listOf("yogurt"), matched.alternatives.map { it.id })
+        assertNull(fromAnOlderServer.food)
+        assertTrue(fromAnOlderServer.alternatives.isEmpty())
+    }
+
+    @Test
     fun searchResultsComeFromTheServerWhenItAnswers() = runUnitTest {
         api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
 
@@ -259,7 +276,9 @@ private class FakeFoodApi : FoodApi {
 
     override suspend fun barcode(code: String) = barcodeResult
 
-    override suspend fun describe(text: String) = Result.success(DescribeResponse(emptyList()))
+    var describeResult: Result<DescribeResponse> = Result.success(DescribeResponse(emptyList()))
+
+    override suspend fun describe(text: String) = describeResult
 }
 
 private class FakeFoodCacheDao : FoodCacheDao {

@@ -115,7 +115,10 @@ enum class Confidence(val wire: String) {
 /**
  * One phrase from "Describe it" ("2 eggs"), already matched to a food and
  * scaled to the whole amount. Always an estimate. [foodId] and the nutrients
- * are null when nothing in the catalog matched.
+ * are null when nothing in the catalog matched. [food] is the matched food
+ * itself and [alternatives] the next best foods for the same words, so the
+ * amount can change and the food can be swapped without asking again; both
+ * are empty from a server older than 0.2.
  */
 data class ParsedItem(
     val text: String,
@@ -133,6 +136,8 @@ data class ParsedItem(
     val fat: Double? = null,
     val fiber: Double? = null,
     val micros: Map<String, Double>? = null,
+    val food: Food? = null,
+    val alternatives: List<Food> = emptyList(),
 )
 
 data class FoodSearchResult(
