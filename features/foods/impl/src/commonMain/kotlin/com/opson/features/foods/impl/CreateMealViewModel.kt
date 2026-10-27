@@ -41,6 +41,12 @@ class CreateMealViewModel(
     private val requestId: String = "meal-${Random.nextLong().toULong().toString(RADIX)}"
 
     private var draft = MealDraft()
+
+    /**
+     * Set once the meal is written. A second Save tap queued behind the first (the screen is
+     * still up until Close lands) would otherwise save the same meal twice.
+     */
+    private var saved = false
     private var policy: VisibilityPolicy = policySource.policy.value
 
     init {
@@ -94,8 +100,9 @@ class CreateMealViewModel(
     private suspend fun save() {
         val current = draft
         // The button is disabled until then; this keeps a stray tap from saving a nameless meal.
-        if (current.name.isBlank() || current.items.isEmpty()) return
+        if (saved || current.name.isBlank() || current.items.isEmpty()) return
         savedMeals.create(current.name.trim(), current.usualSlot, current.items)
+        saved = true
         sendEvent(CreateMealEvent.ShowToast(Toast(Res.string.foods_meal_saved)))
         sendEvent(CreateMealEvent.Close)
     }

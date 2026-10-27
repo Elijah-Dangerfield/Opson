@@ -23,6 +23,9 @@ class AddFoodViewModel(
 ) : SEAViewModel<AddFoodState, AddFoodEvent, AddFoodAction>(initialStateArg = AddFoodState()) {
 
     private var form = FoodForm()
+
+    /** Set once the food is written, so a second Save tap queued behind the first adds nothing. */
+    private var saved = false
     private var policy: VisibilityPolicy = policySource.policy.value
 
     init {
@@ -53,8 +56,9 @@ class AddFoodViewModel(
 
     private suspend fun save() {
         // The button is disabled without a name; this keeps a stray tap from saving a nameless food.
-        if (form.name.isBlank()) return
+        if (saved || form.name.isBlank()) return
         val food = customFoods.create(AddFoodStateBuilder.draft(form, policy))
+        saved = true
         sendEvent(AddFoodEvent.ShowToast(Toast(Res.string.foods_food_saved, listOf(food.name))))
         sendEvent(AddFoodEvent.Close)
     }

@@ -29,10 +29,12 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -67,7 +69,6 @@ import opson.libraries.resources.generated.resources.auth_error_provider_not_ena
 import opson.libraries.resources.generated.resources.common_back
 import opson.libraries.resources.generated.resources.onboarding_account_apple
 import opson.libraries.resources.generated.resources.onboarding_account_body
-import opson.libraries.resources.generated.resources.onboarding_account_coach
 import opson.libraries.resources.generated.resources.onboarding_account_email
 import opson.libraries.resources.generated.resources.onboarding_account_export
 import opson.libraries.resources.generated.resources.onboarding_account_failed
@@ -88,9 +89,6 @@ import opson.libraries.resources.generated.resources.onboarding_get_started
 import opson.libraries.resources.generated.resources.onboarding_have_account
 import opson.libraries.resources.generated.resources.onboarding_plan_free
 import opson.libraries.resources.generated.resources.onboarding_plan_free_includes
-import opson.libraries.resources.generated.resources.onboarding_plan_plus
-import opson.libraries.resources.generated.resources.onboarding_plan_plus_includes
-import opson.libraries.resources.generated.resources.onboarding_plan_plus_later
 import opson.libraries.resources.generated.resources.onboarding_progress
 import opson.libraries.resources.generated.resources.onboarding_progress_description
 import opson.libraries.resources.generated.resources.onboarding_progress_optional
@@ -211,7 +209,9 @@ private fun WelcomeStep(
                     ),
                 )
             }
-            SignInLink(enabled = !busy, onClick = { onAction(OnboardingAction.SignInTapped) })
+            if (state.canSignIn) {
+                SignInLink(enabled = !busy, onClick = { onAction(OnboardingAction.SignInTapped) })
+            }
             Spacer(Modifier.height(Dimension.D300))
         }
     }
@@ -231,24 +231,23 @@ private fun PlanCard() {
     ) {
         PlanRow(
             name = stringResource(Res.string.onboarding_plan_free),
-            note = null,
             includes = stringResource(Res.string.onboarding_plan_free_includes),
         )
     }
 }
 
 @Composable
-private fun PlanRow(name: String, note: String?, includes: String) {
+private fun PlanRow(name: String, includes: String) {
     Row(
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.spacedBy(Dimension.D700),
     ) {
-        Column(modifier = Modifier.weight(PLAN_NAME_WEIGHT)) {
-            Text(text = name, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
-            if (note != null) {
-                Text(text = note, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
-            }
-        }
+        Text(
+            text = name,
+            typography = AppTheme.type.bodyBold,
+            color = AppTheme.colors.ink,
+            modifier = Modifier.weight(PLAN_NAME_WEIGHT),
+        )
         Text(
             text = includes,
             typography = AppTheme.type.body,
@@ -681,7 +680,7 @@ private fun AccountErrorText(error: OnboardingAccountError) {
         ),
         typography = AppTheme.type.secondary,
         color = AppTheme.colors.ink,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
     )
 }
 

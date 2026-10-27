@@ -44,7 +44,8 @@ import me.tatarka.inject.annotations.Inject
  *      ([ModePreview]), three alternatives and All modes. Full numbers and
  *      Sprint are never offered to someone who agreed numbers have been hard.
  *   4. **Account**: claim the guest with Apple, Google or email, or keep it on
- *      this phone. Skipping is normal.
+ *      this phone. Skipping is normal. Shown only where one of those is on
+ *      ([OnboardingState.canSignIn]): in 0.1 that is Apple, so iOS.
  *
  * Saving writes the preset and the answers to settings without stamping
  * `changedAt` (so Modes says "Set by you during setup"), creates the guest
@@ -68,8 +69,10 @@ class OnboardingViewModel(
     private val appleSignInCoordinator: AppleSignInCoordinator,
     private val settingsRepository: SettingsRepository,
     private val clock: Clock,
+    /** Native Sign in with Apple, which only iOS has. A parameter so tests can run either phone. */
+    appleSignIn: Boolean = BuildInfo.isiOS(),
 ) : SEAViewModel<OnboardingState, OnboardingEvent, OnboardingAction>(
-    initialStateArg = OnboardingState(appleEnabled = BuildInfo.isiOS()),
+    initialStateArg = OnboardingState(appleEnabled = appleSignIn),
 ) {
 
     private val logger = KLog.withTag("OnboardingFlow")
@@ -98,7 +101,7 @@ class OnboardingViewModel(
             OnboardingAction.ResolveEntry -> action.handleResolveEntry()
             OnboardingAction.GetStartedTapped -> action.handleGetStarted()
             OnboardingAction.SkipAllTapped -> action.handleSkipAll()
-            OnboardingAction.SignInTapped -> sendEvent(OnboardingEvent.NavigateToSignIn)
+            OnboardingAction.SignInTapped -> if (state.canSignIn) sendEvent(OnboardingEvent.NavigateToSignIn)
             OnboardingAction.TalkToSomeoneTapped -> sendEvent(OnboardingEvent.NavigateToSupport)
             is OnboardingAction.OptionTapped -> action.handleOptionTapped(action.option)
             OnboardingAction.ContinueTapped, OnboardingAction.SkipQuestionTapped -> action.advance()
@@ -218,8 +221,8 @@ class OnboardingViewModel(
      *     creator keeps retrying in the background. Never trap the user on a
      *     backend call.
      *  3. Mark `hasUserOnboarded`.
-     *  4. Skip all, a claimed identity or a guest that is not there yet: Today.
-     *     Otherwise the account step.
+     *  4. Skip all, a claimed identity, a guest that is not there yet, or no
+     *     way to claim it on this phone: Today. Otherwise the account step.
      *
      * Runs again when the person comes back from the account step and starts
      * with another mode: the settings are saved again, nothing else repeats.
@@ -250,7 +253,7 @@ class OnboardingViewModel(
         }
         appCache.update { it.copy(hasUserOnboarded = true) }
 
-        val claimable = guestCreated || session?.isAnonymous == true
+        val claimable = state.canSignIn && (guestCreated || session?.isAnonymous == true)
         if (skippedAll || !claimable) {
             // isFinishing stays true: the screen is leaving, and a second tap
             // queued behind this one must not finish again.
@@ -438,6 +441,12 @@ data class OnboardingState(
     /** Native "Sign in with Apple" is iOS-only; hides the button elsewhere. */
     val appleEnabled: Boolean = false,
 ) {
+    /**
+     * This phone offers a way to sign in or claim the guest. Without one, Welcome hides
+     * "Sign in" and saving skips the account step: both would be screens with nothing to tap.
+     */
+    val canSignIn: Boolean get() = appleEnabled || SignInMethods.GOOGLE || SignInMethods.EMAIL
+
     /** The mode "Start with" will save. */
     val chosen: PresetId get() = picked ?: recommended
 

@@ -2,7 +2,7 @@
 //  ReviewLauncher.swift
 //  iosApp
 //
-//  Wraps SKStoreReviewController. The OS owns the throttling decision —
+//  Wraps StoreKit's review prompt. The OS owns the throttling decision —
 //  this returns immediately whether or not the dialog actually showed.
 //
 import ComposeApp
@@ -21,11 +21,7 @@ class IOSReviewLauncher: ReviewLauncher {
                     .first
             else { return }
 
-            if #available(iOS 14.0, *) {
-                SKStoreReviewController.requestReview(in: scene)
-            } else {
-                SKStoreReviewController.requestReview()
-            }
+            AppStore.requestReview(in: scene)
         }
     }
 }

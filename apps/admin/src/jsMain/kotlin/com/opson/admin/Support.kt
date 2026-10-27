@@ -78,7 +78,6 @@ internal class AdminCtx(
     }
 }
 
-@Suppress("TooGenericExceptionCaught")
 internal fun parseJsonOrNull(raw: String): JsonElement? =
     Catching { adminJson.parseToJsonElement(raw.trim()) }.getOrNull()
 
@@ -96,12 +95,14 @@ internal fun randomUuid(): String = js("crypto.randomUUID()") as String
 internal fun dangerousWarning(path: String, value: String): String? {
     val v = value.trim()
     return when {
+        // No released app reads these yet, so each warning names the effect for the build that will.
         path == "upgrade.maintenanceMode" && v == "\"blocking\"" ->
-            "This sets maintenance mode to BLOCKING — it locks ALL users out of the app. Continue?"
+            "This sets maintenance mode to BLOCKING. Once the app reads it, it locks ALL users out. Continue?"
         path == "upgrade.maintenanceMode" && v == "\"banner\"" ->
-            "This shows a maintenance banner to ALL users. Continue?"
+            "This sets maintenance mode to BANNER. Once the app reads it, ALL users see the banner. Continue?"
         path == "upgrade.minSupportedVersionCode" ->
-            "Raising the minimum supported version force-upgrades every user below it. Double-check the number. Continue?"
+            "Once the app reads it, raising the minimum supported version force-upgrades every user below it. " +
+                "Double-check the number. Continue?"
         else -> null
     }
 }

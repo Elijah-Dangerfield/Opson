@@ -4,14 +4,13 @@ import com.opson.libraries.core.ShakeDetector
 import com.opson.libraries.core.ShakeEvent
 import com.opson.libraries.core.ShakeMessageContext
 import com.opson.libraries.core.ShakeMessageProvider
+import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.identity.profile.ProfileRepository
 import com.opson.libraries.identity.profile.displayNameOrNull
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.ShakeDialogRoute
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -31,8 +30,8 @@ class ShakeHandler(
     private val shakeMessageProvider: ShakeMessageProvider,
     private val profileRepository: ProfileRepository,
     private val router: Router,
+    private val appScope: AppCoroutineScope,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var collectJob: Job? = null
     private var isShowingDialog = false
     // Process-local flavor counter for the shake easter-egg copy.
@@ -43,7 +42,8 @@ class ShakeHandler(
         // ever cancelled. They then competed for the same events.
         collectJob?.cancel()
         shakeDetector.start()
-        collectJob = scope.launch {
+        // The app scope, so a failed shake is logged instead of ending the process; Main for the router.
+        collectJob = appScope.launch(Dispatchers.Main) {
             shakeDetector.shakeEvents.collect { event ->
                 handleShake(event)
             }

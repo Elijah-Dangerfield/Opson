@@ -24,6 +24,13 @@ internal data class UserTheme(
 
 internal fun Settings.userTheme(): UserTheme = UserTheme(palette, theme, textSize)
 
+/** Whether the app draws dark: the user's pick, or the system's when they left it on System. */
+internal fun ThemeMode.isDark(systemDark: Boolean): Boolean = when (this) {
+    ThemeMode.System -> systemDark
+    ThemeMode.Light -> false
+    ThemeMode.Dark -> true
+}
+
 /** The diary keeps the palette as a key so it need not depend on `:libraries:ui`; this is the bridge. */
 internal fun PaletteChoice.toPalette(): Palette = when (this) {
     PaletteChoice.Pine -> Palette.Pine
@@ -46,14 +53,9 @@ internal fun UserAppTheme(
         settingsRepository.settings.map { it.userTheme() }.distinctUntilChanged()
     }
     val user by themeFlow.collectAsState(initial = settingsRepository.settings.value.userTheme())
-    val dark = when (user.theme) {
-        ThemeMode.System -> isSystemInDarkTheme()
-        ThemeMode.Light -> false
-        ThemeMode.Dark -> true
-    }
     AppTheme(
         palette = user.palette.toPalette(),
-        darkTheme = dark,
+        darkTheme = user.theme.isDark(systemDark = isSystemInDarkTheme()),
         largeText = user.textSize == TextSize.Large,
         content = content,
     )
