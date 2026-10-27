@@ -1,5 +1,6 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
@@ -9,6 +10,7 @@ import com.opson.libraries.nutrition.MAX_SURPLUS_KCAL
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
@@ -96,6 +98,18 @@ internal object ExerciseRangeSerializer : KeyedEnumSerializer<ExerciseAdjustment
     { it.name.lowercase() },
     ExerciseAdjustment.None,
 )
+
+/** [Settings.restingSource]: anything unreadable is the calculation, the default. */
+internal object RestingSourceSerializer : KeyedEnumSerializer<RestingSource>(
+    "opson.RestingSource",
+    RestingSource.entries,
+    { it.name.lowercase() },
+    RestingSource.Calculate,
+)
+
+/** [Settings.bodySex]: anything unreadable is unsaid, the midpoint of the equation's two constants. */
+internal object BodySexSerializer :
+    KeyedEnumSerializer<BodySex>("opson.BodySex", BodySex.entries, { it.name.lowercase() }, BodySex.Unsaid)
 
 internal object WaterUnitSerializer : KeyedEnumSerializer<WaterUnit>(
     "opson.WaterUnit",
@@ -263,6 +277,7 @@ private class TargetStyleWire(
     val deficitKcal: Int? = null,
     val startingDeficitKcal: Int? = null,
     val surplusKcal: Int? = null,
+    val startingSurplusKcal: Int? = null,
     val groups: List<DayGroupWire> = emptyList(),
 ) {
     companion object {
@@ -276,7 +291,7 @@ private class TargetStyleWire(
 
 /**
  * One day group: days as `mon`..`sun`. `shape` is `range`, `exact` or `surplus` (with
- * `surplusKcal`); missing or unknown, the group is a range.
+ * `surplusKcal` and `startingSurplusKcal`); missing or unknown, the group is a range.
  */
 @Serializable
 private class DayGroupWire(
@@ -285,6 +300,7 @@ private class DayGroupWire(
     val maxKcal: Int,
     val shape: String? = null,
     val surplusKcal: Int? = null,
+    val startingSurplusKcal: Int? = null,
 )
 
 internal object TargetsSerializer : KSerializer<Targets> {
@@ -326,7 +342,7 @@ internal object TargetsSerializer : KSerializer<Targets> {
     private fun TargetStyle.toWire(): TargetStyleWire = when (this) {
         TargetStyle.Range -> TargetStyleWire(TargetStyleWire.KIND_RANGE)
         TargetStyle.Exact -> TargetStyleWire(TargetStyleWire.KIND_EXACT)
-        is TargetStyle.Surplus -> TargetStyleWire(TargetStyleWire.KIND_SURPLUS, surplusKcal = kcal)
+        is TargetStyle.Surplus -> TargetStyleWire(TargetStyleWire.KIND_SURPLUS, surplusKcal = kcal, startingSurplusKcal = startingKcal)
         is TargetStyle.Deficit -> TargetStyleWire(
             TargetStyleWire.KIND_DEFICIT,
             deficitKcal = kcal,
@@ -345,6 +361,7 @@ internal object TargetsSerializer : KSerializer<Targets> {
                         is GroupShape.Surplus -> TargetStyleWire.KIND_SURPLUS
                     },
                     surplusKcal = (group.shape as? GroupShape.Surplus)?.kcal,
+                    startingSurplusKcal = (group.shape as? GroupShape.Surplus)?.startingKcal,
                 )
             },
         )
@@ -353,14 +370,14 @@ internal object TargetsSerializer : KSerializer<Targets> {
     /**
      * Reads a style back, repairing rather than trusting it: another build or a hand-edited row
      * could break the rules the write path keeps. A deficit is held to 0..its start (or the
-     * dietitian's maximum), a surplus (the style's or a group's) to 0..[MAX_SURPLUS_KCAL],
+     * dietitian's maximum), a surplus (the style's or a group's) the same way,
      * groups to four, each weekday to exactly one group (first wins, missing days join the
      * first), and a group whose range breaks the floor takes the base range. Anything unreadable
      * is a plain range.
      */
     private fun TargetStyleWire.toStyle(targets: Targets): TargetStyle = when (kind) {
         TargetStyleWire.KIND_EXACT -> TargetStyle.Exact
-        TargetStyleWire.KIND_SURPLUS -> TargetStyle.Surplus(surplus(surplusKcal))
+        TargetStyleWire.KIND_SURPLUS -> surplus(surplusKcal, startingSurplusKcal).let { (kcal, start) -> TargetStyle.Surplus(kcal, start) }
         TargetStyleWire.KIND_DEFICIT -> {
             val start = (startingDeficitKcal ?: 0).coerceAtLeast(0)
             val cap = MAX_DEFICIT_KCAL ?: start
@@ -381,7 +398,7 @@ internal object TargetsSerializer : KSerializer<Targets> {
                 wire.maxKcal - wire.minKcal >= Targets.STEP_KCAL
             val shape = when (wire.shape) {
                 TargetStyleWire.KIND_EXACT -> GroupShape.Exact
-                TargetStyleWire.KIND_SURPLUS -> GroupShape.Surplus(surplus(wire.surplusKcal))
+                TargetStyleWire.KIND_SURPLUS -> surplus(wire.surplusKcal, wire.startingSurplusKcal).let { (kcal, start) -> GroupShape.Surplus(kcal, start) }
                 else -> GroupShape.Range
             }
             if (safe) {
@@ -395,7 +412,12 @@ internal object TargetsSerializer : KSerializer<Targets> {
         return TargetStyle.ByDay(decoded)
     }
 
-    private fun surplus(kcal: Int?): Int = (kcal ?: 0).coerceIn(0, MAX_SURPLUS_KCAL)
+    /** A surplus and where it started, held to 0..its start (or the clinician's maximum), as a deficit is. */
+    private fun surplus(kcal: Int?, startingKcal: Int?): Pair<Int, Int> {
+        val start = (startingKcal ?: 0).coerceAtLeast(0)
+        val cap = MAX_SURPLUS_KCAL ?: start
+        return (kcal ?: 0).coerceIn(0, cap) to start
+    }
 }
 
 @Serializable

@@ -1,15 +1,16 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.ExerciseAdjustment
-import com.opson.libraries.nutrition.GroupShape
-import com.opson.libraries.nutrition.MAX_SURPLUS_KCAL
-import com.opson.libraries.nutrition.RangeEnd
-import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.FastingPlan
+import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RangeEnd
+import com.opson.libraries.nutrition.RestingSource
+import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WaterUnit
@@ -184,7 +185,7 @@ class SettingsTest {
         val byDay = requireNotNull(Targets.Default.useByDay().addDayGroup())
             .moveDay(DayOfWeek.MONDAY, 1)
             .step(RangeEnd.High, up = true, group = 1)!!
-        val shaped = byDay.shapeGroup(1, GroupShape.Surplus(0))!!.stepSurplus(up = true, group = 1)!!.shapeGroup(0, GroupShape.Exact)!!
+        val shaped = byDay.shapeGroup(1, GroupShape.Surplus(0, 0), burnKcal = 1900)!!.stepSurplus(up = false, group = 1)!!.shapeGroup(0, GroupShape.Exact)!!
         listOf(
             Targets.Default,
             Targets.Default.useDeficit(burnKcal = 2420).stepDeficit(up = false)!!,
@@ -192,7 +193,7 @@ class SettingsTest {
             shaped,
             Targets.Default.step(RangeEnd.Low, up = true)!!,
             Targets.Default.useExact().stepNumber(up = true)!!,
-            Targets.Default.useSurplus(burnKcal = null).stepSurplus(up = true)!!,
+            Targets.Default.useSurplus(burnKcal = 1780).stepSurplus(up = false)!!,
         ).forEach { targets ->
             val s = Settings(targets = targets)
             assertEquals(s, SettingsJson.decodeFromString(Settings.serializer(), SettingsJson.encodeToString(Settings.serializer(), s)))
@@ -200,8 +201,30 @@ class SettingsTest {
     }
 
     @Test
+    fun whereRestingEnergyComesFrom_travelsAsTopLevelKeys_andAnUnknownValueIsSafe() {
+        val s = Settings(
+            restingSource = RestingSource.Own,
+            restingOwnKcal = 1600,
+            activityInBurned = false,
+            birthYear = 1990,
+            heightCm = 170.0,
+            bodySex = BodySex.Unsaid,
+        )
+        val json = SettingsJson.encodeToJsonElement(Settings.serializer(), s).jsonObject
+        assertEquals("own", json.getValue("restingSource").jsonPrimitive.content)
+        assertEquals("unsaid", json.getValue("bodySex").jsonPrimitive.content)
+        assertEquals(s, SettingsJson.decodeFromJsonElement(Settings.serializer(), json))
+
+        val future = SettingsJson.decodeFromString(Settings.serializer(), """{"restingSource":"lab","bodySex":"other"}""")
+        assertEquals(RestingSource.Calculate, future.restingSource)
+        assertEquals(BodySex.Unsaid, future.bodySex)
+        assertEquals(RestingSource.Calculate, Settings().restingSource)
+        assertTrue(Settings().activityInBurned)
+    }
+
+    @Test
     fun theGoalStyleTravelsAsATopLevelKey_soA01SaveOfTargetsCannotDropIt() {
-        val s = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300)))
+        val s = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300, 300)))
         val json = SettingsJson.encodeToJsonElement(Settings.serializer(), s).jsonObject
 
         assertEquals("surplus", json.getValue("targetStyle").jsonObject.getValue("kind").jsonPrimitive.content)
@@ -218,8 +241,10 @@ class SettingsTest {
 
         assertEquals(TargetStyle.Exact, decode("""{"targets":{$targets,"style":{"kind":"exact"}}}"""))
         assertEquals(
-            TargetStyle.Surplus(200),
-            decode("""{"targets":{$targets,"style":{"kind":"exact"}},"targetStyle":{"kind":"surplus","surplusKcal":200}}"""),
+            TargetStyle.Surplus(200, 250),
+            decode(
+                """{"targets":{$targets,"style":{"kind":"exact"}},"targetStyle":{"kind":"surplus","surplusKcal":200,"startingSurplusKcal":250}}""",
+            ),
         )
         assertEquals(TargetStyle.Range, decode("""{"targets":{$targets},"targetStyle":null}"""))
     }
@@ -254,16 +279,17 @@ class SettingsTest {
         assertEquals(DayOfWeek.entries.toSet() - DayOfWeek.SATURDAY, groups[0].days)
         assertEquals(DayGroup(setOf(DayOfWeek.SATURDAY), 1900, 2300), groups[1])
 
-        // A surplus past the cap is held at it, the style's and a group's; an unknown group shape is a range.
-        assertEquals(TargetStyle.Surplus(MAX_SURPLUS_KCAL), decode("""{"kind":"surplus","surplusKcal":5000}"""))
-        assertEquals(TargetStyle.Surplus(0), decode("""{"kind":"surplus","surplusKcal":-300}"""))
+        // A surplus past where it started is held there, the style's and a group's, as a deficit
+        // is; an unknown group shape is a range.
+        assertEquals(TargetStyle.Surplus(150, 150), decode("""{"kind":"surplus","surplusKcal":5000,"startingSurplusKcal":150}"""))
+        assertEquals(TargetStyle.Surplus(0, 0), decode("""{"kind":"surplus","surplusKcal":-300}"""))
         val shapes = decode(
-            """{"kind":"by_day","groups":[{"days":["mon"],"minKcal":1900,"maxKcal":2300,"shape":"surplus","surplusKcal":9000},""" +
+            """{"kind":"by_day","groups":[{"days":["mon"],"minKcal":1900,"maxKcal":2300,"shape":"surplus","surplusKcal":9000,"startingSurplusKcal":100},""" +
                 """{"days":["tue"],"minKcal":1900,"maxKcal":2300,"shape":"exact"},""" +
                 """{"days":["wed"],"minKcal":1900,"maxKcal":2300,"shape":"binge"}]}""",
         )
         assertEquals(
-            listOf(GroupShape.Surplus(MAX_SURPLUS_KCAL), GroupShape.Exact, GroupShape.Range),
+            listOf(GroupShape.Surplus(100, 100), GroupShape.Exact, GroupShape.Range),
             (shapes as TargetStyle.ByDay).groups.map { it.shape },
         )
     }
