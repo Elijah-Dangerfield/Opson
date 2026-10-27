@@ -68,7 +68,7 @@ enum class FastingAccess {
     /** Not rendered anywhere: the release flag is off, or the person agreed numbers have been hard. */
     Hidden,
 
-    /** Not part of the current mode (only Full numbers and Sprint offer it). Not rendered either. */
+    /** Not part of the current mode (only Full numbers offers it). Not rendered either. */
     NotInThisMode,
 
     Offered,
@@ -76,7 +76,7 @@ enum class FastingAccess {
 
     companion object {
         fun of(settings: Settings, released: Boolean): FastingAccess = when {
-            // The statement wins over every mode, Full and Sprint included.
+            // The statement wins over every mode, Full numbers included.
             !released || settings.onboarding.hard -> Hidden
             !Fasting.allowed(settings.numbers.preset) -> NotInThisMode
             else -> Offered

@@ -23,7 +23,7 @@ class ProgressPhotosSettingTest {
 
     @Test
     fun aChoiceTravelsAsATopLevelKey_notInsideNumbers() {
-        val shown = Settings(numbers = NumbersSettings(preset = PresetId.Fuel, progressPhotos = true))
+        val shown = Settings(numbers = NumbersSettings(preset = PresetId.NutrientsFirst, progressPhotos = true))
         val json = encode(shown)
 
         assertEquals(true, json.getValue("progressPhotos").jsonPrimitive.boolean)
@@ -45,7 +45,7 @@ class ProgressPhotosSettingTest {
     @Test
     fun aMergedRow_aZeroOneNumbersBesideTheTopLevelKey_keepsTheChoice() {
         val merged = decode("""{"numbers":{"preset":"rhythm","pauseBeforeMore":true},"progressPhotos":true}""")
-        assertEquals(NumbersSettings(preset = PresetId.Rhythm, pauseBeforeMore = true, progressPhotos = true), merged.numbers)
+        assertEquals(NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true, progressPhotos = true), merged.numbers)
     }
 
     @Test

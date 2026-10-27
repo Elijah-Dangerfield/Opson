@@ -3,6 +3,7 @@ package com.opson.libraries.diary
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.WaterDefaults
 import com.opson.libraries.nutrition.WaterUnit
@@ -28,17 +29,24 @@ import kotlinx.serialization.Serializable
  * Adding a field is non-breaking: missing keys decode to the default. Settings
  * only change when the user changes them. The server merges a write into what it
  * has one level deep, so a new field is a new top-level key: [SettingsSerializer]
- * lifts the one that lives under [numbers] out to the top.
+ * lifts the ones that live under [numbers] out to the top.
  */
 @OptIn(ExperimentalSerializationApi::class)
 @KeepGeneratedSerializer
 @Serializable(with = SettingsSerializer::class)
 data class Settings(
-    /** Preset, overrides, "Pause before showing more" and when the user last changed them. */
+    /**
+     * Preset, overrides, "Pause before showing more", when Later opens, End after a set time, and
+     * when the user last changed them. Written for 0.1 phones too: see [NumbersSettingsSerializer].
+     */
     @Serializable(with = NumbersSettingsSerializer::class)
     val numbers: NumbersSettings = NumbersSettings(),
-    /** Set when Sprint is picked. Drives "day N of 14". */
-    val sprintStartedOn: LocalDate? = null,
+    /**
+     * When End after a set time last switched the mode, and from what, so Today says so on that
+     * day and no other (design sync 4, 13.5). A top-level key: the server merges settings one
+     * level deep.
+     */
+    val modeTimerEnded: ModeTimerEnded? = null,
     @Serializable(with = TargetsSerializer::class)
     val targets: Targets = Targets.Default,
     val macroMode: MacroMode = MacroMode.Ratios,
@@ -81,7 +89,7 @@ data class Settings(
     val healthOpen: Boolean = true,
     val quiet: Boolean = true,
     val mealReminders: MealReminders = MealReminders(),
-    /** When each meal usually happens: Today's "Usually around", Rhythm's "planned around", and the meal reminder times. */
+    /** When each meal usually happens: Today's "Usually around" and the meal reminder times. */
     @Serializable(with = MealTimesSerializer::class)
     val mealTimes: MealTimes = MealTimes(),
     /**
@@ -164,6 +172,14 @@ data class Settings(
     /** Same settings with different numbers. `changedAt` is whatever [next] carries. */
     fun withNumbers(next: NumbersSettings): Settings = copy(numbers = next)
 }
+
+/** End after a set time switched from [from] [on] that day. */
+@Serializable
+data class ModeTimerEnded(
+    val on: LocalDate,
+    @Serializable(with = PresetKeySerializer::class)
+    val from: PresetId,
+)
 
 /** A size someone saved for a food: "my bowl" is 420 g. Grams are what make it convertible. */
 @Serializable

@@ -32,7 +32,7 @@ class FastsTest {
     @Test
     fun access_isOfferedOnlyInFullAndSprint() {
         PresetId.entries.forEach { preset ->
-            val expected = if (preset == PresetId.Full || preset == PresetId.Sprint) FastingAccess.Offered else FastingAccess.NotInThisMode
+            val expected = if (preset == PresetId.Full || preset == PresetId.Full) FastingAccess.Offered else FastingAccess.NotInThisMode
             assertEquals(expected, FastingAccess.of(settings(preset), released = true), preset.name)
         }
     }
@@ -54,8 +54,8 @@ class FastsTest {
     @Test
     fun timerOn_needsTheSwitchAndAccess() {
         assertFalse(Settings().fastingTimerOn(released = true), "off by default")
-        assertTrue(settings(PresetId.Sprint).copy(fasting = true).fastingTimerOn(released = true))
-        assertFalse(settings(PresetId.Blind).copy(fasting = true).fastingTimerOn(released = true))
+        assertTrue(settings(PresetId.Full).copy(fasting = true).fastingTimerOn(released = true))
+        assertFalse(settings(PresetId.NoNumbers).copy(fasting = true).fastingTimerOn(released = true))
         assertFalse(settings(PresetId.Full, hard = true).copy(fasting = true).fastingTimerOn(released = true))
         assertFalse(settings(PresetId.Full).copy(fasting = true).fastingTimerOn(released = false))
     }

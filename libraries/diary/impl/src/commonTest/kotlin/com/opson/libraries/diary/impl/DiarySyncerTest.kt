@@ -352,7 +352,7 @@ class DiarySyncerTest : CoroutineTest() {
     @Test
     fun pulledSettingsReplaceTheDefaultsAndMakeThemKnown() = runUnitTest {
         assertFalse(settingsStore.isKnown.value, "signed in, but this user's settings have not arrived")
-        val blind = Settings(numbers = NumbersSettings(preset = PresetId.Blind))
+        val blind = Settings(numbers = NumbersSettings(preset = PresetId.NoNumbers))
         val row = SettingsRowDto(
             settings = SettingsJson.encodeToJsonElement(Settings.serializer(), blind).jsonObject,
             clientUpdatedAtEpochMs = 1,
@@ -361,7 +361,7 @@ class DiarySyncerTest : CoroutineTest() {
 
         syncer.sync()
 
-        assertEquals(PresetId.Blind, settingsStore.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, settingsStore.settings.value.numbers.preset)
         assertTrue(settingsStore.isKnown.value)
     }
 
@@ -372,7 +372,7 @@ class DiarySyncerTest : CoroutineTest() {
         // source still says Unresolved. By the time the pull lands it has
         // caught up, and the pull is that user's.
         user.user.value = ActiveUser.Unresolved
-        val blind = Settings(numbers = NumbersSettings(preset = PresetId.Blind))
+        val blind = Settings(numbers = NumbersSettings(preset = PresetId.NoNumbers))
         val row = SettingsRowDto(
             settings = SettingsJson.encodeToJsonElement(Settings.serializer(), blind).jsonObject,
             clientUpdatedAtEpochMs = 1,
@@ -384,7 +384,7 @@ class DiarySyncerTest : CoroutineTest() {
 
         syncer.sync()
 
-        assertEquals(PresetId.Blind, settingsStore.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, settingsStore.settings.value.numbers.preset)
         assertTrue(settingsStore.isKnown.value, "known without waiting for another sync")
     }
 
