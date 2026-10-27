@@ -4,6 +4,7 @@ import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.HouseholdAmount
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -33,6 +34,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.Surface
+import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.toMicronutrients
@@ -103,11 +105,18 @@ data class FoodDetailState(
     val customSize: CustomSizeUi? = null,
     /** An amount above nothing: Add is off while the field is empty or zero. */
     val canAdd: Boolean = false,
+    /** No numbers (13.5e): the amount and the hunger check only; no how sure, no energy, no grams. */
+    val noNumbers: Boolean = false,
+    /** No numbers' optional "How hungry were you?", null while the hunger questions are off. */
+    val hunger: HungerCheck? = null,
 ) {
     val unit: UnitUi? get() = units.getOrNull(unitIndex)
 }
 
 data class UnitUi(val label: String, val grams: String?)
+
+/** "How hungry were you?", with the answer picked so far, if any. */
+data class HungerCheck(val picked: Hunger?)
 
 /** A serving chip: "1 tbsp" and "16 g". [selected] while the amount is exactly it. */
 data class ServingChip(val label: String, val grams: String?, val selected: Boolean)
@@ -197,16 +206,19 @@ data class DetailChoice(
     val time: LocalTime? = null,
     val nutrientsOpen: Boolean = false,
     val customSize: CustomSizeUi? = null,
+    /** No numbers' optional hunger check, saved to the meal when the food is added. */
+    val hunger: Hunger? = null,
 ) {
     /** The unit in force among [units]: the chosen one if it is still there, else the first. */
     fun unitIn(units: List<AmountUnit>): AmountUnit = unit?.takeIf { it in units } ?: units.first()
 
     /**
      * The amount typed: Estimate becomes Weighed, since a typed number is a measured one, unless
-     * the person already picked how sure they are. A chip or the unit menu is not typing.
+     * the person already picked how sure they are. A chip or the unit menu is not typing. In No
+     * numbers ([weighs] false) the amount is a household count and how sure is not asked, so it stays.
      */
-    fun typed(text: String): DetailChoice {
-        val weighed = if (!precisionPicked && precision == Precision.Estimate) Precision.Weighed else precision
+    fun typed(text: String, weighs: Boolean = true): DetailChoice {
+        val weighed = if (weighs && !precisionPicked && precision == Precision.Estimate) Precision.Weighed else precision
         return copy(typed = text, quantity = text.toDoubleOrNull() ?: 0.0, precision = weighed)
     }
 
@@ -255,12 +267,29 @@ object FoodDetailStateBuilder {
     /** How sure, in the design's order. Name only is not offered here: "Save the name" makes those. */
     val PRECISIONS = listOf(Precision.Estimate, Precision.Weighed, Precision.Label)
 
+    /**
+     * No numbers (13.5e): the mode lays Today out as a meal timeline and every nutrient hides, so
+     * the detail is the amount in household measures and the optional hunger check, nothing else.
+     * A number the person turns back on brings the full detail back.
+     */
+    fun isNoNumbers(policy: VisibilityPolicy): Boolean =
+        policy.preset.today == TodayLayout.MealTimeline && NUTRITION.all { policy.level(it) == Visibility.Hide }
+
+    /** The unit menu: in No numbers household measures only, unless grams is all the food has. */
+    fun shownUnits(food: AmountFood, saved: List<FoodUnit>, noNumbers: Boolean): List<AmountUnit> {
+        val units = food.units(saved)
+        if (!noNumbers) return units
+        return units.filterNot { it is AmountUnit.Grams }.ifEmpty { units }
+    }
+
     fun build(food: AmountFood, choice: DetailChoice, inputs: DetailInputs, ref: FoodRef, source: PickSource): FoodDetailState {
         val saved = inputs.settings.unitsFor(ref.key)
-        val units = food.units(saved)
+        val noNumbers = isNoNumbers(inputs.policy)
+        val units = shownUnits(food, saved, noNumbers)
         val unit = choice.unitIn(units)
-        val draft = food.draftFor(choice, source, ref, saved)
+        val draft = food.draftFor(choice.copy(unit = unit), source, ref, saved)
         val groupsOn = inputs.day?.mealGroupsOn(inputs.settings) ?: inputs.settings.mealGroups
+        if (noNumbers) return noNumbersState(food, choice, inputs, ref, units, unit, groupsOn)
         return FoodDetailState(
             loading = false,
             name = food.name,
@@ -283,6 +312,39 @@ object FoodDetailStateBuilder {
             canAdd = choice.quantity > 0.0,
         )
     }
+
+    /** 13.5e: the amount, its unit and household chips, and the hunger check while the hunger questions are on. */
+    @Suppress("LongParameterList")
+    private fun noNumbersState(
+        food: AmountFood,
+        choice: DetailChoice,
+        inputs: DetailInputs,
+        ref: FoodRef,
+        units: List<AmountUnit>,
+        unit: AmountUnit,
+        groupsOn: Boolean,
+    ): FoodDetailState = FoodDetailState(
+        loading = false,
+        name = food.name,
+        tag = food.tag,
+        favorite = inputs.settings.isFavorite(ref.key),
+        slot = if (groupsOn) choice.slot else MealSlot.Uncategorized,
+        slots = if (groupsOn) MealSlot.entries else listOf(MealSlot.Uncategorized),
+        time = choice.time ?: inputs.now,
+        timeIsNow = choice.time == null,
+        amount = choice.typed ?: number(choice.quantity),
+        // A weight is a number too: the menu and the chips are measures, with no grams beside them.
+        units = units.map { UnitUi(it.chipLabel, grams = null) },
+        unitIndex = units.indexOf(unit),
+        canAddUnit = false,
+        servings = servings(units, unit, choice.quantity).map { it.copy(grams = null) },
+        precision = choice.precision,
+        noNumbers = true,
+        hunger = HungerCheck(choice.hunger).takeIf { inputs.settings.askTags },
+        // The source still names itself (NEVO asks to be cited wherever its foods show), without a weight.
+        source = sourceLine(food, unit).copy(per = null),
+        canAdd = choice.quantity > 0.0,
+    )
 
     /** The serving chips: one and two of the food's first measure, and 100 g when it weighs anything. */
     fun servingAmounts(units: List<AmountUnit>): List<Pair<AmountUnit, Double>> {
@@ -380,6 +442,7 @@ object FoodDetailStateBuilder {
     private const val PERCENT = 100.0
     private const val HUNDRED = 100.0
     private const val GRAMS_CHIP = 100.0
+    private val NUTRITION = listOf(Metric.Calories, Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber, Metric.Micros)
 }
 
 /** This draft as if it were logged, so the day's ± counts it at its how-sure. Never written. */

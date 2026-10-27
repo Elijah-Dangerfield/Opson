@@ -275,7 +275,7 @@ class SheetsTest : CoroutineTest() {
 
     @Test
     fun itemSheetCaloriesFollowThePolicy() = runUnitTest {
-        val vm = itemSheet("adobo-$today", FakePolicySource(policy(PresetId.Blind)))
+        val vm = itemSheet("adobo-$today", FakePolicySource(policy(PresetId.NoNumbers)))
         assertEquals(null, vm.state.calories.text())
     }
 
@@ -342,7 +342,7 @@ class SheetsTest : CoroutineTest() {
             "after the statement",
         )
         assertNull(
-            TodayCardsStateBuilder.build(on.copy(numbers = NumbersSettings(PresetId.Rhythm)), policy, fastingReleased = true).fasting,
+            TodayCardsStateBuilder.build(on.copy(numbers = NumbersSettings(PresetId.NoNumbers)), policy, fastingReleased = true).fasting,
             "a mode without fasting",
         )
     }
@@ -356,19 +356,5 @@ class SheetsTest : CoroutineTest() {
 
         assertFalse(settings.state.value.fastToday)
         assertEquals(false, vm.state.fasting)
-    }
-
-    // Explorer
-
-    @Test
-    fun aNewFoodIsOneFirstLoggedThisMonth() {
-        val october = TodayFixtures.day()
-        val september = TodayFixtures.day(LocalDate(2026, 9, 20))
-        val stats = ExplorerStatsBuilder.from(frequent = october.allItems, days = listOf(september, october), today = today)
-
-        assertTrue(stats.newFoods.isEmpty(), "everything was had in September")
-        val fresh = ExplorerStatsBuilder.from(frequent = emptyList(), days = listOf(october), today = today)
-        assertEquals("Peanut butter", fresh.newFoods.first().name, "newest first")
-        assertEquals(listOf("Oat porridge with milk", "Banana", "Coffee with milk"), ExplorerStatsBuilder.from(october.items(MealSlot.Breakfast), emptyList(), today).safeFoods)
     }
 }

@@ -1,6 +1,7 @@
 package com.opson.features.settings
 
 import com.opson.libraries.navigation.Route
+import com.opson.libraries.nutrition.LegacyPreset
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
@@ -24,11 +25,14 @@ class PauseBeforeMoreRoute(
     val levelKey: String? = null,
     /** `"19:30"`, for a reveal time change. */
     val timeKey: String? = null,
+    /** `"week"` or `"day"`, for when Later's totals open. */
+    val revealOnKey: String? = null,
 ) : Route() {
 
     /** The change this sheet holds, or null for a route no [toRoute] could have built. */
     fun change(): NumbersChange? = when (kind) {
-        KIND_PRESET -> presetKey?.let(PresetId::fromKey)?.let(NumbersChange::PickPreset)
+        // A sheet saved in navigation state before design sync 4 may name a preset that is gone.
+        KIND_PRESET -> presetKey?.let { PresetId.fromKey(it) ?: LegacyPreset.fromKey(it)?.becomes }?.let(NumbersChange::PickPreset)
         KIND_OVERRIDE -> {
             val metric = metricKey?.let(::metricFor)
             val level = levelKey?.let(::levelFor)
@@ -37,6 +41,11 @@ class PauseBeforeMoreRoute(
         KIND_CLEAR -> metricKey?.let(::metricFor)?.let(NumbersChange::ClearOverride)
         KIND_PAUSE -> NumbersChange.TurnOffPause
         KIND_REVEAL -> timeKey?.let(::timeFor)?.let(NumbersChange::SetRevealAt)
+        KIND_REVEAL_ON -> when (revealOnKey) {
+            REVEAL_WEEK -> NumbersChange.SetRevealWeekly(weekly = true)
+            REVEAL_DAY -> NumbersChange.SetRevealWeekly(weekly = false)
+            else -> null
+        }
         KIND_PHOTOS -> when (levelKey?.let(::levelFor)) {
             Visibility.Show -> NumbersChange.SetProgressPhotos(shown = true)
             Visibility.Hide -> NumbersChange.SetProgressPhotos(shown = false)
@@ -52,6 +61,9 @@ class PauseBeforeMoreRoute(
         const val KIND_PAUSE = "pause"
         const val KIND_REVEAL = "reveal"
         const val KIND_PHOTOS = "photos"
+        const val KIND_REVEAL_ON = "reveal_on"
+        const val REVEAL_WEEK = "week"
+        const val REVEAL_DAY = "day"
 
         fun metricFor(key: String): Metric? = Metric.entries.firstOrNull { it.key == key }
 
@@ -77,6 +89,10 @@ fun NumbersChange.toRoute(): PauseBeforeMoreRoute = when (this) {
     is NumbersChange.SetRevealAt -> PauseBeforeMoreRoute(
         PauseBeforeMoreRoute.KIND_REVEAL,
         timeKey = PauseBeforeMoreRoute.timeKey(time),
+    )
+    is NumbersChange.SetRevealWeekly -> PauseBeforeMoreRoute(
+        PauseBeforeMoreRoute.KIND_REVEAL_ON,
+        revealOnKey = if (weekly) PauseBeforeMoreRoute.REVEAL_WEEK else PauseBeforeMoreRoute.REVEAL_DAY,
     )
     is NumbersChange.SetProgressPhotos -> PauseBeforeMoreRoute(
         PauseBeforeMoreRoute.KIND_PHOTOS,

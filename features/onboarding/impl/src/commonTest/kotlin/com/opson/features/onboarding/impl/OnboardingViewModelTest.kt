@@ -20,8 +20,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
-import kotlin.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -220,9 +218,9 @@ class OnboardingViewModelTest : CoroutineTest() {
         runCurrent()
 
         assertNull(vm.state.picked)
-        assertEquals(PresetId.Delayed, vm.state.recommended)
+        assertEquals(PresetId.Later, vm.state.recommended)
         assertFalse(PresetId.Full in vm.state.alternatives)
-        assertFalse(PresetId.Sprint in vm.state.alternatives)
+        assertFalse(PresetId.Full in vm.state.alternatives)
     }
 
     @Test
@@ -356,31 +354,31 @@ class OnboardingViewModelTest : CoroutineTest() {
         val vm = atRecommendation()
 
         assertEquals(PresetId.Full, vm.state.chosen)
-        assertEquals(listOf(PresetId.Blind, PresetId.Delayed, PresetId.Nutrient), vm.state.alternatives)
+        assertEquals(listOf(PresetId.NoNumbers, PresetId.Later, PresetId.NutrientsFirst), vm.state.alternatives)
         assertEquals(ModePreview.of(Presets.Full), vm.state.preview)
     }
 
     @Test
-    fun theDesignsAnswers_recommendFuel_andPreviewIt() = runUnitTest {
+    fun theDesignsAnswers_recommendNutrientsFirst_andPreviewIt() = runUnitTest {
         val vm = atRecommendation(answers = designAnswers)
 
-        assertEquals(PresetId.Fuel, vm.state.chosen)
-        assertEquals(listOf(PresetId.Rhythm, PresetId.Nutrient, PresetId.Blind), vm.state.alternatives)
-        assertEquals(ModePreview.of(Presets.Fuel), vm.state.preview)
+        assertEquals(PresetId.NutrientsFirst, vm.state.chosen)
+        assertEquals(listOf(PresetId.NoNumbers, PresetId.Later), vm.state.alternatives)
+        assertEquals(ModePreview.of(Presets.NutrientsFirst), vm.state.preview)
     }
 
     @Test
     fun alternativeTapped_picksIt_andTheRecommendationBecomesAnAlternative() = runUnitTest {
         val vm = atRecommendation(answers = designAnswers)
 
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Nutrient))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Later))
         runCurrent()
 
-        assertEquals(PresetId.Nutrient, vm.state.chosen)
-        assertEquals(PresetId.Fuel, vm.state.recommended)
-        assertFalse(PresetId.Nutrient in vm.state.alternatives)
-        assertEquals(PresetId.Fuel, vm.state.alternatives.first())
-        assertEquals(ModePreview.of(Presets.Nutrient), vm.state.preview)
+        assertEquals(PresetId.Later, vm.state.chosen)
+        assertEquals(PresetId.NutrientsFirst, vm.state.recommended)
+        assertFalse(PresetId.Later in vm.state.alternatives)
+        assertEquals(PresetId.NutrientsFirst, vm.state.alternatives.first())
+        assertEquals(ModePreview.of(Presets.Later), vm.state.preview)
     }
 
     @Test
@@ -391,7 +389,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         runCurrent()
 
         assertNull(vm.state.picked)
-        assertEquals(PresetId.Blind, vm.state.chosen)
+        assertEquals(PresetId.NoNumbers, vm.state.chosen)
     }
 
     @Test
@@ -403,14 +401,14 @@ class OnboardingViewModelTest : CoroutineTest() {
 
         assertTrue(vm.state.showAllModes)
         assertEquals(
-            Presets.all.map { it.id } - setOf(PresetId.Fuel, PresetId.Full, PresetId.Sprint),
+            Presets.all.map { it.id } - setOf(PresetId.NutrientsFirst, PresetId.Full, PresetId.Full),
             vm.state.alternatives,
         )
 
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Coast))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Later))
         runCurrent()
-        assertEquals(PresetId.Coast, vm.state.chosen)
-        assertTrue(PresetId.Fuel in vm.state.alternatives, "the list stays whole after a pick")
+        assertEquals(PresetId.Later, vm.state.chosen)
+        assertTrue(PresetId.NutrientsFirst in vm.state.alternatives, "the list stays whole after a pick")
     }
 
     // ---------- Saving the mode ----------
@@ -440,13 +438,12 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals("account", events.steps().last())
         assertEquals(listOf(false), settings.stampFlags, "onboarding must not stamp changedAt")
         val saved = settings.settings.value
-        assertEquals(NumbersSettings(preset = PresetId.Rhythm), saved.numbers)
+        assertEquals(NumbersSettings(preset = PresetId.NoNumbers), saved.numbers)
         assertNull(saved.numbers.changedAt)
         assertEquals(
             OnboardingAnswers(why = listOf("eating_regularly"), feel = "rather_not", notice = listOf("patterns")),
             saved.onboarding,
         )
-        assertNull(saved.sprintStartedOn)
         assertNotNull(creator.lastIdentity?.displayName, "the guest gets a generated name, never asked for")
         assertFalse(vm.state.creationFailed)
     }
@@ -455,11 +452,11 @@ class OnboardingViewModelTest : CoroutineTest() {
     fun start_withAPickedAlternative_savesThePick() = runUnitTest {
         val settings = FakeSettingsRepository()
         val vm = atRecommendation(settings = settings)
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Blind))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.NoNumbers))
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
 
-        assertEquals(PresetId.Blind, settings.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, settings.settings.value.numbers.preset)
     }
 
     @Test
@@ -487,12 +484,12 @@ class OnboardingViewModelTest : CoroutineTest() {
         vm.takeAction(OnboardingAction.Back)
         runCurrent()
         assertEquals(OnboardingStep.Recommendation, vm.state.step)
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Rhythm))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.NoNumbers))
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
 
         assertEquals(OnboardingStep.Account, vm.state.step)
-        assertEquals(PresetId.Rhythm, settings.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, settings.settings.value.numbers.preset)
         assertEquals(listOf(false, false), settings.stampFlags)
         assertEquals(1, creator.startCalls)
         assertEquals(1, events.all("onboarding.completed").size)
@@ -615,13 +612,13 @@ class OnboardingViewModelTest : CoroutineTest() {
         taken.takeAction(OnboardingAction.StartTapped)
         runCurrent()
         val other = atRecommendation()
-        other.takeAction(OnboardingAction.AlternativeTapped(PresetId.Blind))
+        other.takeAction(OnboardingAction.AlternativeTapped(PresetId.NoNumbers))
         other.takeAction(OnboardingAction.StartTapped)
         runCurrent()
 
         val completed = events.all("onboarding.completed")
         assertEquals(listOf<Any?>(true, false), completed.map { it["took_recommendation"] })
-        assertEquals(listOf<Any?>("full", "blind"), completed.map { it["preset"] })
+        assertEquals(listOf<Any?>("full", "no_numbers"), completed.map { it["preset"] })
         assertEquals(listOf<Any?>(false, false), completed.map { it["skipped_all"] })
         assertTrue(completed.all { "duration_sec" in it && "account_ready" in it })
     }
@@ -819,10 +816,6 @@ class OnboardingViewModelTest : CoroutineTest() {
     private val designAnswers: List<SetupOption> =
         listOf(Why.EatingEnough, Why.EatingRegularly, NumbersFeel.SomeAreFine, StatementAnswer.Agree)
 
-    private val fixedClock = object : Clock {
-        override fun now(): Instant = Instant.parse("2026-10-25T12:00:00Z")
-    }
-
     private fun newVm(
         cache: FakeAppCache = FakeAppCache(),
         auth: FakeAuthRepository = FakeAuthRepository(),
@@ -836,7 +829,6 @@ class OnboardingViewModelTest : CoroutineTest() {
         guestAccountCreator = creator,
         appleSignInCoordinator = appleCoordinator,
         settingsRepository = settings,
-        clock = fixedClock,
         appleSignIn = appleSignIn,
     )
 

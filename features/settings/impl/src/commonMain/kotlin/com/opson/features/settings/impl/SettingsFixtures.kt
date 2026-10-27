@@ -9,6 +9,7 @@ import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingEnergy
@@ -19,6 +20,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -121,9 +123,20 @@ object SettingsFixtures {
         changedAt = Instant.parse("2026-10-25T21:41:00Z"),
     )
 
-    /** v3 `modes`: Fuel with carbs moved from Hide to Show, the pause on, changed Oct 25 at 8:14 pm. */
-    val fuelWithACarbsChange: NumbersSettings = NumbersSettings(
-        preset = PresetId.Fuel,
+    /**
+     * Design sync 4 `modes-v4` (13.5a): Full numbers, End after a set time on (2 weeks, then No
+     * numbers), the pause on, changed Oct 25 at 8:14 pm.
+     */
+    val fullForTwoWeeks: NumbersSettings = NumbersSettings(
+        preset = PresetId.Full,
+        pauseBeforeMore = true,
+        endAfter = ModeTiming(startedOn = LocalDate(2026, 10, 25), weeks = 2, then = PresetId.NoNumbers),
+        changedAt = Instant.parse("2026-10-25T20:14:00Z"),
+    )
+
+    /** Nutrients first with carbs moved from Hide to Show and the pause on: one change on Each number. */
+    val nutrientsFirstWithACarbsChange: NumbersSettings = NumbersSettings(
+        preset = PresetId.NutrientsFirst,
         overrides = mapOf(Metric.Carbs to Visibility.Show),
         pauseBeforeMore = true,
         changedAt = Instant.parse("2026-10-25T20:14:00Z"),

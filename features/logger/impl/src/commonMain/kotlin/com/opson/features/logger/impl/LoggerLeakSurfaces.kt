@@ -74,6 +74,10 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "food-detail-units", label = "Food detail, unit menu", showsCaloriesInFull = true) { policy ->
             FoodDetailContent(state = LoggerFixtures.detailUnitsState(policy), onAction = {}, unitMenuShown = true)
         },
+        // 13.5e: No numbers' own detail, the amount in measures and the hunger check.
+        LeakSurface(id = "food-detail-no-numbers", label = "Food detail in No numbers", showsCaloriesInFull = false) { policy ->
+            FoodDetailContent(state = LoggerFixtures.noNumbersDetailState(policy), onAction = {})
+        },
         LeakSurface(id = "food-detail-scan", label = "Food detail after a scan", showsCaloriesInFull = true) { policy ->
             FoodDetailContent(state = LoggerFixtures.scannedDetailState(policy), onAction = {})
         },

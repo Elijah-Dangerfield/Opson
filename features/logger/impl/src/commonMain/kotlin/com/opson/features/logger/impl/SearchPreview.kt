@@ -13,7 +13,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // design draws release.barcode and release.photo on (the barcode button, "Photograph it").
 
 private val full = previewVisibilityPolicy(PresetId.Full)
-private val blind = previewVisibilityPolicy(PresetId.Blind)
+private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
 
 @Composable
 private fun Search(state: FoodSearchState, dark: Boolean = true) = PreviewContent(darkTheme = dark) {

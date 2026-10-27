@@ -52,7 +52,7 @@ class TodayCardsSummaryTest : CoroutineTest() {
 
     @Test
     fun aStatTheLevelsHideIsLocked_andDeficitIsNotListedWhereDeficitsAreNot() {
-        val nutrient = assertNotNull(TodayCardsStateBuilder.build(weightChanger, policy(PresetId.Nutrient), summaryOn = true).summary)
+        val nutrient = assertNotNull(TodayCardsStateBuilder.build(weightChanger, policy(PresetId.NutrientsFirst), summaryOn = true).summary)
 
         assertTrue(nutrient.stats.first { it.stat == SummaryStat.Expended }.locked)
         assertFalse(nutrient.stats.first { it.stat == SummaryStat.Expended }.ticked)

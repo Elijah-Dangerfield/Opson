@@ -212,7 +212,7 @@ class FoodSearchStateBuilderTest {
 
     @Test
     fun blindShowsNoNumberAnywhere() {
-        val blind = policy(PresetId.Blind)
+        val blind = policy(PresetId.NoNumbers)
         val results = assertIs<SearchBody.Results>(LoggerFixtures.searchState(blind).body)
         assertTrue(results.rows.all { it.calories == Display.Hidden && it.macros.isEmpty() })
         val meals = assertIs<SearchBody.SavedMeals>(LoggerFixtures.searchState(blind, query = "", scope = SearchScope.SavedMeals).body)

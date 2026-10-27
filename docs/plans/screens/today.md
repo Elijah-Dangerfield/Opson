@@ -163,6 +163,50 @@ every preset: `today-sticky` (the bar for both pages), `today-collapsed`,
 - `DayCloseTest`: the check-in prefills once, saves on Close and not on Back, and
   is absent with the flag off; the support and why-not rows only with the big-day card.
 
+## Summary card, design sync 4 (`release.goalsAndEnergy`)
+
+Design sync 4's 13.1, 13.2a, 13.2b and 13.6. With the flag on, in a layout
+whose card is Full numbers' (calories on show), page 1 is `EnergyCard`
+(`TodayEnergyCard.kt`, drawn in `TodayEnergyCardViews.kt`); the macros page,
+dots, collapse and sticky bar are unchanged. Off, page 1 is design sync 2's.
+
+- **Presets** (`Settings.todayCard`): In and out (default: Eaten split by macro
+  with the range box, Burned split resting and active), Range bar (one bar,
+  Burned as a tick), Rings (Eaten, Burned and the main number; only with a single
+  target, else In and out) and Equation (Eaten − Burned = the main number; needs
+  Burned, else In and out). Picking a range goal on Targets while on Rings
+  saves In and out.
+- **Main number** and its toggle: the goal view (To your range, Left to target
+  or To your surplus, by the day's goal) or the balance (Deficit, or Surplus
+  once eaten passes Burned), and Eaten when More › Today screen picks it. Its
+  default follows the goal style (a set deficit starts on Deficit) unless More ›
+  Today screen sets one; a tap on the label switches it and is remembered per
+  goal style (`todayMainNumberByStyle`). Picking a goal style on Targets forgets
+  that style's choice; picking a main number forgets every style's.
+- **Burned** (`BurnedRepository.burned(day)`) is read only with the flag on, and
+  shows (bars, balance, the toggle) only with Watch energy on show as well as
+  calories. Without Burned the card has no Burned bar and no toggle.
+- **Target line** for a set deficit or surplus: "Target 1,680 · 435 kcal left at
+  your goal", "Target 2,480 · follows what you burn".
+- **Goal against Burned everywhere:** Today, Close the day (today's Burned also
+  stands in for tomorrow's), the widget, Trends and Nutrients pass Burned to
+  `rangeFor`, so a set deficit or surplus shows its real target. A goal worked
+  out from Burned takes no exercise adjustment on top: Burned already counts
+  the day's activity. Trends draws one goal for the span on today's Burned.
+- **More › Today screen** (`TodayScreenSettingsRoute`, `features/settings`):
+  the presets, Main number and Card pages (sheets), On the card (Burned
+  breakdown, Meals count, Nutrients link) and In the list (Water, Weight on days
+  you weigh in, Close the day). Outside Full numbers only the list's rows can be
+  changed. Every setting is a top-level key; `SettingsMergeAcrossVersionsTest`
+  proves a 0.1 save keeps them.
+- The eaten ± shows on Energy today (13.2c), the only screen that draws it.
+
+Previews (`TodayPreviews.kt`): `today-summary-in-out`, `-in-out-light`,
+`-in-out-large-text`, `today-summary-range-bar`, `today-summary-rings`,
+`today-summary-equation`, `today-deficit-goal`, `today-surplus-goal`,
+`today-rings`. Leak surfaces: `today-summary-in-out`, `today-summary-range-bar`,
+`today-summary-rings`, `today-summary-equation`, `today-screen-settings`.
+
 ## Source
 - Design v3: `today-full`, `today-empty`, `today-delayed-locked`, `today-blind`, `today-nutrient-focus`, `today-fuel`, `today-rhythm`, `today-explorer`, `today-mindful`, `today-plan-tomorrow`, `today-day-menu`, `today-added`, and the manifest notes for each.
 - Handoff: `README.md` section 2 (safety) and 5 (tokens). The handoff's sticky hero, ring pager and header + are gone in v3.

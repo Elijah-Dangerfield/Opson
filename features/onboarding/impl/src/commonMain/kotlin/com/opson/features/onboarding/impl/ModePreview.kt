@@ -2,7 +2,6 @@ package com.opson.features.onboarding.impl
 
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ModePreset
-import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.Visibility
 
@@ -23,7 +22,7 @@ data class ModePreview(val seen: List<PreviewLine>, val keptOut: List<PreviewLin
             val seen = mutableListOf<PreviewLine>()
             val keptOut = mutableListOf<PreviewLine>()
 
-            layoutLine(preset.today)?.let { seen += PreviewLine(PreviewMark.Shown, it) }
+            layoutLines(preset.today).forEach { seen += PreviewLine(PreviewMark.Shown, it) }
 
             when (preset.level(Metric.Calories)) {
                 Visibility.Show -> seen += PreviewLine(PreviewMark.Shown, PreviewItem.CalorieAmounts)
@@ -31,10 +30,7 @@ data class ModePreview(val seen: List<PreviewLine>, val keptOut: List<PreviewLin
                     seen += PreviewLine(PreviewMark.Softened, PreviewItem.EnergyWord)
                     keptOut += PreviewLine(PreviewMark.Hidden, PreviewItem.CaloriesHidden)
                 }
-                Visibility.Delay -> seen += PreviewLine(
-                    PreviewMark.Later,
-                    if (preset.revealOn == RevealOn.Week) PreviewItem.CaloriesWeekly else PreviewItem.CaloriesLater,
-                )
+                Visibility.Delay -> seen += PreviewLine(PreviewMark.Later, PreviewItem.CaloriesLater)
                 Visibility.Hide -> keptOut += PreviewLine(PreviewMark.Hidden, PreviewItem.CaloriesHidden)
             }
 
@@ -63,12 +59,10 @@ data class ModePreview(val seen: List<PreviewLine>, val keptOut: List<PreviewLin
             )
         }
 
-        private fun layoutLine(layout: TodayLayout): PreviewItem? = when (layout) {
-            TodayLayout.Full -> null
-            TodayLayout.Meals -> PreviewItem.MealByMeal
-            TodayLayout.Rhythm -> PreviewItem.MealChecklist
-            TodayLayout.Explorer -> PreviewItem.NewFoods
-            TodayLayout.Journal -> PreviewItem.HowMealsFelt
+        /** No numbers' "Meals, timing and how they felt". */
+        private fun layoutLines(layout: TodayLayout): List<PreviewItem> = when (layout) {
+            TodayLayout.Full -> emptyList()
+            TodayLayout.MealTimeline -> listOf(PreviewItem.MealByMeal, PreviewItem.HowMealsFelt)
         }
 
         private fun macroItem(group: Set<Metric>, level: Visibility): PreviewItem {
@@ -107,7 +101,6 @@ enum class PreviewItem(val metrics: Set<Metric> = emptySet()) {
     CalorieAmounts(setOf(Metric.Calories)),
     EnergyWord(setOf(Metric.Calories)),
     CaloriesLater(setOf(Metric.Calories)),
-    CaloriesWeekly(setOf(Metric.Calories)),
     CaloriesHidden(setOf(Metric.Calories)),
     MacroAmounts(setOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber)),
     ProteinFiberAmounts(setOf(Metric.Protein, Metric.Fiber)),
@@ -124,7 +117,5 @@ enum class PreviewItem(val metrics: Set<Metric> = emptySet()) {
     WeightTrend(setOf(Metric.Weight)),
     WeightHidden(setOf(Metric.Weight)),
     MealByMeal,
-    MealChecklist,
-    NewFoods,
     HowMealsFelt,
 }

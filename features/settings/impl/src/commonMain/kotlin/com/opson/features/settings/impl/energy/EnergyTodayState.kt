@@ -6,7 +6,9 @@ import com.opson.libraries.diary.UsualMealSize
 import com.opson.libraries.diary.eatenUncertainty
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.DayGoal
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.RestingFrom
@@ -96,11 +98,13 @@ object EnergyTodayStateBuilder {
         val totals = day.totals()
         val eaten = totals.kcal.known
         val burned = inputs.burned
+        val dayGoal = settings.targets.rangeFor(day.date, settings.numbers.preset, burned?.totalKcal)
+        // A goal worked out from Burned already counts the day's activity, as on Today.
         val goal = settings.targets.today(
-            adjustment = settings.exerciseInRange,
+            adjustment = if (burned != null && dayGoal is DayGoal.About) ExerciseAdjustment.None else settings.exerciseInRange,
             movementKcal = burned?.movementKcal ?: 0,
             workoutKcal = burned?.workoutKcal ?: 0,
-            goal = settings.targets.rangeFor(day.date, settings.numbers.preset, burned?.totalKcal),
+            goal = dayGoal,
         )
         val scale = maxOf(goal.maxKcal, burned?.totalKcal ?: 0) * HEADROOM
         val caloriesShown = policy.effectiveLevel(Metric.Calories, Surface.Today, context) == Visibility.Show

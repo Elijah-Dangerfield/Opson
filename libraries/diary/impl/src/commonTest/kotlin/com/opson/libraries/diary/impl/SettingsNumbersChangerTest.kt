@@ -8,6 +8,8 @@ import com.opson.libraries.core.logging.LogTree
 import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.diary.ModeTimerEnded
+import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -53,7 +55,7 @@ class SettingsNumbersChangerTest {
 
     @Test
     fun withThePauseOffARaiseAppliesAndIsStamped() = runTest {
-        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Blind))
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.NoNumbers))
 
         val outcome = changer.request(NumbersChange.PickPreset(PresetId.Full))
 
@@ -74,7 +76,7 @@ class SettingsNumbersChangerTest {
 
     @Test
     fun turningOffAPauseThatIsAlreadyOffAppliesWithoutAPause() = runTest {
-        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Blind))
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.NoNumbers))
 
         assertEquals(NumbersOutcome.Applied(fewer = false), changer.request(NumbersChange.TurnOffPause))
         assertFalse(repository.state.value.numbers.pauseBeforeMore)
@@ -86,15 +88,15 @@ class SettingsNumbersChangerTest {
     fun withThePauseOnALowerStillAppliesAtOnce() = runTest {
         val (changer, repository) = changer(NumbersSettings(preset = PresetId.Full, pauseBeforeMore = true))
 
-        val outcome = changer.request(NumbersChange.PickPreset(PresetId.Blind))
+        val outcome = changer.request(NumbersChange.PickPreset(PresetId.NoNumbers))
 
         assertEquals(NumbersOutcome.Applied(fewer = true), outcome)
-        assertEquals(PresetId.Blind, repository.state.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, repository.state.value.numbers.preset)
     }
 
     @Test
     fun withThePauseOnARaiseNeedsThePauseAndWritesNothing() = runTest {
-        val before = NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true, changedAt = null)
+        val before = NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true, changedAt = null)
         val (changer, repository) = changer(before)
 
         val outcome = changer.request(NumbersChange.Override(Metric.Water, Visibility.Show))
@@ -107,7 +109,7 @@ class SettingsNumbersChangerTest {
     @Test
     fun withThePauseOnClearingAnOverrideThatShowsMoreNeedsThePause() = runTest {
         val hiddenWater = NumbersSettings(
-            preset = PresetId.Blind,
+            preset = PresetId.NoNumbers,
             overrides = mapOf(Metric.Water to Visibility.Hide),
             pauseBeforeMore = true,
         )
@@ -119,7 +121,7 @@ class SettingsNumbersChangerTest {
 
     @Test
     fun withThePauseOnShowingProgressPhotosNeedsThePause_hidingThemDoesNot() = runTest {
-        val fuel = NumbersSettings(preset = PresetId.Fuel, pauseBeforeMore = true)
+        val fuel = NumbersSettings(preset = PresetId.NutrientsFirst, pauseBeforeMore = true)
         val (changer, repository) = changer(fuel)
 
         assertEquals(NumbersOutcome.NeedsPause, changer.request(NumbersChange.SetProgressPhotos(shown = true)))
@@ -138,13 +140,13 @@ class SettingsNumbersChangerTest {
         // Full and Sprint show the same numbers.
         val (changer, repository) = changer(NumbersSettings(preset = PresetId.Full, pauseBeforeMore = true))
 
-        assertEquals(NumbersOutcome.Applied(fewer = false), changer.request(NumbersChange.PickPreset(PresetId.Sprint)))
-        assertEquals(PresetId.Sprint, repository.state.value.numbers.preset)
+        assertEquals(NumbersOutcome.Applied(fewer = false), changer.request(NumbersChange.PickPreset(PresetId.Full)))
+        assertEquals(PresetId.Full, repository.state.value.numbers.preset)
     }
 
     @Test
     fun withThePauseOnTurningItOffGoesThroughThePause() = runTest {
-        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true))
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true))
 
         assertEquals(NumbersOutcome.NeedsPause, changer.request(NumbersChange.TurnOffPause))
         assertTrue(repository.state.value.numbers.pauseBeforeMore)
@@ -154,7 +156,7 @@ class SettingsNumbersChangerTest {
 
     @Test
     fun confirmAppliesTheRaiseWithThePauseOn() = runTest {
-        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true))
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true))
 
         changer.confirm(NumbersChange.Override(Metric.Water, Visibility.Show))
 
@@ -166,7 +168,7 @@ class SettingsNumbersChangerTest {
 
     @Test
     fun confirmTurnsThePauseOff() = runTest {
-        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true))
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true))
 
         changer.confirm(NumbersChange.TurnOffPause)
 
@@ -184,50 +186,77 @@ class SettingsNumbersChangerTest {
         assertEquals(clock.now, repository.state.value.numbers.changedAt)
     }
 
-    // --- Sprint ---
+    // --- End after a set time ---
 
     @Test
-    fun pickingSprintStartsItToday() = runTest {
-        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Full))
+    fun settingATimer_startsItToday_andNeverPauses() = runTest {
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Full, pauseBeforeMore = true))
 
-        changer.request(NumbersChange.PickPreset(PresetId.Sprint))
+        changer.setEndAfter(weeks = 2, then = PresetId.NoNumbers)
 
-        assertEquals(calendar.today, repository.state.value.sprintStartedOn)
+        assertEquals(ModeTiming(calendar.today, 2, PresetId.NoNumbers), repository.state.value.numbers.endAfter)
+        assertEquals(clock.now(), repository.state.value.numbers.changedAt)
+        assertEquals(1, events.named("mode.timer_set").size)
     }
 
     @Test
-    fun pickingSprintAfterThePauseStartsItToday() = runTest {
-        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true))
+    fun clearingTheTimer_leavesTheModeAlone() = runTest {
+        val timing = ModeTiming(LocalDate(2026, 10, 20), 2, PresetId.NoNumbers)
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Full, endAfter = timing))
 
-        changer.confirm(NumbersChange.PickPreset(PresetId.Sprint))
+        changer.clearEndAfter()
 
-        assertEquals(calendar.today, repository.state.value.sprintStartedOn)
+        assertNull(repository.state.value.numbers.endAfter)
+        assertEquals(PresetId.Full, repository.state.value.numbers.preset)
     }
 
     @Test
-    fun rePickingSprintToClearOverridesKeepsItsStart() = runTest {
-        val started = LocalDate(2026, 10, 20)
-        val repository = FakeSettingsRepository(
-            Settings(
-                numbers = NumbersSettings(PresetId.Sprint, overrides = mapOf(Metric.Fat to Visibility.Hide)),
-                sprintStartedOn = started,
-            ),
-        )
-        val changer = SettingsNumbersChanger(repository, calendar, clock)
+    fun endTimedMode_switchesOnTheDay_andMarksItForToday() = runTest {
+        val timing = ModeTiming(LocalDate(2026, 10, 11), 2, PresetId.NoNumbers)
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Full, endAfter = timing))
 
-        changer.request(NumbersChange.PickPreset(PresetId.Sprint))
+        changer.endTimedMode()
 
-        assertEquals(started, repository.state.value.sprintStartedOn)
-        assertTrue(repository.state.value.numbers.overrides.isEmpty())
+        val settings = repository.state.value
+        assertEquals(PresetId.NoNumbers, settings.numbers.preset)
+        assertNull(settings.numbers.endAfter)
+        assertEquals(ModeTimerEnded(calendar.today, PresetId.Full), settings.modeTimerEnded)
+        assertEquals("true", events.named("mode.timer_ended").single()["fewer"].toString())
     }
 
     @Test
-    fun anotherPresetLeavesTheSprintDateAlone() = runTest {
-        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Full))
+    fun endTimedMode_beforeTheDay_doesNothing() = runTest {
+        val timing = ModeTiming(LocalDate(2026, 10, 20), 2, PresetId.NoNumbers)
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Full, endAfter = timing))
 
-        changer.request(NumbersChange.PickPreset(PresetId.Blind))
+        changer.endTimedMode()
 
-        assertNull(repository.state.value.sprintStartedOn)
+        assertEquals(PresetId.Full, repository.state.value.numbers.preset)
+        assertTrue(events.named("mode.timer_ended").isEmpty())
+    }
+
+    @Test
+    fun endTimedMode_toMoreNumbers_withThePauseOn_waits() = runTest {
+        val timing = ModeTiming(LocalDate(2026, 10, 11), 2, PresetId.Full)
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true, endAfter = timing))
+
+        changer.endTimedMode()
+
+        assertEquals(PresetId.NoNumbers, repository.state.value.numbers.preset)
+        assertEquals(timing, repository.state.value.numbers.endAfter, "kept, so Today can offer the switch")
+        assertNull(repository.state.value.modeTimerEnded)
+    }
+
+    @Test
+    fun takingTheWaitingSwitch_throughThePause_clearsTheTimer() = runTest {
+        val timing = ModeTiming(LocalDate(2026, 10, 11), 2, PresetId.Full)
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true, endAfter = timing))
+
+        assertEquals(NumbersOutcome.NeedsPause, changer.request(NumbersChange.PickPreset(PresetId.Full)))
+        changer.confirm(NumbersChange.PickPreset(PresetId.Full))
+
+        assertEquals(PresetId.Full, repository.state.value.numbers.preset)
+        assertNull(repository.state.value.numbers.endAfter)
     }
 
     // --- app events ---
@@ -249,12 +278,12 @@ class SettingsNumbersChangerTest {
 
     @Test
     fun aConfirmedChangeLogsItCameThroughThePause() = runTest {
-        val (changer, _) = changer(NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true))
+        val (changer, _) = changer(NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true))
 
         changer.confirm(NumbersChange.PickPreset(PresetId.Full))
 
         val modeChanged = events.named("mode.changed").single()
-        assertEquals("blind", modeChanged["from"])
+        assertEquals("no_numbers", modeChanged["from"])
         assertEquals("full", modeChanged["to"])
         assertEquals(true, modeChanged["via_pause"])
         val completed = events.named("friction.completed").single()
@@ -264,7 +293,7 @@ class SettingsNumbersChangerTest {
 
     @Test
     fun thePauseSwitchAloneIsNotAModeChange() = runTest {
-        val (changer, _) = changer(NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true))
+        val (changer, _) = changer(NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true))
 
         changer.confirm(NumbersChange.TurnOffPause)
         changer.turnOnPause()
@@ -275,7 +304,7 @@ class SettingsNumbersChangerTest {
 
     @Test
     fun theSheetHooksLogShownAndKept() = runTest {
-        val (changer, repository) = changer(NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true))
+        val (changer, repository) = changer(NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true))
         val before = repository.state.value
         val change = NumbersChange.Override(Metric.Water, Visibility.Show)
 

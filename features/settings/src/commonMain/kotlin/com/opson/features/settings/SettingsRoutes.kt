@@ -3,9 +3,13 @@ package com.opson.features.settings
 import com.opson.libraries.navigation.Route
 import kotlinx.serialization.Serializable
 
-/** Modes and numbers: the preset list, the per-metric grid and "Pause before showing more". */
+/** Modes and numbers: the four presets, End after a set time, Each number and "Pause before showing more". */
 @Serializable
 class ModesRoute : Route()
+
+/** Each number: the per-metric grid, opened from Modes and numbers. */
+@Serializable
+class EachNumberRoute : Route()
 
 /** The energy range and macro split, and the goal style. */
 @Serializable
@@ -27,6 +31,14 @@ class RestingEnergyRoute(val fromEnergyToday: Boolean = false) : Route()
 @Serializable
 class EnergyTodayRoute : Route()
 
+/** More › Today screen (design sync 4, 13.6): the summary card's preset, main number and pages, and the list's rows. */
+@Serializable
+class TodayScreenSettingsRoute : Route()
+
+/** The main number or card pages sheet over More › Today screen; [choice] is `main_number` or `card_pages`. */
+@Serializable
+class TodayScreenChoiceRoute(val choice: String = "main_number") : Route()
+
 /**
  * Water goal, glass size and units. [fromMore] picks the back label: Today's water sheet opens
  * it with `false` ("‹ Today"), the More list with `true` ("‹ More").
@@ -44,8 +56,7 @@ class SupportRoute : Route()
 
 /**
  * Reminders and celebrations (0.2, behind `release.reminders`): quiet mode, the big-day card,
- * meal reminders and their times, tone and the hunger questions. Opened from More and from the
- * Rhythm card on Today.
+ * meal reminders and their times, tone and the hunger questions. Opened from More.
  */
 @Serializable
 class RemindersRoute : Route()
@@ -60,8 +71,8 @@ class LeaveOutDayRoute : Route()
 
 /**
  * Fasting (0.2, `release.fasting`): the status card, the timer switch, the Today card and the
- * eating window. Only reached where fasting is offered (Full numbers and Sprint, and never for
- * someone who agreed numbers have been hard).
+ * eating window. Only reached where fasting is offered (Full numbers, and never for someone
+ * who agreed numbers have been hard).
  */
 @Serializable
 class FastingRoute : Route()

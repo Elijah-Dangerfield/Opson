@@ -14,7 +14,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // design sync 4's screens.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
-private val blind = previewVisibilityPolicy(PresetId.Blind)
+private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
 
 @Composable
 private fun Pane(state: LoggerState, dark: Boolean = false) = PreviewContent(darkTheme = dark) {

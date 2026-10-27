@@ -5,8 +5,10 @@ import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FoodUnit
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
 import com.opson.libraries.diary.Precision
@@ -56,6 +58,9 @@ sealed interface FoodDetailAction {
     data class SlotPicked(val slot: MealSlot) : FoodDetailAction
     data class TimePicked(val time: LocalTime) : FoodDetailAction
     data object AllNutrientsTapped : FoodDetailAction
+
+    /** No numbers: a hunger answer, or the same one again to clear it. */
+    data class HungerPicked(val hunger: Hunger) : FoodDetailAction
     data object AddToMealTapped : FoodDetailAction
     data object BackTapped : FoodDetailAction
 }
@@ -152,14 +157,21 @@ class FoodDetailViewModel(
             is FoodDetailAction.FoodArrived -> {
                 val saved = saved()
                 val slot = model.choice.slot
-                val choice = action.last?.let { DetailChoice.lastUsed(action.food, it, slot, saved) } ?: DetailChoice.initial(action.food, slot, saved)
+                val initial = DetailChoice.initial(action.food, slot, saved)
+                // A last amount in a unit No numbers does not offer (grams) starts from a household measure instead.
+                val shown = FoodDetailStateBuilder.shownUnits(action.food, saved, noNumbers())
+                val choice = action.last?.let { DetailChoice.lastUsed(action.food, it, slot, saved) }?.takeIf { it.unit in shown } ?: initial
                 action.rebuild { copy(food = action.food, choice = choice.copy(slot = model.choice.slot)) }
             }
             FoodDetailAction.FoodMissing -> action.updateState { it.copy(loading = false, missing = true) }
             is FoodDetailAction.InputsArrived -> action.rebuild { copy(settings = action.settings, policy = action.policy, day = action.day) }
             is FoodDetailAction.HistoryArrived -> action.rebuild { copy(history = action.days) }
             is FoodDetailAction.SlotSuggested -> action.choose { copy(slot = action.slot) }
-            is FoodDetailAction.AmountTyped -> action.choose { typed(NumberInput.sanitize(action.text, allowDecimal = true)) }
+            is FoodDetailAction.AmountTyped -> {
+                val weighs = !noNumbers()
+                action.choose { typed(NumberInput.sanitize(action.text, allowDecimal = true), weighs) }
+            }
+            is FoodDetailAction.HungerPicked -> action.choose { copy(hunger = action.hunger.takeUnless { it == hunger }) }
             is FoodDetailAction.ServingPicked -> {
                 val (unit, count) = FoodDetailStateBuilder.servingAmounts(units()).getOrNull(action.index) ?: return
                 action.choose { copy(unit = unit, quantity = count, typed = null) }
@@ -183,7 +195,10 @@ class FoodDetailViewModel(
 
     private fun saved(): List<FoodUnit> = model.settings.unitsFor(ref.key)
 
-    private fun units(): List<AmountUnit> = model.food?.units(saved()).orEmpty()
+    private fun noNumbers(): Boolean = FoodDetailStateBuilder.isNoNumbers(model.policy)
+
+    /** The units as the menu lists them, so a picked index means the same unit here. */
+    private fun units(): List<AmountUnit> = model.food?.let { FoodDetailStateBuilder.shownUnits(it, saved(), noNumbers()) }.orEmpty()
 
     private fun unit(): AmountUnit = units().takeIf { it.isNotEmpty() }?.let(model.choice::unitIn) ?: AmountUnit.Grams
 
@@ -222,6 +237,11 @@ class FoodDetailViewModel(
             loggedAt = choice.time?.let { LocalDateTime(day, it).toInstant(calendar.timeZone()) },
         )
         val committed = logger.log(day, slot, listOf(pick)) ?: return
+        // No numbers' hunger answer goes to the meal, beside whatever else the meal's feeling holds.
+        choice.hunger?.let { hunger ->
+            val feeling = model.day?.feelings?.get(slot) ?: MealFeeling()
+            diary.setFeeling(day, slot, feeling.copy(hunger = hunger))
+        }
         sendEvent(FoodDetailEvent.Logged(committed))
     }
 

@@ -50,7 +50,7 @@ class TargetsExerciseTest : CoroutineTest() {
 
     @Test
     fun targetsOutOfView_hasNoRow() {
-        listOf(PresetId.Blind, PresetId.Fuel, PresetId.Delayed).forEach { preset ->
+        listOf(PresetId.NoNumbers, PresetId.NutrientsFirst, PresetId.Later).forEach { preset ->
             val settings = some.copy(numbers = NumbersSettings(preset = preset))
             assertNull(TargetsStateBuilder.build(settings, SettingsFixtures.policy(preset), healthConnected = true).exercise, "$preset")
         }

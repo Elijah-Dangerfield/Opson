@@ -10,7 +10,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
  * The 0.2 release flag for reminders: the Reminders and celebrations page, its More row, the
- * Rhythm card on Today, the Water reminders row, and every notification. Off renders none of
+ * Water reminders row, and every notification. Off renders none of
  * them and schedules nothing; the coordinator also cancels what it scheduled before. The 0.2
  * release turns it on remotely.
  *

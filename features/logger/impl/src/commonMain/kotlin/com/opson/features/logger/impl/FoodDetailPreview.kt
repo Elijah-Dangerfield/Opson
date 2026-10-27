@@ -10,8 +10,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // The food detail (design sync 4). food-detail-preview__v4 pairs with food-detail-v4 (13.4d).
 
 private val full = previewVisibilityPolicy(PresetId.Full)
-private val blind = previewVisibilityPolicy(PresetId.Blind)
-private val nutrient = previewVisibilityPolicy(PresetId.Nutrient)
+private val noNumbers = previewVisibilityPolicy(PresetId.NoNumbers)
+private val nutrientsFirst = previewVisibilityPolicy(PresetId.NutrientsFirst)
 
 @Composable
 private fun Detail(state: FoodDetailState, dark: Boolean = true, unitMenu: Boolean = false, atBottom: Boolean = false) =
@@ -30,15 +30,10 @@ private fun V4Preview() = Detail(LoggerFixtures.detailState(full))
 @Composable
 private fun V4LightPreview() = Detail(LoggerFixtures.detailState(full), dark = false)
 
-/** Blind: amount and how sure only; the energy card is gone. */
+/** Nutrients first: energy and protein are words, so a portion has no number and no energy card. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun BlindPreview() = Detail(LoggerFixtures.detailState(blind))
-
-/** Nutrient focus: the macro tiles show, energy does not. */
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun NutrientFocusPreview() = Detail(LoggerFixtures.detailState(nutrient))
+private fun NutrientsFirstPreview() = Detail(LoggerFixtures.detailState(nutrientsFirst))
 
 /** All nutrients open, scrolled to the end: the vitamins and minerals as a percent of a day. */
 @Preview(widthDp = 390, heightDp = 844)
@@ -53,6 +48,15 @@ private fun UnitsPreview() = Detail(LoggerFixtures.detailUnitsState(full), unitM
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun CustomSizePreview() = Detail(LoggerFixtures.customSizeState(full))
+
+/** 13.5e: No numbers, the amount in household measures and the optional hunger check, nothing else. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NoNumbersPreview() = Detail(LoggerFixtures.noNumbersDetailState(noNumbers))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NoNumbersLightPreview() = Detail(LoggerFixtures.noNumbersDetailState(noNumbers), dark = false)
 
 /** A scan hit lands here: the label's serving, in the current meal. */
 @Preview(widthDp = 390, heightDp = 844)

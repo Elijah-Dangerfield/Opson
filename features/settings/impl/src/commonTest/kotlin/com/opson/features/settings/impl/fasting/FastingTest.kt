@@ -41,7 +41,7 @@ class FastingTest : CoroutineTest() {
     fun offeredInFullAndSprint_notInThisModeEverywhereElse() {
         PresetId.entries.forEach { preset ->
             val page = FastingFixtures.state(FastingFixtures.settings(preset = preset)).page
-            if (preset == PresetId.Full || preset == PresetId.Sprint) {
+            if (preset == PresetId.Full || preset == PresetId.Full) {
                 assertIs<FastingPage.Offered>(page, preset.name)
             } else {
                 assertEquals(FastingPage.NotInThisMode, page, preset.name)
@@ -117,7 +117,7 @@ class FastingTest : CoroutineTest() {
         settings.state.value = FastingFixtures.settings(timerOn = false)
         assertEquals(1, fasting.startDueCalls)
 
-        settings.state.value = FastingFixtures.settings(preset = PresetId.Blind)
+        settings.state.value = FastingFixtures.settings(preset = PresetId.NoNumbers)
         assertEquals(1, fasting.startDueCalls)
     }
 

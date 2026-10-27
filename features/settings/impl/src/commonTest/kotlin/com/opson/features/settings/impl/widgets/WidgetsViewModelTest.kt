@@ -55,11 +55,11 @@ class WidgetsViewModelTest : CoroutineTest() {
         val vm = WidgetsViewModel(source, settings)
         snapshots.emit(snapshot(PresetId.Full))
 
-        snapshots.emit(snapshot(PresetId.Blind))
-        settings.state.value = settings.state.value.copy(numbers = NumbersSettings(preset = PresetId.Blind))
+        snapshots.emit(snapshot(PresetId.NoNumbers))
+        settings.state.value = settings.state.value.copy(numbers = NumbersSettings(preset = PresetId.NoNumbers))
 
         assertNull(vm.state.snapshot?.days?.first()?.energy)
-        assertEquals(PresetId.Blind, vm.state.preset)
+        assertEquals(PresetId.NoNumbers, vm.state.preset)
     }
 
     @Test

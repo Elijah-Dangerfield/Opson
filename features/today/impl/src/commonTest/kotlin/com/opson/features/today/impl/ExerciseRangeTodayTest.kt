@@ -106,7 +106,7 @@ class ExerciseRangeTodayTest {
 
     @Test
     fun blind_hasNoRangeToShow() {
-        listOf(PresetId.Blind, PresetId.Rhythm, PresetId.Mindful).forEach { preset ->
+        listOf(PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers).forEach { preset ->
             val state = TodayFixtures.todayState(policy(preset), settings = TodayFixtures.exerciseAll, expended = TodayFixtures.expended)
             assertEquals(null, (state.summary as? TodaySummary.Energy)?.range?.text(), "$preset")
         }

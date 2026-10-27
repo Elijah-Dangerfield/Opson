@@ -30,6 +30,8 @@ data class NutrientsInputs(
     val fromTrends: Boolean,
     val settings: Settings,
     val days: List<Day>,
+    /** The day's Burned with `release.goalsAndEnergy`, what a set deficit or surplus aims at. */
+    val burnedKcal: Int? = null,
 )
 
 data class NutrientsState(
@@ -91,7 +93,7 @@ data class MicroRow(
 /**
  * Builds [NutrientsState]. Day resolves on [Surface.Nutrients], so a Delayed
  * day opens at 9 pm or once it is past; Week average resolves on
- * [Surface.Week], where Delayed numbers are open and Coast's open with its
+ * [Surface.Week], where Later numbers are open, and weekly ones open with their
  * weekly check. There are no nutrition scores (design v3 cut them): a score
  * built from hidden data is a number with no source.
  */
@@ -118,14 +120,18 @@ object NutrientsStateBuilder {
                 val byDate = inputs.days.associateBy { it.date }
                 // Today is still in progress, so it stays out of the average, as on Trends.
                 values = WeekAverages.of(window.days.filter { it < inputs.today }.map { byDate[it] ?: Day.empty(it) })
-                // The week's last day, so Coast's week opens at its weekly check and not before.
+                // The week's last day, so a weekly reveal's week opens at its weekly check and not before.
                 base = FormatContext(day = window.end)
             }
         }
 
         // The day's own goal on a day, the one the week chart draws for its average.
         val preset = inputs.settings.numbers.preset
-        val goal = if (inputs.range == NutrientsRange.Day) targets.rangeFor(inputs.day, preset) else targets.spanGoal(preset)
+        val goal = if (inputs.range == NutrientsRange.Day) {
+            targets.rangeFor(inputs.day, preset, inputs.burnedKcal)
+        } else {
+            targets.spanGoal(preset, inputs.burnedKcal)
+        }
         val scale = goal.maxKcal * ENERGY_HEADROOM
         val eaten = policy.resolve(Metric.Calories, values?.kcal, surface, base.copy(of = scale, goal = GoalStyle.None))
         val energy = if (eaten is Display.Hidden) {

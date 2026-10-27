@@ -31,6 +31,10 @@ sealed interface NumbersChange {
     @Serializable
     data class SetRevealAt(val time: LocalTime) : NumbersChange
 
+    /** Later's totals open once a week ([weekly]) or each day. Each day opens them sooner, so it is a raise. */
+    @Serializable
+    data class SetRevealWeekly(val weekly: Boolean) : NumbersChange
+
     /** The Progress photos row, Show or Hide. Showing them is showing more, so it pauses. */
     @Serializable
     data class SetProgressPhotos(val shown: Boolean) : NumbersChange
@@ -42,6 +46,7 @@ sealed interface NumbersChange {
         is ClearOverride -> settings.copy(overrides = settings.overrides - metric, changedAt = at)
         TurnOffPause -> settings.copy(pauseBeforeMore = false, changedAt = at)
         is SetRevealAt -> settings.copy(revealAt = time, changedAt = at)
+        is SetRevealWeekly -> settings.copy(revealOn = if (weekly) RevealOn.Week else RevealOn.DayClose, changedAt = at)
         is SetProgressPhotos -> settings.copy(progressPhotos = shown, changedAt = at)
     }
 

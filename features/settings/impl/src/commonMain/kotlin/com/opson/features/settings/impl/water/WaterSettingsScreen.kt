@@ -156,7 +156,7 @@ private fun WaterSettingsFromTodayPreview() {
 @Preview
 @Composable
 private fun WaterSettingsBlindFlOzDarkPreview() {
-    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind)).copy(waterUnit = WaterUnit.FlOz)
+    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.NoNumbers)).copy(waterUnit = WaterUnit.FlOz)
     SettingsPreview(dark = true) { WaterSettingsScreen(WaterSettingsStateBuilder.build(settings, backToMore = true), onAction = {}) }
 }
 

@@ -61,7 +61,7 @@ class GoalStyleTest {
 
     @Test
     fun style_neverChangesSoftWords() {
-        val fuel = policy(PresetId.Fuel)
+        val fuel = policy(PresetId.NutrientsFirst)
         GoalStyle.entries.forEach { goal ->
             assertEquals(
                 "Partway through",

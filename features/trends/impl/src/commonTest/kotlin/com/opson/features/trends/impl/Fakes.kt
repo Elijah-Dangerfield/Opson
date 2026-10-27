@@ -23,6 +23,7 @@ import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.NumbersChange
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.flow.Flow
@@ -133,6 +134,9 @@ class FakeNumbersChanger(private val settings: FakeSettingsRepository) : Numbers
 
     override suspend fun confirm(change: NumbersChange) = unused()
     override suspend fun turnOnPause() = unused()
+    override suspend fun setEndAfter(weeks: Int, then: PresetId) = unused()
+    override suspend fun clearEndAfter() = unused()
+    override suspend fun endTimedMode() = unused()
     override fun pauseShown(change: NumbersChange) = unused()
     override fun pauseKept(change: NumbersChange) = unused()
 }

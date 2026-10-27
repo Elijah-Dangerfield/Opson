@@ -16,7 +16,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // sheet as it ships with them off.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
-private val blind = previewVisibilityPolicy(PresetId.Blind)
+private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
 
 /** The sheet at the height the state asks for: 60% from a +, full once dragged up. */
 @Composable

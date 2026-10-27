@@ -28,6 +28,8 @@ class NutrientsViewModelTest : CoroutineTest() {
         settingsRepository = settings,
         policySource = FakePolicySource(),
         clock = TrendsFixtures.clock,
+        goalsAndEnergy = goalsAndEnergyFlag(),
+        burnedRepository = FakeBurnedRepository(),
         timeZone = TrendsFixtures.timeZone,
     )
 

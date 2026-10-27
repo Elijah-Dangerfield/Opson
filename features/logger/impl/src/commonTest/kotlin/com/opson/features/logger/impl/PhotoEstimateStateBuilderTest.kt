@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
 /** [PhotoEstimateStateBuilder]: every stage, and what each visibility level leaves on a line and in the footer. */
 class PhotoEstimateStateBuilderTest {
     private val full = policy(PresetId.Full)
-    private val blind = policy(PresetId.Blind)
+    private val blind = policy(PresetId.NoNumbers)
 
     private fun review(policy: VisibilityPolicy, editing: Boolean = false): PhotoStage.Review =
         assertIs(PhotoFixtures.reviewState(policy, editing).stage)
@@ -66,7 +66,7 @@ class PhotoEstimateStateBuilderTest {
 
     @Test
     fun delayedHoldsBackTodayBeforeTheReveal() {
-        val review = review(policy(PresetId.Delayed))
+        val review = review(policy(PresetId.Later))
         assertTrue(review.rows.all { it.calories == Display.Hidden })
         assertEquals(Display.Hidden, review.footer?.calories)
     }

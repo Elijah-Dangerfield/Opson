@@ -123,7 +123,7 @@ class LoggerViewModelTest : CoroutineTest() {
 
     @Test
     fun quickAddIsNotOfferedWhenCaloriesAreHidden() = runUnitTest {
-        policySource.policy.value = policy(PresetId.Blind)
+        policySource.policy.value = policy(PresetId.NoNumbers)
         val vm = vm()
         settle()
 
@@ -454,7 +454,7 @@ class LoggerViewModelTest : CoroutineTest() {
 
     @Test
     fun aNumberIsRefusedWhenCaloriesAreHidden() = runUnitTest {
-        policySource.policy.value = policy(PresetId.Blind)
+        policySource.policy.value = policy(PresetId.NoNumbers)
         val vm = vm()
         vm.takeAction(LoggerAction.NumberTyped("450"))
 
@@ -547,7 +547,7 @@ class LoggerViewModelTest : CoroutineTest() {
         settle()
         assertTrue(AddAction.QuickAdd in vm.state.actions)
 
-        policySource.policy.value = policy(PresetId.Blind)
+        policySource.policy.value = policy(PresetId.NoNumbers)
         settle()
 
         assertFalse(AddAction.QuickAdd in vm.state.actions)

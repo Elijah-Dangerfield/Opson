@@ -12,7 +12,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
-import kotlinx.datetime.LocalDate
 
 class SetupAnswersTest {
 
@@ -106,25 +105,12 @@ class SetupAnswersTest {
             ),
         )
 
-        val after = before.startingWith(PresetId.Blind, SetupAnswers(statement = StatementAnswer.Agree), today = LocalDate(2026, 10, 25))
+        val after = before.startingWith(PresetId.NoNumbers, SetupAnswers(statement = StatementAnswer.Agree))
 
-        assertEquals(NumbersSettings(preset = PresetId.Blind), after.numbers)
+        assertEquals(NumbersSettings(preset = PresetId.NoNumbers), after.numbers)
         assertNull(after.numbers.changedAt)
         assertEquals(OnboardingAnswers(hard = true), after.onboarding)
         assertEquals(before.copy(numbers = after.numbers, onboarding = after.onboarding), after)
-    }
-
-    @Test
-    fun startingWith_sprint_recordsTheStartDay_andOtherModesLeaveIt() {
-        val today = LocalDate(2026, 10, 25)
-        val earlier = LocalDate(2026, 10, 1)
-
-        assertEquals(today, Settings().startingWith(PresetId.Sprint, SetupAnswers(), today).sprintStartedOn)
-        assertEquals(
-            earlier,
-            Settings(sprintStartedOn = earlier).startingWith(PresetId.Delayed, SetupAnswers(), today).sprintStartedOn,
-        )
-        assertNull(Settings().startingWith(PresetId.Fuel, SetupAnswers(), today).sprintStartedOn)
     }
 
     @Test
@@ -133,6 +119,6 @@ class SetupAnswersTest {
         // onboarding's own pick is "set during setup".
         val stamped = Settings(numbers = NumbersSettings(changedAt = Instant.parse("2026-01-01T00:00:00Z")))
 
-        assertNull(stamped.startingWith(PresetId.Delayed, SetupAnswers(), LocalDate(2026, 10, 25)).numbers.changedAt)
+        assertNull(stamped.startingWith(PresetId.Later, SetupAnswers()).numbers.changedAt)
     }
 }

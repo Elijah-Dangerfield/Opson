@@ -14,6 +14,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.Tone
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.GoalPosition
 import com.opson.libraries.nutrition.Metric
@@ -46,7 +47,7 @@ data class DayCloseState(
     val bigDay: BigDayCard? = null,
     /** "Meals 4 of 4" beside revealed totals. */
     val mealsLine: MealsLine? = null,
-    /** Calories hidden (Blind, Coast): which meals were logged, as chips. */
+    /** Calories hidden (No numbers, Later weekly): which meals were logged, as chips. */
     val loggedMeals: Set<MealSlot>? = null,
     /**
      * "How did today feel?" (4.5), offered beside [loggedMeals]: the choices and the one picked,
@@ -125,12 +126,14 @@ data class DayCloseInputs(
     val expended: EnergyExpended? = null,
     /** `release.checkIn`, and the check-in switch in Reminders on ([Settings.checkIn]). */
     val checkInOn: Boolean = false,
+    /** The day's Burned with `release.goalsAndEnergy`, what a set deficit or surplus aims at. */
+    val burned: Burned? = null,
 )
 
 /**
- * Day close as a pure function. Surface [Surface.DayClose], where delayed numbers open (Coast's
- * open only on the week view, so Coast lands on the logged meals). The big-day card needs
- * calories fully shown and the day past its range, so Blind can never infer one; tomorrow
+ * Day close as a pure function. Surface [Surface.DayClose], where delayed numbers open (weekly
+ * ones open only on the week view, so Later weekly lands on the logged meals). The big-day card
+ * needs calories fully shown and the day past its range, so No numbers can never infer one; tomorrow
  * is tomorrow's own goal from `Targets.rangeFor`, which reads the settings and the date and
  * nothing eaten, so nothing here can move it.
  */
@@ -147,7 +150,7 @@ object DayCloseStateBuilder {
         val today = inputs.today
         val settings = inputs.settings
         val isToday = day.date == today
-        val range = todayRange(settings, day, today, inputs.expended)
+        val range = todayRange(settings, day, today, inputs.expended, inputs.burned)
         val totals = day.totals()
         val eaten = totals.kcal.known
         val bare = day.formatContext(today, bare = true)
@@ -170,7 +173,8 @@ object DayCloseStateBuilder {
         } else {
             null
         }
-        val tomorrow = settings.targets.rangeFor(day.date.plus(1, DateTimeUnit.DAY), settings.numbers.preset)
+        // Tomorrow's burn isn't known; today's Burned stands in for it, as the target moves with it.
+        val tomorrow = settings.targets.rangeFor(day.date.plus(1, DateTimeUnit.DAY), settings.numbers.preset, inputs.burned?.totalKcal)
         val revealed = isToday && shown && policy.level(Metric.Calories) == Visibility.Delay
         return DayCloseState(
             loading = false,

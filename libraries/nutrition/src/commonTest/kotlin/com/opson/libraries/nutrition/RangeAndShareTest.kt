@@ -31,7 +31,7 @@ class RangeAndShareTest {
 
     @Test
     fun range_delayOpensOnDayCloseOnly() {
-        val delayed = policy(PresetId.Delayed)
+        val delayed = policy(PresetId.Later)
         assertEquals(Display.Hidden, delayed.resolveRange(Metric.Calories, 1900.0, 2300.0, Surface.Settings))
         assertEquals(
             Display.Shown("1,900 to 2,300"),
@@ -42,7 +42,7 @@ class RangeAndShareTest {
     @Test
     fun range_blindHidesItEverywhere() {
         Surface.entries.forEach { surface ->
-            assertEquals(Display.Hidden, policy(PresetId.Blind).resolveRange(Metric.Calories, 1900.0, 2300.0, surface))
+            assertEquals(Display.Hidden, policy(PresetId.NoNumbers).resolveRange(Metric.Calories, 1900.0, 2300.0, surface))
         }
     }
 
@@ -59,11 +59,11 @@ class RangeAndShareTest {
 
     @Test
     fun share_hiddenWhenTheMacroIsSoftOrHidden() {
-        val fuel = policy(PresetId.Fuel)
-        assertEquals(Display.Hidden, fuel.share(Metric.Carbs, 48.0, Surface.Settings))
-        val softProtein = policy(PresetId.Full, overrides = mapOf(Metric.Protein to Visibility.Soften))
+        val proteinShown = policy(PresetId.NutrientsFirst, overrides = mapOf(Metric.Protein to Visibility.Show))
+        assertEquals(Display.Hidden, proteinShown.share(Metric.Carbs, 48.0, Surface.Settings))
+        val softProtein = policy(PresetId.NutrientsFirst)
         assertEquals(Display.Hidden, softProtein.share(Metric.Protein, 23.0, Surface.Settings))
-        assertEquals(Display.Shown("23%"), fuel.share(Metric.Protein, 23.0, Surface.Settings))
+        assertEquals(Display.Shown("23%"), proteinShown.share(Metric.Protein, 23.0, Surface.Settings))
     }
 
     @Test
@@ -74,8 +74,8 @@ class RangeAndShareTest {
     @Test
     fun energyShare_onlyWhenCaloriesShow() {
         assertEquals(Display.Shown("21%"), policy(PresetId.Full).energyShare(21.2, Surface.Week))
-        assertEquals(Display.Hidden, policy(PresetId.Blind).energyShare(21.2, Surface.Week))
-        assertEquals(Display.Hidden, policy(PresetId.Fuel).energyShare(21.2, Surface.Week))
+        assertEquals(Display.Hidden, policy(PresetId.NoNumbers).energyShare(21.2, Surface.Week))
+        assertEquals(Display.Hidden, policy(PresetId.NutrientsFirst).energyShare(21.2, Surface.Week))
         assertEquals(Display.Hidden, policy(PresetId.Full).energyShare(Double.NaN, Surface.Week))
     }
 }

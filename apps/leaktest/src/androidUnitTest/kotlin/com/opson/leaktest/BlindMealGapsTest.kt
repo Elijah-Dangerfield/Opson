@@ -12,9 +12,9 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * Patterns in Blind shows when meals happen, never how long between them. "Longest gap" and
- * "about 45 min later" can feed restriction for exactly the people who pick Blind (design v3,
- * 5.7), so no Patterns surface may show a gap or a duration there. The Full case is the control:
+ * Patterns in No numbers (Blind's successor) shows when meals happen, never how long between them.
+ * "Longest gap" and "about 45 min later" can feed restriction for exactly the people who pick it
+ * (design v3, 5.7), so no Patterns surface may show a gap or a duration there. The Full case is the control:
  * it proves the fixture has a gap to hide and that the scan reads it.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -26,16 +26,16 @@ class BlindMealGapsTest(private val surface: LeakSurface) {
 
     @Test
     fun blindShowsNoGapOrDuration() {
-        compose.render(surface, policyFor(PresetId.Blind))
+        compose.render(surface, policyFor(PresetId.NoNumbers))
         val hits = GAP.findAll(compose.segments().joinToString(" ")).map { it.value }.toList()
-        if (hits.isNotEmpty()) fail("${surface.id} shows meal gaps in Blind: $hits")
+        if (hits.isNotEmpty()) fail("${surface.id} shows meal gaps in No numbers: $hits")
     }
 
     @Test
     fun fullShowsThem_soTheScanSeesThem() {
         compose.render(surface, policyFor(PresetId.Full))
         val text = compose.segments().joinToString(" ")
-        assertTrue(GAP.containsMatchIn(text), "${surface.id} in Full shows no gap, so the Blind case proves nothing")
+        assertTrue(GAP.containsMatchIn(text), "${surface.id} in Full shows no gap, so the No numbers case proves nothing")
     }
 
     companion object {

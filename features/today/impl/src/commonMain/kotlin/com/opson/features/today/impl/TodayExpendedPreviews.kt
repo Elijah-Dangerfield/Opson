@@ -34,7 +34,7 @@ private fun TodayExpendedDarkPreview() = TodayExpended(PresetId.Full, dark = tru
 /** Connected, and in Blind: nothing about energy out at all. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TodayExpendedBlindPreview() = TodayExpended(PresetId.Blind)
+private fun TodayExpendedBlindPreview() = TodayExpended(PresetId.NoNumbers)
 
 /** "Some of it": half of the 410 active added, so the range reads 2,105 to 2,505. */
 @Preview(widthDp = 390, heightDp = 844)

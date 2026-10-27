@@ -22,7 +22,7 @@ import kotlin.test.assertTrue
  */
 class ExerciseAndLeftOutStateTest {
 
-    private val presets = listOf(PresetId.Full, PresetId.Blind, PresetId.Fuel, PresetId.Delayed, PresetId.Nutrient)
+    private val presets = listOf(PresetId.Full, PresetId.NoNumbers, PresetId.NutrientsFirst, PresetId.Later, PresetId.NutrientsFirst)
     private val today = IntegrationsFixtures.today
 
     @Test

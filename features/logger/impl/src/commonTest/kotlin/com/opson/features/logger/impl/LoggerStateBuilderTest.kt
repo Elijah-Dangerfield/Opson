@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -8,11 +9,14 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,6 +24,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 /**
  * [LoggerStateBuilder], the + sheet: which actions the grid holds by flag, policy and meal,
@@ -109,8 +114,8 @@ class LoggerStateBuilderTest {
     @Test
     fun quickAddFollowsTheCalorieLevel() {
         assertTrue(AddAction.QuickAdd in build().actions)
-        assertFalse(AddAction.QuickAdd in build(policy = policy(PresetId.Blind)).actions)
-        assertFalse(AddAction.QuickAdd in build(policy = policy(PresetId.Mindful)).actions)
+        assertFalse(AddAction.QuickAdd in build(policy = policy(PresetId.NoNumbers)).actions)
+        assertFalse(AddAction.QuickAdd in build(policy = policy(PresetId.NoNumbers)).actions)
     }
 
     @Test
@@ -190,7 +195,7 @@ class LoggerStateBuilderTest {
 
     @Test
     fun blindShowsNoNumberAnywhere() {
-        val blind = policy(PresetId.Blind)
+        val blind = policy(PresetId.NoNumbers)
         val state = LoggerFixtures.sheetState(blind, height = SheetHeight.Full, added = true)
 
         assertTrue(state.recent.isNotEmpty())
@@ -204,8 +209,16 @@ class LoggerStateBuilderTest {
     }
 
     @Test
-    fun fuelHidesRowEnergyButKeepsProtein() {
-        val row = build(policy = policy(PresetId.Fuel)).recent.single()
+    fun softenedEnergyHidesOnARowWhileAShownMacroStays() {
+        val softened = VisibilityPolicy(
+            NumbersSettings(
+                preset = PresetId.Full,
+                overrides = mapOf(Metric.Calories to Visibility.Soften, Metric.Carbs to Visibility.Hide, Metric.Fat to Visibility.Hide),
+            ),
+            Clock.fixed(NOON),
+            TimeZone.UTC,
+        )
+        val row = build(policy = softened).recent.single()
 
         assertEquals(Display.Hidden, row.calories, "a row has no goal, so a softened energy hides")
         assertEquals(listOf(Metric.Protein), row.macros.map { it.metric })
@@ -230,7 +243,7 @@ class LoggerStateBuilderTest {
 
     @Test
     fun withCaloriesHiddenALineIsNeverCountedInGrams() {
-        val hidden = LoggerFixtures.describeState(policy(PresetId.Blind)).describe.lines.first()
+        val hidden = LoggerFixtures.describeState(policy(PresetId.NoNumbers)).describe.lines.first()
         assertEquals(listOf("large", "cup"), hidden.units)
     }
 
@@ -253,8 +266,8 @@ class LoggerStateBuilderTest {
     @Test
     fun justANumberIsOnlyOfferedWhenCaloriesShow() {
         assertTrue(LoggerFixtures.describeState(policy(PresetId.Full)).describe.canNumber)
-        assertFalse(LoggerFixtures.describeState(policy(PresetId.Blind)).describe.canNumber)
-        assertFalse(LoggerFixtures.describeState(policy(PresetId.Mindful)).describe.canNumber)
+        assertFalse(LoggerFixtures.describeState(policy(PresetId.NoNumbers)).describe.canNumber)
+        assertFalse(LoggerFixtures.describeState(policy(PresetId.NoNumbers)).describe.canNumber)
     }
 
     @Test

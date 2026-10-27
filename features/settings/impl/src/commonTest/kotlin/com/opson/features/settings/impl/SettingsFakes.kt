@@ -1,7 +1,6 @@
 package com.opson.features.settings.impl
 
 import com.opson.features.settings.FindSupportEnabled
-import com.opson.features.settings.GoalsAndEnergyEnabled
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.DataExport
@@ -13,6 +12,7 @@ import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.SyncRejection
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.identity.auth.AuthRepository
@@ -29,6 +29,7 @@ import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.NumbersChange
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.progressphotos.ProgressPhotosEnabled
@@ -74,6 +75,9 @@ class FakeNumbersChanger(var outcome: (NumbersChange) -> NumbersOutcome = { Numb
     var pauseTurnedOn = 0
         private set
 
+    /** Each End after a set time asked for, as weeks and the next preset; null for turned off. */
+    val timers = mutableListOf<Pair<Int, PresetId>?>()
+
     override suspend fun request(change: NumbersChange): NumbersOutcome {
         requested += change
         return outcome(change)
@@ -86,6 +90,16 @@ class FakeNumbersChanger(var outcome: (NumbersChange) -> NumbersOutcome = { Numb
     override suspend fun turnOnPause() {
         pauseTurnedOn++
     }
+
+    override suspend fun setEndAfter(weeks: Int, then: PresetId) {
+        timers += weeks to then
+    }
+
+    override suspend fun clearEndAfter() {
+        timers += null
+    }
+
+    override suspend fun endTimedMode() = Unit
 
     override fun pauseShown(change: NumbersChange) {
         shown += change

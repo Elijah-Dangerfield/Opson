@@ -25,7 +25,7 @@ class ExactAndSurplusTest {
     fun oneNumber_isTheAim_everyDay() {
         val exact = base.useExact()
         assertEquals(DayGoal.Exact(2100), exact.rangeFor(monday, PresetId.Full))
-        assertEquals(DayGoal.Exact(2100), exact.rangeFor(saturday, PresetId.Blind))
+        assertEquals(DayGoal.Exact(2100), exact.rangeFor(saturday, PresetId.NoNumbers))
         assertEquals(DayGoal.Exact(2100), exact.spanGoal(PresetId.Full))
     }
 
@@ -171,7 +171,7 @@ class ExactAndSurplusTest {
         val less = requireNotNull(surplus.stepSurplus(up = false, group = 1))
         assertEquals(GroupShape.Surplus(50, 100), (less.style as TargetStyle.ByDay).groups[1].shape)
         assertNull(surplus.stepSurplus(up = true, group = 0), "group 0 is a range")
-        assertEquals(DayGoal.Range(2300, 2700, 2500, groupIndex = 1), surplus.rangeFor(saturday, PresetId.Blind), "Full numbers only")
+        assertEquals(DayGoal.Range(2300, 2700, 2500, groupIndex = 1), surplus.rangeFor(saturday, PresetId.NoNumbers), "Full numbers only")
     }
 
     @Test

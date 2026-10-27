@@ -260,7 +260,7 @@ private fun RemindersPermissionDeniedPreview() {
 @Preview
 @Composable
 private fun RemindersBlindPreview() {
-    val settings = SettingsFixtures.remindersSet.copy(numbers = NumbersSettings(preset = PresetId.Blind), tone = Tone.Warm)
+    val settings = SettingsFixtures.remindersSet.copy(numbers = NumbersSettings(preset = PresetId.NoNumbers), tone = Tone.Warm)
     SettingsPreview { RemindersScreen(RemindersStateBuilder.build(settings), onAction = {}) }
 }
 

@@ -42,6 +42,9 @@ sealed interface PauseSubject {
         val text: String get() = DateCopy.time(time.hour, time.minute)
     }
 
+    /** Later's totals opening each day instead of once a week. */
+    data object RevealDaily : PauseSubject
+
     companion object {
         fun of(change: NumbersChange): PauseSubject = when (change) {
             is NumbersChange.PickPreset -> Preset(change.id)
@@ -49,6 +52,8 @@ sealed interface PauseSubject {
             is NumbersChange.ClearOverride -> Number(change.metric)
             NumbersChange.TurnOffPause -> ThePause
             is NumbersChange.SetRevealAt -> RevealTime(change.time)
+            // Only each day pauses: weekly opens them later, which never needs the wait.
+            is NumbersChange.SetRevealWeekly -> RevealDaily
             is NumbersChange.SetProgressPhotos -> ProgressPhotos
         }
     }

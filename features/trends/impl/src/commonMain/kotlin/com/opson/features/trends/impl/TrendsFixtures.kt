@@ -1,5 +1,6 @@
 package com.opson.features.trends.impl
 
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
@@ -56,7 +57,7 @@ object TrendsFixtures {
     /** Noon on the 25th: before the 9 pm reveal, as the leak test's clock. */
     val clock: Clock = fixedClock(LocalDateTime(today, LocalTime(12, 0)))
 
-    /** 10 pm on the 25th: after the reveal, so Coast's weekly check for the week has opened. */
+    /** 10 pm on the 25th: after the reveal, so the weekly check for the week has opened. */
     val evening: Clock = fixedClock(LocalDateTime(today, LocalTime(22, 0)))
 
     fun fixedClock(at: LocalDateTime): Clock = object : Clock {
@@ -67,7 +68,8 @@ object TrendsFixtures {
         preset: PresetId = PresetId.Full,
         overrides: Map<Metric, Visibility> = emptyMap(),
         clock: Clock = this.clock,
-    ): VisibilityPolicy = VisibilityPolicy(NumbersSettings(preset = preset, overrides = overrides), clock, timeZone)
+        revealOn: RevealOn = RevealOn.DayClose,
+    ): VisibilityPolicy = VisibilityPolicy(NumbersSettings(preset = preset, overrides = overrides, revealOn = revealOn), clock, timeZone)
 
     fun settings(policy: VisibilityPolicy? = null): Settings =
         Settings(numbers = policy?.settings ?: NumbersSettings())

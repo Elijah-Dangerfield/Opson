@@ -27,7 +27,7 @@ class GuestOnboardingSyncTest : IntegrationTest() {
 
         // Onboarding, in its order: save the mode, then create the guest.
         phone.settings.update(stampNumbersChange = false) {
-            it.copy(numbers = it.numbers.copy(preset = PresetId.Delayed), waterGlasses = 6)
+            it.copy(numbers = it.numbers.copy(preset = PresetId.Later), waterGlasses = 6)
         }
         assertEquals(SignInOutcome.Success, phone.auth.createGuestSession())
         val guest = assertNotNull(phone.userId)
@@ -40,7 +40,7 @@ class GuestOnboardingSyncTest : IntegrationTest() {
             "SELECT settings->>'preset' AS preset, (settings->>'waterGlasses')::int AS glasses FROM user_settings WHERE user_id = ?::uuid",
             guest,
         ).single()
-        assertEquals("delayed", stored["preset"])
+        assertEquals("later", stored["preset"], "the analytics key names the mode as 0.2 does")
         assertEquals(6, stored["glasses"])
         val entries = server.query("SELECT id::text AS id, name FROM log_entries WHERE user_id = ?::uuid", guest)
         assertEquals(listOf(soup.id to "Lentil soup"), entries.map { it["id"] to it["name"] })
@@ -54,7 +54,7 @@ class GuestOnboardingSyncTest : IntegrationTest() {
         reinstall.settings.isKnown.awaitState { it }
         // isKnown and settings are separate flows off the same store, so the
         // settings can trail it by a moment: wait on them as a screen would.
-        val pulled = reinstall.settings.settings.awaitState { it.numbers.preset == PresetId.Delayed }
+        val pulled = reinstall.settings.settings.awaitState { it.numbers.preset == PresetId.Later }
         assertEquals(6, pulled.waterGlasses)
         val day = reinstall.diary.observeDay(phone.today()).first()
         assertEquals(listOf(soup.id), day.allItems.map { it.id })

@@ -49,7 +49,7 @@ class SettingsStoreTest : CoroutineTest() {
         val pickedAt = Instant.parse("2026-10-25T09:00:00Z")
         clock.now = pickedAt
         store.update(stampNumbersChange = true) {
-            it.withNumbers(it.numbers.pickPreset(PresetId.Blind, at = Instant.parse("2001-01-01T00:00:00Z")))
+            it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, at = Instant.parse("2001-01-01T00:00:00Z")))
         }
         assertEquals(pickedAt, store.settings.value.numbers.changedAt, "stamped with the store's clock")
 
@@ -61,21 +61,22 @@ class SettingsStoreTest : CoroutineTest() {
 
     @Test
     fun onboardingSetsThePresetWithoutStampingIt() = runUnitTest {
-        store.update(stampNumbersChange = false) { it.withNumbers(NumbersSettings(preset = PresetId.Rhythm)) }
+        store.update(stampNumbersChange = false) { it.withNumbers(NumbersSettings(preset = PresetId.NoNumbers)) }
 
-        assertEquals(PresetId.Rhythm, store.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, store.settings.value.numbers.preset)
         assertNull(store.settings.value.numbers.changedAt)
     }
 
     @Test
     fun aChangeIsQueuedWithThePresetAtTheTopLevel() = runUnitTest {
-        store.update(stampNumbersChange = true) { it.withNumbers(it.numbers.pickPreset(PresetId.Blind, clock.now)) }
+        store.update(stampNumbersChange = true) { it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, clock.now)) }
 
         val row = db.outbox.rows.single()
         assertEquals(SyncEntity.Settings.wire, row.entity)
         val wire = WireJson.decodeFromString(SettingsRowDto.serializer(), row.payload)
-        assertEquals(JsonPrimitive("blind"), wire.settings["preset"], "the one key the server reads")
-        assertEquals(JsonPrimitive("blind"), wire.settings.getValue("numbers").jsonObject["preset"])
+        assertEquals(JsonPrimitive("no_numbers"), wire.settings["preset"], "the one key the server reads")
+        assertEquals(JsonPrimitive("blind"), wire.settings.getValue("numbers").jsonObject["preset"], "what a 0.1 phone reads")
+        assertEquals(JsonPrimitive("no_numbers"), wire.settings.getValue("mode").jsonObject["preset"])
         assertEquals(clock.now.toEpochMilliseconds(), wire.changedAtEpochMs)
     }
 
@@ -107,10 +108,10 @@ class SettingsStoreTest : CoroutineTest() {
         user.user.value = ActiveUser.SignedIn("user-a")
         store.update(stampNumbersChange = true) { it.copy(tone = Tone.Warm) }
 
-        store.applyPulled(row(Settings(numbers = NumbersSettings(preset = PresetId.Blind))))
+        store.applyPulled(row(Settings(numbers = NumbersSettings(preset = PresetId.NoNumbers))))
         val wantsSync = store.markPulled("user-a", pulledSettings = true)
 
-        assertEquals(PresetId.Blind, store.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, store.settings.value.numbers.preset)
         assertEquals(Tone.Plain, store.settings.value.tone)
         assertFalse(wantsSync)
         assertTrue(db.outbox.rows.isEmpty())
@@ -129,7 +130,7 @@ class SettingsStoreTest : CoroutineTest() {
     fun aUserChangeResetsToTheDefaultsAndUnknown() = runUnitTest {
         user.user.value = ActiveUser.SignedIn("user-a")
         store.markPulled("user-a", pulledSettings = false)
-        store.update(stampNumbersChange = true) { it.withNumbers(it.numbers.pickPreset(PresetId.Blind, clock.now)) }
+        store.update(stampNumbersChange = true) { it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, clock.now)) }
         assertTrue(store.isKnown.value)
 
         store.clear("user-a")

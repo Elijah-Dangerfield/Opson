@@ -3,6 +3,7 @@ package com.opson.features.logger.impl
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FoodUnit
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
@@ -86,8 +87,10 @@ class FoodDetailTest : CoroutineTest() {
 
     private fun Display.text(): String? = (this as? Display.Shown)?.text
 
-    private fun withLevel(metric: Metric, level: Visibility) = VisibilityPolicy(
-        NumbersSettings(PresetId.Full, overrides = mapOf(metric to level)),
+    private fun withLevel(metric: Metric, level: Visibility) = withLevelOf(PresetId.Full, metric, level)
+
+    private fun withLevelOf(preset: PresetId, metric: Metric, level: Visibility) = VisibilityPolicy(
+        NumbersSettings(preset, overrides = mapOf(metric to level)),
         Clock.fixed(NOON),
         TimeZone.UTC,
     )
@@ -141,19 +144,99 @@ class FoodDetailTest : CoroutineTest() {
 
     @Test
     fun blindHasNoPlusMinusEither() {
-        assertNull(build(policy(PresetId.Blind)).energy)
+        assertNull(build(policy(PresetId.NoNumbers)).energy)
         val soft = build(withLevel(Metric.Calories, Visibility.Soften)).energy?.today
         assertEquals(Display.Hidden, soft?.plusMinus)
     }
 
     @Test
-    fun blindLeavesTheAmountAndHowSureButNoEnergyCard() {
-        val state = build(policy(PresetId.Blind))
+    fun noNumbersIsTheAmountInMeasuresAndTheHungerCheck_nothingElse() {
+        val state = LoggerFixtures.noNumbersDetailState(policy(PresetId.NoNumbers))
 
+        assertTrue(state.noNumbers)
+        assertEquals("2", state.amount)
+        assertEquals(listOf("tbsp"), state.units.map { it.label }, "grams is a number, so the menu holds measures")
+        assertTrue(state.units.all { it.grams == null })
+        assertEquals(listOf("1 tbsp", "2 tbsp"), state.servings.map { it.label })
+        assertTrue(state.servings.all { it.grams == null })
+        assertEquals(HungerCheck(Hunger.Peckish), state.hunger)
         assertNull(state.energy)
         assertNull(state.nutrients)
+        assertEquals(null, state.source?.per)
+        assertFalse(state.canAddUnit)
+        assertFalse(build(policy(PresetId.Full)).noNumbers, "Full numbers keeps its own detail")
+    }
+
+    @Test
+    fun noNumbersHungerCheckFollowsTheHungerQuestionsSetting() {
+        val food = AmountFood.Catalog(LoggerFixtures.peanutButter)
+        val state = FoodDetailStateBuilder.build(
+            food,
+            DetailChoice.initial(food, MealSlot.Snack),
+            LoggerFixtures.detailInputs(policy(PresetId.NoNumbers), Settings(askTags = false)),
+            FoodRef.Catalog(food.food.id),
+            PickSource.Search,
+        )
+        assertNull(state.hunger)
+    }
+
+    @Test
+    fun noNumbersWithANumberTurnedBackOnGetsTheFullDetail() {
+        assertFalse(build(withLevelOf(PresetId.NoNumbers, Metric.Calories, Visibility.Show)).noNumbers)
+    }
+
+    @Test
+    fun inNoNumbersTypingCountsTheAmountAndLeavesHowSureAlone() = runUnitTest {
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        val vm = vm()
+
+        vm.takeAction(FoodDetailAction.AmountTyped("2,5"))
+        assertEquals("2.5", vm.state.amount)
+        vm.takeAction(FoodDetailAction.AddToMealTapped)
+
+        val item = diary.added.single().items.single()
+        assertEquals(2.5, item.quantity)
+        assertEquals(Precision.Estimate, item.precision)
+    }
+
+    @Test
+    fun aHungerAnswerIsSavedToTheMealWhenTheFoodIsAdded() = runUnitTest {
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        settings.state.value = Settings(askTags = true)
+        val vm = vm()
+
+        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Hungry))
+        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Peckish))
+        assertEquals(Hunger.Peckish, vm.state.hunger?.picked)
+        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Peckish))
+        assertEquals(null, vm.state.hunger?.picked, "the same answer again clears it")
+        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Peckish))
+        vm.takeAction(FoodDetailAction.AddToMealTapped)
+
+        val (_, slot, feeling) = diary.feelings.single()
+        assertEquals(MealSlot.Dinner, slot)
+        assertEquals(Hunger.Peckish, feeling?.hunger)
+    }
+
+    @Test
+    fun noHungerAnswerSavesNoFeeling() = runUnitTest {
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        vm().takeAction(FoodDetailAction.AddToMealTapped)
+
+        assertTrue(diary.feelings.isEmpty())
+    }
+
+    @Test
+    fun inNoNumbersALastAmountInGramsStartsFromAMeasure() = runUnitTest {
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        diary.recent.value = listOf(
+            LoggerFixtures.item(LoggerFixtures.peanutButter, MealSlot.Snack).copy(quantity = 32.0, unit = "grams", amountText = "32 g"),
+        )
+
+        val state = vm().state
+
         assertEquals("1", state.amount)
-        assertTrue(state.units.isNotEmpty())
+        assertEquals("tbsp", state.unit?.label)
     }
 
     @Test

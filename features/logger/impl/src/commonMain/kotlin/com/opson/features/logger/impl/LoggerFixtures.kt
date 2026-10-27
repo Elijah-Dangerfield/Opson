@@ -3,6 +3,7 @@ package com.opson.features.logger.impl
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FoodUnit
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -470,6 +471,16 @@ object LoggerFixtures {
         val ref = FoodRef.Catalog(arroz.id)
         val choice = DetailChoice.initial(food, MealSlot.Dinner, arrozSizes.unitsFor(ref.key))
         return FoodDetailStateBuilder.build(food, choice, detailInputs(policy, arrozSizes), ref, PickSource.Usual)
+    }
+
+    /**
+     * 13.5e: peanut butter in No numbers, two tablespoons typed for a snack and "A little" picked,
+     * the hunger questions on.
+     */
+    fun noNumbersDetailState(policy: VisibilityPolicy): FoodDetailState {
+        val food = AmountFood.Catalog(peanutButter)
+        val choice = DetailChoice.initial(food, MealSlot.Snack).typed("2", weighs = false).copy(hunger = Hunger.Peckish)
+        return FoodDetailStateBuilder.build(food, choice, detailInputs(policy, Settings(askTags = true)), FoodRef.Catalog(peanutButter.id), PickSource.Search)
     }
 
     /** The Custom size dialog open, "my bowl" half typed. */

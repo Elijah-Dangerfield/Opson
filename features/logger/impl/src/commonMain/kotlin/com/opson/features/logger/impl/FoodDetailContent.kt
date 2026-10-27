@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.Display
@@ -55,6 +56,8 @@ import com.opson.libraries.ui.components.MenuPopover
 import com.opson.libraries.ui.components.PopoverMenu
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.button.ButtonPrimary
+import com.opson.libraries.ui.components.chip.PillChip
+import com.opson.libraries.ui.components.chip.PillChipStyle
 import com.opson.libraries.ui.components.dialog.TimePickerDialog
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
@@ -122,6 +125,11 @@ import opson.libraries.resources.generated.resources.logger_micro_vitamin_k
 import opson.libraries.resources.generated.resources.logger_micro_zinc
 import opson.libraries.resources.generated.resources.logger_micros_minerals
 import opson.libraries.resources.generated.resources.logger_micros_vitamins
+import opson.libraries.resources.generated.resources.modes_hunger_a_little
+import opson.libraries.resources.generated.resources.modes_hunger_hungry
+import opson.libraries.resources.generated.resources.modes_hunger_not_really
+import opson.libraries.resources.generated.resources.modes_hunger_question
+import opson.libraries.resources.generated.resources.modes_hunger_very
 import opson.libraries.resources.generated.resources.logger_precision_estimate
 import opson.libraries.resources.generated.resources.logger_precision_named
 import opson.libraries.resources.generated.resources.logger_precision_weighed
@@ -171,6 +179,7 @@ fun FoodDetailContent(
                     state.loading -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_amount_loading_cd))
                     else -> {
                         AmountCard(state, onAction)
+                        state.hunger?.let { HungerCard(it, onAction) }
                         state.energy?.let { EnergySection(it, state.nutrients, onAction) }
                         state.nutrients?.takeIf { it.open }?.let { NutrientsSection(it) }
                         state.source?.let { SourceCaption(it) }
@@ -309,13 +318,35 @@ private fun AmountCard(state: FoodDetailState, onAction: (FoodDetailAction) -> U
                 }
             }
         }
-        CardLabel(stringResource(Res.string.adding_detail_sure))
-        SegmentedControl(
-            options = FoodDetailStateBuilder.PRECISIONS,
-            selected = state.precision,
-            onSelect = { onAction(FoodDetailAction.PrecisionPicked(it)) },
-            label = { stringResource(it.label) },
-        )
+        // How sure feeds the day's ±, a number No numbers never shows, so it is not asked there.
+        if (!state.noNumbers) {
+            CardLabel(stringResource(Res.string.adding_detail_sure))
+            SegmentedControl(
+                options = FoodDetailStateBuilder.PRECISIONS,
+                selected = state.precision,
+                onSelect = { onAction(FoodDetailAction.PrecisionPicked(it)) },
+                label = { stringResource(it.label) },
+            )
+        }
+    }
+}
+
+/** No numbers' optional "How hungry were you?" (13.5e): least to most, the same answer again clears it. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HungerCard(check: HungerCheck, onAction: (FoodDetailAction) -> Unit) {
+    Card {
+        CardLabel(stringResource(Res.string.modes_hunger_question))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+            HUNGER_ORDER.forEach { hunger ->
+                PillChip(
+                    label = stringResource(hunger.askLabel),
+                    selected = hunger == check.picked,
+                    onClick = { onAction(FoodDetailAction.HungerPicked(hunger)) },
+                    style = PillChipStyle.Tint,
+                )
+            }
+        }
     }
 }
 
@@ -634,3 +665,15 @@ private val UNIT_MENU_TOP = 150.dp
 
 /** The amount field and the unit dropdown beside it, the same height. */
 private val UNIT_HEIGHT = 64.dp
+
+/** Least to most, as the question reads. */
+private val HUNGER_ORDER = listOf(Hunger.NotHungry, Hunger.Peckish, Hunger.Hungry, Hunger.VeryHungry)
+
+/** The answers as the question asks them: "How hungry were you?" "A little". */
+private val Hunger.askLabel: StringResource
+    get() = when (this) {
+        Hunger.NotHungry -> Res.string.modes_hunger_not_really
+        Hunger.Peckish -> Res.string.modes_hunger_a_little
+        Hunger.Hungry -> Res.string.modes_hunger_hungry
+        Hunger.VeryHungry -> Res.string.modes_hunger_very
+    }

@@ -237,6 +237,9 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
       the App Privacy label and `legal/privacy.md` before the flag flips.
 - [ ] Nothing on the server: every new setting is a top-level key, which the
       shallow merge keeps through a 0.1 save (`SettingsMergeAcrossVersionsTest`).
+- [ ] TODO(clinician): the summary card's Deficit main number and Equation
+      preset put eaten minus Burned front and centre, which `balanceRingValue`'s
+      note held back until review. Confirm before the flag flips.
 - [ ] Look at the goal style list, Resting energy and Energy today on a phone,
       and one number and a surplus on Today, Close the day, Trends and the
       widget, before flipping the flag.
@@ -370,10 +373,8 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 
 ### Before merging the legal changes to main (merging publishes them)
 
-- [ ] **You:** name the state Nightjar Labs LLC is organised in, in
-      `legal/terms.md` under "Governing law", and decide whether to add a
-      postal address to "Contact" (Apple's minimum EULA terms and CAN-SPAM
-      for waitlist emails both want one).
+- [x] Governing law is New York, and the contact carries the postal address
+      418 Broadway, Albany, NY 12207 (2026-10-27).
 - [ ] **Lawyer:** read `legal/privacy.md`, `legal/terms.md` and
       `legal/health-data.md` once before they go live. The items marked
       "lawyer" in the review are the ones that matter.
@@ -418,8 +419,11 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 
 ### Accounts and settings at providers
 
-- [ ] Sentry and Grafana Cloud: set retention to 90 days or less, as the
-      policy says. Supabase: confirm backups expire within 30 days.
+- [x] Retention checked 2026-10-27, all inside the policy's limits, nothing to
+      set: Sentry's Developer plan keeps events 30 days (fixed by the plan);
+      Grafana Cloud Pro keeps logs and traces 30 days and metrics 13 months
+      (counts with no account id); Supabase keeps daily backups 7 days. If
+      Sentry moves to a paid plan its retention becomes 90 days, still inside.
 - [ ] Confirm a data processing agreement is in place with Fly.io,
       Supabase, Sentry, Grafana Labs and Anthropic (most are part of their
       standard terms; accept or download each).
