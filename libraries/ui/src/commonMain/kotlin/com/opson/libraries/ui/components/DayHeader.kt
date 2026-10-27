@@ -76,37 +76,42 @@ fun DayHeader(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        HeaderIconButton(icon = previousIcon, onClick = onPrevious, enabled = previousEnabled)
-        Row(
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .defaultMinSize(minHeight = MinTouchTarget)
-                .semantics(mergeDescendants = true) {
-                    role = Role.Button
-                    contentDescription = titleDescription
-                }
-                .bounceClick(scaleDown = 0.97f, onClick = onTitleClick)
-                .padding(start = 4.dp, end = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = title,
-                typography = AppTheme.type.dayLabel,
-                color = AppTheme.colors.ink,
-                // A month and year ("October 2026") may wrap, as the design draws it; a day never does.
-                maxLines = if (expanded) 2 else 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            Icon(
-                icon = AppIcons.ArrowDropDown,
-                size = 28.dp,
-                color = AppTheme.colors.muted,
-                modifier = Modifier.thenIf(expanded) { rotate(HALF_TURN) },
-            )
+        // The day and its chevrons take what the actions leave, so ⋮ always sits on the right
+        // edge. Sharing one weight with the actions split the row in half instead, and a short
+        // title ("Today") left ⋮ stranded mid-row.
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            HeaderIconButton(icon = previousIcon, onClick = onPrevious, enabled = previousEnabled)
+            Row(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .defaultMinSize(minHeight = MinTouchTarget)
+                    .semantics(mergeDescendants = true) {
+                        role = Role.Button
+                        contentDescription = titleDescription
+                    }
+                    .bounceClick(scaleDown = 0.97f, onClick = onTitleClick)
+                    .padding(start = 4.dp, end = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    typography = AppTheme.type.dayLabel,
+                    color = AppTheme.colors.ink,
+                    // A month and year ("October 2026") may wrap, as the design draws it; a day never does.
+                    maxLines = if (expanded) 2 else 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Icon(
+                    icon = AppIcons.ArrowDropDown,
+                    size = 28.dp,
+                    color = AppTheme.colors.muted,
+                    modifier = Modifier.thenIf(expanded) { rotate(HALF_TURN) },
+                )
+            }
+            HeaderIconButton(icon = nextIcon, onClick = onNext, enabled = nextEnabled)
         }
-        HeaderIconButton(icon = nextIcon, onClick = onNext, enabled = nextEnabled)
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically, content = actions)
+        Row(horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically, content = actions)
     }
 }
 
