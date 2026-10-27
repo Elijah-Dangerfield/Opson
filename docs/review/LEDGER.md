@@ -773,70 +773,70 @@ keeps existing ticks.
 
 ## trends (64 files)
 
-- [ ] `features/trends/build.gradle.kts`
-- [ ] `features/trends/impl/build.gradle.kts`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsCalendar.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFeatureEntryPoint.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFixtures.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsJournal.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLabels.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLeakSurfaces.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsPreviews.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsSettingsSheet.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsSettingsViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeekAverages.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightCurve.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CaptureScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CaptureViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoLock.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoParts.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoViewModel.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosFixtures.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosScreen.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosState.kt`
-- [ ] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosViewModel.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/BurnedFakes.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/Fakes.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/NutrientsStateBuilderTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/NutrientsViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsStateBuilderTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsCalendarTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsJournalTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsSettingsViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsStateBuilderTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/WeightStateBuilderTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/WeightViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/CaptureViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/CompareViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoFakes.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoLockTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoViewModelTest.kt`
-- [ ] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosViewModelTest.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/NotesListLink.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/NutrientsRoute.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/PatternsRoute.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/ProgressPhotosRoutes.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsRoute.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsSettingsRoute.kt`
-- [ ] `features/trends/src/commonMain/kotlin/com/opson/features/trends/WeightRoute.kt`
+- [x] `features/trends/build.gradle.kts`
+- [x] `features/trends/impl/build.gradle.kts`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/NutrientsViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/PatternsViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsCalendar.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFeatureEntryPoint.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsFixtures.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsJournal.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLabels.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsLeakSurfaces.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsPreviews.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsSettingsSheet.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsSettingsViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/TrendsViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeekAverages.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightCurve.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/WeightViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CaptureScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CaptureViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/CompareViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoLock.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoParts.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/PhotoViewModel.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosFixtures.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosScreen.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosState.kt`
+- [x] `features/trends/impl/src/commonMain/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosViewModel.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/BurnedFakes.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/Fakes.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/NutrientsStateBuilderTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/NutrientsViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsStateBuilderTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/PatternsViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsCalendarTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsJournalTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsSettingsViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsStateBuilderTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/TrendsViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/WeightStateBuilderTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/WeightViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/CaptureViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/CompareViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoFakes.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoLockTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/PhotoViewModelTest.kt`
+- [x] `features/trends/impl/src/commonTest/kotlin/com/opson/features/trends/impl/photos/ProgressPhotosViewModelTest.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/NotesListLink.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/NutrientsRoute.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/PatternsRoute.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/ProgressPhotosRoutes.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsRoute.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsSettingsRoute.kt`
+- [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/WeightRoute.kt`
 
 ## domain-diary-nutrition (155 files)
 

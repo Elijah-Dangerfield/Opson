@@ -285,6 +285,8 @@ private fun HungerCardView(card: HungerCard) {
                 modifier = Modifier.weight(HUNGER_NOTE_WEIGHT),
             )
         }
+        // TODO(review): a screen reader hears the weekday names and nothing of the bars. Each bar
+        // needs a spoken level, which waits on wording for a relative hunger level (findings/trends.md 9).
         Row(
             modifier = Modifier.fillMaxWidth().height(HUNGER_CHART).padding(top = Dimension.D200),
             horizontalArrangement = Arrangement.spacedBy(Dimension.D300),
