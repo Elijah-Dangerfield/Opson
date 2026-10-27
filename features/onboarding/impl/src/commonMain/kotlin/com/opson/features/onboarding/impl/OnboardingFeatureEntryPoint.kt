@@ -28,7 +28,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 @ContributesBinding(AppScope::class, multibinding = true)
 @Inject
 class OnboardingFeatureEntryPoint(
-    private val onboardingViewModelFactory: () -> OnboardingViewModel,
+    private val onboardingViewModelFactory: (OnboardingRoute) -> OnboardingViewModel,
     private val signInViewModelFactory: () -> SignInViewModel,
     private val signUpViewModelFactory: () -> SignUpViewModel,
     private val verifyEmailViewModelFactory: (email: String?, guestLink: Boolean) -> VerifyEmailViewModel,
@@ -37,8 +37,9 @@ class OnboardingFeatureEntryPoint(
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
-        screen<OnboardingRoute> {
-            val viewModel: OnboardingViewModel = viewModel { onboardingViewModelFactory() }
+        screen<OnboardingRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<OnboardingRoute>()
+            val viewModel: OnboardingViewModel = viewModel { onboardingViewModelFactory(route) }
             val state = viewModel.stateFlow.collectAsStateWithLifecycle().value
 
             viewModel.ObserveEvents { event ->

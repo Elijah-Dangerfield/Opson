@@ -12,9 +12,7 @@
     <string name="onboarding_welcome_body">You can show, soften, save for later or hide every number, and change it whenever you like.</string>
     <string name="onboarding_welcome_not_medical">Opson is a food log, not medical advice. Food values are estimates.</string>
     <string name="onboarding_get_started">Get started</string>
-    <string name="onboarding_skip_all">Skip and start logging</string>
-    <string name="onboarding_have_account">Have an account?</string>
-    <string name="onboarding_sign_in">Sign in</string>
+    <string name="onboarding_welcome_next">Next you'll sign in, so your log is saved to your account.</string>
 
     <!--
       The plan. 0.1 has no in-app purchase and a price with no way to buy it is an App Review
@@ -127,23 +125,25 @@
 
 
     <!--
-      The account step: optional and last. The design's first reassurance line reads
-      "Encrypted. Only you can read it.", which the server cannot promise, so it says what is
-      true. TODO(owner): "add an account later in More" needs an account entry in More.
+      The sign-in step, right after Welcome. An account is required. The design's first
+      reassurance line reads "Encrypted. Only you can read it.", which the server cannot promise,
+      so it says what is true. The guest lines are for people who started before accounts were
+      required: signing in moves what they logged into the account.
     -->
-    <string name="onboarding_account_title">Save your setup</string>
-    <string name="onboarding_account_body">Back up your logs and settings, and pick up on a new phone.</string>
+    <string name="onboarding_sign_in_title">Sign in to get started</string>
+    <string name="onboarding_sign_in_body">Your log is saved to your account, so it's backed up and there on a new phone. New here? This makes your account.</string>
+    <string name="onboarding_sign_in_guest_title">Keep your log</string>
+    <string name="onboarding_sign_in_guest_body">Opson needs an account now. Sign in and everything you've logged on this phone moves into it.</string>
+    <string name="onboarding_sign_in_waiting_for_google">Waiting for Google…</string>
+    <string name="onboarding_sign_in_in_use">That account already has its own Opson log. You can sign in to it, but what you logged on this phone won't come with you. Or try another account.</string>
+    <string name="onboarding_sign_in_use_that">Sign in to that account</string>
     <string name="onboarding_account_apple">Continue with Apple</string>
     <string name="onboarding_account_google">Continue with Google</string>
     <string name="onboarding_account_google_mark" translatable="false">G</string>
     <string name="onboarding_account_email">Continue with email</string>
-    <string name="onboarding_account_opening_browser">Opening browser…</string>
     <string name="onboarding_account_waiting_for_apple">Waiting for Apple…</string>
     <string name="onboarding_account_private">Private to you. No ad tracking.</string>
     <string name="onboarding_account_export">Export or delete it any time</string>
     <string name="onboarding_account_coach">Needed later to share with a coach</string>
-    <string name="onboarding_account_keep">Keep it on this phone</string>
-    <string name="onboarding_account_later">Everything works without an account.</string>
-    <string name="onboarding_account_in_use">That account is already in use. Try another way, or keep it on this phone.</string>
     <string name="onboarding_account_failed">That didn't go through. Please try again.</string>
 </resources>

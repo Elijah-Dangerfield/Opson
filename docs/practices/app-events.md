@@ -84,7 +84,8 @@ the exact fire site.
 All from `OnboardingViewModel`, read by `ops/grafana/onboarding-funnel.json`. `step` is always the
 step's own name, never an index: `welcome`, `question_1`, `question_2`, `statement` (the
 optional "numbers have been hard" step, `question_4` before design v3), `recommendation`, the
-setup steps `goal`, `resting_energy` and `meal_times` (`release.onboardingSetup`), and `account`.
+setup steps `goal`, `resting_energy` and `meal_times` (`release.onboardingSetup`), and `sign_in`
+(the required sign-in step straight after Welcome; `account` before accounts were required).
 `question_3` ("What do you want to notice?") was cut in onboarding v2 (`docs/plans/onboarding-v2.md`). **No event carries an answer to the setup questions or the statement**, not even as a
 count: agreeing that "numbers or tracking have been hard for me before" is close to a clinical
 disclosure.
@@ -92,10 +93,10 @@ disclosure.
 | Event | Attributes | Fires |
 |---|---|---|
 | `onboarding.step_viewed` | `step` | Each step shown: Welcome on a fresh entry, and every move forward or back between steps |
-| `onboarding.auth_selected` | `method` (guest), `returning` | Get started and Skip and start logging (`guest`, false); a stranded anonymous session adopted at entry (`guest`, true). Returning users sign in from Welcome's link, whose flow does not fire this |
-| `onboarding.completed` | `duration_sec`, `account_ready`, `preset` (key), `took_recommendation`, `skipped_all` | Once, when Start or Skip all first saves the mode, before the account step or Today. `account_ready` false means guest creation had not landed in time. `took_recommendation` is false on skip all, where nothing was recommended on screen. Coming back from the account step and starting again does not fire it twice |
-| `onboarding.account_choice` | `choice` (`phone`, `google`, `apple`, `email`) | When someone leaves the optional account step: Keep it on this phone, a successful Google or Apple link onto the guest, or the hand-off to email sign-up |
-| `onboarding.abandoned` | `step` | `onCleared` before the mode was ever saved. A process kill never gets here |
+| `onboarding.auth_selected` | `method` (`apple`, `google`), `returning` | A successful sign-in on the sign-in step. `returning` false is a new account, which goes on to the questions; true is an account that already existed (straight to Today) or a guest from an older build linking onto their log. Email sign-in runs on its own screens and does not fire this |
+| `onboarding.sign_in_failed` | `method`, `reason` (`offline`, `not_enabled`, `in_use`, `failed`) | A sign-in on the sign-in step that came back with an error. A dismissed Apple sheet or a cancelled browser is not a failure |
+| `onboarding.completed` | `duration_sec`, `preset` (key), `took_recommendation` | Once, when Start or the last setup step saves the mode, just before Today. Before accounts were required it also carried `account_ready` and `skipped_all` |
+| `onboarding.abandoned` | `step` | `onCleared` before the mode was saved or the person left for Today. A process kill never gets here |
 
 ### Modes and the pause
 

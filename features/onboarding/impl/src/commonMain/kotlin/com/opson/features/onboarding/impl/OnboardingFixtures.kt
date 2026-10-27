@@ -50,7 +50,7 @@ object OnboardingFixtures {
     fun policy(preset: PresetId): VisibilityPolicy =
         VisibilityPolicy(NumbersSettings(preset = preset), Clock.fixed(NOW), TimeZone.UTC)
 
-    /** On iOS, where Sign in with Apple puts "Have an account? Sign in" under the buttons. */
+    /** On iOS, as the design draws it. Welcome looks the same on Android. */
     fun welcome(): OnboardingState = OnboardingState(appleEnabled = true).withRecommendation()
 
     fun question(question: SetupQuestion, answers: SetupAnswers = SetupAnswers()): OnboardingState =
@@ -97,15 +97,23 @@ object OnboardingFixtures {
         goalsAndEnergy = goalsAndEnergy,
     ).withRecommendation().withViews(policy)
 
-    /** The account step after the design's answers, the guest saved. Apple shows on iOS only. */
-    fun account(
+    /**
+     * The sign-in step after Welcome. Apple shows on iOS only. [guest] is someone from a build
+     * where accounts were optional; [conflict] is their link hitting an account that exists.
+     */
+    fun signIn(
         appleEnabled: Boolean = false,
+        guest: Boolean = false,
+        inFlight: AccountMethod? = null,
         error: OnboardingAccountError? = null,
+        conflict: AccountMethod? = null,
     ): OnboardingState = OnboardingState(
-        step = OnboardingStep.Account,
-        answers = DesignAnswers,
-        creationStarted = true,
+        step = OnboardingStep.SignIn,
         appleEnabled = appleEnabled,
-        accountError = error,
+        guest = guest,
+        signInOnly = guest,
+        accountInFlight = inFlight,
+        accountError = if (conflict != null) OnboardingAccountError.AccountInUse else error,
+        conflict = conflict,
     ).withRecommendation()
 }

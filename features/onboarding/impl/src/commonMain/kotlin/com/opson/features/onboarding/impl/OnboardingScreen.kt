@@ -86,25 +86,18 @@ import opson.libraries.resources.generated.resources.auth_error_network
 import opson.libraries.resources.generated.resources.auth_error_provider_not_enabled
 import opson.libraries.resources.generated.resources.common_back
 import opson.libraries.resources.generated.resources.onboarding_account_apple
-import opson.libraries.resources.generated.resources.onboarding_account_body
 import opson.libraries.resources.generated.resources.onboarding_account_email
 import opson.libraries.resources.generated.resources.onboarding_account_export
 import opson.libraries.resources.generated.resources.onboarding_account_failed
 import opson.libraries.resources.generated.resources.onboarding_account_google
 import opson.libraries.resources.generated.resources.onboarding_account_google_mark
-import opson.libraries.resources.generated.resources.onboarding_account_in_use
-import opson.libraries.resources.generated.resources.onboarding_account_keep
-import opson.libraries.resources.generated.resources.onboarding_account_later
-import opson.libraries.resources.generated.resources.onboarding_account_opening_browser
 import opson.libraries.resources.generated.resources.onboarding_account_private
-import opson.libraries.resources.generated.resources.onboarding_account_title
 import opson.libraries.resources.generated.resources.onboarding_account_waiting_for_apple
 import opson.libraries.resources.generated.resources.onboarding_all_modes
 import opson.libraries.resources.generated.resources.onboarding_continue
 import opson.libraries.resources.generated.resources.onboarding_feel_footnote
 import opson.libraries.resources.generated.resources.onboarding_finishing
 import opson.libraries.resources.generated.resources.onboarding_get_started
-import opson.libraries.resources.generated.resources.onboarding_have_account
 import opson.libraries.resources.generated.resources.onboarding_plan_free
 import opson.libraries.resources.generated.resources.onboarding_plan_free_includes
 import opson.libraries.resources.generated.resources.onboarding_progress
@@ -116,14 +109,20 @@ import opson.libraries.resources.generated.resources.onboarding_reco_kicker
 import opson.libraries.resources.generated.resources.onboarding_reco_or
 import opson.libraries.resources.generated.resources.onboarding_reco_see
 import opson.libraries.resources.generated.resources.onboarding_see_starting_point
-import opson.libraries.resources.generated.resources.onboarding_sign_in
+import opson.libraries.resources.generated.resources.onboarding_sign_in_body
+import opson.libraries.resources.generated.resources.onboarding_sign_in_guest_body
+import opson.libraries.resources.generated.resources.onboarding_sign_in_guest_title
+import opson.libraries.resources.generated.resources.onboarding_sign_in_in_use
+import opson.libraries.resources.generated.resources.onboarding_sign_in_title
+import opson.libraries.resources.generated.resources.onboarding_sign_in_use_that
+import opson.libraries.resources.generated.resources.onboarding_sign_in_waiting_for_google
 import opson.libraries.resources.generated.resources.onboarding_skip
-import opson.libraries.resources.generated.resources.onboarding_skip_all
 import opson.libraries.resources.generated.resources.onboarding_start_with
 import opson.libraries.resources.generated.resources.onboarding_statement_body
 import opson.libraries.resources.generated.resources.onboarding_statement_quote
 import opson.libraries.resources.generated.resources.onboarding_talk_to_someone
 import opson.libraries.resources.generated.resources.onboarding_welcome_body
+import opson.libraries.resources.generated.resources.onboarding_welcome_next
 import opson.libraries.resources.generated.resources.onboarding_welcome_not_medical
 import opson.libraries.resources.generated.resources.onboarding_welcome_subtitle
 import opson.libraries.resources.generated.resources.onboarding_welcome_title
@@ -156,9 +155,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * Onboarding (design v3, 1.1 to 1.6): Welcome and the plan, three questions, the optional
- * statement, the starting mode and the optional account step. All routing lives in
- * [OnboardingViewModel]; this is a pure render of the state. It shows no nutrition numbers.
+ * Onboarding (design v3, 1.1 to 1.6, with sign-in moved to the front when accounts became
+ * required): Welcome and the plan, sign in, three questions, the optional statement and the
+ * starting mode. All routing lives in [OnboardingViewModel]; this is a pure render of the state.
+ * It shows no nutrition numbers.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -177,12 +177,12 @@ fun OnboardingScreen(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (val step = state.step) {
                 OnboardingStep.Welcome -> WelcomeStep(state, onAction)
+                OnboardingStep.SignIn -> SignInStep(state, onAction)
                 is OnboardingStep.Question -> QuestionStep(state, step.question, onAction)
                 OnboardingStep.Recommendation -> RecommendationStep(state, onAction)
                 OnboardingStep.Goal -> GoalStep(state, onAction)
                 OnboardingStep.Body -> BodyStep(state, onAction)
                 OnboardingStep.Meals -> MealsStep(state, onAction)
-                OnboardingStep.Account -> AccountStep(state, onAction)
             }
         }
     }
@@ -250,22 +250,15 @@ private fun WelcomeStep(
             ) {
                 Text(stringResource(Res.string.onboarding_get_started))
             }
-            Spacer(Modifier.height(Dimension.D100))
-            ButtonGhost(
-                onClick = { onAction(OnboardingAction.SkipAllTapped) },
-                enabled = !busy,
+            Spacer(Modifier.height(Dimension.D500))
+            Text(
+                text = stringResource(Res.string.onboarding_welcome_next),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    stringResource(
-                        if (state.isFinishing) Res.string.onboarding_finishing else Res.string.onboarding_skip_all,
-                    ),
-                )
-            }
-            if (state.canSignIn) {
-                SignInLink(enabled = !busy, onClick = { onAction(OnboardingAction.SignInTapped) })
-            }
-            Spacer(Modifier.height(Dimension.D300))
+            )
+            Spacer(Modifier.height(Dimension.D700))
         }
     }
 }
@@ -312,31 +305,6 @@ private fun PlanRow(name: String, includes: String) {
 }
 
 private const val PLAN_NAME_WEIGHT = 0.36f
-
-/** "Have an account? Sign in", one 48 dp target. Returning users take the existing sign-in flow. */
-@Composable
-private fun SignInLink(enabled: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .defaultMinSize(minHeight = MinTouchTarget)
-            .semantics(mergeDescendants = true) { role = Role.Button }
-            .bounceClick(enabled = enabled, scaleDown = 0.97f, onClick = onClick),
-        horizontalArrangement = Arrangement.spacedBy(Dimension.D100, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(Res.string.onboarding_have_account),
-            typography = AppTheme.type.body,
-            color = AppTheme.colors.muted,
-        )
-        Text(
-            text = stringResource(Res.string.onboarding_sign_in),
-            typography = AppTheme.type.bodyBold,
-            color = AppTheme.colors.accent,
-        )
-    }
-}
 
 // ---------- Questions and the statement ----------
 
@@ -811,31 +779,32 @@ private fun MealTimeRow(label: String, time: String, enabled: Boolean, onClick: 
     }
 }
 
-// ---------- Account ----------
+// ---------- Sign in ----------
 
 /**
- * The optional last step: claim the guest so logs and settings survive a new phone. Apple on iOS,
- * Google, then email; "Keep it on this phone" is a normal answer.
+ * Required, straight after Welcome: Apple on iOS, Google, then email when it is on. A guest from
+ * an older build reads that signing in keeps what they logged, and, if the account they picked
+ * already has its own log, can sign in to it instead.
  */
 @Composable
-private fun ColumnScope.AccountStep(
+private fun ColumnScope.SignInStep(
     state: OnboardingState,
     onAction: (OnboardingAction) -> Unit,
 ) {
-    val enabled = state.canClaim
+    val enabled = state.canTapSignIn
 
     OnboardingTopBar(canGoBack = state.canGoBack, onAction = onAction)
 
     ScrollingBody {
         Text(
-            text = stringResource(Res.string.onboarding_account_title),
+            text = stringResource(if (state.guest) Res.string.onboarding_sign_in_guest_title else Res.string.onboarding_sign_in_title),
             typography = AppTheme.type.subH1,
             color = AppTheme.colors.ink,
             modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.height(Dimension.D500))
         Text(
-            text = stringResource(Res.string.onboarding_account_body),
+            text = stringResource(if (state.guest) Res.string.onboarding_sign_in_guest_body else Res.string.onboarding_sign_in_body),
             typography = AppTheme.type.lead,
             color = AppTheme.colors.inkSoft,
         )
@@ -852,32 +821,39 @@ private fun ColumnScope.AccountStep(
                         },
                     ),
                     enabled = enabled,
-                    onClick = { onAction(OnboardingAction.SaveWithAppleTapped) },
+                    onClick = { onAction(OnboardingAction.SignInWithAppleTapped) },
                 )
             }
-            if (SignInMethods.GOOGLE) {
-                AccountButton(
-                    label = stringResource(
-                        if (state.accountInFlight == AccountMethod.Google) {
-                            Res.string.onboarding_account_opening_browser
-                        } else {
-                            Res.string.onboarding_account_google
-                        },
-                    ),
-                    enabled = enabled,
-                    onClick = { onAction(OnboardingAction.SaveWithGoogleTapped) },
-                    leading = { GoogleMark() },
-                )
-            }
+            AccountButton(
+                label = stringResource(
+                    if (state.accountInFlight == AccountMethod.Google) {
+                        Res.string.onboarding_sign_in_waiting_for_google
+                    } else {
+                        Res.string.onboarding_account_google
+                    },
+                ),
+                enabled = enabled,
+                onClick = { onAction(OnboardingAction.SignInWithGoogleTapped) },
+                leading = { GoogleMark() },
+            )
             if (SignInMethods.EMAIL) {
                 AccountButton(
                     label = stringResource(Res.string.onboarding_account_email),
                     enabled = enabled,
-                    onClick = { onAction(OnboardingAction.SaveWithEmailTapped) },
+                    onClick = { onAction(OnboardingAction.SignInWithEmailTapped) },
                     leading = { Icon(icon = AppIcons.Mail, size = IconGlyph, color = AppTheme.colors.ink) },
                 )
             }
             state.accountError?.let { AccountErrorText(it) }
+            if (state.conflict != null) {
+                ButtonGhost(
+                    onClick = { onAction(OnboardingAction.UseThatAccountTapped) },
+                    enabled = enabled,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(Res.string.onboarding_sign_in_use_that))
+                }
+            }
         }
 
         Spacer(Modifier.height(Dimension.D700))
@@ -890,28 +866,6 @@ private fun ColumnScope.AccountStep(
             IconLine(AppIcons.Download, AppTheme.colors.accent, stringResource(Res.string.onboarding_account_export))
             // Sharing with a coach is coming-later work; 0.1 doesn't mention it.
         }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PagePadding)
-            .padding(top = Dimension.D300, bottom = Dimension.D700),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        ButtonGhost(
-            onClick = { onAction(OnboardingAction.KeepOnPhoneTapped) },
-            enabled = enabled,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(stringResource(Res.string.onboarding_account_keep))
-        }
-        Text(
-            text = stringResource(Res.string.onboarding_account_later),
-            typography = AppTheme.type.secondary,
-            color = AppTheme.colors.muted,
-            textAlign = TextAlign.Center,
-        )
     }
 }
 
@@ -957,7 +911,7 @@ private fun AccountErrorText(error: OnboardingAccountError) {
     Text(
         text = stringResource(
             when (error) {
-                OnboardingAccountError.AccountInUse -> Res.string.onboarding_account_in_use
+                OnboardingAccountError.AccountInUse -> Res.string.onboarding_sign_in_in_use
                 OnboardingAccountError.ProviderNotEnabled -> Res.string.auth_error_provider_not_enabled
                 OnboardingAccountError.Offline -> Res.string.auth_error_network
                 OnboardingAccountError.Failed -> Res.string.onboarding_account_failed
@@ -974,7 +928,7 @@ private fun AccountErrorText(error: OnboardingAccountError) {
 /** Icon glyphs on these steps are 24 dp, as Material draws them. */
 private val IconGlyph = Dimension.D900
 
-/** An icon and one line of body text, as the preview cards and the account card list them. */
+/** An icon and one line of body text, as the preview cards and the sign-in card list them. */
 @Composable
 private fun IconLine(icon: IconResource, iconColor: ColorResource, text: String) {
     Row(
@@ -1255,17 +1209,42 @@ private fun OnboardingMealTimesDarkPreview() = OnboardingPreview(OnboardingFixtu
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun OnboardingAccountPreview() = OnboardingPreview(OnboardingFixtures.account())
+private fun OnboardingSignInPreview() = OnboardingPreview(OnboardingFixtures.signIn())
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun OnboardingAccountDarkPreview() = OnboardingPreview(OnboardingFixtures.account(), darkTheme = true)
+private fun OnboardingSignInDarkPreview() = OnboardingPreview(OnboardingFixtures.signIn(appleEnabled = true), darkTheme = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun OnboardingAccountIosPreview() = OnboardingPreview(OnboardingFixtures.account(appleEnabled = true))
+private fun OnboardingSignInIosPreview() = OnboardingPreview(OnboardingFixtures.signIn(appleEnabled = true))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun OnboardingAccountInUsePreview() =
-    OnboardingPreview(OnboardingFixtures.account(error = OnboardingAccountError.AccountInUse))
+private fun OnboardingSignInWaitingForApplePreview() =
+    OnboardingPreview(OnboardingFixtures.signIn(appleEnabled = true, inFlight = AccountMethod.Apple))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingSignInWaitingForGooglePreview() =
+    OnboardingPreview(OnboardingFixtures.signIn(appleEnabled = true, inFlight = AccountMethod.Google))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingSignInOfflinePreview() =
+    OnboardingPreview(OnboardingFixtures.signIn(appleEnabled = true, error = OnboardingAccountError.Offline))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingSignInLargeTextPreview() =
+    OnboardingPreview(OnboardingFixtures.signIn(appleEnabled = true), largeText = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingSignInGuestPreview() = OnboardingPreview(OnboardingFixtures.signIn(appleEnabled = true, guest = true))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingSignInGuestInUsePreview() = OnboardingPreview(
+    OnboardingFixtures.signIn(appleEnabled = true, guest = true, conflict = AccountMethod.Apple),
+)
