@@ -40,16 +40,34 @@ nothing to keep in sync by hand:
   privacy page puts `src/content/site-privacy.md` above the app policy. That
   wording stays in `website/` because editing `legal/` publishes to
   nightjarlabs.llc through the legal-sync workflow.
-- The home page uses the App Store screenshots in
-  `docs/app-store/screenshots/` and one design image,
-  `docs/design/v3/support.png`, cropped to its export and delete buttons.
-  Astro resizes them to WebP at 1x and 2x when it builds.
+
+The phone shots in `src/assets/screens/` are copies, so they go stale when the
+app changes. Each is a light-theme Compose preview rendered by
+`./gradlew :apps:screenshots:recordRoborazziDebug` (390x844 pt at 3x, into
+`apps/screenshots/build/outputs/roborazzi/`), with a 177 px strip added on top
+in the image's top-left colour and a 102 px strip at the bottom in its
+bottom-left colour, so the rounded frame doesn't cut into the app. The previews
+they come from:
+
+| Shot             | Preview render                               |
+| ---------------- | -------------------------------------------- |
+| `today-full`     | `today-previews__today-full`                 |
+| `today-blind`    | `today-previews__today-no-numbers-light`     |
+| `search`         | `search-preview__full-light`                 |
+| `describe`       | `logger-previews__logger-describe`           |
+| `targets-by-day` | `targets-screen__targets-by-day`             |
+| `modes`          | `modes-screen__modes`                        |
+| `trends`         | `trends-previews__trends`                    |
+| `support`        | `support-screen__support`                    |
+
+Astro resizes them to WebP at 1x and 2x when it builds.
 
 The layout borrows cronometer.com's shape: a dark band with the headline, the
 form and a phone, then one colored block per feature. The colors are the
-app's: Pine's dark green for the band, the first app icon's clay (`#A4512D`) as the
-accent, and the four meal colors for the blocks. `global.css` lists the
-contrast of every text pair. The site is light only.
+app's (`Slate.kt`): its ink (`#18202E`) for the band, the orange accent
+(`#A3500A`, and the lighter `#F7924A` for buttons on the band), the logo's teal
+bowl as the second color, and the four meal colors for the blocks. `global.css`
+lists the contrast of every text pair. The site is light only.
 
 ## The waitlist
 
