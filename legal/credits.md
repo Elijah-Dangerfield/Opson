@@ -22,10 +22,16 @@ to them. They are estimates and can be wrong.
   Individual contents of the database are available under the
   [Database Contents License](https://opendatacommons.org/licenses/dbcl/1-0/).
 
-## Typeface
+## Typefaces
 
 **Atkinson Hyperlegible Next**, by the Braille Institute of America. Copyright
 2020-2024 The Atkinson Hyperlegible Next Project Authors. Licensed under the
+[SIL Open Font License, Version 1.1](https://openfontlicense.org/).
+
+**Young Serif**, by Bastien Sozeau, sets the Opson wordmark. Copyright 2023
+The Young Serif Project Authors
+([github.com/noirblancrouge/YoungSerif](https://github.com/noirblancrouge/YoungSerif)).
+Licensed under the
 [SIL Open Font License, Version 1.1](https://openfontlicense.org/).
 
 ## Open-source software
