@@ -9,7 +9,7 @@ import androidx.navigation.toRoute
 import com.opson.features.foods.AddFoodRoute
 import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.FoodsRoute
-import com.opson.features.logger.LoggerRoute
+import com.opson.features.logger.FoodSearchRoute
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.ObserveEvents
@@ -67,7 +67,7 @@ class FoodsFeatureEntryPoint(
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    is CreateMealEvent.OpenPicker -> router.navigate(LoggerRoute(pickForMeal = event.requestId))
+                    is CreateMealEvent.OpenPicker -> router.navigate(FoodSearchRoute(pickForMeal = event.requestId))
                     is CreateMealEvent.ShowToast -> show(event.toast)
                     CreateMealEvent.Close -> router.goBack()
                 }

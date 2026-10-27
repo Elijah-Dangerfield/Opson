@@ -1,5 +1,6 @@
 package com.opson.features.foods.impl
 
+import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -107,7 +108,7 @@ class FoodsTabTest : CoroutineTest() {
 
         vm.takeAction(FoodsAction.SearchTapped)
 
-        assertEquals(listOf<FoodsEvent>(FoodsEvent.OpenLogger(LoggerRoute(focusSearch = true))), events)
+        assertEquals(listOf<FoodsEvent>(FoodsEvent.OpenLogger(FoodSearchRoute())), events)
     }
 
     @Test
