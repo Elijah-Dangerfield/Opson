@@ -63,8 +63,10 @@ class CompareViewModel(
             is CompareAction.SliderMoved -> change(action) { copy(sliderAt = action.at.coerceIn(0f, 1f)) }
             is CompareAction.NoteTyped -> {
                 val rightId = state.right?.id ?: return
-                change(action) { copy(note = action.text) }
-                write("Couldn't save a progress photo note") { photos.setNote(rightId, action.text.take(NOTE_LIMIT)) }
+                // The field holds only what is kept, so nothing typed past the limit looks saved.
+                val note = action.text.take(NOTE_LIMIT)
+                change(action) { copy(note = note) }
+                write("Couldn't save a progress photo note") { photos.setNote(rightId, note) }
             }
             CompareAction.MenuTapped -> change(action) { copy(menuOpen = true) }
             CompareAction.MenuDismissed -> change(action) { copy(menuOpen = false) }

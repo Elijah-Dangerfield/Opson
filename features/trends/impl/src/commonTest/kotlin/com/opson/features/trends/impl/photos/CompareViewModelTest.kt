@@ -126,6 +126,16 @@ class CompareViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aNotePastTheLimit_showsOnlyWhatIsKept() = runUnitTest {
+        val vm = vm()
+
+        vm.takeAction(CompareAction.NoteTyped("a".repeat(300)))
+
+        assertEquals(280, vm.state.note.length, "the field never shows more than is saved")
+        assertEquals(vm.state.note, photos.notes["oct25-front"])
+    }
+
+    @Test
     fun aWriteThatFails_leavesThePageWorking() = runUnitTest {
         val vm = vm()
         val events = events(vm)
