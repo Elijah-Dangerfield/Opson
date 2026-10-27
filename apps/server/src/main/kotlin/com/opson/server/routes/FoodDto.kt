@@ -77,8 +77,15 @@ data class PhotoDescribeRequest(val image: String? = null, val note: String? = n
  * it with precision `estimate`. `confidence` is `high`, `medium` or `low`.
  * `foodId` (and the nutrient fields) are null when nothing in the catalog
  * matched; `grams` is then only set for a mass unit. Nutrients are for the
- * whole item, not per 100 g. `unit` is null or one of `g`, `kg`, `oz`, `cup`,
- * `tbsp`, `tsp`, `slice`, `piece`, `plate`, `bowl`, `serving`.
+ * whole item, not per 100 g. `quantity` counts `portionLabel` when there is
+ * one ("2" of "1 tablespoon"), otherwise what was said. `unit` is null or one
+ * of `g`, `kg`, `oz`, `lb`, `ml`, `fl oz`, `cup`, `tbsp`, `tsp`, `slice`,
+ * `piece`, `strip`, `link`, `patty`, `bar`, `scoop`, `glass`, `mug`, `can`,
+ * `bottle`, `handful`, `packet`, `container`, `plate`, `bowl`, `serving`.
+ *
+ * Added in 0.2, ignored by 0.1: `food` is the matched food in full, with its
+ * portions, so the app can change the amount on the spot; `alternatives` are
+ * the next best foods for the same words, so a wrong guess is one tap away.
  */
 @Serializable
 data class DescribedItemDto(
@@ -97,6 +104,8 @@ data class DescribedItemDto(
     val fiber: Double? = null,
     val micros: Map<String, Double>? = null,
     val confidence: String,
+    val food: FoodResponse? = null,
+    val alternatives: List<FoodResponse> = emptyList(),
 )
 
 fun Nutrients.toDto(): NutrientsDto = NutrientsDto(kcal, protein, carbs, fat, fiber)
@@ -130,4 +139,6 @@ fun DescribedItem.toDto(): DescribedItemDto = DescribedItemDto(
     fiber = nutrients?.fiber,
     micros = micros,
     confidence = confidence.wire,
+    food = food?.toResponse(),
+    alternatives = alternatives.map { it.toResponse() },
 )

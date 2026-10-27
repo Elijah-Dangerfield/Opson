@@ -41,7 +41,7 @@ class PhotoDescriberTest {
         ).items
         assertEquals(listOf(broccoli.id, oil.id), items.map { it.foodId })
         assertEquals(312.0, items[0].grams)
-        assertEquals("2 cup", items[0].amountText)
+        assertEquals("2 cups", items[0].amountText)
         assertEquals("1 tbsp", items[1].portionLabel)
         assertEquals(DescribeUnit.Tablespoon, items[1].unit)
     }
