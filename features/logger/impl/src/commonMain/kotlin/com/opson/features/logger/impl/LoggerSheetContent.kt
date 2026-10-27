@@ -61,7 +61,6 @@ import opson.libraries.resources.generated.resources.adding_action_describe
 import opson.libraries.resources.generated.resources.adding_action_fasting
 import opson.libraries.resources.generated.resources.adding_action_note
 import opson.libraries.resources.generated.resources.adding_action_photo
-import opson.libraries.resources.generated.resources.adding_action_quick
 import opson.libraries.resources.generated.resources.adding_action_saved
 import opson.libraries.resources.generated.resources.adding_action_say
 import opson.libraries.resources.generated.resources.adding_action_scan
@@ -295,7 +294,6 @@ private fun AddAction.tile(): Tile {
             LoggerAction.CopyMealTapped,
             description = stringResource(Res.string.adding_action_copy_cd, stringResource(slot.sentenceName)),
         )
-        AddAction.QuickAdd -> Tile(stringResource(Res.string.adding_action_quick), AppIcons.Dialpad, food, LoggerAction.QuickAddTapped)
         AddAction.Water -> Tile(stringResource(Res.string.adding_action_water), AppIcons.WaterDrop, body, LoggerAction.WaterTapped)
         AddAction.WeighIn -> Tile(stringResource(Res.string.adding_action_weigh), AppIcons.MonitorWeight, body, LoggerAction.WeighInTapped)
         AddAction.Note -> Tile(stringResource(Res.string.adding_action_note), AppIcons.EditNote, note, LoggerAction.NoteTapped)

@@ -100,7 +100,7 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(
             listOf(
                 AddAction.SearchFood, AddAction.ScanBarcode, AddAction.Photo, AddAction.SayOrType(voice = true), AddAction.SavedMeals,
-                AddAction.CopyMeal(MealSlot.Dinner), AddAction.QuickAdd, AddAction.Water, AddAction.WeighIn, AddAction.Note,
+                AddAction.CopyMeal(MealSlot.Dinner), AddAction.Water, AddAction.WeighIn, AddAction.Note,
                 AddAction.AteNoDetails, AddAction.Fasting,
             ),
             vm.state.actions,
@@ -119,17 +119,6 @@ class LoggerViewModelTest : CoroutineTest() {
         vm.takeAction(LoggerAction.PhotoTapped)
         settle()
         assertTrue(events.isEmpty())
-    }
-
-    @Test
-    fun quickAddIsNotOfferedWhenCaloriesAreHidden() = runUnitTest {
-        policySource.policy.value = policy(PresetId.NoNumbers)
-        val vm = vm()
-        settle()
-
-        assertFalse(AddAction.QuickAdd in vm.state.actions)
-        vm.takeAction(LoggerAction.QuickAddTapped)
-        assertEquals(LoggerPane.Actions, vm.state.pane)
     }
 
     @Test
@@ -317,11 +306,6 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(LoggerPane.Saved, vm.state.pane)
         vm.takeAction(LoggerAction.BackTapped)
 
-        vm.takeAction(LoggerAction.QuickAddTapped)
-        assertEquals(LoggerPane.Describe, vm.state.pane)
-        assertTrue(vm.state.describe.focusNumber)
-        vm.takeAction(LoggerAction.BackTapped)
-
         vm.takeAction(LoggerAction.BackTapped)
         assertEquals(listOf<LoggerEvent>(LoggerEvent.Dismiss), events, "back on the grid closes the sheet")
     }
@@ -329,11 +313,9 @@ class LoggerViewModelTest : CoroutineTest() {
     @Test
     fun eachStartOpensItsPaneFullHeight() = runUnitTest {
         assertEquals(LoggerPane.Saved, vm(LoggerRoute(slot = MealSlot.Lunch, start = LoggerStart.Saved)).state.pane)
-        val number = vm(LoggerRoute(slot = MealSlot.Lunch, start = LoggerStart.Number))
-        assertEquals(LoggerPane.Describe, number.state.pane)
-        assertTrue(number.state.describe.focusNumber)
-        assertEquals(SheetHeight.Full, number.state.height)
-        assertEquals(LoggerPane.Describe, vm(LoggerRoute(start = LoggerStart.Describe)).state.pane)
+        val describe = vm(LoggerRoute(slot = MealSlot.Lunch, start = LoggerStart.Describe))
+        assertEquals(LoggerPane.Describe, describe.state.pane)
+        assertEquals(SheetHeight.Full, describe.state.height)
         assertEquals(SheetHeight.Partial, vm(LoggerRoute()).state.height)
     }
 
@@ -435,10 +417,10 @@ class LoggerViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun quickAddLogsANumberOnItsOwn() = runUnitTest {
+    fun describesNumberLogsOnItsOwn() = runUnitTest {
         val vm = vm()
         val events = events(vm)
-        vm.takeAction(LoggerAction.QuickAddTapped)
+        vm.takeAction(LoggerAction.DescribeItTapped)
 
         vm.takeAction(LoggerAction.NumberTyped("4a50"))
         assertEquals("450", vm.state.describe.number)
@@ -545,11 +527,11 @@ class LoggerViewModelTest : CoroutineTest() {
     fun aDifferentModeRebuildsWithoutReopening() = runUnitTest {
         val vm = vm()
         settle()
-        assertTrue(AddAction.QuickAdd in vm.state.actions)
+        assertTrue(vm.state.describe.canNumber)
 
         policySource.policy.value = policy(PresetId.NoNumbers)
         settle()
 
-        assertFalse(AddAction.QuickAdd in vm.state.actions)
+        assertFalse(vm.state.describe.canNumber)
     }
 }

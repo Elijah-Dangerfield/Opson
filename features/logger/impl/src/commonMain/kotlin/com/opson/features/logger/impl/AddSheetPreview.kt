@@ -47,7 +47,7 @@ private fun HalfLightPreview() = Sheet(LoggerFixtures.sheetState(full), dark = f
 @Composable
 private fun FlagsOffPreview() = Sheet(LoggerFixtures.sheetState(full, flags = false, settings = Settings()))
 
-/** Blind: Quick add goes (a number is a calorie entry), Recent shows no energy. */
+/** Blind: Recent shows no energy. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun BlindExpandedPreview() = Sheet(LoggerFixtures.sheetState(blind, height = SheetHeight.Full))

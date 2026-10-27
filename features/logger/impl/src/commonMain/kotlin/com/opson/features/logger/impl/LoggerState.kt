@@ -58,8 +58,6 @@ sealed interface AddAction {
     /** Copies yesterday's [slot]: only when yesterday has one. */
     data class CopyMeal(val slot: MealSlot) : AddAction
 
-    /** "Just a number": a calorie entry, so never when calories are hidden. */
-    data object QuickAdd : AddAction
     data object Water : AddAction
     data object WeighIn : AddAction
     data object Note : AddAction
@@ -84,7 +82,6 @@ data class DescribeUi(
     /** "Or just a number" is a calorie entry, so it is not offered when calories are hidden. */
     val canNumber: Boolean = false,
     val number: String = "",
-    val focusNumber: Boolean = false,
     /** The mic and what it is doing; null with `release.voice` off. */
     val voice: VoiceUi? = null,
 )
@@ -141,7 +138,6 @@ sealed interface LoggerAction {
     data object DescribeItTapped : LoggerAction
     data object SavedMealsTapped : LoggerAction
     data object CopyMealTapped : LoggerAction
-    data object QuickAddTapped : LoggerAction
     data object WaterTapped : LoggerAction
     data object WeighInTapped : LoggerAction
     data object NoteTapped : LoggerAction

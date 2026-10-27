@@ -93,7 +93,6 @@ class LoggerViewModel(
             height = route.openingHeight,
             // The nav + names no meal: the picker chooses from this person's logging times.
             slotChosen = route.slot != null,
-            focusNumber = route.start == LoggerStart.Number,
             scanAvailable = scanEnabled(),
             photoAvailable = photoEnabled(),
             voiceEnabled = voice.enabled(),
@@ -146,13 +145,10 @@ class LoggerViewModel(
             LoggerAction.SearchFoodTapped -> sendEvent(LoggerEvent.OpenSearch(day, slot()))
             LoggerAction.BarcodeTapped -> if (model.choices.scanAvailable) sendEvent(LoggerEvent.OpenScanner(day, slot()))
             LoggerAction.PhotoTapped -> if (model.choices.photoAvailable) sendEvent(LoggerEvent.OpenPhoto(day, slot()))
-            LoggerAction.DescribeItTapped -> action.choose { copy(pane = LoggerPane.Describe, focusNumber = false, height = SheetHeight.Full) }
+            LoggerAction.DescribeItTapped -> action.choose { copy(pane = LoggerPane.Describe, height = SheetHeight.Full) }
             LoggerAction.SavedMealsTapped -> action.choose { copy(pane = LoggerPane.Saved, height = SheetHeight.Full) }
             is LoggerAction.SavedMealPicked -> logSavedMeal(action.id)
             LoggerAction.CopyMealTapped -> copyYesterday()
-            LoggerAction.QuickAddTapped -> if (model.policy.level(Metric.Calories) != Visibility.Hide) {
-                action.choose { copy(pane = LoggerPane.Describe, focusNumber = true, height = SheetHeight.Full) }
-            }
             LoggerAction.WaterTapped -> addWater()
             LoggerAction.WeighInTapped -> sendEvent(LoggerEvent.OpenWeighIn)
             LoggerAction.NoteTapped -> {
@@ -329,7 +325,6 @@ class LoggerViewModel(
                         describeStatus = DescribeStatus.Idle,
                         review = DescribeReview(),
                         number = "",
-                        focusNumber = false,
                         voice = VoiceCapture.Idle(),
                     )
                 }
@@ -687,7 +682,7 @@ private val LoggerRoute.openingPane: LoggerPane
         prePickSavedMealId != null -> LoggerPane.Saved
         else -> when (start) {
             LoggerStart.Actions -> LoggerPane.Actions
-            LoggerStart.Describe, LoggerStart.Number -> LoggerPane.Describe
+            LoggerStart.Describe -> LoggerPane.Describe
             LoggerStart.Saved -> LoggerPane.Saved
         }
     }
