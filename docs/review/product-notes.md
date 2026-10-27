@@ -6,6 +6,15 @@ reviewer was. Already fixed during the review: goal styles now reach Today and
 Close the day, the feedback counter turns ink at the cap, and Recent no longer
 counts quick numbers.
 
+## Before 0.1 is released
+
+- **Prod's early tables have no row level security.** Profiles, player
+  reports and the four app config tables are readable and writable with the
+  app's public Supabase key, so anyone who pulls the key out of the released
+  app could read display names or flip release flags for everyone. V19 fixes
+  it; dev gets it on the next deploy, prod needs the command in
+  `docs/HANDOFF.md`. *Confirmed on prod, read-only, 2026-10-26.*
+
 ## Before 0.2 ships
 
 - **There's no remote kill switch or forced upgrade.** The admin flags and
@@ -13,7 +22,12 @@ counts quick numbers.
   a maintenance screen. Worth a small client gate soon. *Sure.*
 - **Open Food Facts answers are cached into our own `foods` table** when a
   barcode misses, while the importer keeps ODbL data out of it on purpose
-  (share-alike). Needs a licence read. *Medium.*
+  (share-alike). Two ways out: stop caching live answers when the export is
+  on, or cache them into `off_foods`. Either changes what a 0.1 app sees for
+  that food, so it's your call. *Medium.*
+- **Export misses most of what people write:** notes, feelings, check-ins,
+  fasts, custom foods, saved meals and settings aren't in `export.csv`.
+  Someone exporting "my data" expects them. *Sure.*
 - **Times are always 12-hour,** whatever the phone says. Anyone outside the US
   notices on the first meal time. *Sure.*
 - **Signing in with Apple on a fresh install skips setup** and lands on Today
@@ -50,6 +64,10 @@ counts quick numbers.
 
 ## Small polish
 
+- Search still opens on several USDA Branded "Nutella" rows that differ only by
+  rounding; one row per brand would read better. *Fairly sure.*
+- The server now answers a slow database with 503 `busy`; the app could say
+  "Search is slow right now" instead of a generic error. *Medium.*
 - Unit labels repeat their weight ("container (150 g) · 150 g"). *Moderate.*
 - The iOS splash plays 1.5 s on every launch, on top of the boot gate. *Fairly sure.*
 - No store review prompt ever appears; wire it to a good moment or delete it. *Sure.*
