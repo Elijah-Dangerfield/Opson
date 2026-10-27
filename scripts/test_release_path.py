@@ -18,6 +18,7 @@ import unittest
 from pathlib import Path
 
 import store_release_notes
+import verify_release_config
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = ROOT / ".github" / "workflows"
@@ -82,6 +83,56 @@ class StoreReleaseNotesTest(unittest.TestCase):
         release = workflow("release.yml")
         self.assertNotIn("--json body", release)
         self.assertEqual(release.count("python3 -I scripts/store_release_notes.py"), 3, "Play, TestFlight and the App Store")
+
+
+class VerifyReleaseConfigTest(unittest.TestCase):
+    GOOD_SUPABASE = "supabase.prod.projectId=abc\nsupabase.prod.anonKey=sb_publishable_x\n"
+
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root)
+
+    def write(self, name: str, text: str):
+        (self.root / name).write_text(text, encoding="utf-8")
+
+    def test_the_committed_files_pass(self):
+        self.assertEqual(verify_release_config.problems(ROOT, {}), [])
+
+    def test_a_committed_dsn_and_project_pass(self):
+        self.write("telemetry.properties", "# comment\nsentry.dsn=https://key@o1.ingest.sentry.io/2\n")
+        self.write("supabase.properties", self.GOOD_SUPABASE)
+        self.assertEqual(verify_release_config.problems(self.root, {}), [])
+
+    def test_a_blank_dsn_fails(self):
+        self.write("telemetry.properties", "sentry.dsn=\n")
+        self.write("supabase.properties", self.GOOD_SUPABASE)
+        found = verify_release_config.problems(self.root, {})
+        self.assertEqual(len(found), 1)
+        self.assertIn("Sentry DSN", found[0])
+
+    def test_the_dsn_can_come_from_the_environment(self):
+        self.write("supabase.properties", self.GOOD_SUPABASE)
+        self.assertEqual(verify_release_config.problems(self.root, {"SENTRY_DSN": "https://k@o1/2"}), [])
+
+    def test_no_supabase_properties_fails_both_values(self):
+        self.write("telemetry.properties", "sentry.dsn=https://k@o1/2\n")
+        found = verify_release_config.problems(self.root, {})
+        self.assertEqual(len(found), 2)
+        self.assertTrue(all("supabase" in problem for problem in found))
+
+    def test_the_build_logic_placeholder_fails(self):
+        self.write("telemetry.properties", "sentry.dsn=https://k@o1/2\n")
+        self.write(
+            "supabase.properties",
+            "supabase.prod.projectId=set-supabase-projectId-in-local-properties\nsupabase.prod.anonKey=k\n",
+        )
+        found = verify_release_config.problems(self.root, {})
+        self.assertEqual(len(found), 1)
+        self.assertIn("supabase.prod.projectId", found[0])
+
+    def test_every_store_build_runs_it(self):
+        for path in (WORKFLOWS / "release.yml", WORKFLOWS / "beta.yml", ROOT / "scripts" / "beta_ios.sh"):
+            self.assertIn("scripts/verify_release_config.py", path.read_text(), path.name)
 
 
 class AndroidSentryTest(unittest.TestCase):

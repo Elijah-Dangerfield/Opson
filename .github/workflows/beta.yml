@@ -10,6 +10,7 @@
 # Jobs:
 #   build-number — commit count (`git rev-list --count HEAD`). Monotonic and
 #                  workflow-agnostic, so beta + release never reuse a versionCode.
+#                  Also runs release.yml's release-config guard.
 #   android      — signs the release AAB, uploads to the Play **internal** track.
 #   ios          — builds the IPA and runs `fastlane beta` (TestFlight internal
 #                  only: distribute_external:false, no App Store submit).
@@ -57,6 +58,13 @@ jobs:
         # is re-running beta on the exact same commit twice — land a commit or
         # accept the store rejecting the duplicate.
         run: echo "value=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Guard — a TestFlight or Play build must not ship broken
+        # The same check as release.yml: a TestFlight build is one click from
+        # the App Store. Both platform jobs need this one.
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: python3 -I scripts/verify_release_config.py
 
   android:
     name: Android AAB → Play internal

@@ -132,11 +132,18 @@ else
   warn "no Sentry token, so this build's crashes will arrive unsymbolicated"
 fi
 
+# ── Release config ───────────────────────────────────────────────────────────
+# The checks release.yml and beta.yml run before they build. 0.1.0 and the
+# first 0.2 TestFlight build came from this script, where none of them ran.
+printf "\n"; bold "Release config"
+python3 -I scripts/verify_release_config.py || die "Fix the release config above before building."
+
 # ── The build ────────────────────────────────────────────────────────────────
-# `beta`, the same channel the workflow sets. It decides the environment tag on
-# every event and, through `AdUnits.useTestUnits`, whether the build asks for
-# live ad units or Google's test ones. A local build left on the `dev` default
-# would report under a channel no store build ever uses.
+# `beta`, the same channel the workflow sets. The channel tags telemetry, and a
+# `beta` build keeps the QA menu (isStoreBuild in build-logic, QaGate at run
+# time, which hides it again once the App Store installs the binary). A local
+# build left on the `dev` default would report under a channel no store build
+# ever uses. Set RELEASE_CHANNEL_OVERRIDE=store for a build meant to go on sale.
 export RELEASE_CHANNEL_OVERRIDE="${RELEASE_CHANNEL_OVERRIDE:-beta}"
 
 # Deliberately not exported: CI. Setting it would send the Fastfile down the
