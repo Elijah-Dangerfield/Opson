@@ -906,7 +906,7 @@ private fun OnboardingRecommendationFullPreview() = OnboardingPreview(Onboarding
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingRecommendationBlindPreview() =
-    OnboardingPreview(OnboardingFixtures.recommendation(OnboardingFixtures.HardAnswers, picked = PresetId.Blind))
+    OnboardingPreview(OnboardingFixtures.recommendation(OnboardingFixtures.HardAnswers, picked = PresetId.NoNumbers))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

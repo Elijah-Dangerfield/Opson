@@ -11,30 +11,17 @@ import opson.libraries.resources.generated.resources.onboarding_notice_how_eatin
 import opson.libraries.resources.generated.resources.onboarding_notice_nutrients
 import opson.libraries.resources.generated.resources.onboarding_notice_patterns
 import opson.libraries.resources.generated.resources.onboarding_pick_any
-import opson.libraries.resources.generated.resources.onboarding_preset_blind
-import opson.libraries.resources.generated.resources.onboarding_preset_blind_line
-import opson.libraries.resources.generated.resources.onboarding_preset_coast
-import opson.libraries.resources.generated.resources.onboarding_preset_coast_line
-import opson.libraries.resources.generated.resources.onboarding_preset_delayed
-import opson.libraries.resources.generated.resources.onboarding_preset_delayed_line
-import opson.libraries.resources.generated.resources.onboarding_preset_explorer
-import opson.libraries.resources.generated.resources.onboarding_preset_explorer_line
-import opson.libraries.resources.generated.resources.onboarding_preset_fuel
-import opson.libraries.resources.generated.resources.onboarding_preset_fuel_line
-import opson.libraries.resources.generated.resources.onboarding_preset_full
-import opson.libraries.resources.generated.resources.onboarding_preset_full_line
-import opson.libraries.resources.generated.resources.onboarding_preset_mindful
-import opson.libraries.resources.generated.resources.onboarding_preset_mindful_line
-import opson.libraries.resources.generated.resources.onboarding_preset_nutrient
-import opson.libraries.resources.generated.resources.onboarding_preset_nutrient_line
-import opson.libraries.resources.generated.resources.onboarding_preset_rhythm
-import opson.libraries.resources.generated.resources.onboarding_preset_rhythm_line
-import opson.libraries.resources.generated.resources.onboarding_preset_sprint
-import opson.libraries.resources.generated.resources.onboarding_preset_sprint_line
+import opson.libraries.resources.generated.resources.modes_preset_full
+import opson.libraries.resources.generated.resources.modes_preset_full_line
+import opson.libraries.resources.generated.resources.modes_preset_later
+import opson.libraries.resources.generated.resources.modes_preset_later_line
+import opson.libraries.resources.generated.resources.modes_preset_no_numbers
+import opson.libraries.resources.generated.resources.modes_preset_no_numbers_line
+import opson.libraries.resources.generated.resources.modes_preset_nutrients_first
+import opson.libraries.resources.generated.resources.modes_preset_nutrients_first_line
 import opson.libraries.resources.generated.resources.onboarding_preview_calorie_amounts
 import opson.libraries.resources.generated.resources.onboarding_preview_calories_hidden
 import opson.libraries.resources.generated.resources.onboarding_preview_calories_later
-import opson.libraries.resources.generated.resources.onboarding_preview_calories_weekly
 import opson.libraries.resources.generated.resources.onboarding_preview_carbs_fat_hidden
 import opson.libraries.resources.generated.resources.onboarding_preview_energy_word
 import opson.libraries.resources.generated.resources.onboarding_preview_how_meals_felt
@@ -42,9 +29,7 @@ import opson.libraries.resources.generated.resources.onboarding_preview_macro_am
 import opson.libraries.resources.generated.resources.onboarding_preview_macros_hidden
 import opson.libraries.resources.generated.resources.onboarding_preview_macros_later
 import opson.libraries.resources.generated.resources.onboarding_preview_meal_by_meal
-import opson.libraries.resources.generated.resources.onboarding_preview_meal_checklist
 import opson.libraries.resources.generated.resources.onboarding_preview_meal_count
-import opson.libraries.resources.generated.resources.onboarding_preview_new_foods
 import opson.libraries.resources.generated.resources.onboarding_preview_other_nutrients_hidden
 import opson.libraries.resources.generated.resources.onboarding_preview_protein_fiber_amounts
 import opson.libraries.resources.generated.resources.onboarding_preview_protein_fiber_bars
@@ -107,31 +92,19 @@ internal val SetupOption.label: StringResource
 
 internal val PresetId.label: StringResource
     get() = when (this) {
-        PresetId.Full -> Res.string.onboarding_preset_full
-        PresetId.Delayed -> Res.string.onboarding_preset_delayed
-        PresetId.Blind -> Res.string.onboarding_preset_blind
-        PresetId.Nutrient -> Res.string.onboarding_preset_nutrient
-        PresetId.Rhythm -> Res.string.onboarding_preset_rhythm
-        PresetId.Explorer -> Res.string.onboarding_preset_explorer
-        PresetId.Mindful -> Res.string.onboarding_preset_mindful
-        PresetId.Fuel -> Res.string.onboarding_preset_fuel
-        PresetId.Sprint -> Res.string.onboarding_preset_sprint
-        PresetId.Coast -> Res.string.onboarding_preset_coast
+        PresetId.Full -> Res.string.modes_preset_full
+        PresetId.NutrientsFirst -> Res.string.modes_preset_nutrients_first
+        PresetId.Later -> Res.string.modes_preset_later
+        PresetId.NoNumbers -> Res.string.modes_preset_no_numbers
     }
 
 /** The line under the mode's name on the recommendation step. */
 internal val PresetId.line: StringResource
     get() = when (this) {
-        PresetId.Full -> Res.string.onboarding_preset_full_line
-        PresetId.Delayed -> Res.string.onboarding_preset_delayed_line
-        PresetId.Blind -> Res.string.onboarding_preset_blind_line
-        PresetId.Nutrient -> Res.string.onboarding_preset_nutrient_line
-        PresetId.Rhythm -> Res.string.onboarding_preset_rhythm_line
-        PresetId.Explorer -> Res.string.onboarding_preset_explorer_line
-        PresetId.Mindful -> Res.string.onboarding_preset_mindful_line
-        PresetId.Fuel -> Res.string.onboarding_preset_fuel_line
-        PresetId.Sprint -> Res.string.onboarding_preset_sprint_line
-        PresetId.Coast -> Res.string.onboarding_preset_coast_line
+        PresetId.Full -> Res.string.modes_preset_full_line
+        PresetId.NutrientsFirst -> Res.string.modes_preset_nutrients_first_line
+        PresetId.Later -> Res.string.modes_preset_later_line
+        PresetId.NoNumbers -> Res.string.modes_preset_no_numbers_line
     }
 
 internal val PreviewItem.label: StringResource
@@ -139,7 +112,6 @@ internal val PreviewItem.label: StringResource
         PreviewItem.CalorieAmounts -> Res.string.onboarding_preview_calorie_amounts
         PreviewItem.EnergyWord -> Res.string.onboarding_preview_energy_word
         PreviewItem.CaloriesLater -> Res.string.onboarding_preview_calories_later
-        PreviewItem.CaloriesWeekly -> Res.string.onboarding_preview_calories_weekly
         PreviewItem.CaloriesHidden -> Res.string.onboarding_preview_calories_hidden
         PreviewItem.MacroAmounts -> Res.string.onboarding_preview_macro_amounts
         PreviewItem.ProteinFiberAmounts -> Res.string.onboarding_preview_protein_fiber_amounts
@@ -156,7 +128,5 @@ internal val PreviewItem.label: StringResource
         PreviewItem.WeightTrend -> Res.string.onboarding_preview_weight_trend
         PreviewItem.WeightHidden -> Res.string.onboarding_preview_weight_hidden
         PreviewItem.MealByMeal -> Res.string.onboarding_preview_meal_by_meal
-        PreviewItem.MealChecklist -> Res.string.onboarding_preview_meal_checklist
-        PreviewItem.NewFoods -> Res.string.onboarding_preview_new_foods
         PreviewItem.HowMealsFelt -> Res.string.onboarding_preview_how_meals_felt
     }
