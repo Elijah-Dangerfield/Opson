@@ -135,6 +135,7 @@ sealed interface LoggerAction {
     data object SearchFoodTapped : LoggerAction
     data object BarcodeTapped : LoggerAction
     data object PhotoTapped : LoggerAction
+    /** Opens Describe it; with `release.voice` on it starts listening too, asking for the mic first if it must. */
     data object DescribeItTapped : LoggerAction
     data object SavedMealsTapped : LoggerAction
     data object CopyMealTapped : LoggerAction

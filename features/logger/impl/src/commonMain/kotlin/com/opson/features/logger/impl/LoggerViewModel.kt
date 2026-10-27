@@ -145,7 +145,11 @@ class LoggerViewModel(
             LoggerAction.SearchFoodTapped -> sendEvent(LoggerEvent.OpenSearch(day, slot()))
             LoggerAction.BarcodeTapped -> if (model.choices.scanAvailable) sendEvent(LoggerEvent.OpenScanner(day, slot()))
             LoggerAction.PhotoTapped -> if (model.choices.photoAvailable) sendEvent(LoggerEvent.OpenPhoto(day, slot()))
-            LoggerAction.DescribeItTapped -> action.choose { copy(pane = LoggerPane.Describe, height = SheetHeight.Full) }
+            LoggerAction.DescribeItTapped -> {
+                action.choose { copy(pane = LoggerPane.Describe, height = SheetHeight.Full) }
+                // With voice on the tile is "Say or type it" under a mic, so the tap already asked to listen.
+                if (model.choices.voiceEnabled && !model.choices.voice.busy) micTapped(action)
+            }
             LoggerAction.SavedMealsTapped -> action.choose { copy(pane = LoggerPane.Saved, height = SheetHeight.Full) }
             is LoggerAction.SavedMealPicked -> logSavedMeal(action.id)
             LoggerAction.CopyMealTapped -> copyYesterday()
