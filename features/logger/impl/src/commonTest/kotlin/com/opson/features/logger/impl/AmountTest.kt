@@ -129,6 +129,14 @@ class AmountTest : CoroutineTest() {
         assertEquals(100, percents.sum(), "rounded, protein and carbs make the whole")
     }
 
+    /** A portion has no goal for a soft word to measure against, so a softened macro hides rather than say "Plenty today". */
+    @Test
+    fun aSoftenedMacroHidesOnThePortion() {
+        val portion = assertNotNull(build(withLevel(Metric.Protein, Visibility.Soften)).portion)
+
+        assertEquals(listOf(Metric.Carbs, Metric.Fat), portion.macros.filter { it.metric != Metric.Fiber }.map { it.metric })
+    }
+
     @Test
     fun theUnitMenuShowsEachUnitsWeightAndGramsHasNone() {
         val state = build(policy(PresetId.Full), settings = Settings().withUnit("f:arroz", FoodUnit("my bowl", 420.0)))

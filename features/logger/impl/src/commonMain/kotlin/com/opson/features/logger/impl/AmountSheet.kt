@@ -30,6 +30,7 @@ import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.fromWireKey
+import com.opson.libraries.nutrition.macroEnergyShares
 import com.opson.libraries.nutrition.share
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -271,22 +272,17 @@ object AmountStateBuilder {
         // Soften needs a goal and a portion has none, so a softened metric hides here.
         val kcal = draft.kcal
         val energy = policy.resolve(Metric.Calories, kcal, Surface.Logger, FormatContext(bare = true))
-        val parts = listOf(
-            Triple(Metric.Protein, draft.protein, KCAL_PER_G_PROTEIN),
-            Triple(Metric.Carbs, draft.carbs, KCAL_PER_G_CARBS),
-            Triple(Metric.Fat, draft.fat, KCAL_PER_G_FAT),
-        )
-        // "% of energy" is a share of the energy of the macros on show, as on Today's macros page: it
-        // sums to 100 (a label's kcal rarely equals 4/4/9 of its grams), and a hidden macro's share
-        // cannot be read off what is left over.
-        val shownEnergy = parts.sumOf { (metric, grams, perGram) ->
-            if (grams != null && policy.effectiveLevel(metric, Surface.Logger) == Visibility.Show) grams * perGram else 0.0
+        val shares = macroEnergyShares(draft.protein, draft.carbs, draft.fat) {
+            policy.effectiveLevel(it, Surface.Logger) == Visibility.Show
         }
-        val macros = parts.map { (metric, grams, perGram) ->
-            // The goal is the grams that would make up all that energy, so the fraction is this macro's share of it.
-            val whole = shownEnergy.takeIf { it > 0.0 }?.div(perGram)
-            val amount = policy.resolve(metric, grams, Surface.Logger, FormatContext(of = whole, goal = GoalStyle.None))
-            val share = (amount as? Display.Shown)?.fraction?.let { policy.share(metric, it * PERCENT, Surface.Logger) } ?: Display.Hidden
+        val macros = listOf(Metric.Protein to draft.protein, Metric.Carbs to draft.carbs, Metric.Fat to draft.fat).map { (metric, grams) ->
+            val percent = shares[metric]
+            // The amount's fraction is its share of the energy, which draws the split bar.
+            val amount = when (val resolved = policy.resolve(metric, grams, Surface.Logger, FormatContext(goal = GoalStyle.None))) {
+                is Display.Shown -> resolved.copy(fraction = percent?.let { (it / PERCENT).toFloat() })
+                else -> resolved
+            }
+            val share = percent?.let { policy.share(metric, it, Surface.Logger) } ?: Display.Hidden
             PortionMacro(metric, amount, share)
         } + PortionMacro(Metric.Fiber, policy.resolve(Metric.Fiber, draft.fiber, Surface.Logger), Display.Hidden)
         val shown = macros.filter { it.amount !is Display.Hidden }
@@ -348,8 +344,5 @@ object AmountStateBuilder {
         return SourceLine(per, origin)
     }
 
-    private const val KCAL_PER_G_PROTEIN = 4.0
-    private const val KCAL_PER_G_CARBS = 4.0
-    private const val KCAL_PER_G_FAT = 9.0
     private const val PERCENT = 100.0
 }
