@@ -92,7 +92,8 @@ fun DayHeader(
                 text = title,
                 typography = AppTheme.type.dayLabel,
                 color = AppTheme.colors.ink,
-                maxLines = 1,
+                // A month and year ("October 2026") may wrap, as the design draws it; a day never does.
+                maxLines = if (expanded) 2 else 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )

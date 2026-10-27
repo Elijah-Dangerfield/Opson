@@ -275,4 +275,4 @@ internal fun TodayWithFoodActions(policy: VisibilityPolicy) {
 private const val LUNCH_ROW_FLAGS_ON = 4
 
 /** Where dinner's card sits with the list scrolled to lunch. */
-private val DinnerUnderFinger = 600.dp
+private val DinnerUnderFinger = 500.dp
