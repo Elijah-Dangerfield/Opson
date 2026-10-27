@@ -1,5 +1,7 @@
 package com.opson
 
+import com.opson.features.upgrade.AppGuard
+import com.opson.libraries.config.ConfigOverrideRepository
 import com.opson.libraries.core.AppState
 import com.opson.libraries.core.AutoInit
 import com.opson.libraries.diary.SettingsRepository
@@ -71,6 +73,12 @@ interface AppComponent {
 
     /** A home screen widget's +: the URL goes in here (App.kt on iOS, MainActivity on Android), the Logger comes out. */
     val widgetOpens: WidgetOpens
+
+    /** Maintenance, the version floor and the update offer, drawn by App.kt over everything. */
+    val appGuard: AppGuard
+
+    /** The guard's debug-only way out when a QA override is what is holding the app. */
+    val configOverrideRepository: ConfigOverrideRepository
 
     /**
      * Singletons that need to construct at app boot rather than lazily

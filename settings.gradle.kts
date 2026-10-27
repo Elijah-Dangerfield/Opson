@@ -91,6 +91,8 @@ if (!serverOnly) {
     include(":features:today:impl")
     include(":features:trends")
     include(":features:trends:impl")
+    include(":features:upgrade")
+    include(":features:upgrade:impl")
 
     // Libraries
     include(":libraries:config")

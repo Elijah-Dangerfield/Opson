@@ -11,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -26,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.opson.features.logger.LoggerRoute
+import com.opson.features.upgrade.impl.AppGuardLayer
 import com.opson.features.settings.FindSupportRoute
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
@@ -62,6 +64,7 @@ import com.opson.libraries.ui.system.LocalAppState
 import com.opson.libraries.ui.system.LocalBuildInfo
 import com.opson.libraries.ui.system.LocalClock
 import com.opson.system.AppTheme
+import kotlinx.coroutines.launch
 import kotlin.reflect.typeOf
 import kotlin.time.Duration.Companion.seconds
 
@@ -73,6 +76,7 @@ fun App(appComponent: AppComponent) {
     val appRecomposeLogger = remember { KLog.withTag("AppRecompose") }
     val router = remember { appComponent.delegatingRouter }
     val dialogHostState = rememberDialogHostState()
+    val guardScope = rememberCoroutineScope()
 
     val shakeHandler = remember { appComponent.shakeHandler }
     val deepLinkBridge = remember { appComponent.deepLinkBridge }
@@ -183,27 +187,38 @@ fun App(appComponent: AppComponent) {
                         // that a host below STARTED is lying about its visibility.
                         .navigationQueueWatchdog(onWedgeDetected = router::drainQueuedNavigation)
                 ) {
-                    // Stage 1: null until the async AppData read resolves — the
-                    // platform splash (keyed on appViewModel.isReady) covers the
-                    // gap. Stage 2: the Compose boot gate holds a loading screen
-                    // until the remaining boot work (config + profile resolve)
-                    // lands, so the first real frame renders authoritative data.
-                    val bootComplete by appViewModel.isBootComplete.collectAsState()
-                    val startDestination by appViewModel.startDestination.collectAsState()
-                    val route = startDestination
-                    if (bootComplete && route != null) {
-                        AppNavigation(
-                            navController = navController,
-                            floatingWindowNavigator = floatingWindowNavigator,
-                            featureEntryPoints = appComponent.featureEntryPoints,
-                            startDestination = route,
-                            router = router,
-                            telemetry = appComponent.telemetry,
-                            jankMonitor = appComponent.jankMonitor,
-                            tabBar = appComponent.tabBar,
-                        )
-                    } else {
-                        BootLoadingScreen()
+                    // Maintenance, the version floor and the update offer cover or sit above
+                    // everything below. The guard collects its own state, so a change there
+                    // recomposes the guard, not App.
+                    AppGuardLayer(
+                        guard = appComponent.appGuard,
+                        onOpenUrl = router::openWebLink,
+                        onClearOverrides = {
+                            guardScope.launch { appComponent.configOverrideRepository.clearAll() }
+                        },
+                    ) {
+                        // Stage 1: null until the async AppData read resolves — the
+                        // platform splash (keyed on appViewModel.isReady) covers the
+                        // gap. Stage 2: the Compose boot gate holds a loading screen
+                        // until the remaining boot work (config + profile resolve)
+                        // lands, so the first real frame renders authoritative data.
+                        val bootComplete by appViewModel.isBootComplete.collectAsState()
+                        val startDestination by appViewModel.startDestination.collectAsState()
+                        val route = startDestination
+                        if (bootComplete && route != null) {
+                            AppNavigation(
+                                navController = navController,
+                                floatingWindowNavigator = floatingWindowNavigator,
+                                featureEntryPoints = appComponent.featureEntryPoints,
+                                startDestination = route,
+                                router = router,
+                                telemetry = appComponent.telemetry,
+                                jankMonitor = appComponent.jankMonitor,
+                                tabBar = appComponent.tabBar,
+                            )
+                        } else {
+                            BootLoadingScreen()
+                        }
                     }
 
                     SplashGate()

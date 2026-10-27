@@ -1,5 +1,6 @@
 [
   { "path": "upgrade.minSupportedVersionCode", "type": "int", "default": 1, "description": "Below this build code, force upgrade" },
+  { "path": "upgrade.latestVersionCode", "type": "int", "default": 0, "description": "Below this build code, offer a dismissable update banner" },
   { "path": "upgrade.maintenanceMode", "type": "string", "default": "off", "description": "Maintenance gate", "allowedValues": ["off", "banner", "blocking"] },
   { "path": "upgrade.maintenanceMessage", "type": "string", "default": "We're updating the servers, back in a moment.", "description": "Maintenance banner/blocking copy" },
   { "path": "config.refreshThrottleMs", "type": "long", "default": 300000, "description": "Minimum gap between config fetches; 0 refetches on every foreground" },

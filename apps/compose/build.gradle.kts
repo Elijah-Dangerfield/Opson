@@ -128,6 +128,8 @@ kotlin {
             implementation(projects.features.today.impl)
             implementation(projects.features.trends)
             implementation(projects.features.trends.impl)
+            implementation(projects.features.upgrade)
+            implementation(projects.features.upgrade.impl)
 
             implementation(libs.atomicfu)
             implementation(libs.androidx.lifecycle.runtimeCompose)

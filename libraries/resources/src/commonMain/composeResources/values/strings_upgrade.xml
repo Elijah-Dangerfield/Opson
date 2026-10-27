@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for the app guard (features/upgrade): the maintenance screen, the
+  update screen and the strips above the app. The maintenance message itself
+  is written by whoever runs the admin console and arrives in the config. Same
+  rules as strings.xml: no backslash escapes, positional %1$s arguments.
+-->
+<resources>
+
+    <!-- Maintenance, blocking -->
+    <string name="upgrade_maintenance_title">Opson is taking a short break</string>
+    <string name="upgrade_maintenance_try_again">Try again</string>
+
+    <!-- Maintenance, strip -->
+    <string name="upgrade_maintenance_logging_continues">You can keep logging. It saves on this phone and syncs when we are back.</string>
+
+    <!-- Update required -->
+    <string name="upgrade_required_title">Time to update</string>
+    <string name="upgrade_required_body">This version of Opson can no longer sync. The update is free and keeps everything you have logged.</string>
+    <string name="upgrade_required_cta">Update Opson</string>
+    <string name="upgrade_required_reassurance">Your log stays on this phone until you update.</string>
+
+    <!-- Update available, strip -->
+    <string name="upgrade_available_body">A new version of Opson is ready.</string>
+    <string name="upgrade_available_cta">Update</string>
+    <string name="upgrade_available_dismiss_cd">Not now</string>
+
+    <!-- Debug builds only: a QA override can hold the app behind a stop with no way to the QA menu. -->
+    <string name="upgrade_debug_clear_overrides">Clear config overrides (debug)</string>
+</resources>

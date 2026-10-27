@@ -208,6 +208,19 @@ number, a meal name or any text from the snapshot.
 |---|---|---|
 | `widget.log_tapped` | `next_meal` (whether a meal was still to come, so the Logger opened on it rather than its own default) | A home screen widget's + opened the app (`WidgetOpener`) |
 
+### App guard (0.2)
+
+From `AppGuardImpl` and `AppGuardLayer` through `AppGuardTelemetry` (`:features:upgrade:impl`).
+Which state someone saw and what they did; **never the operator's maintenance message.** Not behind
+a release flag: the guard is how a 0.2 build is stopped, so it must work before anything is turned
+on.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `guard.shown` | `state` (`maintenance_blocking`, `maintenance_banner`, `maintenance_offline`: a blocking maintenance shown as the banner because the phone could not reach the server, `upgrade_required`, `update_available`) | Each time the guard moves into one of those states from another, launch included |
+| `guard.store_opened` | `from` (`upgrade_required`, `update_available`) | Update tapped on the stop or the strip |
+| `guard.update_dismissed` | | The update strip put away; it stays away until the next launch |
+
 ### Fasting (0.2)
 
 Both from `FastingRepositoryImpl` (`:libraries:diary:impl`), the only writer of fasts, so no
