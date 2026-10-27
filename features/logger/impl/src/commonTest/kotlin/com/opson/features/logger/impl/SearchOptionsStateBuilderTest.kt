@@ -18,7 +18,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The search options in [LoggerStateBuilder] (`release.searchOptions`): tabs, sorts, the
+ * The search options in [FoodSearchStateBuilder] (`release.searchOptions`): tabs, sorts, the
  * database filter, badges, and that with the flag off nothing of it shows. Rows still go
  * through the policy, so Blind is checked too.
  */
@@ -26,21 +26,21 @@ class SearchOptionsStateBuilderTest {
     private val full = policy(PresetId.Full)
     private val blind = policy(PresetId.Blind)
 
-    private fun results(state: LoggerState) = assertIs<LoggerBody.Results>(state.body).rows
+    private fun results(state: FoodSearchState) = assertIs<SearchBody.Results>(state.body).rows
 
     private fun choices(
         tab: SearchTab = SearchTab.All,
         query: String = "rice",
         openFoodFacts: Boolean = true,
         on: Boolean = true,
-    ) = LoggerChoices(slot = MealSlot.Dinner, query = query, searchOptions = on, tab = tab, openFoodFacts = openFoodFacts)
+    ) = SearchChoices(slot = MealSlot.Dinner, query = query, searchOptions = on, tab = tab, openFoodFacts = openFoodFacts)
 
     @Test
     fun withTheFlagOffThereAreNoOptionsNoBadgesAndNoFilter() {
         val state = LoggerFixtures.searchState(full)
         assertNull(state.options)
         assertTrue(results(state).all { it.badge == null && !it.verified })
-        assertEquals(FoodSearchFilter.None, LoggerStateBuilder.catalogFilter(LoggerFixtures.optionsInputs(), choices(on = false)))
+        assertEquals(FoodSearchFilter.None, FoodSearchStateBuilder.catalogFilter(LoggerFixtures.optionsInputs(), choices(on = false)))
     }
 
     @Test
@@ -55,14 +55,14 @@ class SearchOptionsStateBuilderTest {
 
     @Test
     fun openFoodFactsRowsBringTheLicenceLine() {
-        assertTrue(assertIs<LoggerBody.Results>(LoggerFixtures.optionsState(full).body).openFoodFacts)
+        assertTrue(assertIs<SearchBody.Results>(LoggerFixtures.optionsState(full).body).openFoodFacts)
         val usdaOnly = LoggerFixtures.optionsState(full, settings = Settings(searchDatabase = SearchDatabase.Usda))
-        assertFalse(assertIs<LoggerBody.Results>(usdaOnly.body).openFoodFacts)
+        assertFalse(assertIs<SearchBody.Results>(usdaOnly.body).openFoodFacts)
     }
 
     @Test
     fun rowsFromTheDiaryFindTheirSourceInWhatTheDeviceKnows() {
-        val browse = assertIs<LoggerBody.Browse>(LoggerFixtures.optionsState(full, query = "").body)
+        val browse = assertIs<SearchBody.Browse>(LoggerFixtures.optionsState(full, query = "").body)
         val recent = browse.recent.associateBy { it.key }
         assertEquals(SourceBadge.Usda, recent.getValue("f:banana").badge, "banana is cached, and FNDDS")
         assertNull(recent.getValue("f:poutine").badge, "a food the device doesn't hold gets no badge rather than a guess")
@@ -84,18 +84,12 @@ class SearchOptionsStateBuilderTest {
         val off = LoggerFixtures.optionsState(full, tab = SearchTab.Favorites, settings = Settings(searchTabs = false))
         assertNull(off.options?.tabs)
         assertEquals(SearchTab.All, off.options?.tab, "with the tabs off a picked tab no longer applies")
-        assertIs<LoggerBody.Results>(off.body)
-    }
-
-    @Test
-    fun theMethodChipsStayOnAll() {
-        assertTrue(LoggerFixtures.optionsState(full, query = "").methods.isNotEmpty())
-        assertTrue(LoggerFixtures.optionsState(full, tab = SearchTab.Favorites, query = "").methods.isEmpty())
+        assertIs<SearchBody.Results>(off.body)
     }
 
     @Test
     fun favoritesListWhatIsLoggedMostAndFilterByName() {
-        val listed = assertIs<LoggerBody.Listed>(LoggerFixtures.optionsState(full, tab = SearchTab.Favorites, query = "").body)
+        val listed = assertIs<SearchBody.Listed>(LoggerFixtures.optionsState(full, tab = SearchTab.Favorites, query = "").body)
         assertEquals(listOf("f:arroz", "f:banana", "f:yogurt"), listed.rows.map { it.key })
         assertTrue(listed.rows.all { it.source == PickSource.Favorite })
 
@@ -106,7 +100,7 @@ class SearchOptionsStateBuilderTest {
     @Test
     fun starredFoodsLeadFavoritesNewestStarFirst() {
         val settings = Settings().toggleFavorite("f:yogurt").toggleFavorite("f:sinangag").toggleFavorite("c:granola")
-        val listed = assertIs<LoggerBody.Listed>(LoggerFixtures.optionsState(full, tab = SearchTab.Favorites, query = "", settings = settings).body)
+        val listed = assertIs<SearchBody.Listed>(LoggerFixtures.optionsState(full, tab = SearchTab.Favorites, query = "", settings = settings).body)
 
         assertEquals(listOf("c:granola", "f:sinangag", "f:yogurt", "f:arroz", "f:banana"), listed.rows.map { it.key })
         assertTrue(listed.rows.all { it.source == PickSource.Favorite })
@@ -114,34 +108,34 @@ class SearchOptionsStateBuilderTest {
 
     @Test
     fun anEmptyFavoritesOrCustomTabSaysWhatGoesThere() {
-        val inputs = LoggerFixtures.optionsInputs().copy(favorites = emptyList(), customFoods = emptyList())
+        val inputs = LoggerFixtures.optionsInputs().copy(frequent = emptyList(), customFoods = emptyList())
         assertEquals(
-            LoggerBody.TabEmpty(SearchTab.Favorites),
-            LoggerStateBuilder.build(inputs, full, choices(tab = SearchTab.Favorites, query = "")).body,
+            SearchBody.TabEmpty(SearchTab.Favorites),
+            FoodSearchStateBuilder.build(inputs, full, choices(tab = SearchTab.Favorites, query = "")).body,
         )
         assertEquals(
-            LoggerBody.TabEmpty(SearchTab.Custom),
-            LoggerStateBuilder.build(inputs, full, choices(tab = SearchTab.Custom, query = "")).body,
+            SearchBody.TabEmpty(SearchTab.Custom),
+            FoodSearchStateBuilder.build(inputs, full, choices(tab = SearchTab.Custom, query = "")).body,
         )
     }
 
     @Test
     fun customListsYourFoodsWithNoServerCall() {
-        val listed = assertIs<LoggerBody.Listed>(LoggerFixtures.optionsState(full, tab = SearchTab.Custom, query = "").body)
+        val listed = assertIs<SearchBody.Listed>(LoggerFixtures.optionsState(full, tab = SearchTab.Custom, query = "").body)
         assertEquals(listOf("c:granola", "c:rice-bowl"), listed.rows.map { it.key })
-        assertNull(LoggerStateBuilder.catalogFilter(LoggerFixtures.optionsInputs(), choices(tab = SearchTab.Custom)))
+        assertNull(FoodSearchStateBuilder.catalogFilter(LoggerFixtures.optionsInputs(), choices(tab = SearchTab.Custom)))
     }
 
     @Test
     fun catalogTabsAskForTheirCategoryAndNeedWordsFirst() {
         assertEquals(
-            LoggerBody.TabHint(SearchTab.Restaurant),
+            SearchBody.TabHint(SearchTab.Restaurant),
             LoggerFixtures.optionsState(full, tab = SearchTab.Restaurant, query = "").body,
         )
         val inputs = LoggerFixtures.optionsInputs()
-        assertEquals(SearchCategory.Restaurant, LoggerStateBuilder.catalogFilter(inputs, choices(tab = SearchTab.Restaurant))?.category)
-        assertEquals(SearchCategory.Beverage, LoggerStateBuilder.catalogFilter(inputs, choices(tab = SearchTab.Beverages))?.category)
-        assertEquals(SearchCategory.Common, LoggerStateBuilder.catalogFilter(inputs, choices(tab = SearchTab.Common))?.category)
+        assertEquals(SearchCategory.Restaurant, FoodSearchStateBuilder.catalogFilter(inputs, choices(tab = SearchTab.Restaurant))?.category)
+        assertEquals(SearchCategory.Beverage, FoodSearchStateBuilder.catalogFilter(inputs, choices(tab = SearchTab.Beverages))?.category)
+        assertEquals(SearchCategory.Common, FoodSearchStateBuilder.catalogFilter(inputs, choices(tab = SearchTab.Common))?.category)
 
         val common = results(LoggerFixtures.optionsState(full, tab = SearchTab.Common))
         assertTrue(common.none { it.badge == SourceBadge.YourFood }, "a catalog tab is the catalog's foods only")
@@ -150,7 +144,7 @@ class SearchOptionsStateBuilderTest {
     @Test
     fun theDatabaseNarrowsAll() {
         fun filter(settings: Settings, openFoodFacts: Boolean = true) =
-            LoggerStateBuilder.catalogFilter(LoggerFixtures.optionsInputs(settings), choices(openFoodFacts = openFoodFacts))
+            FoodSearchStateBuilder.catalogFilter(LoggerFixtures.optionsInputs(settings), choices(openFoodFacts = openFoodFacts))
 
         assertEquals(FoodSearchFilter(), filter(Settings()))
         assertEquals(FoodSearchFilter(source = SearchSource.Usda), filter(Settings(searchDatabase = SearchDatabase.Usda)))
@@ -172,7 +166,7 @@ class SearchOptionsStateBuilderTest {
     @Test
     fun myFoodsIsYourFoodsAndWhatYouLogged() {
         val settings = Settings(searchDatabase = SearchDatabase.MyFoods)
-        val listed = assertIs<LoggerBody.Listed>(LoggerFixtures.optionsState(full, query = "", settings = settings).body)
+        val listed = assertIs<SearchBody.Listed>(LoggerFixtures.optionsState(full, query = "", settings = settings).body)
         assertEquals("c:granola", listed.rows.first().key)
         assertTrue("f:sinangag" in listed.rows.map { it.key })
 
@@ -183,7 +177,7 @@ class SearchOptionsStateBuilderTest {
     @Test
     fun mostRecentPutsWhatYouLoggedFirst() {
         val settings = Settings(searchSort = SearchSort.MostRecent)
-        val browse = assertIs<LoggerBody.Browse>(LoggerFixtures.optionsState(full, query = "", settings = settings).body)
+        val browse = assertIs<SearchBody.Browse>(LoggerFixtures.optionsState(full, query = "", settings = settings).body)
         assertTrue(browse.usual.isEmpty())
         assertEquals(listOf("f:sinangag", "f:banana", "f:arroz", "f:yogurt", "f:kabsa"), browse.recent.map { it.key })
 
@@ -199,7 +193,7 @@ class SearchOptionsStateBuilderTest {
         assertEquals(names.sortedBy { it.lowercase() }, names)
         assertEquals(
             SearchOrder.Name,
-            LoggerStateBuilder.catalogFilter(LoggerFixtures.optionsInputs(settings), choices())?.order,
+            FoodSearchStateBuilder.catalogFilter(LoggerFixtures.optionsInputs(settings), choices())?.order,
         )
     }
 
@@ -222,7 +216,7 @@ class SearchOptionsStateBuilderTest {
     fun anAnswerForAnotherFilterIsStale() {
         val inputs = LoggerFixtures.optionsInputs()
         val stale = SearchOutcome("rice", listOf(LoggerFixtures.usdaRice), offline = false, filter = FoodSearchFilter(source = SearchSource.Usda))
-        assertEquals(LoggerBody.Searching, LoggerStateBuilder.build(inputs, full, choices().copy(search = stale)).body)
+        assertEquals(SearchBody.Searching, FoodSearchStateBuilder.build(inputs, full, choices().copy(search = stale)).body)
     }
 
     @Test
@@ -230,8 +224,8 @@ class SearchOptionsStateBuilderTest {
         val inputs = LoggerFixtures.optionsInputs()
         assertEquals(
             listOf("f:arroz", "f:banana", "f:yogurt"),
-            LoggerStateBuilder.picks(inputs, choices(tab = SearchTab.Favorites, query = "")).map { it.key },
+            FoodSearchStateBuilder.picks(inputs, choices(tab = SearchTab.Favorites, query = "")).map { it.key },
         )
-        assertTrue(LoggerStateBuilder.picks(inputs, choices(tab = SearchTab.Restaurant, query = "")).isEmpty())
+        assertTrue(FoodSearchStateBuilder.picks(inputs, choices(tab = SearchTab.Restaurant, query = "")).isEmpty())
     }
 }

@@ -13,9 +13,9 @@ import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 
 /**
- * The search options sheet, over the Logger. Opened only by the options
+ * The search options sheet, over search. Opened only by the options
  * button, which is behind `release.searchOptions`. [openFoodFacts] is whether
- * the server offers Open Food Facts as a database, as the Logger last heard.
+ * the server offers Open Food Facts as a database, as search last heard.
  */
 @Serializable
 data class SearchOptionsRoute(val openFoodFacts: Boolean = false) : Route()
@@ -52,7 +52,7 @@ sealed interface SearchOptionsEvent {
 
 /**
  * Each pick is saved at once, as a setting (top-level keys, so they sync), and
- * the Logger underneath re-searches when the settings it reads change. Done
+ * search underneath asks again when the settings it reads change. Done
  * only closes the sheet.
  */
 @Inject

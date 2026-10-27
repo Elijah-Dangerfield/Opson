@@ -5,35 +5,46 @@ import com.opson.libraries.navigation.Route
 import kotlinx.serialization.Serializable
 
 /**
- * The logger, opened by the center + and from a meal's own +. A bottom sheet, not a tab: about
- * 60% tall from a +, full height once dragged up, searched, or opened to type or on a pane.
- * Search, Describe it and Saved meals all live inside it.
+ * The add sheet, opened by the center + and from a meal's own +: a grid of ways to add, about
+ * 60% tall, full height once dragged up (design sync 4, 13.4a and 13.4b). Describe it and Saved
+ * meals are panes of it; search, the scanner and the rest open in its place.
  *
- * @param slot the meal to log into; `null` picks from the time of day
- * (`MealSlot.defaultFor`), or Uncategorized with meal groups off.
+ * @param slot the meal to log into; `null` picks from this person's logging times
+ * (`MealSlotPicker`), or Uncategorized with meal groups off.
  * @param dayIso the day to log to (`LocalDate.toString()`); `null` is the day
  * Today is showing (`SelectedDay`).
- * @param focusSearch opens with the keyboard up in search ("Log something new").
- * @param prePickFoodId a food the Foods tab's + already picked, catalog or
- * custom per [prePickIsCustom], added to the basket once.
- * @param prePickSavedMealId a saved meal whose items go into the basket once.
+ * @param prePickFoodId a food already chosen elsewhere (the Foods tab, Today), catalog or
+ * custom per [prePickIsCustom]: its food detail opens in place of the sheet.
+ * @param prePickSavedMealId a saved meal chosen on the Foods tab: the sheet opens on Saved meals.
  * @param start the pane the sheet opens on.
- * @param pickForMeal set by Create a meal: the sheet picks foods for a meal
- * being put together instead of logging them, and hands the picks back through
- * `MealPicks` under this request id. Its picks stay out of the logger's basket.
+ * @param describeText what Describe it starts reading, for search's "Describe it" on a miss.
  */
 @Serializable
 data class LoggerRoute(
     val slot: MealSlot? = null,
     val dayIso: String? = null,
-    val focusSearch: Boolean = false,
     val prePickFoodId: String? = null,
     val prePickIsCustom: Boolean = false,
     val prePickSavedMealId: String? = null,
-    val start: LoggerStart = LoggerStart.Search,
-    val pickForMeal: String? = null,
+    val start: LoggerStart = LoggerStart.Actions,
+    val describeText: String? = null,
 ) : Route()
 
-/** Where the logger sheet opens. [Number] is Describe it with the "Or just a number" field focused. */
+/** Where the add sheet opens. [Number] is Describe it with the "Or just a number" field focused (Quick add). */
 @Serializable
-enum class LoggerStart { Search, Describe, Saved, Number }
+enum class LoggerStart { Actions, Describe, Saved, Number }
+
+/**
+ * Search, a full screen (design sync 4, 13.4c): + on a result logs it at once and stays here.
+ *
+ * @param slot the meal to log into; `null` picks from this person's logging times, as the sheet does.
+ * @param dayIso the day to log to; `null` is the day Today is showing.
+ * @param pickForMeal set by Create a meal: + picks foods for a meal being put together instead of
+ * logging them, and "Add to meal" hands them back through `MealPicks` under this request id.
+ */
+@Serializable
+data class FoodSearchRoute(
+    val slot: MealSlot? = null,
+    val dayIso: String? = null,
+    val pickForMeal: String? = null,
+) : Route()
