@@ -153,6 +153,10 @@ if (System.getProperty("serverOnly") != "true") {
     }
 
     tasks.named("check") { dependsOn(verifyBenchmarkJourneyCopy) }
+
+    // build-logic is an included build, so no sweep over this build's modules reaches its
+    // tests. They decide which builds leave the QA menu out (isStoreChannel).
+    tasks.named("check") { dependsOn(gradle.includedBuild("build-logic").task(":test")) }
 }
 // Kotlin/Native links run inside the Gradle daemon and are the heaviest step in
 // the build, several GB each for a release framework. `./gradlew build` starts

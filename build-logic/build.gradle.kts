@@ -35,6 +35,8 @@ dependencies {
     api(libs.androidx.room.gradlePlugin)
     api(libs.kotlinx.serialization.gradlePlugin)
     api(libs.buildconfig.gradlePlugin)
+
+    testImplementation(libs.junit)
 }
 
 gradlePlugin {
