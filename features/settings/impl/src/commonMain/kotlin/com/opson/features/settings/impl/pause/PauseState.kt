@@ -34,6 +34,9 @@ sealed interface PauseSubject {
     /** Turning the pause itself off. */
     data object ThePause : PauseSubject
 
+    /** Progress photos back on Weight. */
+    data object ProgressPhotos : PauseSubject
+
     /** Moving the reveal time earlier, so Later numbers open sooner. [text] is "7:30 PM". */
     data class RevealTime(val time: LocalTime) : PauseSubject {
         val text: String get() = DateCopy.time(time.hour, time.minute)
@@ -46,6 +49,7 @@ sealed interface PauseSubject {
             is NumbersChange.ClearOverride -> Number(change.metric)
             NumbersChange.TurnOffPause -> ThePause
             is NumbersChange.SetRevealAt -> RevealTime(change.time)
+            is NumbersChange.SetProgressPhotos -> ProgressPhotos
         }
     }
 }

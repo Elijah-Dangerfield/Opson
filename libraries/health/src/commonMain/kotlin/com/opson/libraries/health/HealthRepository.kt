@@ -71,6 +71,14 @@ interface HealthRepository {
      */
     fun energy(day: LocalDate, timeZone: TimeZone): Flow<EnergyExpended?>
 
+    /**
+     * Each day from [from] to [to], both included, midnight to midnight in [timeZone] (today up to
+     * now), read once: Trends' daily average. A day the store has nothing for is missing, and
+     * [EnergyExpended.workoutKcal] is not read (null). Null while not connected, or when the read
+     * failed, never an empty week standing in for one.
+     */
+    suspend fun energyBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Map<LocalDate, EnergyExpended>?
+
     /** Opens the store's own permission screen. False where the platform has none to open. */
     fun openSourceSettings(): Boolean
 }

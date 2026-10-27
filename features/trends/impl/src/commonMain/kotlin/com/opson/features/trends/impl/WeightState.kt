@@ -5,7 +5,6 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
-import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -46,18 +45,6 @@ data class WeightInputs(
 /** The Progress photos row under the log card. */
 data class PhotosRow(val lastTaken: LocalDate?)
 
-/**
- * Whether the mode shows the Progress photos row. The design puts a Show / Hide
- * switch for photos in Modes and numbers, defaulting to Hide in Blind, Mindful,
- * Rhythm and Fuel. Until Settings carries that switch, the default is the rule.
- * TODO(design-sync-2): read the Modes setting once Settings adds it.
- */
-object ProgressPhotosVisibility {
-    private val hiddenBy = setOf(PresetId.Blind, PresetId.Mindful, PresetId.Rhythm, PresetId.Fuel)
-
-    fun shown(policy: VisibilityPolicy): Boolean = policy.settings.preset !in hiddenBy
-}
-
 /** The page's own choices, which no repository holds. */
 data class WeightUi(
     val range: WeightRange = WeightRange.M1,
@@ -91,7 +78,7 @@ data class WeightState(
     val saved: SavedNote? = null,
     /** The weigh-in wasn't saved: it stays in the field, with a line saying so. */
     val saveFailed: Boolean = false,
-    /** `null` while the release flag is off or the mode hides photos. */
+    /** `null` while the release flag is off or Modes has photos at Hide. */
     val photos: PhotosRow? = null,
 )
 
@@ -156,7 +143,8 @@ object WeightStateBuilder {
                 else -> SavedNote.OutOfView
             },
             saveFailed = ui.failed,
-            photos = if (inputs.photosReleased && ProgressPhotosVisibility.shown(policy)) PhotosRow(inputs.photosLastTaken) else null,
+            // Modes' Progress photos row, Show or Hide; Hide removes this row (design sync 2, 8.x).
+            photos = if (inputs.photosReleased && policy.settings.showsProgressPhotos) PhotosRow(inputs.photosLastTaken) else null,
         )
     }
 }

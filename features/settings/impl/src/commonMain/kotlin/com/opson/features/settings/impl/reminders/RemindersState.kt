@@ -21,6 +21,8 @@ data class RemindersState(
     val meals: List<MealReminderRow> = emptyList(),
     val tone: Tone = Tone.Plain,
     val askTags: Boolean = true,
+    /** "Check in at day close": `null` while `release.checkIn` is off, so the row isn't drawn. */
+    val checkIn: Boolean? = null,
     val permission: NotificationPermission = NotificationPermission.Granted,
     /** The time dialog, open on this meal. */
     val pickingTime: MealSlot? = null,
@@ -44,6 +46,7 @@ object RemindersStateBuilder {
         settings: Settings,
         permission: NotificationPermission = NotificationPermission.Granted,
         pickingTime: MealSlot? = null,
+        checkInReleased: Boolean = false,
     ): RemindersState {
         val level = settings.mealReminderLevel
         return RemindersState(
@@ -61,6 +64,7 @@ object RemindersStateBuilder {
             },
             tone = settings.tone,
             askTags = settings.askTags,
+            checkIn = settings.checkIn.takeIf { checkInReleased },
             permission = permission,
             pickingTime = pickingTime,
         )

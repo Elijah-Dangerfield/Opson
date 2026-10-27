@@ -3,6 +3,7 @@ package com.opson.features.today.impl
 import com.opson.libraries.core.fixed
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.diary.CheckIn
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayFeeling

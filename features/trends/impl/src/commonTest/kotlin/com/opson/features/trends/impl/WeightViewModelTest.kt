@@ -4,8 +4,10 @@ import com.opson.features.trends.impl.photos.FakeProgressPhotoRepository
 import com.opson.features.trends.impl.photos.photosFlag
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Units
+import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -32,10 +34,11 @@ class WeightViewModelTest : CoroutineTest() {
         settings: FakeSettingsRepository = FakeSettingsRepository(),
         preset: PresetId = PresetId.Full,
         photosOn: Boolean = false,
+        numbers: NumbersSettings = NumbersSettings(preset),
     ) = WeightViewModel(
         weights = weights,
         settingsRepository = settings,
-        policySource = FakePolicySource(TrendsFixtures.policy(preset)),
+        policySource = FakePolicySource(VisibilityPolicy(numbers, TrendsFixtures.clock, TrendsFixtures.timeZone)),
         clock = TrendsFixtures.clock,
         photosEnabled = photosFlag(photosOn),
         progressPhotos = photos,
@@ -152,6 +155,15 @@ class WeightViewModelTest : CoroutineTest() {
             assertNull(vm(photosOn = true, preset = preset).state.photos, "$preset hides progress photos by default")
         }
         assertNotNull(vm(photosOn = true, preset = PresetId.Coast).state.photos)
+    }
+
+    @Test
+    fun photosFollowModes_showOrHide_overThePresetsDefault() = runUnitTest {
+        val shownInFuel = TrendsFixtures.policy(PresetId.Fuel).settings.copy(progressPhotos = true)
+        assertNotNull(vm(photosOn = true, numbers = shownInFuel).state.photos)
+
+        val hiddenInFull = NumbersSettings(PresetId.Full, progressPhotos = false)
+        assertNull(vm(photosOn = true, numbers = hiddenInFull).state.photos)
     }
 
     @Test

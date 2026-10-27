@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.reminders
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
@@ -27,9 +28,13 @@ import me.tatarka.inject.annotations.Inject
 class RemindersViewModel(
     private val settingsRepository: SettingsRepository,
     private val permissions: NotificationPermissions,
+    checkInEnabled: CheckInEnabled,
 ) : SEAViewModel<RemindersState, RemindersEvent, RemindersAction>(initialStateArg = RemindersState()) {
 
     private var model = Model()
+
+    /** `release.checkIn`, read once when the page opens. */
+    private val checkInReleased = checkInEnabled()
 
     private data class Model(
         val settings: Settings? = null,
@@ -57,6 +62,7 @@ class RemindersViewModel(
             is RemindersAction.MealTimePicked -> mealTimePicked(action)
             is RemindersAction.TonePicked -> settingsRepository.update { it.copy(tone = action.tone) }
             RemindersAction.HungerQuestionsToggled -> settingsRepository.update { it.copy(askTags = !it.askTags) }
+            RemindersAction.CheckInToggled -> if (checkInReleased) settingsRepository.update { it.copy(checkIn = !it.checkIn) }
             RemindersAction.OpenSettingsTapped -> permissions.openSettings()
             RemindersAction.ScreenResumed -> takeAction(RemindersAction.PermissionChecked(permissions.status()))
             RemindersAction.BackTapped -> sendEvent(RemindersEvent.Close)
@@ -110,7 +116,7 @@ class RemindersViewModel(
     private suspend fun RemindersAction.rebuild(change: (Model) -> Model) {
         model = change(model)
         val settings = model.settings ?: return
-        updateState { RemindersStateBuilder.build(settings, model.permission, model.pickingTime) }
+        updateState { RemindersStateBuilder.build(settings, model.permission, model.pickingTime, checkInReleased) }
     }
 }
 
@@ -130,6 +136,9 @@ sealed interface RemindersAction {
     data class MealTimePicked(val time: LocalTime) : RemindersAction
     data class TonePicked(val tone: Tone) : RemindersAction
     data object HungerQuestionsToggled : RemindersAction
+
+    /** Close the day's check-in card on or off. Only drawn with `release.checkIn` on. */
+    data object CheckInToggled : RemindersAction
     data object OpenSettingsTapped : RemindersAction
 
     /** Back on screen, from the system settings page or anywhere: permission may have changed. */

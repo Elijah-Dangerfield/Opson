@@ -158,10 +158,11 @@ class DayCloseTest : CoroutineTest() {
         day: kotlinx.datetime.LocalDate = TodayFixtures.today,
         policySource: FakePolicySource = FakePolicySource(),
         checkInOn: Boolean = false,
+        settings: Settings = Settings(),
     ) = DayCloseViewModel(
         day = day,
         diary = diary,
-        settingsRepository = FakeSettingsRepository(),
+        settingsRepository = FakeSettingsRepository(settings),
         policySource = policySource,
         calendar = FakeCalendar(),
         health = FakeHealthRepository(),
@@ -330,6 +331,17 @@ class DayCloseTest : CoroutineTest() {
         assertTrue(diary.checkIns.isEmpty())
 
         val off = vm(checkInOn = false)
+        off.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
+        off.takeAction(DayCloseAction.DoneTapped)
+        assertTrue(diary.checkIns.isEmpty())
+    }
+
+    @Test
+    fun checkInSwitchedOffInReminders_hidesTheCard_evenWithTheFlagOn() = runUnitTest {
+        assertNotNull(vm(checkInOn = true).state.checkIn)
+
+        val off = vm(checkInOn = true, settings = Settings(checkIn = false))
+        assertNull(off.state.checkIn)
         off.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
         off.takeAction(DayCloseAction.DoneTapped)
         assertTrue(diary.checkIns.isEmpty())

@@ -58,6 +58,7 @@ import opson.libraries.resources.generated.resources.trends_patterns_hours
 import opson.libraries.resources.generated.resources.trends_patterns_hours_minutes
 import opson.libraries.resources.generated.resources.trends_patterns_hunger
 import opson.libraries.resources.generated.resources.trends_patterns_hunger_from
+import opson.libraries.resources.generated.resources.trends_patterns_hunger_from_tags
 import opson.libraries.resources.generated.resources.trends_patterns_hunger_skipped
 import opson.libraries.resources.generated.resources.trends_patterns_later
 import opson.libraries.resources.generated.resources.trends_patterns_later_on
@@ -259,14 +260,19 @@ private fun OftenCard(rows: List<MealFrequency>) {
     }
 }
 
-/** A bar per weekday, as tall as that day's tagged meals were hungry. No amounts, so it stays in Blind. */
+/** A bar per weekday, as tall as that weekday was hungry. No amounts, so it stays in Blind. */
 @Composable
 private fun HungerCardView(card: HungerCard) {
     PatternsCard {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
             CardTitle(stringResource(Res.string.trends_patterns_hunger), Modifier.weight(1f))
             Text(
-                text = stringResource(Res.string.trends_patterns_hunger_from),
+                text = stringResource(
+                    when (card.source) {
+                        HungerSource.CheckIns -> Res.string.trends_patterns_hunger_from
+                        HungerSource.MealTags -> Res.string.trends_patterns_hunger_from_tags
+                    },
+                ),
                 typography = AppTheme.type.secondary,
                 color = AppTheme.colors.muted,
                 modifier = Modifier.weight(HUNGER_NOTE_WEIGHT),

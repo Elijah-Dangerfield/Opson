@@ -91,6 +91,8 @@
     <string name="settings_level_hide">Hide</string>
     <string name="settings_modes_cell">%1$s: %2$s</string>
     <string name="settings_modes_changed_from">Changed from %1$s</string>
+    <string name="settings_modes_photos">Progress photos</string>
+    <string name="settings_modes_photos_inline">progress photos</string>
     <string name="settings_modes_footnote">Soft swaps the amount for a word or a fill bar. Later keeps it locked until your reveal time.</string>
     <string name="settings_modes_pause_title">Pause before showing more</string>
     <string name="settings_modes_pause_body">A short wait and a question before any number comes back.</string>

@@ -1,5 +1,7 @@
 package com.opson.features.trends.impl
 
+import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
@@ -14,6 +16,12 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
+import com.opson.libraries.health.ConnectOutcome
+import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -22,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 /** Serves days from [days]; records what range each observer asked for. Writes are not used on these screens. */
@@ -129,3 +138,40 @@ class FakeNumbersChanger(private val settings: FakeSettingsRepository) : Numbers
 }
 
 private fun unused(): Nothing = error("Not used by the Trends screens")
+
+/** `release.health` as the remote config would set it. */
+fun healthFlag(on: Boolean): HealthReleaseFlag = HealthReleaseFlag(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("health" to on))
+    },
+)
+
+/** A health store for the Expended card: [days] when [status] is Connected, null otherwise. Records each range read. */
+class FakeHealthRepository(
+    var days: Map<LocalDate, EnergyExpended> = TrendsFixtures.expended(),
+    initial: HealthStatus = HealthStatus.Connected,
+) : HealthRepository {
+    val ranges = mutableListOf<Pair<LocalDate, LocalDate>>()
+    private val mutableStatus = MutableStateFlow(initial)
+
+    override val source: HealthSource = HealthSource.AppleHealth
+    override val status: StateFlow<HealthStatus> = mutableStatus
+
+    override suspend fun energyBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Map<LocalDate, EnergyExpended>? {
+        ranges += from to to
+        return days.filterKeys { it in from..to }.takeIf { status.value == HealthStatus.Connected }
+    }
+
+    override suspend fun refresh() = Unit
+    override suspend fun connect(): ConnectOutcome = unused()
+    override suspend fun disconnect() = unused()
+    override fun energy(day: LocalDate, timeZone: TimeZone): Flow<EnergyExpended?> = unused()
+    override fun openSourceSettings(): Boolean = unused()
+}
+
+/** `release.checkIn` as the remote config would set it. */
+fun checkInFlag(on: Boolean): CheckInEnabled = CheckInEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("checkIn" to on))
+    },
+)

@@ -50,7 +50,7 @@ class SettingsNumbersChanger(
         }
         val from = before ?: return NumbersOutcome.NeedsPause
         logModeChanged(from, after.numbers, viaPause = false)
-        return NumbersOutcome.Applied(fewer = after.numbers.score() < from.score())
+        return NumbersOutcome.Applied(fewer = from.isLower(after.numbers))
     }
 
     override suspend fun confirm(change: NumbersChange) {
@@ -85,15 +85,16 @@ class SettingsNumbersChanger(
         return if (startsSprint) next.copy(sprintStartedOn = calendar.today()) else next
     }
 
-    /** Only when the mode or an override moved: the pause switch alone is not a mode change. */
+    /** Only when the mode, an override or the photos row moved: the pause switch alone is not a mode change. */
     private fun logModeChanged(before: NumbersSettings, after: NumbersSettings, viaPause: Boolean) {
-        if (before.preset == after.preset && before.overrides == after.overrides) return
+        val moved = before.preset != after.preset || before.overrides != after.overrides || before.progressPhotos != after.progressPhotos
+        if (!moved) return
         logger.logEvent(
             "mode.changed",
             "from" to before.preset.key,
             "to" to after.preset.key,
             "adjusted" to after.isAdjusted,
-            "fewer" to (after.score() < before.score()),
+            "fewer" to before.isLower(after),
             "via_pause" to viaPause,
         )
     }
@@ -103,6 +104,7 @@ class SettingsNumbersChanger(
         is NumbersChange.Override, is NumbersChange.ClearOverride -> "metric"
         NumbersChange.TurnOffPause -> "pause"
         is NumbersChange.SetRevealAt -> "reveal_time"
+        is NumbersChange.SetProgressPhotos -> "progress_photos"
     }
 
     internal companion object {

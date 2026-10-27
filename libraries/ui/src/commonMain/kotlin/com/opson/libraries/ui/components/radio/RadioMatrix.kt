@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -41,6 +42,11 @@ data class RadioMatrixRow(
     val note: String? = null,
     /** Tints the row, for a row that differs from its starting point. */
     val highlighted: Boolean = false,
+    /**
+     * Columns this row doesn't offer, drawn as a dash with no touch target: Progress photos are
+     * Show or Hide, never Soft or Later.
+     */
+    val disabledColumns: Set<Int> = emptySet(),
 )
 
 /**
@@ -101,6 +107,12 @@ fun RadioMatrix(
                     }
                 }
                 columns.indices.forEach { columnIndex ->
+                    if (columnIndex in row.disabledColumns) {
+                        Box(Modifier.width(CellWidth).height(AppTheme.spacing.touchTarget), contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(width = DashWidth, height = DashHeight).background(AppTheme.colors.muted))
+                        }
+                        return@forEach
+                    }
                     val selected = row.selectedColumn == columnIndex
                     Box(
                         modifier = Modifier
@@ -124,6 +136,8 @@ fun RadioMatrix(
 
 private val CellWidth = 48.dp
 private val MatrixDotSize = 20.dp
+private val DashWidth = 10.dp
+private val DashHeight = 2.dp
 
 @Suppress("VerifyStrings")
 @Preview(widthDp = 390)
@@ -137,7 +151,8 @@ private fun RadioMatrixPreview() {
                 columns = columns,
                 rows = listOf("Calories" to 0, "Left in range" to 3, "Vitamins, minerals" to 2).map { (label, picked) ->
                     RadioMatrixRow(label, picked, columns.map { "$label: $it" })
-                } + RadioMatrixRow("Carbs", 0, columns.map { "Carbs: $it" }, note = "Changed from Hide", highlighted = true),
+                } + RadioMatrixRow("Carbs", 0, columns.map { "Carbs: $it" }, note = "Changed from Hide", highlighted = true) +
+                    RadioMatrixRow("Progress photos", 0, columns.map { "Progress photos: $it" }, disabledColumns = setOf(1, 2)),
                 highlightBleed = 20.dp,
                 onSelect = { _, _ -> },
             )

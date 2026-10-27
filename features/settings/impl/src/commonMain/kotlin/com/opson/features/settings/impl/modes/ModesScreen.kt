@@ -21,6 +21,7 @@ import com.opson.features.settings.impl.label
 import com.opson.features.settings.impl.line
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.dialog.TimePickerDialog
@@ -38,6 +39,7 @@ import opson.libraries.resources.generated.resources.settings_modes_changes
 import opson.libraries.resources.generated.resources.settings_modes_footnote
 import opson.libraries.resources.generated.resources.settings_modes_intro
 import opson.libraries.resources.generated.resources.settings_modes_matrix_header
+import opson.libraries.resources.generated.resources.settings_modes_photos
 import opson.libraries.resources.generated.resources.settings_modes_pause_body
 import opson.libraries.resources.generated.resources.settings_modes_pause_title
 import opson.libraries.resources.generated.resources.settings_modes_presets_header
@@ -87,7 +89,7 @@ fun ModesScreen(
             }
         }
         SectionLabel(stringResource(Res.string.settings_modes_matrix_header))
-        LevelMatrix(state.matrix, onAction)
+        LevelMatrix(state.matrix, state.photos, onAction)
         PauseCard(state.pauseOn, onAction)
         SettingsCard {
             SettingsRow(
@@ -123,10 +125,10 @@ fun ModesScreen(
 }
 
 @Composable
-private fun LevelMatrix(matrix: List<MatrixRow>, onAction: (ModesAction) -> Unit) {
+private fun LevelMatrix(matrix: List<MatrixRow>, photos: PhotosRow?, onAction: (ModesAction) -> Unit) {
     val levels = ModesStateBuilder.levels
     val levelLabels = levels.map { stringResource(it.label) }
-    val rows = matrix.map { row ->
+    val metricRows = matrix.map { row ->
         val metric = stringResource(row.metric.label)
         RadioMatrixRow(
             label = metric,
@@ -136,6 +138,19 @@ private fun LevelMatrix(matrix: List<MatrixRow>, onAction: (ModesAction) -> Unit
             highlighted = row.changedFrom != null,
         )
     }
+    val photosRow = photos?.let { row ->
+        val label = stringResource(Res.string.settings_modes_photos)
+        val from = row.changedFrom?.let { if (it) Visibility.Show else Visibility.Hide }
+        RadioMatrixRow(
+            label = label,
+            selectedColumn = levels.indexOf(row.level),
+            cellDescriptions = levelLabels.map { stringResource(Res.string.settings_modes_cell, label, it) },
+            note = from?.let { stringResource(Res.string.settings_modes_changed_from, stringResource(it.label)) },
+            highlighted = from != null,
+            disabledColumns = levels.indices.filterNot { levels[it] in ModesStateBuilder.photoLevels }.toSet(),
+        )
+    }
+    val rows = metricRows + listOfNotNull(photosRow)
     EdgeCard(
         edgeToEdge = false,
         contentPadding = PaddingValues(start = SettingsDefaults.CardPadding, end = SettingsDefaults.CardPadding, top = 12.dp, bottom = 16.dp),
@@ -145,7 +160,14 @@ private fun LevelMatrix(matrix: List<MatrixRow>, onAction: (ModesAction) -> Unit
             header = "",
             columns = levelLabels,
             rows = rows,
-            onSelect = { row, column -> onAction(ModesAction.LevelTapped(matrix[row].metric, levels[column])) },
+            onSelect = { row, column ->
+                val action = if (row < matrix.size) {
+                    ModesAction.LevelTapped(matrix[row].metric, levels[column])
+                } else {
+                    ModesAction.PhotosTapped(shown = levels[column] == Visibility.Show)
+                }
+                onAction(action)
+            },
             highlightBleed = SettingsDefaults.CardPadding,
         )
         Text(
@@ -180,12 +202,24 @@ private fun PauseCard(pauseOn: Boolean, onAction: (ModesAction) -> Unit) {
     }
 }
 
+/** The design's page: Fuel with carbs changed, and `release.progressPhotos` on, so the matrix ends with the photos row. */
 @Preview
 @Composable
 private fun ModesPreview() {
     SettingsPreview {
-        ModesScreen(ModesStateBuilder.build(SettingsFixtures.fuelWithACarbsChange, SettingsFixtures.timeZone), onAction = {})
+        ModesScreen(
+            ModesStateBuilder.build(SettingsFixtures.fuelWithACarbsChange, SettingsFixtures.timeZone, photosReleased = true),
+            onAction = {},
+        )
     }
+}
+
+/** Photos switched on in Fuel, which hides them by default: a change like any other. */
+@Preview
+@Composable
+private fun ModesPhotosShownPreview() {
+    val fuel = SettingsFixtures.fuelWithACarbsChange.copy(progressPhotos = true)
+    SettingsPreview { ModesScreen(ModesStateBuilder.build(fuel, SettingsFixtures.timeZone, photosReleased = true), onAction = {}) }
 }
 
 @Preview

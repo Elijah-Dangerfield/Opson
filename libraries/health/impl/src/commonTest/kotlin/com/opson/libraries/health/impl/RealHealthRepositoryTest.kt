@@ -196,6 +196,38 @@ class RealHealthRepositoryTest {
     }
 
     @Test
+    fun energyBetween_isNullWhileNotConnected_andNeverReads() = runTest {
+        val reader = FakeReader(access = true)
+        assertNull(repository(reader).energyBetween(LocalDate(2026, 10, 19), today, TimeZone.UTC))
+        assertTrue(reader.dailyReads.isEmpty())
+    }
+
+    @Test
+    fun energyBetween_whenConnected_readsOnceFromTheFirstMidnightToNow() = runTest {
+        val week = (19..25).associate { LocalDate(2026, 10, it) to energy }
+        val reader = FakeReader(access = true).apply { daily = week + (LocalDate(2026, 10, 18) to energy) }
+        val repository = repository(reader, FakeAppCache(AppData(healthConnected = true)))
+
+        val read = repository.energyBetween(LocalDate(2026, 10, 19), today, TimeZone.UTC)
+
+        assertEquals(week, read, "a bucket outside the asked days is dropped")
+        assertEquals(listOf(Instant.parse("2026-10-19T00:00:00Z") to noon), reader.dailyReads)
+    }
+
+    @Test
+    fun energyBetween_pastDays_endAtTheLastOnesMidnight() = runTest {
+        val reader = FakeReader(access = true)
+        repository(reader, FakeAppCache(AppData(healthConnected = true))).energyBetween(LocalDate(2026, 10, 12), LocalDate(2026, 10, 18), TimeZone.UTC)
+        assertEquals(listOf(Instant.parse("2026-10-12T00:00:00Z") to Instant.parse("2026-10-19T00:00:00Z")), reader.dailyReads)
+    }
+
+    @Test
+    fun energyBetween_aFailedRead_isNullNotAnEmptyWeek() = runTest {
+        val reader = FakeReader(access = true, failRead = true)
+        assertNull(repository(reader, FakeAppCache(AppData(healthConnected = true))).energyBetween(LocalDate(2026, 10, 19), today, TimeZone.UTC))
+    }
+
+    @Test
     fun noEvent_carriesAValue() = runTest {
         val repository = repository(FakeReader(access = true, grant = true, energy = energy))
         repository.connect()
@@ -234,6 +266,17 @@ private class FakeReader(
         reads += from to to
         if (failRead) error("store unavailable")
         return energy
+    }
+
+    val dailyReads = mutableListOf<Pair<Instant, Instant>>()
+
+    /** What [readDaily] answers, already bucketed. */
+    var daily: Map<LocalDate, EnergyExpended> = emptyMap()
+
+    override suspend fun readDaily(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, EnergyExpended> {
+        dailyReads += from to to
+        if (failRead) error("store unavailable")
+        return daily
     }
 
     override suspend fun revokeAccess() {

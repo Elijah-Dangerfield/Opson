@@ -1,7 +1,9 @@
 package com.opson.features.trends.impl
 
 import com.opson.features.trends.NutrientsRange
+import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -10,6 +12,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -39,7 +42,7 @@ private typealias Menu = Map<MealSlot, List<TrendsFixtures.Food>>
  * Sunday the 25th at noon, Thursday left untracked, three foods new this week
  * (chicken kabsa, poutine, rice pudding), and the prototype's `WEIGHTS` curve.
  * Meal times drift a little day to day, dinner runs later on Fridays and
- * Saturdays, and hunger is tagged on most days, for Patterns.
+ * Saturdays, and hunger is tagged on most days and checked in on most evenings, for Patterns.
  *
  * Nothing here builds a `Display`: every number goes through the real
  * builders and the policy the caller passes, which is what makes the leak test
@@ -69,11 +72,19 @@ object TrendsFixtures {
     fun settings(policy: VisibilityPolicy? = null): Settings =
         Settings(numbers = policy?.settings ?: NumbersSettings())
 
+    /** No watch energy unless asked for, as with `release.health` off; pass `expended()` to draw the Expended card. */
     fun trendsInputs(
         settings: Settings = Settings(),
         days: List<Day> = days(),
         weighIns: List<WeighIn> = weighIns(),
-    ): TrendsInputs = TrendsInputs(today, settings, days, weighIns, timeZone)
+        expended: Map<LocalDate, EnergyExpended>? = null,
+    ): TrendsInputs = TrendsInputs(today, settings, days, weighIns, timeZone, expended)
+
+    /** A watch's ninety days before today: resting about 1,600, active wandering around 550. */
+    fun expended(): Map<LocalDate, EnergyExpended> = (1..WEIGH_IN_DAYS).associate { back ->
+        val active = round(550 + sin(back * 1.3) * 140 + cos(back * 0.7) * 60)
+        today.minus(back, DateTimeUnit.DAY) to EnergyExpended(restingKcal = 1610.0, activeKcal = active, workoutKcal = null)
+    }
 
     fun nutrientsInputs(
         range: NutrientsRange = NutrientsRange.Day,
@@ -96,8 +107,9 @@ object TrendsFixtures {
         photosReleased: Boolean = true,
     ): WeightInputs = WeightInputs(today, settings, weighIns, timeZone, photosReleased, photosLastTaken = today)
 
-    fun patternsInputs(settings: Settings = Settings(), days: List<Day> = days()): PatternsInputs =
-        PatternsInputs(today, settings, days, timeZone)
+    /** [checkInOn]: hunger from the check-ins, as the design draws Patterns. */
+    fun patternsInputs(settings: Settings = Settings(), days: List<Day> = days(), checkInOn: Boolean = false): PatternsInputs =
+        PatternsInputs(today, settings, days, timeZone, checkInOn)
 
     /** The prototype week with ninety days of ordinary history behind it, oldest first. */
     fun days(): List<Day> {
@@ -176,8 +188,24 @@ object TrendsFixtures {
         } else {
             MealSlot.meals.filter { menu[it] != null }.associateWith { MealFeeling(hunger = HUNGER.getValue(it)) }
         }
-        return Day(date = date, itemsBySlot = items, feelings = feelings)
+        return Day(date = date, itemsBySlot = items, feelings = feelings, checkIn = checkIn(seed, menu))
     }
+
+    /**
+     * Checked in three evenings in four, hungrier on a day without breakfast, so Patterns'
+     * check-in card has a shape and its skipped-breakfast line something to say.
+     */
+    private fun checkIn(seed: Int, menu: Menu): CheckIn? {
+        if (menu.isEmpty() || seed % 4 == 0) return null
+        val hunger = if (menu[MealSlot.Breakfast] == null) {
+            if (seed % 2 == 0) DayHunger.Very else DayHunger.Often
+        } else {
+            CHECK_IN_HUNGER[seed % CHECK_IN_HUNGER.size]
+        }
+        return CheckIn(hunger = hunger)
+    }
+
+    private val CHECK_IN_HUNGER = listOf(DayHunger.Some, DayHunger.Steady, DayHunger.Rarely, DayHunger.Some, DayHunger.Steady)
 
     private fun item(date: LocalDate, slot: MealSlot, index: Int, food: Food): LogItem = LogItem(
         id = "$date-${slot.wire}-$index",

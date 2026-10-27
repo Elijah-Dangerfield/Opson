@@ -1,6 +1,7 @@
 package com.opson.features.trends.impl
 
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.MealPatternFacts
 import com.opson.libraries.diary.MealPatterns
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.NewFoods
@@ -27,6 +28,8 @@ data class PatternsInputs(
     val settings: Settings,
     val days: List<Day>,
     val timeZone: TimeZone,
+    /** `release.checkIn` with the check-in switched on in Reminders: hunger comes from the check-ins. */
+    val checkInOn: Boolean = false,
 )
 
 /**
@@ -41,7 +44,7 @@ data class PatternsState(
     val sizes: List<MealSize>? = null,
     /** How often each meal happens, in place of [sizes]. */
     val often: List<MealFrequency>? = null,
-    /** Hunger through the day: only with hunger tags on and some meal tagged. */
+    /** Hunger through the day: from the check-ins when they are on and answered, else from the meal tags. */
     val hunger: HungerCard? = null,
     val newFoods: List<String> = emptyList(),
     /** Blind: hunger sits under New foods, below the fold (design sync 2, 5.7). */
@@ -69,14 +72,23 @@ data class MealSize(val slot: MealSlot, val energy: Display, val share: Display,
 
 data class MealFrequency(val slot: MealSlot, val days: Int, val of: Int)
 
-/** One weekday's bar: how hungry its tagged meals were, `0..1`, or `null` with none tagged. */
+/** One weekday's bar: how hungry that weekday was, `0..1`, or `null` with no answer for it. */
 data class HungerDay(val day: DayOfWeek, val level: Float?)
+
+/** Where the hunger came from, said beside the card's title. */
+enum class HungerSource {
+    /** Close the day's check-in, one answer a day ("From your check-ins"). */
+    CheckIns,
+
+    /** The hunger chips on each food. */
+    MealTags,
+}
 
 /**
  * A bar per weekday, Monday first, and the skipped-breakfast fact when the
- * tags say so: the weekdays it happened on, most often first.
+ * answers say so: the weekdays it happened on, most often first.
  */
-data class HungerCard(val days: List<HungerDay>, val skippedBreakfast: List<DayOfWeek>?)
+data class HungerCard(val days: List<HungerDay>, val skippedBreakfast: List<DayOfWeek>?, val source: HungerSource)
 
 /**
  * Builds [PatternsState] from [MealPatterns], which owns the arithmetic.
@@ -139,19 +151,30 @@ object PatternsStateBuilder {
             },
             sizes = sizes,
             often = if (sizes == null) MealSlot.meals.map { MealFrequency(it, facts.frequency[it] ?: 0, facts.dayCount) } else null,
-            hunger = if (inputs.settings.askTags && facts.taggedMeals > 0) {
-                HungerCard(
-                    days = DayOfWeek.entries.map { day ->
-                        HungerDay(day, facts.hungerByWeekday[day]?.let { (it / MealPatterns.HUNGER_STEPS).toFloat() })
-                    },
-                    skippedBreakfast = facts.hungrierWithoutBreakfast,
-                )
-            } else {
-                null
-            },
+            hunger = hunger(inputs, facts),
             newFoods = NewFoods.between(inputs.days, from, inputs.today),
             hungerLast = sizes == null,
         )
+    }
+
+    /**
+     * The check-ins once they are on and someone has answered the hunger row; until then, the
+     * meal tags (with their questions on), so turning the check-in on doesn't empty the card.
+     */
+    private fun hunger(inputs: PatternsInputs, facts: MealPatternFacts): HungerCard? = when {
+        inputs.checkInOn && facts.checkInHungerByWeekday.isNotEmpty() -> HungerCard(
+            days = DayOfWeek.entries.map { day -> HungerDay(day, facts.checkInHungerByWeekday[day]?.toFloat()) },
+            skippedBreakfast = facts.checkInHungrierWithoutBreakfast,
+            source = HungerSource.CheckIns,
+        )
+        inputs.settings.askTags && facts.taggedMeals > 0 -> HungerCard(
+            days = DayOfWeek.entries.map { day ->
+                HungerDay(day, facts.hungerByWeekday[day]?.let { (it / MealPatterns.HUNGER_STEPS).toFloat() })
+            },
+            skippedBreakfast = facts.hungrierWithoutBreakfast,
+            source = HungerSource.MealTags,
+        )
+        else -> null
     }
 
     private fun sizes(energy: Map<MealSlot, Double>, policy: VisibilityPolicy, context: FormatContext): List<MealSize>? {

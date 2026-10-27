@@ -53,6 +53,10 @@ class PauseViewModelTest : CoroutineTest() {
             PauseSubject.RevealTime(LocalTime(19, 30)),
             PauseViewModel(NumbersChange.SetRevealAt(LocalTime(19, 30)), changer, findSupportFlag()).state.subject,
         )
+        assertEquals(
+            PauseSubject.ProgressPhotos,
+            PauseViewModel(NumbersChange.SetProgressPhotos(shown = true), changer, findSupportFlag()).state.subject,
+        )
     }
 
     @Test

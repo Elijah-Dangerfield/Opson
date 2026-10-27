@@ -37,6 +37,11 @@ class PauseBeforeMoreRoute(
         KIND_CLEAR -> metricKey?.let(::metricFor)?.let(NumbersChange::ClearOverride)
         KIND_PAUSE -> NumbersChange.TurnOffPause
         KIND_REVEAL -> timeKey?.let(::timeFor)?.let(NumbersChange::SetRevealAt)
+        KIND_PHOTOS -> when (levelKey?.let(::levelFor)) {
+            Visibility.Show -> NumbersChange.SetProgressPhotos(shown = true)
+            Visibility.Hide -> NumbersChange.SetProgressPhotos(shown = false)
+            else -> null
+        }
         else -> null
     }
 
@@ -46,6 +51,7 @@ class PauseBeforeMoreRoute(
         const val KIND_CLEAR = "clear"
         const val KIND_PAUSE = "pause"
         const val KIND_REVEAL = "reveal"
+        const val KIND_PHOTOS = "photos"
 
         fun metricFor(key: String): Metric? = Metric.entries.firstOrNull { it.key == key }
 
@@ -71,6 +77,10 @@ fun NumbersChange.toRoute(): PauseBeforeMoreRoute = when (this) {
     is NumbersChange.SetRevealAt -> PauseBeforeMoreRoute(
         PauseBeforeMoreRoute.KIND_REVEAL,
         timeKey = PauseBeforeMoreRoute.timeKey(time),
+    )
+    is NumbersChange.SetProgressPhotos -> PauseBeforeMoreRoute(
+        PauseBeforeMoreRoute.KIND_PHOTOS,
+        levelKey = (if (shown) Visibility.Show else Visibility.Hide).routeKey,
     )
 }
 

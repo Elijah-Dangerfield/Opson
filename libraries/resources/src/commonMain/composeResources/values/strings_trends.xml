@@ -38,6 +38,8 @@
     <string name="trends_weight">Weight</string>
     <string name="trends_weight_trend">Smoothed 7-day trend</string>
     <string name="trends_weight_none">No weigh-ins yet. Tap to log one.</string>
+    <string name="trends_expended">Expended</string>
+    <string name="trends_expended_sub">Daily average from your watch</string>
 
     <!-- Nutrient labels -->
     <string name="trends_energy">Energy</string>
@@ -57,6 +59,7 @@
     <string name="trends_settings_card_recap">Recap</string>
     <string name="trends_settings_card_nutrients">Nutrients</string>
     <string name="trends_settings_card_weight">Weight</string>
+    <string name="trends_settings_card_expended">Expended</string>
 
     <!-- Sub-screens: where back goes, "‹ Trends" or "‹ Today", spoken on the arrow -->
     <string name="trends_back">‹ %1$s</string>
@@ -137,6 +140,7 @@
     <string name="trends_patterns_often_value">%1$d of %2$d days</string>
     <string name="trends_patterns_hunger">Hunger through the day</string>
     <string name="trends_patterns_hunger_from">From your check-ins</string>
+    <string name="trends_patterns_hunger_from_tags">From your meal tags</string>
     <string name="trends_patterns_hunger_skipped">Hungrier on days you skipped breakfast (%1$s).</string>
     <string name="trends_patterns_new_foods">New foods</string>
     <string name="trends_loading_cd">Loading</string>

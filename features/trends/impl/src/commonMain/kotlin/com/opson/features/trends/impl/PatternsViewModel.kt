@@ -1,6 +1,7 @@
 package com.opson.features.trends.impl
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.NewFoods
 import com.opson.libraries.diary.SettingsRepository
@@ -28,6 +29,7 @@ class PatternsViewModel(
     settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
     private val clock: Clock,
+    checkInEnabled: CheckInEnabled,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<PatternsState, PatternsEvent, PatternsAction>(initialStateArg = PatternsState()) {
 
@@ -42,8 +44,11 @@ class PatternsViewModel(
                 val from = day.minus(PatternsStateBuilder.DAYS - 1 + NewFoods.LOOKBACK_DAYS, DateTimeUnit.DAY)
                 diary.observeDays(from, day).map { day to it }
             }
+        // Read once when the page opens, like every release flag.
+        val checkInReleased = checkInEnabled()
         combine(settingsRepository.settings, policySource.policy, days) { settings, policy, (day, list) ->
-            PatternsAction.InputsArrived(PatternsInputs(day, settings, list, timeZone), policy)
+            val checkInOn = checkInReleased && settings.checkIn
+            PatternsAction.InputsArrived(PatternsInputs(day, settings, list, timeZone, checkInOn), policy)
         }.collectIn(viewModelScope) { takeAction(it) }
     }
 

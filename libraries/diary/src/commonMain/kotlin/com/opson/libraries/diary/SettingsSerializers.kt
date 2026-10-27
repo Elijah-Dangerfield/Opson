@@ -24,6 +24,10 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonTransformingSerializer
 import kotlin.time.Instant
 
 /**
@@ -136,6 +140,8 @@ private class NumbersWire(
     val changedAtEpochMs: Long? = null,
     /** `"21:00"`. Missing (settings from before v3) or unreadable is the default, 9:00 pm. */
     val revealAt: String? = null,
+    /** Travels as a top-level key ([SettingsSerializer]); here only between it and [NumbersSettingsSerializer]. */
+    val progressPhotos: Boolean? = null,
 )
 
 internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
@@ -149,6 +155,7 @@ internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
             pauseBeforeMore = value.pauseBeforeMore,
             changedAtEpochMs = value.changedAt?.toEpochMilliseconds(),
             revealAt = value.revealAt.toWire(),
+            progressPhotos = value.progressPhotos,
         ),
     )
 
@@ -160,6 +167,7 @@ internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
             pauseBeforeMore = wire.pauseBeforeMore,
             changedAt = wire.changedAtEpochMs?.let(Instant::fromEpochMilliseconds),
             revealAt = wire.revealAt?.let(::revealAtFromWire) ?: NumbersSettings.DEFAULT_REVEAL_AT,
+            progressPhotos = wire.progressPhotos,
         )
     }
 
@@ -168,6 +176,39 @@ internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
         hour.toString().padStart(2, '0') + ":" + minute.toString().padStart(2, '0')
 
     private fun revealAtFromWire(value: String): LocalTime? = runCatching { LocalTime.parse(value) }.getOrNull()
+}
+
+/**
+ * [Settings] as the plugin writes it, with `numbers.progressPhotos` moved to a top-level
+ * `progressPhotos` and back. The server merges settings one level deep (`stored || incoming`)
+ * and a 0.1 build rewrites `numbers` whole without the key, so inside `numbers` the choice would
+ * be lost on that build's next save. Written even when null, so picking a preset, which clears
+ * the choice, clears it on the server too instead of the merge keeping the old one.
+ */
+internal object SettingsSerializer : JsonTransformingSerializer<Settings>(Settings.generatedSerializer()) {
+    private const val NUMBERS = "numbers"
+    private const val PROGRESS_PHOTOS = "progressPhotos"
+
+    override fun transformSerialize(element: JsonElement): JsonElement {
+        val settings = element as? JsonObject ?: return element
+        val numbers = settings[NUMBERS] as? JsonObject ?: return element
+        return JsonObject(
+            settings + mapOf(
+                NUMBERS to JsonObject(numbers - PROGRESS_PHOTOS),
+                PROGRESS_PHOTOS to (numbers[PROGRESS_PHOTOS] ?: JsonNull),
+            ),
+        )
+    }
+
+    override fun transformDeserialize(element: JsonElement): JsonElement {
+        val settings = element as? JsonObject ?: return element
+        val photos = settings[PROGRESS_PHOTOS]
+        val numbers = settings[NUMBERS] as? JsonObject
+        if (photos == null && numbers?.containsKey(PROGRESS_PHOTOS) != true) return element
+        // Only the top-level key counts: one inside numbers came from nowhere this serializer wrote.
+        val moved = (numbers ?: JsonObject(emptyMap())) - PROGRESS_PHOTOS + (photos?.let { mapOf(PROGRESS_PHOTOS to it) } ?: emptyMap())
+        return JsonObject(settings - PROGRESS_PHOTOS + (NUMBERS to JsonObject(moved)))
+    }
 }
 
 @Serializable

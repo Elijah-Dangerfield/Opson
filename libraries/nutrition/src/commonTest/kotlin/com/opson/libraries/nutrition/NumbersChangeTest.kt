@@ -41,6 +41,45 @@ class NumbersChangeTest {
     }
 
     @Test
+    fun progressPhotos_followThePreset_untilPicked() {
+        val hiddenBy = PresetId.entries.filterNot { NumbersSettings(it).showsProgressPhotos }
+        assertEquals(listOf(PresetId.Blind, PresetId.Rhythm, PresetId.Mindful, PresetId.Fuel), hiddenBy)
+
+        val shown = NumbersChange.SetProgressPhotos(shown = true).applyTo(NumbersSettings(PresetId.Fuel), at)
+        assertTrue(shown.showsProgressPhotos)
+        assertTrue(shown.progressPhotosChanged)
+        assertEquals(at, shown.changedAt)
+        assertFalse(NumbersSettings(PresetId.Full, progressPhotos = true).progressPhotosChanged, "the same as the preset's")
+    }
+
+    @Test
+    fun pickPreset_clearsThePhotosChoiceToo() {
+        val next = NumbersChange.PickPreset(PresetId.Full).applyTo(NumbersSettings(PresetId.Full, progressPhotos = false), at)
+        assertEquals(null, next.progressPhotos)
+        assertTrue(next.showsProgressPhotos)
+    }
+
+    @Test
+    fun progressPhotos_showingPauses_hidingNever() {
+        val fuelPaused = NumbersSettings(PresetId.Fuel, pauseBeforeMore = true)
+        assertTrue(NumbersChange.SetProgressPhotos(shown = true).needsPause(fuelPaused))
+        assertFalse(NumbersChange.SetProgressPhotos(shown = true).needsPause(fuelPaused.copy(pauseBeforeMore = false)))
+        assertFalse(NumbersChange.SetProgressPhotos(shown = false).needsPause(fullPaused))
+        // A preset that hides fewer numbers but brings photos back is still showing more.
+        assertTrue(NumbersChange.PickPreset(PresetId.Explorer).needsPause(NumbersSettings(PresetId.Blind, pauseBeforeMore = true)))
+        val photosHidden = NumbersSettings(PresetId.Nutrient, progressPhotos = false, pauseBeforeMore = true)
+        assertTrue(NumbersChange.PickPreset(PresetId.Explorer).needsPause(photosHidden))
+    }
+
+    @Test
+    fun isLower_hidingPhotosAlone_isFewer() {
+        val full = NumbersSettings(PresetId.Full)
+        assertTrue(full.isLower(full.copy(progressPhotos = false)))
+        assertFalse(full.copy(progressPhotos = false).isLower(full))
+        assertFalse(full.isLower(full))
+    }
+
+    @Test
     fun changes_countOnlyLevelsThatDifferFromThePreset() {
         val fuel = NumbersSettings(
             PresetId.Fuel,
@@ -120,6 +159,7 @@ class NumbersChangeTest {
             NumbersChange.Override(Metric.Remaining, Visibility.Delay),
             NumbersChange.ClearOverride(Metric.Water),
             NumbersChange.TurnOffPause,
+            NumbersChange.SetProgressPhotos(shown = true),
         )
         changes.forEach { change ->
             val json = Json.encodeToString(NumbersChange.serializer(), change)

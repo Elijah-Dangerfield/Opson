@@ -104,6 +104,15 @@ class RealHealthRepository(
         )
     }
 
+    override suspend fun energyBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Map<LocalDate, EnergyExpended>? {
+        refresh()
+        if (mutableStatus.value != HealthStatus.Connected) return null
+        val start = from.atStartOfDayIn(timeZone)
+        val end = minOf(to.plus(DatePeriod(days = 1)).atStartOfDayIn(timeZone), clock.now())
+        if (end <= start) return emptyMap()
+        return guarded("read energy by day") { reader.readDaily(start, end, timeZone) }?.filterKeys { it in from..to }
+    }
+
     override fun openSourceSettings(): Boolean = reader.openSettings()
 
     private fun readEvery(day: LocalDate, timeZone: TimeZone): Flow<EnergyExpended?> = flow {

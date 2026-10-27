@@ -10,6 +10,8 @@ import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KeepGeneratedSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -24,9 +26,13 @@ import kotlinx.serialization.Serializable
  * `healthToday ?? (preset is Full)` is null here).
  *
  * Adding a field is non-breaking: missing keys decode to the default. Settings
- * only change when the user changes them.
+ * only change when the user changes them. The server merges a write into what it
+ * has one level deep, so a new field is a new top-level key: [SettingsSerializer]
+ * lifts the one that lives under [numbers] out to the top.
  */
-@Serializable
+@OptIn(ExperimentalSerializationApi::class)
+@KeepGeneratedSerializer
+@Serializable(with = SettingsSerializer::class)
 data class Settings(
     /** Preset, overrides, "Pause before showing more" and when the user last changed them. */
     @Serializable(with = NumbersSettingsSerializer::class)
@@ -123,6 +129,11 @@ data class Settings(
     val todaySummaryStats: List<String>? = null,
     /** Page 2, the macros page. */
     val todayMacrosPage: Boolean = true,
+    /**
+     * Close the day's check-in card (design sync 2, 4.1, `release.checkIn`), switched in Reminders.
+     * A top-level key, because the server merges settings one level deep.
+     */
+    val checkIn: Boolean = true,
 ) {
     fun isFavorite(foodKey: String): Boolean = foodKey in favoriteFoods
 

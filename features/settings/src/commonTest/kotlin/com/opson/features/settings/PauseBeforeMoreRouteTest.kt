@@ -27,6 +27,8 @@ class PauseBeforeMoreRouteTest {
             }
             add(NumbersChange.TurnOffPause)
             add(NumbersChange.SetRevealAt(LocalTime(19, 30)))
+            add(NumbersChange.SetProgressPhotos(shown = true))
+            add(NumbersChange.SetProgressPhotos(shown = false))
         }
 
         changes.forEach { assertEquals(it, it.toRoute().change()) }
@@ -38,5 +40,6 @@ class PauseBeforeMoreRouteTest {
         assertNull(PauseBeforeMoreRoute(kind = "preset", presetKey = "everything").change())
         assertNull(PauseBeforeMoreRoute(kind = "override", metricKey = "calories").change())
         assertNull(PauseBeforeMoreRoute(kind = "override", metricKey = "calories", levelKey = "loud").change())
+        assertNull(PauseBeforeMoreRoute(kind = "photos", levelKey = "soften").change(), "photos are Show or Hide only")
     }
 }

@@ -5,6 +5,7 @@ import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.photosFlag
 import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Metric
@@ -20,6 +21,7 @@ import opson.libraries.resources.generated.resources.settings_saved
 import opson.libraries.resources.generated.resources.settings_saved_fewer
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -103,17 +105,63 @@ class ModesTest : CoroutineTest() {
         assertTrue(changed.pauseOn)
     }
 
+    @Test
+    fun thePhotosRow_onlyWithItsFlag_followingThePresetUntilChanged() {
+        assertNull(ModesStateBuilder.build(NumbersSettings(PresetId.Fuel), TimeZone.UTC).photos)
+
+        assertEquals(PhotosRow(shown = false), ModesStateBuilder.build(NumbersSettings(PresetId.Fuel), TimeZone.UTC, photosReleased = true).photos)
+        assertEquals(PhotosRow(shown = true), ModesStateBuilder.build(NumbersSettings(PresetId.Full), TimeZone.UTC, photosReleased = true).photos)
+    }
+
+    @Test
+    fun photosShownInFuel_isAChangeFromHide_andCounts() {
+        val fuel = SettingsFixtures.fuelWithACarbsChange.copy(progressPhotos = true)
+
+        val state = ModesStateBuilder.build(fuel, TimeZone.UTC, photosReleased = true)
+        assertEquals(PhotosRow(shown = true, changedFrom = false), state.photos)
+        assertEquals(2, state.presets.single { it.selected }.changes)
+
+        val flagOff = ModesStateBuilder.build(fuel, TimeZone.UTC)
+        assertEquals(1, flagOff.presets.single { it.selected }.changes, "a row that isn't drawn isn't counted")
+    }
+
     // --- view model ---
+
+    @Test
+    fun photosTapped_goesThroughTheChanger_andOpensThePauseWhenItSaysSo() = runUnitTest {
+        val changer = FakeNumbersChanger { NumbersOutcome.NeedsPause }
+        val vm = viewModel(NumbersSettings(PresetId.Fuel, pauseBeforeMore = true), changer, photos = true)
+        val events = eventsOf(vm)
+
+        vm.takeAction(ModesAction.PhotosTapped(shown = false))
+        assertTrue(changer.requested.isEmpty(), "already hidden in Fuel")
+
+        vm.takeAction(ModesAction.PhotosTapped(shown = true))
+        val change = NumbersChange.SetProgressPhotos(shown = true)
+        assertEquals(listOf<NumbersChange>(change), changer.requested)
+        assertEquals(listOf<ModesEvent>(ModesEvent.OpenPause(change)), events)
+    }
+
+    @Test
+    fun photosFlagOff_noRow_andATapDoesNothing() = runUnitTest {
+        val changer = FakeNumbersChanger()
+        val vm = viewModel(NumbersSettings(PresetId.Fuel), changer, photos = false)
+
+        assertNull(vm.state.photos)
+        vm.takeAction(ModesAction.PhotosTapped(shown = true))
+        assertTrue(changer.requested.isEmpty())
+    }
 
     private fun viewModel(
         numbers: NumbersSettings = NumbersSettings(PresetId.Full),
         changer: FakeNumbersChanger = FakeNumbersChanger(),
-    ) = ModesViewModel(FakeSettingsRepository(SettingsFixtures.settings(numbers)), changer)
+        photos: Boolean = false,
+    ) = ModesViewModel(FakeSettingsRepository(SettingsFixtures.settings(numbers)), changer, photosFlag(photos))
 
     @Test
     fun settingsArriveAsState() = runUnitTest {
         val repository = FakeSettingsRepository(SettingsFixtures.settings(NumbersSettings(PresetId.Full)))
-        val vm = ModesViewModel(repository, FakeNumbersChanger())
+        val vm = ModesViewModel(repository, FakeNumbersChanger(), photosFlag())
 
         repository.state.value = SettingsFixtures.settings(NumbersSettings(PresetId.Mindful, pauseBeforeMore = true))
 

@@ -47,6 +47,11 @@ data class ModePreset(
      * restriction for exactly the people who pick it.
      */
     val mealGaps: Boolean = true,
+    /**
+     * Whether progress photos show unless the person picks otherwise (design sync 2, 8.x: "Blind,
+     * Mindful, Rhythm and Fuel default to Hide"). See [NumbersSettings.showsProgressPhotos].
+     */
+    val progressPhotos: Boolean = true,
 ) {
     fun level(metric: Metric): Visibility = vis.getValue(metric)
 }
@@ -83,6 +88,7 @@ object Presets {
         today = TodayLayout.Meals,
         vis = gentle(fill(Visibility.Hide)),
         mealGaps = false,
+        progressPhotos = false,
     )
 
     val Nutrient = ModePreset(
@@ -102,6 +108,7 @@ object Presets {
         today = TodayLayout.Rhythm,
         mealCount = true,
         vis = gentle(fill(Visibility.Hide)),
+        progressPhotos = false,
     )
 
     val Explorer = ModePreset(
@@ -116,6 +123,7 @@ object Presets {
         banner = true,
         asksHowItFelt = true,
         vis = gentle(fill(Visibility.Hide)),
+        progressPhotos = false,
     )
 
     val Fuel = ModePreset(
@@ -130,6 +138,7 @@ object Presets {
                 Metric.Weight to Visibility.Soften,
             ),
         ),
+        progressPhotos = false,
     )
 
     val Sprint = ModePreset(

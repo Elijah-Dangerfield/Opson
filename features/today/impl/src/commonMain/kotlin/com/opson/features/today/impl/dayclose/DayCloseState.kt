@@ -118,7 +118,7 @@ data class DayCloseInputs(
     val settings: Settings,
     /** Today's energy from a connected health app; null when not connected or `release.health` is off. */
     val expended: EnergyExpended? = null,
-    /** `release.checkIn`. */
+    /** `release.checkIn`, and the check-in switch in Reminders on ([Settings.checkIn]). */
     val checkInOn: Boolean = false,
 )
 

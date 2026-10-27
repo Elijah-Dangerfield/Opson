@@ -3,7 +3,7 @@ package com.opson.features.today.impl.dayclose
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.unit.dp
-import com.opson.features.today.impl.CheckInEnabled
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.DayCheckIns
@@ -166,7 +166,8 @@ class DayCloseViewModel(
     init {
         viewModelScope.launch {
             combine(diary.observeDay(day), settingsRepository.settings, policySource.policy, expended()) { d, settings, policy, expended ->
-                DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInEnabled()), policy)
+                val checkInOn = checkInEnabled() && settings.checkIn
+                DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn), policy)
             }.collect(::takeAction)
         }
     }
