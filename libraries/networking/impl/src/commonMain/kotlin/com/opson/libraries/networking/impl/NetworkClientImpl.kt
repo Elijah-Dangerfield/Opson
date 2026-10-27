@@ -149,7 +149,7 @@ internal fun HttpClientConfig<*>.applyCommonConfig(
     }
     install(HttpTimeout) {
         requestTimeoutMillis = config.requestTimeoutMillis
-        connectTimeoutMillis = config.requestTimeoutMillis
+        connectTimeoutMillis = config.connectTimeoutMillis
         socketTimeoutMillis = config.requestTimeoutMillis
     }
     // Only when there is no base URL: with one configured, DefaultRequest has

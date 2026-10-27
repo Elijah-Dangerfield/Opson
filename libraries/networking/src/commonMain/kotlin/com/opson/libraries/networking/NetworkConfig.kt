@@ -19,6 +19,18 @@ interface NetworkConfig {
      */
     val baseUrl: String
 
-    /** Per-request timeout in milliseconds. Default 30s. */
+    /**
+     * Whole-request budget, and the longest the socket may sit silent. A call
+     * that waits on slow server work (a photo estimate) raises both per request.
+     */
     val requestTimeoutMillis: Long get() = 30_000L
+
+    /**
+     * How long to wait for a connection to open. Shorter than the request
+     * budget because a connection that has not opened in 10 s is not going to:
+     * the network is dead even if the OS still reports a path, and the caller
+     * should hear so instead of sitting out the full budget. Only OkHttp
+     * (Android) applies it; NSURLSession has no separate connect timeout.
+     */
+    val connectTimeoutMillis: Long get() = 10_000L
 }
