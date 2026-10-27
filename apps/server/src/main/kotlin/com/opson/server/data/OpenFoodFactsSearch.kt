@@ -226,10 +226,11 @@ internal object OpenFoodFactsSearch {
     /**
      * Open Food Facts' tag for an ISO 3166-1 alpha-2 code: `FR` → `en:france`,
      * `US` → `en:united-states`. Their tags are the English name, lowercased
-     * and hyphenated, with a few names of their own.
+     * and hyphenated, with a few names of their own. Only A to Z: the code is
+     * the client's header, and [Locale.Builder] throws on any other letter.
      */
     fun countryTag(iso2: String?): String? {
-        val code = iso2?.trim()?.uppercase()?.takeIf { it.length == 2 && it.all(Char::isLetter) } ?: return null
+        val code = iso2?.trim()?.uppercase()?.takeIf { it.length == 2 && it.all { c -> c in 'A'..'Z' } } ?: return null
         TAG_OVERRIDES[code]?.let { return "en:$it" }
         val name = Locale.Builder().setRegion(code).build().getDisplayCountry(Locale.ENGLISH)
         if (name.isBlank() || name.equals(code, ignoreCase = true)) return null
