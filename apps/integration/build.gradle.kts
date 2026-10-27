@@ -70,6 +70,9 @@ kotlin {
             implementation(projects.features.settings)
             // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.progressphotos)
+            // The upgrade.* values, and the guard the remote-config journeys drive.
+            implementation(projects.features.upgrade)
+            implementation(projects.features.upgrade.impl)
             implementation(libs.kotlinx.serialization.json)
 
             // The device side of the journeys: the diary, its sync engine and

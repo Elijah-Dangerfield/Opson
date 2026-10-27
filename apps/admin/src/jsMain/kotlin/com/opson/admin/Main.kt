@@ -27,7 +27,7 @@ fun main() {
     renderComposable(rootElementId = "root") { App() }
 }
 
-private enum class Tab(val label: String) { Flags("Flags"), Versions("Versions"), Audit("Audit"), Diff("Dev ↔ Prod"), Waitlist("Waitlist") }
+private enum class Tab(val label: String) { Flags("Flags"), Versions("Versions"), Audit("Audit"), Diff("Dev ↔ Prod"), Users("Users"), Waitlist("Waitlist") }
 
 /** The env whose server is serving this console, when hosted at `/admin`. */
 private fun hostedEnv(): AdminEnv? =
@@ -295,6 +295,8 @@ private fun App() {
                 Tab.Audit -> AuditView(ctx = ctx)
 
                 Tab.Diff -> DiffView(ctx = ctx, connectedEnv = env)
+
+                Tab.Users -> UsersView(ctx = ctx)
 
                 Tab.Waitlist -> WaitlistView(ctx = ctx)
             }

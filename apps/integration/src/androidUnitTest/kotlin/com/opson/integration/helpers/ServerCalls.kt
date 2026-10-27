@@ -12,6 +12,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -35,15 +36,38 @@ suspend fun Harness.setFlagFor(
     value: JsonElement = JsonPrimitive(true),
     base: JsonElement = JsonPrimitive(false),
 ): String {
-    adminPut("/v1/admin/config/flags/$path", buildJsonObject { put("value", base) }.toString())
-    val ruleId = UUID.randomUUID().toString()
+    setFlagBase(path, base)
+    return putFlagRule(
+        path = path,
+        value = value,
+        conditions = buildJsonObject { put("userAllow", buildJsonArray { add(JsonPrimitive(userId)) }) },
+    )
+}
+
+/** The flag's base value, what every caller gets when no rule matches. `PUT /v1/admin/config/flags/{path}`. */
+suspend fun Harness.setFlagBase(path: String, value: JsonElement) {
+    adminPut("/v1/admin/config/flags/$path", buildJsonObject { put("value", value) }.toString())
+}
+
+/**
+ * Creates the targeting rule [ruleId] on [path], or replaces it: the console's
+ * rule editor. [conditions] is the wire `RuleConditions` object
+ * (`platforms`, `minVersionCode`, `minAppVersion`, `userAllow`, `rolloutPercent`, and so on).
+ */
+suspend fun Harness.putFlagRule(
+    path: String,
+    value: JsonElement,
+    conditions: JsonObject,
+    ruleId: String = UUID.randomUUID().toString(),
+    priority: Int = 0,
+): String {
     adminPut(
         "/v1/admin/config/rules/$ruleId",
         buildJsonObject {
             put("flagPath", path)
-            put("priority", 0)
+            put("priority", priority)
             put("value", value)
-            put("conditions", buildJsonObject { put("userAllow", buildJsonArray { add(JsonPrimitive(userId)) }) })
+            put("conditions", conditions)
         }.toString(),
     )
     return ruleId

@@ -156,6 +156,29 @@ class OfflineFirstAppConfigRepositoryTest : CoroutineTest() {
     }
 
     @Test
+    fun refresh_fetchesInsideTheThrottle_andCountsAsTheFetchForTheNextForeground() = runUnitTest {
+        val source = FakeRemoteDataSource(response = MapAppConfig(mapOf("upgrade" to mapOf("maintenanceMode" to "off"))))
+        val events = FakeAppEvents()
+        val clock = FakeClock(nowMs = 0L)
+        val repo = newRepo(source = source, events = events, clock = clock)
+
+        events.foreground(isColdBoot = true)
+        runCurrent()
+        assertEquals(1, source.callCount)
+
+        clock.nowMs += 1_000 // well inside the window: a foreground would not fetch
+        repo.refresh()
+        runCurrent()
+        assertEquals(2, source.callCount, "Try again fetches whatever the throttle says")
+        assertEquals("off", (repo.configStream().first().map["upgrade"] as Map<*, *>)["maintenanceMode"])
+
+        clock.nowMs += 1_000
+        events.foreground(isColdBoot = false)
+        runCurrent()
+        assertEquals(2, source.callCount, "a foreground right after a manual refresh does not fetch again")
+    }
+
+    @Test
     fun foregroundAfterFailure_nextForegroundPastThrottleRetries() = runUnitTest {
         val source = FakeRemoteDataSource(response = MapAppConfig(mapOf("k" to "v")))
         val events = FakeAppEvents()

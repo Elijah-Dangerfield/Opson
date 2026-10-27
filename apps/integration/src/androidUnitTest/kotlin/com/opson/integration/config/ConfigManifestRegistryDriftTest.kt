@@ -1,6 +1,10 @@
 package com.opson.integration.config
 
 import com.opson.features.logger.impl.BarcodeScanEnabled
+import com.opson.features.upgrade.LatestVersionCode
+import com.opson.features.upgrade.MaintenanceMessage
+import com.opson.features.upgrade.MaintenanceMode
+import com.opson.features.upgrade.MinSupportedVersionCode
 import com.opson.features.logger.impl.PhotoEstimateEnabled
 import com.opson.features.logger.impl.SearchOptionsEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
@@ -97,7 +101,7 @@ class ConfigManifestRegistryDriftTest {
 
         val registryPaths = registry.map { it.path }.toSet()
         val missing = declared.filter { it.path !in registryPaths }
-        val extra = registryPaths - declaredPaths.toSet() - SERVER_OWNED_PATHS
+        val extra = registryPaths - declaredPaths.toSet()
 
         if (missing.isEmpty() && extra.isEmpty()) return
         fail(
@@ -146,34 +150,6 @@ class ConfigManifestRegistryDriftTest {
                     appendLine(value.asRegistryLine())
                 }
             },
-        )
-    }
-
-    /**
-     * The exemption above, held to its own terms in both directions.
-     *
-     * An allowance that only ever grows is how a set-equality check turns into a
-     * one-sided one. So [SERVER_OWNED_PATHS] has to stay a set of rows that
-     * really are in the registry and really have no `ConfiguredValue`: an entry
-     * that gains one has to leave the list, and an entry deleted from the
-     * registry cannot linger here excusing nothing.
-     */
-    @Test
-    fun serverOwnedEntriesAreStillServerOwned() {
-        val registryPaths = registry.map { it.path }.toSet()
-        val declaredPaths = declared.map { it.path }.toSet()
-
-        assertEquals(
-            emptySet(),
-            SERVER_OWNED_PATHS - registryPaths,
-            "These are exempt from the drift check and are no longer in $REGISTRY_NAME. " +
-                "Drop them from SERVER_OWNED_PATHS.",
-        )
-        assertEquals(
-            emptySet(),
-            SERVER_OWNED_PATHS intersect declaredPaths,
-            "A ConfiguredValue now declares these, so they are ordinary keys and the exemption " +
-                "hides real drift on them. Drop them from SERVER_OWNED_PATHS.",
         )
     }
 
@@ -343,31 +319,14 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     TodaySelectEnabled(appConfigMap),
     CheckInEnabled(appConfigMap),
     TodayFoodActionsEnabled(appConfigMap),
+    MinSupportedVersionCode(appConfigMap),
+    LatestVersionCode(appConfigMap),
+    MaintenanceMode(appConfigMap),
+    MaintenanceMessage(appConfigMap),
     GoalsAndEnergyEnabled(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"
-
-/**
- * Paths the registry carries that no client `ConfiguredValue` declares.
- *
- * The kill-switch trio is seeded straight into `app_config_values` by the V4
- * migration and driven from the admin console's pinned panel; no client code
- * reads it yet, so there is nothing here to transcribe. Their registry rows are
- * not dead weight: `ConfigSchema` waves through any path the manifest does not
- * mention, so deleting them is what would let `maintenanceMode = "banana"`
- * through the admin API.
- *
- * Whoever wires a force-upgrade gate into the client declares these as ordinary
- * `ConfiguredValue`s and deletes this list;
- * [ConfigManifestRegistryDriftTest.serverOwnedEntriesAreStillServerOwned] fails
- * until they do.
- */
-private val SERVER_OWNED_PATHS = setOf(
-    "upgrade.minSupportedVersionCode",
-    "upgrade.maintenanceMode",
-    "upgrade.maintenanceMessage",
-)
 
 private fun entries(count: Int): String = if (count == 1) "1 entry" else "$count entries"
 

@@ -18,6 +18,8 @@ import com.opson.server.domain.PhotoEstimateLimiter
 import com.opson.server.domain.ProfileRepository
 import com.opson.server.domain.SupabaseAdminClient
 import com.opson.server.domain.SyncRepository
+import com.opson.server.domain.UserInstallRepository
+import com.opson.server.domain.UserLookupRepository
 import com.opson.server.domain.WaitlistLimiter
 import com.opson.server.domain.WaitlistRepository
 import kotlinx.coroutines.CoroutineScope
@@ -84,6 +86,8 @@ abstract class ServerComponent(
     abstract val exportRepository: ExportRepository
     abstract val waitlistRepository: WaitlistRepository
     abstract val waitlistLimiter: WaitlistLimiter
+    abstract val userInstallRepository: UserInstallRepository
+    abstract val userLookupRepository: UserLookupRepository
 
     /**
      * Long-lived application scope for server-owned background work (e.g. the

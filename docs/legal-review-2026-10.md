@@ -77,7 +77,7 @@ pages, in the muted colour.
 | Barcode | **Added.** Covers Open Food Facts, Nutritionix (off unless keyed), the stored lookups and ML Kit. |
 | Progress photos | **Added.** On the phone only and excluded from backups. |
 | Processors | **Added** a table: Fly.io, Supabase, Sentry, Grafana Labs, Anthropic, Apple, Google. Open Food Facts gets only barcodes. |
-| Crash reports | **Fixed.** The old text said reports "never include what you logged". They carry the account ID, and **a failed food search can carry its words in the request URL**. The policy now says so. **Open:** strip query strings in `AppTelemetry.kt`, then delete that sentence. |
+| Crash reports | **Fixed.** The old text said reports "never include what you logged". They carry the account ID, and **a failed food search can carry its words in the request URL**. The policy said so until 0.2, which strips URL queries before anything reaches Sentry (`SentryUrlScrubbing.kt`); the sentence is deleted. 0.1 still sends them. |
 | Retention | **Added.** Account data until deleted (with tombstones until the account goes), backups 30 days, crash reports and logs 90 days, usage events 90 days. **Checked 2026-10-27:** Sentry 30 days, Grafana logs and traces 30 days, Supabase backups 7 days, all inside the policy. |
 | Deletion and export | **Fixed.** The export is a CSV of entries, weigh-ins and water only. The policy now says so and offers the rest by email. |
 | Phone backups | **Added.** The log on the phone is in iCloud and Google backups today. **Open:** exclude it (see Apple below). |

@@ -18,7 +18,9 @@ counts quick numbers.
 
 - **There's no remote kill switch or forced upgrade.** The admin flags and
   server checks exist, but no app reads them, so a bad build can't be met with
-  a maintenance screen. Worth a small client gate soon. *Sure.*
+  a maintenance screen. Worth a small client gate soon. *Sure.* *Done for
+  0.2: the app guard in `features/upgrade` reads maintenance, the version
+  floor and an update offer. 0.1 still reads none of it.*
 - **Open Food Facts answers are cached into our own `foods` table** when a
   barcode misses, while the importer keeps ODbL data out of it on purpose
   (share-alike). Two ways out: stop caching live answers when the export is

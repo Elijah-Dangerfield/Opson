@@ -32,7 +32,8 @@ These come from the handoff and override anything else, including this doc.
 - **No manual exercise logging.**
 - **Health data is user data.** Nutrition values never appear in logs, span
   attributes or Grafana panels at the user level. Dashboards read aggregate
-  views only (section 9).
+  `analytics` views, and the per-person `support` views, which hold counts and
+  choices and never what someone logged (section 9).
 
 ---
 
@@ -439,9 +440,12 @@ in tier order; the first that knows the product answers.
 Long-term product data comes from Postgres, not Loki. Loki keeps 31 days and is
 shared by every app on the stack. This is the Cards rule.
 
-- A read-only Postgres role `grafana_ro` can read only the `analytics` schema.
-  `analytics` holds views that aggregate across users: no view exposes a single
-  user's intake.
+- A read-only Postgres role `grafana_ro` can read only the `analytics` and
+  `support` schemas. `analytics` holds views that aggregate across users.
+  `support` (`V22__support_views.sql`) holds one row per person or per person
+  and day for the Users and User detail boards and the admin lookup: account,
+  email, builds, counts and Settings choices, never a food, an amount, a weight,
+  a note or an answer. No view in either exposes a single user's intake.
 - Grafana datasource `opson-prod-db` / `opson-dev-db` (grafana-postgresql)
   through the Supabase session pooler.
 - Dashboards live as JSON in `ops/grafana/`, and are pushed with the Grafana MCP
@@ -629,7 +633,9 @@ Dated, newest first. Add to it, never rewrite it.
   keeps it in one place.
 - **2026-10-25: dashboards read `analytics` views through a read-only role.**
   The data is about eating, for people who may be unwell. Grafana should never
-  be able to show one person's day.
+  be able to show one person's day. *2026-10-27: it may show one person's
+  account and counts, through `support`, and still never their day's food; see
+  docs/decisions.md.*
 - **2026-10-25: USDA plus Open Food Facts, no keyed food API.** Both are free
   and need no account, and USDA's FNDDS portions ("1 cup") match how people
   log.

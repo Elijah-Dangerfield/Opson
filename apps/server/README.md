@@ -456,6 +456,27 @@ Grafana, create a login role outside migrations and grant it `grafana_ro`.
 and `barcode_misses_by_country` for the Food catalog board. `V16__waitlist.sql`
 adds `waitlist_daily` for Pulse.
 
+### Support: installs and the user lookup (`V22__support_views.sql`)
+
+`user_installs` holds one row per user, install and build, with when that
+build was first and last seen. `InstallSightings` (`plugins/`) fills it from
+the `X-Platform`, `X-App-Version`, `X-Build-Number` and `X-Install-Id` headers
+of every signed-in request, after the response and at most every 10 minutes
+per row. 0.1 sends the same headers, so it is recorded too.
+
+The `support` schema is the per-person counterpart of `analytics`: `users`,
+`user_installs`, `user_daily_logging`, `user_daily_marks` and `user_settings`.
+They carry an account's id, email, display name, counts, timestamps and
+Settings choices from an allowlist, and nothing anyone wrote or measured
+(`PostgresUserSupportTest` and `DatabaseSchemaTest` hold that). `grafana_ro`
+reads them for the Users and User detail boards; the admin console reads them
+through these routes:
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/v1/admin/users/search` `{query}` | Admin token. An exact user id, or part of an email or display name; blank lists the most recently seen. At most 25. A POST so a typed email stays out of URLs. |
+| GET | `/v1/admin/users/{id}` | Admin token. The account, every build it ran, its Settings choices and logging counts. 404 `not_found`, 400 `invalid_user_id`. |
+
 ## Environment variables
 
 | Var | Required | Default | Notes |

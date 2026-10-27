@@ -394,12 +394,13 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 
 ### Code, small, outside this review's lane
 
-- [ ] Telemetry: strip query strings from Sentry breadcrumbs and event
-      messages (`beforeBreadcrumb` and `beforeSend` in
-      `libraries/opson/impl/.../AppTelemetry.kt`). Today a failed food search
-      can carry its words to Sentry, linked to the account id. Then drop that
-      sentence from `legal/privacy.md`, `legal/health-data.md` and the App
-      Privacy note in `docs/app-store/listing.md`.
+- [x] Telemetry: strip query strings from Sentry breadcrumbs and event
+      messages. Done in `SentryUrlScrubbing.kt` (`:libraries:opson:impl`):
+      breadcrumbs, messages, tags, extras, exception messages and the feedback
+      log lose every URL query and fragment, and the iOS failed-request event
+      is off. The sentence is gone from `legal/privacy.md` and
+      `legal/health-data.md`. 0.1 still sends the URL, so the App Store label
+      keeps Search history as linked until 0.1 is off the store.
 - [ ] Exclude `opson.db` from iCloud and device backups on iOS
       (`isExcludedFromBackup` in `IosAppDatabaseBuilderFactory.kt`), and add
       backup and data-extraction rules on Android (`allowBackup` is true with

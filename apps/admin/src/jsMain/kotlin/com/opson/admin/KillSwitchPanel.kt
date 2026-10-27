@@ -17,24 +17,26 @@ import org.jetbrains.compose.web.dom.TextInput
 private const val MODE_PATH = "upgrade.maintenanceMode"
 private const val MESSAGE_PATH = "upgrade.maintenanceMessage"
 private const val MIN_VERSION_PATH = "upgrade.minSupportedVersionCode"
+private const val LATEST_VERSION_PATH = "upgrade.latestVersionCode"
 
 /**
  * The emergency flags, pinned above the tabs so incident response never
- * involves scrolling a flag list: maintenance mode (lockout/banner), the
- * maintenance message, and the force-upgrade floor. Big obvious state, and
- * every flip still goes through the confirm sheet.
+ * involves scrolling a flag list: maintenance mode (stop/banner), the
+ * maintenance message, the force-upgrade floor and the soft update offer. Big
+ * obvious state, and every flip still goes through the confirm sheet.
  *
- * No app build reads these yet (`SERVER_OWNED_PATHS` in
- * ConfigManifestRegistryDriftTest), so the panel says what setting one does
- * today: changes the served config and nothing a user sees. Drop [NOT_READ_YET]
- * and the hedged labels with the release that adds the client gate.
+ * The app guard in `features/upgrade` reads them from 0.2 on; 0.1 shipped
+ * without it and never will. Every line here says which builds a value
+ * reaches, because an operator who believes 0.1 users were stopped when they
+ * were not is worse off than one with no switch at all.
  */
 @Composable
 internal fun KillSwitchPanel(rows: List<FlagRow>, manifest: ManifestResponse?, ctx: AdminCtx) {
     val mode = rows.find { it.path == MODE_PATH }
     val message = rows.find { it.path == MESSAGE_PATH }
     val minVersion = rows.find { it.path == MIN_VERSION_PATH }
-    if (mode == null && message == null && minVersion == null) return
+    val latestVersion = rows.find { it.path == LATEST_VERSION_PATH }
+    if (mode == null && message == null && minVersion == null && latestVersion == null) return
 
     val modeValue = mode?.resolved.stringContent() ?: "off"
     val stateClass = when (modeValue) {
@@ -43,14 +45,14 @@ internal fun KillSwitchPanel(rows: List<FlagRow>, manifest: ManifestResponse?, c
         else -> "kill-clear"
     }
     val stateLabel = when (modeValue) {
-        "blocking" -> "MAINTENANCE: BLOCKING served"
-        "banner" -> "MAINTENANCE: BANNER served"
+        "blocking" -> "MAINTENANCE: BLOCKING (0.2+ stopped)"
+        "banner" -> "MAINTENANCE: BANNER (0.2+ see it)"
         else -> "ALL CLEAR — no maintenance served"
     }
 
     Div(attrs = { classes("panel", "kill-panel", stateClass) }) {
         Div(attrs = { classes("kill-state") }) { Text(stateLabel) }
-        Div(attrs = { classes("muted", "hint") }) { Text(NOT_READ_YET) }
+        Div(attrs = { classes("muted", "hint") }) { Text(WHO_READS_THESE) }
 
         mode?.let { row ->
             KillRow(row, "maintenance mode") {
@@ -124,6 +126,30 @@ internal fun KillSwitchPanel(rows: List<FlagRow>, manifest: ManifestResponse?, c
                 }
             }
         }
+
+        latestVersion?.let { row ->
+            var draft by remember(row.path, row.base) { mutableStateOf(row.resolved.inline()) }
+            KillRow(row, "offer update below build") {
+                TextInput(draft) { onInput { draft = it.value }; placeholder("0 offers nothing") }
+                Button(attrs = {
+                    onClick {
+                        val parsed = parseTypedValue("int", draft)
+                        val element = parsed.element
+                        if (element == null) {
+                            ctx.setStatus(Status(false, parsed.problem ?: "Must be a whole number"))
+                            return@onClick
+                        }
+                        ctx.confirmWrite(
+                            title = "Set latest build",
+                            flagPath = row.path,
+                            before = serverValueLabel(row),
+                            after = element.inline(),
+                            success = "Builds below ${element.inline()} are offered the update",
+                        ) { ctx.api.upsertFlag(row.path, element) }
+                    }
+                }) { Text("Save") }
+            }
+        }
     }
 }
 
@@ -140,8 +166,11 @@ private fun KillRow(row: FlagRow, label: String, controls: @Composable () -> Uni
     }
 }
 
-private const val NOT_READ_YET =
-    "No released app reads these yet: setting them changes the served config, not what anyone sees."
+/** Which builds honour these. 0.1 has no guard, so nothing here reaches it. */
+internal const val WHO_READS_THESE =
+    "Opson 0.2 and later read these on launch and on every return to the app (a stopped app checks " +
+        "every time). 0.1 does not read them at all: 0.1 users see no banner, no stop and no update " +
+        "screen. To act on one build only, add a rule with a build range instead of changing the base."
 
 private fun serverValueLabel(row: FlagRow): String =
     if (row.inDb) row.base.inline() else "not set (baked ${row.default.inline()})"

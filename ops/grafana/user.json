@@ -1,0 +1,1906 @@
+{
+  "uid": "opson-user",
+  "title": "Opson \u00b7 User detail",
+  "description": "Everything about one person: account, builds, settings, how they log, their sessions, sync and errors. Pick someone from the dropdown or click a user id on Users.\n\nPostgres panels (the `support` views) are durable and hold counts and choices, never what they logged. Loki panels find their app events by the install ids the server recorded for the account (from the 0.2 server on) and cannot see past 31 days.",
+  "tags": [
+    "opson"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "1h",
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "Environment",
+        "type": "custom",
+        "query": "prod : opson-prod-db,dev : opson-db",
+        "current": {
+          "text": "prod",
+          "value": "opson-prod-db",
+          "selected": true
+        },
+        "options": [
+          {
+            "text": "prod",
+            "value": "opson-prod-db",
+            "selected": true
+          },
+          {
+            "text": "dev",
+            "value": "opson-db",
+            "selected": false
+          }
+        ],
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "skipUrlSync": false
+      },
+      {
+        "name": "user",
+        "label": "Person",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${env}"
+        },
+        "query": "SELECT coalesce(display_name, email, 'guest') || ' \u00b7 ' || left(user_id::text, 8) AS __text, user_id::text AS __value FROM support.users ORDER BY last_seen_at DESC NULLS LAST, joined_at DESC LIMIT 1000",
+        "definition": "support.users",
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "hide": 0,
+        "sort": 0
+      },
+      {
+        "name": "installs",
+        "label": "Installs",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${env}"
+        },
+        "query": "SELECT install_id FROM support.user_installs WHERE user_id = '$user' AND install_id <> '' UNION SELECT 'none' WHERE NOT EXISTS (SELECT 1 FROM support.user_installs WHERE user_id = '$user' AND install_id <> '')",
+        "definition": "support.user_installs",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "hide": 2,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [
+    {
+      "title": "Users",
+      "type": "link",
+      "url": "/d/opson-users/opson-c2b7-users?var-env=${env}",
+      "tooltip": "",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "icon": "dashboard"
+    },
+    {
+      "title": "Sentry issues for this person",
+      "type": "link",
+      "url": "https://elijah-dangerfield.sentry.io/issues/?query=user.id%3A${user}&statsPeriod=90d",
+      "tooltip": "",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "icon": "dashboard"
+    },
+    {
+      "title": "Pulse",
+      "type": "link",
+      "url": "/d/opson-pulse/opson-pulse?var-env=${env}",
+      "tooltip": "",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "icon": "dashboard"
+    }
+  ],
+  "panels": [
+    {
+      "type": "row",
+      "title": "Who this is",
+      "collapsed": false,
+      "panels": [],
+      "id": 1,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "table",
+      "title": "Account",
+      "description": "user_id is what every admin action and Sentry search takes. The email is here and in the admin console only; telemetry never has it.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT user_id::text AS user_id, coalesce(email, '') AS email, coalesce(display_name, '') AS name, CASE WHEN is_guest THEN 'guest' ELSE 'claimed' END AS account, joined_at AS joined, last_sign_in_at AS last_sign_in, last_seen_at AS last_seen_by_server, (current_date - joined_at::date) AS days_since_joining FROM support.users WHERE user_id = '$user'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "user_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Sentry issues for this person",
+                    "url": "https://elijah-dangerfield.sentry.io/issues/?query=user.id%3A${user}&statsPeriod=90d",
+                    "targetBlank": true
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 2,
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 24,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Mode",
+      "description": "Their visibility mode now.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(preset, 'not synced') FROM support.users WHERE user_id = '$user'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 3,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Runs",
+      "description": "Their most recent install's platform and build.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(platform || ' ' || app_version || ' (' || build_number || ')', 'not seen') FROM support.users WHERE user_id = '$user'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 4,
+      "gridPos": {
+        "x": 4,
+        "y": 5,
+        "w": 5,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Entries, all time",
+      "description": "Every live entry.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT entries FROM support.users WHERE user_id = '$user'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 5,
+      "gridPos": {
+        "x": 9,
+        "y": 5,
+        "w": 3,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Days logged",
+      "description": "Distinct days with an entry.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT days_logged FROM support.users WHERE user_id = '$user'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 6,
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 3,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Entries, last 7 days",
+      "description": "Entries dated in the last week.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(sum(entries), 0) FROM support.user_daily_logging WHERE user_id = '$user' AND day > current_date - 7"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 7,
+      "gridPos": {
+        "x": 15,
+        "y": 5,
+        "w": 3,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Last logged",
+      "description": "The latest day with an entry.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(last_log_day::text, 'never') FROM support.users WHERE user_id = '$user'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 8,
+      "gridPos": {
+        "x": 18,
+        "y": 5,
+        "w": 3,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Days closed",
+      "description": "Days they closed with the check on Today.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT count(*) FILTER (WHERE closed) FROM support.user_daily_marks WHERE user_id = '$user'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 9,
+      "gridPos": {
+        "x": 21,
+        "y": 5,
+        "w": 3,
+        "h": 4
+      }
+    },
+    {
+      "type": "row",
+      "title": "Builds",
+      "collapsed": false,
+      "panels": [],
+      "id": 10,
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "table",
+      "title": "Every build they ran",
+      "description": "One row per install and build, from the first and latest signed-in request it made. Recorded from the 0.2 server on; 0.1 phones are recorded too once they talk to it.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT CASE WHEN install_id = '' THEN '(no id yet)' ELSE install_id END AS install, platform, app_version AS version, build_number AS build, first_seen_at AS first_seen, last_seen_at AS last_seen FROM support.user_installs WHERE user_id = '$user' ORDER BY last_seen_at DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no signed-in request recorded yet"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 11,
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 14,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Builds seen in their telemetry",
+      "description": "Foregrounds by build from the app's own events. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (platform, service_version, release_channel) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"app.foregrounded\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 12,
+      "gridPos": {
+        "x": 14,
+        "y": 10,
+        "w": 10,
+        "h": 8
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Settings",
+      "collapsed": false,
+      "panels": [],
+      "id": 13,
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "table",
+      "title": "What they chose",
+      "description": "Settings from an allowlist: mode, visibility overrides, the pause, theme, tone, reminders and so on. numbers_changed_at is when they last changed the mode or a visibility; settings_synced_at is the last time any setting reached the server. Targets and onboarding answers are never shown.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT key AS setting, value FROM support.user_settings s, jsonb_each_text(to_jsonb(s) - 'user_id') AS kv (key, value) WHERE s.user_id = '$user' ORDER BY key"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "no settings synced yet"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 14,
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 10,
+        "h": 12
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Mode and visibility changes",
+      "description": "Each change of mode or visibility: from, to, whether it shows fewer numbers, and whether it came through the pause. Expand a line for the attributes. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "{service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"mode.changed\"",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "range"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      },
+      "id": 15,
+      "gridPos": {
+        "x": 10,
+        "y": 19,
+        "w": 14,
+        "h": 6
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "The pause before showing more",
+      "description": "Times the pause sheet opened and closed. Expand the mode changes above to see which ones went ahead. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"friction.shown\" [$__interval]))",
+          "legendFormat": "pause shown",
+          "editorMode": "code",
+          "queryType": "range"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"friction.completed\" [$__interval]))",
+          "legendFormat": "pause closed",
+          "editorMode": "code",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 16,
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 14,
+        "h": 6
+      }
+    },
+    {
+      "type": "row",
+      "title": "Logging",
+      "collapsed": false,
+      "panels": [],
+      "id": 17,
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Entries per day by method",
+      "description": "How they added food each day. Photo estimates are stored as describe.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, search, barcode, describe, saved, copy, recent, favorite, custom, quick_number AS \"quick number\", ate_no_details AS \"ate, no details\" FROM support.user_daily_logging WHERE user_id = '$user' AND $__timeFilter(day::timestamp) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "noValue": "nothing logged in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 18,
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 16,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Methods, all time",
+      "description": "Which ways of logging they rely on.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT method, entries FROM (SELECT sum(search) AS search, sum(barcode) AS barcode, sum(describe) AS describe, sum(saved) AS saved, sum(copy) AS copy, sum(recent) AS recent, sum(favorite) AS favorite, sum(custom) AS custom, sum(quick_number) AS quick_number, sum(ate_no_details) AS ate_no_details FROM support.user_daily_logging WHERE user_id = '$user') t, LATERAL (VALUES ('search', search), ('barcode', barcode), ('describe', describe), ('saved', saved), ('copy', copy), ('recent', recent), ('favorite', favorite), ('custom', custom), ('quick number', quick_number), ('ate, no details', ate_no_details)) AS m (method, entries) WHERE entries > 0 ORDER BY entries DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "nothing logged"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 19,
+      "gridPos": {
+        "x": 16,
+        "y": 38,
+        "w": 8,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Days",
+      "description": "Their last 60 days with anything on them: entries and meals, how precise, and what else they did. Counts and yes or no only; weigh_ins counts weigh-ins, never a weight.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(l.day, m.day) AS day, coalesce(l.entries, 0) AS entries, coalesce(l.meals, 0) AS meals, coalesce(l.weighed, 0) AS weighed, coalesce(l.estimated, 0) AS estimated, coalesce(l.named_only, 0) AS named_only, coalesce(l.from_label, 0) AS from_label, coalesce(m.closed, false) AS closed, coalesce(m.checked_in, false) AS checked_in, coalesce(m.meals_tagged, 0) AS meals_tagged, coalesce(m.weigh_ins, 0) AS weigh_ins, coalesce(m.fasted, false) AS fasted FROM (SELECT * FROM support.user_daily_logging WHERE user_id = '$user') l FULL JOIN (SELECT * FROM support.user_daily_marks WHERE user_id = '$user') m ON m.day = l.day ORDER BY 1 DESC LIMIT 60"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "nothing logged"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 20,
+      "gridPos": {
+        "x": 0,
+        "y": 46,
+        "w": 24,
+        "h": 10
+      }
+    },
+    {
+      "type": "table",
+      "title": "Features they reached for",
+      "description": "Each way of logging they picked in the app, photo and voice included. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (method) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"logger.method_picked\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 21,
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Scanner, photo and voice",
+      "description": "The 0.2 features, as they started them. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"barcode.scan_started\" [$__interval]))",
+          "legendFormat": "barcode scans",
+          "editorMode": "code",
+          "queryType": "range"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"photo.started\" [$__interval]))",
+          "legendFormat": "photo estimates",
+          "editorMode": "code",
+          "queryType": "range"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"voice.started\" [$__interval]))",
+          "legendFormat": "voice",
+          "editorMode": "code",
+          "queryType": "range"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"search.sort_picked\" [$__interval]))",
+          "legendFormat": "search sort changed",
+          "editorMode": "code",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 22,
+      "gridPos": {
+        "x": 12,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "row",
+      "title": "Sessions",
+      "collapsed": false,
+      "panels": [],
+      "id": 23,
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Opens per day",
+      "description": "Each time they brought the app to the front. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (cold_start) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"app.foregrounded\" [$__interval]))",
+          "legendFormat": "cold start {{cold_start}}",
+          "editorMode": "code",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1d",
+      "id": 24,
+      "gridPos": {
+        "x": 0,
+        "y": 65,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Sessions in range",
+      "description": "Distinct sessions. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "count(sum by (session_id) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"app.foregrounded\" [$__range])))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 25,
+      "gridPos": {
+        "x": 12,
+        "y": 65,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Median session",
+      "description": "Half of their sessions were shorter than this. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "quantile_over_time(0.5, {service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"app.backgrounded\" | unwrap session_duration_sec [$__range]) by (service_name)",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "no sessions"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 26,
+      "gridPos": {
+        "x": 16,
+        "y": 65,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Launches after a crash",
+      "description": "Cold starts whose previous run crashed, froze or ran out of memory. iOS mostly reports unknown. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"app.launched\" | previous_exit=~\"crash|oom|anr\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 27,
+      "gridPos": {
+        "x": 20,
+        "y": 65,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "table",
+      "title": "How their app last ended",
+      "description": "Launches by how the run before ended. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (previous_exit, platform) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"app.launched\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 28,
+      "gridPos": {
+        "x": 0,
+        "y": 73,
+        "w": 12,
+        "h": 6
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "App guard they saw",
+      "description": "Maintenance or update screens and strips they were shown (0.2 and later). Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (state) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"guard.shown\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 29,
+      "gridPos": {
+        "x": 12,
+        "y": 73,
+        "w": 12,
+        "h": 6
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Sync health",
+      "collapsed": false,
+      "panels": [],
+      "id": 30,
+      "gridPos": {
+        "x": 0,
+        "y": 79,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Last change synced",
+      "description": "The newest change from their phone the server holds: an entry or a setting.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(to_char(last_synced_change_at, 'YYYY-MM-DD HH24:MI'), 'never') FROM support.users WHERE user_id = '$user'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 31,
+      "gridPos": {
+        "x": 0,
+        "y": 80,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Last seen by the server",
+      "description": "Their latest signed-in request of any kind. Recent here and old above means the phone talks to us but has nothing new, or cannot push.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(to_char(last_seen_at, 'YYYY-MM-DD HH24:MI'), 'not recorded') FROM support.users WHERE user_id = '$user'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 32,
+      "gridPos": {
+        "x": 6,
+        "y": 80,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "type": "table",
+      "title": "Calls that never reached us",
+      "description": "Requests from their phone that failed before any answer. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (operation, error_kind) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"net.backend_unreachable\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 33,
+      "gridPos": {
+        "x": 12,
+        "y": 80,
+        "w": 12,
+        "h": 6
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Offline banner",
+      "description": "Each time the offline banner came or went on their phone. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (visible) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | event_name=\"net.offline_banner\" [$__interval]))",
+          "legendFormat": "visible {{visible}}",
+          "editorMode": "code",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 34,
+      "gridPos": {
+        "x": 0,
+        "y": 86,
+        "w": 24,
+        "h": 6
+      }
+    },
+    {
+      "type": "row",
+      "title": "Errors and crashes",
+      "collapsed": false,
+      "panels": [],
+      "id": 35,
+      "gridPos": {
+        "x": 0,
+        "y": 92,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "text",
+      "title": "Sentry",
+      "options": {
+        "mode": "markdown",
+        "content": "Crashes, errors and feedback for this person are in Sentry under their account id: [open Sentry for this person](https://elijah-dangerfield.sentry.io/issues/?query=user.id%3A${user}&statsPeriod=90d). Sentry keeps the stack traces; this board keeps the counts."
+      },
+      "id": 36,
+      "gridPos": {
+        "x": 0,
+        "y": 93,
+        "w": 24,
+        "h": 3
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Their warnings and errors",
+      "description": "Warn-and-above log lines from their phone. Messages and exception messages never carry a URL query. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "{service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | install_id=~\"${installs:regex}\" | detected_level=~\"warn|error\"",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "range"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      },
+      "id": 37,
+      "gridPos": {
+        "x": 0,
+        "y": 96,
+        "w": 24,
+        "h": 12
+      }
+    }
+  ]
+}

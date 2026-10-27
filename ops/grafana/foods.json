@@ -16,25 +16,38 @@
   "templating": {
     "list": [
       {
-        "name": "db",
-        "label": "Database",
-        "type": "datasource",
-        "query": "grafana-postgresql-datasource",
-        "regex": "/^opson-(prod-)?db$/",
+        "name": "env",
+        "label": "Environment",
+        "type": "custom",
+        "query": "prod : opson-prod-db,dev : opson-db",
         "current": {
-          "text": "opson-prod-db",
-          "value": "opson-prod-db"
+          "text": "prod",
+          "value": "opson-prod-db",
+          "selected": true
         },
+        "options": [
+          {
+            "text": "prod",
+            "value": "opson-prod-db",
+            "selected": true
+          },
+          {
+            "text": "dev",
+            "value": "opson-db",
+            "selected": false
+          }
+        ],
         "hide": 0,
-        "refresh": 1,
         "includeAll": false,
-        "multi": false
+        "multi": false,
+        "skipUrlSync": false
       }
     ]
   },
   "annotations": {
     "list": []
   },
+  "links": [],
   "panels": [
     {
       "type": "timeseries",
@@ -42,14 +55,14 @@
       "description": "Searches, and the ones that returned no foods.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -102,14 +115,14 @@
       "description": "Share of searches that found nothing.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -162,14 +175,14 @@
       "description": "Last 30 days, queries searched at least three times. Add these foods or synonyms first.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -182,7 +195,8 @@
         "overrides": []
       },
       "options": {
-        "showHeader": true
+        "showHeader": true,
+        "cellHeight": "sm"
       },
       "id": 3,
       "gridPos": {
@@ -198,14 +212,14 @@
       "description": "Found in our catalog, found on Open Food Facts, or not found.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -258,14 +272,14 @@
       "description": "Share of barcode lookups some source could answer. Lookups no source could reach are left out.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -284,8 +298,16 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "red",
                 "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.9
               }
             ]
           }
@@ -318,14 +340,14 @@
       "description": "Misses the app reported after a scan found nothing.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -344,7 +366,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "blue",
+                "color": "text",
                 "value": null
               }
             ]
@@ -378,14 +400,14 @@
       "description": "Daily share of lookups answered by our catalog or an outside source.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -438,14 +460,14 @@
       "description": "Last 30 days, grouped by GTIN so a UPC-A and its EAN-13 count once. Add these products first.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -458,7 +480,8 @@
         "overrides": []
       },
       "options": {
-        "showHeader": true
+        "showHeader": true,
+        "cellHeight": "sm"
       },
       "id": 8,
       "gridPos": {
@@ -474,14 +497,14 @@
       "description": "The phone's region setting at the time of the miss. Tells us which country's data to add next.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -519,14 +542,14 @@
       "description": "Misses the app reported, by day.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -576,7 +599,7 @@
     {
       "type": "timeseries",
       "title": "Scanner",
-      "description": "Client events. Loki keeps 31 days. Camera denied and unavailable count people who could not use the camera; they can still type the code.",
+      "description": "Client events. Camera denied and unavailable count people who could not use the camera; they can still type the code. Loki keeps 31 days, so this panel cannot look further back.",
       "datasource": {
         "type": "loki",
         "uid": "grafanacloud-logs"
@@ -588,8 +611,9 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum(count_over_time({service_name=\"opson-client\"} | event_name=\"barcode.scan_started\" [$__interval]))",
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"barcode.scan_started\" [$__interval]))",
           "legendFormat": "scans started",
+          "editorMode": "code",
           "queryType": "range"
         },
         {
@@ -598,8 +622,9 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum(count_over_time({service_name=\"opson-client\"} | event_name=\"barcode.hit\" [$__interval]))",
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"barcode.hit\" [$__interval]))",
           "legendFormat": "found",
+          "editorMode": "code",
           "queryType": "range"
         },
         {
@@ -608,8 +633,9 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum(count_over_time({service_name=\"opson-client\"} | event_name=\"barcode.miss\" [$__interval]))",
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"barcode.miss\" [$__interval]))",
           "legendFormat": "not found",
+          "editorMode": "code",
           "queryType": "range"
         },
         {
@@ -618,8 +644,9 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum(count_over_time({service_name=\"opson-client\"} | event_name=\"barcode.permission_denied\" [$__interval]))",
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"barcode.permission_denied\" [$__interval]))",
           "legendFormat": "camera denied",
+          "editorMode": "code",
           "queryType": "range"
         },
         {
@@ -628,8 +655,9 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum(count_over_time({service_name=\"opson-client\"} | event_name=\"barcode.camera_unavailable\" [$__interval]))",
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"barcode.camera_unavailable\" [$__interval]))",
           "legendFormat": "camera unavailable",
+          "editorMode": "code",
           "queryType": "range"
         }
       ],
@@ -649,7 +677,8 @@
           },
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "noValue": "No client telemetry in this range"
         },
         "overrides": []
       },

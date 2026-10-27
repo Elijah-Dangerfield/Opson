@@ -23,6 +23,7 @@ import com.opson.server.plugins.installRateLimits
 import com.opson.server.plugins.installSentry
 import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
+import com.opson.server.plugins.recordInstallSightings
 import com.opson.server.routes.appConfigRoutes
 import com.opson.server.routes.barcodeMissRoutes
 import com.opson.server.routes.configAdminRoutes
@@ -33,6 +34,7 @@ import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
 import com.opson.server.routes.photoRoutes
 import com.opson.server.routes.syncRoutes
+import com.opson.server.routes.userAdminRoutes
 import com.opson.server.routes.waitlistAdminRoutes
 import com.opson.server.routes.waitlistRoutes
 import io.ktor.server.application.Application
@@ -147,6 +149,7 @@ fun Application.installApp(
         healthRoutes()
         exampleRoutes(component?.exampleSource ?: InMemoryExampleSource())
         if (component != null) {
+            recordInstallSightings(component.userInstallRepository, component.clock)
             // Optional auth: the config fetch must work pre-session (it carries
             // the kill-switch / forced-upgrade flags), but when the client does
             // present a Supabase JWT we resolve the user id so per-user targeting
@@ -171,6 +174,7 @@ fun Application.installApp(
                     notifier = configChangeNotifier,
                 )
                 waitlistAdminRoutes(adminConfig, component.waitlistRepository)
+                userAdminRoutes(adminConfig, component.userLookupRepository)
             }
             // The website's form: public, its own CORS and rate limits.
             waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
