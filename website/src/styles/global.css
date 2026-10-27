@@ -82,6 +82,9 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* The nav is sticky, so anything scrolled to (a #link, a focused field, a
+   field the browser flags as invalid) stops below it, not under it. */
+html { scroll-padding-top: 96px; }
 body {
   font: 400 17px/1.55 var(--font);
   background: var(--bg);

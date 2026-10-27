@@ -288,6 +288,9 @@ Pages is enabled (source: GitHub Actions) and the repo variables are set:
 - [ ] `WAITLIST_ALLOWED_ORIGINS` on `opson-server-prod` includes
       `https://elijah-dangerfield.github.io` (and the custom domain later).
 - [ ] A test signup from a curl with that Origin returns 204 and shows in admin.
+- [ ] Prod search includes Open Food Facts (the load above, and
+      `FOOD_SEARCH_OFF_ENABLED=true`). The site says "over 3.7 million foods from the
+      USDA and Open Food Facts", which is only true once prod has both.
 - [ ] `gh variable set SITE_ENABLED -R Elijah-Dangerfield/Opson -b true`, then
       run the "Deploy Pages" workflow. Live at
       https://elijah-dangerfield.github.io/Opson/
