@@ -246,6 +246,17 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
     }
 
     @Test
+    fun whenGenericFoodsFillThePageANamedBrandStillPlaces() = runTest {
+        // Generic matches fill a page of one, so only Branded rows whose brand carries a query word are read.
+        seed("Cereal, Cheerios", source = "usda_sr")
+        seed("Cheerios Cereal", source = "usda_branded", brand = "Cheerios", barcode = "00016000275287")
+        seed("Cheerios Snack Mix", source = "usda_branded", brand = "Acme", barcode = "00016000275294")
+
+        assertEquals(listOf("Cheerios Cereal"), names("cheerios", limit = 1))
+        assertEquals(listOf("Cheerios Cereal", "Cereal, Cheerios", "Cheerios Snack Mix"), names("cheerios", limit = 3))
+    }
+
+    @Test
     fun decodesPortionsAndMicros() = runTest {
         val id = seed("Milk")
         val food = assertNotNull(repo.findById(id))
