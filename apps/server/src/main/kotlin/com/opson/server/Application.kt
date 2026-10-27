@@ -10,8 +10,8 @@ import com.opson.server.di.ServerComponent
 import com.opson.server.di.create
 import com.opson.server.domain.ConfigChangeNotifier
 import com.opson.server.plugins.BanGate
+import com.opson.server.plugins.BearerVerifier
 import com.opson.server.plugins.JwtVerification
-import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.installAdminWeb
 import com.opson.server.plugins.installAuthentication
 import com.opson.server.plugins.installBodyLimit
@@ -38,7 +38,6 @@ import com.opson.server.routes.userAdminRoutes
 import com.opson.server.routes.waitlistAdminRoutes
 import com.opson.server.routes.waitlistRoutes
 import io.ktor.server.application.Application
-import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.routing
 import kotlin.time.Clock
 import org.slf4j.LoggerFactory
@@ -142,7 +141,8 @@ fun Application.installApp(
     installBodyLimit()
     installRateLimits()
     installStatusPages()
-    if (verification != null) installAuthentication(verification, banGate)
+    val bearer = verification?.let(::BearerVerifier)
+    if (bearer != null) installAuthentication(bearer, banGate)
 
     routing {
         installCors()
@@ -150,19 +150,8 @@ fun Application.installApp(
         exampleRoutes(component?.exampleSource ?: InMemoryExampleSource())
         if (component != null) {
             recordInstallSightings(component.userInstallRepository, component.clock)
-            // Optional auth: the config fetch must work pre-session (it carries
-            // the kill-switch / forced-upgrade flags), but when the client does
-            // present a Supabase JWT we resolve the user id so per-user targeting
-            // + rollout bucketing key off it. No token → principal null → still
-            // served. Without Supabase configured there's no JWT plugin at all,
-            // so the route mounts bare and every caller resolves anonymously.
-            if (verification != null) {
-                authenticate(SUPABASE_JWT_AUTH, optional = true) {
-                    appConfigRoutes(component.appConfigSource)
-                }
-            } else {
-                appConfigRoutes(component.appConfigSource)
-            }
+            // Pre-session too: it carries the kill switch and the version floor.
+            appConfigRoutes(component.appConfigSource, bearer)
             // Admin API is inert without a token: requireAdmin 401s every call
             // when ADMIN_API_TOKEN is unset, so mounting is gated for clarity,
             // not security.
