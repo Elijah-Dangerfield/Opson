@@ -489,8 +489,8 @@ private fun Header(state: TodayState, onAction: (TodayAction) -> Unit) {
                 onClick = { onAction(TodayAction.DayMenuTapped) },
                 selected = state.menu != null,
             )
-            PopoverMenu(expanded = state.menu != null, onDismissRequest = { onAction(TodayAction.MenuDismissed) }) {
-                state.menu?.let { DayMenuItems(it, onAction) }
+            PopoverMenu(menu = state.menu, onDismissRequest = { onAction(TodayAction.MenuDismissed) }) { menu ->
+                DayMenuItems(menu, onAction)
             }
         }
     }
