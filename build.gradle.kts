@@ -85,8 +85,7 @@ if (System.getProperty("serverOnly") != "true") {
         val root = rootDir
         inputs.files(files).withPropertyName("composeResourceStringXml")
             .skipWhenEmpty()
-        // No output; up-to-date is driven purely by the inputs above.
-        outputs.upToDateWhen { true }
+        // No outputs, so Gradle runs it on every check. It reads a few XML files.
         doLast {
             // Body of any <string>/<item> element. DOTALL so a wrapped string is
             // still one body rather than silently unchecked.
@@ -130,7 +129,6 @@ if (System.getProperty("serverOnly") != "true") {
         val strings = composeResourceStringXml
         inputs.file(journey).withPropertyName("benchmarkJourney")
         inputs.files(strings).withPropertyName("composeResourceStringXml")
-        outputs.upToDateWhen { true }
         doLast {
             val copy = strings.files.joinToString("\n") { it.readText() }
                 .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'")
