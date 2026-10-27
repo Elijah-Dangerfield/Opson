@@ -73,7 +73,7 @@ import com.opson.libraries.ui.components.MenuGroupDivider
 import com.opson.libraries.ui.components.MenuIconItem
 import com.opson.libraries.ui.components.MenuPopover
 import com.opson.libraries.ui.components.MenuPopoverDefaults
-import com.opson.libraries.ui.components.MinTouchTarget
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.PillAction
 import com.opson.libraries.ui.components.PopoverMenu
 import com.opson.libraries.ui.components.PromptAction

@@ -26,6 +26,7 @@ import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.system.AppTheme
 import com.opson.system.background
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -78,10 +79,6 @@ fun HeroLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
         Icon(icon = AppIcons.ChevronRight, size = 22.dp, color = AppTheme.colors.onHero)
     }
 }
-
-/** The v3 minimum touch target. */
-// TODO(review): duplicates com.opson.libraries.ui.system.MinTouchTarget; delete once Today imports that one.
-val MinTouchTarget: Dp = com.opson.libraries.ui.system.MinTouchTarget
 
 /**
  * The card for delayed numbers: a lock-clock tile, [title] ("Totals open at 9:00 pm") and

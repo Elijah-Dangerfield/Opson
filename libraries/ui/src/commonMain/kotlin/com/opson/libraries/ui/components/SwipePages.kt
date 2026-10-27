@@ -16,12 +16,12 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -35,15 +35,16 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.background
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import opson.libraries.resources.generated.resources.Res as SharedRes
 import opson.libraries.resources.generated.resources.ds_page_of
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import kotlin.math.roundToInt
-import opson.libraries.resources.generated.resources.Res as SharedRes
 
 /**
  * Pages side by side that the person swipes between, as Today's summary card (design sync 2,

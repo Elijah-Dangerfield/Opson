@@ -25,8 +25,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
@@ -41,6 +41,7 @@ import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.background
