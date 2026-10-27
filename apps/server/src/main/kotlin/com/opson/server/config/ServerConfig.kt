@@ -325,7 +325,7 @@ data class ObservabilityConfig(
  * verifies signatures against them — no shared secret lives on the server.
  *
  * Nullable: with no `SUPABASE_URL` the server boots without authenticated routes
- * (the `/v1/me` endpoint isn't mounted). Set it to enable auth.
+ * (`/v1/me`, sync, foods, photo and export aren't mounted). Set it to enable auth.
  *
  * [serviceRoleKey] is the project's service_role JWT, required for Admin API
  * calls (e.g. `DELETE /auth/v1/admin/users/<id>` for account deletion).
@@ -366,8 +366,9 @@ data class SupabaseConfig(
  * exchange can produce.
  *
  * Null unless all three of `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY` are
- * set; then the app's authorization codes are refused and deletion skips revocation,
- * with a warning. [privateKeyPem] is the `.p8` file's contents: treat it as a password.
+ * set. While it is null the app's authorization codes are refused (503
+ * `apple_not_configured`) and deletion skips revocation with a warning, which App Review
+ * does not accept: set all three on prod before a release that offers Sign in with Apple. [privateKeyPem] is the `.p8` file's contents: treat it as a password.
  */
 data class AppleSignInConfig(
     val teamId: String,

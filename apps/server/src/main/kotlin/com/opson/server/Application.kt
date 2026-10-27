@@ -56,8 +56,9 @@ import org.slf4j.LoggerFactory
  *    verifier to exercise the real plugins + routes + DB.
  *
  * Graceful degradation: with no `DATABASE_URL` the server runs in limited mode
- * (health + example); with no `SUPABASE_URL` the authenticated `/v1/me` route
- * isn't mounted. Either way it boots — so you can clone and run with zero config.
+ * (health + example); with no `SUPABASE_URL` the authenticated routes (`/v1/me`,
+ * sync, foods, photo, export) aren't mounted and app config serves everyone
+ * anonymously. Either way it boots — so you can clone and run with zero config.
  *
  * Order matters: serialization before status pages (so error envelopes encode),
  * auth after serialization (the 401 challenge writes a JSON body). CORS is
@@ -84,7 +85,7 @@ fun Application.module(config: ServerConfig) {
 
     val verification = config.supabase?.let { JwtVerification.Jwks(it.jwksUrl, it.expectedIssuer) }
     if (verification == null) {
-        logger.warn("SUPABASE_URL not set — authenticated routes (/v1/me) are disabled.")
+        logger.warn("SUPABASE_URL not set — authenticated routes (/v1/me, sync, foods, photo, export) are disabled.")
     }
 
     logger.info("Features ({}): {}", config.observability.environment, config.featureSummary())
