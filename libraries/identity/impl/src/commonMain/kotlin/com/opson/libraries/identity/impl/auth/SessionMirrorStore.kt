@@ -16,7 +16,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * The owner's TestFlight upgrade proved the Keychain copy of the session can
  * vanish across an app update while the rest of the app's files survive — which
  * for an anonymous account (no credential to sign back in with) permanently
- * strands every chip and XP on the server. This mirror lives in the app's
+ * strands their whole diary on the server. This mirror lives in the app's
  * ordinary file-backed cache, which demonstrably survives upgrades, and is only
  * consulted when the secure store comes up empty.
  *

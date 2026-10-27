@@ -576,7 +576,7 @@ class SupabaseAuthRepositoryImpl(
             return@withLock DeleteAccountOutcome.NotSignedIn
         }
         // Anonymous accounts are deletable too — a guest's data (profile,
-        // wallet, history) is a real server-side account and a user has the
+        // diary, settings) is a real server-side account and a user has the
         // right to erase it. The admin delete handles anon users fine.
         val outcome = Catching { profileApi.deleteMe() }.fold(
             onSuccess = { response ->

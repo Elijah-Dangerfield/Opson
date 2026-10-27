@@ -241,7 +241,7 @@ class GuestSessionHealerTest : CoroutineTest() {
         // AUTH-19: a cached server profile with no revivable session means this
         // device HAS a real account whose token storage failed (the TestFlight
         // upgrade case). Minting a fresh guest silently strands that account's
-        // chips/XP — the healer must stop and declare the session unrecoverable
+        // diary — the healer must stop and declare the session unrecoverable
         // so the app routes to the explicit recovery screen.
         val creator = FakeGuestAccountCreator()
         val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())

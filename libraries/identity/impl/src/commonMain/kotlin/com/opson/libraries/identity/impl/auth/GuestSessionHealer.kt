@@ -142,7 +142,7 @@ class GuestSessionHealer(
                     // A server account demonstrably exists on this device but
                     // its session is gone and retry couldn't revive it. Minting
                     // a fresh guest here is exactly the AUTH-19 disaster: the
-                    // real account's chips/XP get silently stranded behind a
+                    // real account's diary gets silently stranded behind a
                     // brand-new empty one. Stop and route to recovery instead.
                     stranded != null -> stopForRecovery(source, stranded)
                     !hasUserOnboarded() -> {

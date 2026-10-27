@@ -148,7 +148,7 @@ interface AuthRepository {
 
     /**
      * Attach an Apple/Google identity to the current (typically anonymous)
-     * Supabase user. Preserves chips, XP, and history.
+     * Supabase user. Preserves the diary and settings.
      */
     suspend fun linkOAuthIdentity(provider: OAuthProvider): LinkIdentityOutcome
 
@@ -201,7 +201,7 @@ interface AuthRepository {
 
     /**
      * Attach a native Apple identity to the current (typically anonymous) user,
-     * preserving chips / XP / history. Default-throws (see [signInWithApple]).
+     * preserving the diary and settings. Default-throws (see [signInWithApple]).
      */
     suspend fun linkAppleIdentity(credential: AppleSignInCredential): LinkIdentityOutcome =
         throw NotImplementedError("linkAppleIdentity not implemented by ${this::class.simpleName}")
