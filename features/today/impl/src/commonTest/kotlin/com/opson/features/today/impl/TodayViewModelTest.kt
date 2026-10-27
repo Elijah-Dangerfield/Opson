@@ -461,6 +461,7 @@ class TodayViewModelTest : CoroutineTest() {
 
         vm.takeAction(TodayAction.DayCloseMenuTapped)
         vm.takeAction(TodayAction.DayNutrientsTapped)
+        vm.takeAction(TodayAction.NotesMenuTapped)
         vm.takeAction(TodayAction.DayNoteTapped)
         vm.takeAction(TodayAction.EditCardsTapped)
 
@@ -468,6 +469,7 @@ class TodayViewModelTest : CoroutineTest() {
             listOf(
                 TodayEvent.OpenDayClose(today),
                 TodayEvent.OpenNutrients(today),
+                TodayEvent.OpenNotes,
                 TodayEvent.OpenDayNote(today),
                 TodayEvent.OpenTodayCards,
             ),

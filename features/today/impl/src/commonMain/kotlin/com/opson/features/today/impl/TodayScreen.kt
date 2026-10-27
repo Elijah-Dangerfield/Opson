@@ -117,6 +117,7 @@ import opson.libraries.resources.generated.resources.today_menu_close_this_day
 import opson.libraries.resources.generated.resources.today_menu_copy_tomorrow
 import opson.libraries.resources.generated.resources.today_menu_copy_yesterday
 import opson.libraries.resources.generated.resources.today_menu_edit_cards
+import opson.libraries.resources.generated.resources.today_menu_notes
 import opson.libraries.resources.generated.resources.today_menu_nutrients
 import opson.libraries.resources.generated.resources.today_menu_tracked
 import opson.libraries.resources.generated.resources.today_menu_untracked
@@ -631,6 +632,7 @@ fun ColumnScope.DayMenuItems(menu: DayMenu, onAction: (TodayAction) -> Unit) {
                     TodayAction.DayCloseMenuTapped,
                 )
                 DayMenuItem.Nutrients -> Triple(Res.string.today_menu_nutrients, AppIcons.Science, TodayAction.DayNutrientsTapped)
+                DayMenuItem.Notes -> Triple(Res.string.today_menu_notes, AppIcons.EventNote, TodayAction.NotesMenuTapped)
                 DayMenuItem.CopyYesterday -> Triple(Res.string.today_menu_copy_yesterday, AppIcons.ContentCopy, TodayAction.CopyYesterdayTapped)
                 DayMenuItem.CopyToTomorrow -> Triple(Res.string.today_menu_copy_tomorrow, AppIcons.EventRepeat, TodayAction.CopyToTomorrowTapped)
                 DayMenuItem.AddNote -> Triple(Res.string.today_menu_add_note, AppIcons.EditNote, TodayAction.DayNoteTapped)

@@ -10,6 +10,8 @@ import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.item.ItemSheetContent
 import com.opson.features.today.impl.meal.MealNoteSheetContent
 import com.opson.features.today.impl.meal.MealSheetContent
+import com.opson.features.today.impl.notes.NotesScreen
+import com.opson.features.today.impl.notes.NotesStateBuilder
 import com.opson.features.today.impl.water.WaterSheetContent
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.Day
@@ -171,6 +173,21 @@ private fun TodayFullFlagsOffPreview() = Phone { Today(full, expended = TodayFix
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayMacrosPreview() = Phone { TodayFull(settings = Settings(todaySummaryPage = 1)) }
+
+/** Every meal's Note, newest first, from Today's ⋮ menu or Trends' Notes card. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayNotesPreview() = Phone { NotesScreen(state = TodayFixtures.notesState(), onAction = {}) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayNotesDarkPreview() = Phone(dark = true) { NotesScreen(state = TodayFixtures.notesState(), onAction = {}) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayNotesEmptyPreview() = Phone {
+    NotesScreen(state = NotesStateBuilder.build(emptyList(), TodayFixtures.today, NotesStateBuilder.PAGE_DAYS, fromTrends = true), onAction = {})
+}
 
 /** The last page: key minerals and See all, which opens the Nutrients screen. */
 @Preview(widthDp = 390, heightDp = 844)

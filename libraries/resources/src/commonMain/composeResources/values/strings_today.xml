@@ -111,6 +111,17 @@
     <!-- A meal's Note on Today: "Hunger level: Hungry" -->
     <string name="today_note_hunger_line">Hunger level: %1$s</string>
     <string name="today_note_placeholder">Where you were, who with, anything worth remembering</string>
+
+    <!-- The Notes list: every meal's Note, newest first -->
+    <string name="today_menu_notes">All notes</string>
+    <string name="today_notes_title">Notes</string>
+    <string name="today_notes_loading_cd">Loading your notes</string>
+    <string name="today_notes_empty">No notes yet. Tap a meal's + and choose Note to write how hungry you were or a few words.</string>
+    <string name="today_notes_empty_window">No notes in this stretch. Try going further back.</string>
+    <string name="today_notes_earlier">Show earlier notes</string>
+    <!-- "Tue, Oct 20, 2025", for a day in another year -->
+    <string name="today_notes_day_year">%1$s, %2$d</string>
+    <string name="today_notes_edit_cd">Change the note on %1$s</string>
     <string name="today_note_save">Save</string>
 
     <!-- Water sheet -->

@@ -358,7 +358,7 @@ class TodayStateBuilderTest {
         val today = assertNotNull(build(PresetId.Full, menuOpen = true, clearArmed = true).menu)
         assertEquals(
             listOf(
-                listOf(DayMenuItem.CloseDay(isToday = true), DayMenuItem.Nutrients),
+                listOf(DayMenuItem.CloseDay(isToday = true), DayMenuItem.Nutrients, DayMenuItem.Notes),
                 listOf(DayMenuItem.CopyYesterday, DayMenuItem.CopyToTomorrow, DayMenuItem.AddNote, DayMenuItem.Untracked(marked = false)),
                 listOf(DayMenuItem.EditCards, DayMenuItem.ClearDay),
             ),

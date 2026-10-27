@@ -51,8 +51,17 @@ class MicrosHiddenLeakTest(private val surface: LeakSurface, private val case: M
     }
 
     companion object {
+        /** Today with the calories card, whose last page lists a few minerals. */
+        private val TODAY_CARD_SURFACES = setOf(
+            "today", "today-added", "today-big-day", "today-calendar", "today-day-menu", "today-day-menu-armed",
+            "today-delete-confirm", "today-drag-move", "today-exercise", "today-expended", "today-groups-off", "today-macros",
+            "today-moved", "today-past", "today-select", "today-select-remove", "today-select-v4", "today-summary",
+            "today-summary-equation", "today-summary-in-out", "today-summary-range-bar", "today-summary-rings",
+            "today-swipe-delete", "today-timer-ended", "today-timer-waiting", "today-weight", "food-actions",
+        )
+
         /** Every surface that draws micros. [LeakTestControlTest] fails on one missing from here. */
-        val MICROS_SURFACES = setOf("nutrients", "nutrients-week", "food-detail-nutrients")
+        val MICROS_SURFACES = setOf("nutrients", "nutrients-week", "food-detail-nutrients") + TODAY_CARD_SURFACES
 
         /** Derived, so a preset added later is covered the day it hides micros. */
         private val PRESETS_HIDING_MICROS: List<PresetId> = Presets.all

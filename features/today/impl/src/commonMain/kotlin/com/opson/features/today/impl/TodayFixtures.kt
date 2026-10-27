@@ -12,6 +12,8 @@ import com.opson.features.today.impl.item.ItemSheetState
 import com.opson.features.today.impl.item.ItemSheetStateBuilder
 import com.opson.features.today.impl.item.ItemStep
 import com.opson.features.today.impl.meal.MealNoteState
+import com.opson.features.today.impl.notes.NotesState
+import com.opson.features.today.impl.notes.NotesStateBuilder
 import com.opson.features.today.impl.meal.MealSheetState
 import com.opson.features.today.impl.meal.MealSheetStateBuilder
 import com.opson.features.today.impl.water.WaterSheetState
@@ -367,6 +369,15 @@ object TodayFixtures {
     /** Lunch's Note with both halves answered. */
     fun mealNoteState(): MealNoteState =
         MealNoteState(MealSlot.Lunch, hunger = Hunger.Hungry, draft = "Ate outside with Sam. Felt relaxed.", loaded = true)
+
+    /** Notes over three days: today's two, a dinner note two days back, and one from last year. */
+    fun notesState(): NotesState {
+        val twoDaysBack = pastDay().copy(
+            feelings = mapOf(MealSlot.Dinner to MealFeeling(hunger = Hunger.Starving, note = "Long day, skipped the afternoon snack.")),
+        )
+        val lastYear = Day.empty(LocalDate(2025, 12, 31)).copy(feelings = mapOf(MealSlot.Dinner to MealFeeling(note = "New Year's Eve with the family.")))
+        return NotesStateBuilder.build(listOf(lastYear, twoDaysBack, day()), today, NotesStateBuilder.PAGE_DAYS, fromTrends = false)
+    }
 
     /** A meal with no Note yet: nothing picked, the placeholder showing. */
     fun mealNoteEmptyState(): MealNoteState = MealNoteState(MealSlot.Snack, loaded = true)

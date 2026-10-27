@@ -53,7 +53,7 @@
     <string name="trends_hunger_caption_weeks">Each bar is a week's average. Taller means hungrier.</string>
     <string name="trends_hunger_by_meal">Before each meal</string>
     <string name="trends_hunger_meal_cd">%1$s, usually %2$s</string>
-    <string name="trends_hunger_empty">Add how hungry you were to a meal's note, and it shows up here.</string>
+    <string name="trends_hunger_empty">Add a hunger level to a meal's note, and it shows up here.</string>
     <string name="trends_journal">Notes</string>
     <string name="trends_journal_all">All notes</string>
     <string name="trends_journal_noted">Meals with a note</string>

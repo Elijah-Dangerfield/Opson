@@ -30,6 +30,7 @@ import com.opson.features.today.impl.item.ItemSheetContent
 import com.opson.features.today.impl.item.ItemSheetStateBuilder
 import com.opson.features.today.impl.meal.MealNoteSheetContent
 import com.opson.features.today.impl.meal.MealSheetContent
+import com.opson.features.today.impl.notes.NotesScreen
 import com.opson.features.today.impl.water.WaterSheetContent
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
@@ -47,6 +48,10 @@ object TodayLeakSurfaces {
     val all: List<LeakSurface> = listOf(
         LeakSurface(id = "today", label = "Today", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy), onAction = {})
+        },
+        // Notes are words and a hunger level, never an amount, in every mode.
+        LeakSurface(id = "today-notes", label = "Notes", showsCaloriesInFull = false) { _ ->
+            NotesScreen(state = TodayFixtures.notesState(), onAction = {})
         },
         // Design sync 4: End after a set time ran out. The banner names modes, never an amount.
         LeakSurface(id = "today-timer-ended", label = "Today · the mode timer ran out", showsCaloriesInFull = true) { policy ->

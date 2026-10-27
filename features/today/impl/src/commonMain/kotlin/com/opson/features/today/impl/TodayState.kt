@@ -312,6 +312,9 @@ data class DayMenu(val groups: List<List<DayMenuItem>>, val clearArmed: Boolean)
 sealed interface DayMenuItem {
     data class CloseDay(val isToday: Boolean) : DayMenuItem
     data object Nutrients : DayMenuItem
+
+    /** Every meal's Note, newest first. */
+    data object Notes : DayMenuItem
     data object CopyYesterday : DayMenuItem
     data object CopyToTomorrow : DayMenuItem
     data object AddNote : DayMenuItem
@@ -368,6 +371,7 @@ sealed interface TodayAction {
     data object MenuDismissed : TodayAction
     data object DayCloseMenuTapped : TodayAction
     data object DayNutrientsTapped : TodayAction
+    data object NotesMenuTapped : TodayAction
     data object CopyYesterdayTapped : TodayAction
     data object CopyToTomorrowTapped : TodayAction
     data object DayNoteTapped : TodayAction
@@ -428,6 +432,7 @@ sealed interface TodayEvent {
     data class OpenCalendar(val day: LocalDate) : TodayEvent
     data class OpenDayClose(val day: LocalDate) : TodayEvent
     data class OpenNutrients(val day: LocalDate) : TodayEvent
+    data object OpenNotes : TodayEvent
     data object OpenEnergyToday : TodayEvent
     data class OpenLogger(val day: LocalDate, val slot: MealSlot?) : TodayEvent
     data class OpenDayNote(val day: LocalDate) : TodayEvent

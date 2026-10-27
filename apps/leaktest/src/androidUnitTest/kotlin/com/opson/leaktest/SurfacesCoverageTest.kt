@@ -106,6 +106,7 @@ class SurfacesCoverageTest {
                 "today-cards-summary",
                 "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
                 "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "food-actions-amount",
+                "today-notes",
             ),
             "LoggerLeakSurfaces" to listOf(
                 "add-sheet", "add-sheet-expanded", "add-sheet-uncategorized",

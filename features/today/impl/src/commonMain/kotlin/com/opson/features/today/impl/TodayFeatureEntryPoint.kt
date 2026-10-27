@@ -21,6 +21,7 @@ import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
 import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.MealNoteRoute
+import com.opson.features.today.NotesRoute
 import com.opson.features.today.TodayRoute
 import com.opson.features.today.impl.calendar.CalendarEvent
 import com.opson.features.today.impl.cards.TodayCardsEvent
@@ -44,6 +45,9 @@ import com.opson.features.today.impl.meal.MealNoteViewModel
 import com.opson.features.today.impl.meal.MealSheetContent
 import com.opson.features.today.impl.meal.MealSheetEvent
 import com.opson.features.today.impl.meal.MealSheetViewModel
+import com.opson.features.today.impl.notes.NotesEvent
+import com.opson.features.today.impl.notes.NotesScreen
+import com.opson.features.today.impl.notes.NotesViewModel
 import com.opson.features.today.impl.water.WaterSheetContent
 import com.opson.features.today.impl.water.WaterSheetEvent
 import com.opson.features.today.impl.water.WaterSheetViewModel
@@ -76,8 +80,8 @@ import kotlin.reflect.typeOf
 
 /**
  * Today and everything that opens from it: the tab root, Day close, the calendar that drops from
- * the title, and the meal, meal note, how it felt, water, food actions, day note and Today's cards
- * sheets.
+ * the title, the Notes list, and the meal, meal note, how it felt, water, food actions, day note
+ * and Today's cards sheets.
  * View models send events; only this class navigates.
  */
 @SingleIn(AppScope::class)
@@ -93,6 +97,7 @@ class TodayFeatureEntryPoint(
     private val itemSheetViewModelFactory: (LocalDate, String) -> ItemSheetViewModel,
     private val dayNoteViewModelFactory: (LocalDate) -> DayNoteViewModel,
     private val todayCardsViewModelFactory: () -> TodayCardsViewModel,
+    private val notesViewModelFactory: (Boolean) -> NotesViewModel,
     private val tabBar: TabBar,
     private val findSupportEnabled: FindSupportEnabled,
 ) : FeatureEntryPoint {
@@ -114,6 +119,19 @@ class TodayFeatureEntryPoint(
             val listState = rememberLazyListState()
             router.OnTabReselected(TodayRoute::class) { listState.animateScrollToItem(0) }
             TodayScreen(state = state, onAction = viewModel::takeAction, listState = listState)
+        }
+
+        screen<NotesRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<NotesRoute>()
+            val viewModel: NotesViewModel = viewModel { notesViewModelFactory(route.fromTrends) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is NotesEvent.OpenNote -> router.navigate(MealNoteRoute(event.day.toString(), event.slot))
+                    NotesEvent.Close -> router.goBack()
+                }
+            }
+            NotesScreen(state = state, onAction = viewModel::takeAction)
         }
 
         screen<DayCloseRoute> { backStackEntry ->
@@ -258,6 +276,7 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenCalendar -> router.navigate(CalendarRoute(event.day.toString()))
             is TodayEvent.OpenDayClose -> router.navigate(DayCloseRoute(event.day.toString()))
             is TodayEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
+            TodayEvent.OpenNotes -> router.navigate(NotesRoute())
             TodayEvent.OpenEnergyToday -> router.navigate(EnergyTodayRoute())
             is TodayEvent.OpenLogger -> router.navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString()))
             TodayEvent.OpenWeight -> router.navigate(WeightRoute())

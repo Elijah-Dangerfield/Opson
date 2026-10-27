@@ -194,6 +194,7 @@ class TodayViewModel(
             TodayAction.MenuDismissed -> action.closeMenu()
             TodayAction.DayCloseMenuTapped -> action.closeMenuThen { if (!isFuture()) sendEvent(TodayEvent.OpenDayClose(day())) }
             TodayAction.DayNutrientsTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenNutrients(day())) }
+            TodayAction.NotesMenuTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenNotes) }
             TodayAction.CopyYesterdayTapped -> action.closeMenuThen {
                 diary.copyDay(from = day().minus(DatePeriod(days = 1)), to = day())
                 sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_copied_previous)))

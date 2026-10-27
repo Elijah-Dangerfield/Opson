@@ -511,7 +511,7 @@ object TodayStateBuilder {
         MealEntry.Collapsed(slot = slot, around = inputs.settings.mealTimes.at(slot), usual = usual, note = noteOf(inputs.day, slot))
 
     /** The Note is on every meal's + in every mode, so what it holds shows in every mode too. */
-    private fun noteOf(day: Day, slot: MealSlot): MealNoteUi? {
+    internal fun noteOf(day: Day, slot: MealSlot): MealNoteUi? {
         val feeling = day.feelings[slot] ?: return null
         val text = feeling.note?.trim()?.takeIf { it.isNotEmpty() }
         val hunger = feeling.hunger?.label
@@ -587,7 +587,7 @@ object TodayStateBuilder {
         val past = date <= today
         val untracked = inputs.day.untracked
         val groups = listOf(
-            listOfNotNull(if (past && !untracked) DayMenuItem.CloseDay(isToday = date == today) else null, DayMenuItem.Nutrients),
+            listOfNotNull(if (past && !untracked) DayMenuItem.CloseDay(isToday = date == today) else null, DayMenuItem.Nutrients, DayMenuItem.Notes),
             listOfNotNull(
                 DayMenuItem.CopyYesterday,
                 if (past) DayMenuItem.CopyToTomorrow else null,
