@@ -271,6 +271,9 @@ class TodayFeatureEntryPoint(
             )
             TodayEvent.OpenWeight -> router.navigate(WeightRoute())
             is TodayEvent.OpenMealFeel -> router.navigate(MealFeelRoute(event.day.toString(), event.slot))
+            is TodayEvent.OpenCreateMeal -> router.navigate(
+                CreateMealRoute(fromDayIso = event.day.toString(), fromSlot = event.slot, entryIds = event.entryIds),
+            )
             TodayEvent.OpenTodayCards -> router.navigate(TodayCardsRoute())
             TodayEvent.OpenFasting -> router.navigate(FastingRoute())
             TodayEvent.OpenReminders -> router.navigate(RemindersRoute())

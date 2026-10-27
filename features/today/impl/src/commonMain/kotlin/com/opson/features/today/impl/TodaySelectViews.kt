@@ -61,6 +61,7 @@ import opson.libraries.resources.generated.resources.today_select_move
 import opson.libraries.resources.generated.resources.today_select_move_action
 import opson.libraries.resources.generated.resources.today_select_move_title
 import opson.libraries.resources.generated.resources.today_select_remove
+import opson.libraries.resources.generated.resources.today_select_save_meal
 import opson.libraries.resources.generated.resources.today_select_title
 import org.jetbrains.compose.resources.stringResource
 
@@ -164,9 +165,7 @@ private fun Actions(selection: Selection, onAction: (TodayAction) -> Unit) {
         }
         HorizontalDivider(color = AppTheme.colors.line)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            // TODO(design-sync-2): "Save as meal" from the picks, first in the design's row. Create a meal
-            // takes a day and slot (`CreateMealRoute`), not a set of foods; it needs an entry-ids argument
-            // in :features:foods before this button can exist.
+            PanelAction(AppIcons.BookmarkAdd, stringResource(Res.string.today_select_save_meal)) { onAction(TodayAction.SaveAsMealTapped) }
             PanelAction(AppIcons.ContentCopy, stringResource(Res.string.today_select_copy)) { onAction(TodayAction.CopyToTapped) }
             PanelAction(AppIcons.Schedule, stringResource(Res.string.today_select_move)) { onAction(TodayAction.MoveTapped) }
             PanelAction(AppIcons.Delete, stringResource(Res.string.today_select_remove)) { onAction(TodayAction.RemoveSelectedTapped) }
