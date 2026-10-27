@@ -28,7 +28,7 @@ abstract class IosAppComponent(
     private val fileSharePresenter: FileSharePresenter,
     val nativeViewFactory: NativeViewFactory,
     // The Swift `IOSWidgetBridge` (App Group UserDefaults + WidgetCenter), passed in from
-    // `iOSApp.swift` for the home screen widgets. Only called with release.widgets on. Android
+    // `iOSApp.swift` for the home screen widgets, whatever release.widgets says. Android
     // publishes through Glance, bound via anvil.
     private val widgetBridge: WidgetBridge,
 ) : AppComponent {

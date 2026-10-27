@@ -8,9 +8,10 @@
 //  WidgetKit to redraw. WidgetKit has no Objective-C API, which is why this
 //  half lives in Swift.
 //
-//  Only called while release.widgets is on. Without the App Group entitlement
-//  (main, before the 0.2 release) UserDefaults(suiteName:) still answers, it
-//  just isn't shared, so nothing breaks and no widget sees it.
+//  Called whatever release.widgets says (that flag is only the More row): the
+//  extension is in the widget gallery in every build. Both targets need the
+//  App Group entitlement; without it UserDefaults(suiteName:) still answers,
+//  it just isn't shared, and the widget says "Open Opson" for good.
 //
 import ComposeApp
 import Foundation

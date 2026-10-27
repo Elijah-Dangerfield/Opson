@@ -11,7 +11,7 @@ import kotlin.native.ObjCName
  * to reload. WidgetKit has no Objective-C API, so Kotlin can't call it directly. Passed into the
  * graph through `IosAppComponent`.
  *
- * Called on the main thread. Never called while `release.widgets` is off. Exported to Swift as
+ * Called on the main thread, whatever `release.widgets` says. Exported to Swift as
  * plain `WidgetBridge` rather than the framework's prefixed name.
  */
 @ObjCName("WidgetBridge", exact = true)

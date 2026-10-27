@@ -49,7 +49,7 @@ Patterns, the Progress photos row in Modes, and the Trends Expended card.
 | Fasting | `release.fasting` | Merged. |
 | Voice in Describe | `release.voice` | Merged. Try on a phone. |
 | Photo estimate | `release.photo` | Merged. Needs `ANTHROPIC_API_KEY` on the server. |
-| Widgets | `release.widgets` | Native widget held on `hold/0.2-widgets-native`. |
+| Widgets | `release.widgets` | iOS extension ships in every build and the snapshot is written whatever the flag says; the flag is only the More row. Android receiver still held on `hold/0.2-widgets-native`. |
 | Search options, Today summary, select, check-in, progress photos | `release.searchOptions`, `release.todaySummary`, `release.todaySelect`, `release.checkIn`, `release.progressPhotos` | Merged. |
 | Open Food Facts search | `FOOD_SEARCH_OFF_ENABLED` (server) | On for dev (3.29M products). Off for prod. |
 

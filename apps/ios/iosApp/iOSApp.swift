@@ -9,7 +9,7 @@ struct iOSApp: App {
     let appleSignInCoordinator = IOSAppleSignInCoordinator()
     let secureSessionStorage = IOSSecureSessionStorage()
     let fileSharePresenter = IOSFileSharePresenter()
-    // Does nothing until Kotlin calls it, which only happens with release.widgets on.
+    // Kotlin writes the widget snapshot through it from launch, whatever release.widgets says.
     let widgetBridge = IOSWidgetBridge()
     private let nativeViewFactory = IOSNativeViewFactory.shared
     private let iOSAppComponent: IosAppComponent

@@ -10,16 +10,14 @@ import com.opson.libraries.widgets.WidgetFixtures
 import com.opson.libraries.widgets.WidgetSnapshot
 import com.opson.libraries.widgets.WidgetSnapshotBuilder
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** What reaches the platform as `release.widgets` and the snapshot move. */
+/** What reaches the platform as the snapshot and the settings move. Not gated on `release.widgets`. */
 class WidgetRefresherTest : CoroutineTest() {
 
-    private val flag = MutableStateFlow(true)
     private val source = FakeSnapshotSource()
     private val publisher = FakePublisher()
     private val settings = FakeSettingsRepository(Settings())
@@ -28,7 +26,6 @@ class WidgetRefresherTest : CoroutineTest() {
     private fun refresher(): WidgetRefresher {
         appScope = AppCoroutineScope(dispatchers)
         return WidgetRefresher(
-            config = configFlow(flag),
             settingsRepository = settings,
             source = source,
             publisher = publisher,
@@ -51,18 +48,7 @@ class WidgetRefresherTest : CoroutineTest() {
     )
 
     @Test
-    fun withTheFlagOff_nothingIsReadPublishedOrCleared() = test {
-        flag.value = false
-        refresher()
-        source.snapshots.emit(snapshot(PresetId.Full))
-
-        assertEquals(0, source.collections)
-        assertEquals(emptyList(), publisher.published)
-        assertEquals(0, publisher.clears)
-    }
-
-    @Test
-    fun withTheFlagOn_eachSnapshotIsPublished() = test {
+    fun eachSnapshotIsPublished() = test {
         refresher()
         val full = snapshot(PresetId.Full)
         val blind = snapshot(PresetId.NoNumbers)
@@ -71,30 +57,6 @@ class WidgetRefresherTest : CoroutineTest() {
         source.snapshots.emit(blind)
 
         assertEquals(listOf(full, blind), publisher.published)
-    }
-
-    @Test
-    fun turningTheFlagOn_publishesWhatIsCurrent() = test {
-        flag.value = false
-        refresher()
-        val full = snapshot(PresetId.Full)
-        source.snapshots.emit(full)
-
-        flag.value = true
-
-        assertEquals(listOf(full), publisher.published)
-    }
-
-    @Test
-    fun turningTheFlagOff_clearsWhatWasPublished_andStopsListening() = test {
-        refresher()
-        source.snapshots.emit(snapshot(PresetId.Full))
-
-        flag.value = false
-        source.snapshots.emit(snapshot(PresetId.NoNumbers))
-
-        assertEquals(1, publisher.clears)
-        assertEquals(1, publisher.published.size)
     }
 
     @Test
@@ -122,9 +84,9 @@ class WidgetRefresherTest : CoroutineTest() {
     }
 
     @Test
-    fun aFlagThatNeverPublished_hasNothingToClear() = test {
+    fun settingsGoingUnknownBeforeAnyPublish_hasNothingToClear() = test {
         refresher()
-        flag.value = false
+        settings.known.value = false
 
         assertEquals(0, publisher.clears)
         assertTrue(publisher.published.isEmpty())

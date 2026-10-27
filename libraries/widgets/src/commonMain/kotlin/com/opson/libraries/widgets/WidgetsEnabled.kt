@@ -9,12 +9,12 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
- * The 0.2 release flag for home screen widgets: the app writing a snapshot for them, and the
- * Widgets row on More. Off writes nothing, reloads nothing and shows no row. The 0.2 release turns
- * it on remotely.
+ * The 0.2 release flag for the Widgets row on More. Off shows no row. The 0.2 release turns it on
+ * remotely.
  *
- * The refresher reads it from each `AppConfigFlow` emission ([isOn]), so a remote flip reaches the
- * widget without a restart. Screens resolve it with `invoke()` when they build.
+ * It does not gate the snapshot the app writes for the widget. The iOS extension ships in every
+ * build, so it is in the widget gallery whatever this says, and a placed widget the app never
+ * wrote for would say "Open Opson" for good. Screens resolve it with `invoke()` when they build.
  */
 @Inject
 @SingleIn(AppScope::class)
@@ -25,7 +25,7 @@ class WidgetsEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap)
     // A literal on purpose: ConfigManifestRegistryDriftTest reads declared paths from source.
     override val path = "release.widgets"
     override val default = false
-    override val description = "0.2: home screen widgets, the snapshot the app writes for them, and the More row"
+    override val description = "0.2: the Widgets row on More. The snapshot for the widget is written whatever this says"
 
     companion object {
         /** The flag in one config snapshot. */

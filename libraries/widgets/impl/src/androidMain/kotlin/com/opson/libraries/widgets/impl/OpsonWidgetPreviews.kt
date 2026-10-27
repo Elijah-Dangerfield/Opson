@@ -64,7 +64,7 @@ private fun OpsonWidgetSmallBlindPreview() {
     OpsonWidgetContent(previewSnapshot(PresetId.NoNumbers), WidgetFixtures.today, appName = "Opson", fallback = "Open Opson to start.")
 }
 
-/** Before the app has written anything, or after release.widgets went off. */
+/** Before the app has written anything, or while nobody is signed in. */
 @OptIn(ExperimentalGlancePreviewApi::class)
 @Preview(widthDp = 250, heightDp = 110)
 @Composable

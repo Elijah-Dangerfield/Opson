@@ -95,7 +95,7 @@ class OpsonWidgetReceiver : GlanceAppWidgetReceiver() {
 
 /**
  * The widget for [snapshot] on [today]. Without a snapshot (the app has not written one yet, or
- * `release.widgets` went off) it shows the app's name, a line asking to open it, and the +.
+ * nobody is signed in) it shows the app's name, a line asking to open it, and the +.
  */
 @Composable
 internal fun OpsonWidgetContent(snapshot: WidgetSnapshot?, today: LocalDate, appName: String, fallback: String) {

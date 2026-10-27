@@ -13,7 +13,7 @@
   { "path": "release.fasting", "type": "boolean", "default": false, "description": "0.2: the Fasting page, its More row, the Today card and the timer" },
   { "path": "release.voice", "type": "boolean", "default": false, "description": "0.2: the mic in the Logger's Describe pane, speech to text on the device" },
   { "path": "release.photo", "type": "boolean", "default": false, "description": "0.2: the Photo chip in the logger, and the photo estimate sheet it opens" },
-  { "path": "release.widgets", "type": "boolean", "default": false, "description": "0.2: home screen widgets, the snapshot the app writes for them, and the More row" },
+  { "path": "release.widgets", "type": "boolean", "default": false, "description": "0.2: the Widgets row on More. The snapshot for the widget is written whatever this says" },
   { "path": "release.searchOptions", "type": "boolean", "default": false, "description": "0.2: the Logger's search options sheet, category tabs and source badges" },
   { "path": "release.onboardingSetup", "type": "boolean", "default": false, "description": "Onboarding: the goal, resting energy details and meal times after the starting mode" },
   { "path": "release.findSupport", "type": "boolean", "default": false, "description": "Find support: helplines by country, Support's crisis row and the pause sheet's link" },
