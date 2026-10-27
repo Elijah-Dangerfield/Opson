@@ -39,7 +39,7 @@ Also built during the review, behind their flags: Save as meal from Today's
 multi-select, the check-in switch in Reminders and its hunger card in
 Patterns, the Progress photos row in Modes, and the Trends Expended card.
 
-## 0.2 on main (behind release flags, all off on prod)
+## 0.2 on main (behind release flags; off on prod except TestFlight build 700)
 
 | Feature | Flag | State |
 |---|---|---|
@@ -54,6 +54,17 @@ Patterns, the Progress photos row in Modes, and the Trends Expended card.
 | Open Food Facts search | `FOOD_SEARCH_OFF_ENABLED` (server) | On for dev (3.29M products). Off for prod. |
 
 Every app flag is on in dev's remote config, so the Debug build shows them all.
+
+**TestFlight 0.2.0, build 700 (2026-10-27).** Built from `75c6ee31` and pointed
+at prod. Prod has one rule per flag (iOS, versionCode 700 only, priority 10,
+"TestFlight 0.2.0 build 700") that turns on everything except `release.health`
+and `release.widgets`. Older builds, including the 0.1 store build, see no
+change. Photo estimate fails until prod has `ANTHROPIC_API_KEY`, and search
+has no Open Food Facts results until `FOOD_SEARCH_OFF_ENABLED` is on for prod.
+A newer TestFlight build needs its own rules, or widen these with the admin
+console. `main` still says 0.1.0: the bump was local, for this build only.
+
+**Website:** live at https://www.opsontracker.com (the bare domain forwards).
 What has to happen before 0.2 ships is in `docs/plans/0.2/release-checklist.md`.
 
 ## Design sync
