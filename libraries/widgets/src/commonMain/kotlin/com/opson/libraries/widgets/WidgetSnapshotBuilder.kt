@@ -42,7 +42,7 @@ object WidgetSnapshotBuilder {
             days = listOf(inputs.today, tomorrow).map { day(it, settings, policy, copy) },
             logLabel = copy.log,
             logLink = WidgetLinks.LOG,
-            colors = WidgetPalette.colors(settings.palette),
+            colors = WidgetPalette.colors,
         )
     }
 

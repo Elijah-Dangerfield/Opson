@@ -38,7 +38,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Today's widget snapshot, rebuilt whenever an input moves: today's day (a log, an "ate, no
- * details", untracked), the settings (mode, targets, palette, meal groups) once they are the
+ * details", untracked), the settings (mode, targets, meal groups) once they are the
  * user's own, the policy, and the date (each local midnight, and every foreground in case the
  * clock or zone moved while the app slept). Equal snapshots are dropped, so a widget only reloads
  * when what it shows changed.

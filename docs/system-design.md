@@ -508,16 +508,17 @@ theme.
 - **Type:** Atkinson Hyperlegible Next (OFL), weights 400 to 800, bundled in
   `:libraries:resources`. Tabular figures on every number. Base 16 sp, large
   text 19 sp as a setting.
-- **Colour:** light and dark base sets, palette Pine by default (the user's
-  last preview pick was Espresso, so palette is a setting with Pine, Espresso,
-  Clay and Plum). Nutrient colours tell nutrients apart and never mean over or
-  under. No red or green anywhere for amounts.
+- **Colour:** one scheme, Slate, in light and dark (design sync 4, 13.0).
+  Appearance (System, Light or Dark) is the only colour setting. Nutrient
+  colours tell nutrients apart and never mean over or under; energy out uses
+  cool colours (resting and active) so it never looks like food. No red or
+  green anywhere for amounts.
 - **Shape:** cards 22, sheets 28 top, sticky Today block 24 bottom, chips pill.
 - **Icons:** Material Symbols Rounded via the Compose Material icons extended
   Rounded set, reached only through `AppIcons` (named after the Symbols
   ligatures; `nutrition` and `barcode_scanner` have no Rounded twin and use
   the closest glyph).
-- **Access:** `AppTheme(palette, darkTheme, largeText)` at the root, fed from
+- **Access:** `AppTheme(darkTheme, largeText)` at the root, fed from
   the user's Look and feel settings by `UserAppTheme` in `apps/compose`; tokens
   through `AppTheme.colors`, `AppTheme.type` (the handoff scale; the older
   `AppTheme.typography` stays for template screens), `AppTheme.shapes`,
@@ -635,3 +636,4 @@ Dated, newest first. Add to it, never rewrite it.
   and a price without a purchase flow is an App Review rejection.
 - **2026-10-25: Pine is the default palette.** It is the handoff default. The
   user's last pick was Espresso, so palette is a setting and that is one tap.
+  Superseded 2026-10-27: Slate is the only scheme (`docs/decisions.md`).
