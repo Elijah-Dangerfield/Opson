@@ -62,8 +62,11 @@ import opson.libraries.resources.generated.resources.trends_eaten
 import opson.libraries.resources.generated.resources.trends_expended
 import opson.libraries.resources.generated.resources.trends_expended_sub
 import opson.libraries.resources.generated.resources.trends_intake_caption_plain
+import opson.libraries.resources.generated.resources.trends_intake_caption_plain_goal
 import opson.libraries.resources.generated.resources.trends_intake_caption_today
+import opson.libraries.resources.generated.resources.trends_intake_caption_today_goal
 import opson.libraries.resources.generated.resources.trends_intake_caption_week
+import opson.libraries.resources.generated.resources.trends_intake_caption_week_goal
 import opson.libraries.resources.generated.resources.trends_last_check
 import opson.libraries.resources.generated.resources.trends_last_check_average
 import opson.libraries.resources.generated.resources.trends_last_check_weight
@@ -205,9 +208,9 @@ private fun IntakeCardView(card: IntakeCard) {
         Text(
             text = stringResource(
                 when (card.caption) {
-                    IntakeCaption.Plain -> Res.string.trends_intake_caption_plain
-                    IntakeCaption.TodayInProgress -> Res.string.trends_intake_caption_today
-                    IntakeCaption.WeekInProgress -> Res.string.trends_intake_caption_week
+                    IntakeCaption.Plain -> if (card.singleGoal) Res.string.trends_intake_caption_plain_goal else Res.string.trends_intake_caption_plain
+                    IntakeCaption.TodayInProgress -> if (card.singleGoal) Res.string.trends_intake_caption_today_goal else Res.string.trends_intake_caption_today
+                    IntakeCaption.WeekInProgress -> if (card.singleGoal) Res.string.trends_intake_caption_week_goal else Res.string.trends_intake_caption_week
                 },
             ),
             typography = AppTheme.type.secondary,

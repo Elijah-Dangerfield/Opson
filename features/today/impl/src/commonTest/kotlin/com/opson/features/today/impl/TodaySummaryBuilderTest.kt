@@ -7,10 +7,15 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.TargetStyle
+import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.today_stat_to_goal
+import opson.libraries.resources.generated.resources.today_stat_to_range
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -92,6 +97,27 @@ class TodaySummaryBuilderTest {
 
         assertEquals(listOf(SummaryStat.Expended, SummaryStat.ToRange, SummaryStat.Meals), stats.map { it.stat })
         assertEquals(listOf("1,990 kcal", "655 kcal", "3 of 4"), stats.map { it.text() })
+    }
+
+    @Test
+    fun oneNumber_isYourGoal_markedOnTheBar_andTheStatIsToYourGoal() {
+        val energy = build(settings = Settings(targets = Targets.Default.useExact())).energy()
+
+        assertTrue(energy.singleGoal)
+        assertEquals("2,100", energy.range.text())
+        assertEquals(energy.rangeStart, energy.rangeEnd, "a mark, not a box")
+        val toGoal = energy.stats.first { it.stat == SummaryStat.ToRange }
+        assertEquals(Res.string.today_stat_to_goal, toGoal.label)
+        assertEquals("855 kcal", toGoal.text())
+        assertEquals(Res.string.today_stat_to_range, build().energy().stats.first { it.stat == SummaryStat.ToRange }.label)
+    }
+
+    @Test
+    fun aSurplus_isOneNumber_onTopOfTheUsualTarget() {
+        val energy = build(settings = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300)))).energy()
+
+        assertTrue(energy.singleGoal)
+        assertEquals("2,400", energy.range.text())
     }
 
     @Test

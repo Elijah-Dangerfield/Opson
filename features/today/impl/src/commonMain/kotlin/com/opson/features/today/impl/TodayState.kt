@@ -85,7 +85,8 @@ data class TodayState(
 data class BarPart(val metric: Metric?, val weight: Float)
 
 /** A stat on page 1 of the summary: its value is an amount through the policy, or a count. */
-data class StatTile(val stat: SummaryStat, val value: StatValue)
+/** [label] is the stat's own, but "To your goal" for [SummaryStat.ToRange] when the day's goal is one number. */
+data class StatTile(val stat: SummaryStat, val value: StatValue, val label: StringResource = stat.label)
 
 sealed interface StatValue {
     data class Amount(val metric: Metric, val display: Display) : StatValue
@@ -166,7 +167,9 @@ data class FoodBridgeCard(val from: String, val to: String, val shared: String)
 sealed interface TodaySummary {
     /**
      * Calories shown (2.1): eaten with the range as a dashed box, then the macros.
-     * [empty] says "Nothing yet" instead of 0, and hides the macros.
+     * [empty] says "Nothing yet" instead of 0, and hides the macros. [singleGoal] is a day whose
+     * goal is one number (one number, a deficit or a surplus): "Your goal 2,100", and the bar
+     * marks it with a line where a range has a box.
      */
     data class Energy(
         val eaten: Display,
@@ -183,6 +186,7 @@ sealed interface TodaySummary {
         val stats: List<StatTile> = emptyList(),
         /** Page 2, the macros (`release.todaySummary`); null when off or nothing to show. */
         val macrosPage: MacrosPage? = null,
+        val singleGoal: Boolean = false,
     ) : TodaySummary
 
     /** Calories softened (2.6): meals counted when the mode counts them, the lead macro, the rest as bars. */

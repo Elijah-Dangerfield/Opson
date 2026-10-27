@@ -18,6 +18,9 @@
     <string name="trends_intake_caption_plain">The band is your range. A gap is a day you left untracked.</string>
     <string name="trends_intake_caption_today">The band is your range. Today is striped because it's still in progress, so it isn't in the average.</string>
     <string name="trends_intake_caption_week">The band is your range. This week is striped because it's still in progress, so it isn't in the average.</string>
+    <string name="trends_intake_caption_plain_goal">The line is your goal. A gap is a day you left untracked.</string>
+    <string name="trends_intake_caption_today_goal">The line is your goal. Today is striped because it's still in progress, so it isn't in the average.</string>
+    <string name="trends_intake_caption_week_goal">The line is your goal. This week is striped because it's still in progress, so it isn't in the average.</string>
     <string name="trends_check_tonight">Your weekly check opens tonight</string>
     <string name="trends_check_on">Your weekly check opens %1$s</string>
     <string name="trends_check_body">%1$s at %2$s. You'll see your weekly average and how weight is trending.</string>
@@ -69,6 +72,7 @@
     <string name="trends_nutrients_day">This day</string>
     <string name="trends_nutrients_week">Week average</string>
     <string name="trends_nutrients_range">· range</string>
+    <string name="trends_nutrients_goal">· goal</string>
     <string name="trends_micros_vitamins">Vitamins</string>
     <string name="trends_micros_minerals">Minerals</string>
     <string name="trends_micro_vitamin_a">Vitamin A</string>
