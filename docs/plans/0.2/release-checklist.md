@@ -303,8 +303,10 @@ It goes to Cloudflare Pages, uploaded from the existing workflow with
 - [ ] **You:** choose the DNS setup. Either move the domain's nameservers at
       Porkbun to Cloudflare (the bare domain then works directly), or keep DNS
       at Porkbun and serve `www.` with the bare domain forwarding to it.
-- [ ] Switch `.github/workflows/pages.yml` from GitHub Pages to
-      `wrangler pages deploy`, and add the custom domain to the Pages project.
+- [x] `.github/workflows/pages.yml` uploads to Cloudflare Pages with
+      `wrangler pages deploy` (project `opson`; done 2026-10-27).
+- [ ] Create the Pages project `opson` in Cloudflare (or let the first deploy
+      create it) and add the custom domain to it.
 - [ ] **Update the two settings that name the site's address:**
       `SITE_URL=https://<domain>` and `SITE_BASE=/` (repo variables), and add
       `https://<domain>` to `WAITLIST_ALLOWED_ORIGINS` on `opson-server-prod`.
