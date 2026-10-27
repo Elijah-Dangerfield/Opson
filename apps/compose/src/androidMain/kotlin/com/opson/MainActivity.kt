@@ -52,6 +52,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             handleReminderTap(intent)
             handleWidgetTap(intent)
+            handleLink(intent)
         }
 
         reportStartupWhenReady()
@@ -133,6 +134,20 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         handleReminderTap(intent)
         handleWidgetTap(intent)
+        handleLink(intent)
+    }
+
+    /**
+     * Any other opson:// link (the OAuth return, an email confirmation) goes through the
+     * DeepLinkBridge, as on iOS: App.kt hands the OAuth return to supabase-kt and routes the
+     * rest. NavHost only reads the intent at its first composition, so a link that arrives
+     * while the app is open would otherwise be dropped. Cleared so NavHost never routes it twice.
+     */
+    private fun handleLink(intent: Intent?) {
+        val url = intent?.dataString ?: return
+        if (!url.startsWith(APP_SCHEME)) return
+        appComponent.deepLinkBridge.emit(url)
+        intent.data = null
     }
 
     /**
@@ -166,3 +181,5 @@ class MainActivity : ComponentActivity() {
 
     private val appComponent get() = (application as OpsonApplication).appComponent
 }
+
+private const val APP_SCHEME = "opson://"

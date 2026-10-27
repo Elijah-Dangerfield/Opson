@@ -16,10 +16,9 @@ import kotlin.native.ObjCName
  * decouples them from the NavController, which only exists for the lifetime
  * of the App composable.
  *
- * Android note: Compose NavHost reads `Activity.intent.data` automatically
- * when the Activity has the right intent filter, so emitting on Android is
- * usually unnecessary. iOS has no equivalent — `.onOpenURL` must forward
- * here.
+ * Both platforms emit here: iOS from `.onOpenURL`, Android from `MainActivity`
+ * (NavHost only reads the launch intent, so a link arriving while the app is
+ * open would otherwise be lost).
  *
  * Per-route registration uses the `deepLinks` parameter on `screen<Route>`, built with
  * [routeDeepLink] (a bare `navDeepLink` fails the graph build):
