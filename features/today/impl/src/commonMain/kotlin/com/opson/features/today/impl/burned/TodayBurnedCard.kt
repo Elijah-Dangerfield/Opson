@@ -50,7 +50,7 @@ fun TodayBurnedSection(card: TodayBurnedCard, onAction: (TodayBurnedAction) -> U
     val tone = ToneColors(AppTheme.colors.nutrients.fat.content, AppTheme.colors.nutrients.fat.container)
     TodayCard(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            IconTile(icon = AppIcons.FitnessCenter, tone = tone)
+            ToneIcon(icon = AppIcons.FitnessCenter, tone = tone)
             Text(
                 text = stringResource(Res.string.today_burned_title),
                 typography = AppTheme.type.cardTitle,
