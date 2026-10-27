@@ -28,6 +28,14 @@ import kotlinx.serialization.json.Json
  * for the security trade). On load, the recovery order is: secure store →
  * legacy migration → mirror (restoring the secure copy when the mirror hits).
  *
+ * **A new install starts signed out** ([freshInstall]): iOS keeps Keychain
+ * items when the app is deleted, so without this a reinstall would come back
+ * signed in with no onboarding. A signed-in session found on an install's first
+ * load is dropped, and the person signs in again, which brings their account
+ * back. An anonymous one is kept: a guest has no credential to sign back in
+ * with, and the sign-in step links Apple or Google onto it, so their log moves
+ * into the real account.
+ *
  * `encodeDefaults = true` matches supabase-kt's own session serialization —
  * `UserSession.expiresAt` is a defaulted property, and dropping it would
  * reset the expiry window on every load.
@@ -37,6 +45,7 @@ class SecureSessionManager(
     private val key: String,
     private val legacy: SessionManager?,
     private val mirror: SessionMirror,
+    private val freshInstall: FreshInstall,
     private val dispatchers: DispatcherProvider,
     private val json: Json = defaultJson,
 ) : SessionManager {
@@ -44,13 +53,25 @@ class SecureSessionManager(
     private val logger = KLog.withTag("SecureSessionManager")
 
     override suspend fun saveSession(session: UserSession) = withContext(dispatchers.io) {
+        // Marks the install as seen, so a session saved before the first load
+        // (nothing stored yet) is never mistaken for an earlier install's.
+        freshInstall.claim()
         val encoded = json.encodeToString(session)
         storage.write(key, encoded)
         if (session.isAnonymous()) mirror.write(key, encoded) else mirror.clear()
     }
 
     override suspend fun loadSession(): UserSession = withContext(dispatchers.io) {
-        storage.read(key)?.let { return@withContext json.decodeFromString<UserSession>(it) }
+        val firstLoad = freshInstall.claim()
+        storage.read(key)?.let { stored ->
+            val session = json.decodeFromString<UserSession>(stored)
+            if (firstLoad && !session.isAnonymous()) {
+                logger.i { "New install: dropping a signed-in session the OS store kept from an earlier install" }
+                storage.delete(key)
+                error("No session for this install under $key")
+            }
+            return@withContext session
+        }
 
         legacy?.loadSessionOrNull()?.let { migrated ->
             storage.write(key, json.encodeToString(migrated))

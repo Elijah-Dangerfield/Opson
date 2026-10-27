@@ -10,6 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlinx.serialization.json.Json
 
 /**
  * Pins the AUTH-16 session-store contract: sessions round-trip through the
@@ -23,19 +24,51 @@ import kotlin.test.assertNull
  * mirror that recovers the session when the OS store loses it (the owner's
  * TestFlight upgrade wiped the Keychain copy), and a claimed session clears
  * that mirror — its credential is the recovery path, not a plaintext copy.
+ *
+ * And the reinstall path: iOS keeps the Keychain when the app is deleted, so a
+ * new install's first load drops a signed-in session it finds there and keeps
+ * an anonymous one for the sign-in step to link.
  */
 class SecureSessionManagerTest : CoroutineTest() {
 
     private val storage = FakeSecureSessionStorage()
     private val mirror = FakeSessionMirror()
+    private val freshInstall = FakeFreshInstall(fresh = false)
 
     private fun manager(legacy: SessionManager? = null) = SecureSessionManager(
         storage = storage,
         key = KEY,
         legacy = legacy,
         mirror = mirror,
+        freshInstall = freshInstall,
         dispatchers = dispatchers,
     )
+
+    @Test
+    fun newInstall_dropsASignedInSessionTheKeychainKept() = runUnitTest {
+        storage.values[KEY] = encoded(session(refreshToken = "last-install", accessToken = claimedJwt()))
+        freshInstall.fresh = true
+
+        assertNull(manager().loadSessionOrNull(), "a reinstall starts signed out")
+        assertNull(storage.values[KEY], "and forgets the old install's tokens")
+    }
+
+    @Test
+    fun newInstall_keepsAnAnonymousSession_soSignInCanLinkIt() = runUnitTest {
+        storage.values[KEY] = encoded(session(refreshToken = "guest"))
+        freshInstall.fresh = true
+
+        assertEquals("guest", manager().loadSession().refreshToken)
+    }
+
+    @Test
+    fun laterLaunches_keepTheSignedInSession() = runUnitTest {
+        freshInstall.fresh = true
+        val manager = manager()
+        manager.saveSession(session(refreshToken = "signed-in", accessToken = claimedJwt()))
+
+        assertEquals("signed-in", manager.loadSession().refreshToken, "the install claimed itself on save")
+    }
 
     @Test
     fun savedSession_roundTripsThroughSecureStorage() = runUnitTest {
@@ -150,6 +183,14 @@ class SecureSessionManagerTest : CoroutineTest() {
     private fun claimedJwt(): String {
         val payload = Base64.UrlSafe.encode("""{"is_anonymous":false}""".encodeToByteArray())
         return "header.$payload.signature"
+    }
+
+    private fun encoded(session: UserSession): String =
+        Json { encodeDefaults = true }.encodeToString(session)
+
+    /** Fresh until the first claim, as [FreshInstallStore] is. */
+    private class FakeFreshInstall(var fresh: Boolean) : FreshInstall {
+        override suspend fun claim(): Boolean = fresh.also { fresh = false }
     }
 
     private class FakeSecureSessionStorage : SecureSessionStorage {
