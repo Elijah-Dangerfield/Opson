@@ -39,7 +39,7 @@ Also built during the review, behind their flags: Save as meal from Today's
 multi-select, the check-in switch in Reminders and its hunger card in
 Patterns, the Progress photos row in Modes, and the Trends Expended card.
 
-## 0.2 on main (behind release flags; off on prod except TestFlight build 700)
+## 0.2 on main (behind release flags; off on prod except the TestFlight build)
 
 | Feature | Flag | State |
 |---|---|---|
@@ -55,9 +55,10 @@ Patterns, the Progress photos row in Modes, and the Trends Expended card.
 
 Every app flag is on in dev's remote config, so the Debug build shows them all.
 
-**TestFlight 0.2.0, build 700 (2026-10-27).** Built from `75c6ee31` and pointed
-at prod. Prod has one rule per flag (iOS, versionCode 700 only, priority 10,
-"TestFlight 0.2.0 build 700") that turns on everything except `release.health`
+**TestFlight 0.2.0 (202610271424), versionCode 702 (2026-10-27).** Built from
+`08fd575c` and pointed at prod. The first upload (700) was rejected for a
+missing `NSHealthUpdateUsageDescription`, now fixed. Prod has one rule per flag
+(iOS, versionCode 700 to 702, priority 10) that turns on everything except `release.health`
 and `release.widgets`. Older builds, including the 0.1 store build, see no
 change. Photo estimate fails until prod has `ANTHROPIC_API_KEY`, and search
 has no Open Food Facts results until `FOOD_SEARCH_OFF_ENABLED` is on for prod.
