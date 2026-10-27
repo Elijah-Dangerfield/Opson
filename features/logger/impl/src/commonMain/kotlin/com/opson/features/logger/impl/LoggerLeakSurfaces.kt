@@ -48,6 +48,10 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-amount", label = "Add-food sheet", showsCaloriesInFull = true) { policy ->
             AmountSheetContent(state = LoggerFixtures.amountState(policy), onAction = {})
         },
+        // All nutrients open: every vitamin and mineral the plate carries, as a percent of a day.
+        LeakSurface(id = "logger-amount-nutrients", label = "Add-food sheet, all nutrients", showsCaloriesInFull = true) { policy ->
+            AmountSheetContent(state = LoggerFixtures.amountState(policy, nutrientsOpen = true), onAction = {})
+        },
         // The unit menu's weights are amounts of food, not nutrients; the sheet under it still follows the policy.
         LeakSurface(id = "logger-amount-units", label = "Add-food sheet, unit menu", showsCaloriesInFull = true) { policy ->
             AmountSheetContent(state = LoggerFixtures.amountState(policy), onAction = {}, unitMenuShown = true)
