@@ -70,6 +70,7 @@ class DeleteEverythingTest : IntegrationTest() {
         assertEquals(emptyList(), phone.weights.observeWeighIns().first())
         assertEquals(emptyList(), phone.customFoods.observeAll().first())
         assertEquals(emptyList(), phone.savedMeals.observeAll().first())
-        assertEquals(Settings(), phone.settings.settings.value, "Blind is gone with the account")
+        // The settings flow trails the cleared store by a moment, as it does for a screen.
+        phone.settings.settings.awaitState { it == Settings() } // Blind is gone with the account
     }
 }

@@ -52,8 +52,10 @@ class GuestOnboardingSyncTest : IntegrationTest() {
         reinstall.syncNow().getOrThrow()
 
         reinstall.settings.isKnown.awaitState { it }
-        assertEquals(PresetId.Delayed, reinstall.settings.settings.value.numbers.preset)
-        assertEquals(6, reinstall.settings.settings.value.waterGlasses)
+        // isKnown and settings are separate flows off the same store, so the
+        // settings can trail it by a moment: wait on them as a screen would.
+        val pulled = reinstall.settings.settings.awaitState { it.numbers.preset == PresetId.Delayed }
+        assertEquals(6, pulled.waterGlasses)
         val day = reinstall.diary.observeDay(phone.today()).first()
         assertEquals(listOf(soup.id), day.allItems.map { it.id })
         assertEquals(420.0, day.allItems.single().kcal)

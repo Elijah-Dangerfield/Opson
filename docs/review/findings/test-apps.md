@@ -70,7 +70,21 @@ server and Postgres:
   KDoc cites `apps/ios/OpsonWidgets/WidgetSnapshot.swift`, which is not on main (it is on
   `hold/0.2-widgets-native`). Say so in the KDoc, or drop the path until the branch lands.
 
-## 6. A preview that throws passes the screenshot run — not a problem
+## 6. Three journeys read the settings flow before it caught up — fixed
+
+- **Where:** `SettingsMergeAcrossVersionsTest.kt:73`, `GuestOnboardingSyncTest.kt:55-56`,
+  `DeleteEverythingTest.kt:73` (before the fix), each reading `settings.settings.value`
+  right after a sync or a reset.
+- **Rule:** §7 "no sleeps; use … `awaitUntil` with a timeout"; tests fail only when the
+  behaviour breaks.
+- **Failure:** `SettingsStore.settings` is a `stateIn` over the store's updates on the app
+  scope, so it trails the write by a moment, and `isKnown` is a separate flow off the same
+  store. The settings-merge journey failed once in four runs (`expected 10 but was 8`)
+  and passed on rerun.
+- **Fix:** `test(integration): wait on the settings flow after a pull instead of reading it at once`.
+  All three wait on the flow, the way a screen reads it.
+
+## 7. A preview that throws passes the screenshot run — not a problem
 
 `PreviewScreenshotTest.render` records the failure in the screen's result file and
 returns, on purpose: one broken preview should not cost the designer every other
