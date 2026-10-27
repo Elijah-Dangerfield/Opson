@@ -447,7 +447,7 @@ keeps existing ticks.
 - [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/AuthRoutes.kt`
 - [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/OnboardingRoute.kt`
 
-## features-other (14 files)
+## features-other (15 files)
 
 - [x] `features/home/build.gradle.kts`
 - [x] `features/home/impl/build.gradle.kts`
@@ -459,6 +459,7 @@ keeps existing ticks.
 - [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackScreen.kt`
 - [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModel.kt`
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/HomeViewModelTest.kt`
+- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackRepositoryImplTest.kt`
 - [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModelTest.kt`
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenario.kt`
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`

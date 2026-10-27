@@ -230,8 +230,8 @@ OTLP logs, client errors visible without waiting on a Sentry crash. Query them w
 ```
 
 These records have **no `event_name`** (that's how you tell them apart from events); they carry
-`session_id`/`install_id`, the logger `tag`, and `exception_type`/`exception_message` when a
-throwable was attached. Gated by `telemetry.klogForwardingEnabled` (remote config, default **on**)
+`session_id`/`install_id`, the logger `tag`, and `exception_type` when a throwable was attached.
+The exception's message is never sent: it can carry food names, emails or URLs. Gated by `telemetry.klogForwardingEnabled` (remote config, default **on**)
 and still behind the `telemetry.appEventsEnabled` kill switch + per-session sampling, flipping
 the forwarding flag off never affects events.
 

@@ -57,6 +57,7 @@ class RemoteFlagTest : IntegrationTest() {
         val rule = setFlagFor(user, "release.fasting")
         server.clock.advance(31.seconds) // past the server's 30-second config cache
         clock.advance(6.minutes) // past the app's five-minute refresh throttle
+        phone.lifecycle.background() // a foreground only counts after the app was away
         phone.lifecycle.foreground()
         withTimeout(20_000) { phone.appConfigFlow.first(released) }
 
@@ -66,6 +67,7 @@ class RemoteFlagTest : IntegrationTest() {
         removeFlagRule(rule)
         server.clock.advance(31.seconds)
         clock.advance(6.minutes)
+        phone.lifecycle.background()
         phone.lifecycle.foreground()
         withTimeout(20_000) { phone.appConfigFlow.first { !released(it) } }
         awaitUntil { !phone.fastingRelease.isOn() }
