@@ -350,6 +350,8 @@ It goes to Cloudflare Pages, uploaded from the existing workflow with
 - [ ] Prod search includes Open Food Facts (the load above, and
       `FOOD_SEARCH_OFF_ENABLED=true`). The site says "over 3.7 million foods from the
       USDA and Open Food Facts", which is only true once prod has both.
+- [ ] **You:** run `scripts/setup_cloudflare_site.sh`. It prompts for the
+      Cloudflare token, account id and domain, then does the rest of this list.
 - [ ] **You:** create a Cloudflare API token with Pages edit rights, and store
       it as the `CLOUDFLARE_API_TOKEN` repo secret, with your account id as
       `CLOUDFLARE_ACCOUNT_ID` (Claude gives you a command that prompts for it).
