@@ -6,6 +6,32 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: Exercise logged by hand, and one source of activity per day
+
+**Decision:** behind `release.exercise` (which also needs `release.goalsAndEnergy`),
+Burned is resting energy plus everyday activity plus logged exercise when no
+health app reads activity, and resting energy plus the health app's movement
+and workouts when one does. An entry marked "My watch didn't record this" adds
+on top in the second case. Exercise energy is (MET − 1) × latest weigh-in ×
+hours from the 2024 Compendium, or a typed number, stored with the entry when
+it is saved. Everyday activity is a share of resting energy, Mostly sitting
+(0.2) by default. No thermic effect of food. Goals keep reading
+`BurnedRepository`, so a deficit or surplus works without a health app.
+
+**Alternatives:** MyFitnessPal's running "calorie adjustment" between its
+estimate and the tracker's, which can go negative and confuses people;
+Cronometer's gradual replacement of the baseline as tracker activity arrives,
+which would change how Burned behaves with a health app connected, and goals
+already rely on that; MacroFactor's expenditure from intake and the weight
+trend, a much larger feature that needs weeks of data. Adding everything
+together double counts.
+
+**Why:** without a baseline, a deficit aimed at resting energy alone sets a goal
+several hundred calories too low. One source per day is easy to explain and
+never counts the same walk twice. Research and sources:
+`docs/research/energy-expenditure.md`. Server table `exercises` is V24; Room
+schema 10.
+
 ## 2026-10-27: Accounts are required; a reinstall starts signed out
 
 **Decision:** onboarding goes Welcome, sign in, questions, mode, Today. Sign-in

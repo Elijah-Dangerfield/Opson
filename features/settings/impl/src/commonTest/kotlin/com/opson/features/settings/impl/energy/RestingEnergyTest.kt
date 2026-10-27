@@ -18,6 +18,8 @@ import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.health.ExerciseRelease
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Visibility
@@ -74,15 +76,34 @@ class RestingEnergyTest : CoroutineTest() {
 
     // --- view model ---
 
-    private fun viewModel(repository: FakeSettingsRepository, health: FakeHealthRepository = FakeHealthRepository(HealthStatus.Connected)) =
-        RestingEnergyViewModel(
-            repository,
-            FakeBurnedRepository(choices = choices),
-            FakePolicySource(SettingsFixtures.policy(PresetId.Full)),
-            health,
-            healthFlag(true),
-            FakeCalendar(),
-        )
+    private fun viewModel(
+        repository: FakeSettingsRepository,
+        health: FakeHealthRepository = FakeHealthRepository(HealthStatus.Connected),
+        exerciseOn: Boolean = false,
+    ) = RestingEnergyViewModel(
+        repository,
+        FakeBurnedRepository(choices = choices),
+        FakePolicySource(SettingsFixtures.policy(PresetId.Full)),
+        health,
+        healthFlag(true),
+        FakeCalendar(),
+        ExerciseRelease { exerciseOn },
+    )
+
+    @Test
+    fun everydayActivity_showsWithReleaseExercise_andIsSaved() = runUnitTest {
+        val off = viewModel(FakeSettingsRepository())
+        assertNull(off.state.everyday, "release.exercise off: no choice")
+
+        val repository = FakeSettingsRepository()
+        val vm = viewModel(repository, exerciseOn = true)
+        assertEquals(EverydayActivity.MostlySitting, vm.state.everyday, "the default")
+
+        vm.takeAction(RestingEnergyAction.EverydayPicked(EverydayActivity.OnMyFeet))
+
+        assertEquals(EverydayActivity.OnMyFeet, repository.state.value.everydayActivity)
+        assertEquals(EverydayActivity.OnMyFeet, vm.state.everyday)
+    }
 
     @Test
     fun sourcePicked_isSaved() = runUnitTest {

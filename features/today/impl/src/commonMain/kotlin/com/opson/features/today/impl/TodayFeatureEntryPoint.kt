@@ -4,12 +4,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.EditCopyRoute
+import com.opson.features.logger.ExerciseRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
@@ -17,11 +19,15 @@ import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.FindSupportRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.ModesRoute
+import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
 import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.MealNoteRoute
 import com.opson.features.today.TodayRoute
+import com.opson.features.today.impl.burned.TodayBurnedEvent
+import com.opson.features.today.impl.burned.TodayBurnedSection
+import com.opson.features.today.impl.burned.TodayBurnedViewModel
 import com.opson.features.today.impl.calendar.CalendarEvent
 import com.opson.features.today.impl.cards.TodayCardsEvent
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
@@ -93,6 +99,7 @@ class TodayFeatureEntryPoint(
     private val itemSheetViewModelFactory: (LocalDate, String) -> ItemSheetViewModel,
     private val dayNoteViewModelFactory: (LocalDate) -> DayNoteViewModel,
     private val todayCardsViewModelFactory: () -> TodayCardsViewModel,
+    private val todayBurnedViewModelFactory: () -> TodayBurnedViewModel,
     private val tabBar: TabBar,
     private val findSupportEnabled: FindSupportEnabled,
 ) : FeatureEntryPoint {
@@ -113,7 +120,7 @@ class TodayFeatureEntryPoint(
             }
             val listState = rememberLazyListState()
             router.OnTabReselected(TodayRoute::class) { listState.animateScrollToItem(0) }
-            TodayScreen(state = state, onAction = viewModel::takeAction, listState = listState)
+            TodayScreen(state = state, onAction = viewModel::takeAction, listState = listState, burned = burnedSection(router))
         }
 
         screen<DayCloseRoute> { backStackEntry ->
@@ -251,6 +258,21 @@ class TodayFeatureEntryPoint(
             }
             TodaySheet(router, sheetState) { DayNoteSheetContent(state = state, onAction = viewModel::takeAction) }
         }
+    }
+
+    /** Today's Burned section (`release.exercise`), or null while it has nothing to show. */
+    @Composable
+    private fun burnedSection(router: Router): (@Composable () -> Unit)? {
+        val viewModel: TodayBurnedViewModel = viewModel { todayBurnedViewModelFactory() }
+        val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+        viewModel.ObserveEvents { event ->
+            when (event) {
+                is TodayBurnedEvent.OpenExercise -> router.navigate(ExerciseRoute(entryId = event.entryId, dayIso = event.day.toString()))
+                TodayBurnedEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
+            }
+        }
+        val card = state.card ?: return null
+        return remember(card) { { TodayBurnedSection(card, viewModel::takeAction) } }
     }
 
     private suspend fun onTodayEvent(event: TodayEvent, router: Router) {

@@ -33,6 +33,7 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -61,7 +62,10 @@ import opson.libraries.resources.generated.resources.settings_energy_eaten
 import opson.libraries.resources.generated.resources.settings_energy_estimates
 import opson.libraries.resources.generated.resources.settings_energy_kcal
 import opson.libraries.resources.generated.resources.settings_energy_likely
+import opson.libraries.resources.generated.resources.settings_energy_logged
 import opson.libraries.resources.generated.resources.settings_energy_movement
+import opson.libraries.resources.generated.resources.today_burned_everyday
+import opson.libraries.resources.generated.resources.today_burned_exercise
 import opson.libraries.resources.generated.resources.settings_energy_no_activity
 import opson.libraries.resources.generated.resources.settings_energy_not_counted
 import opson.libraries.resources.generated.resources.settings_energy_nutrients
@@ -180,10 +184,20 @@ private fun BurnedCardView(burned: BurnedSection, onAction: (EnergyTodayAction) 
             source == null -> stringResource(Res.string.settings_energy_no_activity)
             else -> source
         }
-        HorizontalDivider(color = AppTheme.colors.line)
-        BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.settings_energy_movement), activityLine, burned.movement)
-        HorizontalDivider(color = AppTheme.colors.line)
-        BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.settings_energy_workouts), activityLine, burned.workouts)
+        // Everyday activity stands in for the health app's movement; a day never has both.
+        if (burned.everyday is Display.Hidden) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.settings_energy_movement), activityLine, burned.movement)
+            HorizontalDivider(color = AppTheme.colors.line)
+            BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.settings_energy_workouts), activityLine, burned.workouts)
+        } else {
+            HorizontalDivider(color = AppTheme.colors.line)
+            BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.today_burned_everyday), activityLine, burned.everyday)
+        }
+        NutrientVisible(burned.exercise) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.today_burned_exercise), stringResource(Res.string.settings_energy_logged), burned.exercise)
+        }
     }
 }
 

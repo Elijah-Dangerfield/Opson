@@ -6,12 +6,14 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -37,10 +39,12 @@ class RestingEnergyViewModel(
     health: HealthRepository,
     healthFlag: HealthReleaseFlag,
     private val calendar: LocalCalendar,
+    exerciseRelease: ExerciseRelease,
 ) : SEAViewModel<RestingEnergyState, RestingEnergyEvent, RestingEnergyAction>(initialStateArg = RestingEnergyState()) {
 
     private var inputs: RestingEnergyAction.InputsArrived? = null
     private var drafts = RestingDrafts()
+    private val exerciseReleased = exerciseRelease.isOn()
 
     init {
         val activity = if (healthFlag()) {
@@ -85,6 +89,7 @@ class RestingEnergyViewModel(
             }
             is RestingEnergyAction.SexPicked -> settingsRepository.update { it.copy(bodySex = action.sex) }
             is RestingEnergyAction.ActivityInBurnedToggled -> settingsRepository.update { it.copy(activityInBurned = action.on) }
+            is RestingEnergyAction.EverydayPicked -> settingsRepository.update { it.copy(everydayActivity = action.activity) }
             RestingEnergyAction.ActivityTapped -> sendEvent(RestingEnergyEvent.OpenIntegrations)
             RestingEnergyAction.BackTapped -> sendEvent(RestingEnergyEvent.Close)
         }
@@ -95,7 +100,7 @@ class RestingEnergyViewModel(
 
     private suspend fun rebuild(action: RestingEnergyAction) {
         val (settings, choices, policy, activity) = inputs ?: return
-        action.updateState { RestingEnergyStateBuilder.build(settings, choices, policy, drafts, activity) }
+        action.updateState { RestingEnergyStateBuilder.build(settings, choices, policy, drafts, activity, exerciseReleased) }
     }
 
     private companion object {
@@ -127,6 +132,7 @@ sealed interface RestingEnergyAction {
     data class HeightTyped(val text: String) : RestingEnergyAction
     data class SexPicked(val sex: BodySex) : RestingEnergyAction
     data class ActivityInBurnedToggled(val on: Boolean) : RestingEnergyAction
+    data class EverydayPicked(val activity: EverydayActivity) : RestingEnergyAction
     data object ActivityTapped : RestingEnergyAction
     data object BackTapped : RestingEnergyAction
 }

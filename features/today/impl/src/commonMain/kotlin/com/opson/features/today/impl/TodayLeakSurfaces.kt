@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.opson.features.today.impl.burned.TodayBurnedFixtures
+import com.opson.features.today.impl.burned.TodayBurnedSection
 import com.opson.features.today.impl.calendar.CalendarDropdownContent
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
@@ -85,6 +87,13 @@ object TodayLeakSurfaces {
         // 0.2: All of the watch's activity in the range. The range moves; nothing says by how much.
         LeakSurface(id = "today-exercise", label = "Today, exercise in the range", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, settings = TodayFixtures.exerciseAll, expended = TodayFixtures.expended), onAction = {})
+        },
+        // release.exercise: Burned with where it came from, and the day's exercise. Not drawn at all where energy out is hidden.
+        LeakSurface(id = "today-burned", label = "Today, Burned and exercise", showsCaloriesInFull = true) { policy ->
+            TodayBurnedFixtures.manual(policy)?.let { TodayBurnedSection(it, onAction = {}) }
+        },
+        LeakSurface(id = "today-burned-health", label = "Today, Burned with a health app", showsCaloriesInFull = true) { policy ->
+            TodayBurnedFixtures.withHealth(policy)?.let { TodayBurnedSection(it, onAction = {}) }
         },
         LeakSurface(id = "today-untracked", label = "Today, marked untracked", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.untrackedDay()), onAction = {})

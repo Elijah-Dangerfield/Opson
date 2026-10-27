@@ -163,7 +163,8 @@ fun TodayScreen(
     onAction: (TodayAction) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
-) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState)
+    burned: (@Composable () -> Unit)? = null,
+) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState, burned)
 
 /** [TodayScreen] with the [drag] handed in, so a preview can hold foods mid-drag (13.3c). */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -174,8 +175,11 @@ internal fun TodayScreen(
     drag: FoodDrag,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
+    /** The Burned section (`release.exercise`), with its own view model; null leaves it out. */
+    burned: (@Composable () -> Unit)? = null,
 ) {
-    val rows = remember(state) { todayRows(state) }
+    val hasBurned = burned != null
+    val rows = remember(state, hasBurned) { todayRows(state, hasBurned) }
     val scope = rememberCoroutineScope()
     // Back leaves selecting, or puts a row's confirmation away, before it leaves Today.
     BackHandler(enabled = state.selection != null) { onAction(TodayAction.SelectionClosed) }
@@ -233,7 +237,9 @@ internal fun TodayScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
                 ) {
-                    items(rows, key = { it.key }) { row -> TodayListItem(row, state, drag, onAction) }
+                    items(rows, key = { it.key }) { row ->
+                        if (row == TodayRow.Burned) burned?.invoke() else TodayListItem(row, state, drag, onAction)
+                    }
                 }
                 if (selection != null && drag.active) {
                     DragGhost(
@@ -339,11 +345,12 @@ internal sealed interface TodayRow {
     data class Fasting(val status: FastingStatus) : TodayRow { override val key = "fasting" }
     data class Water(val water: WaterRow) : TodayRow { override val key = "water" }
     data class Weight(val weight: WeightRow) : TodayRow { override val key = "weight" }
+    data object Burned : TodayRow { override val key = "burned" }
     data class Meal(val entry: MealEntry) : TodayRow { override val key = "meal-${entry.slot.wire}" }
     data class Close(val card: CloseDayCard) : TodayRow { override val key = "close-day" }
 }
 
-internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
+internal fun todayRows(state: TodayState, burned: Boolean = false): List<TodayRow> = buildList {
     if (state.loading) {
         add(TodayRow.Loading)
         return@buildList
@@ -357,6 +364,7 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
     state.fasting?.let { add(TodayRow.Fasting(it)) }
     state.water?.let { add(TodayRow.Water(it)) }
     state.weight?.let { add(TodayRow.Weight(it)) }
+    if (burned) add(TodayRow.Burned)
     state.meals.forEach { add(TodayRow.Meal(it)) }
     state.closeDay?.let { add(TodayRow.Close(it)) }
 }
@@ -407,6 +415,8 @@ private fun TodayListItem(row: TodayRow, state: TodayState, drag: FoodDrag, onAc
             addIcon = AppIcons.Add.described(stringResource(Res.string.today_water_cd)),
         )
         is TodayRow.Weight -> WeightCard(row.weight, state.dayLabel, onAction)
+        // Drawn by the slot the entry point passes in; see TodayScreen.
+        TodayRow.Burned -> Unit
         is TodayRow.Meal -> Meal(row.entry, state, drag, onAction)
         is TodayRow.Close -> TodayCard(
             contentPadding = TodayCardPadding.List,
