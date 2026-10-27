@@ -34,7 +34,9 @@ import opson.libraries.resources.generated.resources.settings_goal_style_done
 import opson.libraries.resources.generated.resources.settings_goal_style_title
 import opson.libraries.resources.generated.resources.settings_targets_style_by_day_line
 import opson.libraries.resources.generated.resources.settings_targets_style_deficit_line
+import opson.libraries.resources.generated.resources.settings_targets_style_exact_line
 import opson.libraries.resources.generated.resources.settings_targets_style_range_line
+import opson.libraries.resources.generated.resources.settings_targets_style_surplus_line
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -111,14 +113,18 @@ private fun StyleOption(kind: StyleKind, selected: Boolean, onClick: () -> Unit)
 private val StyleKind.icon: IconResource
     get() = when (this) {
         StyleKind.Range -> AppIcons.Straighten
+        StyleKind.Exact -> AppIcons.Adjust
         StyleKind.Deficit -> AppIcons.TrendingDown
+        StyleKind.Surplus -> AppIcons.TrendingUp
         StyleKind.ByDay -> AppIcons.CalendarMonth
     }
 
 private val StyleKind.line: StringResource
     get() = when (this) {
         StyleKind.Range -> Res.string.settings_targets_style_range_line
+        StyleKind.Exact -> Res.string.settings_targets_style_exact_line
         StyleKind.Deficit -> Res.string.settings_targets_style_deficit_line
+        StyleKind.Surplus -> Res.string.settings_targets_style_surplus_line
         StyleKind.ByDay -> Res.string.settings_targets_style_by_day_line
     }
 
@@ -127,6 +133,14 @@ private val StyleKind.line: StringResource
 private fun TargetsGoalStylePreview() {
     SettingsPreview {
         GoalStyleSheetContent(GoalStyleStateBuilder.build(SettingsFixtures.settings()), onAction = {})
+    }
+}
+
+@Preview
+@Composable
+private fun TargetsGoalStyleAllPreview() {
+    SettingsPreview {
+        GoalStyleSheetContent(GoalStyleStateBuilder.build(SettingsFixtures.settings(), picked = StyleKind.Surplus, goalStyles = true), onAction = {})
     }
 }
 

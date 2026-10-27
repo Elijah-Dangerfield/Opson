@@ -7,6 +7,7 @@ import com.opson.features.settings.impl.integrations.FakeHealthRepository
 import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.goalStylesFlag
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Display
@@ -137,7 +138,7 @@ class TargetsTest : CoroutineTest() {
         val state = build(targets = SettingsFixtures.byDayTargets)
 
         assertEquals(listOf(GroupLabel.OtherDays, GroupLabel.Numbered(2)), state.groups.map { it.label })
-        assertEquals(Display.Shown("2,300 to 2,700 kcal"), state.groups[1].range)
+        assertEquals(Display.Shown("2,300 to 2,700 kcal"), state.groups[1].summary)
         assertEquals(
             listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY),
             state.groups[1].days.filter { it.inGroup }.map { it.day },
@@ -166,7 +167,13 @@ class TargetsTest : CoroutineTest() {
     // --- view model ---
 
     private fun viewModel(repository: FakeSettingsRepository, preset: PresetId = PresetId.Full) =
-        TargetsViewModel(repository, FakePolicySource(SettingsFixtures.policy(preset)), FakeHealthRepository(), healthFlag(false))
+        TargetsViewModel(
+        repository,
+        FakePolicySource(SettingsFixtures.policy(preset)),
+        FakeHealthRepository(),
+        healthFlag(false),
+        goalStylesFlag(false),
+    )
 
     private fun FakeSettingsRepository.targets(): Targets = state.value.targets
 
@@ -365,7 +372,7 @@ class TargetsTest : CoroutineTest() {
     @Test
     fun pickingAStyleWaitsForDone() = runUnitTest {
         val repository = FakeSettingsRepository()
-        val vm = GoalStyleViewModel(repository)
+        val vm = GoalStyleViewModel(repository, goalStylesFlag())
         val events = eventsOf(vm)
 
         vm.takeAction(GoalStyleAction.StylePicked(StyleKind.ByDay))
@@ -379,7 +386,7 @@ class TargetsTest : CoroutineTest() {
     @Test
     fun aDeficitCannotBePickedWhereItIsNotOffered() = runUnitTest {
         val repository = FakeSettingsRepository(SettingsFixtures.settings(NumbersSettings(PresetId.Fuel)))
-        val vm = GoalStyleViewModel(repository)
+        val vm = GoalStyleViewModel(repository, goalStylesFlag())
 
         vm.takeAction(GoalStyleAction.StylePicked(StyleKind.Deficit))
         vm.takeAction(GoalStyleAction.DoneTapped)
@@ -390,7 +397,7 @@ class TargetsTest : CoroutineTest() {
     @Test
     fun doneWithNoChangeWritesNothing() = runUnitTest {
         val repository = FakeSettingsRepository(SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets))
-        val vm = GoalStyleViewModel(repository)
+        val vm = GoalStyleViewModel(repository, goalStylesFlag())
         val writes = repository.writes
 
         vm.takeAction(GoalStyleAction.DoneTapped)

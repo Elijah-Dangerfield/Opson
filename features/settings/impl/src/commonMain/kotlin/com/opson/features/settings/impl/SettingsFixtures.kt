@@ -6,6 +6,7 @@ import com.opson.libraries.diary.MealReminders
 import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.DayGroup
+import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -75,6 +76,26 @@ object SettingsFixtures {
             listOf(
                 DayGroup(setOf(DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), 1900, 2300),
                 DayGroup(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY), 2300, 2700),
+            ),
+        ),
+    )
+
+    /** One number, 2,200, raised from where the user started, so it can step down as well as up. */
+    val exactTargets: Targets = rangeTargets.copy(energyKcal = 2200, minKcal = 2000, maxKcal = 2400, style = TargetStyle.Exact)
+
+    /** A set surplus of 300: about 2,470 against a 2,172 burn, about 2,400 on the usual target before one is known. */
+    val surplusTargets: Targets = rangeTargets.copy(style = TargetStyle.Surplus(kcal = 300))
+
+    /**
+     * Different by day with a shape per group: Thursday and Friday a range, Monday to Wednesday
+     * one number (2,500), the weekend 300 over what the user burns.
+     */
+    val shapedByDayTargets: Targets = rangeTargets.copy(
+        style = TargetStyle.ByDay(
+            listOf(
+                DayGroup(setOf(DayOfWeek.THURSDAY, DayOfWeek.FRIDAY), 1900, 2300),
+                DayGroup(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY), 2300, 2700, GroupShape.Exact),
+                DayGroup(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), 1900, 2300, GroupShape.Surplus(300)),
             ),
         ),
     )

@@ -114,6 +114,22 @@ import opson.libraries.resources.generated.resources.settings_targets_rule_big_d
 import opson.libraries.resources.generated.resources.settings_targets_rule_floor
 import opson.libraries.resources.generated.resources.settings_targets_title
 import opson.libraries.resources.generated.resources.settings_targets_week
+import opson.libraries.resources.generated.resources.settings_targets_group_goal
+import opson.libraries.resources.generated.resources.settings_targets_group_shape_exact
+import opson.libraries.resources.generated.resources.settings_targets_group_shape_range
+import opson.libraries.resources.generated.resources.settings_targets_group_shape_surplus
+import opson.libraries.resources.generated.resources.settings_targets_number_floor_note
+import opson.libraries.resources.generated.resources.settings_targets_number_lower
+import opson.libraries.resources.generated.resources.settings_targets_number_raise
+import opson.libraries.resources.generated.resources.settings_targets_number_title
+import opson.libraries.resources.generated.resources.settings_targets_style_exact
+import opson.libraries.resources.generated.resources.settings_targets_style_surplus
+import opson.libraries.resources.generated.resources.settings_targets_surplus_cap
+import opson.libraries.resources.generated.resources.settings_targets_surplus_from_target
+import opson.libraries.resources.generated.resources.settings_targets_surplus_less
+import opson.libraries.resources.generated.resources.settings_targets_surplus_locked
+import opson.libraries.resources.generated.resources.settings_targets_surplus_more
+import opson.libraries.resources.generated.resources.settings_targets_surplus_title
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -136,7 +152,9 @@ fun TargetsScreen(
         }
         GoalStyleCard(state.style, onAction)
         state.range?.let { RangeEndsCard(it, onAction) }
+        state.number?.let { NumberCard(it, onAction) }
         state.deficit?.let { DeficitCards(it, onAction) }
+        state.surplus?.let { SurplusCards(it, onAction) }
         if (state.style == StyleKind.ByDay) ByDayCards(state, onAction)
         if (state.macros.isNotEmpty()) MacroCard(state, onAction)
         state.exercise?.let { ExerciseAdjustmentCard(it, onAction) }
@@ -146,7 +164,9 @@ fun TargetsScreen(
 internal val StyleKind.label: StringResource
     get() = when (this) {
         StyleKind.Range -> Res.string.settings_targets_style_range
+        StyleKind.Exact -> Res.string.settings_targets_style_exact
         StyleKind.Deficit -> Res.string.settings_targets_style_deficit
+        StyleKind.Surplus -> Res.string.settings_targets_style_surplus
         StyleKind.ByDay -> Res.string.settings_targets_style_by_day
     }
 
@@ -249,9 +269,19 @@ private val Display.words: String?
         is Display.Shown -> text
     }
 
-/** − value +, in a soft rounded well. A lock replaces − where the floor blocks it. */
+/**
+ * − value +, in a soft rounded well. A lock replaces − where the floor blocks it, and + where a cap
+ * does. [lower] and [raise] name the steps when they are not "Lower the [endName]".
+ */
 @Composable
-private fun EndStepperView(stepper: EndStepper, endName: String, onStep: (up: Boolean) -> Unit) {
+private fun EndStepperView(
+    stepper: EndStepper,
+    endName: String,
+    onStep: (up: Boolean) -> Unit,
+    lower: String? = null,
+    raise: String? = null,
+    raiseLocked: String? = null,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -270,7 +300,7 @@ private fun EndStepperView(stepper: EndStepper, endName: String, onStep: (up: Bo
                 )
             }
             else -> StepButton(
-                icon = AppIcons.Remove.described(stringResource(Res.string.settings_targets_lower_end, endName)),
+                icon = AppIcons.Remove.described(lower ?: stringResource(Res.string.settings_targets_lower_end, endName)),
                 enabled = stepper.down == StepState.Open,
                 onClick = { onStep(false) },
                 touchTarget = StepSize,
@@ -285,12 +315,21 @@ private fun EndStepperView(stepper: EndStepper, endName: String, onStep: (up: Bo
                 maxLines = 1,
             )
         }
-        StepButton(
-            icon = AppIcons.Add.described(stringResource(Res.string.settings_targets_raise_end, endName)),
-            enabled = stepper.up == StepState.Open,
-            onClick = { onStep(true) },
-            touchTarget = StepSize,
-        )
+        when (stepper.up) {
+            StepState.Locked -> Box(modifier = Modifier.size(StepSize), contentAlignment = Alignment.Center) {
+                Icon(
+                    icon = AppIcons.LockOutlined.described(raiseLocked ?: stringResource(Res.string.settings_targets_locked)),
+                    size = 22.dp,
+                    color = AppTheme.colors.muted,
+                )
+            }
+            else -> StepButton(
+                icon = AppIcons.Add.described(raise ?: stringResource(Res.string.settings_targets_raise_end, endName)),
+                enabled = stepper.up == StepState.Open,
+                onClick = { onStep(true) },
+                touchTarget = StepSize,
+            )
+        }
     }
 }
 
@@ -350,53 +389,13 @@ private fun DeficitCards(deficit: DeficitCard, onAction: (TargetsAction) -> Unit
             typography = AppTheme.type.secondaryStrong,
             color = AppTheme.colors.muted,
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            StepButton(
-                icon = AppIcons.Remove.described(stringResource(Res.string.settings_targets_deficit_less)),
-                enabled = deficit.down == StepState.Open,
-                onClick = { onAction(TargetsAction.DeficitStepped(up = false)) },
-                size = 52.dp,
-                container = AppTheme.colors.soft,
-            )
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                NutrientText(
-                    metric = Metric.Calories,
-                    display = deficit.amount,
-                    typography = AppTheme.type.h1.Tabular,
-                    color = AppTheme.colors.ink,
-                )
-                Text(
-                    text = stringResource(Res.string.settings_targets_kcal),
-                    typography = AppTheme.type.bodyBold,
-                    color = AppTheme.colors.muted,
-                    modifier = Modifier.padding(bottom = 6.dp),
-                )
-            }
-            if (deficit.up == StepState.Locked) {
-                Box(
-                    modifier = Modifier.size(52.dp).clip(AppTheme.shapes.input).background(AppTheme.colors.soft),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        icon = AppIcons.LockOutlined.described(stringResource(Res.string.settings_targets_deficit_locked)),
-                        size = 22.dp,
-                        color = AppTheme.colors.muted,
-                    )
-                }
-            } else {
-                StepButton(
-                    icon = AppIcons.Add.described(stringResource(Res.string.settings_targets_deficit_more)),
-                    enabled = deficit.up == StepState.Open,
-                    onClick = { onAction(TargetsAction.DeficitStepped(up = true)) },
-                    size = 52.dp,
-                    container = AppTheme.colors.soft,
-                )
-            }
-        }
+        BigStepper(
+            stepper = EndStepper(deficit.amount, deficit.down, deficit.up),
+            lower = stringResource(Res.string.settings_targets_deficit_less),
+            raise = stringResource(Res.string.settings_targets_deficit_more),
+            locked = stringResource(Res.string.settings_targets_deficit_locked),
+            onStep = { up -> onAction(TargetsAction.DeficitStepped(up)) },
+        )
         if (deficit.up == StepState.Locked) {
             Text(
                 text = stringResource(Res.string.settings_targets_deficit_cap_note),
@@ -423,6 +422,12 @@ private fun DeficitCards(deficit: DeficitCard, onAction: (TargetsAction) -> Unit
             )
         }
     }
+    BurnCards()
+}
+
+/** Where the burn comes from, and the two rules every goal worked out from it keeps. */
+@Composable
+private fun BurnCards() {
     EdgeCard(edgeToEdge = false, contentPadding = SettingsDefaults.CardInset) {
         Text(
             text = stringResource(Res.string.settings_targets_burn_source),
@@ -443,6 +448,142 @@ private fun DeficitCards(deficit: DeficitCard, onAction: (TargetsAction) -> Unit
         Rule(AppIcons.Download, stringResource(Res.string.settings_targets_rule_floor))
         Rule(AppIcons.EventRepeat, stringResource(Res.string.settings_targets_rule_big_day))
     }
+}
+
+/**
+ * − amount kcal +, large, with 52 dp steps: the deficit, the surplus and one number. A lock
+ * replaces − or + where a limit only a dietitian can move stops it, and says so as [locked].
+ */
+@Composable
+private fun BigStepper(stepper: EndStepper, lower: String, raise: String, locked: String, onStep: (up: Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        BigStep(state = stepper.down, icon = AppIcons.Remove.described(lower), locked = locked, onClick = { onStep(false) })
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            NutrientText(
+                metric = Metric.Calories,
+                display = stepper.value,
+                typography = AppTheme.type.h1.Tabular,
+                color = AppTheme.colors.ink,
+            )
+            Text(
+                text = stringResource(Res.string.settings_targets_kcal),
+                typography = AppTheme.type.bodyBold,
+                color = AppTheme.colors.muted,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+        }
+        BigStep(state = stepper.up, icon = AppIcons.Add.described(raise), locked = locked, onClick = { onStep(true) })
+    }
+}
+
+@Composable
+private fun BigStep(state: StepState, icon: IconResource, locked: String, onClick: () -> Unit) {
+    if (state == StepState.Locked) {
+        Box(
+            modifier = Modifier.size(BigStepSize).clip(AppTheme.shapes.input).background(AppTheme.colors.soft),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon = AppIcons.LockOutlined.described(locked), size = 22.dp, color = AppTheme.colors.muted)
+        }
+    } else {
+        StepButton(
+            icon = icon,
+            enabled = state == StepState.Open,
+            onClick = onClick,
+            size = BigStepSize,
+            container = AppTheme.colors.soft,
+        )
+    }
+}
+
+/** One number: the goal, each day, stepped 50 at a time down to the floor. */
+@Composable
+private fun NumberCard(number: EndStepper, onAction: (TargetsAction) -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+    ) {
+        Text(
+            text = stringResource(Res.string.settings_targets_number_title),
+            typography = AppTheme.type.secondaryStrong,
+            color = AppTheme.colors.muted,
+        )
+        BigStepper(
+            stepper = number,
+            lower = stringResource(Res.string.settings_targets_number_lower),
+            raise = stringResource(Res.string.settings_targets_number_raise),
+            locked = stringResource(Res.string.settings_targets_locked),
+            onStep = { up -> onAction(TargetsAction.NumberStepped(up)) },
+        )
+        if (number.down == StepState.Locked) {
+            Text(
+                text = stringResource(Res.string.settings_targets_number_floor_note),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
+        }
+    }
+}
+
+/** The surplus, as the deficit is drawn: the amount over what the user burns, and the goal it comes to. */
+@Composable
+private fun SurplusCards(surplus: SurplusCard, onAction: (TargetsAction) -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+    ) {
+        Text(
+            text = stringResource(Res.string.settings_targets_surplus_title),
+            typography = AppTheme.type.secondaryStrong,
+            color = AppTheme.colors.muted,
+        )
+        BigStepper(
+            stepper = EndStepper(surplus.amount, surplus.down, surplus.up),
+            lower = stringResource(Res.string.settings_targets_surplus_less),
+            raise = stringResource(Res.string.settings_targets_surplus_more),
+            locked = stringResource(Res.string.settings_targets_surplus_locked),
+            onStep = { up -> onAction(TargetsAction.SurplusStepped(up)) },
+        )
+        if (surplus.up == StepState.Locked) {
+            Text(
+                text = stringResource(Res.string.settings_targets_surplus_cap),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
+        }
+        HorizontalDivider(color = AppTheme.colors.line)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LabelledAmount(
+                label = stringResource(Res.string.settings_targets_deficit_burn),
+                strong = false,
+                display = surplus.burn,
+                metric = Metric.EnergyOut,
+                unknown = stringResource(Res.string.settings_targets_deficit_burn_unknown),
+            )
+            LabelledAmount(
+                label = stringResource(Res.string.settings_targets_deficit_goal),
+                strong = true,
+                display = surplus.goal,
+                metric = Metric.Calories,
+                unknown = stringResource(Res.string.settings_targets_deficit_goal_unknown),
+                phrase = Res.string.settings_targets_deficit_about,
+            )
+        }
+        if (surplus.fromTarget) {
+            Text(
+                text = stringResource(Res.string.settings_targets_surplus_from_target),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
+        }
+    }
+    BurnCards()
 }
 
 @Composable
@@ -524,7 +665,7 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
                     .bounceClick(scaleDown = 0.9f, onClick = { onAction(TargetsAction.EditGroupTapped(group.index)) }),
                 contentAlignment = Alignment.Center,
             ) {
-                val editing = group.low != null
+                val editing = group.editing
                 Icon(
                     icon = (if (editing) AppIcons.Check else AppIcons.EditOutline).described(
                         if (editing) {
@@ -550,8 +691,36 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
             }
         }
         HorizontalDivider(color = AppTheme.colors.line)
-        if (group.low != null && group.high != null) {
-            EndSteppers(group.low, group.high, group = group.index, onAction = onAction)
+        if (group.editing) {
+            if (group.shapes.isNotEmpty()) {
+                SegmentedControl(
+                    options = group.shapes,
+                    selected = group.shape,
+                    onSelect = { onAction(TargetsAction.GroupShapePicked(group.index, it)) },
+                    label = { stringResource(it.label) },
+                )
+            }
+            if (group.low != null && group.high != null) EndSteppers(group.low, group.high, group = group.index, onAction = onAction)
+            group.number?.let { number ->
+                GroupStepper(
+                    title = stringResource(Res.string.settings_targets_group_goal),
+                    stepper = number,
+                    lower = stringResource(Res.string.settings_targets_number_lower),
+                    raise = stringResource(Res.string.settings_targets_number_raise),
+                    onStep = { up -> onAction(TargetsAction.NumberStepped(up, group.index)) },
+                )
+            }
+            group.surplus?.let { surplus ->
+                GroupStepper(
+                    title = stringResource(Res.string.settings_targets_surplus_title),
+                    stepper = surplus,
+                    lower = stringResource(Res.string.settings_targets_surplus_less),
+                    raise = stringResource(Res.string.settings_targets_surplus_more),
+                    raiseLocked = stringResource(Res.string.settings_targets_surplus_locked),
+                    onStep = { up -> onAction(TargetsAction.SurplusStepped(up, group.index)) },
+                )
+                GroupSummary(group)
+            }
             if (group.removable) {
                 FlatButton(
                     text = stringResource(Res.string.settings_targets_group_remove),
@@ -562,23 +731,60 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
                 )
             }
         } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(Res.string.settings_targets_group_range),
-                    typography = AppTheme.type.body,
-                    color = AppTheme.colors.ink,
-                    modifier = Modifier.weight(1f),
-                )
-                NutrientText(
-                    metric = Metric.Calories,
-                    display = group.range,
-                    typography = AppTheme.type.bodyBold.Tabular,
-                    color = AppTheme.colors.ink,
-                )
-            }
+            GroupSummary(group)
         }
     }
 }
+
+/** "Range 2,300 to 2,700 kcal", "Goal 2,500 kcal", or "Goal About 2,800 kcal" for a surplus. */
+@Composable
+private fun GroupSummary(group: DayGroupCard) {
+    val typography = AppTheme.type.bodyBold.Tabular
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(
+                if (group.shape == ShapeKind.Range) Res.string.settings_targets_group_range else Res.string.settings_targets_group_goal,
+            ),
+            typography = AppTheme.type.body,
+            color = AppTheme.colors.ink,
+            modifier = Modifier.weight(1f),
+        )
+        if (group.shape == ShapeKind.Surplus) {
+            NutrientPhrase(
+                metric = Metric.Calories,
+                display = group.summary,
+                phrase = { stringResource(Res.string.settings_targets_deficit_about, it) },
+                typography = typography,
+                color = AppTheme.colors.ink,
+            )
+        } else {
+            NutrientText(metric = Metric.Calories, display = group.summary, typography = typography, color = AppTheme.colors.ink)
+        }
+    }
+}
+
+/** A day group's one number or surplus: its name over the well the range's ends use. */
+@Composable
+private fun GroupStepper(
+    title: String,
+    stepper: EndStepper,
+    lower: String,
+    raise: String,
+    onStep: (up: Boolean) -> Unit,
+    raiseLocked: String? = null,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = title, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
+        EndStepperView(stepper = stepper, endName = title, onStep = onStep, lower = lower, raise = raise, raiseLocked = raiseLocked)
+    }
+}
+
+internal val ShapeKind.label: StringResource
+    get() = when (this) {
+        ShapeKind.Range -> Res.string.settings_targets_group_shape_range
+        ShapeKind.Exact -> Res.string.settings_targets_group_shape_exact
+        ShapeKind.Surplus -> Res.string.settings_targets_group_shape_surplus
+    }
 
 @Composable
 private fun DayChipView(chip: DayChip, tone: ToneColors, description: String, onClick: () -> Unit, modifier: Modifier) {
@@ -785,6 +991,7 @@ private fun BackgroundCard(onAction: (TargetsAction) -> Unit) {
 }
 
 private val StepSize = 40.dp
+private val BigStepSize = 52.dp
 
 /** The ends' amounts, a step under `numericLarge` (design sync 2). */
 private val StepperValueType: TypographyResource
@@ -828,6 +1035,39 @@ private fun TargetsDeficitAtCapPreview() {
 
 @Preview
 @Composable
+private fun TargetsExactPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.exactTargets)
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun TargetsExactAtFloorPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.rangeTargets.copy(startingKcal = 2100).useExact())
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun TargetsSurplusPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.surplusTargets)
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), burnKcal = SettingsFixtures.BURN_KCAL),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TargetsSurplusNoBurnYetPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.surplusTargets)
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+@Preview
+@Composable
 private fun TargetsByDayPreview() {
     val settings = SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets)
     SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
@@ -840,6 +1080,30 @@ private fun TargetsByDayEditingDarkPreview() {
     SettingsPreview(dark = true) {
         TargetsScreen(
             TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 1, editingMacros = true),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TargetsByDayShapesPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.shapedByDayTargets)
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 1, goalStyles = true),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TargetsByDaySurplusDarkPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.shapedByDayTargets)
+    SettingsPreview(dark = true) {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 2, goalStyles = true),
             onAction = {},
         )
     }
@@ -871,6 +1135,13 @@ private fun TargetsDeficitLargeTextPreview() {
             onAction = {},
         )
     }
+}
+
+@Preview
+@Composable
+private fun TargetsSurplusLargeTextPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.surplusTargets)
+    SettingsPreview(largeText = true) { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 
 @Preview

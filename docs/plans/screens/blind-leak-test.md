@@ -188,6 +188,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `widgets` | settings | 0.2, `widgets.md`; the Widgets page under More, which previews the person's own widget | yes |
 | new | | `logger-search-tabs` | logger | 0.2, `search-options.md`; tabs, the options button and source badges over results | yes |
 | new | | `logger-search-options` | logger | 0.2, `search-options.md`; the options sheet: sort, database, tabs | no |
+| new | | `targets-exact` | settings | 0.2, `release.goalStyles`; one number and its stepper | yes |
+| new | | `targets-surplus` | settings | 0.2, `release.goalStyles`; the surplus, the burn and the goal it comes to | yes |
+| new | | `targets-by-day-shapes` | settings | 0.2, `release.goalStyles`; a day group as one number, and as a surplus | yes |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and

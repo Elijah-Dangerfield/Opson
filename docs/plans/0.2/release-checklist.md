@@ -225,6 +225,16 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [ ] Try swipe to delete with TalkBack and VoiceOver (the row's Delete action)
       and Undo on a phone.
 
+## More goal styles (`release.goalStyles`)
+
+- [ ] TODO(clinician): confirm `MAX_SURPLUS_KCAL` (500 kcal over the burn) and
+      `ONE_NUMBER_LEEWAY_KCAL` (100 kcal either side of one number before
+      Close the day calls it above). An engineer picked both.
+- [ ] Nothing on the server: the style is a new top-level settings key
+      (`targetStyle`), which the shallow merge keeps through a 0.1 save.
+- [ ] Look at one number and a surplus on Today, Close the day, Trends and
+      the widget on a phone before flipping the flag.
+
 ## Search quality
 
 - [ ] After the prod deploy (V15 adds partial indexes; a few seconds of held

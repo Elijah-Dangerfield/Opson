@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.targets
 
 import androidx.lifecycle.viewModelScope
+import com.opson.features.settings.GoalStylesEnabled
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
@@ -10,7 +11,9 @@ import me.tatarka.inject.annotations.Inject
 
 /**
  * The goal style picker. [options] leaves out "A set deficit" outside Full numbers and Sprint:
- * the row is not drawn there at all (design v3). The pick is local until Done.
+ * the row is not drawn there at all (design v3). "One number" and "A set surplus" are offered
+ * with `release.goalStyles`, or when one of them is already saved, so the sheet can always show
+ * what is set. The pick is local until Done.
  */
 data class GoalStyleState(
     val options: List<StyleKind> = listOf(StyleKind.Range, StyleKind.ByDay),
@@ -20,14 +23,14 @@ data class GoalStyleState(
 )
 
 object GoalStyleStateBuilder {
-    fun build(settings: Settings, picked: StyleKind? = null): GoalStyleState {
-        val saved = when (settings.targets.style) {
-            TargetStyle.Range -> StyleKind.Range
-            is TargetStyle.Deficit -> StyleKind.Deficit
-            is TargetStyle.ByDay -> StyleKind.ByDay
-        }
+    fun build(settings: Settings, picked: StyleKind? = null, goalStyles: Boolean = false): GoalStyleState {
+        val saved = StyleKind.of(settings.targets.style)
         val options = StyleKind.entries.filter {
-            it != StyleKind.Deficit || TargetStyle.deficitAllowed(settings.numbers.preset)
+            when (it) {
+                StyleKind.Deficit -> TargetStyle.deficitAllowed(settings.numbers.preset)
+                StyleKind.Exact, StyleKind.Surplus -> goalStyles || it == saved
+                StyleKind.Range, StyleKind.ByDay -> true
+            }
         }
         return GoalStyleState(options = options, selected = picked?.takeIf { it in options } ?: saved, saved = saved)
     }
@@ -36,6 +39,7 @@ object GoalStyleStateBuilder {
 @Inject
 class GoalStyleViewModel(
     private val settingsRepository: SettingsRepository,
+    private val goalStyles: GoalStylesEnabled,
 ) : SEAViewModel<GoalStyleState, GoalStyleEvent, GoalStyleAction>(initialStateArg = GoalStyleState()) {
 
     private var picked: StyleKind? = null
@@ -48,7 +52,7 @@ class GoalStyleViewModel(
 
     override suspend fun handleAction(action: GoalStyleAction) {
         when (action) {
-            is GoalStyleAction.InputsArrived -> action.updateState { GoalStyleStateBuilder.build(action.settings, picked) }
+            is GoalStyleAction.InputsArrived -> action.updateState { GoalStyleStateBuilder.build(action.settings, picked, goalStyles()) }
             is GoalStyleAction.StylePicked -> {
                 if (action.kind !in state.options) return
                 picked = action.kind
@@ -68,6 +72,9 @@ class GoalStyleViewModel(
                             } else {
                                 current.targets
                             }
+                            StyleKind.Exact -> current.targets.useExact()
+                            // No burn source yet, so the surplus starts at 0 on top of the aim.
+                            StyleKind.Surplus -> current.targets.useSurplus(burnKcal = null)
                             StyleKind.ByDay -> current.targets.useByDay()
                         }
                         current.copy(targets = targets)

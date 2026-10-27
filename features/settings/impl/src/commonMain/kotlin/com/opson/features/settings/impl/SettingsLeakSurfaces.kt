@@ -63,7 +63,23 @@ object SettingsLeakSurfaces {
             TargetsScreen(TargetsStateBuilder.build(SettingsFixtures.settings(policy.settings), policy), onAction = {})
         },
         LeakSurface(id = "targets-goal-style", label = "Goal style", showsCaloriesInFull = false) { policy ->
-            GoalStyleSheetContent(GoalStyleStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})
+            GoalStyleSheetContent(GoalStyleStateBuilder.build(SettingsFixtures.settings(policy.settings), goalStyles = true), onAction = {})
+        },
+        // release.goalStyles: one number, a set surplus, and a day group of each shape.
+        LeakSurface(id = "targets-exact", label = "Targets, one number", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.exactTargets)
+            TargetsScreen(TargetsStateBuilder.build(settings, policy), onAction = {})
+        },
+        LeakSurface(id = "targets-surplus", label = "Targets, set surplus", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.surplusTargets)
+            TargetsScreen(TargetsStateBuilder.build(settings, policy, burnKcal = SettingsFixtures.BURN_KCAL), onAction = {})
+        },
+        LeakSurface(id = "targets-by-day-shapes", label = "Targets, day groups by shape", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.shapedByDayTargets)
+            Column {
+                TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 1, goalStyles = true), onAction = {})
+                TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 2, goalStyles = true), onAction = {})
+            }
         },
         LeakSurface(id = "targets-deficit", label = "Targets, set deficit", showsCaloriesInFull = true) { policy ->
             val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.deficitTargets)

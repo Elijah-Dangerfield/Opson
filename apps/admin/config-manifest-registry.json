@@ -18,5 +18,6 @@
   { "path": "release.progressPhotos", "type": "boolean", "default": false, "description": "Progress photos: the Weight row, and the private photo grid, camera and compare it opens" },
   { "path": "release.todaySummary", "type": "boolean", "default": false, "description": "Today's summary pages, stats, collapse and sticky bar, and the weight row" },
   { "path": "release.todaySelect", "type": "boolean", "default": false, "description": "Select foods on Today, swipe a food to delete it, and file Uncategorized foods" },
-  { "path": "release.checkIn", "type": "boolean", "default": false, "description": "The once-a-day check-in on Close the day" }
+  { "path": "release.checkIn", "type": "boolean", "default": false, "description": "The once-a-day check-in on Close the day" },
+  { "path": "release.goalStyles", "type": "boolean", "default": false, "description": "Targets: one number and a set surplus, as goal styles and day group shapes" }
 ]

@@ -4,6 +4,7 @@ import com.opson.features.settings.impl.FakePolicySource
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.goalStylesFlag
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
 import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.libraries.diary.OnboardingAnswers
@@ -54,7 +55,7 @@ class TargetsExerciseTest : CoroutineTest() {
     }
 
     private fun vm(health: FakeHealthRepository, flagOn: Boolean) =
-        TargetsViewModel(FakeSettingsRepository(some), FakePolicySource(SettingsFixtures.policy(PresetId.Full)), health, healthFlag(flagOn))
+        TargetsViewModel(FakeSettingsRepository(some), FakePolicySource(SettingsFixtures.policy(PresetId.Full)), health, healthFlag(flagOn), goalStylesFlag())
 
     @Test
     fun flagOn_andConnected_showsTheRow() = runUnitTest {

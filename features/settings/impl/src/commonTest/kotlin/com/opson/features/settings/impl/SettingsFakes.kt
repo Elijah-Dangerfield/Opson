@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl
 
 import com.opson.features.settings.FindSupportEnabled
+import com.opson.features.settings.GoalStylesEnabled
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.diary.CheckInEnabled
@@ -164,6 +165,13 @@ fun checkInFlag(on: Boolean = false): CheckInEnabled = CheckInEnabled(
 fun photosFlag(on: Boolean = false): ProgressPhotosEnabled = ProgressPhotosEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("progressPhotos" to on))
+    },
+)
+
+/** `release.goalStyles`, on or off. */
+fun goalStylesFlag(on: Boolean = false): GoalStylesEnabled = GoalStylesEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("goalStyles" to on))
     },
 )
 

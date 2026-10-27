@@ -1,11 +1,13 @@
 package com.opson.features.settings.impl.targets
 
 import androidx.lifecycle.viewModelScope
+import com.opson.features.settings.GoalStylesEnabled
 import com.opson.features.settings.impl.Toast
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.StepBlock
 import com.opson.libraries.nutrition.TargetStyle
@@ -25,14 +27,16 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_targets_deficit_cap_toast
 import opson.libraries.resources.generated.resources.settings_targets_floor_toast
 import opson.libraries.resources.generated.resources.settings_targets_gap_toast
+import opson.libraries.resources.generated.resources.settings_targets_surplus_cap
 
 /**
  * Targets. Every change runs inside [SettingsRepository.update] against the settings it is
- * about to replace, so the floor and the deficit cap are checked in the same step as the write:
- * a refused step writes nothing and the toast says why.
+ * about to replace, so the floor and the deficit and surplus caps are checked in the same step as
+ * the write: a refused step writes nothing and the toast says why.
  *
- * What the user burns is not known in 0.1 (the watch is 0.2, and there is no intake and weight
- * estimate yet), so the deficit card is built without a burn.
+ * What the user burns is not known yet (the watch's energy is today's, not a 7-day average, and
+ * there is no intake and weight estimate), so the deficit and surplus cards are built without a
+ * burn: the deficit waits on the range, and the surplus goes on top of the usual target.
  */
 @Inject
 class TargetsViewModel(
@@ -40,6 +44,7 @@ class TargetsViewModel(
     policySource: VisibilityPolicySource,
     health: HealthRepository,
     healthFlag: HealthReleaseFlag,
+    private val goalStyles: GoalStylesEnabled,
 ) : SEAViewModel<TargetsState, TargetsEvent, TargetsAction>(initialStateArg = TargetsState()) {
 
     private var inputs: TargetsAction.InputsArrived? = null
@@ -70,6 +75,29 @@ class TargetsViewModel(
                 var refused = false
                 change { current -> current.targets.stepDeficit(action.up).also { refused = it == null } }
                 if (refused && action.up) toast(Toast(Res.string.settings_targets_deficit_cap_toast))
+            }
+            is TargetsAction.NumberStepped -> {
+                var refused = false
+                change { current ->
+                    current.targets.stepNumber(action.up, action.group, scaleMacros = current.macroMode == MacroMode.Ratios)
+                        .also { refused = it == null }
+                }
+                if (refused) toast(Toast(Res.string.settings_targets_floor_toast))
+            }
+            is TargetsAction.SurplusStepped -> {
+                var refused = false
+                change { current -> current.targets.stepSurplus(action.up, action.group).also { refused = it == null } }
+                if (refused && action.up) toast(Toast(Res.string.settings_targets_surplus_cap))
+            }
+            is TargetsAction.GroupShapePicked -> change {
+                it.targets.shapeGroup(
+                    action.group,
+                    when (action.shape) {
+                        ShapeKind.Range -> GroupShape.Range
+                        ShapeKind.Exact -> GroupShape.Exact
+                        ShapeKind.Surplus -> GroupShape.Surplus(0)
+                    },
+                )
             }
             is TargetsAction.DayTapped -> change { it.targets.moveDay(action.day, action.group) }
             TargetsAction.AddGroupTapped -> {
@@ -126,6 +154,7 @@ class TargetsViewModel(
                 editingGroup = editingGroup,
                 editingMacros = editingMacros,
                 healthConnected = healthConnected,
+                goalStyles = goalStyles(),
             )
         }
     }
@@ -149,6 +178,13 @@ sealed interface TargetsAction {
     /** One step on [end] of the range, or of day group [group]. */
     data class StepTapped(val end: RangeEnd, val up: Boolean, val group: Int? = null) : TargetsAction
     data class DeficitStepped(val up: Boolean) : TargetsAction
+
+    /** One step on one number: the goal under "One number", or day group [group]'s. */
+    data class NumberStepped(val up: Boolean, val group: Int? = null) : TargetsAction
+
+    /** One step on a surplus: the style's, or day group [group]'s. */
+    data class SurplusStepped(val up: Boolean, val group: Int? = null) : TargetsAction
+    data class GroupShapePicked(val group: Int, val shape: ShapeKind) : TargetsAction
     data class DayTapped(val group: Int, val day: DayOfWeek) : TargetsAction
     data object AddGroupTapped : TargetsAction
     data class EditGroupTapped(val group: Int) : TargetsAction
