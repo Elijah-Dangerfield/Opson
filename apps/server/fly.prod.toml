@@ -41,7 +41,7 @@ primary_region = 'iad'   # pick the region closest to your database
   # 512m heap + 96m metaspace cap leaves ~400MB for the ~150-200MB off-heap
   # floor (Netty direct buffers, thread stacks, JIT) + OS headroom. Keep
   # SerialGC for now (single small machine); revisit (G1) if pause times bite.
-  JAVA_OPTS = '-Xms128m -Xmx512m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC -XX:+UnlockExperimentalVMOptions'
+  JAVA_OPTS = '-Xms128m -Xmx512m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC'
 
 [http_service]
   internal_port = 8080
