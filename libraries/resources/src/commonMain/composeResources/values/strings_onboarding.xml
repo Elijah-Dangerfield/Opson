@@ -97,6 +97,8 @@
     <string name="onboarding_body_units_imperial">lb and in</string>
     <string name="onboarding_body_weight">Weight</string>
     <string name="onboarding_body_resting">About %1$s a day at rest</string>
+    <string name="onboarding_body_activity">On an ordinary day, you're</string>
+    <string name="onboarding_body_burned">About %1$s on an ordinary day, before workouts. Your goal starts from this.</string>
 
     <string name="onboarding_meals_title">When do you usually eat?</string>
     <string name="onboarding_meals_body">Today shows what's next from these. Tap a time to change it.</string>

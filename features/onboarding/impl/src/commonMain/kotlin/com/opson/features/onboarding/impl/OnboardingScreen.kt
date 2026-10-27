@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.ui.label
+import com.opson.libraries.nutrition.ActivityLevel
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
@@ -126,7 +127,9 @@ import opson.libraries.resources.generated.resources.onboarding_welcome_next
 import opson.libraries.resources.generated.resources.onboarding_welcome_not_medical
 import opson.libraries.resources.generated.resources.onboarding_welcome_subtitle
 import opson.libraries.resources.generated.resources.onboarding_welcome_title
+import opson.libraries.resources.generated.resources.onboarding_body_activity
 import opson.libraries.resources.generated.resources.onboarding_body_body
+import opson.libraries.resources.generated.resources.onboarding_body_burned
 import opson.libraries.resources.generated.resources.onboarding_body_resting
 import opson.libraries.resources.generated.resources.onboarding_body_title
 import opson.libraries.resources.generated.resources.onboarding_body_units_imperial
@@ -714,12 +717,37 @@ private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAc
                     },
                 )
             }
+            Column(verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
+                Text(
+                    text = stringResource(Res.string.onboarding_body_activity),
+                    typography = AppTheme.type.secondarySmallStrong,
+                    color = AppTheme.colors.muted,
+                )
+                ActivityLevel.entries.forEach { level ->
+                    ChoiceRow(
+                        label = stringResource(level.label),
+                        selected = level == answer.activity,
+                        onClick = { onAction(OnboardingAction.ActivityPicked(level)) },
+                        role = Role.RadioButton,
+                        enabled = !state.isFinishing,
+                        detail = stringResource(level.line),
+                    )
+                }
+            }
             (view.resting as? Display.Shown)?.let {
                 Text(
                     text = stringResource(Res.string.onboarding_body_resting, it.text),
                     typography = AppTheme.type.bodyBold,
                     color = AppTheme.colors.ink,
                     modifier = Modifier.testTag(Metric.EnergyOut.testTag()).semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
+            (view.burned as? Display.Shown)?.let {
+                Text(
+                    text = stringResource(Res.string.onboarding_body_burned, it.text),
+                    typography = AppTheme.type.body,
+                    color = AppTheme.colors.muted,
+                    modifier = Modifier.testTag(Metric.EnergyOut.testTag()),
                 )
             }
         }
