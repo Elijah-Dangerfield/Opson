@@ -1,6 +1,5 @@
-package com.opson.features.settings.impl.qa
+package com.opson.features.qa.impl
 
-import com.opson.features.settings.impl.Toast
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.config.ConfiguredValue
 import com.opson.libraries.config.DoubleConfigValue
@@ -169,7 +168,7 @@ object QaBuild {
 }
 
 sealed interface QaEvent {
-    data class ShowToast(val toast: Toast) : QaEvent
+    data class ShowToast(val toast: QaToast) : QaEvent
 
     /** Close the day for [dayIso], today. */
     data class OpenDayClose(val dayIso: String) : QaEvent

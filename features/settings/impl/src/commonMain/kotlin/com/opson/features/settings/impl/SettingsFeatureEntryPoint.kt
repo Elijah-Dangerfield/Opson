@@ -22,7 +22,6 @@ import com.opson.features.settings.EachNumberRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.MoreRoute
 import com.opson.features.settings.PauseBeforeMoreRoute
-import com.opson.features.settings.QaMenuRoute
 import com.opson.features.settings.RemindersRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.SupportRoute
@@ -59,15 +58,8 @@ import com.opson.features.settings.impl.more.MoreEvent
 import com.opson.features.settings.impl.more.MoreScreen
 import com.opson.features.settings.impl.more.MoreVersion
 import com.opson.features.settings.impl.more.MoreViewModel
-import com.opson.features.settings.impl.qa.QaAccess
-import com.opson.features.settings.impl.qa.QaBuild
-import com.opson.features.settings.impl.qa.QaEvent
-import com.opson.features.settings.impl.qa.QaScreen
-import com.opson.features.settings.impl.qa.QaStateBuilder
-import com.opson.features.settings.impl.qa.QaViewModel
 import com.opson.features.settings.impl.support.PRIVACY_URL
 import com.opson.features.settings.impl.support.TERMS_URL
-import com.opson.features.today.DayCloseRoute
 import com.opson.libraries.core.BuildInfo
 import com.opson.features.settings.impl.pause.PauseAction
 import com.opson.features.settings.impl.pause.PauseEvent
@@ -145,8 +137,6 @@ class SettingsFeatureEntryPoint(
     private val widgetsViewModel: () -> WidgetsViewModel,
     private val findSupportViewModel: () -> FindSupportViewModel,
     private val creditsViewModel: () -> CreditsViewModel,
-    private val qaViewModel: (QaStateBuilder.BuildFacts) -> QaViewModel,
-    private val qaAccess: QaAccess,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -168,7 +158,7 @@ class SettingsFeatureEntryPoint(
                     MoreEvent.OpenPrivacy -> router.openWebLink(PRIVACY_URL)
                     MoreEvent.OpenTerms -> router.openWebLink(TERMS_URL)
                     MoreEvent.OpenCredits -> router.navigate(CreditsRoute())
-                    MoreEvent.OpenQa -> router.navigate(QaMenuRoute())
+                    is MoreEvent.OpenContributed -> router.navigate(event.route)
                     // The same exit as deleting the account: whatever the signed-out entry is,
                     // onboarding owns it, so More only hands over with nothing behind it.
                     MoreEvent.GoToOnboarding -> router.navigate(OnboardingRoute(), NavigationOptions(clearBackStack = true))
@@ -186,23 +176,6 @@ class SettingsFeatureEntryPoint(
                 version = remember { MoreVersion.line(BuildInfo.versionName, BuildInfo.buildNumber, BuildInfo.releaseChannel, BuildInfo.commitSha) },
                 scrollState = scrollState,
             )
-        }
-
-        // Not registered at all where the menu may not show (AGENTS.md, Known landmines: a
-        // debug-only page reached by deep link needs its registration gated, not just its row).
-        if (qaAccess.allowed()) {
-            screen<QaMenuRoute> {
-                val viewModel: QaViewModel = viewModel { qaViewModel(QaBuild.current()) }
-                val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-                viewModel.ObserveEvents { event ->
-                    when (event) {
-                        is QaEvent.ShowToast -> show(event.toast)
-                        is QaEvent.OpenDayClose -> router.navigate(DayCloseRoute(event.dayIso))
-                        QaEvent.Close -> router.goBack()
-                    }
-                }
-                QaScreen(state = state, onAction = viewModel::takeAction)
-            }
         }
 
         screen<ModesRoute> {

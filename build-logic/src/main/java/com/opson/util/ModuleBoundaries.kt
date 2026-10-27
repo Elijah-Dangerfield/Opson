@@ -17,6 +17,9 @@ import org.gradle.api.artifacts.ProjectDependency
  *      moment someone adds the reverse edge. Shared types belong in a library.
  *      Sub-modules of the same feature (e.g. :features:timers:storage depending
  *      on :features:timers) are allowed.
+ *   3. Nothing but :apps:* may depend on :features:qa. Store builds leave it
+ *      out by dropping :apps:compose's dependency, which only works if that
+ *      is the only way in.
  *
  * The check runs during configuration and skips :apps:* (the app is the glue).
  */
@@ -34,6 +37,7 @@ fun Project.enforceModuleBoundaries() {
                 if (dep is ProjectDependency) {
                     checkImplDependency(path, dep.path)
                     checkFeatureApiToApi(path, dep.path)
+                    checkQaDependency(path, dep.path)
                 }
             }
         }
@@ -77,6 +81,28 @@ private fun Project.checkFeatureApiToApi(self: String, dep: String) {
         is a cycle risk the moment someone adds the reverse edge). Either:
           - Move the shared types into a library, or
           - Depend from an impl module (feature-impl → feature-api is allowed).
+
+        See AGENTS.md → Module Structure.
+
+        """.trimIndent()
+    )
+}
+
+private const val QA_FEATURE = ":features:qa"
+
+internal fun checkQaDependency(self: String, dep: String) {
+    if (featureRoot(dep) != QA_FEATURE) return
+    if (featureRoot(self) == QA_FEATURE) return
+    throw GradleException(
+        """
+
+        Module boundary violation: $self → $dep
+
+        Only :apps:* modules may depend on the QA menu. Store builds leave it
+        out by dropping :apps:compose's dependency on it, so any other way in
+        would put QA code in an App Store binary. To add something to the menu,
+        put it in :features:qa:impl; to link to it, contribute a
+        MoreRowContribution from there.
 
         See AGENTS.md → Module Structure.
 

@@ -1,4 +1,4 @@
-package com.opson.features.settings.impl.qa
+package com.opson.features.qa.impl
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,12 +17,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.opson.features.settings.impl.SectionLabel
-import com.opson.features.settings.impl.SettingsCard
-import com.opson.features.settings.impl.SettingsHeader
-import com.opson.features.settings.impl.SettingsPage
-import com.opson.features.settings.impl.SettingsPreview
-import com.opson.features.settings.impl.SettingsRow
+import com.opson.libraries.ui.components.PageHeader
+import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -60,36 +56,35 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun QaScreen(state: QaState, onAction: (QaAction) -> Unit, modifier: Modifier = Modifier) {
-    SettingsPage(modifier = modifier) {
-        SettingsHeader(
+    QaPage(modifier = modifier) {
+        PageHeader(
             title = stringResource(Res.string.qa_title),
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(QaAction.BackTapped) },
         )
         Note(stringResource(Res.string.qa_copy_hint))
 
-        SectionLabel(stringResource(Res.string.qa_section_build))
+        QaSectionLabel(stringResource(Res.string.qa_section_build))
         InfoCard(state.build, onAction)
 
-        SectionLabel(stringResource(Res.string.qa_section_account))
+        QaSectionLabel(stringResource(Res.string.qa_section_account))
         InfoCard(state.identity, onAction)
 
-        SectionLabel(stringResource(Res.string.qa_section_notifications))
+        QaSectionLabel(stringResource(Res.string.qa_section_notifications))
         Note(stringResource(Res.string.qa_notifications_body))
-        SettingsCard {
+        QaCard {
             state.reminders.forEachIndexed { index, reminder ->
-                SettingsRow(
+                QaRow(
                     title = stringResource(reminder.label),
                     icon = AppIcons.Notifications,
-                    quietIcon = true,
                     showDivider = index < state.reminders.lastIndex,
                     onClick = { onAction(QaAction.FireTapped(reminder)) },
                 )
             }
         }
 
-        SectionLabel(stringResource(Res.string.qa_section_shortcuts))
-        SettingsCard {
+        QaSectionLabel(stringResource(Res.string.qa_section_shortcuts))
+        QaCard {
             ToolRow(Res.string.qa_check_in, Res.string.qa_check_in_sub, state.busy, divider = true) { onAction(QaAction.CheckInTapped) }
             ToolRow(Res.string.qa_reset_onboarding, Res.string.qa_reset_onboarding_sub, state.busy, divider = true) {
                 onAction(QaAction.ResetOnboardingTapped)
@@ -97,19 +92,18 @@ fun QaScreen(state: QaState, onAction: (QaAction) -> Unit, modifier: Modifier = 
             ToolRow(Res.string.qa_clear_caches, Res.string.qa_clear_caches_sub, state.busy, divider = false) { onAction(QaAction.ClearCachesTapped) }
         }
 
-        SectionLabel(stringResource(Res.string.qa_section_flags))
+        QaSectionLabel(stringResource(Res.string.qa_section_flags))
         Note(stringResource(Res.string.qa_flags_body))
-        SettingsCard {
-            SettingsRow(
+        QaCard {
+            QaRow(
                 title = stringResource(Res.string.qa_clear_overrides),
                 icon = AppIcons.DeleteOutline,
-                quietIcon = true,
                 onClick = { onAction(QaAction.ClearOverridesTapped) },
             )
         }
         state.config.groupBy { it.group }.forEach { (group, rows) ->
-            SectionLabel(group)
-            SettingsCard {
+            QaSectionLabel(group)
+            QaCard {
                 rows.forEachIndexed { index, row ->
                     ConfigRow(row, onAction)
                     if (index < rows.lastIndex) HorizontalDivider(color = AppTheme.colors.line)
@@ -135,9 +129,9 @@ private fun Note(text: String) {
 private fun InfoCard(rows: List<QaInfo>, onAction: (QaAction) -> Unit) {
     val clipboard = LocalClipboardManager.current
     val none = stringResource(Res.string.qa_none)
-    SettingsCard {
+    QaCard {
         rows.forEachIndexed { index, info ->
-            SettingsRow(
+            QaRow(
                 title = stringResource(info.label),
                 icon = null,
                 subtitle = info.valueText?.let { stringResource(it) } ?: info.value ?: none,
@@ -166,7 +160,7 @@ private fun ToolRow(
     divider: Boolean,
     onClick: () -> Unit,
 ) {
-    SettingsRow(
+    QaRow(
         title = stringResource(title),
         icon = null,
         subtitle = stringResource(subtitle),
@@ -230,13 +224,13 @@ private fun ValueField(row: QaConfigRow, onAction: (QaAction) -> Unit) {
 @Preview
 @Composable
 private fun QaPreview() {
-    SettingsPreview { QaScreen(QaPreviews.state(), onAction = {}) }
+    PreviewContent { QaScreen(QaPreviews.state(), onAction = {}) }
 }
 
 @Preview
 @Composable
 private fun QaGuestDarkPreview() {
-    SettingsPreview(dark = true) {
+    PreviewContent(darkTheme = true) {
         QaScreen(QaPreviews.state(AuthState.Authenticated(userId = QaPreviews.USER_ID, isAnonymous = true, email = null)), onAction = {})
     }
 }

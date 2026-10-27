@@ -101,11 +101,3 @@ class FindSupportRoute : Route()
  */
 @Serializable
 class CreditsRoute : Route()
-
-/**
- * The QA menu: fire notifications, open the check-in, reset onboarding, override config flags,
- * identity details and clearing caches. Debug and beta builds only; the route is not even
- * registered on a build that may not show it, so no deep link reaches it there.
- */
-@Serializable
-class QaMenuRoute : Route()

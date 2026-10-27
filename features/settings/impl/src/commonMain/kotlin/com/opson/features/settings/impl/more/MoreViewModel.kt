@@ -1,7 +1,7 @@
 package com.opson.features.settings.impl.more
 
 import androidx.lifecycle.viewModelScope
-import com.opson.features.settings.impl.qa.QaAccess
+import com.opson.features.settings.MoreRowContribution
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -12,6 +12,7 @@ import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
+import com.opson.libraries.navigation.Route
 import com.opson.libraries.reminders.RemindersEnabled
 import com.opson.libraries.widgets.WidgetsEnabled
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +25,11 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 
+/**
+ * [contributions] are the rows other modules add ([MoreRowContribution]). Empty by default, so a
+ * build without any contributing module still wires: kotlin-inject has no binding for an empty
+ * multibound set, and uses the default instead.
+ */
 @Inject
 class MoreViewModel(
     settingsRepository: SettingsRepository,
@@ -34,7 +40,7 @@ class MoreViewModel(
     private val widgetsEnabled: WidgetsEnabled,
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val auth: AuthRepository,
-    private val qaAccess: QaAccess,
+    private val contributions: Set<MoreRowContribution> = emptySet(),
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
     // Read once, as the page opens: with the flag off the health store is never touched, not even to check it.
@@ -69,7 +75,7 @@ class MoreViewModel(
                     widgetsOn = widgetsEnabled(),
                     todayScreenOn = goalsAndEnergy(),
                     account = action.account,
-                    qa = qaAccess.allowed(),
+                    contributed = contributions.filter { it.visible() },
                 ).copy(logOut = it.logOut)
             }
             MoreAction.ScreenResumed -> if (healthOn) health.refresh()
@@ -98,7 +104,7 @@ class MoreViewModel(
             MoreRow.Terms -> sendEvent(MoreEvent.OpenTerms)
             MoreRow.Credits -> sendEvent(MoreEvent.OpenCredits)
             is MoreRow.LogOut -> action.updateState { it.copy(logOut = LogOutStep.Confirming(guest = row.account.guest)) }
-            MoreRow.Qa -> if (qaAccess.allowed()) sendEvent(MoreEvent.OpenQa)
+            is MoreRow.Contributed -> if (row.row.visible()) sendEvent(MoreEvent.OpenContributed(row.row.route()))
         }
     }
 
@@ -129,7 +135,7 @@ sealed interface MoreEvent {
     data object OpenPrivacy : MoreEvent
     data object OpenTerms : MoreEvent
     data object OpenCredits : MoreEvent
-    data object OpenQa : MoreEvent
+    data class OpenContributed(val route: Route) : MoreEvent
 
     /** Signed out: start again from onboarding with nothing behind it. */
     data object GoToOnboarding : MoreEvent

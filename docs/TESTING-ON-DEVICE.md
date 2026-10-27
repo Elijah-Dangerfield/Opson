@@ -38,6 +38,28 @@ HealthKit, so Apple Health connects. Release builds don't, until 0.2.
 | More › Testing › QA menu (debug and TestFlight only) | Fire each reminder in 5 s, open today's check-in, reset onboarding, clear caches, override config flags, copy the user id |
 | Shake the phone | The bug report dialog; on debug builds it also opens the network log |
 
+## Where the QA menu comes from
+
+The menu is its own module, `features/qa` and `features/qa/impl`. Gradle leaves
+both out of any build whose release channel is `store` (`release.yml`, the
+Fastfile's `release` lane), so an App Store or Play build has no QA code, no
+Testing card on More and no QA route. A Debug build from Xcode uses
+`versions.properties` (`dev`) and a TestFlight build from the `beta` lane uses
+`beta`, so both carry it.
+
+A TestFlight build promoted to the App Store keeps the code, since it is the
+same binary. There the menu hides itself at run time: the App Store receipt
+turns `QaAccess` off, which drops the row and the route.
+
+To check which way a build will go before building it:
+
+```bash
+RELEASE_CHANNEL_OVERRIDE=store ./gradlew :apps:compose:verifyQaExclusion   # expects no QA
+./gradlew :apps:compose:verifyQaExclusion                                    # expects QA
+```
+
+Store builds run the same check on their own and fail if QA is in the graph.
+
 ## Set the photo key on dev (when you want photo estimates)
 
 ```bash

@@ -66,28 +66,17 @@ private fun supabaseUrl(projectId: String): String =
  * in lockstep.
  */
 fun Project.loadVersionMetadata(): VersionMetadata {
-    val properties = Properties()
-    val metadataFile = rootProject.file("versions.properties")
-    if (metadataFile.exists()) {
-        FileInputStream(metadataFile).use(properties::load)
-    }
-
-    fun Properties.string(key: String, defaultValue: String): String =
-        getProperty(key)?.takeIf { it.isNotBlank() } ?: defaultValue
+    val properties = loadVersionProperties()
 
     fun Properties.int(key: String, defaultValue: Int): Int =
         string(key, defaultValue.toString()).toIntOrNull() ?: defaultValue
-
-    fun envOverride(name: String): String? =
-        System.getenv(name)?.takeIf { it.isNotBlank() }
 
     val applicationId = properties.string("applicationId", DEFAULT_APPLICATION_ID)
     val versionName = envOverride("VERSION_NAME_OVERRIDE")
         ?: properties.string("versionName", DEFAULT_VERSION_NAME)
     val versionCode = envOverride("VERSION_CODE_OVERRIDE")?.toIntOrNull()
         ?: properties.int("versionCode", DEFAULT_VERSION_CODE)
-    val releaseChannel = envOverride("RELEASE_CHANNEL_OVERRIDE")
-        ?: properties.string("releaseChannel", DEFAULT_RELEASE_CHANNEL)
+    val releaseChannel = resolveReleaseChannel(envOverride(RELEASE_CHANNEL_ENV), properties)
     val buildNumber = envOverride("BUILD_NUMBER_OVERRIDE")?.toIntOrNull()
         ?: properties.int("buildNumber", DEFAULT_BUILD_NUMBER)
 
@@ -114,6 +103,46 @@ fun Project.loadVersionMetadata(): VersionMetadata {
 
 private const val COMMIT_SHA_LENGTH = 12
 private const val UNKNOWN_COMMIT = "unknown"
+
+private const val RELEASE_CHANNEL_ENV = "RELEASE_CHANNEL_OVERRIDE"
+
+/**
+ * The channels that may carry QA code. Everything else counts as a store build, so a typo in
+ * `RELEASE_CHANNEL_OVERRIDE` ships without the QA menu rather than with it.
+ */
+private val QA_CHANNELS = setOf(DEFAULT_RELEASE_CHANNEL, "beta")
+
+/** The channel this build is for, resolved exactly as [loadVersionMetadata] resolves it. */
+fun Project.releaseChannel(): String =
+    resolveReleaseChannel(envOverride(RELEASE_CHANNEL_ENV), loadVersionProperties())
+
+/**
+ * Whether this is a store build: the one `release.yml` and the Fastfile's `release` lane make for
+ * the App Store and Play production. `:apps:compose` leaves `:features:qa` out of these, so the QA
+ * menu is not in the binary at all. Debug or release variant makes no difference; only the
+ * channel decides.
+ */
+fun Project.isStoreBuild(): Boolean = isStoreChannel(releaseChannel())
+
+fun isStoreChannel(channel: String): Boolean = channel !in QA_CHANNELS
+
+internal fun resolveReleaseChannel(envOverride: String?, properties: Properties): String =
+    envOverride?.takeIf { it.isNotBlank() } ?: properties.string("releaseChannel", DEFAULT_RELEASE_CHANNEL)
+
+private fun Project.loadVersionProperties(): Properties {
+    val properties = Properties()
+    val metadataFile = rootProject.file("versions.properties")
+    if (metadataFile.exists()) {
+        FileInputStream(metadataFile).use(properties::load)
+    }
+    return properties
+}
+
+private fun Properties.string(key: String, defaultValue: String): String =
+    getProperty(key)?.takeIf { it.isNotBlank() } ?: defaultValue
+
+private fun envOverride(name: String): String? =
+    System.getenv(name)?.takeIf { it.isNotBlank() }
 
 // providers.exec (not ProcessBuilder) so the configuration cache treats the
 // git call as a tracked build input instead of failing the build.

@@ -1,7 +1,6 @@
-package com.opson.features.settings.impl.qa
+package com.opson.features.qa.impl
 
 import androidx.lifecycle.viewModelScope
-import com.opson.features.settings.impl.Toast
 import com.opson.libraries.config.AppConfigFlow
 import com.opson.libraries.config.AppConfigRefresher
 import com.opson.libraries.config.ConfigOverride
@@ -135,7 +134,7 @@ class QaViewModel(
     }
 
     private suspend fun toast(message: StringResource, vararg args: Any) {
-        sendEvent(QaEvent.ShowToast(Toast(message, args.toList())))
+        sendEvent(QaEvent.ShowToast(QaToast(message, args.toList())))
     }
 
     private companion object {

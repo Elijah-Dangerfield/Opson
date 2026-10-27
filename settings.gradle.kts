@@ -85,6 +85,10 @@ if (!serverOnly) {
     include(":features:logger:impl")
     include(":features:onboarding")
     include(":features:onboarding:impl")
+    // Always in the build, so it compiles and its tests run everywhere; :apps:compose only
+    // depends on it off the store channel.
+    include(":features:qa")
+    include(":features:qa:impl")
     include(":features:settings")
     include(":features:settings:impl")
     include(":features:today")
