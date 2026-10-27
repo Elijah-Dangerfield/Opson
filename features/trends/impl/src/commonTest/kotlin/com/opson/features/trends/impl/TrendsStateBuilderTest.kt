@@ -360,7 +360,7 @@ class TrendsStateBuilderTest {
 
     @Test
     fun aSurplus_drawsAtTheUsualTargetPlusTheSurplus_whileTheBurnIsUnknown() {
-        val surplus = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300)))
+        val surplus = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300, 300)))
         val intake = assertNotNull(build(settings = surplus).intake)
 
         assertEquals(2400f / 2900f, intake.band.start)

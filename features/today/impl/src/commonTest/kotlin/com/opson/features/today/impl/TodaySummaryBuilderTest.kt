@@ -114,7 +114,7 @@ class TodaySummaryBuilderTest {
 
     @Test
     fun aSurplus_isOneNumber_onTopOfTheUsualTarget() {
-        val energy = build(settings = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300)))).energy()
+        val energy = build(settings = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300, 300)))).energy()
 
         assertTrue(energy.singleGoal)
         assertEquals("2,400", energy.range.text())

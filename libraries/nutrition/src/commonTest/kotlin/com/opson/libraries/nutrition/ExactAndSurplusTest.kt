@@ -64,55 +64,69 @@ class ExactAndSurplusTest {
     // --- surplus ---
 
     @Test
+    fun maxSurplus_isUnsetUntilAClinicianSetsIt() {
+        assertNull(MAX_SURPLUS_KCAL)
+    }
+
+    @Test
     fun surplus_startsAtZero_withoutABurn_soTheGoalIsTheAim() {
         val surplus = base.useSurplus(burnKcal = null)
-        assertEquals(TargetStyle.Surplus(0), surplus.style)
+        assertEquals(TargetStyle.Surplus(0, 0), surplus.style)
         assertEquals(DayGoal.About(2100), surplus.rangeFor(monday, PresetId.Full))
     }
 
     @Test
-    fun surplus_startsAtWhatTheAimAlreadyImplies_capped() {
-        assertEquals(TargetStyle.Surplus(300), base.useSurplus(burnKcal = 1780).style)
-        assertEquals(TargetStyle.Surplus(MAX_SURPLUS_KCAL), base.useSurplus(burnKcal = 1000).style)
-        assertEquals(TargetStyle.Surplus(0), base.useSurplus(burnKcal = 2500).style)
+    fun surplus_startsAtWhatTheAimAlreadyImplies() {
+        // A 2,100 aim against 1,780 burned is 320 over, floored to the step.
+        assertEquals(TargetStyle.Surplus(300, 300), base.useSurplus(burnKcal = 1780).style)
+        assertEquals(TargetStyle.Surplus(0, 0), base.useSurplus(burnKcal = 2500).style)
     }
 
     @Test
     fun surplus_goesOnTheAim_untilTheBurnIsKnown_thenOnTheBurn() {
-        val surplus = base.copy(style = TargetStyle.Surplus(300))
+        val surplus = base.copy(style = TargetStyle.Surplus(300, 300))
         assertEquals(DayGoal.About(2400), surplus.rangeFor(monday, PresetId.Full))
         assertEquals(DayGoal.About(2470), surplus.rangeFor(monday, PresetId.Full, burnKcal = 2172))
     }
 
     @Test
     fun surplus_isNeverBelowTheFloor_evenOnALowBurnDay() {
-        val surplus = base.copy(style = TargetStyle.Surplus(100))
+        val surplus = base.copy(style = TargetStyle.Surplus(100, 100))
         // 1,500 burned plus 100 would be 1,600; the floor is where the user started, 2,100.
         assertEquals(DayGoal.About(2100), surplus.rangeFor(monday, PresetId.Full, burnKcal = 1500))
     }
 
     @Test
-    fun surplus_stepsBetweenZeroAndTheCap() {
+    fun surplus_cannotGrowPastWhereItStarted() {
+        val targets = base.useSurplus(burnKcal = 1780)
+        assertNull(targets.stepSurplus(up = true))
+        val smaller = requireNotNull(targets.stepSurplus(up = false))
+        assertEquals(TargetStyle.Surplus(250, 300), smaller.style)
+        assertEquals(TargetStyle.Surplus(300, 300), smaller.stepSurplus(up = true)?.style)
+        assertEquals(300, targets.maxSurplusKcal())
+    }
+
+    @Test
+    fun surplus_neverGoesBelowZero_andIsLockedAtZeroWithoutABurn() {
         val zero = base.useSurplus(burnKcal = null)
         assertNull(zero.stepSurplus(up = false))
-        var targets = zero
-        repeat(MAX_SURPLUS_KCAL / Targets.STEP_KCAL) { targets = requireNotNull(targets.stepSurplus(up = true)) }
-        assertEquals(TargetStyle.Surplus(MAX_SURPLUS_KCAL), targets.style)
-        assertNull(targets.stepSurplus(up = true))
+        assertNull(zero.stepSurplus(up = true))
         assertNull(base.stepSurplus(up = true), "no surplus to step")
     }
 
     @Test
-    fun surplus_isOfferedInEveryMode_itCanOnlyRaiseTheGoal() {
-        val surplus = base.copy(style = TargetStyle.Surplus(200))
+    fun surplus_isFullNumbersOnly_elsewhereTheRange() {
+        val surplus = base.copy(style = TargetStyle.Surplus(200, 200))
         PresetId.entries.forEach { preset ->
-            assertEquals(DayGoal.About(2300), surplus.rangeFor(monday, preset), preset.name)
+            val expected = if (TargetStyle.surplusAllowed(preset)) DayGoal.About(2300) else DayGoal.Range(1900, 2300, 2100)
+            assertEquals(expected, surplus.rangeFor(monday, preset), preset.name)
         }
+        assertEquals(PresetId.entries.filter(TargetStyle::deficitAllowed), PresetId.entries.filter(TargetStyle::surplusAllowed))
     }
 
     @Test
     fun pickingOneNumberOrASurplusAgain_keepsWhatWasSet() {
-        val surplus = requireNotNull(base.useSurplus(null).stepSurplus(up = true))
+        val surplus = requireNotNull(base.useSurplus(1780).stepSurplus(up = false))
         assertEquals(surplus, surplus.useSurplus(burnKcal = 1000))
         assertEquals(TargetStyle.Range, surplus.useRange().style)
         assertEquals(TargetStyle.Exact, surplus.useExact().style)
@@ -148,13 +162,16 @@ class ExactAndSurplusTest {
 
     @Test
     fun aGroup_canBeASurplus_onItsMiddleUntilTheBurnIsKnown() {
-        val surplus = requireNotNull(twoGroups().shapeGroup(1, GroupShape.Surplus(0)))
-        assertEquals(DayGoal.About(2500, groupIndex = 1), surplus.rangeFor(saturday, PresetId.Full))
-        val more = requireNotNull(surplus.stepSurplus(up = true, group = 1)?.stepSurplus(up = true, group = 1))
-        assertEquals(DayGoal.About(2600, groupIndex = 1), more.rangeFor(saturday, PresetId.Full))
-        assertEquals(DayGoal.About(2270, groupIndex = 1), more.rangeFor(saturday, PresetId.Full, burnKcal = 2172))
-        assertNull(surplus.stepSurplus(up = false, group = 1))
+        // The weekend's middle is 2,500; picked against a 2,400 burn, the surplus starts at 100.
+        val surplus = requireNotNull(twoGroups().shapeGroup(1, GroupShape.Surplus(0, 0), burnKcal = 2400))
+        assertEquals(GroupShape.Surplus(100, 100), (surplus.style as TargetStyle.ByDay).groups[1].shape)
+        assertEquals(DayGoal.About(2600, groupIndex = 1), surplus.rangeFor(saturday, PresetId.Full))
+        assertEquals(DayGoal.About(2500, groupIndex = 1), surplus.rangeFor(saturday, PresetId.Full, burnKcal = 2400))
+        assertNull(surplus.stepSurplus(up = true, group = 1), "no further than where it started")
+        val less = requireNotNull(surplus.stepSurplus(up = false, group = 1))
+        assertEquals(GroupShape.Surplus(50, 100), (less.style as TargetStyle.ByDay).groups[1].shape)
         assertNull(surplus.stepSurplus(up = true, group = 0), "group 0 is a range")
+        assertEquals(DayGoal.Range(2300, 2700, 2500, groupIndex = 1), surplus.rangeFor(saturday, PresetId.Blind), "Full numbers only")
     }
 
     @Test

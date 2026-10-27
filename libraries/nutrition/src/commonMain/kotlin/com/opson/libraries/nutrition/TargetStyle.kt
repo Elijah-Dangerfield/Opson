@@ -28,11 +28,12 @@ sealed interface TargetStyle {
 
     /**
      * A fixed amount over what the user burns, for gaining. [kcal] is the surplus, 0 to
-     * [MAX_SURPLUS_KCAL]. Until a burn is known it is added to the aim instead
+     * [MAX_SURPLUS_KCAL], or to [startingKcal] while that is unset, as the deficit. Until a burn is known it is added to the aim instead
      * ([Targets.surplusGoal]): a surplus can only put the goal above the aim, never under the
      * floor, so starting from the aim is safe where a deficit's fallback has to be the range.
+     * Offered where [surplusAllowed], as the deficit is.
      */
-    data class Surplus(val kcal: Int) : TargetStyle
+    data class Surplus(val kcal: Int, val startingKcal: Int) : TargetStyle
 
     /**
      * Up to [MAX_GROUPS] groups of weekdays, each with its own range. Every weekday is in exactly
@@ -48,6 +49,13 @@ sealed interface TargetStyle {
          * mode the option is hidden and a deficit chosen earlier falls back to the range.
          */
         fun deficitAllowed(preset: PresetId): Boolean = preset == PresetId.Full || preset == PresetId.Sprint
+
+        /**
+         * A set surplus is offered where a deficit is (design sync 4: both are Full numbers
+         * only). Elsewhere a surplus chosen earlier, the style's or a day group's, falls back to
+         * the range.
+         */
+        fun surplusAllowed(preset: PresetId): Boolean = deficitAllowed(preset)
     }
 }
 
@@ -76,8 +84,11 @@ sealed interface GroupShape {
     /** One number, the group's middle. Its ends move with it, as [TargetStyle.Exact]'s do. */
     data object Exact : GroupShape
 
-    /** [kcal] over what the user burns, or over the group's middle until that is known, as [TargetStyle.Surplus]. */
-    data class Surplus(val kcal: Int) : GroupShape
+    /**
+     * [kcal] over what the user burns, or over the group's middle until that is known, capped as
+     * [TargetStyle.Surplus] is.
+     */
+    data class Surplus(val kcal: Int, val startingKcal: Int) : GroupShape
 }
 
 /** Which end of a range a step moves. */
