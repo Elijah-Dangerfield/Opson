@@ -160,6 +160,26 @@ class ItemSheetTest : CoroutineTest() {
         assertEquals(listOf(peanutButter), diary.removed)
     }
 
+    /** The sheet slides away after a write; a second tap in that time is queued behind the first. */
+    @Test
+    fun aSecondTapWhileTheSheetCloses_copiesOnce_andLeavesTheStarOn() = runUnitTest {
+        val copying = sheet()
+        val events = events(copying)
+        copying.takeAction(ItemSheetAction.CopyTapped)
+        copying.takeAction(ItemSheetAction.CopySlotPicked(MealSlot.Breakfast))
+        copying.takeAction(ItemSheetAction.CopyConfirmed)
+        copying.takeAction(ItemSheetAction.CopyConfirmed)
+
+        assertEquals(1, diary.copiedItems.size)
+        assertEquals(1, events.count { it == ItemSheetEvent.Dismiss })
+
+        val starring = sheet()
+        starring.takeAction(ItemSheetAction.FavoriteTapped)
+        starring.takeAction(ItemSheetAction.FavoriteTapped)
+
+        assertEquals(listOf("f:peanut-butter"), settings.settings.value.favoriteFoods)
+    }
+
     @Test
     fun back_returnsToTheActions() = runUnitTest {
         val vm = sheet()

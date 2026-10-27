@@ -231,12 +231,8 @@ class ItemSheetViewModel(
                 arrived = action
                 action.rebuild()
             }
-            ItemSheetAction.DeleteTapped -> {
-                val slot = state.slot
-                dismissed = true
+            ItemSheetAction.DeleteTapped -> done(Toast(Res.string.today_toast_removed, listOf(state.slot.sentenceName))) {
                 diary.removeItem(entryId)
-                sendEvent(ItemSheetEvent.ShowToast(Toast(Res.string.today_toast_removed, listOf(slot.sentenceName))))
-                sendEvent(ItemSheetEvent.Dismiss)
             }
             ItemSheetAction.CloseTapped -> dismissOnce()
             ItemSheetAction.BackTapped -> action.go(ItemStep.Actions)
@@ -275,12 +271,13 @@ class ItemSheetViewModel(
                 val to = calendar.today().plus(DatePeriod(days = copy.day.offset))
                 done(Toast(Res.string.today_toast_copied_foods_one)) { editor.copyItems(listOf(entryId), to, slot) }
             }
-            ItemSheetAction.EditCopyTapped -> {
+            ItemSheetAction.EditCopyTapped -> if (!dismissed) {
                 dismissed = true
                 sendEvent(ItemSheetEvent.OpenEditCopy(day, entryId))
             }
             ItemSheetAction.FavoriteTapped -> {
                 val key = item.foodRef()?.key ?: return
+                if (dismissed) return
                 val starred = settingsRepository.update { it.toggleFavorite(key) }.isFavorite(key)
                 done(Toast(if (starred) Res.string.today_toast_favorited else Res.string.today_toast_unfavorited)) {}
             }
@@ -288,8 +285,13 @@ class ItemSheetViewModel(
         }
     }
 
-    /** Writes, says so, and closes; the entry changing under the sheet must not close it twice. */
+    /**
+     * Writes, says so, and closes; the entry changing under the sheet must not close it twice. The
+     * sheet takes a moment to slide away, and a second tap in that time does nothing: it would copy
+     * the food again, or star it and unstar it.
+     */
     private suspend fun done(toast: Toast, write: suspend () -> Unit) {
+        if (dismissed) return
         dismissed = true
         write()
         sendEvent(ItemSheetEvent.ShowToast(toast))
