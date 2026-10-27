@@ -104,12 +104,15 @@ class PostgresFoodCatalogRepository(
             val capped = limit.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
             val ranked = when {
                 terms == null -> emptyList()
-                openFoodFacts && sources.searchOpenFoodFacts && filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms) ->
+                openFoodFacts && sources.searchOpenFoodFacts && filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms) -> {
+                    // The merge drops copies of one product, so each side brings more than a page.
+                    val fetch = (capped * 2).coerceAtMost(FoodCatalogRepository.MAX_LIMIT)
                     OpenFoodFactsSearch.merge(
-                        catalog = runSearch(terms, capped, filter),
-                        openFoodFacts = runOpenFoodFactsSearch(terms, capped, OpenFoodFactsSearch.countryTag(country)),
+                        catalog = runSearch(terms, fetch, filter),
+                        openFoodFacts = runOpenFoodFactsSearch(terms, fetch, OpenFoodFactsSearch.countryTag(country)),
                         limit = capped,
                     )
+                }
                 else -> runSearch(terms, capped, filter)
             }
             val matches = when (filter.sort) {

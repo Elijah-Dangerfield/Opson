@@ -45,7 +45,7 @@ class OpenFoodFactsCatalogTest : DatabaseTest() {
         }
     }
 
-    private fun seedOff(name: String, barcode: String, countries: List<String> = emptyList(), scans: Int = 0): UUID {
+    private fun seedOff(name: String, barcode: String, countries: List<String> = emptyList(), scans: Int = 0, kcal: Int = 250): UUID {
         val id = UUID.randomUUID()
         val tags = countries.joinToString(",", "{", "}")
         database.blockingTransaction {
@@ -53,7 +53,7 @@ class OpenFoodFactsCatalogTest : DatabaseTest() {
                 """
                 INSERT INTO off_foods (id, barcode, name, kcal_100g, protein_100g, carbs_100g, fat_100g,
                                        portions, countries_tags, source_version, scans)
-                VALUES ('$id', '$barcode', '${name.replace("'", "''")}', 250, 8, 30, 10,
+                VALUES ('$id', '$barcode', '${name.replace("'", "''")}', $kcal, 8, 30, 10,
                         '[{"label": "1 slice (25 g)", "grams": 25}]', '$tags', '2026-10-26', $scans)
                 """.trimIndent(),
             )
@@ -91,7 +91,8 @@ class OpenFoodFactsCatalogTest : DatabaseTest() {
     @Test
     fun genericFoodsStayFirstAndTheCallersCountryLeadsTheRest() = runTest {
         seedGeneric("Bread, white")
-        seedOff("White bread", "03000000000024", countries = listOf("en:france"), scans = 500)
+        // Different labels: two loaves, not one product listed twice.
+        seedOff("White bread", "03000000000024", countries = listOf("en:france"), scans = 500, kcal = 260)
         seedOff("White bread", "00000000000031", countries = listOf("en:united-states"), scans = 3)
         val names = repo(enabled = true).search("white bread", 10, record = false, country = "US", openFoodFacts = true)
             .map { it.food.name to it.food.barcode }
@@ -99,6 +100,34 @@ class OpenFoodFactsCatalogTest : DatabaseTest() {
             listOf("Bread, white" to null, "White bread" to "00000000000031", "White bread" to "03000000000024"),
             names,
         )
+    }
+
+    @Test
+    fun copiesOfOneProductCollapse_andABrandsRowsLeaveRoomForOpenFoodFacts() = runTest {
+        // On dev "nutella" filled the first screen with Branded copies of the jar,
+        // and Open Food Facts' own copies of it sat below them, or twice in a row.
+        fun branded(name: String, sourceId: String, kcal: Float, brand: String = "Nutella") = database.blockingTransaction {
+            FoodsTable.insert {
+                it[id] = UUID.randomUUID()
+                it[sourceKind] = "usda_branded"
+                it[FoodsTable.sourceId] = sourceId
+                it[FoodsTable.name] = name
+                it[FoodsTable.brand] = brand
+                it[kcal100g] = kcal
+            }
+        }
+        repeat(8) { branded("Nutella", "jar-$it", 541f) }
+        repeat(12) { branded("Hazelnut Spread with Cocoa $it", "spread-$it", 500f + it) }
+        val jar = seedOff("Nutella", "03017620422003", scans = 900, kcal = 539)
+        seedOff("Nutella", "03017620425035", scans = 50, kcal = 539)
+        seedOff("Nutella", "08000500310427", scans = 5, kcal = 539)
+
+        val results = repo(enabled = true).search("nutella", 10, record = false, openFoodFacts = true)
+
+        assertEquals(listOf("Nutella" to CatalogSource.UsdaBranded, "Nutella" to CatalogSource.OpenFoodFacts), results.take(2).map { it.food.name to it.food.source })
+        assertEquals(jar, results[1].food.id, "the most scanned copy")
+        assertEquals(1, results.count { it.food.source == CatalogSource.OpenFoodFacts })
+        assertEquals(10, results.size)
     }
 
     @Test

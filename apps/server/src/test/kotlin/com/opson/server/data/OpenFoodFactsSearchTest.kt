@@ -72,6 +72,46 @@ class OpenFoodFactsSearchTest {
     }
 
     @Test
+    fun oneProductListedUnderManyBarcodesShowsOnce() {
+        val label = Nutrients(kcal = 539.0, protein = 6.3, carbs = 57.5, fat = 30.9)
+        fun nutella(name: String, barcode: String, per100g: Nutrients = label) = FoodMatch(
+            Food(UUID.randomUUID(), CatalogSource.OpenFoodFacts, barcode, name, "Ferrero", barcode, per100g, emptyMap(), emptyList()),
+            MatchTier.Exact,
+            1.0,
+        )
+        val mostScanned = nutella("Nutella", "3017620422003")
+
+        val merged = OpenFoodFactsSearch.merge(
+            catalog = emptyList(),
+            openFoodFacts = listOf(
+                mostScanned,
+                nutella("Nutella", "3017620425035"),
+                nutella("NUTELLA ", "8000500310427"),
+                nutella("Nutella", "3017620429484", label.copy(fat = 31.6)),
+            ),
+            limit = 10,
+        )
+
+        assertEquals(listOf("3017620422003", "3017620429484"), merged.map { it.food.barcode })
+        assertEquals(mostScanned, merged.first())
+    }
+
+    @Test
+    fun aNamedBrandsBrandedRowsDoNotPushTheProductOffTheFirstScreen() {
+        // "nutella" names a brand, so the catalog lists that brand's Branded rows
+        // (matched through the brand) above any generic food.
+        val brandRows = List(25) { branded("Hazelnut Spread with Cocoa $it", MatchTier.FullText) }
+        val merged = OpenFoodFactsSearch.merge(
+            catalog = brandRows + generic("Chocolate hazelnut spread", MatchTier.FullText),
+            openFoodFacts = listOf(off("Nutella", MatchTier.Exact), off("Nutella biscuits", MatchTier.FullText)),
+            limit = 25,
+        )
+        assertEquals("Nutella", merged.first().food.name)
+        assertEquals(25, merged.size)
+        assertEquals(brandRows.take(24), merged.drop(1))
+    }
+
+    @Test
     fun theLimitHolds() {
         val merged = OpenFoodFactsSearch.merge(
             catalog = List(3) { generic("Rice $it", MatchTier.Head) },
