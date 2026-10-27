@@ -4,6 +4,8 @@ You review one or more slices of the codebase and fix what you find, in your
 own git worktree. Read these first:
 
 - [`PRACTICES.md`](PRACTICES.md): the rubric. Every finding cites a rule from it.
+  Sections 9 (environments and the release path) and 10 (journeys) are new
+  in round two and are where round one missed the worst bug.
 - [`PROCESS.md`](PROCESS.md): the steps.
 - [`LEDGER.md`](LEDGER.md): your slices' files. Review every one.
 - `AGENTS.md` at the repo root, and `docs/plans/0.2/README.md` (including
@@ -36,8 +38,10 @@ server, no mocks).
 - **Every behaviour change gets a test** that fails without the fix.
 - **Don't break 0.1 clients.** The server must keep accepting what 0.1.0 sends;
   migrations are new files, additive, never edits to applied ones (highest is
-  V18). New user settings are new top-level keys (the server merges settings
+  V23; check `apps/server/src/main/resources/db/migration` for the latest). New user settings are new top-level keys (the server merges settings
   shallowly with `||`).
+- **Round one's findings** are in `round-1/findings/<slice>.md`. Don't
+  re-report what was fixed; do check that its fixes still hold.
 - **Release flags stay off by default.** Anything new goes behind one. Don't
   touch `iosApp.entitlements` or the Release build configuration.
 - **Never** push, deploy, touch prod, or print secrets. Don't connect to any
@@ -51,7 +55,7 @@ server, no mocks).
 ## Output
 
 1. `docs/review/findings/<slice>.md` per slice, in the format of
-   `findings/integration.md`: numbered findings, each with **Where**, **Rule**,
+   `round-1/findings/integration.md`: numbered findings, each with **Where**, **Rule**,
    **Failure**, and its fate (**fixed** with the commit subject, **not a
    problem** with why, or **deferred** with why). End with a `## Product notes`
    section: ideas about the product rather than the code (a feature to add, cut
