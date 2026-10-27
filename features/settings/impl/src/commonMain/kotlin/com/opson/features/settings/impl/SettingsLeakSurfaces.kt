@@ -32,6 +32,11 @@ import com.opson.features.settings.impl.support.SupportState
 import com.opson.features.settings.impl.support.SupportStateBuilder
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsStateBuilder
+import com.opson.features.settings.impl.todayscreen.TodayScreenChoice
+import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceSheetContent
+import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceState
+import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsScreen
+import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsStateBuilder
 import com.opson.features.settings.impl.water.WaterSettingsScreen
 import com.opson.features.settings.impl.water.WaterSettingsStateBuilder
 import com.opson.features.settings.impl.widgets.WidgetsFixtureScreen
@@ -80,6 +85,14 @@ object SettingsLeakSurfaces {
             val choices = RestingChoices(1610, emptySet(), 1560, HealthSource.HealthConnect, 72.0)
             val settings = SettingsFixtures.settings(policy.settings).copy(restingOwnKcal = 1600)
             RestingEnergyScreen(RestingEnergyStateBuilder.build(settings, choices, policy, activitySource = HealthSource.HealthConnect), onAction = {})
+        },
+        // Design sync 4, release.goalsAndEnergy: More › Today screen arranges, it never shows an amount.
+        LeakSurface(id = "today-screen-settings", label = "Today screen", showsCaloriesInFull = false) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings)
+            Column {
+                TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(settings), onAction = {})
+                TodayScreenChoiceSheetContent(TodayScreenChoiceState.of(TodayScreenChoice.MainNumber, settings), onAction = {})
+            }
         },
         LeakSurface(id = "energy-today", label = "Energy today", showsCaloriesInFull = true) { policy ->
             val settings = SettingsFixtures.settings(policy.settings)

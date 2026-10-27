@@ -56,7 +56,7 @@ kotlin {
             implementation(projects.libraries.telemetry.impl)
             // RemindersEnabled, for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.reminders)
-            // HealthReleaseFlag, for ConfigManifestRegistryDriftTest.
+            // HealthReleaseFlag and GoalsAndEnergyEnabled, for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.health)
             // `release.barcode` lives next to the logger it gates.
             implementation(projects.features.logger.impl)
@@ -64,7 +64,7 @@ kotlin {
             implementation(projects.features.today.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.widgets)
-            // FindSupportEnabled (release.findSupport) and GoalsAndEnergyEnabled (release.goalsAndEnergy), for ConfigManifestRegistryDriftTest.
+            // FindSupportEnabled (release.findSupport), for ConfigManifestRegistryDriftTest.
             implementation(projects.features.settings)
             // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.progressphotos)

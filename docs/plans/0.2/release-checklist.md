@@ -239,6 +239,9 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
       the App Privacy label and `legal/privacy.md` before the flag flips.
 - [ ] Nothing on the server: every new setting is a top-level key, which the
       shallow merge keeps through a 0.1 save (`SettingsMergeAcrossVersionsTest`).
+- [ ] TODO(clinician): the summary card's Deficit main number and Equation
+      preset put eaten minus Burned front and centre, which `balanceRingValue`'s
+      note held back until review. Confirm before the flag flips.
 - [ ] Look at the goal style list, Resting energy and Energy today on a phone,
       and one number and a surplus on Today, Close the day, Trends and the
       widget, before flipping the flag.

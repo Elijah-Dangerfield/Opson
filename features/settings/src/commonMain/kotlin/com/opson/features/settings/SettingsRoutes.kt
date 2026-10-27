@@ -27,6 +27,14 @@ class RestingEnergyRoute(val fromEnergyToday: Boolean = false) : Route()
 @Serializable
 class EnergyTodayRoute : Route()
 
+/** More › Today screen (design sync 4, 13.6): the summary card's preset, main number and pages, and the list's rows. */
+@Serializable
+class TodayScreenSettingsRoute : Route()
+
+/** The main number or card pages sheet over More › Today screen; [choice] is `main_number` or `card_pages`. */
+@Serializable
+class TodayScreenChoiceRoute(val choice: String = "main_number") : Route()
+
 /**
  * Water goal, glass size and units. [fromMore] picks the back label: Today's water sheet opens
  * it with `false` ("‹ Today"), the More list with `true` ("‹ More").

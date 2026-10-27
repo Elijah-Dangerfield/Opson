@@ -39,6 +39,8 @@ import opson.libraries.resources.generated.resources.settings_more_support_sub
 import opson.libraries.resources.generated.resources.settings_more_targets
 import opson.libraries.resources.generated.resources.settings_more_targets_sub
 import opson.libraries.resources.generated.resources.settings_more_title
+import opson.libraries.resources.generated.resources.settings_more_today
+import opson.libraries.resources.generated.resources.settings_more_today_sub
 import opson.libraries.resources.generated.resources.settings_more_water
 import opson.libraries.resources.generated.resources.settings_more_water_glasses
 import opson.libraries.resources.generated.resources.widgets_title
@@ -100,6 +102,14 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             title = stringResource(Res.string.settings_more_targets),
             icon = AppIcons.TrackChanges,
             subtitle = stringResource(Res.string.settings_more_targets_sub),
+            chevron = true,
+            showDivider = showDivider,
+            onClick = onClick,
+        )
+        MoreRow.TodayScreen -> SettingsRow(
+            title = stringResource(Res.string.settings_more_today),
+            icon = AppIcons.DashboardCustomize,
+            subtitle = stringResource(Res.string.settings_more_today_sub),
             chevron = true,
             showDivider = showDivider,
             onClick = onClick,

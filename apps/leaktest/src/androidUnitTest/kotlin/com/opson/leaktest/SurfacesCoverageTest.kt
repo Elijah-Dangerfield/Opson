@@ -106,6 +106,7 @@ class SurfacesCoverageTest {
                 "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
                 "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
                 "today-cards-summary",
+                "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
                 "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "food-actions-amount",
             ),
             "LoggerLeakSurfaces" to listOf(
@@ -125,7 +126,7 @@ class SurfacesCoverageTest {
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
                 "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
-                "resting-energy", "energy-today",
+                "resting-energy", "energy-today", "today-screen-settings",
                 "water-settings", "support", "support-delete", "support-find", "look-and-feel",
                 "reminders", "reminder-notification",
                 "integrations", "integrations-leave-out", "fasting",
@@ -142,6 +143,7 @@ class SurfacesCoverageTest {
             "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
             "targets-goal-style", "energy-today",
+            "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
             "today-reminders", "today-expended", "today-exercise", "integrations",
             "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
             "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",

@@ -1,7 +1,6 @@
 package com.opson.features.settings.impl
 
 import com.opson.features.settings.FindSupportEnabled
-import com.opson.features.settings.GoalsAndEnergyEnabled
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.DataExport
@@ -13,6 +12,7 @@ import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.SyncRejection
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.identity.auth.AuthRepository
