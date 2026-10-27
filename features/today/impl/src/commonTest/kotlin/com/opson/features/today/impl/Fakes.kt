@@ -35,10 +35,14 @@ import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.storage.Cache
+import com.opson.libraries.storage.CacheFactory
+import com.opson.libraries.storage.CacheJsonSerializer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -340,4 +344,33 @@ class FakeFastingRepository : FastingRepository {
     }
 
     override suspend fun endForTimerOff() = Unit
+}
+
+/** Caches held in memory, each starting from its serializer's default, as a fresh install's would. */
+class FakeCacheFactory : CacheFactory {
+    override fun <T : Any> inMemory(defaultValue: () -> T): Cache<T> = MemoryCache { defaultValue() }
+
+    override fun <T : Any> persistent(name: String, serializer: CacheJsonSerializer<T>, loadEagerly: Boolean): Cache<T> =
+        MemoryCache { serializer.read(null) }
+
+    private class MemoryCache<T : Any>(private val default: suspend () -> T) : Cache<T> {
+        private val value = MutableStateFlow<T?>(null)
+
+        override val updates: Flow<T> = flow {
+            get()
+            emitAll(value.filterNotNull())
+        }
+
+        override suspend fun get(): T = value.value ?: default().also { value.value = it }
+
+        override suspend fun set(value: T) {
+            this.value.value = value
+        }
+
+        override suspend fun clear() {
+            value.value = null
+        }
+
+        override suspend fun update(transform: (T) -> T): T = transform(get()).also { set(it) }
+    }
 }

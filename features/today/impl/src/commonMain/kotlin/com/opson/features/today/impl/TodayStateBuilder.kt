@@ -131,8 +131,9 @@ object TodayStateBuilder {
             untracked = untracked,
             menu = if (menuOpen) menu(inputs, clearArmed) else null,
             summaryTools = summaryOn,
-            summaryPage = settings.todaySummaryPage.coerceIn(0, pageCount - 1),
-            collapsed = compact != null && settings.todaySummaryCollapsed,
+            // Settings held these before they moved to the phone; a phone that never set them keeps that choice.
+            summaryPage = (inputs.cardView.page ?: settings.todaySummaryPage).coerceIn(0, pageCount - 1),
+            collapsed = compact != null && (inputs.cardView.collapsed ?: settings.todaySummaryCollapsed),
             compact = compact,
             weight = if (summaryOn && !future && listRow(inputs) { it.todayWeight }) weightRow(inputs, policy, context) else null,
             selectTools = inputs.selectOn,

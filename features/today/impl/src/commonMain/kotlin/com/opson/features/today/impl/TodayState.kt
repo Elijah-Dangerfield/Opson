@@ -58,7 +58,7 @@ data class TodayState(
     val fasting: FastingStatus? = null,
     /** `release.todaySummary`: the dots, the chevron, long-press to customise, the sticky bar. */
     val summaryTools: Boolean = false,
-    /** The summary page left open, by its place in [TodaySummary.Energy.pages]. Remembered across days and restarts. */
+    /** The summary page left open, by its place in [TodaySummary.Energy.pages]. Remembered on this phone across days and restarts. */
     val summaryPage: Int = 0,
     /** The summary shrunk to one pinned line by choice. */
     val collapsed: Boolean = false,
@@ -473,6 +473,8 @@ data class TodayInputs(
     val goalsAndEnergyOn: Boolean = false,
     /** The day's Burned, with [goalsAndEnergyOn]; null while no resting source can say. */
     val burned: Burned? = null,
+    /** The card's page and collapse as left on this phone, with [summaryOn]. */
+    val cardView: TodayCardView = TodayCardView(),
 )
 
 /**

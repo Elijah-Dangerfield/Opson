@@ -67,6 +67,7 @@ class TodayViewModelTest : CoroutineTest() {
     private var fastingReleased = true
 
     private val weights = FakeWeightRepository()
+    private val cardView = TodayCardViewStore(FakeCacheFactory())
 
     private fun vm(
         health: FakeHealthRepository = FakeHealthRepository(),
@@ -97,6 +98,7 @@ class TodayViewModelTest : CoroutineTest() {
         foodActionsEnabled = foodActionsFlag(foodActionsOn),
         goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergyOn),
         burnedRepository = burnedRepository,
+        cardView = cardView,
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -581,15 +583,45 @@ class TodayViewModelTest : CoroutineTest() {
         val vm = vm(summaryOn = true)
 
         vm.takeAction(TodayAction.SummaryPageShown(1))
-        assertEquals(1, settings.state.value.todaySummaryPage)
         assertEquals(1, vm.state.summaryPage)
+        assertEquals(1, vm(summaryOn = true).state.summaryPage, "the next Today opens on it")
 
         vm.takeAction(TodayAction.CollapseTapped)
-        assertTrue(settings.state.value.todaySummaryCollapsed)
         assertTrue(vm.state.collapsed)
 
         vm.takeAction(TodayAction.ExpandTapped)
-        assertFalse(settings.state.value.todaySummaryCollapsed)
+        assertFalse(vm.state.collapsed)
+    }
+
+    /**
+     * Swiping the card or collapsing it is view state. Saved in Settings, each swipe queued the whole
+     * settings object, and a phone that had not pulled yet pushed back the mode another phone had
+     * just left.
+     */
+    @Test
+    fun swipingOrCollapsingTheCard_neverWritesSettings() = runUnitTest {
+        val vm = vm(summaryOn = true)
+        val before = settings.state.value
+
+        vm.takeAction(TodayAction.SummaryPageShown(1))
+        vm.takeAction(TodayAction.CollapseTapped)
+        vm.takeAction(TodayAction.ExpandTapped)
+
+        assertEquals(before, settings.state.value)
+    }
+
+    /** A choice made before the card's view moved to the phone still holds until it is changed here. */
+    @Test
+    fun aPageSavedInSettingsBeforeTheMove_stillOpens() = runUnitTest {
+        settings.state.value = Settings(todaySummaryPage = 1, todaySummaryCollapsed = true)
+        val vm = vm(summaryOn = true)
+        assertEquals(1, vm.state.summaryPage)
+        assertTrue(vm.state.collapsed)
+
+        vm.takeAction(TodayAction.SummaryPageShown(0))
+        vm.takeAction(TodayAction.ExpandTapped)
+
+        assertEquals(0, vm.state.summaryPage)
         assertFalse(vm.state.collapsed)
     }
 
