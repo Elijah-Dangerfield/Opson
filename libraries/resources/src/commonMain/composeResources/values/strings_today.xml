@@ -15,7 +15,6 @@
     <string name="today_prev_day_cd">Previous day</string>
     <string name="today_pick_day_cd">Pick a day</string>
     <string name="today_next_day_cd">Next day</string>
-    <string name="today_calendar_cd">Calendar</string>
     <string name="today_day_menu_cd">More for this day</string>
 
     <!-- Summary cards -->
@@ -117,8 +116,6 @@
     <string name="today_cal_prev_cd">Previous month</string>
     <string name="today_cal_next_cd">Next month</string>
     <string name="today_cal_legend">Something logged</string>
-    <string name="today_cal_today">Today</string>
-    <string name="today_cal_done">Done</string>
     <string name="today_cal_initial_sun">S</string>
     <string name="today_cal_initial_mon">M</string>
     <string name="today_cal_initial_tue">T</string>
@@ -155,7 +152,6 @@
     <string name="today_water_settings">Water settings</string>
 
     <!-- Item sheet and day note -->
-    <string name="today_item_remove">Remove from %1$s</string>
     <string name="today_daynote_title">Note</string>
     <string name="today_daynote_save">Save</string>
 
@@ -266,13 +262,10 @@
     <!-- Design sync 2: select foods and swipe to delete (2.12 to 2.14) -->
     <string name="today_select_title">%1$d selected</string>
     <string name="today_select_close_cd">Stop selecting</string>
-    <string name="today_select_all_cd">Select every food</string>
     <string name="today_select_foods_one">1 food</string>
     <string name="today_select_foods_other">%1$d foods</string>
-    <string name="today_select_save_meal">Save as meal</string>
     <string name="today_select_copy">Copy to…</string>
     <string name="today_select_move">Move</string>
-    <string name="today_select_remove">Remove</string>
     <string name="today_select_copy_title">Copy to</string>
     <string name="today_select_copy_action">Copy</string>
     <string name="today_select_move_title">Move to</string>
@@ -291,8 +284,6 @@
     <string name="today_removed_other">Removed %1$d foods</string>
     <string name="today_toast_copied_foods_one">Copied 1 food.</string>
     <string name="today_toast_copied_foods_other">Copied %1$d foods.</string>
-    <string name="today_toast_moved_foods_one">Moved 1 food to %1$s.</string>
-    <string name="today_toast_moved_foods_other">Moved %1$d foods to %2$s.</string>
     <string name="today_move_to">Move to…</string>
 
     <!-- Design sync 2: how it felt (3.10) -->

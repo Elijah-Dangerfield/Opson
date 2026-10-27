@@ -112,6 +112,7 @@ import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Compare
 import androidx.compose.material.icons.rounded.Cameraswitch
 import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.WaterDrop
@@ -330,6 +331,9 @@ object AppIcons {
     /** A filled down triangle: Compare's date pickers. */
     val ArrowDropDown get() = icon("arrow_drop_down", MaterialIcons.Rounded.ArrowDropDown)
 
+    /** Move foods to another meal: select mode's bar and a food's ⋮. */
+    val DriveFileMove get() = icon("drive_file_move", MaterialIcons.AutoMirrored.Outlined.DriveFileMove)
+
     /** The meal's tile icon. Uncategorized uses the list glyph. */
     fun meal(tone: MealTone): IconResource = when (tone) {
         MealTone.Breakfast -> BakeryDining
@@ -354,7 +358,7 @@ object AppIcons {
             OpenInNew, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download,
             Straighten, TrendingDown, TrendingUp, Adjust, EventRepeat, EventAvailable, Star, Favorite, Science,
             FormatListBulleted, BeachAccess, Route, Bedtime, Watch, Widgets, Call, Sms, Public, SupportAgent,
-            DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown,
+            DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

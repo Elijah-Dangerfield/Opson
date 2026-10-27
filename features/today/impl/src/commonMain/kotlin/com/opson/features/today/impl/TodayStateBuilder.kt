@@ -61,8 +61,9 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
 /**
- * What Today holds itself rather than reads: the foods being selected and the panel's step, the
- * swiped row, and what was just removed. The view model keeps it; the builder only draws it.
+ * What Today holds itself rather than reads: the foods being selected and the bottom bar's step,
+ * the swiped row, and what was just removed or moved. The view model keeps it; the builder only
+ * draws it.
  */
 data class TodayUi(
     /** Null when not selecting. */
@@ -70,6 +71,7 @@ data class TodayUi(
     val step: SelectStep = SelectStep.Actions,
     val swipe: SwipeState = SwipeState(),
     val removed: RemovedNotice? = null,
+    val moved: MovedNotice? = null,
 )
 
 /**
@@ -157,9 +159,11 @@ object TodayStateBuilder {
             compact = compact,
             weight = if (summaryOn && !future) weightRow(inputs, policy, context) else null,
             selectTools = inputs.selectOn,
-            selection = selecting?.let { selection(it, day, policy, context, ui.step) },
+            foodMenus = inputs.foodActionsOn,
+            selection = selecting?.let { selection(it, day, ui.step) },
             swipe = if (inputs.selectOn && selecting == null) ui.swipe else SwipeState(),
             removed = ui.removed?.takeIf { inputs.selectOn },
+            moved = ui.moved?.takeIf { inputs.selectOn },
         )
     }
 
@@ -385,22 +389,14 @@ object TodayStateBuilder {
         return (ema.last() - ema.first()) / (span / 1.days) * DAYS_PER_WEEK
     }
 
-    /** The picked foods' count and totals; in Blind only the count survives. */
-    private fun selection(ids: Set<String>, day: Day, policy: VisibilityPolicy, context: FormatContext, step: SelectStep): Selection {
+    /** The picked foods in the order they sit on the day: how many, the first one's name, and their meals. No amounts. */
+    private fun selection(ids: Set<String>, day: Day, step: SelectStep): Selection {
         val items = day.allItems.filter { it.id in ids }
-        val totals = items.totals()
         return Selection(
             ids = items.mapTo(LinkedHashSet()) { it.id },
             count = items.size,
-            calories = policy.resolve(Metric.Calories, totals.kcal.value, Surface.Today, context.copy(of = null, bare = false)),
-            macros = listOf(
-                Metric.Protein to totals.protein.value,
-                Metric.Carbs to totals.carbs.value,
-                Metric.Fat to totals.fat.value,
-                Metric.Fiber to totals.fiber.value,
-            ).map { (metric, grams) ->
-                MacroTile(metric, macroLabel(metric), policy.resolve(metric, grams, Surface.Today, context.copy(of = null, goal = GoalStyle.None)))
-            }.filter { it.display !is Display.Hidden },
+            lead = items.firstOrNull()?.name,
+            slots = items.mapTo(LinkedHashSet()) { it.slot },
             step = step,
         )
     }

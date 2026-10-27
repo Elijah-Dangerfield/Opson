@@ -268,7 +268,6 @@ importer as the USDA one.
 | Source | Why |
 |---|---|
 | New Zealand FOODfiles | Its terms say "must not modify any part", and our normalisation is a modification. |
-| Dutch NEVO | Unchanged data only, and no charging users for NEVO data. |
 | Spain BEDCA, FAO regional tables, Italy CREA, China | No open licence found or not checked. FAO items are often CC BY-NC-SA, which rules out commercial use. |
 | India IFCT, Philippines PhilFCT | Copyrighted with no open licence. PhilFCT isn't downloadable, and FNRI declined a raw-data request. |
 
@@ -281,13 +280,38 @@ importer as the USDA one.
   NYC MenuStat (96 US chains, about 65,000 items) is open but stopped
   updating in 2019. The better answer is hand-curating the top chains from
   their published nutrition pages, later.
-- **Requested permission**, waiting on replies: NZ FOODfiles, India IFCT,
-  Philippines PhilFCT, Dutch NEVO, and the Open Food Facts share-alike
-  question.
+- **Requested permission** on 2026-10-26. Replies are below; NZ FOODfiles,
+  India IFCT and the Open Food Facts share-alike question haven't answered.
 - **Ask next:** Brazil TBCA (commercial use needs the coordinators' OK),
   for Latin America.
 - **Dropped:** Switzerland's Open Food Repo has shut down and redirects to
   Open Food Facts, which the dump already covers.
+
+## Replies to the permission requests (2026-10-27)
+
+- **Dutch NEVO: yes.** RIVM confirmed in writing that storing NEVO values
+  converted to our format is fine as long as the amounts don't change, and that
+  a free app with a later paid tier for unrelated features is fine if NEVO data
+  stays free. Their one caution: "foods for special nutritional use" (infant
+  and toddler formula) are per 100 ml with no density, so leave those out.
+  Cite "Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven".
+  NEVO moves from Hold to ready to import.
+- **Philippines PhilFCT: not now.** FNRI can't license it yet and has no
+  CSV, Excel or API; they're building a data platform (i.fnri) and will
+  announce access on their Facebook page. Only the printed book is for sale.
+  Stays on Hold; watch for i.fnri.
+- **NCCDB (University of Minnesota): paid licence, files in Excel, no API.**
+  Prices are usually for a 2-year term:
+  - All 178 nutrients: $8,620.
+  - The 38 standard nutrients: $3,420.
+  - À la carte: $2,045 plus $180 per nutrient.
+  - **Startup offer:** a 1-year Standard Nutrients licence at half price,
+    $1,710, for development, testing and launch.
+  - Add-ons include nutrients per common portion ($2,570 standard, $6,470
+    all), food group files ($4,390) and NCC-to-USDA code links ($660 to $790).
+  - Licensing takes at least 3 weeks. Contact: nccdb-licensing@umn.edu (Jenny).
+  - If it goes ahead, the startup Standard package plus the USDA links is the
+    natural first buy.
 
 ## Skip
 
