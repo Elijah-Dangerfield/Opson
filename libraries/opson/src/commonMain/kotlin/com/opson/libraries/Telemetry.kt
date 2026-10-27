@@ -65,6 +65,10 @@ interface Telemetry {
      * (already downscaled by the picker). Each rides along on the carrier event
      * as its own image attachment, so a triager sees exactly what the reporter
      * saw. Empty by default.
+     *
+     * Returns whether the report was handed to crash reporting. False means it
+     * was dropped (a blank message, or crash reporting off), and the person
+     * should not be told it was sent.
      */
     fun captureUserFeedback(
         message: String,
@@ -73,5 +77,5 @@ interface Telemetry {
         errorCode: Int?,
         email: String? = null,
         screenshots: List<ByteArray> = emptyList(),
-    )
+    ): Boolean
 }

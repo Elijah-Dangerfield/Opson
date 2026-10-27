@@ -158,14 +158,14 @@ private class ConfiguredTelemetry(
         errorCode: Int?,
         email: String?,
         screenshots: List<ByteArray>,
-    ) {
+    ): Boolean {
         val payload = message.trim()
         if (payload.isBlank()) {
             logger.w {
                 it.tag("feedback_type", if (isBugReport) "bug_report" else "feedback")
                 "Ignoring empty feedback payload"
             }
-            return
+            return false
         }
 
         if (!Sentry.isEnabled()) {
@@ -173,7 +173,7 @@ private class ConfiguredTelemetry(
                 it.tag("feedback_type", if (isBugReport) "bug_report" else "feedback")
                 "Sentry disabled, feedback dropped"
             }
-            return
+            return false
         }
 
         val typeTag = if (isBugReport) "bug_report" else "feedback"
@@ -250,6 +250,7 @@ private class ConfiguredTelemetry(
             scope.extra("has_email", sanitizedEmail != null)
             "Feedback forwarded to Sentry ($typeTag)"
         }
+        return true
     }
 }
 

@@ -182,7 +182,7 @@ class TelemetryUserBinderTest : CoroutineTest() {
             errorCode: Int?,
             email: String?,
             screenshots: List<ByteArray>,
-        ) = Unit
+        ) = true
     }
 
     private class FakeProfile : ProfileRepository {

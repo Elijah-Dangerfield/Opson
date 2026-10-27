@@ -1,6 +1,7 @@
 package com.opson.features.home.impl.feedback
 
 import com.opson.libraries.core.Catching
+import com.opson.libraries.core.flatMap
 import com.opson.libraries.opson.Telemetry
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -27,7 +28,7 @@ class FeedbackRepositoryImpl @Inject constructor(
         logId: String?,
         errorCode: Int?,
     ): Result<Unit> {
-        return Catching {
+        val sent = Catching {
             telemetry.captureUserFeedback(
                 message = message,
                 isBugReport = isBugReport,
@@ -35,5 +36,11 @@ class FeedbackRepositoryImpl @Inject constructor(
                 errorCode = errorCode
             )
         }
+        return sent.flatMap { delivered ->
+            if (delivered) Catching.success(Unit) else Catching.failure(FeedbackNotSent())
+        }
     }
 }
+
+/** Crash reporting dropped the report, so the person must not be thanked for it. */
+class FeedbackNotSent : Exception("feedback was dropped, not sent")
