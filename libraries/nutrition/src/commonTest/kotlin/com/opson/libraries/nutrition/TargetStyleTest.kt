@@ -173,8 +173,8 @@ class TargetStyleTest {
                 .step(RangeEnd.High, up = true, group = 1)
                 ?.step(RangeEnd.Low, up = true, group = 1),
         )
-        assertEquals(DayGoal.Range(1950, 2350, 2150, groupIndex = 1), training.rangeFor(monday, PresetId.NutrientsFirst))
-        assertEquals(DayGoal.Range(1900, 2300, 2100, groupIndex = 0), training.rangeFor(thursday, PresetId.NutrientsFirst))
+        assertEquals(DayGoal.Range(1950, 2350, 2150, groupIndex = 1), training.rangeFor(monday, PresetId.MacrosOnly))
+        assertEquals(DayGoal.Range(1900, 2300, 2100, groupIndex = 0), training.rangeFor(thursday, PresetId.MacrosOnly))
     }
 
     @Test

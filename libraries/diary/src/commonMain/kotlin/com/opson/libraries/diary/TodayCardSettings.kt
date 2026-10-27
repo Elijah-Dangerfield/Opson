@@ -5,7 +5,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * How Today's summary card draws energy in Full numbers (design sync 4, 13.1 and More › Today
+ * How Today's summary card draws energy in All numbers (design sync 4, 13.1 and More › Today
  * screen, 13.6). [Rings] needs a single target; with a range the card draws [InOut] instead.
  */
 @Serializable

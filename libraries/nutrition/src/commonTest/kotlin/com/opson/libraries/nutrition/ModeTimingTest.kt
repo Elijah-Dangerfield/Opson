@@ -61,13 +61,13 @@ class ModeTimingTest {
 
     @Test
     fun pickingAPreset_keepsTheTimer_unlessItPicksWhereTheTimerWasGoing() {
-        assertEquals(twoWeeks, full.pickPreset(PresetId.Later, SOME_INSTANT).endAfter)
+        assertEquals(twoWeeks, full.pickPreset(PresetId.MacrosOnly, SOME_INSTANT).endAfter)
         assertNull(full.pickPreset(PresetId.NoNumbers, SOME_INSTANT).endAfter)
     }
 
     @Test
     fun revealingEachDayInsteadOfWeekly_isARaise_whenSomethingIsLater() {
-        val weekly = NumbersSettings(preset = PresetId.Later, revealOn = RevealOn.Week)
+        val weekly = NumbersSettings.later().copy(revealOn = RevealOn.Week)
         val daily = weekly.copy(revealOn = RevealOn.DayClose)
         assertTrue(weekly.isRaise(daily))
         assertFalse(daily.isRaise(weekly))
@@ -78,8 +78,8 @@ class ModeTimingTest {
     }
 
     @Test
-    fun defaultThen_isNoNumbers_orLaterFromNoNumbers() {
+    fun defaultThen_isNoNumbers_orMacrosOnlyFromNoNumbers() {
         assertEquals(PresetId.NoNumbers, ModeTiming.defaultThen(PresetId.Full))
-        assertEquals(PresetId.Later, ModeTiming.defaultThen(PresetId.NoNumbers))
+        assertEquals(PresetId.MacrosOnly, ModeTiming.defaultThen(PresetId.NoNumbers))
     }
 }

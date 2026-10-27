@@ -63,7 +63,7 @@ class WeightStateBuilderTest {
 
     @Test
     fun trendOnly_aSlopeWordAndTheLine_noNumbersNoDotsNoRanges() {
-        val state = build(PresetId.NutrientsFirst)
+        val state = build(PresetId.MacrosOnly)
         val word = assertIs<Display.Soft>(state.trend).text
         assertTrue(word in setOf("Steady", "Rising slowly", "Falling slowly"), word)
         assertNull(state.latest)
@@ -113,7 +113,7 @@ class WeightStateBuilderTest {
     @Test
     fun savedNote_saysWhereTheWeighInWillShow() {
         assertEquals(SavedNote.Plain, build(ui = WeightUi(saved = true)).saved)
-        assertEquals(SavedNote.TrendOnly, build(PresetId.NutrientsFirst, ui = WeightUi(saved = true)).saved)
+        assertEquals(SavedNote.TrendOnly, build(PresetId.MacrosOnly, ui = WeightUi(saved = true)).saved)
         assertEquals(SavedNote.OutOfView, build(PresetId.NoNumbers, ui = WeightUi(saved = true)).saved)
         assertNull(build().saved)
     }

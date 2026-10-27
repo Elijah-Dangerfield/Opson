@@ -395,7 +395,7 @@ private fun IntegrationsNumbersHardPreview() {
     SettingsPreview {
         IntegrationsScreen(
             IntegrationsFixtures.state(
-                SettingsFixtures.policy(PresetId.NutrientsFirst),
+                SettingsFixtures.policy(PresetId.MacrosOnly),
                 settings = IntegrationsFixtures.settings.copy(onboarding = OnboardingAnswers(hard = true)),
                 days = emptyList(),
             ),

@@ -384,11 +384,11 @@ object TodayFixtures {
 
     fun dayNoteState(): DayNoteState = DayNoteState(draft = "Dinner at Lola's, a lazy Sunday", isToday = true, loaded = true)
 
-    /** End after a set time switched Full numbers away today. */
+    /** End after a set time switched All numbers away today. */
     val timerEnded: Settings = Settings(modeTimerEnded = ModeTimerEnded(on = today, from = PresetId.Full))
 
     /**
-     * The timer ran out two weeks after it started, on a switch to Full numbers that waits for
+     * The timer ran out two weeks after it started, on a switch to All numbers that waits for
      * the pause: the person's own mode with it, so the banner offers the switch.
      */
     fun timerWaiting(policy: VisibilityPolicy): Settings = Settings(

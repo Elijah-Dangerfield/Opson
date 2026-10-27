@@ -97,7 +97,7 @@ data class WeightChart(
 
 /**
  * Builds [WeightState] on [Surface.Weight]. No weight change readout anywhere
- * ("−1.6 kg"), pending a clinician's view, even in Full numbers.
+ * ("−1.6 kg"), pending a clinician's view, even in All numbers.
  */
 object WeightStateBuilder {
 

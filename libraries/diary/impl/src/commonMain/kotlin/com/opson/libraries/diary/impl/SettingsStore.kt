@@ -55,7 +55,7 @@ internal const val SETTINGS_ENTITY_ID = "settings"
  * depending on the repository, which depends on the syncer.
  *
  * **Whose settings these are.** After a user change the settings are the
- * defaults (Full numbers), not the user's. [isKnown] stays false until that
+ * defaults (All numbers), not the user's. [isKnown] stays false until that
  * user's first pull lands, and while it is false a local change is kept on the
  * device but not queued: queueing it would push a whole default Settings object
  * over the user's real one on the server, with a newer timestamp, and the
@@ -180,7 +180,7 @@ class SettingsStore(
 
     private fun StoredSettings.isKnownFor(user: ActiveUser): Boolean = when (user) {
         // Cold boot before auth answers: trusted only when a pull ever landed in them. A copy no
-        // pull reached is the defaults (Full numbers) of someone whose first sync never finished,
+        // pull reached is the defaults (All numbers) of someone whose first sync never finished,
         // and showing it until auth answers would flash their numbers.
         ActiveUser.Unresolved -> ownerUserId != null
         // Nobody signed in: what is stored is all there is.

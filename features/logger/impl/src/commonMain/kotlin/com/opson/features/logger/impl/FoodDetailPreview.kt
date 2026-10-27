@@ -11,7 +11,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 private val full = previewVisibilityPolicy(PresetId.Full)
 private val noNumbers = previewVisibilityPolicy(PresetId.NoNumbers)
-private val nutrientsFirst = previewVisibilityPolicy(PresetId.NutrientsFirst)
+private val nutrientsFirst = previewVisibilityPolicy(PresetId.MacrosOnly)
 
 @Composable
 private fun Detail(state: FoodDetailState, dark: Boolean = true, unitMenu: Boolean = false, atBottom: Boolean = false) =
@@ -30,7 +30,7 @@ private fun V4Preview() = Detail(LoggerFixtures.detailState(full))
 @Composable
 private fun V4LightPreview() = Detail(LoggerFixtures.detailState(full), dark = false)
 
-/** Nutrients first: energy and protein are words, so a portion has no number and no energy card. */
+/** Macros only: the macros are words, so a portion has no grams and no energy card. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun NutrientsFirstPreview() = Detail(LoggerFixtures.detailState(nutrientsFirst))

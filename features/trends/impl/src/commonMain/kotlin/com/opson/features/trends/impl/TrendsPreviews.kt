@@ -9,6 +9,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -76,16 +77,16 @@ private fun TrendsBlindPreview() = Phone { Trends(TrendsFixtures.policy(PresetId
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TrendsCoastPreview() = Phone { Trends(TrendsFixtures.policy(PresetId.Later, revealOn = RevealOn.Week)) }
+private fun TrendsCoastPreview() = Phone { Trends(TrendsFixtures.policy(overrides = Presets.laterLevels, revealOn = RevealOn.Week)) }
 
 /** Later, weekly (Coast's people), after Sunday's check has opened: the week's numbers, and no last-week card. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TrendsCoastOpenPreview() = Phone { Trends(TrendsFixtures.policy(PresetId.Later, clock = TrendsFixtures.evening, revealOn = RevealOn.Week)) }
+private fun TrendsCoastOpenPreview() = Phone { Trends(TrendsFixtures.policy(overrides = Presets.laterLevels, clock = TrendsFixtures.evening, revealOn = RevealOn.Week)) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TrendsNutrientFocusPreview() = Phone { Trends(TrendsFixtures.policy(PresetId.NutrientsFirst)) }
+private fun TrendsNutrientFocusPreview() = Phone { Trends(TrendsFixtures.policy(PresetId.MacrosOnly)) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -132,7 +133,7 @@ private fun NutrientsEmptyDayPreview() = Phone { Nutrients(full, TrendsFixtures.
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun NutrientsFuelPreview() = Phone { Nutrients(TrendsFixtures.policy(PresetId.NutrientsFirst), TrendsFixtures.nutrientsInputs()) }
+private fun NutrientsFuelPreview() = Phone { Nutrients(TrendsFixtures.policy(PresetId.MacrosOnly), TrendsFixtures.nutrientsInputs()) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

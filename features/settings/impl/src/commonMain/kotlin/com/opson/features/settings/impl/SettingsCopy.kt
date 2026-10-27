@@ -6,12 +6,12 @@ import com.opson.libraries.nutrition.Visibility
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.modes_preset_full
 import opson.libraries.resources.generated.resources.modes_preset_full_line
-import opson.libraries.resources.generated.resources.modes_preset_later
-import opson.libraries.resources.generated.resources.modes_preset_later_line
 import opson.libraries.resources.generated.resources.modes_preset_no_numbers
 import opson.libraries.resources.generated.resources.modes_preset_no_numbers_line
-import opson.libraries.resources.generated.resources.modes_preset_nutrients_first
-import opson.libraries.resources.generated.resources.modes_preset_nutrients_first_line
+import opson.libraries.resources.generated.resources.modes_preset_macros_grams
+import opson.libraries.resources.generated.resources.modes_preset_macros_only
+import opson.libraries.resources.generated.resources.modes_preset_macros_grams_line
+import opson.libraries.resources.generated.resources.modes_preset_macros_only_line
 import opson.libraries.resources.generated.resources.settings_level_hide
 import opson.libraries.resources.generated.resources.settings_level_later
 import opson.libraries.resources.generated.resources.settings_level_show
@@ -46,8 +46,8 @@ import org.jetbrains.compose.resources.StringResource
 internal val PresetId.label: StringResource
     get() = when (this) {
         PresetId.Full -> Res.string.modes_preset_full
-        PresetId.NutrientsFirst -> Res.string.modes_preset_nutrients_first
-        PresetId.Later -> Res.string.modes_preset_later
+        PresetId.MacrosWithGrams -> Res.string.modes_preset_macros_grams
+        PresetId.MacrosOnly -> Res.string.modes_preset_macros_only
         PresetId.NoNumbers -> Res.string.modes_preset_no_numbers
     }
 
@@ -55,8 +55,8 @@ internal val PresetId.label: StringResource
 internal val PresetId.line: StringResource
     get() = when (this) {
         PresetId.Full -> Res.string.modes_preset_full_line
-        PresetId.NutrientsFirst -> Res.string.modes_preset_nutrients_first_line
-        PresetId.Later -> Res.string.modes_preset_later_line
+        PresetId.MacrosWithGrams -> Res.string.modes_preset_macros_grams_line
+        PresetId.MacrosOnly -> Res.string.modes_preset_macros_only_line
         PresetId.NoNumbers -> Res.string.modes_preset_no_numbers_line
     }
 

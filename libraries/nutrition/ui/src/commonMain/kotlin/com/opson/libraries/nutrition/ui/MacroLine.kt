@@ -80,7 +80,7 @@ private fun MacroLinePreview() {
 private fun MacroLineFuelPreview() {
     // Protein shown and the rest hidden: a line with one part.
     val proteinOnly = Metric.entries.associateWith { Visibility.Hide } + (Metric.Protein to Visibility.Show)
-    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.NutrientsFirst, overrides = proteinOnly)) {
+    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.MacrosOnly, overrides = proteinOnly)) {
         MacroLinePreview()
     }
 }

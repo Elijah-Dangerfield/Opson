@@ -110,9 +110,9 @@ class RingValueTest {
 
     @Test
     fun delay_opensAtNineLikeTheAmount() {
-        val evening = policy(PresetId.Later, now = at(21, 0))
+        val evening = later(now = at(21, 0))
         assertEquals(RingValue("1,245", "kcal"), evening.ringValue(Metric.Calories, 1245.0, Surface.Today))
-        assertNull(policy(PresetId.Later).ringValue(Metric.Calories, 1245.0, Surface.Today))
+        assertNull(later().ringValue(Metric.Calories, 1245.0, Surface.Today))
     }
 
     @Test
@@ -157,7 +157,7 @@ class RingValueTest {
         // Delayed reveals remaining at 9 pm, but a ring mode that comes and goes with the clock is not offered.
         assertEquals(
             listOf(SummaryRingMode.Target),
-            policy(PresetId.Later, now = at(22, 0)).availableRingModes(Surface.Today, hasEnergyOut = false),
+            later(now = at(22, 0)).availableRingModes(Surface.Today, hasEnergyOut = false),
         )
         assertEquals(listOf(SummaryRingMode.Target), policy(PresetId.NoNumbers).availableRingModes(Surface.Today, false))
     }

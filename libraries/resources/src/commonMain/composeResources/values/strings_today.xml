@@ -197,7 +197,7 @@
     <string name="today_stat_meals">Meals</string>
     <string name="today_stat_water">Water</string>
     <string name="today_stat_expended_body">From your watch</string>
-    <string name="today_stat_deficit_body">Full numbers and Sprint only</string>
+    <string name="today_stat_deficit_body">All numbers only</string>
     <string name="today_stat_hidden">Hidden in Modes and numbers</string>
     <string name="today_goal_changing_weight">Changing my weight</string>
     <string name="today_goal_eating_regularly">Eating regularly</string>

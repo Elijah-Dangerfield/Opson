@@ -9,12 +9,12 @@ import opson.libraries.resources.generated.resources.onboarding_feel_some_are_fi
 import opson.libraries.resources.generated.resources.onboarding_pick_any
 import opson.libraries.resources.generated.resources.modes_preset_full
 import opson.libraries.resources.generated.resources.modes_preset_full_line
-import opson.libraries.resources.generated.resources.modes_preset_later
-import opson.libraries.resources.generated.resources.modes_preset_later_line
 import opson.libraries.resources.generated.resources.modes_preset_no_numbers
 import opson.libraries.resources.generated.resources.modes_preset_no_numbers_line
-import opson.libraries.resources.generated.resources.modes_preset_nutrients_first
-import opson.libraries.resources.generated.resources.modes_preset_nutrients_first_line
+import opson.libraries.resources.generated.resources.modes_preset_macros_grams
+import opson.libraries.resources.generated.resources.modes_preset_macros_only
+import opson.libraries.resources.generated.resources.modes_preset_macros_grams_line
+import opson.libraries.resources.generated.resources.modes_preset_macros_only_line
 import opson.libraries.resources.generated.resources.onboarding_preview_calorie_amounts
 import opson.libraries.resources.generated.resources.onboarding_preview_calories_hidden
 import opson.libraries.resources.generated.resources.onboarding_preview_calories_later
@@ -28,6 +28,7 @@ import opson.libraries.resources.generated.resources.onboarding_preview_meal_by_
 import opson.libraries.resources.generated.resources.onboarding_preview_meal_count
 import opson.libraries.resources.generated.resources.onboarding_preview_other_nutrients_hidden
 import opson.libraries.resources.generated.resources.onboarding_preview_protein_fiber_amounts
+import opson.libraries.resources.generated.resources.onboarding_preview_macro_bars
 import opson.libraries.resources.generated.resources.onboarding_preview_protein_fiber_bars
 import opson.libraries.resources.generated.resources.onboarding_preview_some_nutrient_amounts
 import opson.libraries.resources.generated.resources.onboarding_preview_some_nutrient_bars
@@ -95,8 +96,8 @@ internal val SetupOption.label: StringResource
 internal val PresetId.label: StringResource
     get() = when (this) {
         PresetId.Full -> Res.string.modes_preset_full
-        PresetId.NutrientsFirst -> Res.string.modes_preset_nutrients_first
-        PresetId.Later -> Res.string.modes_preset_later
+        PresetId.MacrosWithGrams -> Res.string.modes_preset_macros_grams
+        PresetId.MacrosOnly -> Res.string.modes_preset_macros_only
         PresetId.NoNumbers -> Res.string.modes_preset_no_numbers
     }
 
@@ -104,8 +105,8 @@ internal val PresetId.label: StringResource
 internal val PresetId.line: StringResource
     get() = when (this) {
         PresetId.Full -> Res.string.modes_preset_full_line
-        PresetId.NutrientsFirst -> Res.string.modes_preset_nutrients_first_line
-        PresetId.Later -> Res.string.modes_preset_later_line
+        PresetId.MacrosWithGrams -> Res.string.modes_preset_macros_grams_line
+        PresetId.MacrosOnly -> Res.string.modes_preset_macros_only_line
         PresetId.NoNumbers -> Res.string.modes_preset_no_numbers_line
     }
 
@@ -118,6 +119,7 @@ internal val PreviewItem.label: StringResource
         PreviewItem.MacroAmounts -> Res.string.onboarding_preview_macro_amounts
         PreviewItem.ProteinFiberAmounts -> Res.string.onboarding_preview_protein_fiber_amounts
         PreviewItem.SomeNutrientAmounts -> Res.string.onboarding_preview_some_nutrient_amounts
+        PreviewItem.MacroBars -> Res.string.onboarding_preview_macro_bars
         PreviewItem.ProteinFiberBars -> Res.string.onboarding_preview_protein_fiber_bars
         PreviewItem.SomeNutrientBars -> Res.string.onboarding_preview_some_nutrient_bars
         PreviewItem.MacrosLater -> Res.string.onboarding_preview_macros_later

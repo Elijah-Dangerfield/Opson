@@ -153,8 +153,16 @@ class EditCopyTest : CoroutineTest() {
     }
 
     @Test
-    fun nutrientsFirst_softWordsAreNoPlaceForANumber_soNoneIsAsked() = runUnitTest {
-        val vm = vm(PresetId.NutrientsFirst)
+    fun macrosWithGrams_asksTheGrams_neverTheCalories() = runUnitTest {
+        val vm = vm(PresetId.MacrosWithGrams)
+
+        assertTrue(vm.state.fields.isNotEmpty())
+        assertTrue(vm.state.fields.none { it.metric == Metric.Calories })
+    }
+
+    @Test
+    fun macrosOnly_softWordsAreNoPlaceForANumber_soNoneIsAsked() = runUnitTest {
+        val vm = vm(PresetId.MacrosOnly)
 
         assertTrue(vm.state.fields.isEmpty())
         vm.takeAction(EditCopyAction.SaveTapped)

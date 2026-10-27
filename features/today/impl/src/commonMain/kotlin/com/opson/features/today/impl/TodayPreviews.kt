@@ -44,8 +44,10 @@ import kotlin.time.Instant
 // the leak test take. One theme per preview at the phone's 390 width, so each is also a
 // design-sync screenshot; the names follow the v3 design's screen ids (today-full, day-close-blind).
 
-private fun policy(preset: PresetId, at: Instant = TodayFixtures.noon): VisibilityPolicy =
-    VisibilityPolicy(NumbersSettings(preset = preset), Clock.fixed(at), TodayFixtures.timeZone)
+private fun policy(preset: PresetId, at: Instant = TodayFixtures.noon): VisibilityPolicy = policy(NumbersSettings(preset = preset), at)
+
+private fun policy(numbers: NumbersSettings, at: Instant = TodayFixtures.noon): VisibilityPolicy =
+    VisibilityPolicy(numbers, Clock.fixed(at), TodayFixtures.timeZone)
 
 private val full = policy(PresetId.Full)
 
@@ -240,22 +242,22 @@ private fun TodayUntrackedBlindPreview() = Phone { Today(policy(PresetId.NoNumbe
 @Composable
 private fun TodayBigDayPreview() = Phone { Today(full, day = TodayFixtures.day(bigDay = true)) }
 
-/** 13.5c, Later before the reveal: when totals open and what is logged, the water glasses, the meals. */
+/** Every number on Later, before the reveal: when totals open and what is logged, the water glasses, the meals. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TodayLaterPreview() = Phone(dark = true) { Today(policy(PresetId.Later)) }
+private fun TodayLaterPreview() = Phone(dark = true) { Today(policy(NumbersSettings.later())) }
 
-/** Later after 9:00 pm: the Full numbers card for the rest of the day. */
+/** Every number on Later, after 9:00 pm: the All numbers card for the rest of the day. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TodayLaterRevealedPreview() = Phone { Today(policy(PresetId.Later, at = TodayFixtures.evening)) }
+private fun TodayLaterRevealedPreview() = Phone { Today(policy(NumbersSettings.later(), at = TodayFixtures.evening)) }
 
 /** Later, weekly (Coast's people): saved for the weekly check, even in the evening. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayLaterWeeklyPreview() = Phone {
     val weekly = VisibilityPolicy(
-        NumbersSettings(preset = PresetId.Later, revealOn = RevealOn.Week),
+        NumbersSettings.later(RevealOn.Week),
         Clock.fixed(TodayFixtures.evening),
         TodayFixtures.timeZone,
     )
@@ -271,16 +273,21 @@ private fun TodayNoNumbersPreview() = Phone(dark = true) { Today(policy(PresetId
 @Composable
 private fun TodayNoNumbersLightPreview() = Phone { Today(policy(PresetId.NoNumbers)) }
 
-/** 13.5b, Nutrients first: words and bars, the meal count, the water glasses. */
+/** Macros only: the macros as words and bars with no grams, no calories, the water glasses. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TodayNutrientsFirstPreview() = Phone(dark = true) { Today(policy(PresetId.NutrientsFirst)) }
+private fun TodayNutrientsFirstPreview() = Phone(dark = true) { Today(policy(PresetId.MacrosOnly)) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun TodayNutrientsFirstLightPreview() = Phone { Today(policy(PresetId.NutrientsFirst)) }
+private fun TodayNutrientsFirstLightPreview() = Phone { Today(policy(PresetId.MacrosOnly)) }
 
-/** End after a set time ran out today: Full numbers gave way to No numbers, said once. */
+/** Macros with grams: the macros with their grams against each target, no calories anywhere. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayMacrosWithGramsPreview() = Phone { Today(policy(PresetId.MacrosWithGrams)) }
+
+/** End after a set time ran out today: All numbers gave way to No numbers, said once. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayTimerEndedPreview() = Phone {
@@ -294,7 +301,7 @@ private fun TodayTimerWaitingPreview() = Phone {
     val numbers = NumbersSettings(
         preset = PresetId.NoNumbers,
         pauseBeforeMore = true,
-        endAfter = ModeTiming(startedOn = TodayFixtures.today.minus(DatePeriod(days = 14)), weeks = 2, then = PresetId.Later),
+        endAfter = ModeTiming(startedOn = TodayFixtures.today.minus(DatePeriod(days = 14)), weeks = 2, then = PresetId.MacrosWithGrams),
     )
     Today(policy(PresetId.NoNumbers), settings = Settings(numbers = numbers))
 }
@@ -498,7 +505,7 @@ private fun DayCloseBigDayCommittedPreview() = Phone {
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun DayCloseRevealedPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.Later, at = TodayFixtures.evening)), onAction = {}) }
+private fun DayCloseRevealedPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(policy(NumbersSettings.later(), at = TodayFixtures.evening)), onAction = {}) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -521,7 +528,7 @@ private fun DayCloseBlindDarkPreview() = Phone(dark = true) {
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun DayCloseFuelPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.NutrientsFirst), bigDay = true), onAction = {}) }
+private fun DayCloseFuelPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.MacrosOnly), bigDay = true), onAction = {}) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

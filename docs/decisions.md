@@ -6,6 +6,31 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: The four modes are about how many numbers: all, macros with grams, macros only, none
+
+**Decision:** the presets are All numbers (`full`), Macros with grams
+(`macros_grams`: no calories, remaining or energy out anywhere, macros and
+everything else shown), Macros only (`macros_only`: the four macros as words
+and bars, no grams, no calories) and No numbers. Design sync 4's Nutrients
+first and Later are retired (`RetiredPreset`). A stored `nutrients_first`
+reads as Macros only with the person's own changes kept. A stored `later`
+reads as All numbers with every number still on Later and its reveal time and
+weekly choice kept, so a Later user sees what they saw. A timer that ends in
+Nutrients first switches to Macros only; one that ends in Later is dropped.
+
+**Why:** after TestFlight the owner wanted the mode list to answer one
+question, how many numbers, and asked for exactly these four. Later is a
+"when", not a "how many", and it survives as a level in Each number. Nutrients
+first was already the mode without calories, so it maps to Macros only, which
+also stops showing calories as a fill bar.
+
+**Alternatives:** keeping Later as a fifth mode (the owner asked for four), and
+migrating `nutrients_first` with every old level kept as an override (that
+would leave everyone who picked it on "Macros only, 3 changes", which is not
+the mode they chose). Showing words for carbs and fat to a former Nutrients
+first user is more than they had; it is words and bars, never an amount, and
+it is what the owner defined the mode to be.
+
 ## 2026-10-27: Grafana may see one person, through `support`, and never their log
 
 **Decision:** a second read-only schema, `support` (V22), holds per-person

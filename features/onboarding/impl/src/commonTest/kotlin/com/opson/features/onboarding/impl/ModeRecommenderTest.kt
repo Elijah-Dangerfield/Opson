@@ -37,9 +37,9 @@ class ModeRecommenderTest {
     }
 
     @Test
-    fun loveThem_isFull_orLaterWhenNumbersHaveBeenHard() {
+    fun loveThem_isFull_orMacrosWithGramsWhenNumbersHaveBeenHard() {
         assertEquals(PresetId.Full, recommend(feel = NumbersFeel.LoveThem))
-        assertEquals(PresetId.Later, recommend(feel = NumbersFeel.LoveThem, hard = true))
+        assertEquals(PresetId.MacrosWithGrams, recommend(feel = NumbersFeel.LoveThem, hard = true))
     }
 
     @Test
@@ -49,15 +49,15 @@ class ModeRecommenderTest {
     }
 
     @Test
-    fun someAreFine_isNutrientsFirst_eatingEnoughIncluded() {
-        assertEquals(PresetId.NutrientsFirst, recommend(feel = NumbersFeel.SomeAreFine))
-        assertEquals(PresetId.NutrientsFirst, recommend(why = setOf(Why.EatingEnough), feel = NumbersFeel.SomeAreFine))
+    fun someAreFine_isMacrosOnly_eatingEnoughIncluded() {
+        assertEquals(PresetId.MacrosOnly, recommend(feel = NumbersFeel.SomeAreFine))
+        assertEquals(PresetId.MacrosOnly, recommend(why = setOf(Why.EatingEnough), feel = NumbersFeel.SomeAreFine))
     }
 
     @Test
-    fun someAreFine_staysNutrientsFirst_withTheStatement_asTheDesignDraws() {
-        // Nutrients first hides calories already, so agreeing does not move it.
-        assertEquals(PresetId.NutrientsFirst, recommend(feel = NumbersFeel.SomeAreFine, hard = true))
+    fun someAreFine_staysMacrosOnly_withTheStatement_asTheDesignDraws() {
+        // Macros only hides calories and grams already, so agreeing does not move it.
+        assertEquals(PresetId.MacrosOnly, recommend(feel = NumbersFeel.SomeAreFine, hard = true))
     }
 
     @Test
@@ -78,10 +78,10 @@ class ModeRecommenderTest {
         val expected = mapOf(
             RecommendationReason.NoAnswers to setOf(PresetId.Full),
             RecommendationReason.LovesNumbers to setOf(PresetId.Full),
-            RecommendationReason.SomeAreFine to setOf(PresetId.NutrientsFirst),
+            RecommendationReason.SomeAreFine to setOf(PresetId.MacrosOnly),
             RecommendationReason.RatherNot to setOf(PresetId.NoNumbers),
-            RecommendationReason.Gentler to setOf(PresetId.Later, PresetId.NoNumbers),
-            RecommendationReason.NotSure to setOf(PresetId.Later),
+            RecommendationReason.Gentler to setOf(PresetId.MacrosWithGrams, PresetId.NoNumbers),
+            RecommendationReason.NotSure to setOf(PresetId.MacrosOnly),
         )
         (listOf(null) + NumbersFeel.entries).forEach { feel ->
             listOf(emptySet(), setOf(Why.EatingRegularly)).forEach { why ->
@@ -95,9 +95,9 @@ class ModeRecommenderTest {
     }
 
     @Test
-    fun anAnswerThatDecidesNothing_isLater_orNoNumbersWhenHard() {
-        assertEquals(PresetId.Later, recommend(feel = NumbersFeel.NotSure))
-        assertEquals(PresetId.Later, recommend(why = setOf(Why.Curious)))
+    fun anAnswerThatDecidesNothing_isMacrosOnly_orNoNumbersWhenHard() {
+        assertEquals(PresetId.MacrosOnly, recommend(feel = NumbersFeel.NotSure))
+        assertEquals(PresetId.MacrosOnly, recommend(why = setOf(Why.Curious)))
         assertEquals(PresetId.NoNumbers, recommend(feel = NumbersFeel.NotSure, hard = true))
     }
 
@@ -114,13 +114,13 @@ class ModeRecommenderTest {
     }
 
     @Test
-    fun theDesignsAnswers_recommendNutrientsFirst_withTheGentlerTwo() {
+    fun theDesignsAnswers_recommendMacrosOnly_withTheOtherTwoOnOffer() {
         val design = OnboardingFixtures.DesignAnswers
 
-        assertEquals(PresetId.NutrientsFirst, ModeRecommender.recommend(design))
+        assertEquals(PresetId.MacrosOnly, ModeRecommender.recommend(design))
         assertEquals(
-            listOf(PresetId.NoNumbers, PresetId.Later),
-            ModeRecommender.alternatives(design, chosen = PresetId.NutrientsFirst),
+            listOf(PresetId.NoNumbers, PresetId.MacrosWithGrams),
+            ModeRecommender.alternatives(design, chosen = PresetId.MacrosOnly),
         )
     }
 
@@ -129,7 +129,7 @@ class ModeRecommenderTest {
         val none = answers()
 
         assertEquals(
-            listOf(PresetId.NoNumbers, PresetId.Later, PresetId.NutrientsFirst),
+            listOf(PresetId.NoNumbers, PresetId.MacrosOnly, PresetId.MacrosWithGrams),
             ModeRecommender.alternatives(none, chosen = PresetId.Full),
         )
         Presets.all.forEach { preset ->
@@ -144,7 +144,7 @@ class ModeRecommenderTest {
         val design = OnboardingFixtures.DesignAnswers
 
         assertEquals(
-            listOf(PresetId.NutrientsFirst, PresetId.Later),
+            listOf(PresetId.MacrosOnly, PresetId.MacrosWithGrams),
             ModeRecommender.alternatives(design, chosen = PresetId.NoNumbers),
         )
     }
@@ -169,6 +169,6 @@ class ModeRecommenderTest {
         assertEquals(Presets.all.map { it.id } - PresetId.Full, all)
 
         val hard = ModeRecommender.alternatives(answers(hard = true), chosen = PresetId.NoNumbers, all = true)
-        assertEquals(listOf(PresetId.NutrientsFirst, PresetId.Later), hard)
+        assertEquals(listOf(PresetId.MacrosWithGrams, PresetId.MacrosOnly), hard)
     }
 }

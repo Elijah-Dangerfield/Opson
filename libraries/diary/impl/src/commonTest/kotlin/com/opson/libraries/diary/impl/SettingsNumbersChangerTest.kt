@@ -121,7 +121,7 @@ class SettingsNumbersChangerTest {
 
     @Test
     fun withThePauseOnShowingProgressPhotosNeedsThePause_hidingThemDoesNot() = runTest {
-        val fuel = NumbersSettings(preset = PresetId.NutrientsFirst, pauseBeforeMore = true)
+        val fuel = NumbersSettings(preset = PresetId.MacrosOnly, pauseBeforeMore = true)
         val (changer, repository) = changer(fuel)
 
         assertEquals(NumbersOutcome.NeedsPause, changer.request(NumbersChange.SetProgressPhotos(shown = true)))

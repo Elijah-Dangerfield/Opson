@@ -41,7 +41,7 @@ import com.opson.libraries.nutrition.ui.leak.LeakSurface
  * Today's surfaces for `BlindModeLeakTest` (`docs/plans/screens/blind-leak-test.md`).
  * Each builds its state through the real builder from [TodayFixtures] with the policy the
  * test hands it. The layout comes from that policy too, so the test's calories-hidden presets
- * cover Nutrients first, Later and No numbers' meal timeline with these same entries. The menu and
+ * cover Macros with grams, Macros only, Later and No numbers' meal timeline with these same entries. The menu and
  * the sheets render their content in place, with no popup window.
  */
 object TodayLeakSurfaces {

@@ -135,12 +135,12 @@ class WidgetSnapshotBuilderTest {
     @Test
     fun delayed_staysOnTheCircles_afterTheRevealToo() {
         val evening = VisibilityPolicy(
-            NumbersSettings(preset = PresetId.Later),
+            NumbersSettings.later(),
             clockAt(LocalDateTime(WidgetFixtures.today, LocalTime(22, 0))),
             WidgetFixtures.timeZone,
         )
         val closed = WidgetFixtures.day.copy(closedAt = WidgetFixtures.noon)
-        val today = build(PresetId.Later, closed, policy = evening).today
+        val today = build(PresetId.Full, closed, policy = evening).today
         assertNull(today.energy)
         assertEquals(4, today.meals.size)
     }

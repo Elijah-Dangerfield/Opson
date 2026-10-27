@@ -152,7 +152,7 @@ private fun DayTotalsPreview() {
 @Preview(widthDp = 390)
 @Composable
 private fun DayTotalsFuelPreview() {
-    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.NutrientsFirst)) {
+    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.MacrosOnly)) {
         DayTotalsPreview()
     }
 }

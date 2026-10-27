@@ -23,6 +23,8 @@ import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Targets
 import kotlinx.coroutines.flow.toList
@@ -48,6 +50,9 @@ import kotlinx.datetime.DayOfWeek
  * this screen can move tomorrow.
  */
 class DayCloseTest : CoroutineTest() {
+
+    /** Calories as a word, as Nutrients first had them: Macros only with calories set to Soft. */
+    private val softCalories = policy(PresetId.MacrosOnly, overrides = mapOf(Metric.Calories to Visibility.Soften))
 
     private fun build(
         preset: PresetId,
@@ -148,7 +153,7 @@ class DayCloseTest : CoroutineTest() {
 
     @Test
     fun fuelIsASoftLineAndNeverABigDay() {
-        val state = build(PresetId.NutrientsFirst, bigDay = true)
+        val state = TodayFixtures.dayCloseState(softCalories, bigDay = true)
 
         assertIs<Display.Soft>(state.soft)
         assertNull(state.totals)
@@ -157,7 +162,7 @@ class DayCloseTest : CoroutineTest() {
 
     @Test
     fun delayedOpensHereTodayWithANoteThatItLocksAgain() {
-        val state = build(PresetId.Later)
+        val state = TodayFixtures.dayCloseState(policy(NumbersSettings.later()))
 
         assertNotNull(state.totals)
         assertTrue(state.revealNote)
@@ -167,7 +172,7 @@ class DayCloseTest : CoroutineTest() {
     @Test
     fun delayedOnAPastDayHasNoRelockNote() {
         val past = TodayFixtures.today.plus(DatePeriod(days = -2))
-        val state = TodayFixtures.dayCloseState(policy(PresetId.Later), date = past)
+        val state = TodayFixtures.dayCloseState(policy(NumbersSettings.later()), date = past)
 
         assertNotNull(state.totals)
         assertEquals(false, state.revealNote)
@@ -175,7 +180,7 @@ class DayCloseTest : CoroutineTest() {
 
     @Test
     fun weeklyLaterAndNoNumbersShowTheLoggedMealsAndNoBigDay() {
-        listOf(policy(PresetId.Later, revealOn = RevealOn.Week), policy(PresetId.NoNumbers)).forEach { policy ->
+        listOf(policy(NumbersSettings.later(RevealOn.Week)), policy(PresetId.NoNumbers)).forEach { policy ->
             val state = TodayFixtures.dayCloseState(policy, bigDay = true)
             val preset = policy.settings.preset
             assertEquals(MealSlot.meals.toSet(), state.loggedMeals, "$preset")
@@ -264,7 +269,7 @@ class DayCloseTest : CoroutineTest() {
         assertEquals(FeelingChoice(DayFeeling.entries, DayFeeling.Tired), blind.feeling)
         assertEquals(listOf("steady", "busy", "tired", "good", "hard"), DayFeeling.entries.map { it.wire }, "the design's order")
         assertNull(build(PresetId.Full).feeling, "with totals on show the screen already has its say")
-        assertNull(build(PresetId.NutrientsFirst).feeling)
+        assertNull(TodayFixtures.dayCloseState(softCalories).feeling)
     }
 
     @Test
@@ -323,11 +328,13 @@ class DayCloseTest : CoroutineTest() {
 
     @Test
     fun theCheckInIsOfferedInEveryMode_onlyWithTheFlag_andTakesTheFeelingsPlace() {
-        listOf(PresetId.Full, PresetId.NoNumbers, PresetId.NutrientsFirst, PresetId.Later).forEach { preset ->
-            val on = TodayFixtures.dayCloseState(policy(preset), checkInOn = true)
+        val modes = PresetId.entries.map { policy(it) } + policy(NumbersSettings.later())
+        modes.forEach { policy ->
+            val preset = policy.settings
+            val on = TodayFixtures.dayCloseState(policy, checkInOn = true)
             assertNotNull(on.checkIn, "$preset")
             assertNull(on.feeling, "$preset")
-            assertNull(TodayFixtures.dayCloseState(policy(preset)).checkIn, "$preset with the flag off")
+            assertNull(TodayFixtures.dayCloseState(policy).checkIn, "$preset with the flag off")
         }
         assertNotNull(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers)).feeling, "Blind keeps its feeling with the flag off")
     }

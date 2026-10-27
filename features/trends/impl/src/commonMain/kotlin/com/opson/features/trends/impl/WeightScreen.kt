@@ -357,10 +357,10 @@ private fun WeightEmptyPreview() = Weight(TrendsFixtures.policy(), inputs = Tren
 @Composable
 private fun WeightPhotosOffPreview() = Weight(TrendsFixtures.policy(), inputs = TrendsFixtures.weightInputs(photosReleased = false))
 
-/** Trend only: weight set to Soft in Modes (Nutrients first does that), which also hides the photos row. */
+/** Trend only: weight set to Soft in Modes (Macros only does that), which also hides the photos row. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun WeightTrendPreview() = Weight(TrendsFixtures.policy(PresetId.NutrientsFirst))
+private fun WeightTrendPreview() = Weight(TrendsFixtures.policy(PresetId.MacrosOnly))
 
 /** Hidden, mid weigh-in and just after one: the digits are dots and the save says it shows nowhere. */
 @Preview(widthDp = 390, heightDp = 844)

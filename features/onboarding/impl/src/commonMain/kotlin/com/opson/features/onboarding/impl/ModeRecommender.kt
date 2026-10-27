@@ -6,9 +6,9 @@ import com.opson.libraries.nutrition.Presets
 /**
  * Picks a starting mode from the setup answers. Once a port of `pickMode` in
  * `docs/design/handoff/phone-logic.js`, with design v3's default: answers that
- * say nothing give Full numbers, which is also where "Skip and start logging"
+ * say nothing give All numbers, which is also where "Skip and start logging"
  * lands, so skipping every question and skipping setup agree. Someone who agreed
- * numbers have been hard is never offered Full numbers ([isOffered]).
+ * numbers have been hard is never offered All numbers ([isOffered]).
  */
 object ModeRecommender {
 
@@ -18,19 +18,19 @@ object ModeRecommender {
     private val allNumbers = setOf(PresetId.Full)
 
     /** After the answers run out, the gentler modes first. */
-    private val fallback = listOf(PresetId.NoNumbers, PresetId.Later, PresetId.NutrientsFirst, PresetId.Full)
+    private val fallback = listOf(PresetId.NoNumbers, PresetId.MacrosOnly, PresetId.MacrosWithGrams, PresetId.Full)
 
     /**
-     * The four starting points of design sync 4. How someone feels about numbers decides it; the
-     * statement only ever takes it gentler, and never to Full numbers. Answers that say nothing about numbers (only a reason,
-     * or "Not sure yet") start in Later, which shows them at the end of the day.
+     * The four starting points. How someone feels about numbers decides it; the statement only
+     * ever takes it gentler, and never to All numbers. Answers that say nothing about numbers (only
+     * a reason, or "Not sure yet") start in Macros only, which shows the macros without an amount.
      */
     fun recommend(answers: SetupAnswers): PresetId = when (reason(answers)) {
         RecommendationReason.NoAnswers, RecommendationReason.LovesNumbers -> PresetId.Full
-        RecommendationReason.SomeAreFine -> PresetId.NutrientsFirst
+        RecommendationReason.SomeAreFine -> PresetId.MacrosOnly
         RecommendationReason.RatherNot -> PresetId.NoNumbers
-        RecommendationReason.Gentler -> if (answers.feel == NumbersFeel.LoveThem) PresetId.Later else PresetId.NoNumbers
-        RecommendationReason.NotSure -> PresetId.Later
+        RecommendationReason.Gentler -> if (answers.feel == NumbersFeel.LoveThem) PresetId.MacrosWithGrams else PresetId.NoNumbers
+        RecommendationReason.NotSure -> PresetId.MacrosOnly
     }
 
     /**
@@ -41,7 +41,7 @@ object ModeRecommender {
     fun reason(answers: SetupAnswers): RecommendationReason = when {
         answers.isEmpty -> RecommendationReason.NoAnswers
         answers.feel == NumbersFeel.RatherNot -> RecommendationReason.RatherNot
-        // Nutrients first already hides calories, so it stands with the statement too (design 1.5).
+        // Macros only already hides calories and grams, so it stands with the statement too (design 1.5).
         answers.feel == NumbersFeel.SomeAreFine -> RecommendationReason.SomeAreFine
         answers.hard -> RecommendationReason.Gentler
         answers.feel == NumbersFeel.LoveThem -> RecommendationReason.LovesNumbers
@@ -76,10 +76,10 @@ object ModeRecommender {
 
     private fun pointedAt(answers: SetupAnswers): List<PresetId> = buildList {
         if (Why.EatingRegularly in answers.why) add(PresetId.NoNumbers)
-        if (answers.feel == NumbersFeel.SomeAreFine || Why.EatingEnough in answers.why) add(PresetId.NutrientsFirst)
+        if (answers.feel == NumbersFeel.SomeAreFine || Why.EatingEnough in answers.why) add(PresetId.MacrosOnly)
         if (answers.feel == NumbersFeel.LoveThem) {
             add(PresetId.Full)
-            add(PresetId.Later)
+            add(PresetId.MacrosWithGrams)
         }
         if (answers.feel == NumbersFeel.RatherNot || answers.hard) add(PresetId.NoNumbers)
     }
@@ -87,7 +87,7 @@ object ModeRecommender {
 
 /** Which answer decided the starting point. The recommendation step says it in one line. */
 enum class RecommendationReason {
-    /** Every question skipped: Full numbers, as "Skip and start logging". */
+    /** Every question skipped: All numbers, as "Skip and start logging". */
     NoAnswers,
     LovesNumbers,
     SomeAreFine,
@@ -96,6 +96,6 @@ enum class RecommendationReason {
     /** Agreed numbers have been hard, and did not say they would rather see none. */
     Gentler,
 
-    /** "Not sure yet", or only a reason: Later, which shows the numbers when the day is done. */
+    /** "Not sure yet", or only a reason: Macros only, the macros as bars with no amounts. */
     NotSure,
 }

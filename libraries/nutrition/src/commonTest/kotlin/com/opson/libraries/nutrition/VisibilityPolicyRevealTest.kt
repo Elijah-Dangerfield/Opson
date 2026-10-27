@@ -26,10 +26,9 @@ class VisibilityPolicyRevealTest {
         surface: Surface,
         now: LocalDateTime = MORNING,
         context: FormatContext = FormatContext(),
-        preset: PresetId = PresetId.Later,
         zone: TimeZone = TimeZone.UTC,
         revealOn: RevealOn = RevealOn.DayClose,
-    ): Display = policy(preset, now = now, zone = zone, revealOn = revealOn).resolve(Metric.Calories, 1245.0, surface, context.copy(bare = true))
+    ): Display = later(now = now, zone = zone, revealOn = revealOn).resolve(Metric.Calories, 1245.0, surface, context.copy(bare = true))
 
     @Test
     fun delayed_staysHiddenInTheMorningOnEveryOrdinarySurface() {
@@ -91,7 +90,7 @@ class VisibilityPolicyRevealTest {
 
     @Test
     fun delayed_opensAtTheUsersOwnRevealTime() {
-        val settings = NumbersSettings(preset = PresetId.Later, revealAt = LocalTime(19, 30))
+        val settings = NumbersSettings.later().copy(revealAt = LocalTime(19, 30))
         fun policyAt(hour: Int, minute: Int) = VisibilityPolicy(settings, clockAt(at(hour, minute)), TimeZone.UTC)
         assertFalse(policyAt(19, 29).isRevealed(Surface.Today))
         assertTrue(policyAt(19, 30).isRevealed(Surface.Today))
@@ -100,7 +99,7 @@ class VisibilityPolicyRevealTest {
 
     @Test
     fun delayed_aLaterRevealTimeKeepsNineOClockShut() {
-        val settings = NumbersSettings(preset = PresetId.Later, revealAt = LocalTime(22, 15))
+        val settings = NumbersSettings.later().copy(revealAt = LocalTime(22, 15))
         assertFalse(VisibilityPolicy(settings, clockAt(at(21, 0)), TimeZone.UTC).isRevealed(Surface.Today))
         assertTrue(VisibilityPolicy(settings, clockAt(at(22, 15)), TimeZone.UTC).isRevealed(Surface.Today))
     }
@@ -131,12 +130,12 @@ class VisibilityPolicyRevealTest {
         // 21:30 UTC on Oct 25 is 5:30 pm in New York (EDT).
         val utcEvening = LocalDateTime(2026, 10, 25, 21, 30)
         val clock = clockAt(utcEvening, TimeZone.UTC)
-        val inNewYork = VisibilityPolicy(NumbersSettings(preset = PresetId.Later), clock, newYork)
-        val inUtc = VisibilityPolicy(NumbersSettings(preset = PresetId.Later), clock, TimeZone.UTC)
+        val inNewYork = VisibilityPolicy(NumbersSettings.later(), clock, newYork)
+        val inUtc = VisibilityPolicy(NumbersSettings.later(), clock, TimeZone.UTC)
 
         assertFalse(inNewYork.isRevealed(Surface.Today))
         assertTrue(inUtc.isRevealed(Surface.Today))
-        assertTrue(policy(PresetId.Later, now = at(21), zone = newYork).isRevealed(Surface.Today))
+        assertTrue(later(now = at(21), zone = newYork).isRevealed(Surface.Today))
     }
 
     @Test
@@ -166,7 +165,7 @@ class VisibilityPolicyRevealTest {
     @Test
     fun weekly_theWeekOpensAtTheUsersOwnRevealTime() {
         fun coastAt(now: LocalDateTime) =
-            VisibilityPolicy(NumbersSettings(preset = PresetId.Later, revealAt = LocalTime(19, 0), revealOn = RevealOn.Week), clockAt(now), TimeZone.UTC)
+            VisibilityPolicy(NumbersSettings.later().copy(revealAt = LocalTime(19, 0), revealOn = RevealOn.Week), clockAt(now), TimeZone.UTC)
         val thisWeek = FormatContext(day = TODAY)
         assertEquals(LocalDateTime(TODAY, LocalTime(19, 0)), coastAt(MORNING).weekOpensAt(TODAY))
         assertEquals(Display.Hidden, coastAt(at(18, 59)).resolve(Metric.Calories, 1245.0, Surface.Week, thisWeek))
@@ -186,7 +185,7 @@ class VisibilityPolicyRevealTest {
     @Test
     fun revealsWeekly_isTheSettingsOwnRule() {
         assertTrue(weekly().revealsWeekly)
-        assertFalse(policy(PresetId.Later).revealsWeekly)
+        assertFalse(later().revealsWeekly)
         assertTrue(policy(PresetId.Full, overrides = mapOf(Metric.Calories to Visibility.Delay), revealOn = RevealOn.Week).revealsWeekly)
     }
 
@@ -197,7 +196,7 @@ class VisibilityPolicyRevealTest {
 
     @Test
     fun softWeight_saysWhichWayTheLineGoes() {
-        val soft = policy(PresetId.Later)
+        val soft = later()
         fun word(kgPerWeek: Double?) = soft.resolve(Metric.Weight, 72.6, Surface.Weight, FormatContext(trendKgPerWeek = kgPerWeek))
         assertEquals(Display.Soft("Trend only", null), word(null))
         assertEquals(Display.Soft("Steady", null), word(0.1))
@@ -232,14 +231,14 @@ class VisibilityPolicyRevealTest {
 
     @Test
     fun revealing_doesNotTouchSoftenedOrHiddenMetrics() {
-        val evening = policy(PresetId.Later, now = at(22))
+        val evening = later(now = at(22))
         assertEquals(Display.Soft("Trend only", null), evening.resolve(Metric.Weight, 72.6, Surface.Week))
         assertEquals(Display.Hidden, evening.resolve(Metric.Micros, 62.0, Surface.Week))
     }
 
     @Test
     fun effectiveLevel_neverReturnsDelay() {
-        val delayed = policy(PresetId.Later)
+        val delayed = later()
         assertEquals(Visibility.Delay, delayed.level(Metric.Calories))
         assertEquals(Visibility.Hide, delayed.effectiveLevel(Metric.Calories, Surface.Today))
         assertEquals(Visibility.Show, delayed.effectiveLevel(Metric.Calories, Surface.Week))

@@ -32,7 +32,7 @@ private val PreviewDefault: VisibilityPolicy = previewVisibilityPolicy(PresetId.
 
 val LocalVisibilityPolicy = staticCompositionLocalOf { Unprovided }
 
-/** The provided policy, or Full numbers inside a `@Preview` when nothing was provided. */
+/** The provided policy, or All numbers inside a `@Preview` when nothing was provided. */
 @Composable
 @ReadOnlyComposable
 fun currentVisibilityPolicy(): VisibilityPolicy {

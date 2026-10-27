@@ -11,7 +11,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 private val full = previewVisibilityPolicy(PresetId.Full)
 private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
-private val nutrient = previewVisibilityPolicy(PresetId.NutrientsFirst)
+private val nutrient = previewVisibilityPolicy(PresetId.MacrosOnly)
 
 @Composable
 private fun Foods(state: FoodsState, dark: Boolean = false) = FoodsPreviewFrame(dark) { FoodsScreen(state, onAction = {}) }

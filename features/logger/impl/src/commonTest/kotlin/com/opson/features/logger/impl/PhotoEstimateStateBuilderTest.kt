@@ -1,10 +1,14 @@
 package com.opson.features.logger.impl
 
 import com.opson.libraries.foods.Confidence
+import com.opson.libraries.core.fixed
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
+import kotlinx.datetime.TimeZone
+import kotlin.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -66,7 +70,7 @@ class PhotoEstimateStateBuilderTest {
 
     @Test
     fun delayedHoldsBackTodayBeforeTheReveal() {
-        val review = review(policy(PresetId.Later))
+        val review = review(VisibilityPolicy(NumbersSettings.later(), Clock.fixed(NOON), TimeZone.UTC))
         assertTrue(review.rows.all { it.calories == Display.Hidden })
         assertEquals(Display.Hidden, review.footer?.calories)
     }

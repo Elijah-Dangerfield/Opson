@@ -185,12 +185,12 @@ sealed interface TodaySummary {
         /** Page 2, the macros (`release.todaySummary`); null when off or nothing to show. */
         val macrosPage: MacrosPage? = null,
         val singleGoal: Boolean = false,
-        /** Design sync 4's page 1 (`release.goalsAndEnergy`, Full numbers); null draws the design sync 2 page. */
+        /** Design sync 4's page 1 (`release.goalsAndEnergy`, All numbers); null draws the design sync 2 page. */
         val card: EnergyCard? = null,
     ) : TodaySummary
 
     /**
-     * Calories softened, Nutrients first (design sync 4, 13.5b): meals counted when the mode counts
+     * Calories set to Soft (once Nutrients first, design sync 4, 13.5b): meals counted when the mode counts
      * them, each visible nutrient as a word and a bar, and energy as a word over a neutral bar.
      */
     data class Soft(

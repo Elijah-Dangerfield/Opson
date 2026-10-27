@@ -160,6 +160,7 @@ fun TargetsScreen(
         )
         if (!state.visible) {
             BackgroundCard(onAction)
+            if (state.macros.isNotEmpty()) MacroCard(state, onAction)
             return@SettingsPage
         }
         SectionLabel(stringResource(Res.string.settings_targets_goal_style))
@@ -1099,6 +1100,14 @@ private fun TargetsByDaySurplusDarkPreview() {
 @Composable
 private fun TargetsBlindPreview() {
     val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.NoNumbers))
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+/** Macros with grams: no calorie goal, the gram targets under it. */
+@Preview
+@Composable
+private fun TargetsMacrosWithGramsPreview() {
+    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.MacrosWithGrams))
     SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 

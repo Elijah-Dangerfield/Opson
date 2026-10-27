@@ -24,6 +24,6 @@ enum class FastingPlan(val key: String, val fastingHours: Int, val opens: LocalT
 object Fasting {
     const val MAX_FASTING_HOURS = 16
 
-    /** Fasting is off by default everywhere and only offered at all in Full numbers (Sprint was Full numbers on a timer). */
+    /** Fasting is off by default everywhere and only offered at all in All numbers (Sprint was All numbers on a timer). */
     fun allowed(preset: PresetId): Boolean = Presets[preset].fastingAllowed
 }

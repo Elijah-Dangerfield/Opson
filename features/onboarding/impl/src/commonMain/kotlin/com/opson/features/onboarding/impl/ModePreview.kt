@@ -75,7 +75,11 @@ data class ModePreview(val seen: List<PreviewLine>, val keptOut: List<PreviewLin
                     proteinFiber -> PreviewItem.ProteinFiberAmounts
                     else -> PreviewItem.SomeNutrientAmounts
                 }
-                Visibility.Soften -> if (proteinFiber) PreviewItem.ProteinFiberBars else PreviewItem.SomeNutrientBars
+                Visibility.Soften -> when {
+                    all -> PreviewItem.MacroBars
+                    proteinFiber -> PreviewItem.ProteinFiberBars
+                    else -> PreviewItem.SomeNutrientBars
+                }
                 Visibility.Delay -> if (all) PreviewItem.MacrosLater else PreviewItem.SomeNutrientsLater
                 Visibility.Hide -> when {
                     all -> PreviewItem.MacrosHidden
@@ -105,6 +109,7 @@ enum class PreviewItem(val metrics: Set<Metric> = emptySet()) {
     MacroAmounts(setOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber)),
     ProteinFiberAmounts(setOf(Metric.Protein, Metric.Fiber)),
     SomeNutrientAmounts,
+    MacroBars(setOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber)),
     ProteinFiberBars(setOf(Metric.Protein, Metric.Fiber)),
     SomeNutrientBars,
     MacrosLater(setOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber)),

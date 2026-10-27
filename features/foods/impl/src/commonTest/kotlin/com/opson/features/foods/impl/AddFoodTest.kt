@@ -3,6 +3,7 @@ package com.opson.features.foods.impl
 import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -35,8 +36,9 @@ class AddFoodTest : CoroutineTest() {
     }
 
     @Test
-    fun nutrientsFirstAsksCaloriesProteinAndFiber_andWithCaloriesHiddenOnlyTheTwo() {
-        assertEquals(listOf(Metric.Calories, Metric.Protein, Metric.Fiber), asked(PresetId.NutrientsFirst))
+    fun theMacroModesAskForTheMacrosAndNeverCalories() {
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), asked(PresetId.MacrosOnly))
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), asked(PresetId.MacrosWithGrams))
         assertEquals(listOf(Metric.Protein, Metric.Fiber), AddFoodStateBuilder.asked(nutrientFocus()))
     }
 
@@ -49,7 +51,7 @@ class AddFoodTest : CoroutineTest() {
 
     @Test
     fun delayedStillAsksForCaloriesSinceTheyAreTheirOwnInput() {
-        assertTrue(Metric.Calories in asked(PresetId.Later))
+        assertTrue(Metric.Calories in AddFoodStateBuilder.asked(policy(NumbersSettings.later())))
     }
 
     @Test

@@ -186,6 +186,6 @@ class FormatTest {
         fun policy(preset: PresetId) = VisibilityPolicy(NumbersSettings(preset), clockAt(MORNING), TimeZone.UTC, loud)
 
         assertEquals(Display.Shown("E1245"), policy(PresetId.Full).resolve(Metric.Calories, 1245.0, Surface.Today))
-        assertEquals(Display.Soft("TrendOnly", null), policy(PresetId.NutrientsFirst).resolve(Metric.Weight, 70.0, Surface.Today))
+        assertEquals(Display.Soft("TrendOnly", null), policy(PresetId.MacrosOnly).resolve(Metric.Weight, 70.0, Surface.Today))
     }
 }

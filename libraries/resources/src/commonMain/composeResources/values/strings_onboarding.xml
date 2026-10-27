@@ -111,6 +111,7 @@
     <string name="onboarding_preview_macro_amounts">Protein, carbs, fat and fiber amounts</string>
     <string name="onboarding_preview_protein_fiber_amounts">Protein and fiber amounts</string>
     <string name="onboarding_preview_some_nutrient_amounts">Some nutrient amounts</string>
+    <string name="onboarding_preview_macro_bars">Protein, carbs, fat and fiber as fill bars</string>
     <string name="onboarding_preview_protein_fiber_bars">Protein and fiber as fill bars</string>
     <string name="onboarding_preview_some_nutrient_bars">Some nutrients as fill bars</string>
     <string name="onboarding_preview_macros_later">Protein, carbs, fat and fiber, once the day is closed</string>

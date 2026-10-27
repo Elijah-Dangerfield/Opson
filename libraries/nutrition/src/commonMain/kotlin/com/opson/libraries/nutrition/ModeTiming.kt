@@ -27,8 +27,8 @@ data class ModeTiming(val startedOn: LocalDate, val weeks: Int, val then: Preset
 
         /**
          * What the switch offers first when turned on: No numbers, the design's "2 weeks, then No
-         * numbers", or Later for someone already on No numbers, the next gentlest.
+         * numbers", or Macros only for someone already on No numbers, the next gentlest.
          */
-        fun defaultThen(current: PresetId): PresetId = if (current == PresetId.NoNumbers) PresetId.Later else PresetId.NoNumbers
+        fun defaultThen(current: PresetId): PresetId = if (current == PresetId.NoNumbers) PresetId.MacrosOnly else PresetId.NoNumbers
     }
 }

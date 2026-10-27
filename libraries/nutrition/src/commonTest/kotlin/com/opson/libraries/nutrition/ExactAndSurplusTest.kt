@@ -171,7 +171,7 @@ class ExactAndSurplusTest {
         val less = requireNotNull(surplus.stepSurplus(up = false, group = 1))
         assertEquals(GroupShape.Surplus(50, 100), (less.style as TargetStyle.ByDay).groups[1].shape)
         assertNull(surplus.stepSurplus(up = true, group = 0), "group 0 is a range")
-        assertEquals(DayGoal.Range(2300, 2700, 2500, groupIndex = 1), surplus.rangeFor(saturday, PresetId.NoNumbers), "Full numbers only")
+        assertEquals(DayGoal.Range(2300, 2700, 2500, groupIndex = 1), surplus.rangeFor(saturday, PresetId.NoNumbers), "All numbers only")
     }
 
     @Test

@@ -100,7 +100,7 @@ class SettingsTest {
     fun everyFieldSurvivesAJsonRoundTrip() {
         val s = Settings(
             numbers = NumbersSettings(
-                preset = PresetId.Later,
+                preset = PresetId.MacrosWithGrams,
                 overrides = mapOf(Metric.Water to Visibility.Hide, Metric.Protein to Visibility.Soften),
                 pauseBeforeMore = true,
                 changedAt = Instant.parse("2026-10-20T08:30:00Z"),
@@ -131,12 +131,12 @@ class SettingsTest {
         val json = SettingsJson.encodeToString(
             Settings.serializer(),
             Settings(
-                numbers = NumbersSettings(preset = PresetId.Later, overrides = mapOf(Metric.EnergyOut to Visibility.Soften), revealOn = RevealOn.Week),
+                numbers = NumbersSettings.later(RevealOn.Week).let { it.copy(overrides = it.overrides + (Metric.EnergyOut to Visibility.Soften)) },
                 waterUnit = WaterUnit.FlOz,
             ),
         )
 
-        listOf("\"preset\":\"coast\"", "\"preset\":\"later\"", "\"revealOn\":\"week\"", "\"energyOut\":\"soften\"", "\"fastPlan\":\"14:10\"", "\"waterUnit\":\"oz\"", "\"exercise\":\"some\"")
+        listOf("\"preset\":\"coast\"", "\"preset\":\"full\"", "\"revealOn\":\"week\"", "\"energyOut\":\"soften\"", "\"fastPlan\":\"14:10\"", "\"waterUnit\":\"oz\"", "\"exercise\":\"some\"")
             .forEach { assertTrue(it in json, "missing $it in $json") }
     }
 
@@ -169,7 +169,7 @@ class SettingsTest {
 
     @Test
     fun theRevealTimeTravelsAsHoursAndMinutes_andDefaultsToNine() {
-        val s = Settings(numbers = NumbersSettings(preset = PresetId.Later, revealAt = LocalTime(19, 30)))
+        val s = Settings(numbers = NumbersSettings.later().copy(revealAt = LocalTime(19, 30)))
         val json = SettingsJson.encodeToString(Settings.serializer(), s)
         assertTrue("\"revealAt\":\"19:30\"" in json, json)
         assertEquals(s, SettingsJson.decodeFromString(Settings.serializer(), json))

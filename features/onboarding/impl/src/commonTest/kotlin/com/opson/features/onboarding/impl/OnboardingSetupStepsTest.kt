@@ -306,7 +306,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         // Full numbers is never on offer to them, and the goal step only comes with it.
         val vm = atRecommendation(listOf(NumbersFeel.LoveThem, StatementAnswer.Agree))
 
-        assertEquals(PresetId.Later, vm.state.chosen)
+        assertEquals(PresetId.MacrosWithGrams, vm.state.chosen)
         assertFalse(vm.state.showsGoal)
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
@@ -345,7 +345,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         val vm = atRecommendation(listOf(NumbersFeel.SomeAreFine))
         assertEquals(RecommendationReason.SomeAreFine, vm.state.reason)
 
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Later))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.MacrosWithGrams))
         runCurrent()
         assertNull(vm.state.reason)
     }

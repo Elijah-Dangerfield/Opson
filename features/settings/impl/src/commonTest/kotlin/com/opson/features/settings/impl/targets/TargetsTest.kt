@@ -77,12 +77,21 @@ class TargetsTest : CoroutineTest() {
 
     @Test
     fun softDelayedAndHiddenCaloriesGetTheBackgroundCardWithNoAmounts() {
-        listOf(PresetId.NutrientsFirst, PresetId.Later, PresetId.Later, PresetId.NoNumbers, PresetId.NutrientsFirst).forEach { preset ->
+        listOf(NumbersSettings(PresetId.MacrosOnly), NumbersSettings.later(), NumbersSettings(PresetId.NoNumbers)).forEach { numbers ->
             listOf(SettingsFixtures.rangeTargets, SettingsFixtures.deficitTargets, SettingsFixtures.byDayTargets).forEach { targets ->
-                val state = build(NumbersSettings(preset), targets, burned = SettingsFixtures.burned, editingGroup = 1)
-                assertEquals(TargetsState(visible = false), state, "in $preset")
+                val state = build(numbers, targets, burned = SettingsFixtures.burned, editingGroup = 1)
+                assertEquals(TargetsState(visible = false), state, "in $numbers")
             }
         }
+    }
+
+    @Test
+    fun macrosWithGrams_hidesTheCalorieGoal_butKeepsTheGramTargets() {
+        val state = build(NumbersSettings(PresetId.MacrosWithGrams), SettingsFixtures.rangeTargets, burned = SettingsFixtures.burned)
+        assertEquals(false, state.visible)
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat), state.macros.map { it.metric })
+        assertEquals(Display.Shown("120 g"), state.macros.first().grams)
+        assertTrue(state.styles.isEmpty() && state.range == null && state.burned == null, "no calorie goal anywhere")
     }
 
     @Test
@@ -400,8 +409,8 @@ class TargetsTest : CoroutineTest() {
 
     @Test
     fun aDeficitCannotBePickedWhereItIsNotOffered() = runUnitTest {
-        val repository = FakeSettingsRepository(SettingsFixtures.settings(NumbersSettings(PresetId.NutrientsFirst)))
-        val vm = viewModel(repository, PresetId.NutrientsFirst)
+        val repository = FakeSettingsRepository(SettingsFixtures.settings(NumbersSettings(PresetId.MacrosOnly)))
+        val vm = viewModel(repository, PresetId.MacrosOnly)
         val writes = repository.writes
 
         vm.takeAction(TargetsAction.StylePicked(StyleKind.Deficit))

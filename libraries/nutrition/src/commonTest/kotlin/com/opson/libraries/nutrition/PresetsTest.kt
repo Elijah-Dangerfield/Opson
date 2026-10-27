@@ -7,11 +7,13 @@ import com.opson.libraries.nutrition.Visibility.Soften
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The four presets of design sync 4 (13.5a), metric for metric, and the flags screens read
- * (layout, meal count, fasting, photos, meal gaps). Full numbers shows micros, where the
+ * The four presets (all numbers, macros with grams, macros only, no numbers), metric for metric, and the flags screens read
+ * (layout, meal count, fasting, photos, meal gaps). All numbers shows micros, where the
  * prototype made them opt-in (`docs/decisions.md`, 2026-10-27).
  *
  * Not covered here: how a level renders, which is [VisibilityPolicyResolveTest] and
@@ -29,13 +31,27 @@ class PresetsTest {
     }
 
     @Test
-    fun nutrientsFirst_isProteinFiberAndWaterUpFrontWithCaloriesAsAFillBar() {
-        assertEquals(listOf(Soften, Hide, Hide, Soften, Hide, Hide, Soften, Hide, Soften, Soften), levels(Presets.NutrientsFirst))
+    fun macrosWithGrams_showsEverythingButEnergy() {
+        assertEquals(listOf(Hide, Hide, Hide, Show, Show, Show, Show, Show, Show, Show), levels(Presets.MacrosWithGrams))
     }
 
     @Test
-    fun later_delaysEverythingSoftensWeightHidesMicros() {
-        assertEquals(listOf(Delay, Delay, Delay, Delay, Delay, Delay, Delay, Hide, Soften, Soften), levels(Presets.Later))
+    fun macrosOnly_softensTheMacrosAndHidesCalories() {
+        assertEquals(listOf(Hide, Hide, Hide, Soften, Soften, Soften, Soften, Hide, Soften, Soften), levels(Presets.MacrosOnly))
+    }
+
+    @Test
+    fun noPreset_butAllNumbers_showsEnergy() {
+        Presets.all.filter { it.id != PresetId.Full }.forEach { preset ->
+            listOf(Metric.Calories, Metric.Remaining, Metric.EnergyOut).forEach { metric ->
+                assertEquals(Hide, preset.level(metric), "${preset.id.name} ${metric.name}")
+            }
+        }
+    }
+
+    @Test
+    fun laterLevels_delayEverythingSoftenWeightHideMicros() {
+        assertEquals(listOf(Delay, Delay, Delay, Delay, Delay, Delay, Delay, Hide, Soften, Soften), Metric.entries.map { Presets.laterLevels.getValue(it) })
     }
 
     @Test
@@ -44,16 +60,16 @@ class PresetsTest {
     }
 
     @Test
-    fun noPresetButFull_showsAnAmount() {
-        Presets.all.filter { it.id != PresetId.Full }.forEach { preset ->
+    fun onlyTheTwoNumberModes_showAnAmount() {
+        Presets.all.filter { it.id == PresetId.MacrosOnly || it.id == PresetId.NoNumbers }.forEach { preset ->
             assertTrue(Metric.entries.none { preset.level(it) == Show }, preset.id.name)
         }
     }
 
     @Test
-    fun water_isSoftenedEverywhereExceptFull() {
+    fun water_isSoftenedWhereAmountsAreHidden() {
         Presets.all.forEach { preset ->
-            val expected = if (preset.id == PresetId.Full) Show else Soften
+            val expected = if (preset.id == PresetId.Full || preset.id == PresetId.MacrosWithGrams) Show else Soften
             assertEquals(expected, preset.level(Metric.Water), preset.id.name)
         }
     }
@@ -68,8 +84,8 @@ class PresetsTest {
         assertEquals(
             mapOf(
                 PresetId.Full to TodayLayout.Full,
-                PresetId.NutrientsFirst to TodayLayout.Full,
-                PresetId.Later to TodayLayout.Full,
+                PresetId.MacrosWithGrams to TodayLayout.Full,
+                PresetId.MacrosOnly to TodayLayout.Full,
                 PresetId.NoNumbers to TodayLayout.MealTimeline,
             ),
             Presets.all.associate { it.id to it.today },
@@ -77,8 +93,8 @@ class PresetsTest {
     }
 
     @Test
-    fun mealCount_isOnlyOnInNutrientsFirst() {
-        assertEquals(listOf(PresetId.NutrientsFirst), Presets.all.filter { it.mealCount }.map { it.id })
+    fun mealCount_isOnlyOnInMacrosOnly() {
+        assertEquals(listOf(PresetId.MacrosOnly), Presets.all.filter { it.mealCount }.map { it.id })
     }
 
     @Test
@@ -87,8 +103,8 @@ class PresetsTest {
     }
 
     @Test
-    fun photos_hideByDefaultInNutrientsFirstAndNoNumbers() {
-        assertEquals(listOf(PresetId.NutrientsFirst, PresetId.NoNumbers), Presets.all.filterNot { it.progressPhotos }.map { it.id })
+    fun photos_hideByDefaultInMacrosOnlyAndNoNumbers() {
+        assertEquals(listOf(PresetId.MacrosOnly, PresetId.NoNumbers), Presets.all.filterNot { it.progressPhotos }.map { it.id })
     }
 
     @Test
@@ -108,9 +124,11 @@ class PresetsTest {
             listOf("calories", "remaining", "energyOut", "protein", "carbs", "fat", "fiber", "micros", "weight", "water"),
             Metric.entries.map { it.key },
         )
-        assertEquals(listOf("full", "nutrients_first", "later", "no_numbers"), PresetId.entries.map { it.key })
-        assertEquals(PresetId.Later, PresetId.fromKey("later"))
+        assertEquals(listOf("full", "macros_grams", "macros_only", "no_numbers"), PresetId.entries.map { it.key })
+        assertEquals(PresetId.MacrosOnly, PresetId.fromKey("macros_only"))
         assertEquals(null, PresetId.fromKey("coast"), "a legacy key is LegacyPreset's to read")
+        assertEquals(null, PresetId.fromKey("later"), "a retired key is RetiredPreset's to read")
+        assertEquals(listOf("nutrients_first", "later"), RetiredPreset.entries.map { it.key })
     }
 
     @Test
@@ -118,5 +136,43 @@ class PresetsTest {
         assertEquals(listOf(3, 2, 1, 0), listOf(Show, Soften, Delay, Hide).map { it.score })
         assertTrue(Show.score > Soften.score)
         assertFalse(Hide.score > Delay.score)
+    }
+}
+
+class RetiredPresetTest {
+
+    @Test
+    fun nutrientsFirst_becomesMacrosOnly_keepingThePersonsChanges() {
+        val changes = mapOf(Metric.Carbs to Show)
+        assertEquals(PresetId.MacrosOnly to changes, RetiredPreset.read("nutrients_first", changes))
+    }
+
+    @Test
+    fun later_becomesAllNumbers_withEveryNumberStillOnLater() {
+        val (preset, overrides) = assertNotNull(RetiredPreset.read("later", emptyMap()))
+        val settings = NumbersSettings(preset, overrides)
+        assertEquals(PresetId.Full, preset)
+        Metric.entries.forEach { assertEquals(Presets.laterLevels.getValue(it), settings.level(it), it.name) }
+        assertEquals(NumbersSettings.later(), settings)
+    }
+
+    @Test
+    fun later_keepsAChangeOnTop_andDropsOneThatAllNumbersAlreadyMakes() {
+        val (_, overrides) = assertNotNull(RetiredPreset.read("later", mapOf(Metric.Water to Hide, Metric.Protein to Show)))
+        assertEquals(Hide, overrides[Metric.Water])
+        assertFalse(Metric.Protein in overrides, "Show is All numbers' own level")
+    }
+
+    @Test
+    fun currentKeys_readAsThemselves_andUnknownKeysAsNothing() {
+        assertEquals(PresetId.MacrosWithGrams to emptyMap<Metric, Visibility>(), RetiredPreset.read("macros_grams", emptyMap()))
+        assertNull(RetiredPreset.read("sparkle", emptyMap()))
+    }
+
+    @Test
+    fun timerTargets() {
+        assertEquals(PresetId.MacrosOnly, RetiredPreset.timerTarget("nutrients_first"))
+        assertNull(RetiredPreset.timerTarget("later"), "no one preset is Later without showing more at once")
+        assertEquals(PresetId.NoNumbers, RetiredPreset.timerTarget("no_numbers"))
     }
 }

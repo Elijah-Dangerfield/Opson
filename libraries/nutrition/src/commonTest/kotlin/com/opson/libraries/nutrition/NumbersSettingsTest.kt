@@ -16,9 +16,9 @@ class NumbersSettingsTest {
 
     @Test
     fun level_fallsBackToThePreset() {
-        val settings = NumbersSettings(preset = PresetId.NutrientsFirst)
+        val settings = NumbersSettings(preset = PresetId.MacrosOnly)
         assertEquals(Visibility.Soften, settings.level(Metric.Protein))
-        assertEquals(Visibility.Hide, settings.level(Metric.Carbs))
+        assertEquals(Visibility.Hide, settings.level(Metric.Calories))
     }
 
     @Test
@@ -63,7 +63,7 @@ class NumbersSettingsTest {
 
     @Test
     fun pickPreset_keepsPauseBeforeMore() {
-        val settings = NumbersSettings(pauseBeforeMore = true).pickPreset(PresetId.Later, SOME_INSTANT)
+        val settings = NumbersSettings(pauseBeforeMore = true).pickPreset(PresetId.MacrosOnly, SOME_INSTANT)
         assertTrue(settings.pauseBeforeMore)
     }
 
@@ -88,13 +88,13 @@ class NumbersSettingsTest {
         assertEquals(30, NumbersSettings(preset = PresetId.Full).score())
         assertEquals(2, NumbersSettings(preset = PresetId.NoNumbers).score())
         // Seven delays at 1, micros hidden, weight and water softened at 2.
-        assertEquals(11, NumbersSettings(preset = PresetId.Later).score())
+        assertEquals(11, NumbersSettings.later().score())
         assertEquals(27, NumbersSettings(overrides = mapOf(Metric.Micros to Visibility.Hide)).score())
     }
 
     @Test
     fun policyScore_countsDelayAsDelayEvenWhenRevealed() {
-        val evening = policy(PresetId.Later, now = at(22))
+        val evening = later(now = at(22))
         assertTrue(evening.isRevealed(Surface.Today))
         assertEquals(11, evening.score())
     }
@@ -104,7 +104,9 @@ class NumbersSettingsTest {
         val blind = NumbersSettings(preset = PresetId.NoNumbers)
         assertTrue(blind.isRaise(NumbersSettings(preset = PresetId.Full)))
         assertTrue(blind.isRaise(blind.override(Metric.Calories, Visibility.Delay, SOME_INSTANT)))
-        assertTrue(policy(PresetId.NoNumbers).isRaise(NumbersSettings(preset = PresetId.NutrientsFirst)))
+        assertTrue(policy(PresetId.NoNumbers).isRaise(NumbersSettings(preset = PresetId.MacrosOnly)))
+        assertTrue(NumbersSettings(preset = PresetId.MacrosOnly).isRaise(NumbersSettings(preset = PresetId.MacrosWithGrams)))
+        assertTrue(NumbersSettings(preset = PresetId.MacrosWithGrams).isRaise(NumbersSettings(preset = PresetId.Full)))
     }
 
     @Test

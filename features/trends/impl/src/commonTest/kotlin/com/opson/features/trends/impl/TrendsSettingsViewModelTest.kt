@@ -5,6 +5,9 @@ import com.opson.libraries.diary.TrendsCards
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.Presets
+import com.opson.libraries.nutrition.Metric
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlin.test.Test
@@ -42,11 +45,13 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
 
     @Test
     fun toggles_filteredByWhatTheModeCanShow() {
-        fun cards(preset: PresetId) = TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(preset)).toggles.map { it.card }
+        fun cards(preset: PresetId, overrides: Map<Metric, Visibility> = emptyMap()) =
+            TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(preset, overrides)).toggles.map { it.card }
         assertEquals(TrendsCard.entries - TrendsCard.Expended, cards(PresetId.Full), "Expended waits for a connected watch")
         assertEquals(listOf(TrendsCard.Recap), cards(PresetId.NoNumbers), "weight is hidden, so its card never shows")
-        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.NutrientsFirst))
-        assertEquals(listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.Later))
+        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.MacrosOnly))
+        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.MacrosWithGrams), "no calorie chart")
+        assertEquals(listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.Full, Presets.laterLevels))
     }
 
     @Test

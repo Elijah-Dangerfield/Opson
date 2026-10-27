@@ -49,9 +49,9 @@ import opson.libraries.resources.generated.resources.modes_foods
 import opson.libraries.resources.generated.resources.modes_locked_counts
 import opson.libraries.resources.generated.resources.modes_locked_title
 import opson.libraries.resources.generated.resources.modes_preset_full
-import opson.libraries.resources.generated.resources.modes_preset_later
 import opson.libraries.resources.generated.resources.modes_preset_no_numbers
-import opson.libraries.resources.generated.resources.modes_preset_nutrients_first
+import opson.libraries.resources.generated.resources.modes_preset_macros_grams
+import opson.libraries.resources.generated.resources.modes_preset_macros_only
 import opson.libraries.resources.generated.resources.modes_soft_label
 import opson.libraries.resources.generated.resources.modes_timeline_done_cd
 import opson.libraries.resources.generated.resources.modes_timeline_open_cd
@@ -73,11 +73,11 @@ import org.jetbrains.compose.resources.stringResource
 
 /*
  * Today's cards for the gentler modes (design sync 4, 13.5b to 13.5d) and the End after a set
- * time banner. The Full numbers card is TodaySummaryViews' own.
+ * time banner. The All numbers card is TodaySummaryViews' own.
  */
 
 /**
- * Nutrients first (13.5b): "Today" and the meal count, each visible nutrient as its word over a
+ * Calories set to Soft (once Nutrients first, 13.5b): "Today" and the meal count, each visible nutrient as its word over a
  * bar in its own colour, then energy as a word over a neutral bar. Words and bars, no amounts.
  */
 @Composable
@@ -261,7 +261,7 @@ internal fun ModeTimerBanner(banner: TodayBanner, onAction: (TodayAction) -> Uni
 private val PresetId.label: StringResource
     get() = when (this) {
         PresetId.Full -> Res.string.modes_preset_full
-        PresetId.NutrientsFirst -> Res.string.modes_preset_nutrients_first
-        PresetId.Later -> Res.string.modes_preset_later
+        PresetId.MacrosWithGrams -> Res.string.modes_preset_macros_grams
+        PresetId.MacrosOnly -> Res.string.modes_preset_macros_only
         PresetId.NoNumbers -> Res.string.modes_preset_no_numbers
     }

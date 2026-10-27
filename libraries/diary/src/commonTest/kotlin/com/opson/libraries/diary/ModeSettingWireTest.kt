@@ -35,11 +35,11 @@ class ModeSettingWireTest {
 
     @Test
     fun theModeIsATopLevelKey_andNumbersKeepsAPresetA01PhoneKnows() {
-        val json = encode(Settings(numbers = NumbersSettings(preset = PresetId.NutrientsFirst, changedAt = at)))
+        val json = encode(Settings(numbers = NumbersSettings(preset = PresetId.MacrosOnly, changedAt = at)))
         val mode = json.getValue("mode").jsonObject
-        assertEquals("nutrients_first", mode.getValue("preset").jsonPrimitive.content)
+        assertEquals("macros_only", mode.getValue("preset").jsonPrimitive.content)
         val numbers = json.getValue("numbers").jsonObject
-        assertEquals("fuel", numbers.getValue("preset").jsonPrimitive.content)
+        assertEquals("nutrient", numbers.getValue("preset").jsonPrimitive.content)
         assertFalse("mode" in numbers, "nothing new inside numbers: a 0.1 save would drop it")
     }
 
@@ -48,8 +48,9 @@ class ModeSettingWireTest {
         val timing = ModeTiming(startedOn = LocalDate(2026, 10, 20), weeks = 2, then = PresetId.NoNumbers)
         listOf(
             NumbersSettings(),
-            NumbersSettings(preset = PresetId.NutrientsFirst, overrides = mapOf(Metric.Carbs to Visibility.Soften), changedAt = at),
-            NumbersSettings(preset = PresetId.Later, revealOn = RevealOn.Week, changedAt = at),
+            NumbersSettings(preset = PresetId.MacrosOnly, overrides = mapOf(Metric.Carbs to Visibility.Show), changedAt = at),
+            NumbersSettings(preset = PresetId.MacrosWithGrams, changedAt = at),
+            NumbersSettings.later().copy(revealOn = RevealOn.Week, changedAt = at),
             NumbersSettings(preset = PresetId.NoNumbers, progressPhotos = true, pauseBeforeMore = true, changedAt = at),
             NumbersSettings(preset = PresetId.Full, endAfter = timing, changedAt = at),
         ).forEach { numbers ->
@@ -60,7 +61,8 @@ class ModeSettingWireTest {
 
     @Test
     fun a01Phone_readingWhatA02PhoneWrote_seesTheSameLevels() {
-        val numbers = NumbersSettings(preset = PresetId.Later, overrides = mapOf(Metric.Protein to Visibility.Hide), revealOn = RevealOn.Week)
+        val weekly = NumbersSettings.later(RevealOn.Week)
+        val numbers = weekly.copy(overrides = weekly.overrides + (Metric.Protein to Visibility.Hide))
         val json = encode(Settings(numbers = numbers))
         // What a 0.1 phone reads: numbers alone, with the 0.1 presets.
         val oldNumbers = json.getValue("numbers").jsonObject
@@ -72,18 +74,18 @@ class ModeSettingWireTest {
 
     @Test
     fun a01Save_thatLeftTheModeAlone_keepsTheModeA02PhoneSet() {
-        val mine = Settings(numbers = NumbersSettings(preset = PresetId.NutrientsFirst, changedAt = at))
+        val mine = Settings(numbers = NumbersSettings(preset = PresetId.MacrosOnly, changedAt = at))
         val json = encode(mine)
         // A 0.1 phone rewrites numbers whole, with what it read, and changes the water goal.
         val afterOldSave = JsonObject(json + ("numbers" to json.getValue("numbers")) + ("waterGlasses" to kotlinx.serialization.json.JsonPrimitive(10)))
         val read = decode(afterOldSave)
-        assertEquals(PresetId.NutrientsFirst, read.numbers.preset)
+        assertEquals(PresetId.MacrosOnly, read.numbers.preset)
         assertEquals(10, read.waterGlasses)
     }
 
     @Test
     fun a01Phone_pickingAMode_afterA02Phone_wins_migrated() {
-        val json = encode(Settings(numbers = NumbersSettings(preset = PresetId.NutrientsFirst, changedAt = at)))
+        val json = encode(Settings(numbers = NumbersSettings(preset = PresetId.MacrosOnly, changedAt = at)))
         val picked = JsonObject(
             json.getValue("numbers").jsonObject +
                 ("preset" to kotlinx.serialization.json.JsonPrimitive("blind")) +
@@ -111,7 +113,8 @@ class ModeSettingWireTest {
                 ("changedAtEpochMs" to kotlinx.serialization.json.JsonPrimitive(later.toEpochMilliseconds())),
         )
         val read = decode(JsonObject(json + ("numbers" to picked))).numbers
-        assertEquals(PresetId.Later, read.preset)
+        assertEquals(PresetId.Full, read.preset)
+        assertEquals(Visibility.Delay, read.level(Metric.Calories), "Delayed is every number on Later")
         assertEquals(timing, read.endAfter)
     }
 
@@ -119,7 +122,8 @@ class ModeSettingWireTest {
     fun oldSettings_withNoModeKey_migrate() {
         assertEquals(PresetId.NoNumbers, decode("""{"numbers":{"preset":"mindful"}}""").numbers.preset)
         val coast = decode("""{"numbers":{"preset":"coast"}}""").numbers
-        assertEquals(PresetId.Later, coast.preset)
+        assertEquals(PresetId.Full, coast.preset)
+        assertEquals(Visibility.Delay, coast.level(Metric.Calories))
         assertEquals(RevealOn.Week, coast.revealOn)
         assertEquals(Visibility.Hide, coast.level(Metric.Protein))
         val nutrient = decode("""{"numbers":{"preset":"nutrient"}}""").numbers
@@ -129,7 +133,7 @@ class ModeSettingWireTest {
     @Test
     fun aModeFromANewerBuild_fallsBackToTheNumbersItWroteForOldPhones() {
         val read = decode("""{"numbers":{"preset":"fuel"},"mode":{"preset":"sparkle"}}""").numbers
-        assertEquals(PresetId.NutrientsFirst, read.preset)
+        assertEquals(PresetId.MacrosOnly, read.preset)
         assertEquals(Visibility.Show, read.level(Metric.Protein))
     }
 
@@ -140,6 +144,50 @@ class ModeSettingWireTest {
         ).numbers
         assertNull(read.endAfter)
         assertEquals(RevealOn.Week, read.revealOn)
+        assertEquals(PresetId.Full, read.preset, "Later is retired: All numbers with every number on Later")
+        assertEquals(Visibility.Delay, read.level(Metric.Calories))
+    }
+
+    @Test
+    fun aRetiredNutrientsFirst_readsAsMacrosOnly_keepingThePersonsChanges() {
+        val ms = at.toEpochMilliseconds()
+        val read = decode(
+            """{"numbers":{"preset":"fuel","changedAtEpochMs":$ms},"mode":{"preset":"nutrients_first","overrides":{"carbs":"show"},"changedAtEpochMs":$ms}}""",
+        ).numbers
+        assertEquals(PresetId.MacrosOnly, read.preset)
+        assertEquals(mapOf(Metric.Carbs to Visibility.Show), read.overrides)
+        assertEquals(Visibility.Hide, read.level(Metric.Calories), "Macros only has no calories")
+        assertEquals(at, read.changedAt)
+    }
+
+    @Test
+    fun aRetiredLater_readsAsAllNumbers_withEveryNumberStillOnLater() {
+        val ms = at.toEpochMilliseconds()
+        val read = decode(
+            """{"numbers":{"preset":"coast","changedAtEpochMs":$ms},"mode":{"preset":"later","overrides":{"water":"hide"},"revealOn":"week","changedAtEpochMs":$ms}}""",
+        ).numbers
+        assertEquals(PresetId.Full, read.preset)
+        assertEquals(RevealOn.Week, read.revealOn)
+        assertEquals(Visibility.Hide, read.level(Metric.Water), "their own change stays")
+        Metric.entries.filter { it != Metric.Water }.forEach { metric ->
+            assertEquals(NumbersSettings.later().level(metric), read.level(metric), metric.name)
+        }
+    }
+
+    @Test
+    fun aTimerEndingInARetiredMode_switchesToWhatReplacedIt_orIsDroppedForLater() {
+        val toNutrientsFirst = decode(
+            """{"mode":{"preset":"full","endAfter":{"startedOn":"2026-10-20","weeks":2,"then":"nutrients_first"}}}""",
+        ).numbers
+        assertEquals(PresetId.MacrosOnly, toNutrientsFirst.endAfter?.then)
+        val toLater = decode("""{"mode":{"preset":"no_numbers","endAfter":{"startedOn":"2026-10-20","weeks":2,"then":"later"}}}""").numbers
+        assertNull(toLater.endAfter)
+    }
+
+    @Test
+    fun aTimerNotice_fromARetiredMode_namesWhatReplacedIt() {
+        assertEquals(PresetId.MacrosOnly, decode("""{"modeTimerEnded":{"on":"2026-11-03","from":"nutrients_first"}}""").modeTimerEnded?.from)
+        assertEquals(PresetId.Full, decode("""{"modeTimerEnded":{"on":"2026-11-03","from":"later"}}""").modeTimerEnded?.from)
     }
 
     @Test
