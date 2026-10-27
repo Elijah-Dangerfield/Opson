@@ -1,10 +1,11 @@
-"""Checks on the release path that no build runs until a tag is pushed.
+"""Checks on workflows that only run on a release or a push to main.
 
 release.yml has a job that only runs on a real release, so a mistake in it
-waits until the day it matters. These read the workflow files and run the
-helpers they call, so the mistake shows up on the PR instead.
+waits until the day it matters, and a deploy workflow's mistake shows up on
+main after the merge. These read the workflow files and run the helpers they
+call, so the mistake shows up on the PR instead.
 
-    python3 -I -m unittest discover -s scripts -p 'test_release_path.py' -v
+    python3 -I -m unittest discover -s scripts -p 'test_workflows.py' -v
 """
 
 from __future__ import annotations
@@ -145,6 +146,17 @@ class AndroidSentryTest(unittest.TestCase):
         # A hand-run upload-proguard has no ProGuard UUID to match against, so
         # it associates with nothing and still reports success.
         self.assertNotRegex(workflow("release.yml"), r"sentry/cli@\S+ upload-proguard")
+
+
+class LegalSyncTest(unittest.TestCase):
+    def test_every_step_that_needs_the_site_token_waits_for_it(self):
+        # Unset, the checkout died with "Input required and not supplied: token"
+        # on every push to legal/.
+        steps = re.split(r"\n      - ", workflow("legal-sync.yml"))
+        using = [step for step in steps if "secrets.NIGHTJAR_SITE_TOKEN" in step and "id: token" not in step]
+        self.assertEqual(len(using), 2, "the site checkout and the pull request")
+        for step in using:
+            self.assertIn("if: steps.token.outputs.configured == 'true'", step, step.splitlines()[0])
 
 
 FASTFILE = ROOT / "apps" / "ios" / "fastlane" / "Fastfile"
