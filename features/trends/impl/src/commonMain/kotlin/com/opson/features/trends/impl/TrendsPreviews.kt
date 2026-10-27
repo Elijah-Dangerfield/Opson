@@ -139,7 +139,7 @@ private fun TrendsNotesPreview() = Journal(TrendsFixtures.trendsInputs(notesLink
 @Composable
 private fun TrendsNotesDarkPreview() = Journal(TrendsFixtures.trendsInputs(notesLinked = true), dark = true, hunger = false)
 
-/** Notes but no hunger picked, and no Notes list bound (the app today): the hunger sentence, then just the count. */
+/** Notes but no hunger picked, and no Notes list bound: the hunger sentence, then just the count. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TrendsNotesOnlyPreview() = Journal(
