@@ -23,6 +23,11 @@ private const val MIN_VERSION_PATH = "upgrade.minSupportedVersionCode"
  * involves scrolling a flag list: maintenance mode (lockout/banner), the
  * maintenance message, and the force-upgrade floor. Big obvious state, and
  * every flip still goes through the confirm sheet.
+ *
+ * No app build reads these yet (`SERVER_OWNED_PATHS` in
+ * ConfigManifestRegistryDriftTest), so the panel says what setting one does
+ * today: changes the served config and nothing a user sees. Drop [NOT_READ_YET]
+ * and the hedged labels with the release that adds the client gate.
  */
 @Composable
 internal fun KillSwitchPanel(rows: List<FlagRow>, manifest: ManifestResponse?, ctx: AdminCtx) {
@@ -38,13 +43,14 @@ internal fun KillSwitchPanel(rows: List<FlagRow>, manifest: ManifestResponse?, c
         else -> "kill-clear"
     }
     val stateLabel = when (modeValue) {
-        "blocking" -> "MAINTENANCE: BLOCKING — all users are locked out"
-        "banner" -> "MAINTENANCE: BANNER — all users see the maintenance banner"
-        else -> "ALL CLEAR — no maintenance, app is open"
+        "blocking" -> "MAINTENANCE: BLOCKING served"
+        "banner" -> "MAINTENANCE: BANNER served"
+        else -> "ALL CLEAR — no maintenance served"
     }
 
     Div(attrs = { classes("panel", "kill-panel", stateClass) }) {
         Div(attrs = { classes("kill-state") }) { Text(stateLabel) }
+        Div(attrs = { classes("muted", "hint") }) { Text(NOT_READ_YET) }
 
         mode?.let { row ->
             KillRow(row, "maintenance mode") {
@@ -113,7 +119,7 @@ internal fun KillSwitchPanel(rows: List<FlagRow>, manifest: ManifestResponse?, c
                 }) { Text("Save") }
                 manifest?.versionCode?.let {
                     Span(attrs = { classes("muted", "hint") }) {
-                        Text("current build is $it — raising above it force-upgrades everyone below")
+                        Text("current build is $it")
                     }
                 }
             }
@@ -133,6 +139,9 @@ private fun KillRow(row: FlagRow, label: String, controls: @Composable () -> Uni
         controls()
     }
 }
+
+private const val NOT_READ_YET =
+    "No released app reads these yet: setting them changes the served config, not what anyone sees."
 
 private fun serverValueLabel(row: FlagRow): String =
     if (row.inDb) row.base.inline() else "not set (baked ${row.default.inline()})"

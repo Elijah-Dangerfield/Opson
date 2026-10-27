@@ -76,7 +76,8 @@ way.
   `/v1/admin/waitlist` (see `apps/server/README.md`).
 - **Kill switches.** The pinned panel above the tabs holds the emergency flags
   (maintenance mode/message, min supported build) with an ALL CLEAR / BANNER /
-  BLOCKING state header.
+  BLOCKING state header. No released app reads these yet, so setting one
+  changes the served config and nothing a user sees; the panel says so.
 - **Guardrails.** Every write shows a before → after confirm sheet naming the
   environment. Writes are also type-checked server-side against the registry
   (you can't set `upgrade.minSupportedVersionCode = "six"`); lockout/force-upgrade changes get
