@@ -38,9 +38,19 @@ interface LogEntryDao : ClearableDao {
     @Query("SELECT DISTINCT day FROM log_entries WHERE day >= :from AND day <= :to AND deleted = 0")
     fun observeDaysWithEntries(from: String, to: String): Flow<List<String>>
 
-    /** Newest first, for Recent; the repository collapses repeats of the same food. */
+    /** Newest first, of every kind: the last time anything was eaten, for fasting. */
     @Query("SELECT * FROM log_entries WHERE deleted = 0 ORDER BY loggedAtEpochMs DESC LIMIT :limit")
     fun observeLatest(limit: Int): Flow<List<LogEntryEntity>>
+
+    /**
+     * Entries logged from a food, newest first, for Recent; the repository collapses repeats of
+     * the same food. A quick number or a name-only line has no food to pick again.
+     */
+    @Query(
+        "SELECT * FROM log_entries WHERE deleted = 0 AND (foodId IS NOT NULL OR customFoodId IS NOT NULL) " +
+            "ORDER BY loggedAtEpochMs DESC LIMIT :limit",
+    )
+    fun observeLatestFoods(limit: Int): Flow<List<LogEntryEntity>>
 
     @Query("SELECT * FROM log_entries WHERE slot = :slot AND day >= :fromDay AND deleted = 0")
     fun observeSlotSince(slot: String, fromDay: String): Flow<List<LogEntryEntity>>

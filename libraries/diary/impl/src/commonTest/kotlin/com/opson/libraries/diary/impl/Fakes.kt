@@ -149,6 +149,13 @@ class FakeDiaryDb {
         override fun observeLatest(limit: Int) =
             entries.observe().map { m -> m.values.filter { !it.deleted }.sortedByDescending { it.loggedAtEpochMs }.take(limit) }
 
+        override fun observeLatestFoods(limit: Int) =
+            entries.observe().map { m ->
+                m.values.filter { !it.deleted && (it.foodId != null || it.customFoodId != null) }
+                    .sortedByDescending { it.loggedAtEpochMs }
+                    .take(limit)
+            }
+
         override fun observeSlotSince(slot: String, fromDay: String) =
             entries.observe().map { m -> m.values.filter { !it.deleted && it.slot == slot && it.day >= fromDay } }
 
