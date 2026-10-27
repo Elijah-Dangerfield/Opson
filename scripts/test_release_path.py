@@ -10,8 +10,12 @@ helpers they call, so the mistake shows up on the PR instead.
 from __future__ import annotations
 
 import re
+import shutil
+import tempfile
 import unittest
 from pathlib import Path
+
+import store_release_notes
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = ROOT / ".github" / "workflows"
@@ -42,6 +46,40 @@ class RubyVersionTest(unittest.TestCase):
             for version in re.findall(r"ruby-version:\s*['\"]?([0-9.]+)", workflow(name))
         }
         self.assertEqual(len(versions), 1, f"fastlane runs on more than one Ruby: {sorted(versions)}")
+
+
+class StoreReleaseNotesTest(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root)
+
+    def write(self, version: str, text: str):
+        (self.root / "release-notes").mkdir(exist_ok=True)
+        (self.root / "release-notes" / f"{version}.txt").write_text(text, encoding="utf-8")
+
+    def test_a_written_file_is_the_notes(self):
+        self.write("0.2.0", "Barcode scanning.\n")
+        self.assertEqual(store_release_notes.notes_for("0.2.0", 500, self.root), "Barcode scanning.")
+
+    def test_no_file_ships_the_generic_line_not_another_version(self):
+        self.write("0.1.0", "Last release's notes.")
+        self.assertEqual(store_release_notes.notes_for("0.2.0", 500, self.root), "Small fixes.")
+
+    def test_an_empty_file_ships_the_generic_line(self):
+        self.write("0.2.0", "  \n")
+        self.assertEqual(store_release_notes.notes_for("0.2.0", 500, self.root), "Small fixes.")
+
+    def test_cut_to_the_limit_in_characters_not_bytes(self):
+        self.write("0.2.0", "é" * 600)
+        notes = store_release_notes.notes_for("0.2.0", 500, self.root)
+        self.assertEqual(notes, "é" * 500)
+
+    def test_no_store_text_comes_from_the_github_release_body(self):
+        # release-please's changelog: markdown, shas and repo links, and
+        # ios-submit used to hand it to the App Store "What's New".
+        release = workflow("release.yml")
+        self.assertNotIn("--json body", release)
+        self.assertEqual(release.count("python3 -I scripts/store_release_notes.py"), 3, "Play, TestFlight and the App Store")
 
 
 if __name__ == "__main__":

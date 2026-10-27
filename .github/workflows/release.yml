@@ -292,26 +292,15 @@ jobs:
           fi
 
       - name: Render release notes for Play
-        run: |
-          # Never the GitHub release body. That is release-please's changelog:
-          # markdown headings the stores do not render, bullet syntax, commit
-          # shas, repo links, and subjects written for whoever maintains the
-          # app rather than for a player. Moving Eyes shipped it verbatim to
-          # the App Store on 2026-09-25 and the listing showed literal "##".
-          #
-          # release-notes/<version>.txt is the override, written by a human for
-          # the releases that deserve real notes. Keyed by version so a
-          # forgotten file ships the generic line rather than the previous
-          # release's text.
-          mkdir -p apps/compose/build/play-release-notes/en-US
-          NOTES_FILE="release-notes/${{ needs.resolve-tag.outputs.version }}.txt"
-          if [ -f "$NOTES_FILE" ]; then
-            head -c 500 "$NOTES_FILE" > apps/compose/build/play-release-notes/en-US/default.txt
-          else
-            echo "Small fixes." > apps/compose/build/play-release-notes/en-US/default.txt
-          fi
+        # release-notes/<version>.txt or "Small fixes.", never the GitHub
+        # release body. scripts/store_release_notes.py says why; both iOS jobs
+        # read the same script.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.resolve-tag.outputs.version }}
+        run: |
+          mkdir -p apps/compose/build/play-release-notes/en-US
+          python3 -I scripts/store_release_notes.py "$VERSION" --max-chars 500 \
+            > apps/compose/build/play-release-notes/en-US/default.txt
 
       - name: Resolve R8 mapping (upload only if minify produced one)
         # Release builds ship with minify off (see ApplicationConventionPlugin),
@@ -688,23 +677,13 @@ jobs:
 
       - name: Fetch release notes for TestFlight changelog
         id: notes
+        # Same text as Play and the App Store submission.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.resolve-tag.outputs.version }}
         run: |
-          # Same rule as the Play step above: the release body is developer
-          # changelog markdown and goes nowhere near a store listing. This
-          # feeds both the TestFlight changelog and the App Store "What's New",
-          # and neither can be edited once a version reaches review.
-          NOTES_FILE="release-notes/${{ needs.resolve-tag.outputs.version }}.txt"
-          if [ -f "$NOTES_FILE" ]; then
-            BODY=$(cat "$NOTES_FILE")
-          else
-            BODY="Small fixes."
-          fi
           {
             echo "notes<<EOF"
-            printf "%s\n" "$BODY" | head -c 3000
-            echo
+            python3 -I scripts/store_release_notes.py "$VERSION" --max-chars 3000
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -791,17 +770,14 @@ jobs:
 
       - name: Fetch release notes for the submission
         id: notes
+        # The App Store "What's New", which can't be edited once the version
+        # is in review. Same text the ios job gave TestFlight.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.resolve-tag.outputs.version }}
         run: |
-          BODY=$(gh release view "${{ needs.resolve-tag.outputs.tag }}" --json body -q .body 2>/dev/null || true)
-          if [ -z "$BODY" ]; then
-            BODY="v${{ needs.resolve-tag.outputs.version }}"
-          fi
           {
             echo "notes<<EOF"
-            printf "%s\n" "$BODY" | head -c 3000
-            echo
+            python3 -I scripts/store_release_notes.py "$VERSION" --max-chars 3000
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
