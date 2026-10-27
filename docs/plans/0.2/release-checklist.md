@@ -197,9 +197,9 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [ ] Add a privacy paragraph to `legal/privacy.md`: progress photos stay on
       the phone, are never uploaded or backed up, and are deleted with the
       account. Nothing is collected, so the App Store label doesn't change.
-- [ ] Settings: the Show / Hide switch for photos in Modes and numbers
-      (Blind, Mindful, Rhythm and Fuel default to Hide). Until then
-      `ProgressPhotosVisibility` applies those defaults.
+- [x] Settings: the Show / Hide switch for photos in Modes and numbers
+      (Blind, Mindful, Rhythm and Fuel default to Hide), behind the pause and
+      `release.progressPhotos`.
 - [ ] Still to build: the optional reminder (off by default, at most every
       2 weeks); `ReminderKey` has no slot for it yet.
 - [ ] Try it on an iPhone with Face ID, one with a passcode only, and an

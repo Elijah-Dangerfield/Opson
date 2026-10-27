@@ -68,10 +68,9 @@ What changed against this plan, and the differences kept on purpose.
 - **Weight → Progress photos row** (new, behind `release.progressPhotos`):
   under the log card, `Progress photos` / `Last taken Oct 25 · private` (or
   `Private, on this phone only` before the first), a lock and a chevron.
-  Opens `ProgressPhotosRoute`. Hidden by the mode's default until Modes and
-  numbers carries the Show / Hide control the design describes: Blind,
-  Mindful, Rhythm and Fuel hide it, the rest show it
-  (`ProgressPhotosVisibility`). The plan for the photos is
+  Opens `ProgressPhotosRoute`. Shown or hidden by Modes and numbers' Progress
+  photos row (`NumbersSettings.showsProgressPhotos`): Blind, Mindful, Rhythm
+  and Fuel default to Hide, the rest to Show. The plan for the photos is
   `progress-photos.md`.
 
 ---
