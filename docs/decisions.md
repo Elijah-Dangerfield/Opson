@@ -92,7 +92,7 @@ phones still write it, and old marks are the person's own log.
 
 **Decision:** the summary card loses its "Nutrients ›" link and gains a last
 page with sodium, potassium, calcium and iron and See all. Close the day's card
-at the end of the list becomes a moon button in the header; the ⋮ menu keeps
+at the end of the list becomes a check-circle button in the header (empty until the day is closed, then filled); the ⋮ menu keeps
 it. More › Today screen's two switches (`todayNutrientsLink`, `todayCloseDay`)
 keep their wire names and now govern the page and the button.
 

@@ -435,8 +435,10 @@ private fun Header(state: TodayState, onAction: (TodayAction) -> Unit) {
         nextEnabled = state.canGoForward,
     ) {
         state.closeDay?.let { close ->
+            // An empty circle until the day is closed, then filled: the check reads as done.
+            val icon = if (close.closed) AppIcons.CheckCircle else AppIcons.CheckCircleOutline
             HeaderIconButton(
-                icon = AppIcons.Bedtime.described(stringResource(if (close.closed) Res.string.today_closed_day_cd else Res.string.today_close_day_cd)),
+                icon = icon.described(stringResource(if (close.closed) Res.string.today_closed_day_cd else Res.string.today_close_day_cd)),
                 onClick = { onAction(TodayAction.CloseDayButtonTapped) },
             )
         }
@@ -637,7 +639,7 @@ fun ColumnScope.DayMenuItems(menu: DayMenu, onAction: (TodayAction) -> Unit) {
             val (label, icon, action) = when (item) {
                 is DayMenuItem.CloseDay -> Triple(
                     if (item.isToday) Res.string.today_menu_close_day else Res.string.today_menu_close_this_day,
-                    AppIcons.Bedtime,
+                    AppIcons.CheckCircleOutline,
                     TodayAction.DayCloseMenuTapped,
                 )
                 DayMenuItem.Nutrients -> Triple(Res.string.today_menu_nutrients, AppIcons.Science, TodayAction.DayNutrientsTapped)
