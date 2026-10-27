@@ -86,6 +86,30 @@ class PostgresAppConfigSourceTest : DatabaseTest() {
     }
 
     @Test
+    fun read_keepsServingTheLastConfig_whenTheDatabaseIsBusy() = kotlinx.coroutines.runBlocking<Unit> {
+        val clock = MutableClock(Instant.fromEpochMilliseconds(1_000_000))
+        val busyDb = com.opson.server.db.Database.connect(configWith(statementTimeoutMs = 300))
+        val c = configWith()
+        val locker = java.sql.DriverManager.getConnection(c.jdbcUrl, c.username, c.password).apply { autoCommit = false }
+        try {
+            val source = PostgresAppConfigSource(busyDb, clock)
+            val before = source.read(context, userId = null)
+
+            locker.createStatement().use { it.execute("LOCK TABLE app_config_values IN ACCESS EXCLUSIVE MODE") }
+            clock.instant = clock.instant.plus(31.seconds)
+
+            assertEquals(before, source.read(context, userId = null))
+            kotlin.test.assertFailsWith<com.opson.server.db.DatabaseBusyException> {
+                PostgresAppConfigSource(busyDb, clock).read(context, userId = null)
+            }
+        } finally {
+            locker.rollback()
+            locker.close()
+            busyDb.close()
+        }
+    }
+
+    @Test
     fun read_appliesTargetingRule_byPlatform() = runTest {
         val path = "qa.targeted_${System.nanoTime()}"
         val leaf = path.substringAfter('.')
