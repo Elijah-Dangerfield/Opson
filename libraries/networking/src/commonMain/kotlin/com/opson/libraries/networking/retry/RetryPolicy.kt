@@ -27,9 +27,9 @@ import kotlin.time.Duration.Companion.seconds
  *  - Cancellation propagates through `Catching {}`'s `shouldNotBeCaught`, so
  *    the loop never spuriously retries a coroutine that was just cancelled.
  *
- * **On idempotency:** retry is a footgun for non-idempotent POSTs (chip
- * purchases, wallet sync). If the server processed your request but the
- * response leg dropped, a retry double-spends. Two ways to stay safe:
+ * **On idempotency:** retry is a footgun for non-idempotent POSTs (anything
+ * the server applies without a client id to dedupe on). If the server
+ * processed your request but the response leg dropped, a retry applies it twice. Two ways to stay safe:
  *  1. Don't pass a policy — `RetryPolicy.None` is the default. POSTs to
  *     non-idempotent endpoints just leave it alone.
  *  2. Narrow [retryIf] to network-stack failures only (timeout,

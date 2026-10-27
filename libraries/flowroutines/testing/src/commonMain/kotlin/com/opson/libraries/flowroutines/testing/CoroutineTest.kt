@@ -32,13 +32,13 @@ import kotlin.time.Duration.Companion.seconds
  *     the test scheduler so `vm.takeAction(...)` propagates to state in the
  *     same virtual tick.
  *
- *   - [dispatchers]: a [DispatcherProvider] whose four dispatchers are all
+ *   - [dispatchers]: a [DispatcherProvider] whose dispatchers are all
  *     the same [TestDispatcher]. Pass it to production code that takes a
  *     [DispatcherProvider] so `withContext(dispatchers.default)` runs on the
  *     test scheduler instead of a real worker thread.
  *
  *   - [runUnitTest]: a [runTest] wrapper that cancels any leaked child
- *     coroutines at exit. Long-lived workers (the bot loop suspended on a
+ *     coroutines at exit. Long-lived workers (an action loop suspended on
  *     `Channel.receive()`, an infinite flow collector) would otherwise
  *     trigger `UncompletedCoroutinesError` even when the assertions all pass.
  *
@@ -90,7 +90,7 @@ abstract class CoroutineTest {
      *
      * On exit (success OR failure), all child coroutines that were launched
      * into the test scope are cancelled and joined. This makes tests that
-     * spin up long-lived workers (bot loops, infinite-flow collectors, retry
+     * spin up long-lived workers (action loops, infinite-flow collectors, retry
      * coroutines) safe by default — without it, `runTest` reports them as
      * `UncompletedCoroutinesError` and masks the real assertion result.
      *

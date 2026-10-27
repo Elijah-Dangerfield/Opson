@@ -19,7 +19,7 @@ import kotlin.time.ExperimentalTime
  * Default [ReviewPromptCoordinator]. Eligibility gate: the install
  * must be at least [minInstallAge] old, and the previous prompt
  * (if any) must be at least [minPromptCooldown] in the past. The
- * first request also stamps the install time, so the cooldown floor
+ * first request also stamps the install time, so the install-age floor
  * begins counting from the first positive moment we see — not from
  * actual install, which we can't observe retroactively for users who
  * upgrade past the version that introduces this coordinator.

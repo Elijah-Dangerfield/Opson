@@ -6,10 +6,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.opson.libraries.core.logging.KLog
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val UNNAMED_FLOW = "unnamed flow"
@@ -79,32 +77,6 @@ fun <T : Any> SEAViewModel<*, T, *>.ObserveEvents(onItem: suspend (T) -> Unit) {
         tag = "${this::class.simpleName ?: "SEAViewModel"} events",
         onItem = onItem,
     )
-}
-
-/**
- * Observe a flow with the provided lifecycle and scope
- * @param tag names the flow in the start/stop logs
- * @param onItem the action to take when an item is emitted from the flow
- *
- * starts collection when the lifecycle reaches the started state,
- * stops collection when the lifecycle falls below the started state,
- *
- * Observes on main immediate which ensures no emissions are missed
- */
-fun <T> Flow<T>.observeWithLifecycleIn(
-    lifecycleOwner: Lifecycle,
-    scope: CoroutineScope,
-    tag: String = UNNAMED_FLOW,
-    onItem: suspend (T) -> Unit
-) {
-    scope.launch {
-        collectWithLifecycle(
-            lifecycle = lifecycleOwner,
-            state = Lifecycle.State.STARTED,
-            tag = tag,
-            onItem = onItem,
-        )
-    }
 }
 
 /**

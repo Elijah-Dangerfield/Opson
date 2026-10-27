@@ -6,7 +6,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
 
 /**
- * Drop-in [DispatcherProvider] for tests. All four dispatchers route to a
+ * Drop-in [DispatcherProvider] for tests. Every dispatcher routes to a
  * single [TestDispatcher] so the test scheduler controls every coroutine the
  * production code launches — including CPU-bound work that production routes
  * through `default` and IO work routed through `io`.

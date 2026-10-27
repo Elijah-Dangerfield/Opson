@@ -18,10 +18,8 @@ import kotlin.time.Instant
  *  - Foreground at or above BACKGROUND_ROLLOVER rolls to session #N+1
  *    with reason BackgroundRollover carrying the actual gap.
  *  - Per-process counter — independent of any persisted state.
- *
- * Repository contracts that lean on this (the products catalog being
- * the first one) read [SessionTracker.current.id] and treat a change
- * as the trigger to re-fetch.
+ *  - A background is measured once: a second foreground without a new
+ *    background doesn't roll.
  */
 class SessionTrackerImplTest {
 
@@ -50,6 +48,23 @@ class SessionTrackerImplTest {
         tracker.onForeground(AppEvent.OnForeground(isColdBoot = false))
 
         assertEquals(1L, tracker.current.id, "10 min in background must not roll the session")
+    }
+
+    @Test
+    fun aSecondForeground_withNoBackgroundBetween_doesNotRoll() {
+        val clock = MutableClock(initialMs = 1_000L)
+        val tracker = SessionTrackerImpl(clock = clock)
+
+        tracker.onColdBoot(AppEvent.ColdBoot)
+        tracker.onBackground(AppEvent.OnBackground)
+        clock.advance(byMs = 60_000L)
+        tracker.onForeground(AppEvent.OnForeground(isColdBoot = false))
+        // Half an hour of use later, a foreground with no background before it
+        // (iOS reactivating after Control Center or a permission alert).
+        clock.advance(byMs = 30L * 60_000L)
+        tracker.onForeground(AppEvent.OnForeground(isColdBoot = false))
+
+        assertEquals(1L, tracker.current.id, "the gap must be measured from a background that is still open")
     }
 
     @Test

@@ -1,13 +1,11 @@
 package com.opson.libraries.networking
 
 /**
- * Per-installation identifier the client attaches to every authenticated
- * request via the `X-Install-Id` header (see [ClientHeaders.HEADER_INSTALL_ID]).
+ * Per-installation identifier the client attaches to every request via the
+ * `X-Install-Id` header (see [ClientHeaders.HEADER_INSTALL_ID]).
  *
  * The id is a UUID generated once on first launch and persisted locally; it
- * regenerates on reinstall (app-local storage is wiped). The server uses it
- * for L1 orphan-account cleanup — see
- * the install-id recovery design notes.
+ * regenerates on reinstall (app-local storage is wiped).
  *
  * Implementations MUST be cheap and non-suspending — they're called on every
  * outgoing request. The expected shape is "hydrate once at boot, cache in

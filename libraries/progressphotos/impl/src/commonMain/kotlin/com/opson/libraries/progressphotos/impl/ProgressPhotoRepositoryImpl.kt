@@ -114,8 +114,16 @@ class ProgressPhotoRepositoryImpl @Inject constructor(
         change { file -> file.copy(comparisons = file.comparisons.filterNot { it.id == id }) to Unit }
     }
 
+    /**
+     * An index that can't be read right now (a disk error, or iOS file protection while the phone
+     * is locked) shows as no photos but is not remembered as empty: the next collector or change
+     * reads it again. Remembered, the next [add] would write an index holding only the new photo.
+     */
     private fun loaded(): Flow<IndexFile> = flow {
-        mutex.withLock { ensureLoaded() }
+        mutex.withLock {
+            Catching { ensureLoaded() }.logOnFailure("Couldn't read the progress photo index")
+        }
+        if (index.value == null) emit(IndexFile())
         emitAll(index.filterNotNull())
     }
 
@@ -129,9 +137,12 @@ class ProgressPhotoRepositoryImpl @Inject constructor(
 
     private suspend fun ensureLoaded(): IndexFile = index.value ?: readIndex().also { index.value = it }
 
-    /** A missing index is no photos; an unreadable one is logged and read as none rather than crashing the page. */
+    /**
+     * A missing index is no photos, and so is a corrupt one (logged) rather than crashing the page.
+     * A failed read throws instead; see [loaded].
+     */
     private suspend fun readIndex(): IndexFile {
-        val bytes = readOrNull(INDEX) ?: return IndexFile()
+        val bytes = files.read(INDEX) ?: return IndexFile()
         return Catching { json.decodeFromString(IndexFile.serializer(), bytes.decodeToString()) }
             .logOnFailure("Couldn't read the progress photo index")
             .getOrNull() ?: IndexFile()

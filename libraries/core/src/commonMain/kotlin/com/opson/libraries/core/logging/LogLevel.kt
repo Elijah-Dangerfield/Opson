@@ -13,9 +13,4 @@ enum class LogLevel(val priority: Int) {
     Error(6),
     Assert(7),
     Fatal(8),
-    ;
-
-    companion object {
-        fun fromPriority(priority: Int): LogLevel? = entries.firstOrNull { it.priority == priority }
-    }
 }

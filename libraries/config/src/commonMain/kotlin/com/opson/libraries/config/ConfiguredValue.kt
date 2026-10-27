@@ -38,21 +38,11 @@ abstract class ConfiguredValue<out T : Any> : QaConfigValue {
     open val description: String? = null
 
     /**
-     * The path to the value in the config json
-     * ex:
-     *  myfeature.myfeaturesConfigThingy
+     * The dotted path to the value in the config json, e.g.
+     * `logger.voiceLogEnabled`. The server and the admin console key on it,
+     * so it is spelled out rather than derived from [name].
      */
-    open val path: String
-        get() = name.toPath()
-
-    fun String.toPath() = this
-        .replaceFirstChar { it.lowercase() }
-        .replace(" ", "_")
-        .apply {
-            if (this.contains("_")) {
-                this.lowercase()
-            }
-        }
+    abstract val path: String
 
     /**
      * Value to be used when the config does not specify a value

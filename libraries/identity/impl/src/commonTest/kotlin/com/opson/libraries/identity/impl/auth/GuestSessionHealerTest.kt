@@ -87,6 +87,34 @@ class GuestSessionHealerTest : CoroutineTest() {
     }
 
     @Test
+    fun skip_whenTheStoredSessionIsOnlyAwaitingRefresh() = runUnitTest {
+        // Offline at launch with an expired token: supabase-kt keeps the session
+        // and retries. A cached profile must not read as a lost account, and no
+        // guest may be minted over it.
+        val creator = FakeGuestAccountCreator()
+        val unconfirmed = AuthState.Unauthenticated(cause = SessionUnconfirmed())
+        val auth = FakeAuth(current = unconfirmed, retryResult = unconfirmed)
+        val healer = build(
+            auth = auth,
+            creator = creator,
+            onboarded = true,
+            profile = Profile.Authenticated(
+                id = "u1",
+                displayName = "Foxy",
+                email = null,
+                isAnonymous = true,
+                createdAt = Instant.fromEpochMilliseconds(0),
+            ),
+        )
+
+        healer.onColdBoot(AppEvent.ColdBoot)
+        advanceUntilIdle()
+
+        assertEquals(0, creator.ensureCalls)
+        assertEquals(emptyList(), auth.markedUnrecoverable)
+    }
+
+    @Test
     fun skip_whenSignedOut() = runUnitTest {
         val creator = FakeGuestAccountCreator()
         val healer = build(
@@ -213,7 +241,7 @@ class GuestSessionHealerTest : CoroutineTest() {
         // AUTH-19: a cached server profile with no revivable session means this
         // device HAS a real account whose token storage failed (the TestFlight
         // upgrade case). Minting a fresh guest silently strands that account's
-        // chips/XP — the healer must stop and declare the session unrecoverable
+        // diary — the healer must stop and declare the session unrecoverable
         // so the app routes to the explicit recovery screen.
         val creator = FakeGuestAccountCreator()
         val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())

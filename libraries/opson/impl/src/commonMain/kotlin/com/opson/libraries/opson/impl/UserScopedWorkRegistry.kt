@@ -14,7 +14,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
  * Tracks the jobs running user-scoped background work (the per-syncer
- * `runWhen` cycles, the in-app-message pass) so a user switch can cancel and
+ * `runWhen` cycles) so a user switch can cancel and
  * *await* them before the departing user's stores are wiped — closing the
  * window where an in-flight sync's write lands mid-clear.
  *

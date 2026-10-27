@@ -18,5 +18,5 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 class NoOpAuthTokenProvider : AuthTokenProvider {
     override suspend fun awaitReady() = Unit
     override suspend fun accessToken(): String? = null
-    override suspend fun refreshAccessToken(): String? = null
+    override suspend fun refreshAccessToken(rejected: String?): String? = null
 }

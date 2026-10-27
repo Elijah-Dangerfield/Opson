@@ -32,14 +32,11 @@ class DataStoreCacheFactory (
     private val fileManager: FileManager,
 ) : CacheFactory {
 
-    private val inMemoryCaches: MutableSet<InMemoryCache<*>> = mutableSetOf()
     private val persistentCaches: MutableMap<String, Cache<*>> = mutableMapOf()
 
     override fun <T : Any> inMemory(
         defaultValue: () -> T,
-    ): Cache<T> = InMemoryCache(
-        defaultValue,
-    ).also { inMemoryCaches.add(it) }
+    ): Cache<T> = InMemoryCache(defaultValue)
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> persistent(
@@ -64,7 +61,7 @@ class DataStoreCacheFactory (
         )
 
         val corruptionHandler = ReplaceFileCorruptionHandler<T> { ex ->
-            KLog.e("File Corrupted", ex)
+            KLog.e("Cache '$name' was unreadable and is reset to its default", ex)
             runBlocking { serializer.read(null) }
         }
 

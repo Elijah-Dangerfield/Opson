@@ -19,7 +19,6 @@ expect object BuildInfo {
 
 fun BuildInfo.isiOS() = BuildInfo.platform == Platform.iOS
 val BuildInfo.buildType: String get() = if (BuildInfo.isDebug) "debug" else "release"
-val BuildInfo.versionTag: String get() = "${BuildInfo.versionName}-${BuildInfo.releaseChannel}"
 fun BuildInfo.versionString(): String = "$versionName ($buildNumber)"
 
 
