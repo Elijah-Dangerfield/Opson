@@ -1,6 +1,7 @@
 package com.opson.integration.config
 
 import com.opson.features.logger.impl.BarcodeScanEnabled
+import com.opson.features.onboarding.impl.OnboardingSetupEnabled
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.GoalsAndEnergyEnabled
 import com.opson.features.logger.impl.PhotoEstimateEnabled
@@ -335,6 +336,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     PhotoEstimateEnabled(appConfigMap),
     WidgetsEnabled(appConfigMap),
     SearchOptionsEnabled(appConfigMap),
+    OnboardingSetupEnabled(appConfigMap),
     FindSupportEnabled(appConfigMap),
     ProgressPhotosEnabled(appConfigMap),
     TodaySummaryEnabled(appConfigMap),

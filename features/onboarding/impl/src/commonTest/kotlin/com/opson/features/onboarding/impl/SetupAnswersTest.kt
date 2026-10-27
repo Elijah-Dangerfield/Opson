@@ -1,11 +1,16 @@
 package com.opson.features.onboarding.impl
 
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.WeightUnit
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -19,14 +24,11 @@ class SetupAnswersTest {
     fun eachQuestion_offersItsOwnOptions_inOrder() {
         assertEquals(Why.entries, SetupQuestion.Reason.options)
         assertEquals(NumbersFeel.entries, SetupQuestion.Feeling.options)
-        assertEquals(Notice.entries, SetupQuestion.Focus.options)
         assertEquals(StatementAnswer.entries, SetupQuestion.Statement.options)
-        assertEquals((1..4).toList(), SetupQuestion.entries.map { it.number })
-        assertEquals(
-            listOf("question_1", "question_2", "question_3", "statement"),
-            SetupQuestion.entries.map { it.eventName },
-        )
-        assertEquals(listOf(true, false, false, false), SetupQuestion.entries.map { it.multiSelect })
+        assertEquals((1..3).toList(), SetupQuestion.entries.map { it.number })
+        // The funnel's names stay what they were before "What do you want to notice?" went.
+        assertEquals(listOf("question_1", "question_2", "statement"), SetupQuestion.entries.map { it.eventName })
+        assertEquals(listOf(true, false, false), SetupQuestion.entries.map { it.multiSelect })
     }
 
     @Test
@@ -35,13 +37,11 @@ class SetupAnswersTest {
             .tap(Why.Curious)
             .tap(NumbersFeel.LoveThem)
             .tap(NumbersFeel.NotSure)
-            .tap(Notice.Patterns)
-            .tap(Notice.Amounts)
             .tap(StatementAnswer.Agree)
             .tap(StatementAnswer.NotReally)
 
         assertEquals(
-            SetupAnswers(setOf(Why.Curious), NumbersFeel.NotSure, Notice.Amounts, StatementAnswer.NotReally),
+            SetupAnswers(setOf(Why.Curious), NumbersFeel.NotSure, StatementAnswer.NotReally),
             answers,
         )
         assertEquals(emptySet(), answers.tap(Why.Curious).why)
@@ -61,7 +61,6 @@ class SetupAnswersTest {
         assertFalse(SetupAnswers(statement = StatementAnswer.Agree).isEmpty)
         assertFalse(SetupAnswers(why = setOf(Why.Curious)).isEmpty)
         assertFalse(SetupAnswers(feel = NumbersFeel.NotSure).isEmpty)
-        assertFalse(SetupAnswers(notice = Notice.Patterns).isEmpty)
     }
 
     @Test
@@ -77,7 +76,6 @@ class SetupAnswersTest {
         val answers = SetupAnswers(
             why = setOf(Why.WorkingWithProvider, Why.Curious),
             feel = NumbersFeel.RatherNot,
-            notice = Notice.HowEatingFeels,
             statement = StatementAnswer.Agree,
         )
 
@@ -85,7 +83,6 @@ class SetupAnswersTest {
             OnboardingAnswers(
                 why = listOf("curious", "working_with_provider"),
                 feel = "rather_not",
-                notice = listOf("how_eating_feels"),
                 hard = true,
             ),
             answers.toSettings(),
@@ -111,6 +108,32 @@ class SetupAnswersTest {
         assertNull(after.numbers.changedAt)
         assertEquals(OnboardingAnswers(hard = true), after.onboarding)
         assertEquals(before.copy(numbers = after.numbers, onboarding = after.onboarding), after)
+    }
+
+    @Test
+    fun startingWith_writesOnlyTheSetupItIsGiven() {
+        val before = Settings(birthYear = 1980, mealTimes = MealTimes(lunch = LocalTime(13, 0)))
+        val nothing = before.startingWith(PresetId.Full, SetupAnswers())
+        assertEquals(before.targets, nothing.targets)
+        assertEquals(1980, nothing.birthYear)
+        assertEquals(before.mealTimes, nothing.mealTimes)
+
+        val raised = Targets.Default.raise()
+        val setup = StartingSetup(
+            targets = raised,
+            birthYear = 1992,
+            heightCm = 168.0,
+            sex = BodySex.Unsaid,
+            weightUnit = WeightUnit.Lb,
+            mealTimes = MealTimes(breakfast = LocalTime(9, 30)),
+        )
+        val after = before.startingWith(PresetId.Full, SetupAnswers(), setup)
+        assertEquals(raised, after.targets)
+        assertEquals(1992, after.birthYear)
+        assertEquals(168.0, after.heightCm)
+        assertEquals(BodySex.Unsaid, after.bodySex)
+        assertEquals(WeightUnit.Lb, after.weightUnit)
+        assertEquals(MealTimes(breakfast = LocalTime(9, 30)), after.mealTimes)
     }
 
     @Test

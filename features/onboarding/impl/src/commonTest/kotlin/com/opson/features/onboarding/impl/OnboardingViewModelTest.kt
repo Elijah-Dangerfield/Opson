@@ -175,15 +175,11 @@ class OnboardingViewModelTest : CoroutineTest() {
         vm.takeAction(OnboardingAction.OptionTapped(NumbersFeel.LoveThem))
         vm.takeAction(OnboardingAction.OptionTapped(NumbersFeel.RatherNot))
         vm.takeAction(OnboardingAction.ContinueTapped)
-        vm.takeAction(OnboardingAction.OptionTapped(Notice.Amounts))
-        vm.takeAction(OnboardingAction.OptionTapped(Notice.Patterns))
-        vm.takeAction(OnboardingAction.ContinueTapped)
         vm.takeAction(OnboardingAction.OptionTapped(StatementAnswer.Agree))
         vm.takeAction(OnboardingAction.OptionTapped(StatementAnswer.NotReally))
         runCurrent()
 
         assertEquals(NumbersFeel.RatherNot, vm.state.answers.feel)
-        assertEquals(Notice.Patterns, vm.state.answers.notice)
         assertEquals(StatementAnswer.NotReally, vm.state.answers.statement)
         assertEquals(1, vm.state.options.count { it.selected })
         assertFalse(vm.state.answers.hard)
@@ -208,7 +204,7 @@ class OnboardingViewModelTest : CoroutineTest() {
 
         // Walk to the recommendation, pick an alternative, then come back and
         // agree with the statement: the pick is cleared and Full is gone.
-        repeat(3) { vm.takeAction(OnboardingAction.ContinueTapped) }
+        repeat(2) { vm.takeAction(OnboardingAction.ContinueTapped) }
         vm.takeAction(OnboardingAction.AlternativeTapped(vm.state.alternatives.first()))
         runCurrent()
         assertNotNull(vm.state.picked)
@@ -252,17 +248,14 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(OnboardingStep.Question(SetupQuestion.Feeling), vm.state.step)
         vm.takeAction(OnboardingAction.SkipQuestionTapped)
         runCurrent()
-        assertEquals(OnboardingStep.Question(SetupQuestion.Focus), vm.state.step)
-        vm.takeAction(OnboardingAction.SkipQuestionTapped)
-        runCurrent()
         assertEquals(OnboardingStep.Question(SetupQuestion.Statement), vm.state.step)
-        assertEquals(4, vm.state.progress)
+        assertEquals(3, vm.state.progress)
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
 
         assertEquals(OnboardingStep.Recommendation, vm.state.step)
         assertEquals(
-            listOf("welcome", "question_1", "question_2", "question_3", "statement", "recommendation"),
+            listOf("welcome", "question_1", "question_2", "statement", "recommendation"),
             events.steps(),
         )
     }
@@ -291,7 +284,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         val vm = atRecommendation()
 
         val seen = mutableListOf<OnboardingStep>()
-        repeat(5) {
+        repeat(4) {
             vm.takeAction(OnboardingAction.Back)
             runCurrent()
             seen += vm.state.step
@@ -300,7 +293,6 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(
             listOf(
                 OnboardingStep.Question(SetupQuestion.Statement),
-                OnboardingStep.Question(SetupQuestion.Focus),
                 OnboardingStep.Question(SetupQuestion.Feeling),
                 OnboardingStep.Question(SetupQuestion.Reason),
                 OnboardingStep.Welcome,
@@ -421,7 +413,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         val creator = FakeGuestAccountCreator(onStart = { order += "guest" })
         val cache = FakeAppCache(onSet = { if (it.hasUserOnboarded) order += "onboarded" })
         val vm = atRecommendation(
-            answers = listOf(Why.EatingRegularly, NumbersFeel.RatherNot, Notice.Patterns),
+            answers = listOf(Why.EatingRegularly, NumbersFeel.RatherNot),
             settings = settings,
             creator = creator,
             cache = cache,
@@ -441,7 +433,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(NumbersSettings(preset = PresetId.NoNumbers), saved.numbers)
         assertNull(saved.numbers.changedAt)
         assertEquals(
-            OnboardingAnswers(why = listOf("eating_regularly"), feel = "rather_not", notice = listOf("patterns")),
+            OnboardingAnswers(why = listOf("eating_regularly"), feel = "rather_not"),
             saved.onboarding,
         )
         assertNotNull(creator.lastIdentity?.displayName, "the guest gets a generated name, never asked for")
@@ -787,14 +779,13 @@ class OnboardingViewModelTest : CoroutineTest() {
                 Why.MedicalNeed,
                 Why.ChangingWeight,
                 NumbersFeel.RatherNot,
-                Notice.HowEatingFeels,
                 StatementAnswer.Agree,
             ),
         )
         vm.takeAction(OnboardingAction.KeepOnPhoneTapped)
         runCurrent()
 
-        val answerWords = (Why.entries + NumbersFeel.entries + Notice.entries + StatementAnswer.entries)
+        val answerWords = (Why.entries + NumbersFeel.entries + StatementAnswer.entries)
             .flatMap { listOf(it.key, (it as Enum<*>).name) }
             .map { it.lowercase() }
         val values = events.entries
@@ -823,12 +814,19 @@ class OnboardingViewModelTest : CoroutineTest() {
         appleCoordinator: FakeAppleSignInCoordinator = FakeAppleSignInCoordinator(),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
         appleSignIn: Boolean = true,
+        weights: FakeWeightRepository = FakeWeightRepository(),
+        setupSteps: Boolean = false,
+        goalsAndEnergy: Boolean = false,
     ): OnboardingViewModel = OnboardingViewModel(
         appCache = cache,
         authRepository = auth,
         guestAccountCreator = creator,
         appleSignInCoordinator = appleCoordinator,
         settingsRepository = settings,
+        weightRepository = weights,
+        calendar = FixedCalendar,
+        setupEnabled = onboardingSetupFlag(setupSteps),
+        goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergy),
         appleSignIn = appleSignIn,
     )
 
