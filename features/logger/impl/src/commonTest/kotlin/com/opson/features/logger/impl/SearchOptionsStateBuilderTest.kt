@@ -24,7 +24,7 @@ import kotlin.test.assertTrue
  */
 class SearchOptionsStateBuilderTest {
     private val full = policy(PresetId.Full)
-    private val blind = policy(PresetId.Blind)
+    private val blind = policy(PresetId.NoNumbers)
 
     private fun results(state: LoggerState) = assertIs<LoggerBody.Results>(state.body).rows
 

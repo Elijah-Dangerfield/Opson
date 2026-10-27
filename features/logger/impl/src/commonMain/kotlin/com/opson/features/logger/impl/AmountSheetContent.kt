@@ -179,6 +179,8 @@ private fun AmountColumn(state: AmountState, onAction: (AmountAction) -> Unit) {
                 Text(text = stringResource(Res.string.logger_amount_missing), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
             } else if (state.loading) {
                 DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_amount_loading_cd))
+            } else if (state.noNumbers != null) {
+                NoNumbersAmount(state, state.noNumbers, onAction)
             } else {
                 if (state.showAmount) AmountCard(state, onAction)
                 WhenCard(state, onAction)
@@ -188,7 +190,11 @@ private fun AmountColumn(state: AmountState, onAction: (AmountAction) -> Unit) {
                 state.source?.let { SourceCaption(it) }
             }
         }
-        if (!state.loading && !state.missing) Buttons(state, onAction)
+        when {
+            state.loading || state.missing -> Unit
+            state.noNumbers != null -> AddButton(state, onAction)
+            else -> Buttons(state, onAction)
+        }
     }
 }
 
@@ -294,7 +300,7 @@ private fun QuickChip(quick: QuickAmount, modifier: Modifier, onClick: () -> Uni
 
 /** "plate · 350 g ⌄": each unit with its weight, the selected one checked, then "Custom size…". */
 @Composable
-private fun UnitMenu(state: AmountState, onAction: (AmountAction) -> Unit, modifier: Modifier) {
+internal fun UnitMenu(state: AmountState, onAction: (AmountAction) -> Unit, modifier: Modifier) {
     var open by remember { mutableStateOf(false) }
     val unit = state.unit ?: return
     val label = listOfNotNull(unit.label, unit.grams).joinToString(UNIT_SEPARATOR)

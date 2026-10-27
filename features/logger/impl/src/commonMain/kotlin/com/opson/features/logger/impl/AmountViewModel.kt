@@ -3,7 +3,9 @@ package com.opson.features.logger.impl
 import androidx.lifecycle.viewModelScope
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FoodUnit
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
@@ -16,6 +18,7 @@ import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.PortionAmount
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.ui.components.text.NumberInput
 import com.opson.libraries.diary.Day
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -46,6 +49,12 @@ sealed interface AmountAction {
     data class SlotPicked(val slot: MealSlot) : AmountAction
     data class TimePicked(val time: LocalTime) : AmountAction
     data object AllNutrientsTapped : AmountAction
+
+    /** No numbers: the amount typed into its field. */
+    data class AmountTyped(val text: String) : AmountAction
+
+    /** No numbers: a hunger answer, or the same one again to clear it. */
+    data class HungerPicked(val hunger: Hunger) : AmountAction
     data object PickAndKeepGoingTapped : AmountAction
     data object AddToMealTapped : AmountAction
     data object BackTapped : AmountAction
@@ -72,7 +81,7 @@ class AmountViewModel(
     private val customFoods: CustomFoodRepository,
     private val settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
-    diary: DiaryRepository,
+    private val diary: DiaryRepository,
     private val calendar: LocalCalendar,
     private val clock: Clock,
     private val basketStore: BasketStore,
@@ -134,7 +143,7 @@ class AmountViewModel(
             AmountAction.LessTapped -> action.choose { copy(quantity = PortionAmount.less(unit(), quantity)) }
             AmountAction.MoreTapped -> action.choose { copy(quantity = PortionAmount.more(unit(), quantity)) }
             is AmountAction.QuickAmountPicked -> if (unit() !is AmountUnit.Grams && action.quantity > 0.0) {
-                action.choose { copy(quantity = action.quantity) }
+                action.choose { copy(quantity = action.quantity, typed = null) }
             }
             is AmountAction.UnitPicked -> unitPicked(action)
             AmountAction.CustomSizeTapped -> if (model.food?.takesSizes == true) action.choose { copy(customSize = CustomSizeUi()) }
@@ -147,6 +156,13 @@ class AmountViewModel(
             is AmountAction.SlotPicked -> action.choose { copy(slot = action.slot) }
             is AmountAction.TimePicked -> action.choose { copy(time = action.time) }
             AmountAction.AllNutrientsTapped -> action.choose { copy(nutrientsOpen = !nutrientsOpen) }
+            is AmountAction.AmountTyped -> {
+                val typed = NumberInput.sanitize(action.text, allowDecimal = true)
+                // A field cleared on the way to a new number keeps the last amount underneath.
+                val quantity = typed.toDoubleOrNull()?.takeIf { it > 0.0 }
+                action.choose { copy(typed = typed, quantity = quantity ?: this.quantity) }
+            }
+            is AmountAction.HungerPicked -> action.choose { copy(hunger = action.hunger.takeUnless { it == hunger }) }
             AmountAction.PickAndKeepGoingTapped -> if (!done && pick()) {
                 done = true
                 sendEvent(AmountEvent.Dismiss)
@@ -166,7 +182,7 @@ class AmountViewModel(
     private suspend fun unitPicked(action: AmountAction.UnitPicked) {
         val to = units().getOrNull(action.index) ?: return
         val from = unit()
-        action.choose { copy(unit = to, quantity = PortionAmount.switch(quantity, from, to)) }
+        action.choose { copy(unit = to, quantity = PortionAmount.switch(quantity, from, to), typed = null) }
     }
 
     /** Saves the size to this food in settings, then counts in it at the same count. */
@@ -206,6 +222,10 @@ class AmountViewModel(
         val groupsOn = model.day?.mealGroupsOn(model.settings) ?: model.settings.mealGroups
         val slot = if (groupsOn) model.choice.slot else MealSlot.Uncategorized
         val committed = committer.commit(day, slot) ?: return
+        model.choice.hunger?.let { hunger ->
+            val feeling = model.day?.feelings?.get(slot) ?: MealFeeling()
+            diary.setFeeling(day, slot, feeling.copy(hunger = hunger))
+        }
         sendEvent(AmountEvent.Logged(day, committed))
     }
 

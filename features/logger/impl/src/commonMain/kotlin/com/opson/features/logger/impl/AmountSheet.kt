@@ -4,6 +4,7 @@ import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.HouseholdAmount
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
@@ -27,6 +28,7 @@ import com.opson.libraries.nutrition.GoalStyle
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.Surface
+import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.fromWireKey
@@ -96,6 +98,8 @@ data class AmountState(
     val source: SourceLine? = null,
     /** The Custom size dialog, while it is open. */
     val customSize: CustomSizeUi? = null,
+    /** No numbers (design sync 4, 13.5e): a typed amount in household units and the optional hunger check, nothing else. */
+    val noNumbers: NoNumbersAmount? = null,
 ) {
     val unit: UnitUi? get() = units.getOrNull(unitIndex)
 }
@@ -137,6 +141,12 @@ data class CustomSizeUi(val name: String = "", val grams: String = "") {
 }
 
 private const val SPLIT_MACROS = 3
+
+/** [typed] is the amount field as it reads; [hunger] is the optional check, null while the hunger questions are off. */
+data class NoNumbersAmount(val typed: String, val hunger: HungerCheck?)
+
+/** "How hungry were you?", with the answer picked so far, if any. */
+data class HungerCheck(val picked: Hunger?)
 
 /** The food being sized, catalog or the user's own. */
 sealed interface AmountFood {
@@ -184,6 +194,10 @@ data class AmountChoice(
     val time: LocalTime? = null,
     val nutrientsOpen: Boolean = false,
     val customSize: CustomSizeUi? = null,
+    /** The amount field while the person types in it; null shows [quantity]. */
+    val typed: String? = null,
+    /** No numbers' optional hunger check, saved to the meal when it is added. */
+    val hunger: Hunger? = null,
 ) {
     /** The unit in force among [units]: the chosen one if it is still there, else the first. */
     fun unitIn(units: List<AmountUnit>): AmountUnit = unit?.takeIf { it in units } ?: units.first()
@@ -239,6 +253,12 @@ object AmountStateBuilder {
         val draft = food.draftFor(choice, source, ref, saved)
         val named = choice.precision == Precision.Named
         val groupsOn = inputs.day?.mealGroupsOn(inputs.settings) ?: inputs.settings.mealGroups
+        val portion = if (named) null else portion(draft, inputs.policy)
+        val day = if (named) null else dayWithThis(draft, inputs)
+        val nutrients = if (named) null else nutrients(draft, inputs.policy, choice.nutrientsOpen)
+        val count = if (named) "" else HouseholdAmount.number(choice.quantity)
+        // No numbers' own sheet, unless the person has turned a number back on: then the full one.
+        val noNumbers = inputs.policy.preset.today == TodayLayout.MealTimeline && portion == null && day == null && nutrients == null
         return AmountState(
             loading = false,
             name = food.name,
@@ -250,7 +270,7 @@ object AmountStateBuilder {
             timeIsNow = choice.time == null,
             precision = choice.precision,
             showAmount = !named,
-            count = if (named) "" else HouseholdAmount.number(choice.quantity),
+            count = count,
             canLess = PortionAmount.canLess(unit, choice.quantity),
             units = units.map { UnitUi(it.chipLabel, it.gramsLabel) },
             unitIndex = units.indexOf(unit),
@@ -260,11 +280,16 @@ object AmountStateBuilder {
             } else {
                 QUICK.map { (label, q) -> QuickAmount(label, q, selected = q == choice.quantity) }
             },
-            portion = if (named) null else portion(draft, inputs.policy),
-            day = if (named) null else dayWithThis(draft, inputs),
-            nutrients = if (named) null else nutrients(draft, inputs.policy, choice.nutrientsOpen),
+            portion = portion,
+            day = day,
+            nutrients = nutrients,
             source = sourceLine(food, unit),
             customSize = choice.customSize,
+            noNumbers = if (noNumbers) {
+                NoNumbersAmount(typed = choice.typed ?: count, hunger = HungerCheck(choice.hunger).takeIf { inputs.settings.askTags })
+            } else {
+                null
+            },
         )
     }
 

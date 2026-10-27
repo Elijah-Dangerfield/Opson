@@ -19,8 +19,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // LoggerSearchBlindPreview), one theme per preview.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
-private val blind = previewVisibilityPolicy(PresetId.Blind)
-private val nutrient = previewVisibilityPolicy(PresetId.Nutrient)
+private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
+private val nutrient = previewVisibilityPolicy(PresetId.NutrientsFirst)
 
 /** The sheet at the height the state asks for: 60% from a +, full once it has grown. */
 @Composable

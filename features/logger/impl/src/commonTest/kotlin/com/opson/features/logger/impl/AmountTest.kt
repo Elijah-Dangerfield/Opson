@@ -165,7 +165,7 @@ class AmountTest : CoroutineTest() {
 
     @Test
     fun blindRemovesThePortionAndTheDayLeavingAmountMealTimeAndPrecision() {
-        val state = build(policy(PresetId.Blind))
+        val state = build(policy(PresetId.NoNumbers))
 
         assertNull(state.portion)
         assertNull(state.day)
