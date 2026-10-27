@@ -141,7 +141,8 @@ out the same way. Cosmetic; worth one shared helper the next time either changes
 
 ## Product notes
 
-- **The widget's home screen copy outlives the release flag between runs.** If
+- **(Moot since the refresher stopped reading the flag; it only gates the More
+  row now.)** **The widget's home screen copy outlives the release flag between runs.** If
   `release.widgets` is turned off remotely while the app is closed, nothing
   clears the snapshot until a run sees the flag go from on to off, so the widget
   can keep a stale day (with its numbers) indefinitely. Clearing at launch when

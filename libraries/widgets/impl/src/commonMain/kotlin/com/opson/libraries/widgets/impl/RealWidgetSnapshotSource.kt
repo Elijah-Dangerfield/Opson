@@ -47,8 +47,8 @@ import kotlin.time.Duration.Companion.seconds
  * clock or zone moved while the app slept). Equal snapshots are dropped, so a widget only reloads
  * when what it shows changed.
  *
- * Cold: nothing is read until someone collects, and only [WidgetRefresher] with `release.widgets`
- * on, or the Widgets page, ever does.
+ * Cold: nothing is read until someone collects. [WidgetRefresher] does from launch, and the
+ * Widgets page while it is open.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = WidgetSnapshotSource::class)

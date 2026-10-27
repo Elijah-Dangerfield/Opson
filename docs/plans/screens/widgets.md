@@ -1,8 +1,9 @@
 # Widgets plan (0.2)
 
 Home screen widgets on Android (Jetpack Glance) and iOS (WidgetKit), the More
-row that v3 draws, and a small Widgets page behind it. Behind
-`release.widgets` (default off). Read `shared.md`, `settings.md` and
+row that v3 draws, and a small Widgets page behind it. The More row is behind
+`release.widgets` (default off); the snapshot is written whatever it says,
+because the iOS extension is in the widget gallery in every build. Read `shared.md`, `settings.md` and
 `blind-leak-test.md` first.
 
 ## Source
@@ -33,7 +34,7 @@ DiaryRepository.observeDay(today) ┐
 SettingsRepository (known only)   ├─ RealWidgetSnapshotSource ─ WidgetSnapshotBuilder.build(...)
 VisibilityPolicySource.policy     │      (+ WidgetCopy, resolved strings)
 date ticks (midnight, foreground) ┘                │
-                                                   ├─ WidgetRefresher (AutoInit, release.widgets) ─ WidgetPublisher
+                                                   ├─ WidgetRefresher (AutoInit, ungated) ─ WidgetPublisher
                                                    │       Android: SharedPreferences + GlanceAppWidget.updateAll
                                                    │       iOS:     WidgetBridge (Swift) → App Group UserDefaults + WidgetCenter.reloadAllTimelines
                                                    └─ WidgetsViewModel (the Widgets page preview)
@@ -107,14 +108,15 @@ level alone. No widget code asks which mode is on.
   router (held until the NavHost binds, so a cold start lands).
 
 ### Refresh
-`WidgetRefresher` is `AutoInit`. At construction it collects `release.widgets`
-from `AppConfigFlow` and nothing else. While the flag is on it collects the
-snapshot source and publishes each distinct snapshot. Inputs that move it:
-today's day (any log, ate-no-details, untracked), settings (mode, targets,
-meal groups), the policy, the date (midnight timer and every
-foreground). On a flip from on to off within a run it clears the published
-snapshot, so the widget falls back to "Open Opson". With the flag off at
-launch nothing is read, written or reloaded.
+`WidgetRefresher` is `AutoInit`. It does not read `release.widgets`: the iOS
+extension ships in every build, so a person can place the widget with the flag
+off, and a widget the app never wrote for says "Open Opson" for good. Once the
+settings are known it collects the snapshot source and publishes each distinct
+snapshot. Inputs that move it: today's day (any log, ate-no-details,
+untracked), settings (mode, targets, meal groups), the policy, the date
+(midnight timer and every foreground). When the settings go unknown (a user
+change) it clears what it published. On Android, until the receiver ships, a
+publish stores the JSON and the redraw finds no widget.
 
 ## Route (the Widgets page)
 `WidgetsRoute`, `screen<>` in `:features:settings:impl`. Registered whatever

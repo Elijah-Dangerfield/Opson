@@ -205,7 +205,7 @@ levels, counts and permission states only: never a meal name, a meal time or any
 
 ### Widgets
 
-0.2, behind `release.widgets`. Fired through `WidgetEvents` in `:libraries:widgets`. Never a
+0.2. Not behind `release.widgets`: the iOS widget is in every build. Fired through `WidgetEvents` in `:libraries:widgets`. Never a
 number, a meal name or any text from the snapshot.
 
 | Event | Attributes | Fires |

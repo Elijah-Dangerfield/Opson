@@ -33,7 +33,7 @@ struct TodayWidget: Widget {
 
 struct TodayEntry: TimelineEntry {
     let date: Date
-    /// Nil before the app has written one, or after release.widgets went off.
+    /// Nil before the app has written one, or while nobody is signed in.
     let snapshot: WidgetSnapshot?
 
     var day: WidgetDay? { snapshot?.day(for: date) }

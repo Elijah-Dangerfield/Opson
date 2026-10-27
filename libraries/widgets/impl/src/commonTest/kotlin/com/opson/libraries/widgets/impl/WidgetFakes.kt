@@ -1,8 +1,5 @@
 package com.opson.libraries.widgets.impl
 
-import com.opson.libraries.config.AppConfigFlow
-import com.opson.libraries.config.AppConfigMap
-import com.opson.libraries.config.AppConfigRepository
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
@@ -126,16 +123,4 @@ class FakeEventBus : AppEventBus {
 object KeyStrings : WidgetStrings {
     override suspend fun get(resource: StringResource, vararg args: Any): String =
         if (args.isEmpty()) resource.key else "${resource.key}(${args.joinToString()})"
-}
-
-/** `release.widgets` from a flow the test flips. */
-fun configFlow(flag: MutableStateFlow<Boolean>): AppConfigFlow {
-    fun map(on: Boolean) = object : AppConfigMap() {
-        override val map: Map<String, *> = mapOf("release" to mapOf("widgets" to on))
-    }
-    val repository = object : AppConfigRepository {
-        override fun config(): AppConfigMap = map(flag.value)
-        override fun configStream(): Flow<AppConfigMap> = flag.map(::map)
-    }
-    return AppConfigFlow(repository)
 }
