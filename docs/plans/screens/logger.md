@@ -415,8 +415,9 @@ Food Facts, later a paid one), which can take up to 5 seconds, and the answer
 is kept so the next person's scan is instant.
 
 ### Waiting
-- For the first 400 ms show only a quiet spinner under the frozen camera
-  frame. A catalog hit lands inside that and the user never sees more.
+- For the first 400 ms show only that the code was caught: a haptic, and the
+  frame snapping tight with a tick over the dimmed camera. A catalog hit lands
+  inside that and the user never sees more.
 - Past 400 ms the scan has almost certainly missed our catalog and we are
   asking an outside source. Swap in the first-lookup copy with the spinner.
   Never a progress bar, never a countdown.
