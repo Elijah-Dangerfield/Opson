@@ -13,14 +13,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
+import com.opson.libraries.diary.Fullness
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.diary.ui.tileColors
@@ -34,6 +40,7 @@ import com.opson.libraries.ui.components.ColorDot
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
+import com.opson.libraries.ui.components.EmptyCard
 import com.opson.libraries.ui.components.HeroCard
 import com.opson.libraries.ui.components.HeroLink
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -42,6 +49,8 @@ import com.opson.libraries.ui.components.ListRowChevron
 import com.opson.libraries.ui.components.LockedHeroCard
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SegmentedControl
+import com.opson.libraries.ui.components.TimelineAxis
+import com.opson.libraries.ui.components.TimelineTrack
 import com.opson.libraries.ui.components.TrendLine
 import com.opson.libraries.ui.components.chip.PillTag
 import com.opson.libraries.ui.components.chip.PillTagSize
@@ -93,6 +102,33 @@ import opson.libraries.resources.generated.resources.trends_weight
 import opson.libraries.resources.generated.resources.trends_weight_none
 import opson.libraries.resources.generated.resources.trends_weight_trend
 import opson.libraries.resources.generated.resources.trends_your_week
+import opson.libraries.resources.generated.resources.trends_fullness_full
+import opson.libraries.resources.generated.resources.trends_fullness_satisfied
+import opson.libraries.resources.generated.resources.trends_fullness_still_hungry
+import opson.libraries.resources.generated.resources.trends_fullness_very_full
+import opson.libraries.resources.generated.resources.trends_hunger
+import opson.libraries.resources.generated.resources.trends_hunger_by_meal
+import opson.libraries.resources.generated.resources.trends_hunger_caption_days
+import opson.libraries.resources.generated.resources.trends_hunger_caption_weeks
+import opson.libraries.resources.generated.resources.trends_hunger_empty
+import opson.libraries.resources.generated.resources.trends_hunger_meal_cd
+import opson.libraries.resources.generated.resources.trends_hunger_sub
+import opson.libraries.resources.generated.resources.trends_journal
+import opson.libraries.resources.generated.resources.trends_journal_all
+import opson.libraries.resources.generated.resources.trends_journal_fullness
+import opson.libraries.resources.generated.resources.trends_journal_meals
+import opson.libraries.resources.generated.resources.trends_journal_mood_count
+import opson.libraries.resources.generated.resources.trends_journal_moods
+import opson.libraries.resources.generated.resources.trends_journal_noted
+import opson.libraries.resources.generated.resources.trends_mood_anxious
+import opson.libraries.resources.generated.resources.trends_mood_calm
+import opson.libraries.resources.generated.resources.trends_mood_happy
+import opson.libraries.resources.generated.resources.trends_mood_low
+import opson.libraries.resources.generated.resources.trends_mood_rushed
+import opson.libraries.resources.generated.resources.trends_mood_social
+import opson.libraries.resources.generated.resources.trends_mood_stressed
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** The Trends tab. Stateless: everything on it comes from [state], already resolved by the policy. */
@@ -143,6 +179,8 @@ internal fun TrendsContent(
         state.nutrients?.let { NutrientsCardView(it, onClick = { onAction(TrendsAction.NutrientsCardTapped) }) }
         state.expended?.let { ExpendedCardView(it) }
         state.weight?.let { WeightCardView(it, onClick = { onAction(TrendsAction.WeightCardTapped) }) }
+        state.hunger?.let { HungerCardView(it) }
+        state.journal?.let { JournalCardView(it, onAllNotes = { onAction(TrendsAction.AllNotesTapped) }) }
     }
 }
 
@@ -444,6 +482,153 @@ private fun WeightCardView(card: WeightCard, onClick: () -> Unit) {
         }
     }
 }
+
+/**
+ * Hunger from the meal notes: how it moved over the span, then where each meal usually sits from
+ * stuffed to starving. One colour throughout, as on the Eaten chart: hungrier is not worse.
+ */
+@Composable
+internal fun HungerCardView(trend: HungerTrend) {
+    when (trend) {
+        HungerTrend.Empty -> EmptyCard(message = stringResource(Res.string.trends_hunger_empty), icon = AppIcons.EditNote)
+        is HungerTrend.Chart -> TrendsCard(verticalArrangement = Arrangement.spacedBy(Dimension.D800)) {
+            Column {
+                CardTitle(stringResource(Res.string.trends_hunger))
+                Text(
+                    text = pluralStringResource(Res.plurals.trends_hunger_sub, trend.answers, trend.answers),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                IntakeBarChart(bars = trend.bars, band = null)
+                Text(
+                    text = stringResource(if (trend.perWeek) Res.string.trends_hunger_caption_weeks else Res.string.trends_hunger_caption_days),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                )
+            }
+            if (trend.meals.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                    Text(
+                        text = stringResource(Res.string.trends_hunger_by_meal),
+                        typography = AppTheme.type.secondaryStrong.Bold,
+                        color = AppTheme.colors.muted,
+                    )
+                    trend.meals.forEach { MealHungerRow(it) }
+                    Row {
+                        Spacer(Modifier.width(HUNGER_SLOT_WIDTH))
+                        TimelineAxis(HUNGER_AXIS.map { stringResource(it.label) }, Modifier.weight(1f))
+                        Spacer(Modifier.width(HUNGER_WORD_WIDTH))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A meal, its stuffed-to-starving track (the dot its average, the tint its spread), and its usual answer. */
+@Composable
+private fun MealHungerRow(meal: MealHunger) {
+    val slot = stringResource(meal.slot.label)
+    val usual = stringResource(meal.usual.label)
+    val description = stringResource(Res.string.trends_hunger_meal_cd, slot, usual)
+    Row(
+        modifier = Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = slot,
+            typography = AppTheme.type.secondaryStrong.Bold,
+            color = AppTheme.colors.ink,
+            maxLines = 1,
+            modifier = Modifier.width(HUNGER_SLOT_WIDTH),
+        )
+        TimelineTrack(
+            dots = listOf(meal.average),
+            window = meal.spread,
+            color = meal.slot.tileColors().content,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = usual,
+            typography = AppTheme.type.secondary,
+            color = AppTheme.colors.inkSoft,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            modifier = Modifier.width(HUNGER_WORD_WIDTH),
+        )
+    }
+}
+
+/** How many meals carry a note, and what older notes said about fullness and mood, with the way to all of them. */
+@Composable
+internal fun JournalCardView(card: JournalCard, onAllNotes: () -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = PaddingValues(horizontal = AppTheme.spacing.cardHorizontal, vertical = Dimension.D200),
+        verticalArrangement = Arrangement.Top,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = MinTouchTarget),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CardTitle(stringResource(Res.string.trends_journal), Modifier.weight(1f))
+            if (card.linksToNotes) ChevronLink(text = stringResource(Res.string.trends_journal_all), onClick = onAllNotes)
+        }
+        HorizontalDivider(color = AppTheme.colors.line)
+        FactRow(stringResource(Res.string.trends_journal_noted), stringResource(Res.string.trends_recap_days_value, card.noted, card.meals))
+        if (card.fullness.isNotEmpty()) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            JournalSection(stringResource(Res.string.trends_journal_fullness))
+            card.fullness.forEach { tally ->
+                FactRow(stringResource(tally.value.label), pluralStringResource(Res.plurals.trends_journal_meals, tally.meals, tally.meals))
+            }
+        }
+        if (card.moods.isNotEmpty()) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            JournalSection(stringResource(Res.string.trends_journal_moods))
+            FoodChips(
+                names = card.moods.map { stringResource(Res.string.trends_journal_mood_count, stringResource(it.value.label), it.meals) },
+                modifier = Modifier.padding(bottom = Dimension.D500),
+            )
+        }
+    }
+}
+
+@Composable
+private fun JournalSection(text: String) {
+    Text(
+        text = text,
+        typography = AppTheme.type.secondaryStrong.Bold,
+        color = AppTheme.colors.muted,
+        modifier = Modifier.padding(top = Dimension.D500, bottom = Dimension.D200),
+    )
+}
+
+private val Fullness.label: StringResource
+    get() = when (this) {
+        Fullness.StillHungry -> Res.string.trends_fullness_still_hungry
+        Fullness.Satisfied -> Res.string.trends_fullness_satisfied
+        Fullness.Full -> Res.string.trends_fullness_full
+        Fullness.VeryFull -> Res.string.trends_fullness_very_full
+    }
+
+private val Mood.label: StringResource
+    get() = when (this) {
+        Mood.Calm -> Res.string.trends_mood_calm
+        Mood.Happy -> Res.string.trends_mood_happy
+        Mood.Social -> Res.string.trends_mood_social
+        Mood.Rushed -> Res.string.trends_mood_rushed
+        Mood.Stressed -> Res.string.trends_mood_stressed
+        Mood.Anxious -> Res.string.trends_mood_anxious
+        Mood.Low -> Res.string.trends_mood_low
+    }
+
+/** Under the hunger tracks, stuffed at the left and starving at the right. */
+private val HUNGER_AXIS = listOf(Hunger.Stuffed, Hunger.Neutral, Hunger.Starving)
+private val HUNGER_SLOT_WIDTH = Dimension.D1600
+private val HUNGER_WORD_WIDTH = Dimension.D1500
 
 @Composable
 private fun CardTitle(text: String, modifier: Modifier = Modifier) {

@@ -1,5 +1,6 @@
 package com.opson.features.trends.impl
 
+import com.opson.features.trends.PatternsRoute
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.TrendsRange
@@ -136,6 +137,24 @@ class TrendsViewModelTest : CoroutineTest() {
         val events = backgroundScope.events(vm)
         vm.takeAction(TrendsAction.PatternsTapped)
         assertEquals(listOf<TrendsEvent>(TrendsEvent.OpenPatterns), events)
+    }
+
+    @Test
+    fun allNotesTapped_opensNotes() = runUnitTest {
+        val vm = vm()
+        val events = backgroundScope.events(vm)
+        vm.takeAction(TrendsAction.AllNotesTapped)
+        assertEquals(listOf<TrendsEvent>(TrendsEvent.OpenNotes), events)
+    }
+
+    @Test
+    fun theNotesCardLinksOut_onlyWithANotesListBound() = runUnitTest {
+        assertEquals(false, assertNotNull(vm().state.journal).linksToNotes)
+        val linked = TrendsViewModel(
+            diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, health, healthFlag(false), goalsAndEnergyFlag(),
+            FakeBurnedRepository(), TrendsFixtures.timeZone, notesListLink = { PatternsRoute() },
+        )
+        assertEquals(true, assertNotNull(linked.state.journal).linksToNotes)
     }
 
     @Test

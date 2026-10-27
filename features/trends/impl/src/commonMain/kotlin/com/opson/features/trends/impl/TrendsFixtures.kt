@@ -5,11 +5,13 @@ import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
@@ -74,13 +76,17 @@ object TrendsFixtures {
     fun settings(policy: VisibilityPolicy? = null): Settings =
         Settings(numbers = policy?.settings ?: NumbersSettings())
 
-    /** No watch energy unless asked for, as with `release.health` off; pass `expended()` to draw the Expended card. */
+    /**
+     * No watch energy unless asked for, as with `release.health` off; pass `expended()` to draw the
+     * Expended card. [notesLinked] as the app has it until the Notes list binds its link.
+     */
     fun trendsInputs(
         settings: Settings = Settings(),
         days: List<Day> = days(),
         weighIns: List<WeighIn> = weighIns(),
         expended: Map<LocalDate, EnergyExpended>? = null,
-    ): TrendsInputs = TrendsInputs(today, settings, days, weighIns, timeZone, expended)
+        notesLinked: Boolean = false,
+    ): TrendsInputs = TrendsInputs(today, settings, days, weighIns, timeZone, expended, notesLinked = notesLinked)
 
     /** A watch's ninety days before today: resting about 1,600, active wandering around 550. */
     fun expended(): Map<LocalDate, EnergyExpended> = (1..WEIGH_IN_DAYS).associate { back ->
@@ -183,15 +189,51 @@ object TrendsFixtures {
         val items = MealSlot.entries.associateWith { slot ->
             menu[slot].orEmpty().mapIndexed { index, food -> item(date, slot, index, food) }
         }
-        // Hunger tagged on two days in three, so Patterns has something to say.
+        // Hunger noted on two days in three, so Patterns and Trends have something to say.
         val seed = date.toEpochDays().toInt()
         val feelings = if (seed % 3 == 0) {
             emptyMap()
         } else {
-            MealSlot.meals.filter { menu[it] != null }.associateWith { MealFeeling(hunger = HUNGER.getValue(it)) }
+            MealSlot.meals.filter { menu[it] != null }.associateWith { feeling(it, seed) }
         }
         return Day(date = date, itemsBySlot = items, feelings = feelings, checkIn = checkIn(seed, menu))
     }
+
+    /**
+     * Starving by dinner most days and hungry on the rest, the other meals moving a step or two
+     * with the day, so the hunger bars rise and fall. Some dinners and lunches have a note, and
+     * some meals the older "How it felt" fullness and moods, as rows from before the Note carry.
+     */
+    private fun feeling(slot: MealSlot, seed: Int): MealFeeling {
+        val usual = HUNGER.getValue(slot)
+        val hunger = if (slot == MealSlot.Dinner) {
+            if (seed % 4 == 1) Hunger.Hungry else usual
+        } else {
+            // Hunger runs Starving first, so a smaller ordinal is hungrier.
+            Hunger.entries[(usual.ordinal - DAY_SWING[seed % DAY_SWING.size]).coerceIn(0, Hunger.entries.lastIndex)]
+        }
+        val noted = slot == MealSlot.Dinner && seed % 4 == 2
+        return MealFeeling(
+            hunger = hunger,
+            note = NOTES[seed % NOTES.size].takeIf { noted || (slot == MealSlot.Lunch && seed % 5 == 0) },
+            fullness = FULLNESS.getValue(slot).takeIf { seed % 2 == 0 },
+            moods = MOODS[(seed + slot.ordinal) % MOODS.size].takeIf { seed % 3 == 1 }.orEmpty(),
+        )
+    }
+
+    /** How much hungrier than usual each day runs before dinner, in steps. */
+    private val DAY_SWING = listOf(0, 1, -1, 2, 0, -1, 1)
+
+    private val NOTES = listOf("Ate outside with Sam.", "Late meeting, ate at my desk.", "Long run this morning.")
+
+    private val FULLNESS = mapOf(
+        MealSlot.Breakfast to Fullness.Satisfied,
+        MealSlot.Lunch to Fullness.Satisfied,
+        MealSlot.Snack to Fullness.StillHungry,
+        MealSlot.Dinner to Fullness.Full,
+    )
+
+    private val MOODS = listOf(setOf(Mood.Calm), setOf(Mood.Social, Mood.Happy), setOf(Mood.Rushed), setOf(Mood.Calm, Mood.Happy))
 
     /**
      * Checked in three evenings in four, hungrier on a day without breakfast, so Patterns'

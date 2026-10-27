@@ -18,7 +18,7 @@ import kotlinx.datetime.DayOfWeek
 import me.tatarka.inject.annotations.Inject
 
 /** The cards a user can switch on or off, in page order. */
-enum class TrendsCard { Intake, Recap, Nutrients, Expended, Weight }
+enum class TrendsCard { Intake, Recap, Nutrients, Expended, Weight, Journal }
 
 data class CardToggle(val card: TrendsCard, val on: Boolean)
 
@@ -38,7 +38,7 @@ object TrendsSettingsStateBuilder {
      * shown on the week view), Nutrients only when a macro could, Expended only
      * with a health app connected and energy out shown, Weight only when weight
      * is not hidden; offering a switch for a card the mode will never draw is a
-     * switch that does nothing. Recap always.
+     * switch that does nothing. Recap, and Hunger and notes, always: neither shows an amount.
      */
     fun build(settings: Settings, policy: VisibilityPolicy, healthConnected: Boolean = false): TrendsSettingsState {
         val cards = settings.trendsCards
@@ -50,6 +50,7 @@ object TrendsSettingsStateBuilder {
                 if (TrendsStateBuilder.showsNutrients(policy)) add(CardToggle(TrendsCard.Nutrients, cards.nutrients))
                 if (healthConnected && TrendsStateBuilder.showsExpended(policy)) add(CardToggle(TrendsCard.Expended, cards.expended))
                 if (TrendsStateBuilder.showsWeight(policy)) add(CardToggle(TrendsCard.Weight, cards.weight))
+                add(CardToggle(TrendsCard.Journal, cards.journal))
             },
         )
     }
@@ -96,6 +97,7 @@ private fun TrendsCards.flipped(card: TrendsCard): TrendsCards = when (card) {
     TrendsCard.Nutrients -> copy(nutrients = !nutrients)
     TrendsCard.Expended -> copy(expended = !expended)
     TrendsCard.Weight -> copy(weight = !weight)
+    TrendsCard.Journal -> copy(journal = !journal)
 }
 
 sealed interface TrendsSettingsAction {

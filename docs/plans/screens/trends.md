@@ -194,6 +194,17 @@ before.
 | `PatternsTapped` | Event `OpenPatterns`. |
 | `NutrientsCardTapped` | Event `OpenNutrients(today)`: Week average, back to Trends. |
 | `WeightCardTapped` | Event `OpenWeight`. |
+| `AllNotesTapped` | Event `OpenNotes`: the Notes list, through `NotesListLink`. Until the Notes list's module binds it the link is not drawn (`TODO(notes-route)`). |
+
+**Hunger** and **Notes** sit at the foot of the page, behind the `Hunger and
+notes` switch (`TrendsCards.journal`). Both read the meal notes through
+`MealJournal` over the page's span. Hunger: a bar per day on Week, per week on
+the longer ranges, each the average `Hunger.level` (a fifth of the height for
+stuffed, full for starving), then each meal on a stuffed-to-starving track
+with its usual answer. One colour; hunger is information, not a score. With no
+hunger noted, one `EmptyCard` sentence. Notes: meals with a note out of meals
+done, then fullness and moods only where older "How it felt" rows have them,
+and only when anything was written. Note text never reaches Trends.
 
 ### Data
 `DiaryRepository.observeDays(from, to)`, `WeightRepository.observeWeighIns(since
@@ -210,6 +221,7 @@ Surface `Week` (with `day` = the span's last day), weight on `Weight`.
 | Nutrients card | macros | `96 / 120 g` with bar | soft word with bar | as calories | tile removed; card removed when all are |
 | Recap, Your week | none (counts) | always | always | always | always |
 | Weight card | weight | trend `73.4 kg` and line | slope word and line | line | card removed |
+| Hunger, Notes | none (levels and counts) | always | always | always, before a weekly check too | always |
 
 ### Copy (`strings_trends.xml`)
 `Week` / `Month` / `3 months`; `Eaten`; `avg`; captions `The band is your
