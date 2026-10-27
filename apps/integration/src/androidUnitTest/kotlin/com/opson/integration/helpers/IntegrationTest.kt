@@ -1,6 +1,7 @@
 package com.opson.integration.helpers
 
 import com.opson.libraries.diary.impl.DiarySyncApi
+import com.opson.libraries.networking.ClientHeaders
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.Dispatchers
@@ -76,6 +77,7 @@ class Harness(val server: InProcessServer) {
         clock: TestClock = TestClock(),
         requestTimeoutMillis: Long = 30_000,
         wrapSync: (DiarySyncApi) -> DiarySyncApi = { it },
+        device: (ClientHeaders) -> ClientHeaders = { it },
     ): TestClient {
         userId?.let { server.seedAuthUser(it) }
         return TestClient(
@@ -85,6 +87,7 @@ class Harness(val server: InProcessServer) {
             clock = clock,
             requestTimeoutMillis = requestTimeoutMillis,
             wrapSync = wrapSync,
+            device = device,
         ).also { closeables += AutoCloseable(it::close) }
     }
 

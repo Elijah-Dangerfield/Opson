@@ -1,6 +1,10 @@
 package com.opson.integration.helpers
 
 import com.opson.features.home.impl.HomeViewModel
+import com.opson.features.upgrade.AppGuard
+import com.opson.features.upgrade.AppGuardState
+import com.opson.features.upgrade.impl.AppGuardImpl
+import com.opson.features.upgrade.impl.AppGuardTelemetry
 import com.opson.libraries.config.AppConfigFlow
 import com.opson.libraries.config.AppConfigRepository
 import com.opson.libraries.config.impl.data.ConfigCacheImpl
@@ -9,6 +13,7 @@ import com.opson.libraries.config.impl.data.RemoteConfigRemoteDataSource
 import com.opson.libraries.config.impl.model.FallbackConfigMap
 import com.opson.libraries.config.impl.repository.OfflineFirstAppConfigRepository
 import com.opson.libraries.config.impl.serialization.ConfigJsonConverter
+import com.opson.libraries.core.AppState
 import com.opson.libraries.core.AuthGate
 import com.opson.libraries.core.AuthRequirement
 import com.opson.libraries.core.AuthVerdict
@@ -57,6 +62,8 @@ import com.opson.libraries.identity.impl.profile.ProfileCache
 import com.opson.libraries.identity.impl.profile.ProfileRepositoryImpl
 import com.opson.libraries.identity.impl.profile.UserScopedProfileCacheCleaner
 import com.opson.libraries.identity.profile.ProfileRepository
+import com.opson.libraries.networking.ClientHeaders
+import com.opson.libraries.networking.ClientHeadersProvider
 import com.opson.libraries.networking.InstallIdProvider
 import com.opson.libraries.networking.NetworkConfig
 import com.opson.libraries.networking.SessionIdProvider
@@ -76,6 +83,8 @@ import com.opson.libraries.storage.impl.db.RealAppDatabaseProvider
 import com.opson.libraries.storage.impl.db.RoomDatabaseTransactor
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
@@ -103,6 +112,12 @@ class TestClient(
     requestTimeoutMillis: Long = 30_000,
     /** Wraps the `/v1/sync` client, to make this device speak an older wire format. */
     wrapSync: (DiarySyncApi) -> DiarySyncApi = { it },
+    /**
+     * Rewrites what this device says about itself on every request: another platform, an
+     * older build. The JVM has one [com.opson.libraries.core.BuildInfo], so a phone that is
+     * an iPhone, or last month's build, is this.
+     */
+    device: (ClientHeaders) -> ClientHeaders = { it },
 ) {
     // One app-lifetime scope per client. Every background collector lives here
     // so [close] can quiesce a client's work before the server stops.
@@ -121,7 +136,11 @@ class TestClient(
             override val requestTimeoutMillis: Long = requestTimeoutMillis
         },
         tokenProvider = tokenProvider,
-        headersProvider = DefaultClientHeadersProvider(InstallId(), SessionId()),
+        headersProvider = DefaultClientHeadersProvider(InstallId(), SessionId()).let { real ->
+            object : ClientHeadersProvider {
+                override fun current(): ClientHeaders = device(real.current())
+            }
+        },
         reachability = NetworkReachabilityImpl(appScope),
         accessDeniedBus = AccessDeniedBusImpl(),
         sessionRejectionBus = sessionRejectionBus,
@@ -164,7 +183,7 @@ class TestClient(
     private val configConverter = ConfigJsonConverter(configJson)
     private val configCache = ConfigCacheImpl(cacheFactory)
     private val appEventBus = AppEventDispatcher(listeners = emptySet(), appLifecycle = lifecycle)
-    val appConfig: AppConfigRepository = OfflineFirstAppConfigRepository(
+    private val configRepository = OfflineFirstAppConfigRepository(
         dispatcherProvider = dispatchers,
         remoteConfigDataSource = RemoteConfigRemoteDataSource(dispatchers, networkClient, tokenProvider, configConverter),
         configCache = configCache,
@@ -175,8 +194,27 @@ class TestClient(
         clock = clock,
         appScope = appScope,
     )
+    val appConfig: AppConfigRepository = configRepository
     val appConfigFlow = AppConfigFlow(appConfig)
     val fastingRelease = FastingReleaseFlag(appConfig.config())
+
+    // ── The app guard ────────────────────────────────────────────────────────
+    /** Whether the phone believes it is offline, which the guard reads. A device seam: tests flip it. */
+    val offline = MutableStateFlow(false)
+    val guard: AppGuard = AppGuardImpl(
+        appConfigFlow = appConfigFlow,
+        appState = object : AppState {
+            override val isOffline: StateFlow<Boolean> = offline
+        },
+        appEvents = AppEvents(appEventBus),
+        refresher = configRepository,
+        telemetry = object : AppGuardTelemetry {
+            override fun shown(state: AppGuardState) = Unit
+            override fun storeOpened(from: AppGuardState) = Unit
+            override fun updateDismissed() = Unit
+        },
+        appScope = appScope,
+    )
 
     // ── Diary, settings, sync ────────────────────────────────────────────────
     private val calendar = SystemLocalCalendar(clock)
