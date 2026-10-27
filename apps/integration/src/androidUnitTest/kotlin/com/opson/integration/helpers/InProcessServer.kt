@@ -11,6 +11,7 @@ import com.opson.server.db.Database
 import com.opson.server.di.ServerComponent
 import com.opson.server.di.create
 import com.opson.server.installApp
+import com.opson.server.plugins.BanGate
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -56,28 +57,32 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
 
     val upstreams = FakeUpstreams(deleteAuthUser = { id -> sql("DELETE FROM auth.users WHERE id = ?::uuid", id) })
 
+    private val component: ServerComponent = ServerComponent::class.create(
+        sharedDatabase(),
+        SupabaseConfig(
+            projectUrl = upstreams.baseUrl,
+            serviceRoleKey = "integration-service-role",
+            appleSignIn = AppleSignInConfig(
+                teamId = "INTEGRATN1",
+                keyId = "INTEGRATN2",
+                privateKeyPem = throwawayEcKeyPem(),
+                baseUrl = upstreams.baseUrl,
+            ),
+        ),
+        FoodSourcesConfig(
+            anthropic = if (photoEstimates) AnthropicConfig(apiKey = "integration", baseUrl = upstreams.baseUrl) else null,
+            openFoodFactsUrl = upstreams.baseUrl,
+        ),
+        clock,
+    )
+
     private val engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =
         embeddedServer(Netty, port = 0, host = "127.0.0.1") {
             installApp(
-                component = ServerComponent::class.create(
-                    sharedDatabase(),
-                    SupabaseConfig(
-                        projectUrl = upstreams.baseUrl,
-                        serviceRoleKey = "integration-service-role",
-                        appleSignIn = AppleSignInConfig(
-                            teamId = "INTEGRATN1",
-                            keyId = "INTEGRATN2",
-                            privateKeyPem = throwawayEcKeyPem(),
-                            baseUrl = upstreams.baseUrl,
-                        ),
-                    ),
-                    FoodSourcesConfig(
-                        anthropic = if (photoEstimates) AnthropicConfig(apiKey = "integration", baseUrl = upstreams.baseUrl) else null,
-                        openFoodFactsUrl = upstreams.baseUrl,
-                    ),
-                    clock,
-                ),
+                component = component,
                 verification = IntegrationAuth.verification,
+                // As production's `module` builds it, so a banned user meets the same 403.
+                banGate = BanGate(component.moderationRepository, appealUrl = APPEAL_URL, clock = clock),
                 adminConfig = AdminConfig(apiToken = ADMIN_TOKEN),
                 waitlistConfig = WaitlistConfig(allowedOrigins = setOf(SITE_ORIGIN)),
             )
@@ -176,6 +181,9 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
 
         /** The one origin the waitlist form accepts here, standing in for the marketing site. */
         const val SITE_ORIGIN = "https://site.integration.test"
+
+        /** Where a banned user is sent to appeal, as `ACCESS_APPEAL_URL` sets it. */
+        const val APPEAL_URL = "https://site.integration.test/appeal"
 
         private val shared by lazy {
             val container = PostgreSQLContainer(POSTGRES_IMAGE)
