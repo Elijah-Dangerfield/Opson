@@ -55,8 +55,8 @@ import opson.libraries.resources.generated.resources.settings_targets_surplus_ca
  *
  * With `release.goalsAndEnergy` on, today's Burned ([BurnedRepository]) is what a set deficit or
  * surplus is aimed at, and what one starts from when picked; without a health app it is resting
- * energy plus everyday activity. Off, nothing reads it, and the deficit and
- * surplus are not offered.
+ * energy plus everyday activity. Off, nothing reads it, and the deficit and surplus are not
+ * offered.
  *
  * Typed fields (one number, a macro) keep what is typed on screen and write only once it is a
  * value the step rules allow, so typing "2150" writes once and "21" never reaches sync.

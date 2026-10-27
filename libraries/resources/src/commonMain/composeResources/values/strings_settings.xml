@@ -149,7 +149,6 @@
     <string name="settings_targets_resting_unknown">Add your details</string>
     <string name="settings_targets_activity">Activity</string>
     <string name="settings_targets_activity_none">Not connected</string>
-    <string name="settings_targets_activity_note">Used while no health app is connected. Workouts count on top.</string>
     <string name="settings_targets_activity_connect">Connect a health app</string>
     <string name="settings_targets_low_end">Low end</string>
     <string name="settings_targets_high_end">High end</string>

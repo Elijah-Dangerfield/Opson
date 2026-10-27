@@ -87,9 +87,9 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_targets_activity
 import opson.libraries.resources.generated.resources.settings_targets_activity_connect
+import opson.libraries.resources.generated.resources.everyday_activity_body
 import opson.libraries.resources.generated.resources.everyday_activity_title
 import opson.libraries.resources.generated.resources.settings_targets_activity_none
-import opson.libraries.resources.generated.resources.settings_targets_activity_note
 import opson.libraries.resources.generated.resources.settings_targets_add_details
 import opson.libraries.resources.generated.resources.settings_targets_burn_based
 import opson.libraries.resources.generated.resources.settings_targets_burn_estimated
@@ -718,7 +718,7 @@ private fun EverydayActivities(burned: BurnedCard, onAction: (TargetsAction) -> 
                 RadioDot(selected = selected)
             }
         }
-        Note(stringResource(Res.string.settings_targets_activity_note))
+        Note(stringResource(Res.string.everyday_activity_body))
         FlatButton(
             text = stringResource(Res.string.settings_targets_activity_connect),
             onClick = { onAction(TargetsAction.ConnectHealthTapped) },
