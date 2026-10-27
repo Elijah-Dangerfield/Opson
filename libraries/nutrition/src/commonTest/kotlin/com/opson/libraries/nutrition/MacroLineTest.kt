@@ -73,25 +73,27 @@ class MacroLineTest {
 
     @Test
     fun gentleModes_haveNoLineAtAll() {
-        listOf(PresetId.Blind, PresetId.Nutrient, PresetId.Rhythm, PresetId.Explorer, PresetId.Mindful, PresetId.Coast)
+        listOf(PresetId.NoNumbers, PresetId.NutrientsFirst, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.Later)
             .forEach { preset ->
                 assertEquals(emptyList(), policy(preset).macroLine(banana, Surface.Today), "$preset")
             }
     }
 
     @Test
-    fun fuel_showsProteinOnly() {
-        // Fuel shows protein and fiber; fiber is not in the line.
-        assertEquals(listOf("1 g protein"), policy(PresetId.Fuel).macroLine(banana, Surface.Today).map { it.text })
+    fun nutrientsFirst_showsNoAmountInTheLine() {
+        // Protein is a word in Nutrients first, and words never join a macro line.
+        assertEquals(emptyList(), policy(PresetId.NutrientsFirst).macroLine(banana, Surface.Today))
+        val proteinShown = policy(PresetId.NutrientsFirst, overrides = mapOf(Metric.Protein to Visibility.Show))
+        assertEquals(listOf("1 g protein"), proteinShown.macroLine(banana, Surface.Today).map { it.text })
     }
 
     @Test
     fun delayed_followsTheReveal() {
-        assertEquals(emptyList(), policy(PresetId.Delayed).macroLine(banana, Surface.Today))
-        assertEquals(3, policy(PresetId.Delayed).macroLine(banana, Surface.DayClose).size)
+        assertEquals(emptyList(), policy(PresetId.Later).macroLine(banana, Surface.Today))
+        assertEquals(3, policy(PresetId.Later).macroLine(banana, Surface.DayClose).size)
         assertEquals(
             3,
-            policy(PresetId.Delayed).macroLine(banana, Surface.Today, FormatContext(day = YESTERDAY)).size,
+            policy(PresetId.Later).macroLine(banana, Surface.Today, FormatContext(day = YESTERDAY)).size,
         )
     }
 }

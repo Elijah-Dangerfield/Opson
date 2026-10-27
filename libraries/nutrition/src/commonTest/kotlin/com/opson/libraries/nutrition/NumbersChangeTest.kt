@@ -14,26 +14,26 @@ import kotlin.test.assertTrue
 class NumbersChangeTest {
 
     private val at = SOME_INSTANT
-    private val blindPaused = NumbersSettings(preset = PresetId.Blind, pauseBeforeMore = true)
+    private val blindPaused = NumbersSettings(preset = PresetId.NoNumbers, pauseBeforeMore = true)
     private val fullPaused = NumbersSettings(preset = PresetId.Full, pauseBeforeMore = true)
 
     @Test
     fun pickPreset_clearsOverridesAndStamps() {
         val adjusted = NumbersSettings(preset = PresetId.Full, overrides = mapOf(Metric.Weight to Visibility.Hide))
-        val next = NumbersChange.PickPreset(PresetId.Blind).applyTo(adjusted, at)
-        assertEquals(NumbersSettings(preset = PresetId.Blind, changedAt = at), next)
+        val next = NumbersChange.PickPreset(PresetId.NoNumbers).applyTo(adjusted, at)
+        assertEquals(NumbersSettings(preset = PresetId.NoNumbers, changedAt = at), next)
     }
 
     @Test
     fun setRevealAt_movesTheRevealAndStamps() {
-        val next = NumbersChange.SetRevealAt(LocalTime(19, 30)).applyTo(NumbersSettings(PresetId.Delayed), at)
+        val next = NumbersChange.SetRevealAt(LocalTime(19, 30)).applyTo(NumbersSettings(PresetId.Later), at)
         assertEquals(LocalTime(19, 30), next.revealAt)
         assertEquals(at, next.changedAt)
     }
 
     @Test
     fun setRevealAt_earlierPauses_laterDoesNot() {
-        val delayed = NumbersSettings(PresetId.Delayed, pauseBeforeMore = true)
+        val delayed = NumbersSettings(PresetId.Later, pauseBeforeMore = true)
         assertTrue(NumbersChange.SetRevealAt(LocalTime(20, 0)).needsPause(delayed))
         assertFalse(NumbersChange.SetRevealAt(LocalTime(22, 0)).needsPause(delayed))
         assertFalse(NumbersChange.SetRevealAt(delayed.revealAt).needsPause(delayed))
@@ -43,9 +43,9 @@ class NumbersChangeTest {
     @Test
     fun progressPhotos_followThePreset_untilPicked() {
         val hiddenBy = PresetId.entries.filterNot { NumbersSettings(it).showsProgressPhotos }
-        assertEquals(listOf(PresetId.Blind, PresetId.Rhythm, PresetId.Mindful, PresetId.Fuel), hiddenBy)
+        assertEquals(listOf(PresetId.NutrientsFirst, PresetId.NoNumbers), hiddenBy)
 
-        val shown = NumbersChange.SetProgressPhotos(shown = true).applyTo(NumbersSettings(PresetId.Fuel), at)
+        val shown = NumbersChange.SetProgressPhotos(shown = true).applyTo(NumbersSettings(PresetId.NutrientsFirst), at)
         assertTrue(shown.showsProgressPhotos)
         assertTrue(shown.progressPhotosChanged)
         assertEquals(at, shown.changedAt)
@@ -61,14 +61,18 @@ class NumbersChangeTest {
 
     @Test
     fun progressPhotos_showingPauses_hidingNever() {
-        val fuelPaused = NumbersSettings(PresetId.Fuel, pauseBeforeMore = true)
+        val fuelPaused = NumbersSettings(PresetId.NutrientsFirst, pauseBeforeMore = true)
         assertTrue(NumbersChange.SetProgressPhotos(shown = true).needsPause(fuelPaused))
         assertFalse(NumbersChange.SetProgressPhotos(shown = true).needsPause(fuelPaused.copy(pauseBeforeMore = false)))
         assertFalse(NumbersChange.SetProgressPhotos(shown = false).needsPause(fullPaused))
-        // A preset that hides fewer numbers but brings photos back is still showing more.
-        assertTrue(NumbersChange.PickPreset(PresetId.Explorer).needsPause(NumbersSettings(PresetId.Blind, pauseBeforeMore = true)))
-        val photosHidden = NumbersSettings(PresetId.Nutrient, progressPhotos = false, pauseBeforeMore = true)
-        assertTrue(NumbersChange.PickPreset(PresetId.Explorer).needsPause(photosHidden))
+        // Re-picking Later shows fewer numbers (calories go from a word to Later) but brings photos back: still more.
+        val softCaloriesNoPhotos = NumbersSettings(
+            PresetId.Later,
+            overrides = mapOf(Metric.Calories to Visibility.Soften),
+            progressPhotos = false,
+            pauseBeforeMore = true,
+        )
+        assertTrue(NumbersChange.PickPreset(PresetId.Later).needsPause(softCaloriesNoPhotos))
     }
 
     @Test
@@ -82,23 +86,23 @@ class NumbersChangeTest {
     @Test
     fun changes_countOnlyLevelsThatDifferFromThePreset() {
         val fuel = NumbersSettings(
-            PresetId.Fuel,
-            overrides = mapOf(Metric.Carbs to Visibility.Show, Metric.Protein to Presets[PresetId.Fuel].level(Metric.Protein)),
+            PresetId.NutrientsFirst,
+            overrides = mapOf(Metric.Carbs to Visibility.Show, Metric.Protein to Presets[PresetId.NutrientsFirst].level(Metric.Protein)),
         )
         assertEquals(mapOf(Metric.Carbs to Visibility.Show), fuel.changes)
     }
 
     @Test
     fun override_setsOneLevel() {
-        val next = NumbersChange.Override(Metric.Water, Visibility.Hide).applyTo(NumbersSettings(PresetId.Blind), at)
+        val next = NumbersChange.Override(Metric.Water, Visibility.Hide).applyTo(NumbersSettings(PresetId.NoNumbers), at)
         assertEquals(Visibility.Hide, next.level(Metric.Water))
-        assertEquals(PresetId.Blind, next.preset)
+        assertEquals(PresetId.NoNumbers, next.preset)
         assertEquals(at, next.changedAt)
     }
 
     @Test
     fun clearOverride_goesBackToTheModesLevel() {
-        val start = NumbersSettings(PresetId.Blind, overrides = mapOf(Metric.Water to Visibility.Hide, Metric.Weight to Visibility.Show))
+        val start = NumbersSettings(PresetId.NoNumbers, overrides = mapOf(Metric.Water to Visibility.Hide, Metric.Weight to Visibility.Show))
         val next = NumbersChange.ClearOverride(Metric.Water).applyTo(start, at)
         assertEquals(mapOf(Metric.Weight to Visibility.Show), next.overrides)
         assertEquals(Visibility.Soften, next.level(Metric.Water))
@@ -128,20 +132,20 @@ class NumbersChangeTest {
 
     @Test
     fun needsPause_neverForALower() {
-        assertFalse(NumbersChange.PickPreset(PresetId.Blind).needsPause(fullPaused))
+        assertFalse(NumbersChange.PickPreset(PresetId.NoNumbers).needsPause(fullPaused))
         assertFalse(NumbersChange.Override(Metric.Calories, Visibility.Hide).needsPause(fullPaused))
     }
 
     @Test
     fun needsPause_neverForAnEqualScore() {
         // Full and Sprint share a map, so the switch neither raises nor lowers.
-        assertFalse(NumbersChange.PickPreset(PresetId.Sprint).needsPause(fullPaused))
+        assertFalse(NumbersChange.PickPreset(PresetId.Full).needsPause(fullPaused))
         assertFalse(NumbersChange.Override(Metric.Calories, Visibility.Show).needsPause(fullPaused))
     }
 
     @Test
     fun needsPause_neverWithPauseOff() {
-        val blind = NumbersSettings(PresetId.Blind)
+        val blind = NumbersSettings(PresetId.NoNumbers)
         assertFalse(NumbersChange.PickPreset(PresetId.Full).needsPause(blind))
         assertFalse(NumbersChange.TurnOffPause.needsPause(blind))
     }
@@ -155,7 +159,7 @@ class NumbersChangeTest {
     @Test
     fun serializes_soThePauseSheetCanCarryIt() {
         val changes = listOf(
-            NumbersChange.PickPreset(PresetId.Coast),
+            NumbersChange.PickPreset(PresetId.Later),
             NumbersChange.Override(Metric.Remaining, Visibility.Delay),
             NumbersChange.ClearOverride(Metric.Water),
             NumbersChange.TurnOffPause,

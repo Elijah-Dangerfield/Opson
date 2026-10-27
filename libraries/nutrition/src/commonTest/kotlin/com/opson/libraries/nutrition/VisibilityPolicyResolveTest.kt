@@ -15,7 +15,7 @@ import kotlin.test.assertNull
 class VisibilityPolicyResolveTest {
 
     private val soft = policy(
-        PresetId.Blind,
+        PresetId.NoNumbers,
         overrides = Metric.entries.associateWith { Visibility.Soften },
     )
 
@@ -24,7 +24,7 @@ class VisibilityPolicyResolveTest {
 
     @Test
     fun hidden_isHiddenWhateverTheValue() {
-        val blind = policy(PresetId.Blind)
+        val blind = policy(PresetId.NoNumbers)
         (Metric.entries - Metric.Water).forEach { metric ->
             Surface.entries.forEach { surface ->
                 assertEquals(Display.Hidden, blind.resolve(metric, 1245.0, surface, FormatContext(of = 2100.0)), "$metric $surface")
@@ -87,12 +87,12 @@ class VisibilityPolicyResolveTest {
     @Test
     fun weight_softensToTrendOnlyWithNoBar() {
         assertEquals(Display.Soft("Trend only", null), soft.resolve(Metric.Weight, 72.6, Surface.Weight))
-        assertEquals(Display.Soft("Trend only", null), policy(PresetId.Nutrient).resolve(Metric.Weight, 72.6, Surface.Today))
+        assertEquals(Display.Soft("Trend only", null), policy(PresetId.NutrientsFirst).resolve(Metric.Weight, 72.6, Surface.Today))
     }
 
     @Test
     fun water_softensToABarWithNoText() {
-        val blind = policy(PresetId.Blind)
+        val blind = policy(PresetId.NoNumbers)
         assertEquals(Display.Soft(null, 0.375f), blind.resolve(Metric.Water, 750.0, Surface.Today))
         assertEquals(Display.Soft(null, 0.75f), blind.resolve(Metric.Water, 750.0, Surface.Today, FormatContext(of = 1000.0)))
         assertEquals(Display.Soft(null, 1.5f), blind.resolve(Metric.Water, 3000.0, Surface.Today))
@@ -112,11 +112,11 @@ class VisibilityPolicyResolveTest {
     }
 
     @Test
-    fun fuel_softensCaloriesButShowsProtein() {
-        val fuel = policy(PresetId.Fuel)
-        assertEquals("In your range", fuel.text(Metric.Calories, 2100.0, FormatContext(of = 2100.0)))
-        assertEquals("47 of 120 g", fuel.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
-        assertNull(fuel.text(Metric.Carbs, 47.0, FormatContext(of = 250.0)))
+    fun nutrientsFirst_softensCaloriesAndProtein() {
+        val nutrientsFirst = policy(PresetId.NutrientsFirst)
+        assertEquals("In your range", nutrientsFirst.text(Metric.Calories, 2100.0, FormatContext(of = 2100.0)))
+        assertEquals("Building", nutrientsFirst.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
+        assertNull(nutrientsFirst.text(Metric.Carbs, 47.0, FormatContext(of = 250.0)))
     }
 
     @Test

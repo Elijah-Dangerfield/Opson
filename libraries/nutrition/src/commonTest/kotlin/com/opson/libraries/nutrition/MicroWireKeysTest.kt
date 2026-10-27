@@ -42,6 +42,6 @@ class MicroWireKeysTest {
     @Test
     fun microReference_usesThePolicyFormatter() {
         assertEquals("2,300 mg limit", policy().microReference(Micronutrient.Sodium))
-        assertEquals("700 µg", policy(PresetId.Blind).microReference(Micronutrient.VitaminA))
+        assertEquals("700 µg", policy(PresetId.NoNumbers).microReference(Micronutrient.VitaminA))
     }
 }
