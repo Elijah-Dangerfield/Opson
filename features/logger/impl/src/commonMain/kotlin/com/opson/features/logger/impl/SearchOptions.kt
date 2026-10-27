@@ -28,6 +28,9 @@ enum class SourceBadge {
     Usda,
     UsdaBranded,
     OpenFoodFacts,
+
+    /** RIVM's Dutch table, which asks to be cited wherever its foods show. */
+    Nevo,
     YourFood,
     ;
 
@@ -37,6 +40,7 @@ enum class SourceBadge {
             FoodSource.UsdaFoundation, FoodSource.UsdaSr, FoodSource.UsdaFndds -> Usda
             FoodSource.UsdaBranded -> UsdaBranded
             FoodSource.OpenFoodFacts -> OpenFoodFacts
+            FoodSource.Nevo -> Nevo
             FoodSource.Nutritionix, FoodSource.Unknown -> null
         }
     }

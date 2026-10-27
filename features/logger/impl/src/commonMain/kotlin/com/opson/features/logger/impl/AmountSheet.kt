@@ -137,7 +137,7 @@ data class NutrientRow(val micro: Micronutrient, val display: Display)
 /** "Per 350 g plate · Source: USDA FoodData Central". [per] is null for grams. */
 data class SourceLine(val per: String?, val source: FoodOrigin?)
 
-enum class FoodOrigin { Usda, OpenFoodFacts, Yours }
+enum class FoodOrigin { Usda, OpenFoodFacts, Nevo, Yours }
 
 /** What has been typed into the Custom size dialog. */
 data class CustomSizeUi(val name: String = "", val grams: String = "") {
@@ -351,6 +351,7 @@ object AmountStateBuilder {
             is AmountFood.Catalog -> when {
                 food.food.source.isUsda -> FoodOrigin.Usda
                 food.food.source == FoodSource.OpenFoodFacts -> FoodOrigin.OpenFoodFacts
+                food.food.source == FoodSource.Nevo -> FoodOrigin.Nevo
                 else -> null
             }
         }

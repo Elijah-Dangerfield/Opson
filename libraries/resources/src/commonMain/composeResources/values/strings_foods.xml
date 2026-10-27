@@ -18,7 +18,8 @@
     <string name="foods_yours_empty">Foods you make show up here and in search.</string>
     <string name="foods_recent">Recent</string>
     <string name="foods_add_cd">Add %1$s</string>
-    <string name="foods_credit">Food data from USDA FoodData Central and Open Food Facts. Open Food Facts data is available under the Open Database License.</string>
+    <!-- The NEVO sentence is RIVM's required citation, word for word; its version moves with CITED_VERSION in scripts/import_nevo_foods.py. -->
+    <string name="foods_credit">Food data from USDA FoodData Central, Open Food Facts and NEVO. Open Food Facts data is available under the Open Database License. Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven.</string>
 
     <!-- Create a meal -->
     <string name="foods_meal_name">Name</string>
