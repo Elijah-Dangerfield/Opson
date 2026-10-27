@@ -6,9 +6,9 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /**
- * Items the logger just wrote to one meal: the basket, yesterday's copy, or a
- * quick number. [itemIds] are exactly the rows written, so undoing removes
- * those and nothing the user logged before.
+ * Items the logger just wrote to one meal: a food from search or the + sheet, Describe's
+ * lines, a saved meal, yesterday's copy, or a quick number. [itemIds] are exactly the rows
+ * written, so undoing removes those and nothing the user logged before.
  */
 data class LoggedToMeal(
     val day: LocalDate,

@@ -100,7 +100,7 @@ data class PhotoAmountEditor(
 
 data class SwapResultUi(val id: String, val name: String, val subtitle: String?, val amount: String, val calories: Display)
 
-/** "3 items · Estimate", "About 379 kcal". Counts what Add writes: these lines and anything already picked. */
+/** "3 items · Estimate", "About 379 kcal": what Add writes. */
 data class PhotoFooter(val count: Int, val calories: Display)
 
 sealed interface PhotoEstimateAction {
@@ -140,16 +140,16 @@ sealed interface PhotoEstimateEvent {
     data object LaunchLibrary : PhotoEstimateEvent
     data object RequestCameraPermission : PhotoEstimateEvent
 
-    /** Close this sheet and reopen the logger on Describe it. */
+    /** Close this sheet and open the logger on Describe it. */
     data class OpenDescribe(val day: LocalDate, val slot: MealSlot) : PhotoEstimateEvent
 
-    /** Written: close this sheet and the logger. Today takes it from `RecentLogEvents`. */
+    /** Written: close this sheet. Today takes it from `RecentLogEvents`. */
     data class Logged(val day: LocalDate, val committed: Committed) : PhotoEstimateEvent
     data object Dismiss : PhotoEstimateEvent
 }
 
-/** What the sheet reads: the day (for its policy context) and the basket the lines join. */
-data class PhotoInputs(val today: LocalDate, val day: Day, val basket: List<BasketItem>)
+/** What the sheet reads: the day, for its policy context. */
+data class PhotoInputs(val today: LocalDate, val day: Day)
 
 /** Where the sheet has got to, before any of it is drawn. */
 sealed interface PhotoStep {
@@ -209,7 +209,7 @@ data class PhotoRow(
         checkNotNull(parsed) { "a line is a food or a parsed item" }.toLogDraft()
     }
 
-    fun toBasketItem(): BasketItem = BasketItem(
+    fun toLogPick(): LogPick = LogPick(
         key = key,
         ref = food?.let { FoodRef.Catalog(it.id) },
         draft = draft(),

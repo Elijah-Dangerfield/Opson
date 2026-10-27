@@ -29,7 +29,6 @@ class PhotoEstimateViewModelTest : CoroutineTest() {
     private val catalog = FakeFoodCatalog(foods = PhotoFixtures.foods.values.toList())
     private val estimator = FakeMealPhotoEstimator()
     private val permissions = FakeCameraPermissions()
-    private val basket = BasketStore()
     private val loggerTelemetry = RecordingTelemetry()
     private val telemetry = RecordingPhotoTelemetry()
     private val policySource = FakePolicySource()
@@ -42,8 +41,7 @@ class PhotoEstimateViewModelTest : CoroutineTest() {
         estimator = estimator,
         foodCatalog = catalog,
         permissions = permissions,
-        basketStore = basket,
-        committer = BasketCommitter(diary, catalog, basket, recentLogEvents, loggerTelemetry, Clock.fixed(NOON)),
+        logger = FoodLogger(diary, catalog, recentLogEvents, loggerTelemetry, Clock.fixed(NOON)),
         settingsRepository = FakeSettingsRepository(Settings(askTags = false)),
         appState = appState,
         telemetry = telemetry,
@@ -349,15 +347,13 @@ class PhotoEstimateViewModelTest : CoroutineTest() {
         settle()
 
         assertEquals(1, diary.added.size)
-        assertTrue(basket.basket.value.isEmpty())
         assertEquals(1, events.count { it is PhotoEstimateEvent.Logged })
     }
 
     @Test
-    fun addToMealLogsTheLinesAsEstimatesWithTheRestOfTheBasket() = runUnitTest {
+    fun addToMealLogsExactlyTheLinesAsEstimates() = runUnitTest {
         val vm = reviewing()
         val events = events(vm)
-        basket.upsert(LoggerFixtures.pickedBasket().first())
         settle()
 
         vm.takeAction(PhotoEstimateAction.AddToMealTapped)
@@ -365,10 +361,8 @@ class PhotoEstimateViewModelTest : CoroutineTest() {
 
         val added = diary.added.single()
         assertEquals(MealSlot.Dinner, added.slot)
-        assertEquals(4, added.items.size)
-        val photoLines = added.items.drop(1)
-        assertTrue(photoLines.all { it.method == LogMethod.Describe && it.precision == Precision.Estimate })
-        assertTrue(basket.basket.value.isEmpty())
+        assertEquals(3, added.items.size)
+        assertTrue(added.items.all { it.method == LogMethod.Describe && it.precision == Precision.Estimate })
         assertTrue(LogVia.Photo to 3 in loggerTelemetry.events)
         assertEquals("added items=3", telemetry.events.last())
         val logged = assertIs<PhotoEstimateEvent.Logged>(events.single())

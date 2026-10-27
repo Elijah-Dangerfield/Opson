@@ -19,8 +19,8 @@ import kotlin.math.round
  * What Describe read, as lines the person can fix before anything is logged
  * (docs/plans/screens/describe.md): change the amount with a stepper or the
  * unit menu, swap the food for one of the alternatives the server sent or one
- * searched for, take a line out, or add one it missed. Each line is a basket
- * pick while the pane is open; [LoggerViewModel] keeps the basket in step.
+ * searched for, take a line out, or add one it missed. Add logs exactly these
+ * lines.
  */
 data class DescribeReview(
     val rows: List<DescribeRow> = emptyList(),
@@ -63,10 +63,10 @@ data class DescribeRow(
         checkNotNull(parsed) { "a line is a food or a parsed item" }.toLogDraft()
     }
 
-    fun toBasketItem(): BasketItem {
+    fun toLogPick(): LogPick {
         // A server older than 0.2 names the food by id only, with no food to change the amount on.
         val ref = food?.let { FoodRef.Catalog(it.id) } ?: parsed?.foodId?.let { FoodRef.Catalog(it) }
-        return BasketItem(key = key, ref = ref, draft = draft().copy(method = PickSource.Describe.methodFor(ref)), source = PickSource.Describe, food = food)
+        return LogPick(key = key, ref = ref, draft = draft().copy(method = PickSource.Describe.methodFor(ref)), source = PickSource.Describe, food = food)
     }
 }
 

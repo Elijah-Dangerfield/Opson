@@ -1,11 +1,7 @@
 package com.opson.features.logger.impl
 
-import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.foods.Confidence
-import com.opson.libraries.foods.FoodAmount
-import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.ParsedItem
-import com.opson.libraries.foods.toLogDraft
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -99,12 +95,9 @@ class PhotoEstimateStateBuilderTest {
     }
 
     @Test
-    fun theFooterAlsoCountsWhatWasAlreadyPicked() {
-        val rice = LoggerFixtures.rice
-        val ref = FoodRef.Catalog(rice.id)
-        val picked = BasketItem(ref.key, ref, rice.toLogDraft(FoodAmount.Servings(1.0), method = LogMethod.Search), PickSource.Search, rice)
-        val review = assertIs<PhotoStage.Review>(PhotoFixtures.state(PhotoFixtures.reviewModel(full), full, listOf(picked)).stage)
-        assertEquals(4, review.footer?.count)
+    fun theFooterCountsExactlyTheLines() {
+        val review = assertIs<PhotoStage.Review>(PhotoFixtures.state(PhotoFixtures.reviewModel(full), full).stage)
+        assertEquals(PhotoFixtures.reviewModel(full).rows.size, review.footer?.count)
     }
 
     @Test

@@ -72,9 +72,7 @@ object PhotoEstimateStateBuilder {
                 canLess = PortionAmount.canLess(unit, row.quantity),
             )
         }
-        // Add writes the whole basket, so the footer counts what is already picked too.
-        val others = inputs?.basket.orEmpty().filterNot { it.source == PickSource.Photo }.map { it.draft }
-        val drafts = model.rows.map { it.draft() } + others
+        val drafts = model.rows.map { it.draft() }
         return PhotoStage.Review(
             rows = rows,
             editor = editor,
