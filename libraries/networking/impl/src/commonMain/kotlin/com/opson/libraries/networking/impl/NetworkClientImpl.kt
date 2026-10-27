@@ -75,7 +75,7 @@ class NetworkClientImpl(
                         BearerTokens(accessToken = token, refreshToken = "")
                     }
                     refreshTokens {
-                        val token = tokenProvider.refreshAccessToken()
+                        val token = tokenProvider.refreshAccessToken(rejected = oldTokens?.accessToken)
                             ?: return@refreshTokens null
                         BearerTokens(accessToken = token, refreshToken = "")
                     }

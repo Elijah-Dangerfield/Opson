@@ -58,7 +58,7 @@ class GatewayAuthTokenProvider(
         return token
     }
 
-    override suspend fun refreshAccessToken(): String? {
+    override suspend fun refreshAccessToken(rejected: String?): String? {
         // No session at all — e.g. a fresh install before onboarding creates an
         // account, where a public request 401s and Ktor's bearer plugin tries a
         // refresh anyway. There's nothing to refresh; calling the gateway would
@@ -68,6 +68,10 @@ class GatewayAuthTokenProvider(
         if (session == null) {
             logger.d { "refreshAccessToken: no session — nothing to refresh, going unauthed" }
             return null
+        }
+        if (rejected != null && session.accessToken != rejected) {
+            logger.d { "refreshAccessToken: the session already has a newer token" }
+            return session.accessToken
         }
         // Captured before the refresh so we can tell the auth layer whether the
         // rejected session was a guest (unrecoverable) or claimed (sign back in).
