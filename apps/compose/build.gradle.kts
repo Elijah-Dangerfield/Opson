@@ -186,6 +186,67 @@ kotlin {
         }
     }
 }
+/**
+ * Proves the store channel's graph has no `:features:qa` in it, and that every other channel's
+ * does. Checking presence too keeps the check honest: if the module were renamed, an absence-only
+ * check would pass forever while checking nothing.
+ *
+ * One task per platform, because each resolves only what its own binary links: an Android store
+ * build on a Linux runner never resolves iOS. Every store build runs the one for what it builds,
+ * before it builds it. To check by hand:
+ *
+ *     RELEASE_CHANNEL_OVERRIDE=store ./gradlew :apps:compose:verifyQaExclusion
+ *     ./gradlew :apps:compose:verifyQaExclusion
+ */
+val storeBuild = isStoreBuild()
+
+fun registerQaExclusionCheck(name: String, configurationNames: () -> List<String>) = tasks.register(name) {
+    group = "verification"
+    description = "Fails if :features:qa is in a store build's graph, or missing from any other."
+    val graphs = configurationNames().associateWith { configurations.getByName(it).incoming.resolutionResult.rootComponent }
+    // A local, so the action does not capture the build script (configuration cache).
+    val store = storeBuild
+    doLast {
+        graphs.forEach { (configuration, root) ->
+            val seen = mutableSetOf<org.gradle.api.artifacts.result.ResolvedComponentResult>()
+            fun walk(component: org.gradle.api.artifacts.result.ResolvedComponentResult) {
+                if (!seen.add(component)) return
+                component.dependencies
+                    .filterIsInstance<org.gradle.api.artifacts.result.ResolvedDependencyResult>()
+                    .forEach { walk(it.selected) }
+            }
+            walk(root.get())
+            val qa = seen.mapNotNull { (it.id as? org.gradle.api.artifacts.component.ProjectComponentIdentifier)?.projectPath }
+                .filter { it == ":features:qa" || it.startsWith(":features:qa:") }
+            if (store && qa.isNotEmpty()) {
+                throw GradleException("Store build, but $configuration includes $qa. QA code must not ship to the App Store or Play.")
+            }
+            if (!store && qa.isEmpty()) {
+                throw GradleException("Not a store build, but $configuration has no :features:qa. The QA menu went missing.")
+            }
+            logger.lifecycle("$configuration: ${if (store) "no QA modules (store build)" else "includes $qa"}")
+        }
+    }
+}
+
+val verifyQaExclusionAndroid = registerQaExclusionCheck("verifyQaExclusionAndroid") {
+    listOf("debugRuntimeClasspath", "releaseRuntimeClasspath")
+}
+val verifyQaExclusionIos = registerQaExclusionCheck("verifyQaExclusionIos") {
+    kotlin.targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget>()
+        .map { it.compilations.getByName("main").compileDependencyConfigurationName }
+}
+tasks.register("verifyQaExclusion") {
+    group = "verification"
+    description = "Runs the QA exclusion check for Android and iOS."
+    dependsOn(verifyQaExclusionAndroid, verifyQaExclusionIos)
+}
+
+if (storeBuild) {
+    tasks.named("preBuild") { dependsOn(verifyQaExclusionAndroid) }
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink>().configureEach { dependsOn(verifyQaExclusionIos) }
+}
+
 // The iOS test executable cannot link outside Xcode: the Kotlin Multiplatform
 // Sentry SDK needs the Sentry framework, which only reaches the app through
 // the Xcode project's Swift package. These tests are commonTest and already run
