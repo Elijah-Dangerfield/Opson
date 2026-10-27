@@ -42,6 +42,8 @@ fun Stepper(
     modifier: Modifier = Modifier,
     canDecrease: Boolean = true,
     canIncrease: Boolean = true,
+    /** On the amount's text: a nutrition amount carries its metric's test tag, as the leak test reads it. */
+    amountModifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -58,7 +60,7 @@ fun Stepper(
             typography = AppTheme.type.numericLarge,
             color = AppTheme.colors.ink,
             textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).then(amountModifier),
         )
         StepperButton(
             icon = AppIcons.Add.described(stringResource(SharedRes.string.ds_more)),
