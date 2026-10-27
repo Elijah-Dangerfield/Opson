@@ -402,6 +402,21 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         assertEquals("granola", diary.added.single().items.single().customFoodId)
     }
 
+    /** The screen takes a moment to close after the write; a second tap in that time is queued behind the first. */
+    @Test
+    fun aSecondSaveWhileTheScannerClosesLogsNothingMore() = runUnitTest {
+        val vm = missedVm()
+        val events = events(vm)
+
+        vm.takeAction(BarcodeScanAction.MissNameTyped("Rye crispbread"))
+        vm.takeAction(BarcodeScanAction.SaveNameTapped)
+        vm.takeAction(BarcodeScanAction.SaveNameTapped)
+        settle()
+
+        assertEquals(1, diary.added.size)
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.Close), events)
+    }
+
     @Test
     fun saveNameTappedWithoutANameDoesNothing() = runUnitTest {
         val vm = missedVm()

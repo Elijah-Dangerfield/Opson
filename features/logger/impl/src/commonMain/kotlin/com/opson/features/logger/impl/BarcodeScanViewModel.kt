@@ -48,6 +48,9 @@ class BarcodeScanViewModel(
     private var model = ScanModel()
     private var slowJob: Job? = null
 
+    /** The name is logged and the scanner is closing: a second Save queued behind the first would log it again. */
+    private var saved = false
+
     init {
         viewModelScope.launch { takeAction(BarcodeScanAction.PermissionChecked(permissions.current())) }
     }
@@ -183,7 +186,8 @@ class BarcodeScanViewModel(
 
     private suspend fun saveName() {
         val name = model.name.trim()
-        if (model.lookup !is Lookup.Missed || name.isEmpty()) return
+        if (saved || model.lookup !is Lookup.Missed || name.isEmpty()) return
+        saved = true
         logger.log(day, slot, listOf(nameOnlyPick(name, customFoods.observeAll().first(), customFoods)))
         sendEvent(BarcodeScanEvent.Close)
     }
