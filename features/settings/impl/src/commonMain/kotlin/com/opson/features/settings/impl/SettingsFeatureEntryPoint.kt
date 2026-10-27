@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl
 
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -10,9 +11,9 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.home.FeedbackRoute
 import com.opson.features.onboarding.OnboardingRoute
+import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.FindSupportRoute
-import com.opson.features.settings.GoalStyleRoute
 import com.opson.features.settings.IntegrationsRoute
 import com.opson.features.settings.LeaveOutDayRoute
 import com.opson.features.settings.LookAndFeelRoute
@@ -21,10 +22,17 @@ import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.MoreRoute
 import com.opson.features.settings.PauseBeforeMoreRoute
 import com.opson.features.settings.RemindersRoute
+import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.TargetsRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.WidgetsRoute
+import com.opson.features.settings.impl.energy.EnergyTodayEvent
+import com.opson.features.settings.impl.energy.EnergyTodayScreen
+import com.opson.features.settings.impl.energy.EnergyTodayViewModel
+import com.opson.features.settings.impl.energy.RestingEnergyEvent
+import com.opson.features.settings.impl.energy.RestingEnergyScreen
+import com.opson.features.settings.impl.energy.RestingEnergyViewModel
 import com.opson.features.settings.impl.fasting.FastingEvent
 import com.opson.features.settings.impl.fasting.FastingScreen
 import com.opson.features.settings.impl.fasting.FastingViewModel
@@ -61,9 +69,6 @@ import com.opson.features.settings.impl.support.FindSupportViewModel
 import com.opson.features.settings.impl.support.SupportEvent
 import com.opson.features.settings.impl.support.SupportScreen
 import com.opson.features.settings.impl.support.SupportViewModel
-import com.opson.features.settings.impl.targets.GoalStyleEvent
-import com.opson.features.settings.impl.targets.GoalStyleSheetContent
-import com.opson.features.settings.impl.targets.GoalStyleViewModel
 import com.opson.features.settings.impl.targets.TargetsEvent
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsViewModel
@@ -74,9 +79,12 @@ import com.opson.features.settings.impl.widgets.WidgetsEvent
 import com.opson.features.settings.impl.widgets.WidgetsScreen
 import com.opson.features.settings.impl.widgets.WidgetsViewModel
 import com.opson.features.settings.toRoute
+import com.opson.features.trends.NutrientsRange
+import com.opson.features.trends.NutrientsRoute
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.NavigationOptions
+import com.opson.libraries.navigation.OnTabReselected
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.bottomSheet
 import com.opson.libraries.navigation.screen
@@ -98,7 +106,8 @@ class SettingsFeatureEntryPoint(
     private val modesViewModel: () -> ModesViewModel,
     private val pauseViewModel: (NumbersChange) -> PauseViewModel,
     private val targetsViewModel: () -> TargetsViewModel,
-    private val goalStyleViewModel: () -> GoalStyleViewModel,
+    private val restingEnergyViewModel: () -> RestingEnergyViewModel,
+    private val energyTodayViewModel: () -> EnergyTodayViewModel,
     private val waterSettingsViewModel: (backToMore: Boolean) -> WaterSettingsViewModel,
     private val lookAndFeelViewModel: () -> LookAndFeelViewModel,
     private val supportViewModel: () -> SupportViewModel,
@@ -133,7 +142,9 @@ class SettingsFeatureEntryPoint(
                 viewModel.takeAction(MoreAction.ScreenResumed)
                 onPauseOrDispose {}
             }
-            MoreScreen(state = state, onAction = viewModel::takeAction)
+            val scrollState = rememberScrollState()
+            router.OnTabReselected(MoreRoute::class) { scrollState.animateScrollTo(0) }
+            MoreScreen(state = state, onAction = viewModel::takeAction, scrollState = scrollState)
         }
 
         screen<ModesRoute> {
@@ -200,7 +211,7 @@ class SettingsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is TargetsEvent.ShowToast -> show(event.toast)
-                    TargetsEvent.OpenGoalStyle -> router.navigate(GoalStyleRoute())
+                    TargetsEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
                     TargetsEvent.OpenModes -> router.navigate(ModesRoute())
                     TargetsEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                     TargetsEvent.Close -> router.goBack()
@@ -209,22 +220,32 @@ class SettingsFeatureEntryPoint(
             TargetsScreen(state = state, onAction = viewModel::takeAction)
         }
 
-        bottomSheet<GoalStyleRoute> { _, sheetState ->
-            val viewModel: GoalStyleViewModel = viewModel { goalStyleViewModel() }
+        // Registered whatever release.goalsAndEnergy says: nothing links here while it is off,
+        // and a stale back stack entry should land on the page rather than crash.
+        screen<RestingEnergyRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<RestingEnergyRoute>()
+            val viewModel: RestingEnergyViewModel = viewModel { restingEnergyViewModel() }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    // Animate the sheet down first; its dismiss callback pops the route.
-                    GoalStyleEvent.Dismiss -> sheetState.dismiss()
+                    RestingEnergyEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
+                    RestingEnergyEvent.Close -> router.goBack()
                 }
             }
-            BottomSheet(
-                onDismissRequest = { router.goBack() },
-                state = sheetState,
-                backgroundColor = AppTheme.colors.bg,
-            ) {
-                GoalStyleSheetContent(state = state, onAction = viewModel::takeAction)
+            RestingEnergyScreen(state = state, onAction = viewModel::takeAction, fromEnergyToday = route.fromEnergyToday)
+        }
+
+        screen<EnergyTodayRoute> {
+            val viewModel: EnergyTodayViewModel = viewModel { energyTodayViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is EnergyTodayEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
+                    EnergyTodayEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute(fromEnergyToday = true))
+                    EnergyTodayEvent.Close -> router.goBack()
+                }
             }
+            EnergyTodayScreen(state = state, onAction = viewModel::takeAction)
         }
 
         screen<WaterSettingsRoute> { backStackEntry ->

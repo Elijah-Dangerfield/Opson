@@ -112,7 +112,7 @@ class SheetsTest : CoroutineTest() {
         assertEquals(LocalDate(2026, 9, 1), vm.state.month)
         vm.takeAction(CalendarAction.DayTapped(LocalDate(2026, 9, 12)))
         assertEquals(LocalDate(2026, 9, 12), selected.date.value)
-        vm.takeAction(CalendarAction.DoneTapped)
+        vm.takeAction(CalendarAction.CloseTapped)
         assertEquals(3, events.count { it == CalendarEvent.Dismiss })
     }
 
@@ -259,25 +259,28 @@ class SheetsTest : CoroutineTest() {
 
     @Test
     fun itemSheetRemovesTheEntryAndDismissesWhenItIsGone() = runUnitTest {
-        val vm = ItemSheetViewModel(today, "adobo-$today", diary, FakePolicySource(), FakeCalendar())
+        val vm = itemSheet("adobo-$today")
         val events = collect(vm.eventFlow)
         assertEquals("Chicken adobo", vm.state.name)
         assertEquals("310 kcal", vm.state.calories.text())
 
-        vm.takeAction(ItemSheetAction.RemoveTapped)
+        vm.takeAction(ItemSheetAction.DeleteTapped)
         assertEquals(listOf("adobo-$today"), diary.removed)
         assertIs<ItemSheetEvent.ShowToast>(events.first())
 
-        val gone = ItemSheetViewModel(today, "nothing", diary, FakePolicySource(), FakeCalendar())
+        val gone = itemSheet("nothing")
         val goneEvents = collect(gone.eventFlow)
         assertEquals(listOf<ItemSheetEvent>(ItemSheetEvent.Dismiss), goneEvents)
     }
 
     @Test
     fun itemSheetCaloriesFollowThePolicy() = runUnitTest {
-        val vm = ItemSheetViewModel(today, "adobo-$today", diary, FakePolicySource(policy(PresetId.NoNumbers)), FakeCalendar())
+        val vm = itemSheet("adobo-$today", FakePolicySource(policy(PresetId.NoNumbers)))
         assertEquals(null, vm.state.calories.text())
     }
+
+    private fun itemSheet(entryId: String, policySource: FakePolicySource = FakePolicySource()) =
+        ItemSheetViewModel(today, entryId, diary, diary, FakeSettingsRepository(), policySource, FakeCalendar(), foodActionsFlag(false))
 
     // Day note
 

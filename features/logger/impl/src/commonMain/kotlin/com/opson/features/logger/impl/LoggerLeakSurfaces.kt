@@ -37,6 +37,13 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-describe", label = "Describe a meal", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeState(policy), onAction = {})
         },
+        // Describe's lines after fixing them: amounts stepped, a swap, an added food, one not found, and the total.
+        LeakSurface(id = "logger-describe-edited", label = "Describe a meal, lines corrected", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.describeEditedState(policy), onAction = {})
+        },
+        LeakSurface(id = "logger-describe-find", label = "Describe a meal, finding a food", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.describeFindState(policy), onAction = {})
+        },
         // Voice log: words heard live over lines already read. The transcript is the person's; the lines are policy's.
         LeakSurface(id = "logger-describe-voice", label = "Describe a meal by voice", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = VoiceFixtures.listeningOverLines(policy), onAction = {})
@@ -48,6 +55,10 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-amount", label = "Add-food sheet", showsCaloriesInFull = true) { policy ->
             AmountSheetContent(state = LoggerFixtures.amountState(policy), onAction = {})
         },
+        // All nutrients open: every vitamin and mineral the plate carries, as a percent of a day.
+        LeakSurface(id = "logger-amount-nutrients", label = "Add-food sheet, all nutrients", showsCaloriesInFull = true) { policy ->
+            AmountSheetContent(state = LoggerFixtures.amountState(policy, nutrientsOpen = true), onAction = {})
+        },
         // The unit menu's weights are amounts of food, not nutrients; the sheet under it still follows the policy.
         LeakSurface(id = "logger-amount-units", label = "Add-food sheet, unit menu", showsCaloriesInFull = true) { policy ->
             AmountSheetContent(state = LoggerFixtures.amountState(policy), onAction = {}, unitMenuShown = true)
@@ -57,7 +68,7 @@ object LoggerLeakSurfaces {
         },
         // The scanner draws no food data in any stage; the miss is its fullest screen.
         LeakSurface(id = "logger-scan-miss", label = "Barcode not found", showsCaloriesInFull = false) { _ ->
-            BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed), onAction = {}, viewfinder = {})
+            BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed), onAction = {}, viewfinder = { _, _ -> })
         },
         LeakSurface(id = "logger-photo", label = "Photo estimate", showsCaloriesInFull = true) { policy ->
             PhotoEstimateSheetContent(state = PhotoFixtures.reviewState(policy, editing = true), onAction = {})

@@ -8,7 +8,9 @@ import kotlinx.datetime.plus
  * The ten presets before design sync 4, kept for two jobs: reading settings that still name one
  * (0.1 phones keep writing them), and writing a `numbers.preset` those phones understand.
  *
- * The levels are 0.1's, frozen: changing one here would change what an old phone shows.
+ * The levels are 0.1's, frozen, with one deliberate exception: Full and Sprint show vitamins and
+ * minerals, as Full numbers does since 2026-10-27 (`docs/decisions.md`), so a Full user is not
+ * migrated into a micros override. A 0.1 build reading "full" hides them, which is fewer.
  */
 enum class LegacyPreset(
     val key: String,
@@ -122,7 +124,7 @@ private fun fill(level: Visibility): Map<Metric, Visibility> = Metric.entries.as
 
 private fun gentle(vis: Map<Metric, Visibility>) = vis + (Metric.Water to Visibility.Soften)
 
-private val fullVis = fill(Visibility.Show) + (Metric.Micros to Visibility.Hide)
+private val fullVis = fill(Visibility.Show)
 
 /** [days] after [this]. */
 internal fun LocalDate.plusDays(days: Int): LocalDate = plus(DatePeriod(days = days))

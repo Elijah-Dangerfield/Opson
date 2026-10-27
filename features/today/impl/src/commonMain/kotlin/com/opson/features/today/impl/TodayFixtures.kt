@@ -10,6 +10,7 @@ import com.opson.features.today.impl.dayclose.DayCloseStateBuilder
 import com.opson.features.today.impl.daynote.DayNoteState
 import com.opson.features.today.impl.item.ItemSheetState
 import com.opson.features.today.impl.item.ItemSheetStateBuilder
+import com.opson.features.today.impl.item.ItemStep
 import com.opson.features.today.impl.meal.MealFeelState
 import com.opson.features.today.impl.meal.MealNoteState
 import com.opson.features.today.impl.meal.MealSheetState
@@ -85,6 +86,7 @@ object TodayFixtures {
         fat: Double? = null,
         fiber: Double? = null,
         micros: Map<String, Double>? = null,
+        portion: Portion? = null,
     ) = LogItem(
         id = "$id-$date",
         day = date,
@@ -100,7 +102,14 @@ object TodayFixtures {
         fat = fat,
         fiber = fiber,
         micros = micros,
+        foodId = portion?.foodId,
+        quantity = portion?.quantity,
+        unit = portion?.unit,
+        grams = portion?.grams,
     )
+
+    /** What a food logged from the catalog carries besides its name: which food, how many of what, and grams. */
+    private data class Portion(val foodId: String, val quantity: Double, val unit: String, val grams: Double?)
 
     private fun breakfast(date: LocalDate) = listOf(
         item("oats", date, MealSlot.Breakfast, LocalTime(8, 10), "Oat porridge with milk", "1 bowl", Precision.Weighed, 300.0, 10.0, 50.0, 6.0, 8.0,
@@ -119,7 +128,10 @@ object TodayFixtures {
     private fun snack(date: LocalDate) = listOf(
         item("apple", date, MealSlot.Snack, LocalTime(15, 30), "Apple", "1 medium", Precision.Estimate, 95.0, 0.0, 25.0, 0.0, 4.0,
             micros = mapOf("vitamin_c_mg" to 8.4, "vitamin_k_ug" to 4.0)),
-        item("pb", date, MealSlot.Snack, LocalTime(15, 31), "Peanut butter", "2 tbsp", Precision.Weighed, 190.0, 8.0, 7.0, 16.0, 2.0),
+        item(
+            "pb", date, MealSlot.Snack, LocalTime(15, 31), "Peanut butter", "2 tbsp", Precision.Weighed, 190.0, 8.0, 7.0, 16.0, 2.0,
+            portion = Portion(foodId = "peanut-butter", quantity = 2.0, unit = "tbsp", grams = 32.0),
+        ),
     )
 
     private fun bigDinner(date: LocalDate) = listOf(
@@ -205,6 +217,7 @@ object TodayFixtures {
         summaryOn: Boolean = false,
         selectOn: Boolean = false,
         weighIns: List<WeighIn> = emptyList(),
+        foodActionsOn: Boolean = false,
     ): TodayInputs = TodayInputs(
         today = today,
         timeZone = timeZone,
@@ -215,6 +228,7 @@ object TodayFixtures {
         summaryOn = summaryOn,
         selectOn = selectOn,
         weighIns = weighIns,
+        foodActionsOn = foodActionsOn,
     )
 
     /** Two weeks of morning weigh-ins ending on [today] at 7:02 am, 73.9 kg, the line about level. */
@@ -228,6 +242,12 @@ object TodayFixtures {
 
     /** The foods picked in v3 `today-select`: porridge, banana and the adobo. */
     val picked: Set<String> = setOf("oats-$today", "banana-$today", "adobo-$today")
+
+    /** The apple and the peanut butter, the snack picked in `today-select-v4` and dragged in `today-drag-move`. */
+    val snackPicked: Set<String> = setOf("apple-$today", "pb-$today")
+
+    /** The peanut butter, the food `food-actions` and `edit-a-copy` start from: 2 tbsp, weighed, a catalog food. */
+    val peanutButter: String = "pb-$today"
 
     /** The banana, the row v3 swipes in `today-swipe-delete` and confirms in `today-delete-confirm`. */
     val banana: String = "banana-$today"
@@ -257,8 +277,17 @@ object TodayFixtures {
         selectOn: Boolean = false,
         weighIns: List<WeighIn> = emptyList(),
         ui: TodayUi = TodayUi(),
+        foodActionsOn: Boolean = false,
     ): TodayState = TodayStateBuilder.build(
-        inputs(day, settings, expended = expended, summaryOn = summaryOn, selectOn = selectOn, weighIns = weighIns),
+        inputs(
+            day,
+            settings,
+            expended = expended,
+            summaryOn = summaryOn,
+            selectOn = selectOn,
+            weighIns = weighIns,
+            foodActionsOn = foodActionsOn,
+        ),
         policy,
         menuOpen,
         clearArmed,
@@ -315,6 +344,10 @@ object TodayFixtures {
 
     fun itemSheetState(policy: VisibilityPolicy): ItemSheetState =
         requireNotNull(ItemSheetStateBuilder.build("adobo-$today", day(), today, policy)) { "The fixture day has the adobo" }
+
+    /** The peanut butter's ⋮ with `release.foodActions` on (13.3d), on [step]. */
+    fun foodActionsState(policy: VisibilityPolicy, step: ItemStep = ItemStep.Actions): ItemSheetState =
+        requireNotNull(ItemSheetStateBuilder.build(peanutButter, day(), today, policy, actionsOn = true, step = step)) { "The fixture day has the peanut butter" }
 
     fun dayNoteState(): DayNoteState = DayNoteState(draft = "Dinner at Lola's, a lazy Sunday", isToday = true, loaded = true)
 

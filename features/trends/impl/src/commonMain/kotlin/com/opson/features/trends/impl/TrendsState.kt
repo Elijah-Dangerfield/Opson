@@ -7,6 +7,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.nutrition.DayGoal
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.GoalStyle
@@ -75,9 +76,11 @@ data class IntakeCard(
     /** Daily average over tracked days, the one still in progress left out; Hidden when there is none. */
     val average: Display,
     val bars: List<IntakeBar>,
-    /** The user's range over the chart's scale. */
+    /** The user's range over the chart's scale; its ends meet when the goal is one number. */
     val band: ClosedFloatingPointRange<Float>,
     val caption: IntakeCaption,
+    /** The goal is one number (one number, a deficit or a surplus): the caption calls it a line, not a band. */
+    val singleGoal: Boolean = false,
 )
 
 /** What the caption under the chart explains: the band, and the striped bar when there is one. */
@@ -209,8 +212,8 @@ object TrendsStateBuilder {
         context: FormatContext,
     ): IntakeCard? {
         if (!showsIntake(policy, context)) return null
-        val targets = inputs.settings.targets
-        val scale = chartScale(targets)
+        val goal = inputs.settings.targets.spanGoal(inputs.settings.numbers.preset)
+        val scale = chartScale(goal)
         val tracked = mutableListOf<Double>()
         var inProgress = IntakeCaption.Plain
         val bars = when (span.range) {
@@ -244,8 +247,9 @@ object TrendsStateBuilder {
         return IntakeCard(
             average = policy.resolve(Metric.Calories, tracked.averageOrNull(), Surface.Week, context),
             bars = bars,
-            band = (targets.minKcal / scale).toFloat()..(targets.maxKcal / scale).toFloat(),
+            band = (goal.minKcal / scale).toFloat()..(goal.maxKcal / scale).toFloat(),
             caption = inProgress,
+            singleGoal = goal.minKcal == goal.maxKcal,
         )
     }
 
@@ -384,9 +388,12 @@ object TrendsStateBuilder {
         return policy.isWeekOpen(weekEnd)
     }
 
-    /** Bars are drawn against the top of the range plus a fifth, rounded up to the next 100. */
-    internal fun chartScale(targets: Targets): Double =
-        ceil(targets.maxKcal * SCALE_HEADROOM / SCALE_STEP) * SCALE_STEP
+    /**
+     * Bars are drawn against the top of the goal plus a fifth, rounded up to the next 100. The
+     * goal is the one the chart draws, every day group's under "different by day".
+     */
+    internal fun chartScale(goal: DayGoal): Double =
+        ceil(goal.maxKcal * SCALE_HEADROOM / SCALE_STEP) * SCALE_STEP
 
     /** The weekly reveal's weight check looks at the smoothed line over the four weeks to the check. */
     private const val WEIGHT_CHECK_DAYS = 28

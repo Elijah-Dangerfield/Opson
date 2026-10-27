@@ -15,13 +15,13 @@
     <string name="today_prev_day_cd">Previous day</string>
     <string name="today_pick_day_cd">Pick a day</string>
     <string name="today_next_day_cd">Next day</string>
-    <string name="today_calendar_cd">Calendar</string>
     <string name="today_day_menu_cd">More for this day</string>
 
     <!-- Summary cards -->
     <string name="today_summary_eaten">Eaten</string>
     <string name="today_summary_kcal">kcal</string>
     <string name="today_summary_range">Your range</string>
+    <string name="today_summary_goal">Your goal</string>
     <string name="today_summary_nothing_yet">Nothing yet</string>
     <string name="today_summary_nutrients">Nutrients</string>
     <string name="today_macro_protein">Protein</string>
@@ -89,8 +89,6 @@
     <string name="today_cal_prev_cd">Previous month</string>
     <string name="today_cal_next_cd">Next month</string>
     <string name="today_cal_legend">Something logged</string>
-    <string name="today_cal_today">Today</string>
-    <string name="today_cal_done">Done</string>
     <string name="today_cal_initial_sun">S</string>
     <string name="today_cal_initial_mon">M</string>
     <string name="today_cal_initial_tue">T</string>
@@ -127,7 +125,6 @@
     <string name="today_water_settings">Water settings</string>
 
     <!-- Item sheet and day note -->
-    <string name="today_item_remove">Remove from %1$s</string>
     <string name="today_daynote_title">Note</string>
     <string name="today_daynote_save">Save</string>
 
@@ -165,10 +162,15 @@
     <string name="today_dayclose_above">Above your range today</string>
     <string name="today_dayclose_above_other_day">Above your range that day</string>
     <string name="today_dayclose_below">Your range is %1$s</string>
+    <string name="today_dayclose_inside_goal">Close to your goal of %1$s</string>
+    <string name="today_dayclose_above_goal">Above your goal today</string>
+    <string name="today_dayclose_above_goal_other_day">Above your goal that day</string>
+    <string name="today_dayclose_below_goal">Your goal is %1$s</string>
     <string name="today_dayclose_soft_label">Today</string>
     <string name="today_dayclose_soft_label_other_day">That day</string>
     <string name="today_dayclose_big_day">Everyone has big days. Tomorrow is a fresh start, and you don't need to make up for today.</string>
     <string name="today_dayclose_tomorrow">Your range tomorrow is %1$s, the same as usual.</string>
+    <string name="today_dayclose_tomorrow_goal">Your goal tomorrow is %1$s, the same as usual.</string>
     <string name="today_dayclose_commit_normal">Back to normal tomorrow</string>
     <string name="today_dayclose_commit_can">I can do this</string>
     <string name="today_dayclose_committed">Heard. That stays between you and you.</string>
@@ -191,6 +193,7 @@
     <string name="today_stat_expended">Expended</string>
     <string name="today_stat_deficit">Deficit so far</string>
     <string name="today_stat_to_range">To your range</string>
+    <string name="today_stat_to_goal">To your goal</string>
     <string name="today_stat_meals">Meals</string>
     <string name="today_stat_water">Water</string>
     <string name="today_stat_expended_body">From your watch</string>
@@ -203,6 +206,7 @@
     <string name="today_macros_title">Macros</string>
     <string name="today_macros_of">of %1$s</string>
     <string name="today_compact_range">range</string>
+    <string name="today_compact_goal">goal</string>
     <string name="today_compact_meals">%1$d of %2$d meals</string>
     <string name="today_collapse_cd">Shrink the summary to one line</string>
     <string name="today_expand_cd">Show the whole summary</string>
@@ -227,13 +231,10 @@
     <!-- Design sync 2: select foods and swipe to delete (2.12 to 2.14) -->
     <string name="today_select_title">%1$d selected</string>
     <string name="today_select_close_cd">Stop selecting</string>
-    <string name="today_select_all_cd">Select every food</string>
     <string name="today_select_foods_one">1 food</string>
     <string name="today_select_foods_other">%1$d foods</string>
-    <string name="today_select_save_meal">Save as meal</string>
     <string name="today_select_copy">Copy to…</string>
     <string name="today_select_move">Move</string>
-    <string name="today_select_remove">Remove</string>
     <string name="today_select_copy_title">Copy to</string>
     <string name="today_select_copy_action">Copy</string>
     <string name="today_select_move_title">Move to</string>
@@ -252,8 +253,6 @@
     <string name="today_removed_other">Removed %1$d foods</string>
     <string name="today_toast_copied_foods_one">Copied 1 food.</string>
     <string name="today_toast_copied_foods_other">Copied %1$d foods.</string>
-    <string name="today_toast_moved_foods_one">Moved 1 food to %1$s.</string>
-    <string name="today_toast_moved_foods_other">Moved %1$d foods to %2$s.</string>
     <string name="today_move_to">Move to…</string>
 
     <!-- Design sync 2: how it felt (3.10) -->

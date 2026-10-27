@@ -25,6 +25,8 @@ import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
 import com.opson.libraries.foods.SearchSource
 import com.opson.libraries.foods.toLogDraft
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.scanner.CameraPermission
 import kotlinx.datetime.DateTimeUnit
@@ -49,7 +51,7 @@ import kotlin.time.Instant
 object LoggerFixtures {
     val today: LocalDate = LocalDate(2026, 10, 25)
 
-    /** A catalog food whose first portion has exactly these numbers. */
+    /** A catalog food whose first portion has exactly these numbers, [micros] included (wire keys). */
     @Suppress("LongParameterList")
     fun food(
         id: String,
@@ -62,6 +64,7 @@ object LoggerFixtures {
         fat: Double,
         brand: String? = null,
         more: List<Portion> = emptyList(),
+        micros: Map<String, Double> = emptyMap(),
     ): Food {
         val per100 = 100.0 / grams
         return Food(
@@ -71,13 +74,29 @@ object LoggerFixtures {
             per100g = NutrientProfile(kcal = kcal * per100, protein = protein * per100, carbs = carbs * per100, fat = fat * per100),
             brand = brand,
             portions = listOf(Portion(portion, grams)) + more,
+            micros = micros.mapValues { (_, amount) -> amount * per100 },
         )
     }
 
-    val arroz = food("arroz", "Arroz con pollo", "1 plate", 350.0, 525.0, 32.0, 60.0, 18.0, "Latin American", listOf(Portion("1 cup", 200.0)))
+    /** One plate's vitamins and minerals, roughly FNDDS's: most of the table, as a catalog dish has. */
+    private val arrozMicros = mapOf(
+        "vitamin_a_rae_ug" to 60.0, "thiamin_mg" to 0.35, "riboflavin_mg" to 0.25, "niacin_mg" to 9.0, "vitamin_b6_mg" to 0.6,
+        "folate_dfe_ug" to 120.0, "vitamin_b12_ug" to 0.4, "vitamin_c_mg" to 12.0, "vitamin_e_mg" to 1.2, "vitamin_k_ug" to 15.0,
+        "choline_mg" to 110.0, "calcium_mg" to 60.0, "copper_mg" to 0.2, "iron_mg" to 3.0, "magnesium_mg" to 70.0,
+        "manganese_mg" to 0.6, "phosphorus_mg" to 330.0, "potassium_mg" to 600.0, "selenium_ug" to 35.0, "sodium_mg" to 980.0,
+        "zinc_mg" to 2.8, "sugars_g" to 3.0, "saturated_fat_g" to 4.5,
+    )
+
+    val arroz = food(
+        "arroz", "Arroz con pollo", "1 plate", 350.0, 525.0, 32.0, 60.0, 18.0, "Latin American", listOf(Portion("1 cup", 200.0)),
+        micros = arrozMicros,
+    )
     val sinangag = food("sinangag", "Garlic fried rice (sinangag)", "1 cup", 160.0, 288.0, 5.0, 48.0, 8.0, "Filipino")
     val salad = food("salad", "Side salad", "1 bowl", 120.0, 60.0, 2.0, 8.0, 3.0)
-    val banana = food("banana", "Banana", "1 medium", 118.0, 105.0, 1.3, 27.0, 0.4)
+    val banana = food(
+        "banana", "Banana", "1 medium", 118.0, 105.0, 1.3, 27.0, 0.4,
+        micros = mapOf("potassium_mg" to 422.0, "vitamin_c_mg" to 10.3, "vitamin_b6_mg" to 0.43, "magnesium_mg" to 32.0, "manganese_mg" to 0.32),
+    )
     val yogurt = food("yogurt", "Greek yogurt, plain", "1 package", 170.0, 100.0, 17.0, 6.0, 0.7)
     val poutine = food("poutine", "Poutine", "Small box", 300.0, 690.0, 18.0, 72.0, 36.0)
     val rice = food("rice", "Jasmine rice, cooked", "1 cup", 158.0, 205.0, 4.3, 44.0, 0.4)
@@ -266,19 +285,30 @@ object LoggerFixtures {
     fun searchEmptyState(policy: VisibilityPolicy): LoggerState =
         loggerState(policy, query = MISSING_TERM, search = emptySearch())
 
+    // Describe's foods, with the measures and the alternatives the server sends with them.
+    val eggLarge = food("egg", "Egg, large", "1 large", 50.0, 78.0, 6.3, 0.6, 5.3, more = listOf(Portion("1 cup", 135.0)))
+    val eggScrambled = food("egg-scrambled", "Egg, scrambled", "1 large", 61.0, 91.0, 6.1, 1.0, 6.7)
+    val eggFried = food("egg-fried", "Egg, fried", "1 large", 46.0, 90.0, 6.3, 0.4, 6.8)
+    val toastWhite = food("toast", "Toast, white", "1 slice", 28.0, 80.0, 2.6, 15.0, 1.1, more = listOf(Portion("1 thick slice", 39.0)))
+    val toastWheat = food("toast-wheat", "Toast, whole wheat", "1 slice", 33.0, 90.0, 4.4, 15.0, 1.4)
+    val toastSourdough = food("toast-sourdough", "Toast, sourdough", "1 slice", 28.0, 76.0, 3.0, 14.0, 0.7)
+
     val parsed: List<ParsedItem> = listOf(
         ParsedItem(
             text = "2 eggs",
             name = "Egg, large",
             quantity = 2.0,
-            amountText = "2",
+            amountText = "2 large",
             confidence = Confidence.High,
             foodId = "egg",
+            portionLabel = "1 large",
             grams = 100.0,
             kcal = 156.0,
             protein = 12.6,
             carbs = 1.1,
             fat = 10.6,
+            food = eggLarge,
+            alternatives = listOf(eggScrambled, eggFried),
         ),
         ParsedItem(
             text = "toast",
@@ -287,26 +317,69 @@ object LoggerFixtures {
             amountText = "1 slice",
             confidence = Confidence.Medium,
             foodId = "toast",
+            portionLabel = "1 slice",
             grams = 28.0,
             kcal = 80.0,
             protein = 2.6,
             carbs = 15.0,
             fat = 1.1,
+            food = toastWhite,
+            alternatives = listOf(toastWheat, toastSourdough),
         ),
     )
 
+    /** A phrase the catalog had nothing for: no food, no amount controls, a tap finds it. */
+    val unmatched = ParsedItem(text = "grandma's kugel", name = "grandma's kugel", quantity = 1.0, amountText = "1", confidence = Confidence.Low)
+
+    /** "2 eggs and toast" read into lines, as [LoggerViewModel] reads it, under [policy]. */
+    fun describeReview(policy: VisibilityPolicy, items: List<ParsedItem> = parsed): DescribeReview =
+        DescribeRows.read(DescribeReview(), items, householdOnly = policy.level(Metric.Calories) == Visibility.Hide)
+
     /** Describe it for breakfast, "2 eggs and toast" read into two lines, as in 3.8. */
-    fun describeState(policy: VisibilityPolicy, parsedLines: Boolean = true): LoggerState = LoggerStateBuilder.build(
-        inputs = inputs(basket = if (parsedLines) parsed.mapIndexed { index, item -> item.toDescribedItem(index) } else emptyList()),
+    fun describeState(
+        policy: VisibilityPolicy,
+        parsedLines: Boolean = true,
+        review: DescribeReview = if (parsedLines) describeReview(policy) else DescribeReview(),
+        text: String = if (parsedLines) "2 eggs and toast" else "",
+    ): LoggerState = LoggerStateBuilder.build(
+        inputs = inputs(basket = review.rows.map { it.toBasketItem() }),
         policy = policy,
         choices = LoggerChoices(
             slot = MealSlot.Breakfast,
             pane = LoggerPane.Describe,
             height = SheetHeight.Full,
-            describeText = if (parsedLines) "2 eggs and toast" else "",
-            describeStatus = if (parsedLines) DescribeStatus.Parsed else DescribeStatus.Idle,
+            describeText = text,
+            describeStatus = if (review.rows.isNotEmpty()) DescribeStatus.Parsed else DescribeStatus.Idle,
+            review = review,
         ),
     )
+
+    /**
+     * After fixing the read: the eggs swapped to scrambled and stepped to three,
+     * toast taken out, a coffee added from search, and a line the catalog
+     * didn't know.
+     */
+    fun describeEditedState(policy: VisibilityPolicy): LoggerState {
+        val householdOnly = policy.level(Metric.Calories) == Visibility.Hide
+        val read = describeReview(policy, parsed + unmatched)
+        val eggs = read.rows.first()
+        val edited = read.copy(
+            rows = listOf(DescribeRows.more(DescribeRows.swapped(eggs, eggScrambled, householdOnly))) +
+                read.rows.drop(2) +
+                DescribeRows.added("describe:9", "coffee", coffee, householdOnly),
+            dismissed = setOf("toast"),
+        )
+        return describeState(policy, review = edited, text = "2 eggs and toast and grandma's kugel")
+    }
+
+    /** Looking for something the read missed: "coffee" typed, the catalog's answer under it. */
+    fun describeFindState(policy: VisibilityPolicy): LoggerState {
+        val review = describeReview(policy).copy(find = DescribeFind(replacing = null, query = "coffee", answer = SwapAnswer("coffee", listOf(coffee, latte))))
+        return describeState(policy, review = review)
+    }
+
+    val coffee = food("coffee", "Coffee, brewed", "1 cup (8 fl oz)", 240.0, 2.0, 0.3, 0.0, 0.0)
+    val latte = food("latte", "Coffee, latte", "1 medium", 480.0, 206.0, 13.0, 20.0, 8.0)
 
     fun savedState(policy: VisibilityPolicy): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(),
@@ -326,11 +399,17 @@ object LoggerFixtures {
     fun amountInputs(policy: VisibilityPolicy, settings: Settings = arrozSizes): AmountInputs =
         AmountInputs(settings = settings, policy = policy, day = day(), today = today, now = evening)
 
-    /** Arroz con pollo, one plate, an estimate, for dinner, starred: 3.3. */
-    fun amountState(policy: VisibilityPolicy, settings: Settings = arrozSizes, precision: Precision = Precision.Estimate): AmountState {
+    /** Arroz con pollo, one plate, an estimate, for dinner, starred: 3.3. [nutrientsOpen]: All nutrients tapped open. */
+    fun amountState(
+        policy: VisibilityPolicy,
+        settings: Settings = arrozSizes,
+        precision: Precision = Precision.Estimate,
+        nutrientsOpen: Boolean = false,
+    ): AmountState {
         val food = AmountFood.Catalog(arroz)
         val ref = FoodRef.Catalog(arroz.id)
-        val choice = AmountChoice.initial(food, MealSlot.Dinner, settings.unitsFor(ref.key)).copy(precision = precision)
+        val choice = AmountChoice.initial(food, MealSlot.Dinner, settings.unitsFor(ref.key))
+            .copy(precision = precision, nutrientsOpen = nutrientsOpen)
         return AmountStateBuilder.build(food, choice, amountInputs(policy, settings), ref, PickSource.Usual)
     }
 
@@ -358,6 +437,8 @@ object LoggerFixtures {
         carbs = 16.0,
         fat = 3.5,
         brand = "Oikos",
+        // A label's: what a US Nutrition Facts panel lists.
+        micros = mapOf("calcium_mg" to 150.0, "potassium_mg" to 200.0, "vitamin_d_ug" to 0.0, "iron_mg" to 0.0, "sodium_mg" to 55.0),
     ).copy(source = FoodSource.UsdaBranded, barcode = "00036632027627", tier = FoodTier.Label, verified = true)
 
     /** The code the scan fixtures read and missed. */
@@ -372,7 +453,10 @@ object LoggerFixtures {
 
     fun scanState(model: ScanModel): BarcodeScanState = BarcodeScanStateBuilder.build(MealSlot.Dinner, model)
 
-    val scanning: ScanModel = ScanModel(permission = CameraPermission.Granted)
+    /** Almost every phone's back camera has a torch, so the button shows. */
+    val scanning: ScanModel = ScanModel(permission = CameraPermission.Granted, hasTorch = true)
+    val scanningLit: ScanModel = scanning.copy(torchOn = true)
+    val lookingUp: ScanModel = scanning.copy(lookup = Lookup.Running(MISSED_CODE))
     val lookingUpSlow: ScanModel = scanning.copy(lookup = Lookup.Running(MISSED_CODE, slow = true))
     val missed: ScanModel = scanning.copy(lookup = Lookup.Missed(MISSED_CODE))
     val missedNamed: ScanModel = missed.copy(name = "Rye crispbread")

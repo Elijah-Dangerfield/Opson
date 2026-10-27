@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -61,8 +62,11 @@ import opson.libraries.resources.generated.resources.trends_eaten
 import opson.libraries.resources.generated.resources.trends_expended
 import opson.libraries.resources.generated.resources.trends_expended_sub
 import opson.libraries.resources.generated.resources.trends_intake_caption_plain
+import opson.libraries.resources.generated.resources.trends_intake_caption_plain_goal
 import opson.libraries.resources.generated.resources.trends_intake_caption_today
+import opson.libraries.resources.generated.resources.trends_intake_caption_today_goal
 import opson.libraries.resources.generated.resources.trends_intake_caption_week
+import opson.libraries.resources.generated.resources.trends_intake_caption_week_goal
 import opson.libraries.resources.generated.resources.trends_last_check
 import opson.libraries.resources.generated.resources.trends_last_check_average
 import opson.libraries.resources.generated.resources.trends_last_check_weight
@@ -96,9 +100,10 @@ fun TrendsScreen(
     state: TrendsState,
     onAction: (TrendsAction) -> Unit,
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
 ) {
     Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { padding ->
-        TrendsContent(state, onAction, Modifier.padding(padding).verticalScroll(rememberScrollState()))
+        TrendsContent(state, onAction, Modifier.padding(padding).verticalScroll(scrollState))
     }
 }
 
@@ -203,9 +208,9 @@ private fun IntakeCardView(card: IntakeCard) {
         Text(
             text = stringResource(
                 when (card.caption) {
-                    IntakeCaption.Plain -> Res.string.trends_intake_caption_plain
-                    IntakeCaption.TodayInProgress -> Res.string.trends_intake_caption_today
-                    IntakeCaption.WeekInProgress -> Res.string.trends_intake_caption_week
+                    IntakeCaption.Plain -> if (card.singleGoal) Res.string.trends_intake_caption_plain_goal else Res.string.trends_intake_caption_plain
+                    IntakeCaption.TodayInProgress -> if (card.singleGoal) Res.string.trends_intake_caption_today_goal else Res.string.trends_intake_caption_today
+                    IntakeCaption.WeekInProgress -> if (card.singleGoal) Res.string.trends_intake_caption_week_goal else Res.string.trends_intake_caption_week
                 },
             ),
             typography = AppTheme.type.secondary,

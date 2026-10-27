@@ -9,9 +9,9 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /*
- * The design sync 2 release flags for Today (docs/plans/screens/today.md, "Flags"). Off, the
- * screen is the refined design with none of the new behaviour. Both are read when Today builds
- * its inputs; nothing runs at launch. Day close's check-in flag, `CheckInEnabled`, is in
+ * The release flags for Today (docs/plans/screens/today.md and today-actions.md, "Flags"). Off,
+ * the screen is the refined design with none of the new behaviour. Each is read when Today or the
+ * food's sheet builds its inputs; nothing runs at launch. Day close's check-in flag, `CheckInEnabled`, is in
  * `:libraries:diary`, because Reminders and Patterns read it too.
  */
 
@@ -29,7 +29,10 @@ class TodaySummaryEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfi
     override val description = "Today's summary pages, stats, collapse and sticky bar, and the weight row"
 }
 
-/** Long-press to select foods with the select panel, swipe to delete, and Move to… on Uncategorized. */
+/**
+ * Long-press to select foods with Move, Copy to… and Delete, dragging them between meals, swipe to
+ * delete, and Move to… on Uncategorized.
+ */
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = QaConfigValue::class, multibinding = true)
@@ -37,5 +40,20 @@ class TodaySelectEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfig
     override val name = "Select and swipe on Today"
     override val path = "release.todaySelect"
     override val default = false
-    override val description = "Select foods on Today, swipe a food to delete it, and file Uncategorized foods"
+    override val description = "Select foods on Today, drag them between meals, swipe a food to delete it, and file Uncategorized foods"
+}
+
+/**
+ * A ⋮ on every food row on Today, and the food's sheet offering Change amount, Move, Copy to
+ * another day, Edit a copy and Add to favorites besides Delete (design sync 4, 13.3d and 13.3e).
+ * Off, the sheet offers Delete alone, as before.
+ */
+@Inject
+@SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = QaConfigValue::class, multibinding = true)
+class TodayFoodActionsEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap) {
+    override val name = "Food actions on Today"
+    override val path = "release.foodActions"
+    override val default = false
+    override val description = "A food's menu on Today: change amount, move, copy to another day, edit a copy, favorite"
 }

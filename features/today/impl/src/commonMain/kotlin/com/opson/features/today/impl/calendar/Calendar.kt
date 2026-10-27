@@ -1,30 +1,36 @@
 package com.opson.features.today.impl.calendar
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import com.opson.features.today.impl.TodayStateBuilder
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.ui.components.DayHeader
+import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.MonthGrid
 import com.opson.libraries.ui.components.MonthGridCell
 import com.opson.libraries.ui.components.MonthGridLegend
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
-import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
+import com.opson.system.background
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -39,7 +45,8 @@ import kotlinx.datetime.plus
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.today_cal_done
+import opson.libraries.resources.generated.resources.today_cal_close_cd
+import opson.libraries.resources.generated.resources.today_cal_jump_today
 import opson.libraries.resources.generated.resources.today_cal_initial_fri
 import opson.libraries.resources.generated.resources.today_cal_initial_mon
 import opson.libraries.resources.generated.resources.today_cal_initial_sat
@@ -50,13 +57,13 @@ import opson.libraries.resources.generated.resources.today_cal_initial_wed
 import opson.libraries.resources.generated.resources.today_cal_legend
 import opson.libraries.resources.generated.resources.today_cal_next_cd
 import opson.libraries.resources.generated.resources.today_cal_prev_cd
-import opson.libraries.resources.generated.resources.today_cal_today
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The calendar sheet: one month, Sunday first as the prototype, with a dot on
- * days that have something logged. Up to [TodayStateBuilder.MAX_DAYS_AHEAD] days ahead can be picked.
+ * The calendar that drops from Today's title (design sync 4, 13.3a): one month, Sunday first,
+ * with a dot on days that have something logged. Up to [TodayStateBuilder.MAX_DAYS_AHEAD] days
+ * ahead can be picked.
  */
 data class CalendarState(
     /** The first of the month shown. */
@@ -82,8 +89,11 @@ sealed interface CalendarAction {
     data object PrevMonthTapped : CalendarAction
     data object NextMonthTapped : CalendarAction
     data class DayTapped(val date: LocalDate) : CalendarAction
+    /** Jump to today. */
     data object TodayTapped : CalendarAction
-    data object DoneTapped : CalendarAction
+
+    /** The month's title with its ▴: the calendar folds back up. */
+    data object CloseTapped : CalendarAction
 }
 
 sealed interface CalendarEvent {
@@ -139,7 +149,7 @@ object CalendarStateBuilder {
     private fun LocalDate.daysUntilNext(next: LocalDate): Int = next.minus(DatePeriod(days = 1)).day
 }
 
-/** The calendar sheet, opened on the selected day's month. */
+/** The calendar, opened on the selected day's month. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Inject
 class CalendarViewModel(
@@ -174,7 +184,7 @@ class CalendarViewModel(
                 selectedDay.select(calendar.today())
                 sendEvent(CalendarEvent.Dismiss)
             }
-            CalendarAction.DoneTapped -> sendEvent(CalendarEvent.Dismiss)
+            CalendarAction.CloseTapped -> sendEvent(CalendarEvent.Dismiss)
         }
     }
 
@@ -185,80 +195,77 @@ class CalendarViewModel(
     }
 }
 
+/**
+ * The header repeated with the month as its title and a ▴ (‹ › page months, the title folds it
+ * up), then the month on a card with Jump to today and the dot's legend under a hairline.
+ */
 @Composable
-fun CalendarSheetContent(
+fun CalendarDropdownContent(
     state: CalendarState,
     onAction: (CalendarAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, bottom = AppTheme.spacing.page),
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+    Column(modifier = modifier.fillMaxWidth()) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .background(AppTheme.colors.bg)
+                .statusBarsPadding()
+                .padding(horizontal = AppTheme.spacing.row),
         ) {
-            RoundIconButton(
-                icon = AppIcons.ChevronLeft.described(stringResource(Res.string.today_cal_prev_cd)),
-                onClick = { onAction(CalendarAction.PrevMonthTapped) },
-                size = AppTheme.spacing.touchTarget,
-                containerColor = AppTheme.colors.surface,
-                contentColor = if (state.canGoPrev) AppTheme.colors.ink else AppTheme.colors.line,
-                enabled = state.canGoPrev,
-            )
-            Text(text = state.title, typography = AppTheme.type.figureMedium.ExtraBold, color = AppTheme.colors.ink)
-            RoundIconButton(
-                icon = AppIcons.ChevronRight.described(stringResource(Res.string.today_cal_next_cd)),
-                onClick = { onAction(CalendarAction.NextMonthTapped) },
-                size = AppTheme.spacing.touchTarget,
-                containerColor = AppTheme.colors.surface,
-                contentColor = if (state.canGoNext) AppTheme.colors.ink else AppTheme.colors.line,
-                enabled = state.canGoNext,
+            DayHeader(
+                title = state.title,
+                previousIcon = AppIcons.ChevronLeft.described(stringResource(Res.string.today_cal_prev_cd)),
+                nextIcon = AppIcons.ChevronRight.described(stringResource(Res.string.today_cal_next_cd)),
+                onPrevious = { onAction(CalendarAction.PrevMonthTapped) },
+                onNext = { onAction(CalendarAction.NextMonthTapped) },
+                onTitleClick = { onAction(CalendarAction.CloseTapped) },
+                titleDescription = stringResource(Res.string.today_cal_close_cd, state.title),
+                previousEnabled = state.canGoPrev,
+                nextEnabled = state.canGoNext,
+                expanded = true,
             )
         }
-        MonthGrid(
-            weekdayLabels = state.weekdayInitials.map { stringResource(it) },
-            cells = state.cells.map { cell ->
-                cell?.let {
-                    MonthGridCell(
-                        date = it.date,
-                        contentDescription = DateCopy.longMonthDay(it.date),
-                        selected = it.selected,
-                        isToday = it.isToday,
-                        enabled = it.enabled,
-                        marked = it.logged,
-                    )
-                }
-            },
-            onDayClick = { onAction(CalendarAction.DayTapped(it)) },
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+        Column(
+            modifier = Modifier
+                .padding(horizontal = AppTheme.spacing.row, vertical = AppTheme.spacing.row)
+                .fillMaxWidth()
+                .clip(AppTheme.shapes.card)
+                .background(AppTheme.colors.surface)
+                .padding(bottom = AppTheme.spacing.row),
         ) {
-            MonthGridLegend(text = stringResource(Res.string.today_cal_legend), modifier = Modifier.weight(1f))
-            FlatButton(
-                text = stringResource(Res.string.today_cal_today),
-                onClick = { onAction(CalendarAction.TodayTapped) },
-                shape = AppTheme.shapes.pill,
-                minHeight = AppTheme.spacing.touchTarget,
-                typography = AppTheme.type.buttonSmall,
-                centered = true,
+            MonthGrid(
+                weekdayLabels = state.weekdayInitials.map { stringResource(it) },
+                cells = state.cells.map { cell ->
+                    cell?.let {
+                        MonthGridCell(
+                            date = it.date,
+                            contentDescription = DateCopy.longMonthDay(it.date),
+                            selected = it.selected,
+                            isToday = it.isToday,
+                            enabled = it.enabled,
+                            marked = it.logged,
+                        )
+                    }
+                },
+                onDayClick = { onAction(CalendarAction.DayTapped(it)) },
             )
-            FlatButton(
-                text = stringResource(Res.string.today_cal_done),
-                onClick = { onAction(CalendarAction.DoneTapped) },
-                tone = FlatButtonTone.Accent,
-                shape = AppTheme.shapes.pill,
-                minHeight = AppTheme.spacing.touchTarget,
-                typography = AppTheme.type.buttonSmall,
-                centered = true,
-            )
+            HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(horizontal = AppTheme.spacing.section))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = AppTheme.spacing.section, top = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+            ) {
+                FlatButton(
+                    text = stringResource(Res.string.today_cal_jump_today),
+                    onClick = { onAction(CalendarAction.TodayTapped) },
+                    tone = FlatButtonTone.AccentText,
+                    minHeight = AppTheme.spacing.touchTarget,
+                    typography = AppTheme.type.button,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                MonthGridLegend(text = stringResource(Res.string.today_cal_legend), modifier = Modifier.weight(1f).wrapContentWidth(Alignment.End))
+            }
         }
     }
 }

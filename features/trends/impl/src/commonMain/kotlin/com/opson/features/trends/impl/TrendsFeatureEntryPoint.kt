@@ -1,5 +1,6 @@
 package com.opson.features.trends.impl
 
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -36,6 +37,7 @@ import com.opson.features.trends.impl.photos.ProgressPhotosScreen
 import com.opson.features.trends.impl.photos.ProgressPhotosViewModel
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
+import com.opson.libraries.navigation.OnTabReselected
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.bottomSheet
 import com.opson.libraries.navigation.screen
@@ -81,7 +83,9 @@ class TrendsFeatureEntryPoint(
                     TrendsEvent.OpenPatterns -> router.navigate(PatternsRoute())
                 }
             }
-            TrendsScreen(state = state, onAction = viewModel::takeAction)
+            val scrollState = rememberScrollState()
+            router.OnTabReselected(TrendsRoute::class) { scrollState.animateScrollTo(0) }
+            TrendsScreen(state = state, onAction = viewModel::takeAction, scrollState = scrollState)
         }
 
         bottomSheet<TrendsSettingsRoute> { _, sheetState ->

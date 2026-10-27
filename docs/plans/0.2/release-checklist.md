@@ -225,6 +225,33 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [ ] Try swipe to delete with TalkBack and VoiceOver (the row's Delete action)
       and Undo on a phone.
 
+## Goals and energy (`release.goalsAndEnergy`)
+
+- [ ] TODO(clinician): set `MAX_SURPLUS_KCAL` (null today, so a surplus can't
+      grow past where it started, as the deficit can't while
+      `MAX_DEFICIT_KCAL` is null; the owner's call, 2026-10-27).
+- [ ] TODO(clinician): confirm `ONE_NUMBER_LEEWAY_KCAL` (100 kcal either side
+      of one number before Close the day calls it above) and
+      `UsualMealSize`'s split of the aim across meals for someone with no
+      history. An engineer picked both.
+- [ ] Privacy: Burned's calculation adds birth year, height and sex to synced
+      settings (`birthYear`, `heightCm`, `bodySex`, new top-level keys). Check
+      the App Privacy label and `legal/privacy.md` before the flag flips.
+- [ ] Nothing on the server: every new setting is a top-level key, which the
+      shallow merge keeps through a 0.1 save (`SettingsMergeAcrossVersionsTest`).
+- [ ] Look at the goal style list, Resting energy and Energy today on a phone,
+      and one number and a surplus on Today, Close the day, Trends and the
+      widget, before flipping the flag.
+
+## Today actions, design sync 4 (`release.todaySelect`, `release.foodActions`)
+
+- [ ] Drag foods between meals on a phone, with the list scrolling under the
+      finger near both edges, on iOS and Android. Previews hold one still frame.
+- [ ] Move picked foods with TalkBack and VoiceOver: the row's "Move to another
+      meal" action and Move on the bottom bar.
+- [ ] Edit a copy end to end on two devices: the copy shows in Your foods and
+      search on the second, and the entry points at it.
+
 ## Search quality
 
 - [ ] After the prod deploy (V15 adds partial indexes; a few seconds of held
@@ -278,18 +305,32 @@ The widget receiver and WidgetKit extension are on branch
 Cherry-pick them when 0.2 is cut, after the App ID, App Group and profile
 steps above.
 
-## Website go-live (after the waitlist route is on prod)
+## Website go-live (on your own domain, through Cloudflare Pages)
 
-Pages is enabled (source: GitHub Actions) and the repo variables are set:
-`SITE_URL=https://elijah-dangerfield.github.io`, `SITE_BASE=/Opson`,
-`PUBLIC_API_URL=https://opson-server-prod.fly.dev`, `SITE_ENABLED=false`.
+Decided 2026-10-27: the site moves off GitHub Pages so the repo can go private.
+It goes to Cloudflare Pages, uploaded from the existing workflow with
+`wrangler pages deploy`, on the domain you own at Porkbun.
 
 - [ ] Prod deployed with the waitlist migration and `POST /v1/waitlist`.
-- [ ] `WAITLIST_ALLOWED_ORIGINS` on `opson-server-prod` includes
-      `https://elijah-dangerfield.github.io` (and the custom domain later).
+- [ ] Prod search includes Open Food Facts (the load above, and
+      `FOOD_SEARCH_OFF_ENABLED=true`). The site says "over 3.7 million foods from the
+      USDA and Open Food Facts", which is only true once prod has both.
+- [ ] **You:** create a Cloudflare API token with Pages edit rights, and store
+      it as the `CLOUDFLARE_API_TOKEN` repo secret, with your account id as
+      `CLOUDFLARE_ACCOUNT_ID` (Claude gives you a command that prompts for it).
+- [ ] **You:** choose the DNS setup. Either move the domain's nameservers at
+      Porkbun to Cloudflare (the bare domain then works directly), or keep DNS
+      at Porkbun and serve `www.` with the bare domain forwarding to it.
+- [x] `.github/workflows/pages.yml` uploads to Cloudflare Pages with
+      `wrangler pages deploy` (project `opson`; done 2026-10-27).
+- [ ] Create the Pages project `opson` in Cloudflare (or let the first deploy
+      create it) and add the custom domain to it.
+- [ ] **Update the two settings that name the site's address:**
+      `SITE_URL=https://<domain>` and `SITE_BASE=/` (repo variables), and add
+      `https://<domain>` to `WAITLIST_ALLOWED_ORIGINS` on `opson-server-prod`.
 - [ ] A test signup from a curl with that Origin returns 204 and shows in admin.
 - [ ] `gh variable set SITE_ENABLED -R Elijah-Dangerfield/Opson -b true`, then
-      run the "Deploy Pages" workflow. Live at
-      https://elijah-dangerfield.github.io/Opson/
-- [ ] Custom domain later: set `SITE_URL=https://<domain>`, `SITE_BASE=/`, add
-      the domain in Pages settings, add it to `WAITLIST_ALLOWED_ORIGINS`.
+      run the deploy workflow.
+- [ ] Before the repo goes private: the design-sync manifest is published to
+      a public `raw.githubusercontent.com` URL that Claude Design reads. After
+      that, hand Claude Design `design-sync/app.zip` instead.

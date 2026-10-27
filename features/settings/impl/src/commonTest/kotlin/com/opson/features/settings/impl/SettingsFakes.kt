@@ -1,8 +1,8 @@
 package com.opson.features.settings.impl
 
 import com.opson.features.settings.FindSupportEnabled
+import com.opson.features.settings.GoalsAndEnergyEnabled
 import com.opson.libraries.config.AppConfigMap
-import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.diary.DiarySync
@@ -12,6 +12,9 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.SyncRejection
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.DeleteAccountOutcome
@@ -23,6 +26,8 @@ import com.opson.libraries.identity.auth.ResendOutcome
 import com.opson.libraries.identity.auth.SendResetOutcome
 import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.SignUpOutcome
+import com.opson.libraries.navigation.WebLinkLauncher
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -38,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.datetime.LocalDate
 
 /*
  * Hand-rolled fakes for the settings view model tests (docs/practices/testing.md).
@@ -178,6 +184,26 @@ fun checkInFlag(on: Boolean = false): CheckInEnabled = CheckInEnabled(
 fun photosFlag(on: Boolean = false): ProgressPhotosEnabled = ProgressPhotosEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("progressPhotos" to on))
+    },
+)
+
+/** Burned and the resting choices, as a test sets them. Defaults to design sync 4's 2,180. */
+class FakeBurnedRepository(
+    burned: Burned? = SettingsFixtures.burned,
+    choices: RestingChoices = RestingChoices(1610, emptySet(), 1560, HealthSource.HealthConnect, 72.0),
+) : BurnedRepository {
+    val burnedFlow = MutableStateFlow(burned)
+    val choicesFlow = MutableStateFlow(choices)
+
+    override fun burned(day: LocalDate): Flow<Burned?> = burnedFlow
+
+    override fun restingChoices(): Flow<RestingChoices> = choicesFlow
+}
+
+/** `release.goalsAndEnergy`, on or off. */
+fun goalsAndEnergyFlag(on: Boolean = false): GoalsAndEnergyEnabled = GoalsAndEnergyEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("goalsAndEnergy" to on))
     },
 )
 

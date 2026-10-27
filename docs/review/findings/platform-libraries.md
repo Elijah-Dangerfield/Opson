@@ -31,7 +31,7 @@ scanner found only long identifiers, almost all of them Apple API names.
   progress-photo camera, within the second `startRunning` blocks: the stop runs
   alongside, sees `running == false`, does nothing, and the start then leaves
   the camera on with no screen showing it (the green camera dot, battery).
-- **Fix:** one serial `captureQueue` (`IosBarcodeCamera.kt:207`) for every
+- **Fix:** one serial `captureQueue` (`IosBarcodeCamera.kt:459`) for every
   session's start and stop, so a stop always follows its start. iOS only, with
   no test target for AVFoundation; checked by the iOS compile. Commit:
   `fix(scanner): iOS camera sessions start and stop in order`.

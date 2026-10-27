@@ -85,11 +85,11 @@ class NumbersSettingsTest {
 
     @Test
     fun score_sumsTheRawLevels() {
-        assertEquals(27, NumbersSettings(preset = PresetId.Full).score())
+        assertEquals(30, NumbersSettings(preset = PresetId.Full).score())
         assertEquals(2, NumbersSettings(preset = PresetId.NoNumbers).score())
         // Seven delays at 1, micros hidden, weight and water softened at 2.
         assertEquals(11, NumbersSettings(preset = PresetId.Later).score())
-        assertEquals(30, NumbersSettings(overrides = mapOf(Metric.Micros to Visibility.Show)).score())
+        assertEquals(27, NumbersSettings(overrides = mapOf(Metric.Micros to Visibility.Hide)).score())
     }
 
     @Test

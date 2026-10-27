@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for Today's actions (design sync 4, 13.3a to 13.3e): the calendar that
+  drops from the title, select mode, dragging foods between meals, a food's ⋮
+  sheet and Edit a copy. Verbatim from the design where it has the line. Same
+  rules as strings.xml: no backslash escapes, positional %1$s arguments.
+-->
+<resources>
+
+    <!-- The calendar from the title (13.3a) -->
+    <string name="today_cal_jump_today">Jump to today</string>
+    <string name="today_cal_close_cd">%1$s, close the calendar</string>
+
+    <!-- Select mode and dragging (13.3b, 13.3c) -->
+    <string name="today_select_all">Select all</string>
+    <string name="today_select_delete">Delete</string>
+    <string name="today_drag_more">%1$s + %2$d more</string>
+    <string name="today_drop_to">Move to %1$s</string>
+    <string name="today_move_row">Move to another meal</string>
+    <string name="today_moved_one">Moved %1$s to %2$s</string>
+    <string name="today_moved_other">Moved %1$d foods to %2$s</string>
+
+    <!-- A food's ⋮ (13.3d) -->
+    <string name="today_food_menu_cd">More for %1$s</string>
+    <string name="today_food_change_amount">Change amount</string>
+    <string name="today_food_move">Move to another meal</string>
+    <string name="today_food_copy">Copy to another day</string>
+    <string name="today_food_edit_copy">Edit a copy</string>
+    <string name="today_food_edit_copy_body">Fix or change the details. Saved to Your foods.</string>
+    <string name="today_food_favorite">Add to favorites</string>
+    <string name="today_food_unfavorite">Remove from favorites</string>
+    <string name="today_food_delete">Delete</string>
+    <string name="today_food_amount_save">Save</string>
+    <string name="today_food_amount_cd">Amount, in %1$s</string>
+    <string name="today_toast_amount_changed">Amount changed.</string>
+    <string name="today_toast_moved_to">Moved to %1$s.</string>
+    <string name="today_toast_favorited">Added to favorites.</string>
+    <string name="today_toast_unfavorited">Removed from favorites.</string>
+
+    <!-- Edit a copy (13.3e), in Foods -->
+    <string name="foods_copy_title">Edit a copy</string>
+    <string name="foods_copy_save">Save</string>
+    <string name="foods_copy_name">Name</string>
+    <string name="foods_copy_brand">Brand</string>
+    <string name="foods_copy_serving">Serving</string>
+    <string name="foods_copy_mine">(mine)</string>
+    <string name="foods_copy_was">Was</string>
+    <string name="foods_copy_use">Use for this entry</string>
+    <string name="foods_copy_use_body_today">Today's %1$s switches to your copy</string>
+    <string name="foods_copy_use_body_other">This entry switches to your copy</string>
+    <string name="foods_copy_saved">Saved %1$s to Your foods.</string>
+</resources>

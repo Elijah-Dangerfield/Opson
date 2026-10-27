@@ -371,7 +371,7 @@ errors in the `ProblemResponse` envelope.
 | GET | `/v1/foods/{id}` | Detail with portions and micros |
 | GET | `/v1/foods/barcode/{code}` | Catalog first, in any equivalent form of the code (UPC-A, EAN-13, GTIN-14, UPC-E), then each enabled outside source in tier order (Nutritionix when configured, Open Food Facts); cacheable answers are stored in `foods`. 404 `not_found` when nobody has it, 503 when no source could answer. |
 | POST | `/v1/foods/barcode-misses` | `{id, barcode}` after a 404 from the barcode route. 204, idempotent on the app's id. Region, platform and version from the `X-*` headers, GTIN computed server-side, no user id stored. |
-| POST | `/v1/describe` `{text}` | Parses "2 eggs and toast" into items: quantity + unit + food match. Heuristic, no AI. |
+| POST | `/v1/describe` `{text}` | Parses "2 eggs and toast" into items: quantity + unit + food match, plus (0.2) the matched food and up to three alternatives. Heuristic, no AI: everyday words, restaurants, corrections and speech noise are handled by rules (`docs/plans/screens/describe.md`). |
 | POST | `/v1/describe/photo` `{image, note?}` | 0.2, behind `release.photo`. A base64 meal photo (JPEG, PNG or WebP by its bytes, 4 MB) and an optional note go to Anthropic's Messages API (`ANTHROPIC_API_KEY`, model `ANTHROPIC_PHOTO_MODEL`, default `claude-opus-5-5`), which lists the foods; each is matched through the same pipeline as `/v1/describe` and returned in its shape. Per user 10 per 10 minutes and 40 a day (429). 503 `photo_estimate_unavailable` with no key, 502 `photo_estimate_failed` when the model fails. The photo is never stored or logged; the log line is outcome, counts and latency. |
 | GET | `/v1/export.csv` | Every log entry, weigh-in and water day for the caller |
 | GET/DELETE | `/v1/me` | Existing. Delete cascades through every table above. |
@@ -508,16 +508,17 @@ theme.
 - **Type:** Atkinson Hyperlegible Next (OFL), weights 400 to 800, bundled in
   `:libraries:resources`. Tabular figures on every number. Base 16 sp, large
   text 19 sp as a setting.
-- **Colour:** light and dark base sets, palette Pine by default (the user's
-  last preview pick was Espresso, so palette is a setting with Pine, Espresso,
-  Clay and Plum). Nutrient colours tell nutrients apart and never mean over or
-  under. No red or green anywhere for amounts.
+- **Colour:** one scheme, Slate, in light and dark (design sync 4, 13.0).
+  Appearance (System, Light or Dark) is the only colour setting. Nutrient
+  colours tell nutrients apart and never mean over or under; energy out uses
+  cool colours (resting and active) so it never looks like food. No red or
+  green anywhere for amounts.
 - **Shape:** cards 22, sheets 28 top, sticky Today block 24 bottom, chips pill.
 - **Icons:** Material Symbols Rounded via the Compose Material icons extended
   Rounded set, reached only through `AppIcons` (named after the Symbols
   ligatures; `nutrition` and `barcode_scanner` have no Rounded twin and use
   the closest glyph).
-- **Access:** `AppTheme(palette, darkTheme, largeText)` at the root, fed from
+- **Access:** `AppTheme(darkTheme, largeText)` at the root, fed from
   the user's Look and feel settings by `UserAppTheme` in `apps/compose`; tokens
   through `AppTheme.colors`, `AppTheme.type` (the handoff scale; the older
   `AppTheme.typography` stays for template screens), `AppTheme.shapes`,
@@ -635,3 +636,4 @@ Dated, newest first. Add to it, never rewrite it.
   and a price without a purchase flow is an App Review rejection.
 - **2026-10-25: Pine is the default palette.** It is the handoff default. The
   user's last pick was Espresso, so palette is a setting and that is one tap.
+  Superseded 2026-10-27: Slate is the only scheme (`docs/decisions.md`).

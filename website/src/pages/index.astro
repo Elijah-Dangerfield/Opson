@@ -4,31 +4,26 @@ import WaitlistForm from '../components/WaitlistForm.astro';
 import Screenshot from '../components/Screenshot.astro';
 import { href } from '../consts';
 
-// The App Store screenshots, straight from docs/. Astro resizes them at build.
-import todayFull from '../../../docs/app-store/screenshots/01-today-full.png';
-import logger from '../../../docs/app-store/screenshots/02-logger-picked.png';
-import todayBlind from '../../../docs/app-store/screenshots/03-today-blind.png';
-import modes from '../../../docs/app-store/screenshots/04-modes.png';
-import trends from '../../../docs/app-store/screenshots/05-trends-week.png';
-// The Support screen from design v3, cropped in CSS to its two data buttons.
-// The line above them in the design is out of date, so it stays out of frame.
-import support from '../../../docs/design/v3/support.png';
-
-// Only what 0.1 does. Barcode, photo and voice logging aren't in it yet.
-const ways = [
-  { name: 'Search', line: 'Find a food and pick how much.', icon: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>' },
-  { name: 'Describe it', line: 'Type what you ate in your own words.', icon: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>' },
-  { name: 'Saved meals', line: 'Save a meal you eat often and add it again.', icon: '<path d="M6 3h12v18l-6-4-6 4z"/>' },
-  { name: 'Copy yesterday', line: "Bring over yesterday's meal or the whole day.", icon: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>' },
-  { name: 'Ate, no details', line: 'Mark that you ate without looking anything up.', icon: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>' },
-];
+// Rendered from the app's own previews by scripts/design_sync.main.kts, so
+// they show the app as it is. Astro resizes them at build.
+import todayFull from '../assets/screens/today-full.png';
+import todayBlind from '../assets/screens/today-blind.png';
+import search from '../assets/screens/search.png';
+import describe from '../assets/screens/describe.png';
+import targetsByDay from '../assets/screens/targets-by-day.png';
+import modes from '../assets/screens/modes.png';
+import trends from '../assets/screens/trends.png';
+import support from '../assets/screens/support.png';
 ---
 
 <Layout>
   <section class="hero dark">
     <div class="wrap hero-inner">
-      <h1><span>All the numbers,</span> <span>some of them,</span> <span>or none.</span></h1>
-      <p class="lead">Opson is a food log where you decide how many numbers you see.</p>
+      <h1>Tracking food isn't one size fits all.</h1>
+      <p class="lead">
+        Opson is a food log with no ads that you set up your way. Count every calorie, aim for a range or a
+        deficit, follow only your macros, or log without seeing a number at all.
+      </p>
       <WaitlistForm id="waitlist" page="home" />
       <p class="fine">
         One email when it's out, maybe a few updates before. Never sold or shared. <a href={href('/privacy/')}>Privacy</a>
@@ -39,7 +34,7 @@ const ways = [
           width={340}
           sizes="(max-width: 520px) 72vw, 340px"
           loading="eager"
-          alt="Today in Full numbers: 739 kcal eaten against a range of 1,900 to 2,300, with protein, carbs and fat bars and a breakfast of oatmeal and a banana."
+          alt="Today: 1,245 kcal eaten against a range of 1,900 to 2,300, with breakfast of oat porridge, a banana and coffee with milk."
         />
       </div>
     </div>
@@ -47,19 +42,58 @@ const ways = [
 
   <section class="why" aria-labelledby="why-title">
     <div class="wrap">
-      <header class="section-head">
-        <h2 id="why-title">Why Opson?</h2>
-        <p>Here's what's in the first version.</p>
-      </header>
+      <h2 id="why-title" class="visually-hidden">What Opson does</h2>
 
       <div class="blocks">
         <article class="block breakfast">
           <div class="block-copy">
-            <h3>Pick how many numbers you see</h3>
+            <h3>Log a meal in a few seconds</h3>
             <p>
-              Full numbers shows everything, like a regular calorie counter. Blind takes calories out of the app
-              completely. Eight more modes sit in between, and you can still change any single number after you
-              pick one.
+              Search over 3.7 million foods from the USDA and Open Food Facts, or type what you ate in a sentence
+              and Opson finds each food.
+              Copy yesterday's breakfast in one tap, or save the meals you eat every week.
+            </p>
+          </div>
+          <div class="block-media pair">
+            <Screenshot
+              src={search}
+              width={250}
+              sizes="(max-width: 880px) 40vw, 250px"
+              alt="Adding to dinner: a search for rice with six matches, from jasmine rice to chicken kabsa."
+            />
+            <Screenshot
+              src={describe}
+              width={250}
+              sizes="(max-width: 880px) 40vw, 250px"
+              alt="Describe it: 2 eggs and toast typed in, read as two large eggs and a slice of white toast."
+            />
+          </div>
+        </article>
+
+        <article class="block lunch flip">
+          <div class="block-copy">
+            <h3>Goals that fit how you live</h3>
+            <p>
+              Aim for a range, or for a set deficit under what you burn. Not every day is the same, so training
+              days can have a goal of their own and the rest of the week another.
+            </p>
+          </div>
+          <div class="block-media">
+            <Screenshot
+              src={targetsByDay}
+              width={300}
+              sizes="(max-width: 880px) 64vw, 300px"
+              alt="Targets set to Different by day: Monday to Wednesday aim for 2,300 to 2,700 kcal, the other days 1,900 to 2,300."
+            />
+          </div>
+        </article>
+
+        <article class="block snack">
+          <div class="block-copy">
+            <h3>Only the numbers you want</h3>
+            <p>
+              Pick one of ten ways to track. Nutrient focus hides calories and shows your macros as fill bars,
+              and Blind takes calories out of the app completely. After that, change any single number on its own.
             </p>
           </div>
           <div class="block-media pair">
@@ -67,41 +101,23 @@ const ways = [
               src={todayBlind}
               width={250}
               sizes="(max-width: 880px) 40vw, 250px"
-              alt="Today in Blind mode: no calories anywhere, just breakfast, lunch and snack ticked off and dinner around 7:00."
+              alt="Today in Blind: no calories anywhere, just breakfast, lunch and snack ticked off and dinner around 7:00."
             />
             <Screenshot
               src={modes}
               width={250}
               sizes="(max-width: 880px) 40vw, 250px"
-              alt="The Modes and numbers screen, listing ten starting points from Full numbers to Coast."
+              alt="Modes and numbers, listing ten starting points from Full numbers to Coast."
             />
           </div>
         </article>
 
-        <article class="block lunch flip">
+        <article class="block dinner flip">
           <div class="block-copy">
-            <h3>Logging is quick</h3>
+            <h3>Your week, without the nagging</h3>
             <p>
-              Search for a food, copy yesterday's breakfast, or add a meal you saved. If you'd rather skip the
-              details, just mark that you ate.
-            </p>
-          </div>
-          <div class="block-media">
-            <Screenshot
-              src={logger}
-              width={300}
-              sizes="(max-width: 880px) 64vw, 300px"
-              alt="Adding to a snack: a search for apple with 25 matches, Apple, raw picked, and 2 foods picked at the bottom."
-            />
-          </div>
-        </article>
-
-        <article class="block snack">
-          <div class="block-copy">
-            <h3>See your week without the nagging</h3>
-            <p>
-              Trends lines up each day against your range. There are no streaks and no “calories left” warnings.
-              Skip a day and it's a gap in the chart, nothing more.
+              Trends lines each day up against your range. There are no streaks and no warnings about calories
+              left. Skip a day and it's a gap in the chart, nothing more.
             </p>
           </div>
           <div class="block-media">
@@ -109,54 +125,29 @@ const ways = [
               src={trends}
               width={300}
               sizes="(max-width: 880px) 64vw, 300px"
-              alt="Trends for a week: a bar for each day against a shaded range, with Wednesday left empty, and a recap of 6 of 7 days logged."
+              alt="Trends for a week: a bar for each day against a shaded range, Thursday left empty, and a recap of 6 of 7 days logged."
             />
           </div>
         </article>
 
-        <article class="block dinner flip">
+        <article class="block plain">
           <div class="block-copy">
-            <h3>Your data stays yours</h3>
+            <h3>No ads, and your log stays yours</h3>
             <p>
-              Your log is saved on your phone and synced to your account. You can export it as a CSV or delete
-              everything from the app whenever you want. There are no ads, and nothing is sold or shared.
+              Opson doesn't show ads or sell what you eat. Your log lives on your phone and syncs to your
+              account, and you can export it or delete all of it from the app.
             </p>
           </div>
-          <div class="block-media strip-media">
-            <div class="strip">
-              <Screenshot
-                src={support}
-                width={390}
-                sizes="(max-width: 880px) 84vw, 420px"
-                class="strip-shot"
-                alt="Two buttons from the app's Support screen: Export everything (CSV) and Delete everything."
-              />
-            </div>
+          <div class="block-media">
+            <Screenshot
+              src={support}
+              width={300}
+              sizes="(max-width: 880px) 64vw, 300px"
+              alt="Support and sharing, with Export everything (CSV) and Delete everything under Your data."
+            />
           </div>
         </article>
       </div>
-    </div>
-  </section>
-
-  <section class="ways" aria-labelledby="ways-title">
-    <div class="wrap">
-      <header class="section-head">
-        <h2 id="ways-title">Five ways to log</h2>
-        <p>Use whichever fits the meal.</p>
-      </header>
-      <ul class="ways-list">
-        {ways.map(({ name, line, icon }) => (
-          <li>
-            <span class="icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={icon} />
-            </span>
-            <span class="way-text">
-              <strong>{name}</strong>
-              <span>{line}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
     </div>
   </section>
 
@@ -164,7 +155,7 @@ const ways = [
     <div class="wrap">
       <div class="closing-block dark">
         <h2 id="closing-title">Want to know when it's out?</h2>
-        <p>Opson is with Apple for review. Leave your email and we'll write when you can download it.</p>
+        <p>Leave your email and we'll send one note when Opson is in the App Store.</p>
         <WaitlistForm id="waitlist-bottom" page="home" />
       </div>
     </div>
@@ -183,12 +174,12 @@ const ways = [
     padding-top: clamp(48px, 8vw, 96px);
   }
   .hero h1 {
-    font-size: clamp(36px, 7.4vw, 92px);
-    line-height: 1.02;
+    max-width: 12em;
+    font-size: clamp(36px, 6.4vw, 80px);
+    line-height: 1.04;
     letter-spacing: -0.03em;
+    text-wrap: balance;
   }
-  /* Three lines, broken at the commas. */
-  .hero h1 span { display: block; }
   .lead {
     margin: 22px 0 34px;
     max-width: 30em;
@@ -206,10 +197,6 @@ const ways = [
 
   .why { padding-top: calc(var(--overlap) + clamp(64px, 9vw, 112px)); }
 
-  .section-head { text-align: center; margin-bottom: clamp(32px, 5vw, 56px); }
-  .section-head h2 { color: var(--title); font-size: clamp(36px, 5vw, 56px); }
-  .section-head p { margin-top: 12px; color: var(--ink-soft); font-size: clamp(18px, 2vw, 21px); }
-
   .blocks { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 32px); }
   .block {
     display: grid;
@@ -222,6 +209,9 @@ const ways = [
   .lunch { background: var(--lunch); color: var(--on-lunch); }
   .snack { background: var(--snack); color: var(--on-snack); }
   .dinner { background: var(--dinner); color: var(--on-dinner); }
+  /* The fifth block is about the person, not a meal, so it sits on the page's own surface. */
+  .plain { background: var(--surface); color: var(--ink); }
+  .plain h3 { color: var(--title); }
 
   .block-copy {
     align-self: center;
@@ -246,55 +236,8 @@ const ways = [
   .pair :global(picture) { width: 250px; }
   .pair :global(picture:last-child) { margin-top: 36px; }
 
-  .strip-media { align-self: center; align-items: center; height: auto; padding: 48px 40px; }
-  .strip {
-    width: 100%;
-    max-width: 440px;
-    aspect-ratio: 780 / 250;
-    overflow: hidden;
-    border-radius: var(--radius-card);
-    box-shadow: var(--shadow-raised);
-  }
-  .strip-media .strip :global(picture) { display: block; width: 100%; height: 100%; }
-  .strip :global(img.strip-shot) {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: 50% 75%;
-    border-radius: 0;
-    box-shadow: none;
-  }
 
-  .ways { padding: clamp(80px, 11vw, 136px) 0 clamp(56px, 8vw, 96px); }
-  .ways-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 32px 24px;
-  }
-  .ways-list li {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 16px;
-  }
-  .icon {
-    display: grid;
-    place-items: center;
-    width: 64px;
-    height: 64px;
-    border-radius: 12px;
-    background: var(--accent-tint);
-    color: var(--accent);
-  }
-  .way-text { display: flex; flex-direction: column; gap: 4px; }
-  .way-text strong { font-size: 19px; color: var(--title); }
-  .way-text span { color: var(--ink-soft); }
-
-  .closing { padding-bottom: clamp(64px, 9vw, 112px); }
+  .closing { padding: clamp(64px, 9vw, 112px) 0; }
   .closing-block {
     border-radius: var(--radius-block);
     padding: clamp(44px, 7vw, 88px) clamp(20px, 5vw, 64px);
@@ -302,11 +245,6 @@ const ways = [
   }
   .closing h2 { font-size: clamp(34px, 5vw, 56px); }
   .closing p { margin: 16px auto 32px; max-width: 32em; color: var(--on-hero-soft); font-size: clamp(17px, 2vw, 20px); }
-
-  @media (max-width: 960px) {
-    .ways-list { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 640px; margin-inline: auto; }
-    .ways-list li:last-child { grid-column: 1 / -1; }
-  }
 
   @media (max-width: 880px) {
     .block { grid-template-columns: 1fr; min-height: 0; text-align: center; }
@@ -318,13 +256,6 @@ const ways = [
     .pair { gap: 14px; }
     .pair :global(picture) { width: min(250px, 40vw); }
     .pair :global(picture:last-child) { margin-top: 28px; }
-    .strip-media { height: auto; padding: 32px 20px 40px; }
-    .strip { margin-inline: auto; }
   }
 
-  @media (max-width: 560px) {
-    .ways-list { grid-template-columns: 1fr; gap: 22px; }
-    .ways-list li { flex-direction: row; text-align: left; align-items: flex-start; }
-    .icon { flex: 0 0 auto; width: 52px; height: 52px; }
-  }
 </style>

@@ -3,24 +3,19 @@ package com.opson.libraries.widgets
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.diary.ui.tone
-import com.opson.system.color.Palette
 import com.opson.system.color.appColors
 
 /**
- * The person's palette as widget colours, read off the app's own theme tokens so a widget never
- * keeps a second copy of them.
+ * The app's colours as widget colours, read off its own theme tokens so a widget never keeps a
+ * second copy of them.
  */
 object WidgetPalette {
 
-    fun colors(palette: PaletteChoice): WidgetColors = WidgetColors(
-        light = swatch(palette.toPalette(), dark = false),
-        dark = swatch(palette.toPalette(), dark = true),
-    )
+    val colors: WidgetColors = WidgetColors(light = swatch(dark = false), dark = swatch(dark = true))
 
-    private fun swatch(palette: Palette, dark: Boolean): WidgetSwatch {
-        val colors = appColors(palette, dark)
+    private fun swatch(dark: Boolean): WidgetSwatch {
+        val colors = appColors(dark)
         return WidgetSwatch(
             background = colors.bg.color.hex(),
             ink = colors.ink.color.hex(),
@@ -34,13 +29,6 @@ object WidgetPalette {
                 slot.wire to WidgetTone(content = tone.content.color.hex(), container = tone.container.color.hex())
             },
         )
-    }
-
-    private fun PaletteChoice.toPalette(): Palette = when (this) {
-        PaletteChoice.Pine -> Palette.Pine
-        PaletteChoice.Espresso -> Palette.Espresso
-        PaletteChoice.Clay -> Palette.Clay
-        PaletteChoice.Plum -> Palette.Plum
     }
 
     @Suppress("MagicNumber")

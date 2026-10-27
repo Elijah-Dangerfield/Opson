@@ -11,13 +11,25 @@ class ModesRoute : Route()
 @Serializable
 class EachNumberRoute : Route()
 
-/** The energy range and macro split. */
+/** The energy range and macro split, and the goal style. */
 @Serializable
 class TargetsRoute : Route()
 
-/** The goal style picker over Targets: a range, a set deficit, or different by day. */
+/**
+ * Where Burned's resting energy comes from (design sync 4, 13.2d): calculated, the health app or
+ * a number of the person's own, and whether activity counts. `release.goalsAndEnergy`.
+ * [fromEnergyToday] picks the back label: Energy today opens it with `true`, Targets with `false`.
+ */
 @Serializable
-class GoalStyleRoute : Route()
+class RestingEnergyRoute(val fromEnergyToday: Boolean = false) : Route()
+
+/**
+ * Energy today (design sync 4, 13.2c): eaten with its ±, Burned with where each part comes from,
+ * and the deficit so far against the range. `release.goalsAndEnergy`; Today's summary card links
+ * here. Check `GoalsAndEnergyEnabled` before linking.
+ */
+@Serializable
+class EnergyTodayRoute : Route()
 
 /**
  * Water goal, glass size and units. [fromMore] picks the back label: Today's water sheet opens
@@ -26,7 +38,7 @@ class GoalStyleRoute : Route()
 @Serializable
 class WaterSettingsRoute(val fromMore: Boolean = false) : Route()
 
-/** Palette, theme, text size, weight units, tone and the hunger questions. */
+/** Appearance, text size, weight units, tone and the hunger questions. */
 @Serializable
 class LookAndFeelRoute : Route()
 

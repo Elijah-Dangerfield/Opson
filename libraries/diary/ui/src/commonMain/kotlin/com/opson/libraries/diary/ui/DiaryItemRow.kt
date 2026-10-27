@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -37,7 +38,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  *
  * A list of rows draws a line under each ([showDivider]). Today's meal card
  * draws the line above each row instead, after its header, so it passes
- * [dividerAbove] and [DiaryItemRowDefaults.CardPadding].
+ * [dividerAbove] and [DiaryItemRowDefaults.CardPadding]. [trailing] follows the energy: a food's ⋮.
  */
 @Composable
 fun DiaryItemRow(
@@ -49,6 +50,7 @@ fun DiaryItemRow(
     showDivider: Boolean = true,
     dividerAbove: Boolean = false,
     contentPadding: PaddingValues = DiaryItemRowDefaults.ListPadding,
+    trailing: @Composable RowScope.() -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         if (dividerAbove) HorizontalDivider(color = AppTheme.colors.line)
@@ -80,6 +82,7 @@ fun DiaryItemRow(
                 color = AppTheme.colors.ink,
                 maxLines = 1,
             )
+            trailing()
         }
         if (showDivider) HorizontalDivider(color = AppTheme.colors.line)
     }

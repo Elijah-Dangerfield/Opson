@@ -1,7 +1,6 @@
 package com.opson.features.settings.impl.look
 
 import androidx.lifecycle.viewModelScope
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.TextSize
@@ -15,7 +14,7 @@ import me.tatarka.inject.annotations.Inject
 
 /** None of these touch visibility, so each is a plain settings write. The app root re-themes from them. */
 data class LookAndFeelState(
-    val palette: PaletteChoice = PaletteChoice.Pine,
+    /** Appearance: System, Light or Dark. */
     val theme: ThemeMode = ThemeMode.System,
     val textSize: TextSize = TextSize.Normal,
     val weightUnit: WeightUnit = WeightUnit.Kg,
@@ -27,7 +26,6 @@ data class LookAndFeelState(
 
 object LookAndFeelStateBuilder {
     fun build(settings: Settings, remindersOn: Boolean = false): LookAndFeelState = LookAndFeelState(
-        palette = settings.palette,
         theme = settings.theme,
         textSize = settings.textSize,
         weightUnit = settings.weightUnit,
@@ -52,7 +50,6 @@ class LookAndFeelViewModel(
     override suspend fun handleAction(action: LookAndFeelAction) {
         when (action) {
             is LookAndFeelAction.InputsArrived -> action.updateState { LookAndFeelStateBuilder.build(action.settings, remindersEnabled()) }
-            is LookAndFeelAction.PalettePicked -> settingsRepository.update { it.copy(palette = action.palette) }
             is LookAndFeelAction.ThemePicked -> settingsRepository.update { it.copy(theme = action.theme) }
             is LookAndFeelAction.TextSizePicked -> settingsRepository.update { it.copy(textSize = action.size) }
             is LookAndFeelAction.WeightUnitPicked -> settingsRepository.update { it.copy(weightUnit = action.unit) }
@@ -69,7 +66,6 @@ sealed interface LookAndFeelEvent {
 
 sealed interface LookAndFeelAction {
     data class InputsArrived(val settings: Settings) : LookAndFeelAction
-    data class PalettePicked(val palette: PaletteChoice) : LookAndFeelAction
     data class ThemePicked(val theme: ThemeMode) : LookAndFeelAction
     data class TextSizePicked(val size: TextSize) : LookAndFeelAction
     data class WeightUnitPicked(val unit: WeightUnit) : LookAndFeelAction

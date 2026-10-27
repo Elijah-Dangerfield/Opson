@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -41,6 +42,7 @@ import org.jetbrains.compose.resources.StringResource
 @Composable
 internal fun SettingsPage(
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { padding ->
@@ -48,7 +50,7 @@ internal fun SettingsPage(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = AppTheme.spacing.page)
                 .padding(bottom = AppTheme.spacing.section),
             verticalArrangement = Arrangement.spacedBy(SettingsDefaults.CardGap),

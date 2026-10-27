@@ -1,5 +1,7 @@
 package com.opson.libraries.navigation
 
+import kotlinx.coroutines.flow.SharedFlow
+
 data class NavigationOptions(
     val clearBackStack: Boolean = false,
     val launchSingleTop: Boolean = false,
@@ -33,6 +35,20 @@ interface Router {
      * another tab.
      */
     fun switchTab(route: TabRoute)
+
+    /**
+     * The bottom bar's tap on the tab already showing. Anything above the tab's root (a pushed
+     * screen, a sheet) is popped and the root shows again; when the root is already on top,
+     * [tabReselects] tells the tab instead, so it can scroll its list back to the top.
+     */
+    fun reselectTab(route: TabRoute)
+
+    /**
+     * A tap on the showing tab while its root was already on top. Collect it with
+     * [OnTabReselected] rather than directly. Nothing is replayed: a tab that subscribes later
+     * must not scroll for a tap it never saw.
+     */
+    val tabReselects: SharedFlow<TabRoute>
 
     /**
      * Enter the tab system from outside it (onboarding, sign-in, a fresh guest session). Clears

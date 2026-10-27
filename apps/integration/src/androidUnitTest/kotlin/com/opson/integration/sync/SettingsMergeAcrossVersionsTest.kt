@@ -8,15 +8,19 @@ import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.impl.DiarySyncApi
 import com.opson.libraries.diary.impl.wire.SyncRequestDto
 import com.opson.libraries.diary.impl.wire.SyncResponseDto
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.PresetId
-import kotlinx.datetime.LocalDate
-import com.opson.libraries.nutrition.Visibility
-import com.opson.libraries.nutrition.RevealOn
-import com.opson.libraries.nutrition.Presets
-import com.opson.libraries.nutrition.NumbersSettings
-import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.ModeTiming
+import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.Presets
+import com.opson.libraries.nutrition.RangeEnd
+import com.opson.libraries.nutrition.RestingSource
+import com.opson.libraries.nutrition.RevealOn
+import com.opson.libraries.nutrition.TargetStyle
+import com.opson.libraries.nutrition.Visibility
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -32,7 +36,8 @@ import kotlin.time.Instant
  * leaves out what 0.2 added. The server merges a settings write into the stored
  * object instead of replacing it, one level deep, so a 0.1 save on one phone
  * must not wipe what a 0.2 phone set at the top level: meal times, the exercise
- * choice, the check-in switch, the photos choice and, since design sync 4, the mode.
+ * choice, the check-in switch, the photos choice, the goal style, where Burned comes from and,
+ * since design sync 4, the mode.
  *
  * The mode is the hard one, because 0.1 rewrites `numbers` whole and knows ten presets where 0.2
  * has four. A 0.2 phone writes its preset in a top-level `mode` and, in `numbers`, an old preset
@@ -40,7 +45,10 @@ import kotlin.time.Instant
  */
 class SettingsMergeAcrossVersionsTest : IntegrationTest() {
 
-    /** The 0.1 wire: settings rows go up and come down without the keys 0.2 added. */
+    /**
+     * The 0.1 wire: settings rows go up and come down without the keys 0.2 added, at the top
+     * level and inside `targets`, whose 0.1 serializer knew no goal style.
+     */
     private class OldClientWire(private val delegate: DiarySyncApi) : DiarySyncApi {
         override suspend fun sync(request: SyncRequestDto): Catching<SyncResponseDto> {
             val sent = request.copy(
@@ -50,12 +58,17 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
             )
             return delegate.sync(sent).map { response ->
                 val pulled = response.changes.settings ?: return@map response
-                response.copy(changes = response.changes.copy(settings = pulled.copy(settings = JsonObject(pulled.settings - V02_KEYS))))
+                response.copy(changes = response.changes.copy(settings = pulled.copy(settings = pulled.settings.as01())))
             }
         }
 
         private fun JsonObject.withoutNewKeysInSettings(): JsonObject =
-            JsonObject(this + ("settings" to JsonObject(getValue("settings").jsonObject - V02_KEYS)))
+            JsonObject(this + ("settings" to getValue("settings").jsonObject.as01()))
+
+        private fun JsonObject.as01(): JsonObject {
+            val targets = this["targets"]?.jsonObject ?: return JsonObject(this - V02_KEYS)
+            return JsonObject(this - V02_KEYS + ("targets" to JsonObject(targets - "style")))
+        }
     }
 
     @Test
@@ -120,10 +133,86 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         assertEquals("false", stored["photos"], "the merge kept progressPhotos")
 
         newPhone.syncNow().getOrThrow()
-        val settings = newPhone.settings.settings.value
+        // The pull lands in the store, and the settings flow catches up on the app scope a moment later.
+        val settings = newPhone.settings.settings.awaitState { it.numbers.pauseBeforeMore }
         assertFalse(settings.checkIn)
         assertEquals(false, settings.numbers.progressPhotos)
         assertEquals(true, settings.numbers.pauseBeforeMore)
+    }
+
+    @Test
+    fun aV01SaveOfTargets_keepsTheGoalStyle() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        val surplus = newPhone.settings.update { it.copy(targets = it.targets.useSurplus(burnKcal = 1800).stepSurplus(up = false)!!) }
+        assertEquals(TargetStyle.Surplus(250, 300), surplus.targets.style)
+        newPhone.syncNow().getOrThrow()
+
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        assertEquals(TargetStyle.Range, oldPhone.settings.settings.value.targets.style, "0.1 never sees the goal style")
+        // 0.1 rewrites targets whole: the style must not live inside it.
+        oldPhone.settings.update { it.copy(targets = it.targets.step(RangeEnd.High, up = true)!!) }
+        oldPhone.syncNow().getOrThrow()
+
+        val stored = server.query(
+            "SELECT settings->'targetStyle'->>'kind' AS kind, (settings->'targets'->>'maxKcal')::int AS max_kcal, " +
+                "jsonb_exists(settings->'targets', 'style') AS nested FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals(2350, stored["max_kcal"], "the 0.1 save landed")
+        assertEquals("surplus", stored["kind"], "the merge kept targetStyle")
+        assertEquals(false, stored["nested"])
+
+        newPhone.syncNow().getOrThrow()
+        val settings = newPhone.settings.settings.awaitState { it.targets.maxKcal == 2350 }
+        assertEquals(TargetStyle.Surplus(250, 300), settings.targets.style)
+    }
+
+    @Test
+    fun aV01Save_keepsWhereBurnedComesFrom() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        newPhone.settings.update {
+            it.copy(
+                restingSource = RestingSource.Own,
+                restingOwnKcal = 1600,
+                activityInBurned = false,
+                birthYear = 1990,
+                heightCm = 172.0,
+                bodySex = BodySex.Unsaid,
+            )
+        }
+        newPhone.syncNow().getOrThrow()
+
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        oldPhone.settings.update { it.copy(waterGlasses = 7) }
+        oldPhone.syncNow().getOrThrow()
+
+        val stored = server.query(
+            "SELECT settings->>'restingSource' AS source, (settings->>'restingOwnKcal')::int AS own, " +
+                "(settings->>'waterGlasses')::int AS glasses FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals(7, stored["glasses"], "the 0.1 save landed")
+        assertEquals("own", stored["source"], "the merge kept restingSource")
+        assertEquals(1600, stored["own"], "the merge kept restingOwnKcal")
+
+        newPhone.syncNow().getOrThrow()
+        val settings = newPhone.settings.settings.awaitState { it.waterGlasses == 7 }
+        assertEquals(RestingSource.Own, settings.restingSource)
+        assertEquals(1600, settings.restingOwnKcal)
+        assertFalse(settings.activityInBurned)
+        assertEquals(1990, settings.birthYear)
+        assertEquals(172.0, settings.heightCm)
+        assertEquals(BodySex.Unsaid, settings.bodySex)
     }
 
     @Test
@@ -227,7 +316,11 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
 
     private companion object {
         /** Keys 0.1 doesn't know, so drops on decode and never sends. */
-        val V02_KEYS = setOf("mealTimes", "exerciseRange", "checkIn", "progressPhotos", "mode", "modeTimerEnded")
+        val V02_KEYS = setOf(
+            "mealTimes", "exerciseRange", "checkIn", "progressPhotos", "targetStyle",
+            "restingSource", "restingOwnKcal", "activityInBurned", "birthYear", "heightCm", "bodySex",
+            "mode", "modeTimerEnded",
+        )
 
         /** What Coast hid that Later on its own would only delay. */
         val COAST_HIDES = listOf(Metric.Remaining, Metric.EnergyOut, Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber)

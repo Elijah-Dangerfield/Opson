@@ -2,7 +2,8 @@ package com.opson.features.today.impl
 
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
-import com.opson.features.today.impl.calendar.CalendarSheetContent
+import com.opson.features.today.impl.item.ItemSheetStateBuilder
+import com.opson.features.today.impl.item.ItemStep
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
@@ -51,7 +52,7 @@ private fun Phone(dark: Boolean = false, largeText: Boolean = false, content: @C
 }
 
 /**
- * Today as the design sync 2 screens draw it: both release flags on, unless a preview says
+ * Today as the design sync 2 and 4 screens draw it: the release flags on, unless a preview says
  * otherwise. [firstRow] scrolls the list, so the sticky bar and the rows below the fold show.
  */
 @Composable
@@ -66,6 +67,7 @@ private fun Today(
     flagsOn: Boolean = true,
     ui: TodayUi = TodayUi(),
     firstRow: Int = 0,
+    drag: FoodDrag = rememberFoodDrag(),
 ) {
     TodayScreen(
         state = TodayFixtures.todayState(
@@ -79,8 +81,10 @@ private fun Today(
             selectOn = flagsOn,
             weighIns = weighIns,
             ui = ui,
+            foodActionsOn = flagsOn,
         ),
         onAction = {},
+        drag = drag,
         listState = rememberLazyListState(initialFirstVisibleItemIndex = firstRow),
     )
 }
@@ -122,12 +126,12 @@ private fun TodayStickyPreview() = Phone { TodayFull(firstRow = LUNCH_ROW) }
 @Composable
 private fun TodayCollapsedPreview() = Phone { TodayFull(settings = Settings(todaySummaryCollapsed = true)) }
 
-/** 2.12: three foods picked, the panel totals them. */
+/** 2.12: three foods picked, the bottom bar's actions. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodaySelectPreview() = Phone { TodayFull(ui = TodayUi(selected = TodayFixtures.picked), firstRow = BREAKFAST_ROW) }
 
-/** 2.12 in Blind: "3 foods" and the actions, nothing else. */
+/** 2.12 in Blind: the rows without amounts, and the same actions. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodaySelectBlindPreview() = Phone {
@@ -301,13 +305,74 @@ private fun TodayFastingDarkPreview() = Phone(dark = true) {
     TodayScreen(state = state.copy(fasting = FastingStatusFixtures.windowOpen), onAction = {})
 }
 
-@Preview(widthDp = 390)
-@Composable
-private fun CalendarSheetPreview() = Phone { CalendarSheetContent(TodayFixtures.calendarState(), onAction = {}) }
+// Design sync 4, Today actions (13.3a to 13.3d). Dark, as the Round 4 screens are drawn.
 
+/** 13.3a: the title tapped, the month dropped over Today. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayCalendarPreview() = Phone(dark = true) { TodayWithCalendar(full) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayCalendarLightPreview() = Phone { TodayWithCalendar(full) }
+
+/** 13.3b: the apple and the peanut butter picked, the bottom bar in the tab bar's place. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySelectV4Preview() = Phone(dark = true) {
+    TodayFull(ui = TodayUi(selected = TodayFixtures.snackPicked), firstRow = LUNCH_ROW)
+}
+
+/** 13.3b in Blind: the same, since select mode shows no amounts beyond the rows'. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySelectV4BlindPreview() = Phone(dark = true) {
+    Today(policy(PresetId.NoNumbers), ui = TodayUi(selected = TodayFixtures.snackPicked), firstRow = LUNCH_ROW)
+}
+
+/** 13.3c: both carried over dinner, which outlines and says where they will land. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayDragMovePreview() = Phone(dark = true) { TodayDragging(full) }
+
+/** Move from the bottom bar, the way to move without dragging. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySelectMovePreview() = Phone(dark = true) {
+    TodayFull(ui = TodayUi(selected = TodayFixtures.snackPicked, step = SelectStep.MoveTo(MealSlot.Dinner)), firstRow = LUNCH_ROW)
+}
+
+/** After a drop: "Moved 2 foods to dinner" with Undo. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayMovedPreview() = Phone(dark = true) {
+    TodayFull(ui = TodayUi(moved = MovedNotice(count = 2, name = null, slot = MealSlot.Dinner)), firstRow = LUNCH_ROW)
+}
+
+/** 13.3d: the peanut butter's ⋮ over Today. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun FoodActionsPreview() = Phone(dark = true) { TodayWithFoodActions(full) }
+
+/** 13.3d in Blind: the same rows, and no energy in the header. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun FoodActionsBlindPreview() = Phone(dark = true) { TodayWithFoodActions(policy(PresetId.NoNumbers)) }
+
+/** Change amount, from the ⋮. */
 @Preview(widthDp = 390)
 @Composable
-private fun CalendarSheetDarkPreview() = Phone(dark = true) { CalendarSheetContent(TodayFixtures.calendarState(), onAction = {}) }
+private fun FoodActionsAmountPreview() = Phone(dark = true) {
+    val item = TodayFixtures.day().allItems.first { it.id == TodayFixtures.peanutButter }
+    ItemSheetContent(TodayFixtures.foodActionsState(full, ItemSheetStateBuilder.amountStep(item, "3")), onAction = {})
+}
+
+/** Copy to another day, from the ⋮. */
+@Preview(widthDp = 390)
+@Composable
+private fun FoodActionsCopyPreview() = Phone(dark = true) {
+    ItemSheetContent(TodayFixtures.foodActionsState(full, ItemStep.CopyTo(CopyDay.Tomorrow, MealSlot.Snack)), onAction = {})
+}
 
 @Preview(widthDp = 390)
 @Composable
@@ -333,6 +398,7 @@ private fun MealFeelSheetDarkPreview() = Phone(dark = true) { MealFeelSheetConte
 @Composable
 private fun WaterSheetPreview() = Phone { WaterSheetContent(TodayFixtures.waterSheetState(), onAction = {}) }
 
+/** `release.foodActions` off: the food and Delete. */
 @Preview(widthDp = 390)
 @Composable
 private fun ItemSheetPreview() = Phone { ItemSheetContent(TodayFixtures.itemSheetState(full), onAction = {}) }

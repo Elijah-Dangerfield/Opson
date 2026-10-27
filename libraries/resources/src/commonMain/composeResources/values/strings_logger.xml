@@ -134,6 +134,8 @@
     <string name="logger_source_usda">USDA FoodData Central</string>
     <string name="logger_source_off">Open Food Facts</string>
     <string name="logger_source_yours">your own food</string>
+    <string name="logger_micros_vitamins">Vitamins</string>
+    <string name="logger_micros_minerals">Minerals</string>
     <string name="logger_micro_vitamin_a">Vitamin A</string>
     <string name="logger_micro_vitamin_b12">Vitamin B12</string>
     <string name="logger_micro_vitamin_c">Vitamin C</string>
@@ -147,6 +149,15 @@
     <string name="logger_micro_potassium">Potassium</string>
     <string name="logger_micro_sodium">Sodium</string>
     <string name="logger_micro_zinc">Zinc</string>
+    <string name="logger_micro_thiamin">Thiamin (B1)</string>
+    <string name="logger_micro_riboflavin">Riboflavin (B2)</string>
+    <string name="logger_micro_niacin">Niacin (B3)</string>
+    <string name="logger_micro_vitamin_b6">Vitamin B6</string>
+    <string name="logger_micro_choline">Choline</string>
+    <string name="logger_micro_copper">Copper</string>
+    <string name="logger_micro_manganese">Manganese</string>
+    <string name="logger_micro_phosphorus">Phosphorus</string>
+    <string name="logger_micro_selenium">Selenium</string>
     <string name="logger_micro_of_daily">%1$s of a day</string>
     <string name="logger_amount_loading_cd">Loading this food</string>
     <string name="logger_amount_missing">This food needs a connection to open.</string>

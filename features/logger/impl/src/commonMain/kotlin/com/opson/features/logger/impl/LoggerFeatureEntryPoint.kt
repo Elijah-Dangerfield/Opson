@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +39,7 @@ import com.opson.libraries.ui.components.dialog.bottomsheet.expandOnDragUp
 import com.opson.libraries.ui.components.dialog.bottomsheet.sheetHeightFraction
 import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.snackbar.showSnackBar
+import com.opson.libraries.ui.system.confirm
 import com.opson.system.AppTheme
 import me.tatarka.inject.annotations.Inject
 import org.jetbrains.compose.resources.StringResource
@@ -81,14 +83,18 @@ class LoggerFeatureEntryPoint(
             val route = backStackEntry.toRoute<AmountSheetRoute>()
             val viewModel: AmountViewModel = viewModel { amountViewModelFactory(route) }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            val haptics = LocalHapticFeedback.current
 
             viewModel.ObserveEvents { event ->
                 when (event) {
                     AmountEvent.Dismiss -> sheetState.dismiss()
                     // Both sheets go: this one and the logger under it. Today takes it from RecentLogEvents.
-                    is AmountEvent.Logged -> router.batch {
-                        goBack()
-                        goBack()
+                    is AmountEvent.Logged -> {
+                        haptics.confirm()
+                        router.batch {
+                            goBack()
+                            goBack()
+                        }
                     }
                 }
             }
@@ -277,10 +283,12 @@ class LoggerFeatureEntryPoint(
             viewModel.takeAction(BarcodeScanAction.Resumed)
             onPauseOrDispose { }
         }
+        val haptics = LocalHapticFeedback.current
 
         viewModel.ObserveEvents { event ->
             when (event) {
                 BarcodeScanEvent.RequestPermission -> requestPermission()
+                BarcodeScanEvent.Scanned -> haptics.confirm()
                 // The amount sheet takes this screen's place over the logger, as it does for a tapped search row.
                 is BarcodeScanEvent.OpenAmount -> router.batch {
                     goBack()
@@ -301,10 +309,14 @@ class LoggerFeatureEntryPoint(
         BarcodeScanScreen(
             state = state,
             onAction = viewModel::takeAction,
-            viewfinder = { modifier ->
+            viewfinder = { request, modifier ->
                 barcodeCamera.Viewfinder(
                     onCode = { viewModel.takeAction(BarcodeScanAction.CodeRead(it)) },
                     onUnavailable = { viewModel.takeAction(BarcodeScanAction.CameraUnavailable) },
+                    scanArea = request.scanArea,
+                    torchOn = request.torchOn,
+                    onTorchAvailable = { viewModel.takeAction(BarcodeScanAction.CameraStarted(hasTorch = it)) },
+                    focusPoint = request.focusPoint,
                     modifier = modifier,
                 )
             },

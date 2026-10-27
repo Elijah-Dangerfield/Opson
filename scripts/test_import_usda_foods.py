@@ -12,12 +12,14 @@ from pathlib import Path
 
 from import_usda_foods import (
     KEEPALIVES,
+    MICROS,
     Psql,
     PsqlOutput,
     branded_category,
     default_portion_first,
     generic_category,
     gtin_check_digit,
+    micros_from,
     normalize_gtin,
     pg_env,
     serving_portion,
@@ -258,6 +260,48 @@ class CategoryTest(unittest.TestCase):
         self.assertIsNone(branded_category("Includes any products that can be described/observed as ... water, milk, oil"))
         self.assertIsNone(branded_category(""))
         self.assertIsNone(branded_category(None))
+
+
+# The vitamin and mineral keys the app's Micronutrient table reads, as
+# MicroWireKeysTest in :libraries:nutrition pins them. A key the importer
+# names differently is a nutrient no food ever shows.
+APP_MICRO_KEYS = {
+    "vitamin_a_rae_ug", "thiamin_mg", "riboflavin_mg", "niacin_mg", "vitamin_b6_mg", "folate_dfe_ug",
+    "vitamin_b12_ug", "vitamin_c_mg", "vitamin_d_ug", "vitamin_e_mg", "vitamin_k_ug", "choline_mg",
+    "calcium_mg", "copper_mg", "iron_mg", "magnesium_mg", "manganese_mg", "phosphorus_mg", "potassium_mg",
+    "selenium_ug", "sodium_mg", "zinc_mg",
+}
+
+
+class MicrosTest(unittest.TestCase):
+
+    def test_keeps_every_vitamin_and_mineral_the_app_shows(self):
+        self.assertEqual(set(), APP_MICRO_KEYS - set(MICROS))
+
+    def test_keeps_the_label_fats_and_sugars(self):
+        for key in ("sugars_g", "added_sugars_g", "saturated_fat_g", "trans_fat_g", "cholesterol_mg"):
+            self.assertIn(key, MICROS)
+
+    def test_amounts_keep_their_unit_and_round(self):
+        values = {"301": 120.0, "418": 0.12345, "605": 0.25, "435": 54.0}
+        self.assertEqual(
+            {"calcium_mg": 120.0, "vitamin_b12_ug": 0.123, "trans_fat_g": 0.25, "folate_dfe_ug": 54.0},
+            micros_from(values.get),
+        )
+
+    def test_a_nutrient_with_no_value_is_left_out_not_zero(self):
+        self.assertEqual({}, micros_from({}.get))
+        self.assertNotIn("iron_mg", micros_from({"301": 5.0}.get))
+
+    def test_vitamin_d_from_iu_when_there_is_no_microgram_figure(self):
+        self.assertEqual({"vitamin_d_ug": 10.0}, micros_from({"324": 400.0}.get))
+
+    def test_micrograms_win_over_iu(self):
+        self.assertEqual({"vitamin_d_ug": 2.5}, micros_from({"328": 2.5, "324": 400.0}.get))
+
+    def test_sugars_fall_back_to_the_nlea_figure(self):
+        self.assertEqual({"sugars_g": 4.2}, micros_from({"269.3": 4.2}.get))
+        self.assertEqual({"sugars_g": 5.0}, micros_from({"269": 5.0, "269.3": 4.2}.get))
 
 
 class ConnectionTest(unittest.TestCase):

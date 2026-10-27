@@ -17,7 +17,7 @@ private fun Scanner(model: ScanModel, dark: Boolean = false) = PreviewContent(da
     BarcodeScanScreen(
         state = LoggerFixtures.scanState(model),
         onAction = {},
-        viewfinder = { modifier -> Box(modifier = modifier.background(AppTheme.colors.hero)) },
+        viewfinder = { _, modifier -> Box(modifier = modifier.background(AppTheme.colors.hero)) },
     )
 }
 
@@ -28,6 +28,15 @@ private fun LoggerScanPreview() = Scanner(LoggerFixtures.scanning)
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerScanDarkPreview() = Scanner(LoggerFixtures.scanning, dark = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanLightOnPreview() = Scanner(LoggerFixtures.scanningLit)
+
+/** The instant a code is caught, before a lookup has been slow enough for the spinner. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanReadPreview() = Scanner(LoggerFixtures.lookingUp)
 
 /** Past 400 ms: a first lookup at an outside source. */
 @Preview(widthDp = 390, heightDp = 844)

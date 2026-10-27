@@ -168,6 +168,45 @@ already uses (392 MB of data, 960 MB of WAL), which could pass 60% of the
 with the disk graph open in the Supabase dashboard, and stop if it passes
 60%.
 
+### Measured on dev, 2026-10-27: where a typed search spent its time
+
+Dev now has the full load (3.29M rows) and `FOOD_SEARCH_OFF_ENABLED` on, on
+Supabase's micro instance (256 MB `shared_buffers`, so `off_foods` at 2.3 GB
+is mostly read from disk). `EXPLAIN (ANALYZE, BUFFERS)` of the statements
+search runs, read-only:
+
+- **The catalog statement scored every Branded match.** "chicken" read and
+  ranked 14,630 rows (0.9 s), "cheese" 32,491 (2.2 s). Most of them could
+  never reach the page: generic matches rank first, and a Branded row only
+  jumps them when the query names its brand. Now only rows whose brand
+  carries a query word are read when generic matches fill the page: 0.12 s
+  and 0.21 s, same rows in the same order (14 queries, limits 25 and 50).
+- **Open Food Facts went back to the table by id for each of up to 850
+  candidates**, a random read each when cold. Carrying ctids halves its cold
+  reads: about 370 ms to 190 ms on fresh words.
+- **The two statements ran one after the other**; they now run at once.
+- **The phone retried a 503 three times**, up to about 23 s.
+
+Search over HTTP, in process on a laptop against dev (so each database
+round trip is about 18 ms instead of Fly's 1 ms), warm, limit 25:
+
+| Query | Before | After | Repeated within 5 min |
+|---|---:|---:|---:|
+| chicken | 1.3 to 1.6 s | 0.29 s | 2 ms |
+| cheese | 2.4 to 3.1 s | 0.36 to 0.45 s | 2 ms |
+| chic | 1.4 to 1.8 s | 0.37 to 0.54 s | 2 ms |
+| chi | 0.50 to 0.62 s | 0.26 to 0.35 s | 1 ms |
+| greek yogurt | 0.33 to 0.40 s | 0.27 s | 3 ms |
+| nutella | 0.27 to 0.37 s | 0.25 s | 3 ms |
+| egg | 0.15 to 0.24 s | 0.12 s | 2 ms |
+| coke | 0.12 to 0.20 s | 0.08 s | 2 ms |
+| c | 0.64 to 2.0 s | 0.55 to 1.1 s | 2 ms |
+
+Still slowest: one- and two-letter queries ("c" ranks 7,800 generic foods),
+which the server and the phone now keep for five minutes, and cold
+Open Food Facts pages. A bigger Supabase instance would hold `off_foods` in
+memory; that is the next lever if cold searches still feel slow.
+
 ## Search ranking and default servings (0.2)
 
 **Ranking.** A relevance suite of 78 queries (staples, dishes, brands,
@@ -229,7 +268,6 @@ importer as the USDA one.
 | Source | Why |
 |---|---|
 | New Zealand FOODfiles | Its terms say "must not modify any part", and our normalisation is a modification. |
-| Dutch NEVO | Unchanged data only, and no charging users for NEVO data. |
 | Spain BEDCA, FAO regional tables, Italy CREA, China | No open licence found or not checked. FAO items are often CC BY-NC-SA, which rules out commercial use. |
 | India IFCT, Philippines PhilFCT | Copyrighted with no open licence. PhilFCT isn't downloadable, and FNRI declined a raw-data request. |
 
@@ -242,13 +280,38 @@ importer as the USDA one.
   NYC MenuStat (96 US chains, about 65,000 items) is open but stopped
   updating in 2019. The better answer is hand-curating the top chains from
   their published nutrition pages, later.
-- **Requested permission**, waiting on replies: NZ FOODfiles, India IFCT,
-  Philippines PhilFCT, Dutch NEVO, and the Open Food Facts share-alike
-  question.
+- **Requested permission** on 2026-10-26. Replies are below; NZ FOODfiles,
+  India IFCT and the Open Food Facts share-alike question haven't answered.
 - **Ask next:** Brazil TBCA (commercial use needs the coordinators' OK),
   for Latin America.
 - **Dropped:** Switzerland's Open Food Repo has shut down and redirects to
   Open Food Facts, which the dump already covers.
+
+## Replies to the permission requests (2026-10-27)
+
+- **Dutch NEVO: yes.** RIVM confirmed in writing that storing NEVO values
+  converted to our format is fine as long as the amounts don't change, and that
+  a free app with a later paid tier for unrelated features is fine if NEVO data
+  stays free. Their one caution: "foods for special nutritional use" (infant
+  and toddler formula) are per 100 ml with no density, so leave those out.
+  Cite "Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven".
+  NEVO moves from Hold to ready to import.
+- **Philippines PhilFCT: not now.** FNRI can't license it yet and has no
+  CSV, Excel or API; they're building a data platform (i.fnri) and will
+  announce access on their Facebook page. Only the printed book is for sale.
+  Stays on Hold; watch for i.fnri.
+- **NCCDB (University of Minnesota): paid licence, files in Excel, no API.**
+  Prices are usually for a 2-year term:
+  - All 178 nutrients: $8,620.
+  - The 38 standard nutrients: $3,420.
+  - À la carte: $2,045 plus $180 per nutrient.
+  - **Startup offer:** a 1-year Standard Nutrients licence at half price,
+    $1,710, for development, testing and launch.
+  - Add-ons include nutrients per common portion ($2,570 standard, $6,470
+    all), food group files ($4,390) and NCC-to-USDA code links ($660 to $790).
+  - Licensing takes at least 3 weeks. Contact: nccdb-licensing@umn.edu (Jenny).
+  - If it goes ahead, the startup Standard package plus the USDA links is the
+    natural first buy.
 
 ## Skip
 

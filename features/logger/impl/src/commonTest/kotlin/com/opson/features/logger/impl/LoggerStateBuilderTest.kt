@@ -26,6 +26,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -111,9 +112,8 @@ class LoggerStateBuilderTest {
     @Test
     fun blindShowsNoNumberAnywhere() {
         val banana = FoodPick("f:banana", FoodRef.Catalog("banana"), item("Banana").toDraft(), PickSource.Search).toBasketItem()
-        val described = LoggerFixtures.parsed.mapIndexed { index, parsed -> parsed.toDescribedItem(index) }
         val blind = policy(PresetId.NoNumbers)
-        val state = build(inputs(basket = listOf(banana) + described), blind)
+        val state = build(inputs(basket = listOf(banana)), blind)
 
         val browse = assertIs<LoggerBody.Browse>(state.body)
         (browse.usual + browse.recent).forEach { row ->
@@ -121,8 +121,12 @@ class LoggerStateBuilderTest {
             assertTrue(row.macros.isEmpty())
         }
         assertEquals(Display.Hidden, state.basket?.calories)
-        assertTrue(state.describe.lines.all { it.calories == Display.Hidden })
         assertTrue(state.saved.meals.all { it.calories == Display.Hidden })
+        val described = LoggerFixtures.describeEditedState(blind).describe
+        assertTrue(described.lines.isNotEmpty())
+        assertTrue(described.lines.all { it.calories == Display.Hidden })
+        assertEquals(Display.Hidden, described.total?.calories)
+        assertTrue(LoggerFixtures.describeFindState(blind).describe.find?.results.orEmpty().all { it.calories == Display.Hidden })
         val results = assertIs<LoggerBody.Results>(LoggerFixtures.searchState(blind).body)
         assertTrue(results.rows.all { it.calories == Display.Hidden && it.macros.isEmpty() })
     }
@@ -333,9 +337,37 @@ class LoggerStateBuilderTest {
         assertEquals(LoggerPane.Describe, state.pane)
         assertEquals(MealSlot.Breakfast, state.slot)
         assertEquals(listOf("Egg, large", "Toast, white"), state.describe.lines.map { it.name })
-        assertEquals(listOf("2", "1 slice"), state.describe.lines.map { it.amount })
+        assertEquals(listOf("2 large", "1 slice"), state.describe.lines.map { it.amount })
         assertEquals(listOf("156", "80"), state.describe.lines.map { it.calories.text() })
-        assertEquals(FoodRef.Catalog("egg"), state.describe.lines.first().ref)
+        val eggs = state.describe.lines.first()
+        assertTrue(eggs.matched)
+        assertEquals(listOf("large", "cup", "grams"), eggs.units)
+        assertEquals(0, eggs.unitIndex)
+        assertEquals(listOf("Egg, scrambled", "Egg, fried"), eggs.alternatives)
+        assertEquals(2, state.describe.total?.count)
+        assertEquals("236 kcal", state.describe.total?.calories?.text())
+    }
+
+    @Test
+    fun withCaloriesHiddenALineIsNeverCountedInGrams() {
+        val hidden = LoggerFixtures.describeState(policy(PresetId.NoNumbers)).describe.lines.first()
+        assertEquals(listOf("large", "cup"), hidden.units)
+    }
+
+    @Test
+    fun aLineTheCatalogDidNotKnowHasNoAmountControls() {
+        val line = LoggerFixtures.describeEditedState(policy(PresetId.Full)).describe.lines.first { it.name == "grandma's kugel" }
+        assertFalse(line.matched)
+        assertTrue(line.units.isEmpty())
+        assertFalse(line.canLess)
+    }
+
+    @Test
+    fun theFindPaneShowsTheCatalogsAnswer() {
+        val find = assertNotNull(LoggerFixtures.describeFindState(policy(PresetId.Full)).describe.find)
+        assertNull(find.replacing)
+        assertEquals("coffee", find.query)
+        assertEquals(listOf("Coffee, brewed", "Coffee, latte"), find.results?.map { it.name })
     }
 
     @Test

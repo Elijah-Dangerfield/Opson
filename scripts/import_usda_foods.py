@@ -121,11 +121,14 @@ CARBS_SUMMATION = "205.2"
 FIBER = "291"
 
 # micros key -> nutrient number. The key carries its unit so the client never
-# has to guess. Amounts are per 100 g, in that unit.
+# has to guess. Amounts are per 100 g, in that unit. The app's `Micronutrient`
+# table reads the vitamin and mineral keys by these exact names
+# (MicroWireKeysTest pins its side, MicrosTest here pins this one).
 MICROS = {
     "sugars_g": "269",
     "added_sugars_g": "539",
     "saturated_fat_g": "606",
+    "trans_fat_g": "605",
     "cholesterol_mg": "601",
     "sodium_mg": "307",
     "potassium_mg": "306",
@@ -151,6 +154,27 @@ MICROS = {
     "choline_mg": "421",
 }
 SUGARS_NLEA = "269.3"
+# SR Legacy and labels often give vitamin D only in IU (40 IU = 1 µg).
+VITAMIN_D_IU = "324"
+
+
+def micros_from(get) -> dict[str, float]:
+    """The micros a food has, from `get(nutrient_number) -> amount or None`.
+
+    Shared by every dataset, so a fallback added for one reaches all of them:
+    total sugars from the NLEA figure, vitamin D from IU when µg is missing.
+    """
+    micros = {}
+    for key, nbr in MICROS.items():
+        amount = get(nbr)
+        if amount is None and key == "sugars_g":
+            amount = get(SUGARS_NLEA)
+        if amount is None and key == "vitamin_d_ug":
+            iu = get(VITAMIN_D_IU)
+            amount = None if iu is None else iu / 40
+        if amount is not None:
+            micros[key] = rounded(amount, 3)
+    return micros
 
 COLUMNS = [
     "id", "source", "source_id", "name", "brand", "barcode",
@@ -320,14 +344,7 @@ def load_dataset(source: str, files: dict[str, Path], data_type: str) -> dict[st
         if kcal is None and None not in (food.protein, food.fat, food.carbs):
             kcal = 4 * food.protein + 4 * food.carbs + 9 * food.fat
         food.kcal = kcal
-        micros = {}
-        for key, nbr in MICROS.items():
-            amount = v.get(nbr)
-            if amount is None and key == "sugars_g":
-                amount = v.get(SUGARS_NLEA)
-            if amount is not None:
-                micros[key] = rounded(amount, 3)
-        food.micros = micros
+        food.micros = micros_from(v.get)
 
     units = {row["id"]: row["name"].strip() for row in read_csv(files["measure_unit.csv"])}
     portion_rows: dict[str, list[tuple[float, dict]]] = {}
@@ -626,9 +643,6 @@ BRANDED_MAX_MEMBER_BYTES = 8 * 1024 ** 3
 MAX_COMPRESSION_RATIO = 60
 BRANDED_FILES = {"branded_food.csv", "food.csv", "food_nutrient.csv", "nutrient.csv"}
 
-# Labels also carry trans fat. Vitamin D is often given in IU (40 IU = 1 µg).
-BRANDED_MICROS = {**MICROS, "trans_fat_g": "605"}
-VITAMIN_D_IU = "324"
 
 # Values no label can have per 100 g: almost always a per-serving number typed
 # into the per-100 g field. A wrong food is worse than a missing one.
@@ -955,7 +969,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
 
     # Pass 3: nutrients, into one fixed-size array per product.
     slots = [ENERGY_KCAL, ENERGY_ATWATER_SPECIFIC, ENERGY_ATWATER_GENERAL, ENERGY_KJ, PROTEIN, FAT, FAT_NLEA,
-             CARBS, CARBS_SUMMATION, FIBER, SUGARS_NLEA, VITAMIN_D_IU, *sorted(set(BRANDED_MICROS.values()))]
+             CARBS, CARBS_SUMMATION, FIBER, SUGARS_NLEA, VITAMIN_D_IU, *sorted(set(MICROS.values()))]
     slots = list(dict.fromkeys(slots))
     slot_of_nbr = {nbr: i for i, nbr in enumerate(slots)}
     slot_of_id = {nid: slot_of_nbr[nbr] for nid, nbr in id_to_nbr.items() if nbr in slot_of_nbr}
@@ -1046,15 +1060,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
         if (kcal or 0) > MAX_KCAL_100G or sum(x or 0 for x in (protein, carbs, fat)) > MAX_MACROS_100G:
             stats.implausible += 1
             continue
-        micros = {}
-        for key, nbr in BRANDED_MICROS.items():
-            amount = get(v, nbr)
-            if amount is None and key == "sugars_g":
-                amount = get(v, SUGARS_NLEA)
-            if amount is None and key == "vitamin_d_ug" and get(v, VITAMIN_D_IU) is not None:
-                amount = get(v, VITAMIN_D_IU) / 40
-            if amount is not None:
-                micros[key] = rounded(amount, 3)
+        micros = micros_from(lambda nbr: get(v, nbr))
         portion = serving_portion(size, unit, household)
         if portion is not None:
             if portion["grams"] is None:

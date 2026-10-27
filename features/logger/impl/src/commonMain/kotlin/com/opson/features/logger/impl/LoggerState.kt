@@ -140,8 +140,12 @@ data class BasketFooter(val count: Int, val names: String, val calories: Display
 data class DescribeUi(
     val text: String = "",
     val status: DescribeStatus = DescribeStatus.Idle,
-    /** What the parse put in the basket, in order. */
+    /** What the parse put in the basket, in order, each with its own amount controls. */
     val lines: List<DescribedLine> = emptyList(),
+    /** "3 items · About 379 kcal" over Add: everything Add writes. Null with nothing to add. */
+    val total: DescribeTotal? = null,
+    /** The search for a missed food or a line's replacement, drawn in place of the lines; null when closed. */
+    val find: DescribeFindUi? = null,
     /** "Or just a number" is a calorie entry, so it is not offered when calories are hidden. */
     val canNumber: Boolean = false,
     val number: String = "",
@@ -158,14 +162,30 @@ sealed interface DescribeStatus {
     data object Failed : DescribeStatus
 }
 
-/** One line Describe read: "Egg, large", "2 · Estimate", "156". [ref] is null when nothing matched, so it cannot be edited. */
+/**
+ * One line Describe read: "Egg, whole, cooked", "2 eggs", "176". [matched] is
+ * false when nothing in the catalog fit, so it has no amount controls and a
+ * tap finds the food instead.
+ */
 data class DescribedLine(
     val key: String,
-    val ref: FoodRef?,
     val name: String,
     val amount: String,
     val calories: Display,
+    val matched: Boolean,
+    val canLess: Boolean,
+    /** The unit menu: "egg", "cup", "grams". Empty for a line with no food. */
+    val units: List<String>,
+    val unitIndex: Int,
+    /** The next best foods for the same words, one tap each. */
+    val alternatives: List<String>,
 )
+
+/** [count] lines and the energy of all of them, policy-resolved. */
+data class DescribeTotal(val count: Int, val calories: Display)
+
+/** The find-a-food search: [replacing] is the line's name when swapping one; [results] null until the catalog answers. */
+data class DescribeFindUi(val replacing: String?, val query: String, val results: List<SwapResultUi>?)
 
 data class SavedUi(val meals: List<SavedMealUi> = emptyList())
 
@@ -196,7 +216,6 @@ sealed interface LoggerAction {
     data class DescribeTyped(val text: String) : LoggerAction
     data class DescribeArrived(val text: String, val items: List<ParsedItem>) : LoggerAction
     data class DescribeFailed(val text: String) : LoggerAction
-    data class DescribedLineEditTapped(val line: DescribedLine) : LoggerAction
     data class NumberTyped(val text: String) : LoggerAction
     data object AddNumberTapped : LoggerAction
     data object BackTapped : LoggerAction

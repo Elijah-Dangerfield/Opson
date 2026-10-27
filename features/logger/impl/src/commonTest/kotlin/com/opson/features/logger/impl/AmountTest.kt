@@ -14,6 +14,8 @@ import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.toLogDraft
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.MicroGroup
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
@@ -200,6 +202,49 @@ class AmountTest : CoroutineTest() {
         assertNull(build(withLevel(Metric.Micros, Visibility.Hide)).nutrients)
         val shown = assertNotNull(build(withLevel(Metric.Micros, Visibility.Show)).nutrients)
         assertFalse(shown.open)
+    }
+
+    @Test
+    fun fullShowsAllNutrients_groupedVitaminsThenMinerals_inTheTablesOrder() {
+        val nutrients = assertNotNull(build(policy(PresetId.Full)).nutrients)
+
+        assertEquals(listOf(MicroGroup.Vitamins, MicroGroup.Minerals), nutrients.groups.map { it.group })
+        nutrients.groups.forEach { group ->
+            val micros = group.rows.map { it.micro }
+            assertEquals(Micronutrient.inGroup(group.group).filter { it in micros }, micros)
+        }
+        val iron = nutrients.groups[1].rows.single { it.micro == Micronutrient.Iron }
+        // 3 mg of iron in the plate against 18 mg a day.
+        assertEquals("17%", iron.display.text())
+    }
+
+    @Test
+    fun allNutrientsListsOnlyWhatTheFoodCarries() {
+        val nutrients = assertNotNull(build(policy(PresetId.Full)).nutrients)
+        val shown = nutrients.groups.flatMap { group -> group.rows.map { it.micro } }
+
+        assertFalse(Micronutrient.VitaminD in shown, "the plate has no vitamin D value, which is unknown, not 0%")
+        assertTrue(Micronutrient.Selenium in shown)
+    }
+
+    @Test
+    fun aFoodWithNoMicroDataHasNoAllNutrientsCard() {
+        val state = AmountStateBuilder.build(
+            AmountFood.Catalog(LoggerFixtures.rice),
+            AmountChoice(slot = MealSlot.Dinner),
+            LoggerFixtures.amountInputs(policy(PresetId.Full)),
+            FoodRef.Catalog("rice"),
+            PickSource.Search,
+        )
+
+        assertNull(state.nutrients)
+    }
+
+    @Test
+    fun softenedMicrosAreWords() {
+        val nutrients = assertNotNull(build(withLevel(Metric.Micros, Visibility.Soften)).nutrients)
+
+        nutrients.groups.flatMap { it.rows }.forEach { assertIs<Display.Soft>(it.display) }
     }
 
     @Test
@@ -510,7 +555,8 @@ class AmountTest : CoroutineTest() {
 
     @Test
     fun editingADescribedLineReplacesThatLine() = runUnitTest {
-        val line = LoggerFixtures.parsed.first().toDescribedItem(0).copy(ref = FoodRef.Catalog("banana"), key = "f:banana")
+        val line = DescribeRows.fromItem("describe:0", LoggerFixtures.parsed.first(), householdOnly = false).toBasketItem()
+            .copy(ref = FoodRef.Catalog("banana"), key = "f:banana")
         basket.upsert(line)
         val vm = vm(source = PickSource.Describe)
 

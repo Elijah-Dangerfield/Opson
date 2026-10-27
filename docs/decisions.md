@@ -6,6 +6,49 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: One colour scheme, Slate; the palette setting is dropped
+
+**Decision:** the four palettes (Pine, Espresso, Clay, Plum) are gone. Slate,
+in light and dark, is the only scheme (design sync 4, `colors-slate.png`).
+Appearance (System, Light, Dark) is the existing top-level `theme` key. The
+`palette` key is no longer read or written: the field left `Settings`, and
+decoding ignores it.
+
+**Why:** the owner chose one scheme. Dropping the key, rather than keeping it
+with one value, means no stored value can be wrong: a phone that had Espresso
+reads Slate like everyone else. The server merges settings one level deep, so a
+0.2 save leaves the key where it was, and a 0.1 phone on the same account keeps
+the palette it picked (`AppearanceAcrossVersionsTest`).
+
+**Alternatives:** map each palette to an appearance (Espresso to Dark, say).
+Rejected: every palette had a light and a dark set, so a palette says nothing
+about light or dark.
+
+## 2026-10-27: Full numbers shows vitamins and minerals
+
+**Decision:** Full numbers (and Sprint, which is "same as full, plus a banner")
+shows micros. Every other preset keeps its level: Delayed, Blind, Nutrient,
+Rhythm, Explorer, Mindful, Fuel and Coast all still hide them.
+
+**Why:** the handoff ported the prototype's `FULL_VIS`, which made micros an
+opt-in through Modes and numbers. Full's own line is "Every number visible, all
+day", and the owner, on Full on a real phone, asked why no food had a
+micronutrient breakdown when about 98% of catalog rows carry one. The opt-in
+was a tidiness call with no safety reason behind it (nothing in the plans or
+the `TODO(clinician)` notes mentions micros), and the modes that exist for
+safety never showed micros in the first place.
+
+**Alternatives:** keep the opt-in and make the Nutrients page's "turn them on"
+card louder. Rejected: it still breaks Full's promise, and the amount sheet
+has no such card, so a Full user there sees nothing at all.
+
+**What changes for people:** a Full or Sprint user sees All nutrients on the
+amount sheet and vitamins and minerals on the Nutrients page. Anyone who
+turned micros on by hand keeps an override that now matches the preset; anyone
+who turned them off keeps them off.
+
+---
+
 ## 2026-09-21: One Grafana stack for every project, separated by service_name
 
 **Decision:** every app generated from this template sends to the same Grafana

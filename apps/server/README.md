@@ -406,7 +406,7 @@ source_id)` with uuid5 ids). It needs a migration that adds `nccdb` to the
 yet because we have not seen it.
 
 Micros keys carry their unit: `sugars_g`, `added_sugars_g`, `saturated_fat_g`,
-`trans_fat_g` (branded only), `cholesterol_mg`, `sodium_mg`, `potassium_mg`,
+`trans_fat_g`, `cholesterol_mg`, `sodium_mg`, `potassium_mg`,
 `calcium_mg`, `iron_mg`, `magnesium_mg`, `phosphorus_mg`, `zinc_mg`,
 `copper_mg`, `manganese_mg`, `selenium_ug`, `vitamin_a_rae_ug`,
 `vitamin_c_mg`, `vitamin_d_ug`, `vitamin_e_mg`, `vitamin_k_ug`,

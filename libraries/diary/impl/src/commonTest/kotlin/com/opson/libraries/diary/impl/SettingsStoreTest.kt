@@ -1,9 +1,9 @@
 package com.opson.libraries.diary.impl
 
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsJson
 import com.opson.libraries.diary.SyncEntity
+import com.opson.libraries.diary.ThemeMode
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.impl.wire.SettingsRowDto
 import com.opson.libraries.diary.impl.wire.WireJson
@@ -43,8 +43,8 @@ class SettingsStoreTest : CoroutineTest() {
 
     @Test
     fun changedAtMovesOnlyWhenTheNumbersChange() = runUnitTest {
-        store.update(stampNumbersChange = true) { it.copy(palette = PaletteChoice.Clay) }
-        assertNull(store.settings.value.numbers.changedAt, "a palette is not a numbers change")
+        store.update(stampNumbersChange = true) { it.copy(theme = ThemeMode.Dark) }
+        assertNull(store.settings.value.numbers.changedAt, "an appearance is not a numbers change")
 
         val pickedAt = Instant.parse("2026-10-25T09:00:00Z")
         clock.now = pickedAt
@@ -119,11 +119,11 @@ class SettingsStoreTest : CoroutineTest() {
 
     @Test
     fun aPulledCopyNeverOverwritesAChangeStillWaiting() = runUnitTest {
-        store.update(stampNumbersChange = true) { it.copy(palette = PaletteChoice.Clay) }
+        store.update(stampNumbersChange = true) { it.copy(theme = ThemeMode.Dark) }
 
-        store.applyPulled(row(Settings(palette = PaletteChoice.Plum)))
+        store.applyPulled(row(Settings(theme = ThemeMode.Light)))
 
-        assertEquals(PaletteChoice.Clay, store.settings.value.palette)
+        assertEquals(ThemeMode.Dark, store.settings.value.theme)
     }
 
     @Test
@@ -164,12 +164,12 @@ class SettingsStoreTest : CoroutineTest() {
 
     @Test
     fun aRefusedChangeRestoresTheCopyBeforeIt() = runUnitTest {
-        store.applyPulled(row(Settings(palette = PaletteChoice.Plum), updatedAt = 5))
-        store.update(stampNumbersChange = true) { it.copy(palette = PaletteChoice.Clay) }
+        store.applyPulled(row(Settings(theme = ThemeMode.Light), updatedAt = 5))
+        store.update(stampNumbersChange = true) { it.copy(theme = ThemeMode.Dark) }
 
         store.revert(db.outbox.rows.single().basePayload)
 
-        assertEquals(PaletteChoice.Plum, store.settings.value.palette)
+        assertEquals(ThemeMode.Light, store.settings.value.theme)
     }
 
     private fun row(settings: Settings, updatedAt: Long = 1) = SettingsRowDto(

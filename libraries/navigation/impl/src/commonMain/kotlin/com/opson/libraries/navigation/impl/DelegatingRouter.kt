@@ -23,6 +23,7 @@ import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.RouterBatch
 import com.opson.libraries.navigation.TabRoute
 import com.opson.libraries.navigation.enterTab
+import com.opson.libraries.navigation.reselectTab
 import com.opson.libraries.navigation.switchTab
 import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.navigation.FileShareLauncher
@@ -30,7 +31,11 @@ import com.opson.libraries.navigation.NavigableWhileBlocked
 import com.opson.libraries.navigation.TrackableRoute
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -54,6 +59,14 @@ class DelegatingRouter(
 
     private val logger = KLog.withTag("DelegatingRouter")
     private val navigationRequests = Channel<NavHostController.() -> Unit>(Channel.UNLIMITED)
+
+    // Buffered, not replayed, so a tab that subscribes later never scrolls for an old tap. If taps
+    // outrun the collector, the newest one is the one that counts.
+    private val _tabReselects = MutableSharedFlow<TabRoute>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    override val tabReselects: SharedFlow<TabRoute> = _tabReselects.asSharedFlow()
 
     private var navController: NavHostController? = null
     private var processingJob: Job? = null
@@ -105,6 +118,15 @@ class DelegatingRouter(
         ) {
             // `this.`, the controller: unqualified, it could read as this router's own switchTab.
             this.switchTab(route)
+        }
+    }
+
+    override fun reselectTab(route: TabRoute) {
+        enqueueNavigation(
+            description = "reselectTab ${route.nameForLogs()}",
+            route = route,
+        ) {
+            this.reselectTab(route) { _tabReselects.tryEmit(route) }
         }
     }
 

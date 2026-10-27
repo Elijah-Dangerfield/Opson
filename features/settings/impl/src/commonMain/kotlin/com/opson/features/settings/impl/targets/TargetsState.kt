@@ -2,10 +2,15 @@ package com.opson.features.settings.impl.targets
 
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.health.HealthSource
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RestingFrom
 import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.StepBlock
 import com.opson.libraries.nutrition.Surface
@@ -18,17 +23,57 @@ import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.nutrition.share
 import kotlinx.datetime.DayOfWeek
 
-/** The three goal styles 0.1 offers, as the picker names them. */
-enum class StyleKind { Range, Deficit, ByDay }
+/** The goal styles, as the list names them. [Exact] and [Surplus] are `release.goalsAndEnergy`. */
+enum class StyleKind {
+    Range,
+    Exact,
+    Deficit,
+    Surplus,
+    ByDay,
+    ;
+
+    companion object {
+        fun of(style: TargetStyle): StyleKind = when (style) {
+            TargetStyle.Range -> Range
+            TargetStyle.Exact -> Exact
+            is TargetStyle.Deficit -> Deficit
+            is TargetStyle.Surplus -> Surplus
+            is TargetStyle.ByDay -> ByDay
+        }
+    }
+}
+
+/** A day group's shape, as its card names it. Offered only with `release.goalsAndEnergy`. */
+enum class ShapeKind {
+    Range,
+    Exact,
+    Surplus,
+    ;
+
+    companion object {
+        fun of(shape: GroupShape): ShapeKind = when (shape) {
+            GroupShape.Range -> Range
+            GroupShape.Exact -> Exact
+            is GroupShape.Surplus -> Surplus
+        }
+    }
+}
 
 data class TargetsState(
     /** Calories configured to Show. Otherwise the page is the "Targets work in the background" card. */
     val visible: Boolean = false,
+    /** The style whose card is open: the saved one, or a range when the mode doesn't offer it. */
     val style: StyleKind = StyleKind.Range,
+    /** The goal style list (design sync 4, 13.2e), in order. */
+    val styles: List<StyleRow> = emptyList(),
     /** The low and high end steppers, for [StyleKind.Range]. */
     val range: RangeCard? = null,
-    /** The deficit stepper and what it comes to, for [StyleKind.Deficit]. */
-    val deficit: DeficitCard? = null,
+    /** The one number's stepper, for [StyleKind.Exact]. Its "−" is locked at the floor. */
+    val number: EndStepper? = null,
+    /** The deficit stepper and today's target, for [StyleKind.Deficit]. */
+    val deficit: BurnGoalCard? = null,
+    /** The surplus stepper and today's target, for [StyleKind.Surplus]. */
+    val surplus: BurnGoalCard? = null,
     /** One card per day group, for [StyleKind.ByDay]. */
     val groups: List<DayGroupCard> = emptyList(),
     /** Each weekday's band, in the user's week order, for [StyleKind.ByDay]. */
@@ -46,9 +91,20 @@ data class TargetsState(
      * the row is not shown (`release.health` off, no store connected, or numbers have been hard).
      */
     val exercise: ExerciseAdjustment? = null,
+    /** "Burned comes from" (design sync 4), with `release.goalsAndEnergy`; null without. */
+    val burned: BurnedCard? = null,
 )
 
-/** What a "−" step does: move, show a lock (the floor), or nothing (the ends would touch). */
+/**
+ * One row of the goal style list. [range] is the Range row's own "1,900 to 2,300 kcal"; the
+ * deficit and surplus rows say what they do in words, and the others say nothing.
+ */
+data class StyleRow(val kind: StyleKind, val selected: Boolean, val range: Display? = null)
+
+/**
+ * What a step does: move, show a lock (a limit only a dietitian can move: the floor under a
+ * range, the cap over a deficit), or nothing (the ends would touch, or the deficit is at 0).
+ */
 enum class StepState { Open, Locked, Closed }
 
 /** One end: "1,900", bare, with its two steps. */
@@ -67,18 +123,36 @@ data class RangeCard(
 )
 
 /**
- * The deficit card. [burn] and [goal] are null until a burn is known (0.1 has no source yet),
- * and the card says so instead.
+ * A set deficit or surplus: the amount with its steps, and the target it comes to today,
+ * "Today's target 1,680 · moves with what you burn".
+ *
+ * [up] is [StepState.Locked] at the cap: while `MAX_DEFICIT_KCAL` or `MAX_SURPLUS_KCAL` is unset
+ * that is where the amount started, which is 0 for one picked with no burn known. The lock and
+ * its note say why the step is gone, where a greyed-out "+" looked like a stepper that had
+ * stopped working. [down] is Closed at 0.
+ *
+ * [target] is null for a deficit until Burned is known ("Your range, for now"). A surplus always
+ * has one: over the usual target until Burned is known ([fromAim]).
  */
-data class DeficitCard(
+data class BurnGoalCard(
     /** "300", bare: the big number. */
     val amount: Display,
-    val canLower: Boolean,
-    val canRaise: Boolean,
-    /** "2,172 kcal", the 7-day average. */
-    val burn: Display?,
-    /** "1,870 kcal", inside "About %s". */
-    val goal: Display?,
+    val down: StepState,
+    val up: StepState,
+    val target: Display?,
+    val fromAim: Boolean = false,
+)
+
+/**
+ * "Burned comes from": resting energy as it is now and where it comes from, and the activity
+ * source. [resting] is energy out, so it follows that metric's level; [restingFrom] is null
+ * while no source can say ("Add your details"). [activity] is the health app, null when not
+ * connected or `release.health` is off.
+ */
+data class BurnedCard(
+    val resting: Display,
+    val restingFrom: RestingFrom?,
+    val activity: HealthSource?,
 )
 
 /** How a day group is named: its own rule, never a name the user typed (0.1 has no naming). */
@@ -99,11 +173,19 @@ data class DayGroupCard(
     val index: Int,
     val label: GroupLabel,
     val days: List<DayChip>,
-    /** "2,300 to 2,700 kcal". */
-    val range: Display,
-    /** The steppers, while the card is being edited. */
+    val shape: ShapeKind,
+    /** "2,300 to 2,700 kcal" for a range, "2,500 kcal" for one number, "2,800 kcal" (inside "About %s") for a surplus. */
+    val summary: Display,
+    val editing: Boolean,
+    /** The shapes to pick from while editing, with `release.goalsAndEnergy`; empty otherwise. */
+    val shapes: List<ShapeKind>,
+    /** The end steppers, while a range is being edited. */
     val low: EndStepper?,
     val high: EndStepper?,
+    /** The number's stepper, while one number is being edited. */
+    val number: EndStepper?,
+    /** The surplus stepper ("300"), while a surplus is being edited. */
+    val surplus: EndStepper?,
     val removable: Boolean,
 )
 
@@ -124,44 +206,83 @@ object TargetsStateBuilder {
      * resolve them, but this page is not where a delayed day opens, so Soft and Delay modes get
      * the background card and no amounts at all, not even in state.
      *
-     * [burnKcal] is what the user burns, a 7-day average, when the app knows it (0.1 never
-     * does); [editingGroup] and [editingMacros] are the view model's own UI state.
-     * [healthConnected] is `release.health` on and a store connected: only then does the
-     * Exercise adjustment row show, and never for someone who said numbers have been hard.
+     * [burned] is today's Burned (`BurnedRepository`), null while unknown or without
+     * `release.goalsAndEnergy`; a set deficit or surplus is aimed at its total. [editingGroup]
+     * and [editingMacros] are the view model's own UI state. [healthConnected] is
+     * `release.health` on and a store connected: only then does the Exercise adjustment row
+     * show, and never for someone who said numbers have been hard. [goalsAndEnergy] is
+     * `release.goalsAndEnergy`: one number and a surplus in the list, a day group's shape, and
+     * "Burned comes from"; [healthSource] is the connected store, for its Activity row.
      */
     fun build(
         settings: Settings,
         policy: VisibilityPolicy,
-        burnKcal: Int? = null,
+        burned: Burned? = null,
         editingGroup: Int? = null,
         editingMacros: Boolean = false,
         healthConnected: Boolean = false,
+        goalsAndEnergy: Boolean = false,
+        healthSource: HealthSource? = null,
     ): TargetsState {
         val targets = settings.targets
         if (policy.level(Metric.Calories) != Visibility.Show) {
             return TargetsState(visible = false, macroMode = settings.macroMode)
         }
-        val style = when (targets.style) {
-            TargetStyle.Range -> StyleKind.Range
-            is TargetStyle.Deficit -> StyleKind.Deficit
-            is TargetStyle.ByDay -> StyleKind.ByDay
-        }
-        val byDay = targets.style as? TargetStyle.ByDay
+        val preset = settings.numbers.preset
+        val burnKcal = burned?.totalKcal
+        val offered = offered(StyleKind.of(targets.style), preset, goalsAndEnergy)
+        val style = StyleKind.of(targets.style).takeIf { it in offered } ?: StyleKind.Range
+        val byDay = (targets.style as? TargetStyle.ByDay)?.takeIf { style == StyleKind.ByDay }
+        val groups = GroupInputs(policy, settings.weekStart, editingGroup, burnKcal, goalsAndEnergy, preset)
         return TargetsState(
             visible = true,
             style = style,
+            styles = offered.map { kind ->
+                StyleRow(
+                    kind = kind,
+                    selected = kind == style,
+                    range = if (kind == StyleKind.Range) {
+                        policy.resolveRange(Metric.Calories, targets.minKcal.toDouble(), targets.maxKcal.toDouble(), Surface.Settings)
+                    } else {
+                        null
+                    },
+                )
+            },
             range = if (style == StyleKind.Range) rangeCard(targets, policy) else null,
-            deficit = (targets.style as? TargetStyle.Deficit)?.let { deficitCard(targets, it, policy, burnKcal) },
-            groups = byDay?.let { groupCards(targets, it, policy, settings.weekStart, editingGroup) }.orEmpty(),
-            week = byDay?.let { weekBands(it, settings.weekStart) }.orEmpty(),
+            number = if (style == StyleKind.Exact) numberStepper(targets, policy, targets.energyKcal, group = null) else null,
+            deficit = (targets.style as? TargetStyle.Deficit)?.takeIf { style == StyleKind.Deficit }?.let { deficitCard(targets, it, policy, burnKcal) },
+            surplus = (targets.style as? TargetStyle.Surplus)?.takeIf { style == StyleKind.Surplus }?.let { surplusCard(targets, it, policy, burnKcal) },
+            groups = byDay?.let { groupCards(targets, it, groups) }.orEmpty(),
+            week = byDay?.let { weekBands(targets, it, groups) }.orEmpty(),
             canAddGroup = byDay != null && byDay.groups.size < TargetStyle.MAX_GROUPS,
             editingGroup = editingGroup?.takeIf { byDay != null && it in byDay.groups.indices },
             macroMode = settings.macroMode,
             macros = macros(targets, policy),
             editingMacros = editingMacros,
             exercise = settings.exerciseInRange.takeIf { healthConnected && !settings.onboarding.hard },
+            burned = if (goalsAndEnergy) burnedCard(burned, policy, healthSource) else null,
         )
     }
+
+    /**
+     * The styles the list offers: a set deficit and a set surplus only where the mode offers them
+     * (Full numbers), one number and a surplus with `release.goalsAndEnergy` or when already saved.
+     */
+    fun offered(saved: StyleKind, preset: PresetId, goalsAndEnergy: Boolean): List<StyleKind> = StyleKind.entries.filter {
+        when (it) {
+            StyleKind.Deficit -> TargetStyle.deficitAllowed(preset)
+            StyleKind.Surplus -> TargetStyle.surplusAllowed(preset) && (goalsAndEnergy || it == saved)
+            StyleKind.Exact -> goalsAndEnergy || it == saved
+            StyleKind.Range, StyleKind.ByDay -> true
+        }
+    }
+
+    private fun burnedCard(burned: Burned?, policy: VisibilityPolicy, healthSource: HealthSource?) = BurnedCard(
+        resting = burned?.let { policy.resolve(Metric.EnergyOut, it.resting.kcal.toDouble(), Surface.Settings, FormatContext(bare = true)) }
+            ?: Display.Hidden,
+        restingFrom = burned?.resting?.from,
+        activity = healthSource,
+    )
 
     private fun rangeCard(targets: Targets, policy: VisibilityPolicy): RangeCard {
         val top = (targets.maxKcal + SCALE_HEADROOM).coerceAtLeast(3000).toDouble()
@@ -180,57 +301,94 @@ object TargetsStateBuilder {
         up = targets.stepBlock(end, up = true, group).toStepState(),
     )
 
+    private fun bare(policy: VisibilityPolicy, kcal: Int): Display =
+        policy.resolve(Metric.Calories, kcal.toDouble(), Surface.Settings, FormatContext(bare = true))
+
+    /** One number: "−" locked at the floor, "+" always open. */
+    private fun numberStepper(targets: Targets, policy: VisibilityPolicy, kcal: Int, group: Int?) = EndStepper(
+        value = bare(policy, kcal),
+        down = if (targets.canStepNumber(up = false, group)) StepState.Open else StepState.Locked,
+        up = StepState.Open,
+    )
+
+    /** A surplus: "−" closed at 0, "+" locked at the cap. */
+    private fun surplusStepper(targets: Targets, policy: VisibilityPolicy, kcal: Int, group: Int?) = EndStepper(
+        value = bare(policy, kcal),
+        down = if (targets.stepSurplus(up = false, group) != null) StepState.Open else StepState.Closed,
+        up = if (targets.stepSurplus(up = true, group) != null) StepState.Open else StepState.Locked,
+    )
+
+    private fun surplusCard(targets: Targets, surplus: TargetStyle.Surplus, policy: VisibilityPolicy, burnKcal: Int?): BurnGoalCard {
+        val stepper = surplusStepper(targets, policy, surplus.kcal, group = null)
+        return BurnGoalCard(
+            amount = stepper.value,
+            down = stepper.down,
+            up = stepper.up,
+            target = policy.resolve(Metric.Calories, targets.surplusGoal(targets.energyKcal, burnKcal, surplus.kcal).toDouble(), Surface.Settings),
+            fromAim = burnKcal == null,
+        )
+    }
+
     private fun StepBlock?.toStepState(): StepState = when (this) {
         null -> StepState.Open
         StepBlock.Floor -> StepState.Locked
         StepBlock.Gap -> StepState.Closed
     }
 
-    private fun deficitCard(
-        targets: Targets,
-        deficit: TargetStyle.Deficit,
-        policy: VisibilityPolicy,
-        burnKcal: Int?,
-    ) = DeficitCard(
-        amount = policy.resolve(Metric.Calories, deficit.kcal.toDouble(), Surface.Settings, FormatContext(bare = true)),
-        canLower = targets.stepDeficit(up = false) != null,
-        canRaise = targets.stepDeficit(up = true) != null,
-        // What the user burns is energy out, so it follows that metric's level.
-        burn = burnKcal?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Settings) },
-        goal = burnKcal?.let {
-            policy.resolve(Metric.Calories, targets.deficitGoal(it, deficit.kcal).toDouble(), Surface.Settings)
-        },
+    private fun deficitCard(targets: Targets, deficit: TargetStyle.Deficit, policy: VisibilityPolicy, burnKcal: Int?) = BurnGoalCard(
+        amount = bare(policy, deficit.kcal),
+        down = if (targets.stepDeficit(up = false) != null) StepState.Open else StepState.Closed,
+        up = if (targets.stepDeficit(up = true) != null) StepState.Open else StepState.Locked,
+        target = burnKcal?.let { policy.resolve(Metric.Calories, targets.deficitGoal(it, deficit.kcal).toDouble(), Surface.Settings) },
     )
 
-    private fun groupCards(
-        targets: Targets,
-        byDay: TargetStyle.ByDay,
-        policy: VisibilityPolicy,
-        weekStart: DayOfWeek,
-        editingGroup: Int?,
-    ): List<DayGroupCard> = byDay.groups.mapIndexed { index, group ->
-        val editing = editingGroup == index
-        DayGroupCard(
-            index = index,
-            label = when {
-                index > 0 -> GroupLabel.Numbered(index + 1)
-                byDay.groups.size == 1 -> GroupLabel.EveryDay
-                else -> GroupLabel.OtherDays
-            },
-            days = week(weekStart).map { DayChip(it, inGroup = it in group.days) },
-            range = policy.resolveRange(Metric.Calories, group.minKcal.toDouble(), group.maxKcal.toDouble(), Surface.Settings),
-            low = if (editing) stepper(targets, policy, RangeEnd.Low, group.minKcal, index) else null,
-            high = if (editing) stepper(targets, policy, RangeEnd.High, group.maxKcal, index) else null,
-            removable = editing && index > 0,
-        )
-    }
+    /** What every group card is built with, apart from the group. */
+    private class GroupInputs(
+        val policy: VisibilityPolicy,
+        val weekStart: DayOfWeek,
+        val editingGroup: Int?,
+        val burnKcal: Int?,
+        val goalsAndEnergy: Boolean,
+        val preset: PresetId,
+    )
+
+    private fun groupCards(targets: Targets, byDay: TargetStyle.ByDay, inputs: GroupInputs): List<DayGroupCard> =
+        byDay.groups.mapIndexed { index, group ->
+            val policy = inputs.policy
+            val editing = inputs.editingGroup == index
+            val shape = ShapeKind.of(group.shape)
+            val goal = requireNotNull(targets.groupGoal(index, inputs.preset, inputs.burnKcal))
+            DayGroupCard(
+                index = index,
+                label = when {
+                    index > 0 -> GroupLabel.Numbered(index + 1)
+                    byDay.groups.size == 1 -> GroupLabel.EveryDay
+                    else -> GroupLabel.OtherDays
+                },
+                days = week(inputs.weekStart).map { DayChip(it, inGroup = it in group.days) },
+                shape = shape,
+                summary = policy.resolveRange(Metric.Calories, goal.minKcal.toDouble(), goal.maxKcal.toDouble(), Surface.Settings),
+                editing = editing,
+                shapes = if (editing && inputs.goalsAndEnergy) shapes(inputs.preset) else emptyList(),
+                low = if (editing && shape == ShapeKind.Range) stepper(targets, policy, RangeEnd.Low, group.minKcal, index) else null,
+                high = if (editing && shape == ShapeKind.Range) stepper(targets, policy, RangeEnd.High, group.maxKcal, index) else null,
+                number = if (editing && shape == ShapeKind.Exact) numberStepper(targets, policy, group.midKcal, index) else null,
+                surplus = (group.shape as? GroupShape.Surplus)?.takeIf { editing }?.let { surplusStepper(targets, policy, it.kcal, index) },
+                removable = editing && index > 0,
+            )
+        }
 
     /**
      * Each day's band on one scale, so a lopsided week shows before it is saved. The lowest
-     * group sits at 0 and the highest at 1; with one level, every day sits in the middle.
+     * group's goal sits at 0 and the highest at 1; with one level, every day sits in the middle.
      */
-    private fun weekBands(byDay: TargetStyle.ByDay, weekStart: DayOfWeek): List<WeekBand> {
-        val mids = byDay.groups.map { it.midKcal }
+    /** A surplus per group only where the mode offers one, as the style. */
+    private fun shapes(preset: PresetId): List<ShapeKind> =
+        ShapeKind.entries.filter { it != ShapeKind.Surplus || TargetStyle.surplusAllowed(preset) }
+
+    private fun weekBands(targets: Targets, byDay: TargetStyle.ByDay, inputs: GroupInputs): List<WeekBand> {
+        val weekStart = inputs.weekStart
+        val mids = byDay.groups.indices.map { requireNotNull(targets.groupGoal(it, inputs.preset, inputs.burnKcal)).targetKcal }
         val lowest = mids.min()
         val spread = (mids.max() - lowest).takeIf { it > 0 }
         return week(weekStart).map { day ->

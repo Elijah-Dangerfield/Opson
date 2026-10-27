@@ -37,9 +37,14 @@ import opson.libraries.resources.generated.resources.today_checkin_sleep_good
 import opson.libraries.resources.generated.resources.today_checkin_sleep_ok
 import opson.libraries.resources.generated.resources.today_checkin_sleep_poor
 import opson.libraries.resources.generated.resources.today_checkin_title
+import opson.libraries.resources.generated.resources.today_dayclose_above_goal
+import opson.libraries.resources.generated.resources.today_dayclose_above_goal_other_day
+import opson.libraries.resources.generated.resources.today_dayclose_below_goal
+import opson.libraries.resources.generated.resources.today_dayclose_inside_goal
 import opson.libraries.resources.generated.resources.today_dayclose_loading_cd
 import opson.libraries.resources.generated.resources.today_dayclose_expended
 import opson.libraries.resources.generated.resources.today_dayclose_support
+import opson.libraries.resources.generated.resources.today_dayclose_tomorrow_goal
 import opson.libraries.resources.generated.resources.today_dayclose_why_not
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -274,7 +279,9 @@ fun DayCloseScreen(
                     BigDayHeroCard(
                         body = stringResource(Res.string.today_dayclose_big_day),
                         tomorrow = bigDay.tomorrow,
-                        tomorrowPhrase = { stringResource(Res.string.today_dayclose_tomorrow, it) },
+                        tomorrowPhrase = {
+                            stringResource(if (bigDay.singleGoal) Res.string.today_dayclose_tomorrow_goal else Res.string.today_dayclose_tomorrow, it)
+                        },
                         commitLabels = if (bigDay.commitment == Commitment.Offered) {
                             listOf(stringResource(Res.string.today_dayclose_commit_normal), stringResource(Res.string.today_dayclose_commit_can))
                         } else {
@@ -468,10 +475,21 @@ private fun Totals(totals: DayTotals, isToday: Boolean) {
         unitLabel = stringResource(Res.string.today_dayclose_kcal),
         rangeLine = {
             when (val line = totals.rangeLine) {
-                is RangeLine.Inside -> RangeSentence(line.range) { stringResource(Res.string.today_dayclose_inside, it) }
-                is RangeLine.Below -> RangeSentence(line.range) { stringResource(Res.string.today_dayclose_below, it) }
+                is RangeLine.Inside -> RangeSentence(line.range) {
+                    stringResource(if (totals.singleGoal) Res.string.today_dayclose_inside_goal else Res.string.today_dayclose_inside, it)
+                }
+                is RangeLine.Below -> RangeSentence(line.range) {
+                    stringResource(if (totals.singleGoal) Res.string.today_dayclose_below_goal else Res.string.today_dayclose_below, it)
+                }
                 RangeLine.Above -> Text(
-                    text = stringResource(if (isToday) Res.string.today_dayclose_above else Res.string.today_dayclose_above_other_day),
+                    text = stringResource(
+                        when {
+                            totals.singleGoal && isToday -> Res.string.today_dayclose_above_goal
+                            totals.singleGoal -> Res.string.today_dayclose_above_goal_other_day
+                            isToday -> Res.string.today_dayclose_above
+                            else -> Res.string.today_dayclose_above_other_day
+                        },
+                    ),
                     typography = AppTheme.type.body,
                     color = AppTheme.colors.ink,
                 )

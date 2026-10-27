@@ -73,6 +73,7 @@ class TodayViewModelTest : CoroutineTest() {
         healthOn: Boolean = false,
         summaryOn: Boolean = false,
         selectOn: Boolean = false,
+        foodActionsOn: Boolean = false,
         healthRepository: HealthRepository = health,
     ) = TodayViewModel(
         diary = diary,
@@ -91,6 +92,7 @@ class TodayViewModelTest : CoroutineTest() {
         weights = weights,
         summaryEnabled = summaryFlag(summaryOn),
         selectEnabled = selectFlag(selectOn),
+        foodActionsEnabled = foodActionsFlag(foodActionsOn),
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -204,14 +206,13 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun theDayLabelAndCalendarOpenTheCalendar() = runUnitTest {
+    fun theDaysTitleOpensTheCalendar() = runUnitTest {
         val vm = vm()
         val events = events(vm)
 
         vm.takeAction(TodayAction.DayLabelTapped)
-        vm.takeAction(TodayAction.CalendarTapped)
 
-        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCalendar(today), TodayEvent.OpenCalendar(today)), events)
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCalendar(today)), events)
     }
 
     @Test
@@ -600,7 +601,7 @@ class TodayViewModelTest : CoroutineTest() {
         assertEquals(listOf(TodayEvent.OpenTodayCards, TodayEvent.OpenWeight), events)
     }
 
-    // Design sync 2: select foods and swipe to delete (release.todaySelect)
+    // Select foods, drag them, swipe to delete (release.todaySelect), and a food's ⋮ (release.foodActions)
 
     private val oats = "oats-$today"
     private val banana = "banana-$today"
@@ -661,44 +662,9 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun saveAsMeal_opensCreateAMealWithThePicksAndStopsSelecting() = runUnitTest {
+    fun moveFromTheBottomBar_movesThePicks_keepsTheirTimes_andOffersUndo() = runUnitTest {
         val vm = vm(selectOn = true)
         val events = events(vm)
-        vm.takeAction(TodayAction.FoodLongPressed(oats))
-        vm.takeAction(TodayAction.FoodToggled(banana))
-
-        vm.takeAction(TodayAction.SaveAsMealTapped)
-
-        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCreateMeal(today, listOf(oats, banana), MealSlot.Breakfast)), events)
-        assertNull(vm.state.selection)
-    }
-
-    @Test
-    fun saveAsMeal_fromTwoMealsNamesNoMeal() = runUnitTest {
-        val vm = vm(selectOn = true)
-        val events = events(vm)
-        vm.takeAction(TodayAction.FoodLongPressed(oats))
-        vm.takeAction(TodayAction.FoodToggled(adobo))
-
-        vm.takeAction(TodayAction.SaveAsMealTapped)
-
-        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCreateMeal(today, listOf(oats, adobo), slot = null)), events)
-    }
-
-    @Test
-    fun selectFlagOff_saveAsMealOpensNothing() = runUnitTest {
-        val vm = vm(selectOn = false)
-        val events = events(vm)
-
-        vm.takeAction(TodayAction.FoodLongPressed(oats))
-        vm.takeAction(TodayAction.SaveAsMealTapped)
-
-        assertTrue(events.isEmpty())
-    }
-
-    @Test
-    fun moveToAMeal_movesThePicks() = runUnitTest {
-        val vm = vm(selectOn = true)
         vm.takeAction(TodayAction.FoodLongPressed(adobo))
 
         vm.takeAction(TodayAction.MoveTapped)
@@ -708,7 +674,103 @@ class TodayViewModelTest : CoroutineTest() {
         vm.takeAction(TodayAction.MoveSlotPicked(MealSlot.Dinner))
         vm.takeAction(TodayAction.MoveConfirmed)
         assertEquals(listOf(listOf(adobo) to MealSlot.Dinner), diary.moved)
+        assertTrue(diary.updated.isEmpty(), "a move never rewrites the entry, so its time stays")
         assertNull(vm.state.selection)
+        assertEquals(MovedNotice(1, "Chicken adobo", MealSlot.Dinner), vm.state.moved)
+        assertTrue(events.isEmpty(), "the Undo bar says it, not a toast")
+    }
+
+    @Test
+    fun aDrop_movesEveryPick_andUndoPutsEachBackInItsOwnMeal() = runUnitTest {
+        val vm = vm(selectOn = true)
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+        vm.takeAction(TodayAction.FoodToggled(adobo))
+
+        vm.takeAction(TodayAction.FoodsDropped(MealSlot.Dinner))
+        assertEquals(listOf(listOf(oats, adobo) to MealSlot.Dinner), diary.moved)
+        assertEquals(MovedNotice(2, null, MealSlot.Dinner), vm.state.moved)
+        assertNull(vm.state.selection)
+
+        vm.takeAction(TodayAction.MovedUndoTapped)
+        assertEquals(
+            listOf(listOf(oats, adobo) to MealSlot.Dinner, listOf(oats) to MealSlot.Breakfast, listOf(adobo) to MealSlot.Lunch),
+            diary.moved,
+        )
+        assertNull(vm.state.moved)
+    }
+
+    @Test
+    fun aDrop_leavesFoodsAlreadyInThatMeal_andOnTheirOwnMealMovesNothing() = runUnitTest {
+        val vm = vm(selectOn = true)
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+        vm.takeAction(TodayAction.FoodToggled(banana))
+
+        vm.takeAction(TodayAction.FoodsDropped(MealSlot.Breakfast))
+        assertTrue(diary.moved.isEmpty())
+        assertEquals(setOf(oats, banana), vm.state.selection?.ids, "still selecting")
+
+        vm.takeAction(TodayAction.FoodToggled(adobo))
+        vm.takeAction(TodayAction.FoodsDropped(MealSlot.Lunch))
+        assertEquals(listOf(listOf(oats, banana) to MealSlot.Lunch), diary.moved, "the adobo is already at lunch")
+    }
+
+    @Test
+    fun theMovesUndo_closesAfterSixSeconds() = runUnitTest {
+        val vm = vm(selectOn = true)
+        vm.takeAction(TodayAction.FoodLongPressed(adobo))
+        vm.takeAction(TodayAction.FoodsDropped(MealSlot.Snack))
+
+        advanceTimeBy(LoggedToMeal.UNDO_WINDOW.inWholeMilliseconds + 1)
+        runCurrent()
+        assertNull(vm.state.moved)
+        assertEquals(1, diary.moved.size, "nothing moved back")
+    }
+
+    @Test
+    fun grabbingAnUnpickedRowsHandle_picksIt() = runUnitTest {
+        val vm = vm(selectOn = true)
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+
+        vm.takeAction(TodayAction.DragStarted(adobo))
+        assertEquals(setOf(oats, adobo), vm.state.selection?.ids)
+
+        vm.takeAction(TodayAction.DragStarted(oats))
+        assertEquals(setOf(oats, adobo), vm.state.selection?.ids, "a picked row stays picked")
+    }
+
+    @Test
+    fun aRowsMoveAction_picksItAndOpensMove() = runUnitTest {
+        val vm = vm(selectOn = true)
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+
+        vm.takeAction(TodayAction.MoveRowRequested(adobo))
+
+        assertEquals(setOf(oats, adobo), vm.state.selection?.ids)
+        assertEquals(SelectStep.MoveTo(), vm.state.selection?.step)
+    }
+
+    @Test
+    fun selectFlagOff_aDropMovesNothing() = runUnitTest {
+        val vm = vm(selectOn = false)
+
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+        vm.takeAction(TodayAction.FoodsDropped(MealSlot.Dinner))
+
+        assertTrue(diary.moved.isEmpty())
+        assertNull(vm.state.moved)
+    }
+
+    @Test
+    fun aFoodsMenu_opensItsActions_onlyWithTheFoodActionsFlag() = runUnitTest {
+        val off = vm()
+        val offEvents = events(off)
+        off.takeAction(TodayAction.ItemMenuTapped(banana))
+        assertTrue(offEvents.isEmpty())
+
+        val on = vm(foodActionsOn = true)
+        val onEvents = events(on)
+        on.takeAction(TodayAction.ItemMenuTapped(banana))
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenItemSheet(today, banana)), onEvents)
     }
 
     @Test

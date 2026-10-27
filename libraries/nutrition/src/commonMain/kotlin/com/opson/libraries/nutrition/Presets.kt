@@ -60,11 +60,15 @@ object Presets {
     // Water stays a bar of glasses with no amount in every mode but Full numbers.
     private fun gentle(vis: Map<Metric, Visibility>) = vis + (Metric.Water to Visibility.Soften)
 
-    /** Every number, vitamins and minerals opt-in. */
+    /**
+     * Every number, vitamins and minerals included. The prototype's `FULL_VIS` hid micros as an
+     * opt-in; Full promises every number, and that opt-in left a Full user with vitamin and
+     * mineral data on nearly every food and no sign of it anywhere (2026-10-27, `docs/decisions.md`).
+     */
     val Full = ModePreset(
         id = PresetId.Full,
         today = TodayLayout.Full,
-        vis = fill(Visibility.Show) + (Metric.Micros to Visibility.Hide),
+        vis = fill(Visibility.Show),
         fastingAllowed = true,
     )
 

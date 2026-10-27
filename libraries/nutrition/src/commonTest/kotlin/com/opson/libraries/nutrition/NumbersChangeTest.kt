@@ -120,7 +120,7 @@ class NumbersChangeTest {
     @Test
     fun needsPause_raiseWithPauseOn() {
         assertTrue(NumbersChange.PickPreset(PresetId.Full).needsPause(blindPaused))
-        assertTrue(NumbersChange.Override(Metric.Micros, Visibility.Show).needsPause(fullPaused))
+        assertTrue(NumbersChange.Override(Metric.Micros, Visibility.Show).needsPause(blindPaused))
         assertTrue(NumbersChange.Override(Metric.Calories, Visibility.Soften).needsPause(blindPaused))
     }
 

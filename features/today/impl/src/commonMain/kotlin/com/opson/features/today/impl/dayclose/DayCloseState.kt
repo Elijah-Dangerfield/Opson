@@ -15,6 +15,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.GoalPosition
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
@@ -66,17 +67,21 @@ data class DayCloseState(
 data class FeelingChoice(val options: List<DayFeeling>, val picked: DayFeeling?)
 
 /** [macros] are left out on a big day, where the reset card is the message. */
-data class DayTotals(val eaten: Display, val rangeLine: RangeLine, val macros: List<MacroTile>)
+/** [singleGoal]: the day's goal is one number, so the sentence says "goal" rather than "range". */
+data class DayTotals(val eaten: Display, val rangeLine: RangeLine, val macros: List<MacroTile>, val singleGoal: Boolean = false)
 
-/** How the day sat against the range, as a sentence; only built when calories are fully shown. */
+/**
+ * How the day sat against the range, as a sentence; only built when calories are fully shown.
+ * Against one number, [Inside] is close to it (`EnergyRange.position`).
+ */
 sealed interface RangeLine {
     data class Inside(val range: Display) : RangeLine
     data class Below(val range: Display) : RangeLine
     data object Above : RangeLine
 }
 
-/** Tomorrow's range, unchanged by today. */
-data class BigDayCard(val tomorrow: Display, val commitment: Commitment)
+/** Tomorrow's range, unchanged by today. [singleGoal]: tomorrow's goal is one number. */
+data class BigDayCard(val tomorrow: Display, val commitment: Commitment, val singleGoal: Boolean = false)
 
 /** The two buttons that save nothing, on purpose (`PROTOTYPE_NOTES.md`). */
 enum class Commitment { Hidden, Offered, Committed }
@@ -148,17 +153,19 @@ object DayCloseStateBuilder {
         val bare = day.formatContext(today, bare = true)
         val eatenDisplay = policy.resolve(Metric.Calories, eaten, Surface.DayClose, day.formatContext(today, of = range.targetKcal.toDouble(), bare = true))
         val shown = eatenDisplay is Display.Shown
-        val big = shown && eaten > range.maxKcal && settings.bigDayEvent != EventLevel.Off
+        val position = range.position(eaten)
+        val big = shown && position == GoalPosition.Above && settings.bigDayEvent != EventLevel.Off
         val rangeDisplay = policy.resolveRange(Metric.Calories, range.minKcal.toDouble(), range.maxKcal.toDouble(), Surface.DayClose, bare)
         val dayTotals = if (shown) {
             DayTotals(
                 eaten = eatenDisplay,
-                rangeLine = when {
-                    eaten > range.maxKcal -> RangeLine.Above
-                    eaten >= range.minKcal -> RangeLine.Inside(rangeDisplay)
-                    else -> RangeLine.Below(rangeDisplay)
+                rangeLine = when (position) {
+                    GoalPosition.Above -> RangeLine.Above
+                    GoalPosition.On -> RangeLine.Inside(rangeDisplay)
+                    GoalPosition.Below -> RangeLine.Below(rangeDisplay)
                 },
                 macros = if (big) emptyList() else macros(day, today, policy),
+                singleGoal = range.single,
             )
         } else {
             null
@@ -187,6 +194,7 @@ object DayCloseStateBuilder {
                         committed -> Commitment.Committed
                         else -> Commitment.Offered
                     },
+                    singleGoal = tomorrow.minKcal == tomorrow.maxKcal,
                 )
             } else {
                 null

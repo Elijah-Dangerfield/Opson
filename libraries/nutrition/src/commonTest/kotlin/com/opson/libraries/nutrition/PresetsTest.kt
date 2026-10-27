@@ -11,7 +11,8 @@ import kotlin.test.assertTrue
 
 /**
  * The four presets of design sync 4 (13.5a), metric for metric, and the flags screens read
- * (layout, meal count, fasting, photos, meal gaps).
+ * (layout, meal count, fasting, photos, meal gaps). Full numbers shows micros, where the
+ * prototype made them opt-in (`docs/decisions.md`, 2026-10-27).
  *
  * Not covered here: how a level renders, which is [VisibilityPolicyResolveTest] and
  * [VisibilityPolicyRevealTest]; old presets, which is [LegacyPresetTest].
@@ -23,8 +24,8 @@ class PresetsTest {
     // Order: calories, remaining, energyOut, protein, carbs, fat, fiber, micros, weight, water.
 
     @Test
-    fun full_showsEverythingButMicros() {
-        assertEquals(listOf(Show, Show, Show, Show, Show, Show, Show, Hide, Show, Show), levels(Presets.Full))
+    fun full_showsEverything_microsIncluded() {
+        assertEquals(listOf(Show, Show, Show, Show, Show, Show, Show, Show, Show, Show), levels(Presets.Full))
     }
 
     @Test

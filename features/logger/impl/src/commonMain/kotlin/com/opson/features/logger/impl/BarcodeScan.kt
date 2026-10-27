@@ -23,7 +23,11 @@ data class BarcodeScanRoute(val dayIso: String, val slot: MealSlot) : Route()
 data class BarcodeScanState(
     val slot: MealSlot = MealSlot.Dinner,
     val stage: ScanStage = ScanStage.Starting,
+    val torch: Torch = Torch.None,
 )
+
+/** The light for a dim kitchen. [None] when there is no live camera, or it has no torch: no button then. */
+enum class Torch { None, Off, On }
 
 sealed interface ScanStage {
     /** The permission is being read, or the system prompt is up. */
@@ -78,6 +82,10 @@ sealed interface BarcodeScanAction {
 
     /** The camera reported it cannot run. */
     data object CameraUnavailable : BarcodeScanAction
+
+    /** The camera is up, and says whether it has a torch. */
+    data class CameraStarted(val hasTorch: Boolean) : BarcodeScanAction
+    data object TorchTapped : BarcodeScanAction
     data object RetryCameraTapped : BarcodeScanAction
     data object TypeCodeTapped : BarcodeScanAction
     data class CodeTyped(val text: String) : BarcodeScanAction
@@ -88,6 +96,9 @@ sealed interface BarcodeScanAction {
 sealed interface BarcodeScanEvent {
     /** Show the system camera prompt; the answer comes back as [BarcodeScanAction.PermissionAnswered]. */
     data object RequestPermission : BarcodeScanEvent
+
+    /** The camera's read was taken and is being looked up: say so with a haptic, once per scan. */
+    data object Scanned : BarcodeScanEvent
 
     /** A hit: this screen gives way to the amount sheet for [foodId], over the logger. */
     data class OpenAmount(val foodId: String, val day: LocalDate, val slot: MealSlot) : BarcodeScanEvent
@@ -113,6 +124,9 @@ data class ScanModel(
     val typed: String? = null,
     val typedMisread: Boolean = false,
     val cameraUnavailable: Boolean = false,
+    val hasTorch: Boolean = false,
+    /** Kept through a lookup and "Scan again", so a dim kitchen stays lit until it is turned off. */
+    val torchOn: Boolean = false,
 )
 
 /** The scanner's state as a pure function of [ScanModel], like the logger's [LoggerStateBuilder]. */
@@ -141,6 +155,16 @@ object BarcodeScanStateBuilder {
                 }
             }
         }
-        return BarcodeScanState(slot = slot, stage = stage)
+        return BarcodeScanState(slot = slot, stage = stage, torch = torch(stage, model))
+    }
+
+    /** Offered wherever the live camera shows, which includes under a lookup's scrim. */
+    private fun torch(stage: ScanStage, model: ScanModel): Torch {
+        val cameraShowing = stage == ScanStage.Scanning || (stage is ScanStage.LookingUp && stage.camera)
+        return when {
+            !cameraShowing || !model.hasTorch -> Torch.None
+            model.torchOn -> Torch.On
+            else -> Torch.Off
+        }
     }
 }

@@ -15,7 +15,6 @@ import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
-import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.HealthReleaseFlag
@@ -43,8 +42,6 @@ import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_toast_copied_foods_one
 import opson.libraries.resources.generated.resources.today_toast_copied_foods_other
-import opson.libraries.resources.generated.resources.today_toast_moved_foods_one
-import opson.libraries.resources.generated.resources.today_toast_moved_foods_other
 import opson.libraries.resources.generated.resources.today_toast_cleared
 import opson.libraries.resources.generated.resources.today_toast_copied_previous
 import opson.libraries.resources.generated.resources.today_toast_copied_tomorrow
@@ -83,6 +80,7 @@ class TodayViewModel(
     private val weights: WeightRepository,
     private val summaryEnabled: TodaySummaryEnabled,
     private val selectEnabled: TodaySelectEnabled,
+    private val foodActionsEnabled: TodayFoodActionsEnabled,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value, dayLabel = RelativeDay.of(selectedDay.date.value, calendar.today())),
 ) {
@@ -90,7 +88,9 @@ class TodayViewModel(
     private var highlightJob: Job? = null
     private var undoJob: Job? = null
     private var removedJob: Job? = null
+    private var movedJob: Job? = null
     private var removals = 0L
+    private var moves = 0L
 
     private data class Model(
         val policy: VisibilityPolicy,
@@ -109,10 +109,15 @@ class TodayViewModel(
         val swipe: SwipeState = SwipeState(),
         /** What the last removal took, while its Undo is open. */
         val removed: Removal? = null,
+        /** What the last move took and from where, while its Undo is open. */
+        val moved: Move? = null,
     )
 
     /** The ids a removal took, what the bar says about them, and which removal it was. */
     private data class Removal(val ids: List<String>, val notice: RemovedNotice, val token: Long)
+
+    /** Each moved food's meal before the move, what the bar says, and which move it was. */
+    private data class Move(val from: Map<String, MealSlot>, val notice: MovedNotice, val token: Long)
 
     init {
         viewModelScope.launch {
@@ -142,7 +147,7 @@ class TodayViewModel(
                 selectedDay.select(day().minus(DatePeriod(days = 1)))
             }
             TodayAction.NextDayTapped -> if (canGoForward()) selectedDay.select(day().plus(DatePeriod(days = 1)))
-            TodayAction.DayLabelTapped, TodayAction.CalendarTapped -> sendEvent(TodayEvent.OpenCalendar(day()))
+            TodayAction.DayLabelTapped -> sendEvent(TodayEvent.OpenCalendar(day()))
             TodayAction.NutrientsTapped -> sendEvent(TodayEvent.OpenNutrients(day()))
             TodayAction.CloseDayCardTapped -> if (!isFuture()) sendEvent(TodayEvent.OpenDayClose(day()))
             is TodayAction.MealTileTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
@@ -153,6 +158,7 @@ class TodayViewModel(
             } else {
                 sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
             }
+            is TodayAction.ItemMenuTapped -> if (state.foodMenus) sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
             TodayAction.WaterPlusTapped -> sendEvent(TodayEvent.OpenWaterSheet(day()))
             TodayAction.HighlightFaded -> action.rebuild { copy(highlight = null) }
             is TodayAction.LoggedArrived -> loggedArrived(action)
@@ -202,7 +208,7 @@ class TodayViewModel(
         }
     }
 
-    /** Select foods, swipe to delete and Undo after a removal (`release.todaySelect`). */
+    /** Select foods, drag or move them, swipe to delete, and Undo after a removal or a move (`release.todaySelect`). */
     @Suppress("CyclomaticComplexMethod", "LongMethod")
     private suspend fun selectAction(action: TodayAction) {
         if (!state.selectTools) return
@@ -218,14 +224,20 @@ class TodayViewModel(
             }
             TodayAction.SelectAllTapped -> action.rebuild { copy(selected = inputs?.day?.allItems.orEmpty().mapTo(LinkedHashSet()) { it.id }) }
             TodayAction.SelectionClosed -> action.rebuild { copy(selected = null, step = SelectStep.Actions) }
-            TodayAction.SaveAsMealTapped -> saveSelectedAsMeal(action)
+            is TodayAction.DragStarted -> if (model.selected?.contains(action.entryId) == false) {
+                action.rebuild { copy(selected = selected.orEmpty() + action.entryId, step = SelectStep.Actions) }
+            }
+            is TodayAction.FoodsDropped -> move(action, action.slot)
+            is TodayAction.MoveRowRequested -> if (model.selected != null) {
+                action.rebuild { copy(selected = selected.orEmpty() + action.entryId, step = SelectStep.MoveTo()) }
+            }
             TodayAction.CopyToTapped -> action.rebuild { copy(step = SelectStep.CopyTo(slot = firstSelectedSlot())) }
             is TodayAction.CopyDayPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(day = action.day) ?: step) }
             is TodayAction.CopySlotPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(slot = action.slot) ?: step) }
             TodayAction.CopyConfirmed -> copySelected(action)
             TodayAction.MoveTapped -> action.rebuild { copy(step = SelectStep.MoveTo()) }
             is TodayAction.MoveSlotPicked -> action.rebuild { copy(step = SelectStep.MoveTo(action.slot)) }
-            TodayAction.MoveConfirmed -> moveSelected(action)
+            TodayAction.MoveConfirmed -> (model.step as? SelectStep.MoveTo)?.slot?.let { move(action, it) }
             TodayAction.RemoveSelectedTapped -> action.rebuild { copy(step = SelectStep.ConfirmRemove) }
             TodayAction.RemoveSelectedConfirmed -> {
                 val ids = state.selection?.ids.orEmpty().toList()
@@ -250,7 +262,38 @@ class TodayViewModel(
                 editor.restoreItems(removal.ids)
             }
             is TodayAction.RemovedUndoExpired -> if (model.removed?.token == action.token) action.rebuild { copy(removed = null) }
+            TodayAction.MovedUndoTapped -> model.moved?.let { moved ->
+                movedJob?.cancel()
+                action.rebuild { copy(moved = null) }
+                // Each food goes back to the meal it came from, however many meals that was.
+                moved.from.entries.groupBy({ it.value }, { it.key }).forEach { (slot, ids) -> editor.moveItems(ids, slot) }
+            }
+            is TodayAction.MovedUndoExpired -> if (model.moved?.token == action.token) action.rebuild { copy(moved = null) }
             else -> Unit
+        }
+    }
+
+    /**
+     * Moves the picked foods into [slot], keeping their times, and stops selecting: a drop, or
+     * Move on the bottom bar, which is the same move without dragging. A food already in [slot]
+     * stays put; when that is all of them nothing moves and selecting goes on. Undo stays open for
+     * six seconds and puts each food back in its own meal.
+     */
+    private suspend fun move(action: TodayAction, slot: MealSlot) {
+        val picked = state.selection?.ids.orEmpty()
+        val items = model.inputs?.day?.allItems.orEmpty().filter { it.id in picked && it.slot != slot }
+        if (items.isEmpty()) return
+        val ids = items.map { it.id }
+        val token = ++moves
+        editor.moveItems(ids, slot)
+        val notice = MovedNotice(ids.size, items.singleOrNull()?.name, slot)
+        action.rebuild {
+            copy(selected = null, step = SelectStep.Actions, moved = Move(items.associate { it.id to it.slot }, notice, token))
+        }
+        movedJob?.cancel()
+        movedJob = viewModelScope.launch {
+            delay(LoggedToMeal.UNDO_WINDOW)
+            takeAction(TodayAction.MovedUndoExpired(token))
         }
     }
 
@@ -272,20 +315,6 @@ class TodayViewModel(
         }
     }
 
-    /** Create a meal from the picks. Selecting ends here, as after Copy and Move. */
-    private suspend fun saveSelectedAsMeal(action: TodayAction) {
-        val ids = state.selection?.ids.orEmpty()
-        if (ids.isEmpty()) return
-        val slot = model.inputs?.day?.allItems.orEmpty()
-            .filter { it.id in ids }
-            .map { it.slot }
-            .distinct()
-            .singleOrNull()
-            ?.takeIf { it.isMeal }
-        action.rebuild { copy(selected = null, step = SelectStep.Actions) }
-        sendEvent(TodayEvent.OpenCreateMeal(day(), ids.toList(), slot))
-    }
-
     private suspend fun copySelected(action: TodayAction) {
         val step = model.step as? SelectStep.CopyTo ?: return
         val slot = step.slot ?: return
@@ -299,22 +328,6 @@ class TodayViewModel(
                     Toast(Res.string.today_toast_copied_foods_one)
                 } else {
                     Toast(Res.string.today_toast_copied_foods_other, listOf(copied.size))
-                },
-            ),
-        )
-    }
-
-    private suspend fun moveSelected(action: TodayAction) {
-        val slot = (model.step as? SelectStep.MoveTo)?.slot ?: return
-        val ids = state.selection?.ids.orEmpty().toList()
-        editor.moveItems(ids, slot)
-        action.rebuild { copy(selected = null, step = SelectStep.Actions) }
-        sendEvent(
-            TodayEvent.ShowToast(
-                if (ids.size == 1) {
-                    Toast(Res.string.today_toast_moved_foods_one, listOf(slot.sentenceName))
-                } else {
-                    Toast(Res.string.today_toast_moved_foods_other, listOf(ids.size, slot.sentenceName))
                 },
             ),
         )
@@ -419,6 +432,7 @@ class TodayViewModel(
                     step = current.step,
                     swipe = current.swipe,
                     removed = current.removed?.notice,
+                    moved = current.moved?.notice,
                 ),
             ).copy(fasting = current.fasting)
         }
@@ -445,6 +459,7 @@ class TodayViewModel(
                 expended = expended,
                 summaryOn = summaryEnabled(),
                 selectOn = selectEnabled(),
+                foodActionsOn = foodActionsEnabled(),
                 weighIns = weighIns,
             )
         }

@@ -89,12 +89,13 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
     val moved = mutableListOf<Pair<List<String>, MealSlot>>()
     val copiedItems = mutableListOf<Triple<List<String>, LocalDate, MealSlot>>()
     val checkIns = mutableListOf<Pair<LocalDate, CheckIn?>>()
+    val updated = mutableListOf<LogItem>()
 
     /** Every write, in order, for tests that assert nothing was written. */
     val writes: Int
         get() = water.size + removedWater.size + copiedDays.size + copiedSlots.size + cleared.size + ateNoDetails.size +
             feelings.size + notes.size + closed.size + removed.size + untracked.size + dayFeelings.size +
-            restored.size + moved.size + copiedItems.size + checkIns.size
+            restored.size + moved.size + copiedItems.size + checkIns.size + updated.size
 
     override fun observeDay(date: LocalDate): Flow<Day> = days.map { it[date] ?: Day.empty(date) }
 
@@ -105,7 +106,9 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
 
     override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> = emptyList()
 
-    override suspend fun updateItem(item: LogItem) = Unit
+    override suspend fun updateItem(item: LogItem) {
+        updated += item
+    }
 
     override suspend fun removeItem(id: String) {
         removed += id
@@ -218,6 +221,8 @@ fun summaryFlag(on: Boolean): TodaySummaryEnabled = TodaySummaryEnabled(release(
 fun selectFlag(on: Boolean): TodaySelectEnabled = TodaySelectEnabled(release("todaySelect", on))
 
 fun checkInFlag(on: Boolean): CheckInEnabled = CheckInEnabled(release("checkIn", on))
+
+fun foodActionsFlag(on: Boolean): TodayFoodActionsEnabled = TodayFoodActionsEnabled(release("foodActions", on))
 
 class FakeSettingsRepository(initial: Settings = Settings()) : SettingsRepository {
     val state = MutableStateFlow(initial)

@@ -21,6 +21,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -41,6 +42,23 @@ class FoodCatalogImplTest : CoroutineTest() {
     private val catalog = FoodCatalogImpl(api, cache, clock)
 
     @Test
+    fun describeCarriesTheMatchedFoodAndItsAlternatives() = runUnitTest {
+        val item = DescribedItemDto(
+            text = "some rice", name = "rice", foodId = "rice", quantity = 1.0, amountText = "1 cup",
+            portionLabel = "1 cup", grams = 158.0, kcal = 205.0, confidence = "high",
+            food = rice, alternatives = listOf(yogurt),
+        )
+        api.describeResult = Result.success(DescribeResponse(listOf(item, item.copy(food = null, alternatives = emptyList()))))
+
+        val (matched, fromAnOlderServer) = catalog.describe("some rice").getOrThrow()
+
+        assertEquals(rice.toDomain(), matched.food)
+        assertEquals(listOf("yogurt"), matched.alternatives.map { it.id })
+        assertNull(fromAnOlderServer.food)
+        assertTrue(fromAnOlderServer.alternatives.isEmpty())
+    }
+
+    @Test
     fun searchResultsComeFromTheServerWhenItAnswers() = runUnitTest {
         api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
 
@@ -49,6 +67,43 @@ class FoodCatalogImplTest : CoroutineTest() {
         assertFalse(result.fromCache)
         assertEquals(listOf("rice"), result.foods.map { it.id })
         assertTrue(cache.rows.value.isEmpty(), "browsing results is not picking them")
+    }
+
+    @Test
+    fun aSearchAnsweredAMomentAgoIsAnsweredFromMemory() = runUnitTest {
+        api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
+        assertNull(catalog.recentSearch("rice"), "nothing asked yet")
+
+        catalog.search("rice")
+        val again = catalog.search("  RICE ").getOrThrow()
+
+        assertEquals(1, api.filters.size, "one round trip for the same normalized query")
+        assertEquals(listOf("rice"), again.foods.map { it.id })
+        assertFalse(again.fromCache, "a server answer, not the offline fallback")
+        assertEquals(again, catalog.recentSearch("Rice"))
+        assertNull(catalog.recentSearch("rice", filter = FoodSearchFilter(order = SearchOrder.Name)), "a filter is another question")
+    }
+
+    @Test
+    fun aRememberedSearchIsAskedAgainAfterFiveMinutes() = runUnitTest {
+        api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
+        catalog.search("rice")
+
+        clock.now += 5.minutes
+        assertNull(catalog.recentSearch("rice"))
+        catalog.search("rice")
+        assertEquals(2, api.filters.size)
+    }
+
+    @Test
+    fun aFailedOrOfflineSearchIsNotRemembered() = runUnitTest {
+        catalog.markUsed(rice.toDomain())
+        api.searchResult = Result.failure(IllegalStateException("offline"))
+        assertTrue(catalog.search("rice").getOrThrow().fromCache)
+        assertNull(catalog.recentSearch("rice"))
+
+        api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
+        assertFalse(catalog.search("rice").getOrThrow().fromCache, "back online, the server is asked")
     }
 
     @Test
@@ -221,7 +276,9 @@ private class FakeFoodApi : FoodApi {
 
     override suspend fun barcode(code: String) = barcodeResult
 
-    override suspend fun describe(text: String) = Result.success(DescribeResponse(emptyList()))
+    var describeResult: Result<DescribeResponse> = Result.success(DescribeResponse(emptyList()))
+
+    override suspend fun describe(text: String) = describeResult
 }
 
 private class FakeFoodCacheDao : FoodCacheDao {

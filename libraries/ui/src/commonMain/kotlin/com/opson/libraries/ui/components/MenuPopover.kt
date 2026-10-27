@@ -1,5 +1,13 @@
 package com.opson.libraries.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -9,11 +17,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
@@ -124,6 +140,11 @@ fun MenuGroupDivider(modifier: Modifier = Modifier) {
  * Shows a [MenuPopover] below and end-aligned to the composable that hosts it, so place this
  * inside the same `Box` as the button that opens it. Dismisses on an outside tap or back.
  * [alignment] `TopStart` hangs it from the start instead (the logger's meal dropdown).
+ *
+ * It grows out of the corner it hangs from and shrinks back into it the same way, however it
+ * closes: an outside tap, back, or a row that sets [expanded] false. The popup stays composed
+ * until that exit has played, so [content] must still draw once [expanded] is false; a menu whose
+ * rows come from nullable state wants the other overload.
  */
 @Composable
 fun PopoverMenu(
@@ -135,17 +156,76 @@ fun PopoverMenu(
     width: Dp = 268.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    if (!expanded) return
+    // A preview has no frames to animate in, so one drawn open starts open.
+    val inPreview = LocalInspectionMode.current
+    val visibility = remember { MutableTransitionState(inPreview && expanded) }
+    visibility.targetState = expanded
+    if (!visibility.currentState && !visibility.targetState) return
+
+    val currentOnDismissRequest by rememberUpdatedState(onDismissRequest)
+    val layoutDirection = LocalLayoutDirection.current
+    val origin = remember(alignment, layoutDirection) { alignment.transformOrigin(layoutDirection) }
     Popup(
         alignment = alignment,
         offset = offset,
-        onDismissRequest = onDismissRequest,
+        // Once it is on its way out, a second tap outside has nothing left to dismiss.
+        onDismissRequest = { if (visibility.targetState) currentOnDismissRequest() },
         properties = PopupProperties(focusable = true),
     ) {
-        // Room for the shadow, which a popup window would otherwise clip.
-        MenuPopover(modifier = modifier.padding(start = 24.dp, end = 12.dp, bottom = 40.dp), width = width, content = content)
+        AnimatedVisibility(
+            visibleState = visibility,
+            enter = fadeIn(PopoverMotion) + scaleIn(PopoverMotion, initialScale = POPOVER_HIDDEN_SCALE, transformOrigin = origin),
+            exit = fadeOut(PopoverMotion) + scaleOut(PopoverMotion, targetScale = POPOVER_HIDDEN_SCALE, transformOrigin = origin),
+        ) {
+            // Room for the shadow, which a popup window would otherwise clip.
+            MenuPopover(modifier = modifier.padding(start = 24.dp, end = 12.dp, bottom = 40.dp), width = width, content = content)
+        }
     }
 }
+
+/**
+ * [PopoverMenu] for a menu whose rows come from state that is null while it is closed, as
+ * Today's ⋮ menu is. Open while [menu] is set; the last [menu] keeps drawing while the popover
+ * animates away, so it does not shrink as an empty card.
+ */
+@Composable
+fun <T : Any> PopoverMenu(
+    menu: T?,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    offset: IntOffset = IntOffset.Zero,
+    alignment: Alignment = Alignment.TopEnd,
+    width: Dp = 268.dp,
+    content: @Composable ColumnScope.(T) -> Unit,
+) {
+    // A plain holder rather than state: remembering the last menu must not schedule a recomposition.
+    val last = remember { LastMenu<T>() }
+    if (menu != null) last.value = menu
+    PopoverMenu(
+        expanded = menu != null,
+        onDismissRequest = onDismissRequest,
+        modifier = modifier,
+        offset = offset,
+        alignment = alignment,
+        width = width,
+    ) {
+        last.value?.let { content(it) }
+    }
+}
+
+private class LastMenu<T : Any> {
+    var value: T? = null
+}
+
+/** The corner [this] hangs a popover from, as a scale pivot: `TopEnd` is the top right in LTR. */
+private fun Alignment.transformOrigin(layoutDirection: LayoutDirection): TransformOrigin {
+    val corner = align(IntSize.Zero, IntSize(2, 2), layoutDirection)
+    return TransformOrigin(corner.x / 2f, corner.y / 2f)
+}
+
+/** The same curve both ways, so closing reads as opening played backwards. */
+private val PopoverMotion = tween<Float>(durationMillis = 160, easing = FastOutSlowInEasing)
+private const val POPOVER_HIDDEN_SCALE = 0.9f
 
 @Preview(widthDp = 390)
 @Composable

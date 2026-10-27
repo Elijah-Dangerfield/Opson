@@ -39,7 +39,9 @@ class BasketStoreTest : CoroutineTest() {
     fun removeWhereTakesOutOnlyTheMatchingPicks() {
         val store = BasketStore()
         store.upsert(banana)
-        LoggerFixtures.parsed.forEachIndexed { index, item -> store.upsert(item.toDescribedItem(index)) }
+        LoggerFixtures.parsed.forEachIndexed { index, item ->
+            store.upsert(DescribeRows.fromItem("describe:$index", item, householdOnly = false).toBasketItem())
+        }
 
         store.removeWhere { it.source == PickSource.Describe }
 

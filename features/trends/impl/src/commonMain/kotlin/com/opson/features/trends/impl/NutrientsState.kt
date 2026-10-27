@@ -53,7 +53,8 @@ data class NutrientsState(
  * Energy on a bar with the range as a dashed box. [eaten] carries the fill as its
  * fraction of the bar; [range] is Shown only when calories are, and the box with it.
  */
-data class EnergyRow(val eaten: Display, val range: Display, val rangeStart: Float, val rangeEnd: Float)
+/** [singleGoal]: the goal is one number, so the row says "· goal" and the bar marks it with a line. */
+data class EnergyRow(val eaten: Display, val range: Display, val rangeStart: Float, val rangeEnd: Float, val singleGoal: Boolean = false)
 
 sealed interface BackLabel {
     data object Trends : BackLabel
@@ -122,16 +123,20 @@ object NutrientsStateBuilder {
             }
         }
 
-        val scale = targets.maxKcal * ENERGY_HEADROOM
+        // The day's own goal on a day, the one the week chart draws for its average.
+        val preset = inputs.settings.numbers.preset
+        val goal = if (inputs.range == NutrientsRange.Day) targets.rangeFor(inputs.day, preset) else targets.spanGoal(preset)
+        val scale = goal.maxKcal * ENERGY_HEADROOM
         val eaten = policy.resolve(Metric.Calories, values?.kcal, surface, base.copy(of = scale, goal = GoalStyle.None))
         val energy = if (eaten is Display.Hidden) {
             null
         } else {
             EnergyRow(
                 eaten = eaten,
-                range = policy.resolveRange(Metric.Calories, targets.minKcal.toDouble(), targets.maxKcal.toDouble(), surface, base.copy(bare = true)),
-                rangeStart = (targets.minKcal / scale).toFloat(),
-                rangeEnd = (targets.maxKcal / scale).toFloat(),
+                range = policy.resolveRange(Metric.Calories, goal.minKcal.toDouble(), goal.maxKcal.toDouble(), surface, base.copy(bare = true)),
+                rangeStart = (goal.minKcal / scale).toFloat(),
+                rangeEnd = (goal.maxKcal / scale).toFloat(),
+                singleGoal = goal.minKcal == goal.maxKcal,
             )
         }
 

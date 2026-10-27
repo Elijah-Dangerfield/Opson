@@ -23,7 +23,6 @@ import com.opson.libraries.core.fixed
 import com.opson.system.AppTheme
 import com.opson.system.background
 import androidx.compose.ui.graphics.Color
-import com.opson.system.color.Palette
 import com.opson.system.thenIf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,7 +40,6 @@ fun PreviewContent(
     appState: AppState = PreviewAppState,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     backgroundColor: ColorResource? = ThemeBackground,
-    palette: Palette = Palette.Pine,
     darkTheme: Boolean = false,
     largeText: Boolean = false,
     content: @Composable () -> Unit,
@@ -53,7 +51,7 @@ fun PreviewContent(
         LocalBuildInfo provides BuildInfo,
         LocalDialogHostState provides dialogHostState
     ) {
-        AppTheme(palette = palette, darkTheme = darkTheme, largeText = largeText) {
+        AppTheme(darkTheme = darkTheme, largeText = largeText) {
             val resolvedBackground = if (backgroundColor === ThemeBackground) AppTheme.colors.bg else backgroundColor
             Box(
                 modifier = modifier
@@ -78,7 +76,6 @@ fun PreviewContent(
  */
 @Composable
 fun PreviewLightDark(
-    palette: Palette = Palette.Pine,
     largeText: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(20.dp),
     content: @Composable () -> Unit,
@@ -90,7 +87,7 @@ fun PreviewLightDark(
     ) {
         Column {
             listOf(false, true).forEach { dark ->
-                AppTheme(palette = palette, darkTheme = dark, largeText = largeText) {
+                AppTheme(darkTheme = dark, largeText = largeText) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
