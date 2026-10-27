@@ -60,7 +60,11 @@ class CompareViewModel(
                 }
             }
             is CompareAction.ModePicked -> change(action) { copy(mode = action.mode) }
-            is CompareAction.SliderMoved -> change(action) { copy(sliderAt = action.at.coerceIn(0f, 1f)) }
+            is CompareAction.SliderMoved -> {
+                // Every frame of a drag: move the handle, without settling the pair and rebuilding the pickers.
+                ui = ui.copy(sliderAt = action.at.coerceIn(0f, 1f))
+                action.updateState { it.copy(sliderAt = ui.sliderAt) }
+            }
             is CompareAction.NoteTyped -> {
                 val rightId = state.right?.id ?: return
                 // The field holds only what is kept, so nothing typed past the limit looks saved.
