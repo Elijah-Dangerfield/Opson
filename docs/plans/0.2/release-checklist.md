@@ -346,28 +346,24 @@ Decided 2026-10-27: the site moves off GitHub Pages so the repo can go private.
 It goes to Cloudflare Pages, uploaded from the existing workflow with
 `wrangler pages deploy`, on the domain you own at Porkbun.
 
-- [ ] Prod deployed with the waitlist migration and `POST /v1/waitlist`.
-- [ ] Prod search includes Open Food Facts (the load above, and
-      `FOOD_SEARCH_OFF_ENABLED=true`). The site says "over 3.7 million foods from the
-      USDA and Open Food Facts", which is only true once prod has both.
-- [ ] **You:** run `scripts/setup_cloudflare_site.sh`. It prompts for the
-      Cloudflare token, account id and domain, then does the rest of this list.
-- [ ] **You:** create a Cloudflare API token with Pages edit rights, and store
-      it as the `CLOUDFLARE_API_TOKEN` repo secret, with your account id as
-      `CLOUDFLARE_ACCOUNT_ID` (Claude gives you a command that prompts for it).
-- [ ] **You:** choose the DNS setup. Either move the domain's nameservers at
-      Porkbun to Cloudflare (the bare domain then works directly), or keep DNS
-      at Porkbun and serve `www.` with the bare domain forwarding to it.
-- [x] `.github/workflows/pages.yml` uploads to Cloudflare Pages with
-      `wrangler pages deploy` (project `opson`; done 2026-10-27).
-- [ ] Create the Pages project `opson` in Cloudflare (or let the first deploy
-      create it) and add the custom domain to it.
-- [ ] **Update the two settings that name the site's address:**
-      `SITE_URL=https://<domain>` and `SITE_BASE=/` (repo variables), and add
-      `https://<domain>` to `WAITLIST_ALLOWED_ORIGINS` on `opson-server-prod`.
-- [ ] A test signup from a curl with that Origin returns 204 and shows in admin.
-- [ ] `gh variable set SITE_ENABLED -R Elijah-Dangerfield/Opson -b true`, then
-      run the deploy workflow.
+Live 2026-10-27 at https://www.opsontracker.com. DNS stays at Porkbun: `www`
+is a CNAME to `opson.pages.dev`, and the bare domain URL-forwards (302, path
+kept) to `https://www.opsontracker.com`. Every push to main that touches
+`website/` or `legal/` redeploys.
+
+- [x] Prod has the waitlist route and Open Food Facts loaded (3.7 million
+      foods across USDA and OFF).
+- [x] Pages project `opson` with `www.opsontracker.com` attached (active).
+- [x] Repo secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`; variables
+      `SITE_URL=https://www.opsontracker.com`, `SITE_BASE=/`,
+      `SITE_ENABLED=true`.
+- [x] `WAITLIST_ALLOWED_ORIGINS` on `opson-server-prod` lists both hosts. A
+      preflight from the site's origin gets 200; any other origin gets 403.
+- [ ] Join the waitlist once from the live site with your own address and
+      check it shows in admin.
+- [ ] Prod search shows OFF foods only once a 0.2 build with the credit ships
+      (`FOOD_SEARCH_OFF_ENABLED`). The site's food count is about the catalog,
+      so it holds either way.
 - [ ] Before the repo goes private: the design-sync manifest is published to
       a public `raw.githubusercontent.com` URL that Claude Design reads. After
       that, hand Claude Design `design-sync/app.zip` instead.
