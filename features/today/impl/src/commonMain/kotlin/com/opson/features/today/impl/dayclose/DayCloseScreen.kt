@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
+import com.opson.features.today.impl.color
 import com.opson.features.today.impl.text
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInEnabled
@@ -66,7 +67,6 @@ import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextArea
-import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import kotlinx.coroutines.flow.Flow
@@ -508,14 +508,7 @@ private fun Totals(totals: DayTotals, isToday: Boolean) {
                 )
             }
         },
-        macros = totals.macros.map { SummaryMacro(it.metric, stringResource(it.label), it.display, it.metric.dayCloseColor()) },
+        macros = totals.macros.map { SummaryMacro(it.metric, stringResource(it.label), it.display, it.metric.color()) },
     )
 }
 
-@Composable
-private fun Metric.dayCloseColor(): ColorResource = when (this) {
-    Metric.Protein -> AppTheme.colors.nutrients.protein.content
-    Metric.Carbs -> AppTheme.colors.nutrients.carbs.content
-    Metric.Fat -> AppTheme.colors.nutrients.fat.content
-    else -> AppTheme.colors.nutrients.fiber.content
-}
