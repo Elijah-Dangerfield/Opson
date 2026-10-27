@@ -101,16 +101,23 @@ class FeedbackViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun aSentBugReport_carriesItsIds_countsThanksAndCloses() = runUnitTest {
+    fun aSentBugReport_carriesItsIdsAndContext_countsThanksAndCloses() = runUnitTest {
         val repository = FakeFeedbackRepository()
         val cache = FakeAppCache()
-        val vm = BugReportViewModel(repository, cache, logId = "log-1", errorCode = 1200)
+        val vm = BugReportViewModel(
+            repository,
+            cache,
+            logId = "log-1",
+            errorCode = 1200,
+            contextMessage = "We couldn't load your day.",
+        )
         val events = eventsOf(vm)
 
         vm.takeAction(BugReportAction.MessageChanged("The sheet would not open"))
         vm.takeAction(BugReportAction.Submit)
 
         assertEquals(listOf<Pair<String?, Int?>>("log-1" to 1200), repository.ids)
+        assertEquals(listOf<String?>("We couldn't load your day."), repository.contexts)
         assertEquals(1, cache.get().bugsReported)
         assertEquals(listOf<BugReportEvent>(BugReportEvent.Sent), events)
     }
@@ -155,11 +162,19 @@ class FeedbackViewModelTest : CoroutineTest() {
 private class FakeFeedbackRepository(private val fails: Boolean = false) : FeedbackRepository {
     val sent = mutableListOf<String>()
     val ids = mutableListOf<Pair<String?, Int?>>()
+    val contexts = mutableListOf<String?>()
 
-    override suspend fun submitFeedback(message: String, isBugReport: Boolean, logId: String?, errorCode: Int?): Result<Unit> {
+    override suspend fun submitFeedback(
+        message: String,
+        isBugReport: Boolean,
+        logId: String?,
+        errorCode: Int?,
+        contextMessage: String?,
+    ): Result<Unit> {
         if (fails) return Result.failure(IllegalStateException("telemetry is down"))
         sent += message
         ids += logId to errorCode
+        contexts += contextMessage
         return Result.success(Unit)
     }
 }

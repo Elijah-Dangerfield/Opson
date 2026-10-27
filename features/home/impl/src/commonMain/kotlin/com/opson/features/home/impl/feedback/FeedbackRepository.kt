@@ -9,11 +9,17 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 interface FeedbackRepository {
+    /**
+     * [contextMessage] is what the bug report page shows under "Captured details" (the error the
+     * person was looking at, or how they got there). It goes out with the report, so the page
+     * doesn't claim to have captured something triage never sees.
+     */
     suspend fun submitFeedback(
         message: String,
         isBugReport: Boolean,
         logId: String? = null,
         errorCode: Int? = null,
+        contextMessage: String? = null,
     ): Result<Unit>
 }
 
@@ -27,10 +33,12 @@ class FeedbackRepositoryImpl @Inject constructor(
         isBugReport: Boolean,
         logId: String?,
         errorCode: Int?,
+        contextMessage: String?,
     ): Result<Unit> {
+        val report = contextMessage?.takeIf { it.isNotBlank() }?.let { "Context: $it\n\n$message" } ?: message
         val sent = Catching {
             telemetry.captureUserFeedback(
-                message = message,
+                message = report,
                 isBugReport = isBugReport,
                 eventId = logId,
                 errorCode = errorCode

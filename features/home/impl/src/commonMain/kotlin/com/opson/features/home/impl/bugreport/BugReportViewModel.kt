@@ -49,7 +49,8 @@ class BugReportViewModel(
             message = current.message.trim(),
             isBugReport = true,
             logId = current.logId,
-            errorCode = current.errorCode
+            errorCode = current.errorCode,
+            contextMessage = current.contextMessage,
         ).isSuccess
         if (!sent) {
             updateState { it.copy(isSubmitting = false, errorMessage = Res.string.feedback_failed) }
