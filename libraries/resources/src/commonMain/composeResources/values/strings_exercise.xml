@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for exercise logged by hand (docs/research/energy-expenditure.md): the
+  add sheet's Exercise, the exercise sheet, Today's Burned section and everyday
+  activity on Resting energy. Behind release.exercise. Same rules as
+  strings.xml: no backslash escapes, positional %1$s arguments. Nothing that
+  says exercise earns food or makes up for a meal.
+-->
+<resources>
+
+    <string name="adding_action_exercise">Exercise</string>
+
+    <!-- The sheet -->
+    <string name="exercise_title_add">Add exercise</string>
+    <string name="exercise_title_edit">Edit exercise</string>
+    <string name="exercise_activity">Activity</string>
+    <string name="exercise_activity_pick">Pick an activity</string>
+    <string name="exercise_search_placeholder">Search activities</string>
+    <string name="exercise_search_clear_cd">Clear the search</string>
+    <string name="exercise_search_none">Nothing by that name. Pick Other to add it yourself.</string>
+    <string name="exercise_other_name">What was it?</string>
+    <string name="exercise_other_name_placeholder">Canoe polo, a long walk with the pram</string>
+    <string name="exercise_duration">How long</string>
+    <string name="exercise_minutes_unit">min</string>
+    <string name="exercise_minutes_chip">%1$d min</string>
+    <string name="exercise_time">Started</string>
+    <string name="exercise_time_pick">When did you start?</string>
+    <string name="exercise_time_ok">Done</string>
+    <string name="exercise_time_cancel">Cancel</string>
+    <string name="exercise_estimate_label">Burned</string>
+    <string name="exercise_estimate_no_weight">Log a weight to get an estimate, or type the number below.</string>
+    <string name="exercise_typed_label">Your own number</string>
+    <string name="exercise_typed_label_needed">Calories burned</string>
+    <string name="exercise_typed_placeholder">From a machine or an app</string>
+    <string name="exercise_kcal_unit">kcal</string>
+    <string name="exercise_not_on_watch">My watch didn't record this</string>
+    <string name="exercise_not_on_watch_detail">Counts in Burned even with a health app connected.</string>
+    <string name="exercise_save">Save</string>
+    <string name="exercise_delete">Delete</string>
+    <string name="exercise_toast_saved">Exercise saved</string>
+    <string name="exercise_toast_deleted">Exercise deleted</string>
+
+    <!-- Today's Burned section -->
+    <string name="today_burned_title">Burned</string>
+    <string name="today_burned_resting">Resting</string>
+    <string name="today_burned_everyday">Everyday activity</string>
+    <string name="today_burned_health">Activity from your health app</string>
+    <string name="today_burned_exercise">Exercise</string>
+    <string name="today_burned_add">Add exercise</string>
+    <string name="today_burned_none">Nothing logged yet</string>
+    <string name="today_burned_unknown">Add your details on Resting energy to see Burned.</string>
+    <string name="today_burned_unknown_action">Resting energy</string>
+    <string name="today_burned_watch_has_it">Your health app counts this</string>
+    <string name="settings_energy_logged">Logged by you</string>
+
+    <!-- Everyday activity, on Resting energy -->
+    <string name="everyday_activity_title">Everyday activity</string>
+    <string name="everyday_activity_body">Your day outside workouts. Burned counts it when no health app counts your activity.</string>
+    <string name="everyday_activity_mostly_sitting">Mostly sitting</string>
+    <string name="everyday_activity_mostly_sitting_detail">Desk work, a bit of walking</string>
+    <string name="everyday_activity_some_walking">Some walking</string>
+    <string name="everyday_activity_some_walking_detail">On your feet now and then</string>
+    <string name="everyday_activity_on_my_feet">On my feet a lot</string>
+    <string name="everyday_activity_on_my_feet_detail">Shop floor, teaching, looking after kids</string>
+    <string name="everyday_activity_physical_work">Physical work</string>
+    <string name="everyday_activity_physical_work_detail">Building, farming, moving things all day</string>
+
+    <!-- Activities. Keys follow ExerciseActivities; MET values are in that file. -->
+    <string name="exercise_activity_other">Other</string>
+    <string name="exercise_activity_walking">Walking</string>
+    <string name="exercise_activity_walking_brisk">Walking, brisk</string>
+    <string name="exercise_activity_walking_slow">Walking, slow</string>
+    <string name="exercise_activity_walking_dog">Walking the dog</string>
+    <string name="exercise_activity_hiking">Hiking</string>
+    <string name="exercise_activity_backpacking">Backpacking</string>
+    <string name="exercise_activity_jogging">Jogging</string>
+    <string name="exercise_activity_running_12">Running, 5 mph (8 km/h)</string>
+    <string name="exercise_activity_running_10">Running, 6 mph (9.7 km/h)</string>
+    <string name="exercise_activity_running_8_5">Running, 7 mph (11.3 km/h)</string>
+    <string name="exercise_activity_running_7_5">Running, 8 mph (12.9 km/h)</string>
+    <string name="exercise_activity_running_6">Running, 10 mph (16 km/h)</string>
+    <string name="exercise_activity_cycling_easy">Cycling, easy</string>
+    <string name="exercise_activity_cycling">Cycling, moderate</string>
+    <string name="exercise_activity_cycling_fast">Cycling, fast</string>
+    <string name="exercise_activity_mountain_biking">Mountain biking</string>
+    <string name="exercise_activity_exercise_bike">Exercise bike</string>
+    <string name="exercise_activity_spin_class">Spin class</string>
+    <string name="exercise_activity_elliptical">Elliptical</string>
+    <string name="exercise_activity_rowing_machine">Rowing machine</string>
+    <string name="exercise_activity_rowing_machine_hard">Rowing machine, hard</string>
+    <string name="exercise_activity_stair_machine">Stair machine</string>
+    <string name="exercise_activity_stairs">Climbing stairs</string>
+    <string name="exercise_activity_weights">Weight training</string>
+    <string name="exercise_activity_weights_heavy">Heavy lifting</string>
+    <string name="exercise_activity_circuit">Circuit training</string>
+    <string name="exercise_activity_hiit">HIIT</string>
+    <string name="exercise_activity_bodyweight">Bodyweight exercises</string>
+    <string name="exercise_activity_yoga">Yoga</string>
+    <string name="exercise_activity_yoga_power">Power yoga</string>
+    <string name="exercise_activity_pilates">Pilates</string>
+    <string name="exercise_activity_stretching">Stretching</string>
+    <string name="exercise_activity_tai_chi">Tai chi</string>
+    <string name="exercise_activity_aerobics">Aerobics class</string>
+    <string name="exercise_activity_zumba">Zumba</string>
+    <string name="exercise_activity_dancing">Dancing</string>
+    <string name="exercise_activity_swimming">Swimming laps</string>
+    <string name="exercise_activity_swimming_easy">Swimming, easy</string>
+    <string name="exercise_activity_water_aerobics">Water aerobics</string>
+    <string name="exercise_activity_tennis">Tennis</string>
+    <string name="exercise_activity_badminton">Badminton</string>
+    <string name="exercise_activity_basketball">Basketball</string>
+    <string name="exercise_activity_soccer">Soccer</string>
+    <string name="exercise_activity_volleyball">Volleyball</string>
+    <string name="exercise_activity_golf">Golf, walking</string>
+    <string name="exercise_activity_boxing_bag">Boxing, bag work</string>
+    <string name="exercise_activity_martial_arts">Martial arts</string>
+    <string name="exercise_activity_climbing">Climbing</string>
+    <string name="exercise_activity_jump_rope">Jumping rope</string>
+    <string name="exercise_activity_skiing">Skiing or snowboarding</string>
+    <string name="exercise_activity_cross_country_skiing">Cross-country skiing</string>
+    <string name="exercise_activity_skating">Ice skating</string>
+    <string name="exercise_activity_inline_skating">Inline skating</string>
+    <string name="exercise_activity_kayaking">Kayaking</string>
+    <string name="exercise_activity_paddleboarding">Paddleboarding</string>
+    <string name="exercise_activity_gardening">Gardening</string>
+    <string name="exercise_activity_mowing">Mowing the lawn</string>
+    <string name="exercise_activity_housework">Housework</string>
+    <string name="exercise_activity_snow_shoveling">Shoveling snow</string>
+</resources>

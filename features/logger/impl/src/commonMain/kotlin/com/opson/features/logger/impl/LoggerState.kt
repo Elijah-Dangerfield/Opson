@@ -67,6 +67,9 @@ sealed interface AddAction {
 
     /** `release.fasting`, offered in this mode, and the timer on. */
     data object Fasting : AddAction
+
+    /** `release.exercise`, with energy out not hidden ([com.opson.libraries.diary.exerciseOffered]). */
+    data object Exercise : AddAction
 }
 
 /** The Describe it pane. */
@@ -144,6 +147,7 @@ sealed interface LoggerAction {
     data object NoteTapped : LoggerAction
     data object AteNoDetailsTapped : LoggerAction
     data object FastingTapped : LoggerAction
+    data object ExerciseTapped : LoggerAction
 
     /** Recent's + at full height: logs it at its last amount, and ✓ takes it back out. */
     data class RecentAddTapped(val row: FoodRowUi) : LoggerAction
@@ -181,6 +185,7 @@ sealed interface LoggerEvent {
     data class OpenPhoto(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data object OpenWeighIn : LoggerEvent
     data object OpenFasting : LoggerEvent
+    data class OpenExercise(val day: LocalDate) : LoggerEvent
 
     /** A glass went in, [ml] of it, on [day]: the snackbar's Undo takes it off again. */
     data class WaterAdded(val day: LocalDate, val ml: Int) : LoggerEvent

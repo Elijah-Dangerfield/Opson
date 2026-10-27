@@ -6,6 +6,8 @@ import com.opson.libraries.core.Catching
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.OnboardingAnswers
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.sentenceName
@@ -57,6 +59,7 @@ class LoggerViewModelTest : CoroutineTest() {
         photoOn: Boolean = false,
         voiceOn: Boolean = false,
         fastingOn: Boolean = false,
+        exerciseOn: Boolean = false,
         diaryRepo: FakeDiaryRepository = diary,
     ) = LoggerViewModel(
         route = route,
@@ -76,6 +79,7 @@ class LoggerViewModelTest : CoroutineTest() {
         photoEnabled = photoFlag(photoOn),
         voice = DescribeVoice(FakeSpeechToText(), voiceFlag(voiceOn), RecordingVoiceTelemetry()),
         fastingRelease = fastingFlag(fastingOn),
+        exerciseRelease = ExerciseRelease { exerciseOn },
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {
@@ -119,6 +123,36 @@ class LoggerViewModelTest : CoroutineTest() {
         vm.takeAction(LoggerAction.PhotoTapped)
         settle()
         assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun exercise_isOfferedWithItsFlag_andOpensTheSheetForThisDay() = runUnitTest {
+        val vm = vm(exerciseOn = true)
+        val events = events(vm)
+        settle()
+
+        assertEquals(AddAction.Exercise, vm.state.actions.last())
+        vm.takeAction(LoggerAction.ExerciseTapped)
+        settle()
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenExercise(LoggerFixtures.today)), events)
+    }
+
+    @Test
+    fun exercise_isNotOffered_withTheFlagOff_whereEnergyOutIsHidden_orToSomeoneNumbersHaveBeenHardFor() = runUnitTest {
+        val off = vm(exerciseOn = false)
+        settle()
+        assertTrue(AddAction.Exercise !in off.state.actions)
+
+        policySource.policy.value = policy(PresetId.MacrosWithGrams)
+        val hidden = vm(exerciseOn = true)
+        settle()
+        assertTrue(AddAction.Exercise !in hidden.state.actions, "macros modes hide energy out")
+
+        policySource.policy.value = policy(PresetId.Full)
+        settings.state.value = Settings(onboarding = OnboardingAnswers(hard = true))
+        val hard = vm(exerciseOn = true)
+        settle()
+        assertTrue(AddAction.Exercise !in hard.state.actions)
     }
 
     @Test

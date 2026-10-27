@@ -16,5 +16,9 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
         }
+        commonTest.dependencies {
+            // ExerciseLabelsTest compares StringResources.
+            implementation(compose.components.resources)
+        }
     }
 }

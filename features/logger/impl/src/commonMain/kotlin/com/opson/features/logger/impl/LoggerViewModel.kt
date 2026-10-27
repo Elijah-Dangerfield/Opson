@@ -7,6 +7,7 @@ import com.opson.libraries.core.AppState
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FastingRelease
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
@@ -78,6 +79,7 @@ class LoggerViewModel(
     photoEnabled: PhotoEstimateEnabled,
     private val voice: DescribeVoice,
     fastingRelease: FastingRelease,
+    exerciseRelease: ExerciseRelease,
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
     initialStateArg = LoggerState(pane = route.openingPane, height = route.openingHeight),
 ) {
@@ -97,6 +99,7 @@ class LoggerViewModel(
             photoAvailable = photoEnabled(),
             voiceEnabled = voice.enabled(),
             fastingReleased = fastingRelease.isOn(),
+            exerciseReleased = exerciseRelease.isOn(),
         ),
         policy = policySource.policy.value,
     )
@@ -161,6 +164,7 @@ class LoggerViewModel(
             }
             LoggerAction.AteNoDetailsTapped -> ateNoDetails()
             LoggerAction.FastingTapped -> sendEvent(LoggerEvent.OpenFasting)
+            LoggerAction.ExerciseTapped -> sendEvent(LoggerEvent.OpenExercise(day))
             is LoggerAction.RecentAddTapped -> recentAdd(action.row)
             is LoggerAction.RecentNameTapped -> sendEvent(LoggerEvent.OpenFoodDetail(action.row.ref, action.row.source, day, slot()))
             is LoggerAction.DescribeTyped -> {

@@ -90,6 +90,7 @@ import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.LocalDrink
+import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.LockClock
 import androidx.compose.material.icons.rounded.LunchDining
@@ -299,6 +300,9 @@ object AppIcons {
     /** Watch and health apps (More) and Expended so far (Today). */
     val Watch get() = icon("watch", MaterialIcons.Rounded.Watch)
 
+    /** Exercise logged by hand: the add sheet's Exercise and Today's Burned section. */
+    val FitnessCenter get() = icon("fitness_center", MaterialIcons.Rounded.FitnessCenter)
+
     /** Widgets (More), as v3's "widgets" glyph. */
     val Widgets get() = icon("widgets", MaterialIcons.Rounded.Widgets)
 
@@ -358,7 +362,7 @@ object AppIcons {
             OpenInNew, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download,
             Straighten, TrendingDown, TrendingUp, Adjust, EventRepeat, EventAvailable, Star, Favorite, Science,
             FormatListBulleted, BeachAccess, Route, Bedtime, Watch, Widgets, Call, Sms, Public, SupportAgent,
-            DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove,
+            DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

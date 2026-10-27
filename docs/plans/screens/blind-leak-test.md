@@ -174,6 +174,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-timer-ended`, `today-timer-waiting` | today | design sync 4; End after a set time ran out, said once or offered behind the pause (mode names, never an amount) | yes |
 | new | | `today-expended` | today | 0.2, `integrations.md`; the Expended so far line | yes |
 | new | | `today-exercise` | today | 0.2, `integrations.md`; exercise in the range (All of it), energy out drawn | yes |
+| new | | `today-burned` | today | `release.exercise`; Burned's parts and the day's exercise, left out where energy out is hidden | yes |
+| new | | `today-burned-health` | today | `release.exercise`; the same with a health app, an entry the watch saw counting nothing | yes |
 | new | | `today-summary`, `today-macros`, `today-sticky`, `today-collapsed`, `today-weight` | today | design sync 2, `release.todaySummary`; the stats row, the macros page, the sticky bar for every page, the collapsed line, the weight row | yes |
 | new | | `today-select`, `today-select-remove`, `today-swipe-delete`, `today-delete-confirm` | today | design sync 2, `release.todaySelect`; the select panel's totals and its confirmation, a row swiped open and its confirmation | yes |
 | new | | `today-cards-summary` | today | design sync 2; Edit Today's cards with the summary section | no |
@@ -190,6 +192,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `logger-amount-nutrients` | logger | the amount sheet with All nutrients open, vitamins and minerals as a percent of a day | yes |
 | new | | `logger-scan-miss` | logger | 0.2, barcode; a scan the catalog doesn't know | yes |
 | new | | `logger-photo-start` | logger | 0.2, `photo.md`; the note and the two ways to a photo | no |
+| new | | `exercise-sheet` | logger | `release.exercise`; the estimate is energy out | yes |
+| new | | `exercise-sheet-other` | logger | `release.exercise`; Other's typed number, only where energy out shows | yes |
+| new | | `exercise-sheet-pick` | logger | `release.exercise`; the activity list, no numbers | no |
 | new | | `widgets` | settings | 0.2, `widgets.md`; the Widgets page under More, which previews the person's own widget | yes |
 | new | | `logger-search-tabs` | logger | 0.2, `search-options.md`; tabs, the options button and source badges over results | yes |
 | new | | `logger-search-options` | logger | 0.2, `search-options.md`; the options sheet: sort, database, tabs | no |

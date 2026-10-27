@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
+import com.opson.features.logger.ExerciseRoute
 import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
@@ -72,6 +73,7 @@ import kotlin.reflect.typeOf
 @Suppress("LongParameterList")
 class LoggerFeatureEntryPoint(
     private val loggerViewModelFactory: (LoggerRoute) -> LoggerViewModel,
+    private val exerciseViewModelFactory: (ExerciseRoute) -> ExerciseSheetViewModel,
     private val searchViewModelFactory: (FoodSearchRoute) -> FoodSearchViewModel,
     private val detailViewModelFactory: (FoodDetailRoute) -> FoodDetailViewModel,
     private val barcodeScanViewModelFactory: (BarcodeScanRoute) -> BarcodeScanViewModel,
@@ -136,6 +138,30 @@ class LoggerFeatureEntryPoint(
             typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
         ) { backStackEntry, sheetState ->
             PhotoEstimateSheet(backStackEntry.toRoute<PhotoEstimateRoute>(), sheetState, router)
+        }
+
+        // Only the add sheet's Exercise and Today's Burned section open it, both behind release.exercise.
+        bottomSheet<ExerciseRoute> { backStackEntry, sheetState ->
+            val route = backStackEntry.toRoute<ExerciseRoute>()
+            val viewModel: ExerciseSheetViewModel = viewModel { exerciseViewModelFactory(route) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is ExerciseSheetEvent.ShowToast -> showToast(event.toast)
+                    ExerciseSheetEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+
+            BottomSheet(
+                onDismissRequest = { router.goBack() },
+                state = sheetState,
+                showDragHandle = true,
+                scrollableContent = true,
+                backgroundColor = AppTheme.colors.bg,
+            ) {
+                ExerciseSheetContent(state = state, onAction = viewModel::takeAction)
+            }
         }
 
         // Only search's options button opens it, and that button is behind release.searchOptions.
@@ -210,6 +236,10 @@ class LoggerFeatureEntryPoint(
                 LoggerEvent.OpenFasting -> router.batch {
                     goBack()
                     navigate(FastingRoute())
+                }
+                is LoggerEvent.OpenExercise -> router.batch {
+                    goBack()
+                    navigate(ExerciseRoute(dayIso = event.day.toString()))
                 }
                 is LoggerEvent.WaterAdded -> showWaterAdded(event.day, event.ml)
                 is LoggerEvent.ShowToast -> showToast(event.toast)

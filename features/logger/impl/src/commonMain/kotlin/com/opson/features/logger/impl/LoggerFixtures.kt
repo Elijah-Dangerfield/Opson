@@ -205,6 +205,7 @@ object LoggerFixtures {
         flags: Boolean = true,
         slot: MealSlot = MealSlot.Dinner,
         added: Boolean = false,
+        exercise: Boolean = false,
     ): LoggerState {
         val inputs = inputs(settings = settings, date = date, firstRun = firstRun)
         // Jasmine rice went in from Recent's + since the sheet opened: its row draws ✓.
@@ -219,6 +220,7 @@ object LoggerFixtures {
                 photoAvailable = flags,
                 voiceEnabled = flags,
                 fastingReleased = flags,
+                exerciseReleased = exercise,
                 seen = inputs.day.allItems.mapTo(HashSet()) { it.id },
             ),
         )
