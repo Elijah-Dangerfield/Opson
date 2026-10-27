@@ -1,7 +1,9 @@
 package com.opson.features.trends.impl
 
 import com.opson.features.trends.NutrientsRange
+import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -39,7 +41,7 @@ private typealias Menu = Map<MealSlot, List<TrendsFixtures.Food>>
  * Sunday the 25th at noon, Thursday left untracked, three foods new this week
  * (chicken kabsa, poutine, rice pudding), and the prototype's `WEIGHTS` curve.
  * Meal times drift a little day to day, dinner runs later on Fridays and
- * Saturdays, and hunger is tagged on most days, for Patterns.
+ * Saturdays, and hunger is tagged on most days and checked in on most evenings, for Patterns.
  *
  * Nothing here builds a `Display`: every number goes through the real
  * builders and the policy the caller passes, which is what makes the leak test
@@ -96,8 +98,9 @@ object TrendsFixtures {
         photosReleased: Boolean = true,
     ): WeightInputs = WeightInputs(today, settings, weighIns, timeZone, photosReleased, photosLastTaken = today)
 
-    fun patternsInputs(settings: Settings = Settings(), days: List<Day> = days()): PatternsInputs =
-        PatternsInputs(today, settings, days, timeZone)
+    /** [checkInOn]: hunger from the check-ins, as the design draws Patterns. */
+    fun patternsInputs(settings: Settings = Settings(), days: List<Day> = days(), checkInOn: Boolean = false): PatternsInputs =
+        PatternsInputs(today, settings, days, timeZone, checkInOn)
 
     /** The prototype week with ninety days of ordinary history behind it, oldest first. */
     fun days(): List<Day> {
@@ -176,8 +179,24 @@ object TrendsFixtures {
         } else {
             MealSlot.meals.filter { menu[it] != null }.associateWith { MealFeeling(hunger = HUNGER.getValue(it)) }
         }
-        return Day(date = date, itemsBySlot = items, feelings = feelings)
+        return Day(date = date, itemsBySlot = items, feelings = feelings, checkIn = checkIn(seed, menu))
     }
+
+    /**
+     * Checked in three evenings in four, hungrier on a day without breakfast, so Patterns'
+     * check-in card has a shape and its skipped-breakfast line something to say.
+     */
+    private fun checkIn(seed: Int, menu: Menu): CheckIn? {
+        if (menu.isEmpty() || seed % 4 == 0) return null
+        val hunger = if (menu[MealSlot.Breakfast] == null) {
+            if (seed % 2 == 0) DayHunger.Very else DayHunger.Often
+        } else {
+            CHECK_IN_HUNGER[seed % CHECK_IN_HUNGER.size]
+        }
+        return CheckIn(hunger = hunger)
+    }
+
+    private val CHECK_IN_HUNGER = listOf(DayHunger.Some, DayHunger.Steady, DayHunger.Rarely, DayHunger.Some, DayHunger.Steady)
 
     private fun item(date: LocalDate, slot: MealSlot, index: Int, food: Food): LogItem = LogItem(
         id = "$date-${slot.wire}-$index",

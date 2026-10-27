@@ -1,5 +1,7 @@
 package com.opson.features.trends.impl
 
+import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
@@ -129,3 +131,10 @@ class FakeNumbersChanger(private val settings: FakeSettingsRepository) : Numbers
 }
 
 private fun unused(): Nothing = error("Not used by the Trends screens")
+
+/** `release.checkIn` as the remote config would set it. */
+fun checkInFlag(on: Boolean): CheckInEnabled = CheckInEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("checkIn" to on))
+    },
+)

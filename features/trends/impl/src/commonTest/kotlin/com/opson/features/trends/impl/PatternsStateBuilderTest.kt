@@ -127,6 +127,23 @@ class PatternsStateBuilderTest {
     }
 
     @Test
+    fun hunger_withTheCheckInOn_comesFromTheCheckIns_tagsOrNot() {
+        val inputs = TrendsFixtures.patternsInputs(Settings(askTags = false), checkInOn = true)
+        val hunger = assertNotNull(PatternsStateBuilder.build(inputs, TrendsFixtures.policy()).hunger)
+        assertEquals(HungerSource.CheckIns, hunger.source)
+        assertEquals(DayOfWeek.entries, hunger.days.map { it.day })
+        assertTrue(hunger.days.mapNotNull { it.level }.all { it in 0f..1f })
+        assertEquals(HungerSource.MealTags, assertNotNull(build().hunger).source, "the tags while the check-in is off")
+    }
+
+    @Test
+    fun hunger_checkInOnButNeverAnswered_fallsBackToTheTags() {
+        val unanswered = TrendsFixtures.days().map { it.copy(checkIn = null) }
+        val inputs = TrendsFixtures.patternsInputs(days = unanswered, checkInOn = true)
+        assertEquals(HungerSource.MealTags, assertNotNull(PatternsStateBuilder.build(inputs, TrendsFixtures.policy()).hunger).source)
+    }
+
+    @Test
     fun newFoods_theFoodsNotSeenInTheLookback() {
         assertEquals(listOf("Chicken kabsa", "Rice pudding", "Poutine"), build().newFoods)
     }

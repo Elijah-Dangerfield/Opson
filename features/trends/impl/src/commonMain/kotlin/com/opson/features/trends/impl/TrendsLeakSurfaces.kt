@@ -47,7 +47,7 @@ object TrendsLeakSurfaces {
             WeightContent(WeightStateBuilder.build(TrendsFixtures.weightInputs(), WeightUi(input = "72.4", saved = true), policy), onAction = {})
         },
         LeakSurface(id = "patterns", label = "Patterns", showsCaloriesInFull = true) { policy ->
-            PatternsContent(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(), policy), onAction = {})
+            PatternsContent(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(checkInOn = true), policy), onAction = {})
         },
         // Hunger tags off: the page Blind users who skip the tags see.
         LeakSurface(id = "patterns-blind", label = "Patterns, no hunger tags", showsCaloriesInFull = true) { policy ->

@@ -131,7 +131,7 @@ private fun NutrientsBlindPreview() = Phone { Nutrients(TrendsFixtures.policy(Pr
 
 @Composable
 private fun Patterns(policy: VisibilityPolicy, modifier: Modifier? = null) {
-    val state = PatternsStateBuilder.build(TrendsFixtures.patternsInputs(), policy)
+    val state = PatternsStateBuilder.build(TrendsFixtures.patternsInputs(checkInOn = true), policy)
     if (modifier == null) PatternsScreen(state, onAction = {}) else PatternsContent(state, onAction = {}, modifier = modifier)
 }
 
