@@ -40,8 +40,8 @@ has to agree to them for you.
 
 ## Your account and your data
 
-The app creates an account for you. Keep your phone and any sign-in secure,
-because anyone with access to them can see your log. What you enter stays
+You sign in to use Opson. Keep your phone and the account you sign in with
+secure, because anyone with access to them can see your log. What you enter stays
 yours. You give us permission to store, copy and process it only as needed to
 run Opson for you, as the Privacy Policy describes. You can export your log or
 delete your account at any time from **More → Support and sharing**.

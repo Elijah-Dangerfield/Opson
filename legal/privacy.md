@@ -41,12 +41,13 @@ log and totals, apply your settings, and keep your phones in sync.
 
 ## Your account
 
-Opson creates an account the first time you open it. It has a random ID and a
-random display name (such as "QuietFox72"), and no email address or real name.
-
-If you sign in with Apple, we receive the email address Apple shares with us,
-which may be a private relay address, and use it only to sign you in and move
-your log to that account. We don't use the name Apple offers.
+You sign in to use Opson, with Apple or Google (or an email address, where the
+app offers it). Your account has a random ID. We receive the email address the
+service you sign in with shares with us, which for Apple may be a private relay
+address, and use it only to sign you in. Google also shares your name and
+profile picture, which are kept with your sign-in record; we don't use them,
+and we don't use the name Apple offers. Accounts made before sign-in was
+required may have no email address.
 
 ## Where your data is stored
 
@@ -148,7 +149,7 @@ you ask us to help with your account or the law requires it.
 | Grafana Labs | App usage events and server monitoring |
 | Anthropic | Photo estimates, only when you use one |
 | Apple | Sign in with Apple, and speech recognition when you use voice logging |
-| Google | Speech recognition and barcode reading on Android, when you use them |
+| Google | Sign in with Google, and speech recognition and barcode reading on Android, when you use them |
 
 They handle data on our behalf, only to provide their service to us. Open Food
 Facts and Nutritionix receive only barcodes from our server, never anything
@@ -184,17 +185,16 @@ undone. You can also email us and we will delete it for you.
 Wherever you live, you can ask us to tell you what we hold about you, give you a
 copy, correct it, delete it, or stop using it for something you agreed to. Email
 the address at the end of this page. We answer within 45 days, or tell you
-within that time if we need up to 45 more. It's free. Because most Opson
-accounts have no name or email attached, we may not be able to find or confirm
-yours from an email alone; the export and delete buttons in the app always
-work.
+within that time if we need up to 45 more. It's free. Tell us the email you
+sign in with so we can find your account. The export and delete buttons in the
+app always work.
 
 If we turn down a request, you can appeal by replying to our answer. We decide
 appeals within 45 days and explain why. If you still disagree, you can contact
 your state attorney general or your data protection authority.
 
-**California.** In the last 12 months we collected identifiers (a random account
-ID, and an email if you signed in with Apple), health information you entered,
+**California.** In the last 12 months we collected identifiers (an account ID and
+the email you sign in with), health information you entered,
 and app activity and device information, for the purposes above. We do not sell
 or share personal information as California law defines those words, and we use
 sensitive personal information only to provide the app. You have the rights
