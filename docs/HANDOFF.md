@@ -1,23 +1,12 @@
 # Where Opson stands (2026-10-27)
 
-## Do this first: close prod's open tables
+## Prod's open tables: closed
 
-Six prod tables have row level security off: profiles, player reports and
-the four app config tables. Anyone with the app's public Supabase key can read
-every display name and change remote config, including release flags. The key
-ships inside the app, so this becomes reachable the day 0.1 is released.
-Checked read-only on 2026-10-26.
-
-The fix is migration V19 (it only switches RLS on). The server connects as
-the table owner and the dashboards read views, so nothing they read changes.
-Dev already has it. This runs the same file on prod and prints the result:
-
-```bash
-cd ~/Workspace/Opson && eval "$(python3 -I -c 'import sys,re,urllib.parse as u; s=open(sys.argv[1]).read(); p=u.urlparse(re.search(r"(?m)^DATABASE_URL=(.*)$", s).group(1).strip().strip("\"")); print("export PGPASSWORD="+repr(u.unquote(p.password)))' apps/server/.env.prod)" && [ -n "$PGPASSWORD" ] && /opt/homebrew/opt/libpq/bin/psql "host=aws-0-us-east-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.qmftnivpklhhozthpxej sslmode=require" -v ON_ERROR_STOP=1 -f apps/server/src/main/resources/db/migration/V19__rls_on_early_tables.sql -c "select relname, relrowsecurity from pg_class where relname in ('profiles','player_reports','app_config_values','app_config_rules','app_config_audit','app_config_manifest') order by 1"; unset PGPASSWORD
-```
-
-Every row should end in `t`. When prod's server is next deployed, Flyway runs
-V19 again, which is a no-op.
+Six prod tables had row level security off (profiles, player reports and the
+four app config tables), so the app's public Supabase key could read display
+names and change remote config. V19 was applied to prod by hand on 2026-10-27
+and all six now have RLS on; the prod server stayed healthy. Flyway runs V19
+again at the next prod deploy, which is a no-op.
 
 ## 0.1.0
 
@@ -76,7 +65,6 @@ Export the design as PNGs named by those ids and run
 
 ## Needs you
 
-- Run the prod RLS command at the top.
 - Decide three things the review left open: the Open Food Facts cache licence question,
   what "a set deficit" should count as burned, and whether a missing release
   signing key should fail the build. Each is in `docs/review/product-notes.md`

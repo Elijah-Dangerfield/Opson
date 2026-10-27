@@ -12,8 +12,7 @@ counts quick numbers.
   reports and the four app config tables are readable and writable with the
   app's public Supabase key, so anyone who pulls the key out of the released
   app could read display names or flip release flags for everyone. V19 fixes
-  it; dev gets it on the next deploy, prod needs the command in
-  `docs/HANDOFF.md`. *Confirmed on prod, read-only, 2026-10-26.*
+  it. *Applied to dev and prod on 2026-10-27; done.*
 
 ## Before 0.2 ships
 
