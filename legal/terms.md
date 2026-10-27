@@ -119,8 +119,9 @@ liability and governing law continue after that.
 
 ## Governing law
 
-These terms are governed by the laws of the United States and of the state in
-which Nightjar Labs LLC is organized, without regard to conflict-of-law rules.
+These terms are governed by the laws of the United States and of the State of
+New York, where Nightjar Labs LLC is organized, without regard to
+conflict-of-law rules.
 If you live in the European Union or the United Kingdom, you also keep the
 protection of the mandatory laws of your country, and you can bring a claim in
 your local courts.
@@ -147,4 +148,4 @@ terms.
 
 ## Contact
 
-Nightjar Labs LLC, [contact@nightjarlabs.llc](mailto:contact@nightjarlabs.llc).
+Nightjar Labs LLC, 418 Broadway, Albany, NY 12207, [contact@nightjarlabs.llc](mailto:contact@nightjarlabs.llc).

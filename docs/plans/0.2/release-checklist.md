@@ -364,10 +364,8 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 
 ### Before merging the legal changes to main (merging publishes them)
 
-- [ ] **You:** name the state Nightjar Labs LLC is organised in, in
-      `legal/terms.md` under "Governing law", and decide whether to add a
-      postal address to "Contact" (Apple's minimum EULA terms and CAN-SPAM
-      for waitlist emails both want one).
+- [x] Governing law is New York, and the contact carries the postal address
+      418 Broadway, Albany, NY 12207 (2026-10-27).
 - [ ] **Lawyer:** read `legal/privacy.md`, `legal/terms.md` and
       `legal/health-data.md` once before they go live. The items marked
       "lawyer" in the review are the ones that matter.

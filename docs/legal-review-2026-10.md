@@ -14,12 +14,10 @@ nightjarlabs.llc within minutes, so read the "Before merging" list first.
 
 ## Before you merge
 
-1. **You:** name the state Nightjar Labs LLC is organised in. `legal/terms.md`
-   currently says "the state in which Nightjar Labs LLC is organized", which
-   is accurate but vague.
-2. **You:** decide on a postal address for the terms and privacy contact.
-   Apple's minimum EULA terms and CAN-SPAM (for waitlist emails) both expect
-   one.
+1. **Done 2026-10-27:** governing law is New York, where Nightjar Labs LLC
+   is organised.
+2. **Done 2026-10-27:** the contact on every page is Nightjar Labs LLC,
+   418 Broadway, Albany, NY 12207.
 3. **Lawyer:** one read of `legal/privacy.md`, `legal/terms.md` and
    `legal/health-data.md`.
 

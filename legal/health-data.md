@@ -88,4 +88,4 @@ ask for consent where the law requires it.
 
 ## Contact
 
-Nightjar Labs LLC, [contact@nightjarlabs.llc](mailto:contact@nightjarlabs.llc).
+Nightjar Labs LLC, 418 Broadway, Albany, NY 12207, [contact@nightjarlabs.llc](mailto:contact@nightjarlabs.llc).
