@@ -7,6 +7,7 @@ import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.scanner.BarcodeFormat
 import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.ScannedCode
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -53,6 +54,8 @@ class BarcodeScanViewModelTest : CoroutineTest() {
 
     private fun TestScope.missedVm(): BarcodeScanViewModel = vm().also {
         settle()
+        // Takes the read's haptic, so a test of what the miss offers sees only its own events.
+        backgroundScope.launch { assertEquals(BarcodeScanEvent.Scanned, it.eventFlow.first()) }
         it.takeAction(ean13())
         settle()
     }
@@ -148,7 +151,10 @@ class BarcodeScanViewModelTest : CoroutineTest() {
 
         assertEquals(listOf("0036632027627"), catalog.barcodes, "looked up as read")
         assertEquals(
-            listOf<BarcodeScanEvent>(BarcodeScanEvent.OpenAmount(LoggerFixtures.scannedYogurt.id, LoggerFixtures.today, MealSlot.Dinner)),
+            listOf(
+                BarcodeScanEvent.Scanned,
+                BarcodeScanEvent.OpenAmount(LoggerFixtures.scannedYogurt.id, LoggerFixtures.today, MealSlot.Dinner),
+            ),
             events,
         )
         assertEquals(listOf("scan_started asked=false", "hit usda_branded slow=false"), telemetry.events)
@@ -170,6 +176,90 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         vm.takeAction(ean13("0036632027627"))
         settle()
         assertEquals(listOf(LoggerFixtures.MISSED_CODE), catalog.barcodes, "one lookup per scan")
+    }
+
+    @Test
+    fun codeReadOfAValidCodeIsLookedUpAtOnceWithNoSecondReadNeeded() = runUnitTest {
+        catalog.barcodeDelay = 2.seconds
+        val vm = vm()
+        settle()
+
+        vm.takeAction(ean13())
+        runCurrent()
+
+        assertEquals(listOf(LoggerFixtures.MISSED_CODE), catalog.barcodes, "no debounce, no confirming read")
+        assertEquals(ScanStage.LookingUp(slow = false), vm.state.stage)
+    }
+
+    @Test
+    fun codeReadBuzzesOncePerScanAndNeverForAMisread() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(ean13("4006381333932"))
+        settle()
+        assertTrue(events.isEmpty(), "a failed check digit is not a catch")
+
+        vm.takeAction(ean13())
+        vm.takeAction(ean13())
+        vm.takeAction(ean13())
+        settle()
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.Scanned), events, "the camera's repeats of the same pack")
+
+        vm.takeAction(BarcodeScanAction.ScanAgainTapped)
+        vm.takeAction(ean13())
+        settle()
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.Scanned, BarcodeScanEvent.Scanned), events, "a new scan buzzes again")
+    }
+
+    @Test
+    fun cameraStartedWithATorchOffersTheLightOff() = runUnitTest {
+        val vm = vm()
+        settle()
+        assertEquals(Torch.None, vm.state.torch, "not until the camera says")
+
+        vm.takeAction(BarcodeScanAction.CameraStarted(hasTorch = true))
+        settle()
+
+        assertEquals(Torch.Off, vm.state.torch)
+    }
+
+    @Test
+    fun torchTappedTurnsTheLightOnAndItStaysOnThroughALookupAndScanAgain() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.CameraStarted(hasTorch = true))
+
+        vm.takeAction(BarcodeScanAction.TorchTapped)
+        settle()
+        assertEquals(Torch.On, vm.state.torch)
+
+        vm.takeAction(ean13())
+        settle()
+        assertIs<ScanStage.Miss>(vm.state.stage)
+        assertEquals(Torch.None, vm.state.torch, "no camera on a miss")
+
+        vm.takeAction(BarcodeScanAction.ScanAgainTapped)
+        settle()
+        assertEquals(Torch.On, vm.state.torch, "the kitchen is still dim")
+
+        vm.takeAction(BarcodeScanAction.TorchTapped)
+        settle()
+        assertEquals(Torch.Off, vm.state.torch)
+    }
+
+    @Test
+    fun torchTappedWithoutATorchDoesNothing() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.CameraStarted(hasTorch = false))
+
+        vm.takeAction(BarcodeScanAction.TorchTapped)
+        vm.takeAction(BarcodeScanAction.CameraStarted(hasTorch = true))
+        settle()
+
+        assertEquals(Torch.Off, vm.state.torch, "the tap before the torch was known is not remembered")
     }
 
     @Test
@@ -214,7 +304,7 @@ class BarcodeScanViewModelTest : CoroutineTest() {
 
         advanceTimeBy(2_000)
         runCurrent()
-        assertIs<BarcodeScanEvent.OpenAmount>(events.single())
+        assertIs<BarcodeScanEvent.OpenAmount>(events.last())
         assertEquals("hit usda_branded slow=true", telemetry.events.last())
     }
 
@@ -492,6 +582,7 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         assertEquals(
             listOf<BarcodeScanEvent>(BarcodeScanEvent.OpenAmount(LoggerFixtures.scannedYogurt.id, LoggerFixtures.today, MealSlot.Dinner)),
             events,
+            "a typed code was not caught by the camera, so no buzz",
         )
         assertEquals("hit usda_branded slow=false typed", telemetry.events.last())
     }

@@ -1,5 +1,12 @@
 package com.opson.features.logger.impl
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,12 +20,30 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons as MaterialIcons
+import androidx.compose.material.icons.rounded.FlashlightOff
+import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.opson.libraries.scanner.FocusPoint
+import com.opson.libraries.scanner.ScanArea
 import com.opson.libraries.ui.components.CircularProgressIndicator
 import com.opson.libraries.ui.components.ScanFrame
 import com.opson.libraries.ui.components.Screen
@@ -27,8 +52,12 @@ import com.opson.libraries.ui.components.button.ButtonGhost
 import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.button.ButtonStyle
 import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
+import com.opson.libraries.ui.components.icon.IconButton
+import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.IconTile
 import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.SingleLineField
 import com.opson.libraries.ui.components.text.Text
@@ -44,6 +73,8 @@ import opson.libraries.resources.generated.resources.barcode_camera_unavailable_
 import opson.libraries.resources.generated.resources.barcode_cancel
 import opson.libraries.resources.generated.resources.barcode_code
 import opson.libraries.resources.generated.resources.barcode_hint
+import opson.libraries.resources.generated.resources.barcode_light_off
+import opson.libraries.resources.generated.resources.barcode_light_on
 import opson.libraries.resources.generated.resources.barcode_look_up
 import opson.libraries.resources.generated.resources.barcode_looking_up
 import opson.libraries.resources.generated.resources.barcode_miss_body
@@ -60,19 +91,24 @@ import opson.libraries.resources.generated.resources.barcode_type_code
 import opson.libraries.resources.generated.resources.barcode_type_misread
 import opson.libraries.resources.generated.resources.barcode_type_placeholder
 import opson.libraries.resources.generated.resources.barcode_unavailable
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+
+/** What the screen asks of the live camera: where to read, whether to light, and where a tap asked it to focus. */
+data class ViewfinderRequest(val scanArea: ScanArea, val torchOn: Boolean, val focusPoint: FocusPoint?)
 
 /**
  * The scanner: a camera window with a frame to aim at, and under it whatever
- * the scan has come to. Stateless; [viewfinder] is the live camera in the app
- * and a plain placeholder in previews and tests, so nothing here touches a
- * device. Shows no nutrition number in any stage.
+ * the scan has come to. [viewfinder] is the live camera in the app and a plain
+ * placeholder in previews and tests, so nothing here touches a device. The
+ * only state held here is where the preview was last tapped. Shows no
+ * nutrition number in any stage.
  */
 @Composable
 fun BarcodeScanScreen(
     state: BarcodeScanState,
     onAction: (BarcodeScanAction) -> Unit,
-    viewfinder: @Composable (Modifier) -> Unit,
+    viewfinder: @Composable (ViewfinderRequest, Modifier) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Screen(
@@ -90,14 +126,20 @@ fun BarcodeScanScreen(
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
         ) {
             SheetHeader(title = stringResource(Res.string.barcode_title), onClose = { onAction(BarcodeScanAction.CloseTapped) })
-            CameraWindow(state.stage, viewfinder)
+            CameraWindow(state, onAction, viewfinder)
             StageContent(state.stage, onAction)
         }
     }
 }
 
 @Composable
-private fun CameraWindow(stage: ScanStage, viewfinder: @Composable (Modifier) -> Unit) {
+private fun CameraWindow(
+    state: BarcodeScanState,
+    onAction: (BarcodeScanAction) -> Unit,
+    viewfinder: @Composable (ViewfinderRequest, Modifier) -> Unit,
+) {
+    val stage = state.stage
+    var focusPoint by remember { mutableStateOf<FocusPoint?>(null) }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -106,16 +148,18 @@ private fun CameraWindow(stage: ScanStage, viewfinder: @Composable (Modifier) ->
             .background(AppTheme.colors.soft),
         contentAlignment = Alignment.Center,
     ) {
+        // One call site for the camera in every stage that shows it, so a read moving the screen
+        // on to the lookup keeps the same session (and its focus and light) rather than restarting it.
+        if (stage == ScanStage.Scanning || (stage is ScanStage.LookingUp && stage.camera)) {
+            viewfinder(ViewfinderRequest(SCAN_AREA, torchOn = state.torch == Torch.On, focusPoint), Modifier.fillMaxSize())
+            FocusLayer(onFocus = { focusPoint = it }, modifier = Modifier.fillMaxSize())
+        }
         when (stage) {
-            ScanStage.Scanning -> {
-                viewfinder(Modifier.fillMaxSize())
-                ScanFrame(modifier = Modifier.fillMaxWidth(FRAME_WIDTH).aspectRatio(FRAME_RATIO))
-            }
+            ScanStage.Scanning -> ScanFrame(modifier = Modifier.fillMaxWidth(FRAME_WIDTH).aspectRatio(FRAME_RATIO))
             is ScanStage.LookingUp -> if (stage.camera) {
                 // The camera keeps running under the scrim; reads are ignored until there is an answer.
-                viewfinder(Modifier.fillMaxSize())
                 Box(modifier = Modifier.fillMaxSize().background(AppTheme.colors.scrim))
-                CircularProgressIndicator(color = AppTheme.colors.onHero.color)
+                if (stage.slow) CircularProgressIndicator(color = AppTheme.colors.onHero.color) else ReadConfirmation()
             } else {
                 CircularProgressIndicator()
             }
@@ -126,7 +170,99 @@ private fun CameraWindow(stage: ScanStage, viewfinder: @Composable (Modifier) ->
                 size = IconTileSize.Huge,
             )
         }
+        if (state.torch != Torch.None) {
+            TorchButton(
+                on = state.torch == Torch.On,
+                onClick = { onAction(BarcodeScanAction.TorchTapped) },
+                modifier = Modifier.align(Alignment.TopEnd).padding(AppTheme.spacing.row),
+            )
+        }
     }
+}
+
+/**
+ * Takes taps on the preview, hands each one on as a [FocusPoint], and draws a
+ * ring where it landed that settles and fades. The ring is drawn, never
+ * composed, so a tap redraws this layer and nothing else.
+ */
+@Composable
+private fun FocusLayer(onFocus: (FocusPoint) -> Unit, modifier: Modifier) {
+    val latestOnFocus by rememberUpdatedState(onFocus)
+    var tappedAt by remember { mutableStateOf<Offset?>(null) }
+    val ring = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
+    val color = AppTheme.colors.onHero.color
+    Canvas(
+        modifier = modifier.pointerInput(Unit) {
+            detectTapGestures { offset ->
+                tappedAt = offset
+                latestOnFocus(FocusPoint(offset.x / size.width, offset.y / size.height))
+                scope.launch {
+                    ring.snapTo(0f)
+                    ring.animateTo(1f, tween(durationMillis = RING_MILLIS, easing = LinearEasing))
+                }
+            }
+        },
+    ) {
+        val at = tappedAt ?: return@Canvas
+        val progress = ring.value
+        if (progress >= 1f) return@Canvas
+        // Closes in over the first third, like a lens settling, then fades over the last.
+        val settle = (progress / RING_SETTLE).coerceAtMost(1f)
+        val radius = RingRadius.toPx() * (RING_START_SCALE - (RING_START_SCALE - 1f) * settle)
+        val alpha = ((1f - progress) / (1f - RING_FADE_FROM)).coerceIn(0f, 1f)
+        drawCircle(color = color.copy(alpha = alpha), radius = radius, center = at, style = Stroke(width = RingStroke.toPx()))
+    }
+}
+
+/**
+ * The moment a code is caught: the frame snaps tight in the accent colour
+ * with a tick in it, so a fast hit that goes straight to the amount sheet
+ * still shows it worked. A slow lookup swaps this for the spinner at 400 ms.
+ */
+@Composable
+private fun ReadConfirmation() {
+    // Previews and screenshots start settled rather than on the first frame of the pop.
+    val inspecting = LocalInspectionMode.current
+    val pop = remember { Animatable(if (inspecting) 1f else 0f) }
+    LaunchedEffect(Unit) { pop.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+    ScanFrame(
+        color = AppTheme.colors.accent,
+        modifier = Modifier
+            .fillMaxWidth(FRAME_WIDTH)
+            .aspectRatio(FRAME_RATIO)
+            .graphicsLayer {
+                val scale = FRAME_SNAP_FROM - (FRAME_SNAP_FROM - 1f) * pop.value
+                scaleX = scale
+                scaleY = scale
+            },
+    )
+    Icon(
+        icon = AppIcons.CheckCircle,
+        size = CheckSize,
+        color = AppTheme.colors.accent,
+        modifier = Modifier.graphicsLayer {
+            scaleX = pop.value
+            scaleY = pop.value
+            alpha = pop.value.coerceIn(0f, 1f)
+        },
+    )
+}
+
+@Composable
+private fun TorchButton(on: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    val icon = if (on) {
+        LightOn.described(stringResource(Res.string.barcode_light_off))
+    } else {
+        LightOff.described(stringResource(Res.string.barcode_light_on))
+    }
+    IconButton(
+        icon = icon,
+        onClick = onClick,
+        backgroundColor = if (on) AppTheme.colors.accent else AppTheme.colors.scrim,
+        iconColor = if (on) AppTheme.colors.onAccent else AppTheme.colors.onHero,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -317,3 +453,31 @@ private const val WINDOW_RATIO = 1.15f
 /** The aiming frame: most of the window's width, the shape of a retail barcode. */
 private const val FRAME_WIDTH = 0.78f
 private const val FRAME_RATIO = 1.8f
+
+/**
+ * Where the camera reads: the frame with some room around it, so a code held
+ * a little off centre or askew still reads. The frame's height as a share of
+ * the window's follows from the two ratios.
+ */
+private const val SCAN_MARGIN = 0.12f
+private val SCAN_AREA = ScanArea(
+    width = (FRAME_WIDTH + SCAN_MARGIN).coerceAtMost(1f),
+    height = (FRAME_WIDTH * WINDOW_RATIO / FRAME_RATIO + SCAN_MARGIN).coerceAtMost(1f),
+)
+
+/** The focus ring: a little larger than a fingertip, and gone before a second tap would come. */
+private val RingRadius = 36.dp
+private val RingStroke = 2.dp
+private const val RING_MILLIS = 800
+private const val RING_START_SCALE = 1.3f
+private const val RING_SETTLE = 0.3f
+private const val RING_FADE_FROM = 0.6f
+
+/** The read confirmation: the frame closes in from a little wider, around a tick. */
+private const val FRAME_SNAP_FROM = 1.08f
+private val CheckSize = 56.dp
+
+// TODO(review): move these to AppIcons with the rest. libraries/ui was being changed by another
+//  agent when the torch arrived, so they wait here for that to land.
+private val LightOn = IconResource(MaterialIcons.Rounded.FlashlightOn, contentDescription = null, identifier = "flashlight_on")
+private val LightOff = IconResource(MaterialIcons.Rounded.FlashlightOff, contentDescription = null, identifier = "flashlight_off")

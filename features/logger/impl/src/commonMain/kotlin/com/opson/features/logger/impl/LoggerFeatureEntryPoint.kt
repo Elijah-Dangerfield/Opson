@@ -283,10 +283,12 @@ class LoggerFeatureEntryPoint(
             viewModel.takeAction(BarcodeScanAction.Resumed)
             onPauseOrDispose { }
         }
+        val haptics = LocalHapticFeedback.current
 
         viewModel.ObserveEvents { event ->
             when (event) {
                 BarcodeScanEvent.RequestPermission -> requestPermission()
+                BarcodeScanEvent.Scanned -> haptics.confirm()
                 // The amount sheet takes this screen's place over the logger, as it does for a tapped search row.
                 is BarcodeScanEvent.OpenAmount -> router.batch {
                     goBack()
@@ -307,10 +309,14 @@ class LoggerFeatureEntryPoint(
         BarcodeScanScreen(
             state = state,
             onAction = viewModel::takeAction,
-            viewfinder = { modifier ->
+            viewfinder = { request, modifier ->
                 barcodeCamera.Viewfinder(
                     onCode = { viewModel.takeAction(BarcodeScanAction.CodeRead(it)) },
                     onUnavailable = { viewModel.takeAction(BarcodeScanAction.CameraUnavailable) },
+                    scanArea = request.scanArea,
+                    torchOn = request.torchOn,
+                    onTorchAvailable = { viewModel.takeAction(BarcodeScanAction.CameraStarted(hasTorch = it)) },
+                    focusPoint = request.focusPoint,
                     modifier = modifier,
                 )
             },
