@@ -27,7 +27,7 @@ class GuestOnboardingSyncTest : IntegrationTest() {
 
         // Onboarding, in its order: save the mode, then create the guest.
         phone.settings.update(stampNumbersChange = false) {
-            it.copy(numbers = it.numbers.copy(preset = PresetId.Delayed), waterGlasses = 6)
+            it.copy(numbers = it.numbers.copy(preset = PresetId.Later), waterGlasses = 6)
         }
         assertEquals(SignInOutcome.Success, phone.auth.createGuestSession())
         val guest = assertNotNull(phone.userId)
@@ -54,7 +54,7 @@ class GuestOnboardingSyncTest : IntegrationTest() {
         reinstall.settings.isKnown.awaitState { it }
         // isKnown and settings are separate flows off the same store, so the
         // settings can trail it by a moment: wait on them as a screen would.
-        val pulled = reinstall.settings.settings.awaitState { it.numbers.preset == PresetId.Delayed }
+        val pulled = reinstall.settings.settings.awaitState { it.numbers.preset == PresetId.Later }
         assertEquals(6, pulled.waterGlasses)
         val day = reinstall.diary.observeDay(phone.today()).first()
         assertEquals(listOf(soup.id), day.allItems.map { it.id })

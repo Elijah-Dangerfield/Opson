@@ -10,6 +10,13 @@ import com.opson.libraries.diary.impl.wire.SyncRequestDto
 import com.opson.libraries.diary.impl.wire.SyncResponseDto
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.PresetId
+import kotlinx.datetime.LocalDate
+import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.RevealOn
+import com.opson.libraries.nutrition.Presets
+import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.ModeTiming
+import com.opson.libraries.nutrition.Metric
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -25,7 +32,11 @@ import kotlin.time.Instant
  * leaves out what 0.2 added. The server merges a settings write into the stored
  * object instead of replacing it, one level deep, so a 0.1 save on one phone
  * must not wipe what a 0.2 phone set at the top level: meal times, the exercise
- * choice, the check-in switch and the photos choice.
+ * choice, the check-in switch, the photos choice and, since design sync 4, the mode.
+ *
+ * The mode is the hard one, because 0.1 rewrites `numbers` whole and knows ten presets where 0.2
+ * has four. A 0.2 phone writes its preset in a top-level `mode` and, in `numbers`, an old preset
+ * with the same levels; it reads `mode` unless an old phone changed `numbers` after it.
  */
 class SettingsMergeAcrossVersionsTest : IntegrationTest() {
 
@@ -121,9 +132,9 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         val phone = client(user)
         phone.syncNow().getOrThrow()
         phone.settings.isKnown.awaitState { it }
-        phone.settings.update { it.copy(numbers = it.numbers.copy(preset = PresetId.Fuel, progressPhotos = true)) }
+        phone.settings.update { it.copy(numbers = it.numbers.copy(preset = PresetId.NutrientsFirst, progressPhotos = true)) }
         phone.syncNow().getOrThrow()
-        phone.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.Fuel, Instant.parse("2026-10-25T20:00:00Z"))) }
+        phone.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.NutrientsFirst, Instant.parse("2026-10-25T20:00:00Z"))) }
         phone.syncNow().getOrThrow()
 
         val secondPhone = client(user)
@@ -133,8 +144,93 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         assertFalse(secondPhone.settings.settings.value.numbers.showsProgressPhotos)
     }
 
+    @Test
+    fun aV01Save_keepsTheModeA02PhoneChose_andItsTimer() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        val timer = ModeTiming(startedOn = LocalDate(2026, 10, 20), weeks = 2, then = PresetId.NoNumbers)
+        val chosen = NumbersSettings(preset = PresetId.NutrientsFirst, endAfter = timer, changedAt = Instant.parse("2026-10-25T20:14:00Z"))
+        newPhone.settings.update(stampNumbersChange = false) { it.withNumbers(chosen) }
+        newPhone.syncNow().getOrThrow()
+
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        oldPhone.settings.update { it.copy(waterGlasses = 10) }
+        oldPhone.syncNow().getOrThrow()
+
+        val stored = server.query(
+            "SELECT settings->'mode'->>'preset' AS mode, settings->'numbers'->>'preset' AS old_preset, " +
+                "(settings->>'waterGlasses')::int AS glasses FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals(10, stored["glasses"], "the 0.1 save landed")
+        assertEquals("nutrients_first", stored["mode"], "the merge kept the mode")
+        assertEquals("fuel", stored["old_preset"], "0.1 reads a preset it knows, with the same levels")
+
+        newPhone.syncNow().getOrThrow()
+        val settings = newPhone.settings.settings.awaitState { it.waterGlasses == 10 }
+        assertEquals(PresetId.NutrientsFirst, settings.numbers.preset)
+        assertEquals(emptyMap(), settings.numbers.overrides)
+        assertEquals(timer, settings.numbers.endAfter)
+    }
+
+    @Test
+    fun aModePickedOnA01Phone_afterA02Save_wins_migratedToTheSameLevels() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        newPhone.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.Full, Instant.parse("2026-10-25T20:00:00Z"))) }
+        newPhone.syncNow().getOrThrow()
+
+        // The old phone picks what it calls Coast: numbers rewritten, stamped later, no mode key.
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        val coast = NumbersSettings(preset = PresetId.Later, revealOn = RevealOn.Week, overrides = COAST_HIDES)
+        oldPhone.settings.update { it.withNumbers(coast.copy(changedAt = Instant.parse("2026-10-26T08:00:00Z"))) }
+        oldPhone.syncNow().getOrThrow()
+        val sent = server.query("SELECT settings->'numbers'->>'preset' AS old_preset FROM user_settings WHERE user_id = ?::uuid", user).single()
+        assertEquals("coast", sent["old_preset"])
+
+        newPhone.syncNow().getOrThrow()
+        val numbers = newPhone.settings.settings.awaitState { it.numbers.preset == PresetId.Later }.numbers
+        assertEquals(RevealOn.Week, numbers.revealOn)
+        Metric.entries.forEach { assertEquals(coast.level(it), numbers.level(it), it.name) }
+    }
+
+    @Test
+    fun aV01PhoneReadingA02Mode_neverSeesMoreNumbers() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        newPhone.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, Instant.parse("2026-10-25T20:00:00Z"))) }
+        newPhone.syncNow().getOrThrow()
+
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        val stored = server.query(
+            "SELECT settings->'numbers'->>'preset' AS old_preset, settings->'numbers'->'overrides' AS overrides " +
+                "FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals("blind", stored["old_preset"], "a 0.1 phone reads Blind: every number hidden")
+        assertEquals("{}", stored["overrides"].toString(), "and nothing turned back on")
+        val onOldPhone = oldPhone.settings.settings.value.numbers
+        Metric.entries.forEach { assertEquals(Presets.NoNumbers.level(it), onOldPhone.level(it), it.name) }
+    }
+
     private companion object {
         /** Keys 0.1 doesn't know, so drops on decode and never sends. */
-        val V02_KEYS = setOf("mealTimes", "exerciseRange", "checkIn", "progressPhotos")
+        val V02_KEYS = setOf("mealTimes", "exerciseRange", "checkIn", "progressPhotos", "mode", "modeTimerEnded")
+
+        /** What Coast hid that Later on its own would only delay. */
+        val COAST_HIDES = listOf(Metric.Remaining, Metric.EnergyOut, Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber)
+            .associateWith { Visibility.Hide }
     }
 }

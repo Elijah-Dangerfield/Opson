@@ -33,7 +33,7 @@ class DeleteEverythingTest : IntegrationTest() {
 
     private suspend fun TestClient.fillEveryTable() {
         val day = today()
-        settings.update { it.copy(numbers = it.numbers.copy(preset = PresetId.Blind), waterGlasses = 9) }
+        settings.update { it.copy(numbers = it.numbers.copy(preset = PresetId.NoNumbers), waterGlasses = 9) }
         log("Pasta", kcal = 550.0, slot = MealSlot.Dinner)
         diary.addWater(day, 250)
         diary.setFeeling(day, MealSlot.Dinner, MealFeeling(hunger = Hunger.Hungry))
