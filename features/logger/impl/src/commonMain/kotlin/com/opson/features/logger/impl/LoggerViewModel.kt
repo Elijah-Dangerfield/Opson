@@ -220,7 +220,9 @@ class LoggerViewModel(
         logger.log(day, slot, listOf(pick.toLogPick()))
     }
 
-    private suspend fun describeTyped(action: LoggerAction, text: String, debounce: Duration = DESCRIBE_DEBOUNCE) {
+    private suspend fun describeTyped(action: LoggerAction, typed: String, debounce: Duration = DESCRIBE_DEBOUNCE) {
+        // The server refuses a longer read outright, so a long dictation would fail on every pause.
+        val text = typed.take(DESCRIBE_LIMIT)
         val parsing = text.isNotBlank()
         action.choose { copy(describeText = text, describeStatus = if (parsing) DescribeStatus.Parsing else DescribeStatus.Idle) }
         describeJob?.cancel()
@@ -547,7 +549,7 @@ class LoggerViewModel(
                     is VoiceCapture.Listening -> capture.copy(heard = heard.text)
                     else -> VoiceCapture.Transcribing(prefix, heard.text)
                 }
-                action.choose { copy(voice = next, describeText = prefix + heard.text) }
+                action.choose { copy(voice = next, describeText = (prefix + heard.text).take(DESCRIBE_LIMIT)) }
                 if (capture is VoiceCapture.Listening) armQuiet(QUIET_AFTER_SPEECH)
             }
             is Heard.Final -> transcribed(action, prefix, heard.text)
@@ -637,6 +639,9 @@ class LoggerViewModel(
 
         /** Longer than search: a parse is a heavier call, and people pause mid-sentence. */
         val DESCRIBE_DEBOUNCE = 700.milliseconds
+
+        /** The most the server reads (`DescribeParser.MAX_TEXT`); it answers a longer text with a 400. */
+        const val DESCRIBE_LIMIT = 1_000
 
         /** A pause this long after speech means the person is done. */
         val QUIET_AFTER_SPEECH = 2.seconds

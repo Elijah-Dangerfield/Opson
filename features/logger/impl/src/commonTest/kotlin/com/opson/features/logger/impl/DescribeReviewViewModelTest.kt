@@ -98,6 +98,17 @@ class DescribeReviewViewModelTest : CoroutineTest() {
         assertTrue(logged.all { it.method == LogMethod.Describe && it.precision == Precision.Estimate })
     }
 
+    /** The server answers more than it reads with a 400, which would read as "that didn't parse" on every pause. */
+    @Test
+    fun aDescriptionLongerThanTheServerReadsIsCutToWhatItReads() = runUnitTest {
+        val long = "2 eggs and toast, ".repeat(80)
+        val vm = described(long)
+
+        assertEquals(LoggerViewModel.DESCRIBE_LIMIT, vm.state.describe.text.length)
+        assertEquals(long.take(LoggerViewModel.DESCRIBE_LIMIT).trim(), catalog.described.single())
+        assertEquals(DescribeStatus.Parsed, vm.state.describe.status)
+    }
+
     @Test
     fun moreAddsOneEggAndTouchesNothingElse() = runUnitTest {
         val vm = described()
