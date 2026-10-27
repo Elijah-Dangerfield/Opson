@@ -86,3 +86,20 @@ counts quick numbers.
   every return from Control Center as a new foreground.
 - Photo estimate latency and spend: slow estimates used to fail at 30 s and get
   retried by hand, each a paid model call.
+
+## Onboarding decisions (from `docs/plans/onboarding-v2.md`, 2026-10-27)
+
+- `release.onboardingSetup` (the goal, resting energy and meal times screens)
+  is off. They have no design yet; they reuse the app's visual language.
+- EU and UK health-data consent: build the one-line "Agree and continue" on
+  Welcome, or limit the App Store to the US. Needs the lawyer.
+- "Skip and start logging" lands in Full numbers, as the design says. Later
+  would be safer for someone who told us nothing.
+- Three "why" options (curious, a medical need, working with a provider)
+  change nothing yet. Keep, use or cut.
+- A "yes" to the statement can't be changed anywhere later.
+- A new Apple account that quits mid-setup and signs in again lands on Today;
+  a small "setup done" setting would fix it.
+- Units could default from the phone's region, so a US user isn't in kg.
+- A clinician should review the statement copy and the recommendation's
+  reason lines.
