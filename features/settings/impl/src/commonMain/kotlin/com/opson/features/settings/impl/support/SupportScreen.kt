@@ -36,6 +36,11 @@ import com.opson.system.AppTheme
 import com.opson.system.background
 import com.opson.system.thenIf
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.settings_about_body
+import opson.libraries.resources.generated.resources.settings_about_credits
+import opson.libraries.resources.generated.resources.settings_about_privacy
+import opson.libraries.resources.generated.resources.settings_about_terms
+import opson.libraries.resources.generated.resources.settings_about_title
 import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_delete_failed
 import opson.libraries.resources.generated.resources.settings_delete_offline
@@ -113,6 +118,7 @@ fun SupportScreen(
         // Trusted person and sharing with a clinician return when they work; 0.1 shows no
         // "Coming later" rows, which App Review can read as placeholder content.
         DataCard(state, onAction)
+        AboutCard(onAction)
     }
     if (state.delete == DeleteStep.Confirming || state.delete == DeleteStep.Deleting) {
         DeleteDialog(working = state.delete == DeleteStep.Deleting, onAction = onAction)
@@ -201,6 +207,45 @@ private fun DataCard(state: SupportState, onAction: (SupportAction) -> Unit) {
         CardButton(
             text = stringResource(Res.string.settings_send_feedback),
             onClick = { onAction(SupportAction.SendFeedbackTapped) },
+        )
+    }
+}
+
+/** What Opson is and isn't, in a quiet card at the end, then the published legal pages. */
+@Composable
+private fun AboutCard(onAction: (SupportAction) -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = SettingsDefaults.CardInset,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = stringResource(Res.string.settings_about_title),
+                typography = AppTheme.type.cardTitle,
+                color = AppTheme.colors.ink,
+            )
+            Text(
+                text = stringResource(Res.string.settings_about_body),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.muted,
+            )
+        }
+        val opens = AppIcons.OpenInNew.described(stringResource(Res.string.settings_support_opens_browser))
+        CardButton(
+            text = stringResource(Res.string.settings_about_privacy),
+            trailing = opens,
+            onClick = { onAction(SupportAction.PrivacyTapped) },
+        )
+        CardButton(
+            text = stringResource(Res.string.settings_about_terms),
+            trailing = opens,
+            onClick = { onAction(SupportAction.TermsTapped) },
+        )
+        CardButton(
+            text = stringResource(Res.string.settings_about_credits),
+            trailing = opens,
+            onClick = { onAction(SupportAction.CreditsTapped) },
         )
     }
 }

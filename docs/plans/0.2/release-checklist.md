@@ -19,9 +19,9 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
       are already in.
 - [ ] Play Console, App content › Health apps: declare the four Health
       Connect read permissions before any Android upload that includes them.
-- [ ] Add the privacy paragraph proposed in
-      `docs/plans/screens/integrations.md` to `legal/privacy.md`. Health data
-      stays on the device, so the App Store label doesn't change.
+- [x] The privacy paragraph is in `legal/privacy.md` ("Features that may not
+      be in your version yet"), checked against the code on 2026-10-27. Health
+      data stays on the device, so the App Store label doesn't change.
 - [ ] Check the rationale activity's privacy URL
       (`https://nightjarlabs.llc/opson/privacy`).
 - [ ] Try the real permission flows on an iPhone and an Android phone.
@@ -40,8 +40,8 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
 - [ ] Push the new Food catalog Grafana panels (`ops/grafana/foods.json`)
       after prod runs V12 and V13; until then their prod queries fail.
 - [ ] App Privacy: check whether barcode misses (product interaction, not
-      linked to the user) need declaring, and add the wording from
-      `docs/plans/screens/barcode.md` to `legal/privacy.md`.
+      linked to the user) need declaring. The wording is in
+      `legal/privacy.md` already, including Nutritionix and ML Kit.
 - [ ] Try a real scan on an iPhone and an Android phone: a hit, a miss and a
       denied camera.
 
@@ -62,13 +62,9 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
 
       Then the same with `-a opson-server-prod` once 0.1 is through review.
       `ANTHROPIC_PHOTO_MODEL` is optional (default `claude-opus-5-5`).
-- [ ] Add to `legal/privacy.md`, under "What else the app sends": "**Meal
-      photos**, only when you use Photo estimate, are sent with your note to
-      [Anthropic](https://www.anthropic.com/legal/privacy), which reads them
-      and returns a list of foods. We don't save the photo or keep a copy on
-      our server, and it is not linked to your account. Anthropic does not
-      use it to train its models." Keep "No contacts, photos or microphone
-      access unless you choose a feature that needs it".
+- [x] The photo paragraph is in `legal/privacy.md` and Anthropic is in its
+      processor table and in `legal/health-data.md`. If the org's retention
+      setting turns out longer than "short", say so there.
 - [ ] App Store Connect, App Privacy: add **Photos or Videos**, used for
       **App Functionality**, **not linked** to the user, **not used for
       tracking**. Play Console Data safety: Photos, collected, not shared
@@ -93,10 +89,9 @@ usage strings, which are already in `Info.plist` (the binary references
 them as soon as `:libraries:speech:impl` links, like the camera).
 
 - [ ] App Privacy: audio is not collected by Opson (it goes to the platform
-      recognizer and is not stored), so the label should not change. Confirm,
-      and say so in `legal/privacy.md`: on iOS, Apple processes the audio when
-      the phone cannot recognise the language on the device; on Android, the
-      phone's speech service does when there is no on-device recognizer.
+      recognizer and is not stored), so the label should not change. Confirm.
+      `legal/privacy.md` already says Apple or the phone's speech service
+      processes the audio when it can't be recognised on the device.
 - [ ] Play Console: `RECORD_AUDIO` is declared from the build that links the
       speech library. Check the Data safety form ("Audio" is not collected or
       shared, processed ephemerally on the device or by the system service).
@@ -110,10 +105,14 @@ Design sync 2's helpline page, Support's crisis row and the pause sheet's
 is held back: the only platform change is `LSApplicationQueriesSchemes`
 (`tel`, `sms`) in the iOS Info.plist, which is not a capability.
 
-- [ ] Someone checks every number, text keyword and source URL in
-      `SupportDirectory` (US, UK, Canada, Australia, Ireland, New Zealand)
-      and removes the `TODO(launch): verify` notes. Then again each quarter.
-- [ ] Point the US "Find a treatment provider" line at the real search page.
+- [x] Every number, text keyword and source URL in `SupportDirectory` was
+      checked on the organisations' own sites on 2026-10-27, and the
+      `TODO(launch)` notes are gone. EDANZ's old domain redirected to an
+      unrelated site and Ireland's 50808 was renamed; both sources are fixed.
+- [ ] Recheck the list each quarter (next: January 2027).
+- [x] The US "Find a treatment provider" line opens findEDhelp, the
+      Alliance's directory, and the 0.1 helpline link opens its Find
+      treatment page.
 - [ ] Onboarding's statement and the big-day card link to `FindSupportRoute`
       only with the flag on.
 - [ ] Try Call and Text on an iPhone and an Android phone, and the
@@ -194,9 +193,8 @@ No entitlement or capability: LocalAuthentication and BiometricPrompt need
 none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 `NSCameraUsageDescription`, and `USE_BIOMETRIC` (a normal permission).
 
-- [ ] Add a privacy paragraph to `legal/privacy.md`: progress photos stay on
-      the phone, are never uploaded or backed up, and are deleted with the
-      account. Nothing is collected, so the App Store label doesn't change.
+- [x] The progress photos paragraph is in `legal/privacy.md`. Nothing is
+      collected, so the App Store label doesn't change.
 - [x] Settings: the Show / Hide switch for photos in Modes and numbers
       (Blind, Mindful, Rhythm and Fuel default to Hide), behind the pause and
       `release.progressPhotos`.
@@ -273,7 +271,8 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
          3,290,890 products and `FOOD_SEARCH_OFF_ENABLED=true` in `fly.toml`.
       3. Ship the app's Open Food Facts credit wherever its foods appear
          (ODbL requires it), then set `FOOD_SEARCH_OFF_ENABLED=true` on
-         `opson-server-prod`.
+         `opson-server-prod`. The Foods tab, the Logger, the website footer
+         and `legal/credits.md` (linked from Support) carry it already.
       4. Set `OFF_IMPORT_ENABLED=true` and the `CATALOG_DATABASE_URL` secret
          so the monthly reload keeps it current.
 
@@ -357,3 +356,87 @@ It goes to Cloudflare Pages, uploaded from the existing workflow with
 - [ ] Before the repo goes private: the design-sync manifest is published to
       a public `raw.githubusercontent.com` URL that Claude Design reads. After
       that, hand Claude Design `design-sync/app.zip` instead.
+
+## Legal and health safety (docs/legal-review-2026-10.md)
+
+The review on 2026-10-27 fixed what it could in the repo. These need you, a
+lawyer, or a change outside this review's lane. None of it is legal advice.
+
+### Before merging the legal changes to main (merging publishes them)
+
+- [ ] **You:** name the state Nightjar Labs LLC is organised in, in
+      `legal/terms.md` under "Governing law", and decide whether to add a
+      postal address to "Contact" (Apple's minimum EULA terms and CAN-SPAM
+      for waitlist emails both want one).
+- [ ] **Lawyer:** read `legal/privacy.md`, `legal/terms.md` and
+      `legal/health-data.md` once before they go live. The items marked
+      "lawyer" in the review are the ones that matter.
+- [ ] **You:** on the Nightjar homepage (the `nightjar` repo), link
+      `/opson/health-data` from the footer. Washington wants the link on the
+      regulated entity's homepage; the Opson site's footer has it already.
+
+### Crisis lines
+
+- [ ] Flip `release.findSupport` once Call and Text are tried on a phone (see
+      Find support above). With it off, Support has the Alliance's helpline
+      and findEDhelp but no 24/7 crisis line.
+
+### Code, small, outside this review's lane
+
+- [ ] Telemetry: strip query strings from Sentry breadcrumbs and event
+      messages (`beforeBreadcrumb` and `beforeSend` in
+      `libraries/opson/impl/.../AppTelemetry.kt`). Today a failed food search
+      can carry its words to Sentry, linked to the account id. Then drop that
+      sentence from `legal/privacy.md`, `legal/health-data.md` and the App
+      Privacy note in `docs/app-store/listing.md`.
+- [ ] Exclude `opson.db` from iCloud and device backups on iOS
+      (`isExcludedFromBackup` in `IosAppDatabaseBuilderFactory.kt`), and add
+      backup and data-extraction rules on Android (`allowBackup` is true with
+      no rules). The log is on the server anyway, and Apple's 5.1.3(ii) reads
+      most safely with no health data in iCloud at all.
+- [ ] Account deletion: revoke the Sign in with Apple token through Apple's
+      REST API as part of `DELETE /v1/me`. Apple asks for this when an app
+      offers Sign in with Apple and account deletion.
+- [ ] Remove the Lust Script font (`libraries/ui/.../font/lust-script-regular.ttf`,
+      `BrandFontFamily`), or buy Positype's app license. It's a commercial
+      font marked "All rights reserved", ships in the binary, and is used only
+      by the typography catalog.
+- [ ] Add `PrivacyInfo.xcprivacy` to the iOS app, declaring the
+      required-reason APIs the app's own code uses (UserDefaults, file
+      timestamps). There is none in the repo.
+- [ ] Before the Android release: a generated open-source license screen in
+      the app (AboutLibraries or similar) to back up `legal/credits.md`, which
+      is hand-written from the 2026-10-27 dependency report.
+- [ ] Export: include notes, feelings, settings, custom foods, saved meals
+      and fasts in the CSV, or keep the policy's "email us for the rest".
+
+### Accounts and settings at providers
+
+- [ ] Sentry and Grafana Cloud: set retention to 90 days or less, as the
+      policy says. Supabase: confirm backups expire within 30 days.
+- [ ] Confirm a data processing agreement is in place with Fly.io,
+      Supabase, Sentry, Grafana Labs and Anthropic (most are part of their
+      standard terms; accept or download each).
+- [ ] App Store Connect, App Privacy: add Customer support and Search
+      history, per `docs/app-store/listing.md`.
+
+### Lawyer
+
+- [ ] GDPR and UK GDPR: whether Opson needs an explicit consent step for
+      health data before EU or UK users can use it, and an EU and UK
+      representative. Until then, consider limiting the App Store
+      availability to the US.
+- [ ] Washington, Nevada and Connecticut: whether the onboarding flow needs a
+      separate consent for collecting consumer health data, or whether
+      "necessary to provide the service" covers everything Opson collects.
+- [ ] Terms: the US$50 liability cap, and whether to add an arbitration or
+      indemnity clause. Left out on purpose; they need a lawyer's call.
+- [ ] The Open Food Facts share-alike question (already tracked in
+      `docs/food-data-sources.md`).
+
+### When NEVO lands
+
+- [ ] Add "Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven"
+      to `legal/credits.md` and the in-app food credit, wherever NEVO foods
+      appear. NEVO data must stay free to users, including after Plus, and
+      its values may not be changed.

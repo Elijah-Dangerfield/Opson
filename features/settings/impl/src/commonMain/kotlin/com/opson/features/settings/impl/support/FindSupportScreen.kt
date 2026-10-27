@@ -49,6 +49,8 @@ import opson.libraries.resources.generated.resources.settings_find_crisis_sub
 import opson.libraries.resources.generated.resources.settings_find_crisis_sub_keyword
 import opson.libraries.resources.generated.resources.settings_find_crisis_text
 import opson.libraries.resources.generated.resources.settings_find_crisis_title
+import opson.libraries.resources.generated.resources.settings_find_directory
+import opson.libraries.resources.generated.resources.settings_find_directory_about
 import opson.libraries.resources.generated.resources.settings_find_ed_header
 import opson.libraries.resources.generated.resources.settings_find_intro
 import opson.libraries.resources.generated.resources.settings_find_no_country
@@ -126,6 +128,7 @@ fun FindSupportScreen(
             lines = state.elsewhere,
             withCountry = true,
             onAction = onAction,
+            footer = { DirectoryRow(onClick = { onAction(FindSupportAction.DirectoryTapped) }) },
         )
     }
 }
@@ -246,6 +249,7 @@ private fun LinesCard(
     lines: List<SupportLine>,
     withCountry: Boolean,
     onAction: (FindSupportAction) -> Unit,
+    footer: (@Composable () -> Unit)? = null,
 ) {
     EdgeCard(
         edgeToEdge = false,
@@ -262,6 +266,26 @@ private fun LinesCard(
             HorizontalDivider(color = AppTheme.colors.line)
             LineRow(line, withCountry, onClick = { onAction(FindSupportAction.LineTapped(line)) })
         }
+        if (footer != null) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            footer()
+        }
+    }
+}
+
+/** Find A Helpline, the last row under other countries: lines for countries this list lacks. */
+@Composable
+private fun DirectoryRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text = stringResource(Res.string.settings_find_directory), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+            Text(text = stringResource(Res.string.settings_find_directory_about), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        }
+        ReachButton(text = stringResource(Res.string.settings_find_open), icon = AppIcons.OpenInNew, onClick = onClick)
     }
 }
 

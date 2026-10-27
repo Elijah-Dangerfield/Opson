@@ -10,6 +10,7 @@
     <string name="onboarding_welcome_title" translatable="false">Opson</string>
     <string name="onboarding_welcome_subtitle">Write down what you eat. See as many numbers as you want, or none.</string>
     <string name="onboarding_welcome_body">You can show, soften, save for later or hide every number, and change it whenever you like.</string>
+    <string name="onboarding_welcome_not_medical">Opson is a food log, not medical advice. Food values are estimates.</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_skip_all">Skip and start logging</string>
     <string name="onboarding_have_account">Have an account?</string>

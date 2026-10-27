@@ -106,6 +106,7 @@ import opson.libraries.resources.generated.resources.onboarding_statement_body
 import opson.libraries.resources.generated.resources.onboarding_statement_quote
 import opson.libraries.resources.generated.resources.onboarding_talk_to_someone
 import opson.libraries.resources.generated.resources.onboarding_welcome_body
+import opson.libraries.resources.generated.resources.onboarding_welcome_not_medical
 import opson.libraries.resources.generated.resources.onboarding_welcome_subtitle
 import opson.libraries.resources.generated.resources.onboarding_welcome_title
 import org.jetbrains.compose.resources.stringResource
@@ -186,6 +187,12 @@ private fun WelcomeStep(
             )
             Spacer(Modifier.height(Dimension.D900))
             PlanCard()
+            Spacer(Modifier.height(Dimension.D700))
+            Text(
+                text = stringResource(Res.string.onboarding_welcome_not_medical),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
 
             Spacer(Modifier.height(Dimension.D900))
             Spacer(Modifier.weight(1f))
