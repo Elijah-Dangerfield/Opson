@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import androidx.compose.runtime.Immutable
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.LoggedToMeal
@@ -249,6 +250,7 @@ sealed interface TileStatus {
 data class WaterRow(val display: Display, val filled: Int, val total: Int, val showSegments: Boolean)
 
 /** How one meal shows, chosen by the layout and whether it has anything in it. */
+@Immutable
 sealed interface MealEntry {
     val slot: MealSlot
 
@@ -276,6 +278,7 @@ sealed interface MealEntry {
     data class NotPlanned(override val slot: MealSlot) : MealEntry
 }
 
+@Immutable
 data class MealCard(
     val slot: MealSlot,
     /** The slot's name, or "All food" when meal groups are off. */
@@ -298,9 +301,11 @@ data class MealCard(
  * A meal's Note as Today shows it: the hunger level and the words, either one alone. Read from the
  * "How it felt" record the Note sheet writes; null when it holds neither.
  */
+@Immutable
 data class MealNoteUi(val hunger: StringResource?, val text: String?)
 
 /** A food on a meal card. [precision] is null where only the household amount shows (No numbers). */
+@Immutable
 data class ItemRowUi(val entryId: String, val name: String, val amount: String, val precision: Precision?, val calories: Display)
 
 /** [closed]: the day is closed already, so the button opens it to look back. */
