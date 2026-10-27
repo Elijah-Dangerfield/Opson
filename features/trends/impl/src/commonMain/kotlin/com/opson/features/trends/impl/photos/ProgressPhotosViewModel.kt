@@ -1,6 +1,8 @@
 package com.opson.features.trends.impl.photos
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.core.Catching
+import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
 import com.opson.libraries.progressphotos.PhotoBytes
@@ -88,7 +90,8 @@ class ProgressPhotosViewModel(
             ProgressPhotosAction.DeleteAllCancelled -> changeUi(action) { copy(confirmDeleteAll = false) }
             ProgressPhotosAction.DeleteAllConfirmed -> {
                 changeUi(action) { copy(confirmDeleteAll = false) }
-                photos.deleteAll()
+                // A failed delete (the disk) leaves the grid as it is rather than ending the page.
+                Catching { photos.deleteAll() }.logOnFailure("Couldn't delete the progress photos")
             }
             ProgressPhotosAction.BackTapped -> sendEvent(ProgressPhotosEvent.Close)
         }

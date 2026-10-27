@@ -1,6 +1,8 @@
 package com.opson.features.trends.impl.photos
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.core.Catching
+import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
 import com.opson.libraries.progressphotos.PhotoBytes
@@ -62,7 +64,7 @@ class CompareViewModel(
             is CompareAction.NoteTyped -> {
                 val rightId = state.right?.id ?: return
                 change(action) { copy(note = action.text) }
-                photos.setNote(rightId, action.text.take(NOTE_LIMIT))
+                write("Couldn't save a progress photo note") { photos.setNote(rightId, action.text.take(NOTE_LIMIT)) }
             }
             CompareAction.MenuTapped -> change(action) { copy(menuOpen = true) }
             CompareAction.MenuDismissed -> change(action) { copy(menuOpen = false) }
@@ -71,11 +73,12 @@ class CompareViewModel(
                 val left = state.left ?: return
                 val right = state.right ?: return
                 // It shows under the grid; the menu now offers to remove it.
-                photos.saveComparison(left.id, right.id)
+                write("Couldn't save a photo comparison") { photos.saveComparison(left.id, right.id) }
             }
             CompareAction.RemoveComparisonTapped -> {
                 change(action) { copy(menuOpen = false) }
-                state.savedId?.let { photos.removeComparison(it) }
+                val savedId = state.savedId ?: return
+                write("Couldn't remove a photo comparison") { photos.removeComparison(savedId) }
             }
             CompareAction.BackTapped -> sendEvent(CompareEvent.Close)
         }
@@ -95,6 +98,15 @@ class CompareViewModel(
             }
         }
         action.updateState { CompareStateBuilder.build(list, comparisons, images.toMap(), lock.state.value, ui) }
+    }
+
+    /**
+     * A write to the photo index. It throws on a full disk, or on iOS when protected data is
+     * unavailable; uncaught, that ends the action loop and takes the app down with it. The page
+     * already shows what it holds, so a failure is logged and the next change tries again.
+     */
+    private suspend fun write(failure: String, block: suspend () -> Unit) {
+        Catching { block() }.logOnFailure(failure)
     }
 
     private suspend fun change(action: CompareAction, block: CompareUi.() -> CompareUi) {

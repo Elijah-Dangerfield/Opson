@@ -126,6 +126,20 @@ class CompareViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aWriteThatFails_leavesThePageWorking() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        photos.failWrites = true
+
+        vm.takeAction(CompareAction.NoteTyped("Back to running"))
+        vm.takeAction(CompareAction.SaveComparisonTapped)
+        vm.takeAction(CompareAction.BackTapped)
+
+        assertNull(vm.state.savedId, "nothing was saved")
+        assertEquals(listOf<CompareEvent>(CompareEvent.Close), events, "the page still answers")
+    }
+
+    @Test
     fun saveAndRemoveTheComparison_fromTheMenu() = runUnitTest {
         val vm = vm()
 

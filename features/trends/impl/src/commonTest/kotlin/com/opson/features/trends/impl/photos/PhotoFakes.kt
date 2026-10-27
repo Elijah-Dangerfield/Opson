@@ -30,6 +30,13 @@ class FakeProgressPhotoRepository(photos: List<ProgressPhoto> = ProgressPhotosFi
     /** While set, thumbnail reads wait for it: the disk being slow. */
     var thumbnailsWaitFor: CompletableDeferred<Unit>? = null
 
+    /** Every write throws, as the file store does on a full disk. */
+    var failWrites = false
+
+    private fun writing() {
+        if (failWrites) throw IllegalStateException("disk full")
+    }
+
     override fun observePhotos(): Flow<List<ProgressPhoto>> = photos
     override fun observeComparisons(): Flow<List<SavedComparison>> = comparisons
     override fun observeLastTaken(): Flow<LocalDate?> = photos.map { list -> list.maxOfOrNull { it.date } }
@@ -52,26 +59,31 @@ class FakeProgressPhotoRepository(photos: List<ProgressPhoto> = ProgressPhotosFi
     }
 
     override suspend fun setNote(id: String, note: String) {
+        writing()
         notes[id] = note
     }
 
     override suspend fun delete(id: String) {
+        writing()
         photos.value = photos.value.filterNot { it.id == id }
     }
 
     override suspend fun deleteAll() {
+        writing()
         deletedAll = true
         photos.value = emptyList()
         comparisons.value = emptyList()
     }
 
     override suspend fun saveComparison(leftId: String, rightId: String): SavedComparison {
+        writing()
         val saved = SavedComparison("pair-${comparisons.value.size}", leftId, rightId)
         comparisons.value = listOf(saved) + comparisons.value
         return saved
     }
 
     override suspend fun removeComparison(id: String) {
+        writing()
         comparisons.value = comparisons.value.filterNot { it.id == id }
     }
 }

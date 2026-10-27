@@ -78,6 +78,21 @@ class PhotoViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aDeleteThatFails_keepsThePhoto_andThePageWorking() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        photos.failWrites = true
+
+        vm.takeAction(PhotoAction.DeleteTapped)
+        vm.takeAction(PhotoAction.DeleteConfirmed)
+        vm.takeAction(PhotoAction.BackTapped)
+
+        assertEquals("oct25-front", vm.state.photo?.id)
+        assertFalse(vm.state.confirmDelete)
+        assertEquals(listOf<PhotoEvent>(PhotoEvent.Close), events)
+    }
+
+    @Test
     fun menuDismissed_andBack() = runUnitTest {
         val vm = vm()
         val events = events(vm)

@@ -231,6 +231,21 @@ class ProgressPhotosViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aDeleteAllThatFails_keepsTheGrid_andThePageWorking() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        photos.failWrites = true
+
+        vm.takeAction(ProgressPhotosAction.DeleteAllTapped)
+        vm.takeAction(ProgressPhotosAction.DeleteAllConfirmed)
+        vm.takeAction(ProgressPhotosAction.BackTapped)
+
+        assertEquals(listOf(3, 3), vm.state.months.map { it.tiles.size })
+        assertFalse(vm.state.confirmDeleteAll)
+        assertEquals(listOf<ProgressPhotosEvent>(ProgressPhotosEvent.Close), events)
+    }
+
+    @Test
     fun anOlderYearSaysWhichYear() {
         val state = ProgressPhotosStateBuilder.build(
             photos = ProgressPhotosFixtures.photos,

@@ -1,6 +1,8 @@
 package com.opson.features.trends.impl.photos
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.core.Catching
+import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
 import com.opson.libraries.progressphotos.PhotoBytes
@@ -48,7 +50,8 @@ class PhotoViewModel(
             PhotoAction.DeleteCancelled -> action.updateState { it.copy(confirmDelete = false) }
             PhotoAction.DeleteConfirmed -> {
                 action.updateState { it.copy(confirmDelete = false) }
-                photos.delete(id)
+                // Kept on a failed write (a full disk), so the photo stays and nothing crashes.
+                Catching { photos.delete(id) }.logOnFailure("Couldn't delete a progress photo")
             }
             PhotoAction.BackTapped -> sendEvent(PhotoEvent.Close)
         }
