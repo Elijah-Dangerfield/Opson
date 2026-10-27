@@ -24,10 +24,10 @@ fun previewVisibilityPolicy(
 ): VisibilityPolicy = VisibilityPolicy(NumbersSettings(preset = preset, overrides = overrides), clock, timeZone)
 
 // The default fails closed. A screen that renders outside the app's provider
-// must not show calories to someone who chose Blind, so an unprovided policy
+// must not show calories to someone who chose No numbers, so an unprovided policy
 // hides everything in a running app. Only previews swap it for Full, in
 // [currentVisibilityPolicy], so they still have numbers to look at.
-private val Unprovided: VisibilityPolicy = previewVisibilityPolicy(PresetId.Blind)
+private val Unprovided: VisibilityPolicy = previewVisibilityPolicy(PresetId.NoNumbers)
 private val PreviewDefault: VisibilityPolicy = previewVisibilityPolicy(PresetId.Full)
 
 val LocalVisibilityPolicy = staticCompositionLocalOf { Unprovided }

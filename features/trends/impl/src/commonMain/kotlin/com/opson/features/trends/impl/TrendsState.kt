@@ -68,7 +68,7 @@ sealed interface RangeLabel {
     data object LastThreeMonths : RangeLabel
 }
 
-/** Coast before its weekly check: when it opens. [tonight] when that is today. */
+/** Later, weekly, before its weekly check: when it opens. [tonight] when that is today. */
 data class WeeklyCheck(val day: DayOfWeek, val at: LocalTime, val tonight: Boolean)
 
 data class IntakeCard(
@@ -100,7 +100,7 @@ sealed interface RecapRow {
     data class NewFoods(val count: Int, val names: List<String>?) : RecapRow
 }
 
-/** Coast: last week's check, readable until the next one opens. [weekEnd] is `Oct 18`. */
+/** Later, weekly: last week's check, readable until the next one opens. [weekEnd] is `Oct 18`. */
 data class LastCheck(val weekEnd: String, val average: Display, val weight: Display)
 
 data class NutrientsCard(val macros: List<MacroTile>)
@@ -129,7 +129,7 @@ enum class WeightSubtitle { Trend, NoWeighIns }
  * call it, so the leak test checks the real mapping.
  *
  * Every amount resolves on [Surface.Week] with the week window's last day as
- * the context day, so Coast's week stays closed until its weekly check;
+ * the context day, so a weekly reveal's week stays closed until its weekly check;
  * weight resolves on [Surface.Weight] so the card and the Weight page agree.
  * No layout decision reads the mode: each card follows its metric's level.
  */
@@ -371,7 +371,7 @@ object TrendsStateBuilder {
     /**
      * Whether [day]'s [metric] may go into the chart and the averages. The week view itself is
      * open in Delayed all day, but a day it covers may not be: today before the reveal or day
-     * close, or, for a weekly reveal (Coast), any day of a week whose check has not come. The
+     * close, or, for a weekly reveal (Later, weekly), any day of a week whose check has not come. The
      * month and three-month spans reach past the week window into exactly those days.
      */
     private fun opens(metric: Metric, day: Day, inputs: TrendsInputs, policy: VisibilityPolicy): Boolean {
@@ -388,7 +388,7 @@ object TrendsStateBuilder {
     internal fun chartScale(targets: Targets): Double =
         ceil(targets.maxKcal * SCALE_HEADROOM / SCALE_STEP) * SCALE_STEP
 
-    /** Coast's weight check looks at the smoothed line over the four weeks to the check. */
+    /** The weekly reveal's weight check looks at the smoothed line over the four weeks to the check. */
     private const val WEIGHT_CHECK_DAYS = 28
     private const val THREE_MONTHS_LABEL_EVERY = 3
     private const val SCALE_HEADROOM = 1.2

@@ -10,8 +10,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // FoodsAddFoodBlindPreview), one theme per preview.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
-private val blind = previewVisibilityPolicy(PresetId.Blind)
-private val nutrient = previewVisibilityPolicy(PresetId.Nutrient)
+private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
+private val nutrient = previewVisibilityPolicy(PresetId.NutrientsFirst)
 
 @Composable
 private fun Foods(state: FoodsState, dark: Boolean = false) = FoodsPreviewFrame(dark) { FoodsScreen(state, onAction = {}) }

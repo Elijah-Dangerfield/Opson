@@ -90,7 +90,7 @@ data class MicroRow(
 /**
  * Builds [NutrientsState]. Day resolves on [Surface.Nutrients], so a Delayed
  * day opens at 9 pm or once it is past; Week average resolves on
- * [Surface.Week], where Delayed numbers are open and Coast's open with its
+ * [Surface.Week], where Later numbers are open, and weekly ones open with their
  * weekly check. There are no nutrition scores (design v3 cut them): a score
  * built from hidden data is a number with no source.
  */
@@ -117,7 +117,7 @@ object NutrientsStateBuilder {
                 val byDate = inputs.days.associateBy { it.date }
                 // Today is still in progress, so it stays out of the average, as on Trends.
                 values = WeekAverages.of(window.days.filter { it < inputs.today }.map { byDate[it] ?: Day.empty(it) })
-                // The week's last day, so Coast's week opens at its weekly check and not before.
+                // The week's last day, so a weekly reveal's week opens at its weekly check and not before.
                 base = FormatContext(day = window.end)
             }
         }

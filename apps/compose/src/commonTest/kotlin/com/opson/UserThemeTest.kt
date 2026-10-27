@@ -25,7 +25,7 @@ class UserThemeTest {
     fun theThemeSliceIgnoresEverythingButPaletteThemeAndTextSize() {
         val settings = Settings(palette = PaletteChoice.Plum, theme = ThemeMode.Dark, textSize = TextSize.Large)
 
-        val unrelatedChange = settings.copy(waterGlasses = 12, numbers = NumbersSettings(PresetId.Blind))
+        val unrelatedChange = settings.copy(waterGlasses = 12, numbers = NumbersSettings(PresetId.NoNumbers))
 
         assertEquals(UserTheme(PaletteChoice.Plum, ThemeMode.Dark, TextSize.Large), settings.userTheme())
         assertEquals(settings.userTheme(), unrelatedChange.userTheme())

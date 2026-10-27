@@ -17,6 +17,8 @@ import com.opson.libraries.diary.PickedForMeal
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -34,6 +36,10 @@ val NOON: Instant = Instant.parse("2026-10-25T12:00:00Z")
 
 fun policy(preset: PresetId, at: Instant = NOON): VisibilityPolicy =
     VisibilityPolicy(NumbersSettings(preset = preset), Clock.fixed(at), TimeZone.UTC)
+
+/** Nutrients first with calories hidden: where someone who had Nutrient focus lands. */
+fun nutrientFocus(): VisibilityPolicy =
+    VisibilityPolicy(NumbersSettings(PresetId.NutrientsFirst, overrides = mapOf(Metric.Calories to Visibility.Hide)), Clock.fixed(NOON), TimeZone.UTC)
 
 class FakePolicySource(preset: PresetId = PresetId.Full) : VisibilityPolicySource {
     override val policy = MutableStateFlow(policy(preset))

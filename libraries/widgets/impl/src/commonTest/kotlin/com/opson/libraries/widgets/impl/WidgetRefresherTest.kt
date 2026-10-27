@@ -65,7 +65,7 @@ class WidgetRefresherTest : CoroutineTest() {
     fun withTheFlagOn_eachSnapshotIsPublished() = test {
         refresher()
         val full = snapshot(PresetId.Full)
-        val blind = snapshot(PresetId.Blind)
+        val blind = snapshot(PresetId.NoNumbers)
 
         source.snapshots.emit(full)
         source.snapshots.emit(blind)
@@ -91,7 +91,7 @@ class WidgetRefresherTest : CoroutineTest() {
         source.snapshots.emit(snapshot(PresetId.Full))
 
         flag.value = false
-        source.snapshots.emit(snapshot(PresetId.Blind))
+        source.snapshots.emit(snapshot(PresetId.NoNumbers))
 
         assertEquals(1, publisher.clears)
         assertEquals(1, publisher.published.size)

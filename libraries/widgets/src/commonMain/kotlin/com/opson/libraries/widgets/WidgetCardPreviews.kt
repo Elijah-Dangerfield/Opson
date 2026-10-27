@@ -58,27 +58,27 @@ private fun WidgetFullDarkPreview() {
 @Preview
 @Composable
 private fun WidgetBlindPreview() {
-    WidgetPreviewPair(PresetId.Blind)
+    WidgetPreviewPair(PresetId.NoNumbers)
 }
 
 @Preview
 @Composable
 private fun WidgetBlindDarkPreview() {
-    WidgetPreviewPair(PresetId.Blind, dark = true)
+    WidgetPreviewPair(PresetId.NoNumbers, dark = true)
 }
 
 /** Fuel softens calories: the circles, not a soft word. */
 @Preview
 @Composable
 private fun WidgetFuelPreview() {
-    WidgetPreviewPair(PresetId.Fuel)
+    WidgetPreviewPair(PresetId.NutrientsFirst)
 }
 
 /** Meal groups off in Blind: nothing to tick, so a line instead. */
 @Preview
 @Composable
 private fun WidgetGroupsOffPreview() {
-    WidgetPreviewPair(PresetId.Blind, mealGroups = false)
+    WidgetPreviewPair(PresetId.NoNumbers, mealGroups = false)
 }
 
 @Preview

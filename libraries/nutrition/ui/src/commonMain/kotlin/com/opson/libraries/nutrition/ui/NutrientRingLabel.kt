@@ -89,7 +89,7 @@ private fun NutrientRingLabelPreview() {
 @Preview
 @Composable
 private fun NutrientRingLabelBlindPreview() {
-    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.Blind)) {
+    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.NoNumbers)) {
         NutrientRingLabelPreview()
     }
 }

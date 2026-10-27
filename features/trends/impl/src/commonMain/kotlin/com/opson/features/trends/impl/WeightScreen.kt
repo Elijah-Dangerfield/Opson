@@ -360,9 +360,9 @@ private fun WeightPhotosOffPreview() = Weight(TrendsFixtures.policy(), inputs = 
 /** Trend only: weight set to Soft in Modes (Fuel does that), which also hides the photos row. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun WeightTrendPreview() = Weight(TrendsFixtures.policy(PresetId.Fuel))
+private fun WeightTrendPreview() = Weight(TrendsFixtures.policy(PresetId.NutrientsFirst))
 
 /** Hidden, mid weigh-in and just after one: the digits are dots and the save says it shows nowhere. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun WeightHiddenPreview() = Weight(TrendsFixtures.policy(PresetId.Blind), ui = WeightUi(input = "72.4", saved = true))
+private fun WeightHiddenPreview() = Weight(TrendsFixtures.policy(PresetId.NoNumbers), ui = WeightUi(input = "72.4", saved = true))

@@ -98,7 +98,7 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         diary.days.value = mapOf(today to WidgetFixtures.day)
         assertEquals("1,245", seen.last().days.first().energy?.amount)
 
-        policies.state.value = WidgetFixtures.policy(PresetId.Blind)
+        policies.state.value = WidgetFixtures.policy(PresetId.NoNumbers)
         assertNull(seen.last().days.first().energy)
         assertEquals(4, seen.last().days.first().meals.size)
 
@@ -163,7 +163,7 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
 
     @Test
     fun aModeWithMealGroupsOff_logsWithoutASlot() = test {
-        settings.update { it.copy(mealGroups = false, numbers = NumbersSettings(preset = PresetId.Blind)) }
+        settings.update { it.copy(mealGroups = false, numbers = NumbersSettings(preset = PresetId.NoNumbers)) }
         val opener = opener()
 
         opener.opened(WidgetLinks.LOG)

@@ -50,7 +50,7 @@ class FoodsTabTest : CoroutineTest() {
 
     @Test
     fun everyHidingModeHidesEveryRowsCalories() {
-        listOf(PresetId.Blind, PresetId.Nutrient, PresetId.Rhythm, PresetId.Explorer, PresetId.Mindful).forEach { preset ->
+        listOf(PresetId.NoNumbers, PresetId.NutrientsFirst, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers).forEach { preset ->
             val state = FoodsFixtures.foodsState(policy(preset))
             val rows = state.savedMeals + state.yourFoods + state.recent
             assertTrue(rows.all { it.calories == Display.Hidden }, "$preset")
@@ -59,14 +59,14 @@ class FoodsTabTest : CoroutineTest() {
 
     @Test
     fun aSoftenedModeHasNoWordForARowAndHidesIt() {
-        val rows = FoodsFixtures.foodsState(policy(PresetId.Fuel)).savedMeals
+        val rows = FoodsFixtures.foodsState(policy(PresetId.NutrientsFirst)).savedMeals
         assertTrue(rows.all { it.calories == Display.Hidden })
     }
 
     @Test
     fun delayedOpensAtTheRevealTime() {
-        assertTrue(FoodsFixtures.foodsState(policy(PresetId.Delayed)).savedMeals.all { it.calories == Display.Hidden })
-        val evening = FoodsFixtures.foodsState(policy(PresetId.Delayed, at = Instant.parse("2026-10-25T21:30:00Z")))
+        assertTrue(FoodsFixtures.foodsState(policy(PresetId.Later)).savedMeals.all { it.calories == Display.Hidden })
+        val evening = FoodsFixtures.foodsState(policy(PresetId.Later, at = Instant.parse("2026-10-25T21:30:00Z")))
         assertEquals("445", (evening.savedMeals.first().calories as Display.Shown).text)
     }
 
@@ -95,7 +95,7 @@ class FoodsTabTest : CoroutineTest() {
         assertEquals(3, vm.state.savedMeals.size)
         assertEquals(1, vm.state.yourFoods.size)
 
-        policySource.policy.value = policy(PresetId.Blind)
+        policySource.policy.value = policy(PresetId.NoNumbers)
 
         assertEquals(Display.Hidden, vm.state.savedMeals.first().calories)
     }

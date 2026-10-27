@@ -98,7 +98,7 @@ class WeightViewModelTest : CoroutineTest() {
 
     @Test
     fun saveTapped_hidden_staysOutOfView() = runUnitTest {
-        val vm = vm(preset = PresetId.Blind)
+        val vm = vm(preset = PresetId.NoNumbers)
         assertEquals(true, vm.state.inputMasked)
         vm.takeAction(WeightAction.WeightTyped("72.4"))
         vm.takeAction(WeightAction.SaveTapped)
@@ -151,15 +151,15 @@ class WeightViewModelTest : CoroutineTest() {
 
     @Test
     fun photosHiddenByTheModesThatHideThem() = runUnitTest {
-        listOf(PresetId.Blind, PresetId.Mindful, PresetId.Rhythm, PresetId.Fuel).forEach { preset ->
+        listOf(PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NutrientsFirst).forEach { preset ->
             assertNull(vm(photosOn = true, preset = preset).state.photos, "$preset hides progress photos by default")
         }
-        assertNotNull(vm(photosOn = true, preset = PresetId.Coast).state.photos)
+        assertNotNull(vm(photosOn = true, preset = PresetId.Later).state.photos)
     }
 
     @Test
     fun photosFollowModes_showOrHide_overThePresetsDefault() = runUnitTest {
-        val shownInFuel = TrendsFixtures.policy(PresetId.Fuel).settings.copy(progressPhotos = true)
+        val shownInFuel = TrendsFixtures.policy(PresetId.NutrientsFirst).settings.copy(progressPhotos = true)
         assertNotNull(vm(photosOn = true, numbers = shownInFuel).state.photos)
 
         val hiddenInFull = NumbersSettings(PresetId.Full, progressPhotos = false)
