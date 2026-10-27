@@ -13,6 +13,7 @@ import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.nutrition.macroEnergy
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.nutrition.share
 import kotlinx.datetime.DayOfWeek
@@ -113,9 +114,6 @@ data class WeekBand(val day: DayOfWeek, val groupIndex: Int, val position: Float
 data class TargetMacroRow(val metric: Metric, val share: Display, val grams: Display, val weight: Float)
 
 object TargetsStateBuilder {
-
-    /** Energy per gram, for each macro's share of the target. Fiber is a floor, not a share. */
-    private val kcalPerGram = listOf(Metric.Protein to 4, Metric.Carbs to 4, Metric.Fat to 9)
 
     /** The track's scale for the range band. */
     private const val SCALE_MIN = 1000.0
@@ -245,11 +243,16 @@ object TargetsStateBuilder {
     private fun week(start: DayOfWeek): List<DayOfWeek> =
         DayOfWeek.entries.let { days -> days.drop(start.ordinal) + days.take(start.ordinal) }
 
-    private fun macros(targets: Targets, policy: VisibilityPolicy): List<TargetMacroRow> =
-        kcalPerGram.mapNotNull { (metric, kcal) ->
+    /** Each macro's energy as a share of the energy target. Fiber is a floor, not a share. */
+    private fun macros(targets: Targets, policy: VisibilityPolicy): List<TargetMacroRow> {
+        val energies = macroEnergy(
+            protein = targets.grams(Metric.Protein).toDouble(),
+            carbs = targets.grams(Metric.Carbs).toDouble(),
+            fat = targets.grams(Metric.Fat).toDouble(),
+        )
+        return energies.mapNotNull { (metric, energy) ->
             if (policy.effectiveLevel(metric, Surface.Settings) != Visibility.Show) return@mapNotNull null
             val grams = targets.grams(metric).toDouble()
-            val energy = grams * kcal
             val percent = if (targets.energyKcal > 0) energy / targets.energyKcal * 100 else Double.NaN
             TargetMacroRow(
                 metric = metric,
@@ -258,6 +261,7 @@ object TargetsStateBuilder {
                 weight = energy.toFloat(),
             )
         }
+    }
 
     private fun Targets.grams(metric: Metric): Int = when (metric) {
         Metric.Protein -> proteinG
