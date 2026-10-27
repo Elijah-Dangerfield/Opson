@@ -1,0 +1,71 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { href } from '../consts';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** The 404 page is served at any address, so it has no canonical URL. */
+  notFound?: boolean;
+}
+
+const {
+  title = 'Opson, a food log with no ads',
+  description = 'Opson is a food log with no ads that you set up your way: count every calorie, aim for a range or a deficit, follow only your macros, or log without seeing a number.',
+  notFound = false,
+} = Astro.props;
+
+const canonical = notFound ? undefined : new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL(href('/og-image.png'), Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={href('/favicon.svg')} />
+    <link rel="apple-touch-icon" href={href('/apple-touch-icon.png')} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    {notFound && <meta name="robots" content="noindex" />}
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#143D37" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Opson logo: a steaming bowl and the word opson" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <a class="skip visually-hidden" href="#main">Skip to content</a>
+    <Nav />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .skip:focus {
+    position: fixed !important;
+    top: 12px;
+    left: 12px;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 10px 16px;
+    clip-path: none;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 12px;
+    z-index: 200;
+  }
+</style>

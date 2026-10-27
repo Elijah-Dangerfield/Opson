@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -30,6 +31,7 @@ import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.ui.components.ChevronLink
 import com.opson.libraries.ui.components.ColorDot
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HeroCard
@@ -57,12 +59,18 @@ import opson.libraries.resources.generated.resources.trends_check_body
 import opson.libraries.resources.generated.resources.trends_check_on
 import opson.libraries.resources.generated.resources.trends_check_tonight
 import opson.libraries.resources.generated.resources.trends_eaten
+import opson.libraries.resources.generated.resources.trends_expended
+import opson.libraries.resources.generated.resources.trends_expended_sub
 import opson.libraries.resources.generated.resources.trends_intake_caption_plain
+import opson.libraries.resources.generated.resources.trends_intake_caption_plain_goal
 import opson.libraries.resources.generated.resources.trends_intake_caption_today
+import opson.libraries.resources.generated.resources.trends_intake_caption_today_goal
 import opson.libraries.resources.generated.resources.trends_intake_caption_week
+import opson.libraries.resources.generated.resources.trends_intake_caption_week_goal
 import opson.libraries.resources.generated.resources.trends_last_check
 import opson.libraries.resources.generated.resources.trends_last_check_average
 import opson.libraries.resources.generated.resources.trends_last_check_weight
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_nutrients
 import opson.libraries.resources.generated.resources.trends_nutrients_sub
 import opson.libraries.resources.generated.resources.trends_patterns
@@ -92,9 +100,10 @@ fun TrendsScreen(
     state: TrendsState,
     onAction: (TrendsAction) -> Unit,
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
 ) {
     Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { padding ->
-        TrendsContent(state, onAction, Modifier.padding(padding).verticalScroll(rememberScrollState()))
+        TrendsContent(state, onAction, Modifier.padding(padding).verticalScroll(scrollState))
     }
 }
 
@@ -112,6 +121,10 @@ internal fun TrendsContent(
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
     ) {
         Header(state.rangeLabel, onSettings = { onAction(TrendsAction.SettingsTapped) })
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
+            return@Column
+        }
         state.range?.let { range ->
             SegmentedControl(
                 options = TrendsRange.entries,
@@ -127,6 +140,7 @@ internal fun TrendsContent(
         state.recap?.let { RecapCardView(it, onPatterns = { onAction(TrendsAction.PatternsTapped) }) }
         state.lastCheck?.let { LastCheckCard(it) }
         state.nutrients?.let { NutrientsCardView(it, onClick = { onAction(TrendsAction.NutrientsCardTapped) }) }
+        state.expended?.let { ExpendedCardView(it) }
         state.weight?.let { WeightCardView(it, onClick = { onAction(TrendsAction.WeightCardTapped) }) }
     }
 }
@@ -151,7 +165,7 @@ private fun Header(rangeLabel: RangeLabel?, onSettings: () -> Unit) {
         RoundIconButton(
             icon = AppIcons.Tune.described(stringResource(Res.string.trends_settings_cd)),
             onClick = onSettings,
-            size = Dimension.D1400,
+            size = Dimension.D1300,
             containerColor = AppTheme.colors.surface,
             contentColor = AppTheme.colors.ink,
         )
@@ -194,9 +208,9 @@ private fun IntakeCardView(card: IntakeCard) {
         Text(
             text = stringResource(
                 when (card.caption) {
-                    IntakeCaption.Plain -> Res.string.trends_intake_caption_plain
-                    IntakeCaption.TodayInProgress -> Res.string.trends_intake_caption_today
-                    IntakeCaption.WeekInProgress -> Res.string.trends_intake_caption_week
+                    IntakeCaption.Plain -> if (card.singleGoal) Res.string.trends_intake_caption_plain_goal else Res.string.trends_intake_caption_plain
+                    IntakeCaption.TodayInProgress -> if (card.singleGoal) Res.string.trends_intake_caption_today_goal else Res.string.trends_intake_caption_today
+                    IntakeCaption.WeekInProgress -> if (card.singleGoal) Res.string.trends_intake_caption_week_goal else Res.string.trends_intake_caption_week
                 },
             ),
             typography = AppTheme.type.secondary,
@@ -294,20 +308,20 @@ internal fun FoodChips(names: List<String>, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
-        names.forEach { PillTag(label = it, typography = AppTheme.type.bodyBold, size = PillTagSize.Regular) }
+        names.forEach { PillTag(label = it, typography = AppTheme.type.secondaryStrong.Bold, size = PillTagSize.Regular) }
     }
 }
 
-/** A label and its value on one line, the value bold at the end. 48 tall at least. */
+/** A label and its value on one line, the value bold at the end. Read-only, so 40 tall as v3 draws it. */
 @Composable
 internal fun FactRow(label: String, value: String, modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = Dimension.D1300),
+        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = Dimension.D1200).padding(vertical = Dimension.D300),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
         Text(text = label, typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
-        Text(text = value, typography = AppTheme.type.numeric.ExtraBold, color = AppTheme.colors.ink, textAlign = TextAlign.End)
+        Text(text = value, typography = AppTheme.type.body.ExtraBold, color = AppTheme.colors.ink, textAlign = TextAlign.End)
     }
 }
 
@@ -375,6 +389,32 @@ private fun MacroTileView(tile: MacroTile, modifier: Modifier = Modifier) {
             )
         }
         NutrientFillBar(metric = tile.metric, display = tile.display, color = color)
+    }
+}
+
+/** Not a link: there is no Expended page. The line is neutral, as the design draws it. */
+@Composable
+private fun ExpendedCardView(card: ExpendedCard) {
+    TrendsCard {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+        ) {
+            Column(Modifier.weight(1f)) {
+                CardTitle(stringResource(Res.string.trends_expended))
+                Text(text = stringResource(Res.string.trends_expended_sub), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            }
+            NutrientText(Metric.EnergyOut, card.average, typography = AppTheme.type.figureMedium.ExtraBold, color = AppTheme.colors.ink)
+        }
+        if (card.trend.isNotEmpty()) {
+            TrendLine(
+                points = card.trend,
+                dots = null,
+                modifier = Modifier.fillMaxWidth().height(Dimension.D1600),
+                lineColor = AppTheme.colors.inkSoft,
+            )
+        }
     }
 }
 

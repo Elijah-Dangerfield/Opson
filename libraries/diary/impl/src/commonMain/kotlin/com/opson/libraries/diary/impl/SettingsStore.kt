@@ -179,8 +179,12 @@ class SettingsStore(
     }
 
     private fun StoredSettings.isKnownFor(user: ActiveUser): Boolean = when (user) {
-        // Cold boot before auth answers, or nobody signed in: what is stored is all there is.
-        ActiveUser.Unresolved, ActiveUser.SignedOut -> true
+        // Cold boot before auth answers: trusted only when a pull ever landed in them. A copy no
+        // pull reached is the defaults (Full numbers) of someone whose first sync never finished,
+        // and showing it until auth answers would flash their numbers.
+        ActiveUser.Unresolved -> ownerUserId != null
+        // Nobody signed in: what is stored is all there is.
+        ActiveUser.SignedOut -> true
         is ActiveUser.SignedIn -> ownerUserId == user.userId
     }
 }

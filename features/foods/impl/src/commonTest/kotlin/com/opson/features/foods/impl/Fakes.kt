@@ -7,6 +7,7 @@ import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -17,6 +18,8 @@ import com.opson.libraries.diary.PickedForMeal
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -35,14 +38,19 @@ val NOON: Instant = Instant.parse("2026-10-25T12:00:00Z")
 fun policy(preset: PresetId, at: Instant = NOON): VisibilityPolicy =
     VisibilityPolicy(NumbersSettings(preset = preset), Clock.fixed(at), TimeZone.UTC)
 
+/** Nutrients first with calories hidden: where someone who had Nutrient focus lands. */
+fun nutrientFocus(): VisibilityPolicy =
+    VisibilityPolicy(NumbersSettings(PresetId.NutrientsFirst, overrides = mapOf(Metric.Calories to Visibility.Hide)), Clock.fixed(NOON), TimeZone.UTC)
+
 class FakePolicySource(preset: PresetId = PresetId.Full) : VisibilityPolicySource {
     override val policy = MutableStateFlow(policy(preset))
 }
 
-/** A diary that only answers the reads Foods makes: a day, and recent foods. Writes are inert. */
+/** A diary that only answers the reads Foods makes: a day, and recent foods. Writes are inert, but an edited entry is kept. */
 class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
     private val days = days.associateBy { it.date }
     val recent = MutableStateFlow<List<LogItem>>(emptyList())
+    val updated = mutableListOf<LogItem>()
 
     override fun observeDay(date: LocalDate): Flow<Day> = flowOf(days[date] ?: Day.empty(date))
 
@@ -53,7 +61,9 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
     override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> =
         error("Foods never logs")
 
-    override suspend fun updateItem(item: LogItem) = Unit
+    override suspend fun updateItem(item: LogItem) {
+        updated += item
+    }
 
     override suspend fun removeItem(id: String) = Unit
 
@@ -98,6 +108,9 @@ class FakeCustomFoodRepository(foods: List<CustomFood> = emptyList()) : CustomFo
     val foods = MutableStateFlow(foods)
     val created = mutableListOf<CustomFoodDraft>()
 
+    /** Ids of foods updated or deleted, so a test can show a food was left alone. */
+    val changed = mutableListOf<String>()
+
     override fun observeAll(): Flow<List<CustomFood>> = foods
 
     override suspend fun get(id: String): CustomFood? = foods.value.firstOrNull { it.id == id }
@@ -120,9 +133,13 @@ class FakeCustomFoodRepository(foods: List<CustomFood> = emptyList()) : CustomFo
         return food
     }
 
-    override suspend fun update(food: CustomFood) = Unit
+    override suspend fun update(food: CustomFood) {
+        changed += food.id
+    }
 
-    override suspend fun delete(id: String) = Unit
+    override suspend fun delete(id: String) {
+        changed += id
+    }
 }
 
 class FakeSavedMealRepository(meals: List<SavedMeal> = emptyList()) : SavedMealRepository {
@@ -158,4 +175,10 @@ class FakeMealPicks : MealPicks {
     override fun consumed(picks: PickedForMeal) {
         if (latest.value == picks) latest.value = null
     }
+}
+
+class FakeCalendar(private val today: LocalDate = FoodsFixtures.today) : LocalCalendar {
+    override fun timeZone(): TimeZone = TimeZone.UTC
+
+    override fun today(): LocalDate = today
 }

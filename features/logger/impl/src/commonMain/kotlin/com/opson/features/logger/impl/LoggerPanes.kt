@@ -13,7 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -23,49 +25,46 @@ import com.opson.libraries.ui.StandardBorderWidth
 import com.opson.libraries.diary.ui.FoodRowsCard
 import com.opson.libraries.diary.ui.FoodRowsNote
 import com.opson.libraries.diary.ui.SectionLabel
-import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
-import com.opson.libraries.ui.components.HorizontalDivider
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.ListRow
 import com.opson.libraries.ui.components.SheetHeader
-import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.button.ButtonSecondary
 import com.opson.libraries.ui.components.button.ButtonSize
-import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.RoundIconButton
-import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextArea
 import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.logger_add_to
 import opson.libraries.resources.generated.resources.logger_describe_failed
 import opson.libraries.resources.generated.resources.logger_describe_offline
 import opson.libraries.resources.generated.resources.logger_describe_placeholder
-import opson.libraries.resources.generated.resources.logger_describe_prompt
 import opson.libraries.resources.generated.resources.logger_describe_reading
 import opson.libraries.resources.generated.resources.logger_describe_title
-import opson.libraries.resources.generated.resources.logger_described_estimate
-import opson.libraries.resources.generated.resources.logger_described_sub
-import opson.libraries.resources.generated.resources.logger_edit_line_cd
 import opson.libraries.resources.generated.resources.logger_name_only
 import opson.libraries.resources.generated.resources.logger_number_add
 import opson.libraries.resources.generated.resources.logger_number_caption
 import opson.libraries.resources.generated.resources.logger_number_placeholder
 import opson.libraries.resources.generated.resources.logger_or_number
-import opson.libraries.resources.generated.resources.logger_read_as
 import opson.libraries.resources.generated.resources.logger_saved_add
 import opson.libraries.resources.generated.resources.logger_saved_empty
+import opson.libraries.resources.generated.resources.logger_saved_loading_cd
 import opson.libraries.resources.generated.resources.logger_saved_title
 import org.jetbrains.compose.resources.stringResource
 
-/** Describe it: free text, read into editable lines that are picks while this pane is open. */
+/** Describe it: free text, read into lines the person fixes before Add logs them. */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun DescribePane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
     val describe = state.describe
+    // Back from the find-a-food search returns to the lines, not out of Describe.
+    BackHandler(enabled = describe.find != null) { onAction(DescribeReviewAction.FindClosed) }
+    describe.find?.let { find ->
+        DescribeFindPane(find, onAction)
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -85,19 +84,7 @@ internal fun DescribePane(state: LoggerState, onAction: (LoggerAction) -> Unit) 
             DescribeStatus.Offline -> Note(stringResource(Res.string.logger_describe_offline))
             DescribeStatus.Failed -> Note(stringResource(Res.string.logger_describe_failed))
         }
-        if (describe.lines.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-                SectionLabel(stringResource(Res.string.logger_read_as))
-                FoodRowsCard {
-                    describe.lines.forEachIndexed { index, line ->
-                        DescribedRow(line, onAction, showDivider = index < describe.lines.lastIndex)
-                    }
-                }
-            }
-            ButtonPrimary(onClick = { onAction(LoggerAction.AddToMealTapped) }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(Res.string.logger_add_to, stringResource(state.slot.sentenceName)))
-            }
-        }
+        if (describe.lines.isNotEmpty()) DescribedLines(describe, state.slot, onAction)
         if (describe.canNumber) NumberCard(describe, onAction)
         if (describe.text.isNotBlank()) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -109,6 +96,13 @@ internal fun DescribePane(state: LoggerState, onAction: (LoggerAction) -> Unit) 
 
 @Composable
 private fun DescribeBox(describe: DescribeUi, onAction: (LoggerAction) -> Unit) {
+    val voice = describe.voice
+    val focusRequester = remember { FocusRequester() }
+    val inPreview = LocalInspectionMode.current
+    LaunchedEffect(voice?.focusText) {
+        // "Type instead": the keyboard comes up where the words go. No window in a preview, nothing to focus.
+        if (voice?.focusText == true && !inPreview) Catching { focusRequester.requestFocus() }
+    }
     val shape = AppTheme.shapes.inputLarge
     Column(
         modifier = Modifier
@@ -125,56 +119,19 @@ private fun DescribeBox(describe: DescribeUi, onAction: (LoggerAction) -> Unit) 
             minLines = 2,
             // The box around it carries the outline, so the field's own melts into the fill.
             borderColor = AppTheme.colors.surface,
+            modifier = Modifier.focusRequester(focusRequester),
         )
-        // The design's mic button sits here; voice logging is 0.2, so only the prompt shows.
-        Text(
-            text = stringResource(Res.string.logger_describe_prompt),
-            typography = AppTheme.type.secondary,
-            color = AppTheme.colors.muted,
-            modifier = Modifier.padding(horizontal = AppTheme.spacing.section),
-        )
-    }
-}
-
-@Composable
-private fun DescribedRow(line: DescribedLine, onAction: (LoggerAction) -> Unit, showDivider: Boolean) {
-    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.chip),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = AppTheme.spacing.section),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = line.name, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
-                Text(
-                    text = if (line.amount.isEmpty()) {
-                        stringResource(Res.string.logger_described_estimate)
-                    } else {
-                        stringResource(Res.string.logger_described_sub, line.amount)
-                    },
-                    typography = AppTheme.type.secondary,
-                    color = AppTheme.colors.muted,
-                )
-            }
-            NutrientText(
-                metric = Metric.Calories,
-                display = line.calories,
-                typography = AppTheme.type.secondary.Tabular,
-                color = AppTheme.colors.muted,
-                maxLines = 1,
-            )
-            if (line.ref != null) {
-                RoundIconButton(
-                    icon = AppIcons.EditOutline.described(stringResource(Res.string.logger_edit_line_cd, line.name)),
-                    onClick = { onAction(LoggerAction.DescribedLineEditTapped(line)) },
-                    size = AppTheme.spacing.touchTarget,
-                    containerColor = AppTheme.colors.surface,
-                    contentColor = AppTheme.colors.muted,
-                )
-            }
+            DescribePromptLine(voice, modifier = Modifier.weight(1f))
+            // The design's mic, behind release.voice.
+            voice?.let { MicButton(it, onAction) }
         }
-        if (showDivider) HorizontalDivider(color = AppTheme.colors.line)
     }
+    voice?.notice?.let { VoiceNoticeCard(it, onAction) }
 }
 
 @Composable
@@ -208,7 +165,7 @@ private fun NumberCard(describe: DescribeUi, onAction: (LoggerAction) -> Unit) {
     }
 }
 
-/** Saved meals: picking one puts its foods in the basket and goes back to search. */
+/** Saved meals: Add logs the whole meal at once and the sheet closes. */
 @Composable
 internal fun SavedPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
     val meals = state.saved.meals
@@ -224,6 +181,11 @@ internal fun SavedPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
             overline = forMeal(state.slot),
             onBack = { onAction(LoggerAction.BackTapped) },
         )
+        // Opened on Saved, the meals can still be on their way; "nothing saved yet" would be a lie.
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_saved_loading_cd))
+            return@Column
+        }
         FoodRowsCard {
             if (meals.isEmpty()) FoodRowsNote(stringResource(Res.string.logger_saved_empty))
             meals.forEachIndexed { index, meal ->

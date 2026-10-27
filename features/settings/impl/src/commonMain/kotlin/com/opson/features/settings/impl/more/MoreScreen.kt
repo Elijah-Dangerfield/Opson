@@ -1,6 +1,8 @@
 package com.opson.features.settings.impl.more
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -33,9 +35,12 @@ import opson.libraries.resources.generated.resources.settings_more_modes_changed
 import opson.libraries.resources.generated.resources.settings_more_plan
 import opson.libraries.resources.generated.resources.settings_more_plan_free
 import opson.libraries.resources.generated.resources.settings_more_support
+import opson.libraries.resources.generated.resources.settings_more_support_sub
 import opson.libraries.resources.generated.resources.settings_more_targets
 import opson.libraries.resources.generated.resources.settings_more_targets_sub
 import opson.libraries.resources.generated.resources.settings_more_title
+import opson.libraries.resources.generated.resources.settings_more_today
+import opson.libraries.resources.generated.resources.settings_more_today_sub
 import opson.libraries.resources.generated.resources.settings_more_water
 import opson.libraries.resources.generated.resources.settings_more_water_glasses
 import opson.libraries.resources.generated.resources.widgets_title
@@ -48,8 +53,9 @@ fun MoreScreen(
     state: MoreState,
     onAction: (MoreAction) -> Unit,
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
 ) {
-    SettingsPage(modifier = modifier) {
+    SettingsPage(modifier = modifier, scrollState = scrollState) {
         Text(
             text = stringResource(Res.string.settings_more_title),
             typography = AppTheme.type.h1,
@@ -94,8 +100,16 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         }
         MoreRow.Targets -> SettingsRow(
             title = stringResource(Res.string.settings_more_targets),
-            icon = AppIcons.Target,
+            icon = AppIcons.TrackChanges,
             subtitle = stringResource(Res.string.settings_more_targets_sub),
+            chevron = true,
+            showDivider = showDivider,
+            onClick = onClick,
+        )
+        MoreRow.TodayScreen -> SettingsRow(
+            title = stringResource(Res.string.settings_more_today),
+            icon = AppIcons.DashboardCustomize,
+            subtitle = stringResource(Res.string.settings_more_today_sub),
             chevron = true,
             showDivider = showDivider,
             onClick = onClick,
@@ -127,6 +141,7 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         is MoreRow.Water -> SettingsRow(
             title = stringResource(Res.string.settings_more_water),
             icon = AppIcons.WaterDropOutline,
+            quietIcon = true,
             trailingText = pluralStringResource(Res.plurals.settings_more_water_glasses, row.glasses, row.glasses),
             showDivider = showDivider,
             onClick = onClick,
@@ -134,6 +149,7 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         is MoreRow.Fasting -> SettingsRow(
             title = stringResource(Res.string.fasting_title),
             icon = AppIcons.Schedule,
+            quietIcon = true,
             trailingText = if (row.on) stringResource(Res.string.fasting_more_on, row.plan.key) else stringResource(Res.string.fasting_more_off),
             showDivider = showDivider,
             onClick = onClick,
@@ -141,34 +157,48 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         MoreRow.Widgets -> SettingsRow(
             title = stringResource(Res.string.widgets_title),
             icon = AppIcons.Widgets,
+            quietIcon = true,
             showDivider = showDivider,
             onClick = onClick,
         )
         MoreRow.Support -> SettingsRow(
             title = stringResource(Res.string.settings_more_support),
             icon = AppIcons.Support,
+            quietIcon = true,
+            subtitle = stringResource(Res.string.settings_more_support_sub),
             showDivider = showDivider,
             onClick = onClick,
         )
         MoreRow.Plan -> SettingsRow(
             title = stringResource(Res.string.settings_more_plan),
             icon = AppIcons.WorkspacePremium,
+            quietIcon = true,
             trailingText = stringResource(Res.string.settings_more_plan_free),
             showDivider = showDivider,
         )
     }
 }
 
+/** Every 0.2 row on, as design sync 2 draws More. */
 @Preview
 @Composable
 private fun MorePreview() {
+    val settings = SettingsFixtures.settings().copy(quiet = true)
+    val state = MoreStateBuilder.build(settings, healthConnected = true, remindersOn = true, fastingReleased = true, widgetsOn = true)
+    SettingsPreview { MoreScreen(state, onAction = {}) }
+}
+
+/** Every 0.2 flag off: what 0.1 shows. */
+@Preview
+@Composable
+private fun MoreFlagsOffPreview() {
     SettingsPreview { MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings()), onAction = {}) }
 }
 
 @Preview
 @Composable
 private fun MoreFuelWithAChangeDarkPreview() {
-    val settings = SettingsFixtures.settings(SettingsFixtures.fuelWithACarbsChange)
+    val settings = SettingsFixtures.settings(SettingsFixtures.nutrientsFirstWithACarbsChange)
     SettingsPreview(dark = true) { MoreScreen(MoreStateBuilder.build(settings), onAction = {}) }
 }
 
@@ -203,6 +233,6 @@ private fun MoreWithHealthPreview() {
 @Preview
 @Composable
 private fun MoreBlindPreview() {
-    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind))
+    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.NoNumbers))
     SettingsPreview { MoreScreen(MoreStateBuilder.build(settings), onAction = {}) }
 }

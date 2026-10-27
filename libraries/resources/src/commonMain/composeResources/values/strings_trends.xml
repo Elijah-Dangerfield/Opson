@@ -18,6 +18,9 @@
     <string name="trends_intake_caption_plain">The band is your range. A gap is a day you left untracked.</string>
     <string name="trends_intake_caption_today">The band is your range. Today is striped because it's still in progress, so it isn't in the average.</string>
     <string name="trends_intake_caption_week">The band is your range. This week is striped because it's still in progress, so it isn't in the average.</string>
+    <string name="trends_intake_caption_plain_goal">The line is your goal. A gap is a day you left untracked.</string>
+    <string name="trends_intake_caption_today_goal">The line is your goal. Today is striped because it's still in progress, so it isn't in the average.</string>
+    <string name="trends_intake_caption_week_goal">The line is your goal. This week is striped because it's still in progress, so it isn't in the average.</string>
     <string name="trends_check_tonight">Your weekly check opens tonight</string>
     <string name="trends_check_on">Your weekly check opens %1$s</string>
     <string name="trends_check_body">%1$s at %2$s. You'll see your weekly average and how weight is trending.</string>
@@ -38,6 +41,8 @@
     <string name="trends_weight">Weight</string>
     <string name="trends_weight_trend">Smoothed 7-day trend</string>
     <string name="trends_weight_none">No weigh-ins yet. Tap to log one.</string>
+    <string name="trends_expended">Expended</string>
+    <string name="trends_expended_sub">Daily average from your watch</string>
 
     <!-- Nutrient labels -->
     <string name="trends_energy">Energy</string>
@@ -57,6 +62,7 @@
     <string name="trends_settings_card_recap">Recap</string>
     <string name="trends_settings_card_nutrients">Nutrients</string>
     <string name="trends_settings_card_weight">Weight</string>
+    <string name="trends_settings_card_expended">Expended</string>
 
     <!-- Sub-screens: where back goes, "‹ Trends" or "‹ Today", spoken on the arrow -->
     <string name="trends_back">‹ %1$s</string>
@@ -66,6 +72,7 @@
     <string name="trends_nutrients_day">This day</string>
     <string name="trends_nutrients_week">Week average</string>
     <string name="trends_nutrients_range">· range</string>
+    <string name="trends_nutrients_goal">· goal</string>
     <string name="trends_micros_vitamins">Vitamins</string>
     <string name="trends_micros_minerals">Minerals</string>
     <string name="trends_micro_vitamin_a">Vitamin A</string>
@@ -81,9 +88,18 @@
     <string name="trends_micro_potassium">Potassium</string>
     <string name="trends_micro_sodium">Sodium</string>
     <string name="trends_micro_zinc">Zinc</string>
+    <string name="trends_micro_thiamin">Thiamin (B1)</string>
+    <string name="trends_micro_riboflavin">Riboflavin (B2)</string>
+    <string name="trends_micro_niacin">Niacin (B3)</string>
+    <string name="trends_micro_vitamin_b6">Vitamin B6</string>
+    <string name="trends_micro_choline">Choline</string>
+    <string name="trends_micro_copper">Copper</string>
+    <string name="trends_micro_manganese">Manganese</string>
+    <string name="trends_micro_phosphorus">Phosphorus</string>
+    <string name="trends_micro_selenium">Selenium</string>
     <string name="trends_micro_of">of %1$s</string>
     <string name="trends_micro_of_limit">of a %1$s</string>
-    <string name="trends_micros_caption">Percent of a typical daily target. Most people land under on some and over on others, and that's fine. A week tells you more than a day.</string>
+    <string name="trends_micros_caption">Percent of a typical daily target. Most people land under on some and over on others, and that's fine. A week tells you more than a day does.</string>
     <string name="trends_micros_off_title">Vitamins and minerals are off</string>
     <string name="trends_micros_off_body">Turn them on in Modes and numbers.</string>
     <string name="trends_micros_off_link">Modes and numbers</string>
@@ -91,6 +107,7 @@
 
     <!-- Weight -->
     <string name="trends_weight_title">Weight</string>
+    <string name="trends_weight_save_failed">That weigh-in didn't save. Try again.</string>
     <string name="trends_weight_trend_label">Trend</string>
     <string name="trends_weight_now">This morning</string>
     <string name="trends_weight_range_1w">Last week</string>
@@ -134,7 +151,10 @@
     <string name="trends_patterns_size_line">·</string>
     <string name="trends_patterns_often">How often</string>
     <string name="trends_patterns_often_value">%1$d of %2$d days</string>
-    <string name="trends_patterns_hunger">Hunger before meals</string>
-    <string name="trends_patterns_hunger_from">From %1$d tagged meals</string>
+    <string name="trends_patterns_hunger">Hunger through the day</string>
+    <string name="trends_patterns_hunger_from">From your check-ins</string>
+    <string name="trends_patterns_hunger_from_tags">From your meal tags</string>
+    <string name="trends_patterns_hunger_skipped">Hungrier on days you skipped breakfast (%1$s).</string>
     <string name="trends_patterns_new_foods">New foods</string>
+    <string name="trends_loading_cd">Loading</string>
 </resources>

@@ -2,20 +2,21 @@ package com.opson.libraries.widgets
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.PaletteChoice
+import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
+import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -47,6 +48,47 @@ class WidgetSnapshotBuilderTest {
         assertEquals(1245 / 2760f, energy.fraction, 0.001f)
         assertEquals(1900 / 2760f, energy.rangeStart, 0.001f)
         assertEquals(2300 / 2760f, energy.rangeEnd, 0.001f)
+    }
+
+    @Test
+    fun aRangeThatDiffersByDay_drawsThatDaysRange() {
+        // 2026-10-25 is a Sunday: its group's range, not the base 1,900 to 2,300.
+        val base = WidgetFixtures.inputs(NumbersSettings(preset = PresetId.Full), WidgetFixtures.day, mealGroups = true)
+        val weekend = DayGroup(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), minKcal = 2300, maxKcal = 2700)
+        val weekdays = DayGroup(DayOfWeek.entries.toSet() - weekend.days, minKcal = 1900, maxKcal = 2300)
+        val byDay = base.settings.targets.copy(style = TargetStyle.ByDay(listOf(weekdays, weekend)))
+        val inputs = base.copy(settings = base.settings.copy(targets = byDay))
+
+        val energy = assertNotNull(WidgetSnapshotBuilder.build(inputs, WidgetFixtures.policy(PresetId.Full), COPY).today.energy)
+
+        // The bar runs to 3,240 (2,700 plus 20%).
+        assertEquals(2300 / 3240f, energy.rangeStart, 0.001f)
+        assertEquals(2700 / 3240f, energy.rangeEnd, 0.001f)
+    }
+
+    @Test
+    fun oneNumber_drawsAMarkAtIt_notABox() {
+        val base = WidgetFixtures.inputs(NumbersSettings(preset = PresetId.Full), WidgetFixtures.day, mealGroups = true)
+        val inputs = base.copy(settings = base.settings.copy(targets = base.settings.targets.useExact()))
+
+        val energy = assertNotNull(WidgetSnapshotBuilder.build(inputs, WidgetFixtures.policy(PresetId.Full), COPY).today.energy)
+
+        // The bar runs to 2,520 (2,100 plus 20%), and the goal's ends meet.
+        assertEquals(2100 / 2520f, energy.rangeStart, 0.001f)
+        assertEquals(energy.rangeStart, energy.rangeEnd)
+    }
+
+    @Test
+    fun aSetDeficit_drawsItsTargetAgainstBurned() {
+        val base = WidgetFixtures.inputs(NumbersSettings(preset = PresetId.Full), WidgetFixtures.day, mealGroups = true)
+        val deficit = base.settings.targets.copy(startingKcal = 1500, style = TargetStyle.Deficit(500, 500))
+        val inputs = base.copy(settings = base.settings.copy(targets = deficit), burnedKcal = 2180)
+
+        val energy = assertNotNull(WidgetSnapshotBuilder.build(inputs, WidgetFixtures.policy(PresetId.Full), COPY).today.energy)
+
+        // 2,180 less 500 is 1,680; the bar runs to 2,016.
+        assertEquals(1680 / 2016f, energy.rangeStart, 0.001f)
+        assertEquals(energy.rangeStart, energy.rangeEnd)
     }
 
     @Test
@@ -93,19 +135,19 @@ class WidgetSnapshotBuilderTest {
     @Test
     fun delayed_staysOnTheCircles_afterTheRevealToo() {
         val evening = VisibilityPolicy(
-            NumbersSettings(preset = PresetId.Delayed),
+            NumbersSettings(preset = PresetId.Later),
             clockAt(LocalDateTime(WidgetFixtures.today, LocalTime(22, 0))),
             WidgetFixtures.timeZone,
         )
         val closed = WidgetFixtures.day.copy(closedAt = WidgetFixtures.noon)
-        val today = build(PresetId.Delayed, closed, policy = evening).today
+        val today = build(PresetId.Later, closed, policy = evening).today
         assertNull(today.energy)
         assertEquals(4, today.meals.size)
     }
 
     @Test
     fun theCircles_tickWhatIsDone() {
-        val meals = build(PresetId.Blind).today.meals
+        val meals = build(PresetId.NoNumbers).today.meals
         assertEquals(listOf(true, true, true, false), meals.map { it.done })
         assertEquals("diary_slot_breakfast, done", meals.first().description)
         assertEquals("diary_slot_dinner, not yet", meals.last().description)
@@ -115,12 +157,12 @@ class WidgetSnapshotBuilderTest {
     @Test
     fun ateNoDetails_countsAsDone() {
         val day = WidgetFixtures.day.copy(ateNoDetails = setOf(MealSlot.Dinner))
-        assertTrue(build(PresetId.Blind, day).today.meals.all { it.done })
+        assertTrue(build(PresetId.NoNumbers, day).today.meals.all { it.done })
     }
 
     @Test
     fun mealGroupsOff_withCaloriesHidden_saysTapToLog() {
-        val today = build(PresetId.Blind, mealGroups = false).today
+        val today = build(PresetId.NoNumbers, mealGroups = false).today
         assertTrue(today.meals.isEmpty())
         assertEquals(NOTE_LOG, today.note)
     }
@@ -148,7 +190,7 @@ class WidgetSnapshotBuilderTest {
         val tomorrow = snapshot.days.last()
         assertEquals("0", assertNotNull(tomorrow.energy).amount)
         assertEquals(0f, tomorrow.energy?.fraction)
-        assertTrue(build(PresetId.Blind).days.last().meals.none { it.done })
+        assertTrue(build(PresetId.NoNumbers).days.last().meals.none { it.done })
     }
 
     @Test
@@ -170,14 +212,14 @@ class WidgetSnapshotBuilderTest {
     }
 
     @Test
-    fun colours_comeFromThePalette() {
-        val pine = WidgetPalette.colors(PaletteChoice.Pine)
-        assertEquals("#1D7A6B", pine.light.accent)
-        assertEquals("#F2F4F3", pine.light.background)
-        assertEquals("#16201E", pine.light.bar)
-        assertEquals("#E0892B", pine.light.meals.getValue("breakfast").content)
-        assertEquals("#5CC2AE", pine.dark.accent)
-        assertNotEquals(pine, WidgetPalette.colors(PaletteChoice.Plum))
+    fun colours_areSlate() {
+        val slate = build(PresetId.Full).colors
+        assertEquals("#0F766F", slate.light.accent)
+        assertEquals("#EEF1F6", slate.light.background)
+        assertEquals("#18202E", slate.light.bar)
+        assertEquals("#E0892B", slate.light.meals.getValue("breakfast").content)
+        assertEquals("#6CCBBF", slate.dark.accent)
+        assertEquals("#1B2130", slate.dark.background)
     }
 
     @Test

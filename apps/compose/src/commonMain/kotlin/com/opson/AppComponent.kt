@@ -1,10 +1,13 @@
 package com.opson
 
+import com.opson.features.upgrade.AppGuard
+import com.opson.libraries.config.ConfigOverrideRepository
 import com.opson.libraries.core.AppState
 import com.opson.libraries.core.AutoInit
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.navigation.DeepLinkBridge
+import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.navigation.impl.DelegatingRouter
 import com.opson.libraries.telemetry.impl.JankMonitor
 import com.opson.libraries.telemetry.impl.StartupReporter
@@ -26,6 +29,9 @@ interface AppComponent {
     val featureEntryPoints: Set<FeatureEntryPoint>
     val appViewModel: AppViewModel  // Singleton, shared between MainActivity and App
     val delegatingRouter: DelegatingRouter
+
+    /** Lets a tab screen put the bottom bar away while it needs the room (Today's select mode). */
+    val tabBar: TabBar
     val telemetry: Telemetry
 
     /**
@@ -67,6 +73,12 @@ interface AppComponent {
 
     /** A home screen widget's +: the URL goes in here (App.kt on iOS, MainActivity on Android), the Logger comes out. */
     val widgetOpens: WidgetOpens
+
+    /** Maintenance, the version floor and the update offer, drawn by App.kt over everything. */
+    val appGuard: AppGuard
+
+    /** The guard's debug-only way out when a QA override is what is holding the app. */
+    val configOverrideRepository: ConfigOverrideRepository
 
     /**
      * Singletons that need to construct at app boot rather than lazily

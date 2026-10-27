@@ -27,14 +27,14 @@ import org.jetbrains.kotlin.psi.KtCallExpression
  * `outcome="Success"`. A quarter of that release's purchase data was
  * unattributable.
  *
- * ## Why this repo is exposed even though it has no dashboards
+ * ## Why this repo is exposed
  *
- * Minification is on, and the only name-keeping rule in `proguard-rules.pro` is
- * `-keepnames class * extends java.lang.Throwable`. Every `::class.simpleName`
- * here today is inside a log *message*, which a human reads — an obfuscated name
- * there is ugly, not wrong, and this rule deliberately leaves those alone. The
- * moment one is fed to `logEvent` it becomes a machine-queried value, and the
- * value is whatever R8 chose.
+ * Minification is on, the only name-keeping rule in `proguard-rules.pro` is
+ * `-keepnames class * extends java.lang.Throwable`, and the boards in
+ * `ops/grafana` filter app events by attribute value. A `::class.simpleName`
+ * inside a log *message* is read by a human, so an obfuscated name there is
+ * ugly, not wrong, and this rule leaves those alone. Fed to `logEvent` it
+ * becomes a machine-queried value, and the value is whatever R8 chose.
  *
  * ## The fix
  *

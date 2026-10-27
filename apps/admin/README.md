@@ -68,9 +68,37 @@ way.
 - **Versions.** What a captured build shipped with: the in-code defaults per
   app version (see the manifest section below).
 - **Audit.** Every change, newest first, with before/after diffs.
+- **Users.** Support's lookup: find an account by its user id or part of
+  its email or display name (blank lists the 25 most recently seen), then see
+  the account (email, guest or claimed, joined, last seen, last change
+  synced), every build each install has run, the Settings it chose and how it
+  logs, in counts. It links to the Grafana User detail board and to Sentry
+  for the same id. Server side it's `/v1/admin/users`, reading the `support`
+  views, so it shows no food, amount, weight or note.
+- **Waitlist.** The website waitlist for the connected environment: how many
+  addresses, the newest 50 (page back with *Older*), *Export CSV*
+  (`email,source,created_at`, downloaded by the browser), and *Remove*, per
+  row or by typing the address from a removal request. Remove deletes the
+  address, as the site's privacy wording promises. Server side it's
+  `/v1/admin/waitlist` (see `apps/server/README.md`).
 - **Kill switches.** The pinned panel above the tabs holds the emergency flags
-  (maintenance mode/message, min supported build) with an ALL CLEAR / BANNER /
-  BLOCKING state header.
+  (maintenance mode/message, min supported build, and the build below which the
+  app offers an update) with an ALL CLEAR / BANNER / BLOCKING state header. The
+  app guard reads them from **Opson 0.2 on**, at launch and on every return to
+  the app; **0.1 does not read them at all**, so 0.1 users see nothing whatever
+  you set. What each does in 0.2+:
+  - `maintenanceMode = blocking`: a full-screen stop with the message, and a
+    *Try again* that refetches. A phone that cannot reach the server (offline,
+    or the server is down) gets the banner instead and keeps logging on the
+    phone, because it could not tell that maintenance had ended.
+  - `maintenanceMode = banner`: the message in a strip above the app; the app
+    works normally.
+  - `minSupportedVersionCode`: builds below it get a full-screen update screen
+    that opens the store. Offline too.
+  - `latestVersionCode`: builds below it get a dismissable "a new version is
+    ready" strip. 0, the default, offers nothing.
+  To act on one build or platform only, add a targeting rule (build range,
+  platform) on the switch rather than changing its base value.
 - **Guardrails.** Every write shows a before → after confirm sheet naming the
   environment. Writes are also type-checked server-side against the registry
   (you can't set `upgrade.minSupportedVersionCode = "six"`); lockout/force-upgrade changes get
@@ -173,13 +201,9 @@ So: when you add, remove, or change a scalar `ConfiguredValue`, update
 `config-manifest-registry.json` in the same change.
 Composite (`JsonConfigValue`) flags are intentionally omitted.
 
-The `upgrade.*` kill switches are the one set of rows with no `ConfiguredValue`
-behind them: they are seeded by the V4 migration and driven from the panel above,
-and no client code reads them yet. Their rows stay because `ConfigSchema` waves
-through any path the manifest does not mention, so deleting them is what would let
-`maintenanceMode = "banana"` through the admin API. The drift test names them
-explicitly and fails if one ever gains a `ConfiguredValue` without leaving that
-list.
+The `upgrade.*` kill switches were seeded by the V4 migration before any client
+read them; since 0.2 they are ordinary `ConfiguredValue`s in `features/upgrade`
+and the drift test holds them like any other row.
 
 ## Why this exists / scope
 

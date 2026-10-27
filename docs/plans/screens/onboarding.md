@@ -4,6 +4,12 @@ Welcome with the plan, three skippable questions, an optional statement, a
 starting mode that lists what you'll see and what stays out of view, and an
 optional account step last. Built to design v3. Read `shared.md` first.
 
+**Superseded in part by `docs/plans/onboarding-v2.md`** (2026-10-27): "What do
+you want to notice?" is cut, the starting point says why it was picked, a new
+Apple account runs setup, and the goal, resting energy and meal times steps
+follow the mode behind `release.onboardingSetup`. Where the two disagree, v2
+wins.
+
 ## Source
 - Design v3: `docs/design/v3/CHANGES.md` (global rules, the Onboarding row,
   "Pricing on Welcome"), `manifest.json` notes for `onboarding-welcome`,
@@ -29,6 +35,35 @@ optional account step last. Built to design v3. Read `shared.md` first.
 | Recommendation: one sentence | "Your starting point", the mode, one line, then a **You'll see** card and a **Kept out of view** card, then three alternatives and **All modes** |
 | Start finished onboarding | Start saves the mode, creates the guest, then shows the **account step**. Claimed identities and a guest that could not be created go straight to Today. |
 | New OAuth or Apple account from Welcome ran the questions | Gone with the Welcome buttons. A brand-new email account confirmed through `VerifyEmail` still lands on question 1 with `identityClaimed`. |
+
+## Design sync 2
+
+The owner's export (`docs/plans/design-sync-2.md`, ids
+`onboarding-screen__onboarding-*`) is the spec now. Most of it was already
+built to v3. What changes:
+
+| Screen | Design sync 2 | Build |
+|---|---|---|
+| Statement (1.4) | "Talk to someone" link (support icon, accent, bold) above See my starting point, shown whichever answer is picked, opens Find support (10.3) | New action `TalkToSomeoneTapped`, event `NavigateToSupport`. The entry point routes it through `:features:settings`. `FindSupportRoute` is being built by the Settings agent in parallel; until it lands here the link opens `SupportRoute` (`TODO(design-sync-2)`). |
+| Recommendation (1.5) | Outlined eye and eye-off icons | `AppIcons.VisibilityOutline`, `AppIcons.VisibilityOffOutline` added to `:libraries:ui` |
+| Questions (1.2, 1.3) | Segmented progress bar and back arrow | Already built |
+| Welcome, Account | No layout change | Unchanged |
+
+Kept on purpose, with the reason:
+- **Welcome**: Free only. No Plus row, no price and no "Coming later": 0.1
+  sells nothing, and a price with no way to buy is an App Review rejection.
+  The name stays "Opson" (the design's "Friendly Tracking" is a placeholder).
+  Free reads "Logging, saved meals and every mode": barcode scan is behind
+  `release.barcode`, so the design's "barcode scan, recipes" would advertise
+  what isn't on.
+- **Statement body** keeps "the answer is used for nothing else". The design's
+  "stays on this phone" isn't true: settings sync to the person's own row.
+- **Account**: Apple (iOS) and "Keep it on this phone" only. Google and email
+  stay hidden by `SignInMethods` for 0.1. The card keeps "Private to you. No ad
+  tracking." (the server can read rows, so "Encrypted. Only you can read it."
+  can't be promised) and drops the coach line (coaching is v2). The footer keeps
+  "Everything works without an account.": More has no account entry yet, so
+  "You can add an account later in More." would point nowhere.
 
 ## Route
 `OnboardingRoute` unchanged. Steps are state inside it.
@@ -148,6 +183,7 @@ Seen is ordered shown, then softened, then later; each line carries its mark
 | `SaveWithGoogleTapped` | `linkOAuthIdentity(Google)`. Same outcomes. |
 | `SaveWithEmailTapped` | Event `NavigateToSignUp`; `SignUpViewModel` links the email to the anonymous guest, `VerifyEmail` lands on Today. |
 | `KeepOnPhoneTapped` | Today. |
+| `TalkToSomeoneTapped` | Statement step. Event `NavigateToSupport`; the step and answers stay as they are. Logs nothing. |
 | `Back` | Account to recommendation, recommendation to the statement, question n to n − 1, question 1 to Welcome unless claimed or started. |
 
 `finish(preset, answers)`:
@@ -157,7 +193,8 @@ Seen is ordered shown, then softened, then later; each line carries its mark
 4. Skip all, a claimed identity, or `creationFailed`: `NavigateToToday`. Otherwise `step = Account`.
 
 ## Events
-`NavigateToToday`, `NavigateToSignIn`, `NavigateToSignUp`.
+`NavigateToToday`, `NavigateToSignIn`, `NavigateToSignUp`, `NavigateToSupport`
+(Find support, `SupportRoute` until `FindSupportRoute` exists).
 
 ## Data
 `SettingsRepository`, `AppCache`, `GuestAccountCreator`, `AuthRepository`
@@ -167,8 +204,9 @@ the preset in `Settings.onboarding`, which syncs inside the user's own settings
 row like every other setting. They never reach telemetry.
 
 ## Telemetry
-- `onboarding.step_viewed` `step`: `welcome`, `question_1` to `question_3`,
-  `statement` (was `question_4`), `recommendation`, `account`.
+- `onboarding.step_viewed` `step`: `welcome`, `question_1`, `question_2`,
+  `statement` (was `question_4`), `recommendation`, `goal`, `resting_energy`,
+  `meal_times`, `account`. `question_3` went in onboarding v2.
 - `onboarding.auth_selected` (`guest`, false) for Get started and Skip all;
   (`guest`, true) for an adopted stranded guest. The Welcome OAuth and Apple
   entries are gone.
@@ -224,6 +262,7 @@ Verbatim from the v3 images except where noted. `strings_onboarding.xml`.
 | `onboarding_statement_quote` | "Numbers or tracking have been hard for me before." |
 | `onboarding_statement_body` | If you say yes, you get gentler starting points. We don't ask why, and the answer is used for nothing else. (`TODO(clinician)`; the design says "stays on this phone", which is not true: settings sync) |
 | `onboarding_statement_yes` / `_no` | Yes, that's me / Not really |
+| `onboarding_talk_to_someone` | Talk to someone |
 | `onboarding_see_starting_point` | See my starting point |
 | `onboarding_reco_kicker` | Your starting point |
 | `onboarding_reco_see` / `onboarding_reco_kept_out` | You'll see / Kept out of view |
@@ -258,7 +297,8 @@ Verbatim from the v3 images except where noted. `strings_onboarding.xml`.
 - `ModePreviewTest`: Fuel matches the design; for every preset nothing hidden
   is in "seen", every shown subject is in "seen"; every preset sees something.
 - `SetupAnswersTest`: toggles, replaces, `isEmpty`, `toSettings`.
-- `OnboardingViewModelTest`: each action above, the account step outcomes, Skip
+- `OnboardingViewModelTest`: each action above (Talk to someone navigates and
+  leaves the step and answers alone, with either answer picked), the account step outcomes, Skip
   all saves Full, back from the account step, no answer in any event.
 - Previews named for the design ids: welcome, why, numbers, notice, statement,
   recommendation (Fuel), recommendation hard, all modes, account (Android and

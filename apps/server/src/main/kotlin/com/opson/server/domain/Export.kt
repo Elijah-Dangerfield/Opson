@@ -23,7 +23,7 @@ sealed interface ExportRecord {
 }
 
 /**
- * Streams everything the caller has logged: entries by day and time, then
+ * Streams the caller's log: entries by day and time, then
  * weigh-ins, then water per day. [sink] is called once per row inside one
  * read transaction, so the export never holds the whole history in memory.
  */

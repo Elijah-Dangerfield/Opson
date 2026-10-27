@@ -3,10 +3,14 @@ package com.opson.features.settings.impl.support
 import com.opson.features.settings.impl.FakeAuthRepository
 import com.opson.features.settings.impl.FakeDataExport
 import com.opson.features.settings.impl.FakeDiarySync
+import com.opson.features.settings.impl.FakeLinks
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.findSupportFlag
+import com.opson.libraries.diary.DataExport
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.identity.auth.DeleteAccountOutcome
+import kotlinx.coroutines.CancellationException
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_delete_done
 import opson.libraries.resources.generated.resources.settings_export_ready
@@ -30,9 +34,12 @@ class SupportViewModelTest : CoroutineTest() {
         val sync: FakeDiarySync = FakeDiarySync(),
         csv: Result<ByteArray> = Result.success(ByteArray(0)),
         val auth: FakeAuthRepository = FakeAuthRepository(),
+        findSupport: Boolean = false,
+        region: String? = "US",
+        val links: FakeLinks = FakeLinks(),
     ) {
         val export = FakeDataExport(sync, csv)
-        val vm = SupportViewModel(sync, export, auth)
+        val vm = SupportViewModel(sync, export, auth, findSupportFlag(findSupport), DeviceRegion { region }, links)
     }
 
     @Test
@@ -47,7 +54,26 @@ class SupportViewModelTest : CoroutineTest() {
             listOf<SupportEvent>(SupportEvent.OpenLink(HELPLINE_URL), SupportEvent.OpenLink(PROVIDER_URL)),
             events,
         )
-        assertEquals("https://www.allianceforeatingdisorders.com", HELPLINE_URL)
+        assertEquals("https://www.allianceforeatingdisorders.com/find-treatment/", HELPLINE_URL)
+    }
+
+    @Test
+    fun theAboutRowsOpenThePublishedLegalPages_andTheCreditsInTheApp() = runUnitTest {
+        val rig = Rig()
+        val events = eventsOf(rig.vm)
+
+        rig.vm.takeAction(SupportAction.PrivacyTapped)
+        rig.vm.takeAction(SupportAction.TermsTapped)
+        rig.vm.takeAction(SupportAction.CreditsTapped)
+
+        assertEquals(
+            listOf(
+                SupportEvent.OpenLink("https://nightjarlabs.llc/opson/privacy"),
+                SupportEvent.OpenLink("https://nightjarlabs.llc/opson/terms"),
+                SupportEvent.OpenCredits,
+            ),
+            events,
+        )
     }
 
     @Test
@@ -86,6 +112,19 @@ class SupportViewModelTest : CoroutineTest() {
 
         assertEquals(ExportStatus.Failed, rig.vm.state.export)
         assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun aCancelledExport_isNotReportedAsOffline() = runUnitTest {
+        val sync = FakeDiarySync()
+        val cancelled = object : DataExport {
+            override suspend fun csv(): Result<ByteArray> = throw CancellationException("left the page")
+        }
+        val vm = SupportViewModel(sync, cancelled, FakeAuthRepository(), findSupportFlag(false), DeviceRegion { "US" }, FakeLinks())
+
+        vm.takeAction(SupportAction.ExportTapped)
+
+        assertEquals(ExportStatus.Working, vm.state.export, "a cancellation is not a failed export")
     }
 
     @Test
@@ -164,5 +203,66 @@ class SupportViewModelTest : CoroutineTest() {
         rig.vm.takeAction(SupportAction.BackTapped)
 
         assertEquals(listOf<SupportEvent>(SupportEvent.Close), events)
+    }
+
+    // --- design sync 2: Find support and the crisis row (release.findSupport) ---
+
+    @Test
+    fun withTheFlagOffSupportKeepsItsLinksAndNoCrisisRow() = runUnitTest {
+        val rig = Rig(findSupport = false)
+
+        assertEquals(false, rig.vm.state.findSupport)
+        assertEquals(null, rig.vm.state.crisis)
+    }
+
+    @Test
+    fun theCrisisRowFollowsThePhonesCountry() = runUnitTest {
+        assertEquals(SupportDirectory.of(SupportCountry.UnitedStates).crisis, Rig(findSupport = true, region = "US").vm.state.crisis)
+        assertEquals(SupportDirectory.of(SupportCountry.UnitedKingdom).crisis, Rig(findSupport = true, region = "GB").vm.state.crisis)
+        assertEquals(SupportDirectory.of(SupportCountry.NewZealand).crisis, Rig(findSupport = true, region = "nz").vm.state.crisis)
+        assertEquals(null, Rig(findSupport = true, region = "FR").vm.state.crisis)
+        assertEquals(null, Rig(findSupport = true, region = null).vm.state.crisis)
+    }
+
+    @Test
+    fun tappingTheCrisisRowDialsStraightAway() = runUnitTest {
+        val rig = Rig(findSupport = true, region = "GB")
+        val events = eventsOf(rig.vm)
+
+        rig.vm.takeAction(SupportAction.CrisisTapped)
+
+        assertEquals(listOf("tel:116123"), rig.links.opened)
+        assertTrue(events.isEmpty())
+        assertEquals(null, rig.vm.state.couldNotDial)
+    }
+
+    @Test
+    fun withNoDialerTheRowSaysTheNumber() = runUnitTest {
+        val rig = Rig(findSupport = true, region = "US", links = FakeLinks(opens = false))
+
+        rig.vm.takeAction(SupportAction.CrisisTapped)
+
+        assertEquals("988", rig.vm.state.couldNotDial)
+    }
+
+    @Test
+    fun withNoListForTheRegionTheCrisisRowOpensFindSupport() = runUnitTest {
+        val rig = Rig(findSupport = true, region = "FR")
+        val events = eventsOf(rig.vm)
+
+        rig.vm.takeAction(SupportAction.CrisisTapped)
+
+        assertTrue(rig.links.opened.isEmpty())
+        assertEquals(listOf<SupportEvent>(SupportEvent.OpenFindSupport), events)
+    }
+
+    @Test
+    fun findSupportNearYouOpensThePage() = runUnitTest {
+        val rig = Rig(findSupport = true)
+        val events = eventsOf(rig.vm)
+
+        rig.vm.takeAction(SupportAction.FindSupportTapped)
+
+        assertEquals(listOf<SupportEvent>(SupportEvent.OpenFindSupport), events)
     }
 }

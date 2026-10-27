@@ -9,12 +9,21 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
+import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.GoalsAndEnergyEnabled
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -30,8 +39,12 @@ class TrendsViewModel(
     diary: DiaryRepository,
     weights: WeightRepository,
     private val settingsRepository: SettingsRepository,
-    policySource: VisibilityPolicySource,
+    private val policySource: VisibilityPolicySource,
     private val clock: Clock,
+    private val health: HealthRepository,
+    healthFlag: HealthReleaseFlag,
+    goalsAndEnergy: GoalsAndEnergyEnabled,
+    burnedRepository: BurnedRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<TrendsState, TrendsEvent, TrendsAction>(initialStateArg = TrendsState()) {
 
@@ -53,13 +66,31 @@ class TrendsViewModel(
             ) { days, weighIns -> Records(span.today, days, weighIns) }
         }
 
-        combine(settingsRepository.settings, policySource.policy, records) { settings, policy, records ->
+        val expended = if (healthFlag()) expended() else flowOf(null)
+
+        val burned = if (goalsAndEnergy()) span.flatMapLatest { burnedRepository.burned(it.today) } else flowOf(null)
+
+        combine(settingsRepository.settings, policySource.policy, records, expended, burned) { settings, policy, records, expended, burned ->
             TrendsAction.InputsArrived(
-                TrendsInputs(records.today, settings, records.days, records.weighIns, timeZone),
+                TrendsInputs(records.today, settings, records.days, records.weighIns, timeZone, expended, burned?.totalKcal),
                 policy,
             )
         }.collectIn(viewModelScope) { takeAction(it) }
     }
+
+    /**
+     * The watch's energy over the picked range, up to yesterday: today is still in progress. Read
+     * again when the range or the day moves. Starts at `null`, so the page draws without waiting
+     * on the health store and the Expended card joins it once the read lands.
+     */
+    private fun expended(): Flow<Map<LocalDate, EnergyExpended>?> =
+        combine(settingsRepository.settings, policySource.policy) { settings, _ ->
+            val today = today
+            TrendsCalendar.span(today, settings.weekStart, settings.trendsRange).start to today.minus(1, DateTimeUnit.DAY)
+        }
+            .distinctUntilChanged()
+            .mapLatest { (from, to) -> health.energyBetween(from, to, timeZone) }
+            .onStart { emit(null) }
 
     override suspend fun handleAction(action: TrendsAction) {
         when (action) {

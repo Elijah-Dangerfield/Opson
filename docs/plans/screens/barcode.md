@@ -159,6 +159,43 @@ and Search instead, with the existing `barcode_unavailable` copy.
 - Telemetry: `typed` on `barcode.hit` and `barcode.miss`, and
   `barcode.camera_unavailable`.
 
+## Follow-ups after device testing (iPhone Pro)
+Scans took a long, still hold to catch. The view model was never the cause (it
+takes the first read whose check digit passes, with no debounce); the camera
+setup was.
+- **iOS camera.** `defaultDeviceWithMediaType` gave the plain wide camera,
+  which on a Pro cannot focus closer than about 20 cm, so a pack held where it
+  fills the frame stayed blurred. The scanner now prefers the triple or dual
+  wide virtual camera, which hands over to the ultra wide for close focus, and
+  opens at a zoom (`ScanZoom.kt`, after Apple's AVCamBarcode sample) at which a
+  small code fills the frame from a distance the lens can focus.
+- **iOS focus and reading.** Continuous autofocus and exposure, autofocus
+  restricted to the near range, smooth autofocus off (it slows focus down on
+  purpose, for video), a 1080p preset, `rectOfInterest` set to the frame with
+  a margin (converted through the preview layer once the session runs),
+  metadata delivered on its own queue and hopped to main, and the whole
+  session configured on the capture queue so opening the screen never waits on
+  the camera. The start and stop ordering from the review stays: everything
+  still runs on the one serial `captureQueue`.
+- **Android.** ImageAnalysis ran at CameraX's default 640x480, too few pixels
+  per bar; it now asks for 1280x720 (`ResolutionSelector`, since
+  `setTargetResolution` is deprecated). The format filter was already there.
+- **Tap to focus.** A tap on the preview focuses and meters there (iOS keeps
+  focusing there continuously; CameraX for a few seconds, then back to
+  continuous) and draws a ring where it landed.
+- **Caught it.** The first accepted read buzzes (`BarcodeScanEvent.Scanned`,
+  `HapticFeedbackType.Confirm`), and the frame snaps tight in the accent colour
+  with a tick until the lookup has been slow for 400 ms, when the spinner takes
+  over. A typed code does not buzz.
+- **Light.** A torch button over the camera when it has one. It stays on
+  through a lookup and "Scan again" until it is turned off.
+- **One camera session per scan.** The viewfinder is called from one place
+  for both scanning and the lookup under the scrim, so a read no longer stops
+  and restarts the camera.
+- Needs a phone to check: the camera choice and zoom, focus speed, the ring
+  landing where the finger did, the torch, and the haptic. Unit tests cover
+  the zoom maths, the accepted-read rule, the haptic event and the torch state.
+
 ## Server: miss logging
 - `V13__barcode_misses.sql`, additive and idempotent (`IF NOT EXISTS`,
   `CREATE OR REPLACE VIEW`):
@@ -199,8 +236,9 @@ and Search instead, with the existing `barcode_unavailable` copy.
 `SingleLineField`, `Text`, `CircularProgressIndicator`, `AppTheme` tokens.
 Added to `:libraries:ui`: `ScanFrame` (corner brackets over the camera, with a
 preview), and `CircularProgressIndicator` now draws still under
-`LocalInspectionMode` so a preview with a spinner can be screenshotted. The viewfinder is a slot (`viewfinder: @Composable (Modifier) -> Unit`),
-so previews pass a plain dark box and never touch a camera.
+`LocalInspectionMode` so a preview with a spinner can be screenshotted. The viewfinder is a slot
+(`viewfinder: @Composable (ViewfinderRequest, Modifier) -> Unit`), so previews
+pass a plain dark box and never touch a camera.
 
 ## Visibility surfaces
 | Surface | Numbers | Notes |
@@ -225,6 +263,7 @@ Leak test: `logger-scan-miss` and `logger-scan-amount` added to
 | `barcode_name_placeholder` | What is it? |
 | `barcode_save_name` | Save the name only |
 | `barcode_search_instead` | Search instead |
+| `barcode_light_on` / `barcode_light_off` | Turn the light on / Turn the light off (the torch button, for screen readers) |
 | `barcode_scan_again` | Scan again |
 | `barcode_unavailable` | Couldn't look that up right now. Try again in a moment. |
 | `barcode_camera_title` | The camera is off for Opson |

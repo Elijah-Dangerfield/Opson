@@ -5,6 +5,7 @@ import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
@@ -27,11 +28,14 @@ class MoreViewModel(
     private val remindersEnabled: RemindersEnabled,
     private val fastingRelease: FastingRelease,
     private val widgetsEnabled: WidgetsEnabled,
+    private val goalsAndEnergy: GoalsAndEnergyEnabled,
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
+    // Read once, as the page opens: with the flag off the health store is never touched, not even to check it.
+    private val healthOn = healthFlag()
+
     init {
-        // With the flag off the health store is never touched, not even to check it.
-        val healthConnected: Flow<Boolean?> = if (healthFlag()) {
+        val healthConnected: Flow<Boolean?> = if (healthOn) {
             flow {
                 health.refresh()
                 emitAll(health.status.map { it == HealthStatus.Connected })
@@ -53,12 +57,14 @@ class MoreViewModel(
                     remindersOn = remindersEnabled(),
                     fastingReleased = fastingRelease.isOn(),
                     widgetsOn = widgetsEnabled(),
+                    todayScreenOn = goalsAndEnergy(),
                 )
             }
-            MoreAction.ScreenResumed -> health.refresh()
+            MoreAction.ScreenResumed -> if (healthOn) health.refresh()
             is MoreAction.RowTapped -> when (action.row) {
                 is MoreRow.Modes -> sendEvent(MoreEvent.OpenModes)
                 MoreRow.Targets -> sendEvent(MoreEvent.OpenTargets)
+                MoreRow.TodayScreen -> sendEvent(MoreEvent.OpenTodayScreen)
                 MoreRow.LookAndFeel -> sendEvent(MoreEvent.OpenLookAndFeel)
                 is MoreRow.Health -> sendEvent(MoreEvent.OpenHealth)
                 is MoreRow.Reminders -> sendEvent(MoreEvent.OpenReminders)
@@ -75,6 +81,7 @@ class MoreViewModel(
 sealed interface MoreEvent {
     data object OpenModes : MoreEvent
     data object OpenTargets : MoreEvent
+    data object OpenTodayScreen : MoreEvent
     data object OpenWater : MoreEvent
     data object OpenLookAndFeel : MoreEvent
     data object OpenHealth : MoreEvent

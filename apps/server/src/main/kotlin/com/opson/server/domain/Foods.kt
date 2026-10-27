@@ -8,7 +8,7 @@ import java.util.UUID
  * someone accountable stands behind the numbers.
  */
 enum class FoodTier(val wire: Int) {
-    /** USDA Foundation, SR Legacy, FNDDS: generic foods, lab or survey data. */
+    /** USDA Foundation, SR Legacy, FNDDS and NEVO: generic foods, lab or survey data. */
     Reference(1),
 
     /** USDA Branded Foods: the manufacturer's nutrition label. */
@@ -28,11 +28,14 @@ enum class FoodTier(val wire: Int) {
     }
 }
 
-/** Where a catalog food came from. Wire values match the `foods.source` CHECK (V10). */
+/** Where a catalog food came from. Wire values match the `foods.source` CHECK (V20). */
 enum class CatalogSource(val wire: String, val tier: FoodTier) {
     UsdaFoundation("usda_foundation", FoodTier.Reference),
     UsdaSr("usda_sr", FoodTier.Reference),
     UsdaFndds("usda_fndds", FoodTier.Reference),
+
+    /** The Dutch food composition table (RIVM), from scripts/import_nevo_foods.py. Search gates it ([SearchFilter.nevo]). */
+    Nevo("nevo", FoodTier.Reference),
     UsdaBranded("usda_branded", FoodTier.Label),
     Nutritionix("nutritionix", FoodTier.Licensed),
     OpenFoodFacts("off", FoodTier.Community),
@@ -71,8 +74,76 @@ data class Food(
     val verified: Boolean = tier.verified,
 )
 
+/**
+ * A food's category, from USDA's own (V17). Wire values match the
+ * `foods_category_check` CHECK. Most foods have none.
+ */
+enum class FoodCategory(val wire: String) {
+    Restaurant("restaurant"),
+    Beverage("beverage"),
+    BabyFood("baby_food"),
+    Supplement("supplement"),
+}
+
 /** How well a search result matched the query, best first. */
 enum class MatchTier { Exact, Head, Prefix, FullText, Similar }
+
+/**
+ * The Logger's search options (`category`, `source`, `sort` on
+ * `/v1/foods/search`). [None] is the search 0.1 calls, and must stay exactly
+ * that: same statement, same results.
+ *
+ * [nevo] lets NEVO's foods in. RIVM allows them only with its citation, so
+ * they go to a client that shows it (`credits=nevo`), never to 0.1, which
+ * can't. Describe searches with [None], so it never picks them either.
+ */
+data class SearchFilter(
+    val category: SearchCategory? = null,
+    val source: SearchSource? = null,
+    val sort: SearchSort = SearchSort.BestMatch,
+    val nevo: Boolean = false,
+) {
+    /** Whether Open Food Facts' own table can answer: it has no categories, and `usda` excludes it. */
+    val allowsOpenFoodFacts: Boolean get() = category == null && source != SearchSource.Usda
+
+    companion object {
+        val None = SearchFilter()
+    }
+}
+
+/** The `category` param. [Common] is tiers 1 and 2, the generic and label foods. */
+enum class SearchCategory(val wire: String) {
+    Restaurant("restaurant"),
+    Beverage("beverage"),
+    Common("common"),
+    ;
+
+    companion object {
+        fun fromWire(value: String): SearchCategory? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+/** The `source` param. */
+enum class SearchSource(val wire: String) {
+    Usda("usda"),
+    OpenFoodFacts("off"),
+    ;
+
+    companion object {
+        fun fromWire(value: String): SearchSource? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+/** The `sort` param. [Name] orders the best matches A to Z; it doesn't page through every match by name. */
+enum class SearchSort(val wire: String) {
+    BestMatch("best"),
+    Name("name"),
+    ;
+
+    companion object {
+        fun fromWire(value: String): SearchSort? = entries.firstOrNull { it.wire == value }
+    }
+}
 
 data class FoodMatch(val food: Food, val tier: MatchTier, val similarity: Double)
 
@@ -88,8 +159,26 @@ interface FoodCatalogRepository {
      * Ranked matches for [query]. When [record] is true, one anonymous
      * `food_search_events` row is written with the normalized query and the
      * result count (no user id, by design).
+     *
+     * [openFoodFacts] asks for `off_foods` rows as well. They are only added
+     * when the server's `FOOD_SEARCH_OFF_ENABLED` is on, ranked after generic
+     * and Branded rows of the same match, products sold in [country] (ISO
+     * 3166-1 alpha-2, when known) first. Rank by country, never filter by it.
+     *
+     * [filter] narrows by category or source and can order by name;
+     * [SearchFilter.None] is the unfiltered search.
      */
-    suspend fun search(query: String, limit: Int, record: Boolean = true): List<FoodMatch>
+    suspend fun search(
+        query: String,
+        limit: Int,
+        record: Boolean = true,
+        country: String? = null,
+        openFoodFacts: Boolean = false,
+        filter: SearchFilter = SearchFilter.None,
+    ): List<FoodMatch>
+
+    /** Whether search can add Open Food Facts' own table (`FOOD_SEARCH_OFF_ENABLED`). */
+    val searchesOpenFoodFacts: Boolean get() = false
 
     suspend fun findById(id: UUID): Food?
 
@@ -97,7 +186,9 @@ interface FoodCatalogRepository {
      * The food for a scanned code in any of its equivalent forms
      * ([Barcodes.equivalents]). When two rows carry the same product under
      * different forms (an Open Food Facts copy and the Branded Foods row),
-     * the better tier wins.
+     * the better tier wins. With `FOOD_SEARCH_OFF_ENABLED` on, a code
+     * `foods` lacks is looked up in `off_foods` too, so only a product the
+     * monthly export lacks costs a live Open Food Facts call.
      */
     suspend fun findByBarcode(barcode: String): Food?
 

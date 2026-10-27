@@ -11,7 +11,6 @@ import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.diary.TextSize
 import com.opson.libraries.diary.ThemeMode
 import com.opson.libraries.diary.Tone
@@ -23,11 +22,6 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_back_more
-import opson.libraries.resources.generated.resources.settings_look_colors
-import opson.libraries.resources.generated.resources.settings_look_palette_clay
-import opson.libraries.resources.generated.resources.settings_look_palette_espresso
-import opson.libraries.resources.generated.resources.settings_look_palette_pine
-import opson.libraries.resources.generated.resources.settings_look_palette_plum
 import opson.libraries.resources.generated.resources.settings_look_tags_body
 import opson.libraries.resources.generated.resources.settings_look_tags_title
 import opson.libraries.resources.generated.resources.settings_look_text
@@ -62,13 +56,6 @@ fun LookAndFeelScreen(
             title = stringResource(Res.string.settings_look_title),
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(LookAndFeelAction.BackTapped) },
-        )
-        Choice(
-            title = Res.string.settings_look_colors,
-            options = PaletteChoice.entries,
-            selected = state.palette,
-            label = ::paletteLabel,
-            onSelect = { onAction(LookAndFeelAction.PalettePicked(it)) },
         )
         Choice(
             title = Res.string.settings_look_theme,
@@ -153,13 +140,6 @@ private fun <T> Choice(
     }
 }
 
-private fun paletteLabel(palette: PaletteChoice): StringResource = when (palette) {
-    PaletteChoice.Pine -> Res.string.settings_look_palette_pine
-    PaletteChoice.Espresso -> Res.string.settings_look_palette_espresso
-    PaletteChoice.Clay -> Res.string.settings_look_palette_clay
-    PaletteChoice.Plum -> Res.string.settings_look_palette_plum
-}
-
 private fun themeLabel(theme: ThemeMode): StringResource = when (theme) {
     ThemeMode.System -> Res.string.settings_look_theme_system
     ThemeMode.Light -> Res.string.settings_look_theme_light
@@ -176,7 +156,6 @@ private fun LookAndFeelDefaultsPreview() {
 @Composable
 private fun LookAndFeelChangedDarkPreview() {
     val settings = SettingsFixtures.settings().copy(
-        palette = PaletteChoice.Espresso,
         theme = ThemeMode.Dark,
         textSize = TextSize.Large,
         tone = Tone.Warm,

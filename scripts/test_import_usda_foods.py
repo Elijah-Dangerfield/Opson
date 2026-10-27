@@ -3,13 +3,27 @@
     python3 -I -m unittest discover -s scripts -p 'test_import_usda_foods.py'
 """
 
+import json
+import stat
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 from import_usda_foods import (
+    KEEPALIVES,
+    MICROS,
+    Psql,
+    PsqlOutput,
+    branded_category,
+    default_portion_first,
+    generic_category,
     gtin_check_digit,
+    micros_from,
     normalize_gtin,
     pg_env,
     serving_portion,
+    stream,
     title_case,
     upc_e_to_upc_a,
 )
@@ -110,6 +124,186 @@ class ServingTest(unittest.TestCase):
         self.assertIsNone(serving_portion("30", "", "1 bar"))
 
 
+def portions(*pairs):
+    return [{"label": label, "grams": grams} for label, grams in pairs]
+
+
+class DefaultPortionTest(unittest.TestCase):
+    """Real FDC portion lists; the first portion is what the app logs by default."""
+
+    def first(self, items, kcal_100g):
+        result = default_portion_first(items, kcal_100g)
+        self.assertEqual(sorted(map(str, items)), sorted(map(str, result)), "every portion is kept")
+        self.assertEqual(result, default_portion_first(result, kcal_100g), "a second pass changes nothing")
+        return result[0]["label"]
+
+    def test_berries_default_to_a_cup_not_one_berry(self):
+        blueberries = portions(("1 berry", 2.0), ("1 cup", 150.0), ("50 berries", 68.0))
+        self.assertEqual("1 cup", self.first(blueberries, 57.0))
+        strawberries = portions(("1 fruit", 18.0), ("1 cup", 150.0), ("1 medium (1-1/4\" dia)", 12.0),
+                                ("1 NLEA serving", 147.0))
+        self.assertEqual("1 cup", self.first(strawberries, 32.0))
+        grapes = portions(("1 grape", 7.0), ("1 cup", 150.0))
+        self.assertEqual("1 cup", self.first(grapes, 69.0))
+
+    def test_nuts_default_to_an_ounce(self):
+        almonds = portions(("1 nut", 1.2), ("1 cup", 141.0), ("1 package", 50.0), ("1 100 calorie package", 18.0),
+                           ("1 oz", 28.4))
+        self.assertEqual("1 oz", self.first(almonds, 579.0))
+        # A cup of almonds is 828 kcal: dense food by the cup is replaced too.
+        nuts = portions(("1 cup, whole", 143.0), ("1 cup, sliced", 92.0), ("1 oz (23 whole kernels)", 28.4),
+                        ("1 almond", 1.2))
+        self.assertEqual("1 oz (23 whole kernels)", self.first(nuts, 579.0))
+
+    def test_grains_keep_their_cup(self):
+        rice = portions(("1 cup, cooked", 195.0), ("1 oz, cooked", 28.4))
+        self.assertEqual("1 cup, cooked", self.first(rice, 123.0))
+        oats = portions(("1 cup", 80.0))
+        self.assertEqual("1 cup", self.first(oats, 379.0))
+
+    def test_candy_defaults_to_a_regular_size_not_one_piece(self):
+        candy = portions(("1 piece", 8.0), ("1 miniature/bite size", 10.0), ("1 fun/snack size", 15.0),
+                         ("1 pouch/regular size", 45.0), ("1 large", 90.0))
+        self.assertEqual("1 pouch/regular size", self.first(candy, 490.0))
+        # Ten small jelly beans are 41 kcal: small, but a real serving. Left alone.
+        jelly_beans = portions(("10 small", 11.0), ("10 large (1 oz)", 28.0))
+        self.assertEqual("10 small", self.first(jelly_beans, 375.0))
+
+    def test_drinks_default_to_a_cup_or_can_not_a_fluid_ounce(self):
+        coffee = portions(("1 fl oz", 30.0), ("1 cup (8 fl oz)", 240.0), ("1 small", 360.0), ("1 medium", 480.0))
+        self.assertEqual("1 cup (8 fl oz)", self.first(coffee, 1.0))
+        cola = portions(("1 fl oz (no ice)", 31.0), ("1 fl oz (with ice)", 23.0), ("1 can (12 fl oz)", 372.0),
+                        ("1 bottle (20 fl oz)", 620.0))
+        self.assertEqual("1 can (12 fl oz)", self.first(cola, 42.0))
+        milk = portions(("1 cup", 244.0), ("1 fl oz", 30.5),
+                        ("Guideline amount per fl oz of beverage", 2.5))
+        self.assertEqual("1 cup", self.first(milk, 61.0))
+
+    def test_small_on_purpose_stays(self):
+        sugar = portions(("1 teaspoon", 4.2), ("1 cup", 200.0))
+        self.assertEqual("1 teaspoon", self.first(sugar, 387.0))
+        bacon = portions(("1 medium slice (yield after cooking)", 8.0), ("1 oz, raw (yield after cooking)", 8.0))
+        self.assertEqual("1 medium slice (yield after cooking)", self.first(bacon, 468.0))
+
+    def test_a_cup_of_butter_gives_way_to_a_spoon(self):
+        butter = portions(("1 cup", 224.0), ("1 tablespoon", 14.0), ("1 pat", 7.0),
+                          ("Guideline amount per slice of bread/roll", 7.0))
+        self.assertEqual("1 tablespoon", self.first(butter, 717.0))
+
+    def test_meals_keep_a_big_default(self):
+        meal = portions(("1 meal", 340.0), ("1 cup", 240.0))
+        self.assertEqual("1 meal", self.first(meal, 180.0))
+
+    def test_nothing_better_leaves_the_list_alone(self):
+        spice = portions(("1 tsp", 1.4), ("1 tbsp", 4.4))
+        self.assertEqual("1 tsp", self.first(spice, 300.0))
+        self.assertEqual([], default_portion_first([], 100.0))
+        one = portions(("1 berry", 2.0))
+        self.assertEqual(one, default_portion_first(one, 57.0))
+
+    def test_unknown_energy_still_moves_a_sip(self):
+        coffee = portions(("1 fl oz", 30.0), ("1 cup (8 fl oz)", 240.0))
+        self.assertEqual("1 cup (8 fl oz)", self.first(coffee, None))
+
+
+class CategoryTest(unittest.TestCase):
+
+    def test_sr_and_foundation_categories(self):
+        self.assertEqual("restaurant", generic_category("usda_sr", "21", "McDONALD'S, Big Mac"))
+        self.assertEqual("restaurant", generic_category("usda_foundation", "25", "Restaurant, Chinese, fried rice"))
+        self.assertEqual("beverage", generic_category("usda_sr", "14", "Beverages, coffee, brewed"))
+        self.assertEqual("baby_food", generic_category("usda_sr", "3", "Babyfood, cereal, rice"))
+        self.assertIsNone(generic_category("usda_sr", "20", "Rice, white, cooked"))
+
+    def test_sr_juices_and_fluid_milk_are_drinks_but_not_their_powders(self):
+        self.assertEqual("beverage", generic_category("usda_sr", "9", "Orange juice, raw"))
+        self.assertIsNone(generic_category("usda_sr", "9", "Oranges, raw"))
+        self.assertEqual("beverage", generic_category("usda_sr", "1", "Milk, whole, 3.25% milkfat, with added vitamin D"))
+        self.assertIsNone(generic_category("usda_sr", "1", "Milk, dry, nonfat, instant"))
+        self.assertIsNone(generic_category("usda_sr", "1", "Milk, canned, condensed, sweetened"))
+        self.assertIsNone(generic_category("usda_sr", "1", "Cheese, cheddar"))
+
+    def test_fndds_wweia_categories(self):
+        self.assertEqual("beverage", generic_category("usda_fndds", "7302", "Coffee, brewed"))
+        self.assertEqual("beverage", generic_category("usda_fndds", "7506", "Margarita"))
+        self.assertEqual("beverage", generic_category("usda_fndds", "1004", "Milk, NFS"))
+        self.assertEqual("beverage", generic_category("usda_fndds", "1902", "Almond milk, unsweetened"))
+        self.assertEqual("baby_food", generic_category("usda_fndds", "9402", "Infant formula, ready-to-feed"))
+        self.assertEqual("supplement", generic_category("usda_fndds", "9802", "Protein powder, whey based"))
+        self.assertIsNone(generic_category("usda_fndds", "4002", "Rice, white, cooked"))
+        self.assertIsNone(generic_category("usda_fndds", "", "Rice"))
+
+    def test_fndds_names_that_say_fast_food_are_restaurant_food(self):
+        self.assertEqual(
+            "restaurant",
+            generic_category("usda_fndds", "2202", "Chicken breast, fried, coated, from fast food / restaurant"),
+        )
+        self.assertEqual("restaurant", generic_category("usda_fndds", "1402", "Milk shake, fast food, chocolate"))
+
+    def test_branded_categories_in_every_spelling(self):
+        self.assertEqual("beverage", branded_category("Soda"))
+        self.assertEqual("beverage", branded_category("Fruit & Vegetable Juice, Nectars & Fruit Drinks"))
+        for spelling in (
+            "Non Alcoholic Beverages  Ready to Drink",
+            "Non Alcoholic Beverages - Ready to Drink",
+            "Non Alcoholic Beverages \u2013 Ready to Drink",
+        ):
+            self.assertEqual("beverage", branded_category(spelling), spelling)
+        self.assertEqual("baby_food", branded_category("Baby/Infant  Foods/Beverages"))
+        self.assertEqual("baby_food", branded_category("Baby/Infant \u2013 Foods/Beverages"))
+        self.assertEqual("supplement", branded_category("Meal Replacement Supplements"))
+
+    def test_branded_foods_that_only_mention_a_drink_are_not_drinks(self):
+        self.assertIsNone(branded_category("Milk Additives"))
+        self.assertIsNone(branded_category("Vinegars/Cooking Wines"))
+        self.assertIsNone(branded_category("Frozen Fruit & Fruit Juice Concentrates"))
+        self.assertIsNone(branded_category("Includes any products that can be described/observed as ... water, milk, oil"))
+        self.assertIsNone(branded_category(""))
+        self.assertIsNone(branded_category(None))
+
+
+# The vitamin and mineral keys the app's Micronutrient table reads, as
+# MicroWireKeysTest in :libraries:nutrition pins them. A key the importer
+# names differently is a nutrient no food ever shows.
+APP_MICRO_KEYS = {
+    "vitamin_a_rae_ug", "thiamin_mg", "riboflavin_mg", "niacin_mg", "vitamin_b6_mg", "folate_dfe_ug",
+    "vitamin_b12_ug", "vitamin_c_mg", "vitamin_d_ug", "vitamin_e_mg", "vitamin_k_ug", "choline_mg",
+    "calcium_mg", "copper_mg", "iron_mg", "magnesium_mg", "manganese_mg", "phosphorus_mg", "potassium_mg",
+    "selenium_ug", "sodium_mg", "zinc_mg",
+}
+
+
+class MicrosTest(unittest.TestCase):
+
+    def test_keeps_every_vitamin_and_mineral_the_app_shows(self):
+        self.assertEqual(set(), APP_MICRO_KEYS - set(MICROS))
+
+    def test_keeps_the_label_fats_and_sugars(self):
+        for key in ("sugars_g", "added_sugars_g", "saturated_fat_g", "trans_fat_g", "cholesterol_mg"):
+            self.assertIn(key, MICROS)
+
+    def test_amounts_keep_their_unit_and_round(self):
+        values = {"301": 120.0, "418": 0.12345, "605": 0.25, "435": 54.0}
+        self.assertEqual(
+            {"calcium_mg": 120.0, "vitamin_b12_ug": 0.123, "trans_fat_g": 0.25, "folate_dfe_ug": 54.0},
+            micros_from(values.get),
+        )
+
+    def test_a_nutrient_with_no_value_is_left_out_not_zero(self):
+        self.assertEqual({}, micros_from({}.get))
+        self.assertNotIn("iron_mg", micros_from({"301": 5.0}.get))
+
+    def test_vitamin_d_from_iu_when_there_is_no_microgram_figure(self):
+        self.assertEqual({"vitamin_d_ug": 10.0}, micros_from({"324": 400.0}.get))
+
+    def test_micrograms_win_over_iu(self):
+        self.assertEqual({"vitamin_d_ug": 2.5}, micros_from({"328": 2.5, "324": 400.0}.get))
+
+    def test_sugars_fall_back_to_the_nlea_figure(self):
+        self.assertEqual({"sugars_g": 4.2}, micros_from({"269.3": 4.2}.get))
+        self.assertEqual({"sugars_g": 5.0}, micros_from({"269": 5.0, "269.3": 4.2}.get))
+
+
 class ConnectionTest(unittest.TestCase):
 
     def test_url_becomes_libpq_environment(self):
@@ -133,6 +327,84 @@ class ConnectionTest(unittest.TestCase):
     def test_unknown_parameters_are_refused(self):
         with self.assertRaises(SystemExit):
             pg_env("postgresql://u:p@h/db?sslpassword=x")
+
+
+# A stand-in for psql: records its arguments, environment and stdin, answers a
+# query with one row, and exits with FAKE_PSQL_EXIT. No database is involved.
+FAKE_PSQL = """#!{python}
+import json, os, sys
+record = os.environ["FAKE_PSQL_RECORD"]
+stdin = sys.stdin.read() if "-f" in sys.argv else ""
+with open(record, "w") as f:
+    json.dump({{"argv": sys.argv[1:], "password": os.environ.get("PGPASSWORD"), "stdin": stdin}}, f)
+if "-c" in sys.argv:
+    print(os.environ.get("FAKE_PSQL_OUTPUT", "t"))
+sys.exit(int(os.environ.get("FAKE_PSQL_EXIT", "0")))
+"""
+
+
+class PsqlTest(unittest.TestCase):
+    """The psql seam both importers stream through, against a fake psql binary."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        self.binary = Path(self.dir.name) / "psql"
+        self.binary.write_text(FAKE_PSQL.format(python=sys.executable))
+        self.binary.chmod(self.binary.stat().st_mode | stat.S_IXUSR)
+        self.record = Path(self.dir.name) / "record.json"
+        env = pg_env("postgresql://importer:s3cret@db.example.com:5432/postgres")
+        self.db = Psql(str(self.binary), {**env, "FAKE_PSQL_RECORD": str(self.record)})
+
+    def recorded(self):
+        return json.loads(self.record.read_text())
+
+    def test_a_query_carries_keepalives_and_keeps_the_password_off_the_command_line(self):
+        self.assertEqual([["t"]], self.db.query("SELECT true"))
+        call = self.recorded()
+        self.assertEqual(KEEPALIVES, call["argv"][call["argv"].index("-d") + 1])
+        self.assertEqual("s3cret", call["password"])
+        self.assertNotIn("s3cret", " ".join(call["argv"]))
+
+    def test_a_stream_carries_keepalives_stops_on_error_and_sends_every_chunk(self):
+        stream([("BEGIN;\n", 0), ("INSERT 1;\n", 1), ("COMMIT;\n", 0)], PsqlOutput(self.db))
+        call = self.recorded()
+        self.assertEqual(KEEPALIVES, call["argv"][call["argv"].index("-d") + 1])
+        self.assertIn("ON_ERROR_STOP=1", call["argv"])
+        self.assertEqual("BEGIN;\nINSERT 1;\nCOMMIT;\n", call["stdin"])
+
+    def test_a_psql_failure_stops_the_import_and_says_to_run_it_again(self):
+        self.db.env["FAKE_PSQL_EXIT"] = "3"
+        with self.assertRaises(SystemExit) as stopped:
+            stream([("INSERT 1;\n", 1)], PsqlOutput(self.db))
+        self.assertIn("re-run to finish", str(stopped.exception))
+
+    def test_a_started_session_gets_its_sql_on_stdin_with_keepalives(self):
+        proc = self.db.start("CREATE INDEX x ON t (c);\n")
+        self.assertEqual(0, proc.wait())
+        call = self.recorded()
+        self.assertEqual(KEEPALIVES, call["argv"][call["argv"].index("-d") + 1])
+        self.assertIn("ON_ERROR_STOP=1", call["argv"])
+        self.assertEqual("CREATE INDEX x ON t (c);\n", call["stdin"])
+
+    def test_the_watchdog_asks_pg_stat_activity_for_other_sessions_running_the_statement(self):
+        self.db.env["FAKE_PSQL_OUTPUT"] = "1"
+        self.assertTrue(self.db.statement_running("INDEX off_foods_next_search_idx ON"))
+        query = self.recorded()["argv"][-1]
+        self.assertIn("pg_stat_activity", query)
+        self.assertIn("pid <> pg_backend_pid()", query)
+        self.assertIn("'INDEX off_foods_next_search_idx ON'", query)
+        self.db.env["FAKE_PSQL_OUTPUT"] = "0"
+        self.assertFalse(self.db.statement_running("INDEX x ON"))
+
+    def test_the_watchdog_counts_a_failed_look_as_not_seen(self):
+        self.db.env["FAKE_PSQL_EXIT"] = "2"
+        self.assertFalse(self.db.statement_running("INDEX x ON"))
+
+    def test_a_failed_query_stops_the_import(self):
+        self.db.env["FAKE_PSQL_EXIT"] = "2"
+        with self.assertRaises(SystemExit):
+            self.db.query("SELECT true")
 
 
 if __name__ == "__main__":

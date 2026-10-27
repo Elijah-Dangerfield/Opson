@@ -51,6 +51,15 @@ class DiaryRulesTest {
     }
 
     @Test
+    fun textPostgresCannotStoreIsRefused() {
+        assertEquals("name contains a NUL character", DiaryRules.validate(entry(name = "Ban\u0000ana"), now))
+        assertNotNull(DiaryRules.validate(entry(micros = mapOf("sodium\u0000" to 1.0)), now))
+        val settings = UserSettings("""{"name":"a\u0000b"}""", null, now, false)
+        assertEquals("settings contains a NUL character", DiaryRules.validate(settings, now))
+        assertNull(DiaryRules.validate(UserSettings("""{"name":"ab"}""", null, now, false), now))
+    }
+
+    @Test
     fun microsAreCheckedToo() {
         assertNull(DiaryRules.validate(entry(micros = mapOf("sodium_mg" to 1.0)), now))
         assertNotNull(DiaryRules.validate(entry(micros = mapOf("sodium_mg" to -1.0)), now))
@@ -64,12 +73,21 @@ class DiaryRulesTest {
     }
 
     @Test
-    fun clientClockMayNotBeFarAhead() {
-        assertNull(DiaryRules.validate(entry(clientUpdatedAt = now + 23.hours), now))
-        assertEquals(
-            "clientUpdatedAtEpochMs is in the future",
-            DiaryRules.validate(entry(clientUpdatedAt = now + 25.hours), now),
-        )
+    fun aClockWithinTheSkewIsTrusted() {
+        val row = entry(clientUpdatedAt = now + 23.hours)
+        assertEquals(row, DiaryRules.clampClock(row, now))
+        assertNull(DiaryRules.validate(row, now))
+    }
+
+    @Test
+    fun aClockDaysAhead_isBroughtBackToNow_ratherThanRefused() {
+        val row = entry(clientUpdatedAt = now + 49.hours).copy(loggedAt = now + 48.hours)
+
+        val clamped = DiaryRules.clampClock(row, now) as LogEntry
+
+        assertEquals(now, clamped.clientUpdatedAt)
+        assertEquals(now, clamped.loggedAt)
+        assertNull(DiaryRules.validate(clamped, now))
     }
 
     @Test
@@ -93,6 +111,14 @@ class DiaryRulesTest {
         assertNull(DiaryRules.validate(record.copy(feeling = null), now))
         assertNotNull(DiaryRules.validate(record.copy(feeling = " "), now))
         assertNotNull(DiaryRules.validate(record.copy(feeling = "x".repeat(DiaryRules.MAX_FEELING + 1)), now))
+    }
+
+    @Test
+    fun theCheckInIsOpaqueButCapped() {
+        val record = DayRecord(today, null, null, null, emptyMap(), null, now, false, checkIn = """{"hunger":"steady","moods":["calm"]}""")
+        assertNull(DiaryRules.validate(record, now))
+        assertNull(DiaryRules.validate(record.copy(checkIn = null), now))
+        assertNotNull(DiaryRules.validate(record.copy(checkIn = "x".repeat(DiaryRules.MAX_CHECK_IN + 1)), now))
     }
 
     @Test
@@ -154,9 +180,9 @@ class DiaryRulesTest {
     }
 
     @Test
-    fun aFastCannotEndBeforeItStartsOrStartInTheFuture() {
+    fun aFastCannotEndBeforeItStarts_andAFutureStartIsBroughtBack() {
         assertEquals("endedAtEpochMs is before startedAtEpochMs", DiaryRules.validate(fast(endedAt = now - 4.hours), now))
-        assertEquals("startedAtEpochMs is in the future", DiaryRules.validate(fast(startedAt = now + 25.hours), now))
+        assertEquals(now, (DiaryRules.clampClock(fast(startedAt = now + 25.hours), now) as Fast).startedAt)
         assertEquals("day is in the future", DiaryRules.validate(fast(day = today.plusDays(9)), now))
     }
 }

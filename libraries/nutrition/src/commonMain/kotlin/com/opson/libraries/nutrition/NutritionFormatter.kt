@@ -36,7 +36,8 @@ interface NutritionFormatter {
     fun energy(kcal: Double, bare: Boolean): String
     fun grams(grams: Double, of: Double?): String
     fun percent(percent: Double): String
-    fun weight(amount: Double, unit: WeightUnit): String
+    /** `72.6 kg`, or `72.6` when [bare], for a figure that sets its unit apart. */
+    fun weight(amount: Double, unit: WeightUnit, bare: Boolean = false): String
     fun water(amount: Double, of: Double, unit: WaterUnit): String
     fun left(kcal: Double): String
     fun onTarget(): String
@@ -52,7 +53,7 @@ interface NutritionFormatter {
     /** `47 / 120 g`. */
     fun gramsSlash(grams: Double, of: Double): String
 
-    /** `1,900 to 2,300`, or `1,900 to 2,300 kcal` with the unit. */
+    /** `1,900 to 2,300`, or `1,900 to 2,300 kcal` with the unit. One number when the ends meet: `2,100`, never `2,100 to 2,100`. */
     fun energyRange(min: Double, max: Double, bare: Boolean): String
 
     /** `47 g protein`. [metric] is one of the four macros. */
@@ -90,13 +91,14 @@ object EnglishNutritionFormatter : NutritionFormatter {
         if (bare) wholeNumber(kcal) else "${wholeNumber(kcal)} kcal"
 
     override fun grams(grams: Double, of: Double?): String =
-        if (of == null) "${wholeNumber(grams)} g" else "${wholeNumber(grams)} g of ${wholeNumber(of)} g"
+        if (of == null) "${wholeNumber(grams)} g" else "${wholeNumber(grams)} of ${wholeNumber(of)} g"
 
     override fun percent(percent: Double): String = "${wholeNumber(percent)}%"
 
-    override fun weight(amount: Double, unit: WeightUnit): String = when (unit) {
-        WeightUnit.Kg -> "${oneDecimal(amount)} kg"
-        WeightUnit.Lb -> "${oneDecimal(amount)} lb"
+    override fun weight(amount: Double, unit: WeightUnit, bare: Boolean): String = when {
+        bare -> oneDecimal(amount)
+        unit == WeightUnit.Kg -> "${oneDecimal(amount)} kg"
+        else -> "${oneDecimal(amount)} lb"
     }
 
     override fun water(amount: Double, of: Double, unit: WaterUnit): String = when (unit) {
@@ -137,8 +139,10 @@ object EnglishNutritionFormatter : NutritionFormatter {
 
     override fun gramsSlash(grams: Double, of: Double): String = "${wholeNumber(grams)} / ${wholeNumber(of)} g"
 
-    override fun energyRange(min: Double, max: Double, bare: Boolean): String =
-        if (bare) "${wholeNumber(min)} to ${wholeNumber(max)}" else "${wholeNumber(min)} to ${wholeNumber(max)} kcal"
+    override fun energyRange(min: Double, max: Double, bare: Boolean): String {
+        val amount = if (wholeNumber(min) == wholeNumber(max)) wholeNumber(min) else "${wholeNumber(min)} to ${wholeNumber(max)}"
+        return if (bare) amount else "$amount kcal"
+    }
 
     override fun macroLong(metric: Metric, grams: Double): String = "${wholeNumber(grams)} g ${macroWord(metric)}"
 

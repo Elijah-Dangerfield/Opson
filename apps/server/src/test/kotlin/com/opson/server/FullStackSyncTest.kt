@@ -25,6 +25,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
+import kotlin.time.Clock
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -81,7 +82,7 @@ class FullStackSyncTest : DatabaseTest() {
     fun twoDevicesConvergeThroughSync() = runTest {
         val user = seedAuthUser()
         val other = seedAuthUser()
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig())
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
         val foodId = DiaryFixtures.insertFood(database, name = "Soup, lentil").toString()
         val entryId = UUID.randomUUID().toString()
 
@@ -141,9 +142,50 @@ class FullStackSyncTest : DatabaseTest() {
     }
 
     @Test
+    fun aRowPostgresCannotStoreIsRejected_andTheRestOfTheBatchStillSyncs() = runTest {
+        // Postgres refuses a NUL character in text and a \u0000 escape in jsonb. One such row
+        // used to fail the whole transaction, every time the outbox retried it.
+        val user = seedAuthUser()
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
+        val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
+        testApplication {
+            application { installApp(component, TestJwt.verification) }
+            val client = createClient { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }
+
+            val result = client.sync(
+                user,
+                0,
+                SyncMutationDto("ok", "log_entry", entryRow(UUID.randomUUID().toString(), "Porridge", t0)),
+                SyncMutationDto(
+                    "note",
+                    "day_record",
+                    buildJsonObject {
+                        put("day", today)
+                        put("note", "pasted\u0000text")
+                        put("clientUpdatedAtEpochMs", t0)
+                    },
+                ),
+                SyncMutationDto(
+                    "settings",
+                    "settings",
+                    buildJsonObject {
+                        putJsonObject("settings") { put("name", "a\u0000b") }
+                        put("clientUpdatedAtEpochMs", t0)
+                    },
+                ),
+            )
+
+            assertEquals(listOf("ok"), result.applied)
+            assertEquals(setOf("note", "settings"), result.rejected.map { it.id }.toSet())
+            assertTrue(result.rejected.all { it.code == "invalid_row" })
+            assertEquals(listOf("Porridge"), result.changes.logEntries.map { it.name })
+        }
+    }
+
+    @Test
     fun exportReadsWhatSyncWrote() = runTest {
         val user = seedAuthUser()
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig())
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
         testApplication {
             application { installApp(component, TestJwt.verification) }
             val client = createClient { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }

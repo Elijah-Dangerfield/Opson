@@ -30,6 +30,8 @@ data class NutrientsInputs(
     val fromTrends: Boolean,
     val settings: Settings,
     val days: List<Day>,
+    /** The day's Burned with `release.goalsAndEnergy`, what a set deficit or surplus aims at. */
+    val burnedKcal: Int? = null,
 )
 
 data class NutrientsState(
@@ -53,7 +55,8 @@ data class NutrientsState(
  * Energy on a bar with the range as a dashed box. [eaten] carries the fill as its
  * fraction of the bar; [range] is Shown only when calories are, and the box with it.
  */
-data class EnergyRow(val eaten: Display, val range: Display, val rangeStart: Float, val rangeEnd: Float)
+/** [singleGoal]: the goal is one number, so the row says "· goal" and the bar marks it with a line. */
+data class EnergyRow(val eaten: Display, val range: Display, val rangeStart: Float, val rangeEnd: Float, val singleGoal: Boolean = false)
 
 sealed interface BackLabel {
     data object Trends : BackLabel
@@ -70,7 +73,7 @@ sealed interface NutrientsSubtitle {
     data class WeekAverage(val range: String) : NutrientsSubtitle
 }
 
-/** GoalStyle.Of: `47 g of 120 g`. */
+/** GoalStyle.Of: `47 of 120 g`. */
 data class NutrientRow(val metric: Metric, val label: StringResource, val display: Display)
 
 data class MicroGroupRows(val group: MicroGroup, val title: StringResource, val rows: List<MicroRow>)
@@ -90,7 +93,7 @@ data class MicroRow(
 /**
  * Builds [NutrientsState]. Day resolves on [Surface.Nutrients], so a Delayed
  * day opens at 9 pm or once it is past; Week average resolves on
- * [Surface.Week], where Delayed numbers are open and Coast's open with its
+ * [Surface.Week], where Later numbers are open, and weekly ones open with their
  * weekly check. There are no nutrition scores (design v3 cut them): a score
  * built from hidden data is a number with no source.
  */
@@ -117,21 +120,29 @@ object NutrientsStateBuilder {
                 val byDate = inputs.days.associateBy { it.date }
                 // Today is still in progress, so it stays out of the average, as on Trends.
                 values = WeekAverages.of(window.days.filter { it < inputs.today }.map { byDate[it] ?: Day.empty(it) })
-                // The week's last day, so Coast's week opens at its weekly check and not before.
+                // The week's last day, so a weekly reveal's week opens at its weekly check and not before.
                 base = FormatContext(day = window.end)
             }
         }
 
-        val scale = targets.maxKcal * ENERGY_HEADROOM
+        // The day's own goal on a day, the one the week chart draws for its average.
+        val preset = inputs.settings.numbers.preset
+        val goal = if (inputs.range == NutrientsRange.Day) {
+            targets.rangeFor(inputs.day, preset, inputs.burnedKcal)
+        } else {
+            targets.spanGoal(preset, inputs.burnedKcal)
+        }
+        val scale = goal.maxKcal * ENERGY_HEADROOM
         val eaten = policy.resolve(Metric.Calories, values?.kcal, surface, base.copy(of = scale, goal = GoalStyle.None))
         val energy = if (eaten is Display.Hidden) {
             null
         } else {
             EnergyRow(
                 eaten = eaten,
-                range = policy.resolveRange(Metric.Calories, targets.minKcal.toDouble(), targets.maxKcal.toDouble(), surface, base.copy(bare = true)),
-                rangeStart = (targets.minKcal / scale).toFloat(),
-                rangeEnd = (targets.maxKcal / scale).toFloat(),
+                range = policy.resolveRange(Metric.Calories, goal.minKcal.toDouble(), goal.maxKcal.toDouble(), surface, base.copy(bare = true)),
+                rangeStart = (goal.minKcal / scale).toFloat(),
+                rangeEnd = (goal.maxKcal / scale).toFloat(),
+                singleGoal = goal.minKcal == goal.maxKcal,
             )
         }
 

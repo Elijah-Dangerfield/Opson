@@ -159,7 +159,7 @@ class DashboardQueryContractTest {
      */
     @Test
     fun everyAnalyticsViewADashboardReadsIsCreatedByAMigration() {
-        val created = analyticsViewsInMigrations()
+        val created = viewsInMigrations()
         assertTrue(
             "barcode_outcomes_daily" in created && created.size >= MINIMUM_ANALYTICS_VIEWS,
             "the migration scan found only $created, so it is reading the wrong directory",
@@ -176,6 +176,40 @@ class DashboardQueryContractTest {
             missing.isEmpty(),
             "These panels read a view no migration creates, so they error in Grafana:\n" +
                 missing.distinct().sorted().joinToString("\n") { "  $it" },
+        )
+    }
+
+    /** The same promise for the per-person `support` views the Users and User detail boards read. */
+    @Test
+    fun everySupportViewADashboardReadsIsCreatedByAMigration() {
+        val created = viewsInMigrations("support")
+        assertTrue("users" in created, "the migration scan found only $created, so it is reading the wrong directory")
+        val read = dashboards.flatMap { dashboard ->
+            dashboard.sql.flatMap { query -> SUPPORT_VIEW_READ.findAll(query).map { dashboard.file to it.groupValues[1] }.toList() }
+        }
+        assertTrue(read.isNotEmpty(), "no support reads parsed from the dashboards")
+        val missing = read.filter { (_, view) -> view !in created }.map { (file, view) -> "$file: support.$view" }
+        assertTrue(
+            missing.isEmpty(),
+            "These panels read a support view no migration creates, so they error in Grafana:\n" +
+                missing.distinct().sorted().joinToString("\n") { "  $it" },
+        )
+    }
+
+    /**
+     * Emails live in `support.users` and may reach one board only, User detail, where the owner
+     * looks one person up. A roster or a chart that selected them would put every address on a
+     * screen nobody meant to share.
+     */
+    @Test
+    fun onlyTheUserDetailBoardSelectsAnEmail() {
+        val offending = dashboards.filter { it.uid != USER_DETAIL_UID }
+            .filter { dashboard -> dashboard.sql.any { EMAIL_COLUMN.containsMatchIn(it) } }
+            .map { it.file }
+        assertEquals(emptyList(), offending)
+        assertTrue(
+            dashboards.single { it.uid == USER_DETAIL_UID }.sql.any { EMAIL_COLUMN.containsMatchIn(it) },
+            "the User detail board no longer selects the email, so this check is guarding nothing",
         )
     }
 
@@ -254,6 +288,15 @@ class DashboardQueryContractTest {
         // Stream-selector labels and the per-record correlation ids are never a
         // claim about a particular event, so they must not reach the checks above
         // — recorded, they would fail every correct query on the boards.
+        // A Grafana variable in the selector, `"${env:text}"`, carries a `}` of its own.
+        val withVariable = parseQuery(
+            "sum(count_over_time({service_name=\"$SERVICE_NAME\", deployment_environment=\"\${env:text}\"} " +
+                "| event_name=\"app.launched\" | previous_exit=\"crash\" [\$__range]))",
+            legendFormat = null,
+        )
+        assertEquals(setOf("app.launched"), withVariable.events, "the pipeline after a braced variable was skipped")
+        assertEquals(setOf("previous_exit"), withVariable.attributes)
+
         val ambient = parseQuery(
             "count(count by (install_id) (count_over_time({service_name=\"$SERVICE_NAME\", " +
                 "deployment_environment=\"\$env\"} | event_name=\"app.launched\" [\$__range])))",
@@ -275,6 +318,8 @@ class DashboardQueryContractTest {
 }
 
 private const val REPO_ROOT_PROPERTY = "repoRoot"
+private const val USER_DETAIL_UID = "opson-user"
+private val EMAIL_COLUMN = Regex("""\bemail\b""")
 private const val DASHBOARD_DIR_PROPERTY = "grafanaDashboards"
 
 private val SERVICE_NAME = GrafanaLogTree.SERVICE_NAME
@@ -304,12 +349,12 @@ private val LOOSE_CONSTRUCTS = listOf(
  */
 /**
  * `opson-db` (dev) and `opson-prod-db` are the Postgres datasources the long-term
- * dashboards read, picked by their `${db}` variable, through
+ * dashboards read, picked by their `${env}` variable (`${db}` before it), through
  * the read-only `grafana_ro` role (see ops/grafana/README.md). Its panels are
  * SQL over aggregate views, so the event checks here do not apply to them.
  */
 private val ALLOWED_DATASOURCE_UIDS = setOf(
-    "grafanacloud-logs", "opson-db", "opson-prod-db", "\${db}", "__expr__", "-- Mixed --", "-- Grafana --",
+    "grafanacloud-logs", "opson-db", "opson-prod-db", "\${db}", "\${env}", "__expr__", "-- Mixed --", "-- Grafana --",
 )
 
 /**
@@ -432,8 +477,10 @@ private fun parseQuery(expr: String, legendFormat: String?): Query {
             continue
         }
         // The selector's own contents are the two stream labels and are skipped
-        // deliberately; AMBIENT_KEYS covers them if a `by (…)` names one.
-        val selectorEnd = expr.indexOf('}', i)
+        // deliberately; AMBIENT_KEYS covers them if a `by (…)` names one. Its end
+        // is the first `}` outside a quoted value: `"${env:text}"` has one inside,
+        // and stopping there would skip the whole pipeline after it unread.
+        val selectorEnd = selectorEnd(expr, i)
         require(selectorEnd > 0) { "unterminated stream selector in: $expr" }
         i = selectorEnd + 1
 
@@ -494,6 +541,18 @@ private fun parseQuery(expr: String, legendFormat: String?): Query {
     )
 }
 
+/** The index of the `}` closing the stream selector opened at [open], skipping quoted values; -1 if none. */
+private fun selectorEnd(expr: String, open: Int): Int {
+    var inString = false
+    for (index in open + 1 until expr.length) {
+        when (expr[index]) {
+            '"' -> inString = !inString
+            '}' -> if (!inString) return index
+        }
+    }
+    return -1
+}
+
 /**
  * Comment lines inside an argument list, stripped *before* the arguments are
  * split.
@@ -518,17 +577,17 @@ private val EVENT_NAME = Regex("""[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*""")
 private fun String.looksLikeAString(): Boolean = STRINGY_VALUE.containsMatchIn(this)
 
 private val ANALYTICS_VIEW_READ = Regex("""\banalytics\.([a-z0-9_]+)""")
-private val ANALYTICS_VIEW_CREATED =
-    Regex("""CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+analytics\.([a-z0-9_]+)""", RegexOption.IGNORE_CASE)
+private val SUPPORT_VIEW_READ = Regex("""\bsupport\.([a-z0-9_]+)""")
 
-/** The `analytics` views the server's Flyway migrations create, by name. */
-private fun analyticsViewsInMigrations(): Set<String> {
+/** The views in [schema] the server's Flyway migrations create, by name. */
+private fun viewsInMigrations(schema: String = "analytics"): Set<String> {
     val root = System.getProperty(REPO_ROOT_PROPERTY)
         ?: error("$REPO_ROOT_PROPERTY is unset — apps/integration/build.gradle.kts should supply it")
+    val created = Regex("""CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+$schema\.([a-z0-9_]+)""", RegexOption.IGNORE_CASE)
     val migrations = File(root, "apps/server/src/main/resources/db/migration")
         .listFiles { f: File -> f.isFile && f.extension == "sql" }
         .orEmpty()
-    return migrations.flatMap { file -> ANALYTICS_VIEW_CREATED.findAll(file.readText()).map { it.groupValues[1] }.toList() }
+    return migrations.flatMap { file -> created.findAll(file.readText()).map { it.groupValues[1] }.toList() }
         .toSet()
 }
 

@@ -14,11 +14,13 @@
 
     <!-- Scanner -->
     <string name="barcode_title">Scan a barcode</string>
-    <string name="barcode_close_cd">Close</string>
     <string name="barcode_hint">Hold the barcode inside the frame.</string>
     <string name="barcode_looking_up">First time anyone's scanned this one. Looking it up now, and it'll be instant for the next person.</string>
     <string name="barcode_scan_again">Scan again</string>
     <string name="barcode_search_instead">Search instead</string>
+    <!-- The torch button over the camera, read by screen readers -->
+    <string name="barcode_light_on">Turn the light on</string>
+    <string name="barcode_light_off">Turn the light off</string>
 
     <!-- Not found -->
     <string name="barcode_not_found">We couldn't find this one anywhere.</string>

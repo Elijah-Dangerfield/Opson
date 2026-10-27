@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The adaptive icon's art: a white ring, half full. The launcher shows roughly
-  the centre 72dp of this 108dp canvas, so the ring is sized (36.6dp across) to
-  match how much of the iOS icon it fills. Source: docs/design/brand/app-icon.svg.
+  The adaptive icon's art: the Opson bowl, in the 4f colours, on @color/ic_launcher_background.
+  The launcher shows roughly the centre 72dp of this 108dp canvas, so the mark covers the share
+  of it that it covers of the iOS icon. Source: docs/design/brand/opson-icon.svg.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M35.7,54 a18.3,18.3 0 1,0 36.6,0 a18.3,18.3 0 1,0 -36.6,0 Z M40.135,55.408 A13.936,13.936 0 1,1 67.865,55.408 Z" />
+    <group android:scaleX="0.390625" android:scaleY="0.390625" android:translateX="34.4688" android:translateY="33.6250">
+        <path android:pathData="M36 38c-5-5-5-10 0-15s5-10 0-15" android:strokeColor="#18202E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M60 38c-5-5-5-10 0-15s5-10 0-15" android:strokeColor="#18202E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M18,55a12,12 0 1,0 24,0a12,12 0 1,0 -24,0Z" android:fillColor="#E0892B" android:strokeColor="#18202E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M60,56a11,11 0 1,0 22,0a11,11 0 1,0 -22,0Z" android:fillColor="#D1477A" android:strokeColor="#18202E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M36,52a14,11 0 1,0 28,0a14,11 0 1,0 -28,0Z" android:fillColor="#FBF7EF" android:strokeColor="#18202E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M47,52a5,5 0 1,0 10,0a5,5 0 1,0 -10,0Z" android:fillColor="#F0AC66" android:strokeColor="#18202E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M10 60H90C90 81 72 95 50 95S10 81 10 60Z" android:fillColor="#1F7F78" android:strokeColor="#18202E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:pathData="M10.5,55H89.5A4.5,4.5 0 0,1 89.5,64H10.5A4.5,4.5 0 0,1 10.5,55Z" android:fillColor="#17635D" android:strokeColor="#18202E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    </group>
 </vector>

@@ -83,7 +83,11 @@ interface DiaryRepository {
     /** This day's meal groups; null goes back to following [Settings.mealGroups]. */
     suspend fun setMealGroups(day: LocalDate, on: Boolean?)
 
-    /** The most recently logged distinct foods, newest first, for the logger's Recent row. */
+    /**
+     * The most recently logged distinct foods, newest first, for the logger's Recent row and the
+     * Foods tab. Only entries logged from a food count: a quick number or a name-only line has
+     * nothing to pick again, so it would only push a food off the list.
+     */
     fun recentFoods(limit: Int = 6): Flow<List<LogItem>>
 
     /**
@@ -99,6 +103,32 @@ interface DiaryRepository {
      * back to stand in for it.
      */
     fun frequentFoods(limit: Int = 5, days: Int = 30): Flow<List<LogItem>>
+}
+
+/**
+ * Several logged items at once, and taking a removal back: Today's select mode and swipe to
+ * delete. Its own interface so the many `DiaryRepository` fakes stay as they are.
+ */
+interface DiaryItemEditor {
+    /** Tombstones each of [ids]; one already gone is skipped. */
+    suspend fun removeItems(ids: List<String>)
+
+    /** Undoes [removeItems]: each of [ids] that is a tombstone comes back as it was. */
+    suspend fun restoreItems(ids: List<String>)
+
+    suspend fun moveItems(ids: List<String>, slot: MealSlot)
+
+    /**
+     * Copies [ids] into [slot] on [toDay], in their order, as new items (method
+     * [LogMethod.Copy]), or into Uncategorized when meal groups are off that day.
+     */
+    suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem>
+}
+
+/** Day close's check-in (design sync 2). Its own interface so the `DiaryRepository` fakes stay as they are. */
+interface DayCheckIns {
+    /** Null, or an empty check-in, clears it. */
+    suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?)
 }
 
 interface WeightRepository {
@@ -148,8 +178,8 @@ interface SettingsRepository {
      * False from a user change until that user's first pull lands, and before
      * the stored copy has been read at all. While false, the numbers settings
      * are the defaults, not the user's, so anything that shows a number should
-     * treat the user as Blind. A fresh install that has never signed in is
-     * known as soon as its stored copy is read.
+     * treat the user as No numbers. A fresh install that has never signed in is
+     * known once its stored copy is read and auth says nobody is signed in.
      */
     val isKnown: StateFlow<Boolean>
 
@@ -177,7 +207,11 @@ interface DiarySync {
      */
     val rejections: Flow<SyncRejection>
 
-    /** Push and pull now, for pull-to-refresh. Shares a sync already in flight. */
+    /**
+     * Push and pull now, for pull-to-refresh. With a sync already in flight it
+     * waits for that one and runs another, since the one in flight may have
+     * pulled before the call.
+     */
     suspend fun syncNow(): Result<Unit>
 }
 

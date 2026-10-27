@@ -36,13 +36,22 @@ data class WeightInputs(
     /** Oldest first. */
     val weighIns: List<WeighIn>,
     val timeZone: TimeZone,
+    /** `release.progressPhotos`, read when the page opens. */
+    val photosReleased: Boolean = false,
+    /** The day of the newest progress photo, `null` before the first. */
+    val photosLastTaken: LocalDate? = null,
 )
+
+/** The Progress photos row under the log card. */
+data class PhotosRow(val lastTaken: LocalDate?)
 
 /** The page's own choices, which no repository holds. */
 data class WeightUi(
     val range: WeightRange = WeightRange.M1,
     val input: String = "",
     val saved: Boolean = false,
+    /** The last save didn't reach the database. */
+    val failed: Boolean = false,
 )
 
 /**
@@ -67,6 +76,10 @@ data class WeightState(
     val trendOnlyNote: Boolean = false,
     val unit: WeightUnit = WeightUnit.Kg,
     val saved: SavedNote? = null,
+    /** The weigh-in wasn't saved: it stays in the field, with a line saying so. */
+    val saveFailed: Boolean = false,
+    /** `null` while the release flag is off or Modes has photos at Hide. */
+    val photos: PhotosRow? = null,
 )
 
 /**
@@ -98,7 +111,8 @@ object WeightStateBuilder {
 
         return WeightState(
             loading = false,
-            trend = policy.resolve(Metric.Weight, curve.trendKg, Surface.Weight, context).takeUnless { it is Display.Hidden },
+            // Bare: the screen sets the unit small beside the figure, as v3 draws it.
+            trend = policy.resolve(Metric.Weight, curve.trendKg, Surface.Weight, context.copy(bare = true)).takeUnless { it is Display.Hidden },
             latest = latest?.let { policy.resolve(Metric.Weight, it.kg, Surface.Weight, FormatContext(weightUnit = unit)) as? Display.Shown },
             latestWhen = if (shown && latest != null) {
                 weighInDayText(latest, inputs.today, inputs.timeZone)?.let(WeighInWhen::Day) ?: WeighInWhen.ThisMorning
@@ -128,6 +142,9 @@ object WeightStateBuilder {
                 level == Visibility.Soften -> SavedNote.TrendOnly
                 else -> SavedNote.OutOfView
             },
+            saveFailed = ui.failed,
+            // Modes' Progress photos row, Show or Hide; Hide removes this row (design sync 2, 8.x).
+            photos = if (inputs.photosReleased && policy.settings.showsProgressPhotos) PhotosRow(inputs.photosLastTaken) else null,
         )
     }
 }

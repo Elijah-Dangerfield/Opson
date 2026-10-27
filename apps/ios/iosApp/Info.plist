@@ -45,14 +45,20 @@
 	  Read-only HealthKit: active energy, resting energy and workouts, for
 	  "Expended so far" (HealthKitReader). The prompt only appears when someone
 	  taps Connect under More, Watch and health apps, which ships behind the
-	  release.health flag. There is deliberately no NSHealthUpdateUsageDescription:
-	  Opson never writes to Health, and declaring it would be a claim the
-	  binary does not back. The entitlement is com.apple.developer.healthkit in
-	  iosApp.entitlements; the bundle id needs the HealthKit capability in the
-	  developer portal too, or signing fails.
+	  release.health flag. The entitlement, com.apple.developer.healthkit, is
+	  only in iosAppDebug.entitlements until 0.2 ships: Release signing fails
+	  until the bundle id has the HealthKit capability in the developer portal.
+
+	  NSHealthUpdateUsageDescription is here although Opson never writes to
+	  Health. HealthKitReader calls requestAuthorizationToShareTypes (with no
+	  share types), and App Store Connect rejects any binary that references
+	  that API without the key (ITMS-90683, build 700 on 2026-10-27). The
+	  string says plainly that nothing is written.
 	-->
 	<key>NSHealthShareUsageDescription</key>
 	<string>Opson reads your active energy, resting energy and workouts to show what you've expended today. It stays on your phone.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Opson only reads from Health. It never writes or changes anything there.</string>
 	<!--
 	  The export compliance answer, stated once here instead of by hand on every
 	  upload. Without it a build finishes processing and then sits in TestFlight
@@ -92,9 +98,55 @@
 	  without it the upload is rejected with ITMS-90683. Frames are only read
 	  for barcodes on the device and never stored, which is what the string
 	  says. Remove the key only together with the scanner.
+
+	  Photo estimate (release.photo) also takes one photo with the system
+	  camera, when the person asks for an estimate. It is held in memory, sent
+	  for the estimate and dropped, so "never saved" stays true. The library
+	  side uses PHPicker, which needs no NSPhotoLibraryUsageDescription.
+
+	  Progress photos (release.progressPhotos) take photos with an in-app
+	  camera and keep them, but only in the app's own storage on this phone:
+	  never the photo library, never uploaded, left out of backups. So the
+	  string no longer says photos are never saved.
 	-->
 	<key>NSCameraUsageDescription</key>
-	<string>Opson uses the camera to read barcodes on food packs. No photos are taken or saved.</string>
+	<string>Opson uses the camera to read barcodes on food packs, to photograph a meal when you ask for an estimate, and to take progress photos if you choose to. Meal photos are never saved. Progress photos stay on this iPhone.</string>
+	<!--
+	  Progress photos (:libraries:progressphotos:impl, LocalAuthentication from
+	  Kotlin) unlock with Face ID, Touch ID or the passcode each time they open.
+	  Face ID without this key ends the app on the first prompt. Remove it only
+	  together with the lock.
+	-->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Opson uses Face ID to keep your progress photos private. Only you can open them.</string>
+	<!--
+	  Voice log in Describe it (:libraries:speech:impl, Speech and AVFAudio from
+	  Kotlin). Same rule as the camera: the binary references SFSpeechRecognizer
+	  and AVAudioEngine from the build that links the library, even while
+	  release.voice hides the mic, and asking for either permission without its
+	  key crashes. The audio goes to Apple's recognizer only (on the phone when it
+	  supports the language), never into a file and never to Opson. Remove the
+	  keys only together with the library.
+	-->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Opson listens when you tap the mic, so you can say what you ate instead of typing it. Nothing is recorded or saved.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Opson turns what you say into text to fill in your meal. Your iPhone does this on the device when it can; otherwise Apple processes the audio. Opson never keeps the recording.</string>
+	<!--
+	  The launch screen: the mark centred on the page colour, light or dark, both
+	  from the asset catalog (LaunchMark, LaunchBackground). The mark is drawn at
+	  the size and place of the boot loader (BootLoadingScreen), so the first
+	  Compose frame starts the steam on the bowl that was already there.
+	  INFOPLIST_KEY_UILaunchScreen_Generation in the target only fills in an
+	  empty dictionary when this file has none.
+	-->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchMark</string>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>
@@ -118,6 +170,16 @@
 				<string>opson</string>
 			</array>
 		</dict>
+	</array>
+	<!--
+	  Find support's Call and Text buttons open tel: and sms: links. The
+	  link launcher checks canOpenURL first, which only answers for schemes
+	  listed here. Not an entitlement or capability.
+	-->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>sms</string>
 	</array>
 </dict>
 </plist>

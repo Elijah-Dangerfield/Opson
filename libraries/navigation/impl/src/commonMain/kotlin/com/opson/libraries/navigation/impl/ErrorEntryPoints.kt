@@ -10,10 +10,10 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.today.TodayRoute
 import com.opson.features.onboarding.SignInRoute
-import com.opson.features.profile.BugReportRoute
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.AccessDeniedRoute
 import com.opson.libraries.navigation.BlockingErrorRoute
+import com.opson.libraries.navigation.BugReportRoute
 import com.opson.libraries.navigation.ErrorDialogAction
 import com.opson.libraries.navigation.ErrorDialogRoute
 import com.opson.libraries.navigation.FeatureEntryPoint
@@ -24,6 +24,7 @@ import com.opson.libraries.navigation.dialog
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toRouteOrNull
+import kotlinx.datetime.TimeZone
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -69,9 +70,12 @@ class ErrorEntryPoints(
 
         screen<AccessDeniedRoute> { backStackEntry ->
             val route = backStackEntry.toRoute<AccessDeniedRoute>()
+            val restoredOn = remember(route.until) {
+                route.until?.let { accessRestoredDate(it, TimeZone.currentSystemDefault()) }
+            }
             AccessDeniedScreen(
                 reason = route.reason,
-                until = route.until,
+                restoredOn = restoredOn,
                 appealUrl = route.appealUrl,
                 onAppeal = { url -> router.openWebLink(url) },
             )

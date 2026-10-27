@@ -8,7 +8,9 @@ import com.opson.libraries.reminders.ReminderKey
 import com.opson.libraries.reminders.ReminderKind
 import com.opson.libraries.reminders.ReminderNotification
 import com.opson.libraries.reminders.ReminderStyle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import me.tatarka.inject.annotations.Inject
@@ -92,11 +94,11 @@ class IosLocalNotifications(
         val keep = notifications.map { it.reminder.id }.toSet()
         val stale = pendingRequests().map { it.identifier }.filter { it.isOurs() && it !in keep }
         if (stale.isNotEmpty()) center.removePendingNotificationRequestsWithIdentifiers(stale)
-        notifications.forEach { schedule(it) }
+        schedule(notifications)
     }
 
     override suspend fun add(notification: ReminderNotification) {
-        schedule(notification)
+        schedule(listOf(notification))
     }
 
     override suspend fun dismiss(keys: List<ReminderKey>) {
@@ -114,7 +116,16 @@ class IosLocalNotifications(
         if (ours.isNotEmpty()) center.removeDeliveredNotificationsWithIdentifiers(ours)
     }
 
-    private fun schedule(notification: ReminderNotification) {
+    /**
+     * On the main thread, as [IosReminderDelegate] builds its category: the coordinator calls in
+     * from a worker, and a UserNotifications object built there (UNNotificationAction) segfaulted.
+     */
+    private suspend fun schedule(notifications: List<ReminderNotification>) {
+        if (notifications.isEmpty()) return
+        withContext(Dispatchers.Main) { notifications.forEach(::addRequest) }
+    }
+
+    private fun addRequest(notification: ReminderNotification) {
         val reminder = notification.reminder
         val content = UNMutableNotificationContent().apply {
             setTitle(notification.title)

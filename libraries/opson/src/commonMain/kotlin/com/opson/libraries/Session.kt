@@ -7,23 +7,19 @@ import kotlinx.coroutines.flow.Flow
  *
  * Boundaries (when the [id] rolls over):
  *  - Cold start of the process → session #1.
- *  - App backgrounded for ≥ [SessionTracker.BACKGROUND_ROLLOVER] and then
+ *  - App backgrounded for ≥ [SessionTracker.BACKGROUND_ROLLOVER_MS] and then
  *    foregrounded → next session id.
  *
  * Anything shorter than the background threshold stays the same session
  * — quick tab-switches, brief notification interactions, etc.
  *
- * **What this is for:** repositories that want "fetch once per session,
- * then trust the cache" semantics. The shop catalog is the first
- * adopter: on disk, refreshed when [SessionTracker.observe] emits a new
- * id and the persisted `lastFetchSessionId` doesn't match. Pull-to-
- * refresh ignores the session entirely.
+ * **What this is for:** correlating telemetry. [uuid] is stamped on the
+ * crash-reporting scope and sent as `X-Session-Id`; it is also there for a
+ * repository that wants "fetch once per session, then trust the cache".
  *
  * **What this is NOT:**
  *  - A persisted identifier across process restarts. Each cold boot
- *    starts at id #1 — sessions are process-local. Use [AppData
- *    .lastSessionEndedAt] for cross-launch "have you ever opened this
- *    app" signals; that's a separate concern.
+ *    starts at id #1 — sessions are process-local.
  *  - A user-identity session. Auth state has its own lifecycle.
  */
 data class Session(
@@ -53,7 +49,7 @@ sealed interface SessionStartReason {
 
     /**
      * The previous session ended via background, and at least
-     * [SessionTracker.BACKGROUND_ROLLOVER] elapsed before the user
+     * [SessionTracker.BACKGROUND_ROLLOVER_MS] elapsed before the user
      * came back. [backgroundedForMs] is the actual gap.
      */
     data class BackgroundRollover(val backgroundedForMs: Long) : SessionStartReason
@@ -86,7 +82,7 @@ interface SessionTracker {
          * next foreground rolls the session. Mirrors common mobile-
          * analytics conventions (Apple's "session" attribution window
          * is 30 min; ours is tighter at 15 to match how we expect
-         * data freshness to work — see decisions.md).
+         * data freshness to work).
          */
         const val BACKGROUND_ROLLOVER_MS: Long = 15L * 60L * 1000L
     }

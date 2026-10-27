@@ -1,5 +1,9 @@
 package com.opson.server.routes
 
+import com.opson.server.domain.AppleExchangeResult
+import com.opson.server.domain.AppleRevokeResult
+import com.opson.server.domain.AppleSignInClient
+import com.opson.server.domain.AppleTokenRepository
 import com.opson.server.domain.DeleteUserResult
 import com.opson.server.domain.DisplayNameRules
 import com.opson.server.domain.ProfileRepository
@@ -25,6 +29,7 @@ import io.ktor.server.routing.application
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
+import io.ktor.server.routing.post
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
@@ -40,8 +45,12 @@ import org.slf4j.LoggerFactory
  *             by [DisplayNameRules], the authoritative backstop for the
  *             client's copy of the same rules.
  *  - `DELETE` permanent account deletion: removes the Supabase auth.users row
- *             (via the Admin API) AND our profile row. Returns 204. Both app
- *             stores require an in-app account-deletion path.
+ *             (via the Admin API) AND our profile row, then revokes the
+ *             person's Sign in with Apple token if we hold one. Returns 204.
+ *             Both app stores require an in-app account-deletion path.
+ *  - `POST /v1/me/apple-authorization` takes the authorization code from a
+ *             native Sign in with Apple and keeps the refresh token Apple
+ *             trades it for, which is what deletion revokes. 204.
  *
  * The caller's id is the JWT `sub` (`call.userId()`) — the client never sends
  * it in the body. Domain outcomes map to HTTP statuses via an exhaustive
@@ -51,12 +60,18 @@ import org.slf4j.LoggerFactory
  * so even if the local profile delete fails the user can't come back via the
  * same account), then local cleanup. An orphan profile is recoverable by a
  * future sweep; an orphan auth.users with a live JWT is a security problem.
- * When your app grows per-feature user tables, add their idempotent
- * `deleteAllForUser(userId)` calls in the success branch below, BEFORE
- * `repository.delete` — a mid-cascade crash then leaves recoverable partial
- * state, not stuck data.
+ * Every user-owned table references `auth.users` with `ON DELETE CASCADE`
+ * (V2, V8, V14), so the hard delete removes the diary with the account.
+ * That includes the Apple token (V21), so it is read before the delete and
+ * revoked after it. Revocation never blocks deletion: Apple being down or the
+ * key being unset is logged, and the account is gone either way.
  */
-fun Route.meRoutes(repository: ProfileRepository, adminClient: SupabaseAdminClient) {
+fun Route.meRoutes(
+    repository: ProfileRepository,
+    adminClient: SupabaseAdminClient,
+    appleTokens: AppleTokenRepository,
+    apple: AppleSignInClient,
+) {
     val app = application
     authenticate(SUPABASE_JWT_AUTH) {
         get("/v1/me") {
@@ -100,6 +115,44 @@ fun Route.meRoutes(repository: ProfileRepository, adminClient: SupabaseAdminClie
                         call.respond(HttpStatusCode.NotFound, problem("not_found", "Profile not found"))
                 }
             }
+
+            post("/v1/me/apple-authorization") {
+                val userId = call.userId() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val code = call.receive<AppleAuthorizationRequest>().authorizationCode?.trim()
+                if (code.isNullOrEmpty() || code.length > MAX_AUTHORIZATION_CODE_LENGTH) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        problem("invalid_authorization_code", "authorizationCode is required"),
+                    )
+                }
+                when (val exchange = apple.exchange(code)) {
+                    is AppleExchangeResult.Success -> {
+                        appleTokens.save(userId, exchange.refreshToken)
+                        call.respond(HttpStatusCode.NoContent)
+                    }
+
+                    AppleExchangeResult.NotConfigured -> {
+                        logger.warn("Apple authorization for user {} not kept: no Apple key on this server", userId)
+                        call.respond(
+                            HttpStatusCode.ServiceUnavailable,
+                            problem("apple_not_configured", "Sign in with Apple tokens are not kept by this server."),
+                        )
+                    }
+
+                    AppleExchangeResult.Rejected -> call.respond(
+                        HttpStatusCode.BadRequest,
+                        problem("invalid_authorization_code", "Apple refused the authorization code"),
+                    )
+
+                    is AppleExchangeResult.Failure -> {
+                        logger.warn("Apple token exchange failed for user {} (status={})", userId, exchange.statusCode, exchange.cause)
+                        call.respond(
+                            HttpStatusCode.BadGateway,
+                            problem("apple_unavailable", "Could not reach Apple. Please try again."),
+                        )
+                    }
+                }
+            }
         }
 
         rateLimit(RateLimitName(DELETE_ACCOUNT_LIMIT)) {
@@ -108,11 +161,11 @@ fun Route.meRoutes(repository: ProfileRepository, adminClient: SupabaseAdminClie
                 // data is a real account the user has the right to erase (and
                 // App Store account-deletion rules apply regardless of type).
                 val userId = call.userId() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                val appleToken = appleTokens.find(userId)
                 when (val admin = adminClient.deleteUser(userId)) {
                     DeleteUserResult.Success, DeleteUserResult.AlreadyGone -> {
-                        // Extension point: as features add user-scoped tables,
-                        // call their idempotent deleteAllForUser(userId) here.
                         repository.delete(userId)
+                        if (appleToken != null) revokeApple(apple, userId, appleToken)
                         call.respond(HttpStatusCode.NoContent)
                     }
 
@@ -139,6 +192,28 @@ fun Route.meRoutes(repository: ProfileRepository, adminClient: SupabaseAdminClie
                 }
             }
         }
+    }
+}
+
+private val logger = LoggerFactory.getLogger("MeRoutes")
+
+/** Apple's codes are short; this only stops a megabyte reaching Apple. */
+private const val MAX_AUTHORIZATION_CODE_LENGTH = 1024
+
+private suspend fun revokeApple(apple: AppleSignInClient, userId: UserId, refreshToken: String) {
+    when (val result = apple.revoke(refreshToken)) {
+        AppleRevokeResult.Success -> logger.info("Revoked the Sign in with Apple token of deleted user {}", userId)
+        AppleRevokeResult.NotConfigured -> logger.warn(
+            "Did not revoke the Sign in with Apple token of deleted user {}: APPLE_TEAM_ID, APPLE_KEY_ID " +
+                "or APPLE_PRIVATE_KEY is not set",
+            userId,
+        )
+        is AppleRevokeResult.Failure -> logger.error(
+            "Could not revoke the Sign in with Apple token of deleted user {} (status={}); the account is deleted anyway",
+            userId,
+            result.statusCode,
+            result.cause,
+        )
     }
 }
 

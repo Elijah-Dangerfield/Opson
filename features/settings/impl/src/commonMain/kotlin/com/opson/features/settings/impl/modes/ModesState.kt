@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.modes
 
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
@@ -10,14 +11,19 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-/** Levels, never values: this page shows which numbers are on, not what they are. */
+/**
+ * Modes and numbers (design sync 4, 13.5a) and its Each number page. Levels, never values: these
+ * pages show which numbers are on, not what they are.
+ */
 data class ModesState(
     val presets: List<PresetRow> = emptyList(),
+    val endAfter: EndAfterRow = EndAfterRow(),
     val matrix: List<MatrixRow> = emptyList(),
+    /** The matrix's last row, Show or Hide. `null` while `release.progressPhotos` is off. */
+    val photos: PhotosRow? = null,
     val pauseOn: Boolean = false,
-    val revealAt: LocalTime = NumbersSettings.DEFAULT_REVEAL_AT,
-    /** "9:00 PM", the trailing text of the Reveal time row. */
-    val revealAtText: String = DateCopy.time(revealAt.hour, revealAt.minute),
+    /** When Later's totals open; only while something is set to Later. */
+    val reveal: RevealRow? = null,
     /** The time picker is open. */
     val pickingRevealTime: Boolean = false,
     val changedNote: ChangedNote = ChangedNote.DuringSetup,
@@ -30,10 +36,32 @@ data class ModesState(
 data class PresetRow(val id: PresetId, val selected: Boolean, val changes: Int = 0)
 
 /**
+ * End after a set time. [timing] is the running timer, or null when the switch is off; [editing]
+ * opens its length and next-mode choices under the row. [thenChoices] are the other presets.
+ */
+data class EndAfterRow(
+    val timing: ModeTiming? = null,
+    val editing: Boolean = false,
+    val thenChoices: List<PresetId> = emptyList(),
+    /** "Nov 3", the day it switches. */
+    val endsOnText: String? = null,
+) {
+    val on: Boolean get() = timing != null
+}
+
+/** "9:00 PM" and whether the totals open once a week instead of each day. */
+data class RevealRow(val time: LocalTime, val timeText: String, val weekly: Boolean)
+
+/**
  * The configured level, Delay included: the grid says what was chosen, not what is open right
  * now. [changedFrom] is the preset's own level when this one was changed ("Changed from Hide").
  */
 data class MatrixRow(val metric: Metric, val level: Visibility, val changedFrom: Visibility? = null)
+
+/** Progress photos: [shown] or hidden, and the preset's own choice when this one differs from it. */
+data class PhotosRow(val shown: Boolean, val changedFrom: Boolean? = null) {
+    val level: Visibility get() = if (shown) Visibility.Show else Visibility.Hide
+}
 
 sealed interface ChangedNote {
     /** "Set by you during setup." Onboarding writes the first preset without a stamp. */
@@ -48,20 +76,47 @@ object ModesStateBuilder {
     /** The grid's columns, left to right. */
     val levels: List<Visibility> = listOf(Visibility.Show, Visibility.Soften, Visibility.Delay, Visibility.Hide)
 
-    fun build(numbers: NumbersSettings, timeZone: TimeZone, pickingRevealTime: Boolean = false): ModesState {
+    /** The two levels the photos row offers. Soft and Later don't apply to a photo. */
+    val photoLevels: Set<Visibility> = setOf(Visibility.Show, Visibility.Hide)
+
+    /** [photosReleased]: `release.progressPhotos`; off, the photos row and its change don't show. */
+    fun build(
+        numbers: NumbersSettings,
+        timeZone: TimeZone,
+        pickingRevealTime: Boolean = false,
+        photosReleased: Boolean = false,
+        editingEndAfter: Boolean = false,
+    ): ModesState {
         val changes = numbers.changes
+        val photosChanged = photosReleased && numbers.progressPhotosChanged
         val preset = Presets[numbers.preset]
+        val timing = numbers.endAfter
         return ModesState(
             presets = Presets.all.map {
                 val current = it.id == numbers.preset
-                PresetRow(it.id, selected = current, changes = if (current) changes.size else 0)
+                val count = changes.size + if (photosChanged) 1 else 0
+                PresetRow(it.id, selected = current, changes = if (current) count else 0)
             },
+            endAfter = EndAfterRow(
+                timing = timing,
+                editing = editingEndAfter && timing != null,
+                thenChoices = PresetId.entries - numbers.preset,
+                endsOnText = timing?.endsOn?.let { DateCopy.monthDay(it) },
+            ),
             matrix = Metric.entries.map { metric ->
                 MatrixRow(metric, numbers.level(metric), changedFrom = preset.level(metric).takeIf { metric in changes })
             },
+            photos = if (photosReleased) {
+                PhotosRow(numbers.showsProgressPhotos, changedFrom = preset.progressPhotos.takeIf { photosChanged })
+            } else {
+                null
+            },
             pauseOn = numbers.pauseBeforeMore,
-            revealAt = numbers.revealAt,
-            revealAtText = DateCopy.time(numbers.revealAt.hour, numbers.revealAt.minute),
+            reveal = if (Metric.entries.any { numbers.level(it) == Visibility.Delay }) {
+                RevealRow(numbers.revealAt, DateCopy.time(numbers.revealAt.hour, numbers.revealAt.minute), numbers.revealsWeekly)
+            } else {
+                null
+            },
             pickingRevealTime = pickingRevealTime,
             changedNote = numbers.changedAt
                 ?.let { ChangedNote.LastChanged(DateCopy.timestamp(it.toLocalDateTime(timeZone))) }

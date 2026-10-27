@@ -41,8 +41,8 @@ import kotlin.test.assertTrue
 /**
  * [DiarySyncer] against a fake `/v1/sync`: cursor persistence and `hasMore`
  * paging, outbox paging and the drain discipline (stall and budget warnings),
- * the merge rule, rejection rollback, single flight, the stop on a user change,
- * held-back future days, and pulled settings.
+ * the merge rule, rejection rollback, one sync at a time and never a stale
+ * one, the stop on a user change, held-back future days, and pulled settings.
  *
  * Not covered: the wire itself (`:apps:integration` owns client and server
  * contract drift) and the debounce, which needs virtual time
@@ -241,20 +241,50 @@ class DiarySyncerTest : CoroutineTest() {
     }
 
     @Test
-    fun concurrentSyncsShareOneRequest() = runUnitTest {
+    fun syncsAskedForDuringASyncShareOneMore() = runUnitTest {
         val gate = CompletableDeferred<Unit>()
         api.respond = { request ->
             gate.await()
             ackEverything(request)
         }
 
-        val first = async { syncer.sync() }
-        val second = async { syncer.sync() }
+        val running = async { syncer.sync() }
+        val asked = List(3) { async { syncer.sync() } }
         gate.complete(Unit)
-        val results = awaitAll(first, second)
+        val results = awaitAll(running, *asked.toTypedArray())
 
-        assertEquals(1, api.requests.size)
+        assertEquals(2, api.requests.size, "the sync already running, then one for everyone who asked during it")
         assertTrue(results.all { it.isSuccess })
+    }
+
+    @Test
+    fun aSyncAskedForWhileOneIsInFlight_pullsWhatChangedAfterTheAsk() = runUnitTest {
+        // A background sync has its answer, made before another phone saved,
+        // and is still finishing when pull-to-refresh asks for a sync.
+        fun glasses(count: Int) = SettingsRowDto(
+            settings = SettingsJson.encodeToJsonElement(Settings.serializer(), Settings(waterGlasses = count)).jsonObject,
+            clientUpdatedAtEpochMs = 1,
+        )
+        var onServer = glasses(8)
+        val answered = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+        api.respond = { request ->
+            val response = ackEverything(request).copy(changes = SyncChangesDto(settings = onServer))
+            if (api.requests.size == 1) {
+                answered.complete(Unit)
+                finish.await()
+            }
+            response
+        }
+        val background = async { syncer.sync() }
+        answered.await()
+
+        onServer = glasses(10)
+        val refresh = async { syncer.syncNow() }
+        finish.complete(Unit)
+        awaitAll(background, refresh)
+
+        assertEquals(10, settingsStore.settings.value.waterGlasses, "the refresh must pull after it was asked for")
     }
 
     @Test
@@ -322,7 +352,7 @@ class DiarySyncerTest : CoroutineTest() {
     @Test
     fun pulledSettingsReplaceTheDefaultsAndMakeThemKnown() = runUnitTest {
         assertFalse(settingsStore.isKnown.value, "signed in, but this user's settings have not arrived")
-        val blind = Settings(numbers = NumbersSettings(preset = PresetId.Blind))
+        val blind = Settings(numbers = NumbersSettings(preset = PresetId.NoNumbers))
         val row = SettingsRowDto(
             settings = SettingsJson.encodeToJsonElement(Settings.serializer(), blind).jsonObject,
             clientUpdatedAtEpochMs = 1,
@@ -331,8 +361,31 @@ class DiarySyncerTest : CoroutineTest() {
 
         syncer.sync()
 
-        assertEquals(PresetId.Blind, settingsStore.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, settingsStore.settings.value.numbers.preset)
         assertTrue(settingsStore.isKnown.value)
+    }
+
+    @Test
+    fun aSyncStartedBeforeTheSignedInUserReachedTheSyncer_stillMakesTheirSettingsKnown() = runUnitTest {
+        // The sync coordinator and the active-user source each follow auth on
+        // their own, so the first sync after sign-in can start while the
+        // source still says Unresolved. By the time the pull lands it has
+        // caught up, and the pull is that user's.
+        user.user.value = ActiveUser.Unresolved
+        val blind = Settings(numbers = NumbersSettings(preset = PresetId.NoNumbers))
+        val row = SettingsRowDto(
+            settings = SettingsJson.encodeToJsonElement(Settings.serializer(), blind).jsonObject,
+            clientUpdatedAtEpochMs = 1,
+        )
+        api.respond = {
+            user.user.value = ActiveUser.SignedIn("user-a")
+            ackEverything(it).copy(changes = SyncChangesDto(settings = row))
+        }
+
+        syncer.sync()
+
+        assertEquals(PresetId.NoNumbers, settingsStore.settings.value.numbers.preset)
+        assertTrue(settingsStore.isKnown.value, "known without waiting for another sync")
     }
 
     private fun ackEverything(request: SyncRequestDto) = SyncResponseDto(

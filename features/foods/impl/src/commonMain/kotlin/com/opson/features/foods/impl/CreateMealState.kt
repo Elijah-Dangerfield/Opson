@@ -39,7 +39,7 @@ data class MealDraft(
 
 sealed interface CreateMealAction {
     data class PolicyArrived(val policy: VisibilityPolicy) : CreateMealAction
-    data class PrefillArrived(val slot: MealSlot, val items: List<LogDraft>) : CreateMealAction
+    data class PrefillArrived(val slot: MealSlot?, val items: List<LogDraft>) : CreateMealAction
     data class NameTyped(val text: String) : CreateMealAction
     data class UsualSlotPicked(val slot: MealSlot) : CreateMealAction
     data class ItemRemoveTapped(val index: Int) : CreateMealAction
@@ -52,7 +52,7 @@ sealed interface CreateMealAction {
 }
 
 sealed interface CreateMealEvent {
-    /** The logger sheet in pick-for-this-meal mode, answering under [requestId]. */
+    /** Search in pick-for-this-meal mode, answering under [requestId]. */
     data class OpenPicker(val requestId: String) : CreateMealEvent
     data class ShowToast(val toast: Toast) : CreateMealEvent
     data object Close : CreateMealEvent
@@ -83,7 +83,7 @@ object CreateMealStateBuilder {
             items = items.map { item ->
                 MealItemUi(
                     name = item.name,
-                    amount = item.amountText.orEmpty(),
+                    amount = item.amountLabel,
                     calories = policy.resolve(Metric.Calories, item.kcal, Surface.Foods, bare),
                 )
             },

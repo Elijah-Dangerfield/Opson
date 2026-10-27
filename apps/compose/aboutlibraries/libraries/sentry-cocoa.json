@@ -1,0 +1,7 @@
+{
+  "uniqueId": "io.sentry:sentry-cocoa",
+  "artifactVersion": "8.57.3",
+  "name": "Sentry Cocoa",
+  "website": "https://github.com/getsentry/sentry-cocoa",
+  "licenses": ["MIT"]
+}

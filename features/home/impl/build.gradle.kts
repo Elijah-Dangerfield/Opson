@@ -31,6 +31,11 @@ kotlin {
         commonTest.dependencies {
             implementation(projects.libraries.flowroutines.testing)
             implementation(projects.libraries.identity)
+            // AppCache for the feedback counters, and the copy the failure line points at.
+            implementation(projects.libraries.opson)
+            implementation(projects.libraries.storage)
+            implementation(projects.libraries.resources)
+            implementation(compose.components.resources)
         }
     }
 }

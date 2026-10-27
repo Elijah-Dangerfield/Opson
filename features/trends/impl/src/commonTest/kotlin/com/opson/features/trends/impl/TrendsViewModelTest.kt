@@ -4,6 +4,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -25,7 +26,38 @@ class TrendsViewModelTest : CoroutineTest() {
     private val settings = FakeSettingsRepository()
     private val policy = FakePolicySource()
 
-    private fun vm() = TrendsViewModel(diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, TrendsFixtures.timeZone)
+    private val health = FakeHealthRepository()
+
+    private fun vm(healthOn: Boolean = false) =
+        TrendsViewModel(diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, health, healthFlag(healthOn), goalsAndEnergyFlag(), FakeBurnedRepository(), TrendsFixtures.timeZone)
+
+    @Test
+    fun healthFlagOff_noExpendedCard_andTheStoreIsNeverRead() = runUnitTest {
+        val vm = vm(healthOn = false)
+        assertNull(vm.state.expended)
+        assertEquals(emptyList(), health.ranges)
+    }
+
+    @Test
+    fun healthFlagOn_readsTheRangeUpToYesterday_andDrawsTheCard() = runUnitTest {
+        val vm = vm(healthOn = true)
+        assertNotNull(vm.state.expended)
+        assertEquals(listOf(LocalDate(2026, 10, 19) to LocalDate(2026, 10, 24)), health.ranges)
+
+        vm.takeAction(TrendsAction.RangePicked(TrendsRange.FourWeeks))
+        assertEquals(LocalDate(2026, 9, 28) to LocalDate(2026, 10, 24), health.ranges.last(), "the new range is read")
+    }
+
+    @Test
+    fun healthFlagOn_butNothingConnected_noCard() = runUnitTest {
+        val notConnected = FakeHealthRepository(initial = HealthStatus.NotConnected)
+        val vm = TrendsViewModel(
+            diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, notConnected, healthFlag(true), goalsAndEnergyFlag(), FakeBurnedRepository(),
+            TrendsFixtures.timeZone,
+        )
+        assertNull(vm.state.expended)
+        assertNotNull(vm.state.intake, "the rest of the page is there")
+    }
 
     private fun CoroutineScope.events(vm: TrendsViewModel) = mutableListOf<TrendsEvent>().also { list ->
         launch { vm.eventFlow.collect { list += it } }
@@ -78,7 +110,7 @@ class TrendsViewModelTest : CoroutineTest() {
     fun policyChange_rebuilds() = runUnitTest {
         val vm = vm()
         assertNotNull(vm.state.intake)
-        policy.policy.value = TrendsFixtures.policy(PresetId.Blind)
+        policy.policy.value = TrendsFixtures.policy(PresetId.NoNumbers)
         assertNull(vm.state.intake)
     }
 

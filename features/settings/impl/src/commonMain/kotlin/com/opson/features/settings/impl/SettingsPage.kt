@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,6 +42,7 @@ import org.jetbrains.compose.resources.StringResource
 @Composable
 internal fun SettingsPage(
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { padding ->
@@ -49,7 +50,7 @@ internal fun SettingsPage(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = AppTheme.spacing.page)
                 .padding(bottom = AppTheme.spacing.section),
             verticalArrangement = Arrangement.spacedBy(SettingsDefaults.CardGap),
@@ -77,14 +78,16 @@ internal fun SettingsCard(modifier: Modifier = Modifier, content: @Composable Co
 }
 
 /**
- * A More row (design v3): an accent icon, a title with an optional subtitle, then trailing text
+ * A More row (design v3): an icon, a title with an optional subtitle, then trailing text
  * or a chevron. The whole row is the tap target; a row with no [onClick] is plain text.
+ * [quietIcon] draws the icon muted: v3 keeps the accent for the first group on More.
  */
 @Composable
 internal fun SettingsRow(
     title: String,
     icon: IconResource?,
     modifier: Modifier = Modifier,
+    quietIcon: Boolean = false,
     subtitle: String? = null,
     trailingText: String? = null,
     chevron: Boolean = false,
@@ -104,7 +107,7 @@ internal fun SettingsRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SettingsDefaults.IconGap),
         ) {
-            if (icon != null) Icon(icon = icon, size = 24.dp, color = AppTheme.colors.accent)
+            if (icon != null) Icon(icon = icon, size = 24.dp, color = if (quietIcon) AppTheme.colors.muted else AppTheme.colors.accent)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
                 if (subtitle != null) {
@@ -138,9 +141,6 @@ internal object SettingsDefaults {
     val CardInset = PaddingValues(16.dp)
     val RowMinHeight: Dp = 56.dp
     val IconGap: Dp = 14.dp
-
-    /** A standard Android dialog's corners. */
-    val DialogShape = RoundedCornerShape(28.dp)
 }
 
 /** A one-off message for the snackbar. Every settings view model's toast event carries one. */
@@ -148,6 +148,6 @@ data class Toast(val message: StringResource, val args: List<Any> = emptyList())
 
 /** One theme per screen preview (every preview is also a 390 dp design-sync screenshot). */
 @Composable
-internal fun SettingsPreview(dark: Boolean = false, content: @Composable () -> Unit) {
-    PreviewContent(darkTheme = dark) { content() }
+internal fun SettingsPreview(dark: Boolean = false, largeText: Boolean = false, content: @Composable () -> Unit) {
+    PreviewContent(darkTheme = dark, largeText = largeText) { content() }
 }

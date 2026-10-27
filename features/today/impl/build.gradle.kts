@@ -21,11 +21,15 @@ kotlin {
             implementation(projects.libraries.flowroutines)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.diary.ui)
+            // FoodRef keys, for Add to favorites on a food's sheet.
+            implementation(projects.libraries.foods)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.reminders)
             // Expended so far, behind release.health.
             implementation(projects.libraries.health)
+            // The design sync 2 release flags (release.todaySummary, todaySelect, checkIn).
+            implementation(projects.libraries.config)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -43,6 +47,7 @@ kotlin {
             implementation(projects.libraries.core)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.diary.ui)
+            implementation(projects.libraries.foods)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.health)
             implementation(projects.libraries.resources)

@@ -1,19 +1,35 @@
 package com.opson.features.logger.impl
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
-import com.opson.features.logger.HowItFeltRoute
-import com.opson.features.logger.LogRoute
-import com.opson.features.logger.LogTab
+import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
+import com.opson.features.settings.FastingRoute
 import com.opson.features.today.MealNoteRoute
+import com.opson.features.trends.WeightRoute
+import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.RecentLogEvents
+import com.opson.libraries.diary.ui.label
+import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.navigation.FeatureEntryPoint
@@ -23,12 +39,26 @@ import com.opson.libraries.navigation.nullableSerializableType
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.scanner.BarcodeCamera
+import com.opson.libraries.scanner.MealPhotoPicker
+import com.opson.libraries.speech.MicPermissionPrompt
+import com.opson.libraries.ui.components.Screen
+import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheet
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetDefaults
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetState
+import com.opson.libraries.ui.components.dialog.bottomsheet.expandOnDragUp
+import com.opson.libraries.ui.components.dialog.bottomsheet.sheetHeightFraction
 import com.opson.libraries.ui.snackbar.showSnackBar
+import com.opson.libraries.ui.system.confirm
+import com.opson.libraries.ui.system.toggle
 import com.opson.system.AppTheme
+import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Inject
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.adding_added
+import opson.libraries.resources.generated.resources.adding_undo
+import opson.libraries.resources.generated.resources.adding_water_added
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -39,12 +69,22 @@ import kotlin.reflect.typeOf
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, multibinding = true)
 @Inject
+@Suppress("LongParameterList")
 class LoggerFeatureEntryPoint(
     private val loggerViewModelFactory: (LoggerRoute) -> LoggerViewModel,
-    private val amountViewModelFactory: (AmountSheetRoute) -> AmountViewModel,
-    private val howItFeltViewModelFactory: (HowItFeltRoute) -> HowItFeltViewModel,
+    private val searchViewModelFactory: (FoodSearchRoute) -> FoodSearchViewModel,
+    private val detailViewModelFactory: (FoodDetailRoute) -> FoodDetailViewModel,
     private val barcodeScanViewModelFactory: (BarcodeScanRoute) -> BarcodeScanViewModel,
     private val barcodeCamera: BarcodeCamera,
+    private val photoEstimateViewModelFactory: (PhotoEstimateRoute) -> PhotoEstimateViewModel,
+    // A provider, so nothing about photos is built at launch; the sheet asks for it when it opens.
+    private val mealPhotoPicker: () -> MealPhotoPicker,
+    private val micPermissionPrompt: MicPermissionPrompt,
+    private val searchOptionsViewModelFactory: (SearchOptionsRoute) -> SearchOptionsViewModel,
+    // Providers, so the snackbars' Undo runs after the screen that offered it has gone.
+    private val appScope: () -> AppCoroutineScope,
+    private val recentLogEvents: () -> RecentLogEvents,
+    private val diary: () -> DiaryRepository,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -54,81 +94,70 @@ class LoggerFeatureEntryPoint(
                 typeOf<LoggerStart>() to serializableType<LoggerStart>(),
             ),
         ) { backStackEntry, sheetState ->
-            LoggerSheet(backStackEntry.toRoute<LoggerRoute>(), sheetState, router)
-        }
-
-        // The Log screen's old route, kept as an alias: the same sheet on the matching pane.
-        bottomSheet<LogRoute>(
-            typeMap = mapOf(
-                typeOf<MealSlot>() to serializableType<MealSlot>(),
-                typeOf<LogTab>() to serializableType<LogTab>(),
-            ),
-        ) { backStackEntry, sheetState ->
-            LoggerSheet(backStackEntry.toRoute<LogRoute>().toLoggerRoute(), sheetState, router)
-        }
-
-        bottomSheet<AmountSheetRoute>(
-            typeMap = mapOf(
-                typeOf<PickSource>() to serializableType<PickSource>(),
-                typeOf<MealSlot>() to serializableType<MealSlot>(),
-            ),
-        ) { backStackEntry, sheetState ->
-            val route = backStackEntry.toRoute<AmountSheetRoute>()
-            val viewModel: AmountViewModel = viewModel { amountViewModelFactory(route) }
-            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-
-            viewModel.ObserveEvents { event ->
-                when (event) {
-                    is AmountEvent.ShowToast -> showToast(event.toast)
-                    AmountEvent.Dismiss -> sheetState.dismiss()
-                    // Both sheets go: this one and the logger under it. Today takes it from RecentLogEvents.
-                    is AmountEvent.Logged -> router.batch {
+            val route = backStackEntry.toRoute<LoggerRoute>()
+            val foodId = route.prePickFoodId
+            if (foodId != null) {
+                // A food already chosen goes straight to its detail; the sheet never shows.
+                LaunchedEffect(Unit) {
+                    router.batch {
                         goBack()
-                        goBack()
-                        if (event.committed.askHowItFelt) navigate(HowItFeltRoute(event.day.toString(), event.committed.slot))
+                        navigate(FoodDetailRoute(foodId, route.prePickIsCustom, PickSource.Foods, route.dayIso, route.slot))
                     }
                 }
-            }
-
-            BottomSheet(
-                onDismissRequest = { router.goBack() },
-                state = sheetState,
-                heightFraction = AMOUNT_HEIGHT_FRACTION,
-                showDragHandle = true,
-                backgroundColor = AppTheme.colors.bg,
-            ) {
-                AmountSheetContent(state = state, onAction = viewModel::takeAction)
+            } else {
+                LoggerSheet(route, sheetState, router)
             }
         }
 
-        // Only the logger's barcode button opens it, and that button is behind release.barcode.
+        screen<FoodSearchRoute>(
+            typeMap = mapOf(typeOf<MealSlot?>() to nullableSerializableType<MealSlot>()),
+        ) { backStackEntry ->
+            FoodSearch(backStackEntry.toRoute<FoodSearchRoute>(), router)
+        }
+
+        screen<FoodDetailRoute>(
+            typeMap = mapOf(
+                typeOf<PickSource>() to serializableType<PickSource>(),
+                typeOf<MealSlot?>() to nullableSerializableType<MealSlot>(),
+            ),
+        ) { backStackEntry ->
+            FoodDetail(backStackEntry.toRoute<FoodDetailRoute>(), router)
+        }
+
+        // Only the + sheet's and search's barcode buttons open it, and both are behind release.barcode.
         screen<BarcodeScanRoute>(
             typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
         ) { backStackEntry ->
             BarcodeScanner(backStackEntry.toRoute<BarcodeScanRoute>(), router)
         }
 
-        bottomSheet<HowItFeltRoute>(
+        // Only Photo on the + sheet and search's "Photograph it" open it, both behind release.photo.
+        bottomSheet<PhotoEstimateRoute>(
             typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
         ) { backStackEntry, sheetState ->
-            val route = backStackEntry.toRoute<HowItFeltRoute>()
-            val viewModel: HowItFeltViewModel = viewModel { howItFeltViewModelFactory(route) }
+            PhotoEstimateSheet(backStackEntry.toRoute<PhotoEstimateRoute>(), sheetState, router)
+        }
+
+        // Only search's options button opens it, and that button is behind release.searchOptions.
+        bottomSheet<SearchOptionsRoute> { backStackEntry, sheetState ->
+            val route = backStackEntry.toRoute<SearchOptionsRoute>()
+            val viewModel: SearchOptionsViewModel = viewModel { searchOptionsViewModelFactory(route) }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    HowItFeltEvent.Dismiss -> sheetState.dismiss()
+                    SearchOptionsEvent.Dismiss -> sheetState.dismiss()
                 }
             }
 
             BottomSheet(
                 onDismissRequest = { router.goBack() },
                 state = sheetState,
-                heightFraction = HOW_IT_FELT_HEIGHT_FRACTION,
                 showDragHandle = true,
+                scrollableContent = true,
                 backgroundColor = AppTheme.colors.bg,
             ) {
-                HowItFeltSheetContent(state = state, onAction = viewModel::takeAction)
+                SearchOptionsSheetContent(state = state, onAction = viewModel::takeAction)
             }
         }
     }
@@ -137,32 +166,171 @@ class LoggerFeatureEntryPoint(
     private fun LoggerSheet(route: LoggerRoute, sheetState: BottomSheetState, router: Router) {
         val viewModel: LoggerViewModel = viewModel { loggerViewModelFactory(route) }
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+        // Only with release.voice on: off, nothing about the microphone is even composed.
+        val requestMic: (() -> Unit)? = if (state.describe.voice != null) {
+            LifecycleResumeEffect(viewModel) {
+                onPauseOrDispose { viewModel.takeAction(VoiceAction.ScreenPaused) }
+            }
+            micPermissionPrompt.rememberPermissionRequest { answer ->
+                viewModel.takeAction(VoiceAction.MicPermissionAnswered(answer))
+            }
+        } else {
+            null
+        }
+        // The event collector starts with the first composition, before the flag has been read into state.
+        val latestRequestMic by rememberUpdatedState(requestMic)
 
         viewModel.ObserveEvents { event ->
             when (event) {
-                is LoggerEvent.OpenAmount -> router.navigate(
-                    AmountSheetRoute(
-                        foodId = event.ref.id,
-                        isCustom = event.ref is FoodRef.Custom,
-                        source = event.source,
-                        dayIso = event.day.toString(),
-                        slot = event.slot,
-                    ),
-                )
-                // The logger gives way to what it opens, so Back from there lands where it was opened.
+                // Everything the grid opens takes the sheet's place, so Back from there lands where the sheet was opened.
+                is LoggerEvent.OpenSearch -> router.batch {
+                    goBack()
+                    navigate(FoodSearchRoute(slot = event.slot, dayIso = event.day.toString()))
+                }
+                is LoggerEvent.OpenFoodDetail -> router.batch {
+                    goBack()
+                    navigate(FoodDetailRoute(event.ref.id, event.ref is FoodRef.Custom, event.source, event.day.toString(), event.slot))
+                }
                 is LoggerEvent.OpenMealNote -> router.batch {
                     goBack()
                     navigate(MealNoteRoute(event.day.toString(), event.slot))
                 }
-                is LoggerEvent.OpenHowItFelt -> router.batch {
+                is LoggerEvent.OpenScanner -> router.batch {
                     goBack()
-                    navigate(HowItFeltRoute(event.day.toString(), event.slot))
+                    navigate(BarcodeScanRoute(event.day.toString(), event.slot))
                 }
-                // Over the sheet, so Back from the scanner lands on the logger and its basket.
-                is LoggerEvent.OpenScanner -> router.navigate(BarcodeScanRoute(event.day.toString(), event.slot))
+                is LoggerEvent.OpenPhoto -> router.batch {
+                    goBack()
+                    navigate(PhotoEstimateRoute(event.day.toString(), event.slot))
+                }
+                LoggerEvent.OpenWeighIn -> router.batch {
+                    goBack()
+                    navigate(WeightRoute())
+                }
+                LoggerEvent.OpenFasting -> router.batch {
+                    goBack()
+                    navigate(FastingRoute())
+                }
+                is LoggerEvent.WaterAdded -> showWaterAdded(event.day, event.ml)
                 is LoggerEvent.ShowToast -> showToast(event.toast)
                 // Animate the sheet down first; its dismiss callback pops the route.
                 LoggerEvent.Dismiss -> sheetState.dismiss()
+                RequestMicPermission -> latestRequestMic?.invoke()
+            }
+        }
+
+        // Opens at 60% from a + so Today stays in view; grows to full height and stays there.
+        val partial = state.height == SheetHeight.Partial
+        val height = animateFloatAsState(
+            targetValue = if (partial) BottomSheetDefaults.PartialHeightFraction else BottomSheetDefaults.FullHeightFraction,
+            label = "LoggerHeight",
+        )
+        val expand = { viewModel.takeAction(LoggerAction.SheetExpanded) }
+        BottomSheet(
+            onDismissRequest = { router.goBack() },
+            state = sheetState,
+            // Read in layout, so growing does not recompose the sheet's content every frame.
+            modifier = Modifier.sheetHeightFraction { height.value },
+            showDragHandle = true,
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .expandOnDragUp(enabled = partial, onExpand = expand)
+                        .padding(top = 10.dp, bottom = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) { SheetHandle() }
+            },
+            // Back on Describe or Saved goes to the grid; the content handles that one.
+            shouldDismissOnBackPress = state.pane == LoggerPane.Actions,
+            backgroundColor = AppTheme.colors.bg,
+        ) {
+            LoggerSheetContent(
+                state = state,
+                onAction = viewModel::takeAction,
+                modifier = Modifier.expandOnDragUp(enabled = partial, onExpand = expand),
+            )
+        }
+    }
+
+    @Composable
+    private fun FoodSearch(route: FoodSearchRoute, router: Router) {
+        val viewModel: FoodSearchViewModel = viewModel { searchViewModelFactory(route) }
+        val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+        val haptics = LocalHapticFeedback.current
+
+        viewModel.ObserveEvents { event ->
+            when (event) {
+                is SearchEvent.OpenFoodDetail -> router.navigate(
+                    FoodDetailRoute(event.ref.id, event.ref is FoodRef.Custom, event.source, event.day.toString(), event.slot),
+                )
+                // Over search, so Back from these lands here.
+                is SearchEvent.OpenScanner -> router.navigate(BarcodeScanRoute(event.day.toString(), event.slot, overSearch = true))
+                is SearchEvent.OpenPhoto -> router.navigate(PhotoEstimateRoute(event.day.toString(), event.slot))
+                is SearchEvent.OpenDescribe -> router.navigate(
+                    LoggerRoute(slot = event.slot, dayIso = event.day.toString(), start = LoggerStart.Describe, describeText = event.text),
+                )
+                // Over search: what is picked there applies to the results underneath as it is chosen.
+                is SearchEvent.OpenSearchOptions -> router.navigate(SearchOptionsRoute(event.openFoodFacts))
+                is SearchEvent.Added -> showAdded(event.name, event.event)
+                is SearchEvent.Picked -> haptics.toggle(on = event.on)
+                SearchEvent.Close -> router.goBack()
+            }
+        }
+
+        FoodSearchScreen(state = state, onAction = viewModel::takeAction)
+    }
+
+    @Composable
+    private fun FoodDetail(route: FoodDetailRoute, router: Router) {
+        val viewModel: FoodDetailViewModel = viewModel { detailViewModelFactory(route) }
+        val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+        val haptics = LocalHapticFeedback.current
+
+        viewModel.ObserveEvents { event ->
+            when (event) {
+                FoodDetailEvent.Dismiss -> router.goBack()
+                // Back to where it was opened: search draws ✓, Today takes it from RecentLogEvents.
+                is FoodDetailEvent.Logged -> {
+                    haptics.confirm()
+                    router.goBack()
+                }
+            }
+        }
+
+        Screen(containerColor = AppTheme.colors.bg.color) { padding ->
+            FoodDetailContent(state = state, onAction = viewModel::takeAction, modifier = Modifier.padding(padding))
+        }
+    }
+
+    @Composable
+    private fun PhotoEstimateSheet(route: PhotoEstimateRoute, sheetState: BottomSheetState, router: Router) {
+        val viewModel: PhotoEstimateViewModel = viewModel { photoEstimateViewModelFactory(route) }
+        val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+        val picker = remember { mealPhotoPicker() }
+        val launchCamera = picker.rememberCamera { viewModel.takeAction(PhotoEstimateAction.PhotoAnswered(it, fromCamera = true)) }
+        val launchLibrary = picker.rememberLibrary { viewModel.takeAction(PhotoEstimateAction.PhotoAnswered(it, fromCamera = false)) }
+        val requestPermission = barcodeCamera.rememberPermissionRequest { answer ->
+            viewModel.takeAction(PhotoEstimateAction.CameraPermissionAnswered(answer))
+        }
+        val haptics = LocalHapticFeedback.current
+
+        viewModel.ObserveEvents { event ->
+            when (event) {
+                PhotoEstimateEvent.LaunchCamera -> launchCamera()
+                PhotoEstimateEvent.LaunchLibrary -> launchLibrary()
+                PhotoEstimateEvent.RequestCameraPermission -> requestPermission()
+                // This sheet gives way to the + sheet on Describe it.
+                is PhotoEstimateEvent.OpenDescribe -> router.batch {
+                    goBack()
+                    navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString(), start = LoggerStart.Describe))
+                }
+                // Back to where it was opened. Today takes it from RecentLogEvents; search draws ✓.
+                is PhotoEstimateEvent.Logged -> {
+                    haptics.confirm()
+                    router.goBack()
+                }
+                PhotoEstimateEvent.Dismiss -> sheetState.dismiss()
             }
         }
 
@@ -171,11 +339,11 @@ class LoggerFeatureEntryPoint(
             state = sheetState,
             heightFraction = BottomSheetDefaults.FullHeightFraction,
             showDragHandle = true,
-            // Back on Describe or Saved goes to search; the content handles that one.
-            shouldDismissOnBackPress = state.pane == LoggerPane.Search,
+            // Back while swapping a food returns to the list; the content handles that one.
+            shouldDismissOnBackPress = state.stage !is PhotoStage.Swap,
             backgroundColor = AppTheme.colors.bg,
         ) {
-            LoggerSheetContent(state = state, onAction = viewModel::takeAction)
+            PhotoEstimateSheetContent(state = state, onAction = viewModel::takeAction)
         }
     }
 
@@ -190,22 +358,20 @@ class LoggerFeatureEntryPoint(
             viewModel.takeAction(BarcodeScanAction.Resumed)
             onPauseOrDispose { }
         }
+        val haptics = LocalHapticFeedback.current
 
         viewModel.ObserveEvents { event ->
             when (event) {
                 BarcodeScanEvent.RequestPermission -> requestPermission()
-                // The amount sheet takes this screen's place over the logger, as it does for a tapped search row.
-                is BarcodeScanEvent.OpenAmount -> router.batch {
+                BarcodeScanEvent.Scanned -> haptics.confirm()
+                // The food detail takes this screen's place.
+                is BarcodeScanEvent.OpenFoodDetail -> router.batch {
                     goBack()
-                    navigate(
-                        AmountSheetRoute(
-                            foodId = event.foodId,
-                            isCustom = false,
-                            source = PickSource.Barcode,
-                            dayIso = event.day.toString(),
-                            slot = event.slot,
-                        ),
-                    )
+                    navigate(FoodDetailRoute(event.foodId, isCustom = false, source = PickSource.Barcode, dayIso = event.day.toString(), slot = event.slot))
+                }
+                is BarcodeScanEvent.OpenSearch -> router.batch {
+                    goBack()
+                    navigate(FoodSearchRoute(slot = event.slot, dayIso = event.day.toString()))
                 }
                 BarcodeScanEvent.Close -> router.goBack()
             }
@@ -214,13 +380,34 @@ class LoggerFeatureEntryPoint(
         BarcodeScanScreen(
             state = state,
             onAction = viewModel::takeAction,
-            viewfinder = { modifier ->
+            viewfinder = { request, modifier ->
                 barcodeCamera.Viewfinder(
                     onCode = { viewModel.takeAction(BarcodeScanAction.CodeRead(it)) },
                     onUnavailable = { viewModel.takeAction(BarcodeScanAction.CameraUnavailable) },
+                    scanArea = request.scanArea,
+                    torchOn = request.torchOn,
+                    onTorchAvailable = { viewModel.takeAction(BarcodeScanAction.CameraStarted(hasTorch = it)) },
+                    focusPoint = request.focusPoint,
                     modifier = modifier,
                 )
             },
+        )
+    }
+
+    /** "Jasmine rice added to Dinner", with Undo for exactly those items, even once search has closed. */
+    private suspend fun showAdded(name: String, event: LoggedToMeal) {
+        showSnackBar(
+            message = getString(Res.string.adding_added, name, getString(event.slot.label)),
+            actionLabel = getString(Res.string.adding_undo),
+            onAction = { appScope().launch { recentLogEvents().undo(event) } },
+        )
+    }
+
+    private suspend fun showWaterAdded(day: LocalDate, ml: Int) {
+        showSnackBar(
+            message = getString(Res.string.adding_water_added),
+            actionLabel = getString(Res.string.adding_undo),
+            onAction = { appScope().launch { diary().removeWater(day, ml) } },
         )
     }
 }

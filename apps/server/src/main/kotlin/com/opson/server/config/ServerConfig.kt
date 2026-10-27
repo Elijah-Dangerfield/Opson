@@ -26,6 +26,7 @@ data class ServerConfig(
     val admin: AdminConfig,
     val configChange: ConfigChangeConfig,
     val foodSources: FoodSourcesConfig = FoodSourcesConfig(),
+    val waitlist: WaitlistConfig = WaitlistConfig(),
 ) {
     companion object {
         fun fromEnv(env: Env = Env()): ServerConfig = ServerConfig(
@@ -38,7 +39,47 @@ data class ServerConfig(
             admin = AdminConfig.fromEnv(env),
             configChange = ConfigChangeConfig.fromEnv(env),
             foodSources = FoodSourcesConfig.fromEnv(env),
+            waitlist = WaitlistConfig.fromEnv(env),
         )
+    }
+}
+
+/**
+ * The website's waitlist form (`POST /v1/waitlist`). [allowedOrigins] are the
+ * exact browser origins that route answers CORS for, from
+ * `WAITLIST_ALLOWED_ORIGINS` (comma-separated, `scheme://host[:port]`). No
+ * other route uses them.
+ *
+ * Unset on dev (and locally), it defaults to [DEV_ORIGINS]: the Astro dev
+ * server and the GitHub Pages site. Unset on prod, no browser origin is
+ * allowed, so the site's form fails until someone sets it on purpose.
+ */
+data class WaitlistConfig(
+    val allowedOrigins: Set<String> = emptySet(),
+) {
+    companion object {
+        val DEV_ORIGINS = setOf("http://localhost:4321", "https://elijah-dangerfield.github.io")
+
+        fun fromEnv(env: Env): WaitlistConfig {
+            val raw = env["WAITLIST_ALLOWED_ORIGINS"]
+            val isProd = SentryConfig.environmentFromFlyAppName(env) == "prod"
+            return WaitlistConfig(
+                allowedOrigins = when {
+                    raw != null -> parseOrigins(raw)
+                    isProd -> emptySet()
+                    else -> DEV_ORIGINS
+                },
+            )
+        }
+
+        /** Trims, lower-cases and drops a trailing slash; anything that is not `http(s)://host[:port]` is left out. */
+        internal fun parseOrigins(raw: String): Set<String> =
+            raw.split(',')
+                .map { it.trim().trimEnd('/').lowercase() }
+                .filter { ORIGIN.matches(it) }
+                .toSet()
+
+        private val ORIGIN = Regex("^https?://[a-z0-9.-]+(:[0-9]{1,5})?$")
     }
 }
 
@@ -46,14 +87,75 @@ data class ServerConfig(
  * Outside food sources a barcode miss can be sent to (Open Food Facts is
  * always on and needs no config). Each paid source is null, and so never
  * called, until its keys are set.
+ *
+ * [searchOpenFoodFacts] adds the `off_foods` table (the full Open Food Facts
+ * export, V12) to name search. Off unless `FOOD_SEARCH_OFF_ENABLED=true`, so
+ * search answers as it did in 0.1 until someone turns it on, after the table
+ * is loaded and the app credits Open Food Facts where its foods appear.
  */
 data class FoodSourcesConfig(
     val nutritionix: NutritionixConfig? = null,
+    val searchOpenFoodFacts: Boolean = false,
+    /** The model that reads meal photos. Null (photo estimates off) until `ANTHROPIC_API_KEY` is set. */
+    val anthropic: AnthropicConfig? = null,
+    /**
+     * Where Open Food Facts lives. Never set from the environment; the end-to-end
+     * tests point it at a stand-in so a barcode miss does not leave the machine.
+     */
+    val openFoodFactsUrl: String = OPEN_FOOD_FACTS_URL,
+    /**
+     * How many search answers the server keeps in memory
+     * (`FOOD_SEARCH_CACHE_ENTRIES`, default [DEFAULT_SEARCH_CACHE_ENTRIES];
+     * 0 turns it off), each for [searchCacheSeconds]
+     * (`FOOD_SEARCH_CACHE_SECONDS`). Off unless set here, so a test that
+     * writes a food and searches again sees it.
+     */
+    val searchCacheEntries: Int = 0,
+    val searchCacheSeconds: Long = DEFAULT_SEARCH_CACHE_SECONDS,
 ) {
     companion object {
         fun fromEnv(env: Env): FoodSourcesConfig = FoodSourcesConfig(
             nutritionix = NutritionixConfig.fromEnv(env),
+            searchOpenFoodFacts = env["FOOD_SEARCH_OFF_ENABLED"]?.trim()?.lowercase() == "true",
+            anthropic = AnthropicConfig.fromEnv(env),
+            searchCacheEntries = env.int("FOOD_SEARCH_CACHE_ENTRIES", default = DEFAULT_SEARCH_CACHE_ENTRIES),
+            searchCacheSeconds = env.long("FOOD_SEARCH_CACHE_SECONDS", default = DEFAULT_SEARCH_CACHE_SECONDS),
         )
+
+        const val OPEN_FOOD_FACTS_URL = "https://world.openfoodfacts.org"
+
+        /** A page of 25 foods with their micros is up to about 60 KB on the heap: about 15 MB of the 256 MB at most. */
+        const val DEFAULT_SEARCH_CACHE_ENTRIES = 256
+        const val DEFAULT_SEARCH_CACHE_SECONDS = 300L
+    }
+}
+
+/**
+ * The Anthropic API, for photo estimates (`POST /v1/describe/photo`). Null
+ * until `ANTHROPIC_API_KEY` is set, and the route then answers 503
+ * `photo_estimate_unavailable`, which the app shows as a calm "not available
+ * right now". [photoModel] is `ANTHROPIC_PHOTO_MODEL`, so the model can change
+ * without a release (see `AnthropicEstimateProvider` for the default and why).
+ * Treat the key like a password: never log it.
+ */
+data class AnthropicConfig(
+    val apiKey: String,
+    val photoModel: String = DEFAULT_PHOTO_MODEL,
+    /**
+     * Null for Anthropic's own API. Never set from the environment; the
+     * end-to-end tests point it at a stand-in that answers like the Messages API.
+     */
+    val baseUrl: String? = null,
+) {
+    override fun toString(): String = "AnthropicConfig(apiKey=***, photoModel=$photoModel, baseUrl=$baseUrl)"
+
+    companion object {
+        const val DEFAULT_PHOTO_MODEL = "claude-opus-5-5"
+
+        fun fromEnv(env: Env): AnthropicConfig? {
+            val key = env["ANTHROPIC_API_KEY"] ?: return null
+            return AnthropicConfig(apiKey = key, photoModel = env["ANTHROPIC_PHOTO_MODEL"]?.trim() ?: DEFAULT_PHOTO_MODEL)
+        }
     }
 }
 
@@ -216,6 +318,8 @@ data class SupabaseConfig(
     /** e.g. `https://abcdefgh.supabase.co`. */
     val projectUrl: String,
     val serviceRoleKey: String? = null,
+    /** Lets account deletion revoke the person's Sign in with Apple token. Null skips it. */
+    val appleSignIn: AppleSignInConfig? = null,
 ) {
     /** Issuer the Auth service stamps on every JWT it issues. */
     val expectedIssuer: String get() = "$projectUrl/auth/v1"
@@ -229,8 +333,47 @@ data class SupabaseConfig(
                 SupabaseConfig(
                     projectUrl = it,
                     serviceRoleKey = env["SUPABASE_SERVICE_ROLE_KEY"],
+                    appleSignIn = AppleSignInConfig.fromEnv(env),
                 )
             }
+    }
+}
+
+/**
+ * The Sign in with Apple key the server signs its client secret with, for Apple's token
+ * and revoke endpoints. Apple asks an app that offers Sign in with Apple to revoke the
+ * person's token when they delete their account, and revoking needs a token only this
+ * exchange can produce.
+ *
+ * Null unless all three of `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY` are
+ * set; then the app's authorization codes are refused and deletion skips revocation,
+ * with a warning. [privateKeyPem] is the `.p8` file's contents: treat it as a password.
+ */
+data class AppleSignInConfig(
+    val teamId: String,
+    val keyId: String,
+    val privateKeyPem: String,
+    /** The app's bundle id, which native Sign in with Apple uses as its client id. */
+    val clientId: String = DEFAULT_CLIENT_ID,
+    val baseUrl: String = "https://appleid.apple.com",
+) {
+    override fun toString(): String = "AppleSignInConfig(teamId=$teamId, keyId=$keyId, clientId=$clientId, baseUrl=$baseUrl)"
+
+    companion object {
+        const val DEFAULT_CLIENT_ID = "com.opson.Opson"
+
+        fun fromEnv(env: Env): AppleSignInConfig? {
+            val teamId = env["APPLE_TEAM_ID"]?.takeIf { it.isNotBlank() } ?: return null
+            val keyId = env["APPLE_KEY_ID"]?.takeIf { it.isNotBlank() } ?: return null
+            // Fly secrets and .env files flatten newlines, so a literal "\n" stands for one.
+            val key = env["APPLE_PRIVATE_KEY"]?.takeIf { it.isNotBlank() }?.replace("\\n", "\n") ?: return null
+            return AppleSignInConfig(
+                teamId = teamId,
+                keyId = keyId,
+                privateKeyPem = key,
+                clientId = env["APPLE_CLIENT_ID"]?.takeIf { it.isNotBlank() } ?: DEFAULT_CLIENT_ID,
+            )
+        }
     }
 }
 
@@ -251,6 +394,12 @@ data class HttpConfig(
  * (12-factor) and parse user + password out of it so Hikari can take them as
  * separate fields — some drivers / pools reject JDBC URLs with embedded
  * credentials.
+ *
+ * The two timeouts bound how long a request can wait on the database, so a
+ * phone gets a quick 503 rather than hanging until its own 30 s timeout when
+ * Postgres is saturated (a catalog import building indexes once made search
+ * take 27 s): [poolTimeoutMs] for a free connection, [statementTimeoutMs] for
+ * any one statement. Migrations are exempt (see `Database.connect`).
  */
 data class DatabaseConfig(
     val jdbcUrl: String,
@@ -258,8 +407,13 @@ data class DatabaseConfig(
     val password: String,
     val poolMaxSize: Int,
     val poolMinIdle: Int,
+    val poolTimeoutMs: Long = DEFAULT_POOL_TIMEOUT_MS,
+    val statementTimeoutMs: Long = DEFAULT_STATEMENT_TIMEOUT_MS,
 ) {
     companion object {
+        const val DEFAULT_POOL_TIMEOUT_MS = 3_000L
+        const val DEFAULT_STATEMENT_TIMEOUT_MS = 5_000L
+
         /** Returns null when `DATABASE_URL` is unset — the server then runs in limited mode. */
         fun fromEnv(env: Env): DatabaseConfig? {
             val raw = env["DATABASE_URL"] ?: return null
@@ -270,6 +424,8 @@ data class DatabaseConfig(
                 password = parsed.password,
                 poolMaxSize = env.int("DATABASE_POOL_MAX_SIZE", default = 10),
                 poolMinIdle = env.int("DATABASE_POOL_MIN_IDLE", default = 2),
+                poolTimeoutMs = env.long("DATABASE_POOL_TIMEOUT_MS", default = DEFAULT_POOL_TIMEOUT_MS),
+                statementTimeoutMs = env.long("DATABASE_STATEMENT_TIMEOUT_MS", default = DEFAULT_STATEMENT_TIMEOUT_MS),
             )
         }
     }

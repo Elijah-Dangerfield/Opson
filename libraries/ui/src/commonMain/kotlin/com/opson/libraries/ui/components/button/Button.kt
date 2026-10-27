@@ -27,7 +27,7 @@
  * ButtonPrimary(onClick = { }) { Text("Continue") }
  * ButtonSecondary(onClick = { }) { Text("Cancel") }
  * ButtonGhost(onClick = { }) { Text("Forgot Password?") }
- * ButtonDanger(onClick = { }) { Text("Delete") }
+ * Button(type = ButtonType.Danger, onClick = { }) { Text("Delete") }
  *
  * // two distinct primary-level CTAs
  * ButtonPrimary(onClick = { }, accent = ButtonAccent.Secondary) { Text("Upgrade") }
@@ -287,38 +287,6 @@ fun ButtonGhost(
         type = ButtonType.Ghost,
         size = size,
         onDisabledTap = onDisabledTap,
-        style = style,
-        enabled = enabled,
-        deep = deep,
-        interactionSource = interactionSource,
-        content = content
-    )
-}
-
-/**
- * Danger button
- * @see Button for full documentation
- */
-@Composable
-fun ButtonDanger(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: IconResource? = null,
-    size: ButtonSize = LocalButtonSize.current,
-    style: ButtonStyle = ButtonStyle.Filled,
-    onDisabledTap: (() -> Unit)? = null,
-    enabled: Boolean = true,
-    deep: Boolean = false,
-    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    content: @Composable () -> Unit,
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier,
-        icon = icon,
-        type = ButtonType.Danger,
-        onDisabledTap = onDisabledTap,
-        size = size,
         style = style,
         enabled = enabled,
         deep = deep,

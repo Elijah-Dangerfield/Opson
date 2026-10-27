@@ -32,7 +32,8 @@ These come from the handoff and override anything else, including this doc.
 - **No manual exercise logging.**
 - **Health data is user data.** Nutrition values never appear in logs, span
   attributes or Grafana panels at the user level. Dashboards read aggregate
-  views only (section 9).
+  `analytics` views, and the per-person `support` views, which hold counts and
+  choices and never what someone logged (section 9).
 
 ---
 
@@ -192,17 +193,18 @@ cursor.
 ### Postgres (`public` schema, Flyway in `apps/server/src/main/resources/db/migration`)
 
 ```sql
--- Catalog, shared by everyone: USDA FoodData Central (generic + Branded), Open Food Facts, later paid sources
+-- Catalog, shared by everyone: USDA FoodData Central (generic + Branded), NEVO, Open Food Facts, later paid sources
 foods (
-  id uuid pk, source text check (source in ('usda_foundation','usda_sr','usda_fndds','usda_branded','nutritionix','off')),
+  id uuid pk, source text check (source in ('usda_foundation','usda_sr','usda_fndds','usda_branded','nutritionix','off','nevo')),
   source_id text, name text, brand text null, barcode text null unique,
   kcal_100g real, protein_100g real, carbs_100g real, fat_100g real, fiber_100g real,  -- nullable when unknown
   micros jsonb not null default '{}',          -- nutrient key -> amount per 100 g
   portions jsonb not null default '[]',        -- [{label:'1 cup', grams:240}]
   search tsvector generated always as (to_tsvector('simple', name || ' ' || coalesce(brand,''))) stored,
   popularity int not null default 0,
-  tier smallint not null,                      -- 1 reference (USDA generic), 2 label (USDA Branded), 3 licensed, 4 community (OFF)
+  tier smallint not null,                      -- 1 reference (USDA generic, NEVO), 2 label (USDA Branded), 3 licensed, 4 community (OFF)
   verified boolean not null,                   -- true for tiers 1-3
+  source_version text null,                    -- the release a row came from; NEVO's "2025/9.0"
   unique (source, source_id))
   -- GIN index on search, trigram index on lower(name) for prefix and typo tolerance.
   -- A trigger sets tier and verified from source (food_source_tier()), so loaders never write them.
@@ -366,11 +368,13 @@ errors in the `ProblemResponse` envelope.
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/v1/sync` | Push and pull, section 6 |
-| GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. |
+| GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`), `sort` (`best`, `name`); without them the response is 0.1's. NEVO foods only with `credits=nevo`, which an app that shows RIVM's citation sends. |
+| GET | `/v1/foods/search/options` | The `sources` and `categories` search takes here; `off` only with `FOOD_SEARCH_OFF_ENABLED`. |
 | GET | `/v1/foods/{id}` | Detail with portions and micros |
 | GET | `/v1/foods/barcode/{code}` | Catalog first, in any equivalent form of the code (UPC-A, EAN-13, GTIN-14, UPC-E), then each enabled outside source in tier order (Nutritionix when configured, Open Food Facts); cacheable answers are stored in `foods`. 404 `not_found` when nobody has it, 503 when no source could answer. |
 | POST | `/v1/foods/barcode-misses` | `{id, barcode}` after a 404 from the barcode route. 204, idempotent on the app's id. Region, platform and version from the `X-*` headers, GTIN computed server-side, no user id stored. |
-| POST | `/v1/describe` `{text}` | Parses "2 eggs and toast" into items: quantity + unit + food match. Heuristic, no AI. |
+| POST | `/v1/describe` `{text}` | Parses "2 eggs and toast" into items: quantity + unit + food match, plus (0.2) the matched food and up to three alternatives. Heuristic, no AI: everyday words, restaurants, corrections and speech noise are handled by rules (`docs/plans/screens/describe.md`). |
+| POST | `/v1/describe/photo` `{image, note?}` | 0.2, behind `release.photo`. A base64 meal photo (JPEG, PNG or WebP by its bytes, 4 MB) and an optional note go to Anthropic's Messages API (`ANTHROPIC_API_KEY`, model `ANTHROPIC_PHOTO_MODEL`, default `claude-opus-5-5`), which lists the foods; each is matched through the same pipeline as `/v1/describe` and returned in its shape. Per user 10 per 10 minutes and 40 a day (429). 503 `photo_estimate_unavailable` with no key, 502 `photo_estimate_failed` when the model fails. The photo is never stored or logged; the log line is outcome, counts and latency. |
 | GET | `/v1/export.csv` | Every log entry, weigh-in and water day for the caller |
 | GET/DELETE | `/v1/me` | Existing. Delete cascades through every table above. |
 
@@ -423,8 +427,11 @@ by how far their numbers can be trusted (`foods.tier`):
 
 Tiers 1 to 3 are `verified`. A barcode miss asks the enabled outside sources
 in tier order; the first that knows the product answers.
-- **Photo estimates** need a vision model and a key, so they are out of the
-  first release (the handoff's Plus tier).
+- **Photo estimates** (0.2, `release.photo`, `docs/plans/screens/photo.md`)
+  send the photo to Anthropic's vision model and match what it lists through
+  the Describe pipeline. Every line is an estimate the person edits before
+  anything is logged. The handoff puts it in the Plus tier; Plus has no price
+  yet, so nothing gates it beyond the per-user limit.
 
 ---
 
@@ -433,9 +440,12 @@ in tier order; the first that knows the product answers.
 Long-term product data comes from Postgres, not Loki. Loki keeps 31 days and is
 shared by every app on the stack. This is the Cards rule.
 
-- A read-only Postgres role `grafana_ro` can read only the `analytics` schema.
-  `analytics` holds views that aggregate across users: no view exposes a single
-  user's intake.
+- A read-only Postgres role `grafana_ro` can read only the `analytics` and
+  `support` schemas. `analytics` holds views that aggregate across users.
+  `support` (`V22__support_views.sql`) holds one row per person or per person
+  and day for the Users and User detail boards and the admin lookup: account,
+  email, builds, counts and Settings choices, never a food, an amount, a weight,
+  a note or an answer. No view in either exposes a single user's intake.
 - Grafana datasource `opson-prod-db` / `opson-dev-db` (grafana-postgresql)
   through the Supabase session pooler.
 - Dashboards live as JSON in `ops/grafana/`, and are pushed with the Grafana MCP
@@ -502,17 +512,22 @@ theme.
 
 - **Type:** Atkinson Hyperlegible Next (OFL), weights 400 to 800, bundled in
   `:libraries:resources`. Tabular figures on every number. Base 16 sp, large
-  text 19 sp as a setting.
-- **Colour:** light and dark base sets, palette Pine by default (the user's
-  last preview pick was Espresso, so palette is a setting with Pine, Espresso,
-  Clay and Plum). Nutrient colours tell nutrients apart and never mean over or
-  under. No red or green anywhere for amounts.
+  text 19 sp as a setting. The wordmark alone is Young Serif (OFL), also in
+  `:libraries:resources`, as `BrandFontFamily`.
+- **Logo:** the 4f bowl. Masters in `docs/design/brand/`; `OpsonLoader` and
+  `OpsonLockup` in `:libraries:ui` draw it in the app, steam animated. On a dark
+  ground it sits on a white disc.
+- **Colour:** one scheme, Slate, in light and dark (design sync 4, 13.0).
+  Appearance (System, Light or Dark) is the only colour setting. Nutrient
+  colours tell nutrients apart and never mean over or under; energy out uses
+  cool colours (resting and active) so it never looks like food. No red or
+  green anywhere for amounts.
 - **Shape:** cards 22, sheets 28 top, sticky Today block 24 bottom, chips pill.
 - **Icons:** Material Symbols Rounded via the Compose Material icons extended
   Rounded set, reached only through `AppIcons` (named after the Symbols
   ligatures; `nutrition` and `barcode_scanner` have no Rounded twin and use
   the closest glyph).
-- **Access:** `AppTheme(palette, darkTheme, largeText)` at the root, fed from
+- **Access:** `AppTheme(darkTheme, largeText)` at the root, fed from
   the user's Look and feel settings by `UserAppTheme` in `apps/compose`; tokens
   through `AppTheme.colors`, `AppTheme.type` (the handoff scale; the older
   `AppTheme.typography` stays for template screens), `AppTheme.shapes`,
@@ -556,10 +571,10 @@ changed and what 0.1 builds is in [`docs/design/v3/CHANGES.md`](design/v3/CHANGE
 - More: Modes and numbers with friction, Targets, Water, Support (helpline,
   export, delete everything).
 
-**0.2.** Barcode scanning (camera on both platforms), fasting, reminders,
-Health Connect and HealthKit, voice notes.
+**0.2.** Barcode scanning (camera on both platforms), photo estimates,
+fasting, reminders, Health Connect and HealthKit, voice notes.
 
-**Later.** Photo estimates, trusted-person sharing, widgets, the Plus tier.
+**Later.** Trusted-person sharing, widgets, the Plus tier.
 
 Anything not in a release is hidden, not shown as "Coming soon", except where
 the handoff itself says "Coming later".
@@ -622,7 +637,9 @@ Dated, newest first. Add to it, never rewrite it.
   keeps it in one place.
 - **2026-10-25: dashboards read `analytics` views through a read-only role.**
   The data is about eating, for people who may be unwell. Grafana should never
-  be able to show one person's day.
+  be able to show one person's day. *2026-10-27: it may show one person's
+  account and counts, through `support`, and still never their day's food; see
+  docs/decisions.md.*
 - **2026-10-25: USDA plus Open Food Facts, no keyed food API.** Both are free
   and need no account, and USDA's FNDDS portions ("1 cup") match how people
   log.
@@ -630,3 +647,4 @@ Dated, newest first. Add to it, never rewrite it.
   and a price without a purchase flow is an App Review rejection.
 - **2026-10-25: Pine is the default palette.** It is the handoff default. The
   user's last pick was Espresso, so palette is a setting and that is one tap.
+  Superseded 2026-10-27: Slate is the only scheme (`docs/decisions.md`).

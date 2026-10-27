@@ -13,9 +13,6 @@ import com.opson.libraries.networking.retry.withRetry
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ResponseException
-import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
-import io.ktor.client.plugins.websocket.webSocketSession
-import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.http.HttpStatusCode
 
 private val networkCallLogger = KLog.withTag("NetworkCall")
@@ -49,7 +46,7 @@ private val networkCallLogger = KLog.withTag("NetworkCall")
  * request.
  *
  * [description] is a short, stable identifier for the call — used as the
- * log message prefix. Pick `"inventory.sync"` or `"wallet.fetch"`, not a
+ * log message prefix. Pick `"diary.sync"` or `"foods.search"`, not a
  * sentence; logs aggregate by description.
  *
  * [retry] defaults to [RetryPolicy.None] — opting in to retry is explicit
@@ -99,32 +96,6 @@ suspend fun <T> NetworkClient.unauthedCall(
     Catching { block(client) }
 }.logFailure(description)
 
-/**
- * Authenticated WebSocket upgrade. Same pre-flight verdict short-circuit +
- * [NetworkClient.awaitAuthReady] as [authedCall], then opens a
- * [DefaultClientWebSocketSession] via Ktor's `webSocketSession` builder.
- * Failure surfaces in the returned [Catching]; the caller owns the session
- * lifecycle from there. Reconnect layers must treat an [AuthUnready] failure
- * as park-and-wait (the gate can't open until an identity/connectivity edge),
- * not as something to hot-retry.
- *
- * Retry isn't a parameter here — the reconnect-on-drop loop lives at a
- * higher layer (e.g. `ReconnectingRoomSocket`), where it can coordinate
- * with the WebSocket's lifecycle (close vs. error vs. backoff).
- */
-@OptIn(InternalNetworkingApi::class)
-suspend fun NetworkClient.authedWebSocketSession(
-    description: String,
-    requirement: AuthRequirement = AuthRequirement.Account,
-    builder: HttpRequestBuilder.() -> Unit,
-): Catching<DefaultClientWebSocketSession> {
-    shortCircuitOrNull<DefaultClientWebSocketSession>(description, requirement)?.let { return it }
-    awaitAuthReady()
-    return Catching {
-        authenticatedClient.webSocketSession(block = builder)
-    }.logFailure(description)
-}
-
 /** A Blocked verdict as a ready-made [AuthUnready] failure, or null when Ready. */
 private suspend fun <T> NetworkClient.shortCircuitOrNull(
     description: String,
@@ -154,7 +125,7 @@ private fun <T> Catching<T>.logFailure(description: String): Catching<T> = onFai
             // A ResponseException means the backend answered (an HTTP status IS
             // reachability); anything else — timeout, DNS, refused connection —
             // is the "client couldn't reach us at all" class the app-event
-            // taxonomy exists to catch (docs/plans/client-app-events-otel.md §5).
+            // taxonomy exists to catch (docs/practices/app-events.md).
             if (throwable !is ResponseException) {
                 networkCallLogger.logEvent(
                     "net.backend_unreachable",

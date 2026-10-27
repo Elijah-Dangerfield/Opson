@@ -5,10 +5,8 @@ import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.logEvent
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.networking.NetworkReachability
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
@@ -72,10 +70,6 @@ class AppStateImpl(
         }
         .map { it.value.isOffline }
         .stateIn(appScope, SharingStarted.Eagerly, initialValue = false)
-
-    // Block state is unwired in V1; see PreviewAppState for the contract.
-    // Kept on the interface for future overlay use-cases.
-    override val isBlockActive: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
 
     private data class Signals(val osOnline: Boolean, val reachable: Boolean) {
         val isOffline: Boolean get() = !osOnline || !reachable

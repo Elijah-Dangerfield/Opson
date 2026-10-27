@@ -3,11 +3,13 @@ package com.opson.features.trends.impl
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsCards
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * The Trends settings sheet: which switches each mode offers, and that each
@@ -18,16 +20,33 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
 
     private val settings = FakeSettingsRepository()
 
-    private fun vm(preset: PresetId = PresetId.Full) =
-        TrendsSettingsViewModel(settings, FakePolicySource(TrendsFixtures.policy(preset)))
+    private fun vm(preset: PresetId = PresetId.Full, healthOn: Boolean = false, health: FakeHealthRepository = FakeHealthRepository()) =
+        TrendsSettingsViewModel(settings, FakePolicySource(TrendsFixtures.policy(preset)), health, healthFlag(healthOn))
+
+    @Test
+    fun expended_offeredOnlyWithTheFlagOnAndAWatchConnected_andItsSwitchWritesItsCard() = runUnitTest {
+        assertTrue(vm(healthOn = false).state.toggles.none { it.card == TrendsCard.Expended })
+        assertTrue(vm(healthOn = true, health = FakeHealthRepository(initial = HealthStatus.NotConnected)).state.toggles.none { it.card == TrendsCard.Expended })
+
+        val vm = vm(healthOn = true)
+        assertEquals(true, vm.state.toggles.single { it.card == TrendsCard.Expended }.on)
+        vm.takeAction(TrendsSettingsAction.CardToggled(TrendsCard.Expended))
+        assertEquals(TrendsCards(expended = false), settings.settings.value.trendsCards)
+    }
+
+    @Test
+    fun expended_notOfferedWhereEnergyOutIsHidden() {
+        val blind = TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(PresetId.NoNumbers), healthConnected = true)
+        assertTrue(blind.toggles.none { it.card == TrendsCard.Expended })
+    }
 
     @Test
     fun toggles_filteredByWhatTheModeCanShow() {
         fun cards(preset: PresetId) = TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(preset)).toggles.map { it.card }
-        assertEquals(TrendsCard.entries, cards(PresetId.Full))
-        assertEquals(listOf(TrendsCard.Recap), cards(PresetId.Blind), "weight is hidden, so its card never shows")
-        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.Fuel))
-        assertEquals(listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Weight), cards(PresetId.Coast))
+        assertEquals(TrendsCard.entries - TrendsCard.Expended, cards(PresetId.Full), "Expended waits for a connected watch")
+        assertEquals(listOf(TrendsCard.Recap), cards(PresetId.NoNumbers), "weight is hidden, so its card never shows")
+        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.NutrientsFirst))
+        assertEquals(listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.Later))
     }
 
     @Test

@@ -13,6 +13,7 @@ import com.opson.libraries.opson.Telemetry
 import com.opson.libraries.opson.impl.logging.DevConsoleWriter
 import com.opson.libraries.opson.impl.logging.KermitLogTree
 import com.opson.libraries.opson.impl.logging.SentryLogTree
+import com.opson.libraries.opson.impl.logging.scrubbed
 import co.touchlab.kermit.Logger as KermitLogger
 import co.touchlab.kermit.Severity as KermitSeverity
 import io.sentry.kotlin.multiplatform.Attachment
@@ -34,10 +35,6 @@ import kotlin.uuid.Uuid
 class AppTelemetry : Telemetry by ConfiguredTelemetry(
     configProvider = { SentryRuntimeConfig.forApp(BuildInfo) }
 )
-
-class IosExtensionTelemetry(
-    private val configProvider: () -> SentryRuntimeConfig = { SentryRuntimeConfig.forIosExtension(BuildInfo) }
-) : Telemetry by ConfiguredTelemetry(configProvider)
 
 private class ConfiguredTelemetry(
     private val configProvider: () -> SentryRuntimeConfig
@@ -113,22 +110,12 @@ private class ConfiguredTelemetry(
         }
     }
 
-    override fun setUser(
-        email: String?,
-        name: String?,
-        id: String?
-    ) {
+    override fun setUser(id: String?) {
         // Same guard as every other scope mutator below: with a blank DSN
         // Sentry.init never ran, so there is no scope to write to and this is
         // pure overhead on a path the sign-in flow hits on every session.
         if (!Sentry.isEnabled()) return
-        Sentry.setUser(
-            User(
-                id = id,
-                email = email,
-                username = name
-            )
-        )
+        Sentry.setUser(User(id = id))
     }
 
     override fun setCurrentRoute(route: String) {
@@ -172,14 +159,14 @@ private class ConfiguredTelemetry(
         errorCode: Int?,
         email: String?,
         screenshots: List<ByteArray>,
-    ) {
+    ): Boolean {
         val payload = message.trim()
         if (payload.isBlank()) {
             logger.w {
                 it.tag("feedback_type", if (isBugReport) "bug_report" else "feedback")
                 "Ignoring empty feedback payload"
             }
-            return
+            return false
         }
 
         if (!Sentry.isEnabled()) {
@@ -187,7 +174,7 @@ private class ConfiguredTelemetry(
                 it.tag("feedback_type", if (isBugReport) "bug_report" else "feedback")
                 "Sentry disabled, feedback dropped"
             }
-            return
+            return false
         }
 
         val typeTag = if (isBugReport) "bug_report" else "feedback"
@@ -264,6 +251,7 @@ private class ConfiguredTelemetry(
             scope.extra("has_email", sanitizedEmail != null)
             "Feedback forwarded to Sentry ($typeTag)"
         }
+        return true
     }
 }
 
@@ -356,8 +344,15 @@ data class SentryRuntimeConfig(
             event.getTag(FEEDBACK_EVENT_TAG)?.let { id ->
                 event.fingerprint = mutableListOf(FEEDBACK_FINGERPRINT, id)
             }
-            event
+            event.scrubbed()
         }
+        // A search URL carries the words searched. Every breadcrumb, the SDK's own
+        // network ones included, loses its query on the way in (SentryUrlScrubbing.kt).
+        options.beforeBreadcrumb = { breadcrumb -> breadcrumb.scrubbed() }
+        // The iOS SDK reports a failed HTTP request as an event of its own, with the
+        // request's query string in a field beforeSend cannot reach from Kotlin. The
+        // app logs its own failures (NetworkCall), so nothing is lost by turning it off.
+        options.enableCaptureFailedRequests = false
     }
 
     data class LogPolicy(
@@ -408,21 +403,6 @@ data class SentryRuntimeConfig(
                     minBufferLevel = if (buildInfo.isDebug) LogLevel.Verbose else LogLevel.Debug,
                 ),
                 enableAutoSessionTracking = true
-            )
-        }
-
-        fun forIosExtension(buildInfo: BuildInfo): SentryRuntimeConfig {
-            val base = forApp(buildInfo)
-            val environment = "${buildInfo.releaseChannel}-ios-extension-${buildInfo.buildType}"
-            return base.copy(
-                environment = environment,
-                release = base.release + "-extension",
-                tracesSampleRate = if (buildInfo.isDebug) 0.25 else 0.05,
-                logPolicy = LogPolicy(
-                    minBreadcrumbLevel = LogLevel.Info,
-                    minEventLevel = LogLevel.Error
-                ),
-                enableAutoSessionTracking = false
             )
         }
     }

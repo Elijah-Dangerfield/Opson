@@ -40,7 +40,8 @@ class WeightStateBuilderTest {
         val state = build()
         val trend = assertIs<Display.Shown>(state.trend)
         val latest = assertIs<Display.Shown>(state.latest)
-        assertTrue(trend.text.endsWith("kg") && latest.text.endsWith("kg"))
+        // The trend is bare; the screen sets "kg" small beside it. Today's reading carries its unit.
+        assertTrue(trend.text.none { it.isLetter() } && latest.text.endsWith("kg"))
         assertEquals(WeighInWhen.ThisMorning, state.latestWhen)
         val chart = assertNotNull(state.chart)
         assertEquals(28, chart.dots?.size)
@@ -62,7 +63,7 @@ class WeightStateBuilderTest {
 
     @Test
     fun trendOnly_aSlopeWordAndTheLine_noNumbersNoDotsNoRanges() {
-        val state = build(PresetId.Fuel)
+        val state = build(PresetId.NutrientsFirst)
         val word = assertIs<Display.Soft>(state.trend).text
         assertTrue(word in setOf("Steady", "Rising slowly", "Falling slowly"), word)
         assertNull(state.latest)
@@ -77,7 +78,7 @@ class WeightStateBuilderTest {
 
     @Test
     fun hidden_noChart_hiddenCard_maskedInput() {
-        val state = build(PresetId.Blind)
+        val state = build(PresetId.NoNumbers)
         assertNull(state.chart)
         assertNull(state.trend)
         assertNull(state.latest)
@@ -100,7 +101,7 @@ class WeightStateBuilderTest {
     fun rangeSlicesTheReadings() {
         assertEquals(7, build(ui = WeightUi(range = WeightRange.W1)).chart?.dots?.size)
         assertEquals(90, build(ui = WeightUi(range = WeightRange.M3)).chart?.dots?.size)
-        assertEquals(WeightRange.M3, build(PresetId.Blind, ui = WeightUi(range = WeightRange.M3)).range)
+        assertEquals(WeightRange.M3, build(PresetId.NoNumbers, ui = WeightUi(range = WeightRange.M3)).range)
     }
 
     @Test
@@ -112,8 +113,8 @@ class WeightStateBuilderTest {
     @Test
     fun savedNote_saysWhereTheWeighInWillShow() {
         assertEquals(SavedNote.Plain, build(ui = WeightUi(saved = true)).saved)
-        assertEquals(SavedNote.TrendOnly, build(PresetId.Fuel, ui = WeightUi(saved = true)).saved)
-        assertEquals(SavedNote.OutOfView, build(PresetId.Blind, ui = WeightUi(saved = true)).saved)
+        assertEquals(SavedNote.TrendOnly, build(PresetId.NutrientsFirst, ui = WeightUi(saved = true)).saved)
+        assertEquals(SavedNote.OutOfView, build(PresetId.NoNumbers, ui = WeightUi(saved = true)).saved)
         assertNull(build().saved)
     }
 
@@ -121,7 +122,8 @@ class WeightStateBuilderTest {
     fun pounds_readInPounds() {
         val state = build(settings = Settings(weightUnit = WeightUnit.Lb))
         assertEquals(WeightUnit.Lb, state.unit)
-        assertTrue(assertIs<Display.Shown>(state.trend).text.endsWith("lb"))
+        // The trend is bare, in pounds: about 73 kg reads as about 161, the screen adds "lb".
+        assertTrue(assertIs<Display.Shown>(state.trend).text.toDouble() > 150.0)
         assertTrue(assertIs<Display.Shown>(state.latest).text.endsWith("lb"))
     }
 

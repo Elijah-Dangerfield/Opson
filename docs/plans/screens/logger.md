@@ -1,10 +1,164 @@
 # Logger plan (design v3)
 
+> Design sync 4 replaced the Search pane, the basket and the amount sheet below:
+> see [adding.md](adding.md). Describe it and Saved meals are still panes of the
+> sheet, as described here and in [describe.md](describe.md).
+
 The center + sheet with everything that lives inside it (search, Describe it,
 Saved meals), the Amount sheet that stacks on it, and How it felt after
 adding. Read `shared.md` first.
 
-## Source
+## Design sync 2 (supersedes v3 below where they differ)
+
+Spec: the `logger-previews__*` screens in
+`design-sync/compare/README.md` plus the unpaired `logger-amount-units`,
+`logger-photo` and `logger-uncategorized`, and their `manifest.json` notes
+("ADD SHEET" section behaviour). `docs/plans/design-sync-2.md` has the rules.
+
+### What changes
+
+| Area | Now |
+|---|---|
+| Sheet height | Opens at 60% (`SheetHeight.Partial`) from the nav + or a meal's +, so Today stays in view. Goes full height (`Full`, 93%) when the handle or list is dragged up, the search field is tapped or typed in, Describe or Saved opens, or it was opened on a pane, with `focusSearch`, or for Create a meal. It never shrinks back. Drag down closes from either height. |
+| Meal picks itself | `route.slot == null` (the nav +) asks `MealSlotPicker.pick` in `:libraries:diary`: the meal this person logs at this time of day over the last 14 days. A meal's own + passes its slot and always uses it. |
+| Uncategorized | With history but fewer than 3 logs within an hour of now, or no meal holding 60% of them, the title reads **Uncategorized**. Foods save there with their time; Today files them later. Before there is history (fewer than 3 days with a timed meal in the window) the clock default (`MealSlot.defaultFor`) applies, so a new person never sees Uncategorized on day one. The dropdown lists every meal with Uncategorized last (`MealSlot.entries`). |
+| Usual around | For Uncategorized, Browse heads its first list "Usual around 10:30 am" (now, rounded down to the half hour) with the foods logged within an hour of now in those 14 days, most often first. No such foods, no list. |
+| Method chips | One sideways-scrolling row: Photo (`release.photo`), Describe, Yesterday's, Saved. A second row, Ate no details and Just a number (or Add a note), only while nothing is picked: both log straight away, which would leave picks behind. |
+| Search bar | The barcode button sits inside the empty bar (`release.barcode`), unchanged. |
+| Food tiles | A glyph for the kind of food (rice bowl, salad leaf, fruit, dessert, fish, meat plate, drink, egg, bread, soup, default plate) from `FoodKind.of(name)` in `:libraries:foods`, tinted per kind. The catalog has no category per food yet, so the name decides. |
+| Search empty | Body: "Describe it, or save just the name." Two actions carry the term: Describe "{term}" and Save the name only. "Photograph the package" is dropped (package scan is out of scope). |
+| How it felt | No longer follows an add (design 3.10 note). The logger's sheet and `HowItFeltRoute` are gone; Today's meal card opens its own (`MealFeelRoute`). `Committed.askHowItFelt` and `Settings.asksHowItFelt()` go. |
+| Describe | The mic sits inside the text box (`release.voice`). "Or just a number" is not built whenever calories are hidden (unchanged rule, now tested by name). |
+| Photo estimate | Photo and note compact up top, lines are the focus; the hint gets an info icon on a warm tint. No Plus badge (no pricing in 0.1). Blind drops the kcal column and the total (unchanged). Preview `LoggerPhotoPreview` moves into `LoggerPreviews.kt` so it pairs with `logger-previews__logger-photo`. |
+| Amount sheet | Rebuilt as 3.3: see "Amount sheet (design sync 2)" below. |
+
+### Library additions
+
+| Addition | Where | For |
+|---|---|---|
+| `MealSlotPicker.pick(days, now, timeZone, mealGroups): MealSlot` and `MealSlotPicker.usualAround(days, now, timeZone, limit): List<LogItem>`, `HISTORY_DAYS = 14` | `:libraries:diary` | The meal auto-pick and "Usual around". Pure, tested. **This is the seam with Today**: there is no new slot type; `MealSlot.Uncategorized` already exists, and Today's Uncategorized group reads items in it. |
+| `Settings.favoriteFoods: List<String>` (food ref keys, newest first) and `Settings.foodUnits: Map<String, List<FoodUnit>>`, `FoodUnit(label, grams)` | `:libraries:diary` | The star, and "Custom size…". New top-level keys, so the shallow settings merge keeps them. |
+| `FoodKind` + `FoodKind.of(name)` | `:libraries:diary` (so `:libraries:diary:ui` can draw it without depending on foods) | Row tiles. |
+| `AmountUnit.Saved(unit: FoodUnit)`, `Food.amountUnits(saved)`, `CustomFood.amountUnits(saved)`, `AmountUnit.gramsLabel` | `:libraries:foods` | Saved sizes in the unit menu, with grams. |
+| `FoodIconTile(kind)` | `:libraries:diary:ui` | |
+| Food glyphs in `AppIcons` (`RiceBowl`, `Eco`, `Icecream`, `SetMeal`, `KebabDining`, `LocalCafe`, `Egg`, `SoupKitchen`, `Info`, `StarOutline`) | `:libraries:ui` | |
+| `BottomSheetDefaults.PartialHeightFraction = 0.6f`, `Modifier.expandOnDragUp(enabled, onExpand)`, `Modifier.sheetHeightFraction { }` | `:libraries:ui` | The 60% sheet, its drag up, and growing it without recomposing every frame. |
+| `NoteBanner(text)` | `:libraries:ui` | The photo estimate's note: an outlined i on the warm tint. |
+| `AppShapes.dialog` | `:libraries:ui` | The time picker and Custom size dialogs. |
+| `StripedBar(before, added, color)` | `:libraries:ui` | "Your day with this": today so far solid, this food striped on top, capped at full. |
+| `TimePickerDialog` | `:libraries:ui` | The amount sheet's time; Modes and Reminders use it too. |
+
+### Logger state and actions added
+
+`LoggerState.height: SheetHeight` (`Partial`, `Full`); `LoggerBody.Browse.usualAround: LocalTime?` (set for Uncategorized, the list is then "Usual around {time}");
+`LoggerState.quickMethods: List<LoggerMethod>` (the second chip row; empty while typing or with picks); `FoodRowUi.kind: FoodKind`.
+
+| Action | Does |
+|---|---|
+| `SheetExpanded` | Drag up on the handle or the list: `height = Full`. |
+| `SearchFocused` | Tap in search: `height = Full`. Typing does the same. |
+| `HistoryArrived(days)` (part of `InputsArrived`) | The 14 days the picker and "Usual around" read. While the route had no slot and the person has not picked one, the slot follows the picker. |
+
+`LoggerChoices.slotChosen`: true once the route passed a slot or the person picked one; the picker never overrides that.
+
+### Amount sheet (design sync 2)
+
+```kotlin
+data class AmountState(
+    loading, missing, name, tag: String?,            // "Latin American"
+    favorite: Boolean,                               // the star
+    slot: MealSlot, slots: List<MealSlot>,           // Meal dropdown, Uncategorized last
+    time: LocalTime?, timeIsNow: Boolean,            // "Now 6:15 pm"
+    precision, showAmount,
+    count: String,                                   // "1", "1½", "150"
+    canLess,
+    unit: UnitUi, units: List<UnitUi>,              // the menu: "plate" + "350 g", grams has no weight
+    quick: List<QuickAmount>,                        // ½ 1 1½ 2, the selected one marked
+    portion: PortionCard?,                           // null in Blind, Named, or when energy and every macro hide
+    day: DayWithThis?,                               // null when every row hides
+    nutrients: AllNutrients?,                        // null unless micros are visible
+    sourceLine: SourceLine?,                         // "Per 350 g plate · Source: USDA"
+    customSize: CustomSizeUi?,                       // the Custom size dialog while open
+)
+data class UnitUi(val label: String, val grams: String?, val custom: Boolean = false)
+data class PortionCard(val energy: Display /* bare */, val grams: String, val split: List<SplitPart>, val macros: List<PortionMacro>)
+data class PortionMacro(val metric: Metric, val amount: Display, val share: Display /* "24%", share() rule */)
+data class DayWithThis(val rows: List<DayRow>)
+data class DayRow(val metric: Metric, val before: Display, val added: Display, val after: Display, val beforeFraction: Float?, val afterFraction: Float?)
+```
+
+Rows: Energy, Protein, Carbs, Fat, each through the policy on `Surface.Logger`
+in the day's context (energy against the day's range top, macros against
+their targets). Show: "1,245 + 525 → 1,770 kcal", "51 + 32 → 83 of 120 g".
+Soften: the after word and the bars. Hide: the row is gone. Bars stop at
+full and never change colour. Blind drops both cards (no metric shows), which
+leaves amount, meal, time and precision, as the note says.
+
+| Action | Does |
+|---|---|
+| `FoodArrived` / `FoodMissing` / `InputsArrived(settings, policy, day)` | As before; `day` is today so far for "Your day with this". |
+| `LessTapped` / `MoreTapped` / `QuickAmountPicked(q)` | The count. The count box is a display, not a field: the stepper and the chips cover it, and "1½" reads better than a decimal to type. |
+| `UnitPicked(index)` (the menu's open state is the composable's) | Switching units keeps the count; only grams converts (to the gram total, and back). |
+| `CustomSizeTapped` / `CustomSizeTyped(name, grams)` / `CustomSizeSaved` / `CustomSizeDismissed` | Saves `FoodUnit(name, grams)` to `Settings.foodUnits[ref.key]` and selects it at the same count. |
+| `FavoriteTapped` | Toggles `ref.key` in `Settings.favoriteFoods`. Favorites (search options tab) lists starred foods first. |
+| `SlotPicked(slot)` | Where Add to logs. |
+| `TimePicked(time)` | The item's logged time on the day; null is now. `BasketItem.loggedAt` carries it and `BasketCommitter` stamps it with `updateItem` after `addItems`. |
+| `PrecisionPicked`, `PickAndKeepGoingTapped`, `AddToMealTapped`, `BackTapped` | As before. |
+| `AllNutrientsTapped` | Expand or collapse. |
+
+Hunger before and "Stop asking this" are gone from the sheet: the design
+drops them, and hunger now lives in How it felt from the meal card and in day
+close.
+
+Kept on purpose: no ⋮ overflow menu (the design does not say what it holds,
+and nothing is advertised that isn't built); the source line names the
+catalog's source only ("USDA", "Open Food Facts", "Your food"), not "adjusted by
+the Opson team", which is not true of our data yet; the energy row has no
+dashed range box.
+
+Copy (new): `logger_amount_meal` Meal, `logger_amount_time` Time,
+`logger_amount_now` Now, `logger_amount_this_portion` This portion,
+`logger_amount_of_energy` %1$s of energy, `logger_amount_day` Your day with
+this, `logger_amount_striped` Striped = this food, `logger_amount_all`
+All nutrients, `logger_amount_all_sub` Vitamins, minerals and more,
+`logger_amount_per_source` Per %1$s · Source: %2$s, `logger_amount_custom`
+Custom size…, `logger_amount_custom_title` A size of your own,
+`logger_amount_custom_name` Name, `logger_amount_custom_grams` Grams,
+`logger_amount_favorite_cd` / `_unfavorite_cd` Save to favorites / Remove from
+favorites, `logger_precision_named` Name only, `logger_usual_around` Usual
+around %1$s, `logger_empty_body` Describe it, or save just the name.
+
+### Visibility surfaces added (surface `Logger`)
+
+| Number | Show | Soften | Delay | Hide |
+|---|---|---|---|---|
+| This portion energy, macros | `525 kcal`, `32 g` | hidden (no goal) | hidden | hidden |
+| % of energy | `24%` | hidden | hidden | hidden |
+| Your day with this, per row | `1,245 + 525 → 1,770 kcal` | word + bars | hidden | row gone |
+| All nutrients | micro percents | words | hidden | card gone (micros hidden) |
+| Unit grams, source line grams | amounts, not nutrients | shown | shown | shown |
+
+### Tests added
+- `MealSlotPickerTest` (diary): defaults before history, the usual meal, fewer
+  than 3 logs and a split window fall to Uncategorized, groups off, 14-day
+  cut-off, logs on a later day ignored, `usualAround` order.
+- `FoodKindTest` (foods), `PortionAmountTest` additions for saved units.
+- `LoggerStateBuilderTest`: Usual around for Uncategorized, chip rows with
+  and without picks, height, kind on rows.
+- `LoggerViewModelTest`: auto-pick from history, Uncategorized, a picked or
+  routed slot wins, height states (`SheetExpanded`, `SearchFocused`, typing,
+  panes, opened on a pane), no How it felt after an add.
+- `AmountTest`: unit menu grams, switching keeps the count, custom size saved
+  and selected, favourite toggles, slot and time picked and committed, Blind
+  drops the cards, Soften keeps day words, micros gate All nutrients.
+- Leak test: `logger-amount-units`, `logger-uncategorized`, and the existing
+  `logger-amount` (now with "Your day with this") and `logger-photo`.
+- Previews renamed or added to match design ids: `LoggerUncategorizedPreview`,
+  `LoggerAmountUnitsPreview`, `LoggerPhotoPreview`.
+
+---
+
+## Source (design v3)
 - **Design v3 is the spec**: `docs/design/v3/CHANGES.md` (global rules, the
   Logger row) and `manifest.json` notes for `logger`, `logger-picked`,
   `logger-amount`, `logger-search`, `logger-search-blind`,
@@ -22,8 +176,7 @@ adding. Read `shared.md` first.
   (Add a note when calories are Hide). Photo is Later and not built; Water and
   Weigh-in are no longer chips. Chips hide while the person is typing.
 - **Describe and Saved meals are panes of the sheet.** The Log screen with tabs
-  is gone. `LogRoute` survives only as an alias that opens the sheet on the
-  matching pane, so callers keep working (Today's in-flight branch uses it).
+  is gone; `LoggerRoute(start = ...)` opens the sheet on a pane.
 - Search rows get a brand line (cuisine once the catalog has it), a real
   no-results state that carries the term into Describe or "Save the name only".
 - Amount sheet: Weighed / Estimate / Just the name, stepper and unit chips,
@@ -32,7 +185,7 @@ adding. Read `shared.md` first.
 - After adding, the sheet closes and the logger publishes `LoggedToMeal` on
   `RecentLogEvents` (`:libraries:diary`). Today scrolls to the meal, outlines
   it and offers Undo for 6 s; Undo removes exactly those item ids.
-- How it felt (Skip as big as Save) follows an add when the preset asks
+- (Design sync 2: no longer follows an add.) How it felt (Skip as big as Save) followed an add when the preset asked
   (`ModePreset.asksHowItFelt`, Mindful) or hunger questions are on.
 
 ## Routes
@@ -40,8 +193,6 @@ adding. Read `shared.md` first.
 | Route | Where | Kind |
 |---|---|---|
 | `LoggerRoute(slot: MealSlot? = null, dayIso: String? = null, focusSearch: Boolean = false, prePickFoodId: String? = null, prePickIsCustom: Boolean = false, prePickSavedMealId: String? = null, start: LoggerStart = LoggerStart.Search)` | `:features:logger` | `bottomSheet<>`, `heightFraction = FullHeightFraction`, drag handle, typeMap for `MealSlot?` and `LoggerStart` |
-| `LogRoute(dayIso, slot, tab: LogTab = Describe, focusNumber = false)` | `:features:logger` | Alias: the same sheet, `start` from `tab` / `focusNumber`. Kept so callers written against the old Log screen keep working. New code uses `LoggerRoute(start = ...)`. |
-| `HowItFeltRoute(dayIso: String, slot: MealSlot)` | `:features:logger` | `bottomSheet<>`, typeMap for `MealSlot`. In the api so Today's meal sheet can open the same sheet instead of building `MealFeelRoute`. |
 | `AmountSheetRoute(foodId, isCustom, source: PickSource, dayIso: String, slot: MealSlot)` | `:features:logger:impl` | `bottomSheet<>` over the Logger, `heightFraction = 0.9`, typeMap for `PickSource` and `MealSlot`. Day and slot because its "Add to {meal}" commits. |
 
 `@Serializable enum class LoggerStart { Search, Describe, Saved, Number }`.
@@ -129,9 +280,9 @@ sealed interface LoggerBody {
     data class Results(val rows: List<FoodRowUi>, val offline: Boolean)
     data class NoResults(val query: String, val offline: Boolean)
 }
-data class DescribeUi(text, status: DescribeStatus, lines: List<DescribedLine>, canNumber: Boolean,
-    number: String, focusNumber: Boolean)
-data class DescribedLine(key, ref: FoodRef?, name, sub /* "2 · Estimate" */, calories: Display /* bare */)
+data class DescribeUi(text, status: DescribeStatus, lines: List<DescribedLine>, total: DescribeTotal?,
+    find: DescribeFindUi?, canNumber: Boolean, number: String, focusNumber: Boolean)
+// Lines, their controls, the total and the find pane: describe.md.
 data class SavedUi(val meals: List<SavedMealUi>)
 data class SavedMealUi(id, name, foods, calories: Display)
 data class BasketFooter(count, names, calories: Display, slot)
@@ -146,7 +297,8 @@ dayBefore, settings, basket, usualBySlot, recent, customFoods, savedMeals)`.
 - Search results: the user's custom foods whose name or brand matches, then the
   catalog's, deduplicated by key. The subtitle is the brand (the catalog has no
   cuisine field yet; when it does, cuisine goes first).
-- Describe lines are the basket items with source Describe, in order.
+- Describe lines are `LoggerChoices.review`'s rows (describe.md); the basket
+  holds exactly those rows as source Describe.
 - Row and line energy use a bare format context ("525"); the footer keeps the
   unit ("813 kcal").
 
@@ -171,8 +323,8 @@ dayBefore, settings, basket, usualBySlot, recent, customFoods, savedMeals)`.
 | `JustANumberTapped` | Pane Describe, number field focused. |
 | `AddANoteTapped` | Event `OpenMealNote(day, slot)`. |
 | `DescribeTyped(text)` | Debounced 700 ms `FoodCatalog.describe(text)`; stale answers dropped. |
-| `DescribeArrived(text, items)` / `DescribeFailed(text)` | Replaces the Describe items in the basket; empty or failed is `Failed`, offline is `Offline`. |
-| `DescribedLineEditTapped(line)` | Event `OpenAmount(ref, Describe)` (lines with a food only). |
+| `DescribeArrived(text, items)` / `DescribeFailed(text)` | Replaces the read lines, keeping lines the person changed or added (describe.md); empty or failed is `Failed`, offline is `Offline`. |
+| `DescribeReviewAction` | Per-line amount, unit, swap, remove and find (describe.md). |
 | `NumberTyped(text)` / `AddNumberTapped` | Digits only; n > 0 and calories not Hide logs "Quick add" (`QuickNumber`) on its own, `LoggedToMeal`, `Dismiss`. |
 | `BackTapped` | Describe / Saved back to Search; leaving Describe drops its lines. System back does the same. |
 | `AddToMealTapped` | `BasketCommitter.commit`, then `OpenHowItFelt(day, slot)` or `Dismiss`. |
@@ -247,6 +399,14 @@ Ate no details and Stop asking. Meal names inside sentences use
 
 ---
 
+## Search options (0.2)
+
+Sort, database filter, category tabs and source badges, behind
+`release.searchOptions`: see [search-options.md](search-options.md). Off, the
+Search pane above is unchanged.
+
+---
+
 ## Barcode (0.2)
 
 Superseded by [barcode.md](barcode.md), which is what was built. The waiting copy
@@ -260,8 +420,9 @@ Food Facts, later a paid one), which can take up to 5 seconds, and the answer
 is kept so the next person's scan is instant.
 
 ### Waiting
-- For the first 400 ms show only a quiet spinner under the frozen camera
-  frame. A catalog hit lands inside that and the user never sees more.
+- For the first 400 ms show only that the code was caught: a haptic, and the
+  frame snapping tight with a tick over the dimmed camera. A catalog hit lands
+  inside that and the user never sees more.
 - Past 400 ms the scan has almost certainly missed our catalog and we are
   asking an outside source. Swap in the first-lookup copy with the spinner.
   Never a progress bar, never a countdown.

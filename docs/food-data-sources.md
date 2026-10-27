@@ -111,11 +111,127 @@ tier taken in index order, or a smaller hot subset ranked by `scans` (Open
 Food Facts' scan count, kept on every row for this). Re-run the bench after
 that change, and on dev once it has room.
 
+### Measured again, 2026-10-26: bounded search (0.2)
+
+Same local Postgres 17 with dev's current settings (`shared_buffers` 320 MB,
+`work_mem` 3.5 MB, `effective_cache_size` 960 MB, `random_page_cost` 1.1, JIT
+off, one parallel worker), in Docker with 1 GB of memory and 2 CPUs, on a
+laptop shared with other builds (load average 7 to 30 during the runs, so
+treat single slow queries as noise). Same 290 queries, LIMIT 25.
+
+What changed (`OpenFoodFactsSearch` in the server, mirrored by
+`scripts/bench_off_search.py`):
+
+- **The reload writes rows most-scanned first**, so the table's physical
+  order is popularity, and a capped bitmap scan returns the most-scanned
+  matches first. The load takes 362 s instead of 229 s: the export is
+  spilled to temp files by scan count before anything is sent.
+- **Queries under 3 letters and digits skip Open Food Facts** (16 of the 290;
+  the catalog still answers them).
+- **Candidates are capped before scoring**: exact names up to 100 (a btree
+  on `lower(name)`), word-prefix matches up to 300, both again among products
+  sold in the caller's country (a GIN on `countries_tags, search`), and a
+  typo fallback on trigram word similarity up to 50, only when the rest find
+  fewer than 25. At most about 850 rows are scored, whatever the query.
+- **Two indexes added** (V15): 200 MB, so `off_foods` is 2.3 GB with indexes.
+
+| | p50 | p95 | p99 | Slowest |
+|---|---:|---:|---:|---:|
+| Before: unbounded, United States | 101 ms | 2,180 ms | 7,906 ms | 13.2 s (`m&m`) |
+| Bounded, United States | 25 ms | 56 ms | 87 ms | 241 ms |
+| Bounded, France | 23 ms | 60 ms | 88 ms | 115 ms |
+
+The "before" row is this setup's own measurement of the old statement; it
+reads slower than the earlier table above because this container is
+smaller.
+
+**Quality.** `--compare` runs both statements with the same ranking and
+counts how much of the unbounded top 10 the bounded one keeps: 88.5% for the
+United States, 91.7% for France, with the same first result 89.4% and 95.3%
+of the time. Where they differ the bounded result is usually the more popular
+product: the unbounded statement can reach products nobody scanned, and the
+caps keep the most-scanned. The typo fallback is better bounded than
+unbounded (`cheeerios` now finds Cheerios, not Cheerwine), and the lowest
+overlaps are prefixes still being typed (`cho`, `che`, `chi`).
+
+**In search.** Off by default: `FOOD_SEARCH_OFF_ENABLED=true` adds these
+rows to `/v1/foods/search` with the same response shape (`source: "off"`,
+tier 4, not verified), after every generic food that matched directly and
+after Branded rows of the same match, products sold in the caller's country
+(`X-Country-Code`) first. `/v1/foods/{id}` answers their ids when it is on.
+Describe never uses them.
+
+**Not loaded on dev yet.** A first load writes the 2.3 GB table plus about
+as much WAL again (dev's `max_wal_size` is 4 GB) on top of the 1.4 GB dev
+already uses (392 MB of data, 960 MB of WAL), which could pass 60% of the
+12 GB disk at its peak, and the disk itself can't be read from SQL. Load it
+with the disk graph open in the Supabase dashboard, and stop if it passes
+60%.
+
+### Measured on dev, 2026-10-27: where a typed search spent its time
+
+Dev now has the full load (3.29M rows) and `FOOD_SEARCH_OFF_ENABLED` on, on
+Supabase's micro instance (256 MB `shared_buffers`, so `off_foods` at 2.3 GB
+is mostly read from disk). `EXPLAIN (ANALYZE, BUFFERS)` of the statements
+search runs, read-only:
+
+- **The catalog statement scored every Branded match.** "chicken" read and
+  ranked 14,630 rows (0.9 s), "cheese" 32,491 (2.2 s). Most of them could
+  never reach the page: generic matches rank first, and a Branded row only
+  jumps them when the query names its brand. Now only rows whose brand
+  carries a query word are read when generic matches fill the page: 0.12 s
+  and 0.21 s, same rows in the same order (14 queries, limits 25 and 50).
+- **Open Food Facts went back to the table by id for each of up to 850
+  candidates**, a random read each when cold. Carrying ctids halves its cold
+  reads: about 370 ms to 190 ms on fresh words.
+- **The two statements ran one after the other**; they now run at once.
+- **The phone retried a 503 three times**, up to about 23 s.
+
+Search over HTTP, in process on a laptop against dev (so each database
+round trip is about 18 ms instead of Fly's 1 ms), warm, limit 25:
+
+| Query | Before | After | Repeated within 5 min |
+|---|---:|---:|---:|
+| chicken | 1.3 to 1.6 s | 0.29 s | 2 ms |
+| cheese | 2.4 to 3.1 s | 0.36 to 0.45 s | 2 ms |
+| chic | 1.4 to 1.8 s | 0.37 to 0.54 s | 2 ms |
+| chi | 0.50 to 0.62 s | 0.26 to 0.35 s | 1 ms |
+| greek yogurt | 0.33 to 0.40 s | 0.27 s | 3 ms |
+| nutella | 0.27 to 0.37 s | 0.25 s | 3 ms |
+| egg | 0.15 to 0.24 s | 0.12 s | 2 ms |
+| coke | 0.12 to 0.20 s | 0.08 s | 2 ms |
+| c | 0.64 to 2.0 s | 0.55 to 1.1 s | 2 ms |
+
+Still slowest: one- and two-letter queries ("c" ranks 7,800 generic foods),
+which the server and the phone now keep for five minutes, and cold
+Open Food Facts pages. A bigger Supabase instance would hold `off_foods` in
+memory; that is the next lever if cold searches still feel slow.
+
+## Search ranking and default servings (0.2)
+
+**Ranking.** A relevance suite of 78 queries (staples, dishes, brands,
+misspellings, prefixes typed so far) runs as `SearchRelevanceTest` against the
+generic seed plus a committed Branded fixture. Before the change 67 of 78
+held their expected top 3 (85.9%); after, 78 of 78. A held-out set of 44
+queries written before running it, never used to tune: 40 of 44 before, 42
+of 44 after. On a full local copy of dev's catalog (445,414 foods) search got
+faster too, because Branded rows are only read when they can reach the
+results: p50 52 to 37 ms, p95 281 to 269 ms, slowest 963 to 385 ms.
+
+**Default servings.** The app logs a food's first portion. 1,318 of the
+13,324 generic foods had a crumb or a bulk measure first ("1 berry", "1 fl
+oz" of coffee, "1 cup" of almonds at 828 kcal); they now start with a typical
+serving. The seed is regenerated and dev was backfilled (1,318 rows; a second
+run changes nothing).
+
 ### Licence: ODbL, kept contained
 
 - **Required in the app:** "Contains data from Open Food Facts, available
   under the Open Database License", with a link, on a credits screen and
-  wherever its foods appear.
+  wherever its foods appear. In the Logger (`release.searchOptions`) each of
+  its rows carries an "Open Food Facts" badge and that sentence sits under
+  any results that include one; the Foods tab has the credit line. Still
+  missing: the Credits screen with the link.
 - **Keep it in its own table.** A database built from Open Food Facts is a
   Derivative Database. If it is "publicly used", it has to be offered under
   ODbL. Mixing Open Food Facts rows into the USDA table risks that applying
@@ -147,12 +263,75 @@ All of these go in as tier 1 (reference), each with its source and version on
 every row. They cover about 20,000 foods in total. This is the same shape of
 importer as the USDA one.
 
+## NEVO (Netherlands): imported
+
+`scripts/import_nevo_foods.py` loads NEVO-online 2025/9.0 (2,328 foods in
+the release) into `foods` as source `nevo`, tier 1, under RIVM's written
+permission (Replies, below). Not loaded on dev or prod yet; the release
+checklist has the step.
+
+- **Getting the file.** RIVM hands out the download link only after its
+  conditions of use are accepted on the
+  [request form](https://www.rivm.nl/en/dutch-food-composition-database/use-of-nevo-online/request-dataset),
+  so the importer never fetches it on its own. Download it there, then pass
+  the file (or the zip it comes in) with `--file`, or the link with `--url`.
+  Other projects that import it describe `NEVO2025_v9.0.csv`, pipe-separated
+  with decimal commas, which is what the importer reads; the real file
+  hasn't been through it yet.
+- **The command.** Counts only, then a load:
+
+  ```bash
+  python3 -I scripts/import_nevo_foods.py --file ~/Downloads/NEVO2025_v9.0.csv
+  CATALOG_DATABASE_URL=... python3 -I scripts/import_nevo_foods.py --file ~/Downloads/NEVO2025_v9.0.csv --psql
+  ```
+
+  It needs V20 on the database and checks for it first. Re-running changes
+  no row.
+- **Amounts unchanged.** Every value is copied as published; only decimal
+  commas become points. Each nutrient column is matched on its code and its
+  unit, and a unit other than ours stops the run.
+- **Left out:** the "Foods for special nutritional use" group (infant and
+  toddler formula, per 100 ml), and any other row not given per 100 g.
+- **Names:** the English name, with NEVO's `w`, `wo` and `av` written out
+  ("Apple with skin average"). `foods` has nowhere to keep an alias, so the
+  Dutch name isn't stored, and a Dutch query won't find these foods until
+  it does.
+- **Citation:** the search row's badge ("NEVO 2025/9.0, RIVM"), the amount
+  sheet's source line and the Foods tab's credit carry it. The importer
+  refuses any release other than the one the app cites. Search only returns
+  NEVO foods to an app that sends `credits=nevo`, so 0.1, which shows no
+  citation, never sees them, and Describe never picks them.
+
+| Our key | NEVO | Note |
+|---|---|---|
+| kcal | ENERCC (kcal) | |
+| protein | PROT (g) | |
+| carbs | CHO (g) | Available carbohydrate: fibre is not included, unlike USDA's |
+| fat | FAT (g) | |
+| fiber | FIBT (g) | |
+| sugars_g | SUGAR (g) | |
+| saturated_fat_g | FASAT (g) | |
+| trans_fat_g | FATRS (g) | |
+| cholesterol_mg | CHORL (mg) | |
+| sodium_mg, potassium_mg, calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, zinc_mg, copper_mg | NA, K, CA, FE, MG, P, ZN, CU (mg) | |
+| selenium_ug | SE (µg) | |
+| vitamin_a_rae_ug | VITA_RAE (µg) | |
+| vitamin_c_mg | VITC (mg) | |
+| vitamin_d_ug | VITD (µg) | |
+| vitamin_e_mg | TOCPHA (mg) | Alpha-tocopherol, as USDA; not VITE |
+| vitamin_k_ug | VITK1 (µg) | Phylloquinone, as USDA; not VITK (K1 + K2) |
+| thiamin_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg | THIA, RIBF, NIA, VITB6 (mg) | Niacin preformed, not NIAEQ |
+| vitamin_b12_ug | VITB12 (µg) | |
+| folate_dfe_ug | FOLFD (µg) | Only when FOLAC (folic acid) is 0, where DFE is the food folate exactly. Otherwise left out: DFE would have to be calculated |
+| added_sugars_g, manganese_mg, choline_mg | none | NEVO doesn't give them |
+
+NEVO has no household portions, so the app weighs these foods in grams.
+
 ## Hold
 
 | Source | Why |
 |---|---|
 | New Zealand FOODfiles | Its terms say "must not modify any part", and our normalisation is a modification. |
-| Dutch NEVO | Unchanged data only, and no charging users for NEVO data. |
 | Spain BEDCA, FAO regional tables, Italy CREA, China | No open licence found or not checked. FAO items are often CC BY-NC-SA, which rules out commercial use. |
 | India IFCT, Philippines PhilFCT | Copyrighted with no open licence. PhilFCT isn't downloadable, and FNRI declined a raw-data request. |
 
@@ -165,13 +344,38 @@ importer as the USDA one.
   NYC MenuStat (96 US chains, about 65,000 items) is open but stopped
   updating in 2019. The better answer is hand-curating the top chains from
   their published nutrition pages, later.
-- **Requested permission**, waiting on replies: NZ FOODfiles, India IFCT,
-  Philippines PhilFCT, Dutch NEVO, and the Open Food Facts share-alike
-  question.
+- **Requested permission** on 2026-10-26. Replies are below; NZ FOODfiles,
+  India IFCT and the Open Food Facts share-alike question haven't answered.
 - **Ask next:** Brazil TBCA (commercial use needs the coordinators' OK),
   for Latin America.
 - **Dropped:** Switzerland's Open Food Repo has shut down and redirects to
   Open Food Facts, which the dump already covers.
+
+## Replies to the permission requests (2026-10-27)
+
+- **Dutch NEVO: yes.** RIVM confirmed in writing that storing NEVO values
+  converted to our format is fine as long as the amounts don't change, and that
+  a free app with a later paid tier for unrelated features is fine if NEVO data
+  stays free. Their one caution: "foods for special nutritional use" (infant
+  and toddler formula) are per 100 ml with no density, so leave those out.
+  Cite "Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven".
+  Imported: see "NEVO (Netherlands): imported" above.
+- **Philippines PhilFCT: not now.** FNRI can't license it yet and has no
+  CSV, Excel or API; they're building a data platform (i.fnri) and will
+  announce access on their Facebook page. Only the printed book is for sale.
+  Stays on Hold; watch for i.fnri.
+- **NCCDB (University of Minnesota): paid licence, files in Excel, no API.**
+  Prices are usually for a 2-year term:
+  - All 178 nutrients: $8,620.
+  - The 38 standard nutrients: $3,420.
+  - À la carte: $2,045 plus $180 per nutrient.
+  - **Startup offer:** a 1-year Standard Nutrients licence at half price,
+    $1,710, for development, testing and launch.
+  - Add-ons include nutrients per common portion ($2,570 standard, $6,470
+    all), food group files ($4,390) and NCC-to-USDA code links ($660 to $790).
+  - Licensing takes at least 3 weeks. Contact: nccdb-licensing@umn.edu (Jenny).
+  - If it goes ahead, the startup Standard package plus the USDA links is the
+    natural first buy.
 
 ## Skip
 

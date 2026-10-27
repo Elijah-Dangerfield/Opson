@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Onboarding: Welcome and the plan, three questions, the optional statement,
-  the starting mode and the optional account step. Copy is design v3's
+  Onboarding: Welcome and the plan, two questions, the optional statement,
+  the starting mode, the setup steps and the optional account step. Copy is design v3's
   (docs/design/v3/onboarding-*.png) word for word where it has it; the
-  exceptions are marked. Preset labels repeat the Modes table in
-  docs/plans/screens/settings.md until a shared preset resource exists.
+  exceptions are marked. Preset labels are the shared ones in strings_modes.xml.
 -->
 <resources>
     <!-- Welcome. The design's "Friendly Tracking" is a placeholder for the app name. -->
     <string name="onboarding_welcome_title" translatable="false">Opson</string>
     <string name="onboarding_welcome_subtitle">Write down what you eat. See as many numbers as you want, or none.</string>
     <string name="onboarding_welcome_body">You can show, soften, save for later or hide every number, and change it whenever you like.</string>
+    <string name="onboarding_welcome_not_medical">Opson is a food log, not medical advice. Food values are estimates.</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_skip_all">Skip and start logging</string>
     <string name="onboarding_have_account">Have an account?</string>
@@ -27,10 +27,10 @@
     <string name="onboarding_plan_plus_later">Coming later</string>
     <string name="onboarding_plan_plus_includes">Photo estimates and watch quick-log</string>
 
-    <!-- Questions -->
-    <string name="onboarding_progress">%1$d of 4</string>
-    <string name="onboarding_progress_optional">%1$d of 4 · Optional</string>
-    <string name="onboarding_progress_description">Step %1$d of 4</string>
+    <!-- Questions. Two and the statement since onboarding v2 (docs/plans/onboarding-v2.md). -->
+    <string name="onboarding_progress">%1$d of %2$d</string>
+    <string name="onboarding_progress_optional">%1$d of %2$d · Optional</string>
+    <string name="onboarding_progress_description">Step %1$d of %2$d</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_continue">Continue</string>
     <string name="onboarding_pick_any">Pick any that fit.</string>
@@ -51,23 +51,20 @@
     <string name="onboarding_feel_not_sure">Not sure yet</string>
     <string name="onboarding_feel_footnote">This only picks a starting point. Later you can change any single number.</string>
 
-    <string name="onboarding_q_notice">What do you want to notice?</string>
-    <string name="onboarding_notice_amounts">Amounts</string>
-    <string name="onboarding_notice_nutrients">Nutrients</string>
-    <string name="onboarding_notice_patterns">Patterns</string>
-    <string name="onboarding_notice_how_eating_feels">How eating feels</string>
-
     <!--
       The statement. A statement to agree with, never a question about a diagnosis.
       TODO(clinician): review the quote, the body and both answers before release.
       The design's body ends "and the answer stays on this phone", which is not true: the answer
-      is saved with the rest of the settings, and settings sync to the person's account.
+      is saved with the rest of the settings, and settings sync to the person's account. The body
+      says what a yes does: it keeps Full numbers off the starting list, the fasting timer off
+      and watch activity out of the range (Settings.exerciseInRange, Fasts).
     -->
     <string name="onboarding_q_statement">Does this sound like you?</string>
     <string name="onboarding_statement_quote">“Numbers or tracking have been hard for me before.”</string>
-    <string name="onboarding_statement_body">If you say yes, you get gentler starting points. We don't ask why, and the answer is used for nothing else.</string>
+    <string name="onboarding_statement_body">If you say yes, you get gentler starting points, and fasting and exercise adjustments stay off. We don't ask why.</string>
     <string name="onboarding_statement_yes">Yes, that's me</string>
     <string name="onboarding_statement_no">Not really</string>
+    <string name="onboarding_talk_to_someone">Talk to someone</string>
     <string name="onboarding_see_starting_point">See my starting point</string>
 
     <!-- Recommendation -->
@@ -80,11 +77,36 @@
     <string name="onboarding_start_with">Start with %1$s</string>
     <string name="onboarding_finishing">Setting things up…</string>
 
+    <!-- The answer that picked the starting point (ModeRecommender.reason), under the mode's line. -->
+    <string name="onboarding_reason_no_answers">You skipped the questions, so you start with every number.</string>
+    <string name="onboarding_reason_loves_numbers">You said you love numbers.</string>
+    <string name="onboarding_reason_some_are_fine">You said some numbers are fine.</string>
+    <string name="onboarding_reason_rather_not">You said you'd rather not see numbers.</string>
+    <string name="onboarding_reason_gentler">You asked for a gentler start.</string>
+    <string name="onboarding_reason_not_sure">You weren't sure yet, so numbers wait until the day is done.</string>
+
+    <!--
+      Setup steps (release.onboardingSetup). Goal style names and lines are Targets' own
+      (strings_settings.xml), and so are resting energy's field labels.
+    -->
+    <string name="onboarding_goal_title">Your daily goal</string>
+    <string name="onboarding_goal_change">Change it any time under More, then Targets.</string>
+    <string name="onboarding_goal_burn_note">The goal follows what you burn. Fine-tune the amount in Targets.</string>
+
+    <string name="onboarding_body_title">What you burn at rest</string>
+    <string name="onboarding_body_body">Opson works it out from these. Your weight is saved as your first weigh-in.</string>
+    <string name="onboarding_body_units_metric">kg and cm</string>
+    <string name="onboarding_body_units_imperial">lb and in</string>
+    <string name="onboarding_body_weight">Weight</string>
+    <string name="onboarding_body_resting">About %1$s a day at rest</string>
+
+    <string name="onboarding_meals_title">When do you usually eat?</string>
+    <string name="onboarding_meals_body">Today shows what's next from these. Tap a time to change it.</string>
+
     <!-- What a mode shows and keeps out of view, built from its levels (ModePreview). -->
     <string name="onboarding_preview_calorie_amounts">Calorie amounts</string>
     <string name="onboarding_preview_energy_word">A word for energy, like “partway”</string>
     <string name="onboarding_preview_calories_later">Calories, once the day is closed</string>
-    <string name="onboarding_preview_calories_weekly">Calories, once a week</string>
     <string name="onboarding_preview_calories_hidden">Calorie amounts and watch energy</string>
     <string name="onboarding_preview_macro_amounts">Protein, carbs, fat and fiber amounts</string>
     <string name="onboarding_preview_protein_fiber_amounts">Protein and fiber amounts</string>
@@ -101,31 +123,8 @@
     <string name="onboarding_preview_weight_trend">Weight shows as a trend only</string>
     <string name="onboarding_preview_weight_hidden">Weight</string>
     <string name="onboarding_preview_meal_by_meal">What you ate, meal by meal</string>
-    <string name="onboarding_preview_meal_checklist">A checklist of your meals</string>
-    <string name="onboarding_preview_new_foods">The new foods you try</string>
     <string name="onboarding_preview_how_meals_felt">How each meal felt</string>
 
-    <!-- Preset labels and one-line descriptions under the name -->
-    <string name="onboarding_preset_full">Full numbers</string>
-    <string name="onboarding_preset_full_line">Every number, as it is.</string>
-    <string name="onboarding_preset_delayed">Delayed reveal</string>
-    <string name="onboarding_preset_delayed_line">Log all day. Totals open at a time you pick.</string>
-    <string name="onboarding_preset_blind">Blind</string>
-    <string name="onboarding_preset_blind_line">Log food without any numbers.</string>
-    <string name="onboarding_preset_nutrient">Nutrient focus</string>
-    <string name="onboarding_preset_nutrient_line">The nutrients in your food come first.</string>
-    <string name="onboarding_preset_rhythm">Rhythm</string>
-    <string name="onboarding_preset_rhythm_line">Regular meals come first.</string>
-    <string name="onboarding_preset_explorer">Explorer</string>
-    <string name="onboarding_preset_explorer_line">Trying new foods comes first.</string>
-    <string name="onboarding_preset_mindful">Mindful</string>
-    <string name="onboarding_preset_mindful_line">How eating feels comes first.</string>
-    <string name="onboarding_preset_fuel">Fuel</string>
-    <string name="onboarding_preset_fuel_line">Eating enough comes first.</string>
-    <string name="onboarding_preset_sprint">Sprint</string>
-    <string name="onboarding_preset_sprint_line">Track for two weeks to learn, then take a break.</string>
-    <string name="onboarding_preset_coast">Coast</string>
-    <string name="onboarding_preset_coast_line">Light logging and one weekly check.</string>
 
     <!--
       The account step: optional and last. The design's first reassurance line reads

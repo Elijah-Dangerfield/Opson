@@ -53,27 +53,28 @@ Each feature impl exports its list from `commonMain`, next to its fixtures:
 ```kotlin
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h4000dp")
-class BlindModeLeakTest(private val surface: LeakSurface, private val preset: PresetId) {
+class BlindModeLeakTest(private val surface: LeakSurface, private val mode: LeakMode) {
     @get:Rule val compose = createComposeRule()
 
     @Test fun showsNoCalorieAmount() {
-        compose.setContent { LeakHarness(policyFor(preset)) { surface.content(it) } }
+        compose.setContent { LeakHarness(mode.policy()) { surface.content(it) } }
         assertNoTaggedMetrics()   // metric:calories, metric:remaining, metric:energyOut, unmerged tree
         assertNoLeakText()        // LEAK regex over the joined text
     }
 
     companion object {
         @JvmStatic @ParameterizedRobolectricTestRunner.Parameters(name = "{0} in {1}")
-        fun cases() = PRESETS_UNDER_TEST.flatMap { p -> SURFACES.map { arrayOf(it, p) } }  // minus whole-surface reveals
+        fun cases() = MODES_UNDER_TEST.flatMap { m -> SURFACES.map { arrayOf(it, m) } }  // minus whole-surface reveals
     }
 }
 ```
 
 | Piece | Detail |
 |---|---|
-| `PRESETS_UNDER_TEST` | Every preset whose calories level is not Show, derived from `Presets.all`: Blind, Nutrient, Rhythm, Explorer, Mindful (Hide: nothing at all), Delayed and Coast (Delay, at noon before the reveal and before Coast's weekly check: nothing apart from `REVEALED_BY_DESIGN`), Fuel (Soften: the calories tag may hold a word, never a digit). `SurfacesCoverageTest` pins the set. |
-| `REVEALED_BY_DESIGN` | What a delayed or soft mode shows on purpose, each with its reason: Day close, a past day and the week views in Delayed (the whole surface is skipped in that preset only); Coast's last weekly check; the label typed into Add a food (the exact value only, so anything else on the surface still fails). A copy-from-yesterday offer resolves as the day it would be added to, so it is never on this list. |
-| `policyFor(preset)` | `VisibilityPolicy(NumbersSettings(preset), fixedClock, TimeZone.UTC)` with the clock at 2026-10-25 12:00, before the 9 pm reveal. |
+| `MODES_UNDER_TEST` | Every preset whose calories level is not Show, derived from `Presets.all` (design sync 4), No numbers first: No numbers (Hide: nothing at all), Nutrients first (Soften: the calories tag may hold a word, never a digit), and Later each day and weekly (Delay, at noon before the reveal and before the weekly check: nothing apart from `REVEALED_BY_DESIGN`). `SurfacesCoverageTest` pins the set. |
+| `REVEALED_BY_DESIGN` | What a delayed or soft mode shows on purpose, keyed by mode, each with its reason: Day close, a past day and the week views in Later (the whole surface is skipped in that mode only); Later weekly's last weekly check; the label typed into Add a food (the exact value only, so anything else on the surface still fails). Never anything in No numbers. A copy-from-yesterday offer resolves as the day it would be added to, so it is never on this list. |
+| `LeakMode.policy()` | `VisibilityPolicy(settings, fixedClock, TimeZone.UTC)` with the clock at 2026-10-25 12:00, before the 9 pm reveal. |
+| `NoNumbersLeakTest` | No numbers alone, every surface: no node tagged with any metric shows a digit, so not protein, weight, water or a share either. Amounts of food carry no tag and stay. |
 | `LeakHarness` | `AppThemeProvider` (Pine, light, normal text) plus `CompositionLocalProvider(LocalVisibilityPolicy provides policy)`. If Compose resources fail to resolve under Robolectric, add `PreviewContextConfigurationEffect()` here; verify on the first run. |
 | `assertNoTaggedMetrics` | `onAllNodes(hasTestTag(...), useUnmergedTree = true).assertCountEquals(0)` for each of the three tags. |
 | `assertNoLeakText` | Walk the unmerged semantics tree depth first; collect `Text`, `EditableText` and `ContentDescription`; join with single spaces in tree order (so `Energy` `190` `kcal` reads `Energy 190 kcal`, like the prototype's `textContent` plus input values). Match `Regex("""\d[\d,.]*\s*(kcal|cal\b|calories)|\d[\d,]*\s*left\b""", IGNORE_CASE)`. The failure message names the surface, the preset, the matches and their nodes. |
@@ -97,15 +98,23 @@ Two companion tests in the same module:
    Kotlin and nothing else, so a hidden number is absent from it rather than masked. `widget`
    renders that snapshot through `WidgetCard`, the Compose lookalike laid out as the Glance and
    SwiftUI widgets are, and `WidgetSnapshotBuilderTest` scans the snapshot's JSON in every preset
-   that hides calories. `Surface.Widget` never reveals a delayed number, so Delayed and Coast
-   need no `REVEALED_BY_DESIGN` entry for it.
+   that hides calories. `Surface.Widget` never reveals a delayed number, so Later, each day or
+   weekly, needs no `REVEALED_BY_DESIGN` entry for it.
 9. **Notification text is a surface too.** A notification never reaches a composable, so its
    words are listed through a lookalike: `reminder-notification` renders every reminder key in
    both tones from `ReminderCopy`, the same resources the platform posts. Notification copy
    takes no format arguments, so no number can reach it in any mode; one that ever needs a number
    resolves it through `VisibilityPolicy` and stays in this surface. Proved by breaking it once:
    a meal body changed to "About 640 kcal left" failed `reminder-notification` in all eight
-   presets under test (2026-10-26).
+   presets under test (2026-10-26; four modes since design sync 4).
+10. **Vitamins and minerals hide with their own level.** Calories hidden is not the only case:
+   micros show in Full numbers and hide in every other mode, and a person can turn them off
+   in Full. `MicrosHiddenLeakTest` renders every surface in `MICROS_SURFACES` in each mode that
+   hides micros and in Full with micros off, and asserts no node tagged `metric:micros`; its
+   Full case is the control. `LeakTestControlTest` fails on a surface that draws micros in Full
+   without being listed. Proved by breaking it once: the amount sheet's rows built without the
+   policy failed `logger-amount-nutrients` in all eight presets and in Full with micros off
+   (2026-10-27).
 
 ## SURFACES, ported
 
@@ -120,14 +129,15 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 5 | Quick-add sheet | `logger` | logger | ported | yes |
 | 6 | Food search | `logger-search` | logger | search lives in the Logger | yes |
 | 7 | Add-food sheet | `logger-amount` | logger | ported | yes |
-| 8 | Photo estimate | none | | dropped, Photo is Later | |
+| 8 | Photo estimate | `logger-photo` | logger | 0.2, `photo.md`; the review with the stepper open | yes |
 | 9 | Describe a meal | `logger-describe` | logger | a pane of the Logger in v3 | yes |
 | 10 | Saved meals | `logger-saved` | logger | a pane of the Logger in v3; copy yesterday is a chip | yes |
 | 11 | Day close · big day | `day-close-big-day` | today | ported | yes |
-| 12 | Trends (week history) | `trends` | trends | ported | yes |
+| 12 | Trends (week history) | `trends` | trends | ported; with the watch's Expended card, so it shows energyOut | yes |
 | 13 | Foods tab | `foods` | foods | ported | yes |
 | 14 | Nutrients detail | `nutrients` | trends | ported | yes |
 | 15 | Modes and numbers | `modes` | settings | ported | no |
+| new | | `modes-end-after`, `modes-each-number` | settings | design sync 4, 13.5a; End after a set time open, and the Each number page | no |
 | 16 | Reminders | `reminders` | settings | 0.2, behind `release.reminders` | no |
 | 17 | Weight | `weight` | trends | ported | no |
 | 18 | Integrations | `integrations` | settings | 0.2, `integrations.md`; shows energyOut | yes |
@@ -141,7 +151,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 26 | Calendar | `calendar` | today | ported | no |
 | 27 | Day menu | `today-day-menu` | today | ported | yes (Today under it) |
 | 28 | Add menu | none | | dropped in design v3 (no header +) | |
-| 29 | Fasting | `fasting` | settings | 0.2, `fasting.md`; only Full and Sprint offer it, so Blind renders "not part of this mode" | no |
+| 29 | Fasting | `fasting` | settings | 0.2, `fasting.md`; only Full numbers offers it, so No numbers renders "not part of this mode" | no |
 | 30 | Logger with picked foods | `logger-picked` | logger | ported | yes |
 | 31 | Create a meal | `foods-create-meal` | foods | ported (demo fixture) | yes |
 | 32 | Custom food | `foods-add-food` | foods | v3 "Add a food", Calories field holds 120 | yes |
@@ -152,7 +162,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `day-close` | today | | yes |
 | new | | `item-sheet` | today | | yes |
 | new | | `day-note`, `meal-note` | today | | no |
-| new | | `logger-search-empty`, `logger-how-it-felt` | logger | | no |
+| new | | `logger-search-empty` | logger | | no |
 | new | | `nutrients-week` | trends | | yes |
 | new | | `trends-settings` | trends | | no |
 | new | | `trends-blind`, `trends-coast` | trends | design v3 | yes |
@@ -161,9 +171,41 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `look-and-feel` | settings | | no |
 | new | | `foods-add-food-blind` | foods | v3 11.4; Add a food with no number fields | no |
 | new | | `reminder-notification` | settings | 0.2, v3 7.2; every reminder's text, plain and warm, as the system shows it | no |
-| new | | `today-reminders` | today | 0.2; Rhythm's reminder line (a time, never an amount) | yes |
+| new | | `today-timer-ended`, `today-timer-waiting` | today | design sync 4; End after a set time ran out, said once or offered behind the pause (mode names, never an amount) | yes |
 | new | | `today-expended` | today | 0.2, `integrations.md`; the Expended so far line | yes |
+| new | | `today-exercise` | today | 0.2, `integrations.md`; exercise in the range (All of it), energy out drawn | yes |
+| new | | `today-summary`, `today-macros`, `today-sticky`, `today-collapsed`, `today-weight` | today | design sync 2, `release.todaySummary`; the stats row, the macros page, the sticky bar for every page, the collapsed line, the weight row | yes |
+| new | | `today-select`, `today-select-remove`, `today-swipe-delete`, `today-delete-confirm` | today | design sync 2, `release.todaySelect`; the select panel's totals and its confirmation, a row swiped open and its confirmation | yes |
+| new | | `today-cards-summary` | today | design sync 2; Edit Today's cards with the summary section | no |
+| new | | `today-calendar`, `today-select-v4`, `today-drag-move`, `today-moved` | today | design sync 4, `today-actions.md`; the calendar over Today, select mode's bottom bar, foods mid-drag over dinner, the Undo after a move | yes |
+| new | | `food-actions`, `food-actions-amount` | today | design sync 4, `release.foodActions`; a food's ⋮ over Today (its energy through the policy), and Change amount | `food-actions` yes |
+| new | | `edit-a-copy` | foods | design sync 4, 13.3e; only numbers the mode shows in full, the Calories field and its "Was" tagged | yes |
+| new | | `day-close-check-in` | today | design sync 2, `release.checkIn`; the check-in and the watch's energy | yes |
+| new | | `integrations-leave-out` | settings | 0.2, `integrations.md`; the Leave out a day sheet, dates only | no |
+| new | | `logger-describe-voice` | logger | 0.2, `voice.md`; Describe it while listening, over lines already read | yes |
+| new | | `logger-photo-swap` | logger | 0.2, `photo.md`; swapping a line's food | yes |
+| new | | `logger-uncategorized` | logger | design sync 2, 3.1b; the nav + with no usual meal, "Usual around" | yes |
+| new | | `logger-amount-units` | logger | design sync 2, 3.3b; the unit menu open over the amount sheet | yes |
+| new | | `logger-scan-amount` | logger | 0.2, barcode; the amount sheet after a scan | yes |
+| new | | `logger-amount-nutrients` | logger | the amount sheet with All nutrients open, vitamins and minerals as a percent of a day | yes |
+| new | | `logger-scan-miss` | logger | 0.2, barcode; a scan the catalog doesn't know | yes |
+| new | | `logger-photo-start` | logger | 0.2, `photo.md`; the note and the two ways to a photo | no |
 | new | | `widgets` | settings | 0.2, `widgets.md`; the Widgets page under More, which previews the person's own widget | yes |
+| new | | `logger-search-tabs` | logger | 0.2, `search-options.md`; tabs, the options button and source badges over results | yes |
+| new | | `logger-search-options` | logger | 0.2, `search-options.md`; the options sheet: sort, database, tabs | no |
+| new | | `targets-exact` | settings | 0.2, `release.goalsAndEnergy`; one number and its stepper | yes |
+| new | | `targets-surplus` | settings | 0.2, `release.goalsAndEnergy`; the surplus, the burn and the goal it comes to | yes |
+| new | | `targets-by-day-shapes` | settings | 0.2, `release.goalsAndEnergy`; a day group as one number, and as a surplus | yes |
+| new | | `resting-energy` | settings | design sync 4, `release.goalsAndEnergy`; resting energy from each source, energy out only | no |
+| new | | `energy-today` | settings | design sync 4, `release.goalsAndEnergy`; eaten with its ±, Burned and the deficit so far | yes |
+| new | | `today-summary-in-out` | today | design sync 4; the card's default preset with a set deficit's target line | yes |
+| new | | `today-summary-range-bar` | today | design sync 4; one bar, Burned as a tick, meals count on | yes |
+| new | | `today-summary-rings` | today | design sync 4; one number as rings | yes |
+| new | | `today-summary-equation` | today | design sync 4; Eaten − Burned = Deficit | yes |
+| new | | `today-screen-settings` | settings | design sync 4; More › Today screen and its main number sheet, no amounts | no |
+| new | | `onboarding-goal` | onboarding | `onboarding-v2.md`, `release.onboardingSetup`; goal styles and the range on a stepper | yes |
+| new | | `onboarding-resting-energy` | onboarding | `onboarding-v2.md`; resting energy's details and the estimate they give, energy out | yes |
+| new | | `onboarding-meal-times` | onboarding | `onboarding-v2.md`; when meals usually happen, no amounts | no |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and
@@ -171,4 +213,4 @@ an entry to its feature's list in the same PR.
 
 ## Tests about the test
 - Break it on purpose once, in the PR that lands it: render `Display.Shown("1,245 kcal")` with the calories tag in one Blind fixture and confirm `BlindModeLeakTest` fails naming that surface; remove a surface id and confirm `SurfacesCoverageTest` fails; make one Full fixture empty and confirm `LeakTestControlTest` fails. Revert all three. Note the result in the PR description.
-- Runtime budget: about 40 surfaces × 5 presets plus the control. If the sweep passes 2 minutes, split the parameter list across two classes so Gradle can run them in parallel forks.
+- Runtime budget: about 90 surfaces × 4 modes, No numbers again for every tag, plus the control. If the sweep passes 2 minutes, split the parameter list across two classes so Gradle can run them in parallel forks.

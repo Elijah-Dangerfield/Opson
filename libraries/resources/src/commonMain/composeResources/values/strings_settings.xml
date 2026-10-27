@@ -10,6 +10,8 @@
     <!-- Shared by the pages -->
     <string name="settings_back_more">‹ More</string>
     <string name="settings_back_today">‹ Today</string>
+    <string name="settings_back_targets">‹ Targets</string>
+    <string name="settings_back_energy">‹ Energy today</string>
     <string name="settings_saved">Saved.</string>
     <string name="settings_saved_fewer">Saved. Fewer numbers from now on.</string>
 
@@ -20,7 +22,7 @@
     <string name="settings_more_targets">Targets</string>
     <string name="settings_more_targets_sub">Energy range and macro split</string>
     <string name="settings_more_look">Look and feel</string>
-    <string name="settings_more_look_sub">Colors, text size and tone</string>
+    <string name="settings_more_look_sub">Appearance, text size and units</string>
     <string name="settings_more_water">Water</string>
     <plurals name="settings_more_water_glasses">
         <item quantity="one">%1$d glass</item>
@@ -29,28 +31,6 @@
     <string name="settings_more_support">Support and sharing</string>
     <string name="settings_more_plan">Plan</string>
     <string name="settings_more_plan_free">Free</string>
-
-    <!-- Presets, label and line -->
-    <string name="settings_preset_full">Full numbers</string>
-    <string name="settings_preset_full_line">Every number visible, all day.</string>
-    <string name="settings_preset_delayed">Delayed reveal</string>
-    <string name="settings_preset_delayed_line">Log all day. Totals open at a time you pick.</string>
-    <string name="settings_preset_blind">Blind</string>
-    <string name="settings_preset_blind_line">No calories anywhere in the app.</string>
-    <string name="settings_preset_nutrient">Nutrient focus</string>
-    <string name="settings_preset_nutrient_line">Calories hidden. Chosen nutrients as fill bars.</string>
-    <string name="settings_preset_rhythm">Rhythm</string>
-    <string name="settings_preset_rhythm_line">A meal checklist. Amounts optional.</string>
-    <string name="settings_preset_explorer">Explorer</string>
-    <string name="settings_preset_explorer_line">Safe foods, new foods, small wins for trying.</string>
-    <string name="settings_preset_mindful">Mindful</string>
-    <string name="settings_preset_mindful_line">Hunger, fullness and how it felt. No nutrition data.</string>
-    <string name="settings_preset_fuel">Fuel</string>
-    <string name="settings_preset_fuel_line">Eating enough first. Protein and meal count up front.</string>
-    <string name="settings_preset_sprint">Sprint</string>
-    <string name="settings_preset_sprint_line">Track for two weeks to learn, then take a break.</string>
-    <string name="settings_preset_coast">Coast</string>
-    <string name="settings_preset_coast_line">Light logging and one weekly check.</string>
 
     <!-- Metrics, as the per-number grid names them -->
     <string name="settings_metric_calories">Calories</string>
@@ -78,38 +58,40 @@
 
     <!-- Modes and numbers -->
     <string name="settings_modes_title">Modes and numbers</string>
-    <string name="settings_modes_intro">Pick a starting point, then change any single number below. Showing fewer numbers applies right away.</string>
     <string name="settings_modes_presets_header">Starting point</string>
     <plurals name="settings_modes_changes">
         <item quantity="one">%1$d change</item>
         <item quantity="other">%1$d changes</item>
     </plurals>
-    <string name="settings_modes_matrix_header">Each number</string>
     <string name="settings_level_show">Show</string>
     <string name="settings_level_soft">Soft</string>
     <string name="settings_level_later">Later</string>
     <string name="settings_level_hide">Hide</string>
     <string name="settings_modes_cell">%1$s: %2$s</string>
     <string name="settings_modes_changed_from">Changed from %1$s</string>
+    <string name="settings_modes_photos">Progress photos</string>
+    <string name="settings_modes_photos_inline">progress photos</string>
     <string name="settings_modes_footnote">Soft swaps the amount for a word or a fill bar. Later keeps it locked until your reveal time.</string>
     <string name="settings_modes_pause_title">Pause before showing more</string>
-    <string name="settings_modes_pause_body">A short wait and a question before any number comes back.</string>
+    <string name="settings_modes_pause_body">A short wait before any number comes back</string>
     <string name="settings_modes_reveal_title">Reveal time</string>
     <string name="settings_modes_reveal_body">For anything set to Later</string>
     <string name="settings_modes_reveal_ok">OK</string>
     <string name="settings_modes_reveal_cancel">Cancel</string>
-    <string name="settings_modes_changed">Last changed by you, %1$s. Updates never change these.</string>
-    <string name="settings_modes_setup">Set by you during setup. Updates never change these.</string>
+    <string name="settings_modes_changed">Last changed by you, %1$s.</string>
+    <string name="settings_modes_setup">Set by you during setup.</string>
 
     <!-- Pause before showing more (sheet) -->
     <string name="settings_pause_title_number">Showing %1$s again</string>
     <string name="settings_pause_title_preset">Switching to %1$s</string>
     <string name="settings_pause_title_pause">Turning off the pause</string>
     <string name="settings_pause_title_reveal">Opening numbers earlier</string>
+    <string name="settings_pause_title_reveal_daily">Opening numbers each day</string>
     <string name="settings_pause_body_number">You asked for a pause before numbers come back. %1$s will show once the wait is over. Nothing changes if you close this.</string>
     <string name="settings_pause_body_preset">You asked for a pause before numbers come back. %1$s will start once the wait is over. Nothing changes if you close this.</string>
     <string name="settings_pause_body_pause">You asked for a pause before numbers come back. Turning it off takes the same short wait. Nothing changes if you close this.</string>
     <string name="settings_pause_body_reveal">You asked for a pause before numbers come back. Later numbers will open at %1$s once the wait is over. Nothing changes if you close this.</string>
+    <string name="settings_pause_body_reveal_daily">You asked for a pause before numbers come back. Later numbers will open each day once the wait is over. Nothing changes if you close this.</string>
     <string name="settings_pause_reason_prompt">What's prompting this? Only you see the answer.</string>
     <string name="settings_pause_reason_curious">Curious</string>
     <string name="settings_pause_reason_planning">Planning a meal</string>
@@ -125,17 +107,30 @@
     <string name="settings_pause_ready_pause">Turn it off</string>
     <string name="settings_pause_wait_reveal">Open earlier in %1$s</string>
     <string name="settings_pause_ready_reveal">Open at %1$s</string>
+    <string name="settings_pause_wait_reveal_daily">Open each day in %1$s</string>
+    <string name="settings_pause_ready_reveal_daily">Open each day</string>
     <string name="settings_pause_saved">Saved. You can hide them again any time.</string>
 
     <!-- Targets -->
     <string name="settings_targets_title">Targets</string>
     <string name="settings_targets_goal_style">Goal style</string>
-    <string name="settings_targets_style_range">A range</string>
-    <string name="settings_targets_style_range_line">Anywhere between a low and high end</string>
-    <string name="settings_targets_style_deficit">A set deficit</string>
-    <string name="settings_targets_style_deficit_line">A fixed amount under what you burn</string>
+    <string name="settings_targets_style_range">Range</string>
+    <string name="settings_targets_style_deficit">Set deficit</string>
+    <string name="settings_targets_style_deficit_line">Eat a set amount under what you burn</string>
     <string name="settings_targets_style_by_day">Different by day</string>
-    <string name="settings_targets_style_by_day_line">Say, more on training days</string>
+    <string name="settings_targets_style_exact">One number</string>
+    <string name="settings_targets_style_surplus">Set surplus</string>
+    <string name="settings_targets_style_surplus_line">Eat a set amount over what you burn</string>
+    <string name="settings_targets_kcal_a_day">kcal a day</string>
+    <string name="settings_targets_burn_target">Today's target %1$s · moves with what you burn</string>
+    <string name="settings_targets_burn_target_unknown">Until Burned is known, your goal is your range.</string>
+    <string name="settings_targets_burned_title">Burned comes from</string>
+    <string name="settings_targets_resting">Resting energy</string>
+    <string name="settings_targets_resting_calculated">Calculated</string>
+    <string name="settings_targets_resting_own">Your own number</string>
+    <string name="settings_targets_resting_unknown">Add your details</string>
+    <string name="settings_targets_activity">Activity</string>
+    <string name="settings_targets_activity_none">Not connected</string>
     <string name="settings_targets_low_end">Low end</string>
     <string name="settings_targets_high_end">High end</string>
     <string name="settings_targets_lower_end">Lower the %1$s</string>
@@ -155,24 +150,29 @@
     <string name="settings_targets_grams">Grams</string>
     <string name="settings_targets_ratios_note">Grams follow your energy target, so the split stays the same.</string>
     <string name="settings_targets_grams_note">Grams stay put when your energy target changes.</string>
-    <string name="settings_targets_deficit_title">Under what you burn, each day</string>
-    <string name="settings_targets_kcal">kcal</string>
     <string name="settings_targets_deficit_less">Less under what you burn</string>
     <string name="settings_targets_deficit_more">More under what you burn</string>
-    <string name="settings_targets_deficit_burn">You burn, 7-day average</string>
-    <string name="settings_targets_deficit_goal">Today's goal</string>
     <string name="settings_targets_deficit_about">About %1$s</string>
-    <string name="settings_targets_deficit_burn_unknown">Not known yet</string>
-    <string name="settings_targets_deficit_goal_unknown">Your range, for now</string>
     <string name="settings_targets_deficit_cap_toast">A bigger deficit needs a limit set with a dietitian first.</string>
-    <string name="settings_targets_burn_source">Work out what I burn from</string>
-    <string name="settings_targets_burn_source_body">Intake and weight trend is steadier. It needs about two weeks of logging first.</string>
-    <string name="settings_targets_rule_floor">Never below your floor, even on a low-burn day</string>
-    <string name="settings_targets_rule_big_day">After a big day, tomorrow's goal stays the same</string>
+    <string name="settings_targets_deficit_locked">Can't go higher yet</string>
+    <string name="settings_targets_deficit_cap_note">The deficit can't grow past where it started until a dietitian sets a limit.</string>
+    <string name="settings_targets_number_lower">Lower your goal</string>
+    <string name="settings_targets_number_raise">Raise your goal</string>
+    <string name="settings_targets_number_floor_note">Your goal can't go lower until a dietitian sets a safe floor.</string>
+    <string name="settings_targets_surplus_title">Over what you burn, each day</string>
+    <string name="settings_targets_surplus_less">Less over what you burn</string>
+    <string name="settings_targets_surplus_more">More over what you burn</string>
+    <string name="settings_targets_surplus_locked">Can't go higher</string>
+    <string name="settings_targets_surplus_cap">The surplus can't grow past where it started until a dietitian sets a limit.</string>
+    <string name="settings_targets_surplus_from_target">Today's target %1$s. Until Burned is known, the surplus goes on top of your usual target.</string>
     <string name="settings_targets_group_every_day">Every day</string>
     <string name="settings_targets_group_other_days">Other days</string>
     <string name="settings_targets_group_numbered">Day group %1$d</string>
     <string name="settings_targets_group_range">Range</string>
+    <string name="settings_targets_group_goal">Goal</string>
+    <string name="settings_targets_group_shape_range">Range</string>
+    <string name="settings_targets_group_shape_exact">One number</string>
+    <string name="settings_targets_group_shape_surplus">Surplus</string>
     <string name="settings_targets_group_edit">Edit %1$s</string>
     <string name="settings_targets_group_done">Done</string>
     <string name="settings_targets_group_remove">Remove this group</string>
@@ -183,9 +183,55 @@
     <string name="settings_targets_hidden_body">They're out of view in this mode. To see or change them, show calories in Modes and numbers.</string>
     <string name="settings_targets_hidden_link">Modes and numbers</string>
 
-    <!-- Goal style (sheet) -->
-    <string name="settings_goal_style_title">Goal style</string>
-    <string name="settings_goal_style_done">Done</string>
+    <!-- Resting energy (design sync 4, 13.2d) -->
+    <string name="settings_resting_title">Resting energy</string>
+    <string name="settings_resting_intro">The energy your body uses at rest. It's most of what you burn in a day.</string>
+    <string name="settings_resting_calculate">Calculate it for me</string>
+    <string name="settings_resting_calculate_line">From your age, height, weight and sex. Updates when you log a new weight.</string>
+    <string name="settings_resting_health">Use %1$s</string>
+    <string name="settings_resting_health_line">From your watch or phone. Changes day to day.</string>
+    <string name="settings_resting_own">Enter my own</string>
+    <string name="settings_resting_own_line">From a lab test or a number you trust.</string>
+    <string name="settings_resting_kcal_a_day">kcal a day</string>
+    <string name="settings_resting_details">For the calculation</string>
+    <string name="settings_resting_birth_year">Year you were born</string>
+    <string name="settings_resting_height">Height</string>
+    <string name="settings_resting_cm">cm</string>
+    <string name="settings_resting_in">in</string>
+    <string name="settings_resting_sex">Sex</string>
+    <string name="settings_resting_sex_female">Female</string>
+    <string name="settings_resting_sex_male">Male</string>
+    <string name="settings_resting_sex_unsaid">Rather not say</string>
+    <string name="settings_resting_weight_missing">Log a weight in Trends and this works it out.</string>
+    <string name="settings_resting_activity">Activity</string>
+    <string name="settings_resting_steps_workouts">Steps and workouts</string>
+    <string name="settings_resting_activity_none">Not connected</string>
+    <string name="settings_resting_add_activity">Add activity to Burned</string>
+    <string name="settings_resting_add_activity_line">Off counts resting energy only</string>
+
+    <!-- Energy today (design sync 4, 13.2c) -->
+    <string name="settings_energy_title">Energy today</string>
+    <string name="settings_energy_eaten">Eaten</string>
+    <string name="settings_energy_kcal">kcal</string>
+    <string name="settings_energy_plus_minus">± %1$s</string>
+    <string name="settings_energy_plus_minus_cd">Give or take %1$s</string>
+    <string name="settings_energy_likely">Likely %1$s.</string>
+    <string name="settings_energy_estimates">%1$d of %2$d foods are estimates.</string>
+    <string name="settings_energy_nutrients">Nutrients</string>
+    <string name="settings_energy_burned">Burned</string>
+    <string name="settings_energy_burned_unknown">Add your details to see what you burn.</string>
+    <string name="settings_energy_resting">Resting energy</string>
+    <string name="settings_energy_resting_calculated">Calculated from your profile</string>
+    <string name="settings_energy_resting_health">From %1$s</string>
+    <string name="settings_energy_resting_own">Your own number</string>
+    <string name="settings_energy_movement">Daily movement</string>
+    <string name="settings_energy_workouts">Workouts</string>
+    <string name="settings_energy_not_counted">Not added to Burned</string>
+    <string name="settings_energy_no_activity">No activity app connected</string>
+    <string name="settings_energy_deficit_so_far">Deficit so far</string>
+    <string name="settings_energy_surplus_so_far">Surplus so far</string>
+    <string name="settings_energy_to_range">To your range</string>
+    <string name="settings_energy_to_goal">To your goal</string>
 
     <!-- Water settings -->
     <string name="settings_water_title">Water</string>
@@ -199,13 +245,8 @@
 
     <!-- Look and feel -->
     <string name="settings_look_title">Look and feel</string>
-    <string name="settings_look_colors">Colors</string>
-    <string name="settings_look_palette_pine">Pine</string>
-    <string name="settings_look_palette_espresso">Espresso</string>
-    <string name="settings_look_palette_clay">Clay</string>
-    <string name="settings_look_palette_plum">Plum</string>
-    <string name="settings_look_theme">Theme</string>
-    <string name="settings_look_theme_system">Match phone</string>
+    <string name="settings_look_theme">Appearance</string>
+    <string name="settings_look_theme_system">System</string>
     <string name="settings_look_theme_light">Light</string>
     <string name="settings_look_theme_dark">Dark</string>
     <string name="settings_look_text">Text size</string>
@@ -230,11 +271,6 @@
     <string name="settings_support_helpline">National Alliance for Eating Disorders helpline</string>
     <string name="settings_support_provider">Find a provider</string>
     <string name="settings_support_opens_browser">Opens in your browser</string>
-    <string name="settings_support_trusted">Trusted person</string>
-    <string name="settings_support_trusted_sub">They approve turning numbers back on</string>
-    <string name="settings_support_clinician">Dietitian, therapist or coach</string>
-    <string name="settings_support_clinician_sub">They see what you choose to share</string>
-    <string name="settings_support_coming_later">Coming later</string>
     <string name="settings_support_data_title">Your data</string>
     <string name="settings_support_data_body">Saved on this phone and synced to your account. No ad tracking.</string>
     <string name="settings_support_export">Export everything (CSV)</string>
@@ -250,4 +286,110 @@
     <string name="settings_delete_offline">We couldn't reach the server, so nothing was deleted. Try again when you're online.</string>
     <string name="settings_delete_failed">Something went wrong, so nothing was deleted. Try again in a little while.</string>
 
+    <!-- Support's About card: what Opson is and isn't, and the published legal pages -->
+    <string name="settings_about_title">About Opson</string>
+    <string name="settings_about_body">Opson is a food log, not medical advice. It doesn't diagnose or treat anything, and it can't take the place of a doctor, dietitian or eating disorder care. Food values are estimates and can be wrong.</string>
+    <string name="settings_about_privacy">Privacy policy</string>
+    <string name="settings_about_terms">Terms of service</string>
+    <string name="settings_about_credits">Credits and licenses</string>
+
+    <!-- Design sync 2: More's Support subtitle, Support's Find support and crisis rows -->
+    <string name="settings_more_support_sub">Helplines, your data and privacy</string>
+    <string name="settings_support_find">Find support near you</string>
+    <string name="settings_support_crisis_call_or_text">In crisis? Call or text %1$s</string>
+    <string name="settings_support_crisis_call">In crisis? Call %1$s</string>
+    <string name="settings_support_crisis_where">24/7 · %1$s</string>
+    <string name="settings_support_crisis_unknown">In crisis? Find a line near you</string>
+    <string name="settings_support_crisis_unknown_sub">Lines for six countries, on this phone</string>
+    <string name="settings_pause_talk">Talk to someone</string>
+
+    <!-- Find support (design sync 2, release.findSupport) -->
+    <string name="settings_find_title">Find support</string>
+    <string name="settings_find_intro">Free and confidential. Calls open your phone app.</string>
+    <string name="settings_find_country_pick">Choose a country</string>
+    <string name="settings_find_country_change">Country: %1$s. Change</string>
+    <string name="settings_find_crisis_title">In crisis right now</string>
+    <string name="settings_find_crisis_sub">24/7 · call or text</string>
+    <string name="settings_find_crisis_sub_keyword">24/7 · text %1$s to %2$s</string>
+    <string name="settings_find_crisis_call">Call %1$s</string>
+    <string name="settings_find_crisis_text">Text %1$s</string>
+    <string name="settings_find_no_country">If you're in danger, call your local emergency number. Pick your country to see its lines.</string>
+    <string name="settings_find_ed_header">Eating disorder support</string>
+    <string name="settings_find_other_countries">Other countries</string>
+    <string name="settings_find_row_detail">%1$s · %2$s</string>
+    <string name="settings_find_row_title">%1$s · %2$s</string>
+    <string name="settings_find_call">Call</string>
+    <string name="settings_find_text">Text</string>
+    <string name="settings_find_open">Open</string>
+    <string name="settings_find_could_not_open">Your phone couldn't open this. The number is %1$s.</string>
+    <string name="settings_find_could_not_open_link">Your phone couldn't open this. The address is %1$s.</string>
+
+    <string name="settings_find_country_us">United States</string>
+    <string name="settings_find_country_gb">United Kingdom</string>
+    <string name="settings_find_country_ca">Canada</string>
+    <string name="settings_find_country_au">Australia</string>
+    <string name="settings_find_country_ie">Ireland</string>
+    <string name="settings_find_country_nz">New Zealand</string>
+    <string name="settings_find_outside_us">Outside the US</string>
+    <string name="settings_find_outside_gb">Outside the UK</string>
+    <string name="settings_find_outside_ca">Outside Canada</string>
+    <string name="settings_find_outside_au">Outside Australia</string>
+    <string name="settings_find_outside_ie">Outside Ireland</string>
+    <string name="settings_find_outside_nz">Outside New Zealand</string>
+
+    <!-- Line names are the organisations' own; descriptions are ours -->
+    <string name="settings_find_anad">ANAD Helpline</string>
+    <string name="settings_find_alliance">National Alliance for Eating Disorders</string>
+    <string name="settings_find_crisis_text_line">Crisis Text Line</string>
+    <string name="settings_find_provider">Find a treatment provider</string>
+    <string name="settings_find_beat">Beat</string>
+    <string name="settings_find_nedic">NEDIC</string>
+    <string name="settings_find_kids_help_phone">Kids Help Phone</string>
+    <string name="settings_find_butterfly">Butterfly</string>
+    <string name="settings_find_bodywhys">Bodywhys</string>
+    <string name="settings_find_edanz">EDANZ</string>
+    <string name="settings_find_about_peer">Peer support</string>
+    <string name="settings_find_about_therapist">Talk with a therapist</string>
+    <string name="settings_find_about_ed_helpline">Eating disorder helpline</string>
+    <string name="settings_find_about_families">Support for families and whānau</string>
+    <string name="settings_find_about_young">For young people, any worry</string>
+    <string name="settings_find_about_text_keyword">Text %1$s to %2$s</string>
+    <string name="settings_find_about_provider">Search for eating disorder care near you</string>
+    <string name="settings_find_directory">Find A Helpline</string>
+    <string name="settings_find_directory_about">Free lines in most other countries</string>
+    <string name="settings_loading_cd">Loading</string>
+
+    <!-- More › Today screen (design sync 4, 13.6) -->
+    <string name="settings_more_today">Today screen</string>
+    <string name="settings_more_today_sub">Summary card and list</string>
+    <string name="settings_today_title">Today screen</string>
+    <string name="settings_today_summary_card">Summary card</string>
+    <string name="settings_today_preset_in_out">In and out</string>
+    <string name="settings_today_preset_range_bar">Range bar</string>
+    <string name="settings_today_preset_rings">Rings</string>
+    <string name="settings_today_preset_equation">Equation</string>
+    <string name="settings_today_needs_single">Needs a single target</string>
+    <string name="settings_today_main_number">Main number</string>
+    <string name="settings_today_main_follow">Follow my goal</string>
+    <string name="settings_today_main_goal">To your range</string>
+    <string name="settings_today_main_balance">Deficit or surplus</string>
+    <string name="settings_today_main_eaten">Eaten</string>
+    <string name="settings_today_follow_range">Range shows To your range</string>
+    <string name="settings_today_follow_exact">One number shows Left to target</string>
+    <string name="settings_today_follow_deficit">Set deficit shows Deficit</string>
+    <string name="settings_today_follow_surplus">Set surplus shows To your surplus</string>
+    <string name="settings_today_follow_by_day">Different by day shows To your range</string>
+    <string name="settings_today_card_pages">Card pages</string>
+    <string name="settings_today_pages_energy">Energy</string>
+    <string name="settings_today_pages_energy_macros">Energy, Macros</string>
+    <string name="settings_today_on_card">On the card</string>
+    <string name="settings_today_burned_breakdown">Burned breakdown</string>
+    <string name="settings_today_burned_breakdown_line">Resting and active</string>
+    <string name="settings_today_meals_count">Meals count</string>
+    <string name="settings_today_nutrients_link">Nutrients link</string>
+    <string name="settings_today_in_list">In the list</string>
+    <string name="settings_today_water">Water</string>
+    <string name="settings_today_weight">Weight on days you weigh in</string>
+    <string name="settings_today_close_day">Close the day</string>
+    <string name="settings_today_card_from_mode">In this mode the card's layout comes from the mode.</string>
 </resources>

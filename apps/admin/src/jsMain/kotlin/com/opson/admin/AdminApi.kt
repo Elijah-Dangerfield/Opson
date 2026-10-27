@@ -147,6 +147,73 @@ data class ResolvedFlagDto(
 @Serializable
 private data class ResolveResponse(val flags: List<ResolvedFlagDto>)
 
+// ---------- Website waitlist ----------
+
+@Serializable
+data class WaitlistEntryDto(
+    val id: String,
+    val email: String,
+    val source: String? = null,
+    val createdAtEpochMs: Long,
+)
+
+@Serializable
+data class WaitlistPageDto(val total: Long, val entries: List<WaitlistEntryDto>)
+
+@Serializable
+private data class WaitlistRemoveRequest(val email: String)
+
+// ---------- User lookup ----------
+
+@Serializable
+data class UserSummaryDto(
+    val userId: String,
+    val email: String? = null,
+    val isGuest: Boolean = false,
+    val displayName: String? = null,
+    val joinedAtEpochMs: Long? = null,
+    val lastSignInAtEpochMs: Long? = null,
+    val lastSeenAtEpochMs: Long? = null,
+    val platform: String? = null,
+    val appVersion: String? = null,
+    val buildNumber: Int? = null,
+    val preset: String? = null,
+    val entries: Long = 0,
+    val daysLogged: Long = 0,
+    val lastLogDay: String? = null,
+)
+
+@Serializable
+data class UserInstallDto(
+    val installId: String,
+    val platform: String,
+    val appVersion: String,
+    val buildNumber: Int,
+    val firstSeenAtEpochMs: Long,
+    val lastSeenAtEpochMs: Long,
+)
+
+@Serializable
+data class UserSettingDto(val key: String, val value: String? = null)
+
+@Serializable
+data class UserDetailDto(
+    val user: UserSummaryDto,
+    val installs: List<UserInstallDto> = emptyList(),
+    val settings: List<UserSettingDto> = emptyList(),
+    val methods: Map<String, Long> = emptyMap(),
+    val entriesLast7Days: Long = 0,
+    val entriesLast30Days: Long = 0,
+    val daysClosed: Long = 0,
+    val lastSyncedChangeAtEpochMs: Long? = null,
+)
+
+@Serializable
+private data class UserSearchRequest(val query: String)
+
+@Serializable
+private data class UserSearchResponse(val users: List<UserSummaryDto>)
+
 val adminJson: Json = Json {
     ignoreUnknownKeys = true
     encodeDefaults = true
@@ -217,6 +284,35 @@ class AdminApi(
             contentType(ContentType.Application.Json)
             setBody(request)
         }.require<ResolveResponse>().flags
+
+    suspend fun listWaitlist(limit: Int, offset: Long): WaitlistPageDto =
+        client.get("$base/v1/admin/waitlist?limit=$limit&offset=$offset") { auth() }.require()
+
+    /** The whole list as CSV (`email,source,created_at`), for the operator to download. */
+    suspend fun exportWaitlistCsv(): String =
+        client.get("$base/v1/admin/waitlist/export.csv") { auth() }
+            .also { it.requireOk() }
+            .bodyAsText()
+
+    /** Deletes [email] from the waitlist. The address goes in the body, never the URL. */
+    suspend fun removeFromWaitlist(email: String) {
+        client.post("$base/v1/admin/waitlist/remove") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(WaitlistRemoveRequest(email))
+        }.requireOk()
+    }
+
+    /** Accounts by id, or part of an email or display name. The query goes in the body, never the URL. */
+    suspend fun searchUsers(query: String): List<UserSummaryDto> =
+        client.post("$base/v1/admin/users/search") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(UserSearchRequest(query))
+        }.require<UserSearchResponse>().users
+
+    suspend fun userDetail(userId: String): UserDetailDto =
+        client.get("$base/v1/admin/users/${encode(userId)}") { auth() }.require()
 
     private fun io.ktor.client.request.HttpRequestBuilder.auth() {
         header("X-Admin-Token", token)

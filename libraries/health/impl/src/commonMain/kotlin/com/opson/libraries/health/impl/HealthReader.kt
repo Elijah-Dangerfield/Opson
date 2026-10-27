@@ -2,6 +2,8 @@ package com.opson.libraries.health.impl
 
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.HealthSource
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 /**
@@ -25,6 +27,13 @@ interface HealthReader {
 
     /** Energy between [from] and [to]. Throws when the store cannot be read. */
     suspend fun read(from: Instant, to: Instant): EnergyExpended
+
+    /**
+     * Resting and active energy per local day in [timeZone], from [from] (a midnight) to [to], in
+     * one bucketed query rather than a read per day. Workouts are not read. Days with nothing
+     * recorded may be missing. Throws when the store cannot be read.
+     */
+    suspend fun readDaily(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, EnergyExpended>
 
     /** Gives back what [requestAccess] got, where the platform allows it (Health Connect). */
     suspend fun revokeAccess()

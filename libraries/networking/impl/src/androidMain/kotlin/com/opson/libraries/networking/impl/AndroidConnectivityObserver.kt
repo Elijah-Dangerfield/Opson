@@ -36,6 +36,11 @@ class AndroidConnectivityObserver(
             override fun onLost(network: Network) {
                 trySend(currentlyOnline(manager))
             }
+            // TODO(review): registerNetworkCallback reports every network that has
+            // INTERNET, not just the default one, so an unvalidated background network
+            // (captive Wi-Fi while cellular carries traffic) can send false and hold the
+            // offline banner up. registerDefaultNetworkCallback is the likely fix; it
+            // needs a Robolectric or device check before it ships.
             override fun onCapabilitiesChanged(
                 network: Network,
                 capabilities: NetworkCapabilities,

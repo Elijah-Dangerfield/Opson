@@ -54,9 +54,9 @@ class FormatTest {
 
     @Test
     fun macros_ofGoal() {
-        assertEquals("47 g of 120 g", full.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
-        assertEquals("12 g of 30 g", full.text(Metric.Fiber, 12.0, FormatContext(of = 30.0)))
-        assertEquals("1,250 g of 2,500 g", full.text(Metric.Carbs, 1250.0, FormatContext(of = 2500.0)))
+        assertEquals("47 of 120 g", full.text(Metric.Protein, 47.0, FormatContext(of = 120.0)))
+        assertEquals("12 of 30 g", full.text(Metric.Fiber, 12.0, FormatContext(of = 30.0)))
+        assertEquals("1,250 of 2,500 g", full.text(Metric.Carbs, 1250.0, FormatContext(of = 2500.0)))
     }
 
     @Test
@@ -76,6 +76,12 @@ class FormatTest {
     @Test
     fun weight_inPounds() {
         assertEquals("160.1 lb", full.text(Metric.Weight, 72.6, FormatContext(weightUnit = WeightUnit.Lb)))
+    }
+
+    @Test
+    fun weight_bareDropsTheUnit() {
+        assertEquals("72.6", full.text(Metric.Weight, 72.6, FormatContext(bare = true)))
+        assertEquals("160.1", full.text(Metric.Weight, 72.6, FormatContext(bare = true, weightUnit = WeightUnit.Lb)))
     }
 
     @Test
@@ -180,6 +186,6 @@ class FormatTest {
         fun policy(preset: PresetId) = VisibilityPolicy(NumbersSettings(preset), clockAt(MORNING), TimeZone.UTC, loud)
 
         assertEquals(Display.Shown("E1245"), policy(PresetId.Full).resolve(Metric.Calories, 1245.0, Surface.Today))
-        assertEquals(Display.Soft("TrendOnly", null), policy(PresetId.Nutrient).resolve(Metric.Weight, 70.0, Surface.Today))
+        assertEquals(Display.Soft("TrendOnly", null), policy(PresetId.NutrientsFirst).resolve(Metric.Weight, 70.0, Surface.Today))
     }
 }

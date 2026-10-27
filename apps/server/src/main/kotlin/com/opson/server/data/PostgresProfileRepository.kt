@@ -15,7 +15,7 @@ import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -54,20 +54,17 @@ class PostgresProfileRepository(
                 return@transaction FindOrCreateProfileResult(found, created = false)
             }
             val now = clock.now().toJavaInstant()
-            val wonInsert = try {
-                ProfilesTable.insert {
-                    it[ProfilesTable.userId] = userId.value
-                    it[displayName] = defaultDisplayName(userId)
-                    it[createdAt] = now
-                    it[updatedAt] = now
-                }
-                true
-            } catch (e: ExposedSQLException) {
-                // A concurrent first-contact request beat us to the insert; the
-                // winner reports created = true, we re-read and report false.
-                if (!e.isUniqueViolation()) throw e
-                false
-            }
+            // ON CONFLICT DO NOTHING rather than catching the unique violation: an
+            // error aborts the transaction, so the re-read after it could never run.
+            // When a concurrent first contact committed the row after this
+            // transaction's snapshot, Postgres refuses the insert as a serialization
+            // failure, Database runs the block again, and the read above finds it.
+            val wonInsert = ProfilesTable.insertIgnore {
+                it[ProfilesTable.userId] = userId.value
+                it[displayName] = defaultDisplayName(userId)
+                it[createdAt] = now
+                it[updatedAt] = now
+            }.insertedCount > 0
             val profile = existing(userId) ?: error("Profile insert for $userId did not persist")
             FindOrCreateProfileResult(profile, created = wonInsert)
         }

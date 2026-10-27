@@ -1,7 +1,11 @@
 package com.opson.libraries.diary.impl
 
 import com.opson.libraries.core.Catching
+import com.opson.libraries.diary.CheckIn
+import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.CustomFood
+import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
@@ -12,6 +16,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SavedMeal
+import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.db.CustomFoodEntity
 import com.opson.libraries.diary.db.DayRecordEntity
@@ -19,6 +24,7 @@ import com.opson.libraries.diary.db.LogEntryEntity
 import com.opson.libraries.diary.db.MealFeelingEntity
 import com.opson.libraries.diary.db.SavedMealEntity
 import com.opson.libraries.diary.db.WeighInEntity
+import com.opson.libraries.diary.impl.wire.CheckInWire
 import com.opson.libraries.diary.impl.wire.CustomFoodRowDto
 import com.opson.libraries.diary.impl.wire.DayRecordRowDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
@@ -161,6 +167,7 @@ internal fun DayRecordEntity.toRow(): DayRecordRowDto = DayRecordRowDto(
     deleted = deleted,
     untracked = untracked,
     feeling = feeling,
+    checkIn = checkIn,
 )
 
 internal fun DayRecordRowDto.toEntity(): DayRecordEntity = DayRecordEntity(
@@ -174,6 +181,7 @@ internal fun DayRecordRowDto.toEntity(): DayRecordEntity = DayRecordEntity(
     deleted = deleted,
     untracked = untracked,
     feeling = feeling,
+    checkIn = checkIn,
 )
 
 internal fun emptyDayRecord(day: String): DayRecordEntity = DayRecordEntity(
@@ -186,6 +194,33 @@ internal fun emptyDayRecord(day: String): DayRecordEntity = DayRecordEntity(
     clientUpdatedAtEpochMs = 0,
     deleted = false,
 )
+
+// ---------- the day's check-in ----------
+
+/** Null for an empty check-in, so clearing every row clears the column. */
+internal fun CheckIn?.toCheckInJson(): String? = this?.takeUnless { it.isEmpty }?.let { checkIn ->
+    WireJson.encodeToString(
+        CheckInWire.serializer(),
+        CheckInWire(
+            hunger = checkIn.hunger?.wire,
+            energy = checkIn.energy?.wire,
+            sleep = checkIn.sleep?.wire,
+            moods = checkIn.moods.sortedBy { it.ordinal }.map { it.wire },
+        ),
+    )
+}
+
+/** Unreadable JSON or unknown values read as unanswered, never as a crash. */
+internal fun String?.toCheckIn(): CheckIn? {
+    val json = this ?: return null
+    val wire = Catching { WireJson.decodeFromString(CheckInWire.serializer(), json) }.getOrNull() ?: return null
+    return CheckIn(
+        hunger = DayHunger.fromWire(wire.hunger),
+        energy = Energy.fromWire(wire.energy),
+        sleep = Sleep.fromWire(wire.sleep),
+        moods = wire.moods.mapNotNullTo(LinkedHashSet()) { CheckInMood.fromWire(it) },
+    ).takeUnless { it.isEmpty }
+}
 
 // ---------- meal feelings ----------
 

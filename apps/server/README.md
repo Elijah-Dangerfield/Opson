@@ -159,7 +159,8 @@ the usual `ProblemResponse`.
 | Method | Path | Notes |
 |---|---|---|
 | POST | `/v1/sync` | Push the outbox and pull changes in one call. 400 `too_many_mutations` (> 500), 400 `invalid_cursor`. |
-| GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. |
+| GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`) and `sort` (`best`, `name`); 400 `invalid_category` / `invalid_source` / `invalid_sort`. NEVO foods only with `credits=nevo` (RIVM requires its citation, which 0.1 can't show). |
+| GET | `/v1/foods/search/options` | `{sources, categories}` this server takes; `off` only when `FOOD_SEARCH_OFF_ENABLED` is on. |
 | GET | `/v1/foods/{id}` | 400 `invalid_id`, 404 `not_found`. |
 | GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. 60/min per IP. |
 | POST | `/v1/foods/barcode-misses` `{id, barcode}` | The app reports a code the barcode route answered 404. 204, idempotent on `id`. Region, platform and app version come from the `X-*` headers; no user id is stored. 400 `invalid_id`, `invalid_barcode`. 60/min per IP. Feeds `barcode_misses` (V13). |
@@ -198,7 +199,7 @@ from four tiers of source, best first (`foods.tier`, V10):
 
 | Tier | Sources (`foods.source`) | How rows get there | `verified` |
 |---|---|---|---|
-| 1 reference | `usda_foundation`, `usda_sr`, `usda_fndds` | committed seed, `import_usda_foods.py` | true |
+| 1 reference | `usda_foundation`, `usda_sr`, `usda_fndds`, `nevo` | committed seed, `import_usda_foods.py`; NEVO by `import_nevo_foods.py` | true |
 | 2 label | `usda_branded` | `import_usda_foods.py --branded`, monthly workflow | true |
 | 3 licensed | `nutritionix` (later NCCDB) | barcode miss, only with keys and caching on | true |
 | 4 community | `off` (later user submissions) | barcode miss, cached; the full export goes in its own table, `off_foods` | false |
@@ -207,18 +208,35 @@ A trigger fills `tier` and `verified` from `source`, so loaders never write
 them; `food_source_tier()` is the one mapping, and `DatabaseSchemaTest`
 checks it against `CatalogSource`.
 
-**Search.** Match tiers, best first: exact name, the name's first comma
-segment ("Egg, whole, raw" for `eggs`), whole-word prefix, full text, trigram
-similarity. Two rules sit above the match tier. A query that names a
-product's brand (every word of `brand` is in the query, apart from filler
-such as "Inc." or "Foods") ranks that brand first, so `cheerios` and
-`chobani greek yogurt` lead with the product. Otherwise generic (tier 1)
-foods come before branded ones, so `banana` offers "Banana, raw" before a
-product a store called "Bananas". Trigram-only matches stay last. Within a
-match tier: verified first, lower source tier first, whole-word matches, plain
-forms (`raw`, `NFS`, `whole`, …), similarity, then popularity. pg_trgm lives
-in the `extensions` schema (as on Supabase) and every use of it is
-schema-qualified.
+**Search.** Match tiers, best first: exact name, head (the name's first comma
+segment, "Egg, whole, raw" for `eggs`; also after a category word, "Fish,
+salmon" for `salmon`; or the first two segments in any order, "Rice, brown"
+for `brown rice`), whole-word prefix, full text, trigram similarity. Rules
+above the match tier, in order: a match on the food's name beats a match only
+through its brand (`brown rice` never leads with the brand "Rice Browns"); a
+query that names a brand (the brand's words appear in the query as a run,
+filler such as "Inc." aside, and the query has 4 or more characters) ranks
+that brand first, so `cheerios` and `chobani greek yogurt` lead with the
+product; otherwise generic (tier 1) foods come before branded ones; and
+USDA's own restaurant rows ("CHICK-FIL-A, ...") follow plain foods unless
+named. Trigram-only matches stay last, except a close typo of a generic food
+when nothing generic matched (`avacado` finds "Avocado, raw" even though
+products spell it that way). Within a match tier: verified first, lower
+source tier first, whole-word matches, plain forms (`raw`, `NFS`, `whole`,
+…), similarity, then popularity. Generic rows are read first through their
+own partial indexes (V15); Branded rows are only read when they can reach the
+results. pg_trgm lives in the `extensions` schema (as on Supabase) and every
+use of it is schema-qualified.
+
+**Relevance suite.** `SearchRelevanceTest` runs 78 queries a person types
+(`src/test/resources/search-relevance.tsv`, with what each top 3 must hold)
+against the generic seed plus a committed Branded fixture
+(`search-relevance-branded.sql.gz`, made by
+`scripts/search_relevance_fixture.py` from a database with the Branded load).
+It prints the hit rate and every top 3, and fails under its floor. Any
+ranking change answers to it. To run it against a full local copy instead,
+set `SEARCH_RELEVANCE_JDBC_URL` (plus `_USER`, `_PASSWORD`); Flyway migrates
+that database first, so never point it at a shared one.
 
 **Barcodes.** A scan is looked up in every equivalent form of the code:
 leading zeros never change a GTIN, so a UPC-A, its EAN-13 and its GTIN-14
@@ -291,7 +309,12 @@ the secret unset it skips with a notice.
 **Loading Open Food Facts.** `scripts/import_off_foods.py` loads the
 monthly CSV export (about 1.5 GB, 4.8 million products) into `off_foods`
 (V12), a table of its own: Open Food Facts is ODbL, share-alike, so its rows
-are never copied into `foods`. Search will read both tables (not wired yet).
+are never copied into `foods`. Search reads both tables once
+`FOOD_SEARCH_OFF_ENABLED=true` (off by default): `OpenFoodFactsSearch` caps the
+candidates of each kind of match before it scores them, so a query costs about
+the same at 3.3 million rows as at 3,000, and works the rows in after generic
+foods and Branded rows of the same match. The reload writes rows most-scanned
+first, which is what makes the caps keep the popular products.
 It keeps the 3.3 million products with energy and macros per 100 g that are
 physically possible, an 8 to 14 digit barcode and a name, stores valid
 barcodes as 14-digit GTINs like Branded Foods, and keeps `countries_tags` for
@@ -325,8 +348,18 @@ python3 -I -m unittest discover -s scripts -p 'test_import_off_foods.py'
 ```
 
 The monthly workflow has the same reload as a second job, off until the
-`OFF_IMPORT_ENABLED` repository variable is `true`. Measured size (2.1 GB),
-load time and search latency are in `docs/food-data-sources.md`.
+`OFF_IMPORT_ENABLED` repository variable is `true`. Measured size (2.3 GB with
+the V15 indexes), load time and search latency, before and after bounding, are
+in `docs/food-data-sources.md`.
+
+**Default servings.** The app logs a food's first portion, so the importer
+puts a typical serving first (`default_portion_first`: a cup of blueberries,
+not one berry; an ounce of almonds, not a cup). For rows already loaded:
+
+```bash
+CATALOG_DATABASE_URL=postgresql://… python3 -I scripts/backfill_default_portions.py --dry-run
+CATALOG_DATABASE_URL=postgresql://… python3 -I scripts/backfill_default_portions.py   # idempotent
+```
 
 **Nutritionix (off until there is budget).** `NutritionixSource` calls
 `GET https://trackapi.nutritionix.com/v2/search/item?upc=` with the
@@ -343,6 +376,24 @@ stty -echo; printf "Nutritionix app id: "; read -r NX_ID; printf "\nNutritionix 
 [ -n "$NX_ID" ] && [ -n "$NX_KEY" ] && fly secrets set NUTRITIONIX_APP_ID="$NX_ID" NUTRITIONIX_APP_KEY="$NX_KEY" -a opson-server-prod; unset NX_ID NX_KEY
 ```
 
+**Photo estimates (`POST /v1/describe/photo`).** `PhotoDescriber` asks an
+`EstimateProvider` what foods a meal photo holds, then matches each one
+through `CatalogFoodDescriber`, so the answer is the same `DescribeResponse`
+typed text gets. The provider is `AnthropicEstimateProvider` (the official
+Java SDK, structured JSON output) when `ANTHROPIC_API_KEY` is set; without it
+the route answers 503 `photo_estimate_unavailable` and the app shows a calm
+"not available" state. Limits: body 6 MB, decoded image 4 MB (JPEG, PNG or
+WebP by its bytes), note 300 characters, 10 per user per 10 minutes and 40 per
+day (`PhotoEstimateLimiter`, in memory). The image is never stored and nothing
+from it or the note is logged, only the outcome, item count and latency. Do
+not set the SDK's `ANTHROPIC_LOG=debug` in production: it logs request
+bodies, which here are meal photos. To turn it on:
+
+```bash
+stty -echo; printf "Anthropic API key: "; read -r AK; stty echo; printf "\n"
+[ -n "$AK" ] && fly secrets set ANTHROPIC_API_KEY="$AK" -a opson-server-prod; unset AK
+```
+
 **NCCDB (a slot, not code).** The Nutrition Coordinating Center Food and
 Nutrient Database from the University of Minnesota is licensed and delivered
 as files, not an API, so it is not a `FoodSource`. When there is a licence,
@@ -355,12 +406,45 @@ source_id)` with uuid5 ids). It needs a migration that adds `nccdb` to the
 yet because we have not seen it.
 
 Micros keys carry their unit: `sugars_g`, `added_sugars_g`, `saturated_fat_g`,
-`trans_fat_g` (branded only), `cholesterol_mg`, `sodium_mg`, `potassium_mg`,
+`trans_fat_g`, `cholesterol_mg`, `sodium_mg`, `potassium_mg`,
 `calcium_mg`, `iron_mg`, `magnesium_mg`, `phosphorus_mg`, `zinc_mg`,
 `copper_mg`, `manganese_mg`, `selenium_ug`, `vitamin_a_rae_ug`,
 `vitamin_c_mg`, `vitamin_d_ug`, `vitamin_e_mg`, `vitamin_k_ug`,
 `thiamin_mg`, `riboflavin_mg`, `niacin_mg`, `vitamin_b6_mg`,
 `folate_dfe_ug`, `vitamin_b12_ug`, `choline_mg`.
+
+### Website waitlist (`V16__waitlist.sql`)
+
+The site's form posts here; the contract is in `docs/plans/website.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/v1/waitlist` `{email, source?, company?}` | No auth. 204 on a new address, a known one (any case) and a filled honeypot (`company`, then nothing is stored). 400 `{"error":"invalid_email"}`, also for a body that is not JSON or is over 4 KB. 429 `{"error":"rate_limited"}` past 5 per IP per 10 minutes or 50 per IP per day (`WaitlistLimiter`, in memory, keyed like the other per-IP limits on `Fly-Client-IP`). |
+| GET | `/v1/admin/waitlist?limit=50&offset=0` | Admin token. Newest first, with `total`. |
+| GET | `/v1/admin/waitlist/export.csv` | Admin token. `email,source,created_at`, oldest first. |
+| POST | `/v1/admin/waitlist/remove` `{email}` | Admin token. Deletes the address in any case; 404 `not_found`. |
+
+The email is stored lower-cased, unique on `lower(email)`, and inserted with
+`ON CONFLICT DO NOTHING`, so the answer never says who is on the list. The
+route logs the outcome only, never the address. Removal deletes the row,
+because the site's privacy wording promises deletion; `unsubscribed_at` is
+there for a future one-click unsubscribe, and rows with it set are left out of
+the list, the total and the export. `analytics.waitlist_daily` (day, signups)
+feeds the Pulse board and holds no emails. The admin console's Waitlist tab
+uses these routes.
+
+CORS for this route comes from `WAITLIST_ALLOWED_ORIGINS` and only this route
+uses it: `plugins/Cors.kt` installs the API-wide policy on the routing root,
+and `waitlistRoutes` installs its own on `/v1/waitlist`, which Ktor applies
+instead for that path (preflight included). With the variable unset, dev
+allows the Astro dev server and the GitHub Pages site and prod allows no
+browser origin. To set it on prod (no secret, but `fly secrets` is how the
+apps take env vars):
+
+```bash
+printf "Allowed origins, comma-separated [https://elijah-dangerfield.github.io]: "; read -r WO; WO="${WO:-https://elijah-dangerfield.github.io}"
+fly secrets set WAITLIST_ALLOWED_ORIGINS="$WO" -a opson-server-prod; unset WO
+```
 
 ### Analytics (`V9__analytics.sql`)
 
@@ -369,7 +453,29 @@ nutrient amount or a user id (`DatabaseSchemaTest` enforces both). The
 `grafana_ro` role (NOLOGIN) can read that schema and nothing else. To connect
 Grafana, create a login role outside migrations and grant it `grafana_ro`.
 `V13__barcode_misses.sql` adds `barcode_hit_rate_daily`, `top_missed_barcodes`
-and `barcode_misses_by_country` for the Food catalog board.
+and `barcode_misses_by_country` for the Food catalog board. `V16__waitlist.sql`
+adds `waitlist_daily` for Pulse.
+
+### Support: installs and the user lookup (`V22__support_views.sql`)
+
+`user_installs` holds one row per user, install and build, with when that
+build was first and last seen. `InstallSightings` (`plugins/`) fills it from
+the `X-Platform`, `X-App-Version`, `X-Build-Number` and `X-Install-Id` headers
+of every signed-in request, after the response and at most every 10 minutes
+per row. 0.1 sends the same headers, so it is recorded too.
+
+The `support` schema is the per-person counterpart of `analytics`: `users`,
+`user_installs`, `user_daily_logging`, `user_daily_marks` and `user_settings`.
+They carry an account's id, email, display name, counts, timestamps and
+Settings choices from an allowlist, and nothing anyone wrote or measured
+(`PostgresUserSupportTest` and `DatabaseSchemaTest` hold that). `grafana_ro`
+reads them for the Users and User detail boards; the admin console reads them
+through these routes:
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/v1/admin/users/search` `{query}` | Admin token. An exact user id, or part of an email or display name; blank lists the most recently seen. At most 25. A POST so a typed email stays out of URLs. |
+| GET | `/v1/admin/users/{id}` | Admin token. The account, every build it ran, its Settings choices and logging counts. 404 `not_found`, 400 `invalid_user_id`. |
 
 ## Environment variables
 
@@ -379,11 +485,18 @@ and `barcode_misses_by_country` for the Food catalog board.
 | `DATABASE_POOL_MAX_SIZE` | no | 10 | |
 | `DATABASE_POOL_MIN_IDLE` | no | 2 | |
 | `SUPABASE_URL` | no |, | `https://<project>.supabase.co`. Unset → `/v1/me` not mounted. |
+| `APPLE_TEAM_ID` | no |, | With `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY`, lets `DELETE /v1/me` revoke the person's Sign in with Apple token, which App Review requires. Unset → `POST /v1/me/apple-authorization` answers 503 and deletion skips revocation with a warning. |
+| `APPLE_KEY_ID` | no |, | The id of a Sign in with Apple key (Certificates, Identifiers & Profiles › Keys). |
+| `APPLE_PRIVATE_KEY` | no |, | Secret. That key's `.p8` file contents; `\n` may stand for the newlines. |
+| `APPLE_CLIENT_ID` | no | `com.opson.Opson` | The app's bundle id. |
 | `SERVER_HOST` | no | `0.0.0.0` | |
 | `SERVER_PORT` | no | 8080 | |
 | `NUTRITIONIX_APP_ID` | no |, | With `NUTRITIONIX_APP_KEY`, turns on Nutritionix barcode lookups (tier 3, asked before Open Food Facts). |
 | `NUTRITIONIX_APP_KEY` | no |, | Secret. Both keys or neither. |
 | `NUTRITIONIX_CACHE_RESULTS` | no | `false` | `true` stores Nutritionix answers in `foods`. Only if the contract allows it. |
+| `ANTHROPIC_API_KEY` | no |, | Secret. Turns on photo estimates. Unset → `/v1/describe/photo` answers 503. |
+| `ANTHROPIC_PHOTO_MODEL` | no | `claude-opus-5-5` | The model that reads meal photos (effort `low`). A cheaper model is a config change, not a release. |
+| `WAITLIST_ALLOWED_ORIGINS` | no | dev: `http://localhost:4321,https://elijah-dangerfield.github.io`; prod: none | Comma-separated exact origins (`scheme://host[:port]`) allowed to call `POST /v1/waitlist` from a browser. Only that route uses it. |
 
 ## Roadmap (planned, not yet wired)
 

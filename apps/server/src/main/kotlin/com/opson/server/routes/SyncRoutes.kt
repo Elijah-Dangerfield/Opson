@@ -21,8 +21,9 @@ import kotlin.time.Clock
  * (docs/system-design.md §6). Always 200 for a well-formed request, even with
  * no mutations; the response is the source of truth the client merges.
  *
- * Each mutation is decoded by its `entity` and checked against [DiaryRules]
- * here. One that fails lands in `rejected` with a stable code and does not
+ * Each mutation is decoded by its `entity`, has any time a wrong clock put
+ * days ahead brought back to now ([DiaryRules.clampClock]), and is checked
+ * against [DiaryRules] here. One that fails lands in `rejected` with a stable code and does not
  * stop the others:
  *  - `unknown_entity`: the entity string is not one the server knows;
  *  - `invalid_row`: the row could not be read, or broke a rule.
@@ -61,7 +62,7 @@ fun Route.syncRoutes(repository: SyncRepository, clock: Clock) {
                     continue
                 }
                 val row = try {
-                    entity.decodeRow(mutation.row)
+                    DiaryRules.clampClock(entity.decodeRow(mutation.row), now)
                 } catch (e: IllegalArgumentException) {
                     // SerializationException is an IllegalArgumentException too.
                     rejected += SyncRejectionDto(mutation.id, "invalid_row", rowMessage(e))

@@ -13,6 +13,8 @@ kotlin {
             // FeedbackRoute (Support's "Send feedback") and OnboardingRoute (after deleting everything).
             implementation(projects.features.home)
             implementation(projects.features.onboarding)
+            // NutrientsRoute, which Energy today links to.
+            implementation(projects.features.trends)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
@@ -24,10 +26,11 @@ kotlin {
             implementation(projects.libraries.identity)
             implementation(projects.libraries.reminders)
             implementation(projects.libraries.config)
-            implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.health)
             // The Widgets page and its More row, and the widget's leak surface.
             implementation(projects.libraries.widgets)
+            // ProgressPhotosEnabled: Modes' Progress photos row.
+            implementation(projects.libraries.progressphotos)
 
             implementation(libs.kotlinx.datetime)
 
@@ -40,6 +43,9 @@ kotlin {
         }
 
         commonTest.dependencies {
+            // FindSupportEnabled, and WebLinkLauncher for the fake dialer.
+            implementation(projects.features.settings)
+            implementation(projects.libraries.navigation)
             implementation(projects.libraries.flowroutines.testing)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.nutrition)
@@ -48,6 +54,7 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
             implementation(projects.libraries.widgets)
+            implementation(projects.libraries.progressphotos)
             implementation(libs.kotlinx.datetime)
             implementation(projects.libraries.resources)
             implementation(compose.components.resources)

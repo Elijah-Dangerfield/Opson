@@ -3,6 +3,10 @@ package com.opson.server.routes
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.JWTVerifier
+import com.opson.server.domain.AppleExchangeResult
+import com.opson.server.domain.AppleRevokeResult
+import com.opson.server.domain.AppleSignInClient
+import com.opson.server.domain.AppleTokenRepository
 import com.opson.server.domain.DeleteUserResult
 import com.opson.server.domain.Profile
 import com.opson.server.domain.ProfileRepository
@@ -22,6 +26,7 @@ import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.patch
+import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -178,9 +183,144 @@ class MeRoutesTest {
         }
     }
 
+    @Test
+    fun patchMe_returns400_forControlCharacters() = runTest {
+        // A NUL used to reach Postgres, which refuses it in text: a 500. A newline or
+        // a bidi override is an invisible way to impersonate another name.
+        withMeApp(FakeProfileRepository(fakeProfile())) { client ->
+            for (name in listOf("Ada\u0000Byron", "Ada\nByron", "Ada\u202EnoryB")) {
+                val resp = client.patch("/v1/me") {
+                    header(HttpHeaders.Authorization, "Bearer ${validJwt()}")
+                    contentType(ContentType.Application.Json)
+                    setBody(UpdateMeRequest(displayName = name))
+                }
+                assertEquals(HttpStatusCode.BadRequest, resp.status, name)
+            }
+        }
+    }
+
+    @Test
+    fun deleteMe_revokesTheAppleTokenAfterDeleting() = runTest {
+        val tokens = FakeAppleTokens(mapOf(userId to "r-123"))
+        val apple = FakeApple()
+        withMeApp(FakeProfileRepository(fakeProfile()), FakeAdminClient(DeleteUserResult.Success), tokens, apple) { client ->
+            val resp = client.delete("/v1/me") { header(HttpHeaders.Authorization, "Bearer ${validJwt()}") }
+
+            assertEquals(HttpStatusCode.NoContent, resp.status)
+            assertEquals(listOf("r-123"), apple.revoked)
+        }
+    }
+
+    @Test
+    fun deleteMe_stillDeletes_whenAppleRevocationFails() = runTest {
+        val repo = FakeProfileRepository(fakeProfile())
+        val apple = FakeApple(revokeResult = AppleRevokeResult.Failure(statusCode = 500, cause = null))
+        withMeApp(repo, FakeAdminClient(DeleteUserResult.Success), FakeAppleTokens(mapOf(userId to "r")), apple) { client ->
+            val resp = client.delete("/v1/me") { header(HttpHeaders.Authorization, "Bearer ${validJwt()}") }
+
+            assertEquals(HttpStatusCode.NoContent, resp.status)
+            assertEquals(listOf(userId), repo.deletedUsers)
+        }
+    }
+
+    @Test
+    fun deleteMe_stillDeletes_whenNoAppleKeyIsSet() = runTest {
+        val repo = FakeProfileRepository(fakeProfile())
+        val apple = FakeApple(revokeResult = AppleRevokeResult.NotConfigured)
+        withMeApp(repo, FakeAdminClient(DeleteUserResult.Success), FakeAppleTokens(mapOf(userId to "r")), apple) { client ->
+            val resp = client.delete("/v1/me") { header(HttpHeaders.Authorization, "Bearer ${validJwt()}") }
+
+            assertEquals(HttpStatusCode.NoContent, resp.status)
+            assertEquals(listOf(userId), repo.deletedUsers)
+        }
+    }
+
+    @Test
+    fun deleteMe_doesNotRevoke_whenTheAccountWasNotDeleted() = runTest {
+        val apple = FakeApple()
+        val admin = FakeAdminClient(DeleteUserResult.Failure(statusCode = 500, cause = null))
+        withMeApp(FakeProfileRepository(fakeProfile()), admin, FakeAppleTokens(mapOf(userId to "r")), apple) { client ->
+            val resp = client.delete("/v1/me") { header(HttpHeaders.Authorization, "Bearer ${validJwt()}") }
+
+            assertEquals(HttpStatusCode.ServiceUnavailable, resp.status)
+            assertEquals(emptyList(), apple.revoked)
+        }
+    }
+
+    @Test
+    fun deleteMe_withoutAnAppleToken_asksAppleNothing() = runTest {
+        val apple = FakeApple()
+        withMeApp(FakeProfileRepository(fakeProfile()), FakeAdminClient(DeleteUserResult.Success), apple = apple) { client ->
+            client.delete("/v1/me") { header(HttpHeaders.Authorization, "Bearer ${validJwt()}") }
+
+            assertEquals(emptyList(), apple.revoked)
+        }
+    }
+
+    @Test
+    fun appleAuthorization_keepsTheRefreshTokenForTheCaller() = runTest {
+        val tokens = FakeAppleTokens()
+        val apple = FakeApple(exchangeResult = AppleExchangeResult.Success("r-new"))
+        withMeApp(FakeProfileRepository(fakeProfile()), appleTokens = tokens, apple = apple) { client ->
+            val resp = client.post("/v1/me/apple-authorization") {
+                header(HttpHeaders.Authorization, "Bearer ${validJwt()}")
+                contentType(ContentType.Application.Json)
+                setBody(AppleAuthorizationRequest(authorizationCode = "code-1"))
+            }
+
+            assertEquals(HttpStatusCode.NoContent, resp.status)
+            assertEquals(listOf("code-1"), apple.exchanged)
+            assertEquals("r-new", tokens.find(userId))
+        }
+    }
+
+    @Test
+    fun appleAuthorization_answers503_andKeepsNothing_whenNoAppleKeyIsSet() = runTest {
+        val tokens = FakeAppleTokens()
+        withMeApp(FakeProfileRepository(fakeProfile()), appleTokens = tokens, apple = FakeApple()) { client ->
+            val resp = client.post("/v1/me/apple-authorization") {
+                header(HttpHeaders.Authorization, "Bearer ${validJwt()}")
+                contentType(ContentType.Application.Json)
+                setBody(AppleAuthorizationRequest(authorizationCode = "code-1"))
+            }
+
+            assertEquals(HttpStatusCode.ServiceUnavailable, resp.status)
+            assertEquals(null, tokens.find(userId))
+        }
+    }
+
+    @Test
+    fun appleAuthorization_refusesAMissingOrRejectedCode() = runTest {
+        val apple = FakeApple(exchangeResult = AppleExchangeResult.Rejected)
+        withMeApp(FakeProfileRepository(fakeProfile()), apple = apple) { client ->
+            for (code in listOf(null, " ", "x".repeat(2000), "expired")) {
+                val resp = client.post("/v1/me/apple-authorization") {
+                    header(HttpHeaders.Authorization, "Bearer ${validJwt()}")
+                    contentType(ContentType.Application.Json)
+                    setBody(AppleAuthorizationRequest(authorizationCode = code))
+                }
+                assertEquals(HttpStatusCode.BadRequest, resp.status, code)
+            }
+            assertEquals(listOf("expired"), apple.exchanged)
+        }
+    }
+
+    @Test
+    fun appleAuthorization_needsASignedInCaller() = runTest {
+        withMeApp(FakeProfileRepository(fakeProfile())) { client ->
+            val resp = client.post("/v1/me/apple-authorization") {
+                contentType(ContentType.Application.Json)
+                setBody(AppleAuthorizationRequest(authorizationCode = "code"))
+            }
+            assertEquals(HttpStatusCode.Unauthorized, resp.status)
+        }
+    }
+
     private suspend fun withMeApp(
         repo: ProfileRepository,
         admin: SupabaseAdminClient = FakeAdminClient(),
+        appleTokens: AppleTokenRepository = FakeAppleTokens(),
+        apple: AppleSignInClient = FakeApple(),
         block: suspend (HttpClient) -> Unit,
     ) {
         testApplication {
@@ -189,7 +329,7 @@ class MeRoutesTest {
                 installRateLimits()
                 installStatusPages()
                 installAuthentication(JwtVerification.Static(testVerifier))
-                routing { meRoutes(repo, admin) }
+                routing { meRoutes(repo, admin, appleTokens, apple) }
             }
             val client = createClient {
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
@@ -256,11 +396,38 @@ class MeRoutesTest {
             return deleteResult
         }
 
-        override suspend fun listAnonymousUsersOlderThan(olderThan: Instant): List<UserId> = emptyList()
 
         override suspend fun updateUserDisplayName(
             userId: UserId,
             displayName: String,
         ): UpdateDisplayNameResult = UpdateDisplayNameResult.Success
+    }
+
+    private class FakeAppleTokens(initial: Map<UserId, String> = emptyMap()) : AppleTokenRepository {
+        private val tokens = initial.toMutableMap()
+
+        override suspend fun save(userId: UserId, refreshToken: String) {
+            tokens[userId] = refreshToken
+        }
+
+        override suspend fun find(userId: UserId): String? = tokens[userId]
+    }
+
+    private class FakeApple(
+        private val exchangeResult: AppleExchangeResult = AppleExchangeResult.NotConfigured,
+        private val revokeResult: AppleRevokeResult = AppleRevokeResult.Success,
+    ) : AppleSignInClient {
+        val exchanged = mutableListOf<String>()
+        val revoked = mutableListOf<String>()
+
+        override suspend fun exchange(authorizationCode: String): AppleExchangeResult {
+            exchanged += authorizationCode
+            return exchangeResult
+        }
+
+        override suspend fun revoke(refreshToken: String): AppleRevokeResult {
+            revoked += refreshToken
+            return revokeResult
+        }
     }
 }

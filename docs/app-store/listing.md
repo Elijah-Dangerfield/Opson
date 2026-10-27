@@ -35,7 +35,7 @@ promises a feature the build hides is a rejection.
 
 **Category**: Health & Fitness (secondary: Food & Drink)
 
-**Copyright**: `2026 Nightjar Labs`
+**Copyright**: `2026 Nightjar Labs LLC`
 
 ## Age rating
 
@@ -57,9 +57,13 @@ Data used to track you: **No**.
 | Identifiers → User ID (anonymous account id) | Yes | Yes | App functionality |
 | Usage Data → Product interaction | Yes | Yes | Analytics |
 | Diagnostics → Crash data, Performance data | Yes | Yes | App functionality |
+| User Content → Customer support (feedback text, sent to Sentry) | Yes | Yes | App functionality |
+| Search History → Search history (food searches, stored without the account; can appear in a crash report about a failed search) | Yes | Yes | App functionality, Analytics |
+| Contact info → Email | Only if the user signs in with Apple | Yes | App functionality |
 
-Usage and diagnostics count as linked because `TelemetryUserBinder` attaches the account id (and email, once claimed) to crash reports and events.
-| Contact info → Email | Only if the user signs in with email | Yes | App functionality |
+The app's privacy manifest, `apps/ios/iosApp/PrivacyInfo.xcprivacy`, declares the same types. Change it with this table.
+
+Diagnostics count as linked because `TelemetryUserBinder` attaches the anonymous account id to crash reports and feedback. It never sends the email. Usage events carry an install id rather than the account id, but server logs pair the two, so they are declared as linked too. Search history is declared as linked for the same conservative reason, until crash reports stop carrying failed search URLs (docs/legal-review-2026-10.md).
 
 ## App Review information
 
@@ -70,7 +74,9 @@ Usage and diagnostics count as linked because `TelemetryUserBinder` attaches the
 >
 > The app's core feature is a visibility setting that hides or softens nutrition numbers for people who find them hard. To see full numbers, go to More → Modes and numbers and pick "Full numbers".
 >
-> Account deletion: More → Support → Delete everything.
+> Account deletion: More → Support and sharing → Delete everything.
+>
+> Opson is a food log and makes no medical claims. Onboarding's first screen says it isn't medical advice, and More → Support and sharing has an About Opson card with the same note and links to the privacy policy and terms. The same page lists eating disorder helplines.
 
 **Contact**: your name, phone and email (Apple requires a reachable person).
 

@@ -117,7 +117,7 @@ class FastingRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun startDue_nothingWhenTheModeDoesNotOfferFasting() = runUnitTest {
-        settings.state.value = timerOn().copy(numbers = NumbersSettings(preset = PresetId.Fuel))
+        settings.state.value = timerOn().copy(numbers = NumbersSettings(preset = PresetId.NutrientsFirst))
         fasting.startDue()
         assertTrue(db.fasts.rows.isEmpty())
     }
@@ -210,6 +210,20 @@ class FastingRepositoryImplTest : CoroutineTest() {
         clock.now = Instant.parse("2026-10-25T20:10:00Z")
 
         diary.addItems(oct25, MealSlot.Snack, listOf(draft()), LogMethod.Search)
+
+        assertEquals(Fast(oct25, close, endedAt = clock.now, goalHours = 14), fasting.observeLatest().first())
+    }
+
+    @Test
+    fun copyingFoodAfterTheCloseRecordsTheFastItEnded_too() = runUnitTest {
+        val oct24 = LocalDate(2026, 10, 24)
+        clock.now = Instant.parse("2026-10-24T12:00:00Z")
+        calendar.today = oct24
+        diary.addItems(oct24, MealSlot.Lunch, listOf(draft()), LogMethod.Search)
+        clock.now = Instant.parse("2026-10-25T20:10:00Z")
+        calendar.today = oct25
+
+        diary.copySlot(oct24, oct25, MealSlot.Lunch)
 
         assertEquals(Fast(oct25, close, endedAt = clock.now, goalHours = 14), fasting.observeLatest().first())
     }

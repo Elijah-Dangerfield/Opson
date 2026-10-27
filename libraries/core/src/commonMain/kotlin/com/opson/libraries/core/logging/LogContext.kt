@@ -6,15 +6,6 @@ data class LogContext(
 ) {
     fun isEmpty(): Boolean = tags.isEmpty() && extras.isEmpty()
 
-    fun merge(other: LogContext): LogContext {
-        if (other.isEmpty()) return this
-        if (isEmpty()) return other
-
-        val mergedTags = tags.toMutableMap().apply { putAll(other.tags) }
-        val mergedExtras = extras.toMutableMap().apply { putAll(other.extras) }
-        return LogContext(mergedTags.toMap(), mergedExtras.toMap())
-    }
-
     companion object {
         val Empty = LogContext(emptyMap(), emptyMap())
     }

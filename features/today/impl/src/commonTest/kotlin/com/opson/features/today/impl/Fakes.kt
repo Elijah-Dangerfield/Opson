@@ -1,8 +1,13 @@
 package com.opson.features.today.impl
 
 import com.opson.libraries.core.fixed
+import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.diary.CheckIn
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.Fast
 import com.opson.libraries.diary.FastingRepository
@@ -19,11 +24,14 @@ import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -42,7 +50,12 @@ fun policy(
     at: Instant = TodayFixtures.noon,
     overrides: Map<Metric, Visibility> = emptyMap(),
     pause: Boolean = false,
-): VisibilityPolicy = VisibilityPolicy(NumbersSettings(preset = preset, overrides = overrides, pauseBeforeMore = pause), Clock.fixed(at), TimeZone.UTC)
+    revealOn: RevealOn = RevealOn.DayClose,
+): VisibilityPolicy = VisibilityPolicy(
+    NumbersSettings(preset = preset, overrides = overrides, pauseBeforeMore = pause, revealOn = revealOn),
+    Clock.fixed(at),
+    TimeZone.UTC,
+)
 
 /** A display's words, or null when it renders nothing. */
 fun Display.text(): String? = when (this) {
@@ -55,7 +68,7 @@ fun Display.text(): String? = when (this) {
  * An in-memory diary that remembers every write. Only what Today and its
  * sheets read and write does anything; the rest is inert.
  */
-class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
+class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, DiaryItemEditor, DayCheckIns {
     val days = MutableStateFlow(days.associateBy { it.date })
     val loggedDates = MutableStateFlow<Map<Pair<Int, Int>, Set<LocalDate>>>(emptyMap())
     val frequent = MutableStateFlow<List<LogItem>>(emptyList())
@@ -72,11 +85,17 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
     val dayFeelings = mutableListOf<Pair<LocalDate, DayFeeling?>>()
     val closed = mutableListOf<LocalDate>()
     val removed = mutableListOf<String>()
+    val restored = mutableListOf<List<String>>()
+    val moved = mutableListOf<Pair<List<String>, MealSlot>>()
+    val copiedItems = mutableListOf<Triple<List<String>, LocalDate, MealSlot>>()
+    val checkIns = mutableListOf<Pair<LocalDate, CheckIn?>>()
+    val updated = mutableListOf<LogItem>()
 
     /** Every write, in order, for tests that assert nothing was written. */
     val writes: Int
         get() = water.size + removedWater.size + copiedDays.size + copiedSlots.size + cleared.size + ateNoDetails.size +
-            feelings.size + notes.size + closed.size + removed.size + untracked.size + dayFeelings.size
+            feelings.size + notes.size + closed.size + removed.size + untracked.size + dayFeelings.size +
+            restored.size + moved.size + copiedItems.size + checkIns.size + updated.size
 
     override fun observeDay(date: LocalDate): Flow<Day> = days.map { it[date] ?: Day.empty(date) }
 
@@ -87,7 +106,9 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
 
     override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> = emptyList()
 
-    override suspend fun updateItem(item: LogItem) = Unit
+    override suspend fun updateItem(item: LogItem) {
+        updated += item
+    }
 
     override suspend fun removeItem(id: String) {
         removed += id
@@ -152,7 +173,56 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
     override fun usualAt(slot: MealSlot, limit: Int, days: Int): Flow<List<LogItem>> = flowOf(emptyList())
 
     override fun frequentFoods(limit: Int, days: Int): Flow<List<LogItem>> = frequent
+
+    override suspend fun removeItems(ids: List<String>) {
+        removed += ids
+    }
+
+    override suspend fun restoreItems(ids: List<String>) {
+        restored += ids
+    }
+
+    override suspend fun moveItems(ids: List<String>, slot: MealSlot) {
+        moved += ids to slot
+    }
+
+    /** Copies nothing, but answers with one item per id so counts read true. */
+    override suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem> {
+        copiedItems += Triple(ids, toDay, slot)
+        return days.value.values.flatMap { it.allItems }.filter { it.id in ids }
+    }
+
+    override suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?) {
+        checkIns += day to checkIn
+    }
 }
+
+class FakeWeightRepository(weighIns: List<WeighIn> = emptyList()) : WeightRepository {
+    val weighIns = MutableStateFlow(weighIns)
+    var reads = 0
+        private set
+
+    override fun observeWeighIns(since: Instant?): Flow<List<WeighIn>> {
+        reads++
+        return weighIns.map { all -> all.filter { since == null || it.measuredAt >= since } }
+    }
+
+    override suspend fun addWeighIn(kg: Double, measuredAt: Instant?): WeighIn = error("Today never adds a weigh-in")
+
+    override suspend fun removeWeighIn(id: String) = Unit
+}
+
+private fun release(key: String, on: Boolean): AppConfigMap = object : AppConfigMap() {
+    override val map: Map<String, *> = mapOf("release" to mapOf(key to on))
+}
+
+fun summaryFlag(on: Boolean): TodaySummaryEnabled = TodaySummaryEnabled(release("todaySummary", on))
+
+fun selectFlag(on: Boolean): TodaySelectEnabled = TodaySelectEnabled(release("todaySelect", on))
+
+fun checkInFlag(on: Boolean): CheckInEnabled = CheckInEnabled(release("checkIn", on))
+
+fun foodActionsFlag(on: Boolean): TodayFoodActionsEnabled = TodayFoodActionsEnabled(release("foodActions", on))
 
 class FakeSettingsRepository(initial: Settings = Settings()) : SettingsRepository {
     val state = MutableStateFlow(initial)
@@ -179,6 +249,12 @@ class FakeNumbersChanger(var outcome: NumbersOutcome = NumbersOutcome.Applied(fe
     override suspend fun confirm(change: NumbersChange) = Unit
 
     override suspend fun turnOnPause() = Unit
+
+    override suspend fun setEndAfter(weeks: Int, then: PresetId) = Unit
+
+    override suspend fun clearEndAfter() = Unit
+
+    override suspend fun endTimedMode() = Unit
 
     override fun pauseShown(change: NumbersChange) = Unit
 

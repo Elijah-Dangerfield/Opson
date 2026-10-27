@@ -91,6 +91,8 @@ if (!serverOnly) {
     include(":features:today:impl")
     include(":features:trends")
     include(":features:trends:impl")
+    include(":features:upgrade")
+    include(":features:upgrade:impl")
 
     // Libraries
     include(":libraries:config")
@@ -111,6 +113,8 @@ if (!serverOnly) {
     include(":libraries:networking:impl")
     include(":libraries:nutrition")
     include(":libraries:nutrition:ui")
+    include(":libraries:progressphotos")
+    include(":libraries:progressphotos:impl")
     include(":libraries:identity")
     include(":libraries:identity:impl")
     include(":libraries:reminders")
@@ -120,6 +124,8 @@ if (!serverOnly) {
     include(":libraries:review:impl")
     include(":libraries:scanner")
     include(":libraries:scanner:impl")
+    include(":libraries:speech")
+    include(":libraries:speech:impl")
     include(":libraries:storage")
     include(":libraries:storage:impl")
     // No api sibling on purpose: the public surface is the `logEvent`

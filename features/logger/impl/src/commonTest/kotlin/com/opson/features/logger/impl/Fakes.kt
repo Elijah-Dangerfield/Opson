@@ -9,6 +9,7 @@ import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
@@ -21,6 +22,8 @@ import com.opson.libraries.diary.PickedForMeal
 import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SavedMealRepository
+import com.opson.libraries.diary.SearchDatabase
+import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -28,7 +31,9 @@ import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.foods.BarcodeMissReporter
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
+import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSearchResult
+import com.opson.libraries.foods.SearchOptions
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.CameraPermissions
@@ -37,10 +42,16 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.speech.Heard
+import com.opson.libraries.speech.MicPermission
+import com.opson.libraries.speech.SpeechAvailability
+import com.opson.libraries.speech.SpeechToText
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
@@ -48,6 +59,11 @@ import kotlinx.datetime.TimeZone
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
+import com.opson.libraries.scanner.PhotoPickResult
+import com.opson.libraries.scanner.MealPhotoPicker
+import com.opson.libraries.foods.PhotoEstimate
+import com.opson.libraries.foods.MealPhotoEstimator
+import androidx.compose.runtime.Composable
 
 /** Noon on the fixtures' today, before the 9 pm reveal. */
 val NOON: Instant = Instant.parse("2026-10-25T12:00:00Z")
@@ -76,13 +92,14 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
 
     override fun observeDay(date: LocalDate): Flow<Day> = daysState.map { it[date] ?: Day.empty(date) }
 
-    override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> = flowOf(emptyList())
+    override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> =
+        daysState.map { days -> days.values.filter { it.date in from..to }.sortedBy { it.date } }
 
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = flowOf(emptySet())
 
     override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> {
         added += Added(day, slot, items, method)
-        return items.map { draft ->
+        val written = items.map { draft ->
             LogItem(
                 id = "new-${nextId++}",
                 day = day,
@@ -91,14 +108,33 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
                 name = draft.name,
                 precision = draft.precision,
                 method = draft.method ?: method,
+                foodId = draft.foodId,
+                customFoodId = draft.customFoodId,
+                amountText = draft.amountText,
+                quantity = draft.quantity,
+                unit = draft.unit,
                 kcal = draft.kcal,
             )
         }
+        // Written to the day too, so a screen reading it sees what it just logged.
+        daysState.value = daysState.value + (day to (daysState.value[day] ?: Day.empty(day)).let { d ->
+            d.copy(itemsBySlot = d.itemsBySlot + (slot to d.items(slot) + written))
+        })
+        return written
     }
 
-    override suspend fun updateItem(item: LogItem) = Unit
+    val updated = mutableListOf<LogItem>()
 
-    override suspend fun removeItem(id: String) = Unit
+    override suspend fun updateItem(item: LogItem) {
+        updated += item
+    }
+
+    val removed = mutableListOf<String>()
+
+    override suspend fun removeItem(id: String) {
+        removed += id
+        daysState.value = daysState.value.mapValues { (_, d) -> d.copy(itemsBySlot = d.itemsBySlot.mapValues { (_, items) -> items.filterNot { it.id == id } }) }
+    }
 
     override suspend fun moveItem(id: String, slot: MealSlot) = Unit
 
@@ -188,10 +224,34 @@ class FakeFoodCatalog(
     val searches = mutableListOf<String>()
     val marked = mutableListOf<Food>()
 
-    override suspend fun search(query: String, limit: Int): Catching<FoodSearchResult> {
+    /** Every text sent to be read, typed or spoken. */
+    val described = mutableListOf<String>()
+
+    /** The filter each search was asked with, in order. */
+    val filters = mutableListOf<FoodSearchFilter>()
+
+    /** What [searchOptions] answers. */
+    var options: Catching<SearchOptions> = Catching.success(SearchOptions(openFoodFacts = false))
+    var optionsAsked = 0
+
+    /** What [observeRecent] holds: catalog foods the device knows. */
+    val recentFoods = MutableStateFlow<List<Food>>(emptyList())
+
+    override suspend fun search(query: String, limit: Int, filter: FoodSearchFilter): Catching<FoodSearchResult> {
         searches += query
+        filters += filter
         val hits = foods.filter { it.name.contains(query, ignoreCase = true) }
         return Catching.success(FoodSearchResult(query = query, foods = hits, fromCache = !online))
+    }
+
+    /** What [recentSearch] answers, by query: searches the catalog remembers. */
+    val remembered = mutableMapOf<String, FoodSearchResult>()
+
+    override fun recentSearch(query: String, limit: Int, filter: FoodSearchFilter): FoodSearchResult? = remembered[query]
+
+    override suspend fun searchOptions(): Catching<SearchOptions> {
+        optionsAsked++
+        return options
     }
 
     override suspend fun detail(id: String): Catching<Food> =
@@ -210,11 +270,14 @@ class FakeFoodCatalog(
         return barcodeResult
     }
 
-    override suspend fun describe(text: String): Catching<List<ParsedItem>> = describeResult
+    override suspend fun describe(text: String): Catching<List<ParsedItem>> {
+        described += text
+        return describeResult
+    }
 
     override fun observeFavorites(): Flow<List<Food>> = flowOf(emptyList())
 
-    override fun observeRecent(limit: Int): Flow<List<Food>> = flowOf(emptyList())
+    override fun observeRecent(limit: Int): Flow<List<Food>> = recentFoods
 
     override suspend fun markUsed(food: Food) {
         marked += food
@@ -263,7 +326,12 @@ class FakeRecentLogEvents : RecentLogEvents {
         if (latest.value == event) latest.value = null
     }
 
-    override suspend fun undo(event: LoggedToMeal) = consumed(event)
+    val undone = mutableListOf<LoggedToMeal>()
+
+    override suspend fun undo(event: LoggedToMeal) {
+        undone += event
+        consumed(event)
+    }
 }
 
 class FakeMealPicks : MealPicks {
@@ -287,6 +355,33 @@ class RecordingTelemetry : LoggerTelemetry {
 }
 
 /** `release.barcode` as the remote config would set it. */
+/** `release.searchOptions` as the remote config would set it. */
+fun searchOptionsFlag(on: Boolean): SearchOptionsEnabled = SearchOptionsEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("searchOptions" to on))
+    },
+)
+
+class RecordingSearchOptionsTelemetry : SearchOptionsTelemetry {
+    val events = mutableListOf<String>()
+
+    override fun sortPicked(sort: SearchSort) {
+        events += "sort:${sort.wire}"
+    }
+
+    override fun databasePicked(database: SearchDatabase) {
+        events += "database:${database.wire}"
+    }
+
+    override fun tabsToggled(on: Boolean) {
+        events += "tabs:$on"
+    }
+
+    override fun tabPicked(tab: SearchTab) {
+        events += "tab:${tab.wire}"
+    }
+}
+
 fun scanFlag(on: Boolean): BarcodeScanEnabled = BarcodeScanEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("barcode" to on))
@@ -337,5 +432,128 @@ class RecordingBarcodeTelemetry : BarcodeTelemetry {
 
 class FakeAppState(offline: Boolean = false) : AppState {
     override val isOffline = MutableStateFlow(offline)
-    override val isBlockActive: StateFlow<Boolean> = MutableStateFlow(false)
 }
+
+/** `release.photo` as the remote config would set it. */
+fun photoFlag(on: Boolean): PhotoEstimateEnabled = PhotoEstimateEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("photo" to on))
+    },
+)
+
+/** Answers with [answer] and remembers what it was sent. */
+class FakeMealPhotoEstimator(var answer: PhotoEstimate = PhotoEstimate.Items(PhotoFixtures.items)) : MealPhotoEstimator {
+    val sent = mutableListOf<Pair<ByteArray, String?>>()
+
+    override suspend fun estimate(jpeg: ByteArray, note: String?): PhotoEstimate {
+        sent += jpeg to note
+        return answer
+    }
+}
+
+class FakeMealPhotoPicker(override val canTakePhoto: Boolean = true) : MealPhotoPicker {
+    @Composable
+    override fun rememberCamera(onResult: (PhotoPickResult) -> Unit): () -> Unit = {}
+
+    @Composable
+    override fun rememberLibrary(onResult: (PhotoPickResult) -> Unit): () -> Unit = {}
+}
+
+class RecordingPhotoTelemetry : PhotoTelemetry {
+    val events = mutableListOf<String>()
+
+    override fun started(fromCamera: Boolean) {
+        events += "started ${if (fromCamera) "camera" else "library"}"
+    }
+
+    override fun estimated(items: Int, matched: Int) {
+        events += "estimated items=$items matched=$matched"
+    }
+
+    override fun added(items: Int) {
+        events += "added items=$items"
+    }
+
+    override fun failed(reason: PhotoFailure) {
+        events += "failed ${reason.wire}"
+    }
+}
+
+/** `release.voice` as the remote config would set it. */
+fun voiceFlag(on: Boolean): VoiceLogEnabled = VoiceLogEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("voice" to on))
+    },
+)
+
+/**
+ * A recognizer the test speaks into: [say] delivers what it heard to the
+ * running session. [listening] is true while a session is open and nobody has
+ * cancelled it.
+ */
+class FakeSpeechToText(
+    var availability: SpeechAvailability = SpeechAvailability.Ready(onDevice = true),
+    var permission: MicPermission = MicPermission.Granted,
+) : SpeechToText {
+    private var session: Channel<Heard>? = null
+    var sessions = 0
+    var finished = 0
+    var settingsOpened = 0
+    val listening: Boolean get() = session != null
+
+    /** Thrown from the session as it opens, as a platform failure no [Heard.Failed] describes. */
+    var failure: Throwable? = null
+
+    override fun availability(): SpeechAvailability = availability
+
+    override fun permission(): MicPermission = permission
+
+    override fun listen(): Flow<Heard> = flow {
+        val channel = Channel<Heard>(Channel.UNLIMITED)
+        session = channel
+        sessions++
+        failure?.let { throw it }
+        try {
+            for (heard in channel) {
+                emit(heard)
+                if (heard !is Heard.Partial) break
+            }
+        } finally {
+            session = null
+        }
+    }
+
+    fun say(heard: Heard) {
+        checkNotNull(session) { "nothing is listening" }.trySend(heard)
+    }
+
+    override fun finishListening() {
+        finished++
+    }
+
+    override fun openSettings() {
+        settingsOpened++
+    }
+}
+
+class RecordingVoiceTelemetry : VoiceTelemetry {
+    val events = mutableListOf<String>()
+
+    override fun started(onDevice: Boolean, asked: Boolean) {
+        events += "started on_device=$onDevice asked=$asked"
+    }
+
+    override fun transcribed(words: WordBucket) {
+        events += "transcribed words=${words.wire}"
+    }
+
+    override fun permissionDenied(canAskAgain: Boolean) {
+        events += "permission_denied can_ask_again=$canAskAgain"
+    }
+
+    override fun fallback(reason: VoiceFallback) {
+        events += "fallback ${reason.wire}"
+    }
+}
+
+fun fastingFlag(on: Boolean): FastingRelease = FastingRelease { on }

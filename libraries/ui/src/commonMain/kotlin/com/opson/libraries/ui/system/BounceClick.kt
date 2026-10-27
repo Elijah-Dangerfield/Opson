@@ -10,9 +10,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 
 /**
- * A clickable that squashes to [scaleDown] under the finger and springs back.
+ * A clickable that squashes to [scaleDown] under the finger and springs back. Screen readers hear
+ * it as a [Role.Button] unless [role] says otherwise.
  *
  * `@Composable` rather than the deprecated `composed`: the press animation needs
  * a remembered [Animatable] and a `LaunchedEffect` collecting the interaction
@@ -27,6 +29,7 @@ fun Modifier.bounceClick(
     mutableInteractionSource: MutableInteractionSource? = null,
     indication: Indication? = null,
     scaleDown: Float = 0.90f,
+    role: Role? = Role.Button,
     onClick: () -> Unit = {}
 ): Modifier {
 
@@ -54,6 +57,7 @@ fun Modifier.bounceClick(
             enabled = enabled,
             interactionSource = interactionSource,
             indication = indication,
+            role = role,
             onClick = onClick
         )
 }

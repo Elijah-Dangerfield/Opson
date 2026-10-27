@@ -5,9 +5,9 @@ package com.opson.libraries.identity.profile
  * edit-profile validate identically. Length is measured on the trimmed
  * name; emoji are rejected outright.
  *
- * The server stays authoritative — it enforces the same minimum length and
- * emoji rejection — but validating client-side gives immediate feedback and
- * keeps an obviously-bad name from costing a round-trip.
+ * The server stays authoritative (`apps/server`'s DisplayNameRules, which keep the
+ * same minimum length, emoji and invisible-character rules), but validating here
+ * gives immediate feedback and keeps an obviously bad name from costing a round trip.
  */
 object DisplayNameRules {
     /** Minimum trimmed length — rules out 1–2 char throwaways. */
@@ -19,12 +19,16 @@ object DisplayNameRules {
 
     /**
      * True when [raw] is an acceptable display name: within length bounds
-     * (after trimming) and free of emoji.
+     * (after trimming), free of emoji, and free of control characters and bidi
+     * overrides, which the server refuses. The zero-width non-joiner stays
+     * allowed: Persian names use it.
      */
     fun isValid(raw: String): Boolean {
         val trimmed = raw.trim()
-        return trimmed.length in MIN_LENGTH..MAX_LENGTH && !containsEmoji(trimmed)
+        return trimmed.length in MIN_LENGTH..MAX_LENGTH && !containsEmoji(trimmed) && trimmed.none(::isInvisible)
     }
+
+    private fun isInvisible(c: Char): Boolean = c.isISOControl() || c in '\u202A'..'\u202E' || c in '\u2066'..'\u2069'
 
     /**
      * True if [text] contains any emoji code point. Walks the string by

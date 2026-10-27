@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.system.AppTheme
 import com.opson.system.background
 import org.jetbrains.compose.ui.tooling.preview.Preview

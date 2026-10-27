@@ -13,7 +13,12 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.text.style.TextAlign
+import com.opson.libraries.core.Catching
 import com.opson.libraries.core.doNothing
+import com.opson.libraries.ui.time.DateCopy
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.button.ButtonSecondary
@@ -38,12 +43,13 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * keyed off the machine-readable [reason] (the server never sends copy on the
  * wire); unknown tokens fall back to a generic block message. Back is
  * swallowed — a banned/suspended user has nowhere to go behind this.
+ * [restoredOn] is the lift date as [accessRestoredDate] spells it.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun AccessDeniedScreen(
     reason: String,
-    until: String?,
+    restoredOn: String?,
     appealUrl: String?,
     onAppeal: (String) -> Unit,
 ) {
@@ -77,10 +83,10 @@ internal fun AccessDeniedScreen(
                 typography = AppTheme.typography.Body.B400,
                 textAlign = TextAlign.Center,
             )
-            if (until != null) {
+            if (restoredOn != null) {
                 Spacer(modifier = Modifier.height(Dimension.D400))
                 Text(
-                    text = stringResource(Res.string.access_denied_until, until),
+                    text = stringResource(Res.string.access_denied_until, restoredOn),
                     typography = AppTheme.typography.Body.B500,
                     color = AppTheme.colors.textSecondary,
                     textAlign = TextAlign.Center,
@@ -107,7 +113,7 @@ private fun AccessDeniedScreenPreview_Banned() {
     PreviewContent {
         AccessDeniedScreen(
             reason = "banned",
-            until = null,
+            restoredOn = null,
             appealUrl = "https://example.com/appeal",
             onAppeal = {},
         )
@@ -120,9 +126,18 @@ private fun AccessDeniedScreenPreview_Suspended_WithUntil() {
     PreviewContent {
         AccessDeniedScreen(
             reason = "suspended",
-            until = "2026-08-01T00:00:00Z",
+            restoredOn = "Aug 1, 2026",
             appealUrl = null,
             onAppeal = {},
         )
     }
 }
+
+/**
+ * The server's ISO-8601 lift time as a date on the phone's calendar, `Aug 1, 2026`, or `null`
+ * when it doesn't parse, so the screen leaves the line out rather than printing a raw timestamp.
+ */
+internal fun accessRestoredDate(until: String, timeZone: TimeZone): String? =
+    Catching { Instant.parse(until) }.getOrNull()
+        ?.toLocalDateTime(timeZone)?.date
+        ?.let { "${DateCopy.monthDay(it)}, ${it.year}" }

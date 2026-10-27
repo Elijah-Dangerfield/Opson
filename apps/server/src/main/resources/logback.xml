@@ -10,7 +10,7 @@
         plugins/Telemetry.kt; if OTel is never installed the records age out of
         a bounded queue without crashing.
 
-    INFO floor; Ktor's noisy io.netty is pinned to WARN.
+    INFO floor; Ktor's noisy io.netty is pinned to WARN, Exposed to ERROR.
 -->
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -35,6 +35,12 @@
     </appender>
 
     <logger name="io.netty" level="WARN"/>
+    <!--
+        Exposed logs every failed transaction at WARN with its statements and
+        their bound values, which are diary rows. StatusPages logs the failure
+        without them (plugins/Errors.kt).
+    -->
+    <logger name="Exposed" level="ERROR"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

@@ -1,6 +1,9 @@
 package com.opson.features.trends.impl
 
 import com.opson.features.trends.NutrientsRange
+import com.opson.features.trends.impl.photos.CompareContent
+import com.opson.features.trends.impl.photos.ProgressPhotosContent
+import com.opson.features.trends.impl.photos.ProgressPhotosFixtures
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
@@ -14,7 +17,7 @@ object TrendsLeakSurfaces {
 
     val all: List<LeakSurface> = listOf(
         LeakSurface(id = "trends", label = "Trends (week history)", showsCaloriesInFull = true) { policy ->
-            TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(), policy), onAction = {})
+            TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(expended = TrendsFixtures.expended()), policy), onAction = {})
         },
         // The design's Blind and Coast screens. The test passes the policy, so these differ from
         // `trends` in what they are built from: Month (every card follows the range) and the
@@ -29,7 +32,7 @@ object TrendsLeakSurfaces {
             TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(Settings(askTags = false)), policy), onAction = {})
         },
         LeakSurface(id = "trends-settings", label = "Trends settings", showsCaloriesInFull = false) { policy ->
-            TrendsSettingsSheetContent(TrendsSettingsStateBuilder.build(Settings(), policy), onAction = {})
+            TrendsSettingsSheetContent(TrendsSettingsStateBuilder.build(Settings(), policy, healthConnected = true), onAction = {})
         },
         LeakSurface(id = "nutrients", label = "Nutrients detail", showsCaloriesInFull = true) { policy ->
             NutrientsContent(NutrientsStateBuilder.build(TrendsFixtures.nutrientsInputs(NutrientsRange.Day), policy), onAction = {})
@@ -44,11 +47,18 @@ object TrendsLeakSurfaces {
             WeightContent(WeightStateBuilder.build(TrendsFixtures.weightInputs(), WeightUi(input = "72.4", saved = true), policy), onAction = {})
         },
         LeakSurface(id = "patterns", label = "Patterns", showsCaloriesInFull = true) { policy ->
-            PatternsContent(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(), policy), onAction = {})
+            PatternsContent(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(checkInOn = true), policy), onAction = {})
         },
         // Hunger tags off: the page Blind users who skip the tags see.
         LeakSurface(id = "patterns-blind", label = "Patterns, no hunger tags", showsCaloriesInFull = true) { policy ->
             PatternsContent(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(Settings(askTags = false)), policy), onAction = {})
+        },
+        // Progress photos carry no numbers in any mode; listed so one slipped in later fails.
+        LeakSurface(id = "progress-photos", label = "Progress photos", showsCaloriesInFull = false) { _ ->
+            ProgressPhotosContent(ProgressPhotosFixtures.grid(), onAction = {})
+        },
+        LeakSurface(id = "progress-photos-compare", label = "Progress photos, compare", showsCaloriesInFull = false) { _ ->
+            CompareContent(ProgressPhotosFixtures.compare(), onAction = {})
         },
     )
 }

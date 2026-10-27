@@ -9,15 +9,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.navigation.NavDeepLinkRequest
 import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavUri
@@ -25,6 +27,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.opson.features.logger.LoggerRoute
+import com.opson.features.upgrade.impl.AppGuardLayer
+import com.opson.features.settings.FindSupportRoute
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.BuildInfo
@@ -38,6 +42,7 @@ import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.SessionExpiredRoute
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowHost
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowNavigator
+import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.navigation.impl.DelegatingRouter
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toEnterTransition
@@ -59,6 +64,7 @@ import com.opson.libraries.ui.system.LocalAppState
 import com.opson.libraries.ui.system.LocalBuildInfo
 import com.opson.libraries.ui.system.LocalClock
 import com.opson.system.AppTheme
+import kotlinx.coroutines.launch
 import kotlin.reflect.typeOf
 import kotlin.time.Duration.Companion.seconds
 
@@ -70,6 +76,7 @@ fun App(appComponent: AppComponent) {
     val appRecomposeLogger = remember { KLog.withTag("AppRecompose") }
     val router = remember { appComponent.delegatingRouter }
     val dialogHostState = rememberDialogHostState()
+    val guardScope = rememberCoroutineScope()
 
     val shakeHandler = remember { appComponent.shakeHandler }
     val deepLinkBridge = remember { appComponent.deepLinkBridge }
@@ -114,7 +121,7 @@ fun App(appComponent: AppComponent) {
                 Catching {
                     val request = NavDeepLinkRequest.Builder.fromUri(NavUri(url)).build()
                     navController.handleDeepLink(request)
-                }.logOnFailure { "Failed to handle deep link: $url" }
+                }.logOnFailure { "Failed to handle deep link: ${url.withoutQueryOrFragment()}" }
             }
         }
     }
@@ -180,26 +187,38 @@ fun App(appComponent: AppComponent) {
                         // that a host below STARTED is lying about its visibility.
                         .navigationQueueWatchdog(onWedgeDetected = router::drainQueuedNavigation)
                 ) {
-                    // Stage 1: null until the async AppData read resolves — the
-                    // platform splash (keyed on appViewModel.isReady) covers the
-                    // gap. Stage 2: the Compose boot gate holds a loading screen
-                    // until the remaining boot work (config + profile resolve)
-                    // lands, so the first real frame renders authoritative data.
-                    val bootComplete by appViewModel.isBootComplete.collectAsState()
-                    val startDestination by appViewModel.startDestination.collectAsState()
-                    val route = startDestination
-                    if (bootComplete && route != null) {
-                        AppNavigation(
-                            navController = navController,
-                            floatingWindowNavigator = floatingWindowNavigator,
-                            featureEntryPoints = appComponent.featureEntryPoints,
-                            startDestination = route,
-                            router = router,
-                            telemetry = appComponent.telemetry,
-                            jankMonitor = appComponent.jankMonitor,
-                        )
-                    } else {
-                        BootLoadingScreen()
+                    // Maintenance, the version floor and the update offer cover or sit above
+                    // everything below. The guard collects its own state, so a change there
+                    // recomposes the guard, not App.
+                    AppGuardLayer(
+                        guard = appComponent.appGuard,
+                        onOpenUrl = router::openWebLink,
+                        onClearOverrides = {
+                            guardScope.launch { appComponent.configOverrideRepository.clearAll() }
+                        },
+                    ) {
+                        // Stage 1: null until the async AppData read resolves — the
+                        // platform splash (keyed on appViewModel.isReady) covers the
+                        // gap. Stage 2: the Compose boot gate holds a loading screen
+                        // until the remaining boot work (config + profile resolve)
+                        // lands, so the first real frame renders authoritative data.
+                        val bootComplete by appViewModel.isBootComplete.collectAsState()
+                        val startDestination by appViewModel.startDestination.collectAsState()
+                        val route = startDestination
+                        if (bootComplete && route != null) {
+                            AppNavigation(
+                                navController = navController,
+                                floatingWindowNavigator = floatingWindowNavigator,
+                                featureEntryPoints = appComponent.featureEntryPoints,
+                                startDestination = route,
+                                router = router,
+                                telemetry = appComponent.telemetry,
+                                jankMonitor = appComponent.jankMonitor,
+                                tabBar = appComponent.tabBar,
+                            )
+                        } else {
+                            BootLoadingScreen()
+                        }
                     }
 
                     SplashGate()
@@ -263,6 +282,13 @@ private fun ProvideVisibilityPolicy(
 }
 
 /**
+ * A link as it may be logged: scheme, host and path. The query and the fragment
+ * can carry a session (`opson://auth/confirmed#access_token=…`), and an error
+ * log is forwarded to Sentry and Grafana.
+ */
+internal fun String.withoutQueryOrFragment(): String = substringBefore('#').substringBefore('?')
+
+/**
  * The simple class name of a destination's route, for telemetry tagging.
  *
  * Type-safe nav stores the route as its serializer name — the fully-qualified
@@ -287,6 +313,7 @@ private fun AppNavigation(
     router: DelegatingRouter,
     telemetry: Telemetry,
     jankMonitor: JankMonitor,
+    tabBar: TabBar,
 ) {
     // Tag every crash/error with the route the user is currently on. Sheets
     // and dialogs are real destinations on this same back stack (see
@@ -295,7 +322,11 @@ private fun AppNavigation(
     // from a LaunchedEffect keyed on the name so we only touch the Sentry
     // scope when the route actually changes, not on every recomposition.
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRouteName = currentBackStackEntry?.destination?.routeClassNameOrNull()
+    // Find support is never logged: its route reaches neither the crash scope nor the jank
+    // monitor, so attribution stays with the screen beneath it.
+    val currentRouteName = currentBackStackEntry?.destination
+        ?.takeUnless { it.hasRoute<FindSupportRoute>() }
+        ?.routeClassNameOrNull()
     LaunchedEffect(currentRouteName) {
         currentRouteName?.let {
             telemetry.setCurrentRoute(it)
@@ -326,7 +357,7 @@ private fun AppNavigation(
         // and it marks that consumed so a tab screen does not pad for the navigation bar twice.
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
-            ShellBottomBar(navController = navController, router = router)
+            ShellBottomBar(navController = navController, router = router, tabBar = tabBar)
         },
         snackbarHost = {
             PresenterSnackbarHost()
@@ -345,10 +376,10 @@ private fun AppNavigation(
                     // How should we animate the B screen?
                     // Enter animation should match B's Enter
                     val targetRoute = targetState.toRouteOrNull<Route>()
-                    val (animationType, reason) = when {
-                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
-                        targetRoute != null -> targetRoute.enter to "Using target route enter animation"
-                        else -> AnimationType.None to "Target destination is not a Route; default to none"
+                    val animationType = when {
+                        isSwitchingTabs() -> AnimationType.None // Switching tabs
+                        targetRoute != null -> targetRoute.enter // Using target route enter animation
+                        else -> AnimationType.None // Target destination is not a Route; default to none
                     }
 
                     animationType.toEnterTransition()
@@ -360,11 +391,11 @@ private fun AppNavigation(
                     // AKA if B slides out, A should slide IN
                     val initialRoute = initialState.toRouteOrNull<Route>()
                     val targetRoute = targetState.toRouteOrNull<Route>()
-                    val (animationType, reason) = when {
-                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
-                        initialRoute != null -> initialRoute.popExit.opposite() to "Mirroring initial popExit animation"
-                        targetRoute != null -> targetRoute.enter to "Fallback to target route enter animation"
-                        else -> AnimationType.None to "No route metadata; default to none"
+                    val animationType = when {
+                        isSwitchingTabs() -> AnimationType.None // Switching tabs
+                        initialRoute != null -> initialRoute.popExit.opposite() // Mirroring initial popExit animation
+                        targetRoute != null -> targetRoute.enter // Fallback to target route enter animation
+                        else -> AnimationType.None // No route metadata; default to none
                     }
 
                     animationType.toEnterTransition()
@@ -375,10 +406,10 @@ private fun AppNavigation(
                     // How should we animate the A screen
                     // Exit animation should match A's Exit
                     val initialRoute = initialState.toRouteOrNull<Route>()
-                    val (animationType, reason) = when {
-                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
-                        initialRoute != null -> initialRoute.exit to "Using initial route exit animation"
-                        else -> AnimationType.None to "Initial destination is not a Route; default to none"
+                    val animationType = when {
+                        isSwitchingTabs() -> AnimationType.None // Switching tabs
+                        initialRoute != null -> initialRoute.exit // Using initial route exit animation
+                        else -> AnimationType.None // Initial destination is not a Route; default to none
                     }
 
                     animationType.toExitTransition()
@@ -390,10 +421,10 @@ private fun AppNavigation(
                     // Exit animation should match B's pope Exit
                     val initialRoute = initialState.toRouteOrNull<Route>()
 
-                    val (animationType, reason) = when {
-                        isSwitchingTabs() -> AnimationType.None to "Switching tabs"
-                        initialRoute != null -> initialRoute.popExit to "Using initial route popExit animation"
-                        else -> AnimationType.None to "Initial destination is not a Route; default to none"
+                    val animationType = when {
+                        isSwitchingTabs() -> AnimationType.None // Switching tabs
+                        initialRoute != null -> initialRoute.popExit // Using initial route popExit animation
+                        else -> AnimationType.None // Initial destination is not a Route; default to none
                     }
 
                     animationType.toExitTransition()

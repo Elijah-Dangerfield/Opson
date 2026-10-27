@@ -39,7 +39,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
@@ -87,6 +86,38 @@ fun Dialog(
     }
 }
 
+/**
+ * A full-width panel that drops from the top of the screen over a scrim, as Today's calendar
+ * drops from the day's title. It draws over the status bar, so [content] pads for it and repeats
+ * whatever header it covers. A tap on the scrim or Back dismisses it through [state].
+ */
+@Composable
+fun DropdownDialog(
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    state: DialogState = rememberDialogState(),
+    content: @Composable () -> Unit,
+) {
+    HostedDialog(
+        state = state,
+        onDismissRequest = onDismissRequest,
+        modifier = modifier.fillMaxWidth(),
+        animationSpec = ModalDialogAnimationSpec(
+            contentEnter = slideInVertically(tween(DROP_ENTER_MILLIS)) { -it / DROP_FROM_SHARE } + fadeIn(tween(DROP_ENTER_MILLIS)),
+            contentExit = slideOutVertically(tween(DROP_EXIT_MILLIS)) { -it / DROP_FROM_SHARE } + fadeOut(tween(DROP_EXIT_MILLIS)),
+        ),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        content()
+    }
+}
+
+private const val DROP_ENTER_MILLIS = 220
+private const val DROP_EXIT_MILLIS = 160
+
+/** The panel slides in from a third of its height above where it rests. */
+private const val DROP_FROM_SHARE = 3
+
 @Preview
 @Composable
 private fun PreviewDialog() {
@@ -100,12 +131,8 @@ private fun PreviewDialog() {
 }
 
 /**
- * Window-free dialog host that handles scrim + content animations and dismissal behaviour entirely
- * in Compose Multiplatform.
- */
-/**
- * Lower-level alternative used when callers want to provide their own dialog surface.
- * Registers the provided [content] with [DialogHostState] so it renders on top of the app.
+ * Registers [content] with the ambient [DialogHostState], which draws it on top of the app with
+ * its scrim and animations. No platform window is involved.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -222,10 +249,7 @@ internal fun DialogOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .semantics(mergeDescendants = true) {
-                dialog()
-                stateDescription = "Dialog"
-            },
+            .semantics(mergeDescendants = true) { dialog() },
         contentAlignment = contentAlignment
     ) {
         AnimatedVisibility(

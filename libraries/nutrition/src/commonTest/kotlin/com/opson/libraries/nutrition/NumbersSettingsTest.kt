@@ -16,15 +16,15 @@ class NumbersSettingsTest {
 
     @Test
     fun level_fallsBackToThePreset() {
-        val settings = NumbersSettings(preset = PresetId.Nutrient)
+        val settings = NumbersSettings(preset = PresetId.NutrientsFirst)
         assertEquals(Visibility.Soften, settings.level(Metric.Protein))
-        assertEquals(Visibility.Hide, settings.level(Metric.Calories))
+        assertEquals(Visibility.Hide, settings.level(Metric.Carbs))
     }
 
     @Test
     fun level_overrideWinsOverThePreset() {
         val settings = NumbersSettings(
-            preset = PresetId.Blind,
+            preset = PresetId.NoNumbers,
             overrides = mapOf(Metric.Calories to Visibility.Show, Metric.Water to Visibility.Hide),
         )
         assertEquals(Visibility.Show, settings.level(Metric.Calories))
@@ -47,9 +47,9 @@ class NumbersSettingsTest {
         )
         assertTrue(adjusted.isAdjusted)
 
-        val picked = adjusted.pickPreset(PresetId.Blind, SOME_INSTANT)
+        val picked = adjusted.pickPreset(PresetId.NoNumbers, SOME_INSTANT)
 
-        assertEquals(PresetId.Blind, picked.preset)
+        assertEquals(PresetId.NoNumbers, picked.preset)
         assertEquals(emptyMap(), picked.overrides)
         assertEquals(SOME_INSTANT, picked.changedAt)
         assertFalse(picked.isAdjusted)
@@ -63,7 +63,7 @@ class NumbersSettingsTest {
 
     @Test
     fun pickPreset_keepsPauseBeforeMore() {
-        val settings = NumbersSettings(pauseBeforeMore = true).pickPreset(PresetId.Coast, SOME_INSTANT)
+        val settings = NumbersSettings(pauseBeforeMore = true).pickPreset(PresetId.Later, SOME_INSTANT)
         assertTrue(settings.pauseBeforeMore)
     }
 
@@ -85,41 +85,41 @@ class NumbersSettingsTest {
 
     @Test
     fun score_sumsTheRawLevels() {
-        assertEquals(27, NumbersSettings(preset = PresetId.Full).score())
-        assertEquals(2, NumbersSettings(preset = PresetId.Blind).score())
+        assertEquals(30, NumbersSettings(preset = PresetId.Full).score())
+        assertEquals(2, NumbersSettings(preset = PresetId.NoNumbers).score())
         // Seven delays at 1, micros hidden, weight and water softened at 2.
-        assertEquals(11, NumbersSettings(preset = PresetId.Delayed).score())
-        assertEquals(30, NumbersSettings(overrides = mapOf(Metric.Micros to Visibility.Show)).score())
+        assertEquals(11, NumbersSettings(preset = PresetId.Later).score())
+        assertEquals(27, NumbersSettings(overrides = mapOf(Metric.Micros to Visibility.Hide)).score())
     }
 
     @Test
     fun policyScore_countsDelayAsDelayEvenWhenRevealed() {
-        val evening = policy(PresetId.Delayed, now = at(22))
+        val evening = policy(PresetId.Later, now = at(22))
         assertTrue(evening.isRevealed(Surface.Today))
         assertEquals(11, evening.score())
     }
 
     @Test
     fun isRaise_showingMoreIsARaise() {
-        val blind = NumbersSettings(preset = PresetId.Blind)
+        val blind = NumbersSettings(preset = PresetId.NoNumbers)
         assertTrue(blind.isRaise(NumbersSettings(preset = PresetId.Full)))
         assertTrue(blind.isRaise(blind.override(Metric.Calories, Visibility.Delay, SOME_INSTANT)))
-        assertTrue(policy(PresetId.Blind).isRaise(NumbersSettings(preset = PresetId.Fuel)))
+        assertTrue(policy(PresetId.NoNumbers).isRaise(NumbersSettings(preset = PresetId.NutrientsFirst)))
     }
 
     @Test
     fun isRaise_showingLessOrTheSameIsNot() {
         val full = NumbersSettings(preset = PresetId.Full)
-        assertFalse(full.isRaise(NumbersSettings(preset = PresetId.Blind)))
+        assertFalse(full.isRaise(NumbersSettings(preset = PresetId.NoNumbers)))
         assertFalse(full.isRaise(full))
-        assertFalse(full.isRaise(NumbersSettings(preset = PresetId.Sprint)))
-        val blind = NumbersSettings(preset = PresetId.Blind)
+        assertFalse(full.isRaise(NumbersSettings(preset = PresetId.Full)))
+        val blind = NumbersSettings(preset = PresetId.NoNumbers)
         assertFalse(blind.isRaise(blind.override(Metric.Water, Visibility.Hide, SOME_INSTANT)))
     }
 
     @Test
     fun needsPause_onlyForARaiseWithThePauseOn() {
-        val off = NumbersSettings(preset = PresetId.Blind)
+        val off = NumbersSettings(preset = PresetId.NoNumbers)
         val on = off.copy(pauseBeforeMore = true)
         val full = NumbersSettings(preset = PresetId.Full)
 

@@ -1,6 +1,7 @@
 package com.opson.libraries.diary
 
 import com.opson.libraries.nutrition.NumbersChange
+import com.opson.libraries.nutrition.PresetId
 
 /**
  * The one way anything changes which numbers the user sees. Modes and numbers,
@@ -30,6 +31,23 @@ interface NumbersChanger {
 
     /** "Pause before showing more" on. Never pauses: it can only show fewer numbers later. */
     suspend fun turnOnPause()
+
+    /**
+     * End after a set time: [weeks] from today (or from when a running timer started), then
+     * [then]. Never pauses, since nothing changes
+     * today; when the time is up a switch that shows more waits for the pause like any other.
+     */
+    suspend fun setEndAfter(weeks: Int, then: PresetId)
+
+    /** End after a set time off. Never pauses: the numbers on screen stay as they are. */
+    suspend fun clearEndAfter()
+
+    /**
+     * End after a set time has run out: switch to its preset and mark today for Today's notice.
+     * Does nothing while the timer has time left, or when the switch shows more with the pause
+     * on (Today offers that one instead). The live policy calls it at midnight.
+     */
+    suspend fun endTimedMode()
 
     /** The pause sheet opened for [change]. Telemetry only. */
     fun pauseShown(change: NumbersChange)

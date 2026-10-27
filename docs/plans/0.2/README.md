@@ -76,4 +76,4 @@ The v3 PNGs in `docs/design/v3/` are the spec for look and copy. The handoff
   new settings as new top-level keys, never inside an existing object.
 - **Wave-1 libraries to reuse:** `:libraries:scanner` (camera, permission
   prompt), `:libraries:health`, `:libraries:reminders`
-  (`LocalNotifications`), `StatusPill`, `ScanFrame`, `TimeDialog`.
+  (`LocalNotifications`), `StatusPill`, `ScanFrame`, `TimePickerDialog`.

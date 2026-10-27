@@ -258,7 +258,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/../..\"\n./gradlew -PxcodeTargetArchs=\"$ARCHS\" :apps:compose:embedAndSignAppleFrameworkForXcode\n\n# Resolve SPM dependencies if running from non-Xcode environment\nif [ -z \"$XCODE_PRODUCT_BUILD_VERSION\" ]; then\n  xcodebuild -resolvePackageDependencies -project \"$SRCROOT/iosApp.xcodeproj\" 2>/dev/null || true\nfi\n";
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/../..\"\n./gradlew -PxcodeTargetArchs=\"$ARCHS\" :apps:compose:embedAndSignAppleFrameworkForXcode || exit 1\n\n# Resolve SPM dependencies if running from non-Xcode environment\nif [ -z \"$XCODE_PRODUCT_BUILD_VERSION\" ]; then\n  xcodebuild -resolvePackageDependencies -project \"$SRCROOT/iosApp.xcodeproj\" 2>/dev/null || true\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -354,7 +354,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosAppDebug.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";

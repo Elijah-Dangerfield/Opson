@@ -7,7 +7,7 @@ run is a full reload: the daily deltas don't record deletions.
 
     python3 -I scripts/import_off_foods.py --psql                     # download, load CATALOG_DATABASE_URL
     python3 -I scripts/import_off_foods.py --csv products.csv.gz --psql
-    python3 -I scripts/import_off_foods.py --csv products.csv.gz --output /tmp/off.sql.gz
+    python3 -I scripts/import_off_foods.py --csv products.csv.gz --output /tmp/off.sql.gz   # then --swap-only --psql
     python3 -I scripts/import_off_foods.py --csv products.csv.gz --dry-run   # counts only
 
 The export (`products.csv.gz`, about 1.5 GB, tab separated) is streamed with
@@ -28,9 +28,12 @@ The reload never writes to `off_foods`. It fills `off_foods_next`, a copy of
 the table's definition, one committed batch at a time (no run-wide
 transaction: a dropped connection costs one batch, and re-running resumes,
 since every batch is an idempotent upsert on barcode). Then it builds the
-search indexes, copied from `off_foods`, and swaps the tables in one short
-transaction. V12's header has the details. If the swap step fails (a lock
-timeout behind a long query, say), `--swap-only` retries just that step.
+search indexes, copied from `off_foods`, one statement and one psql session
+each, and swaps the tables in one short transaction. V12's header has the
+details. A watchdog on a second connection stops any step whose database
+session has gone (a restart behind the pooler leaves psql waiting forever
+otherwise). If a step fails, `--swap-only` carries on from the first index not
+yet built.
 
 `--psql` reads the connection string from CATALOG_DATABASE_URL when given no
 value and hands it to psql through libpq environment variables, so it never
@@ -51,6 +54,7 @@ import csv
 import gzip
 import html
 import io
+import itertools
 import json
 import os
 import re
@@ -60,7 +64,7 @@ import tempfile
 import time
 import urllib.request
 import uuid
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -99,6 +103,13 @@ STAGING = "off_foods_next"
 OLD = "off_foods_old"
 BATCH_SIZE = 2000
 DEFAULT_MIN_ROWS = 1_000_000
+# A 1 GB Supabase instance restarted mid-build at 128MB with three GIN builds in
+# one statement; one build at a time at 64MB finished.
+DEFAULT_MAINTENANCE_WORK_MEM = "64MB"
+# The reload writes rows in this order of Open Food Facts' unique_scans_n
+# (`scans`), most first, so the table's physical order is popularity order.
+# Finer at the top, where a capped search scan stops.
+SCAN_BUCKETS = (1000, 500, 200, 100, 50, 30, 20, 15, 10, 7, 5, 4, 3, 2, 1, 0)
 
 # Same namespace as the USDA importer; the "off:" prefix keeps the ids apart.
 ID_NAMESPACE = uuid.UUID("6f1c1a52-5b8e-4f0e-9b7a-0a5d3c8e2f41")
@@ -601,8 +612,8 @@ COMMIT;
 """
 
 
-def finalize_sql(version: str, min_rows: int, allow_shrink: bool) -> str:
-    """Check the load, build the search indexes, then swap in one short transaction."""
+def check_sql(version: str, min_rows: int, allow_shrink: bool) -> str:
+    """Raises, in the database, when the staging table must not replace the live one."""
     shrink_check = "" if allow_shrink else f"""
     IF loaded < 0.8 * (SELECT count(*) FROM public.{TABLE}) THEN
         RAISE EXCEPTION 'refusing to swap: {STAGING} has % rows, under 80%% of {TABLE}. Re-run with --allow-shrink if that is expected', loaded;
@@ -620,41 +631,47 @@ BEGIN
     END IF;{shrink_check}
 END
 $off$;
+"""
 
--- The search indexes, copied from off_foods so V12 stays their only
--- definition. Built once, after the load, which is far cheaper than keeping
--- three GIN indexes up to date through every insert.
-DO $off$
-DECLARE
-    i record;
-    target text;
-BEGIN
-    FOR i IN
-        SELECT x.indexname, x.indexdef FROM pg_indexes x
-        WHERE x.schemaname = 'public' AND x.tablename = '{TABLE}'
-          AND NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conindid = format('public.%I', x.indexname)::regclass)
-    LOOP
-        IF left(i.indexname, {len(TABLE) + 1}) <> '{TABLE}_' THEN
-            RAISE EXCEPTION 'index % on {TABLE} does not start with {TABLE}_, so the swap cannot rename it', i.indexname;
-        END IF;
-        target := '{STAGING}' || substr(i.indexname, {len(TABLE) + 1});
-        IF to_regclass(format('public.%I', target)) IS NULL THEN
-            RAISE NOTICE 'building %', target;
-            EXECUTE replace(
-                i.indexdef,
-                format('INDEX %s ON public.{TABLE} ', i.indexname),
-                format('INDEX %I ON public.{STAGING} ', target)
-            );
-        END IF;
-    END LOOP;
-END
-$off$;
 
-ANALYZE public.{STAGING};
+# The live table's search indexes. The constraint indexes (primary key, unique
+# barcode) came with the staging table in prepare_sql.
+LIVE_INDEXES_SQL = f"""SELECT x.indexname, x.indexdef FROM pg_indexes x
+WHERE x.schemaname = 'public' AND x.tablename = '{TABLE}'
+  AND NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conindid = format('public.%I', x.indexname)::regclass)
+ORDER BY x.indexname"""
 
--- The swap. Renames only touch the catalog, so the exclusive lock lasts
--- milliseconds; the lock timeout stops a long-running query from making
--- every search queue behind it. The DROP frees the old files at commit.
+STAGED_INDEXES_SQL = f"SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = '{STAGING}'"
+
+INDEX_NAME = re.compile(rf"{TABLE}_\w+")
+
+
+def index_builds(live: list[list[str]], staged: set[str]) -> list[tuple[str, str]]:
+    """(staging index name, CREATE INDEX statement) for each live search index the staging table lacks.
+
+    Each statement is the live index's own definition aimed at the staging
+    table, so the migrations stay the only place the indexes are defined.
+    Built after the load, which is far cheaper than keeping three GIN indexes
+    up to date through every insert.
+    """
+    builds = []
+    for name, definition in live:
+        if not INDEX_NAME.fullmatch(name):
+            raise SystemExit(f"index {name} on {TABLE} does not start with {TABLE}_, so the swap cannot rename it")
+        target = STAGING + name[len(TABLE):]
+        if target in staged:
+            continue
+        head = f"INDEX {name} ON public.{TABLE} "
+        if head not in definition:
+            raise SystemExit(f"can't aim {name} at {STAGING}: its definition is {definition!r}")
+        builds.append((target, definition.replace(head, f"INDEX {target} ON public.{STAGING} ", 1)))
+    return builds
+
+
+# The swap. Renames only touch the catalog, so the exclusive lock lasts
+# milliseconds; the lock timeout stops a long-running query from making every
+# search queue behind it. The DROP frees the old files at commit.
+SWAP_SQL = f"""
 BEGIN;
 SET LOCAL lock_timeout = '15s';
 LOCK TABLE public.{TABLE} IN ACCESS EXCLUSIVE MODE;
@@ -680,39 +697,168 @@ DROP TABLE public.{OLD};
 COMMIT;
 """
 
+# How often the watchdog looks, how long a step may take to show up in
+# pg_stat_activity (connecting through the pooler and running its SETs), and
+# how many looks in a row may miss it before the session counts as lost. Two
+# misses, because a statement that has just finished stops being active a
+# moment before psql exits.
+POLL_SECONDS = 30
+START_GRACE_SECONDS = 300
+MISSES_BEFORE_LOST = 2
+# The quick steps (the checks, the swap) take seconds; anything past this is stuck.
+QUICK_STEP_SECONDS = 600
 
-def reload_sql(path: Path, version: str, stats: Stats, args):
-    """The whole reload as (sql, rows) chunks: session settings, staging, batches, swap."""
-    yield "-- Generated by scripts/import_off_foods.py from the Open Food Facts export (ODbL).\n", 0
-    yield f"-- Export {version}. Loads {STAGING}, then swaps it in for {TABLE}.\n", 0
-    yield session_sql(args.maintenance_work_mem), 0
-    yield prepare_sql(version), 0
-    batch: dict[str, Product] = {}
-    for get in export_rows(path):
-        stats.rows += 1
-        product = product_from(get, stats)
-        if product is None:
-            continue
-        stats.with_portion += bool(product.portions)
-        stats.with_fiber += product.fiber is not None
-        stats.with_micros += bool(product.micros)
-        stats.with_country += bool(product.countries)
-        kept = batch.get(product.barcode)
-        if kept is not None:
-            # One statement can't upsert a barcode twice. Keep the newer.
-            stats.same_batch_duplicates += 1
-            if (product.modified or 0) <= (kept.modified or 0):
+
+def run_watched(db, sql: str, what: str, marker: str | None, limit: float | None = None,
+                sleep=time.sleep, clock=time.monotonic) -> None:
+    """Runs `sql` in a psql session of its own and stops it if the database loses that session.
+
+    TCP keepalives can't see this. Behind Supabase's pooler psql's connection
+    is to the pooler, which kept it open after the Postgres backend behind it
+    died in a restart, and psql waited on it for twenty minutes. So a second
+    connection looks for the running statement (`marker` is text from it) in
+    pg_stat_activity. Seen and then missing, or never seen within the grace
+    period, means the backend is gone. `limit` caps the step's wall time.
+    """
+    proc = db.start(sql)
+    started = clock()
+    seen = False
+    misses = 0
+    while proc.poll() is None:
+        sleep(POLL_SECONDS)
+        if proc.poll() is not None:
+            break
+        lost = limit is not None and clock() - started > limit
+        if not lost and marker is not None:
+            if db.statement_running(marker):
+                seen, misses = True, 0
+            else:
+                misses += 1
+                lost = misses >= MISSES_BEFORE_LOST and (seen or clock() - started > START_GRACE_SECONDS)
+        if lost:
+            proc.kill()
+            proc.wait()
+            raise SystemExit(f"the database lost the session {what}; what finished before it is kept, "
+                             f"so re-run with --swap-only to carry on from there")
+    if proc.returncode != 0:
+        raise SystemExit(f"psql failed {what} (exit {proc.returncode}); what finished before it is kept, "
+                         f"so re-run with --swap-only to carry on from there")
+
+
+def finish(db, version: str, args, run=run_watched) -> None:
+    """Checks the staging table, builds each missing search index, then swaps.
+
+    Every step is its own psql session and every index its own statement, so
+    a database restart costs the index it interrupted, not the ones already
+    built, and `--swap-only` carries on from the next.
+    """
+    settings = session_sql(args.maintenance_work_mem)
+    run(db, settings + check_sql(version, args.min_rows, args.allow_shrink), "checking the load",
+        marker=None, limit=QUICK_STEP_SECONDS)
+    staged = {row[0] for row in db.query(STAGED_INDEXES_SQL)}
+    for target, statement in index_builds(db.query(LIVE_INDEXES_SQL), staged):
+        log(f"  building {target}")
+        run(db, f"{settings}{statement};\n", f"building {target}", marker=f"INDEX {target} ON")
+    log("  analyzing")
+    run(db, f"{settings}ANALYZE public.{STAGING};\n", "analyzing", marker=f"ANALYZE public.{STAGING}")
+    log("  swapping")
+    run(db, SWAP_SQL, "swapping", marker=None, limit=QUICK_STEP_SECONDS)
+
+
+def scan_bucket(scans: int) -> int:
+    """Index into SCAN_BUCKETS: 0 for the most-scanned products."""
+    for i, floor in enumerate(SCAN_BUCKETS):
+        if scans >= floor:
+            return i
+    return len(SCAN_BUCKETS) - 1
+
+
+def most_scanned_first(products, workdir: Path):
+    """`products` again, the most-scanned first (by SCAN_BUCKETS; export order within a bucket).
+
+    The export is far too big to sort in memory, so each product is spilled
+    to its bucket's file in `workdir` and the files are read back in order.
+    """
+    paths = [workdir / f"scans-{i:02d}.jsonl.gz" for i in range(len(SCAN_BUCKETS))]
+    files = [gzip.open(p, "wt", encoding="utf-8", compresslevel=1) for p in paths]
+    try:
+        for product in products:
+            files[scan_bucket(product.scans)].write(json.dumps(asdict(product), ensure_ascii=False) + "\n")
+    finally:
+        for f in files:
+            f.close()
+    for p in paths:
+        with gzip.open(p, "rt", encoding="utf-8") as f:
+            for line in f:
+                yield Product(**json.loads(line))
+        p.unlink()
+
+
+def reload_sql(path: Path, version: str, stats: Stats, args, workdir: Path | None = None):
+    """The load as (sql, rows) chunks: session settings, the staging table, then the batches.
+
+    `finish` builds the indexes and swaps afterwards, a step at a time.
+
+    Rows are written most-scanned first, so the table's physical order is
+    popularity. Search caps how many rows it scores per kind of match, and a
+    capped bitmap scan returns rows in physical order, so the cap keeps the
+    products people actually scan (PostgresFoodCatalogRepository, OFF_SEARCH_SQL).
+    """
+    def products():
+        for get in export_rows(path):
+            stats.rows += 1
+            product = product_from(get, stats)
+            if product is None:
                 continue
-        batch[product.barcode] = product
-        if len(batch) >= BATCH_SIZE:
+            stats.with_portion += bool(product.portions)
+            stats.with_fiber += product.fiber is not None
+            stats.with_micros += bool(product.micros)
+            stats.with_country += bool(product.countries)
+            yield product
+        log(f"  read {stats.rows:,} rows; loading the most-scanned first")
+
+    with tempfile.TemporaryDirectory(prefix="opson-off-order-", dir=workdir) as spill:
+        ordered = most_scanned_first(products(), Path(spill))
+        # The first product comes back only once the whole export is read and
+        # spilled, so nothing reaches the database (or holds a connection
+        # open, see LazyOutput) during those minutes.
+        first = next(ordered, None)
+        yield "-- Generated by scripts/import_off_foods.py from the Open Food Facts export (ODbL).\n", 0
+        yield f"-- Export {version}. Loads {STAGING}; `--swap-only` then indexes it and swaps it in for {TABLE}.\n", 0
+        yield session_sql(args.maintenance_work_mem), 0
+        yield prepare_sql(version), 0
+        batch: dict[str, Product] = {}
+        for product in itertools.chain([first] if first else [], ordered):
+            kept = batch.get(product.barcode)
+            if kept is not None:
+                # One statement can't upsert a barcode twice. Keep the newer.
+                stats.same_batch_duplicates += 1
+                if (product.modified or 0) <= (kept.modified or 0):
+                    continue
+            batch[product.barcode] = product
+            if len(batch) >= BATCH_SIZE:
+                stats.sent += len(batch)
+                yield batch_sql(list(batch.values()), version), len(batch)
+                batch.clear()
+        if batch:
             stats.sent += len(batch)
             yield batch_sql(list(batch.values()), version), len(batch)
-            batch.clear()
-    if batch:
-        stats.sent += len(batch)
-        yield batch_sql(list(batch.values()), version), len(batch)
-    log(f"  read {stats.rows:,} rows; building indexes and swapping")
-    yield finalize_sql(version, args.min_rows, args.allow_shrink), 0
+
+
+class LazyOutput:
+    """Opens the real output (and its database connection) on the first write."""
+
+    def __init__(self, make):
+        self._make, self._out = make, None
+
+    def write(self, text: str) -> None:
+        if self._out is None:
+            self._out = self._make()
+        self._out.write(text)
+
+    def close(self) -> None:
+        if self._out is not None:
+            self._out.close()
 
 
 class NullOutput:
@@ -785,8 +931,8 @@ def main() -> int:
                         help=f"refuse to swap in fewer rows than this (default {DEFAULT_MIN_ROWS:,})")
     parser.add_argument("--allow-shrink", action="store_true",
                         help="allow swapping in under 80%% of the live table's rows")
-    parser.add_argument("--maintenance-work-mem", default="128MB",
-                        help="for the index builds (default 128MB, safe on a 1 GB instance)")
+    parser.add_argument("--maintenance-work-mem", default=DEFAULT_MAINTENANCE_WORK_MEM,
+                        help=f"for each index build (default {DEFAULT_MAINTENANCE_WORK_MEM})")
     parser.add_argument("--summary", type=Path, help="append a markdown summary here (e.g. $GITHUB_STEP_SUMMARY)")
     args = parser.parse_args()
 
@@ -810,8 +956,7 @@ def main() -> int:
         if len(found) != 1:
             raise SystemExit(f"{STAGING} should hold exactly one export, found {[r[0] for r in found]}")
         started = time.monotonic()
-        stream([(session_sql(args.maintenance_work_mem), 0),
-                (finalize_sql(found[0][0], args.min_rows, args.allow_shrink), 0)], PsqlOutput(db))
+        finish(db, found[0][0], args)
         text = "\n".join([f"Swapped in {STAGING} in {time.monotonic() - started:.0f}s."] + database_report(db)) + "\n"
         log(text)
         return 0
@@ -833,11 +978,15 @@ def main() -> int:
         if args.dry_run:
             sink = NullOutput()
         elif db is not None:
-            sink = PsqlOutput(db)
+            sink = LazyOutput(lambda: PsqlOutput(db))
         else:
             fooddb = Path(__file__).resolve().parent.parent / "apps" / "server" / "fooddb"
             sink = FileOutput(args.output or fooddb / "off_foods.sql.gz")
-        stream(reload_sql(path, version, stats, args), sink)
+        stream(reload_sql(path, version, stats, args, workdir), sink)
+        if db is not None:
+            finish(db, version, args)
+        elif not args.dry_run:
+            log("  apply the file, then run this again with --swap-only --psql to build the indexes and swap")
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
 

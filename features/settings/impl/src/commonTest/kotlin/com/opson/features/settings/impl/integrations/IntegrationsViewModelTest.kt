@@ -1,12 +1,17 @@
 package com.opson.features.settings.impl.integrations
 
 import com.opson.features.settings.impl.FakePolicySource
+import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.ConnectOutcome
+import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.nutrition.ExerciseAdjustment
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.minus
 import com.opson.libraries.nutrition.PresetId
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.integrations_toast_connected
@@ -25,7 +30,10 @@ class IntegrationsViewModelTest : CoroutineTest() {
 
     private val policy = FakePolicySource(SettingsFixtures.policy(PresetId.Full))
 
-    private fun vm(health: FakeHealthRepository) = IntegrationsViewModel(health, policy, FakeCalendar())
+    private val settings = FakeSettingsRepository(IntegrationsFixtures.settings)
+    private val diary = FakeDiary(IntegrationsFixtures.days)
+
+    private fun vm(health: FakeHealthRepository) = IntegrationsViewModel(health, settings, diary, policy, FakeCalendar())
 
     @Test
     fun inputsArrive_forToday() = runUnitTest {
@@ -46,7 +54,7 @@ class IntegrationsViewModelTest : CoroutineTest() {
     @Test
     fun policyArrives_andTheAmountsFollowIt() = runUnitTest {
         val vm = vm(FakeHealthRepository(status = HealthStatus.Connected, energy = IntegrationsFixtures.energy))
-        policy.policy.value = SettingsFixtures.policy(PresetId.Blind)
+        policy.policy.value = SettingsFixtures.policy(PresetId.NoNumbers)
         assertEquals(ExpendedCard.Hidden, vm.state.expended)
     }
 
@@ -136,6 +144,54 @@ class IntegrationsViewModelTest : CoroutineTest() {
         vm.takeAction(IntegrationsAction.ScreenResumed)
         assertEquals(before + 1, health.refreshes)
         assertEquals(0, health.connects)
+    }
+
+    @Test
+    fun inputsArrive_withTheAnswerAndTheDaysLeftOut() = runUnitTest {
+        val vm = vm(FakeHealthRepository(status = HealthStatus.Connected, energy = IntegrationsFixtures.energy))
+        assertEquals(ExerciseQuestion(ExerciseAdjustment.Some), vm.state.exercise)
+        assertEquals(listOf(IntegrationsFixtures.familyVisit), vm.state.leftOut.days.map { it.date })
+        // The window is Trends' longest span, ending today.
+        assertEquals(listOf(IntegrationsFixtures.today.minus(DatePeriod(days = 89)) to IntegrationsFixtures.today), diary.ranges)
+    }
+
+    @Test
+    fun exercisePicked_writesTheAnswer_andTheQuestionFollows() = runUnitTest {
+        val vm = vm(FakeHealthRepository(status = HealthStatus.Connected, energy = IntegrationsFixtures.energy))
+
+        vm.takeAction(IntegrationsAction.ExercisePicked(ExerciseAdjustment.All))
+
+        assertEquals(ExerciseAdjustment.All, settings.state.value.exerciseRange)
+        assertEquals(ExerciseQuestion(ExerciseAdjustment.All), vm.state.exercise)
+    }
+
+    @Test
+    fun exercisePicked_numbersHaveBeenHard_writesNothing() = runUnitTest {
+        settings.state.value = IntegrationsFixtures.settings.copy(exerciseRange = null, onboarding = OnboardingAnswers(hard = true))
+        val vm = vm(FakeHealthRepository(status = HealthStatus.Connected, energy = IntegrationsFixtures.energy))
+
+        vm.takeAction(IntegrationsAction.ExercisePicked(ExerciseAdjustment.All))
+
+        assertEquals(null, settings.state.value.exerciseRange)
+        assertEquals(null, vm.state.exercise)
+    }
+
+    @Test
+    fun aDayLeftOutElsewhere_showsUpHere() = runUnitTest {
+        val vm = vm(FakeHealthRepository(status = HealthStatus.Connected))
+        val yesterday = IntegrationsFixtures.today.minus(DatePeriod(days = 1))
+
+        diary.setUntracked(yesterday, untracked = true)
+
+        assertEquals(listOf(yesterday, IntegrationsFixtures.familyVisit), vm.state.leftOut.days.map { it.date })
+    }
+
+    @Test
+    fun leaveOutDayTapped_opensTheSheet() = runUnitTest {
+        val vm = vm(FakeHealthRepository())
+        val events = eventsOf(vm)
+        vm.takeAction(IntegrationsAction.LeaveOutDayTapped)
+        assertEquals(listOf<IntegrationsEvent>(IntegrationsEvent.OpenLeaveOut), events)
     }
 
     @Test

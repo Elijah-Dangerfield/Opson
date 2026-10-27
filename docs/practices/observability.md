@@ -13,6 +13,12 @@ fresh UUID, and that one value is stamped everywhere:
 - **Client → Sentry.** `SessionTelemetryBinder` writes it onto the crash-reporting scope as a
   `session_id` tag on every rollover, so every crash, error event, and user-feedback report
   carries it. `install_id` (stable per install) rides along as a second tag.
+- **Nothing typed rides along to Sentry.** A food search's words are in its URL's query, and
+  Ktor's exception messages and the iOS SDK's network breadcrumbs carry whole URLs, so every
+  breadcrumb, message, tag, extra and exception message loses URL queries, fragments and barcode
+  segments first (`SentryUrlScrubbing.kt`, from 0.2). The iOS failed-request event is off for the
+  same reason. Uncaught crashes go straight to the native SDK and are not scrubbed; the network
+  layer catches its own failures, so a URL rarely reaches one.
 - **Client → server.** `DefaultClientHeadersProvider` sends it on every request as `X-Session-Id`
   (plus `X-Install-Id`).
 - **Server → Tempo.** `installHttpServerTracing` (apps/server `plugins/Tracing.kt`) pins
@@ -88,7 +94,7 @@ builds, prod for release).
 
 ## Dashboards live in the repo
 
-Three boards over the client events are committed as JSON under
+The boards (Pulse, Users, User detail and the product boards) are committed as JSON under
 [`ops/grafana/`](../../ops/grafana/README.md) and imported by hand, rather than created in Grafana
 and left there. The reason is what a broken panel looks like: one that filters on an attribute the
 app does not emit renders **empty**, which is indistinguishable from a healthy panel before launch.

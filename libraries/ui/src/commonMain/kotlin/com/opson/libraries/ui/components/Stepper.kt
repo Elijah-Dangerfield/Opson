@@ -42,6 +42,8 @@ fun Stepper(
     modifier: Modifier = Modifier,
     canDecrease: Boolean = true,
     canIncrease: Boolean = true,
+    /** On the amount's text: a nutrition amount carries its metric's test tag, as the leak test reads it. */
+    amountModifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -58,7 +60,7 @@ fun Stepper(
             typography = AppTheme.type.numericLarge,
             color = AppTheme.colors.ink,
             textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).then(amountModifier),
         )
         StepperButton(
             icon = AppIcons.Add.described(stringResource(SharedRes.string.ds_more)),
@@ -76,7 +78,8 @@ private fun StepperButton(icon: IconResource, enabled: Boolean, onClick: () -> U
             .clip(AppTheme.shapes.inputLarge)
             .background(AppTheme.colors.soft)
             .thenIf(!enabled) { alpha(DISABLED_ALPHA) }
-            .thenIf(enabled) { bounceClick(scaleDown = 0.92f, onClick = onClick) },
+            // Clickable even when disabled, so a screen reader hears "dimmed" rather than an unlabelled icon.
+            .bounceClick(enabled = enabled, scaleDown = 0.92f, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon = icon, size = 24.dp, color = AppTheme.colors.ink)

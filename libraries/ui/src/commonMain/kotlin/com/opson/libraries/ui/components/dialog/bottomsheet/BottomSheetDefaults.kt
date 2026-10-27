@@ -13,4 +13,10 @@ object BottomSheetDefaults {
 
     /** The handoff's full-height sheet (the logger), 93% tall so the screen behind still peeks out. */
     const val FullHeightFraction = 0.93f
+
+    /**
+     * Design sync 2's opening height for the logger: about 60%, so the screen it was opened from
+     * stays in view. Dragging up or a tap in search takes it to [FullHeightFraction].
+     */
+    const val PartialHeightFraction = 0.6f
 }

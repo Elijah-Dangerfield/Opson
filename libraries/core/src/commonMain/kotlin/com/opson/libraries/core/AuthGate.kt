@@ -19,12 +19,12 @@ enum class AuthRequirement {
 
     /** A real (server) session of any kind, including a guest. Blocks the
      *  unauthenticated state (signed out, or a guest whose creation is still
-     *  pending). Use for multiplayer, friends rooms, anything that hits the
+     *  pending). Use for sync, search, photo estimates, anything that hits the
      *  user's server-side account. */
     Account,
 
     /** A *claimed* (non-anonymous) account. Blocks guests too. Use for things a
-     *  throwaway guest shouldn't do — e.g. real-money purchases. */
+     *  throwaway guest shouldn't do. */
     ClaimedAccount,
 }
 

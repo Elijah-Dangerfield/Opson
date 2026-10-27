@@ -8,6 +8,10 @@ import com.opson.server.domain.DescribedItem
 import com.opson.server.domain.FoodDescriber
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Portion
+import com.opson.server.domain.SearchCategory
+import com.opson.server.domain.SearchFilter
+import com.opson.server.domain.SearchSort
+import com.opson.server.domain.SearchSource
 import com.opson.server.domain.UserId
 import com.opson.server.plugins.ProblemResponse
 import com.opson.server.plugins.installAuthentication
@@ -54,7 +58,7 @@ class FoodRoutesTest {
         }
     }
 
-    private class FakeDescriber : FoodDescriber {
+    private inner class FakeDescriber : FoodDescriber {
         val texts = mutableListOf<String>()
         override suspend fun describe(text: String): List<DescribedItem> {
             texts += text
@@ -62,7 +66,7 @@ class FoodRoutesTest {
                 DescribedItem(
                     text = "2 eggs", name = "Egg, whole", foodId = UUID.randomUUID(), quantity = 2.0, unit = null,
                     amountText = "2", portionLabel = "1 large", grams = 100.0, nutrients = Nutrients(kcal = 143.0),
-                    micros = emptyMap(), confidence = DescribeConfidence.High,
+                    micros = emptyMap(), confidence = DescribeConfidence.High, food = bread, alternatives = listOf(banana),
                 ),
             )
         }
@@ -117,6 +121,87 @@ class FoodRoutesTest {
             val resp = client.get("/v1/foods/search?q=%20") { auth() }
             assertEquals(HttpStatusCode.BadRequest, resp.status)
             assertEquals("invalid_query", resp.body<ProblemResponse>().error.code)
+        }
+    }
+
+    /** 0.1 calls search with no options: it must get the unfiltered search and today's exact body. */
+    @Test
+    fun searchWithoutOptionsIsTheUnfilteredSearchAndTheSameBody() = runTest {
+        val fixed = food("bananas, raw", kcal = 89.0, portions = listOf(Portion("1 medium", 118.0)), id = UUID(0, 1))
+        val catalog = FakeFoodCatalog(listOf(fixed))
+        withApp(catalog) { client ->
+            val body = client.get("/v1/foods/search?q=banana") { auth() }.bodyAsText()
+            assertEquals(
+                """{"query":"banana","foods":[{"id":"00000000-0000-0000-0000-000000000001","source":"usda_sr",""" +
+                    """"name":"bananas, raw","per100g":{"kcal":89.0,"protein":10.0,"carbs":20.0,"fat":5.0,"fiber":2.0},""" +
+                    """"micros":{"sodium_mg":100.0},"portions":[{"label":"1 medium","grams":118.0}],"tier":1,"verified":true}]}""",
+                body,
+            )
+            assertEquals(listOf(SearchFilter.None), catalog.filters)
+        }
+    }
+
+    @Test
+    fun searchOptionsReachTheCatalog() = runTest {
+        val catalog = FakeFoodCatalog(listOf(banana, bread))
+        withApp(catalog) { client ->
+            client.get("/v1/foods/search?q=banana&category=restaurant&source=usda&sort=name") { auth() }
+            client.get("/v1/foods/search?q=banana&category=common") { auth() }
+            client.get("/v1/foods/search?q=banana&source=off&sort=best") { auth() }
+            assertEquals(
+                listOf(
+                    SearchFilter(SearchCategory.Restaurant, SearchSource.Usda, SearchSort.Name),
+                    SearchFilter(category = SearchCategory.Common),
+                    SearchFilter(source = SearchSource.OpenFoodFacts),
+                ),
+                catalog.filters,
+            )
+        }
+    }
+
+    @Test
+    fun nevoIsOnlyForAnAppThatCreditsIt() = runTest {
+        val catalog = FakeFoodCatalog(listOf(banana))
+        withApp(catalog) { client ->
+            client.get("/v1/foods/search?q=banana&credits=nevo") { auth() }
+            client.get("/v1/foods/search?q=banana&credits=someday,nevo&category=common") { auth() }
+            client.get("/v1/foods/search?q=banana&credits=someday") { auth() }
+            assertEquals(
+                listOf(
+                    SearchFilter(nevo = true),
+                    SearchFilter(category = SearchCategory.Common, nevo = true),
+                    SearchFilter.None,
+                ),
+                catalog.filters,
+            )
+        }
+    }
+
+    @Test
+    fun unknownSearchOptionsAre400s() = runTest {
+        val catalog = FakeFoodCatalog(listOf(banana))
+        withApp(catalog) { client ->
+            mapOf("category=snacks" to "invalid_category", "source=nccdb" to "invalid_source", "sort=newest" to "invalid_sort")
+                .forEach { (param, code) ->
+                    val resp = client.get("/v1/foods/search?q=banana&$param") { auth() }
+                    assertEquals(HttpStatusCode.BadRequest, resp.status, param)
+                    assertEquals(code, resp.body<ProblemResponse>().error.code, param)
+                }
+            assertTrue(catalog.searches.isEmpty(), "a bad option never searches or records")
+        }
+    }
+
+    @Test
+    fun searchOptionsOfferOpenFoodFactsOnlyWhenTheServerSearchesIt() = runTest {
+        val catalog = FakeFoodCatalog()
+        withApp(catalog) { client ->
+            assertEquals(HttpStatusCode.Unauthorized, client.get("/v1/foods/search/options").status)
+            val off = client.get("/v1/foods/search/options") { auth() }.body<SearchOptionsResponse>()
+            assertEquals(listOf("usda"), off.sources)
+            assertEquals(listOf("restaurant", "beverage", "common"), off.categories)
+
+            catalog.searchesOpenFoodFacts = true
+            assertEquals(listOf("usda", "off"), client.get("/v1/foods/search/options") { auth() }.body<SearchOptionsResponse>().sources)
         }
     }
 
@@ -205,7 +290,30 @@ class FoodRoutesTest {
             assertEquals("high", item.confidence)
             assertEquals(100.0, item.grams)
             assertEquals(143.0, item.kcal)
+            // 0.2 adds the food and what to swap to; 0.1 ignores both.
+            assertEquals(bread.id.toString(), item.food?.id)
+            assertEquals(bread.portions.size, item.food?.portions?.size)
+            assertEquals(listOf(banana.id.toString()), item.alternatives.map { it.id })
             assertEquals(listOf("2 eggs"), describer.texts)
+        }
+    }
+
+    @Test
+    fun searchAndDescribeHaveTheirOwnLimits() = runTest {
+        withApp { client ->
+            val searches = (1..121).map { client.get("/v1/foods/search?q=banana") { auth() }.status }
+            assertEquals(HttpStatusCode.TooManyRequests, searches.last())
+            assertTrue(searches.dropLast(1).all { it == HttpStatusCode.OK })
+
+            val describes = (1..31).map {
+                client.post("/v1/describe") {
+                    auth()
+                    contentType(ContentType.Application.Json)
+                    setBody(DescribeRequest("2 eggs"))
+                }.status
+            }
+            assertEquals(HttpStatusCode.TooManyRequests, describes.last())
+            assertTrue(describes.dropLast(1).all { it == HttpStatusCode.OK })
         }
     }
 

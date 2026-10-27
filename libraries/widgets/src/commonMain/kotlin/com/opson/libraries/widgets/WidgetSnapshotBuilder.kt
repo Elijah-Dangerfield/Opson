@@ -12,10 +12,14 @@ import com.opson.libraries.nutrition.ringValue
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.plus
 
-/** What the snapshot is built from: today's day and the person's settings. */
+/**
+ * What the snapshot is built from: today's day and the person's settings, and today's Burned
+ * ([burnedKcal], with `release.goalsAndEnergy`), which a set deficit or surplus aims at.
+ */
 data class WidgetInputs(
     val today: Day,
     val settings: Settings,
+    val burnedKcal: Int? = null,
 )
 
 /**
@@ -39,16 +43,16 @@ object WidgetSnapshotBuilder {
         val tomorrow = Day.empty(inputs.today.date.plus(DatePeriod(days = 1)))
         return WidgetSnapshot(
             version = VERSION,
-            days = listOf(inputs.today, tomorrow).map { day(it, settings, policy, copy) },
+            days = listOf(inputs.today, tomorrow).map { day(it, settings, policy, copy, inputs.burnedKcal) },
             logLabel = copy.log,
             logLink = WidgetLinks.LOG,
-            colors = WidgetPalette.colors(settings.palette),
+            colors = WidgetPalette.colors,
         )
     }
 
-    private fun day(day: Day, settings: Settings, policy: VisibilityPolicy, copy: WidgetCopy): WidgetDay {
+    private fun day(day: Day, settings: Settings, policy: VisibilityPolicy, copy: WidgetCopy, burnedKcal: Int?): WidgetDay {
         // An untracked day has nothing to read it by, as on Today.
-        val energy = if (day.untracked) null else energy(day, settings, policy)
+        val energy = if (day.untracked) null else energy(day, settings, policy, burnedKcal)
         val meals = if (energy == null && !day.untracked && day.mealGroupsOn(settings)) meals(day, copy) else emptyList()
         return WidgetDay(
             day = day.date.toString(),
@@ -64,12 +68,14 @@ object WidgetSnapshotBuilder {
     }
 
     /** Only when calories are shown: amount and unit as Today's ring, the bar as Today's hero. */
-    private fun energy(day: Day, settings: Settings, policy: VisibilityPolicy): WidgetEnergy? {
+    private fun energy(day: Day, settings: Settings, policy: VisibilityPolicy, burnedKcal: Int?): WidgetEnergy? {
         val eaten = day.totals().kcal.known
         val context = FormatContext(day = day.date)
         val ring = policy.ringValue(Metric.Calories, eaten, Surface.Widget, context) ?: return null
         val label = policy.resolve(Metric.Calories, eaten, Surface.Widget, context) as? Display.Shown ?: return null
-        val range = settings.targets.today(settings.exercise, 0, 0)
+        // The day's own goal, so a "different by day" range draws as it does on Targets. A widget
+        // has no watch reading, so activity adds nothing.
+        val range = settings.targets.rangeFor(day.date, settings.numbers.preset, burnedKcal)
         val scaleMax = range.maxKcal * BAR_HEADROOM
         val bar = policy.resolve(Metric.Calories, eaten, Surface.Widget, context.copy(of = scaleMax, bare = true)) as? Display.Shown
         return WidgetEnergy(

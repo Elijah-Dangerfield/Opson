@@ -42,6 +42,8 @@ fun ChoiceRow(
     modifier: Modifier = Modifier,
     role: Role = Role.Checkbox,
     enabled: Boolean = true,
+    /** A muted line under the label, as onboarding's goal styles carry their range or what they mean. */
+    detail: String? = null,
 ) {
     val colors = AppTheme.colors
     val shape = AppTheme.shapes.inputLarge
@@ -58,12 +60,10 @@ fun ChoiceRow(
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
         if (role == Role.RadioButton) RadioDot(selected = selected) else CheckMark(selected = selected)
-        Text(
-            text = label,
-            typography = AppTheme.type.bodyBold,
-            color = colors.ink,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, typography = AppTheme.type.bodyBold, color = colors.ink)
+            if (detail != null) Text(text = detail, typography = AppTheme.type.secondary, color = colors.muted)
+        }
     }
 }
 
@@ -93,6 +93,13 @@ private fun ChoiceRowPreview() {
             ChoiceRow(label = "Eating enough", selected = true, onClick = {})
             ChoiceRow(label = "Some are fine", selected = true, onClick = {}, role = Role.RadioButton)
             ChoiceRow(label = "Not sure yet", selected = false, onClick = {}, role = Role.RadioButton)
+            ChoiceRow(
+                label = "Set deficit",
+                selected = false,
+                onClick = {},
+                role = Role.RadioButton,
+                detail = "Eat a set amount under what you burn",
+            )
         }
     }
 }

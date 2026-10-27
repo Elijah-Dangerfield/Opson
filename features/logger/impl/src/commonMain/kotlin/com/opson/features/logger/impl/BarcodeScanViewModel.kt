@@ -22,12 +22,13 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The scanner: camera permission, one lookup per read, and what a miss
- * offers. A hit hands the food to the amount sheet; a miss is reported once
+ * offers. A hit hands the food to the food detail; a miss is reported once
  * so the catalog's gaps show up on a dashboard, then offers "Save the name
  * only" first.
  *
  * The camera reads the same pack many times a second, so only a read that
- * arrives while scanning, and that is a real GTIN, starts a lookup.
+ * arrives while scanning, and that is a real GTIN, starts a lookup, and only
+ * that read buzzes ([BarcodeScanEvent.Scanned]).
  */
 @Inject
 class BarcodeScanViewModel(
@@ -36,13 +37,14 @@ class BarcodeScanViewModel(
     private val missReporter: BarcodeMissReporter,
     private val permissions: CameraPermissions,
     private val customFoods: CustomFoodRepository,
-    private val basketStore: BasketStore,
+    private val logger: FoodLogger,
     private val telemetry: BarcodeTelemetry,
 ) : SEAViewModel<BarcodeScanState, BarcodeScanEvent, BarcodeScanAction>(
     initialStateArg = BarcodeScanState(slot = route.slot),
 ) {
     private val day: LocalDate = LocalDate.parse(route.dayIso)
     private val slot: MealSlot = route.slot
+    private val overSearch: Boolean = route.overSearch
     private var model = ScanModel()
     private var slowJob: Job? = null
 
@@ -72,7 +74,7 @@ class BarcodeScanViewModel(
                 if (lookup !is Lookup.Running || lookup.code != action.code) return
                 slowJob?.cancel()
                 telemetry.hit(action.food.source, slow = lookup.slow, typed = lookup.typed)
-                sendEvent(BarcodeScanEvent.OpenAmount(action.food.id, day, slot))
+                sendEvent(BarcodeScanEvent.OpenFoodDetail(action.food.id, day, slot))
             }
             is BarcodeScanAction.FoodNotFound -> {
                 val lookup = model.lookup
@@ -89,7 +91,7 @@ class BarcodeScanViewModel(
             }
             is BarcodeScanAction.MissNameTyped -> action.rebuild { copy(name = action.text) }
             BarcodeScanAction.SaveNameTapped -> saveName()
-            BarcodeScanAction.SearchInsteadTapped -> sendEvent(BarcodeScanEvent.Close)
+            BarcodeScanAction.SearchInsteadTapped -> sendEvent(if (overSearch) BarcodeScanEvent.Close else BarcodeScanEvent.OpenSearch(day, slot))
             BarcodeScanAction.ScanAgainTapped -> action.rebuild { copy(lookup = Lookup.Idle, name = "", typed = null) }
             BarcodeScanAction.AllowCameraTapped -> sendEvent(BarcodeScanEvent.RequestPermission)
             BarcodeScanAction.OpenSettingsTapped -> permissions.openSettings()
@@ -98,6 +100,10 @@ class BarcodeScanViewModel(
                 action.rebuild { copy(cameraUnavailable = true) }
                 telemetry.cameraUnavailable()
             }
+            is BarcodeScanAction.CameraStarted -> if (model.hasTorch != action.hasTorch) {
+                action.rebuild { copy(hasTorch = action.hasTorch) }
+            }
+            BarcodeScanAction.TorchTapped -> if (model.hasTorch) action.rebuild { copy(torchOn = !torchOn) }
             // Composing the viewfinder again starts a new camera session.
             BarcodeScanAction.RetryCameraTapped -> action.rebuild { copy(cameraUnavailable = false) }
             BarcodeScanAction.TypeCodeTapped -> if (model.lookup == Lookup.Idle) {
@@ -149,6 +155,9 @@ class BarcodeScanViewModel(
         val code = if (read.format == BarcodeFormat.UpcE) Gtin.completeUpcE(read.value) else read.value
         // A failed check digit is a misread, not a product: keep scanning.
         if (Gtin.normalize(code) == null) return
+        // The first valid read is taken at once: the check digit already rules out a misread, so
+        // waiting for the same code twice would only make the person hold still longer.
+        sendEvent(BarcodeScanEvent.Scanned)
         lookUp(action, code, typed = false)
     }
 
@@ -175,7 +184,7 @@ class BarcodeScanViewModel(
     private suspend fun saveName() {
         val name = model.name.trim()
         if (model.lookup !is Lookup.Missed || name.isEmpty()) return
-        pickNameOnly(name, customFoods.observeAll().first(), customFoods, basketStore)
+        logger.log(day, slot, listOf(nameOnlyPick(name, customFoods.observeAll().first(), customFoods)))
         sendEvent(BarcodeScanEvent.Close)
     }
 

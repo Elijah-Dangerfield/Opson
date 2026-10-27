@@ -1,15 +1,21 @@
 package com.opson.server.data
 
+import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodSearchEventsTable
 import com.opson.server.db.FoodsTable
 import com.opson.server.domain.BarcodeOutcome
 import com.opson.server.domain.CatalogSource
 import com.opson.server.domain.ExternalProduct
+import com.opson.server.domain.FoodCategory
 import com.opson.server.domain.FoodTier
 import com.opson.server.domain.MatchTier
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Portion
+import com.opson.server.domain.SearchCategory
+import com.opson.server.domain.SearchFilter
+import com.opson.server.domain.SearchSort
+import com.opson.server.domain.SearchSource
 import com.opson.server.testing.DiaryFixtures
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -20,8 +26,10 @@ import org.junit.After
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -42,6 +50,7 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
         brand: String? = null,
         popularity: Int = 0,
         barcode: String? = null,
+        category: FoodCategory? = null,
     ): UUID {
         val id = UUID.randomUUID()
         database.blockingTransaction {
@@ -52,6 +61,7 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
                 it[FoodsTable.name] = name
                 it[FoodsTable.brand] = brand
                 it[FoodsTable.barcode] = barcode
+                it[FoodsTable.category] = category?.wire
                 it[kcal100g] = 100f
                 it[micros] = """{"sodium_mg": 1.5}"""
                 it[portions] = """[{"label": "1 cup", "grams": 240}]"""
@@ -137,6 +147,108 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
         assertEquals(listOf("Hazelnut spread"), names("nutella"))
     }
 
+    // ── Search options (category, source, sort) ─────────────────────────────
+
+    private suspend fun names(query: String, filter: SearchFilter) =
+        repo.search(query, 10, record = false, filter = filter).map { it.food.name }
+
+    @Test
+    fun noOptionsIsTheStatementAndTheResults01Gets() = runTest {
+        seed("Chicken, roasted")
+        seed("Chicken sandwich, fast food", category = FoodCategory.Restaurant)
+        seed("Chicken Noodle Soup", source = "usda_branded", barcode = "00051000012616")
+        assertSame(PostgresFoodCatalogRepository.SEARCH_SQL, PostgresFoodCatalogRepository.searchSql(SearchFilter.None))
+        assertSame(
+            PostgresFoodCatalogRepository.SEARCH_SQL,
+            PostgresFoodCatalogRepository.searchSql(SearchFilter(sort = SearchSort.Name)),
+            "sorting by name reorders in Kotlin and leaves the statement alone",
+        )
+        assertFalse("category" in PostgresFoodCatalogRepository.SEARCH_SQL)
+        assertEquals(names("chicken"), names("chicken", SearchFilter.None))
+    }
+
+    @Test
+    fun aCategoryKeepsOnlyItsFoods() = runTest {
+        seed("Chicken, roasted")
+        seed("Chicken sandwich, fast food", category = FoodCategory.Restaurant)
+        seed("CHICK-FIL-A, chicken sandwich", source = "usda_sr", category = FoodCategory.Restaurant)
+        seed("Chicken broth drink", source = "usda_branded", barcode = "00051000012617", category = FoodCategory.Beverage)
+
+        assertEquals(
+            setOf("Chicken sandwich, fast food", "CHICK-FIL-A, chicken sandwich"),
+            names("chicken", SearchFilter(category = SearchCategory.Restaurant)).toSet(),
+        )
+        assertEquals(listOf("Chicken broth drink"), names("chicken", SearchFilter(category = SearchCategory.Beverage)))
+        val typo = names("chiken sandwich", SearchFilter(category = SearchCategory.Restaurant))
+        assertTrue(typo.all { "sandwich" in it.lowercase() && it != "Chicken broth drink" }, "the typo fallback filters too: $typo")
+    }
+
+    @Test
+    fun commonIsTiersOneAndTwo() = runTest {
+        seed("Peanut butter, smooth")
+        seed("Peanut Butter Crunchy", source = "usda_branded", barcode = "00051500255193")
+        seed("Peanut butter, organic", source = "nutritionix")
+        seed("Peanut butter, bio", source = "off")
+        assertEquals(
+            setOf("Peanut butter, smooth", "Peanut Butter Crunchy"),
+            names("peanut butter", SearchFilter(category = SearchCategory.Common)).toSet(),
+        )
+    }
+
+    @Test
+    fun theSourceFilterKeepsUsdaOrOpenFoodFacts() = runTest {
+        seed("Hazelnut spread", source = "usda_sr")
+        seed("Hazelnut spread, chocolate", source = "usda_branded", barcode = "00009800895007")
+        seed("Hazelnut spread, bio", source = "off")
+        seed("Hazelnut spread, licensed", source = "nutritionix")
+        assertEquals(
+            setOf("Hazelnut spread", "Hazelnut spread, chocolate"),
+            names("hazelnut spread", SearchFilter(source = SearchSource.Usda)).toSet(),
+        )
+        assertEquals(listOf("Hazelnut spread, bio"), names("hazelnut spread", SearchFilter(source = SearchSource.OpenFoodFacts)))
+    }
+
+    // ── NEVO: tier 1, and only for a client that shows its citation ──────────
+
+    @Test
+    fun nevoRowsAreGenericFoodsTheTriggerTiers() = runTest {
+        val id = seed("Apple with skin average", source = "nevo")
+        val row = database.blockingTransaction { FoodsTable.selectAll().where { FoodsTable.id eq id }.single() }
+        assertEquals(1, row[FoodsTable.tier].toInt())
+        assertTrue(row[FoodsTable.verified])
+        assertEquals(CatalogSource.Nevo, repo.findById(id)?.source)
+    }
+
+    @Test
+    fun nevoOnlyReachesAClientThatCitesIt() = runTest {
+        seed("Apple, raw")
+        seed("Apple with skin average", source = "nevo")
+        seed("Apple pie", source = "usda_branded", barcode = "00051000012618")
+
+        assertEquals(listOf("Apple, raw", "Apple pie"), names("apple", SearchFilter.None), "0.1 and Describe never see it")
+        assertEquals(
+            listOf("Apple, raw", "Apple with skin average", "Apple pie"),
+            names("apple", SearchFilter(nevo = true)),
+            "generic, so ahead of Branded",
+        )
+        assertTrue("Apple with skin average" in names("apple", SearchFilter(category = SearchCategory.Common, nevo = true)))
+        assertFalse("Apple with skin average" in names("apple", SearchFilter(category = SearchCategory.Common)))
+        assertFalse("Apple with skin average" in names("apple", SearchFilter(source = SearchSource.Usda, nevo = true)))
+        assertFalse("Apple with skin average" in names("aple", SearchFilter.None), "nor through the typo fallback")
+    }
+
+    @Test
+    fun sortByNameOrdersTheBestMatchesAToZ() = runTest {
+        seed("Rice, white, cooked")
+        seed("Rice, brown, cooked")
+        seed("Arroz con pollo, rice")
+        repeat(4) { seed("Zucchini $it") }
+        val best = names("rice", SearchFilter.None)
+        val byName = names("rice", SearchFilter(sort = SearchSort.Name))
+        assertEquals(best.toSet(), byName.toSet(), "the same matches, reordered")
+        assertEquals(listOf("Arroz con pollo, rice", "Rice, brown, cooked", "Rice, white, cooked"), byName)
+    }
+
     @Test
     fun likeWildcardsInTheQueryAreLiteral() = runTest {
         seed("Banana")
@@ -161,6 +273,44 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
             FoodSearchEventsTable.selectAll().orderBy(FoodSearchEventsTable.id).map { it[FoodSearchEventsTable.queryNorm] to it[FoodSearchEventsTable.resultCount] }
         }
         assertEquals(listOf("banana" to 1, "zzzz unknown food" to 0), events)
+    }
+
+    @Test
+    fun withTheCacheOnARepeatedSearchIsAnsweredFromMemoryAndStillRecorded() = runTest {
+        val cached = PostgresFoodCatalogRepository(database, clock, FoodSourcesConfig(searchCacheEntries = 10))
+        seed("Banana, raw")
+        assertEquals(listOf("Banana, raw"), cached.search("banana", 10).map { it.food.name })
+
+        seed("Bananas, dried")
+        assertEquals(listOf("Banana, raw"), cached.search("Banana ", 10).map { it.food.name }, "the same normalized query")
+        assertEquals(2, cached.search("banana", 10, filter = SearchFilter(sort = SearchSort.Name)).size, "a filter is another question")
+
+        val events = database.blockingTransaction {
+            FoodSearchEventsTable.selectAll().map { it[FoodSearchEventsTable.queryNorm] to it[FoodSearchEventsTable.resultCount] }
+        }
+        assertEquals(listOf("banana" to 1, "banana" to 1, "banana" to 2), events, "a cached answer is recorded like any other")
+    }
+
+    @Test
+    fun anExternalProductClearsTheCacheSoSearchFindsIt() = runTest {
+        val cached = PostgresFoodCatalogRepository(database, clock, FoodSourcesConfig(searchCacheEntries = 10))
+        assertEquals(emptyList(), cached.search("hazelnut spread", 10, record = false))
+        cached.upsertExternalProduct(
+            CatalogSource.OpenFoodFacts,
+            ExternalProduct("3017620422003", "Hazelnut spread", "Acme", Nutrients(kcal = 539.0), micros = emptyMap(), portions = emptyList()),
+        )
+        assertEquals(listOf("Hazelnut spread"), cached.search("hazelnut spread", 10, record = false).map { it.food.name })
+    }
+
+    @Test
+    fun whenGenericFoodsFillThePageANamedBrandStillPlaces() = runTest {
+        // Generic matches fill a page of one, so only Branded rows whose brand carries a query word are read.
+        seed("Cereal, Cheerios", source = "usda_sr")
+        seed("Cheerios Cereal", source = "usda_branded", brand = "Cheerios", barcode = "00016000275287")
+        seed("Cheerios Snack Mix", source = "usda_branded", brand = "Acme", barcode = "00016000275294")
+
+        assertEquals(listOf("Cheerios Cereal"), names("cheerios", limit = 1))
+        assertEquals(listOf("Cheerios Cereal", "Cereal, Cheerios", "Cheerios Snack Mix"), names("cheerios", limit = 3))
     }
 
     @Test
@@ -268,6 +418,67 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
             names("greek yogurt"),
             "half a brand (Greek, without Gods) is not naming it, so the generic food leads",
         )
+    }
+
+    @Test
+    fun aBrandMatchNeverBeatsANameMatch() = runTest {
+        // Found in the app: "brown rice" offered this product of the brand "Rice Browns" first.
+        seed("Crispy Sushi Rice Patties", source = "usda_branded", brand = "Rice Browns", barcode = "00850000000017")
+        seed("Brown Rice Cakes", source = "usda_branded", brand = "Lundberg", barcode = "00073416000506")
+        seed("Snacks, rice cracker brown rice, plain", source = "usda_sr")
+        seed("Rice, brown, cooked, no added fat", source = "usda_fndds")
+
+        assertEquals(
+            listOf(
+                "Rice, brown, cooked, no added fat",
+                "Snacks, rice cracker brown rice, plain",
+                "Brown Rice Cakes",
+                "Crispy Sushi Rice Patties",
+            ),
+            names("brown rice"),
+            "the head match first, the generic full-text match next, then Branded by name, the brand-only match last",
+        )
+    }
+
+    @Test
+    fun aBrandMustBeNamedInOrder() = runTest {
+        seed("Jasmine Green Tea", source = "usda_branded", brand = "Teas' Tea", barcode = "00835003000010")
+        seed("Tea, hot, leaf, green", source = "usda_fndds")
+        assertEquals("Tea, hot, leaf, green", names("green tea").first(), "\"green tea\" does not name Teas' Tea")
+        assertEquals("Jasmine Green Tea", names("teas tea").first())
+    }
+
+    @Test
+    fun aShortQueryIsAWordBeingTypedNotABrand() = runTest {
+        seed("Skinny Sticks", source = "usda_branded", brand = "Avo's", barcode = "00850000000024")
+        seed("Avocado, raw", source = "usda_fndds")
+        assertEquals(listOf("Avocado, raw", "Skinny Sticks"), names("avo"))
+    }
+
+    @Test
+    fun headMatchesLookPastCategoriesAndWordOrder() = runTest {
+        seed("Salmon, sockeye, canned, total can contents", source = "usda_sr")
+        seed("Salmon salad", source = "usda_fndds")
+        seed("Fish, salmon, raw", source = "usda_sr")
+        assertEquals(MatchTier.Head, repo.search("salmon", 10, record = false).single { it.food.name == "Fish, salmon, raw" }.tier)
+        seed("Bread, whole grain white", source = "usda_fndds")
+        seed("Bread, white", source = "usda_fndds")
+        assertEquals("Bread, white", names("white bread").first(), "\"Bread, white\" is the query's words in another order")
+    }
+
+    @Test
+    fun restaurantRowsInGenericTablesFollowPlainFoods() = runTest {
+        seed("CHICK-FIL-A, chicken sandwich", source = "usda_sr")
+        seed("Chicken, ground, raw", source = "usda_fndds")
+        assertEquals(listOf("Chicken, ground, raw", "CHICK-FIL-A, chicken sandwich"), names("chick"))
+        assertEquals("CHICK-FIL-A, chicken sandwich", names("chick fil a").first(), "unless the query names the restaurant")
+    }
+
+    @Test
+    fun aTypoFindsTheFoodEvenWhenProductsShareTheTypo() = runTest {
+        seed("Organic Hummus, Avacado & Cilantro", source = "usda_branded", brand = "Baba", barcode = "00850000000031")
+        seed("Avocado, raw", source = "usda_fndds")
+        assertEquals(listOf("Avocado, raw", "Organic Hummus, Avacado & Cilantro"), names("avacado"))
     }
 
     @Test

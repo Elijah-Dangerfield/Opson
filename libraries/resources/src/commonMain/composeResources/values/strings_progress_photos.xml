@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Progress photos (design sync 2, 8.4 and 8.5), behind release.progressPhotos. docs/plans/screens/progress-photos.md. -->
+<resources>
+    <!-- The row on Weight -->
+    <string name="photos_title">Progress photos</string>
+    <string name="photos_row_last">Last taken %1$s · private</string>
+    <string name="photos_row_none">Private, on this phone only</string>
+
+    <!-- The grid -->
+    <string name="photos_privacy">Stored only on this phone, behind your phone's lock. Never shared or backed up.</string>
+    <string name="photos_empty">No photos yet. Take the first set whenever you like.</string>
+    <string name="photos_compare">Compare</string>
+    <string name="photos_take">Take photos</string>
+    <string name="photos_more">More options</string>
+    <string name="photos_delete_all">Delete all photos</string>
+    <string name="photos_delete_all_title">Delete all progress photos?</string>
+    <string name="photos_delete_all_body">They're only on this phone, so they can't be brought back.</string>
+    <string name="photos_delete">Delete</string>
+    <string name="photos_cancel">Cancel</string>
+    <string name="photos_saved_title">Saved comparisons</string>
+    <string name="photos_saved_pair">%1$s and %2$s</string>
+    <string name="photos_tile">%1$s, %2$s</string>
+
+    <!-- The lock -->
+    <string name="photos_locked_title">Progress photos are locked</string>
+    <string name="photos_locked_body">Unlock with your phone's lock to see them.</string>
+    <string name="photos_unlock">Unlock</string>
+    <string name="photos_unlock_reason">Unlock your progress photos</string>
+    <string name="photos_no_lock_title">Your phone has no lock</string>
+    <string name="photos_no_lock_body">Set a passcode, fingerprint or face unlock in your phone's settings to keep these private.</string>
+
+    <!-- Poses -->
+    <string name="photos_pose_front">Front</string>
+    <string name="photos_pose_side">Side</string>
+
+    <!-- Taking them -->
+    <string name="photos_capture_shutter">Take photo</string>
+    <string name="photos_capture_flip">Switch camera</string>
+    <string name="photos_capture_done">Done</string>
+    <string name="photos_capture_hint">Line yourself up with the last one.</string>
+    <string name="photos_capture_saved">%1$s saved.</string>
+    <string name="photos_capture_failed">That one didn't take. Try again.</string>
+    <string name="photos_camera_title">Allow the camera</string>
+    <string name="photos_camera_body">Opson needs the camera to take progress photos. They stay on this phone.</string>
+    <string name="photos_camera_allow">Allow camera</string>
+    <string name="photos_camera_settings">Open settings</string>
+    <string name="photos_camera_unavailable">The camera isn't available right now.</string>
+
+    <!-- Compare -->
+    <string name="photos_side_by_side">Side by side</string>
+    <string name="photos_slider">Slider</string>
+    <string name="photos_note">Note on %1$s · optional</string>
+    <string name="photos_note_hint">Anything you want to remember</string>
+    <string name="photos_choice">%1$s · %2$s</string>
+    <string name="photos_pick_left">Earlier photo</string>
+    <string name="photos_pick_right">Later photo</string>
+    <string name="photos_save_comparison">Save comparison</string>
+    <string name="photos_remove_comparison">Remove saved comparison</string>
+    <string name="photos_slider_handle">Slide between the two photos</string>
+
+    <!-- One photo -->
+    <string name="photos_delete_one">Delete this photo</string>
+    <string name="photos_delete_one_title">Delete this photo?</string>
+    <string name="photos_delete_one_body">It's only on this phone, so it can't be brought back.</string>
+</resources>

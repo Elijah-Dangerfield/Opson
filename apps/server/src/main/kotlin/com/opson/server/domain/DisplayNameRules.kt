@@ -19,12 +19,18 @@ object DisplayNameRules {
 
     /**
      * True when [raw] is an acceptable display name: within length bounds
-     * (after trimming) and free of emoji.
+     * (after trimming), free of emoji, and free of control characters and
+     * bidi overrides. Those are invisible (a newline, a right-to-left override
+     * that makes one name read as another), and Postgres refuses a NUL
+     * outright. The zero-width non-joiner stays allowed: Persian names use it.
+     * Stricter than the client's copy on purpose: this is the backstop.
      */
     fun isValid(raw: String): Boolean {
         val trimmed = raw.trim()
-        return trimmed.length in MIN_LENGTH..MAX_LENGTH && !containsEmoji(trimmed)
+        return trimmed.length in MIN_LENGTH..MAX_LENGTH && !containsEmoji(trimmed) && trimmed.none(::isInvisible)
     }
+
+    private fun isInvisible(c: Char): Boolean = Character.isISOControl(c) || c in '\u202A'..'\u202E' || c in '\u2066'..'\u2069'
 
     /**
      * True if [text] contains any emoji code point. Tests each Unicode code

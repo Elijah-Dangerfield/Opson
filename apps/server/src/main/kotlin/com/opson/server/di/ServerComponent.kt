@@ -2,10 +2,13 @@ package com.opson.server.di
 
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.config.SupabaseConfig
+import com.opson.server.data.PhotoDescriber
 import com.opson.server.db.Database
 import com.opson.server.domain.AppConfigAdminRepository
 import com.opson.server.domain.AppConfigManifestRepository
 import com.opson.server.domain.AppConfigSource
+import com.opson.server.domain.AppleSignInClient
+import com.opson.server.domain.AppleTokenRepository
 import com.opson.server.domain.BarcodeMissRepository
 import com.opson.server.domain.BarcodeLookup
 import com.opson.server.domain.ExportRepository
@@ -13,10 +16,14 @@ import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodDescriber
 import com.opson.server.domain.ExampleSource
 import com.opson.server.domain.ModerationRepository
-import com.opson.server.domain.PlayerReportRepository
+import com.opson.server.domain.PhotoEstimateLimiter
 import com.opson.server.domain.ProfileRepository
 import com.opson.server.domain.SupabaseAdminClient
 import com.opson.server.domain.SyncRepository
+import com.opson.server.domain.UserInstallRepository
+import com.opson.server.domain.UserLookupRepository
+import com.opson.server.domain.WaitlistLimiter
+import com.opson.server.domain.WaitlistRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,7 +41,7 @@ import kotlin.time.ExperimentalTime
  * Boot once at startup with the runtime [Database]:
  *
  * ```
- * val component = ServerComponent::class.create(database)
+ * val component = ServerComponent::class.create(database, supabaseConfig, foodSourcesConfig, Clock.System)
  * routing { meRoutes(component.profileRepository) }
  * ```
  *
@@ -55,14 +62,21 @@ abstract class ServerComponent(
      * client answers NotConfigured) instead of failing at construction.
      */
     @get:Provides val supabaseConfig: SupabaseConfig? = null,
-    /** Which outside food sources a barcode miss may ask. Default: Open Food Facts only. */
+    /** Which outside food sources a barcode miss may ask (default: Open Food Facts only), and the photo estimate provider. */
     @get:Provides val foodSourcesConfig: FoodSourcesConfig = FoodSourcesConfig(),
+    /**
+     * Wall-clock source, one for the whole graph so every component sees the
+     * same "now". Production never passes it; the end-to-end suite does, to
+     * step past time-based caches without waiting.
+     */
+    @get:Provides val clock: Clock = Clock.System,
 ) {
     abstract val exampleSource: ExampleSource
     abstract val profileRepository: ProfileRepository
     abstract val moderationRepository: ModerationRepository
-    abstract val playerReportRepository: PlayerReportRepository
     abstract val supabaseAdminClient: SupabaseAdminClient
+    abstract val appleSignInClient: AppleSignInClient
+    abstract val appleTokenRepository: AppleTokenRepository
     abstract val appConfigSource: AppConfigSource
     abstract val appConfigAdminRepository: AppConfigAdminRepository
     abstract val appConfigManifestRepository: AppConfigManifestRepository
@@ -71,15 +85,13 @@ abstract class ServerComponent(
     abstract val barcodeLookup: BarcodeLookup
     abstract val barcodeMissRepository: BarcodeMissRepository
     abstract val foodDescriber: FoodDescriber
+    abstract val photoDescriber: PhotoDescriber
+    abstract val photoEstimateLimiter: PhotoEstimateLimiter
     abstract val exportRepository: ExportRepository
-    abstract val clock: Clock
-
-    /**
-     * Wall-clock source. Singleton so every component sees the same "now".
-     * Tests pass a fixed clock to the class under test directly.
-     */
-    @Provides
-    fun provideClock(): Clock = Clock.System
+    abstract val waitlistRepository: WaitlistRepository
+    abstract val waitlistLimiter: WaitlistLimiter
+    abstract val userInstallRepository: UserInstallRepository
+    abstract val userLookupRepository: UserLookupRepository
 
     /**
      * Long-lived application scope for server-owned background work (e.g. the

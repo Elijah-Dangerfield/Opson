@@ -3,6 +3,35 @@ plugins {
     id("co.touchlab.skie") version "0.10.12"
     alias(libs.plugins.sentryAndroid)
     alias(libs.plugins.baselineProfile)
+    alias(libs.plugins.aboutLibraries)
+}
+
+/**
+ * The open-source licences for Support › Credits, read from the app's own dependency graph.
+ * Regenerate after changing dependencies, and commit the result:
+ *
+ *     ./gradlew :apps:compose:exportLibraryDefinitions
+ *
+ * What ships: the Android release classpath and the iOS source set's dependencies, merged.
+ * Licences come from each artifact's POM, with the full text of each SPDX licence fetched once
+ * per export. `aboutlibraries/libraries` adds what Gradle never sees: Sentry Cocoa, which Xcode
+ * links through Swift Package Manager (keep its version with `project.pbxproj`).
+ */
+aboutLibraries {
+    collect {
+        configPath = file("aboutlibraries")
+        filterVariants.addAll("release", "metadataIosMain")
+    }
+    export {
+        outputFile = rootProject.file("libraries/resources/src/commonMain/composeResources/files/licenses.json")
+        excludeFields.addAll("description", "developers", "funding", "organization", "scm", "generated")
+        prettyPrint = true
+    }
+    library {
+        duplicationMode = com.mikepenz.aboutlibraries.plugin.DuplicateMode.MERGE
+        duplicationRule = com.mikepenz.aboutlibraries.plugin.DuplicateRule.SIMPLE
+        mergePlatformArtifacts = true
+    }
 }
 
 android {
@@ -88,6 +117,8 @@ kotlin {
             implementation(projects.libraries.reminders.impl)
             implementation(projects.libraries.scanner)
             implementation(projects.libraries.scanner.impl)
+            implementation(projects.libraries.speech)
+            implementation(projects.libraries.speech.impl)
             implementation(projects.libraries.widgets)
             implementation(projects.libraries.widgets.impl)
 
@@ -96,7 +127,6 @@ kotlin {
             implementation(projects.libraries.opson.storage)
             implementation(projects.libraries.config)
             implementation(projects.libraries.config.impl)
-            implementation(projects.libraries.opson.storage)
             implementation(projects.libraries.networking)
             implementation(projects.libraries.networking.impl)
             implementation(projects.libraries.telemetry.impl)
@@ -110,6 +140,8 @@ kotlin {
             implementation(projects.libraries.foods.impl)
             implementation(projects.libraries.health)
             implementation(projects.libraries.health.impl)
+            implementation(projects.libraries.progressphotos)
+            implementation(projects.libraries.progressphotos.impl)
 
             implementation(projects.features.foods)
             implementation(projects.features.foods.impl)
@@ -125,6 +157,8 @@ kotlin {
             implementation(projects.features.today.impl)
             implementation(projects.features.trends)
             implementation(projects.features.trends.impl)
+            implementation(projects.features.upgrade)
+            implementation(projects.features.upgrade.impl)
 
             implementation(libs.atomicfu)
             implementation(libs.androidx.lifecycle.runtimeCompose)
@@ -136,6 +170,10 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+        }
+
+        commonTest.dependencies {
+            implementation(projects.libraries.flowroutines.testing)
         }
     }
 }

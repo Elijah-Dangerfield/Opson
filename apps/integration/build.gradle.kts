@@ -4,6 +4,13 @@ plugins {
 
 android {
     namespace = "com.opson.apps.integration"
+
+    // OkHttp sees android.jar on this classpath, decides it is on Android and
+    // asks android.util.Log whether to log, which throws on the stub jar. It
+    // only ever got as far as that when the server built an OkHttp client
+    // (the Anthropic SDK's) before the app's own; let the stubs answer
+    // defaults instead, so nothing depends on which client starts first.
+    testOptions.unitTests.isReturnDefaultValues = true
 }
 
 // End-to-end integration harness. The tests run as Android unit tests on the
@@ -49,13 +56,41 @@ kotlin {
             implementation(projects.libraries.telemetry.impl)
             // RemindersEnabled, for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.reminders)
-            // HealthReleaseFlag, for ConfigManifestRegistryDriftTest.
+            // HealthReleaseFlag and GoalsAndEnergyEnabled, for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.health)
             // `release.barcode` lives next to the logger it gates.
             implementation(projects.features.logger.impl)
+            // release.todaySummary, release.todaySelect and release.checkIn live next to Today.
+            implementation(projects.features.today.impl)
+            // release.onboardingSetup lives next to onboarding.
+            implementation(projects.features.onboarding.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.widgets)
+            // FindSupportEnabled (release.findSupport), for ConfigManifestRegistryDriftTest.
+            implementation(projects.features.settings)
+            // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
+            implementation(projects.libraries.progressphotos)
+            // The upgrade.* values, and the guard the remote-config journeys drive.
+            implementation(projects.features.upgrade)
+            implementation(projects.features.upgrade.impl)
             implementation(libs.kotlinx.serialization.json)
+
+            // The device side of the journeys: the diary, its sync engine and
+            // the Room database it writes, the food catalog client and the
+            // user-change reset, wired by hand in TestClient the way the app's
+            // DI graph wires them.
+            implementation(projects.libraries.diary.impl)
+            implementation(projects.libraries.foods)
+            implementation(projects.libraries.foods.impl)
+            implementation(projects.libraries.nutrition)
+            implementation(projects.libraries.opson)
+            implementation(projects.libraries.opson.impl)
+            implementation(projects.libraries.opson.storage)
+            implementation(projects.libraries.storage.impl)
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.sqlite.bundled)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.ktor.client.core)
 
             // Boot a real server on an ephemeral port + verify HS256 test JWTs.
             // Declared here because :apps:server's dependencies are
@@ -112,6 +147,9 @@ tasks.withType<Test>().configureEach {
     // against the views these migrations create.
     inputs.dir(rootProject.file("apps/server/src/main/resources/db/migration")).withPropertyName("serverMigrations")
 
+    // RoomMigrationTest builds each old database from the exported Room schemas.
+    inputs.dir(rootProject.file("libraries/storage/impl/schemas")).withPropertyName("roomSchemas")
+
     // The same hole one level along: the tests also grep the Kotlin tree, for
     // `ConfiguredValue` declarations and for `logEvent(...)` call sites, and
     // Gradle cannot see either read. A
@@ -126,4 +164,50 @@ tasks.withType<Test>().configureEach {
             exclude("**/build/**", ".claude/**")
         },
     ).withPropertyName("sourceTreeScan")
+}
+
+// ── Real Room on the host JVM ─────────────────────────────────────────────────
+//
+// The journeys run the app's own AppDatabase, in memory, under the bundled
+// SQLite driver production uses. On this classpath that driver is its Android
+// variant, which ships its native library for Android ABIs only and loads it
+// with System.loadLibrary("sqliteJni"). The JVM variant of the same artifact
+// carries that library, built from the same sources, for desktop platforms, so
+// it is unpacked here and put on java.library.path. None of the JVM jar's
+// classes reach the classpath.
+val sqliteHostNatives: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = false
+}
+
+dependencies {
+    sqliteHostNatives(libs.androidx.sqlite.bundled.jvm)
+}
+
+interface ArchiveAccess {
+    @get:Inject
+    val archives: ArchiveOperations
+}
+
+val stageSqliteNatives = tasks.register<Sync>("stageSqliteNatives") {
+    val archives = objects.newInstance<ArchiveAccess>().archives
+    from(sqliteHostNatives.elements.map { jars -> jars.map { archives.zipTree(it.asFile) } })
+    include("natives/**")
+    into(layout.buildDirectory.dir("sqlite-natives"))
+}
+
+tasks.withType<Test>().configureEach {
+    dependsOn(stageSqliteNatives)
+    val os = System.getProperty("os.name").lowercase()
+    val arch = if (System.getProperty("os.arch") in setOf("aarch64", "arm64")) "arm64" else "x64"
+    val platform = when {
+        "mac" in os -> "osx_$arch"
+        "win" in os -> "windows_$arch"
+        else -> "linux_$arch"
+    }
+    systemProperty(
+        "java.library.path",
+        layout.buildDirectory.dir("sqlite-natives/natives/$platform").get().asFile.absolutePath,
+    )
 }

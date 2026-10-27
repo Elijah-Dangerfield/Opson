@@ -38,6 +38,26 @@ data class MealPatternFacts(
     val taggedMeals: Int,
     /** Average energy of one meal, over the meals with known energy. */
     val energyPerMeal: Map<MealSlot, Double>,
+    /**
+     * How hungry the tagged meals on each weekday were, on average: 0 for not
+     * hungry up to [MealPatterns.HUNGER_STEPS] for very hungry. Weekdays with
+     * no tag are missing.
+     */
+    val hungerByWeekday: Map<DayOfWeek, Double> = emptyMap(),
+    /**
+     * The weekdays of days without breakfast, most often first, when meals on
+     * those days were tagged hungrier than on days with it. `null` when the
+     * tags don't say so. A fact, not advice.
+     */
+    val hungrierWithoutBreakfast: List<DayOfWeek>? = null,
+    /**
+     * Hunger from Close the day's check-in (design sync 2, 5.6, "From your check-ins"), one answer
+     * a day: each weekday's average, 0 for rarely hungry up to 1 for very. Weekdays with no
+     * check-in hunger are missing.
+     */
+    val checkInHungerByWeekday: Map<DayOfWeek, Double> = emptyMap(),
+    /** [hungrierWithoutBreakfast], read from the check-ins rather than the meal tags. */
+    val checkInHungrierWithoutBreakfast: List<DayOfWeek>? = null,
 )
 
 /** [slot] on [days] is usually [minutes] later than on the rest of the week. */
@@ -53,6 +73,18 @@ object MealPatterns {
 
     /** How much later a weekday has to run before it is worth saying. */
     const val LATER_MINUTES = 45
+
+    /** Very hungry, on the scale [MealPatternFacts.hungerByWeekday] uses. */
+    const val HUNGER_STEPS = 3
+
+    // TODO(clinician): how many tagged days, and how big a difference, before
+    // "Hungrier on days you skipped breakfast" is worth saying.
+    private const val MIN_DAYS_EACH_WAY = 2
+    private const val HUNGRIER_BY = 0.5
+
+    /** Very hungry on the check-in's scale, [DayHunger.Very]'s ordinal. */
+    private val CHECK_IN_STEPS = DayHunger.entries.lastIndex
+    private const val MAX_SKIPPED_DAYS = 3
 
     private const val MIN_FOR_LATER = 6
     private const val MAX_LATER_DAYS = 3
@@ -100,7 +132,44 @@ object MealPatterns {
             energyPerMeal = MealSlot.meals.associateWith { slot ->
                 span.filter { it.items(slot).isNotEmpty() }.mapNotNull { it.totals(slot).kcal.value }
             }.filterValues { it.isNotEmpty() }.mapValues { (_, list) -> list.average() },
+            hungerByWeekday = span
+                .flatMap { day -> day.hungerLevels().map { day.date.dayOfWeek to it } }
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, levels) -> levels.average() },
+            hungrierWithoutBreakfast = hungrierWithoutBreakfast(span, { it.hungerLevels() }, HUNGRIER_BY),
+            checkInHungerByWeekday = span
+                .mapNotNull { day -> day.checkInHunger()?.let { day.date.dayOfWeek to it } }
+                .groupBy({ it.first }, { it.second.toDouble() / CHECK_IN_STEPS })
+                .mapValues { (_, levels) -> levels.average() },
+            // The same difference as the tags', half a tag step, measured on the check-in's scale.
+            checkInHungrierWithoutBreakfast = hungrierWithoutBreakfast(
+                span,
+                { listOfNotNull(it.checkInHunger()) },
+                HUNGRIER_BY * CHECK_IN_STEPS / HUNGER_STEPS,
+            ),
         )
+    }
+
+    /** Each tagged, done meal's hunger, 0 (not hungry) to [HUNGER_STEPS] (very hungry). */
+    private fun Day.hungerLevels(): List<Int> = MealSlot.meals.mapNotNull { slot ->
+        feelings[slot]?.hunger?.takeIf { isMealDone(slot) }?.let { HUNGER_STEPS - it.ordinal }
+    }
+
+    /** The check-in's hunger, 0 (rarely) to [CHECK_IN_STEPS] (very), when it was answered. */
+    private fun Day.checkInHunger(): Int? = checkIn?.hunger?.ordinal
+
+    /** [levels] are a day's hunger answers on one scale; [hungrierBy] is the difference worth saying on it. */
+    private fun hungrierWithoutBreakfast(span: List<Day>, levels: (Day) -> List<Int>, hungrierBy: Double): List<DayOfWeek>? {
+        val tagged = span.filter { levels(it).isNotEmpty() }
+        val (without, with) = tagged.partition { !it.isMealDone(MealSlot.Breakfast) }
+        if (without.size < MIN_DAYS_EACH_WAY || with.size < MIN_DAYS_EACH_WAY) return null
+        val hungerWithout = without.flatMap(levels).average()
+        val hungerWith = with.flatMap(levels).average()
+        if (hungerWithout - hungerWith < hungrierBy) return null
+        return without.groupingBy { it.date.dayOfWeek }.eachCount().entries
+            .sortedWith(compareByDescending<Map.Entry<DayOfWeek, Int>> { it.value }.thenBy { it.key.ordinal })
+            .take(MAX_SKIPPED_DAYS)
+            .map { it.key }
     }
 
     private fun mealTimes(day: Day, timeZone: TimeZone): Map<MealSlot, Int> = MealSlot.meals.mapNotNull { slot ->

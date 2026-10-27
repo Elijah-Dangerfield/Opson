@@ -1,0 +1,178 @@
+/* Atkinson Hyperlegible Next is the app's only text face (FontFamily.kt), so the
+   site uses it too, self-hosted and subset to Latin. License: ../fonts/OFL.txt */
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  src: url('../fonts/atkinson-hyperlegible-next-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  src: url('../fonts/atkinson-hyperlegible-next-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  src: url('../fonts/atkinson-hyperlegible-next-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  src: url('../fonts/atkinson-hyperlegible-next-extrabold.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+
+/* Every color comes from the app (Palette.kt). The dark band is Pine's hero, the
+   color of the summary card in the screenshots. The accent is the clay of the app
+   icon, and on the dark band it uses the lighter clay the app uses in dark mode.
+   The page and text neutrals are Espresso's, which lean warm toward the clay.
+
+   Contrast (WCAG 2.x), every pair used for text:
+     ink #241C18 on bg 15.1, ink-soft 8.6, muted 5.6, clay links 5.0, pine titles 10.8
+     white on pine 12.0, on-hero-soft on pine 7.9, ink on light clay 7.3
+     ink on breakfast 6.2, white on lunch 4.8, snack 4.7, dinner 4.9, clay 5.5
+   The light clay button against pine is 5.2, past the 3:1 a control needs. */
+:root {
+  --bg: #F5F3F2;
+  --surface: #FFFFFF;
+  --ink: #241C18;
+  --ink-soft: #4C443F;
+  --muted: #685F5B;
+  --line: #E9E5E3;
+  --soft: #F0ECEA;
+  --title: #143D37;
+
+  --accent: #A4512D;
+  --accent-tint: #F5E4DA;
+  --on-accent: #FFFFFF;
+
+  --hero: #143D37;
+  --on-hero: #FFFFFF;
+  --on-hero-soft: #CBD4D3;
+  --cta: #E39A6F;
+  --on-cta: #241C18;
+
+  /* The meal colors (Colors.meal): breakfast is the carbs orange, lunch the fat
+     blue, snack the fiber brown, dinner the protein pink. Lunch and dinner are a
+     step darker than in the app so white text on them passes AA. */
+  --breakfast: #E0892B;
+  --on-breakfast: #241C18;
+  --lunch: #3572C9;
+  --on-lunch: #FFFFFF;
+  --snack: #8E6E3A;
+  --on-snack: #FFFFFF;
+  --dinner: #C2406F;
+  --on-dinner: #FFFFFF;
+
+  /* Radii from Tokens.kt: input 14, card 22, sheet 28, pill for chips and
+     round buttons. */
+  --radius-input: 14px;
+  --radius-card: 22px;
+  --radius-block: 28px;
+  --radius-pill: 999px; /* unslop-ignore: the app's pill shape (AppShapes.pill) */
+  --shadow-raised: 0 8px 20px rgba(20, 20, 30, .14);
+
+  --font: 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  --page: min(1180px, 100% - 32px);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+/* The nav is sticky, so anything scrolled to (a #link, a focused field, a
+   field the browser flags as invalid) stops below it, not under it. */
+html { scroll-padding-top: 96px; }
+body {
+  font: 400 17px/1.55 var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+main { flex: 1; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+::selection { background: var(--accent-tint); color: var(--ink); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+h1, h2, h3 {
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+p { margin: 0; text-wrap: pretty; }
+
+.wrap { width: var(--page); margin-inline: auto; }
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The pill button. On the dark band it takes the light clay. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 800 17px var(--font);
+  text-decoration: none;
+  cursor: pointer;
+}
+.button:hover { filter: brightness(1.08); }
+.button:disabled { opacity: .6; cursor: progress; }
+.dark .button { background: var(--cta); color: var(--on-cta); }
+
+/* Anything on the dark band. */
+.dark {
+  background: var(--hero);
+  color: var(--on-hero);
+}
+.dark a { color: var(--on-hero); }
+.dark :focus-visible { outline-color: var(--cta); }
+
+/* Text pages: privacy, terms, contact, 404. */
+.page { padding: clamp(48px, 8vw, 88px) 0 clamp(72px, 10vw, 112px); }
+.page .wrap { max-width: 68ch; }
+.page-head { margin-bottom: 40px; }
+.page-head h1 { color: var(--title); font-size: clamp(40px, 6vw, 60px); }
+.page-head p { color: var(--muted); margin-top: 14px; font-size: 18px; }
+
+.prose { color: var(--ink-soft); font-size: 17px; line-height: 1.65; }
+.prose h2 { font-size: 26px; color: var(--title); margin: 44px 0 12px; }
+.prose h3 { font-size: 19px; color: var(--ink); margin: 28px 0 8px; }
+.prose p, .prose ul, .prose ol { margin: 0 0 14px; }
+.prose ul, .prose ol { padding-left: 22px; }
+.prose li { margin-bottom: 6px; }
+.prose strong { color: var(--ink); font-weight: 700; }
+.prose > :first-child { margin-top: 0; }
+/* The legal pages list providers and licenses in plain two-column tables. */
+.prose table { width: 100%; border-collapse: collapse; margin: 0 0 18px; font-size: 16px; }
+.prose th, .prose td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); }
+.prose th { color: var(--ink); font-weight: 700; }
+
+.callout {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  padding: 26px 28px;
+}

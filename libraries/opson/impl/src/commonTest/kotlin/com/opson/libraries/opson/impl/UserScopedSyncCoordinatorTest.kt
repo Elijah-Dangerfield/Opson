@@ -320,7 +320,6 @@ class UserScopedSyncCoordinatorTest : CoroutineTest() {
 
     private class FakeAppState : AppState {
         override val isOffline = MutableStateFlow(false)
-        override val isBlockActive = MutableStateFlow(false)
     }
 
     private class StoreWritingSyncer(private val store: MutableList<String>) : UserScopedSyncer {

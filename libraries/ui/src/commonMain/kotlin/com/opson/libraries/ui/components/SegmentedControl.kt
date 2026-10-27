@@ -13,12 +13,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.tick
 import com.opson.system.AppTheme
 import com.opson.system.background
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -26,7 +28,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /**
  * The handoff's segmented control: a soft track with equal-width segments, the selected one
  * raised onto the surface color. Used for Day / Week average, Weighed / Estimated / Just the
- * name, Off / Subtle / Full and the like.
+ * name, Off / Subtle / Full and the like. Moving to another segment ticks.
  */
 @Composable
 fun <T> SegmentedControl(
@@ -38,6 +40,7 @@ fun <T> SegmentedControl(
     minHeight: Dp = 42.dp,
 ) {
     val colors = AppTheme.colors
+    val haptics = LocalHapticFeedback.current
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -52,7 +55,14 @@ fun <T> SegmentedControl(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(option) })
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.Tab,
+                        onClick = {
+                            if (!isSelected) haptics.tick()
+                            onSelect(option)
+                        },
+                    )
                     .padding(
                         start = if (index == 0) 3.dp else 1.dp,
                         end = if (index == options.lastIndex) 3.dp else 1.dp,
@@ -70,7 +80,8 @@ fun <T> SegmentedControl(
                     typography = AppTheme.type.bodyStrong,
                     color = if (isSelected) colors.ink else colors.muted,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
+                    // Two lines, so large text wraps "Just the name" rather than cutting it off.
+                    maxLines = 2,
                 )
             }
         }

@@ -75,33 +75,36 @@ data class TypographyResource internal constructor(
 
     fun style(color: Color) = style.copy(color = color)
 
+    // The variants below are built once per style and kept: they are read in composable bodies
+    // (`AppTheme.type.bodyBold.ExtraBold`), and each copy builds a new TextStyle.
+
     val Italic: TypographyResource
-        get() = copy(fontStyle = FontStyle.Italic, identifier = "${identifier}-italic")
+        by lazy(LazyThreadSafetyMode.PUBLICATION) { copy(fontStyle = FontStyle.Italic, identifier = "${identifier}-italic") }
 
     val Bold: TypographyResource
-        get() = copy(fontWeight = FontWeight.Bold, identifier = "${identifier}-bold")
+        by lazy(LazyThreadSafetyMode.PUBLICATION) { copy(fontWeight = FontWeight.Bold, identifier = "${identifier}-bold") }
 
     val ExtraBold: TypographyResource
-        get() = copy(fontWeight = FontWeight.ExtraBold, identifier = "${identifier}-extrabold")
+        by lazy(LazyThreadSafetyMode.PUBLICATION) { copy(fontWeight = FontWeight.ExtraBold, identifier = "${identifier}-extrabold") }
 
     val SemiBold: TypographyResource
-        get() = copy(fontWeight = FontWeight.SemiBold, identifier = "${identifier}-semibold")
+        by lazy(LazyThreadSafetyMode.PUBLICATION) { copy(fontWeight = FontWeight.SemiBold, identifier = "${identifier}-semibold") }
 
     val Medium: TypographyResource
-        get() = copy(fontWeight = FontWeight.Medium, identifier = "${identifier}-medium")
+        by lazy(LazyThreadSafetyMode.PUBLICATION) { copy(fontWeight = FontWeight.Medium, identifier = "${identifier}-medium") }
 
     val Normal: TypographyResource
-        get() = copy(fontWeight = FontWeight.Normal, identifier = "${identifier}-normal")
+        by lazy(LazyThreadSafetyMode.PUBLICATION) { copy(fontWeight = FontWeight.Normal, identifier = "${identifier}-normal") }
 
     val Light: TypographyResource
-        get() = copy(fontWeight = FontWeight.Light, identifier = "${identifier}-light")
+        by lazy(LazyThreadSafetyMode.PUBLICATION) { copy(fontWeight = FontWeight.Light, identifier = "${identifier}-light") }
 
     /**
      * Tabular figures, so digits share one width and a changing number does not shift the
      * text around it. Every figure in the app uses this; `AppTheme.type.numeric*` already has it.
      */
     val Tabular: TypographyResource
-        get() = copy(fontFeatureSettings = TABULAR_FIGURES, identifier = "${identifier}-tnum")
+        by lazy(LazyThreadSafetyMode.PUBLICATION) { copy(fontFeatureSettings = TABULAR_FIGURES, identifier = "${identifier}-tnum") }
 }
 
 internal const val TABULAR_FIGURES = "tnum"
@@ -175,7 +178,7 @@ interface CaptionTypography {
 
 /**
  * The legacy role-named scale (`AppTheme.typography.Body.B500`, ...). Every group renders in
- * [AppFontFamily]; only Brand keeps its script face. New code should use `AppTheme.type`.
+ * [AppFontFamily]; only Brand uses the wordmark face, [BrandFontFamily]. New code should use `AppTheme.type`.
  */
 @Composable
 fun rememberTypography(): Typography {
@@ -662,7 +665,7 @@ private fun PreviewBrandTypography() {
                     modifier = Modifier.padding(bottom = Dimension.D500)
                 )
                 Text(
-                    text = "Lust Script font for brand identity, logos, and decorative headlines",
+                    text = "The wordmark face: Atkinson Hyperlegible Next ExtraBold",
                     fontSize = 14.sp,
                     color = Color(0xFF666666),
                     modifier = Modifier.padding(bottom = Dimension.D1000)

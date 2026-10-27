@@ -3,6 +3,7 @@ package com.opson.features.settings.impl.pause
 import com.opson.features.settings.impl.FakeNumbersChanger
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.findSupportFlag
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersChange
@@ -33,7 +34,7 @@ class PauseViewModelTest : CoroutineTest() {
     @Test
     fun openingTheSheetIsReported() = runUnitTest {
         val changer = FakeNumbersChanger()
-        PauseViewModel(change, changer)
+        PauseViewModel(change, changer, findSupportFlag())
 
         assertEquals(listOf<NumbersChange>(change), changer.shown)
     }
@@ -42,15 +43,19 @@ class PauseViewModelTest : CoroutineTest() {
     fun theSubjectNamesWhatComesBack() = runUnitTest {
         val changer = FakeNumbersChanger()
 
-        assertEquals(PauseSubject.Number(Metric.Water), PauseViewModel(change, changer).state.subject)
+        assertEquals(PauseSubject.Number(Metric.Water), PauseViewModel(change, changer, findSupportFlag()).state.subject)
         assertEquals(
             PauseSubject.Preset(PresetId.Full),
-            PauseViewModel(NumbersChange.PickPreset(PresetId.Full), changer).state.subject,
+            PauseViewModel(NumbersChange.PickPreset(PresetId.Full), changer, findSupportFlag()).state.subject,
         )
-        assertEquals(PauseSubject.ThePause, PauseViewModel(NumbersChange.TurnOffPause, changer).state.subject)
+        assertEquals(PauseSubject.ThePause, PauseViewModel(NumbersChange.TurnOffPause, changer, findSupportFlag()).state.subject)
         assertEquals(
             PauseSubject.RevealTime(LocalTime(19, 30)),
-            PauseViewModel(NumbersChange.SetRevealAt(LocalTime(19, 30)), changer).state.subject,
+            PauseViewModel(NumbersChange.SetRevealAt(LocalTime(19, 30)), changer, findSupportFlag()).state.subject,
+        )
+        assertEquals(
+            PauseSubject.ProgressPhotos,
+            PauseViewModel(NumbersChange.SetProgressPhotos(shown = true), changer, findSupportFlag()).state.subject,
         )
     }
 
@@ -68,7 +73,7 @@ class PauseViewModelTest : CoroutineTest() {
 
     @Test
     fun theCountdownReachesZeroAfterTenSeconds() = runUnitTest {
-        val vm = PauseViewModel(change, FakeNumbersChanger())
+        val vm = PauseViewModel(change, FakeNumbersChanger(), findSupportFlag())
         assertEquals(10, vm.state.secondsLeft)
 
         advanceTimeBy(3.seconds)
@@ -87,7 +92,7 @@ class PauseViewModelTest : CoroutineTest() {
     @Test
     fun showThemBeforeTheWaitIsOverDoesNothing() = runUnitTest {
         val changer = FakeNumbersChanger()
-        val vm = PauseViewModel(change, changer)
+        val vm = PauseViewModel(change, changer, findSupportFlag())
         val events = eventsOf(vm)
         advanceTimeBy(9.seconds)
         runCurrent()
@@ -101,7 +106,7 @@ class PauseViewModelTest : CoroutineTest() {
     @Test
     fun showThemAfterTheWaitAppliesTheExactChangeOnce() = runUnitTest {
         val changer = FakeNumbersChanger()
-        val vm = PauseViewModel(change, changer)
+        val vm = PauseViewModel(change, changer, findSupportFlag())
         val events = eventsOf(vm)
         advanceTimeBy(10.seconds)
         runCurrent()
@@ -121,7 +126,7 @@ class PauseViewModelTest : CoroutineTest() {
     @Test
     fun keepingThingsAppliesNothing() = runUnitTest {
         val changer = FakeNumbersChanger()
-        val vm = PauseViewModel(change, changer)
+        val vm = PauseViewModel(change, changer, findSupportFlag())
         val events = eventsOf(vm)
 
         vm.takeAction(PauseAction.KeepAsTheyAreTapped)
@@ -138,7 +143,7 @@ class PauseViewModelTest : CoroutineTest() {
     @Test
     fun aSwipeDownIsAKeep() = runUnitTest {
         val changer = FakeNumbersChanger()
-        val vm = PauseViewModel(change, changer)
+        val vm = PauseViewModel(change, changer, findSupportFlag())
 
         vm.takeAction(PauseAction.SheetDismissed)
 
@@ -148,7 +153,7 @@ class PauseViewModelTest : CoroutineTest() {
 
     @Test
     fun aReasonCanBePickedAndCleared() = runUnitTest {
-        val vm = PauseViewModel(change, FakeNumbersChanger())
+        val vm = PauseViewModel(change, FakeNumbersChanger(), findSupportFlag())
 
         vm.takeAction(PauseAction.ReasonPicked(PauseReason.Curious))
         assertEquals(PauseReason.Curious, vm.state.reason)
@@ -158,5 +163,43 @@ class PauseViewModelTest : CoroutineTest() {
 
         vm.takeAction(PauseAction.ReasonPicked(PauseReason.ProviderAsked))
         assertNull(vm.state.reason)
+    }
+
+    @Test
+    fun weightBackToNumbersIsHeldLikeAnyOtherRaise() = runUnitTest {
+        // The Weight screen's old Numbers / Trend only / Hidden switch lives in Modes now, so
+        // Trend only back to Numbers waits here, named as weight.
+        val weight = NumbersChange.Override(Metric.Weight, Visibility.Show)
+        val changer = FakeNumbersChanger()
+        val vm = PauseViewModel(weight, changer, findSupportFlag())
+
+        assertEquals(PauseSubject.Number(Metric.Weight), vm.state.subject)
+        vm.takeAction(PauseAction.ShowThemTapped)
+        assertTrue(changer.confirmed.isEmpty(), "nothing applies before the wait is over")
+
+        advanceTimeBy(10.seconds)
+        runCurrent()
+        vm.takeAction(PauseAction.ShowThemTapped)
+        assertEquals(listOf<NumbersChange>(weight), changer.confirmed)
+    }
+
+    @Test
+    fun talkToSomeoneOpensFindSupport_onlyWithTheFlag_andChangesNothing() = runUnitTest {
+        val changer = FakeNumbersChanger()
+        val off = PauseViewModel(change, changer, findSupportFlag(on = false))
+        val offEvents = eventsOf(off)
+        assertEquals(false, off.state.talkToSomeone)
+        off.takeAction(PauseAction.TalkToSomeoneTapped)
+        assertTrue(offEvents.isEmpty())
+
+        val on = PauseViewModel(change, changer, findSupportFlag(on = true))
+        val onEvents = eventsOf(on)
+        assertTrue(on.state.talkToSomeone)
+        on.takeAction(PauseAction.TalkToSomeoneTapped)
+
+        assertEquals(listOf<PauseEvent>(PauseEvent.OpenFindSupport), onEvents)
+        assertTrue(changer.confirmed.isEmpty())
+        assertTrue(changer.kept.isEmpty())
+        assertEquals(false, on.state.finished)
     }
 }

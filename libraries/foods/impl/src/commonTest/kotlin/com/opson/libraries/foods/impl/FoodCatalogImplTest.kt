@@ -1,9 +1,14 @@
 package com.opson.libraries.foods.impl
 
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.FoodTier
 import com.opson.libraries.foods.Portion
+import com.opson.libraries.foods.SearchCategory
+import com.opson.libraries.foods.SearchOptions
+import com.opson.libraries.foods.SearchOrder
+import com.opson.libraries.foods.SearchSource
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
 import kotlinx.coroutines.flow.Flow
@@ -16,6 +21,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -36,6 +42,23 @@ class FoodCatalogImplTest : CoroutineTest() {
     private val catalog = FoodCatalogImpl(api, cache, clock)
 
     @Test
+    fun describeCarriesTheMatchedFoodAndItsAlternatives() = runUnitTest {
+        val item = DescribedItemDto(
+            text = "some rice", name = "rice", foodId = "rice", quantity = 1.0, amountText = "1 cup",
+            portionLabel = "1 cup", grams = 158.0, kcal = 205.0, confidence = "high",
+            food = rice, alternatives = listOf(yogurt),
+        )
+        api.describeResult = Result.success(DescribeResponse(listOf(item, item.copy(food = null, alternatives = emptyList()))))
+
+        val (matched, fromAnOlderServer) = catalog.describe("some rice").getOrThrow()
+
+        assertEquals(rice.toDomain(), matched.food)
+        assertEquals(listOf("yogurt"), matched.alternatives.map { it.id })
+        assertNull(fromAnOlderServer.food)
+        assertTrue(fromAnOlderServer.alternatives.isEmpty())
+    }
+
+    @Test
     fun searchResultsComeFromTheServerWhenItAnswers() = runUnitTest {
         api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
 
@@ -44,6 +67,43 @@ class FoodCatalogImplTest : CoroutineTest() {
         assertFalse(result.fromCache)
         assertEquals(listOf("rice"), result.foods.map { it.id })
         assertTrue(cache.rows.value.isEmpty(), "browsing results is not picking them")
+    }
+
+    @Test
+    fun aSearchAnsweredAMomentAgoIsAnsweredFromMemory() = runUnitTest {
+        api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
+        assertNull(catalog.recentSearch("rice"), "nothing asked yet")
+
+        catalog.search("rice")
+        val again = catalog.search("  RICE ").getOrThrow()
+
+        assertEquals(1, api.filters.size, "one round trip for the same normalized query")
+        assertEquals(listOf("rice"), again.foods.map { it.id })
+        assertFalse(again.fromCache, "a server answer, not the offline fallback")
+        assertEquals(again, catalog.recentSearch("Rice"))
+        assertNull(catalog.recentSearch("rice", filter = FoodSearchFilter(order = SearchOrder.Name)), "a filter is another question")
+    }
+
+    @Test
+    fun aRememberedSearchIsAskedAgainAfterFiveMinutes() = runUnitTest {
+        api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
+        catalog.search("rice")
+
+        clock.now += 5.minutes
+        assertNull(catalog.recentSearch("rice"))
+        catalog.search("rice")
+        assertEquals(2, api.filters.size)
+    }
+
+    @Test
+    fun aFailedOrOfflineSearchIsNotRemembered() = runUnitTest {
+        catalog.markUsed(rice.toDomain())
+        api.searchResult = Result.failure(IllegalStateException("offline"))
+        assertTrue(catalog.search("rice").getOrThrow().fromCache)
+        assertNull(catalog.recentSearch("rice"))
+
+        api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
+        assertFalse(catalog.search("rice").getOrThrow().fromCache, "back online, the server is asked")
     }
 
     @Test
@@ -56,6 +116,41 @@ class FoodCatalogImplTest : CoroutineTest() {
 
         assertTrue(result.fromCache)
         assertEquals(listOf("rice"), result.foods.map { it.id })
+    }
+
+    @Test
+    fun searchOptionsGoToTheServerAndAnUnfilteredSearchSendsNone() = runUnitTest {
+        api.searchResult = Result.success(FoodSearchResponse("rice", listOf(rice)))
+        val restaurant = FoodSearchFilter(category = SearchCategory.Restaurant, order = SearchOrder.Name)
+
+        catalog.search("rice")
+        catalog.search("rice", filter = restaurant)
+
+        assertEquals(listOf(FoodSearchFilter.None, restaurant), api.filters)
+    }
+
+    @Test
+    fun offlineSearchFiltersBySourceAndTierButHasNoCategories() = runUnitTest {
+        val riceSoup = rice.copy(id = "rice-soup", name = "Rice soup, bowl", source = "off", tier = 4)
+        val riceNevo = rice.copy(id = "rice-nevo", name = "Rice white boiled", source = "nevo", tier = 1)
+        catalog.markUsed(rice.toDomain())
+        catalog.markUsed(riceSoup.toDomain())
+        catalog.markUsed(riceNevo.toDomain())
+        api.searchResult = Result.failure(IllegalStateException("offline"))
+        suspend fun ids(filter: FoodSearchFilter) = catalog.search("rice", filter = filter).getOrThrow().foods.map { it.id }.toSet()
+
+        assertEquals(setOf("rice", "rice-soup", "rice-nevo"), ids(FoodSearchFilter.None))
+        assertEquals(setOf("rice"), ids(FoodSearchFilter(source = SearchSource.Usda)))
+        assertEquals(setOf("rice-soup"), ids(FoodSearchFilter(source = SearchSource.OpenFoodFacts)))
+        assertEquals(setOf("rice", "rice-nevo"), ids(FoodSearchFilter(category = SearchCategory.Common)))
+        assertEquals(emptySet(), ids(FoodSearchFilter(category = SearchCategory.Beverage)))
+    }
+
+    @Test
+    fun searchOptionsSayWhetherTheServerSearchesOpenFoodFacts() = runUnitTest {
+        assertEquals(SearchOptions(openFoodFacts = false), catalog.searchOptions().getOrThrow())
+        api.optionsResult = Result.success(SearchOptionsResponse(listOf("usda", "off")))
+        assertEquals(SearchOptions(openFoodFacts = true), catalog.searchOptions().getOrThrow())
     }
 
     @Test
@@ -169,14 +264,23 @@ private class FakeFoodApi : FoodApi {
     var searchResult: Result<FoodSearchResponse> = Result.success(FoodSearchResponse("", emptyList()))
     var detailResult: Result<FoodResponse>? = null
     var barcodeResult: Result<FoodResponse?> = Result.success(null)
+    var optionsResult: Result<SearchOptionsResponse> = Result.success(SearchOptionsResponse(listOf("usda")))
+    val filters = mutableListOf<FoodSearchFilter>()
 
-    override suspend fun search(query: String, limit: Int) = searchResult
+    override suspend fun search(query: String, limit: Int, filter: FoodSearchFilter): Result<FoodSearchResponse> {
+        filters += filter
+        return searchResult
+    }
+
+    override suspend fun searchOptions() = optionsResult
 
     override suspend fun detail(id: String) = detailResult ?: Result.failure(IllegalStateException("not found"))
 
     override suspend fun barcode(code: String) = barcodeResult
 
-    override suspend fun describe(text: String) = Result.success(DescribeResponse(emptyList()))
+    var describeResult: Result<DescribeResponse> = Result.success(DescribeResponse(emptyList()))
+
+    override suspend fun describe(text: String) = describeResult
 }
 
 private class FakeFoodCacheDao : FoodCacheDao {

@@ -1,89 +1,92 @@
-# Where Opson stands (2026-10-26, evening)
+# Where Opson stands (2026-10-27)
 
-Everything below is on `main` and pushed.
+## Prod's open tables: closed
 
-## Shipped to main
+Six prod tables had row level security off (profiles, player reports and the
+four app config tables), so the app's public Supabase key could read display
+names and change remote config. V19 was applied to prod by hand on 2026-10-27
+and all six now have RLS on; the prod server stayed healthy. Flyway runs V19
+again at the next prod deploy, which is a no-op.
 
-- Every 0.1 screen at design v3: Onboarding, Today (Undo after adding, Mark as
-  untracked, Explorer's food bridge, Blind's day feeling), Logger, Foods,
-  Trends with Nutrients, Weight and Patterns, More/Modes/Targets/Support.
-- `BlindModeLeakTest` across every surface (`:apps:leaktest`), tokens and type
-  scale measured from v3, one theme per screen preview.
-- Food catalog: USDA generic and Branded (445,414 foods) in dev and prod.
-- Open Food Facts: `off_foods` table (V12), importer with an atomic monthly
-  reload, benchmark script. **Not loaded anywhere and not in search.** See
-  "Open Food Facts" below.
-- Text fields keep fast typing (a value no longer round-trips through the
-  ViewModel and eats keystrokes), and the search field's Search key closes
-  the keyboard.
-- iOS is iPhone-only for 0.1 (`TARGETED_DEVICE_FAMILY = 1`).
+## 0.1.0
 
-## App Store
+Waiting for App Review (build 202610261458). Sign in with Apple or no account;
+Google, email and "Coming later" are hidden. Don't approve the prod deploy
+waiting in GitHub while it's in review: 0.1 talks to prod as it is.
 
-- Listing, privacy labels, age rating, price, review notes: done.
-- Five 6.9-inch screenshots from the real app are uploaded; the files are in
-  `docs/app-store/screenshots/`.
-- TestFlight build from the latest main is in CI; once it processes it gets
-  attached to 0.1.0 and submitted.
+## The whole-codebase review
 
-## Open Food Facts
+Done. Eight reviewers covered all 1,408 source, script and config files
+(`docs/review/LEDGER.md`), against the rubric in `docs/review/PRACTICES.md`.
+Every finding has a fate in `docs/review/findings/<slice>.md`. The product
+ideas that came out of it are in `docs/review/product-notes.md`. Read that one.
 
-Size and speed, measured on a local Postgres sized like dev: 3.29M products,
-2.1 GB with indexes. Search p50 66 ms, but p95 1.3 s and p99 5.7 s: short
-prefixes and common words scan too many rows. Details in
-`docs/food-data-sources.md`.
+The fixes that mattered most:
 
-Before it goes anywhere near search or prod:
+- Blind users could briefly see Full numbers after an offline sign-in, and
+  Trends gave away today's calories in Delayed and Coast. Both closed, with tests.
+- Opening the app offline could sign a guest out and lose their data.
+- A note containing `</b>` crashed any screen that showed it.
+- The server waited up to 27 s on a busy database; it now answers "busy" in seconds.
+- Health data and search text were reaching logs, traces, Sentry and Grafana.
+- One bad row could block a phone's sync forever.
+- Refreshing while a background sync ran could miss another phone's changes.
+- A failed Kotlin compile still produced a "successful" iOS build with the old code.
+- The Open Food Facts import could hang forever if Postgres restarted; it now
+  builds each index separately and resumes.
 
-1. Bound the search candidates (minimum prefix length, a per-tier cap, or a
-   hot subset ranked by `scans`), then re-run `scripts/bench_off_search.py`.
-2. Load dev and benchmark there. Dev's disk is now 12 GB; the first attempt
-   hit the old size and Supabase put dev in read-only mode for about 15
-   minutes.
-3. Prod's disk is **2 GB**. A reload holds two copies, so grow it to fit
-   about 6 GB on top of what's there before any load.
-4. Then set the repo variable `OFF_IMPORT_ENABLED=true` for the monthly job.
+Also built during the review, behind their flags: Save as meal from Today's
+multi-select, the check-in switch in Reminders and its hunger card in
+Patterns, the Progress photos row in Modes, and the Trends Expended card.
 
-## Found while taking screenshots (not fixed yet)
+## 0.2 on main (behind release flags; off on prod except the TestFlight build)
 
-- Search ranking: "brown rice" puts a branded "Crispy Sushi Rice Patties"
-  (brand "Rice Browns") above plain brown rice.
-- Default serving: blueberries default to "1 berry, 1 kcal". The importer
-  should prefer a cup or a typical serving over a single piece for small
-  items.
+| Feature | Flag | State |
+|---|---|---|
+| Barcode scan, typed codes | `release.barcode` | Merged. Scans read the Open Food Facts export first when it's on. |
+| Health, Expended, exercise in the range | `release.health` | Merged. Entitlement held back for Release. |
+| Reminders and notifications | `release.reminders` | Merged. Real-device delivery untested. |
+| Fasting | `release.fasting` | Merged. |
+| Voice in Describe | `release.voice` | Merged. Try on a phone. |
+| Photo estimate | `release.photo` | Merged. Needs `ANTHROPIC_API_KEY` on the server. |
+| Widgets | `release.widgets` | Native widget held on `hold/0.2-widgets-native`. |
+| Search options, Today summary, select, check-in, progress photos | `release.searchOptions`, `release.todaySummary`, `release.todaySelect`, `release.checkIn`, `release.progressPhotos` | Merged. |
+| Open Food Facts search | `FOOD_SEARCH_OFF_ENABLED` (server) | On for dev (3.29M products). Off for prod. |
 
-## Queued, don't start yet
+Every app flag is on in dev's remote config, so the Debug build shows them all.
 
-Barcode scan misses logged to a table with a Grafana panel (0.1), then label
-photo or manual entry into a community table and a Grafana review board
-(0.2). Details in `docs/plans/food-data-import.md`, "Future work".
+**TestFlight 0.2.0 (202610271424), versionCode 702 (2026-10-27).** Built from
+`08fd575c` and pointed at prod. The first upload (700) was rejected for a
+missing `NSHealthUpdateUsageDescription`, now fixed. Prod has one rule per flag
+(iOS, versionCode 700 to 702, priority 10) that turns on everything except `release.health`
+and `release.widgets`. Older builds, including the 0.1 store build, see no
+change. Photo estimate fails until prod has `ANTHROPIC_API_KEY`, and search
+has no Open Food Facts results until `FOOD_SEARCH_OFF_ENABLED` is on for prod.
+A newer TestFlight build needs its own rules, or widen these with the admin
+console. `main` still says 0.1.0: the bump was local, for this build only.
 
-## At the end: the Opson website
+**Website:** live at https://www.opsontracker.com (the bare domain forwards).
+What has to happen before 0.2 ships is in `docs/plans/0.2/release-checklist.md`.
 
-No domain yet; one comes later, so build it to deploy anywhere and switch
-domains without code changes.
+## Design sync
 
-- Marketing pages, privacy policy and terms, built **very similar to how
-  Downcard (the Cards project) does its site**. Study that site's structure,
-  stack and deploy before starting.
-- A **waitlist signup** that lands somewhere the owner can contact people
-  from (a `waitlist` table in Supabase behind a server endpoint or an edge
-  function, with email, created_at and source). Include abuse protection and
-  a way to export or view the list.
-- Privacy and terms: the app's `legal/` files are already published at
-  nightjarlabs.llc/opson/privacy and /terms; the site should link to or reuse
-  them rather than fork the text, and the waitlist needs its own privacy
-  wording (what the email is used for, how to get removed).
+All 449 app screens are published for Claude Design at
+https://raw.githubusercontent.com/Elijah-Dangerfield/Opson/design-sync/app/manifest.json.
+Export the design as PNGs named by those ids and run
+`scripts/design_sync.main.kts import <path>`.
 
 ## Needs you
 
-- Set the `CATALOG_DATABASE_URL` repo secret (prod pooler URL) so the monthly
-  USDA refresh runs.
-- `/design-login` in a `claude` terminal, so the `claude_design` connector
-  works.
-- Decide the default palette: the icon is Espresso's accent; the app defaults
-  to Pine.
+- Decide three things the review left open: the Open Food Facts cache licence question,
+  what "a set deficit" should count as burned, and whether a missing release
+  signing key should fail the build. Each is in `docs/review/product-notes.md`
+  or the findings.
+- GitHub › Settings › Actions › General: allow Actions to create pull
+  requests, or release-please keeps failing.
+- `ANTHROPIC_API_KEY` on dev and prod for photo estimates.
+- The `CATALOG_DATABASE_URL` repo secret (prod pooler URL) for the monthly
+  USDA refresh.
 - Before public launch: a dietitian sets `GOAL_FLOOR_KCAL` and the maximum
-  deficit; a clinician reviews the copy marked `TODO(clinician)`; check the
-  helpline and provider links marked `TODO(launch)` (both open the Alliance's
-  home page today).
+  deficit; a clinician reviews everything marked `TODO(clinician)`. The
+  helpline list was checked on 2026-10-27; recheck it each quarter. Legal
+  follow-ups are in `docs/legal-review-2026-10.md`.

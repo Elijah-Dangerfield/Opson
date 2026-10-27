@@ -58,13 +58,13 @@ class WaterSettingsTest : CoroutineTest() {
             WaterSettingsStateBuilder.build(SettingsFixtures.settings(numbers), backToMore = false).showOnToday
 
         assertTrue(shows(NumbersSettings(PresetId.Full)))
-        assertTrue(shows(NumbersSettings(PresetId.Blind)))
-        assertFalse(shows(NumbersSettings(PresetId.Blind, overrides = mapOf(Metric.Water to Visibility.Hide))))
+        assertTrue(shows(NumbersSettings(PresetId.NoNumbers)))
+        assertFalse(shows(NumbersSettings(PresetId.NoNumbers, overrides = mapOf(Metric.Water to Visibility.Hide))))
     }
 
     @Test
     fun turningWaterOffHidesItInAnyMode() {
-        listOf(PresetId.Full, PresetId.Blind, PresetId.Sprint).forEach { preset ->
+        listOf(PresetId.Full, PresetId.NoNumbers, PresetId.Full).forEach { preset ->
             assertEquals(
                 NumbersChange.Override(Metric.Water, Visibility.Hide),
                 WaterSettingsStateBuilder.toggleChange(NumbersSettings(preset)),
@@ -74,7 +74,7 @@ class WaterSettingsTest : CoroutineTest() {
 
     @Test
     fun turningWaterBackOnReturnsToTheModesOwnLevel() {
-        listOf(PresetId.Full, PresetId.Blind).forEach { preset ->
+        listOf(PresetId.Full, PresetId.NoNumbers).forEach { preset ->
             val hidden = NumbersSettings(preset, overrides = mapOf(Metric.Water to Visibility.Hide))
             assertEquals(NumbersChange.ClearOverride(Metric.Water), WaterSettingsStateBuilder.toggleChange(hidden))
         }
@@ -96,7 +96,7 @@ class WaterSettingsTest : CoroutineTest() {
 
     @Test
     fun showingWaterWithThePauseOnOpensThePause() = runUnitTest {
-        val hidden = NumbersSettings(PresetId.Blind, overrides = mapOf(Metric.Water to Visibility.Hide), pauseBeforeMore = true)
+        val hidden = NumbersSettings(PresetId.NoNumbers, overrides = mapOf(Metric.Water to Visibility.Hide), pauseBeforeMore = true)
         val vm = WaterSettingsViewModel(
             false,
             FakeSettingsRepository(SettingsFixtures.settings(hidden)),

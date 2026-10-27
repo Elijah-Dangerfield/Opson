@@ -2,6 +2,7 @@ package com.opson.integration.setup
 
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.awaitState
+import com.opson.integration.helpers.randomUserId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -16,13 +17,14 @@ class HarnessSmokeTest : IntegrationTest() {
 
     @Test
     fun realClient_resolvesProfile_againstRealServer() = integration {
-        val client = client()
+        val userId = randomUserId()
+        val client = client(userId)
 
         val vm = client.homeVm()
 
         val state = vm.stateFlow.awaitState { it.userName != null }
         // The server's get-or-create default display name, proving the value on
         // screen came from the real `/v1/me` round-trip, not a client fallback.
-        assertEquals("user-${client.userId.take(8)}", state.userName)
+        assertEquals("user-${userId.take(8)}", state.userName)
     }
 }

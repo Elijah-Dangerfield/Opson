@@ -144,13 +144,24 @@ private fun EnergyBar(energy: WidgetEnergy, swatch: WidgetSwatch) {
                 }
                 val dash = WidgetDimens.Dash.toPx()
                 val stroke = WidgetDimens.Stroke.toPx()
-                drawRoundRect(
-                    color = outline,
-                    topLeft = Offset(size.width * energy.rangeStart, stroke / 2),
-                    size = Size(size.width * (energy.rangeEnd - energy.rangeStart), size.height - stroke),
-                    cornerRadius = CornerRadius(WidgetDimens.RangeCorner.toPx()),
-                    style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash))),
-                )
+                val start = size.width * energy.rangeStart
+                if (energy.rangeEnd > energy.rangeStart) {
+                    drawRoundRect(
+                        color = outline,
+                        topLeft = Offset(start, stroke / 2),
+                        size = Size(size.width * (energy.rangeEnd - energy.rangeStart), size.height - stroke),
+                        cornerRadius = CornerRadius(WidgetDimens.RangeCorner.toPx()),
+                        style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash))),
+                    )
+                } else if (start > 0f) {
+                    // One number: a mark where it sits, as Today draws it.
+                    drawRoundRect(
+                        color = outline,
+                        topLeft = Offset(start - WidgetDimens.Mark.toPx() / 2, 0f),
+                        size = Size(WidgetDimens.Mark.toPx(), size.height),
+                        cornerRadius = CornerRadius(WidgetDimens.Mark.toPx() / 2),
+                    )
+                }
             },
     )
 }
@@ -211,6 +222,9 @@ internal object WidgetDimens {
     val RangeHeight = 14.dp
     val RangeCorner = 4.dp
     val Stroke = 1.5.dp
+
+    /** One number's mark on the bar, where a range has a box. */
+    val Mark = 3.dp
     val Dash = 3.dp
     val Circle = 40.dp
     val SmallCircle = 26.dp

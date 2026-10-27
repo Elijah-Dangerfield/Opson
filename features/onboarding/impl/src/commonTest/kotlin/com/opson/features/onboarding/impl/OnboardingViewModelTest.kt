@@ -20,8 +20,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
-import kotlin.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -137,6 +135,20 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(OnboardingStep.Welcome, vm.state.step)
     }
 
+    @Test
+    fun signIn_onAPhoneWithNoWayToSignIn_goesNowhere() = runUnitTest {
+        // Android in 0.1: no Apple, and Google and email are off. Sign-in would open a page
+        // with nothing on it, so Welcome hides the link and the action is refused.
+        val vm = newVm(appleSignIn = false)
+        val received = collectEvents(vm)
+
+        vm.takeAction(OnboardingAction.SignInTapped)
+        runCurrent()
+
+        assertFalse(vm.state.canSignIn)
+        assertTrue(received.isEmpty())
+    }
+
     // ---------- Answers ----------
 
     @Test
@@ -163,15 +175,11 @@ class OnboardingViewModelTest : CoroutineTest() {
         vm.takeAction(OnboardingAction.OptionTapped(NumbersFeel.LoveThem))
         vm.takeAction(OnboardingAction.OptionTapped(NumbersFeel.RatherNot))
         vm.takeAction(OnboardingAction.ContinueTapped)
-        vm.takeAction(OnboardingAction.OptionTapped(Notice.Amounts))
-        vm.takeAction(OnboardingAction.OptionTapped(Notice.Patterns))
-        vm.takeAction(OnboardingAction.ContinueTapped)
         vm.takeAction(OnboardingAction.OptionTapped(StatementAnswer.Agree))
         vm.takeAction(OnboardingAction.OptionTapped(StatementAnswer.NotReally))
         runCurrent()
 
         assertEquals(NumbersFeel.RatherNot, vm.state.answers.feel)
-        assertEquals(Notice.Patterns, vm.state.answers.notice)
         assertEquals(StatementAnswer.NotReally, vm.state.answers.statement)
         assertEquals(1, vm.state.options.count { it.selected })
         assertFalse(vm.state.answers.hard)
@@ -196,7 +204,7 @@ class OnboardingViewModelTest : CoroutineTest() {
 
         // Walk to the recommendation, pick an alternative, then come back and
         // agree with the statement: the pick is cleared and Full is gone.
-        repeat(3) { vm.takeAction(OnboardingAction.ContinueTapped) }
+        repeat(2) { vm.takeAction(OnboardingAction.ContinueTapped) }
         vm.takeAction(OnboardingAction.AlternativeTapped(vm.state.alternatives.first()))
         runCurrent()
         assertNotNull(vm.state.picked)
@@ -206,9 +214,26 @@ class OnboardingViewModelTest : CoroutineTest() {
         runCurrent()
 
         assertNull(vm.state.picked)
-        assertEquals(PresetId.Delayed, vm.state.recommended)
+        assertEquals(PresetId.Later, vm.state.recommended)
         assertFalse(PresetId.Full in vm.state.alternatives)
-        assertFalse(PresetId.Sprint in vm.state.alternatives)
+        assertFalse(PresetId.Full in vm.state.alternatives)
+    }
+
+    @Test
+    fun talkToSomeone_opensSupport_whicheverAnswerIsPicked_andLeavesTheStepAlone() = runUnitTest {
+        listOf(null, StatementAnswer.Agree, StatementAnswer.NotReally).forEach { answer ->
+            val vm = atQuestion(SetupQuestion.Statement)
+            val received = collectEvents(vm)
+            answer?.let { vm.takeAction(OnboardingAction.OptionTapped(it)) }
+            runCurrent()
+            val before = vm.state
+
+            vm.takeAction(OnboardingAction.TalkToSomeoneTapped)
+            runCurrent()
+
+            assertEquals(listOf<OnboardingEvent>(OnboardingEvent.NavigateToSupport), received, "answer $answer")
+            assertEquals(before, vm.state, "answer $answer")
+        }
     }
 
     // ---------- Continue, Skip, Back ----------
@@ -223,17 +248,14 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(OnboardingStep.Question(SetupQuestion.Feeling), vm.state.step)
         vm.takeAction(OnboardingAction.SkipQuestionTapped)
         runCurrent()
-        assertEquals(OnboardingStep.Question(SetupQuestion.Focus), vm.state.step)
-        vm.takeAction(OnboardingAction.SkipQuestionTapped)
-        runCurrent()
         assertEquals(OnboardingStep.Question(SetupQuestion.Statement), vm.state.step)
-        assertEquals(4, vm.state.progress)
+        assertEquals(3, vm.state.progress)
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
 
         assertEquals(OnboardingStep.Recommendation, vm.state.step)
         assertEquals(
-            listOf("welcome", "question_1", "question_2", "question_3", "statement", "recommendation"),
+            listOf("welcome", "question_1", "question_2", "statement", "recommendation"),
             events.steps(),
         )
     }
@@ -262,7 +284,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         val vm = atRecommendation()
 
         val seen = mutableListOf<OnboardingStep>()
-        repeat(5) {
+        repeat(4) {
             vm.takeAction(OnboardingAction.Back)
             runCurrent()
             seen += vm.state.step
@@ -271,7 +293,6 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals(
             listOf(
                 OnboardingStep.Question(SetupQuestion.Statement),
-                OnboardingStep.Question(SetupQuestion.Focus),
                 OnboardingStep.Question(SetupQuestion.Feeling),
                 OnboardingStep.Question(SetupQuestion.Reason),
                 OnboardingStep.Welcome,
@@ -325,31 +346,31 @@ class OnboardingViewModelTest : CoroutineTest() {
         val vm = atRecommendation()
 
         assertEquals(PresetId.Full, vm.state.chosen)
-        assertEquals(listOf(PresetId.Blind, PresetId.Delayed, PresetId.Nutrient), vm.state.alternatives)
+        assertEquals(listOf(PresetId.NoNumbers, PresetId.Later, PresetId.NutrientsFirst), vm.state.alternatives)
         assertEquals(ModePreview.of(Presets.Full), vm.state.preview)
     }
 
     @Test
-    fun theDesignsAnswers_recommendFuel_andPreviewIt() = runUnitTest {
+    fun theDesignsAnswers_recommendNutrientsFirst_andPreviewIt() = runUnitTest {
         val vm = atRecommendation(answers = designAnswers)
 
-        assertEquals(PresetId.Fuel, vm.state.chosen)
-        assertEquals(listOf(PresetId.Rhythm, PresetId.Nutrient, PresetId.Blind), vm.state.alternatives)
-        assertEquals(ModePreview.of(Presets.Fuel), vm.state.preview)
+        assertEquals(PresetId.NutrientsFirst, vm.state.chosen)
+        assertEquals(listOf(PresetId.NoNumbers, PresetId.Later), vm.state.alternatives)
+        assertEquals(ModePreview.of(Presets.NutrientsFirst), vm.state.preview)
     }
 
     @Test
     fun alternativeTapped_picksIt_andTheRecommendationBecomesAnAlternative() = runUnitTest {
         val vm = atRecommendation(answers = designAnswers)
 
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Nutrient))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Later))
         runCurrent()
 
-        assertEquals(PresetId.Nutrient, vm.state.chosen)
-        assertEquals(PresetId.Fuel, vm.state.recommended)
-        assertFalse(PresetId.Nutrient in vm.state.alternatives)
-        assertEquals(PresetId.Fuel, vm.state.alternatives.first())
-        assertEquals(ModePreview.of(Presets.Nutrient), vm.state.preview)
+        assertEquals(PresetId.Later, vm.state.chosen)
+        assertEquals(PresetId.NutrientsFirst, vm.state.recommended)
+        assertFalse(PresetId.Later in vm.state.alternatives)
+        assertEquals(PresetId.NutrientsFirst, vm.state.alternatives.first())
+        assertEquals(ModePreview.of(Presets.Later), vm.state.preview)
     }
 
     @Test
@@ -360,7 +381,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         runCurrent()
 
         assertNull(vm.state.picked)
-        assertEquals(PresetId.Blind, vm.state.chosen)
+        assertEquals(PresetId.NoNumbers, vm.state.chosen)
     }
 
     @Test
@@ -372,14 +393,14 @@ class OnboardingViewModelTest : CoroutineTest() {
 
         assertTrue(vm.state.showAllModes)
         assertEquals(
-            Presets.all.map { it.id } - setOf(PresetId.Fuel, PresetId.Full, PresetId.Sprint),
+            Presets.all.map { it.id } - setOf(PresetId.NutrientsFirst, PresetId.Full, PresetId.Full),
             vm.state.alternatives,
         )
 
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Coast))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Later))
         runCurrent()
-        assertEquals(PresetId.Coast, vm.state.chosen)
-        assertTrue(PresetId.Fuel in vm.state.alternatives, "the list stays whole after a pick")
+        assertEquals(PresetId.Later, vm.state.chosen)
+        assertTrue(PresetId.NutrientsFirst in vm.state.alternatives, "the list stays whole after a pick")
     }
 
     // ---------- Saving the mode ----------
@@ -392,7 +413,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         val creator = FakeGuestAccountCreator(onStart = { order += "guest" })
         val cache = FakeAppCache(onSet = { if (it.hasUserOnboarded) order += "onboarded" })
         val vm = atRecommendation(
-            answers = listOf(Why.EatingRegularly, NumbersFeel.RatherNot, Notice.Patterns),
+            answers = listOf(Why.EatingRegularly, NumbersFeel.RatherNot),
             settings = settings,
             creator = creator,
             cache = cache,
@@ -409,13 +430,12 @@ class OnboardingViewModelTest : CoroutineTest() {
         assertEquals("account", events.steps().last())
         assertEquals(listOf(false), settings.stampFlags, "onboarding must not stamp changedAt")
         val saved = settings.settings.value
-        assertEquals(NumbersSettings(preset = PresetId.Rhythm), saved.numbers)
+        assertEquals(NumbersSettings(preset = PresetId.NoNumbers), saved.numbers)
         assertNull(saved.numbers.changedAt)
         assertEquals(
-            OnboardingAnswers(why = listOf("eating_regularly"), feel = "rather_not", notice = listOf("patterns")),
+            OnboardingAnswers(why = listOf("eating_regularly"), feel = "rather_not"),
             saved.onboarding,
         )
-        assertNull(saved.sprintStartedOn)
         assertNotNull(creator.lastIdentity?.displayName, "the guest gets a generated name, never asked for")
         assertFalse(vm.state.creationFailed)
     }
@@ -424,11 +444,11 @@ class OnboardingViewModelTest : CoroutineTest() {
     fun start_withAPickedAlternative_savesThePick() = runUnitTest {
         val settings = FakeSettingsRepository()
         val vm = atRecommendation(settings = settings)
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Blind))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.NoNumbers))
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
 
-        assertEquals(PresetId.Blind, settings.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, settings.settings.value.numbers.preset)
     }
 
     @Test
@@ -456,12 +476,12 @@ class OnboardingViewModelTest : CoroutineTest() {
         vm.takeAction(OnboardingAction.Back)
         runCurrent()
         assertEquals(OnboardingStep.Recommendation, vm.state.step)
-        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.Rhythm))
+        vm.takeAction(OnboardingAction.AlternativeTapped(PresetId.NoNumbers))
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
 
         assertEquals(OnboardingStep.Account, vm.state.step)
-        assertEquals(PresetId.Rhythm, settings.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, settings.settings.value.numbers.preset)
         assertEquals(listOf(false, false), settings.stampFlags)
         assertEquals(1, creator.startCalls)
         assertEquals(1, events.all("onboarding.completed").size)
@@ -502,6 +522,26 @@ class OnboardingViewModelTest : CoroutineTest() {
         runCurrent()
 
         assertTrue(settings.stampFlags.isEmpty())
+    }
+
+    @Test
+    fun start_onAPhoneWithNoWayToClaim_goesToToday_pastTheAccountStep() = runUnitTest {
+        // The account step would offer only "Keep it on this phone" under a promise to back up.
+        val creator = FakeGuestAccountCreator()
+        val cache = FakeAppCache()
+        val vm = newVm(creator = creator, cache = cache, appleSignIn = false)
+        val received = collectEvents(vm)
+        vm.takeAction(OnboardingAction.GetStartedTapped)
+        repeat(SetupQuestion.Count) { vm.takeAction(OnboardingAction.ContinueTapped) }
+        runCurrent()
+
+        vm.takeAction(OnboardingAction.StartTapped)
+        runCurrent()
+
+        assertEquals(1, creator.startCalls, "the guest is still created, so logs sync")
+        assertTrue(cache.get().hasUserOnboarded)
+        assertEquals(OnboardingEvent.NavigateToToday, received.single())
+        assertEquals(OnboardingStep.Recommendation, vm.state.step)
     }
 
     @Test
@@ -564,13 +604,13 @@ class OnboardingViewModelTest : CoroutineTest() {
         taken.takeAction(OnboardingAction.StartTapped)
         runCurrent()
         val other = atRecommendation()
-        other.takeAction(OnboardingAction.AlternativeTapped(PresetId.Blind))
+        other.takeAction(OnboardingAction.AlternativeTapped(PresetId.NoNumbers))
         other.takeAction(OnboardingAction.StartTapped)
         runCurrent()
 
         val completed = events.all("onboarding.completed")
         assertEquals(listOf<Any?>(true, false), completed.map { it["took_recommendation"] })
-        assertEquals(listOf<Any?>("full", "blind"), completed.map { it["preset"] })
+        assertEquals(listOf<Any?>("full", "no_numbers"), completed.map { it["preset"] })
         assertEquals(listOf<Any?>(false, false), completed.map { it["skipped_all"] })
         assertTrue(completed.all { "duration_sec" in it && "account_ready" in it })
     }
@@ -739,14 +779,13 @@ class OnboardingViewModelTest : CoroutineTest() {
                 Why.MedicalNeed,
                 Why.ChangingWeight,
                 NumbersFeel.RatherNot,
-                Notice.HowEatingFeels,
                 StatementAnswer.Agree,
             ),
         )
         vm.takeAction(OnboardingAction.KeepOnPhoneTapped)
         runCurrent()
 
-        val answerWords = (Why.entries + NumbersFeel.entries + Notice.entries + StatementAnswer.entries)
+        val answerWords = (Why.entries + NumbersFeel.entries + StatementAnswer.entries)
             .flatMap { listOf(it.key, (it as Enum<*>).name) }
             .map { it.lowercase() }
         val values = events.entries
@@ -768,23 +807,27 @@ class OnboardingViewModelTest : CoroutineTest() {
     private val designAnswers: List<SetupOption> =
         listOf(Why.EatingEnough, Why.EatingRegularly, NumbersFeel.SomeAreFine, StatementAnswer.Agree)
 
-    private val fixedClock = object : Clock {
-        override fun now(): Instant = Instant.parse("2026-10-25T12:00:00Z")
-    }
-
     private fun newVm(
         cache: FakeAppCache = FakeAppCache(),
         auth: FakeAuthRepository = FakeAuthRepository(),
         creator: FakeGuestAccountCreator = FakeGuestAccountCreator(),
         appleCoordinator: FakeAppleSignInCoordinator = FakeAppleSignInCoordinator(),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
+        appleSignIn: Boolean = true,
+        weights: FakeWeightRepository = FakeWeightRepository(),
+        setupSteps: Boolean = false,
+        goalsAndEnergy: Boolean = false,
     ): OnboardingViewModel = OnboardingViewModel(
         appCache = cache,
         authRepository = auth,
         guestAccountCreator = creator,
         appleSignInCoordinator = appleCoordinator,
         settingsRepository = settings,
-        clock = fixedClock,
+        weightRepository = weights,
+        calendar = FixedCalendar,
+        setupEnabled = onboardingSetupFlag(setupSteps),
+        goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergy),
+        appleSignIn = appleSignIn,
     )
 
     private fun TestScope.collectEvents(vm: OnboardingViewModel): MutableList<OnboardingEvent> {

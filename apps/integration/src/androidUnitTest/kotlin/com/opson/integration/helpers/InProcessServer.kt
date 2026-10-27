@@ -1,7 +1,12 @@
 package com.opson.integration.helpers
 
+import com.opson.server.config.AdminConfig
+import com.opson.server.config.AnthropicConfig
+import com.opson.server.config.AppleSignInConfig
 import com.opson.server.config.DatabaseConfig
 import com.opson.server.config.FoodSourcesConfig
+import com.opson.server.config.SupabaseConfig
+import com.opson.server.config.WaitlistConfig
 import com.opson.server.db.Database
 import com.opson.server.di.ServerComponent
 import com.opson.server.di.create
@@ -14,7 +19,11 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assume
 import org.testcontainers.DockerClientFactory
 import org.testcontainers.containers.PostgreSQLContainer
+import java.security.KeyPairGenerator
+import java.security.spec.ECGenParameterSpec
+import java.sql.Connection
 import java.sql.DriverManager
+import java.util.Base64
 import java.util.UUID
 
 /**
@@ -28,19 +37,49 @@ import java.util.UUID
  * [com.opson.server.plugins.JwtVerification.Static] verifier swapped in
  * (see [IntegrationAuth]).
  *
+ * The server is configured as production is, with the outside services it
+ * calls (Supabase admin, Anthropic, Open Food Facts) pointed at [upstreams].
+ * [photoEstimates] false leaves the Anthropic key unset, the way a server with
+ * photo estimates switched off runs.
+ *
  * The Postgres container + migrated [Database] are shared across the whole JVM
  * (starting Postgres costs seconds; per-test containers would make the suite
  * unusable — same reasoning as the server's own `DatabaseTest`). Each
- * [InProcessServer] gets a fresh engine + a fresh [ServerComponent]; tests
- * isolate by minting random user ids rather than by wiping tables.
+ * [InProcessServer] gets a fresh engine + a fresh [ServerComponent], so its
+ * in-memory rate limiters start empty; tests isolate data by minting random
+ * user ids, barcodes and food names rather than by wiping tables.
  */
-class InProcessServer : AutoCloseable {
+class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
+
+    /** The server's clock: real time until a test steps it, e.g. past the app-config cache. */
+    val clock = TestClock()
+
+    val upstreams = FakeUpstreams(deleteAuthUser = { id -> sql("DELETE FROM auth.users WHERE id = ?::uuid", id) })
 
     private val engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =
-        embeddedServer(Netty, port = 0) {
+        embeddedServer(Netty, port = 0, host = "127.0.0.1") {
             installApp(
-                component = ServerComponent::class.create(sharedDatabase(), null, FoodSourcesConfig()),
+                component = ServerComponent::class.create(
+                    sharedDatabase(),
+                    SupabaseConfig(
+                        projectUrl = upstreams.baseUrl,
+                        serviceRoleKey = "integration-service-role",
+                        appleSignIn = AppleSignInConfig(
+                            teamId = "INTEGRATN1",
+                            keyId = "INTEGRATN2",
+                            privateKeyPem = throwawayEcKeyPem(),
+                            baseUrl = upstreams.baseUrl,
+                        ),
+                    ),
+                    FoodSourcesConfig(
+                        anthropic = if (photoEstimates) AnthropicConfig(apiKey = "integration", baseUrl = upstreams.baseUrl) else null,
+                        openFoodFactsUrl = upstreams.baseUrl,
+                    ),
+                    clock,
+                ),
                 verification = IntegrationAuth.verification,
+                adminConfig = AdminConfig(apiToken = ADMIN_TOKEN),
+                waitlistConfig = WaitlistConfig(allowedOrigins = setOf(SITE_ORIGIN)),
             )
         }.start(wait = false)
 
@@ -54,30 +93,81 @@ class InProcessServer : AutoCloseable {
     /**
      * Insert (or no-op if present) a row in the stub `auth.users` for [userId].
      * The V2 FK blocks orphan profiles, so any flow that reaches `/v1/me` needs
-     * the auth row a real Supabase sign-up would have created. Raw JDBC because
-     * Exposed's DSL lives on the server's `implementation` classpath and isn't
-     * visible here — one insert doesn't justify re-declaring the dependency.
+     * the auth row a real Supabase sign-up would have created.
      */
     fun seedAuthUser(userId: String, isAnonymous: Boolean = true) {
-        val container = sharedContainer()
-        DriverManager.getConnection(container.jdbcUrl, container.username, container.password)
-            .use { connection ->
-                connection.prepareStatement(
-                    "INSERT INTO auth.users (id, is_anonymous) VALUES (?, ?) ON CONFLICT (id) DO NOTHING",
-                ).use { statement ->
-                    statement.setObject(1, UUID.fromString(userId))
-                    statement.setBoolean(2, isAnonymous)
-                    statement.executeUpdate()
+        sql("INSERT INTO auth.users (id, is_anonymous) VALUES (?::uuid, ?) ON CONFLICT (id) DO NOTHING", userId, isAnonymous)
+    }
+
+    /**
+     * A catalog food, as the USDA importer writes one, with a unique source id.
+     * Returns its id. Raw JDBC because Exposed's DSL lives on the server's
+     * `implementation` classpath and isn't visible here.
+     */
+    fun seedFood(
+        name: String,
+        kcalPer100g: Double,
+        barcode: String? = null,
+        portionsJson: String = "[]",
+        source: String = "usda_sr",
+    ): String {
+        val id = UUID.randomUUID().toString()
+        sql(
+            """
+            INSERT INTO foods (id, source, source_id, name, barcode, kcal_100g, protein_100g, micros, portions)
+            VALUES (?::uuid, ?, ?, ?, ?, ?, 1, '{}'::jsonb, ?::jsonb)
+            """.trimIndent(),
+            id, source, id, name, barcode, kcalPer100g, portionsJson,
+        )
+        return id
+    }
+
+    /** Rows of a query, each column by its lower-case name. */
+    fun query(sql: String, vararg args: Any?): List<Map<String, Any?>> = connection { connection ->
+        connection.prepareStatement(sql).use { statement ->
+            args.forEachIndexed { i, arg -> statement.setObject(i + 1, arg) }
+            statement.executeQuery().use { rows ->
+                val meta = rows.metaData
+                buildList {
+                    while (rows.next()) {
+                        add((1..meta.columnCount).associate { meta.getColumnName(it).lowercase() to rows.getObject(it) })
+                    }
                 }
             }
+        }
     }
+
+    /** A statement with no result. Returns the affected row count. */
+    fun sql(sql: String, vararg args: Any?): Int = connection { connection ->
+        connection.prepareStatement(sql).use { statement ->
+            args.forEachIndexed { i, arg -> statement.setObject(i + 1, arg) }
+            statement.executeUpdate()
+        }
+    }
+
+    /** How many rows [table] holds for [userId], tombstones included. */
+    fun countFor(table: String, userId: String): Long =
+        query("SELECT count(*) AS n FROM $table WHERE user_id = ?::uuid", userId).single()["n"] as Long
 
     override fun close() {
         engine.stop(0, 0)
+        upstreams.close()
     }
 
     companion object {
         private const val POSTGRES_IMAGE = "postgres:16-alpine"
+
+        /** `X-Admin-Token` for the `/v1/admin` routes. */
+        const val ADMIN_TOKEN = "integration-admin-token"
+
+        /** The one origin the waitlist form accepts here, standing in for the marketing site. */
+        const val SITE_ORIGIN = "https://site.integration.test"
+
+        /** Every table that holds a user's diary or account, keyed by `user_id`. */
+        val USER_TABLES = listOf(
+            "profiles", "log_entries", "day_records", "meal_feelings", "weigh_ins",
+            "custom_foods", "saved_meals", "user_settings", "fasts",
+        )
 
         private val shared by lazy {
             val container = PostgreSQLContainer(POSTGRES_IMAGE)
@@ -104,6 +194,11 @@ class InProcessServer : AutoCloseable {
         private fun sharedContainer(): PostgreSQLContainer<*> = shared.first
         private fun sharedDatabase(): Database = shared.second
 
+        private fun <T> connection(block: (Connection) -> T): T {
+            val container = sharedContainer()
+            return DriverManager.getConnection(container.jdbcUrl, container.username, container.password).use(block)
+        }
+
         /**
          * Skip (JUnit `Assume`) rather than fail when Docker isn't reachable,
          * so contributors without Docker still get a green build — mirrors the
@@ -119,6 +214,15 @@ class InProcessServer : AutoCloseable {
                     false
                 },
             )
+        }
+
+        /** A P-256 key in the `.p8` format Apple hands out, so the server signs real client secrets. */
+        private fun throwawayEcKeyPem(): String {
+            val key = KeyPairGenerator.getInstance("EC")
+                .apply { initialize(ECGenParameterSpec("secp256r1")) }
+                .generateKeyPair()
+                .private
+            return "-----BEGIN PRIVATE KEY-----\n${Base64.getMimeEncoder().encodeToString(key.encoded)}\n-----END PRIVATE KEY-----"
         }
     }
 }

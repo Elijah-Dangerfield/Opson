@@ -1,14 +1,9 @@
 plugins {
     id("opson.kotlin.multiplatform")
-    alias(libs.plugins.androidxRoom)
 }
 
 android {
     namespace = "com.opson.libraries.storage"
-}
-
-room {
-    schemaDirectory("$projectDir/schemas")
 }
 
 kotlin {
@@ -23,6 +18,9 @@ kotlin {
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
             implementation(libs.kotlinx.serialization.json)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

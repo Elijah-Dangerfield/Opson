@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for Photo estimate (0.2, behind release.photo): the logger's Photo chip
+  and the sheet it opens. Design v3 3.7 (logger-photo.png) has the review
+  lines; the rest is in docs/plans/screens/photo.md. No line names a number
+  apart from the energy the policy formats, so every mode shows the words
+  unchanged. Same rules as strings.xml: no backslash escapes, positional
+  %1$s arguments.
+-->
+<resources>
+
+    <!-- Logger chip -->
+
+    <!-- Header -->
+    <string name="photo_overline">Photo for %1$s</string>
+    <string name="photo_title">Estimate</string>
+    <string name="photo_thumbnail_cd">Your meal photo</string>
+
+    <!-- Start -->
+    <string name="photo_start_body">Take a photo of your plate and we'll suggest what's on it. You check every line before anything is saved.</string>
+    <string name="photo_note_label">Your note</string>
+    <string name="photo_note_placeholder">Anything a photo can't show, like oil, butter or how it was cooked</string>
+    <string name="photo_take">Take a photo</string>
+    <string name="photo_choose">Choose from library</string>
+    <string name="photo_privacy">The photo goes to our AI provider to make the estimate. It isn't saved.</string>
+
+    <!-- Estimating -->
+    <string name="photo_estimating">Looking at your photo</string>
+
+    <!-- Review -->
+    <string name="photo_list_title">What we think is there</string>
+    <string name="photo_tap_to_edit">Tap to edit</string>
+    <string name="photo_about">about %1$s</string>
+    <string name="photo_not_matched">Not in the food list yet</string>
+    <string name="photo_add_missed">Add something it missed</string>
+    <string name="photo_banner_note">Photos miss oil and cooking method, so your note was used. This is saved as an estimate.</string>
+    <string name="photo_banner">Photos miss oil and cooking method. This is saved as an estimate.</string>
+    <string name="photo_remove_cd">Remove %1$s</string>
+    <string name="photo_food_cd">Swap %1$s</string>
+    <string name="photo_amount_cd">Change the amount of %1$s</string>
+    <string name="photo_list_empty">Nothing left on the list. Add what you ate, or go back.</string>
+    <plurals name="photo_footer_count">
+        <item quantity="one">%1$d item · Estimate</item>
+        <item quantity="other">%1$d items · Estimate</item>
+    </plurals>
+    <string name="photo_footer_about">About</string>
+
+    <!-- Swap and add -->
+    <string name="photo_swap_title">Swap the food</string>
+    <string name="photo_add_title">Add a food</string>
+    <string name="photo_swap_placeholder">Search for the right food</string>
+    <string name="photo_swap_searching">Searching</string>
+    <string name="photo_swap_none">Nothing by that name. Try another word.</string>
+
+    <!-- Calm ends -->
+    <string name="photo_empty_title">We couldn't make out any food</string>
+    <string name="photo_empty_body">Try another photo, or describe it in your own words.</string>
+    <string name="photo_unavailable_title">Photo estimates aren't available right now</string>
+    <string name="photo_unavailable_body">You can still describe the meal in your own words, or search for each food.</string>
+    <string name="photo_failed_title">That didn't work</string>
+    <string name="photo_failed_body">Something went wrong on our side. Try again in a moment.</string>
+    <string name="photo_failed_offline">Photo estimates need a connection.</string>
+    <string name="photo_too_many_title">That's a lot of photos for now</string>
+    <string name="photo_too_many_body">Try again in a little while, or describe this one in your own words.</string>
+    <string name="photo_camera_title">The camera is off for Opson</string>
+    <string name="photo_camera_body">You can turn it on in Settings, or choose a photo from your library.</string>
+    <string name="photo_camera_body_ask">Opson uses the camera only when you take a meal photo. You can also choose one from your library.</string>
+
+    <!-- Buttons -->
+    <string name="photo_try_again">Try again</string>
+    <string name="photo_another">Try another photo</string>
+    <string name="photo_describe_instead">Describe it instead</string>
+    <string name="photo_back_to_search">Back to search</string>
+    <string name="photo_open_settings">Open Settings</string>
+    <string name="photo_allow_camera">Allow camera</string>
+</resources>

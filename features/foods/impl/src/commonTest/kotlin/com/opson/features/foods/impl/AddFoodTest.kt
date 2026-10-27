@@ -35,22 +35,21 @@ class AddFoodTest : CoroutineTest() {
     }
 
     @Test
-    fun nutrientFocusAsksOnlyProteinAndFiber() {
-        assertEquals(listOf(Metric.Protein, Metric.Fiber), asked(PresetId.Nutrient))
+    fun nutrientsFirstAsksCaloriesProteinAndFiber_andWithCaloriesHiddenOnlyTheTwo() {
+        assertEquals(listOf(Metric.Calories, Metric.Protein, Metric.Fiber), asked(PresetId.NutrientsFirst))
+        assertEquals(listOf(Metric.Protein, Metric.Fiber), AddFoodStateBuilder.asked(nutrientFocus()))
     }
 
     @Test
-    fun blindAndTheOtherHidingModesAskForNoNumberAtAll() {
-        listOf(PresetId.Blind, PresetId.Rhythm, PresetId.Explorer, PresetId.Mindful).forEach { preset ->
-            val state = AddFoodStateBuilder.build(FoodsFixtures.foodForm(), policy(preset))
-            assertTrue(state.labelOnly, "$preset")
-            assertTrue(state.fields.isEmpty(), "$preset")
-        }
+    fun noNumbersAsksForNoNumberAtAll() {
+        val state = AddFoodStateBuilder.build(FoodsFixtures.foodForm(), policy(PresetId.NoNumbers))
+        assertTrue(state.labelOnly)
+        assertTrue(state.fields.isEmpty())
     }
 
     @Test
     fun delayedStillAsksForCaloriesSinceTheyAreTheirOwnInput() {
-        assertTrue(Metric.Calories in asked(PresetId.Delayed))
+        assertTrue(Metric.Calories in asked(PresetId.Later))
     }
 
     @Test
@@ -66,9 +65,9 @@ class AddFoodTest : CoroutineTest() {
             CustomFoodDraft(name = "Lola's pandesal", servingAmount = 1.0, servingUnit = "piece", kcal = 120.0, fiber = 0.0),
             AddFoodStateBuilder.draft(form, policy(PresetId.Full)),
         )
-        // Calories was typed before the mode changed to Nutrient focus, which does not ask for it.
-        assertEquals(null, AddFoodStateBuilder.draft(form, policy(PresetId.Nutrient)).kcal)
-        assertEquals(0.0, AddFoodStateBuilder.draft(form, policy(PresetId.Nutrient)).fiber, "a typed 0 is a 0")
+        // Calories was typed before calories were hidden, so the form no longer asks for it.
+        assertEquals(null, AddFoodStateBuilder.draft(form, nutrientFocus()).kcal)
+        assertEquals(0.0, AddFoodStateBuilder.draft(form, nutrientFocus()).fiber, "a typed 0 is a 0")
     }
 
     @Test
@@ -77,9 +76,41 @@ class AddFoodTest : CoroutineTest() {
         vm.takeAction(AddFoodAction.NutritionTyped(Metric.Protein, "4"))
         assertEquals(5, vm.state.fields.size)
 
-        policySource.policy.value = policy(PresetId.Nutrient)
+        policySource.policy.value = nutrientFocus()
 
         assertEquals(listOf(NutritionField(Metric.Protein, "4"), NutritionField(Metric.Fiber, "")), vm.state.fields)
+    }
+
+    @Test
+    fun caloriesHiddenSavesOnlyProteinAndFiber() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(AddFoodAction.NameTyped("Lola's pandesal"))
+        AddFoodStateBuilder.FIELD_ORDER.forEach { vm.takeAction(AddFoodAction.NutritionTyped(it, "5")) }
+
+        policySource.policy.value = nutrientFocus()
+        vm.takeAction(AddFoodAction.SaveTapped)
+
+        assertEquals(
+            CustomFoodDraft(name = "Lola's pandesal", servingAmount = 1.0, servingUnit = "piece", protein = 5.0, fiber = 5.0),
+            customFoods.created.single(),
+        )
+    }
+
+    @Test
+    fun blindSavesTheNameWithNoNumberEvenOnesTypedBefore() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(AddFoodAction.NameTyped("Lola's pandesal"))
+        vm.takeAction(AddFoodAction.NutritionTyped(Metric.Calories, "120"))
+
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        assertTrue(vm.state.labelOnly)
+        assertTrue(vm.state.canSave, "a name is enough")
+        vm.takeAction(AddFoodAction.SaveTapped)
+
+        assertEquals(
+            CustomFoodDraft(name = "Lola's pandesal", servingAmount = 1.0, servingUnit = "piece"),
+            customFoods.created.single(),
+        )
     }
 
     @Test
@@ -123,6 +154,19 @@ class AddFoodTest : CoroutineTest() {
             listOf(AddFoodEvent.ShowToast(Toast(Res.string.foods_food_saved, listOf("Lola's pandesal"))), AddFoodEvent.Close),
             events,
         )
+    }
+
+    @Test
+    fun aSecondSaveTapBeforeTheScreenClosesAddsNothing() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        vm.takeAction(AddFoodAction.NameTyped("Lola's pandesal"))
+
+        vm.takeAction(AddFoodAction.SaveTapped)
+        vm.takeAction(AddFoodAction.SaveTapped)
+
+        assertEquals(1, customFoods.created.size)
+        assertEquals(1, events.count { it == AddFoodEvent.Close })
     }
 
     @Test

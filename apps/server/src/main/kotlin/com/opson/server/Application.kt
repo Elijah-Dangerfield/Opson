@@ -2,6 +2,7 @@ package com.opson.server
 
 import com.opson.server.config.AdminConfig
 import com.opson.server.config.ServerConfig
+import com.opson.server.config.WaitlistConfig
 import com.opson.server.data.InMemoryExampleSource
 import com.opson.server.data.WebhookConfigChangeNotifier
 import com.opson.server.db.Database
@@ -13,6 +14,7 @@ import com.opson.server.plugins.JwtVerification
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.installAdminWeb
 import com.opson.server.plugins.installAuthentication
+import com.opson.server.plugins.installBodyLimit
 import com.opson.server.plugins.installCors
 import com.opson.server.plugins.installHttpServerTracing
 import com.opson.server.plugins.installObservability
@@ -21,7 +23,7 @@ import com.opson.server.plugins.installRateLimits
 import com.opson.server.plugins.installSentry
 import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
-import com.opson.server.plugins.installWebSockets
+import com.opson.server.plugins.recordInstallSightings
 import com.opson.server.routes.appConfigRoutes
 import com.opson.server.routes.barcodeMissRoutes
 import com.opson.server.routes.configAdminRoutes
@@ -30,11 +32,15 @@ import com.opson.server.routes.exportRoutes
 import com.opson.server.routes.foodRoutes
 import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
-import com.opson.server.routes.playerReportRoutes
+import com.opson.server.routes.photoRoutes
 import com.opson.server.routes.syncRoutes
+import com.opson.server.routes.userAdminRoutes
+import com.opson.server.routes.waitlistAdminRoutes
+import com.opson.server.routes.waitlistRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.routing
+import kotlin.time.Clock
 import org.slf4j.LoggerFactory
 
 /**
@@ -55,7 +61,8 @@ import org.slf4j.LoggerFactory
  * isn't mounted. Either way it boots — so you can clone and run with zero config.
  *
  * Order matters: serialization before status pages (so error envelopes encode),
- * auth after serialization (the 401 challenge writes a JSON body), CORS early.
+ * auth after serialization (the 401 challenge writes a JSON body). CORS is
+ * installed on the routing root, so a route can carry its own policy.
  */
 fun Application.module(config: ServerConfig) {
     val logger = LoggerFactory.getLogger("Bootstrap")
@@ -84,11 +91,17 @@ fun Application.module(config: ServerConfig) {
     config.foodSources.nutritionix?.let {
         logger.info("Nutritionix barcode lookups on, caching ${if (it.cacheResults) "on" else "off"}")
     }
-    val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources) }
+    val anthropic = config.foodSources.anthropic
+    if (anthropic != null) {
+        logger.info("Photo estimates on, model ${anthropic.photoModel}")
+    } else {
+        logger.info("ANTHROPIC_API_KEY not set — photo estimates answer 503 unavailable.")
+    }
+    val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources, Clock.System) }
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
     // mode simply runs without it — same null-safe degradation as everything
     // else here.
-    val banGate = component?.let { BanGate(it.moderationRepository, config.accessControl.appealUrl) }
+    val banGate = component?.let { BanGate(it.moderationRepository, config.accessControl.appealUrl, it.clock) }
     installApp(
         component = component,
         verification = verification,
@@ -101,6 +114,7 @@ fun Application.module(config: ServerConfig) {
                 scope = it.provideServerCoroutineScope(),
             )
         } ?: ConfigChangeNotifier {},
+        waitlistConfig = config.waitlist,
     )
 
     // The hosted admin console (static bundle at /admin). Outside installApp so
@@ -122,18 +136,20 @@ fun Application.installApp(
     banGate: BanGate? = null,
     adminConfig: AdminConfig = AdminConfig(apiToken = null),
     configChangeNotifier: ConfigChangeNotifier = ConfigChangeNotifier {},
+    waitlistConfig: WaitlistConfig = WaitlistConfig(),
 ) {
     installSerialization()
-    installCors()
+    installBodyLimit()
     installRateLimits()
     installStatusPages()
-    installWebSockets()
     if (verification != null) installAuthentication(verification, banGate)
 
     routing {
+        installCors()
         healthRoutes()
         exampleRoutes(component?.exampleSource ?: InMemoryExampleSource())
         if (component != null) {
+            recordInstallSightings(component.userInstallRepository, component.clock)
             // Optional auth: the config fetch must work pre-session (it carries
             // the kill-switch / forced-upgrade flags), but when the client does
             // present a Supabase JWT we resolve the user id so per-user targeting
@@ -157,13 +173,22 @@ fun Application.installApp(
                     manifestRepository = component.appConfigManifestRepository,
                     notifier = configChangeNotifier,
                 )
+                waitlistAdminRoutes(adminConfig, component.waitlistRepository)
+                userAdminRoutes(adminConfig, component.userLookupRepository)
             }
+            // The website's form: public, its own CORS and rate limits.
+            waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
         }
         if (component != null && verification != null) {
-            meRoutes(component.profileRepository, component.supabaseAdminClient)
-            playerReportRoutes(component.playerReportRepository)
+            meRoutes(
+                component.profileRepository,
+                component.supabaseAdminClient,
+                component.appleTokenRepository,
+                component.appleSignInClient,
+            )
             syncRoutes(component.syncRepository, component.clock)
             foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber)
+            photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.clock)
             barcodeMissRoutes(component.barcodeMissRepository)
             exportRoutes(component.exportRepository)
         }

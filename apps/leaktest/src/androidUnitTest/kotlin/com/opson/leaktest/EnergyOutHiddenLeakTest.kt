@@ -62,8 +62,15 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
         VisibilityPolicy(NumbersSettings(preset = PresetId.Full, overrides = overrides), Clock.fixed(NOW), TimeZone.UTC)
 
     companion object {
-        /** Every surface that draws energy out. Add one here when it starts to. */
-        val ENERGY_OUT_SURFACES = setOf("integrations", "today-expended")
+        /** Every surface that draws energy out. [LeakTestControlTest] fails on one missing from here. */
+        val ENERGY_OUT_SURFACES = setOf(
+            "onboarding-resting-energy",
+            "integrations", "today-expended", "today-exercise", "today-summary", "day-close-check-in",
+            "today-macros", "today-weight", "today-select", "today-select-remove", "today-swipe-delete",
+            "today-delete-confirm", "targets-goal-style", "resting-energy", "energy-today", "trends",
+            "today-select-v4", "today-moved",
+            "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
+        )
 
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")

@@ -11,6 +11,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
@@ -37,22 +38,39 @@ internal val SURFACES: List<LeakSurface> = SURFACES_BY_LIST.values.flatten()
 /** The calorie amount and the two numbers that follow from it. None of them may show as a number. */
 internal val CALORIE_METRICS: List<Metric> = listOf(Metric.Calories, Metric.Remaining, Metric.EnergyOut)
 
+/** A mode the leak test runs: a preset, and how Later opens. [name] is what a failure says. */
+data class LeakMode(val name: String, val settings: NumbersSettings) {
+    fun policy(): VisibilityPolicy = VisibilityPolicy(settings, Clock.fixed(NOW), TimeZone.UTC)
+
+    override fun toString(): String = name
+}
+
 /**
- * Every preset that does not show calories, derived so a new one is covered the day it is added:
+ * Every mode that does not show calories, derived so a new preset is covered the day it is added,
+ * No numbers first:
  *
- * - Hide (Blind, Nutrient, Rhythm, Explorer, Mindful): nothing at all.
- * - Delay (Delayed, Coast), at [NOW], before the reveal: nothing, apart from [REVEALED_BY_DESIGN].
- * - Soften (Fuel): a word may carry the calories tag, but never a digit.
+ * - Hide (No numbers, where Blind, Rhythm, Mindful and Explorer went): nothing at all.
+ * - Soften (Nutrients first): a word may carry the calories tag, but never a digit.
+ * - Delay (Later), at [NOW], before the reveal: nothing, apart from [REVEALED_BY_DESIGN]. Run each
+ *   day and weekly (where Coast went), since the two open on different surfaces.
  *
  * [SurfacesCoverageTest] pins the set, so a preset that starts showing calories is noticed.
  */
-internal val PRESETS_UNDER_TEST: List<PresetId> = Presets.all
+internal val MODES_UNDER_TEST: List<LeakMode> = Presets.all
     .filter { it.level(Metric.Calories) != Visibility.Show }
-    .map { it.id }
+    .sortedBy { preset -> Metric.entries.sumOf { preset.level(it).score } }
+    .flatMap { preset ->
+        val mode = LeakMode(preset.id.key, NumbersSettings(preset = preset.id))
+        if (Metric.entries.none { preset.level(it) == Visibility.Delay }) {
+            listOf(mode)
+        } else {
+            listOf(mode, LeakMode("${preset.id.key}-weekly", mode.settings.copy(revealOn = RevealOn.Week)))
+        }
+    }
 
 /**
- * Noon on the fixtures' day (2026-10-25, a Sunday, UTC), before the 9 pm reveal and before Coast's
- * weekly check, so both delayed presets are still holding today back.
+ * Noon on the fixtures' day (2026-10-25, a Sunday, UTC), before the 9 pm reveal and before the
+ * weekly check, so Later, each day and weekly, is still holding today back.
  */
 internal val NOW: Instant = Instant.parse("2026-10-25T12:00:00Z")
 
@@ -73,10 +91,10 @@ internal sealed interface Reveal {
 private val dayCloseOpens = Reveal.WholeSurface("Day close is where Later opens: Surface.DayClose is always revealed.")
 private val pastDayOpens = Reveal.WholeSurface("A past day has had its reveal.")
 private val weekOpens = Reveal.WholeSurface(
-    "Delayed opens the week view all day (Surface.Week). Today is left out of every average on it.",
+    "Later opens the week view all day (Surface.Week). Today is left out of every average on it.",
 )
 private val lastCheckOpens = Reveal.WholeSurface(
-    "Before this week's check, Coast keeps last week's check readable: its daily average is the number shown.",
+    "Before this week's check, Later weekly keeps last week's check readable: its daily average is the number shown.",
 )
 private val typedLabel = Reveal.Only(
     setOf("120 kcal"),
@@ -90,15 +108,15 @@ private val typedLabel = Reveal.Only(
  * hold the surface to nothing. [SurfacesCoverageTest] fails on an entry for a surface or preset
  * that no longer exists.
  */
-internal val REVEALED_BY_DESIGN: Map<Pair<PresetId, String>, Reveal> = buildMap {
-    listOf("day-close", "day-close-big-day").forEach { put(PresetId.Delayed to it, dayCloseOpens) }
-    put(PresetId.Delayed to "today-past", pastDayOpens)
+internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
+    listOf("day-close", "day-close-big-day", "day-close-check-in").forEach { put("later" to it, dayCloseOpens) }
+    put("later" to "today-past", pastDayOpens)
     listOf("trends", "trends-blind", "trends-coast", "nutrients-week", "patterns", "patterns-blind")
-        .forEach { put(PresetId.Delayed to it, weekOpens) }
+        .forEach { put("later" to it, weekOpens) }
 
-    listOf("trends", "trends-blind", "trends-coast").forEach { put(PresetId.Coast to it, lastCheckOpens) }
+    listOf("trends", "trends-blind", "trends-coast").forEach { put("later-weekly" to it, lastCheckOpens) }
 
-    listOf(PresetId.Delayed, PresetId.Coast, PresetId.Fuel).forEach { preset ->
-        listOf("foods-add-food", "foods-add-food-blind").forEach { put(preset to it, typedLabel) }
+    listOf("later", "later-weekly", "nutrients_first").forEach { mode ->
+        listOf("foods-add-food", "foods-add-food-blind").forEach { put(mode to it, typedLabel) }
     }
 }

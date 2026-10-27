@@ -2,8 +2,11 @@ package com.opson.libraries.diary.impl
 
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logging.KLog
+import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
@@ -36,7 +39,9 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import kotlin.time.Instant
 
 @SingleIn(AppScope::class)
-@ContributesBinding(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = DiaryRepository::class)
+@ContributesBinding(AppScope::class, boundType = DiaryItemEditor::class)
+@ContributesBinding(AppScope::class, boundType = DayCheckIns::class)
 @Inject
 class DiaryRepositoryImpl(
     private val tables: DiaryTables,
@@ -44,7 +49,7 @@ class DiaryRepositoryImpl(
     private val settingsRepository: SettingsRepository,
     private val calendar: LocalCalendar,
     private val fastEnder: FastEnder,
-) : DiaryRepository {
+) : DiaryRepository, DiaryItemEditor, DayCheckIns {
 
     private val logger = KLog.withTag("Diary")
 
@@ -120,16 +125,45 @@ class DiaryRepositoryImpl(
         putEntry(existing.copy(slot = slot.wire, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
     }
 
-    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> = writer.write {
-        val source = tables.entries.getDay(from.toString()).mapNotNull { it.toDomain() }
-        insertDrafts(to, source.map { it.slot to it.toDraft() }, LogMethod.Copy)
-    }.also { if (it.isNotEmpty()) foodLoggedOn(to) }
+    override suspend fun removeItems(ids: List<String>) = writer.write {
+        ids.forEach { id ->
+            val existing = tables.entries.get(id)?.takeUnless { it.deleted } ?: return@forEach
+            putEntry(existing.copy(deleted = true, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
+        }
+    }
 
-    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> =
-        writer.write {
-            val source = tables.entries.getDay(fromDay.toString()).mapNotNull { it.toDomain() }.filter { it.slot == slot }
-            insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy)
-        }.also { if (it.isNotEmpty()) foodLoggedOn(toDay) }
+    override suspend fun restoreItems(ids: List<String>) = writer.write {
+        ids.forEach { id ->
+            val existing = tables.entries.get(id)?.takeIf { it.deleted } ?: return@forEach
+            putEntry(existing.copy(deleted = false, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
+        }
+    }
+
+    override suspend fun moveItems(ids: List<String>, slot: MealSlot) = writer.write {
+        ids.forEach { id ->
+            val existing = tables.entries.get(id)?.takeUnless { it.deleted } ?: return@forEach
+            if (existing.slot == slot.wire) return@forEach
+            putEntry(existing.copy(slot = slot.wire, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
+        }
+    }
+
+    override suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem> {
+        val source = ids.mapNotNull { id -> tables.entries.get(id)?.takeUnless { it.deleted }?.toDomain() }
+        if (source.isNotEmpty()) foodLoggedOn(toDay)
+        return writer.write { insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy) }
+    }
+
+    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> {
+        val source = tables.entries.getDay(from.toString()).mapNotNull { it.toDomain() }
+        if (source.isNotEmpty()) foodLoggedOn(to)
+        return writer.write { insertDrafts(to, source.map { it.slot to it.toDraft() }, LogMethod.Copy) }
+    }
+
+    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> {
+        val source = tables.entries.getDay(fromDay.toString()).mapNotNull { it.toDomain() }.filter { it.slot == slot }
+        if (source.isNotEmpty()) foodLoggedOn(toDay)
+        return writer.write { insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy) }
+    }
 
     override suspend fun clearDay(day: LocalDate) = writer.write {
         tables.entries.getDay(day.toString()).forEach { existing ->
@@ -170,6 +204,10 @@ class DiaryRepositoryImpl(
         changeDay(day) { it.copy(feeling = feeling?.wire) }
     }
 
+    override suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?) = writer.write {
+        changeDay(day) { it.copy(checkIn = checkIn.toCheckInJson()) }
+    }
+
     override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) {
         writer.write {
             changeDay(day) { record ->
@@ -183,6 +221,10 @@ class DiaryRepositoryImpl(
     /**
      * Logging food ends a fast. Only on today or earlier: planning tomorrow's meals is not eating
      * now. Fasting never gets in the way of logging, so a failure here is logged and dropped.
+     *
+     * Before the food is written: a fast that was due and never started (the app was closed when
+     * the window shut) is written first, and it is only due while nothing was logged since the
+     * close. After the write, the new food would be that something.
      */
     private suspend fun foodLoggedOn(day: LocalDate) {
         if (day > calendar.today()) return
@@ -218,7 +260,7 @@ class DiaryRepositoryImpl(
     }
 
     override fun recentFoods(limit: Int): Flow<List<LogItem>> =
-        tables.entries.observeLatest(RECENT_SCAN).map { rows ->
+        tables.entries.observeLatestFoods(RECENT_SCAN).map { rows ->
             rows.mapNotNull { it.toDomain() }.distinctBy { it.foodKey() }.take(limit)
         }
 
@@ -317,6 +359,7 @@ class DiaryRepositoryImpl(
             mealGroups = live?.mealGroups,
             untracked = live?.untracked ?: false,
             feeling = DayFeeling.fromWire(live?.feeling),
+            checkIn = live?.checkIn.toCheckIn(),
             feelings = feelings.filterNot { it.deleted }
                 .mapNotNull { row -> MealSlot.fromWire(row.slot)?.let { it to row.toDomain() } }
                 .toMap(),

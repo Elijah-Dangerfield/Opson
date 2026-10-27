@@ -1,6 +1,7 @@
 package com.opson.server.db
 
 import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.FoodCategory
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.TransactionManager
@@ -31,21 +32,21 @@ class DatabaseSchemaTest : DatabaseTest() {
             listOf(
                 FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable, BarcodeMissesTable,
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable,
-                CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable,
+                CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, WaitlistTable,
+                AppleRefreshTokensTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
 
     @Test
-    fun rowLevelSecurityIsOnForEveryNewTable() {
-        val tables = listOf(
-            "foods", "off_foods", "food_search_events", "barcode_lookups", "barcode_misses", "log_entries",
-            "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts",
+    fun rowLevelSecurityIsOnForEveryTable() {
+        // On Supabase the anon key can reach any public table PostgREST is granted, and
+        // tables the postgres role creates are granted by default. RLS with no policies
+        // is what keeps them closed (V19 covers the tables created before the rule).
+        val withoutRls = strings(
+            "SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind = 'r' AND NOT relrowsecurity",
         )
-        val withRls = strings(
-            "SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relrowsecurity",
-        )
-        assertTrue(withRls.containsAll(tables), "RLS missing on ${tables - withRls.toSet()}")
+        assertEquals(listOf("flyway_schema_history"), withoutRls, "RLS off on $withoutRls")
     }
 
     @Test
@@ -77,14 +78,46 @@ class DatabaseSchemaTest : DatabaseTest() {
         val before = strings(indexes)
         assertEquals(
             listOf(
-                "off_foods_barcode_key", "off_foods_countries_idx", "off_foods_name_trgm_idx",
-                "off_foods_pkey", "off_foods_search_idx",
+                "off_foods_barcode_key", "off_foods_countries_idx", "off_foods_country_search_idx", "off_foods_name_idx",
+                "off_foods_name_trgm_idx", "off_foods_pkey", "off_foods_search_idx",
             ),
             before,
         )
-        val migration = checkNotNull(javaClass.getResource("/db/migration/V12__off_foods.sql")).readText()
-        database.blockingTransaction { exec(migration) }
+        listOf("V12__off_foods.sql", "V15__search_quality.sql").forEach { file ->
+            val migration = checkNotNull(javaClass.getResource("/db/migration/$file")).readText()
+            database.blockingTransaction { exec(migration) }
+        }
         assertEquals(before, strings(indexes))
+    }
+
+    /**
+     * V17 was applied to opson-dev by hand before Flyway saw it, like V12, so
+     * a second run changes nothing. The Kotlin enum and the CHECK must agree,
+     * or the backfill could write a value the server can't read back.
+     */
+    @Test
+    fun foodCategoryMigrationIsIdempotentAndItsCheckMatchesTheEnum() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V17__food_category.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        assertEquals(
+            listOf("1"),
+            strings("SELECT count(*)::text FROM pg_constraint WHERE conname = 'foods_category_check'"),
+        )
+        FoodCategory.entries.forEach { category ->
+            database.blockingTransaction {
+                exec(
+                    "INSERT INTO foods (source, source_id, name, category) " +
+                        "VALUES ('usda_sr', 'category-${category.wire}', 'x', '${category.wire}')",
+                )
+            }
+        }
+        assertFailsWith<Exception> {
+            database.blockingTransaction {
+                exec("INSERT INTO foods (source, source_id, name, category) VALUES ('usda_sr', 'category-bad', 'x', 'snack')")
+            }
+        }
+        database.blockingTransaction { exec("DELETE FROM foods WHERE source_id LIKE 'category-%'") }
     }
 
     /** V14 (fasts) is additive and safe to run twice; account deletion still cascades into it. */
@@ -125,7 +158,7 @@ class DatabaseSchemaTest : DatabaseTest() {
     fun noAnalyticsViewExposesAUserOrANutrientAmount() {
         val forbidden = setOf(
             "user_id", "kcal", "protein", "carbs", "fat", "fiber", "micros", "grams", "quantity",
-            "kg", "water_ml", "note", "name", "settings", "feeling",
+            "kg", "water_ml", "note", "name", "settings", "feeling", "email",
         )
         val columns = strings("SELECT column_name::text FROM information_schema.columns WHERE table_schema = 'analytics'")
         assertTrue(columns.isNotEmpty())
@@ -215,6 +248,65 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
     }
 
+    /** V17 is additive and idempotent: running it again over a loaded table changes nothing. */
+    @Test
+    fun waitlistMigrationIsIdempotent() {
+        val rows = "SELECT count(*)::text FROM waitlist"
+        database.blockingTransaction { exec("INSERT INTO waitlist (email, source) VALUES ('ada@example.com', 'home')") }
+        try {
+            val before = strings(rows)
+            val migration = checkNotNull(javaClass.getResource("/db/migration/V16__waitlist.sql")).readText()
+            database.blockingTransaction { exec(migration) }
+            database.blockingTransaction { exec(migration) }
+            assertEquals(before, strings(rows))
+        } finally {
+            database.blockingTransaction { exec("DELETE FROM waitlist") }
+        }
+    }
+
+    /** The table refuses what the route would never write: a second address in another case, a free-form source. */
+    @Test
+    fun waitlistRefusesCaseDuplicatesAndBadSources() {
+        try {
+            database.blockingTransaction { exec("INSERT INTO waitlist (email) VALUES ('ada@example.com')") }
+            assertFailsWith<Exception> {
+                database.blockingTransaction { exec("INSERT INTO waitlist (email) VALUES ('ADA@example.com')") }
+            }
+            assertFailsWith<Exception> {
+                database.blockingTransaction { exec("INSERT INTO waitlist (email, source) VALUES ('b@example.com', 'Home Page')") }
+            }
+        } finally {
+            database.blockingTransaction { exec("DELETE FROM waitlist") }
+        }
+    }
+
+    /** Sign-ups per UTC day, a count and nothing else. */
+    @Test
+    fun waitlistDailyCountsSignupsPerDay() {
+        database.blockingTransaction {
+            exec(
+                "INSERT INTO waitlist (email, created_at) VALUES " +
+                    "('a@example.com', '2001-02-03T01:00:00Z'), ('b@example.com', '2001-02-03T23:00:00Z'), " +
+                    "('c@example.com', '2001-02-04T12:00:00Z')",
+            )
+        }
+        try {
+            assertEquals(
+                listOf("2001-02-03:2", "2001-02-04:1"),
+                strings("SELECT day || ':' || signups FROM analytics.waitlist_daily ORDER BY day"),
+            )
+            assertEquals(
+                listOf("day", "signups"),
+                strings(
+                    "SELECT column_name::text FROM information_schema.columns " +
+                        "WHERE table_schema = 'analytics' AND table_name = 'waitlist_daily' ORDER BY ordinal_position",
+                ),
+            )
+        } finally {
+            database.blockingTransaction { exec("DELETE FROM waitlist") }
+        }
+    }
+
     @Test
     fun grafanaRoleReadsAnalyticsAndNothingElse() {
         database.blockingTransaction {
@@ -223,12 +315,51 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
         listOf(
             "log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "barcode_misses",
-            "profiles",
+            "profiles", "waitlist", "apple_refresh_tokens",
         ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
                     exec("SET LOCAL ROLE grafana_ro")
                     exec("SELECT * FROM public.$table LIMIT 1")
+                }
+            }
+        }
+    }
+
+    /** V22 is additive and safe to run twice (it is also applied by hand on dev), and cascades from the user. */
+    @Test
+    fun supportMigrationIsIdempotentAndCascadesFromTheUser() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V22__support_views.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val user = seedAuthUser().value
+        database.blockingTransaction {
+            exec("INSERT INTO user_installs (user_id, install_id, platform, app_version, build_number) VALUES ('$user', 'i', 'ios', '0.2.0', 52)")
+        }
+        assertEquals(listOf("1"), strings("SELECT count(*)::text FROM support.user_installs WHERE user_id = '$user'"))
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM user_installs WHERE user_id = '$user'"))
+    }
+
+    /**
+     * Grafana reads the per-person `support` views as well as `analytics`, and still no table: the
+     * views are the allowlist, so the role must not reach around them.
+     */
+    @Test
+    fun grafanaRoleReadsTheSupportViewsButNoTableBehindThem() {
+        database.blockingTransaction {
+            exec("SET LOCAL ROLE grafana_ro")
+            SUPPORT_VIEWS.forEach { exec("SELECT * FROM support.$it LIMIT 1") }
+        }
+        assertEquals(
+            SUPPORT_VIEWS.toSet(),
+            strings("SELECT table_name::text FROM information_schema.views WHERE table_schema = 'support'").toSet(),
+        )
+        listOf("public.user_installs", "auth.users").forEach { table ->
+            assertFailsWith<Exception>("grafana_ro must not read $table") {
+                database.blockingTransaction {
+                    exec("SET LOCAL ROLE grafana_ro")
+                    exec("SELECT * FROM $table LIMIT 1")
                 }
             }
         }
@@ -249,7 +380,8 @@ class DatabaseSchemaTest : DatabaseTest() {
             "daily_active_loggers", "entries_by_method_precision", "meals_per_day_distribution", "days_closed",
             "preset_distribution", "search_daily", "top_zero_result_queries", "barcode_outcomes_daily",
             "weekly_retention_cohorts", "retention_d1_d7_d30", "barcode_hit_rate_daily", "top_missed_barcodes",
-            "barcode_misses_by_country",
+            "barcode_misses_by_country", "waitlist_daily",
         )
+        val SUPPORT_VIEWS = listOf("users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings")
     }
 }

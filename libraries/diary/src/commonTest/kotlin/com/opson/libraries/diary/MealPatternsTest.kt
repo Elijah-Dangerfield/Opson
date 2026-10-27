@@ -169,6 +169,109 @@ class MealPatternsTest {
         assertEquals(4, facts.taggedMeals)
     }
 
+    /** Lunch tagged [hunger] on day [i], with breakfast eaten or skipped. */
+    private fun hungerDay(i: Int, hunger: Hunger, breakfast: Boolean) = start.plus(i, DateTimeUnit.DAY).let { date ->
+        val items = listOfNotNull(
+            item(date, MealSlot.Breakfast, 8).takeIf { breakfast },
+            item(date, MealSlot.Lunch, 13),
+        )
+        day(date, *items.toTypedArray(), feelings = mapOf(MealSlot.Lunch to MealFeeling(hunger = hunger)))
+    }
+
+    @Test
+    fun hungerByWeekdayAveragesThatWeekdaysTaggedMeals() {
+        // start is a Monday: day 0 and day 7 are Mondays, day 1 a Tuesday.
+        val days = listOf(
+            hungerDay(0, Hunger.VeryHungry, breakfast = true),
+            hungerDay(7, Hunger.Peckish, breakfast = true),
+            hungerDay(1, Hunger.NotHungry, breakfast = true),
+        )
+
+        val byWeekday = facts(days).hungerByWeekday
+
+        assertEquals(2.0, byWeekday.getValue(DayOfWeek.MONDAY))
+        assertEquals(0.0, byWeekday.getValue(DayOfWeek.TUESDAY))
+        assertNull(byWeekday[DayOfWeek.WEDNESDAY])
+    }
+
+    @Test
+    fun hungrierWithoutBreakfastNamesThoseWeekdays() {
+        val days = listOf(
+            hungerDay(1, Hunger.VeryHungry, breakfast = false),
+            hungerDay(3, Hunger.VeryHungry, breakfast = false),
+            hungerDay(8, Hunger.Hungry, breakfast = false),
+            hungerDay(0, Hunger.Peckish, breakfast = true),
+            hungerDay(2, Hunger.NotHungry, breakfast = true),
+        )
+
+        assertEquals(listOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY), facts(days).hungrierWithoutBreakfast)
+    }
+
+    private fun checkInDay(offset: Int, hunger: DayHunger?, breakfast: Boolean): Day {
+        val date = start.plus(offset, DateTimeUnit.DAY)
+        val items = listOfNotNull(item(date, MealSlot.Breakfast, 8).takeIf { breakfast }, item(date, MealSlot.Lunch, 13))
+        return day(date, *items.toTypedArray()).copy(checkIn = CheckIn(hunger = hunger, energy = Energy.Ok))
+    }
+
+    @Test
+    fun checkInHungerByWeekday_averagesOneAnswerADay_fromZeroToOne() {
+        val days = listOf(
+            checkInDay(0, DayHunger.Very, breakfast = true),
+            checkInDay(7, DayHunger.Steady, breakfast = true),
+            checkInDay(1, DayHunger.Rarely, breakfast = true),
+            // Answered, but not the hunger row: nothing for Wednesday.
+            checkInDay(2, hunger = null, breakfast = true),
+        )
+
+        val facts = facts(days)
+
+        assertEquals(0.75, facts.checkInHungerByWeekday.getValue(DayOfWeek.MONDAY))
+        assertEquals(0.0, facts.checkInHungerByWeekday.getValue(DayOfWeek.TUESDAY))
+        assertNull(facts.checkInHungerByWeekday[DayOfWeek.WEDNESDAY])
+        assertEquals(emptyMap(), facts.hungerByWeekday, "the meal tags are a separate fact")
+    }
+
+    @Test
+    fun checkInHungrierWithoutBreakfast_namesThoseWeekdays_onlyWhenTheCheckInsSaySo() {
+        val hungrier = listOf(
+            checkInDay(1, DayHunger.Very, breakfast = false),
+            checkInDay(3, DayHunger.Often, breakfast = false),
+            checkInDay(0, DayHunger.Some, breakfast = true),
+            checkInDay(2, DayHunger.Rarely, breakfast = true),
+        )
+        val even = listOf(
+            checkInDay(1, DayHunger.Steady, breakfast = false),
+            checkInDay(3, DayHunger.Steady, breakfast = false),
+            checkInDay(0, DayHunger.Steady, breakfast = true),
+            checkInDay(2, DayHunger.Steady, breakfast = true),
+        )
+
+        assertEquals(listOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY), facts(hungrier).checkInHungrierWithoutBreakfast)
+        assertNull(facts(even).checkInHungrierWithoutBreakfast)
+        assertNull(facts(hungrier).hungrierWithoutBreakfast, "no meal tags, so no tag fact")
+    }
+
+    @Test
+    fun aCheckInOnAnUntrackedDayIsLeftOut() {
+        val untracked = checkInDay(0, DayHunger.Very, breakfast = true).copy(untracked = true)
+
+        assertEquals(emptyMap(), facts(listOf(untracked)).checkInHungerByWeekday)
+    }
+
+    @Test
+    fun noSkippedBreakfastFactWhenTheTagsDontSaySo() {
+        val even = listOf(
+            hungerDay(1, Hunger.Peckish, breakfast = false),
+            hungerDay(3, Hunger.Peckish, breakfast = false),
+            hungerDay(0, Hunger.Peckish, breakfast = true),
+            hungerDay(2, Hunger.Peckish, breakfast = true),
+        )
+        val tooFew = listOf(hungerDay(1, Hunger.VeryHungry, breakfast = false), hungerDay(0, Hunger.NotHungry, breakfast = true))
+
+        assertNull(facts(even).hungrierWithoutBreakfast)
+        assertNull(facts(tooFew).hungrierWithoutBreakfast)
+    }
+
     @Test
     fun aTagOnAMealNotEatenIsNotCounted() {
         val facts = facts(listOf(Day(date = start, feelings = mapOf(MealSlot.Lunch to MealFeeling(hunger = Hunger.Hungry)))))

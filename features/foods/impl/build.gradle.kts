@@ -10,7 +10,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.features.foods)
-            // LoggerRoute: Foods rows open it with a food picked, and Create a meal picks through it.
+            // LoggerRoute and FoodSearchRoute: Foods rows open the + sheet or a food, search opens search, and Create a meal picks through it.
             implementation(projects.features.logger)
 
             implementation(projects.libraries.core)
@@ -33,6 +33,8 @@ kotlin {
 
         commonTest.dependencies {
             implementation(projects.libraries.flowroutines.testing)
+            // FoodsEvent.OpenLogger carries a Route.
+            implementation(projects.libraries.navigation)
             implementation(projects.features.foods)
             implementation(projects.features.logger)
             implementation(projects.libraries.core)

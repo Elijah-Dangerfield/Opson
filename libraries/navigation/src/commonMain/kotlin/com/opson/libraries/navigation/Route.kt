@@ -91,12 +91,7 @@ open class Route(
     val enter: AnimationType = AnimationType.SlideInFromRight,
     val exit: AnimationType = AnimationType.SlideOutToLeft,
     val popExit: AnimationType = AnimationType.SlideOutToRight,
-)  {
-    fun getEnterTransition(): EnterTransition = enter.toEnterTransition()
-    fun getExitTransition(): ExitTransition = exit.toExitTransition()
-
-    fun getPopExitTransition(): ExitTransition = popExit.toExitTransition()
-
+) {
     companion object
 }
 

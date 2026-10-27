@@ -1,5 +1,9 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.CheckIn
+import com.opson.libraries.diary.CheckInMood
+import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
@@ -21,6 +25,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * [DiaryRepositoryImpl] over an in-memory database: that each write lands
@@ -219,6 +224,24 @@ class DiaryRepositoryImplTest : CoroutineTest() {
         assertEquals(listOf("Oats", "Eggs"), usual.map { it.name })
     }
 
+    /** The Foods tab drops what has no food behind it, so counting those left Recent short of six. */
+    @Test
+    fun recentFoodsSkipsQuickNumbersAndNameOnlyLines() = runUnitTest {
+        val foods = listOf("Oats", "Eggs", "Rice", "Adobo", "Banana", "Yogurt")
+        foods.forEach { name ->
+            repo.addItems(today, MealSlot.Lunch, listOf(draft(name).copy(foodId = "f-$name")), LogMethod.Search)
+            clock.now += 1.minutes
+            repo.addItems(today, MealSlot.Lunch, listOf(draft("Quick number", kcal = 300.0)), LogMethod.QuickNumber)
+            clock.now += 1.minutes
+            repo.addItems(today, MealSlot.Lunch, listOf(draft("Something at the market")), LogMethod.Search)
+            clock.now += 1.minutes
+        }
+
+        val recent = repo.recentFoods(limit = 6).first()
+
+        assertEquals(foods.reversed(), recent.map { it.name })
+    }
+
     @Test
     fun frequentFoodsRanksAcrossEverySlotWithinTheWindow() = runUnitTest {
         repo.addItems(LocalDate(2026, 10, 20), MealSlot.Breakfast, listOf(draft("Banana")), LogMethod.Search)
@@ -261,6 +284,45 @@ class DiaryRepositoryImplTest : CoroutineTest() {
         val cleared = repo.observeDay(today).first()
         assertEquals(false, cleared.untracked)
         assertNull(cleared.feeling)
+    }
+
+    @Test
+    fun removedItemsComeBackOnRestore_andBothSync() = runUnitTest {
+        val items = repo.addItems(today, MealSlot.Breakfast, listOf(draft("Oats"), draft("Banana"), draft("Coffee")), LogMethod.Search)
+        val picked = items.take(2).map { it.id }
+
+        repo.removeItems(picked)
+        assertEquals(listOf("Coffee"), repo.observeDay(today).first().allItems.map { it.name })
+
+        repo.restoreItems(picked)
+        assertEquals(listOf("Oats", "Banana", "Coffee"), repo.observeDay(today).first().allItems.map { it.name })
+        assertTrue(picked.none { decode(db.outbox.rows.single { row -> row.entityId == it }.payload).deleted }, "the restore is what syncs")
+    }
+
+    @Test
+    fun movingAndCopyingSeveralItems() = runUnitTest {
+        val items = repo.addItems(today, MealSlot.Uncategorized, listOf(draft("Granola"), draft("Sparkling water")), LogMethod.Search)
+
+        repo.moveItems(items.map { it.id }, MealSlot.Snack)
+        assertEquals(listOf("Granola", "Sparkling water"), repo.observeDay(today).first().items(MealSlot.Snack).map { it.name })
+
+        val copies = repo.copyItems(items.map { it.id }, yesterday, MealSlot.Dinner)
+        assertEquals(listOf("Granola", "Sparkling water"), repo.observeDay(yesterday).first().items(MealSlot.Dinner).map { it.name })
+        assertTrue(copies.all { it.method == LogMethod.Copy })
+    }
+
+    @Test
+    fun theCheckInSyncsOnTheDayRecord_andEmptyClearsIt() = runUnitTest {
+        val checkIn = CheckIn(hunger = DayHunger.Steady, sleep = Sleep.Ok, moods = setOf(CheckInMood.Social, CheckInMood.Calm))
+
+        repo.setCheckIn(today, checkIn)
+
+        assertEquals(checkIn, repo.observeDay(today).first().checkIn)
+        val row = WireJson.decodeFromString(DayRecordRowDto.serializer(), db.outbox.rows.single().payload)
+        assertEquals("""{"hunger":"steady","sleep":"ok","moods":["calm","social"]}""", row.checkIn)
+
+        repo.setCheckIn(today, CheckIn())
+        assertNull(repo.observeDay(today).first().checkIn)
     }
 
     private fun payloadFor(id: String): LogEntryRowDto = decode(db.outbox.rows.single { it.entityId == id }.payload)

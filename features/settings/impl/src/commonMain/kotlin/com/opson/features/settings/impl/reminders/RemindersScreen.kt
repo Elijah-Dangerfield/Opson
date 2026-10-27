@@ -16,7 +16,6 @@ import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.SettingsRow
-import com.opson.features.settings.impl.TimeDialog
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Tone
@@ -30,11 +29,14 @@ import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonTone
+import com.opson.libraries.ui.components.dialog.TimePickerDialog
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.reminders_big_day_body
 import opson.libraries.resources.generated.resources.reminders_big_day_title
+import opson.libraries.resources.generated.resources.reminders_checkin_body
+import opson.libraries.resources.generated.resources.reminders_checkin_title
 import opson.libraries.resources.generated.resources.reminders_level_full
 import opson.libraries.resources.generated.resources.reminders_level_off
 import opson.libraries.resources.generated.resources.reminders_level_subtle
@@ -138,6 +140,14 @@ fun RemindersScreen(
             checked = state.askTags,
             onToggle = { onAction(RemindersAction.HungerQuestionsToggled) },
         )
+        state.checkIn?.let { checked ->
+            SwitchCard(
+                title = Res.string.reminders_checkin_title,
+                body = Res.string.reminders_checkin_body,
+                checked = checked,
+                onToggle = { onAction(RemindersAction.CheckInToggled) },
+            )
+        }
         Text(
             text = stringResource(Res.string.reminders_no_evening),
             typography = AppTheme.type.secondarySmall,
@@ -146,7 +156,7 @@ fun RemindersScreen(
         )
     }
     state.pickingRow?.let { row ->
-        TimeDialog(
+        TimePickerDialog(
             title = stringResource(Res.string.reminders_time_title, stringResource(row.slot.label)),
             initial = row.time,
             okLabel = stringResource(Res.string.reminders_time_ok),
@@ -212,9 +222,19 @@ private val EventLevel.label: StringResource
         EventLevel.Full -> Res.string.reminders_level_full
     }
 
+/** The design's page: `release.checkIn` on, so Check in at day close ends it. */
 @Preview
 @Composable
 private fun RemindersPreview() {
+    SettingsPreview {
+        RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet, checkInReleased = true), onAction = {})
+    }
+}
+
+/** `release.checkIn` off: no check-in row. */
+@Preview
+@Composable
+private fun RemindersNoCheckInPreview() {
     SettingsPreview { RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet), onAction = {}) }
 }
 
@@ -240,7 +260,7 @@ private fun RemindersPermissionDeniedPreview() {
 @Preview
 @Composable
 private fun RemindersBlindPreview() {
-    val settings = SettingsFixtures.remindersSet.copy(numbers = NumbersSettings(preset = PresetId.Blind), tone = Tone.Warm)
+    val settings = SettingsFixtures.remindersSet.copy(numbers = NumbersSettings(preset = PresetId.NoNumbers), tone = Tone.Warm)
     SettingsPreview { RemindersScreen(RemindersStateBuilder.build(settings), onAction = {}) }
 }
 

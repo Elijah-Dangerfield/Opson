@@ -1,7 +1,7 @@
 package com.opson.features.foods.impl
 
 import androidx.lifecycle.viewModelScope
-import com.opson.features.logger.LoggerRoute
+import com.opson.features.logger.FoodSearchRoute
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.SavedMealRepository
@@ -47,7 +47,7 @@ class FoodsViewModel(
                 policy = action.policy
                 action.rebuild()
             }
-            FoodsAction.SearchTapped -> sendEvent(FoodsEvent.OpenLogger(LoggerRoute(focusSearch = true)))
+            FoodsAction.SearchTapped -> sendEvent(FoodsEvent.OpenLogger(FoodSearchRoute()))
             FoodsAction.CreateMealTapped -> sendEvent(FoodsEvent.OpenCreateMeal)
             FoodsAction.AddFoodTapped -> sendEvent(FoodsEvent.OpenAddFood)
             is FoodsAction.RowTapped -> sendEvent(FoodsEvent.OpenLogger(action.target.toLoggerRoute()))

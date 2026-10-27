@@ -92,7 +92,7 @@ class SentryLogTree(
 
     private fun appendToBuffer(entry: LogEntry) {
         val message = entry.message ?: entry.throwable?.message ?: DEFAULT_MESSAGE
-        ringBuffer?.add("${now()} ${entry.level.name.uppercase()} ${entry.tag ?: "-"}: $message")
+        ringBuffer?.add("${now()} ${entry.level.name.uppercase()} ${entry.tag ?: "-"}: ${scrubUrls(message)}")
     }
 
     private fun addBreadcrumb(entry: LogEntry) {
@@ -119,11 +119,11 @@ class SentryLogTree(
         val sentryLevel = entry.level.toSentryLevel()
 
         val sentryId = entry.throwable?.let {
-            Sentry.captureException(it) { scope ->
+            Sentry.captureException(it.scrubbedForSentry()) { scope ->
                 scope.level = sentryLevel
                 applyContext(scope, entry)
             }
-        } ?: Sentry.captureMessage(message) { scope ->
+        } ?: Sentry.captureMessage(scrubUrls(message)) { scope ->
             scope.level = sentryLevel
             applyContext(scope, entry)
         }
@@ -142,11 +142,11 @@ class SentryLogTree(
 
     private fun applyContextMaps(scope: Scope, context: LogContext) {
         context.tags.forEach { (key, value) ->
-            scope.setTag(key, value)
+            scope.setTag(key, scrubUrls(value))
         }
         context.extras.forEach { (key, value) ->
             if (value != null) {
-                scope.setExtra(key, Catching {value.toString()}.getOrElse { "${value::class.simpleName}" } )
+                scope.setExtra(key, scrubUrls(Catching { value.toString() }.getOrElse { "${value::class.simpleName}" }))
             }
         }
     }

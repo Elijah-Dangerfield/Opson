@@ -1,6 +1,8 @@
 package com.opson.libraries.foods
 
 import com.opson.libraries.diary.CustomFood
+import com.opson.libraries.diary.FoodUnit
+import com.opson.libraries.diary.HouseholdAmount
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.Precision
@@ -30,7 +32,23 @@ sealed interface AmountUnit {
         override val label: String get() = unit
         override val gramsEach: Double? get() = null
     }
+
+    /** A size the person saved for this food with "Custom size…": "my bowl" is 420 g. */
+    data class Saved(val unit: FoodUnit) : AmountUnit {
+        override val label: String get() = unit.label
+        override val gramsEach: Double get() = unit.grams
+
+        /** As a portion of one, so a logged amount reads "1 my bowl" like any other portion. */
+        val portion: Portion get() = Portion("1 ${unit.label}", unit.grams)
+    }
 }
+
+/** What one of this unit weighs, for the unit menu: "350 g". Null for grams themselves and unknown weights. */
+val AmountUnit.gramsLabel: String?
+    get() = when (this) {
+        AmountUnit.Grams -> null
+        else -> gramsEach?.let { HouseholdAmount.of(round(it), "g") }
+    }
 
 /**
  * The amount sheet's stepper, as the prototype's `af`: grams step by 10 and
@@ -67,33 +85,63 @@ object PortionAmount {
         }
     }
 
+    /**
+     * The count after switching units in the unit menu (design sync 2, 3.3b): the count stays and
+     * the gram total follows, so a plate to a cup is still "1". Grams are a count of their own, so
+     * a switch to or from grams converts through the weight instead.
+     */
+    fun switch(quantity: Double, from: AmountUnit, to: AmountUnit): Double =
+        if (from is AmountUnit.Grams || to is AmountUnit.Grams) convert(quantity, from, to) else quantity
+
     // One decimal place is all a half step needs, and it keeps 0.1 + 0.2 drift out of the text.
     private fun tidy(value: Double): Double = round(value * 10) / 10
 }
 
 /**
- * The unit as a chip on the amount sheet: a portion without its leading count
- * ("1 cup" is "cup", "1 medium" is "medium"), grams spelled out.
+ * The unit as a chip on the amount sheet: a portion of one without its count
+ * ("1 cup" is "cup", "1 medium" is "medium"), any other portion as people say
+ * it ("0.25 cup" is "¼ cup"), grams spelled out.
  */
 val AmountUnit.chipLabel: String
     get() = when (this) {
         AmountUnit.Grams -> "grams"
-        is AmountUnit.OfPortion -> label.removePrefix("1 ").trim().ifEmpty { label }
+        is AmountUnit.OfPortion ->
+            if (HouseholdAmount.amountOf(label) == 1.0) {
+                HouseholdAmount.unitOf(label).ifEmpty { label }
+            } else {
+                HouseholdAmount.ofPortion(label)
+            }
         is AmountUnit.Serving -> unit
+        is AmountUnit.Saved -> unit.label
     }
 
-/** The amount on the stepper: "150 g", "1 plate", "1.5 cup". An amount, not a nutrient, so no policy. */
+/** The amount on the stepper: "150 g", "1 plate", "1½ cups". An amount, not a nutrient, so no policy. */
 fun AmountUnit.amountText(quantity: Double): String = when (this) {
-    AmountUnit.Grams -> "${formatNumber(quantity)} g"
-    else -> "${formatNumber(quantity)} $chipLabel"
+    AmountUnit.Grams -> HouseholdAmount.of(quantity, "g")
+    is AmountUnit.OfPortion -> HouseholdAmount.ofPortion(label, quantity)
+    is AmountUnit.Serving -> HouseholdAmount.of(quantity, unit)
+    is AmountUnit.Saved -> savedText(quantity)
 }
 
-/** Units for a catalog food: its portions, then grams. A food with no portions offers grams only. */
-fun Food.amountUnits(): List<AmountUnit> = portions.map(AmountUnit::OfPortion) + AmountUnit.Grams
+/** "1½ my bowl": the person's own words, never pluralised (the plural rules are for catalog portions). */
+internal fun AmountUnit.Saved.savedText(quantity: Double): String = "${HouseholdAmount.number(quantity)} ${unit.label}"
 
-/** A custom food offers its one serving unit; when that unit is grams, grams is it. */
-fun CustomFood.amountUnits(): List<AmountUnit> =
-    listOf(if (servingUnit.equals("g", ignoreCase = true)) AmountUnit.Grams else AmountUnit.Serving(servingUnit))
+/**
+ * Units for a catalog food: its portions, the person's [saved] sizes, then grams. A food with no
+ * portions offers grams only, or the saved sizes and grams.
+ */
+fun Food.amountUnits(saved: List<FoodUnit> = emptyList()): List<AmountUnit> =
+    portions.map(AmountUnit::OfPortion) + saved.map(AmountUnit::Saved) + AmountUnit.Grams
+
+/**
+ * A custom food offers its one serving unit; when that unit is grams, grams is it, and then the
+ * person's [saved] sizes too. A serving of unknown weight cannot be converted, so it takes none.
+ */
+fun CustomFood.amountUnits(saved: List<FoodUnit> = emptyList()): List<AmountUnit> =
+    if (isByWeight) saved.map(AmountUnit::Saved) + AmountUnit.Grams else listOf(AmountUnit.Serving(servingUnit))
+
+/** Counted in grams, so a size in grams converts to it. */
+val CustomFood.isByWeight: Boolean get() = servingUnit.equals("g", ignoreCase = true)
 
 /** [quantity] of [unit] of this food as a basket item. */
 fun Food.draftFor(
@@ -106,8 +154,10 @@ fun Food.draftFor(
         AmountUnit.Grams -> FoodAmount.Grams(quantity)
         is AmountUnit.OfPortion -> FoodAmount.OfPortion(unit.portion, quantity)
         is AmountUnit.Serving -> FoodAmount.Servings(quantity)
+        is AmountUnit.Saved -> FoodAmount.OfPortion(unit.portion, quantity)
     }
-    return toLogDraft(amount, precision, method)
+    val draft = toLogDraft(amount, precision, method)
+    return if (unit is AmountUnit.Saved) draft.copy(amountText = unit.savedText(quantity)) else draft
 }
 
 /**
@@ -123,6 +173,18 @@ fun CustomFood.draftFor(
     val servings = if (servingAmount > 0.0) quantity / servingAmount else 1.0
     val draft = toDraft(servings, precision)
     return if (method == null) draft else draft.copy(method = method)
+}
+
+/** [quantity] of [unit] of this custom food: its own unit, or a saved size converted through grams. */
+fun CustomFood.draftFor(
+    unit: AmountUnit,
+    quantity: Double,
+    precision: Precision = Precision.Estimate,
+    method: LogMethod? = null,
+): LogDraft = when (unit) {
+    is AmountUnit.Saved -> draftFor(quantity * unit.gramsEach, precision, method)
+        .copy(amountText = unit.savedText(quantity))
+    else -> draftFor(quantity, precision, method)
 }
 
 /** The quantity a custom food starts at on the amount sheet: one serving, in its own unit. */

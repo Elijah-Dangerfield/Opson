@@ -3,6 +3,7 @@ package com.opson.features.settings.impl.more
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
 import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.features.settings.impl.remindersFlag
@@ -41,7 +42,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theModesRowCountsTheChanges() {
-        assertEquals(MoreRow.Modes(PresetId.Fuel, changes = 1), build(SettingsFixtures.fuelWithACarbsChange).groups[0][0])
+        assertEquals(MoreRow.Modes(PresetId.NutrientsFirst, changes = 1), build(SettingsFixtures.nutrientsFirstWithACarbsChange).groups[0][0])
         assertEquals(MoreRow.Modes(PresetId.Full, changes = 2), build(SettingsFixtures.adjusted).groups[0][0])
     }
 
@@ -56,7 +57,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun settingsArriveAsState() = runUnitTest {
         val settings = FakeSettingsRepository(SettingsFixtures.settings())
-        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag())
+        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
 
         settings.state.value = settings.state.value.copy(waterGlasses = 10)
 
@@ -65,14 +66,14 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun eachRowOpensItsPage_andPlanOpensNothing() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
         val events = eventsOf(vm)
 
         vm.state.groups.flatten().forEach { vm.takeAction(MoreAction.RowTapped(it)) }
 
         assertEquals(
             listOf(
-                MoreEvent.OpenModes, MoreEvent.OpenTargets, MoreEvent.OpenLookAndFeel, MoreEvent.OpenHealth,
+                MoreEvent.OpenModes, MoreEvent.OpenTargets, MoreEvent.OpenHealth, MoreEvent.OpenLookAndFeel,
                 MoreEvent.OpenWater, MoreEvent.OpenSupport,
             ),
             events,
@@ -91,7 +92,7 @@ class MoreTest : CoroutineTest() {
     fun fastingSitsAfterWaterOnlyInFullAndSprint() {
         PresetId.entries.forEach { preset ->
             val extras = withFasting(preset).groups[1]
-            val expected = if (preset == PresetId.Full || preset == PresetId.Sprint) {
+            val expected = if (preset == PresetId.Full || preset == PresetId.Full) {
                 listOf(MoreRow.Water(glasses = 8), MoreRow.Fasting(on = false, plan = FastingPlan.FourteenTen))
             } else {
                 listOf(MoreRow.Water(glasses = 8))
@@ -115,12 +116,12 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theFastingRowSaysOnWithThePlan() {
-        assertEquals(MoreRow.Fasting(on = true, plan = FastingPlan.FourteenTen), withFasting(PresetId.Sprint, on = true).groups[1][1])
+        assertEquals(MoreRow.Fasting(on = true, plan = FastingPlan.FourteenTen), withFasting(PresetId.Full, on = true).groups[1][1])
     }
 
     @Test
     fun theFastingRowOpensFasting() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true }, widgetsFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true }, widgetsFlag(), goalsAndEnergyFlag())
         val events = eventsOf(vm)
 
         vm.takeAction(MoreAction.RowTapped(vm.state.groups[1][1]))
@@ -146,14 +147,14 @@ class MoreTest : CoroutineTest() {
         )
         assertEquals(
             listOf(MoreRow.Water(glasses = 8), MoreRow.Widgets),
-            MoreStateBuilder.build(SettingsFixtures.settings(NumbersSettings(PresetId.Blind)), widgetsOn = true).groups[1],
+            MoreStateBuilder.build(SettingsFixtures.settings(NumbersSettings(PresetId.NoNumbers)), widgetsOn = true).groups[1],
             "in a mode without fasting",
         )
     }
 
     @Test
     fun theWidgetsRowOpensWidgets() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(on = true))
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(on = true), goalsAndEnergyFlag())
         val events = eventsOf(vm)
 
         vm.takeAction(MoreAction.RowTapped(vm.state.groups[1].last()))
@@ -164,27 +165,37 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOff_noRow_andTheStoreIsNeverTouched() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.Connected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
 
         assertTrue(vm.state.groups.flatten().none { it is MoreRow.Health })
         assertEquals(0, health.refreshes)
     }
 
     @Test
+    fun healthFlagOff_comingBackToMore_stillNeverTouchesTheStore() = runUnitTest {
+        val health = FakeHealthRepository(status = HealthStatus.Connected)
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
+
+        vm.takeAction(MoreAction.ScreenResumed)
+
+        assertEquals(0, health.refreshes)
+    }
+
+    @Test
     fun healthFlagOn_theRowSaysWhetherItIsConnected() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.NotConnected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag())
-        assertEquals(MoreRow.Health(connected = false), vm.state.groups[0].last())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
+        assertEquals(MoreRow.Health(connected = false), vm.state.groups[0].filterIsInstance<MoreRow.Health>().single())
 
         health.statusFlow.value = HealthStatus.Connected
 
-        assertEquals(MoreRow.Health(connected = true), vm.state.groups[0].last())
+        assertEquals(MoreRow.Health(connected = true), vm.state.groups[0].filterIsInstance<MoreRow.Health>().single())
     }
 
     @Test
     fun screenResumed_rechecksTheConnection() = runUnitTest {
         val health = FakeHealthRepository()
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
         val before = health.refreshes
         vm.takeAction(MoreAction.ScreenResumed)
         assertEquals(before + 1, health.refreshes)
@@ -193,18 +204,18 @@ class MoreTest : CoroutineTest() {
     @Test
     fun theHealthRow_carriesNoAmount_inAnyMode() {
         PresetId.entries.forEach { preset ->
-            val row = MoreStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset)), healthConnected = true).groups[0].last()
+            val row = MoreStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset)), healthConnected = true).groups[0].filterIsInstance<MoreRow.Health>().single()
             assertEquals(MoreRow.Health(connected = true), row, "in $preset")
         }
     }
 
     @Test
-    fun withBothFlagsTheFirstCardReadsAsV3() {
+    fun withBothFlagsTheFirstCardReadsAsDesignSync2_withLookAndFeelKeptLast() {
         val rows = MoreStateBuilder.build(SettingsFixtures.settings(), healthConnected = true, remindersOn = true).groups[0]
         assertEquals(
             listOf(
                 MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.Reminders(quiet = true),
-                MoreRow.LookAndFeel, MoreRow.Health(connected = true),
+                MoreRow.Health(connected = true), MoreRow.LookAndFeel,
             ),
             rows,
         )
@@ -218,9 +229,16 @@ class MoreTest : CoroutineTest() {
             MoreStateBuilder.build(settings, remindersOn = true).groups[0],
         )
 
-        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false }, widgetsFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
         val events = eventsOf(vm)
         vm.takeAction(MoreAction.RowTapped(MoreRow.Reminders(quiet = false)))
         assertEquals(listOf<MoreEvent>(MoreEvent.OpenReminders), events)
+    }
+
+    @Test
+    fun todayScreen_followsTheTargets_onlyWithGoalsAndEnergy() {
+        val on = MoreStateBuilder.build(SettingsFixtures.settings(), todayScreenOn = true).groups[0]
+        assertEquals(MoreRow.TodayScreen, on[on.indexOf(MoreRow.Targets) + 1])
+        assertTrue(MoreRow.TodayScreen !in build().groups.flatten())
     }
 }

@@ -68,7 +68,7 @@ private fun ColorSupportPreview() {
 private fun TypographyPreview() {
     CatalogScaffold(
         title = "Typography",
-        subtitle = "Display = serif; Brand = the brand face. Heading / Body / Label / Caption = sans.",
+        subtitle = "Every group in Atkinson Hyperlegible Next except Brand, which is the wordmark face, Young Serif.",
     ) {
         TwoColumn(
             left = { TypographyCatalogBodyHeadlines() },

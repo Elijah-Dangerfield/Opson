@@ -31,6 +31,14 @@ sealed interface NumbersChange {
     @Serializable
     data class SetRevealAt(val time: LocalTime) : NumbersChange
 
+    /** Later's totals open once a week ([weekly]) or each day. Each day opens them sooner, so it is a raise. */
+    @Serializable
+    data class SetRevealWeekly(val weekly: Boolean) : NumbersChange
+
+    /** The Progress photos row, Show or Hide. Showing them is showing more, so it pauses. */
+    @Serializable
+    data class SetProgressPhotos(val shown: Boolean) : NumbersChange
+
     /** The settings after this change, stamped [at] so More can say when they last changed. */
     fun applyTo(settings: NumbersSettings, at: Instant): NumbersSettings = when (this) {
         is PickPreset -> settings.pickPreset(id, at)
@@ -38,6 +46,8 @@ sealed interface NumbersChange {
         is ClearOverride -> settings.copy(overrides = settings.overrides - metric, changedAt = at)
         TurnOffPause -> settings.copy(pauseBeforeMore = false, changedAt = at)
         is SetRevealAt -> settings.copy(revealAt = time, changedAt = at)
+        is SetRevealWeekly -> settings.copy(revealOn = if (weekly) RevealOn.Week else RevealOn.DayClose, changedAt = at)
+        is SetProgressPhotos -> settings.copy(progressPhotos = shown, changedAt = at)
     }
 
     /**
@@ -50,7 +60,8 @@ sealed interface NumbersChange {
      *
      * The reveal time changes no level, so the score cannot see it. Moving it
      * earlier opens Later numbers sooner, which is showing more, so that pauses
-     * too; moving it later never does.
+     * too; moving it later never does. Photos coming back are a raise too
+     * ([NumbersSettings.isRaise]).
      */
     fun needsPause(current: NumbersSettings): Boolean {
         if (!current.pauseBeforeMore) return false

@@ -36,6 +36,9 @@ enum class Precision(val wire: String) {
     Weighed("weighed"),
     Estimate("estimate"),
     Named("named"),
+
+    /** A serving as the package's label gives it. Clients from before 0.2 read it as an estimate. */
+    Label("label"),
     ;
 
     companion object {
@@ -106,6 +109,8 @@ data class DayRecord(
     val untracked: Boolean = false,
     /** "How did today feel?", a client wire value such as `steady`; null when not answered. */
     val feeling: String? = null,
+    /** Day close's check-in as the client's JSON; null when not answered. Opaque here, length-checked only. */
+    val checkIn: String? = null,
 ) : DiaryRow
 
 data class MealFeeling(

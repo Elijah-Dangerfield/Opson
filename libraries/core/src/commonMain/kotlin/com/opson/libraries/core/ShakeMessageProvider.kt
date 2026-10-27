@@ -48,17 +48,13 @@ class ShakeMessageProviderImpl : ShakeMessageProvider {
         return chosen
     }
     
-    private fun buildCandidateMessages(context: ShakeMessageContext): List<ShakeMessage> {
-        val name = context.userName
-        
-        return when {
-            context.shakeCount == 0 -> firstShakeMessages(context)
-            context.shakeCount in 1..2 -> earlyShakeMessages(context)
-            context.shakeCount in 3..6 -> repeatShakeMessages(context)
-            context.shakeCount >= 7 -> frequentShakerMessages(context)
-            else -> defaultMessages(context)
+    private fun buildCandidateMessages(context: ShakeMessageContext): List<ShakeMessage> =
+        when {
+            context.shakeCount <= 0 -> firstShakeMessages(context)
+            context.shakeCount <= 2 -> earlyShakeMessages(context)
+            context.shakeCount <= 6 -> repeatShakeMessages(context)
+            else -> frequentShakerMessages(context)
         }
-    }
     
     private fun firstShakeMessages(context: ShakeMessageContext): List<ShakeMessage> {
         val name = context.userName
@@ -247,15 +243,5 @@ class ShakeMessageProviderImpl : ShakeMessageProvider {
                 add(ShakeMessage("Beyond 100.", "You're in uncharted territory."))
             }
         }
-    }
-    
-    private fun defaultMessages(context: ShakeMessageContext): List<ShakeMessage> {
-        return listOf(
-            ShakeMessage("I felt that."),
-            ShakeMessage("Noted."),
-            ShakeMessage("Okay."),
-            ShakeMessage("Yep."),
-            ShakeMessage("There it is."),
-        )
     }
 }

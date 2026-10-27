@@ -4,7 +4,11 @@ Trends and its settings sheet, Nutrients detail (This day and Week average),
 Weight, and Patterns. Read `shared.md` first.
 
 ## Source
-- **Design v3 is the spec** (`docs/design/v3/CHANGES.md`, `manifest.json` and
+- **Design sync 2 is the spec now** (`docs/plans/design-sync-2.md`): the
+  `trends-previews__*` pairs, `weight-screen__weight`, `weight-trend`,
+  `weight-hidden`, and the manifest notes per screen. It supersedes v3 where
+  they differ; "Design sync 2" below lists what changed.
+- **Design v3** (before sync 2) (`docs/design/v3/CHANGES.md`, `manifest.json` and
   the images): `trends`, `trends--full`, `trends-blind`, `trends-coast`,
   `nutrients-day`, `nutrients-week`, `nutrients-week--full`, `patterns`,
   `patterns--full`, `patterns-blind`, `weight`, `weight-trend`,
@@ -23,6 +27,51 @@ Routes in `:features:trends` (`com.opson.features.trends`); impl
 - No visibility toggle on a content screen. Nutrients and Weight link to Modes
   and numbers (`ModesRoute`) instead; the pause applies there.
 - Meal colours only tell meals apart.
+
+---
+
+## Design sync 2
+
+What changed against this plan, and the differences kept on purpose.
+
+- **Trends**: already matched. The design PNGs for Trends, Nutrients week and
+  Patterns are full scrolls; the renderer draws every preview at 844 dp, so
+  the `…Below` previews show the rest. Kept on purpose: `Patterns ›` stays on the Blind `Your week` hero. The
+  design drops it, but the Blind Patterns page (`patterns-blind`) is designed
+  and this link is its only way in. Expended (`Daily average from your
+  watch`) stays unbuilt: Health has a per-day `energy(day)` flow only, and a
+  span average needs a range read in `:libraries:health`.
+  `TODO(design-sync-2)` in `TrendsScreen`.
+- **Coast**: the design says `7:00 pm`; the reveal is 9:00 pm everywhere
+  (`VisibilityPolicy.DAY_CLOSE_REVEAL`, the day-close design), so the app
+  keeps 9:00 pm. Ranges keep "to" (`Oct 19 to 25`).
+- **Nutrients day and week**: match.
+- **Patterns** (Full): the hunger card is now **Hunger through the day**, a
+  bar per weekday (Mon to Sun) of how hungry the tagged meals were, with
+  `From your check-ins` beside the title, and one plain fact under it when
+  the data says so: `Hungrier on days you skipped breakfast (Thu, Tue).`
+  (`MealPatterns.hungerByWeekday` and `hungrierWithoutBreakfast`; the fact
+  needs at least two tagged days each way and a gap of half a step or more,
+  thresholds `TODO(clinician)`). Bars carry no amounts, so they stay in Blind.
+  Bars use `accentTint`, a shade lighter than the design's.
+- **Patterns** (Blind): the order is When you eat, How often, New foods, then
+  hunger below the fold. Full keeps When you eat, How big, hunger, New foods.
+  Blind still drops gaps, later-on lines and durations (`mealGaps`).
+- **Weight**: previews move to `WeightScreen.kt` so their ids are
+  `weight-screen__weight`, `weight-screen__weight-trend` and
+  `weight-screen__weight-hidden`. No change readout; no view switch (it
+  lives in Modes and numbers, behind the pause, owned by Settings). Trend
+  only's word comes from the slope (`TODO(clinician)` on the thresholds in
+  `NutritionFormatter`). Kept on purpose: the Hidden design's `Send
+  weigh-ins to my provider · Coming later` row is not drawn (no "Coming
+  later" rows, App Review).
+- **Weight → Progress photos row** (new, behind `release.progressPhotos`):
+  under the log card, `Progress photos` / `Last taken Oct 25 · private` (or
+  `Private, on this phone only` before the first), a lock and a chevron.
+  Opens `ProgressPhotosRoute`. Shown or hidden by Modes and numbers' Progress
+  photos row (`NumbersSettings.showsProgressPhotos`): Blind, Mindful, Rhythm
+  and Fuel default to Hide, the rest to Show. The plan for the photos is
+  `progress-photos.md`.
 
 ---
 
@@ -231,7 +280,7 @@ the default from Today.
 Top app bar `Nutrients` with the subtitle (`Sunday, Oct 25` or `Oct 19 to 25`);
 segmented `This day` / `Week average`; the macros card (no title): Energy
 `2,058 kcal · range 1,900 to 2,300` on a bar with the range as a dashed box, then
-Protein, Carbs, Fat, Fiber `88 g of 120 g` with bars that stop at 100%. Then
+Protein, Carbs, Fat, Fiber `88 of 120 g` with bars that stop at 100%. Then
 either the Vitamins and Minerals cards and the caption, or the off card.
 
 The **Nutrition scores** page is cut: a score built from hidden data is a
@@ -275,7 +324,7 @@ Surface `Nutrients` for This day, `Week` (day = window end) for Week average.
 | Number | Metric | Show | Soften | Delay | Hide |
 |---|---|---|---|---|---|
 | Energy | calories | `2,058 kcal` with range and bar | soft word with bar, no range | Day: hidden until reveal; Week: open | row removed |
-| Macros | macros | `88 g of 120 g` with bar | soft word with bar | as above | row removed |
+| Macros | macros | `88 of 120 g` with bar | soft word with bar | as above | row removed |
 | Vitamins, minerals | micros | `78%` with bar, `of 700 µg` | `Some` / `Most` / `Plenty` | as above | off card linking to Modes |
 
 ### Copy
@@ -287,7 +336,7 @@ week tells you more than a day.`; off card `Vitamins and minerals are off` /
 detail in this mode. Your meals are all still logged.`
 
 ### Tests
-Builder: Full day (off card), micros shown on Week average, Delayed week (open),
+Builder: Full day (micros shown), Full with micros hidden (off card), micros shown on Week average, Delayed week (open),
 Fuel (soft words, no range), Blind (`nothing`), bars capped by the component.
 ViewModel: range switch re-subscribes, `ModesTapped` emits `OpenModes`.
 `SURFACES`: `nutrients`, `nutrients-week`.
@@ -348,7 +397,10 @@ data class WeightChart(val trend: List<Float>, val dots: List<Float>?, val from:
 
 ### Actions
 `InputsArrived`, `RangePicked(range)`, `WeightTyped(text)`, `SaveTapped`,
-`BackTapped` (as before, minus `ViewPicked`).
+`BackTapped` (as before, minus `ViewPicked`), and `ProgressPhotosTapped`
+(event `OpenProgressPhotos`). State gains `photos: PhotosRow?`
+(`PhotosRow(lastTaken: LocalDate?)`), `null` while the flag is off or the
+mode hides photos.
 
 ### Tests
 Builder: three levels, the slope word from the policy, dots and ranges only at
@@ -373,9 +425,12 @@ weeks`: the 28 days ending today.
 2. **How big each meal is** (calories Show): a bar split by each meal's share,
    then per meal `445 kcal · 21%`. Removed in Blind: even percentages reveal
    amounts. In its place, **How often**: `Breakfast` / `22 of 28 days` per meal.
-3. **Hunger before meals** (hunger tags on, `settings.askTags`, and some tagged):
-   per meal the most common tag as a chip; `From 31 tagged meals`.
-4. **New foods** with the count and the names as chips.
+3. **Hunger through the day** (hunger tags on, `settings.askTags`, and some
+   tagged): a bar per weekday, height the average hunger of that weekday's
+   tagged meals (Not hungry 0 to Very hungry 3, over 3), `From your
+   check-ins`, and the optional skipped-breakfast fact. Design sync 2.
+4. **New foods** with the count and the names as chips. In Blind it comes
+   before hunger.
 
 ### Domain (`:libraries:diary`, `MealPatterns.kt`, pure, unit tested)
 
@@ -410,8 +465,9 @@ data class PatternsState(
     val timing: TimingCard? = null,
     val sizes: List<MealSize>? = null,               // calories Show
     val often: List<MealFrequency>? = null,          // when sizes is null
-    val hunger: HungerCard? = null,
+    val hunger: HungerCard? = null,               // HungerCard(days: List<HungerDay>, skippedBreakfast: List<DayOfWeek>?)
     val newFoods: List<String> = emptyList(),
+    val hungerLast: Boolean = false,                // Blind: hunger under New foods
 )
 data class TimelineRow(val slot: MealSlot, val dots: List<Float>, val usual: ClosedFloatingPointRange<Float>?)
 data class TimingCard(val rows: List<TimelineRow>, val facts: List<TimingFact>)

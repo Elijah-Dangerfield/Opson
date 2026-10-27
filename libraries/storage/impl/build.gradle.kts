@@ -24,6 +24,9 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(projects.libraries.storage)
+            implementation(projects.libraries.core)
+            implementation(projects.libraries.opson)
+            implementation(projects.libraries.opson.storage)
             implementation(projects.libraries.flowroutines)
             implementation(projects.libraries.flowroutines.testing)
         }

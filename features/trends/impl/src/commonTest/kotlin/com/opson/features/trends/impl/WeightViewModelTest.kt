@@ -1,15 +1,21 @@
 package com.opson.features.trends.impl
 
+import com.opson.features.trends.impl.photos.FakeProgressPhotoRepository
+import com.opson.features.trends.impl.photos.photosFlag
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Units
+import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -22,14 +28,22 @@ class WeightViewModelTest : CoroutineTest() {
 
     private val weights = FakeWeightRepository()
 
-    private fun vm(settings: FakeSettingsRepository = FakeSettingsRepository(), preset: PresetId = PresetId.Full) =
-        WeightViewModel(
-            weights = weights,
-            settingsRepository = settings,
-            policySource = FakePolicySource(TrendsFixtures.policy(preset)),
-            clock = TrendsFixtures.clock,
-            timeZone = TrendsFixtures.timeZone,
-        )
+    private val photos = FakeProgressPhotoRepository()
+
+    private fun vm(
+        settings: FakeSettingsRepository = FakeSettingsRepository(),
+        preset: PresetId = PresetId.Full,
+        photosOn: Boolean = false,
+        numbers: NumbersSettings = NumbersSettings(preset),
+    ) = WeightViewModel(
+        weights = weights,
+        settingsRepository = settings,
+        policySource = FakePolicySource(VisibilityPolicy(numbers, TrendsFixtures.clock, TrendsFixtures.timeZone)),
+        clock = TrendsFixtures.clock,
+        photosEnabled = photosFlag(photosOn),
+        progressPhotos = photos,
+        timeZone = TrendsFixtures.timeZone,
+    )
 
     private fun CoroutineScope.events(vm: WeightViewModel) = mutableListOf<WeightEvent>().also { list ->
         launch { vm.eventFlow.collect { list += it } }
@@ -60,6 +74,21 @@ class WeightViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun saveTapped_aFailedWrite_keepsTheWeight_andSaysSo_untilTheyTypeAgain() = runUnitTest {
+        weights.failWrites = true
+        val vm = vm()
+        vm.takeAction(WeightAction.WeightTyped("72.4"))
+        vm.takeAction(WeightAction.SaveTapped)
+        assertEquals("72.4", vm.state.input)
+        assertEquals(null, vm.state.saved)
+        assertTrue(vm.state.saveFailed)
+
+        vm.takeAction(WeightAction.WeightTyped("72.45"))
+
+        assertFalse(vm.state.saveFailed)
+    }
+
+    @Test
     fun saveTapped_pounds_convertsToKilograms() = runUnitTest {
         val vm = vm(FakeSettingsRepository(Settings(weightUnit = WeightUnit.Lb)))
         vm.takeAction(WeightAction.WeightTyped("160"))
@@ -69,7 +98,7 @@ class WeightViewModelTest : CoroutineTest() {
 
     @Test
     fun saveTapped_hidden_staysOutOfView() = runUnitTest {
-        val vm = vm(preset = PresetId.Blind)
+        val vm = vm(preset = PresetId.NoNumbers)
         assertEquals(true, vm.state.inputMasked)
         vm.takeAction(WeightAction.WeightTyped("72.4"))
         vm.takeAction(WeightAction.SaveTapped)
@@ -103,5 +132,50 @@ class WeightViewModelTest : CoroutineTest() {
         val events = backgroundScope.events(vm)
         vm.takeAction(WeightAction.BackTapped)
         assertEquals(listOf<WeightEvent>(WeightEvent.Close), events)
+    }
+
+    @Test
+    fun photosFlagOff_noRow_andThePhotosAreNeverRead() = runUnitTest {
+        val vm = vm(photosOn = false)
+        assertNull(vm.state.photos)
+    }
+
+    @Test
+    fun photosFlagOn_theRowSaysWhenTheLastWasTaken() = runUnitTest {
+        val vm = vm(photosOn = true)
+        assertEquals(PhotosRow(lastTaken = TrendsFixtures.today), vm.state.photos)
+
+        photos.photos.value = emptyList()
+        assertEquals(PhotosRow(lastTaken = null), vm.state.photos)
+    }
+
+    @Test
+    fun photosHiddenByTheModesThatHideThem() = runUnitTest {
+        listOf(PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NutrientsFirst).forEach { preset ->
+            assertNull(vm(photosOn = true, preset = preset).state.photos, "$preset hides progress photos by default")
+        }
+        assertNotNull(vm(photosOn = true, preset = PresetId.Later).state.photos)
+    }
+
+    @Test
+    fun photosFollowModes_showOrHide_overThePresetsDefault() = runUnitTest {
+        val shownInFuel = TrendsFixtures.policy(PresetId.NutrientsFirst).settings.copy(progressPhotos = true)
+        assertNotNull(vm(photosOn = true, numbers = shownInFuel).state.photos)
+
+        val hiddenInFull = NumbersSettings(PresetId.Full, progressPhotos = false)
+        assertNull(vm(photosOn = true, numbers = hiddenInFull).state.photos)
+    }
+
+    @Test
+    fun progressPhotosTapped_opensThem_onlyWhenTheRowShows() = runUnitTest {
+        val on = vm(photosOn = true)
+        val onEvents = events(on)
+        on.takeAction(WeightAction.ProgressPhotosTapped)
+        assertEquals(listOf<WeightEvent>(WeightEvent.OpenProgressPhotos), onEvents)
+
+        val off = vm(photosOn = false)
+        val offEvents = events(off)
+        off.takeAction(WeightAction.ProgressPhotosTapped)
+        assertTrue(offEvents.isEmpty())
     }
 }

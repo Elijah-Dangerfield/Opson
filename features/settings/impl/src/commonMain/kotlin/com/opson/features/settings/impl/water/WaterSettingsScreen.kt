@@ -70,11 +70,14 @@ fun WaterSettingsScreen(
             }
             HorizontalDivider(color = AppTheme.colors.line)
             Section(title = stringResource(Res.string.settings_water_goal_title)) {
-                Text(
-                    text = stringResource(Res.string.settings_water_goal, state.glasses, state.goalAmount),
-                    typography = AppTheme.type.secondarySmall.Tabular,
-                    color = AppTheme.colors.muted,
-                )
+                // Before settings arrive there is no amount, and "0 glasses,  a day" reads as broken.
+                if (state.goalAmount.isNotEmpty()) {
+                    Text(
+                        text = stringResource(Res.string.settings_water_goal, state.glasses, state.goalAmount),
+                        typography = AppTheme.type.secondarySmall.Tabular,
+                        color = AppTheme.colors.muted,
+                    )
+                }
                 SegmentedControl(
                     options = state.goals,
                     selected = state.glasses,
@@ -153,7 +156,7 @@ private fun WaterSettingsFromTodayPreview() {
 @Preview
 @Composable
 private fun WaterSettingsBlindFlOzDarkPreview() {
-    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind)).copy(waterUnit = WaterUnit.FlOz)
+    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.NoNumbers)).copy(waterUnit = WaterUnit.FlOz)
     SettingsPreview(dark = true) { WaterSettingsScreen(WaterSettingsStateBuilder.build(settings, backToMore = true), onAction = {}) }
 }
 

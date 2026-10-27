@@ -1,9 +1,9 @@
 package com.opson.libraries.diary.impl
 
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsJson
 import com.opson.libraries.diary.SyncEntity
+import com.opson.libraries.diary.ThemeMode
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.impl.wire.SettingsRowDto
 import com.opson.libraries.diary.impl.wire.WireJson
@@ -43,13 +43,13 @@ class SettingsStoreTest : CoroutineTest() {
 
     @Test
     fun changedAtMovesOnlyWhenTheNumbersChange() = runUnitTest {
-        store.update(stampNumbersChange = true) { it.copy(palette = PaletteChoice.Clay) }
-        assertNull(store.settings.value.numbers.changedAt, "a palette is not a numbers change")
+        store.update(stampNumbersChange = true) { it.copy(theme = ThemeMode.Dark) }
+        assertNull(store.settings.value.numbers.changedAt, "an appearance is not a numbers change")
 
         val pickedAt = Instant.parse("2026-10-25T09:00:00Z")
         clock.now = pickedAt
         store.update(stampNumbersChange = true) {
-            it.withNumbers(it.numbers.pickPreset(PresetId.Blind, at = Instant.parse("2001-01-01T00:00:00Z")))
+            it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, at = Instant.parse("2001-01-01T00:00:00Z")))
         }
         assertEquals(pickedAt, store.settings.value.numbers.changedAt, "stamped with the store's clock")
 
@@ -61,21 +61,22 @@ class SettingsStoreTest : CoroutineTest() {
 
     @Test
     fun onboardingSetsThePresetWithoutStampingIt() = runUnitTest {
-        store.update(stampNumbersChange = false) { it.withNumbers(NumbersSettings(preset = PresetId.Rhythm)) }
+        store.update(stampNumbersChange = false) { it.withNumbers(NumbersSettings(preset = PresetId.NoNumbers)) }
 
-        assertEquals(PresetId.Rhythm, store.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, store.settings.value.numbers.preset)
         assertNull(store.settings.value.numbers.changedAt)
     }
 
     @Test
     fun aChangeIsQueuedWithThePresetAtTheTopLevel() = runUnitTest {
-        store.update(stampNumbersChange = true) { it.withNumbers(it.numbers.pickPreset(PresetId.Blind, clock.now)) }
+        store.update(stampNumbersChange = true) { it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, clock.now)) }
 
         val row = db.outbox.rows.single()
         assertEquals(SyncEntity.Settings.wire, row.entity)
         val wire = WireJson.decodeFromString(SettingsRowDto.serializer(), row.payload)
-        assertEquals(JsonPrimitive("blind"), wire.settings["preset"], "the one key the server reads")
-        assertEquals(JsonPrimitive("blind"), wire.settings.getValue("numbers").jsonObject["preset"])
+        assertEquals(JsonPrimitive("no_numbers"), wire.settings["preset"], "the one key the server reads")
+        assertEquals(JsonPrimitive("blind"), wire.settings.getValue("numbers").jsonObject["preset"], "what a 0.1 phone reads")
+        assertEquals(JsonPrimitive("no_numbers"), wire.settings.getValue("mode").jsonObject["preset"])
         assertEquals(clock.now.toEpochMilliseconds(), wire.changedAtEpochMs)
     }
 
@@ -107,10 +108,10 @@ class SettingsStoreTest : CoroutineTest() {
         user.user.value = ActiveUser.SignedIn("user-a")
         store.update(stampNumbersChange = true) { it.copy(tone = Tone.Warm) }
 
-        store.applyPulled(row(Settings(numbers = NumbersSettings(preset = PresetId.Blind))))
+        store.applyPulled(row(Settings(numbers = NumbersSettings(preset = PresetId.NoNumbers))))
         val wantsSync = store.markPulled("user-a", pulledSettings = true)
 
-        assertEquals(PresetId.Blind, store.settings.value.numbers.preset)
+        assertEquals(PresetId.NoNumbers, store.settings.value.numbers.preset)
         assertEquals(Tone.Plain, store.settings.value.tone)
         assertFalse(wantsSync)
         assertTrue(db.outbox.rows.isEmpty())
@@ -118,18 +119,18 @@ class SettingsStoreTest : CoroutineTest() {
 
     @Test
     fun aPulledCopyNeverOverwritesAChangeStillWaiting() = runUnitTest {
-        store.update(stampNumbersChange = true) { it.copy(palette = PaletteChoice.Clay) }
+        store.update(stampNumbersChange = true) { it.copy(theme = ThemeMode.Dark) }
 
-        store.applyPulled(row(Settings(palette = PaletteChoice.Plum)))
+        store.applyPulled(row(Settings(theme = ThemeMode.Light)))
 
-        assertEquals(PaletteChoice.Clay, store.settings.value.palette)
+        assertEquals(ThemeMode.Dark, store.settings.value.theme)
     }
 
     @Test
     fun aUserChangeResetsToTheDefaultsAndUnknown() = runUnitTest {
         user.user.value = ActiveUser.SignedIn("user-a")
         store.markPulled("user-a", pulledSettings = false)
-        store.update(stampNumbersChange = true) { it.withNumbers(it.numbers.pickPreset(PresetId.Blind, clock.now)) }
+        store.update(stampNumbersChange = true) { it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, clock.now)) }
         assertTrue(store.isKnown.value)
 
         store.clear("user-a")
@@ -140,13 +141,35 @@ class SettingsStoreTest : CoroutineTest() {
     }
 
     @Test
+    fun beforeAuthAnswers_onlySettingsAPullLandedInAreKnown() = runUnitTest {
+        // A phone signed in to an account whose first pull never landed (offline), then restarted:
+        // the stored copy is the defaults, Full numbers, and must not show until auth answers.
+        user.user.value = ActiveUser.Unresolved
+        assertFalse(store.isKnown.value, "defaults no pull reached are nobody's settings")
+
+        user.user.value = ActiveUser.SignedIn("user-a")
+        store.markPulled("user-a", pulledSettings = true)
+        user.user.value = ActiveUser.Unresolved
+        assertTrue(store.isKnown.value, "the next cold boot trusts what user-a's pull left")
+    }
+
+    @Test
+    fun nobodySignedIn_isKnownOnceAuthSaysSo() = runUnitTest {
+        user.user.value = ActiveUser.Unresolved
+        assertFalse(store.isKnown.value)
+
+        user.user.value = ActiveUser.SignedOut
+        assertTrue(store.isKnown.value, "a fresh install has nothing else to wait for")
+    }
+
+    @Test
     fun aRefusedChangeRestoresTheCopyBeforeIt() = runUnitTest {
-        store.applyPulled(row(Settings(palette = PaletteChoice.Plum), updatedAt = 5))
-        store.update(stampNumbersChange = true) { it.copy(palette = PaletteChoice.Clay) }
+        store.applyPulled(row(Settings(theme = ThemeMode.Light), updatedAt = 5))
+        store.update(stampNumbersChange = true) { it.copy(theme = ThemeMode.Dark) }
 
         store.revert(db.outbox.rows.single().basePayload)
 
-        assertEquals(PaletteChoice.Plum, store.settings.value.palette)
+        assertEquals(ThemeMode.Light, store.settings.value.theme)
     }
 
     private fun row(settings: Settings, updatedAt: Long = 1) = SettingsRowDto(

@@ -69,8 +69,26 @@ class GatewayAuthTokenProviderTest : CoroutineTest() {
         }
         val provider = GatewayAuthTokenProvider(gateway, FakeSessionRejectionBus())
 
-        assertEquals("tok-new", provider.refreshAccessToken())
+        assertEquals("tok-new", provider.refreshAccessToken(rejected = "tok-old"))
         assertEquals(1, gateway.refreshSessionCalls)
+    }
+
+    @Test
+    fun refreshAccessToken_whenTheSessionAlreadyRefreshed_returnsItWithoutAnotherRefresh() = runUnitTest {
+        // supabase-kt refreshes on its own before expiry, while Ktor keeps
+        // sending the token it loaded first. The 401 for that stale token must
+        // pick up the fresh one rather than rotate the session again, which
+        // also fails the request outright when the extra refresh can't reach
+        // the auth server.
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.Authenticated,
+            session = sampleSession(accessToken = "tok-fresh"),
+        )
+        gateway.onRefreshSession = { throw HttpRequestException("offline", HttpRequestBuilder()) }
+        val provider = GatewayAuthTokenProvider(gateway, FakeSessionRejectionBus())
+
+        assertEquals("tok-fresh", provider.refreshAccessToken(rejected = "tok-stale"))
+        assertEquals(0, gateway.refreshSessionCalls)
     }
 
     @Test
@@ -82,7 +100,7 @@ class GatewayAuthTokenProviderTest : CoroutineTest() {
         gateway.onRefreshSession = { throw IllegalStateException("network down") }
         val provider = GatewayAuthTokenProvider(gateway, FakeSessionRejectionBus())
 
-        assertNull(provider.refreshAccessToken())
+        assertNull(provider.refreshAccessToken(rejected = "tok-old"))
     }
 
     @Test
@@ -97,7 +115,7 @@ class GatewayAuthTokenProviderTest : CoroutineTest() {
         val bus = FakeSessionRejectionBus()
         val provider = GatewayAuthTokenProvider(gateway, bus)
 
-        assertNull(provider.refreshAccessToken())
+        assertNull(provider.refreshAccessToken(rejected = "tok-old"))
         assertTrue(bus.signaled.isEmpty(), "transient failures must not signal a session rejection")
     }
 
@@ -113,7 +131,7 @@ class GatewayAuthTokenProviderTest : CoroutineTest() {
         )
         val provider = GatewayAuthTokenProvider(gateway, FakeSessionRejectionBus())
 
-        assertNull(provider.refreshAccessToken())
+        assertNull(provider.refreshAccessToken(rejected = null))
         assertEquals(0, gateway.refreshSessionCalls, "must not attempt a refresh with no session")
     }
 

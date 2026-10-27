@@ -112,7 +112,7 @@ fun FeedbackScreen(
             ) {
                 val messageLength = state.message.length
                 val counterColor = if (messageLength >= FEEDBACK_CHAR_LIMIT) {
-                    AppTheme.colors.danger
+                    AppTheme.colors.ink
                 } else {
                     AppTheme.colors.textSecondary
                 }
@@ -127,8 +127,8 @@ fun FeedbackScreen(
             state.errorMessage?.let {
                 VerticalSpacerD500()
                 Text(
-                    text = it,
-                    color = AppTheme.colors.danger,
+                    text = stringResource(it),
+                    color = AppTheme.colors.ink,
                     textAlign = TextAlign.Start
                 )
             }

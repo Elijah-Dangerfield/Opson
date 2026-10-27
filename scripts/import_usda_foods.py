@@ -37,6 +37,12 @@ directory, only the CSV files the importer needs are read, every archive
 member is checked for path traversal, links and size, and nothing from the
 archives is ever executed. The directory is deleted when the run ends.
 
+Every row gets a `category` (restaurant, beverage, baby_food, supplement or
+none) from USDA's own: `food_category` for Foundation and SR Legacy, the WWEIA
+category for FNDDS, `branded_food_category` for Branded. The database needs
+migration V17 first. scripts/backfill_food_categories.py fills it in for rows
+loaded before it existed.
+
 USDA FoodData Central data is public domain (CC0).
 """
 
@@ -115,11 +121,14 @@ CARBS_SUMMATION = "205.2"
 FIBER = "291"
 
 # micros key -> nutrient number. The key carries its unit so the client never
-# has to guess. Amounts are per 100 g, in that unit.
+# has to guess. Amounts are per 100 g, in that unit. The app's `Micronutrient`
+# table reads the vitamin and mineral keys by these exact names
+# (MicroWireKeysTest pins its side, MicrosTest here pins this one).
 MICROS = {
     "sugars_g": "269",
     "added_sugars_g": "539",
     "saturated_fat_g": "606",
+    "trans_fat_g": "605",
     "cholesterol_mg": "601",
     "sodium_mg": "307",
     "potassium_mg": "306",
@@ -145,11 +154,32 @@ MICROS = {
     "choline_mg": "421",
 }
 SUGARS_NLEA = "269.3"
+# SR Legacy and labels often give vitamin D only in IU (40 IU = 1 µg).
+VITAMIN_D_IU = "324"
+
+
+def micros_from(get) -> dict[str, float]:
+    """The micros a food has, from `get(nutrient_number) -> amount or None`.
+
+    Shared by every dataset, so a fallback added for one reaches all of them:
+    total sugars from the NLEA figure, vitamin D from IU when µg is missing.
+    """
+    micros = {}
+    for key, nbr in MICROS.items():
+        amount = get(nbr)
+        if amount is None and key == "sugars_g":
+            amount = get(SUGARS_NLEA)
+        if amount is None and key == "vitamin_d_ug":
+            iu = get(VITAMIN_D_IU)
+            amount = None if iu is None else iu / 40
+        if amount is not None:
+            micros[key] = rounded(amount, 3)
+    return micros
 
 COLUMNS = [
     "id", "source", "source_id", "name", "brand", "barcode",
     "kcal_100g", "protein_100g", "carbs_100g", "fat_100g", "fiber_100g",
-    "micros", "portions",
+    "micros", "portions", "category",
 ]
 UPDATE_COLUMNS = [c for c in COLUMNS if c not in ("id", "source", "source_id")]
 
@@ -166,6 +196,7 @@ class Food:
     fiber: float | None = None
     micros: dict[str, float] = field(default_factory=dict)
     portions: list[dict] = field(default_factory=list)
+    category: str | None = None
 
 
 def log(message: str) -> None:
@@ -280,7 +311,12 @@ def load_dataset(source: str, files: dict[str, Path], data_type: str) -> dict[st
             continue
         name = re.sub(r"\s+", " ", row["description"]).strip()
         if name:
-            foods[row["fdc_id"]] = Food(source=source, source_id=row["fdc_id"], name=name[:200])
+            foods[row["fdc_id"]] = Food(
+                source=source,
+                source_id=row["fdc_id"],
+                name=name[:200],
+                category=generic_category(source, row.get("food_category_id", ""), name),
+            )
 
     id_to_nbr = {row["id"]: normalize_nbr(row["nutrient_nbr"]) for row in read_csv(files["nutrient.csv"])}
 
@@ -308,14 +344,7 @@ def load_dataset(source: str, files: dict[str, Path], data_type: str) -> dict[st
         if kcal is None and None not in (food.protein, food.fat, food.carbs):
             kcal = 4 * food.protein + 4 * food.carbs + 9 * food.fat
         food.kcal = kcal
-        micros = {}
-        for key, nbr in MICROS.items():
-            amount = v.get(nbr)
-            if amount is None and key == "sugars_g":
-                amount = v.get(SUGARS_NLEA)
-            if amount is not None:
-                micros[key] = rounded(amount, 3)
-        food.micros = micros
+        food.micros = micros_from(v.get)
 
     units = {row["id"]: row["name"].strip() for row in read_csv(files["measure_unit.csv"])}
     portion_rows: dict[str, list[tuple[float, dict]]] = {}
@@ -359,6 +388,174 @@ def dedupe_portions(portions: list[dict]) -> list[dict]:
     return result
 
 
+# The app logs a food's first portion unless the user picks another, so the
+# first portion is the default. FDC lists portions in its own order, which for
+# small things starts with one of them: "1 berry" (2 g, 1 kcal), "1 grape",
+# "1 nut", "1 fl oz" of coffee. For dense foods it can start with a cup of
+# almonds or butter (800 to 1,600 kcal). default_portion_first moves a typical
+# serving to the front in those two cases and leaves every other list alone.
+MIN_DEFAULT_GRAMS = 20.0
+TINY_KCAL = 40.0
+BULK_KCAL = 500.0
+# Measures that are small on purpose: a teaspoon of sugar, a pat of butter, a
+# slice of bacon, a packet. Never a crumb, whatever they weigh.
+SMALL_ON_PURPOSE = re.compile(r"\b(tsp|teaspoons?|tbsp|tablespoons?|pat|slices?|packets?)\b", re.IGNORECASE)
+SIP = re.compile(r"^1 fl\.? ?oz\b", re.IGNORECASE)
+GUIDELINE = re.compile(r"^guideline\b", re.IGNORECASE)
+BULK = re.compile(r"^1 (cups?|pints?|quarts?|lbs?|pounds?)\b", re.IGNORECASE)
+# What a person logs, best first. A portion matching none of these ranks last.
+TYPICAL = [
+    re.compile(r"^1 (oz|ounce)\b", re.IGNORECASE),
+    re.compile(r"^1 (cup|can|bottle|carton|container|package|packet|pouch|bar|bowl|serving|drink|glass|mug|order)\b"
+               r"|\bsingle serving\b|^1 individual\b", re.IGNORECASE),
+    re.compile(r"\b(medium|regular)\b", re.IGNORECASE),
+    re.compile(r"\bslices?\b", re.IGNORECASE),
+    re.compile(r"\bnlea serving\b", re.IGNORECASE),
+    re.compile(r"^1 (tbsp|tablespoon|tsp|teaspoon)\b", re.IGNORECASE),
+]
+
+
+def default_portion_first(portions: list[dict], kcal_100g: float | None) -> list[dict]:
+    """`portions` with a sensible default first; the others keep their order.
+
+    The first portion stays unless it is a crumb (under MIN_DEFAULT_GRAMS and
+    TINY_KCAL, and not a spoon, slice or packet), a sip (1 fl oz), a USDA
+    "Guideline amount", or a cup or more of something dense (over BULK_KCAL).
+    Then the first portion that is none of those wins, by TYPICAL; failing
+    that, for a crumb, any portion that isn't one. Applying it twice changes
+    nothing, which is what lets the backfill re-run.
+    """
+    if len(portions) < 2:
+        return portions
+
+    def kcal(p: dict) -> float | None:
+        grams = p.get("grams")
+        return None if grams is None or kcal_100g is None else grams * kcal_100g / 100
+
+    def crumb(p: dict) -> bool:
+        grams, label = p.get("grams"), p["label"]
+        if SIP.match(label):
+            return True
+        if grams is None or grams >= MIN_DEFAULT_GRAMS or SMALL_ON_PURPOSE.search(label):
+            return False
+        energy = kcal(p)
+        return energy is None or energy < TINY_KCAL
+
+    def bulk(p: dict) -> bool:
+        energy = kcal(p)
+        return energy is not None and energy > BULK_KCAL and bool(BULK.match(p["label"]))
+
+    def usable(p: dict) -> bool:
+        return not GUIDELINE.match(p["label"]) and not crumb(p) and not bulk(p)
+
+    def rank(p: dict) -> int:
+        return next((i for i, pattern in enumerate(TYPICAL) if pattern.search(p["label"])), len(TYPICAL))
+
+    first = portions[0]
+    if usable(first):
+        return portions
+    candidates = [p for p in portions[1:] if usable(p)]
+    if not candidates and (crumb(first) or GUIDELINE.match(first["label"])):
+        # Better a big default than a crumb.
+        candidates = [p for p in portions[1:] if not GUIDELINE.match(p["label"]) and not crumb(p)]
+    if not candidates:
+        return portions
+    best = min(candidates, key=rank)  # min keeps the first of equals, so FDC's order breaks ties
+    return [best] + [p for p in portions if p is not best]
+
+
+# ─── Categories ─────────────────────────────────────────────────────────────
+#
+# foods.category (V17): a small normalised set the Logger's tabs filter on.
+# Restaurant and beverage are what the tabs need; baby food and supplements
+# are the two kinds that most often crowd a search, and cost one line each.
+
+RESTAURANT = "restaurant"
+BEVERAGE = "beverage"
+BABY_FOOD = "baby_food"
+SUPPLEMENT = "supplement"
+
+# SR Legacy and Foundation share one food_category table (food_category.csv, by id).
+SR_CATEGORIES = {
+    "21": RESTAURANT,  # Fast Foods
+    "25": RESTAURANT,  # Restaurant Foods
+    "14": BEVERAGE,  # Beverages
+    "28": BEVERAGE,  # Alcoholic Beverages
+    "3": BABY_FOOD,  # Baby Foods
+}
+SR_FRUITS = "9"  # Fruits and Fruit Juices
+SR_DAIRY = "1"  # Dairy and Egg Products
+NOT_A_DRINK = re.compile(r"\b(dry|dried|powder|powdered|condensed|evaporated)\b")
+
+# FNDDS uses What We Eat in America categories (wweia_food_category.csv).
+WWEIA_MILK = {"1002", "1004", "1006", "1008", "1202", "1204", "1206", "1208", "1402", "1902"}
+WWEIA_BABY = {"9002", "9004", "9006", "9007", "9008", "9010", "9012", "9202", "9204", "9402", "9404", "9602"}
+WWEIA_SUPPLEMENT = {"9802"}
+FROM_RESTAURANT = re.compile(r"\b(fast food|restaurant)\b")
+
+
+def generic_category(source: str, category_id: str, name: str) -> str | None:
+    """foods.category for a Foundation, SR Legacy or FNDDS food, from its own category and name."""
+    category_id = (category_id or "").strip()
+    lowered = name.lower()
+    if source == "usda_fndds":
+        if FROM_RESTAURANT.search(lowered):
+            return RESTAURANT
+        if (category_id.isdigit() and 7000 <= int(category_id) < 8000) or category_id in WWEIA_MILK:
+            return BEVERAGE
+        if category_id in WWEIA_BABY:
+            return BABY_FOOD
+        if category_id in WWEIA_SUPPLEMENT:
+            return SUPPLEMENT
+        return None
+    if category_id in SR_CATEGORIES:
+        return SR_CATEGORIES[category_id]
+    if category_id == SR_FRUITS and "juice" in lowered:
+        return BEVERAGE
+    if category_id == SR_DAIRY and lowered.startswith("milk,") and not NOT_A_DRINK.search(lowered):
+        return BEVERAGE
+    return None
+
+
+# Branded Foods' branded_food_category, as normalised by _category_key. The
+# release spells one category several ways ("Non Alcoholic Beverages - Ready
+# to Drink", "...  Ready to Drink", "... – Ready to Drink").
+BRANDED_BEVERAGES = {
+    "fruit & vegetable juice, nectars & fruit drinks", "soda", "water", "packaged water", "milk", "plant based milk",
+    "milk/milk substitutes", "other drinks", "powdered drinks", "energy, protein & muscle recovery drinks",
+    "iced & bottle tea", "non alcoholic beverages ready to drink", "non alcoholic beverages not ready to drink",
+    "tea bags", "tea and infusions/tisanes", "tea bags, loose leaf, speciality", "coffee", "coffee/tea/substitutes",
+    "coffee/coffee substitutes", "coffee instant, roast and ground", "alcohol", "alcoholic beverages", "beer",
+    "sport drinks", "liquid water enhancer", "plant based water", "breakfast drinks", "drinks flavoured ready to drink",
+    "drinks juices, drinks and cordials", "drinks soft drinks", "drinks", "drinks powdered", "drinks energy drinks",
+    "ready to drink", "fruit juice ready to drink (shelf stable)", "fruit juice not ready to drink (frozen)",
+}
+BRANDED_BABY = {"baby/infant foods/beverages", "infant formula"}
+BRANDED_SUPPLEMENTS = {
+    "specialty formula supplements", "meal replacement supplements", "green supplements",
+    "digestive & fiber supplements", "herbal supplements", "children's nutritional supplements", "vitamins",
+    "fatty acid supplements", "health supplements and vitamins", "antioxidant supplements",
+    "vitamins/minerals/nutritional supplements", "amino acid supplements", "ayurvedic supplements",
+    "nutritional supplements",
+}
+
+
+def _category_key(raw: str) -> str:
+    return " ".join(raw.lower().replace("\u2013", " ").replace("-", " ").split())
+
+
+def branded_category(raw: str | None) -> str | None:
+    """foods.category for a Branded product, from its branded_food_category."""
+    key = _category_key(raw or "")
+    if key in BRANDED_BEVERAGES:
+        return BEVERAGE
+    if key in BRANDED_BABY:
+        return BABY_FOOD
+    if key in BRANDED_SUPPLEMENTS:
+        return SUPPLEMENT
+    return None
+
+
 def dedupe_key(name: str) -> str:
     """'Bananas, raw' and 'Banana, raw' are the same food to a person searching."""
     words = re.findall(r"[a-z0-9]+", name.lower())
@@ -377,6 +574,7 @@ def dedupe(all_foods: list[Food]) -> list[Food]:
         # The duplicate loses, but its portions (FNDDS and SR carry the household
         # measures Foundation lacks) are still worth keeping.
         kept.portions = dedupe_portions(kept.portions + food.portions)
+        kept.category = kept.category or food.category
     return sorted(best.values(), key=lambda f: (SOURCE_PRIORITY[f.source], f.name.lower(), f.source_id))
 
 
@@ -406,6 +604,7 @@ def sql_row(food: Food) -> str:
         sql_number(rounded(food.fiber)),
         sql_text(micros) + "::jsonb",
         sql_text(portions) + "::jsonb",
+        sql_text(food.category) if food.category else "NULL",
     ]
     return "(" + ",".join(parts) + ")"
 
@@ -444,9 +643,6 @@ BRANDED_MAX_MEMBER_BYTES = 8 * 1024 ** 3
 MAX_COMPRESSION_RATIO = 60
 BRANDED_FILES = {"branded_food.csv", "food.csv", "food_nutrient.csv", "nutrient.csv"}
 
-# Labels also carry trans fat. Vitamin D is often given in IU (40 IU = 1 µg).
-BRANDED_MICROS = {**MICROS, "trans_fat_g": "605"}
-VITAMIN_D_IU = "324"
 
 # Values no label can have per 100 g: almost always a per-serving number typed
 # into the per-100 g field. A wrong food is worse than a missing one.
@@ -711,6 +907,11 @@ class BrandedStats:
     gram_servings: int = 0
 
 
+def branded_rank(repaired: bool, available_date: str, modified_date: str, fdc_id: str) -> tuple:
+    """Which of a barcode's records wins: the newest, and one stated correctly over one we repaired."""
+    return (not repaired, available_date, modified_date, int(fdc_id))
+
+
 def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
     """Branded Foods as (sql, rows) chunks, one batch at a time.
 
@@ -729,7 +930,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
     header, rows = csv_rows(zf, members["branded_food.csv"])
     col = {k: header[k] for k in (
         "fdc_id", "brand_owner", "brand_name", "gtin_upc", "serving_size", "serving_size_unit",
-        "household_serving_fulltext", "modified_date", "available_date",
+        "household_serving_fulltext", "modified_date", "available_date", "branded_food_category",
     )}
     best: dict[str, tuple] = {}
     for r in rows:
@@ -742,13 +943,14 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
         fdc_id = r[col["fdc_id"]].strip()
         if not fdc_id.isascii() or not fdc_id.isdecimal():
             continue
-        rank = (not repaired, r[col["available_date"]], r[col["modified_date"]], int(fdc_id))
+        rank = branded_rank(repaired, r[col["available_date"]], r[col["modified_date"]], fdc_id)
         kept = best.get(code)
         if kept is None or rank > kept[0]:
             brand = r[col["brand_name"]].strip() or r[col["brand_owner"]].strip()
             best[code] = (
                 rank, fdc_id, repaired, brand,
                 r[col["serving_size"]], r[col["serving_size_unit"]], r[col["household_serving_fulltext"]],
+                branded_category(r[col["branded_food_category"]]),
             )
     stats.products = len(best)
     stats.repaired_barcode = sum(1 for v in best.values() if v[2])
@@ -767,7 +969,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
 
     # Pass 3: nutrients, into one fixed-size array per product.
     slots = [ENERGY_KCAL, ENERGY_ATWATER_SPECIFIC, ENERGY_ATWATER_GENERAL, ENERGY_KJ, PROTEIN, FAT, FAT_NLEA,
-             CARBS, CARBS_SUMMATION, FIBER, SUGARS_NLEA, VITAMIN_D_IU, *sorted(set(BRANDED_MICROS.values()))]
+             CARBS, CARBS_SUMMATION, FIBER, SUGARS_NLEA, VITAMIN_D_IU, *sorted(set(MICROS.values()))]
     slots = list(dict.fromkeys(slots))
     slot_of_nbr = {nbr: i for i, nbr in enumerate(slots)}
     slot_of_id = {nid: slot_of_nbr[nbr] for nid, nbr in id_to_nbr.items() if nbr in slot_of_nbr}
@@ -833,7 +1035,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
         return sql, rows_in_batch
 
     for code in sorted(best):
-        _, fdc_id, _, brand, size, unit, household = best[code]
+        _, fdc_id, _, brand, size, unit, household, category = best[code]
         name = title_case(names.get(code, ""))[:200]
         if not name:
             stats.no_name += 1
@@ -858,15 +1060,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
         if (kcal or 0) > MAX_KCAL_100G or sum(x or 0 for x in (protein, carbs, fat)) > MAX_MACROS_100G:
             stats.implausible += 1
             continue
-        micros = {}
-        for key, nbr in BRANDED_MICROS.items():
-            amount = get(v, nbr)
-            if amount is None and key == "sugars_g":
-                amount = get(v, SUGARS_NLEA)
-            if amount is None and key == "vitamin_d_ug" and get(v, VITAMIN_D_IU) is not None:
-                amount = get(v, VITAMIN_D_IU) / 40
-            if amount is not None:
-                micros[key] = rounded(amount, 3)
+        micros = micros_from(lambda nbr: get(v, nbr))
         portion = serving_portion(size, unit, household)
         if portion is not None:
             if portion["grams"] is None:
@@ -889,6 +1083,7 @@ def branded_sql(zf: zipfile.ZipFile, stats: BrandedStats):
             sql_number(rounded(fiber)),
             sql_text(json.dumps(micros, separators=(",", ":"), sort_keys=True)) + "::jsonb",
             sql_text(json.dumps([portion] if portion else [], separators=(",", ":"), ensure_ascii=False)) + "::jsonb",
+            sql_text(category) if category else "NULL",
         ]) + ")"
         stats.imported += 1
         batch.append((fdc_id, code, row))
@@ -966,6 +1161,14 @@ def find_psql(explicit: str | None) -> str:
     raise SystemExit("psql not found; install libpq or pass --psql-bin")
 
 
+# TCP keepalives on every connection. A connection the network drops silently
+# otherwise leaves psql, and the import feeding it, waiting forever at 0% CPU
+# (it happened on the Open Food Facts load). libpq has no environment variable
+# for these, so they go in a conninfo string; the host, user and password still
+# come from the environment, out of `ps`.
+KEEPALIVES = "keepalives=1 keepalives_idle=30 keepalives_interval=10 keepalives_count=6"
+
+
 class Psql:
     """One database, reached through the psql binary."""
 
@@ -974,12 +1177,35 @@ class Psql:
 
     def query(self, sql: str) -> list[list[str]]:
         result = subprocess.run(
-            [self.binary, "-X", "-A", "-t", "-F", "\t", "-v", "ON_ERROR_STOP=1", "-c", sql],
+            [self.binary, "-X", "-A", "-t", "-F", "\t", "-v", "ON_ERROR_STOP=1", "-d", KEEPALIVES, "-c", sql],
             env=self.env, capture_output=True, text=True,
         )
         if result.returncode != 0:
             raise SystemExit(f"psql query failed: {result.stderr.strip()}")
         return [line.split("\t") for line in result.stdout.splitlines() if line]
+
+    def start(self, sql: str) -> subprocess.Popen:
+        """Runs `sql` in a session of its own, stopping at the first error. Returns at once."""
+        proc = subprocess.Popen(
+            [self.binary, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", KEEPALIVES, "-f", "-"],
+            stdin=subprocess.PIPE, env=self.env,
+        )
+        proc.stdin.write(sql.encode("utf-8"))
+        proc.stdin.close()
+        return proc
+
+    def statement_running(self, marker: str) -> bool:
+        """Whether another session is running a statement containing `marker`. False when it can't tell."""
+        try:
+            rows = subprocess.run(
+                [self.binary, "-X", "-A", "-t", "-d", KEEPALIVES, "-c",
+                 "SELECT count(*) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND state = 'active' "
+                 f"AND strpos(query, {sql_text(marker)}) > 0"],
+                env={**self.env, "PGCONNECT_TIMEOUT": "15"}, capture_output=True, text=True, timeout=60,
+            )
+        except subprocess.TimeoutExpired:
+            return False
+        return rows.returncode == 0 and rows.stdout.strip() not in ("", "0")
 
 
 class PsqlOutput:
@@ -994,7 +1220,7 @@ class PsqlOutput:
 
     def __init__(self, db: Psql):
         self._proc = subprocess.Popen(
-            [db.binary, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", "-"],
+            [db.binary, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", KEEPALIVES, "-f", "-"],
             stdin=subprocess.PIPE, env=db.env,
         )
 
@@ -1074,12 +1300,14 @@ def main() -> int:
             raise SystemExit("--psql needs a connection string, or CATALOG_DATABASE_URL set")
         db = Psql(find_psql(args.psql_bin), pg_env(conninfo))
         # Fail before a 450 MB download, not after it.
-        has_tier = db.query(
+        has_columns = db.query(
             "SELECT count(*) FROM information_schema.columns "
-            "WHERE table_schema = 'public' AND table_name = 'foods' AND column_name = 'tier'"
+            "WHERE table_schema = 'public' AND table_name = 'foods' AND column_name IN ('tier', 'category')"
         )
-        if has_tier != [["1"]]:
-            raise SystemExit("foods.tier is missing: run the server migrations (V10) against this database first")
+        if has_columns != [["2"]]:
+            raise SystemExit(
+                "foods.tier or foods.category is missing: run the server migrations (V10, V17) against this database first"
+            )
 
     started = time.monotonic()
     summary: list[str] = []
@@ -1123,6 +1351,8 @@ def main() -> int:
                 files = safe_extract(archive, extracted)
                 all_foods.extend(load_dataset(source, files, data_type).values())
             foods = dedupe(all_foods)
+            for food in foods:
+                food.portions = default_portion_first(food.portions, food.kcal)
             by_source: dict[str, int] = {}
             for food in foods:
                 by_source[food.source] = by_source.get(food.source, 0) + 1

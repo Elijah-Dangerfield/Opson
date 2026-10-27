@@ -111,7 +111,7 @@ fun Surface(
             .semantics(mergeDescendants = false) {
                 isTraversalGroup = true
             }
-            // This prevents siblings that are underneath this surface from being receiving pointer events
+            // Keeps taps from reaching siblings underneath this surface
             .pointerInput(Unit) {}
             .padding(contentPadding),
         propagateMinConstraints = true

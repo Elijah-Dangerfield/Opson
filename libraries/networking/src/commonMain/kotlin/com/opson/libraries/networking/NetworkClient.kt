@@ -12,9 +12,8 @@ import io.ktor.client.HttpClient
  *
  *  - [authedCall] — authenticated request/response
  *  - [unauthedCall] — unauthenticated request/response (public endpoints)
- *  - [authedWebSocketSession] — authenticated WebSocket upgrade
  *
- * All three converge on the same code path: structured failure logging
+ * Both converge on the same code path: structured failure logging
  * keyed by `description`, optional [retry.RetryPolicy], and (for the authed
  * variants) a pre-flight [awaitAuthReady] so the bearer plugin doesn't burn
  * the request timeout waiting on a slow auth bootstrap.
@@ -37,8 +36,8 @@ interface NetworkClient {
 
     /**
      * Suspends until the auth subsystem has resolved a session (or
-     * definitively can't). [authedCall] and [authedWebSocketSession] invoke
-     * this before firing the request, so the request timeout clock starts
+     * definitively can't). [authedCall] invokes this before firing the
+     * request, so the request timeout clock starts
      * only after auth is ready — not during a slow cold-boot bootstrap.
      *
      * Public endpoints don't need to wait; [unauthedCall] skips this.

@@ -24,6 +24,7 @@ import com.opson.libraries.nutrition.ui.NutrientFillBarDefaults
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.ui.components.ColorDot
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -45,6 +46,7 @@ import com.opson.system.background
 import androidx.compose.ui.draw.clip
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_back
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_micro_of
 import opson.libraries.resources.generated.resources.trends_micro_of_limit
 import opson.libraries.resources.generated.resources.trends_micros_caption
@@ -52,6 +54,7 @@ import opson.libraries.resources.generated.resources.trends_micros_off_body
 import opson.libraries.resources.generated.resources.trends_micros_off_link
 import opson.libraries.resources.generated.resources.trends_micros_off_title
 import opson.libraries.resources.generated.resources.trends_nutrients_day
+import opson.libraries.resources.generated.resources.trends_nutrients_goal
 import opson.libraries.resources.generated.resources.trends_nutrients_nothing
 import opson.libraries.resources.generated.resources.trends_nutrients_range
 import opson.libraries.resources.generated.resources.trends_nutrients_title
@@ -112,6 +115,10 @@ internal fun NutrientsContent(
             },
             minHeight = MinTouchTarget,
         )
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
+            return@Column
+        }
         if (state.energy != null || state.macros != null) {
             ListCard {
                 var first = true
@@ -186,11 +193,17 @@ private fun EnergyRowView(row: EnergyRow) {
                 color = AppTheme.colors.ink,
                 modifier = Modifier.weight(1f),
             )
-            NutrientText(metric = Metric.Calories, display = row.eaten, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.muted)
-            // "· range" is a label; the range itself renders through the policy's tagged text.
-            NutrientVisible(row.range) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Dimension.D100)) {
-                    Text(text = stringResource(Res.string.trends_nutrients_range), typography = AppTheme.type.body, color = AppTheme.colors.muted, maxLines = 1)
+            // One word gap between the amount, "· range" and the range, as in a sentence.
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimension.D100)) {
+                NutrientText(metric = Metric.Calories, display = row.eaten, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.muted)
+                // "· range" is a label; the range itself renders through the policy's tagged text.
+                NutrientVisible(row.range) {
+                    Text(
+                        text = stringResource(if (row.singleGoal) Res.string.trends_nutrients_goal else Res.string.trends_nutrients_range),
+                        typography = AppTheme.type.body,
+                        color = AppTheme.colors.muted,
+                        maxLines = 1,
+                    )
                     NutrientText(metric = Metric.Calories, display = row.range, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.muted, maxLines = 1)
                 }
             }
@@ -200,6 +213,7 @@ private fun EnergyRowView(row: EnergyRow) {
             rangeStart = if (row.range is Display.Shown) row.rangeStart else 0f,
             rangeEnd = if (row.range is Display.Shown) row.rangeEnd else 0f,
             colors = RangeBarDefaults.onSurface(),
+            height = RangeBarDefaults.CompactHeight,
         )
     }
 }

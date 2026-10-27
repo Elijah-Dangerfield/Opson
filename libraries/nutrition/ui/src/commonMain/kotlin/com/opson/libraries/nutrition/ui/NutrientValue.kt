@@ -166,7 +166,7 @@ private fun NutrientValuePreview() {
 @Composable
 private fun NutrientValueBlindPreview() {
     CompositionLocalProvider(
-        LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.Blind),
+        LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.NoNumbers),
     ) {
         NutrientValuePreview()
     }

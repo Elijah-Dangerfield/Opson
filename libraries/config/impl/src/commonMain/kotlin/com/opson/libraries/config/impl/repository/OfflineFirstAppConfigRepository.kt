@@ -3,6 +3,7 @@ package com.opson.libraries.config.impl.repository
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEvents
 import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.config.AppConfigRefresher
 import com.opson.libraries.config.AppConfigRepository
 import com.opson.libraries.config.ConfigOverrideRepository
 import com.opson.libraries.config.impl.ConfigRefreshThrottleMs
@@ -17,7 +18,6 @@ import com.opson.libraries.core.ignoreValue
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.DispatcherProvider
-import com.opson.libraries.flowroutines.childSupervisorScope
 import com.opson.libraries.flowroutines.tryWithTimeout
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.tatarka.inject.annotations.Inject
@@ -62,13 +63,14 @@ private val ConfigRefreshTimeout = 5.seconds
  * snapshot survives launches, and [cachedConfigFlow] starts from the bundled
  * fallback when there isn't one.
  *
- * Failure path: if the network fetch fails AND there's no prior cached snapshot,
- * the bundled fallback config is persisted so a later process starts from disk
- * rather than re-deciding. With a prior snapshot, the failure is logged and the
- * prior snapshot stays in place — the next foreground past the throttle tries
+ * Failure path: a failed fetch is logged and changes nothing. A prior snapshot
+ * stays in place, and with none the stream keeps serving the bundled fallback.
+ * The fallback is never written to disk: a persisted copy would outlive the app
+ * update that ships a newer one. The next foreground past the throttle tries
  * again.
  */
 @ContributesBinding(AppScope::class, boundType = AppConfigRepository::class)
+@ContributesBinding(AppScope::class, boundType = AppConfigRefresher::class)
 @ContributesBinding(AppScope::class, boundType = AutoInit::class, multibinding = true)
 @SingleIn(AppScope::class)
 class OfflineFirstAppConfigRepository @Inject constructor(
@@ -81,7 +83,7 @@ class OfflineFirstAppConfigRepository @Inject constructor(
     private val appEvents: AppEvents,
     private val clock: Clock,
     private val appScope: AppCoroutineScope,
-) : AppConfigRepository, AutoInit {
+) : AppConfigRepository, AppConfigRefresher, AutoInit {
 
     private val logger = KLog.withTag("AppConfigRepository")
     private var refreshJob: Job? = null
@@ -138,11 +140,20 @@ class OfflineFirstAppConfigRepository @Inject constructor(
 
     override fun configStream(): Flow<AppConfigMap> = configStream
 
+    /**
+     * Fetches now whatever the throttle says. Stamps the attempt like a foreground refresh does,
+     * so a foreground right after it does not fetch a second time.
+     */
+    override suspend fun refresh() {
+        lastFetchAtMs = clock.now().toEpochMilliseconds()
+        refreshConfig().join()
+    }
+
     private fun observeForegroundForRefresh() {
         appEvents
             .filterIsInstance<AppEvent.OnForeground>()
             .onEach { maybeRefreshOnForeground() }
-            .launchIn(appScope.childSupervisorScope(dispatcherProvider.io))
+            .launchIn(appScope + dispatcherProvider.io)
     }
 
     /**
@@ -167,7 +178,7 @@ class OfflineFirstAppConfigRepository @Inject constructor(
         if (currentJob != null && currentJob.isActive) {
             currentJob
         } else {
-            appScope.childSupervisorScope(dispatcherProvider.io).launch {
+            appScope.launch(dispatcherProvider.io) {
                 tryWithTimeout(ConfigRefreshTimeout) {
                     remoteConfigDataSource.getConfig()
                 }
@@ -176,12 +187,7 @@ class OfflineFirstAppConfigRepository @Inject constructor(
                         persistConfig(config)
                     }
                     .onFailure { throwable ->
-                        if (!hasCachedConfig()) {
-                            logger.w(throwable) { "No cached config available, using fallback" }
-                            persistConfig(fallbackConfig)
-                        } else {
-                            logger.w(throwable) { "Falling back to cached config" }
-                        }
+                        logger.w(throwable) { "Config refresh failed; keeping the current config" }
                     }
                     .ignoreValue()
             }.also { job -> refreshJob = job }
@@ -197,8 +203,6 @@ class OfflineFirstAppConfigRepository @Inject constructor(
                 logger.e(error) { "Unable to persist config" }
             }
     }
-
-    private suspend fun hasCachedConfig(): Boolean = configCache.get().configJson != null
 
     private fun decodeConfig(raw: String): AppConfigMap? =
         converter.decodeToMap(raw)

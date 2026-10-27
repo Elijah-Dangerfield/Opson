@@ -16,25 +16,38 @@
   "templating": {
     "list": [
       {
-        "name": "db",
-        "label": "Database",
-        "type": "datasource",
-        "query": "grafana-postgresql-datasource",
-        "regex": "/^opson-(prod-)?db$/",
+        "name": "env",
+        "label": "Environment",
+        "type": "custom",
+        "query": "prod : opson-prod-db,dev : opson-db",
         "current": {
-          "text": "opson-prod-db",
-          "value": "opson-prod-db"
+          "text": "prod",
+          "value": "opson-prod-db",
+          "selected": true
         },
+        "options": [
+          {
+            "text": "prod",
+            "value": "opson-prod-db",
+            "selected": true
+          },
+          {
+            "text": "dev",
+            "value": "opson-db",
+            "selected": false
+          }
+        ],
         "hide": 0,
-        "refresh": 1,
         "includeAll": false,
-        "multi": false
+        "multi": false,
+        "skipUrlSync": false
       }
     ]
   },
   "annotations": {
     "list": []
   },
+  "links": [],
   "panels": [
     {
       "type": "table",
@@ -42,14 +55,14 @@
       "description": "Share of each first-log week still logging N weeks later.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",
@@ -62,7 +75,8 @@
         "overrides": []
       },
       "options": {
-        "showHeader": true
+        "showHeader": true,
+        "cellHeight": "sm"
       },
       "id": 1,
       "gridPos": {
@@ -78,14 +92,14 @@
       "description": "Of the people whose first entry was that day, the share who logged again on day 1, 7 and 30.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
-        "uid": "${db}"
+        "uid": "${env}"
       },
       "targets": [
         {
           "refId": "A",
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "${db}"
+            "uid": "${env}"
           },
           "rawQuery": true,
           "editorMode": "code",

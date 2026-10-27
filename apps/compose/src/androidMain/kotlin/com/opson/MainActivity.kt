@@ -1,6 +1,8 @@
 package com.opson
 
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Color
 import android.os.Bundle
 import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
@@ -11,28 +13,25 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.opson.libraries.reminders.impl.ReminderIntents
 import com.opson.libraries.telemetry.impl.AndroidJankMonitor
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    
+
+    /** The system's night mode, which a theme left on System follows. */
+    private val systemDark = MutableStateFlow(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen BEFORE super.onCreate()
         val splashScreen = installSplashScreen()
         
         super.onCreate(savedInstanceState)
-        
-        // Enable edge-to-edge with light status bar (dark icons)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.light(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
-        )
+
+        followThemeWithSystemBars()
 
         // Keep the splash screen on until AppViewModel has determined the destination.
         // AppViewModel is a singleton, so this is the same instance used in App composable.
@@ -53,6 +52,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             handleReminderTap(intent)
             handleWidgetTap(intent)
+            handleLink(intent)
         }
 
         reportStartupWhenReady()
@@ -95,11 +95,59 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Edge to edge, with bar icons that read on the theme the app is drawing. That is the user's
+     * Look and feel pick, which can differ from the system's, so `SystemBarStyle.auto` is not
+     * enough. The manifest keeps uiMode changes in process, hence [onConfigurationChanged].
+     */
+    private fun followThemeWithSystemBars() {
+        systemDark.value = resources.configuration.isNightMode()
+        // lifecycleScope is Main.immediate, so the first value applies before the first frame.
+        lifecycleScope.launch {
+            combine(appComponent.settingsRepository.settings.map { it.theme }, systemDark) { theme, systemDark ->
+                theme.isDark(systemDark)
+            }
+                .distinctUntilChanged()
+                .collect(::applySystemBars)
+        }
+    }
+
+    private fun applySystemBars(dark: Boolean) {
+        val style = if (dark) {
+            SystemBarStyle.dark(Color.TRANSPARENT)
+        } else {
+            SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        }
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        systemDark.value = newConfig.isNightMode()
+    }
+
+    private fun Configuration.isNightMode(): Boolean =
+        (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleReminderTap(intent)
         handleWidgetTap(intent)
+        handleLink(intent)
+    }
+
+    /**
+     * Any other opson:// link (the OAuth return, an email confirmation) goes through the
+     * DeepLinkBridge, as on iOS: App.kt hands the OAuth return to supabase-kt and routes the
+     * rest. NavHost only reads the intent at its first composition, so a link that arrives
+     * while the app is open would otherwise be dropped. Cleared so NavHost never routes it twice.
+     */
+    private fun handleLink(intent: Intent?) {
+        val url = intent?.dataString ?: return
+        if (!url.startsWith(APP_SCHEME)) return
+        appComponent.deepLinkBridge.emit(url)
+        intent.data = null
     }
 
     /**
@@ -133,3 +181,5 @@ class MainActivity : ComponentActivity() {
 
     private val appComponent get() = (application as OpsonApplication).appComponent
 }
+
+private const val APP_SCHEME = "opson://"

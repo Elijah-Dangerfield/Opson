@@ -376,8 +376,10 @@ private fun NewFlagForm(ctx: AdminCtx) {
                         after = element.inline(),
                         success = "Saved $newPath",
                         warning = dangerousWarning(newPath, value),
-                    ) { ctx.api.upsertFlag(newPath, element) }
-                    path = ""
+                    ) {
+                        ctx.api.upsertFlag(newPath, element)
+                        path = ""
+                    }
                 }
             }) { Text("Add") }
         }

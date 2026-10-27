@@ -1,0 +1,102 @@
+---
+import { CONTACT_EMAIL, href } from '../consts';
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="cols">
+      <div class="col">
+        <h2>Opson</h2>
+        <a href={href('/')}>Home</a>
+        <a href={href('/privacy/')}>Privacy</a>
+        <a href={href('/health-data/')}>Consumer health data</a>
+        <a href={href('/terms/')}>Terms</a>
+        <a href={href('/credits/')}>Credits</a>
+      </div>
+      <div class="col">
+        <h2>Nightjar Labs</h2>
+        <a href={href('/contact/')}>Contact</a>
+        <a href={`mailto:${CONTACT_EMAIL}`} set:html={CONTACT_EMAIL.replace('@', '@<wbr>')} />
+      </div>
+      <div class="col about">
+        <a class="brand" href={href('/')}>
+          <img src={href('/favicon.svg')} alt="" width="32" height="32" />
+          <span>Opson</span>
+        </a>
+        <p>A food log where you decide how many numbers you see.</p>
+      </div>
+    </div>
+    <div class="notes">
+      <p>
+        Opson is a food log, not medical advice. It doesn't diagnose or treat anything, and it can't take the place of
+        a doctor, dietitian or eating disorder care. Food values are estimates and can be wrong.
+      </p>
+      <p>
+        Food data from USDA FoodData Central and Open Food Facts. Contains data from
+        <a href="https://world.openfoodfacts.org/">Open Food Facts</a>, available under the
+        <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License</a>.
+      </p>
+    </div>
+    <div class="bottom">
+      <p>© {year} Nightjar Labs LLC</p>
+      <p>This site has no cookies, analytics or trackers.</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--line);
+    padding: 56px 0 36px;
+    margin-top: auto;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.3fr;
+    gap: 36px;
+    margin-bottom: 36px;
+  }
+  .col { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+  h2 {
+    font-size: 17px;
+    color: var(--title);
+    letter-spacing: 0;
+    margin-bottom: 4px;
+  }
+  .col a { color: var(--ink-soft); text-decoration: none; }
+  .col a:hover { color: var(--accent); text-decoration: underline; }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 21px;
+  }
+  .col .brand { color: var(--title); }
+  .brand img { border-radius: 8px; }
+  .about p { color: var(--muted); max-width: 30ch; }
+  .notes {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 28px;
+    max-width: 80ch;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .notes a { color: var(--ink-soft); }
+  .bottom {
+    border-top: 1px solid var(--line);
+    padding-top: 22px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 24px;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  @media (max-width: 720px) {
+    .cols { grid-template-columns: 1fr 1fr; }
+    .about { grid-column: 1 / -1; grid-row: 1; }
+  }
+</style>

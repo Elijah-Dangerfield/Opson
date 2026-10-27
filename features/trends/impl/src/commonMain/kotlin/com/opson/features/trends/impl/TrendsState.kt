@@ -6,6 +6,8 @@ import com.opson.libraries.diary.NewFoods
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.nutrition.DayGoal
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.GoalStyle
@@ -36,6 +38,16 @@ data class TrendsInputs(
     /** Oldest first. */
     val weighIns: List<WeighIn>,
     val timeZone: TimeZone,
+    /**
+     * Energy expended by day from the watch, for the Expended card. `null` while `release.health`
+     * is off, no health app is connected, or the read failed.
+     */
+    val expended: Map<LocalDate, EnergyExpended>? = null,
+    /**
+     * Today's Burned with `release.goalsAndEnergy`: what a set deficit or surplus aims at. The
+     * chart draws one goal for the span, so today's stands in for each day's.
+     */
+    val burnedKcal: Int? = null,
 )
 
 /** The Trends tab, top to bottom. Each card is `null` when it is off or the mode has nothing to put on it. */
@@ -51,6 +63,7 @@ data class TrendsState(
     val recap: RecapCard? = null,
     val lastCheck: LastCheck? = null,
     val nutrients: NutrientsCard? = null,
+    val expended: ExpendedCard? = null,
     val weight: WeightCard? = null,
 )
 
@@ -61,16 +74,18 @@ sealed interface RangeLabel {
     data object LastThreeMonths : RangeLabel
 }
 
-/** Coast before its weekly check: when it opens. [tonight] when that is today. */
+/** Later, weekly, before its weekly check: when it opens. [tonight] when that is today. */
 data class WeeklyCheck(val day: DayOfWeek, val at: LocalTime, val tonight: Boolean)
 
 data class IntakeCard(
     /** Daily average over tracked days, the one still in progress left out; Hidden when there is none. */
     val average: Display,
     val bars: List<IntakeBar>,
-    /** The user's range over the chart's scale. */
+    /** The user's range over the chart's scale; its ends meet when the goal is one number. */
     val band: ClosedFloatingPointRange<Float>,
     val caption: IntakeCaption,
+    /** The goal is one number (one number, a deficit or a surplus): the caption calls it a line, not a band. */
+    val singleGoal: Boolean = false,
 )
 
 /** What the caption under the chart explains: the band, and the striped bar when there is one. */
@@ -93,12 +108,19 @@ sealed interface RecapRow {
     data class NewFoods(val count: Int, val names: List<String>?) : RecapRow
 }
 
-/** Coast: last week's check, readable until the next one opens. [weekEnd] is `Oct 18`. */
+/** Later, weekly: last week's check, readable until the next one opens. [weekEnd] is `Oct 18`. */
 data class LastCheck(val weekEnd: String, val average: Display, val weight: Display)
 
 data class NutrientsCard(val macros: List<MacroTile>)
 
 data class MacroTile(val metric: Metric, val label: StringResource, val display: Display)
+
+/** "Expended": the daily average from the watch, and each day's total as a line. */
+data class ExpendedCard(
+    val average: Display,
+    /** One height per day with a reading, oldest first, in `0..1`; empty under two. */
+    val trend: List<Float>,
+)
 
 data class WeightCard(
     val subtitle: WeightSubtitle,
@@ -115,7 +137,7 @@ enum class WeightSubtitle { Trend, NoWeighIns }
  * call it, so the leak test checks the real mapping.
  *
  * Every amount resolves on [Surface.Week] with the week window's last day as
- * the context day, so Coast's week stays closed until its weekly check;
+ * the context day, so a weekly reveal's week stays closed until its weekly check;
  * weight resolves on [Surface.Weight] so the card and the Weight page agree.
  * No layout decision reads the mode: each card follows its metric's level.
  */
@@ -136,6 +158,7 @@ object TrendsStateBuilder {
         val ranged = !checkPending && (
             (cards.intake && showsIntake(policy, weekContext)) ||
                 (cards.nutrients && showsNutrients(policy, weekContext)) ||
+                (cards.expended && inputs.expended != null && showsExpended(policy, weekContext)) ||
                 (cards.weight && showsWeight(policy))
             )
         val range = if (ranged) settings.trendsRange else TrendsRange.Week
@@ -162,6 +185,7 @@ object TrendsStateBuilder {
             recap = if (cards.recap) recap(inputs, span, dayAt, leads, checkPending) else null,
             lastCheck = if (checkPending) lastCheck(inputs, window, dayAt, policy) else null,
             nutrients = if (cards.nutrients && !checkPending) nutrients(inputs, span, dayAt, policy, weekContext) else null,
+            expended = if (cards.expended && !checkPending) expended(inputs, span, dayAt, policy, weekContext) else null,
             weight = if (cards.weight && !checkPending) weight(inputs, span, policy) else null,
         )
     }
@@ -173,6 +197,13 @@ object TrendsStateBuilder {
     /** Any macro not hidden on the week view. */
     fun showsNutrients(policy: VisibilityPolicy, context: FormatContext = FormatContext()): Boolean =
         TREND_MACROS.any { policy.effectiveLevel(it, Surface.Week, context) != Visibility.Hide }
+
+    /**
+     * Energy out shown on the week view. Soft is as good as hidden here: energy out has no honest
+     * soft word, so the policy hides it, and the card goes with it.
+     */
+    fun showsExpended(policy: VisibilityPolicy, context: FormatContext = FormatContext()): Boolean =
+        policy.effectiveLevel(Metric.EnergyOut, Surface.Week, context) == Visibility.Show
 
     /** Weight not hidden: the card is removed, not greyed, when it is. */
     fun showsWeight(policy: VisibilityPolicy): Boolean =
@@ -186,14 +217,15 @@ object TrendsStateBuilder {
         context: FormatContext,
     ): IntakeCard? {
         if (!showsIntake(policy, context)) return null
-        val targets = inputs.settings.targets
-        val scale = chartScale(targets)
+        val goal = inputs.settings.targets.spanGoal(inputs.settings.numbers.preset, inputs.burnedKcal)
+        val scale = chartScale(goal)
         val tracked = mutableListOf<Double>()
         var inProgress = IntakeCaption.Plain
         val bars = when (span.range) {
             TrendsRange.Week -> span.days.map { date ->
                 val current = date == inputs.today
-                val kcal = dayAt(date).intakeKcal()
+                val day = dayAt(date)
+                val kcal = day.intakeKcal()?.takeIf { opens(Metric.Calories, day, inputs, policy) }
                 if (current) inProgress = IntakeCaption.TodayInProgress else kcal?.let(tracked::add)
                 IntakeBar(TrendsCalendar.weekdayLabel(date), kcal?.let { (it / scale).toFloat() }, isCurrent = current)
             }
@@ -202,8 +234,11 @@ object TrendsStateBuilder {
                 val starts = TrendsCalendar.weekStarts(inputs.today, inputs.settings.weekStart, count)
                 starts.mapIndexed { index, start ->
                     val current = index == starts.lastIndex
-                    val week = (0 until TrendsCalendar.DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }.filter { it <= inputs.today }
-                    val days = week.mapNotNull { dayAt(it).intakeKcal() }
+                    val week = (0 until TrendsCalendar.DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }
+                        .filter { it <= inputs.today }
+                        .map(dayAt)
+                        .filter { opens(Metric.Calories, it, inputs, policy) }
+                    val days = week.mapNotNull { it.intakeKcal() }
                     if (current) inProgress = IntakeCaption.WeekInProgress else tracked.addAll(days)
                     val labelled = span.range == TrendsRange.FourWeeks || (starts.lastIndex - index) % THREE_MONTHS_LABEL_EVERY == 0
                     IntakeBar(
@@ -217,8 +252,9 @@ object TrendsStateBuilder {
         return IntakeCard(
             average = policy.resolve(Metric.Calories, tracked.averageOrNull(), Surface.Week, context),
             bars = bars,
-            band = (targets.minKcal / scale).toFloat()..(targets.maxKcal / scale).toFloat(),
+            band = (goal.minKcal / scale).toFloat()..(goal.maxKcal / scale).toFloat(),
             caption = inProgress,
+            singleGoal = goal.minKcal == goal.maxKcal,
         )
     }
 
@@ -280,13 +316,48 @@ object TrendsStateBuilder {
     ): NutrientsCard? {
         if (!showsNutrients(policy, context)) return null
         // Today is still in progress, so it stays out of the average like the chart's striped bar.
-        val averages = WeekAverages.of(span.days.filter { it < inputs.today }.map(dayAt))
+        // A day a delayed macro hasn't opened on yet stays out too.
+        val delayed = TREND_MACROS.filter { policy.level(it) == Visibility.Delay }
+        val averages = WeekAverages.of(
+            span.days.filter { it < inputs.today }.map(dayAt).filter { day -> delayed.all { opens(it, day, inputs, policy) } },
+        )
         val targets = inputs.settings.targets
         val tiles = TREND_MACROS.mapNotNull { metric ->
             val display = policy.resolve(metric, averages?.of(metric), Surface.Week, context.copy(of = targets.goal(metric), goal = GoalStyle.Slash))
             if (display is Display.Hidden) null else MacroTile(metric, metric.label, display)
         }
         return NutrientsCard(tiles)
+    }
+
+    /**
+     * The watch's daily average over the span. Today is still in progress, so it stays out, as it
+     * does from the intake average; so does a day whose energy out hasn't opened. A day the watch
+     * has nothing for is a gap, never a zero.
+     */
+    private fun expended(
+        inputs: TrendsInputs,
+        span: TrendsSpan,
+        dayAt: (LocalDate) -> Day,
+        policy: VisibilityPolicy,
+        context: FormatContext,
+    ): ExpendedCard? {
+        val energy = inputs.expended ?: return null
+        if (!showsExpended(policy, context)) return null
+        val totals = span.days
+            .filter { it < inputs.today && opens(Metric.EnergyOut, dayAt(it), inputs, policy) }
+            .mapNotNull { energy[it]?.totalKcal }
+        val average = policy.resolve(Metric.EnergyOut, totals.averageOrNull(), Surface.Week, context)
+        if (average is Display.Hidden) return null
+        return ExpendedCard(average, trend = heights(totals))
+    }
+
+    /** Each value's height between the lowest and highest, with a little room, so the line has no scale. */
+    private fun heights(values: List<Double>): List<Float> {
+        if (values.size < 2) return emptyList()
+        val pad = (values.max() - values.min()).coerceAtLeast(MIN_LINE_SPAN_KCAL) * LINE_PAD
+        val low = values.min() - pad
+        val high = values.max() + pad
+        return values.map { ((it - low) / (high - low)).toFloat() }
     }
 
     private fun weight(inputs: TrendsInputs, span: TrendsSpan, policy: VisibilityPolicy): WeightCard? {
@@ -306,15 +377,38 @@ object TrendsStateBuilder {
         )
     }
 
-    /** Bars are drawn against the top of the range plus a fifth, rounded up to the next 100. */
-    internal fun chartScale(targets: Targets): Double =
-        ceil(targets.maxKcal * SCALE_HEADROOM / SCALE_STEP) * SCALE_STEP
+    /**
+     * Whether [day]'s [metric] may go into the chart and the averages. The week view itself is
+     * open in Delayed all day, but a day it covers may not be: today before the reveal or day
+     * close, or, for a weekly reveal (Later, weekly), any day of a week whose check has not come. The
+     * month and three-month spans reach past the week window into exactly those days.
+     */
+    private fun opens(metric: Metric, day: Day, inputs: TrendsInputs, policy: VisibilityPolicy): Boolean {
+        if (policy.level(metric) != Visibility.Delay) return true
+        if (!policy.revealsWeekly) {
+            return policy.effectiveLevel(metric, Surface.Today, day.formatContext(inputs.today)) == Visibility.Show
+        }
+        val weekEnd = TrendsCalendar.weekStartOf(day.date, inputs.settings.weekStart)
+            .plus(TrendsCalendar.DAYS_IN_WEEK - 1, DateTimeUnit.DAY)
+        return policy.isWeekOpen(weekEnd)
+    }
 
-    /** Coast's weight check looks at the smoothed line over the four weeks to the check. */
+    /**
+     * Bars are drawn against the top of the goal plus a fifth, rounded up to the next 100. The
+     * goal is the one the chart draws, every day group's under "different by day".
+     */
+    internal fun chartScale(goal: DayGoal): Double =
+        ceil(goal.maxKcal * SCALE_HEADROOM / SCALE_STEP) * SCALE_STEP
+
+    /** The weekly reveal's weight check looks at the smoothed line over the four weeks to the check. */
     private const val WEIGHT_CHECK_DAYS = 28
     private const val THREE_MONTHS_LABEL_EVERY = 3
     private const val SCALE_HEADROOM = 1.2
     private const val SCALE_STEP = 100.0
+
+    /** A flat week still draws as a gentle line rather than filling the card. */
+    private const val MIN_LINE_SPAN_KCAL = 200.0
+    private const val LINE_PAD = 0.15
 }
 
 /** `null` for "This morning" (weighed today), else `Yesterday` or `Thu, Oct 22`. */

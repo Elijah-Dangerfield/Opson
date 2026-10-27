@@ -1,0 +1,81 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Builds the Astro marketing site under website/ and uploads it to Cloudflare
+# Pages, served on our own domain. Cloudflare only needs an API token, never
+# access to this repo, so the site keeps working when the repo goes private.
+#
+# Fires on:     Pushes to main that touch website/**, the legal pages it renders
+#               from outside it, or this workflow. Also workflow_dispatch.
+# Gated on:     The repo variable SITE_ENABLED. Until it is 'true' both jobs
+#               skip, so pushes don't fail before the domain is set up.
+# Needs:        Secrets CLOUDFLARE_API_TOKEN (Pages edit) and
+#               CLOUDFLARE_ACCOUNT_ID; variables SITE_URL (https://<domain>),
+#               SITE_BASE (/) and PUBLIC_API_URL. The Pages project is
+#               CLOUDFLARE_PAGES_PROJECT, default "opson".
+# Side effects: Updates the live site, including the waitlist form, which posts
+#               to PUBLIC_API_URL. That server must list SITE_URL in
+#               WAITLIST_ALLOWED_ORIGINS.
+# Edit to change: content lives in website/src/. See website/README.md.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'legal/*.md'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: vars.SITE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
+      SITE_BASE: ${{ vars.SITE_BASE }}
+      PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: website/dist
+          retention-days: 3
+
+  deploy:
+    if: vars.SITE_ENABLED == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: website
+      url: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: dist
+      - uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT || 'opson' }} --branch=main

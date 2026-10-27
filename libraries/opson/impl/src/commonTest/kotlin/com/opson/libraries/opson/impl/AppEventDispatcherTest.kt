@@ -17,11 +17,8 @@ import kotlin.test.assertEquals
  *  - dispatch is synchronous on the calling thread (we don't post to
  *    a queue), so the AppEventBus contract caller can reason about
  *    ordering vs. its own work.
- *
- * Lifecycle (foreground/cold-boot dispatch) isn't tested here because
- * it's driven via the AppLifecycle observer and the test would just
- * mirror that wiring. UserChanged is the path we explicitly call via
- * AppEventBus, so that's what's worth pinning.
+ *  - A foreground that doesn't follow a background is not dispatched
+ *    again (iOS reactivation).
  */
 class AppEventDispatcherTest : CoroutineTest() {
 
@@ -55,6 +52,24 @@ class AppEventDispatcherTest : CoroutineTest() {
         // set isn't part of the contract (Set is unordered), but
         // "every non-throwing listener fires" is.
         assertEquals(listOf("userChanged"), healthy.calls)
+    }
+
+    @Test
+    fun aReactivationWithoutABackground_isNotAnotherForeground() {
+        val listener = Recording()
+        val lifecycle = DrivenLifecycle()
+        AppEventDispatcher(listeners = setOf(listener), appLifecycle = lifecycle)
+
+        lifecycle.foreground()
+        // iOS DidBecomeActive again after Control Center closes: no background first.
+        lifecycle.foreground()
+        lifecycle.background()
+        lifecycle.foreground()
+
+        assertEquals(
+            listOf("coldBoot", "foreground", "background", "warmBoot", "foreground"),
+            listener.calls,
+        )
     }
 
     @Test
@@ -106,5 +121,13 @@ class AppEventDispatcherTest : CoroutineTest() {
     private object NoopLifecycle : AppLifecycle {
         override fun addObserver(observer: AppLifecycleObserver) { /* no-op */ }
         override fun removeObserver(observer: AppLifecycleObserver) { /* no-op */ }
+    }
+
+    private class DrivenLifecycle : AppLifecycle {
+        private val observers = mutableListOf<AppLifecycleObserver>()
+        override fun addObserver(observer: AppLifecycleObserver) { observers += observer }
+        override fun removeObserver(observer: AppLifecycleObserver) { observers -= observer }
+        fun foreground() = observers.forEach { it.onEnterForeground() }
+        fun background() = observers.forEach { it.onEnterBackground() }
     }
 }

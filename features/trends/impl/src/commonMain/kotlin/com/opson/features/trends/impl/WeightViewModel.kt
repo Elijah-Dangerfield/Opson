@@ -11,11 +11,14 @@ import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.progressphotos.ProgressPhotoRepository
+import com.opson.libraries.progressphotos.ProgressPhotosEnabled
 import com.opson.libraries.ui.components.text.NumberInput
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -33,6 +36,8 @@ class WeightViewModel(
     settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
     private val clock: Clock,
+    photosEnabled: ProgressPhotosEnabled,
+    progressPhotos: ProgressPhotoRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<WeightState, WeightEvent, WeightAction>(initialStateArg = WeightState()) {
 
@@ -49,8 +54,11 @@ class WeightViewModel(
             .flatMapLatest { day ->
                 weights.observeWeighIns(since = day.minus(HISTORY_DAYS, DateTimeUnit.DAY).atStartOfDayIn(timeZone))
             }
-        combine(settingsRepository.settings, policySource.policy, weighIns) { settings, policy, weighIns ->
-            WeightAction.InputsArrived(WeightInputs(today, settings, weighIns, timeZone), policy)
+        // Read once, as the page opens. Off, the photo index is never touched.
+        val photosReleased = photosEnabled.value
+        val lastPhoto = if (photosReleased) progressPhotos.observeLastTaken() else flowOf(null)
+        combine(settingsRepository.settings, policySource.policy, weighIns, lastPhoto) { settings, policy, weighIns, last ->
+            WeightAction.InputsArrived(WeightInputs(today, settings, weighIns, timeZone, photosReleased, last), policy)
         }.collectIn(viewModelScope) { takeAction(it) }
     }
 
@@ -63,10 +71,13 @@ class WeightViewModel(
             is WeightAction.RangePicked -> action.updateState { rebuild(it.ui().copy(range = action.range)) ?: it.copy(range = action.range) }
             is WeightAction.WeightTyped -> {
                 val input = NumberInput.sanitize(action.text, allowDecimal = true)
-                action.updateState { rebuild(it.ui().copy(input = input, saved = false)) ?: it.copy(input = input, saved = null) }
+                action.updateState {
+                    rebuild(it.ui().copy(input = input, saved = false, failed = false)) ?: it.copy(input = input, saved = null, saveFailed = false)
+                }
             }
             WeightAction.SaveTapped -> save(action)
             WeightAction.BackTapped -> sendEvent(WeightEvent.Close)
+            WeightAction.ProgressPhotosTapped -> if (state.photos != null) sendEvent(WeightEvent.OpenProgressPhotos)
         }
     }
 
@@ -80,14 +91,17 @@ class WeightViewModel(
         if (kg <= 0.0 || kg > MAX_KG) return
         // The amount is health data: it never goes in a log line, only the failure does.
         val written = Catching { weights.addWeighIn(kg) }.logOnFailure("Couldn't save a weigh-in").isSuccess
-        if (!written) return
+        if (!written) {
+            action.updateState { rebuild(it.ui().copy(saved = false, failed = true)) ?: it.copy(saved = null, saveFailed = true) }
+            return
+        }
         action.updateState { rebuild(it.ui().copy(input = "", saved = true)) ?: it.copy(input = "") }
     }
 
     private fun rebuild(ui: WeightUi): WeightState? =
         latest?.let { WeightStateBuilder.build(it.inputs, ui, it.policy) }
 
-    private fun WeightState.ui() = WeightUi(range = range, input = input, saved = saved != null)
+    private fun WeightState.ui() = WeightUi(range = range, input = input, saved = saved != null, failed = saveFailed)
 
     private companion object {
         /** Seeds the EMA before the 3-month window, and covers it. */
@@ -104,8 +118,10 @@ sealed interface WeightAction {
     data class WeightTyped(val text: String) : WeightAction
     data object SaveTapped : WeightAction
     data object BackTapped : WeightAction
+    data object ProgressPhotosTapped : WeightAction
 }
 
 sealed interface WeightEvent {
     data object Close : WeightEvent
+    data object OpenProgressPhotos : WeightEvent
 }

@@ -3,9 +3,17 @@
     python3 -I -m unittest discover -s scripts -p 'test_import_off_foods.py'
 """
 
+import gzip
+import tempfile
 import unittest
+from argparse import Namespace
+from pathlib import Path
+from unittest import mock
 
+import import_off_foods
 from import_off_foods import (
+    MICROS,
+    SCAN_BUCKETS,
     Stats,
     batch_sql,
     clean_name,
@@ -14,13 +22,30 @@ from import_off_foods import (
     first_brand,
     macro_problem,
     micros_for,
+    most_scanned_first,
     modified_at,
     normalize_barcode,
     parse_number,
     portions_for,
+    finish,
+    index_builds,
     product_from,
+    reload_sql,
+    run_watched,
+    scan_bucket,
     scan_count,
 )
+
+
+# The vitamin and mineral keys the app's Micronutrient table reads, as
+# MicroWireKeysTest in :libraries:nutrition pins them. A key the importer
+# names differently is a nutrient no food ever shows.
+APP_MICRO_KEYS = {
+    "vitamin_a_rae_ug", "thiamin_mg", "riboflavin_mg", "niacin_mg", "vitamin_b6_mg", "folate_dfe_ug",
+    "vitamin_b12_ug", "vitamin_c_mg", "vitamin_d_ug", "vitamin_e_mg", "vitamin_k_ug", "choline_mg",
+    "calcium_mg", "copper_mg", "iron_mg", "magnesium_mg", "manganese_mg", "phosphorus_mg", "potassium_mg",
+    "selenium_ug", "sodium_mg", "zinc_mg",
+}
 
 
 def row(**values):
@@ -215,6 +240,10 @@ class FieldsTest(unittest.TestCase):
         self.assertEqual({"sodium_mg": 400.0, "vitamin_c_mg": 30.0, "vitamin_d_ug": 2.5, "sugars_g": 56.3},
                          micros_for(get))
 
+    def test_keeps_every_vitamin_and_mineral_the_app_shows_but_folate(self):
+        # The export's vitamin-b9 is not in dietary folate equivalents, so it is left out on purpose.
+        self.assertEqual({"folate_dfe_ug"}, APP_MICRO_KEYS - set(MICROS))
+
     def test_scan_count(self):
         self.assertEqual(12, scan_count("12"))
         self.assertEqual(3, scan_count("3.0"))
@@ -246,6 +275,218 @@ class SqlTest(unittest.TestCase):
         b = batch_sql([product_from(row(product_name="Other"), Stats())], "2026-11-26")
         self.assertEqual(a.split("'::uuid")[0][-36:], b.split("'::uuid")[0][-36:])
 
+
+class OrderTest(unittest.TestCase):
+    """The reload writes the most-scanned products first; search's caps rely on it."""
+
+    def test_buckets_run_from_most_scanned(self):
+        self.assertEqual(0, scan_bucket(5000))
+        self.assertEqual(0, scan_bucket(1000))
+        self.assertEqual(1, scan_bucket(999))
+        self.assertEqual(len(SCAN_BUCKETS) - 1, scan_bucket(0))
+        self.assertEqual(sorted(SCAN_BUCKETS, reverse=True), list(SCAN_BUCKETS))
+
+    def test_products_come_back_most_scanned_first_and_intact(self):
+        scans = [0, 7, 1200, 3, 0, 55, 7]
+        products = [product_from(row(code=f"30176204220{i:02d}", unique_scans_n=str(n)), Stats())
+                    for i, n in enumerate(scans)]
+        with tempfile.TemporaryDirectory() as spill:
+            ordered = list(most_scanned_first(iter(products), Path(spill)))
+            self.assertEqual([], list(Path(spill).iterdir()), "spill files are removed once read")
+        self.assertEqual([1200, 55, 7, 7, 3, 0, 0], [p.scans for p in ordered])
+        self.assertEqual(sorted(products, key=lambda p: p.barcode), sorted(ordered, key=lambda p: p.barcode))
+        sevens = [p.barcode for p in ordered if p.scans == 7]
+        self.assertEqual([products[1].barcode, products[6].barcode], sevens, "export order within a bucket")
+
+
+class ReloadTest(unittest.TestCase):
+    """The whole reload as SQL chunks, from a small export, with no database."""
+
+    COLUMNS = ["code", "product_name", "energy-kcal_100g", "proteins_100g", "carbohydrates_100g", "fat_100g",
+               "countries_tags", "unique_scans_n", "last_modified_t"]
+
+    def reload(self, rows, batch_size):
+        with tempfile.TemporaryDirectory() as tmp:
+            export = Path(tmp) / "products.csv.gz"
+            with gzip.open(export, "wt", encoding="utf-8") as f:
+                f.write("\t".join(self.COLUMNS) + "\n")
+                for r in rows:
+                    f.write("\t".join(r) + "\n")
+            args = Namespace(maintenance_work_mem="64MB", min_rows=1, allow_shrink=False)
+            stats = Stats()
+            with mock.patch.object(import_off_foods, "BATCH_SIZE", batch_size):
+                chunks = list(reload_sql(export, "2026-10-26", stats, args, Path(tmp)))
+        return chunks, stats
+
+    def test_staging_is_prepared_then_loaded_in_batches_most_scanned_first(self):
+        rows = [
+            ["3017620422003", "Nutella", "539", "6.3", "57.5", "30.9", "en:france", "5", "1781851567"],
+            ["5449000000996", "Coca-Cola", "42", "0", "10.6", "0", "en:spain", "2000", "1781850000"],
+            ["3017620422003", "Nutella old", "530", "6", "57", "31", "en:france", "5", "1781851000"],
+            ["4006381333931", "Pencil fudge", "400", "4", "70", "10", "", "0", "1781800000"],
+            ["8712345678906", "Rice cakes", "380", "8", "80", "3", "", "0", "1781800000"],
+            ["123", "Too short a code", "100", "1", "1", "1", "", "0", ""],
+        ]
+        chunks, stats = self.reload(rows, batch_size=3)
+
+        sql = [text for text, _ in chunks]
+        batches = [(text, n) for text, n in chunks if n]
+        self.assertIn("SET statement_timeout = 0", sql[2])
+        self.assertIn("CREATE TABLE IF NOT EXISTS public.off_foods_next", sql[3])
+        self.assertEqual([3, 1], [n for _, n in batches])
+        self.assertEqual(batches[-1][0], sql[-1], "the load ends with its last batch; finish() swaps")
+        self.assertNotIn("LOCK TABLE", "".join(sql))
+        self.assertTrue(all("COMMIT;" in text for text, _ in batches), "every batch commits on its own")
+
+        first = batches[0][0]
+        self.assertLess(first.index("'Coca-Cola'"), first.index("'Nutella'"), "the most-scanned product loads first")
+        self.assertNotIn("Nutella old", "".join(sql), "of a barcode twice in a batch, the newer is kept")
+        self.assertIn("'Rice cakes'", batches[1][0])
+
+        self.assertEqual(6, stats.rows)
+        self.assertEqual(1, stats.bad_barcode)
+        self.assertEqual(1, stats.same_batch_duplicates)
+        self.assertEqual(4, stats.sent)
+
+
+LIVE = [
+    ["off_foods_countries_idx", "CREATE INDEX off_foods_countries_idx ON public.off_foods USING gin (countries_tags)"],
+    ["off_foods_search_idx", "CREATE INDEX off_foods_search_idx ON public.off_foods USING gin (search)"],
+]
+
+
+class IndexBuildsTest(unittest.TestCase):
+
+    def test_each_live_index_is_aimed_at_the_staging_table(self):
+        self.assertEqual(
+            [
+                ("off_foods_next_countries_idx",
+                 "CREATE INDEX off_foods_next_countries_idx ON public.off_foods_next USING gin (countries_tags)"),
+                ("off_foods_next_search_idx",
+                 "CREATE INDEX off_foods_next_search_idx ON public.off_foods_next USING gin (search)"),
+            ],
+            index_builds(LIVE, staged=set()),
+        )
+
+    def test_an_index_already_built_is_not_built_again(self):
+        self.assertEqual(["off_foods_next_search_idx"],
+                         [t for t, _ in index_builds(LIVE, staged={"off_foods_next_countries_idx"})])
+
+    def test_a_name_the_swap_cannot_rename_stops_the_import(self):
+        with self.assertRaises(SystemExit):
+            index_builds([["search_idx", "CREATE INDEX search_idx ON public.off_foods USING gin (search)"]], set())
+
+
+class FakeProc:
+    """A psql that is still running for `runs` polls, then exits with `code`."""
+
+    def __init__(self, runs, code=0):
+        self.runs, self.code, self.killed, self.returncode = runs, code, False, None
+
+    def poll(self):
+        if self.returncode is None and (self.killed or self.runs <= 0):
+            self.returncode = -9 if self.killed else self.code
+        self.runs -= 1
+        return self.returncode
+
+    def kill(self):
+        self.killed = True
+
+    def wait(self):
+        return self.poll()
+
+
+class FakeDb:
+    def __init__(self, proc, sightings=(), live=LIVE, staged=()):
+        self.proc, self.sightings, self.live, self.staged = proc, list(sightings), live, list(staged)
+        self.started, self.markers = [], []
+
+    def start(self, sql):
+        self.started.append(sql)
+        return self.proc
+
+    def statement_running(self, marker):
+        self.markers.append(marker)
+        return self.sightings.pop(0) if self.sightings else False
+
+    def query(self, sql):
+        return [[name] for name in self.staged] if "off_foods_next'" in sql else self.live
+
+
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.now += seconds
+
+
+class WatchdogTest(unittest.TestCase):
+    """run_watched against a fake psql and a fake pg_stat_activity: no database."""
+
+    def watch(self, db, **kwargs):
+        clock = FakeClock()
+        run_watched(db, "CREATE INDEX x;", "building x", sleep=clock.sleep, clock=clock, **kwargs)
+
+    def test_a_step_that_finishes_is_left_alone(self):
+        proc = FakeProc(runs=5)
+        self.watch(FakeDb(proc, sightings=[True] * 5), marker="INDEX x ON")
+        self.assertFalse(proc.killed)
+
+    def test_a_session_seen_and_then_gone_is_stopped(self):
+        proc = FakeProc(runs=1000)
+        with self.assertRaises(SystemExit) as stopped:
+            self.watch(FakeDb(proc, sightings=[True, True, False, False]), marker="INDEX x ON")
+        self.assertTrue(proc.killed)
+        self.assertIn("--swap-only", str(stopped.exception))
+
+    def test_one_miss_is_not_enough(self):
+        proc = FakeProc(runs=4)
+        self.watch(FakeDb(proc, sightings=[True, False, True, True]), marker="INDEX x ON")
+        self.assertFalse(proc.killed)
+
+    def test_a_session_never_seen_is_stopped_after_the_grace_period(self):
+        proc = FakeProc(runs=1000)
+        db = FakeDb(proc)
+        with self.assertRaises(SystemExit):
+            self.watch(db, marker="INDEX x ON")
+        self.assertTrue(proc.killed)
+        self.assertGreater(len(db.markers) * import_off_foods.POLL_SECONDS, import_off_foods.START_GRACE_SECONDS)
+
+    def test_a_quick_step_past_its_limit_is_stopped(self):
+        proc = FakeProc(runs=1000)
+        with self.assertRaises(SystemExit):
+            self.watch(FakeDb(proc), marker=None, limit=90)
+        self.assertTrue(proc.killed)
+
+    def test_a_psql_error_stops_the_import(self):
+        with self.assertRaises(SystemExit) as stopped:
+            self.watch(FakeDb(FakeProc(runs=0, code=3)), marker="INDEX x ON")
+        self.assertIn("exit 3", str(stopped.exception))
+
+
+class FinishTest(unittest.TestCase):
+
+    def test_checks_then_one_session_per_missing_index_then_analyze_then_swap(self):
+        steps = []
+        db = FakeDb(FakeProc(runs=0), staged=["off_foods_next_countries_idx"])
+        args = Namespace(maintenance_work_mem=import_off_foods.DEFAULT_MAINTENANCE_WORK_MEM, min_rows=1, allow_shrink=False)
+
+        finish(db, "2026-10-26", args, run=lambda _db, sql, what, marker, limit=None: steps.append((what, sql, marker)))
+
+        self.assertEqual(["checking the load", "building off_foods_next_search_idx", "analyzing", "swapping"],
+                         [what for what, _, _ in steps])
+        check, build, analyze, swap = (sql for _, sql, _ in steps)
+        self.assertIn("refusing to swap", check)
+        self.assertIn("CREATE INDEX off_foods_next_search_idx ON public.off_foods_next", build)
+        self.assertEqual(1, build.count("CREATE INDEX"), "one index per session")
+        self.assertIn("SET maintenance_work_mem = '64MB'", build)
+        self.assertEqual("INDEX off_foods_next_search_idx ON", steps[1][2])
+        self.assertIn("ANALYZE public.off_foods_next", analyze)
+        self.assertIn("LOCK TABLE public.off_foods IN ACCESS EXCLUSIVE MODE", swap)
 
 if __name__ == "__main__":
     unittest.main()

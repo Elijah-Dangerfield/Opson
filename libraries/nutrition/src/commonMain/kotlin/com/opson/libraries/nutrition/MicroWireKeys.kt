@@ -10,23 +10,32 @@ package com.opson.libraries.nutrition
 val Micronutrient.wireKey: String
     get() = when (this) {
         Micronutrient.VitaminA -> "vitamin_a_rae_ug"
+        Micronutrient.Thiamin -> "thiamin_mg"
+        Micronutrient.Riboflavin -> "riboflavin_mg"
+        Micronutrient.Niacin -> "niacin_mg"
+        Micronutrient.VitaminB6 -> "vitamin_b6_mg"
+        Micronutrient.Folate -> "folate_dfe_ug"
         Micronutrient.VitaminB12 -> "vitamin_b12_ug"
         Micronutrient.VitaminC -> "vitamin_c_mg"
         Micronutrient.VitaminD -> "vitamin_d_ug"
         Micronutrient.VitaminE -> "vitamin_e_mg"
         Micronutrient.VitaminK -> "vitamin_k_ug"
-        Micronutrient.Folate -> "folate_dfe_ug"
+        Micronutrient.Choline -> "choline_mg"
         Micronutrient.Calcium -> "calcium_mg"
+        Micronutrient.Copper -> "copper_mg"
         Micronutrient.Iron -> "iron_mg"
         Micronutrient.Magnesium -> "magnesium_mg"
+        Micronutrient.Manganese -> "manganese_mg"
+        Micronutrient.Phosphorus -> "phosphorus_mg"
         Micronutrient.Potassium -> "potassium_mg"
+        Micronutrient.Selenium -> "selenium_ug"
         Micronutrient.Sodium -> "sodium_mg"
         Micronutrient.Zinc -> "zinc_mg"
     }
 
 private val byWireKey: Map<String, Micronutrient> = Micronutrient.entries.associateBy { it.wireKey }
 
-/** `null` for a key the app does not track (sugars, choline, phosphorus). */
+/** `null` for a key the app does not track (sugars, saturated fat, cholesterol). */
 fun Micronutrient.Companion.fromWireKey(key: String): Micronutrient? = byWireKey[key]
 
 /**

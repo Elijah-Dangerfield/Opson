@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for Describe it's review: the lines it read, their amount controls, the
+  swap menu, the find-a-food search and the total over Add. Design v3 3.8
+  (logger-describe.png) has the lines; the rest is in
+  docs/plans/screens/describe.md. The only number in any of it is the energy
+  the policy formats. Same rules as strings.xml: no backslash escapes,
+  positional %1$s arguments.
+-->
+<resources>
+
+    <!-- A line -->
+    <string name="describe_swap_cd">%1$s. Tap to pick another food.</string>
+    <string name="describe_remove_cd">Remove %1$s</string>
+    <string name="describe_less_cd">Less %1$s</string>
+    <string name="describe_more_cd">More %1$s</string>
+    <string name="describe_unit_cd">Measure for %1$s: %2$s. Tap to change.</string>
+    <string name="describe_not_matched">Not in the food list. Tap to find it.</string>
+    <string name="describe_search_other">Search for something else</string>
+
+    <!-- Under the lines -->
+    <string name="describe_add_missed">Add something it missed</string>
+    <plurals name="describe_total_count">
+        <item quantity="one">%1$d item · Estimate</item>
+        <item quantity="other">%1$d items · Estimate</item>
+    </plurals>
+    <string name="describe_total_about">About</string>
+
+    <!-- Find a food -->
+    <string name="describe_find_add_title">Add a food</string>
+    <string name="describe_find_swap_title">Swap %1$s</string>
+    <string name="describe_find_placeholder">Search for the right food</string>
+    <string name="describe_find_searching">Searching</string>
+    <string name="describe_find_none">Nothing by that name. Try another word.</string>
+</resources>

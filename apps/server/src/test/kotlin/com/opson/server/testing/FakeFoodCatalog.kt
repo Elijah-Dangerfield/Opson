@@ -10,6 +10,8 @@ import com.opson.server.domain.FoodMatch
 import com.opson.server.domain.MatchTier
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Portion
+import com.opson.server.domain.SearchFilter
+import com.opson.server.domain.SearchSort
 import java.util.UUID
 
 /**
@@ -20,11 +22,21 @@ import java.util.UUID
 class FakeFoodCatalog(foods: List<Food> = emptyList()) : FoodCatalogRepository {
     val foods = foods.toMutableList()
     val searches = mutableListOf<Pair<String, Boolean>>()
+    val filters = mutableListOf<SearchFilter>()
+    override var searchesOpenFoodFacts: Boolean = false
     val barcodeOutcomes = mutableListOf<Pair<String, BarcodeOutcome>>()
 
-    override suspend fun search(query: String, limit: Int, record: Boolean): List<FoodMatch> {
+    override suspend fun search(
+        query: String,
+        limit: Int,
+        record: Boolean,
+        country: String?,
+        openFoodFacts: Boolean,
+        filter: SearchFilter,
+    ): List<FoodMatch> {
         val q = FoodCatalogRepository.normalizeQuery(query)
         searches += q to record
+        filters += filter
         val words = q.split(' ').map { it.trimEnd('s') }
         return foods.mapNotNull { food ->
             val name = food.name.lowercase()
@@ -35,7 +47,9 @@ class FakeFoodCatalog(foods: List<Food> = emptyList()) : FoodCatalogRepository {
                 else -> null
             }
             tier?.let { FoodMatch(food, it, 1.0) }
-        }.sortedBy { it.tier }.take(limit)
+        }.sortedBy { it.tier }.take(limit).let { matches ->
+            if (filter.sort == SearchSort.Name) matches.sortedBy { it.food.name.lowercase() } else matches
+        }
     }
 
     override suspend fun findById(id: UUID): Food? = foods.firstOrNull { it.id == id }

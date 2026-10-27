@@ -50,7 +50,10 @@ enum class MealSlot(val wire: String) {
     }
 }
 
-/** How sure the user is about an amount. Shown on item rows as Weighed / Estimate / Named. */
+/**
+ * How sure the user is about an amount. Shown on item rows as Weighed / Estimate / Named / Label.
+ * A build from before [Label] reads a logged item's "label" as Estimate.
+ */
 @Serializable
 enum class Precision(val wire: String) {
     @SerialName("weighed")
@@ -62,6 +65,10 @@ enum class Precision(val wire: String) {
     /** Just the name: no amount, usually no nutrients. */
     @SerialName("named")
     Named("named"),
+
+    /** A serving as the package's label gives it ("From label", design sync 4). */
+    @SerialName("label")
+    Label("label"),
     ;
 
     companion object {

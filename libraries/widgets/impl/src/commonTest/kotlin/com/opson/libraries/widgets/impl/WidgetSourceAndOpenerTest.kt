@@ -2,7 +2,6 @@ package com.opson.libraries.widgets.impl
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.NumbersSettings
@@ -12,7 +11,6 @@ import com.opson.libraries.opson.AppEvents
 import com.opson.libraries.widgets.WidgetFixtures
 import com.opson.libraries.widgets.WidgetLinks
 import com.opson.libraries.widgets.WidgetLogOpen
-import com.opson.libraries.widgets.WidgetPalette
 import com.opson.libraries.widgets.WidgetSnapshot
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
@@ -54,6 +52,8 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         clock = clock,
         appEvents = AppEvents(bus),
         strings = KeyStrings,
+        burnedRepository = FakeBurnedRepository(),
+        goalsAndEnergy = goalsAndEnergyFlag(),
     )
 
     private fun opener(): WidgetOpener = WidgetOpener(diary, settings, calendar, clock, appScope)
@@ -91,19 +91,18 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
     }
 
     @Test
-    fun aLog_aModeChange_andAPaletteChange_eachRebuildIt() = test {
+    fun aLog_aModeChange_andAMealGroupsChange_eachRebuildIt() = test {
         val seen = collect()
         assertEquals("0", seen.last().days.first().energy?.amount)
 
         diary.days.value = mapOf(today to WidgetFixtures.day)
         assertEquals("1,245", seen.last().days.first().energy?.amount)
 
-        policies.state.value = WidgetFixtures.policy(PresetId.Blind)
+        policies.state.value = WidgetFixtures.policy(PresetId.NoNumbers)
         assertNull(seen.last().days.first().energy)
         assertEquals(4, seen.last().days.first().meals.size)
 
-        settings.update { it.copy(palette = PaletteChoice.Plum) }
-        assertEquals(WidgetPalette.colors(PaletteChoice.Plum), seen.last().colors)
+        settings.update { it.copy(mealGroups = false) }
         assertEquals(4, seen.size)
     }
 
@@ -163,7 +162,7 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
 
     @Test
     fun aModeWithMealGroupsOff_logsWithoutASlot() = test {
-        settings.update { it.copy(mealGroups = false, numbers = NumbersSettings(preset = PresetId.Blind)) }
+        settings.update { it.copy(mealGroups = false, numbers = NumbersSettings(preset = PresetId.NoNumbers)) }
         val opener = opener()
 
         opener.opened(WidgetLinks.LOG)

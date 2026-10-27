@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.FoodKind
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.MacroLineStyle
 import com.opson.libraries.nutrition.MacroPart
@@ -33,6 +34,7 @@ import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.Text
@@ -40,6 +42,7 @@ import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.diary_pick_cd
 import opson.libraries.resources.generated.resources.diary_remove_cd
+import opson.libraries.resources.generated.resources.search_badge_verified_cd
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -52,6 +55,14 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * [macros] and [calories] come resolved from the policy, so a hidden macro is
  * simply not in the list and hidden energy renders nothing. Tapping the name
  * runs [onOpen] (the amount sheet); the round button runs [onToggle].
+ *
+ * [source] is a short badge right-aligned under the energy ("USDA", "Your
+ * food"), in the accent when [sourceAccent]; [verified] adds a small check
+ * before it for a source someone accountable stands behind. It carries no
+ * number, so it stays when the energy is hidden.
+ *
+ * [kind] draws the design sync 2 tile, a picture of the food; without it the tile is the fork
+ * and knife tinted by [iconSeed].
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -67,6 +78,10 @@ fun FoodPickRow(
     iconSeed: String = name,
     showDivider: Boolean = true,
     subtitle: String? = null,
+    source: String? = null,
+    sourceAccent: Boolean = false,
+    verified: Boolean = false,
+    kind: FoodKind? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -77,7 +92,7 @@ fun FoodPickRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            FoodIconTile(seed = iconSeed)
+            if (kind != null) FoodIconTile(kind = kind) else FoodIconTile(seed = iconSeed)
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -102,13 +117,16 @@ fun FoodPickRow(
                     MacroLine(parts = macros, separator = MacroLineStyle.Compact.separator, typography = sub)
                 }
             }
-            NutrientText(
-                metric = Metric.Calories,
-                display = calories,
-                typography = AppTheme.type.secondary.Tabular,
-                color = AppTheme.colors.muted,
-                maxLines = 1,
-            )
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                NutrientText(
+                    metric = Metric.Calories,
+                    display = calories,
+                    typography = AppTheme.type.secondary.Tabular,
+                    color = AppTheme.colors.muted,
+                    maxLines = 1,
+                )
+                if (source != null) SourceBadge(source, sourceAccent, verified)
+            }
             val description = stringResource(if (picked) Res.string.diary_remove_cd else Res.string.diary_pick_cd, name)
             RoundIconButton(
                 icon = (if (picked) AppIcons.Check else AppIcons.Add).described(description),
@@ -118,6 +136,22 @@ fun FoodPickRow(
             )
         }
         if (showDivider) HorizontalDivider(color = AppTheme.colors.line)
+    }
+}
+
+/** Where a food came from, as the logger's search options show it. */
+@Composable
+private fun SourceBadge(label: String, accent: Boolean, verified: Boolean) {
+    val color = if (accent) AppTheme.colors.accent else AppTheme.colors.muted
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        if (verified) {
+            Icon(
+                icon = AppIcons.CheckCircle.described(stringResource(Res.string.search_badge_verified_cd)),
+                size = 12.dp,
+                color = color,
+            )
+        }
+        Text(text = label, typography = AppTheme.type.captionStrong, color = color, maxLines = 1)
     }
 }
 
@@ -141,6 +175,9 @@ private fun FoodPickRowPreview() {
                     onOpen = {},
                     onToggle = {},
                     showDivider = index < 2,
+                    source = listOf("USDA", "USDA branded", "Your food")[index],
+                    sourceAccent = index == 2,
+                    verified = index < 2,
                 )
             }
         }
@@ -150,7 +187,7 @@ private fun FoodPickRowPreview() {
 @Preview(widthDp = 390)
 @Composable
 private fun FoodPickRowBlindPreview() {
-    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.Blind)) {
+    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.NoNumbers)) {
         FoodPickRowPreview()
     }
 }

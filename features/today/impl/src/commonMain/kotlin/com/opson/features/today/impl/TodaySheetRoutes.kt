@@ -10,9 +10,9 @@ import kotlinx.serialization.Serializable
  * registration in TodayFeatureEntryPoint.
  */
 
-/** The month calendar, opened on [selectedIso]'s month. */
+/** The month calendar that drops from the day's title, opened on [selectedIso]'s month. A `dialog<>`. */
 @Serializable
-data class CalendarSheetRoute(val selectedIso: String) : Route()
+data class CalendarRoute(val selectedIso: String) : Route()
 
 /** The + on a meal: add food, a note, how it felt, copy, ate no details, save as a meal. */
 @Serializable
@@ -37,3 +37,7 @@ data class DayNoteRoute(val dayIso: String) : Route()
 /** "Edit Today's cards" from the ⋮ menu: meal groups and the water card. */
 @Serializable
 class TodayCardsRoute : Route()
+
+/** Day close's "Why not cut back?" on the big-day card: a short reason, nothing to do. */
+@Serializable
+class WhyNotCutBackRoute : Route()

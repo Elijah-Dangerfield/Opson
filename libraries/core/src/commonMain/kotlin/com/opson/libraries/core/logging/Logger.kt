@@ -3,7 +3,6 @@ package com.opson.libraries.core.logging
 /** Public surface for callers. */
 interface Logger {
     fun withTag(tag: String?): Logger
-    fun setTag(tag: String?): Logger
     fun withScope(configure: ScopeCallback): Logger
 
     fun v(message: String, throwable: Throwable? = null, scope: ScopeCallback? = null): LogId? =

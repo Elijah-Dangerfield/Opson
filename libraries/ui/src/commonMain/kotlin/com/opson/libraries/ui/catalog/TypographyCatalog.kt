@@ -15,8 +15,8 @@ import com.opson.system.typography.TypographyResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 private const val TYPE_SUBTITLE =
-    "Display = serif, Brand = the brand face. Heading / Label / Body / Caption = sans. Higher " +
-        "number = bigger. Modifiers chain off any token: .Italic, .Bold, .SemiBold, …"
+    "All in Atkinson Hyperlegible Next except Brand, the wordmark face (Young Serif). Higher number = bigger. " +
+        "Modifiers chain off any token: .Italic, .Bold, .SemiBold, …"
 
 /** The type page body. Split into two halves so [DesignSystemPreview] can lay it out in two
  *  columns; call this combined version for a single-column page. */

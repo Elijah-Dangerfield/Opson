@@ -13,6 +13,8 @@ data class PauseState(
     val reason: PauseReason? = null,
     /** Show them or Keep has run, so a swipe down afterwards changes and logs nothing. */
     val finished: Boolean = false,
+    /** `release.findSupport`: the quiet "Talk to someone" link to Find support. */
+    val talkToSomeone: Boolean = false,
 ) {
     val canShow: Boolean get() = secondsLeft == 0 && !finished
 
@@ -32,10 +34,16 @@ sealed interface PauseSubject {
     /** Turning the pause itself off. */
     data object ThePause : PauseSubject
 
+    /** Progress photos back on Weight. */
+    data object ProgressPhotos : PauseSubject
+
     /** Moving the reveal time earlier, so Later numbers open sooner. [text] is "7:30 PM". */
     data class RevealTime(val time: LocalTime) : PauseSubject {
         val text: String get() = DateCopy.time(time.hour, time.minute)
     }
+
+    /** Later's totals opening each day instead of once a week. */
+    data object RevealDaily : PauseSubject
 
     companion object {
         fun of(change: NumbersChange): PauseSubject = when (change) {
@@ -44,6 +52,9 @@ sealed interface PauseSubject {
             is NumbersChange.ClearOverride -> Number(change.metric)
             NumbersChange.TurnOffPause -> ThePause
             is NumbersChange.SetRevealAt -> RevealTime(change.time)
+            // Only each day pauses: weekly opens them later, which never needs the wait.
+            is NumbersChange.SetRevealWeekly -> RevealDaily
+            is NumbersChange.SetProgressPhotos -> ProgressPhotos
         }
     }
 }

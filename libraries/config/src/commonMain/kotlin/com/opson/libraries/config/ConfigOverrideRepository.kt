@@ -6,10 +6,7 @@ import kotlinx.coroutines.flow.Flow
  * Repository responsible for storing and streaming QA/debug config overrides.
  */
 interface ConfigOverrideRepository {
-    /** Returns the currently persisted overrides, typically from disk-backed storage. */
-    fun getOverrides(): List<ConfigOverride<Any>>
-
-    /** Emits override changes so config can be re-merged without restarting the app. */
+    /** The persisted overrides: emitted once they have been read from disk, then on every change. */
     fun getOverridesFlow(): Flow<List<ConfigOverride<Any>>>
 
     /** Persists or updates a single override value for the given path. */

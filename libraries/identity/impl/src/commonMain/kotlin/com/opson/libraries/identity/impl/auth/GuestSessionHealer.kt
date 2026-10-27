@@ -120,6 +120,12 @@ class GuestSessionHealer(
         val unauth = afterRetry as AuthState.Unauthenticated
 
         when {
+            unauth.cause is SessionUnconfirmed -> {
+                // An account is stored on the device and only its refresh is
+                // failing; supabase-kt keeps retrying. Neither minting over it
+                // nor declaring it unrecoverable is right.
+                log(source, HealAction.SKIP_SESSION_UNCONFIRMED)
+            }
             unauth.reason == AuthState.Unauthenticated.Reason.SessionExpired -> {
                 // The session is declared dead (server rejection or client
                 // unrecoverable); the app routes to manual re-auth. Minting a
@@ -136,7 +142,7 @@ class GuestSessionHealer(
                     // A server account demonstrably exists on this device but
                     // its session is gone and retry couldn't revive it. Minting
                     // a fresh guest here is exactly the AUTH-19 disaster: the
-                    // real account's chips/XP get silently stranded behind a
+                    // real account's diary gets silently stranded behind a
                     // brand-new empty one. Stop and route to recovery instead.
                     stranded != null -> stopForRecovery(source, stranded)
                     !hasUserOnboarded() -> {
@@ -187,7 +193,7 @@ class GuestSessionHealer(
             is AccountCreationState.Succeeded ->
                 logger.i { "heal source=$source mint=success — UserChanged fan-out will re-sync everything" }
             is AccountCreationState.Failed ->
-                logger.w { "heal source=$source mint=failed (${result.cause?.message}) — will retry on next trigger" }
+                logger.w { "heal source=$source mint=failed (${result.cause?.let { it::class.simpleName }}) — will retry on next trigger" }
             else ->
                 logger.w { "heal source=$source mint=unexpected(${result::class.simpleName})" }
         }
@@ -207,6 +213,7 @@ class GuestSessionHealer(
         SKIP_ALREADY_RUNNING,
         SKIP_HAS_SESSION,
         SKIP_SESSION_EXPIRED,
+        SKIP_SESSION_UNCONFIRMED,
         SKIP_SIGNED_OUT,
         SKIP_NOT_ONBOARDED,
         SKIP_OFFLINE,

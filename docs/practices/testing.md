@@ -108,29 +108,40 @@ What runs where in a harness test:
   Postgres with the real Flyway migrations, and the real JWT auth plugin
   verifying HS256 tokens the test mints (`IntegrationAuth`, against the
   `JwtVerification.Static` seam).
-- **In the client, real:** `NetworkClientImpl` with the real headers provider,
-  reachability tracker and buses, the real `HttpProfileApi` +
-  `ProfileRepositoryImpl`, and a real `HomeViewModel` (`TestClient`). Requests
-  travel real TCP, real serialization, real headers, real status codes.
-- **Fake, on purpose:** exactly the seams a device would own: auth-state
-  resolution (a canned `Authenticated`; the *token* side is real) and on-disk
-  persistence (an in-memory `CacheFactory` running the real store logic).
+- **In the client, real:** everything from the repositories down, wired by
+  hand in `TestClient` the way the DI graph wires it: the diary repositories,
+  the outbox and `DiarySyncer`, settings, fasting, the food catalog, photo
+  estimates, remote config, `SupabaseAuthRepositoryImpl` with the user-change
+  reset, `NetworkClientImpl` with the real headers, reachability and buses, and
+  the app's own `AppDatabase` in memory under the bundled SQLite driver (its
+  desktop native is unpacked by the module's build file). Requests travel real
+  TCP, real serialization, real headers, real status codes.
+- **Fake, on purpose:** exactly the seams a device owns (`DeviceSeams.kt`): the
+  Supabase SDK (`StubSupabaseGateway`, holding a session whose JWT the server
+  trusts), on-disk caches (an in-memory `CacheFactory` running the real store
+  logic), the app lifecycle and the clock. On the server side only the outside
+  services are stood in for (`FakeUpstreams`: Supabase admin, Anthropic,
+  Open Food Facts), so a journey that reaches them stays on the machine.
 
 `HarnessSmokeTest` pins the worked example: mint a JWT, boot the server, drive
 the home VM, and assert the display name on screen came from the server's
-`/v1/me` get-or-create, real client → real TCP → real server → real DB.
-New end-to-end flows should follow its shape: add a client surface to
-`TestClient`, a probe or seed helper to `InProcessServer` if the server side
-needs one, and await state with `awaitState` / `awaitUntil`. Never fixed
-sleeps. Docker down → the suite skips (JUnit `Assume`), not fails.
+`/v1/me` get-or-create, real client → real TCP → real server → real DB. The
+journeys sit beside it by area (`onboarding/`, `sync/`, `fasting/`, `foods/`,
+`account/`, `security/`, `waitlist/`, `errors/`, `config/`). New end-to-end
+flows follow the same shape: use or add a surface on `TestClient`, a seed or
+query helper on `InProcessServer` if the server side needs one, and await
+state with `awaitState` / `awaitUntil`. Never fixed sleeps; step a `TestClock`
+(the client's or `server.clock`) past a throttle or cache instead of waiting it
+out. Every test makes its own users, barcodes and food names, because the
+Postgres container is shared by the whole JVM. Docker down → the suite skips
+(JUnit `Assume`), not fails.
 
-**Fault injection** is worth knowing about even though this template doesn't
-ship it: when a project grows a long-lived transport (a WebSocket, a sync
-loop), wrap the real transport in a *decorator* that can drop, block, or delay
-frames on command, and give the harness a switch to install it. The decorator
-implements the transport interface and forwards to the real one, so reconnect
-and presence machinery is exercised over real plumbing with surgically induced
-failures, no mock transport that quietly diverges from the real one.
+**Fault injection:** `FaultProxy` sits between a client and the server. It can
+take the network down (connections refused and cut, no HTTP status at all) or
+answer chosen paths with a 5xx, a hang past the client's timeout, a body that
+is not the contract, or a 502 after the server applied the request, which is
+what a lost response looks like. Both sides stay real; only the wire between
+them misbehaves.
 
 ## Which layer catches which bug (don't duplicate)
 

@@ -11,7 +11,7 @@ Opson ships to the App Store and Play Store with no human clicks after one-time 
 1. There is always (well: whenever there are new `fix:`/`feat:`/`perf:` commits on main) an open PR titled **`chore(main): release vX.Y.Z`**, opened automatically by the release-please bot. It contains the version bump + changelog.
 2. **Merge that PR.** release-please creates the `vX.Y.Z` tag + GitHub Release.
 3. release-please.yml then dispatches [release.yml](../.github/workflows/release.yml) for that tag (it can't rely on the tag-push trigger, GitHub's default `GITHUB_TOKEN` deliberately doesn't cascade workflow triggers). release.yml:
-   - Android → Play Console production track, 10% staged rollout
+   - Android → Play Console production track, full rollout (internal for a first release)
    - iOS → the TestFlight external group named by `TESTFLIGHT_EXTERNAL_GROUP` in [release.yml](../.github/workflows/release.yml) → submitted to App Store review with Apple's built-in phased release
 4. Apple review (1–3 days) and Play review (few hours) approve. Builds roll out automatically.
 
@@ -56,7 +56,7 @@ Each run:
 
 ### Post-release monitoring
 
-There's no automated rollout guard. Apple's built-in phased release (7-day gradual rollout from 1% → 100%) and Play's staged rollout (10% initial) give you a safety window. For detection, configure Sentry's native alerting (Sentry → Alerts → create a rule on *crash-free sessions* below 99% for the relevant project) and halt manually in App Store Connect / Play Console when needed.
+There's no automated rollout guard. Apple's built-in phased release (7-day gradual rollout from 1% → 100%) gives you a safety window on iOS; Play ships to everyone at once, so halt there by hand. For detection, configure Sentry's native alerting (Sentry → Alerts → create a rule on *crash-free sessions* below 99% for the relevant project) and halt manually in App Store Connect / Play Console when needed.
 
 ---
 
@@ -79,8 +79,8 @@ main ─── push ──► release-please (bot) maintains open "release vX.Y.
                         │ release-please.yml dispatches release.yml
                         │ (GITHUB_TOKEN doesn't cascade tag triggers)
                         ▼
-                 release.yml ── Android AAB ──► Play production (10% staged)
-                             ── iOS IPA ─────► TestFlight "main" external
+                 release.yml ── Android AAB ──► Play production (full rollout)
+                             ── iOS IPA ─────► TestFlight, the TESTFLIGHT_EXTERNAL_GROUP group
                              ── App Store ──► submit + phased rollout
                              ── Sentry ─────► create release + upload mappings
 

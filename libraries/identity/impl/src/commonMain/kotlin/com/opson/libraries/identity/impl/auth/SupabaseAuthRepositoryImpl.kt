@@ -76,7 +76,7 @@ class SupabaseAuthRepositoryImpl(
     private val userScopedDataReset: UserScopedDataReset,
     private val tokenInvalidator: AuthTokenInvalidator,
     private val sessionRejectionBus: SessionRejectionBus,
-    appScope: AppCoroutineScope,
+    private val appScope: AppCoroutineScope,
 ) : AuthRepository {
 
     private val logger = KLog.withTag("AuthRepository")
@@ -164,9 +164,12 @@ class SupabaseAuthRepositoryImpl(
      * user action.
      */
     private suspend fun resolveAndEmitLocked(): AuthState {
+        var refreshFailing = false
         repeat(MaxResolveAttempts) {
             gateway.awaitInitialization()
-            when (gateway.currentStatus()) {
+            val status = gateway.currentStatus()
+            refreshFailing = status is AuthGatewayStatus.RefreshFailure
+            when (status) {
                 AuthGatewayStatus.Authenticated -> {
                     val session = gateway.currentSession()
                     if (session == null) {
@@ -199,8 +202,26 @@ class SupabaseAuthRepositoryImpl(
                 is AuthGatewayStatus.RefreshFailure -> Unit
             }
         }
+        if (refreshFailing) return settleUnconfirmedLocked()
         logger.w { "Resolve exhausted $MaxResolveAttempts attempts without settling" }
         return settleUnauthenticatedLocked()
+    }
+
+    /**
+     * supabase-kt still holds a session but its token expired and the refresh
+     * can't get through (offline, auth server down). It keeps the session and
+     * retries on its own. Until then the app runs unauthenticated, with
+     * [SessionUnconfirmed] as the cause so identity self-heal neither mints a
+     * guest over the stored account nor declares it unrecoverable.
+     */
+    // TODO(review): nothing watches supabase-kt's status, so when its own retry
+    // succeeds the app stays Unauthenticated until the next foreground or
+    // connectivity edge calls retry(). Re-resolve on the status flipping instead.
+    private suspend fun settleUnconfirmedLocked(): AuthState.Unauthenticated {
+        val last = lastEmittedOrNull() as? AuthState.Unauthenticated
+        if (last?.reason == AuthState.Unauthenticated.Reason.SessionExpired) return settleUnauthenticatedLocked()
+        logger.i { "Stored session can't be refreshed yet — unauthenticated until it can" }
+        return emitUnauthenticatedLocked(cause = SessionUnconfirmed())
     }
 
     /**
@@ -262,6 +283,7 @@ class SupabaseAuthRepositoryImpl(
         tokenInvalidator.invalidate()
         emitLocked(next)
         when {
+            cause is SessionUnconfirmed -> logger.i { "Emitted Unauthenticated (reason=$reason, session unconfirmed)" }
             cause != null -> logger.w(cause) { "Emitted Unauthenticated (reason=$reason)" }
             else -> logger.i { "Emitted Unauthenticated (reason=$reason)" }
         }
@@ -275,6 +297,12 @@ class SupabaseAuthRepositoryImpl(
      * to recovery instead of the healer minting over the stranded account.
      */
     override suspend fun markSessionUnrecoverable(wasAnonymous: Boolean) {
+        // A session supabase-kt is still trying to refresh is not lost, and
+        // tearing it down here would sign out an account that is only offline.
+        if (gateway.currentStatus() is AuthGatewayStatus.RefreshFailure) {
+            logger.i { "markSessionUnrecoverable ignored: the stored session is still being refreshed" }
+            return
+        }
         logger.w { "Session declared unrecoverable by identity self-heal (wasAnonymous=$wasAnonymous)" }
         onSessionRejected(wasAnonymous)
     }
@@ -548,7 +576,7 @@ class SupabaseAuthRepositoryImpl(
             return@withLock DeleteAccountOutcome.NotSignedIn
         }
         // Anonymous accounts are deletable too — a guest's data (profile,
-        // wallet, history) is a real server-side account and a user has the
+        // diary, settings) is a real server-side account and a user has the
         // right to erase it. The admin delete handles anon users fine.
         val outcome = Catching { profileApi.deleteMe() }.fold(
             onSuccess = { response ->
@@ -835,6 +863,7 @@ class SupabaseAuthRepositoryImpl(
             }.fold(
                 onSuccess = {
                     logger.i { "signInWithApple: Success" }
+                    credential.authorizationCode?.let(::sendAppleAuthorization)
                     SignInOutcome.Success
                 },
                 onFailure = { e ->
@@ -864,6 +893,7 @@ class SupabaseAuthRepositoryImpl(
             }.fold(
                 onSuccess = {
                     logger.i { "linkAppleIdentity: Success" }
+                    credential.authorizationCode?.let(::sendAppleAuthorization)
                     LinkIdentityOutcome.Success
                 },
                 onFailure = { e ->
@@ -901,6 +931,20 @@ class SupabaseAuthRepositoryImpl(
                 },
             )
         }
+
+    /**
+     * Apple asks apps with Sign in with Apple to revoke the person's Apple token when they
+     * delete their account. Revoking takes a refresh token, which only the server can get,
+     * from this code, within five minutes. Sent in the background: if it fails, deletion
+     * can't revoke, but the sign-in itself stands.
+     */
+    private fun sendAppleAuthorization(authorizationCode: String) {
+        appScope.launch {
+            Catching { profileApi.sendAppleAuthorization(authorizationCode) }
+                .onSuccess { logger.d { "sendAppleAuthorization: kept" } }
+                .onFailure { logger.w(it) { "sendAppleAuthorization: not kept, so deleting this account won't revoke its Apple token" } }
+        }
+    }
 
     /** Shared failure mapping for the native id-token sign-in paths (Apple / Google). */
     private fun mapNativeSignInFailure(e: Throwable): SignInOutcome = when (e) {
@@ -1020,3 +1064,10 @@ class SupabaseAuthRepositoryImpl(
         val OAuthRedirectTimeout = 3.minutes
     }
 }
+
+/**
+ * The cause on an [AuthState.Unauthenticated] whose stored session exists but
+ * could not be refreshed yet. See `settleUnconfirmedLocked`.
+ */
+internal class SessionUnconfirmed :
+    Exception("stored session awaiting refresh"), com.opson.libraries.core.ExpectedControlFlow

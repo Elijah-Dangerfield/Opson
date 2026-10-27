@@ -7,22 +7,23 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Every row of the `pickMode` port with v3's default, and the rules for what else is offered. */
+/**
+ * The recommendation over design sync 4's four modes: every row of the old `pickMode` lands on
+ * the mode its old preset became, and the rules for what else is offered.
+ */
 class ModeRecommenderTest {
 
     private fun answers(
         why: Set<Why> = emptySet(),
         feel: NumbersFeel? = null,
-        notice: Notice? = null,
         hard: Boolean = false,
-    ) = SetupAnswers(why, feel, notice, if (hard) StatementAnswer.Agree else null)
+    ) = SetupAnswers(why, feel, if (hard) StatementAnswer.Agree else null)
 
     private fun recommend(
         why: Set<Why> = emptySet(),
         feel: NumbersFeel? = null,
-        notice: Notice? = null,
         hard: Boolean = false,
-    ) = ModeRecommender.recommend(answers(why, feel, notice, hard))
+    ) = ModeRecommender.recommend(answers(why, feel, hard))
 
     @Test
     fun noAnswers_isFullNumbers_likeSkippingSetup() {
@@ -31,62 +32,104 @@ class ModeRecommenderTest {
     }
 
     @Test
-    fun agreeingWithTheStatementAlone_isBlind() {
-        assertEquals(PresetId.Blind, recommend(hard = true))
+    fun agreeingWithTheStatementAlone_isNoNumbers() {
+        assertEquals(PresetId.NoNumbers, recommend(hard = true))
     }
 
     @Test
-    fun loveThem_isFull_orDelayedWhenNumbersHaveBeenHard() {
+    fun loveThem_isFull_orLaterWhenNumbersHaveBeenHard() {
         assertEquals(PresetId.Full, recommend(feel = NumbersFeel.LoveThem))
-        assertEquals(PresetId.Delayed, recommend(feel = NumbersFeel.LoveThem, hard = true))
+        assertEquals(PresetId.Later, recommend(feel = NumbersFeel.LoveThem, hard = true))
     }
 
     @Test
-    fun ratherNot_isBlind_orRhythmForEatingRegularly() {
-        assertEquals(PresetId.Blind, recommend(feel = NumbersFeel.RatherNot))
-        assertEquals(
-            PresetId.Rhythm,
-            recommend(why = setOf(Why.Curious, Why.EatingRegularly), feel = NumbersFeel.RatherNot),
+    fun ratherNot_isNoNumbers_eatingRegularlyIncluded() {
+        assertEquals(PresetId.NoNumbers, recommend(feel = NumbersFeel.RatherNot))
+        assertEquals(PresetId.NoNumbers, recommend(why = setOf(Why.Curious, Why.EatingRegularly), feel = NumbersFeel.RatherNot))
+    }
+
+    @Test
+    fun someAreFine_isNutrientsFirst_eatingEnoughIncluded() {
+        assertEquals(PresetId.NutrientsFirst, recommend(feel = NumbersFeel.SomeAreFine))
+        assertEquals(PresetId.NutrientsFirst, recommend(why = setOf(Why.EatingEnough), feel = NumbersFeel.SomeAreFine))
+    }
+
+    @Test
+    fun someAreFine_staysNutrientsFirst_withTheStatement_asTheDesignDraws() {
+        // Nutrients first hides calories already, so agreeing does not move it.
+        assertEquals(PresetId.NutrientsFirst, recommend(feel = NumbersFeel.SomeAreFine, hard = true))
+    }
+
+    @Test
+    fun reason_namesTheAnswerThatDecided() {
+        assertEquals(RecommendationReason.NoAnswers, ModeRecommender.reason(answers()))
+        assertEquals(RecommendationReason.LovesNumbers, ModeRecommender.reason(answers(feel = NumbersFeel.LoveThem)))
+        assertEquals(RecommendationReason.Gentler, ModeRecommender.reason(answers(feel = NumbersFeel.LoveThem, hard = true)))
+        assertEquals(RecommendationReason.Gentler, ModeRecommender.reason(answers(hard = true)))
+        assertEquals(RecommendationReason.SomeAreFine, ModeRecommender.reason(answers(feel = NumbersFeel.SomeAreFine, hard = true)))
+        assertEquals(RecommendationReason.RatherNot, ModeRecommender.reason(answers(feel = NumbersFeel.RatherNot, hard = true)))
+        assertEquals(RecommendationReason.NotSure, ModeRecommender.reason(answers(feel = NumbersFeel.NotSure)))
+        assertEquals(RecommendationReason.NotSure, ModeRecommender.reason(answers(why = setOf(Why.Curious))))
+    }
+
+    @Test
+    fun reason_andRecommendation_agree_forEveryAnswer() {
+        // The line under the mode must never explain a different mode than the one shown.
+        val expected = mapOf(
+            RecommendationReason.NoAnswers to setOf(PresetId.Full),
+            RecommendationReason.LovesNumbers to setOf(PresetId.Full),
+            RecommendationReason.SomeAreFine to setOf(PresetId.NutrientsFirst),
+            RecommendationReason.RatherNot to setOf(PresetId.NoNumbers),
+            RecommendationReason.Gentler to setOf(PresetId.Later, PresetId.NoNumbers),
+            RecommendationReason.NotSure to setOf(PresetId.Later),
         )
+        (listOf(null) + NumbersFeel.entries).forEach { feel ->
+            listOf(emptySet(), setOf(Why.EatingRegularly)).forEach { why ->
+                listOf(false, true).forEach { hard ->
+                    val answers = answers(why = why, feel = feel, hard = hard)
+                    val reason = ModeRecommender.reason(answers)
+                    assertTrue(ModeRecommender.recommend(answers) in expected.getValue(reason), "$answers gave $reason")
+                }
+            }
+        }
     }
 
     @Test
-    fun someAreFine_isNutrient_orFuelForEatingEnough() {
-        assertEquals(PresetId.Nutrient, recommend(feel = NumbersFeel.SomeAreFine))
-        assertEquals(PresetId.Fuel, recommend(why = setOf(Why.EatingEnough), feel = NumbersFeel.SomeAreFine))
+    fun anAnswerThatDecidesNothing_isLater_orNoNumbersWhenHard() {
+        assertEquals(PresetId.Later, recommend(feel = NumbersFeel.NotSure))
+        assertEquals(PresetId.Later, recommend(why = setOf(Why.Curious)))
+        assertEquals(PresetId.NoNumbers, recommend(feel = NumbersFeel.NotSure, hard = true))
     }
 
     @Test
-    fun howEatingFeels_isMindful_whenTheFeelAnswerDoesNotDecide() {
-        assertEquals(PresetId.Mindful, recommend(notice = Notice.HowEatingFeels))
-        assertEquals(PresetId.Mindful, recommend(feel = NumbersFeel.NotSure, notice = Notice.HowEatingFeels))
-        assertEquals(PresetId.Full, recommend(feel = NumbersFeel.LoveThem, notice = Notice.HowEatingFeels))
+    fun everyRecommendation_isOneOfTheFour() {
+        val feels = listOf(null) + NumbersFeel.entries
+        feels.forEach { feel ->
+            listOf(false, true).forEach { hard ->
+                val picked = recommend(why = Why.entries.toSet(), feel = feel, hard = hard)
+                assertTrue(picked in PresetId.entries)
+                assertTrue(ModeRecommender.isOffered(picked, hard), "$picked offered to hard=$hard")
+            }
+        }
     }
 
     @Test
-    fun anAnswerThatDecidesNothing_isDelayed_orBlindWhenHard() {
-        assertEquals(PresetId.Delayed, recommend(feel = NumbersFeel.NotSure))
-        assertEquals(PresetId.Delayed, recommend(why = setOf(Why.Curious)))
-        assertEquals(PresetId.Blind, recommend(feel = NumbersFeel.NotSure, hard = true))
-    }
-
-    @Test
-    fun theDesignsAnswers_recommendFuel_withRhythmNutrientAndBlind() {
+    fun theDesignsAnswers_recommendNutrientsFirst_withTheGentlerTwo() {
         val design = OnboardingFixtures.DesignAnswers
 
-        assertEquals(PresetId.Fuel, ModeRecommender.recommend(design))
+        assertEquals(PresetId.NutrientsFirst, ModeRecommender.recommend(design))
         assertEquals(
-            listOf(PresetId.Rhythm, PresetId.Nutrient, PresetId.Blind),
-            ModeRecommender.alternatives(design, chosen = PresetId.Fuel),
+            listOf(PresetId.NoNumbers, PresetId.Later),
+            ModeRecommender.alternatives(design, chosen = PresetId.NutrientsFirst),
         )
     }
 
     @Test
-    fun alternatives_areThree_withoutTheChosenMode() {
+    fun alternatives_areTheOtherModes_withoutTheChosenOne() {
         val none = answers()
 
         assertEquals(
-            listOf(PresetId.Blind, PresetId.Delayed, PresetId.Nutrient),
+            listOf(PresetId.NoNumbers, PresetId.Later, PresetId.NutrientsFirst),
             ModeRecommender.alternatives(none, chosen = PresetId.Full),
         )
         Presets.all.forEach { preset ->
@@ -101,19 +144,18 @@ class ModeRecommenderTest {
         val design = OnboardingFixtures.DesignAnswers
 
         assertEquals(
-            listOf(PresetId.Fuel, PresetId.Nutrient, PresetId.Blind),
-            ModeRecommender.alternatives(design, chosen = PresetId.Rhythm),
+            listOf(PresetId.NutrientsFirst, PresetId.Later),
+            ModeRecommender.alternatives(design, chosen = PresetId.NoNumbers),
         )
     }
 
     @Test
-    fun hard_neverOffersFullOrSprint() {
+    fun hard_neverOffersFullNumbers() {
         listOf(answers(hard = true), answers(feel = NumbersFeel.LoveThem, hard = true)).forEach { hard ->
             Presets.all.forEach { preset ->
                 listOf(false, true).forEach { all ->
                     val alternatives = ModeRecommender.alternatives(hard, chosen = preset.id, all = all)
                     assertFalse(PresetId.Full in alternatives, "Full offered to $hard")
-                    assertFalse(PresetId.Sprint in alternatives, "Sprint offered to $hard")
                 }
             }
         }
@@ -126,7 +168,7 @@ class ModeRecommenderTest {
         val all = ModeRecommender.alternatives(answers(), chosen = PresetId.Full, all = true)
         assertEquals(Presets.all.map { it.id } - PresetId.Full, all)
 
-        val hard = ModeRecommender.alternatives(answers(hard = true), chosen = PresetId.Blind, all = true)
-        assertEquals(Presets.all.map { it.id } - setOf(PresetId.Blind, PresetId.Full, PresetId.Sprint), hard)
+        val hard = ModeRecommender.alternatives(answers(hard = true), chosen = PresetId.NoNumbers, all = true)
+        assertEquals(listOf(PresetId.NutrientsFirst, PresetId.Later), hard)
     }
 }

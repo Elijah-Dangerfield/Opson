@@ -5,7 +5,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** Where a catalog food came from. Open Food Facts data is ODbL, so the Foods screen credits it. */
+/**
+ * Where a catalog food came from. Open Food Facts data is ODbL, so the Foods screen credits it.
+ * NEVO (RIVM's Dutch table) is cited wherever its foods show: its badge, the amount sheet and
+ * the Foods credit.
+ */
 @Serializable
 enum class FoodSource(val wire: String) {
     @SerialName("usda_foundation")
@@ -25,6 +29,9 @@ enum class FoodSource(val wire: String) {
 
     @SerialName("off")
     OpenFoodFacts("off"),
+
+    @SerialName("nevo")
+    Nevo("nevo"),
 
     @SerialName("unknown")
     Unknown("unknown"),
@@ -115,7 +122,10 @@ enum class Confidence(val wire: String) {
 /**
  * One phrase from "Describe it" ("2 eggs"), already matched to a food and
  * scaled to the whole amount. Always an estimate. [foodId] and the nutrients
- * are null when nothing in the catalog matched.
+ * are null when nothing in the catalog matched. [food] is the matched food
+ * itself and [alternatives] the next best foods for the same words, so the
+ * amount can change and the food can be swapped without asking again; both
+ * are empty from a server older than 0.2.
  */
 data class ParsedItem(
     val text: String,
@@ -133,6 +143,8 @@ data class ParsedItem(
     val fat: Double? = null,
     val fiber: Double? = null,
     val micros: Map<String, Double>? = null,
+    val food: Food? = null,
+    val alternatives: List<Food> = emptyList(),
 )
 
 data class FoodSearchResult(
@@ -144,7 +156,7 @@ data class FoodSearchResult(
 )
 
 /**
- * The food catalog: USDA FoodData Central (generic and branded) plus Open Food Facts, through the
+ * The food catalog: USDA FoodData Central (generic and branded), NEVO and Open Food Facts, through the
  * server. Foods the user has picked are kept on the device, so Favorites and
  * Recent work offline and search falls back to them when the server cannot be
  * reached.
@@ -152,8 +164,21 @@ data class FoodSearchResult(
  * Favorites are device-local: the server has no table for them.
  */
 interface FoodCatalog {
-    /** Online search; offline, a name match over foods picked before, with `fromCache` set. */
-    suspend fun search(query: String, limit: Int = 25): Catching<FoodSearchResult>
+    /**
+     * Online search; offline, a name match over foods picked before, with `fromCache` set.
+     * [filter] narrows or reorders it ([FoodSearchFilter.None] is 0.1's search).
+     */
+    suspend fun search(query: String, limit: Int = 25, filter: FoodSearchFilter = FoodSearchFilter.None): Catching<FoodSearchResult>
+
+    /**
+     * What the server answered for this search in the last few minutes, held
+     * in memory, or null. No network, so a caller can show it before
+     * debouncing; [search] answers from it too.
+     */
+    fun recentSearch(query: String, limit: Int = 25, filter: FoodSearchFilter = FoodSearchFilter.None): FoodSearchResult? = null
+
+    /** Which search options this server offers. Online only. */
+    suspend fun searchOptions(): Catching<SearchOptions>
 
     /** One food with portions and micros. Falls back to the cached copy offline. */
     suspend fun detail(id: String): Catching<Food>

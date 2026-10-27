@@ -2,23 +2,20 @@ package com.opson.libraries.navigation.impl
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.coroutineScope
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptionsBuilder
 import com.opson.libraries.core.logging.KLog
-import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetState
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
-import com.opson.libraries.core.shouldNotBeCaught
 import com.opson.libraries.core.throwIfDebug
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.observeWithLifecycle
 import com.opson.libraries.navigation.BlockingErrorRoute
 import com.opson.libraries.navigation.NavigationOptions
+import com.opson.libraries.navigation.navigateUnlessShowing
 import com.opson.libraries.navigation.NavigationTracker
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.NavigationRecovery
@@ -26,17 +23,19 @@ import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.RouterBatch
 import com.opson.libraries.navigation.TabRoute
 import com.opson.libraries.navigation.enterTab
+import com.opson.libraries.navigation.reselectTab
 import com.opson.libraries.navigation.switchTab
 import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.navigation.FileShareLauncher
 import com.opson.libraries.navigation.NavigableWhileBlocked
 import com.opson.libraries.navigation.TrackableRoute
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -61,28 +60,28 @@ class DelegatingRouter(
     private val logger = KLog.withTag("DelegatingRouter")
     private val navigationRequests = Channel<NavHostController.() -> Unit>(Channel.UNLIMITED)
 
+    // Buffered, not replayed, so a tab that subscribes later never scrolls for an old tap. If taps
+    // outrun the collector, the newest one is the one that counts.
+    private val _tabReselects = MutableSharedFlow<TabRoute>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    override val tabReselects: SharedFlow<TabRoute> = _tabReselects.asSharedFlow()
+
     private var navController: NavHostController? = null
     private var processingJob: Job? = null
 
-    private var viewScope: CompletableDeferred<CoroutineScope> = CompletableDeferred()
-
-    fun clearNavController(controller: NavHostController? = null) {
-        if (navController === controller || controller == null) {
+    private fun clearNavController(controller: NavHostController) {
+        if (navController === controller) {
             logger.d { "Clearing nav controller" }
             processingJob?.cancel()
             processingJob = null
             navController = null
-            viewScope = CompletableDeferred()
         }
     }
 
-    fun setNavController(
-        controller: NavHostController,
-        lifecycle: Lifecycle,
-        scope: CoroutineScope = lifecycle.coroutineScope,
-    ) {
+    private fun setNavController(controller: NavHostController, lifecycle: Lifecycle) {
         logger.d { "Setting nav controller" }
-        viewScope.complete(scope)
         navController = controller
         processingJob?.cancel()
         processingJob = appScope.launch {
@@ -119,6 +118,15 @@ class DelegatingRouter(
         ) {
             // `this.`, the controller: unqualified, it could read as this router's own switchTab.
             this.switchTab(route)
+        }
+    }
+
+    override fun reselectTab(route: TabRoute) {
+        enqueueNavigation(
+            description = "reselectTab ${route.nameForLogs()}",
+            route = route,
+        ) {
+            this.reselectTab(route) { _tabReselects.tryEmit(route) }
         }
     }
 
@@ -164,7 +172,7 @@ class DelegatingRouter(
     }
 
     private fun NavHostController.executeNavigate(route: Route, options: NavigationOptions) {
-        navigate(route) {
+        val builder: NavOptionsBuilder.() -> Unit = {
             if (options.clearBackStack) {
                 popUpTo(0) { inclusive = true }
             }
@@ -174,6 +182,12 @@ class DelegatingRouter(
             if (options.restoreState) {
                 restoreState = true
             }
+        }
+        // Clearing the stack still has work to do when the route is on top.
+        if (options.clearBackStack) {
+            navigate(route, builder)
+        } else if (!navigateUnlessShowing(route, builder)) {
+            logger.d { "Dropped a repeat navigate to ${route.nameForLogs()}, already on top" }
         }
     }
 
@@ -230,16 +244,13 @@ class DelegatingRouter(
             .logOnFailure("Failed to share file: $name ($mimeType)")
             .throwIfDebug()
     }
+
     @Composable
     fun Bind(navController: NavHostController) {
-        logger.i { "Binding nav controller" }
         val lifecycleOwner = LocalLifecycleOwner.current
-        val coroutineScope = rememberCoroutineScope()
-        val controllerKey = remember(navController) { navController }
-
-        DisposableEffect(controllerKey, lifecycleOwner) {
-            setNavController(controllerKey, lifecycleOwner.lifecycle, coroutineScope)
-            onDispose { clearNavController(controllerKey) }
+        DisposableEffect(navController, lifecycleOwner) {
+            setNavController(navController, lifecycleOwner.lifecycle)
+            onDispose { clearNavController(navController) }
         }
     }
 
@@ -263,7 +274,6 @@ class DelegatingRouter(
     private fun NavHostController.shouldBlockNavigation(route: Route): Boolean {
         if (!isBlockingErrorActive()) return false
         if (route is NavigableWhileBlocked) return false
-        KLog.i { "Blocking Navigation for route $route" }
         return true
     }
 
@@ -278,6 +288,8 @@ class DelegatingRouter(
     private suspend fun NavHostController.awaitGraphAttachment() {
         withContext(Dispatchers.Main.immediate) {
             currentBackStackEntryFlow.first()
+            // TODO(review): an unexplained settle time from the initial commit. Nobody knows what
+            // it waits for, so it stays until a launch-and-deep-link test can show it is unneeded.
             delay(100)
         }
     }

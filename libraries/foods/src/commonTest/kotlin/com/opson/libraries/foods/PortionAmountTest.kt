@@ -1,6 +1,7 @@
 package com.opson.libraries.foods
 
 import com.opson.libraries.diary.CustomFood
+import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
@@ -34,9 +35,12 @@ class PortionAmountTest {
         assertEquals("medium", medium.chipLabel)
         assertEquals("cup", cup.chipLabel)
         assertEquals("grams", AmountUnit.Grams.chipLabel)
-        assertEquals("1.5 medium", medium.amountText(1.5))
+        assertEquals("1½ medium", medium.amountText(1.5))
+        assertEquals("1½ cups", cup.amountText(1.5))
+        assertEquals("¼ cup", AmountUnit.OfPortion(Portion("0.25 cup", 20.0)).chipLabel)
+        assertEquals("½ cup", AmountUnit.OfPortion(Portion("0.25 cup", 20.0)).amountText(2.0))
         assertEquals("150 g", AmountUnit.Grams.amountText(150.0))
-        assertEquals("2 bar", AmountUnit.Serving("bar").amountText(2.0))
+        assertEquals("2 bars", AmountUnit.Serving("bar").amountText(2.0))
     }
 
     @Test
@@ -99,7 +103,7 @@ class PortionAmountTest {
         assertEquals(30.0, granola.initialQuantity)
         assertEquals(210.0, granola.draftFor(45.0).kcal!!, 0.01)
         assertEquals("45 g", granola.draftFor(45.0).amountText)
-        assertEquals("2 bar", bar.draftFor(2.0).amountText)
+        assertEquals("2 bars", bar.draftFor(2.0).amountText)
         assertEquals(LogMethod.Custom, bar.draftFor(1.0).method)
     }
 
@@ -119,5 +123,42 @@ class PortionAmountTest {
         assertEquals("f:rice", item.foodRef()?.key)
         assertEquals("c:c1", FoodRef.Custom("c1").key)
         assertNull(item.copy(foodId = null).foodRef())
+    }
+
+    @Test
+    fun savedSizesSitBetweenThePortionsAndGramsAndSayTheirWeight() {
+        val bowl = FoodUnit("my bowl", 420.0)
+        val units = rice.amountUnits(listOf(bowl))
+        assertEquals(listOf("cup", "my bowl", "grams"), units.map { it.chipLabel })
+        assertEquals(listOf("158 g", "420 g", null), units.map { it.gramsLabel })
+        assertEquals("1½ my bowl", units[1].amountText(1.5))
+    }
+
+    @Test
+    fun aSavedSizeLogsAsAPortionOfThatWeight() {
+        val draft = rice.draftFor(AmountUnit.Saved(FoodUnit("my bowl", 420.0)), 1.0)
+        assertEquals(420.0, draft.grams)
+        assertEquals("1 my bowl", draft.amountLabel)
+        assertEquals(546.0, draft.kcal!!, 0.5)
+    }
+
+    @Test
+    fun switchingUnitsKeepsTheCountExceptForGrams() {
+        val bowl = AmountUnit.Saved(FoodUnit("my bowl", 420.0))
+        assertEquals(1.5, PortionAmount.switch(1.5, cup, bowl))
+        assertEquals(237.0, PortionAmount.switch(1.5, cup, AmountUnit.Grams))
+        assertEquals(1.5, PortionAmount.switch(237.0, AmountUnit.Grams, cup))
+    }
+
+    @Test
+    fun aCustomFoodByWeightTakesSavedSizesAndOneByServingDoesNot() {
+        val granola = CustomFood(id = "g", name = "Granola", servingAmount = 45.0, servingUnit = "g", kcal = 210.0)
+        val bar = CustomFood(id = "b", name = "Bar", servingAmount = 1.0, servingUnit = "bar", kcal = 200.0)
+        val scoop = FoodUnit("scoop", 90.0)
+        assertEquals(listOf("scoop", "grams"), granola.amountUnits(listOf(scoop)).map { it.chipLabel })
+        assertEquals(listOf("bar"), bar.amountUnits(listOf(scoop)).map { it.chipLabel })
+        val draft = granola.draftFor(AmountUnit.Saved(scoop), 1.0)
+        assertEquals(420.0, draft.kcal!!, 0.5)
+        assertEquals("1 scoop", draft.amountLabel)
     }
 }

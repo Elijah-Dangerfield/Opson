@@ -3,7 +3,6 @@ package com.opson
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.SecureSessionStorage
 import com.opson.libraries.navigation.FileSharePresenter
-import com.opson.libraries.opson.PermissionManager
 import com.opson.libraries.review.ReviewLauncher
 import com.opson.libraries.ui.nativeviews.NativeViewFactory
 import com.opson.libraries.widgets.WidgetBridge
@@ -15,7 +14,6 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 @MergeComponent(AppScope::class)
 @SingleIn(AppScope::class)
 abstract class IosAppComponent(
-    private val permissionManager: PermissionManager,
     private val reviewLauncher: ReviewLauncher,
     // The Swift `IOSAppleSignInCoordinator` (ASAuthorizationController flow),
     // passed in from `iOSApp.swift`. Android binds its own no-op via anvil.
@@ -36,9 +34,6 @@ abstract class IosAppComponent(
 ) : AppComponent {
 
     @Provides
-    fun providePermissionManager(): PermissionManager = permissionManager
-
-    @Provides
     fun provideReviewLauncher(): ReviewLauncher = reviewLauncher
 
     @Provides
@@ -57,7 +52,6 @@ abstract class IosAppComponent(
 
 @MergeComponent.CreateComponent
 expect fun create(
-    permissionManager: PermissionManager,
     reviewLauncher: ReviewLauncher,
     appleSignInCoordinator: AppleSignInCoordinator,
     secureSessionStorage: SecureSessionStorage,

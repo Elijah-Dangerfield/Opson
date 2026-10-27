@@ -2,8 +2,8 @@ package com.opson
 
 import androidx.compose.runtime.DisposableEffect
 import androidx.navigation.NavGraphBuilder
-import com.opson.features.profile.BugReportRoute
 import com.opson.libraries.core.BuildInfo
+import com.opson.libraries.navigation.BugReportRoute
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.ShakeDialogRoute

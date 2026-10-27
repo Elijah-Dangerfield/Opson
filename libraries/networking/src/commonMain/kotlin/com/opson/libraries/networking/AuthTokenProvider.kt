@@ -40,9 +40,12 @@ interface AuthTokenProvider {
     suspend fun accessToken(): String?
 
     /**
-     * Force a session refresh and return the new token. Called by Ktor's
-     * bearer plugin on 401. Null means the refresh failed and the caller
-     * should treat the request as unauthed.
+     * The token to retry with after the server refused [rejected]. Called by
+     * Ktor's bearer plugin on 401. When the session has already moved past
+     * [rejected] (the auth client refreshes on its own before expiry, while
+     * Ktor keeps sending the token it loaded first) that newer token is the
+     * answer; otherwise the session is refreshed. Null means there is no
+     * usable token and the request goes unauthed.
      */
-    suspend fun refreshAccessToken(): String?
+    suspend fun refreshAccessToken(rejected: String?): String?
 }

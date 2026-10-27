@@ -1,5 +1,6 @@
 package com.opson.features.trends.impl
 
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.launch
@@ -15,7 +16,15 @@ class PatternsViewModelTest : CoroutineTest() {
     private val diary = FakeDiaryRepository()
     private val policy = FakePolicySource()
 
-    private fun vm() = PatternsViewModel(diary, FakeSettingsRepository(), policy, TrendsFixtures.clock, TrendsFixtures.timeZone)
+    private fun vm(checkIn: Boolean = false, settings: Settings = Settings()) =
+        PatternsViewModel(diary, FakeSettingsRepository(settings), policy, TrendsFixtures.clock, checkInFlag(checkIn), TrendsFixtures.timeZone)
+
+    @Test
+    fun hunger_fromTheCheckIns_onlyWithTheFlagAndTheSettingOn() = runUnitTest {
+        assertEquals(HungerSource.MealTags, vm(checkIn = false).state.hunger?.source)
+        assertEquals(HungerSource.CheckIns, vm(checkIn = true).state.hunger?.source)
+        assertEquals(HungerSource.MealTags, vm(checkIn = true, settings = Settings(checkIn = false)).state.hunger?.source)
+    }
 
     @Test
     fun inputsArrive_fourWeeksAndTheLookbackBeforeThem() = runUnitTest {
@@ -30,7 +39,7 @@ class PatternsViewModelTest : CoroutineTest() {
     fun policyChange_rebuilds() = runUnitTest {
         val vm = vm()
         assertNotNull(vm.state.sizes)
-        policy.policy.value = TrendsFixtures.policy(PresetId.Blind)
+        policy.policy.value = TrendsFixtures.policy(PresetId.NoNumbers)
         assertNull(vm.state.sizes)
         assertNotNull(vm.state.often)
     }

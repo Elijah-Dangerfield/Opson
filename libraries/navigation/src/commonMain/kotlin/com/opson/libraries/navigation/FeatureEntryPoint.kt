@@ -2,18 +2,11 @@ package com.opson.libraries.navigation
 
 import androidx.navigation.NavGraphBuilder
 
-
 /**
- * Entrypoint for creating a feature. Composables registered in the build function will
- * be added to the nav graph
- *
- * Each feature must be bound into a set of FeatureBuilder via multi binding
+ * A feature's slice of the nav graph. Contribute an implementation with
+ * `@ContributesBinding(AppScope::class, multibinding = true)`; the app builds every
+ * one into its NavHost.
  */
 interface FeatureEntryPoint {
-
-
-    abstract fun NavGraphBuilder.buildNavGraph(router: Router)
-
-
-
+    fun NavGraphBuilder.buildNavGraph(router: Router)
 }

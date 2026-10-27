@@ -112,7 +112,7 @@ class SheetsTest : CoroutineTest() {
         assertEquals(LocalDate(2026, 9, 1), vm.state.month)
         vm.takeAction(CalendarAction.DayTapped(LocalDate(2026, 9, 12)))
         assertEquals(LocalDate(2026, 9, 12), selected.date.value)
-        vm.takeAction(CalendarAction.DoneTapped)
+        vm.takeAction(CalendarAction.CloseTapped)
         assertEquals(3, events.count { it == CalendarEvent.Dismiss })
     }
 
@@ -142,7 +142,6 @@ class SheetsTest : CoroutineTest() {
         vm.takeAction(MealSheetAction.HowItFeltTapped)
         vm.takeAction(MealSheetAction.SaveAsMealTapped)
         vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
-        vm.takeAction(MealSheetAction.AteNoDetailsTapped)
 
         assertEquals(
             listOf(
@@ -154,8 +153,24 @@ class SheetsTest : CoroutineTest() {
             events.take(4),
         )
         assertEquals(listOf(Triple(yesterday, today, MealSlot.Dinner)), diary.copiedSlots)
+        assertEquals(1, events.count { it == MealSheetEvent.Dismiss })
+
+        val other = MealSheetViewModel(today, MealSlot.Dinner, diary, FakeSettingsRepository(), FakeCalendar())
+        other.takeAction(MealSheetAction.AteNoDetailsTapped)
         assertEquals(listOf(today to MealSlot.Dinner), diary.ateNoDetails)
-        assertEquals(2, events.count { it == MealSheetEvent.Dismiss })
+    }
+
+    /** The sheet animates down after a write; a second tap in that time is queued behind the first. */
+    @Test
+    fun aSecondTapWhileTheMealSheetClosesWritesNothingMore() = runUnitTest {
+        val vm = MealSheetViewModel(today, MealSlot.Dinner, diary, FakeSettingsRepository(), FakeCalendar())
+
+        vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
+        vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
+        vm.takeAction(MealSheetAction.AteNoDetailsTapped)
+
+        assertEquals(1, diary.copiedSlots.size)
+        assertTrue(diary.ateNoDetails.isEmpty())
     }
 
     // Meal note and how it felt
@@ -215,41 +230,57 @@ class SheetsTest : CoroutineTest() {
 
     @Test
     fun waterSheetAddsRemovesAndOpensSettings() = runUnitTest {
-        val vm = WaterSheetViewModel(today, diary, FakeSettingsRepository())
+        fun sheet() = WaterSheetViewModel(today, diary, FakeSettingsRepository())
 
-        vm.takeAction(WaterSheetAction.AddGlassTapped)
-        vm.takeAction(WaterSheetAction.CustomAmountTyped("3a0"))
-        assertEquals("30", vm.state.custom)
-        vm.takeAction(WaterSheetAction.AddCustomTapped)
-        vm.takeAction(WaterSheetAction.RemoveGlassTapped)
+        sheet().takeAction(WaterSheetAction.AddGlassTapped)
+        val custom = sheet()
+        custom.takeAction(WaterSheetAction.CustomAmountTyped("3a0"))
+        assertEquals("30", custom.state.custom)
+        custom.takeAction(WaterSheetAction.AddCustomTapped)
+        sheet().takeAction(WaterSheetAction.RemoveGlassTapped)
 
         assertEquals(listOf(today to 250, today to 30), diary.water)
         assertEquals(listOf(today to 250), diary.removedWater)
+    }
+
+    @Test
+    fun aSecondTapWhileTheWaterSheetClosesCountsNoSecondGlass() = runUnitTest {
+        val vm = WaterSheetViewModel(today, diary, FakeSettingsRepository())
+
+        vm.takeAction(WaterSheetAction.AddGlassTapped)
+        vm.takeAction(WaterSheetAction.AddGlassTapped)
+        vm.takeAction(WaterSheetAction.RemoveGlassTapped)
+
+        assertEquals(listOf(today to 250), diary.water)
+        assertTrue(diary.removedWater.isEmpty())
     }
 
     // Item
 
     @Test
     fun itemSheetRemovesTheEntryAndDismissesWhenItIsGone() = runUnitTest {
-        val vm = ItemSheetViewModel(today, "adobo-$today", diary, FakePolicySource(), FakeCalendar())
+        val vm = itemSheet("adobo-$today")
         val events = collect(vm.eventFlow)
         assertEquals("Chicken adobo", vm.state.name)
         assertEquals("310 kcal", vm.state.calories.text())
 
-        vm.takeAction(ItemSheetAction.RemoveTapped)
+        vm.takeAction(ItemSheetAction.DeleteTapped)
         assertEquals(listOf("adobo-$today"), diary.removed)
         assertIs<ItemSheetEvent.ShowToast>(events.first())
 
-        val gone = ItemSheetViewModel(today, "nothing", diary, FakePolicySource(), FakeCalendar())
+        val gone = itemSheet("nothing")
         val goneEvents = collect(gone.eventFlow)
         assertEquals(listOf<ItemSheetEvent>(ItemSheetEvent.Dismiss), goneEvents)
     }
 
     @Test
     fun itemSheetCaloriesFollowThePolicy() = runUnitTest {
-        val vm = ItemSheetViewModel(today, "adobo-$today", diary, FakePolicySource(policy(PresetId.Blind)), FakeCalendar())
+        val vm = itemSheet("adobo-$today", FakePolicySource(policy(PresetId.NoNumbers)))
         assertEquals(null, vm.state.calories.text())
     }
+
+    private fun itemSheet(entryId: String, policySource: FakePolicySource = FakePolicySource()) =
+        ItemSheetViewModel(today, entryId, diary, diary, FakeSettingsRepository(), policySource, FakeCalendar(), foodActionsFlag(false))
 
     // Day note
 
@@ -273,7 +304,7 @@ class SheetsTest : CoroutineTest() {
         val settings = FakeSettingsRepository()
         val source = FakePolicySource()
         val changer = FakeNumbersChanger(NumbersOutcome.Applied(fewer = true))
-        val vm = TodayCardsViewModel(settings, source, changer, FastingRelease { false })
+        val vm = TodayCardsViewModel(settings, source, changer, FastingRelease { false }, summaryFlag(false))
         val events = collect(vm.eventFlow)
 
         vm.takeAction(TodayCardsAction.MealGroupsToggled)
@@ -291,7 +322,7 @@ class SheetsTest : CoroutineTest() {
 
     @Test
     fun hidingWaterBehindThePauseOpensIt() = runUnitTest {
-        val vm = TodayCardsViewModel(FakeSettingsRepository(), FakePolicySource(), FakeNumbersChanger(NumbersOutcome.NeedsPause), FastingRelease { false })
+        val vm = TodayCardsViewModel(FakeSettingsRepository(), FakePolicySource(), FakeNumbersChanger(NumbersOutcome.NeedsPause), FastingRelease { false }, summaryFlag(false))
         val events = collect(vm.eventFlow)
 
         vm.takeAction(TodayCardsAction.WaterToggled)
@@ -311,7 +342,7 @@ class SheetsTest : CoroutineTest() {
             "after the statement",
         )
         assertNull(
-            TodayCardsStateBuilder.build(on.copy(numbers = NumbersSettings(PresetId.Rhythm)), policy, fastingReleased = true).fasting,
+            TodayCardsStateBuilder.build(on.copy(numbers = NumbersSettings(PresetId.NoNumbers)), policy, fastingReleased = true).fasting,
             "a mode without fasting",
         )
     }
@@ -319,25 +350,11 @@ class SheetsTest : CoroutineTest() {
     @Test
     fun theFastingRowTogglesTheTodayCard() = runUnitTest {
         val settings = FakeSettingsRepository(Settings(fasting = true))
-        val vm = TodayCardsViewModel(settings, FakePolicySource(), FakeNumbersChanger(), FastingRelease { true })
+        val vm = TodayCardsViewModel(settings, FakePolicySource(), FakeNumbersChanger(), FastingRelease { true }, summaryFlag(false))
 
         vm.takeAction(TodayCardsAction.FastingToggled)
 
         assertFalse(settings.state.value.fastToday)
         assertEquals(false, vm.state.fasting)
-    }
-
-    // Explorer
-
-    @Test
-    fun aNewFoodIsOneFirstLoggedThisMonth() {
-        val october = TodayFixtures.day()
-        val september = TodayFixtures.day(LocalDate(2026, 9, 20))
-        val stats = ExplorerStatsBuilder.from(frequent = october.allItems, days = listOf(september, october), today = today)
-
-        assertTrue(stats.newFoods.isEmpty(), "everything was had in September")
-        val fresh = ExplorerStatsBuilder.from(frequent = emptyList(), days = listOf(october), today = today)
-        assertEquals("Peanut butter", fresh.newFoods.first().name, "newest first")
-        assertEquals(listOf("Oat porridge with milk", "Banana", "Coffee with milk"), ExplorerStatsBuilder.from(october.items(MealSlot.Breakfast), emptyList(), today).safeFoods)
     }
 }

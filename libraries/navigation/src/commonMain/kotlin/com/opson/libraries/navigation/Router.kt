@@ -1,8 +1,6 @@
 package com.opson.libraries.navigation
 
-import com.opson.libraries.ui.snackbar.SnackBarPresenter
-import com.opson.libraries.core.Catching
-import com.opson.libraries.core.logging.KLog
+import kotlinx.coroutines.flow.SharedFlow
 
 data class NavigationOptions(
     val clearBackStack: Boolean = false,
@@ -37,6 +35,20 @@ interface Router {
      * another tab.
      */
     fun switchTab(route: TabRoute)
+
+    /**
+     * The bottom bar's tap on the tab already showing. Anything above the tab's root (a pushed
+     * screen, a sheet) is popped and the root shows again; when the root is already on top,
+     * [tabReselects] tells the tab instead, so it can scroll its list back to the top.
+     */
+    fun reselectTab(route: TabRoute)
+
+    /**
+     * A tap on the showing tab while its root was already on top. Collect it with
+     * [OnTabReselected] rather than directly. Nothing is replayed: a tab that subscribes later
+     * must not scroll for a tap it never saw.
+     */
+    val tabReselects: SharedFlow<TabRoute>
 
     /**
      * Enter the tab system from outside it (onboarding, sign-in, a fresh guest session). Clears
@@ -87,58 +99,4 @@ interface RouterBatch {
     fun goBack()
 
     fun popBackTo(route: Route, inclusive: Boolean)
-}
-
-fun <T> Catching<T>.blockingScreenOnError(
-    router: Router,
-    title: String = "This is super embarrassing",
-    subtitle: String = "Our intern Ryan seems to have left a bug in the app. Sorry, you'll need to kill and restart the app.",
-    logId: String? = null,
-    includeErrorMessage: Boolean = false,
-): Catching<T> = this.onFailure {
-    val errorCode = it.toKnownErrorCode()
-    val resolvedLogId = logId ?: KLog.e(it)?.raw
-    router.navigate(
-        BlockingErrorRoute(
-            title = title,
-            subtitle = subtitle,
-            errorCode = errorCode,
-            logId = resolvedLogId,
-            contextMessage = it.message.takeIf { includeErrorMessage }
-        )
-    )
-}
-
-fun <T> Catching<T>.dialogOnError(
-    router: Router,
-    title: String = "Oops something went wrong",
-    subtitle: String = "Please try again",
-    actionTitle: String = "Okay",
-    action: ErrorDialogAction = ErrorDialogAction.Dismiss,
-    logId: String? = null,
-    includeErrorMessage: Boolean = false,
-    ): Catching<T> = this.onFailure {
-    val errorCode = it.toKnownErrorCode()
-    val resolvedLogId = logId ?: KLog.e(it)?.raw
-    router.navigate(
-        ErrorDialogRoute(
-            title = title,
-            subtitle = subtitle,
-            actionTitle = actionTitle,
-            action = action,
-            errorCode = errorCode,
-            logId = resolvedLogId,
-            contextMessage = it.message.takeIf { includeErrorMessage }
-        )
-    )
-}
-
-fun <T> Catching<T>.toastOnError(
-    title: String = "Oops something went wrong",
-    subtitle: String = "Please try again",
-): Catching<T> = this.onFailure {
-    SnackBarPresenter.show(
-        title = title,
-        message = subtitle,
-    )
 }

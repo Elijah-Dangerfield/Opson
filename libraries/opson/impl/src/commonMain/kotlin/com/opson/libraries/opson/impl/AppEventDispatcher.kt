@@ -39,6 +39,12 @@ class AppEventDispatcher(
     @Volatile
     private var hasDispatchedColdBoot = false
 
+    // iOS reports "foreground" on UIApplicationDidBecomeActive, which also fires
+    // when Control Center, a permission alert or an incoming call goes away,
+    // with no background in between. Android's onStart does not. Only a
+    // foreground that follows a background (or the first one) is a real return.
+    private var isInForeground = false
+
     // replay = 1 so a collector that subscribes during boot still catches the
     // event that fired just before it attached. Buffered + DROP_OLDEST so
     // tryEmit never blocks the dispatch thread or a publisher.
@@ -73,6 +79,8 @@ class AppEventDispatcher(
     @OptIn(InternalCoroutinesApi::class)
     private fun handleForegroundEntry() {
         val events = synchronized(bootLock) {
+            if (isInForeground) return
+            isInForeground = true
             val isColdBoot = !hasDispatchedColdBoot
             if (isColdBoot) {
                 hasDispatchedColdBoot = true
@@ -88,7 +96,9 @@ class AppEventDispatcher(
         }
     }
 
+    @OptIn(InternalCoroutinesApi::class)
     private fun handleBackgroundEntry() {
+        synchronized(bootLock) { isInForeground = false }
         dispatch(AppEvent.OnBackground)
     }
 

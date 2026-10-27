@@ -75,27 +75,12 @@ class NetworkClientImpl(
                         BearerTokens(accessToken = token, refreshToken = "")
                     }
                     refreshTokens {
-                        val token = tokenProvider.refreshAccessToken()
+                        val token = tokenProvider.refreshAccessToken(rejected = oldTokens?.accessToken)
                             ?: return@refreshTokens null
                         BearerTokens(accessToken = token, refreshToken = "")
                     }
                     sendWithoutRequest { true }
                 }
-            }
-            // WebSocket plugin so callers can open sockets via the same
-            // authenticated client (the Auth bearer is attached on the WS
-            // handshake). The plugin is additive — existing HTTP calls don't
-            // notice it. Keepalive is per-engine; see
-            // installWebSocketKeepalive for the OkHttp trap.
-            installWebSocketKeepalive()
-            if (BuildInfo.isDebug) {
-                // Wiretap's WS capture — sockets run through this
-                // authenticated client, so this surfaces every sent/received
-                // frame + connect/close in the same inspector as HTTP.
-                // Installed AFTER WebSockets so it can wrap the raw session
-                // before WebSockets transforms it. Debug-only + noop in
-                // release, same as the HTTP capture.
-                installWebSocketInspector()
             }
         }
     }
@@ -149,7 +134,7 @@ internal fun HttpClientConfig<*>.applyCommonConfig(
     }
     install(HttpTimeout) {
         requestTimeoutMillis = config.requestTimeoutMillis
-        connectTimeoutMillis = config.requestTimeoutMillis
+        connectTimeoutMillis = config.connectTimeoutMillis
         socketTimeoutMillis = config.requestTimeoutMillis
     }
     // Only when there is no base URL: with one configured, DefaultRequest has
@@ -212,8 +197,7 @@ internal data class AccessDeniedWire(
  * Run from `handleResponseExceptionWithRequest` rather than `validateResponse`
  * because the `ResponseException` Ktor throws after validation holds a *saved*
  * copy of the response — reading the body here doesn't race the caller's own
- * body decoding (callers like `RoomRepositoryImpl` map 403 → `NotHost` off the
- * status alone and never re-read the body anyway).
+ * body decoding.
  */
 internal suspend fun signalAccessDeniedIfEnveloped(
     response: HttpResponse,

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.ui.PreviewContent
@@ -23,12 +22,11 @@ private fun WidgetPreviewPair(
     preset: PresetId,
     dark: Boolean = false,
     mealGroups: Boolean = true,
-    palette: PaletteChoice = PaletteChoice.Pine,
 ) {
     PreviewContent(darkTheme = dark) {
         val inputs = WidgetFixtures.inputs(NumbersSettings(preset = preset), mealGroups = mealGroups)
         val snapshot = WidgetSnapshotBuilder.build(
-            inputs.copy(settings = inputs.settings.copy(palette = palette)),
+            inputs,
             WidgetFixtures.policy(preset),
             rememberWidgetCopy(),
         )
@@ -58,31 +56,25 @@ private fun WidgetFullDarkPreview() {
 @Preview
 @Composable
 private fun WidgetBlindPreview() {
-    WidgetPreviewPair(PresetId.Blind)
+    WidgetPreviewPair(PresetId.NoNumbers)
 }
 
 @Preview
 @Composable
 private fun WidgetBlindDarkPreview() {
-    WidgetPreviewPair(PresetId.Blind, dark = true)
+    WidgetPreviewPair(PresetId.NoNumbers, dark = true)
 }
 
-/** Fuel softens calories: the circles, not a soft word. */
+/** Nutrients first softens calories: the circles, not a soft word. */
 @Preview
 @Composable
 private fun WidgetFuelPreview() {
-    WidgetPreviewPair(PresetId.Fuel)
+    WidgetPreviewPair(PresetId.NutrientsFirst)
 }
 
 /** Meal groups off in Blind: nothing to tick, so a line instead. */
 @Preview
 @Composable
 private fun WidgetGroupsOffPreview() {
-    WidgetPreviewPair(PresetId.Blind, mealGroups = false)
-}
-
-@Preview
-@Composable
-private fun WidgetEspressoPreview() {
-    WidgetPreviewPair(PresetId.Full, palette = PaletteChoice.Espresso)
+    WidgetPreviewPair(PresetId.NoNumbers, mealGroups = false)
 }

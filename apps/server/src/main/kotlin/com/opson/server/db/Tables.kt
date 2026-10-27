@@ -24,22 +24,6 @@ object ProfilesTable : Table("profiles") {
 }
 
 /**
- * Append-only player reports (trust and safety). One row per report; reads
- * are deferred to a future moderation-review surface. See
- * `V3__player_reports.sql`.
- */
-object PlayerReportsTable : Table("player_reports") {
-    val id = long("id").autoIncrement()
-    val reporterUserId = uuid("reporter_user_id")
-    val reportedUserId = uuid("reported_user_id")
-    val context = text("context").nullable()
-    val reason = text("reason").nullable()
-    val reasonCategories = text("reason_categories").nullable()
-    val createdAt = timestamp("created_at")
-    override val primaryKey = PrimaryKey(id)
-}
-
-/**
  * DB-backed remote-config base values. One row per `ConfiguredValue.path`
  * the server overrides; `value_jsonb` is the value served when no targeting
  * rule matches. Backs [com.opson.server.data.PostgresAppConfigSource].
@@ -129,6 +113,9 @@ object FoodsTable : Table("foods") {
     val portions = jsonb("portions")
     val popularity = integer("popularity")
 
+    /** `restaurant`, `beverage`, `baby_food`, `supplement` or null ([com.opson.server.domain.FoodCategory], V17). */
+    val category = text("category").nullable()
+
     /**
      * Set from `source` by the `foods_set_tier` trigger (V10), so both are
      * `databaseGenerated()`: Kotlin writes the source and reads these back.
@@ -202,6 +189,16 @@ object BarcodeMissesTable : Table("barcode_misses") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** The website waitlist, written only by the server. See `V16__waitlist.sql`. */
+object WaitlistTable : Table("waitlist") {
+    val id = uuid("id")
+    val email = text("email")
+    val signupSource = text("source").nullable()
+    val createdAt = timestamp("created_at")
+    val unsubscribedAt = timestamp("unsubscribed_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
 /**
  * Columns every synced diary table shares (see `V8__diary.sql`). `server_seq`
  * is set by the `bump_server_seq` trigger, so it is `databaseGenerated()` and
@@ -246,6 +243,7 @@ object DayRecordsTable : SyncedTable("day_records") {
     val mealGroups = bool("meal_groups").nullable()
     val untracked = bool("untracked")
     val feeling = text("feeling").nullable()
+    val checkIn = text("check_in").nullable()
     override val primaryKey = PrimaryKey(userId, day)
 }
 
@@ -301,5 +299,13 @@ object FastsTable : SyncedTable("fasts") {
 object UserSettingsTable : SyncedTable("user_settings") {
     val settings = jsonb("settings")
     val changedAt = timestamp("changed_at").nullable()
+    override val primaryKey = PrimaryKey(userId)
+}
+
+/** The Sign in with Apple refresh token per account, kept so deletion can revoke it (V21). */
+object AppleRefreshTokensTable : Table("apple_refresh_tokens") {
+    val userId = uuid("user_id")
+    val refreshToken = text("refresh_token")
+    val updatedAt = timestamp("updated_at")
     override val primaryKey = PrimaryKey(userId)
 }

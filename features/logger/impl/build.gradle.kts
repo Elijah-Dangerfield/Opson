@@ -10,8 +10,10 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.features.logger)
-            // The meal note sheet behind "Add a note".
+            // Routes the + sheet opens in its place: the meal note (Note), Weight (Weigh-in) and Fasting.
             implementation(projects.features.today)
+            implementation(projects.features.trends)
+            implementation(projects.features.settings)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
@@ -23,6 +25,7 @@ kotlin {
             implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.config)
             implementation(projects.libraries.scanner)
+            implementation(projects.libraries.speech)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -46,6 +49,7 @@ kotlin {
             implementation(projects.libraries.ui)
             implementation(projects.libraries.config)
             implementation(projects.libraries.scanner)
+            implementation(projects.libraries.speech)
         }
     }
 }

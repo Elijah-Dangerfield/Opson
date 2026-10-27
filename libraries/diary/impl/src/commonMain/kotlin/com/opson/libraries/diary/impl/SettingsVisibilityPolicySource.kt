@@ -1,8 +1,8 @@
 package com.opson.libraries.diary.impl
 
 import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.NumbersChanger
 import com.opson.libraries.diary.SettingsRepository
-import com.opson.libraries.diary.numbers
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -40,11 +40,11 @@ import kotlin.time.Instant
  *
  * Two things here are safety rules, not conveniences:
  *
- * - **Blind until the settings are known.** On a phone signed into an
+ * - **No numbers until the settings are known.** On a phone signed into an
  *   existing account, the local settings are defaults (Full numbers) until the
  *   first pull lands. Serving those would flash every number at someone who
- *   chose to see none. Blind is the only safe guess.
- * - **A new policy at the reveal time and at midnight.** Delayed numbers open
+ *   chose to see none. No numbers is the only safe guess.
+ * - **A new policy at the reveal time and at midnight.** Later numbers open
  *   at the user's reveal time ([NumbersSettings.revealAt], 9 pm unless they
  *   picked another). The policy reads the clock when it resolves, but screens
  *   only re-resolve when the policy they hold changes, so without a fresh
@@ -59,7 +59,8 @@ class SettingsVisibilityPolicySource(
     calendar: LocalCalendar,
     clock: Clock,
     appScope: AppCoroutineScope,
-) : VisibilityPolicySource by LivePolicy(settingsRepository, calendar, clock, appScope)
+    numbersChanger: NumbersChanger,
+) : VisibilityPolicySource by LivePolicy(settingsRepository, calendar, clock, appScope, numbersChanger)
 
 /**
  * The work behind [SettingsVisibilityPolicySource], on a plain [CoroutineScope]
@@ -71,16 +72,26 @@ internal class LivePolicy(
     private val calendar: LocalCalendar,
     private val clock: Clock,
     scope: CoroutineScope,
+    private val numbersChanger: NumbersChanger,
 ) : VisibilityPolicySource {
 
     private val tick = MutableStateFlow(0)
 
     override val policy: StateFlow<VisibilityPolicy> =
         combine(settingsRepository.settings, settingsRepository.isKnown, tick) { settings, known, _ ->
-            build(if (known) settings.numbers() else BLIND)
-        }.stateIn(scope, SharingStarted.Eagerly, build(BLIND))
+            build(if (known) settings.numbers.afterTimer() else NO_NUMBERS)
+        }.stateIn(scope, SharingStarted.Eagerly, build(NO_NUMBERS))
 
     init {
+        // End after a set time: the policy above switches on the day itself; this writes the
+        // switch down, so Modes shows it, other phones get it, and Today says so that day.
+        scope.launch {
+            combine(settingsRepository.settings, settingsRepository.isKnown, tick) { settings, known, _ ->
+                known && settings.numbers.timedOut(calendar.today(), clock.now()) != null
+            }.distinctUntilChanged().collect { due ->
+                if (due) numbersChanger.endTimedMode()
+            }
+        }
         scope.launch {
             // A new reveal time restarts the wait, so a change never leaves the loop
             // asleep until the old boundary.
@@ -103,6 +114,8 @@ internal class LivePolicy(
 
     private fun build(numbers: NumbersSettings) = VisibilityPolicy(numbers, clock, calendar.timeZone())
 
+    private fun NumbersSettings.afterTimer(): NumbersSettings = timedOut(calendar.today(), clock.now()) ?: this
+
     private fun nextBoundary(now: Instant, revealAt: LocalTime): Instant {
         val zone = calendar.timeZone()
         val local = now.toLocalDateTime(zone)
@@ -111,6 +124,6 @@ internal class LivePolicy(
     }
 
     private companion object {
-        val BLIND = NumbersSettings(preset = PresetId.Blind)
+        val NO_NUMBERS = NumbersSettings(preset = PresetId.NoNumbers)
     }
 }

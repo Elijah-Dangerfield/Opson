@@ -9,35 +9,29 @@
 
     <!-- Header -->
     <string name="today_label_today">Today</string>
+    <string name="today_loading_cd">Loading the day</string>
     <string name="today_label_yesterday">Yesterday</string>
     <string name="today_label_tomorrow">Tomorrow</string>
     <string name="today_prev_day_cd">Previous day</string>
     <string name="today_pick_day_cd">Pick a day</string>
     <string name="today_next_day_cd">Next day</string>
-    <string name="today_calendar_cd">Calendar</string>
     <string name="today_day_menu_cd">More for this day</string>
 
     <!-- Summary cards -->
     <string name="today_summary_eaten">Eaten</string>
     <string name="today_summary_kcal">kcal</string>
     <string name="today_summary_range">Your range</string>
+    <string name="today_summary_goal">Your goal</string>
     <string name="today_summary_nothing_yet">Nothing yet</string>
     <string name="today_summary_nutrients">Nutrients</string>
     <string name="today_macro_protein">Protein</string>
     <string name="today_macro_carbs">Carbs</string>
     <string name="today_macro_fat">Fat</string>
     <string name="today_macro_fiber">Fiber</string>
-    <string name="today_soft_meals">Meals</string>
     <string name="today_soft_energy">Energy</string>
     <string name="today_count_value">%1$d of %2$d</string>
     <string name="today_focus_title">Your focus today</string>
-    <string name="today_locked_day_title">Totals open at 9:00 pm</string>
     <string name="today_locked_week_title">Saved for your weekly check</string>
-    <string name="today_locked_day_body">Log as you go. There's nothing to check until then.</string>
-    <string name="today_locked_day_body_warm">Keep logging as you go. Nothing to check until tonight.</string>
-    <string name="today_locked_week_body">Log as much or as little as you like. Totals show up once a week.</string>
-    <string name="today_revealed_title">Your totals are open</string>
-    <string name="today_revealed_body">See them in Close the day. They lock again tomorrow morning.</string>
     <string name="today_counted_label">So far today</string>
     <string name="today_counted_label_other_day">That day</string>
     <string name="today_counted_none">No meals yet</string>
@@ -48,28 +42,9 @@
     <string name="today_counted_next">%1$s is usually around %2$s.</string>
     <string name="today_counts_meals_one">%1$d meal logged</string>
     <string name="today_counts_meals_other">%1$d meals logged</string>
-    <string name="today_counts_glasses_one">%1$d glass</string>
-    <string name="today_counts_glasses_other">%1$d glasses</string>
-    <string name="today_new_this_month">New this month</string>
-    <string name="today_new_count_one">%1$d food</string>
-    <string name="today_new_count_other">%1$d foods</string>
-    <string name="today_explorer_new_empty">Nothing new yet this month.</string>
-    <string name="today_banner_sprint">Sprint, day %1$d of 14. Tracking takes a break on %2$s.</string>
-    <string name="today_banner_sprint_done">Sprint is done. Pick what's next in Modes and numbers.</string>
 
-    <!-- Meal tiles, Rhythm, Explorer -->
-    <string name="today_tile_items_one">%1$d food · %2$s</string>
-    <string name="today_tile_items_other">%1$d foods · %2$s</string>
+    <!-- A meal marked eaten with no details -->
     <string name="today_tile_ate">Ate, no details</string>
-    <string name="today_rhythm_title">Meals today</string>
-    <string name="today_rhythm_logged">%1$s · planned around %2$s</string>
-    <string name="today_rhythm_ate">Ate, no details · planned around %1$s</string>
-    <string name="today_rhythm_planned">Planned around %1$s</string>
-    <string name="today_rhythm_already_ate">Already ate</string>
-    <string name="today_rhythm_log">Log it</string>
-    <string name="today_what_you_had">What you had</string>
-    <string name="today_explorer_safe">Safe foods</string>
-    <string name="today_explorer_safe_empty">Foods you log often show up here.</string>
 
     <!-- Water and meal cards -->
     <string name="today_water">Water</string>
@@ -79,10 +54,6 @@
     <string name="today_item_sub">%1$s · %2$s</string>
     <string name="today_meal_usually">Usually around %1$s</string>
     <string name="today_meal_around">Around %1$s</string>
-    <string name="today_meal_yesterday">Yesterday's %1$s</string>
-    <string name="today_meal_copy">Copy</string>
-    <string name="today_meal_saved">Saved meals</string>
-    <string name="today_feel_prompt">How did it feel?</string>
     <string name="today_feel_pair">%1$s → %2$s</string>
     <string name="today_plan_title">Planned meals count as logged</string>
     <string name="today_plan_body">Edit anything tomorrow if plans change.</string>
@@ -118,8 +89,6 @@
     <string name="today_cal_prev_cd">Previous month</string>
     <string name="today_cal_next_cd">Next month</string>
     <string name="today_cal_legend">Something logged</string>
-    <string name="today_cal_today">Today</string>
-    <string name="today_cal_done">Done</string>
     <string name="today_cal_initial_sun">S</string>
     <string name="today_cal_initial_mon">M</string>
     <string name="today_cal_initial_tue">T</string>
@@ -141,11 +110,8 @@
     <string name="today_note_title">Note, %1$s</string>
     <string name="today_note_placeholder">Where you were, who with, anything worth remembering</string>
     <string name="today_note_save">Save</string>
-    <string name="today_feel_title">How %1$s felt</string>
-    <string name="today_feel_subtitle">All optional. Only you see this.</string>
     <string name="today_feel_hunger">Hunger before</string>
     <string name="today_feel_fullness">Fullness after</string>
-    <string name="today_feel_mood">Mood, pick any</string>
     <string name="today_feel_save">Save</string>
 
     <!-- Water sheet -->
@@ -159,7 +125,6 @@
     <string name="today_water_settings">Water settings</string>
 
     <!-- Item sheet and day note -->
-    <string name="today_item_remove">Remove from %1$s</string>
     <string name="today_daynote_title">Note</string>
     <string name="today_daynote_save">Save</string>
 
@@ -179,10 +144,6 @@
     <string name="today_untracked_title">Not tracking this day</string>
     <string name="today_untracked_body">Trends leaves a gap here, not a low day.</string>
     <string name="today_untracked_action">Track it again</string>
-    <string name="today_bridge_title">A small step from %1$s</string>
-    <string name="today_bridge_body">You've had %1$s before, and it has %2$s in it too.</string>
-    <string name="today_bridge_tried">I tried it</string>
-    <string name="today_bridge_not_today">Not today</string>
     <string name="today_toast_marked_eaten">Marked %1$s as eaten.</string>
     <string name="today_toast_note_saved">Note saved to %1$s.</string>
     <string name="today_toast_feel_saved">Saved. Only you see this.</string>
@@ -191,6 +152,7 @@
 
     <!-- Day close -->
     <string name="today_dayclose_title">Close the day</string>
+    <string name="today_dayclose_loading_cd">Loading the day</string>
     <string name="today_dayclose_title_warm">How today went</string>
     <string name="today_dayclose_back">‹ %1$s</string>
     <string name="today_dayclose_revealed_title">Your totals are open</string>
@@ -200,10 +162,15 @@
     <string name="today_dayclose_above">Above your range today</string>
     <string name="today_dayclose_above_other_day">Above your range that day</string>
     <string name="today_dayclose_below">Your range is %1$s</string>
+    <string name="today_dayclose_inside_goal">Close to your goal of %1$s</string>
+    <string name="today_dayclose_above_goal">Above your goal today</string>
+    <string name="today_dayclose_above_goal_other_day">Above your goal that day</string>
+    <string name="today_dayclose_below_goal">Your goal is %1$s</string>
     <string name="today_dayclose_soft_label">Today</string>
     <string name="today_dayclose_soft_label_other_day">That day</string>
-    <string name="today_dayclose_big_day">Big days happen. Cutting back hard tomorrow tends to backfire and makes the next big day more likely. Tomorrow's plan stays the same.</string>
-    <string name="today_dayclose_tomorrow">Tomorrow: %1$s, same as always.</string>
+    <string name="today_dayclose_big_day">Everyone has big days. Tomorrow is a fresh start, and you don't need to make up for today.</string>
+    <string name="today_dayclose_tomorrow">Your range tomorrow is %1$s, the same as usual.</string>
+    <string name="today_dayclose_tomorrow_goal">Your goal tomorrow is %1$s, the same as usual.</string>
     <string name="today_dayclose_commit_normal">Back to normal tomorrow</string>
     <string name="today_dayclose_commit_can">I can do this</string>
     <string name="today_dayclose_committed">Heard. That stays between you and you.</string>
@@ -221,4 +188,141 @@
     <string name="today_dayclose_note_placeholder">Dinner at Lola's, a lazy Sunday</string>
     <string name="today_dayclose_done">Close the day</string>
     <string name="today_dayclose_caption">You can still edit this day afterwards.</string>
+
+    <!-- Design sync 2: the summary card (2.1 to 2.1e) -->
+    <string name="today_stat_expended">Expended</string>
+    <string name="today_stat_deficit">Deficit so far</string>
+    <string name="today_stat_to_range">To your range</string>
+    <string name="today_stat_to_goal">To your goal</string>
+    <string name="today_stat_meals">Meals</string>
+    <string name="today_stat_water">Water</string>
+    <string name="today_stat_expended_body">From your watch</string>
+    <string name="today_stat_deficit_body">Full numbers and Sprint only</string>
+    <string name="today_stat_hidden">Hidden in Modes and numbers</string>
+    <string name="today_goal_changing_weight">Changing my weight</string>
+    <string name="today_goal_eating_regularly">Eating regularly</string>
+    <string name="today_goal_eating_enough">Eating enough</string>
+    <string name="today_goal_performance">Training or performance</string>
+    <string name="today_macros_title">Macros</string>
+    <string name="today_macros_of">of %1$s</string>
+    <string name="today_compact_range">range</string>
+    <string name="today_compact_goal">goal</string>
+    <string name="today_compact_meals">%1$d of %2$d meals</string>
+    <string name="today_collapse_cd">Shrink the summary to one line</string>
+    <string name="today_expand_cd">Show the whole summary</string>
+    <string name="today_sticky_cd">Back to the top</string>
+    <string name="today_customise_cd">Edit Today's cards</string>
+    <string name="today_weight">Weight</string>
+    <string name="today_weight_this_morning">This morning · %1$s</string>
+    <string name="today_weight_today">Today · %1$s</string>
+    <string name="today_summary_card">Summary card</string>
+    <string name="today_summary_done">Done</string>
+    <string name="today_summary_suggested">Suggested from your goals: %1$s</string>
+    <string name="today_summary_suggested_plain">Suggested for you</string>
+    <string name="today_summary_reset">Reset</string>
+    <string name="today_summary_page_one">Page 1 · up to 3 stats</string>
+    <string name="today_summary_page_count">%1$d of %2$d</string>
+    <string name="today_summary_page_two">Page 2 · Macros</string>
+    <string name="today_summary_page_two_body">Swipe to see it</string>
+    <string name="today_summary_move_up">Move up</string>
+    <string name="today_summary_move_down">Move down</string>
+    <string name="today_cards_section">Cards</string>
+
+    <!-- Design sync 2: select foods and swipe to delete (2.12 to 2.14) -->
+    <string name="today_select_title">%1$d selected</string>
+    <string name="today_select_close_cd">Stop selecting</string>
+    <string name="today_select_foods_one">1 food</string>
+    <string name="today_select_foods_other">%1$d foods</string>
+    <string name="today_select_copy">Copy to…</string>
+    <string name="today_select_move">Move</string>
+    <string name="today_select_copy_title">Copy to</string>
+    <string name="today_select_copy_action">Copy</string>
+    <string name="today_select_move_title">Move to</string>
+    <string name="today_select_move_action">Move</string>
+    <string name="today_select_back_cd">Back</string>
+    <string name="today_day_yesterday">Yesterday</string>
+    <string name="today_day_today">Today</string>
+    <string name="today_day_tomorrow">Tomorrow</string>
+    <string name="today_remove_many">Remove %1$d foods?</string>
+    <string name="today_remove_one">Remove %1$s from %2$s?</string>
+    <string name="today_remove_keep">Keep</string>
+    <string name="today_remove_action">Remove</string>
+    <string name="today_swipe_delete">Delete</string>
+    <string name="today_select_start">Select</string>
+    <string name="today_removed_one">Removed %1$s</string>
+    <string name="today_removed_other">Removed %1$d foods</string>
+    <string name="today_toast_copied_foods_one">Copied 1 food.</string>
+    <string name="today_toast_copied_foods_other">Copied %1$d foods.</string>
+    <string name="today_move_to">Move to…</string>
+
+    <!-- Design sync 2: how it felt (3.10) -->
+    <string name="today_feel_title_question">How was %1$s?</string>
+    <string name="today_feel_subtitle_optional">Everything here is optional, and only you see it.</string>
+    <string name="today_feel_mood_any">Mood · pick any</string>
+    <string name="today_feel_note">Add a note</string>
+    <string name="today_feel_skip">Skip</string>
+    <string name="today_feel_a_bit">A bit</string>
+    <string name="today_feel_too_full">Too full</string>
+
+    <!-- Design sync 2: Day close (4.1 to 4.5) -->
+    <string name="today_dayclose_why_not">Why not cut back?</string>
+    <string name="today_dayclose_support">If eating feels hard right now, talk to someone</string>
+    <!-- TODO(clinician): approve this wording and pick the citation before a study is named anywhere. -->
+    <string name="today_dayclose_why_title">Why not cut back?</string>
+    <string name="today_dayclose_why_body">Research on dieting finds that eating a lot less after a big day often leads to more overeating later. Going back to your usual range works better than making up for one day.</string>
+    <string name="today_dayclose_why_ok">OK</string>
+    <string name="today_dayclose_expended">Expended, from your watch</string>
+    <string name="today_checkin_title">Check in</string>
+    <string name="today_checkin_note">Optional · only you see this</string>
+    <string name="today_checkin_hunger">Hunger through the day</string>
+    <string name="today_checkin_hunger_rarely">Rarely</string>
+    <string name="today_checkin_hunger_some">Some</string>
+    <string name="today_checkin_hunger_steady">Steady</string>
+    <string name="today_checkin_hunger_often">Often</string>
+    <string name="today_checkin_hunger_very">Very</string>
+    <string name="today_checkin_energy">Energy</string>
+    <string name="today_checkin_energy_low">Low</string>
+    <string name="today_checkin_energy_ok">OK</string>
+    <string name="today_checkin_energy_good">Good</string>
+    <string name="today_checkin_sleep">Sleep last night</string>
+    <string name="today_checkin_sleep_poor">Poor</string>
+    <string name="today_checkin_sleep_ok">OK</string>
+    <string name="today_checkin_sleep_good">Good</string>
+    <string name="today_checkin_mood">Mood · pick any</string>
+    <string name="today_checkin_mood_calm">Calm</string>
+    <string name="today_checkin_mood_social">Social</string>
+    <string name="today_checkin_mood_stressed">Stressed</string>
+    <string name="today_checkin_mood_tired">Tired</string>
+    <string name="today_checkin_mood_low">Low</string>
+    <string name="today_checkin_mood_happy">Happy</string>
+
+    <!-- Summary card, design sync 4 (13.1, 13.2a, 13.2b, 13.6c) -->
+    <string name="today_card_to_range">To your range</string>
+    <string name="today_card_left">Left to target</string>
+    <string name="today_card_to_surplus">To your surplus</string>
+    <string name="today_card_deficit">Deficit</string>
+    <string name="today_card_surplus">Surplus</string>
+    <string name="today_card_eaten">Eaten</string>
+    <string name="today_card_burned">Burned</string>
+    <string name="today_card_ring_to_range">To range</string>
+    <string name="today_card_ring_left">Left</string>
+    <string name="today_card_ring_to_surplus">To surplus</string>
+    <string name="today_card_switch_cd">Switch the main number</string>
+    <string name="today_card_energy">Energy</string>
+    <string name="today_card_kcal">kcal</string>
+    <string name="today_card_range">Range %1$s</string>
+    <string name="today_card_target">Target %1$s</string>
+    <string name="today_card_goal_deficit">Goal %1$s a day</string>
+    <string name="today_card_goal_surplus">Goal +%1$s a day</string>
+    <string name="today_card_resting">Resting %1$s</string>
+    <string name="today_card_active">Active %1$s</string>
+    <string name="today_card_target_left"> · %1$s left at your goal</string>
+    <string name="today_card_target_moves">Target %1$s · moves with what you burn</string>
+    <string name="today_card_target_follows">Target %1$s · follows what you burn</string>
+    <string name="today_card_legend_range">Your range</string>
+    <string name="today_card_legend_target">Your target</string>
+    <string name="today_card_to_range_line">%1$s to your range</string>
+    <string name="today_card_left_line">%1$s left to target</string>
+    <string name="today_card_to_surplus_line">%1$s to your surplus</string>
+    <string name="today_card_meals">%1$d of %2$d meals</string>
 </resources>

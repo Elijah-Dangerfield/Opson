@@ -17,6 +17,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
@@ -103,6 +104,66 @@ class TabNavigationTest {
         val screen = assertNotNull(navController.currentBackStack.value.currentScreenEntry())
         assertNotEquals(current.id, screen.id)
         assertEquals("TabTestFirstRoute", screen.routeName())
+    }
+
+    @Test
+    fun reselectingATabWithAScreenPushedPopsBackToItsRoot() {
+        val navController = host(startDestination = TabTestFirstRoute())
+        act(navController) {
+            navigate(TabTestDetailRoute())
+            navigate(TabTestSheetRoute())
+        }
+        val rootEntryId = navController.currentBackStack.value.first { it.routeName() == "TabTestFirstRoute" }.id
+
+        var scrolled = false
+        act(navController) { reselectTab(TabTestFirstRoute()) { scrolled = true } }
+
+        assertEquals(listOf("TabTestFirstRoute"), navController.stack())
+        assertEquals(rootEntryId, navController.currentBackStackEntry?.id, "the root was rebuilt rather than kept")
+        assertFalse(scrolled, "popping back to the root is the whole answer; it should not scroll too")
+    }
+
+    @Test
+    fun reselectingATabAlreadyAtItsRootAsksItToScrollAndLeavesTheStack() {
+        val navController = host(startDestination = TabTestFirstRoute())
+        act(navController) { switchTab(TabTestSecondRoute()) }
+        val before = navController.stack()
+
+        var scrolled = 0
+        act(navController) { reselectTab(TabTestSecondRoute()) { scrolled++ } }
+
+        assertEquals(1, scrolled)
+        assertEquals(before, navController.stack())
+    }
+
+    @Test
+    fun poppingOneTabToItsRootLeavesAnotherTabsSavedStackAlone() {
+        val navController = host(startDestination = TabTestFirstRoute())
+        act(navController) { navigate(TabTestDetailRoute()) }
+        val firstDetailId = assertNotNull(navController.currentBackStackEntry).id
+
+        act(navController) {
+            switchTab(TabTestSecondRoute())
+            navigate(TabTestDetailRoute())
+        }
+        act(navController) { reselectTab(TabTestSecondRoute()) {} }
+        assertEquals(listOf("TabTestFirstRoute", "TabTestSecondRoute"), navController.stack())
+
+        act(navController) { switchTab(TabTestFirstRoute()) }
+        assertEquals(listOf("TabTestFirstRoute", "TabTestDetailRoute"), navController.stack())
+        assertEquals(firstDetailId, navController.currentBackStackEntry?.id)
+    }
+
+    @Test
+    fun reselectingATabThatIsNotOnTheStackDoesNothing() {
+        val navController = host(startDestination = TabTestFirstRoute())
+        act(navController) { navigate(TabTestDetailRoute()) }
+
+        var scrolled = false
+        act(navController) { reselectTab(TabTestSecondRoute()) { scrolled = true } }
+
+        assertEquals(listOf("TabTestFirstRoute", "TabTestDetailRoute"), navController.stack())
+        assertFalse(scrolled)
     }
 
     private fun host(startDestination: Route): NavHostController {

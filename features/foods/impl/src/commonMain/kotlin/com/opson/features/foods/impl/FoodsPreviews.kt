@@ -10,8 +10,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // FoodsAddFoodBlindPreview), one theme per preview.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
-private val blind = previewVisibilityPolicy(PresetId.Blind)
-private val nutrient = previewVisibilityPolicy(PresetId.Nutrient)
+private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
+private val nutrient = previewVisibilityPolicy(PresetId.NutrientsFirst)
 
 @Composable
 private fun Foods(state: FoodsState, dark: Boolean = false) = FoodsPreviewFrame(dark) { FoodsScreen(state, onAction = {}) }
@@ -75,3 +75,25 @@ private fun FoodsAddFoodNutrientFocusPreview() = AddFood(FoodsFixtures.addFoodSt
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun FoodsAddFoodBlindPreview() = AddFood(FoodsFixtures.addFoodState(blind))
+
+@Composable
+private fun EditCopy(state: EditCopyState, dark: Boolean = false) = FoodsPreviewFrame(dark) { EditCopyScreen(state, onAction = {}) }
+
+/** 13.3e: calories and protein changed from the peanut butter's own, Use for this entry on. Dark, as Round 4 draws it. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyPreview() = EditCopy(FoodsFixtures.editCopyState(full), dark = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyLightPreview() = EditCopy(FoodsFixtures.editCopyState(full))
+
+/** As it opens: nothing changed yet, so no "Was" hints. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyUnchangedPreview() = EditCopy(FoodsFixtures.editCopyState(full, changed = false), dark = true)
+
+/** Blind: the name, brand and serving, and no numbers at all. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyBlindPreview() = EditCopy(FoodsFixtures.editCopyState(blind), dark = true)

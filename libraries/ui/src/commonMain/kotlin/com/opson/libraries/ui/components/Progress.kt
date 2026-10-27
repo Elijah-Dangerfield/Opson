@@ -33,7 +33,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /**
  * How much of a bar or ring to fill: 0 to 1, whatever comes in. Design v3: bars stop at 100%,
  * so a bigger day is a full bar, never an overflow colour or a longer bar, and a missing or
- * broken value (NaN) is an empty one. Every bar and ring in the app reads its fill through this.
+ * broken value (NaN) is an empty one. [FillBar], [StripedBar] and [ProgressRing] read their fill through this.
  */
 fun barFill(fraction: Float): Float = if (fraction.isNaN()) 0f else fraction.coerceIn(0f, 1f)
 

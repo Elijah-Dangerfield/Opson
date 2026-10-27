@@ -1,57 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Copy for the logger: the center + sheet (search, Describe it, Saved meals),
-  the amount sheet and How it felt. Verbatim from design v3 where it has the
-  line, then the handoff prototype. Same rules as strings.xml: no backslash
+  Copy for the logger from before design sync 4 that the + sheet, search and
+  the food detail still use (their new copy is strings_adding.xml). Verbatim
+  from design v3 where it has the line, then the handoff prototype. Same rules as strings.xml: no backslash
   escapes, positional %1$s arguments.
 -->
 <resources>
 
-    <!-- Logger sheet: title and search -->
+    <!-- The + sheet and search -->
     <string name="logger_close_cd">Close</string>
-    <string name="logger_add_to_title">Add to</string>
     <string name="logger_meal_picker_cd">Change meal, %1$s</string>
     <string name="logger_search_placeholder">Search foods, dishes, restaurants</string>
     <string name="logger_search_clear_cd">Clear search</string>
 
-    <!-- Method chips -->
-    <string name="logger_method_describe">Describe</string>
-    <string name="logger_method_yesterday">Yesterday's</string>
-    <string name="logger_method_yesterday_cd">Yesterday's %1$s</string>
-    <string name="logger_method_saved">Saved</string>
-    <string name="logger_method_ate">Ate, no details</string>
-    <string name="logger_method_number">Just a number</string>
-    <string name="logger_method_note">Add a note</string>
-
     <!-- Browse and results -->
     <string name="logger_usual_at">Usual at %1$s</string>
+    <string name="logger_usual_around">Usual around %1$s</string>
     <string name="logger_recent">Recent</string>
-    <plurals name="logger_matches">
-        <item quantity="one">%1$d match</item>
-        <item quantity="other">%1$d matches</item>
-    </plurals>
-    <string name="logger_not_here">Not here?</string>
-    <string name="logger_not_here_describe">Describe it</string>
-    <string name="logger_not_here_or">or</string>
-    <string name="logger_not_here_save">save the name</string>
     <string name="logger_offline_results">Search needs a connection. Showing foods you've used before.</string>
+    <string name="logger_searching_cd">Searching</string>
+    <string name="logger_loading_cd">Loading your foods</string>
+    <string name="logger_saved_loading_cd">Loading your saved meals</string>
     <string name="logger_first_run">Search for anything you ate. Foods you log show up here next time.</string>
 
     <!-- No results -->
     <string name="logger_empty_title">No match for "%1$s" yet</string>
-    <string name="logger_empty_body">Describe it in your own words, or save just the name and fill in details later if you want to.</string>
+    <string name="logger_empty_body">Describe it, or save just the name.</string>
     <string name="logger_empty_describe">Describe "%1$s"</string>
     <string name="logger_empty_save">Save the name only</string>
     <string name="logger_empty_caption">Saved names show up in search next time.</string>
 
-    <!-- Picked footer -->
+    <!-- Create a meal's picks in search, and Add -->
     <plurals name="logger_basket_count">
         <item quantity="one">%1$d food picked</item>
         <item quantity="other">%1$d foods picked</item>
     </plurals>
     <string name="logger_add_to">Add to %1$s</string>
-    <!-- Pick-for-this-meal mode, opened by Create a meal's "Add a food" -->
-    <string name="logger_this_meal">This meal</string>
     <string name="logger_add_to_this_meal">Add to meal</string>
 
     <!-- Describe it -->
@@ -61,9 +45,6 @@
     <string name="logger_describe_prompt">Say it the way you'd say it</string>
     <string name="logger_describe_reading">Reading that…</string>
     <string name="logger_read_as">We read that as</string>
-    <string name="logger_described_sub">%1$s · Estimate</string>
-    <string name="logger_described_estimate">Estimate</string>
-    <string name="logger_edit_line_cd">Change %1$s</string>
     <string name="logger_or_number">Or just a number</string>
     <string name="logger_number_placeholder">kcal</string>
     <string name="logger_number_add">Add</string>
@@ -80,38 +61,63 @@
     <!-- Toasts -->
     <string name="logger_toast_ate">Marked %1$s as eaten.</string>
 
-    <!-- Amount sheet -->
-    <string name="logger_amount_sure">How sure are you?</string>
+    <!-- Food detail -->
     <string name="logger_precision_weighed">Weighed</string>
     <string name="logger_precision_estimate">Estimate</string>
-    <string name="logger_precision_named">Just the name</string>
-    <string name="logger_amount">Amount</string>
-    <string name="logger_amount_per">%1$s · per %2$s</string>
-    <string name="logger_amount_per_only">per %1$s</string>
-    <string name="logger_amount_energy">Energy</string>
+    <string name="logger_precision_named">Name only</string>
     <string name="logger_amount_protein">Protein</string>
     <string name="logger_amount_carbs">Carbs</string>
     <string name="logger_amount_fat">Fat</string>
-    <string name="logger_amount_hunger">Hunger before · optional</string>
-    <string name="logger_hunger_not">Not hungry</string>
-    <string name="logger_hunger_bit">Peckish</string>
-    <string name="logger_hunger_hungry">Hungry</string>
-    <string name="logger_hunger_very">Very</string>
-    <string name="logger_amount_stop_asking">Stop asking this</string>
-    <string name="logger_amount_keep_going">Pick and keep going</string>
+    <string name="logger_amount_time_title">When did you eat it?</string>
+    <string name="logger_amount_ok">Done</string>
+    <string name="logger_amount_cancel">Cancel</string>
+    <string name="logger_amount_unit_cd">Unit, %1$s</string>
+    <string name="logger_amount_kcal">kcal</string>
+    <string name="logger_amount_open">open</string>
+    <string name="logger_amount_closed">closed</string>
+    <string name="logger_amount_per_source">Per %1$s · Source: %2$s</string>
+    <string name="logger_amount_per_only_source">Source: %1$s</string>
+    <string name="logger_amount_custom">Custom size…</string>
+    <string name="logger_amount_custom_title">A size of your own</string>
+    <string name="logger_amount_custom_body">Name it the way you would say it, and give its weight once. It stays with this food.</string>
+    <string name="logger_amount_custom_name">Name</string>
+    <string name="logger_amount_custom_name_hint">my bowl</string>
+    <string name="logger_amount_custom_grams">Grams</string>
+    <string name="logger_amount_custom_g">g</string>
+    <string name="logger_amount_custom_save">Save size</string>
+    <string name="logger_amount_favorite_cd">Save to favorites</string>
+    <string name="logger_amount_unfavorite_cd">Remove from favorites</string>
+    <string name="logger_source_usda">USDA FoodData Central</string>
+    <string name="logger_source_off">Open Food Facts</string>
+    <!-- RIVM's required citation, word for word. The version moves with CITED_VERSION in scripts/import_nevo_foods.py. -->
+    <string name="logger_source_nevo">Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven</string>
+    <string name="logger_source_yours">your own food</string>
+    <string name="logger_micros_vitamins">Vitamins</string>
+    <string name="logger_micros_minerals">Minerals</string>
+    <string name="logger_micro_vitamin_a">Vitamin A</string>
+    <string name="logger_micro_vitamin_b12">Vitamin B12</string>
+    <string name="logger_micro_vitamin_c">Vitamin C</string>
+    <string name="logger_micro_vitamin_d">Vitamin D</string>
+    <string name="logger_micro_vitamin_e">Vitamin E</string>
+    <string name="logger_micro_vitamin_k">Vitamin K</string>
+    <string name="logger_micro_folate">Folate</string>
+    <string name="logger_micro_calcium">Calcium</string>
+    <string name="logger_micro_iron">Iron</string>
+    <string name="logger_micro_magnesium">Magnesium</string>
+    <string name="logger_micro_potassium">Potassium</string>
+    <string name="logger_micro_sodium">Sodium</string>
+    <string name="logger_micro_zinc">Zinc</string>
+    <string name="logger_micro_thiamin">Thiamin (B1)</string>
+    <string name="logger_micro_riboflavin">Riboflavin (B2)</string>
+    <string name="logger_micro_niacin">Niacin (B3)</string>
+    <string name="logger_micro_vitamin_b6">Vitamin B6</string>
+    <string name="logger_micro_choline">Choline</string>
+    <string name="logger_micro_copper">Copper</string>
+    <string name="logger_micro_manganese">Manganese</string>
+    <string name="logger_micro_phosphorus">Phosphorus</string>
+    <string name="logger_micro_selenium">Selenium</string>
+    <string name="logger_micro_of_daily">%1$s of a day</string>
+    <string name="logger_amount_loading_cd">Loading this food</string>
     <string name="logger_amount_missing">This food needs a connection to open.</string>
-    <string name="logger_toast_stop_asking">Okay, no more hunger questions. You can turn them back on in More, under Look and feel.</string>
-
-    <!-- How it felt -->
-    <string name="logger_felt_title">How was %1$s?</string>
-    <string name="logger_felt_subtitle">Everything here is optional, and only you see it.</string>
-    <string name="logger_felt_hunger">Hunger before</string>
-    <string name="logger_felt_hunger_very">Very hungry</string>
-    <string name="logger_felt_fullness">Fullness after</string>
-    <string name="logger_felt_fullness_too">Too full</string>
-    <string name="logger_felt_mood">Mood · pick any</string>
-    <string name="logger_felt_note">Add a note</string>
-    <string name="logger_felt_skip">Skip</string>
-    <string name="logger_felt_save">Save</string>
 
 </resources>

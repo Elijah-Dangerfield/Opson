@@ -34,6 +34,15 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
 
+        commonTest.dependencies {
+            implementation(projects.libraries.flowroutines.testing)
+            implementation(projects.libraries.navigation)
+            implementation(libs.kotlinx.datetime)
+            implementation(projects.libraries.identity)
+            implementation(projects.libraries.opson)
+            implementation(projects.libraries.storage)
+        }
+
         androidMain.dependencies {
             // FileProvider, for Router.shareFile.
             implementation(libs.androidx.core.ktx)

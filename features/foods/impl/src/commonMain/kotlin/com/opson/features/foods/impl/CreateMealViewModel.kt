@@ -21,11 +21,12 @@ import opson.libraries.resources.generated.resources.foods_meal_saved
 import kotlin.random.Random
 
 /**
- * Create a meal: a name, the meal it is usually at, and foods picked through the logger sheet
+ * Create a meal: a name, the meal it is usually at, and foods picked through search
  * in pick-for-this-meal mode, so there is one search to build. Saved with [SavedMealRepository].
  *
- * From Today's "Save as a meal" the route names a day and a slot; that slot's items are copied
- * in once, with [prefillName] ("My breakfast", resolved by the entry point) as the name.
+ * From Today's "Save as a meal" the route names a day and a slot, or a day and the selected
+ * entries; those items are copied in once, with [prefillName] ("My breakfast", resolved by the
+ * entry point from the slot) as the name.
  */
 @Inject
 class CreateMealViewModel(
@@ -41,6 +42,12 @@ class CreateMealViewModel(
     private val requestId: String = "meal-${Random.nextLong().toULong().toString(RADIX)}"
 
     private var draft = MealDraft()
+
+    /**
+     * Set once the meal is written. A second Save tap queued behind the first (the screen is
+     * still up until Close lands) would otherwise save the same meal twice.
+     */
+    private var saved = false
     private var policy: VisibilityPolicy = policySource.policy.value
 
     init {
@@ -54,10 +61,16 @@ class CreateMealViewModel(
         }
         val day = route.fromDayIso?.let(LocalDate::parse)
         val slot = route.fromSlot
-        if (day != null && slot != null) {
+        val entryIds = route.entryIds?.toSet()
+        if (day != null && (slot != null || entryIds != null)) {
             viewModelScope.launch {
-                val items = diary.observeDay(day).first().items(slot).map { it.toDraft() }
-                takeAction(CreateMealAction.PrefillArrived(slot, items))
+                val loaded = diary.observeDay(day).first()
+                val items = when {
+                    entryIds != null -> loaded.allItems.filter { it.id in entryIds }
+                    slot != null -> loaded.items(slot)
+                    else -> emptyList()
+                }
+                takeAction(CreateMealAction.PrefillArrived(slot, items.map { it.toDraft() }))
             }
         }
     }
@@ -71,8 +84,12 @@ class CreateMealViewModel(
             is CreateMealAction.PrefillArrived -> action.change {
                 copy(
                     name = prefillName ?: name,
-                    // "Usually at" has no Uncategorized.
-                    usualSlot = if (action.slot.isMeal) action.slot else MealSlot.Lunch,
+                    // "Usually at" has no Uncategorized; foods from several meals keep the default.
+                    usualSlot = when {
+                        action.slot == null -> usualSlot
+                        action.slot.isMeal -> action.slot
+                        else -> MealSlot.Lunch
+                    },
                     items = action.items,
                 )
             }
@@ -94,8 +111,9 @@ class CreateMealViewModel(
     private suspend fun save() {
         val current = draft
         // The button is disabled until then; this keeps a stray tap from saving a nameless meal.
-        if (current.name.isBlank() || current.items.isEmpty()) return
+        if (saved || current.name.isBlank() || current.items.isEmpty()) return
         savedMeals.create(current.name.trim(), current.usualSlot, current.items)
+        saved = true
         sendEvent(CreateMealEvent.ShowToast(Toast(Res.string.foods_meal_saved)))
         sendEvent(CreateMealEvent.Close)
     }

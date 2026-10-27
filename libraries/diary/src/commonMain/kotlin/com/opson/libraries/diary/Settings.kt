@@ -1,8 +1,12 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.BodyProfile
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.WaterDefaults
 import com.opson.libraries.nutrition.WaterUnit
@@ -10,6 +14,8 @@ import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KeepGeneratedSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -24,18 +30,33 @@ import kotlinx.serialization.Serializable
  * `healthToday ?? (preset is Full)` is null here).
  *
  * Adding a field is non-breaking: missing keys decode to the default. Settings
- * only change when the user changes them.
+ * only change when the user changes them. The server merges a write into what it
+ * has one level deep, so a new field is a new top-level key: [SettingsSerializer]
+ * lifts the ones that live under [numbers] and [targets] (the goal style) out to the top.
  */
-@Serializable
+@OptIn(ExperimentalSerializationApi::class)
+@KeepGeneratedSerializer
+@Serializable(with = SettingsSerializer::class)
 data class Settings(
-    /** Preset, overrides, "Pause before showing more" and when the user last changed them. */
+    /**
+     * Preset, overrides, "Pause before showing more", when Later opens, End after a set time, and
+     * when the user last changed them. Written for 0.1 phones too: see [NumbersSettingsSerializer].
+     */
     @Serializable(with = NumbersSettingsSerializer::class)
     val numbers: NumbersSettings = NumbersSettings(),
-    /** Set when Sprint is picked. Drives "day N of 14". */
-    val sprintStartedOn: LocalDate? = null,
+    /**
+     * When End after a set time last switched the mode, and from what, so Today says so on that
+     * day and no other (design sync 4, 13.5). A top-level key: the server merges settings one
+     * level deep.
+     */
+    val modeTimerEnded: ModeTimerEnded? = null,
     @Serializable(with = TargetsSerializer::class)
     val targets: Targets = Targets.Default,
     val macroMode: MacroMode = MacroMode.Ratios,
+    /**
+     * 0.1's key, never read: 0.1 synced the prototype's default for everyone who never saw a
+     * question, so it says nothing about a choice. Kept so old JSON round-trips. See [exerciseRange].
+     */
     @Serializable(with = ExerciseAdjustmentSerializer::class)
     val exercise: ExerciseAdjustment = ExerciseAdjustment.Default,
     val ringMode: RingMode = RingMode.Target,
@@ -55,7 +76,11 @@ data class Settings(
     val askTags: Boolean = true,
     val tone: Tone = Tone.Plain,
     val bigDayEvent: EventLevel = EventLevel.Full,
-    val palette: PaletteChoice = PaletteChoice.Pine,
+    /**
+     * Appearance: System, Light or Dark. There is one color scheme, Slate (design sync 4), so
+     * 0.1's `palette` key is no longer read or written. A 0.1 phone still finds its own value on
+     * the server, because the merge keeps keys a save leaves out.
+     */
     val theme: ThemeMode = ThemeMode.System,
     val textSize: TextSize = TextSize.Normal,
     val onboarding: OnboardingAnswers = OnboardingAnswers(),
@@ -71,7 +96,7 @@ data class Settings(
     val healthOpen: Boolean = true,
     val quiet: Boolean = true,
     val mealReminders: MealReminders = MealReminders(),
-    /** When each meal usually happens: Today's "Usually around", Rhythm's "planned around", and the meal reminder times. */
+    /** When each meal usually happens: Today's "Usually around" and the meal reminder times. */
     @Serializable(with = MealTimesSerializer::class)
     val mealTimes: MealTimes = MealTimes(),
     /**
@@ -84,18 +109,122 @@ data class Settings(
     val newFoodEvent: EventLevel = EventLevel.Subtle,
     val recapEvent: EventLevel = EventLevel.Subtle,
     val remindersEvent: EventLevel = EventLevel.Subtle,
+    /**
+     * "Should exercise change your range?" (0.2, Watch and health apps). Null until the person
+     * picks, which counts as No. Read it through [exerciseInRange].
+     */
+    @Serializable(with = ExerciseRangeSerializer::class)
+    val exerciseRange: ExerciseAdjustment? = null,
+    /**
+     * The Logger's search options (0.2, `release.searchOptions`): how results are ordered,
+     * which foods they come from, and whether the category tabs show. Top-level keys, because
+     * settings sync merges shallowly. The tab picked is not kept; the Logger opens on All.
+     */
+    val searchSort: SearchSort = SearchSort.BestMatch,
+    val searchDatabase: SearchDatabase = SearchDatabase.All,
+    val searchTabs: Boolean = true,
+    /**
+     * Foods starred on the amount sheet, as food ref keys (`f:<id>`, `c:<id>`), newest first.
+     * The search options' Favorites tab lists them first. A top-level key, like the rest.
+     */
+    val favoriteFoods: List<String> = emptyList(),
+    /**
+     * Sizes of the person's own for a food ("Custom size…" on the amount sheet), by food ref key.
+     * They show in that food's unit menu after its own portions.
+     */
+    val foodUnits: Map<String, List<FoodUnit>> = emptyMap(),
+
+    // Today's summary card (design sync 2, `release.todaySummary`). Top-level keys on purpose:
+    // the server merges settings one level deep.
+    /** The card shrunk to one line by choice, kept across days and restarts. */
+    val todaySummaryCollapsed: Boolean = false,
+    /** The page last left open: 0 energy, 1 macros. */
+    val todaySummaryPage: Int = 0,
+    /** Page 1's stats as `SummaryStat` wire keys, in order; null follows the onboarding goals. */
+    val todaySummaryStats: List<String>? = null,
+    /** Page 2, the macros page. */
+    val todayMacrosPage: Boolean = true,
+    /**
+     * Close the day's check-in card (design sync 2, 4.1, `release.checkIn`), switched in Reminders.
+     * A top-level key, because the server merges settings one level deep.
+     */
+    val checkIn: Boolean = true,
+
+    // Burned (design sync 4, `release.goalsAndEnergy`): where resting energy comes from, what the
+    // calculation needs, and whether synced activity counts. Top-level keys, because the server
+    // merges settings one level deep. Weight is the latest weigh-in, not a setting.
+    @Serializable(with = RestingSourceSerializer::class)
+    val restingSource: RestingSource = RestingSource.Calculate,
+    /** "Enter my own", in kcal a day; kept when another source is picked, so switching back finds it. */
+    val restingOwnKcal: Int? = null,
+    /** "Add activity to Burned". Off, Burned is resting energy only. */
+    val activityInBurned: Boolean = true,
+    val birthYear: Int? = null,
+    val heightCm: Double? = null,
+    @Serializable(with = BodySexSerializer::class)
+    val bodySex: BodySex? = null,
+
+    // More › Today screen (design sync 4, 13.6, `release.goalsAndEnergy`). Top-level keys, because
+    // the server merges settings one level deep. Card pages are [todayMacrosPage].
+    val todayCard: SummaryCardPreset = SummaryCardPreset.InOut,
+    val todayMainNumber: MainNumberChoice = MainNumberChoice.Follow,
+    /** The card's toggle, remembered per goal style ([mainNumberKey] to [MainNumberChoice.wire]). */
+    val todayMainNumberByStyle: Map<String, String> = emptyMap(),
+    /** "Resting 1,610 · Active 570" under the Burned bar. */
+    val todayBurnedBreakdown: Boolean = true,
+    /** "3 of 4 meals" on the card. */
+    val todayMealsCount: Boolean = false,
+    val todayNutrientsLink: Boolean = true,
+    /** Rows in Today's list that can be turned off on Today alone. */
+    val todayWater: Boolean = true,
+    val todayWeight: Boolean = true,
+    val todayCloseDay: Boolean = true,
 ) {
+    /** What the resting energy calculation is told: these details and [weightKg], on [today]. */
+    fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile =
+        BodyProfile(weightKg = weightKg, heightCm = heightCm, ageYears = birthYear?.let { today.year - it }, sex = bodySex)
+
+    fun isFavorite(foodKey: String): Boolean = foodKey in favoriteFoods
+
+    /** Stars [foodKey], or takes the star off. */
+    fun toggleFavorite(foodKey: String): Settings =
+        copy(favoriteFoods = if (isFavorite(foodKey)) favoriteFoods - foodKey else listOf(foodKey) + favoriteFoods)
+
+    fun unitsFor(foodKey: String): List<FoodUnit> = foodUnits[foodKey].orEmpty()
+
+    /** Adds [unit] to [foodKey]'s sizes, replacing one with the same name. */
+    fun withUnit(foodKey: String, unit: FoodUnit): Settings {
+        val kept = unitsFor(foodKey).filterNot { it.label.equals(unit.label, ignoreCase = true) }
+        return copy(foodUnits = foodUnits + (foodKey to kept + unit))
+    }
+
     val waterGoalMl: Int get() = waterGlasses * glassMl
 
     /** How noticeable meal reminders are, as chosen: Off until the person has chosen ([remindersChosen]). */
     val mealReminderLevel: EventLevel get() = if (remindersChosen) remindersEvent else EventLevel.Off
 
+    /**
+     * How much watch activity may add to today's range. [ExerciseAdjustment.None] until the person
+     * picks, and always for someone who said numbers have been hard, whatever is stored.
+     */
+    val exerciseInRange: ExerciseAdjustment
+        get() = if (onboarding.hard) ExerciseAdjustment.None else exerciseRange ?: ExerciseAdjustment.None
+
     /** Same settings with different numbers. `changedAt` is whatever [next] carries. */
     fun withNumbers(next: NumbersSettings): Settings = copy(numbers = next)
 }
 
-/** The subset of [Settings] the `VisibilityPolicy` reads. */
-fun Settings.numbers(): NumbersSettings = numbers
+/** End after a set time switched from [from] [on] that day. */
+@Serializable
+data class ModeTimerEnded(
+    val on: LocalDate,
+    @Serializable(with = PresetKeySerializer::class)
+    val from: PresetId,
+)
+
+/** A size someone saved for a food: "my bowl" is 420 g. Grams are what make it convertible. */
+@Serializable
+data class FoodUnit(val label: String, val grams: Double)
 
 @Serializable
 enum class MacroMode {
@@ -142,6 +271,39 @@ data class TrendsCards(
     val weight: Boolean = true,
 )
 
+/** How the Logger orders search results. */
+@Serializable
+enum class SearchSort {
+    /** The server's ranking, your own matching foods first: what search did before options. */
+    @SerialName("best_match")
+    BestMatch,
+
+    /** Foods you've logged first, last used first, then the rest. */
+    @SerialName("most_recent")
+    MostRecent,
+
+    @SerialName("a_to_z")
+    AToZ,
+}
+
+/** Where the Logger's All tab looks for foods. */
+@Serializable
+enum class SearchDatabase {
+    @SerialName("all")
+    All,
+
+    @SerialName("usda")
+    Usda,
+
+    /** Only offered while the server searches Open Food Facts; otherwise read as [All]. */
+    @SerialName("open_food_facts")
+    OpenFoodFacts,
+
+    /** Foods you made and foods you've logged. No server call. */
+    @SerialName("my_foods")
+    MyFoods,
+}
+
 /** Which empty-state and toast lines the app uses. */
 @Serializable
 enum class Tone {
@@ -163,25 +325,6 @@ enum class EventLevel {
 
     @SerialName("full")
     Full,
-}
-
-/**
- * The brand palette. Kept here as a key so this module does not depend on
- * `:libraries:ui`; the shell maps it to the theme's palette.
- */
-@Serializable
-enum class PaletteChoice {
-    @SerialName("pine")
-    Pine,
-
-    @SerialName("espresso")
-    Espresso,
-
-    @SerialName("clay")
-    Clay,
-
-    @SerialName("plum")
-    Plum,
 }
 
 @Serializable

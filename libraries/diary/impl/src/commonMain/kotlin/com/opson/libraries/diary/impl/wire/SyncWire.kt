@@ -108,6 +108,17 @@ data class DayRecordRowDto(
     val untracked: Boolean = false,
     /** A `DayFeeling` wire value, or null. */
     val feeling: String? = null,
+    /** Day close's check-in as `CheckInWire` JSON, or null. A server that predates it drops it. */
+    val checkIn: String? = null,
+)
+
+/** The check-in as it is stored and synced: wire values, each optional. */
+@Serializable
+data class CheckInWire(
+    val hunger: String? = null,
+    val energy: String? = null,
+    val sleep: String? = null,
+    val moods: List<String> = emptyList(),
 )
 
 @Serializable
@@ -186,6 +197,3 @@ internal val WireJson: Json = Json {
     explicitNulls = false
     encodeDefaults = true
 }
-
-/** The server takes at most 500 mutations per request; the drain stays well under it. */
-internal const val SERVER_MAX_MUTATIONS = 500

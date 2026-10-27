@@ -1,10 +1,9 @@
 package com.opson.libraries.foods
 
+import com.opson.libraries.diary.HouseholdAmount
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.Precision
-import kotlin.math.floor
-import kotlin.math.round
 
 /** How much of a food the user picked on the amount sheet. */
 sealed interface FoodAmount {
@@ -52,17 +51,16 @@ fun Food.nutrientsFor(amount: FoodAmount): ScaledNutrients {
     )
 }
 
-/** How the amount reads on an item row: `150 g`, `1 cup`, `2 × 1 cup`, `1.5 servings`. */
+/** How the amount reads on an item row: `150 g`, `1 cup`, `1½ cups`, `2 slices`. */
 fun Food.amountTextFor(amount: FoodAmount): String = when (amount) {
-    is FoodAmount.Grams -> "${formatNumber(amount.grams)} g"
-    is FoodAmount.OfPortion ->
-        if (amount.count == 1.0) amount.portion.label else "${formatNumber(amount.count)} × ${amount.portion.label}"
+    is FoodAmount.Grams -> HouseholdAmount.of(amount.grams, "g")
+    is FoodAmount.OfPortion -> HouseholdAmount.ofPortion(amount.portion.label, amount.count)
     is FoodAmount.Servings -> {
         val portion = portions.firstOrNull()
-        when {
-            portion != null && amount.count == 1.0 -> portion.label
-            portion != null -> "${formatNumber(amount.count)} × ${portion.label}"
-            else -> "${formatNumber(gramsFor(amount))} g"
+        if (portion != null) {
+            HouseholdAmount.ofPortion(portion.label, amount.count)
+        } else {
+            HouseholdAmount.of(gramsFor(amount), "g")
         }
     }
 }
@@ -106,7 +104,7 @@ fun ParsedItem.toLogDraft(): LogDraft = LogDraft(
     name = name,
     precision = Precision.Estimate,
     foodId = foodId,
-    amountText = amountText,
+    amountText = HouseholdAmount.tidy(amountText),
     quantity = quantity,
     unit = unit ?: portionLabel,
     grams = grams,
@@ -121,8 +119,3 @@ fun ParsedItem.toLogDraft(): LogDraft = LogDraft(
 
 private const val GRAMS_PER_100 = 100.0
 
-/** Amounts, never nutrients: up to two decimals, no trailing ".0". */
-internal fun formatNumber(value: Double): String {
-    val rounded = round(value * 100) / 100
-    return if (rounded == floor(rounded)) rounded.toLong().toString() else rounded.toString()
-}

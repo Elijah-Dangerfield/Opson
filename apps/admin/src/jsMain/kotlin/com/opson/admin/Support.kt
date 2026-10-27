@@ -78,7 +78,6 @@ internal class AdminCtx(
     }
 }
 
-@Suppress("TooGenericExceptionCaught")
 internal fun parseJsonOrNull(raw: String): JsonElement? =
     Catching { adminJson.parseToJsonElement(raw.trim()) }.getOrNull()
 
@@ -96,12 +95,18 @@ internal fun randomUuid(): String = js("crypto.randomUUID()") as String
 internal fun dangerousWarning(path: String, value: String): String? {
     val v = value.trim()
     return when {
+        // Opson 0.2 and later read these; 0.1 has no guard, so each warning says so.
         path == "upgrade.maintenanceMode" && v == "\"blocking\"" ->
-            "This sets maintenance mode to BLOCKING — it locks ALL users out of the app. Continue?"
+            "This sets maintenance mode to BLOCKING. Every Opson 0.2+ phone that can reach the server gets a " +
+                "full-screen stop with your message; a phone that cannot reach it gets the banner and keeps " +
+                "logging on the phone. 0.1 is not affected. Continue?"
         path == "upgrade.maintenanceMode" && v == "\"banner\"" ->
-            "This shows a maintenance banner to ALL users. Continue?"
+            "This sets maintenance mode to BANNER. Every Opson 0.2+ user sees your message above the app; " +
+                "0.1 is not affected. Continue?"
         path == "upgrade.minSupportedVersionCode" ->
-            "Raising the minimum supported version force-upgrades every user below it. Double-check the number. Continue?"
+            "Raising the minimum supported build sends every Opson 0.2+ build below it to a full-screen " +
+                "update screen, offline too. 0.1 does not read it, so it cannot make 0.1 update. " +
+                "Double-check the number. Continue?"
         else -> null
     }
 }

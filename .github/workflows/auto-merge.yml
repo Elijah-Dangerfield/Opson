@@ -2,8 +2,8 @@
 # Auto-merges PRs carrying the `ai-autofix` label once required checks pass.
 #
 # Fires on:     PRs that are opened / labeled / synchronized / reopened /
-#               marked ready-for-review. Also re-probes on check_suite and CI
-#               workflow completions so merges trigger when checks turn green.
+#               marked ready-for-review. GitHub's auto-merge then waits for
+#               the required checks itself, so nothing here re-runs on checks.
 # Side effects: Enables GitHub's native auto-merge (squash) on matching PRs.
 #               Actual merge happens when all required status checks pass.
 # Use case:     Sentry-triage routine opens `ai-autofix` PRs; this ships them
@@ -17,16 +17,10 @@ name: Auto-merge
 on:
   pull_request:
     types: [labeled, opened, synchronize, reopened, ready_for_review]
-  check_suite:
-    types: [completed]
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
 
 permissions:
   contents: write
   pull-requests: write
-  checks: read
 
 jobs:
   autofix:

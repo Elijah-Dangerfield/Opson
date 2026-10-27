@@ -62,8 +62,8 @@ sealed interface AddFoodEvent {
 /**
  * Which nutrition fields Add a food asks for, and the food it saves. Every field is optional.
  * A field is asked when the mode does not hide its metric (the configured level, as the
- * prototype: a Delayed user still fills them in). So Full asks all five, Nutrient focus asks
- * protein and fiber, and Blind asks none.
+ * prototype: a Later user still fills them in). So Full asks all five, Nutrients first asks
+ * calories, protein and fiber, and No numbers asks none.
  */
 object AddFoodStateBuilder {
     val FIELD_ORDER: List<Metric> = listOf(Metric.Calories, Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber)

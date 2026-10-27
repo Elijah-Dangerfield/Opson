@@ -34,6 +34,35 @@ data class LogItem(
     /** Micronutrient key (unit in the key, `sodium_mg`) to amount for the whole item. */
     val micros: Map<String, Double>? = null,
 ) {
+    /**
+     * The amount as a row shows it. Every screen reads this, not [amountText], so entries an
+     * older build saved as "0.25 cup" or "1.5 × 1 cup" read "¼ cup" and "1½ cups" too.
+     */
+    val amountLabel: String get() = HouseholdAmount.tidy(amountText.orEmpty())
+
+    /**
+     * This entry at [count] of its own unit ("Change amount"): the nutrients, grams and micros
+     * scale with it, so 2 tbsp changed to 3 is half as much again of everything. Null when there
+     * is no amount to scale from (a name only, a quick number). The precision stays as logged.
+     */
+    fun withQuantity(count: Double): LogItem? {
+        val from = quantity?.takeIf { it > 0.0 } ?: return null
+        val unit = unit ?: return null
+        if (count <= 0.0 || !count.isFinite()) return null
+        val factor = count / from
+        return copy(
+            quantity = count,
+            amountText = HouseholdAmount.ofPortion(unit, count),
+            grams = grams?.times(factor),
+            kcal = kcal?.times(factor),
+            protein = protein?.times(factor),
+            carbs = carbs?.times(factor),
+            fat = fat?.times(factor),
+            fiber = fiber?.times(factor),
+            micros = micros?.mapValues { it.value * factor },
+        )
+    }
+
     /** The same food and amount, for copying into another day or a saved meal. */
     fun toDraft(): LogDraft = LogDraft(
         name = name,
@@ -79,7 +108,10 @@ data class LogDraft(
     val fiber: Double? = null,
     val micros: Map<String, Double>? = null,
     val method: LogMethod? = null,
-)
+) {
+    /** The amount as a row shows it, read the same way as [LogItem.amountLabel]. Not serialized: no backing field. */
+    val amountLabel: String get() = HouseholdAmount.tidy(amountText.orEmpty())
+}
 
 /**
  * A sum that knows how much of it is known.

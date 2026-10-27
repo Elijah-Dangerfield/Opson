@@ -24,19 +24,34 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MealTimes
+import com.opson.libraries.diary.ui.label
+import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.ui.testTag
+import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.ChoiceRow
@@ -46,6 +61,11 @@ import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.PageHeaderDefaults
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SegmentedBar
+import com.opson.libraries.ui.components.SegmentedControl
+import com.opson.libraries.ui.components.Stepper
+import com.opson.libraries.ui.components.dialog.TimePickerDialog
+import com.opson.libraries.ui.components.text.NumberField
+import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.components.button.ButtonGhost
 import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.button.ButtonSecondary
@@ -67,7 +87,6 @@ import opson.libraries.resources.generated.resources.auth_error_provider_not_ena
 import opson.libraries.resources.generated.resources.common_back
 import opson.libraries.resources.generated.resources.onboarding_account_apple
 import opson.libraries.resources.generated.resources.onboarding_account_body
-import opson.libraries.resources.generated.resources.onboarding_account_coach
 import opson.libraries.resources.generated.resources.onboarding_account_email
 import opson.libraries.resources.generated.resources.onboarding_account_export
 import opson.libraries.resources.generated.resources.onboarding_account_failed
@@ -88,9 +107,6 @@ import opson.libraries.resources.generated.resources.onboarding_get_started
 import opson.libraries.resources.generated.resources.onboarding_have_account
 import opson.libraries.resources.generated.resources.onboarding_plan_free
 import opson.libraries.resources.generated.resources.onboarding_plan_free_includes
-import opson.libraries.resources.generated.resources.onboarding_plan_plus
-import opson.libraries.resources.generated.resources.onboarding_plan_plus_includes
-import opson.libraries.resources.generated.resources.onboarding_plan_plus_later
 import opson.libraries.resources.generated.resources.onboarding_progress
 import opson.libraries.resources.generated.resources.onboarding_progress_description
 import opson.libraries.resources.generated.resources.onboarding_progress_optional
@@ -106,9 +122,36 @@ import opson.libraries.resources.generated.resources.onboarding_skip_all
 import opson.libraries.resources.generated.resources.onboarding_start_with
 import opson.libraries.resources.generated.resources.onboarding_statement_body
 import opson.libraries.resources.generated.resources.onboarding_statement_quote
+import opson.libraries.resources.generated.resources.onboarding_talk_to_someone
 import opson.libraries.resources.generated.resources.onboarding_welcome_body
+import opson.libraries.resources.generated.resources.onboarding_welcome_not_medical
 import opson.libraries.resources.generated.resources.onboarding_welcome_subtitle
 import opson.libraries.resources.generated.resources.onboarding_welcome_title
+import opson.libraries.resources.generated.resources.onboarding_body_body
+import opson.libraries.resources.generated.resources.onboarding_body_resting
+import opson.libraries.resources.generated.resources.onboarding_body_title
+import opson.libraries.resources.generated.resources.onboarding_body_units_imperial
+import opson.libraries.resources.generated.resources.onboarding_body_units_metric
+import opson.libraries.resources.generated.resources.onboarding_body_weight
+import opson.libraries.resources.generated.resources.onboarding_goal_burn_note
+import opson.libraries.resources.generated.resources.onboarding_goal_change
+import opson.libraries.resources.generated.resources.onboarding_goal_title
+import opson.libraries.resources.generated.resources.onboarding_meals_body
+import opson.libraries.resources.generated.resources.onboarding_meals_title
+import opson.libraries.resources.generated.resources.reminders_time_cancel
+import opson.libraries.resources.generated.resources.reminders_time_ok
+import opson.libraries.resources.generated.resources.reminders_time_title
+import opson.libraries.resources.generated.resources.settings_look_weight_kg
+import opson.libraries.resources.generated.resources.settings_look_weight_lb
+import opson.libraries.resources.generated.resources.settings_resting_birth_year
+import opson.libraries.resources.generated.resources.settings_resting_cm
+import opson.libraries.resources.generated.resources.settings_resting_height
+import opson.libraries.resources.generated.resources.settings_resting_in
+import opson.libraries.resources.generated.resources.settings_resting_sex
+import opson.libraries.resources.generated.resources.settings_resting_sex_female
+import opson.libraries.resources.generated.resources.settings_resting_sex_male
+import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
+import opson.libraries.resources.generated.resources.settings_targets_floor_note
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -136,6 +179,9 @@ fun OnboardingScreen(
                 OnboardingStep.Welcome -> WelcomeStep(state, onAction)
                 is OnboardingStep.Question -> QuestionStep(state, step.question, onAction)
                 OnboardingStep.Recommendation -> RecommendationStep(state, onAction)
+                OnboardingStep.Goal -> GoalStep(state, onAction)
+                OnboardingStep.Body -> BodyStep(state, onAction)
+                OnboardingStep.Meals -> MealsStep(state, onAction)
                 OnboardingStep.Account -> AccountStep(state, onAction)
             }
         }
@@ -175,7 +221,7 @@ private fun WelcomeStep(
             Spacer(Modifier.height(Dimension.D900))
             Text(
                 text = stringResource(Res.string.onboarding_welcome_subtitle),
-                typography = AppTheme.type.display,
+                typography = AppTheme.type.h1,
                 color = AppTheme.colors.ink,
                 modifier = Modifier.semantics { heading() },
             )
@@ -187,6 +233,12 @@ private fun WelcomeStep(
             )
             Spacer(Modifier.height(Dimension.D900))
             PlanCard()
+            Spacer(Modifier.height(Dimension.D700))
+            Text(
+                text = stringResource(Res.string.onboarding_welcome_not_medical),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
 
             Spacer(Modifier.height(Dimension.D900))
             Spacer(Modifier.weight(1f))
@@ -210,7 +262,9 @@ private fun WelcomeStep(
                     ),
                 )
             }
-            SignInLink(enabled = !busy, onClick = { onAction(OnboardingAction.SignInTapped) })
+            if (state.canSignIn) {
+                SignInLink(enabled = !busy, onClick = { onAction(OnboardingAction.SignInTapped) })
+            }
             Spacer(Modifier.height(Dimension.D300))
         }
     }
@@ -230,24 +284,23 @@ private fun PlanCard() {
     ) {
         PlanRow(
             name = stringResource(Res.string.onboarding_plan_free),
-            note = null,
             includes = stringResource(Res.string.onboarding_plan_free_includes),
         )
     }
 }
 
 @Composable
-private fun PlanRow(name: String, note: String?, includes: String) {
+private fun PlanRow(name: String, includes: String) {
     Row(
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.spacedBy(Dimension.D700),
     ) {
-        Column(modifier = Modifier.weight(PLAN_NAME_WEIGHT)) {
-            Text(text = name, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
-            if (note != null) {
-                Text(text = note, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
-            }
-        }
+        Text(
+            text = name,
+            typography = AppTheme.type.bodyBold,
+            color = AppTheme.colors.ink,
+            modifier = Modifier.weight(PLAN_NAME_WEIGHT),
+        )
         Text(
             text = includes,
             typography = AppTheme.type.body,
@@ -307,6 +360,7 @@ private fun ColumnScope.QuestionStep(
             text = stringResource(
                 if (statement) Res.string.onboarding_progress_optional else Res.string.onboarding_progress,
                 question.number,
+                SetupQuestion.Count,
             ),
             typography = AppTheme.type.secondaryStrong,
             color = AppTheme.colors.muted,
@@ -328,7 +382,7 @@ private fun ColumnScope.QuestionStep(
             Spacer(Modifier.height(Dimension.D600))
             Text(
                 text = stringResource(Res.string.onboarding_statement_body),
-                typography = AppTheme.type.secondary,
+                typography = AppTheme.type.body,
                 color = AppTheme.colors.muted,
             )
         }
@@ -350,7 +404,7 @@ private fun ColumnScope.QuestionStep(
             Spacer(Modifier.height(Dimension.D700))
             Text(
                 text = stringResource(Res.string.onboarding_feel_footnote),
-                typography = AppTheme.type.secondary,
+                typography = AppTheme.type.body,
                 color = AppTheme.colors.muted,
             )
         }
@@ -360,7 +414,33 @@ private fun ColumnScope.QuestionStep(
         label = stringResource(if (statement) Res.string.onboarding_see_starting_point else Res.string.onboarding_continue),
         enabled = !state.isFinishing,
         onClick = { onAction(OnboardingAction.ContinueTapped) },
+        above = if (statement) {
+            { TalkToSomeoneLink(enabled = !state.isFinishing, onClick = { onAction(OnboardingAction.TalkToSomeoneTapped) }) }
+        } else {
+            null
+        },
     )
+}
+
+/** "Talk to someone": Find support, whichever answer is picked. One 48 dp target. */
+@Composable
+private fun TalkToSomeoneLink(enabled: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .defaultMinSize(minHeight = MinTouchTarget)
+            .semantics(mergeDescendants = true) { role = Role.Button }
+            .bounceClick(enabled = enabled, scaleDown = 0.97f, onClick = onClick)
+            .padding(horizontal = Dimension.D300),
+        horizontalArrangement = Arrangement.spacedBy(Dimension.D300),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon = AppIcons.SupportAgent, size = IconGlyph, color = AppTheme.colors.accent)
+        Text(
+            text = stringResource(Res.string.onboarding_talk_to_someone),
+            typography = AppTheme.type.bodyBold,
+            color = AppTheme.colors.accent,
+        )
+    }
 }
 
 /** The statement as a quote the person can agree with, never a question about a diagnosis. */
@@ -372,7 +452,7 @@ private fun StatementCard() {
     ) {
         Text(
             text = stringResource(Res.string.onboarding_statement_quote),
-            typography = AppTheme.type.sheetTitle,
+            typography = AppTheme.type.heroTitle,
             color = AppTheme.colors.ink,
         )
     }
@@ -410,6 +490,10 @@ private fun ColumnScope.RecommendationStep(
             typography = AppTheme.type.lead,
             color = AppTheme.colors.inkSoft,
         )
+        state.reason?.let { reason ->
+            Spacer(Modifier.height(Dimension.D300))
+            Text(text = stringResource(reason.line), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        }
         Spacer(Modifier.height(Dimension.D700))
 
         Column(verticalArrangement = Arrangement.spacedBy(Dimension.D600)) {
@@ -483,10 +567,10 @@ private fun PreviewCard(title: String, lines: List<PreviewLine>, seen: Boolean) 
 
 private val PreviewMark.icon: IconResource
     get() = when (this) {
-        PreviewMark.Shown -> AppIcons.Visibility
+        PreviewMark.Shown -> AppIcons.VisibilityOutline
         PreviewMark.Softened -> AppIcons.BlurOn
         PreviewMark.Later -> AppIcons.Schedule
-        PreviewMark.Hidden -> AppIcons.VisibilityOff
+        PreviewMark.Hidden -> AppIcons.VisibilityOffOutline
     }
 
 @Composable
@@ -498,6 +582,233 @@ private fun AlternativeChip(label: String, enabled: Boolean, onClick: () -> Unit
         enabled = enabled,
         role = Role.Button,
     )
+}
+
+// ---------- Setup steps ----------
+
+/** The top bar and the pinned Continue every setup step shares. Continue on the last one saves. */
+@Composable
+private fun ColumnScope.SetupStep(
+    state: OnboardingState,
+    onAction: (OnboardingAction) -> Unit,
+    title: String,
+    body: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    OnboardingTopBar(canGoBack = state.canGoBack, onAction = onAction, canSkip = !state.isFinishing, showSkip = true)
+
+    ScrollingBody {
+        Text(
+            text = title,
+            typography = AppTheme.type.subH1,
+            color = AppTheme.colors.ink,
+            modifier = Modifier.semantics { heading() },
+        )
+        if (body != null) {
+            Spacer(Modifier.height(Dimension.D300))
+            Text(text = body, typography = AppTheme.type.body, color = AppTheme.colors.muted)
+        }
+        Spacer(Modifier.height(Dimension.D700))
+        content()
+    }
+
+    PinnedPrimary(
+        label = stringResource(if (state.isFinishing) Res.string.onboarding_finishing else Res.string.onboarding_continue),
+        enabled = !state.isFinishing,
+        onClick = { onAction(OnboardingAction.ContinueTapped) },
+    )
+}
+
+/**
+ * The goal, in Full numbers: the style (with `release.goalsAndEnergy`) and the range or the one
+ * number on a stepper. Lower stops at the floor, as on Targets. Every amount is the policy's.
+ */
+@Composable
+private fun ColumnScope.GoalStep(state: OnboardingState, onAction: (OnboardingAction) -> Unit) {
+    val view = state.goalView ?: return
+    SetupStep(state, onAction, title = stringResource(Res.string.onboarding_goal_title)) {
+        if (view.styles.size > 1) {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
+                view.styles.forEach { style ->
+                    ChoiceRow(
+                        label = stringResource(style.label),
+                        selected = style == view.style,
+                        onClick = { onAction(OnboardingAction.GoalStyleTapped(style)) },
+                        role = Role.RadioButton,
+                        enabled = !state.isFinishing,
+                        detail = style.line?.let { stringResource(it) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(Dimension.D700))
+        }
+        (view.amount as? Display.Shown)?.let { amount ->
+            Stepper(
+                amount = amount.text,
+                onDecrease = { onAction(OnboardingAction.GoalStepped(up = false)) },
+                onIncrease = { onAction(OnboardingAction.GoalStepped(up = true)) },
+                canDecrease = view.canLower && !state.isFinishing,
+                canIncrease = !state.isFinishing,
+                amountModifier = Modifier.testTag(Metric.Calories.testTag()),
+            )
+            if (!view.canLower) {
+                Spacer(Modifier.height(Dimension.D500))
+                Text(
+                    text = stringResource(Res.string.settings_targets_floor_note),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                )
+            }
+        }
+        if (view.style.needsBurn) {
+            Text(
+                text = stringResource(Res.string.onboarding_goal_burn_note),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.muted,
+            )
+        }
+        Spacer(Modifier.height(Dimension.D700))
+        Text(
+            text = stringResource(Res.string.onboarding_goal_change),
+            typography = AppTheme.type.secondary,
+            color = AppTheme.colors.muted,
+        )
+    }
+}
+
+/**
+ * Resting energy's details, for a set deficit or surplus: units, the year born, height, weight
+ * and sex. "Rather not say" is a real answer. The weight is logged as the first weigh-in.
+ */
+@Composable
+private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAction) -> Unit) {
+    val view = state.bodyView ?: return
+    val answer = view.answer
+    val imperial = answer.unit == WeightUnit.Lb
+    SetupStep(
+        state,
+        onAction,
+        title = stringResource(Res.string.onboarding_body_title),
+        body = stringResource(Res.string.onboarding_body_body),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Dimension.D700)) {
+            SegmentedControl(
+                options = WeightUnit.entries,
+                selected = answer.unit,
+                onSelect = { onAction(OnboardingAction.UnitPicked(it)) },
+                label = {
+                    stringResource(
+                        if (it == WeightUnit.Lb) Res.string.onboarding_body_units_imperial else Res.string.onboarding_body_units_metric,
+                    )
+                },
+            )
+            NumberField(
+                value = answer.birthYear,
+                onValueChange = { onAction(OnboardingAction.BirthYearTyped(it)) },
+                label = stringResource(Res.string.settings_resting_birth_year),
+                allowDecimal = false,
+                enabled = !state.isFinishing,
+            )
+            NumberField(
+                value = answer.height,
+                onValueChange = { onAction(OnboardingAction.HeightTyped(it)) },
+                label = stringResource(Res.string.settings_resting_height),
+                unit = stringResource(if (imperial) Res.string.settings_resting_in else Res.string.settings_resting_cm),
+                enabled = !state.isFinishing,
+            )
+            if (view.weightShown) {
+                NumberField(
+                    value = answer.weight,
+                    onValueChange = { onAction(OnboardingAction.WeightTyped(it)) },
+                    label = stringResource(Res.string.onboarding_body_weight),
+                    unit = stringResource(if (imperial) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg),
+                    enabled = !state.isFinishing,
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
+                Text(
+                    text = stringResource(Res.string.settings_resting_sex),
+                    typography = AppTheme.type.secondarySmallStrong,
+                    color = AppTheme.colors.muted,
+                )
+                SegmentedControl<BodySex?>(
+                    options = BodySex.entries,
+                    selected = answer.sex,
+                    onSelect = { sex -> sex?.let { onAction(OnboardingAction.SexPicked(it)) } },
+                    label = { sex ->
+                        stringResource(
+                            when (sex) {
+                                BodySex.Female -> Res.string.settings_resting_sex_female
+                                BodySex.Male -> Res.string.settings_resting_sex_male
+                                BodySex.Unsaid, null -> Res.string.settings_resting_sex_unsaid
+                            },
+                        )
+                    },
+                )
+            }
+            (view.resting as? Display.Shown)?.let {
+                Text(
+                    text = stringResource(Res.string.onboarding_body_resting, it.text),
+                    typography = AppTheme.type.bodyBold,
+                    color = AppTheme.colors.ink,
+                    modifier = Modifier.testTag(Metric.EnergyOut.testTag()).semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
+        }
+    }
+}
+
+/** When meals usually happen. Today's "around" times and meal reminders read them. */
+@Composable
+private fun ColumnScope.MealsStep(state: OnboardingState, onAction: (OnboardingAction) -> Unit) {
+    var picking by remember { mutableStateOf<MealSlot?>(null) }
+    SetupStep(
+        state,
+        onAction,
+        title = stringResource(Res.string.onboarding_meals_title),
+        body = stringResource(Res.string.onboarding_meals_body),
+    ) {
+        EdgeCard(edgeToEdge = false, contentPadding = PaddingValues(horizontal = Dimension.D800, vertical = Dimension.D300)) {
+            MealSlot.meals.forEachIndexed { index, slot ->
+                val time = state.mealTimes.at(slot)
+                MealTimeRow(
+                    label = stringResource(slot.label),
+                    time = DateCopy.time(time.hour, time.minute),
+                    enabled = !state.isFinishing,
+                    onClick = { picking = slot },
+                )
+                if (index < MealSlot.meals.lastIndex) HorizontalDivider()
+            }
+        }
+    }
+    picking?.let { slot ->
+        TimePickerDialog(
+            title = stringResource(Res.string.reminders_time_title, stringResource(slot.label)),
+            initial = state.mealTimes.at(slot),
+            okLabel = stringResource(Res.string.reminders_time_ok),
+            cancelLabel = stringResource(Res.string.reminders_time_cancel),
+            onPicked = {
+                onAction(OnboardingAction.MealTimePicked(slot, it))
+                picking = null
+            },
+            onDismiss = { picking = null },
+        )
+    }
+}
+
+@Composable
+private fun MealTimeRow(label: String, time: String, enabled: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = MinTouchTarget + Dimension.D300)
+            .semantics(mergeDescendants = true) { role = Role.Button }
+            .bounceClick(enabled = enabled, scaleDown = 0.98f, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+        Text(text = time, typography = AppTheme.type.bodyBold, color = AppTheme.colors.accent)
+    }
 }
 
 // ---------- Account ----------
@@ -654,7 +965,7 @@ private fun AccountErrorText(error: OnboardingAccountError) {
         ),
         typography = AppTheme.type.secondary,
         color = AppTheme.colors.ink,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
     )
 }
 
@@ -678,8 +989,9 @@ private fun IconLine(icon: IconResource, iconColor: ColorResource, text: String)
 
 /**
  * The Android top app bar these steps share (design v3): a back arrow, then on the question
- * steps a segmented progress bar and Skip. Laid out like [PageHeaderDefaults]: 64 dp tall, the
- * arrow's glyph 16 dp from the edge.
+ * steps a segmented progress bar and Skip. The setup steps keep Skip without the bar: they are
+ * not questions, and how many there are depends on the mode. Laid out like [PageHeaderDefaults]:
+ * 64 dp tall, the arrow's glyph 16 dp from the edge.
  */
 @Composable
 private fun OnboardingTopBar(
@@ -687,6 +999,7 @@ private fun OnboardingTopBar(
     onAction: (OnboardingAction) -> Unit,
     progress: Int = 0,
     canSkip: Boolean = false,
+    showSkip: Boolean = progress > 0,
 ) {
     Row(
         modifier = Modifier
@@ -714,7 +1027,7 @@ private fun OnboardingTopBar(
             Spacer(Modifier.width(MinTouchTarget))
         }
         if (progress > 0) {
-            val description = stringResource(Res.string.onboarding_progress_description, progress)
+            val description = stringResource(Res.string.onboarding_progress_description, progress, SetupQuestion.Count)
             Spacer(Modifier.width(Dimension.D500))
             SegmentedBar(
                 filled = progress,
@@ -724,6 +1037,10 @@ private fun OnboardingTopBar(
                 gap = Dimension.D100,
                 modifier = Modifier.weight(1f).semantics { contentDescription = description },
             )
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
+        if (showSkip) {
             // Skip's 48 dp target reaches into the end padding, so its text lines up with the page.
             Spacer(Modifier.width(Dimension.D500))
             Text(
@@ -761,6 +1078,7 @@ private fun PinnedPrimary(
     enabled: Boolean,
     onClick: () -> Unit,
     footnote: String? = null,
+    above: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
@@ -770,6 +1088,7 @@ private fun PinnedPrimary(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Dimension.D500),
     ) {
+        above?.invoke()
         ButtonPrimary(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
             Text(label)
         }
@@ -838,12 +1157,6 @@ private fun OnboardingNumbersEmptyPreview() = OnboardingPreview(OnboardingFixtur
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun OnboardingNoticePreview() = OnboardingPreview(
-    OnboardingFixtures.question(SetupQuestion.Focus, SetupAnswers(notice = Notice.Patterns)),
-)
-
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
 private fun OnboardingStatementPreview() = OnboardingPreview(
     OnboardingFixtures.question(SetupQuestion.Statement, OnboardingFixtures.DesignAnswers),
 )
@@ -878,13 +1191,67 @@ private fun OnboardingRecommendationFullPreview() = OnboardingPreview(Onboarding
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingRecommendationBlindPreview() =
-    OnboardingPreview(OnboardingFixtures.recommendation(OnboardingFixtures.HardAnswers, picked = PresetId.Blind))
+    OnboardingPreview(OnboardingFixtures.recommendation(OnboardingFixtures.HardAnswers, picked = PresetId.NoNumbers))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingRecommendationAllModesPreview() = OnboardingPreview(
     OnboardingFixtures.recommendation(OnboardingFixtures.DesignAnswers, allModes = true),
 )
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingRecommendationNotSurePreview() = OnboardingPreview(
+    OnboardingFixtures.recommendation(SetupAnswers(feel = NumbersFeel.NotSure)),
+)
+
+// Setup steps (release.onboardingSetup). No design yet: ids onboarding-goal, onboarding-resting-energy
+// and onboarding-meal-times, in the design's visual language.
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalPreview() = OnboardingPreview(OnboardingFixtures.goal())
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalDarkPreview() = OnboardingPreview(OnboardingFixtures.goal(), darkTheme = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalRaisedPreview() = OnboardingPreview(
+    OnboardingFixtures.goal(GoalAnswer(style = GoalChoice.OneNumber).stepped(up = true).stepped(up = true)),
+)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalDeficitPreview() =
+    OnboardingPreview(OnboardingFixtures.goal(GoalAnswer(style = GoalChoice.Deficit)))
+
+/** With `release.goalsAndEnergy` off: the range alone. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalRangeOnlyPreview() = OnboardingPreview(OnboardingFixtures.goal(goalsAndEnergy = false))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingRestingEnergyPreview() = OnboardingPreview(OnboardingFixtures.body(OnboardingFixtures.Body))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingRestingEnergyEmptyPreview() = OnboardingPreview(OnboardingFixtures.body())
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingRestingEnergyLargeTextPreview() =
+    OnboardingPreview(OnboardingFixtures.body(OnboardingFixtures.Body.copy(unit = WeightUnit.Lb, height = "66", weight = "141")), largeText = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingMealTimesPreview() = OnboardingPreview(OnboardingFixtures.meals())
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingMealTimesDarkPreview() = OnboardingPreview(OnboardingFixtures.meals(), darkTheme = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

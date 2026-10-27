@@ -1,0 +1,261 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WaitlistForm from '../components/WaitlistForm.astro';
+import Screenshot from '../components/Screenshot.astro';
+import { href } from '../consts';
+
+// Rendered from the app's own previews by scripts/design_sync.main.kts, so
+// they show the app as it is. Astro resizes them at build.
+import todayFull from '../assets/screens/today-full.png';
+import todayBlind from '../assets/screens/today-blind.png';
+import search from '../assets/screens/search.png';
+import describe from '../assets/screens/describe.png';
+import targetsByDay from '../assets/screens/targets-by-day.png';
+import modes from '../assets/screens/modes.png';
+import trends from '../assets/screens/trends.png';
+import support from '../assets/screens/support.png';
+---
+
+<Layout>
+  <section class="hero dark">
+    <div class="wrap hero-inner">
+      <h1>Tracking food isn't one size fits all.</h1>
+      <p class="lead">
+        Opson is a food log with no ads that you set up your way. Count every calorie, aim for a range or a
+        deficit, follow only your macros, or log without seeing a number at all.
+      </p>
+      <WaitlistForm id="waitlist" page="home" />
+      <p class="fine">
+        One email when it's out, maybe a few updates before. Never sold or shared. <a href={href('/privacy/')}>Privacy</a>
+      </p>
+      <div class="hero-shot">
+        <Screenshot
+          src={todayFull}
+          width={340}
+          sizes="(max-width: 520px) 72vw, 340px"
+          loading="eager"
+          alt="Today: 1,245 kcal eaten against a range of 1,900 to 2,300, with breakfast of oat porridge, a banana and coffee with milk."
+        />
+      </div>
+    </div>
+  </section>
+
+  <section class="why" aria-labelledby="why-title">
+    <div class="wrap">
+      <h2 id="why-title" class="visually-hidden">What Opson does</h2>
+
+      <div class="blocks">
+        <article class="block breakfast">
+          <div class="block-copy">
+            <h3>Log a meal in a few seconds</h3>
+            <p>
+              Search over 3.7 million foods from the USDA and Open Food Facts, or type what you ate in a sentence
+              and Opson finds each food.
+              Copy yesterday's breakfast in one tap, or save the meals you eat every week.
+            </p>
+          </div>
+          <div class="block-media pair">
+            <Screenshot
+              src={search}
+              width={250}
+              sizes="(max-width: 880px) 40vw, 250px"
+              alt="Adding to dinner: a search for rice with six matches, from jasmine rice to chicken kabsa."
+            />
+            <Screenshot
+              src={describe}
+              width={250}
+              sizes="(max-width: 880px) 40vw, 250px"
+              alt="Describe it: 2 eggs and toast typed in, read as two large eggs and a slice of white toast."
+            />
+          </div>
+        </article>
+
+        <article class="block lunch flip">
+          <div class="block-copy">
+            <h3>Goals that fit how you live</h3>
+            <p>
+              Aim for a range, or for a set deficit under what you burn. Not every day is the same, so training
+              days can have a goal of their own and the rest of the week another.
+            </p>
+          </div>
+          <div class="block-media">
+            <Screenshot
+              src={targetsByDay}
+              width={300}
+              sizes="(max-width: 880px) 64vw, 300px"
+              alt="Targets set to Different by day: Monday to Wednesday aim for 2,300 to 2,700 kcal, the other days 1,900 to 2,300."
+            />
+          </div>
+        </article>
+
+        <article class="block snack">
+          <div class="block-copy">
+            <h3>Only the numbers you want</h3>
+            <p>
+              Pick one of ten ways to track. Nutrient focus hides calories and shows your macros as fill bars,
+              and Blind takes calories out of the app completely. After that, change any single number on its own.
+            </p>
+          </div>
+          <div class="block-media pair">
+            <Screenshot
+              src={todayBlind}
+              width={250}
+              sizes="(max-width: 880px) 40vw, 250px"
+              alt="Today in Blind: no calories anywhere, just breakfast, lunch and snack ticked off and dinner around 7:00."
+            />
+            <Screenshot
+              src={modes}
+              width={250}
+              sizes="(max-width: 880px) 40vw, 250px"
+              alt="Modes and numbers, listing ten starting points from Full numbers to Coast."
+            />
+          </div>
+        </article>
+
+        <article class="block dinner flip">
+          <div class="block-copy">
+            <h3>Your week, without the nagging</h3>
+            <p>
+              Trends lines each day up against your range. There are no streaks and no warnings about calories
+              left. Skip a day and it's a gap in the chart, nothing more.
+            </p>
+          </div>
+          <div class="block-media">
+            <Screenshot
+              src={trends}
+              width={300}
+              sizes="(max-width: 880px) 64vw, 300px"
+              alt="Trends for a week: a bar for each day against a shaded range, Thursday left empty, and a recap of 6 of 7 days logged."
+            />
+          </div>
+        </article>
+
+        <article class="block plain">
+          <div class="block-copy">
+            <h3>No ads, and your log stays yours</h3>
+            <p>
+              Opson doesn't show ads or sell what you eat. Your log lives on your phone and syncs to your
+              account, and you can export it or delete all of it from the app.
+            </p>
+          </div>
+          <div class="block-media">
+            <Screenshot
+              src={support}
+              width={300}
+              sizes="(max-width: 880px) 64vw, 300px"
+              alt="Support and sharing, with Export everything (CSV) and Delete everything under Your data."
+            />
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing" aria-labelledby="closing-title">
+    <div class="wrap">
+      <div class="closing-block dark">
+        <h2 id="closing-title">Want to know when it's out?</h2>
+        <p>Leave your email and we'll send one note when Opson is in the App Store.</p>
+        <WaitlistForm id="waitlist-bottom" page="home" />
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  /* How far the hero phone hangs below the dark band. */
+  .hero, .why { --overlap: clamp(220px, 30vw, 330px); }
+
+  .hero-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: clamp(48px, 8vw, 96px);
+  }
+  .hero h1 {
+    max-width: 12em;
+    font-size: clamp(36px, 6.4vw, 80px);
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+  .lead {
+    margin: 22px 0 34px;
+    max-width: 30em;
+    font-size: clamp(18px, 2vw, 22px);
+    color: var(--on-hero-soft);
+  }
+  .fine { margin-top: 2px; font-size: 15px; color: var(--on-hero-soft); }
+  .hero-shot :global(picture) { display: block; }
+  .hero-shot {
+    position: relative;
+    z-index: 1;
+    width: min(340px, 72vw);
+    margin: clamp(40px, 6vw, 64px) auto calc(-1 * var(--overlap));
+  }
+
+  .why { padding-top: calc(var(--overlap) + clamp(64px, 9vw, 112px)); }
+
+  .blocks { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 32px); }
+  .block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    border-radius: var(--radius-block);
+    overflow: hidden;
+    min-height: 460px;
+  }
+  .breakfast { background: var(--breakfast); color: var(--on-breakfast); }
+  .lunch { background: var(--lunch); color: var(--on-lunch); }
+  .snack { background: var(--snack); color: var(--on-snack); }
+  .dinner { background: var(--dinner); color: var(--on-dinner); }
+  /* The fifth block is about the person, not a meal, so it sits on the page's own surface. */
+  .plain { background: var(--surface); color: var(--ink); }
+  .plain h3 { color: var(--title); }
+
+  .block-copy {
+    align-self: center;
+    padding: clamp(32px, 5vw, 72px);
+  }
+  .block h3 { font-size: clamp(30px, 3.6vw, 46px); }
+  .block p { margin-top: 18px; font-size: clamp(17px, 1.6vw, 20px); max-width: 30em; }
+  .flip .block-copy { order: 2; }
+
+  /* The phone starts below the block's top edge and runs off the bottom, which
+     crops it. */
+  .block-media {
+    align-self: end;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    height: 420px;
+    padding: 56px 32px 0;
+    overflow: hidden;
+  }
+  .block-media :global(picture) { display: block; width: 300px; flex: 0 1 auto; }
+  .pair :global(picture) { width: 250px; }
+  .pair :global(picture:last-child) { margin-top: 36px; }
+
+
+  .closing { padding: clamp(64px, 9vw, 112px) 0; }
+  .closing-block {
+    border-radius: var(--radius-block);
+    padding: clamp(44px, 7vw, 88px) clamp(20px, 5vw, 64px);
+    text-align: center;
+  }
+  .closing h2 { font-size: clamp(34px, 5vw, 56px); }
+  .closing p { margin: 16px auto 32px; max-width: 32em; color: var(--on-hero-soft); font-size: clamp(17px, 2vw, 20px); }
+
+  @media (max-width: 880px) {
+    .block { grid-template-columns: 1fr; min-height: 0; text-align: center; }
+    .flip .block-copy { order: 0; }
+    .block-copy { padding: 40px 24px 0; }
+    .block p { margin-inline: auto; }
+    .block-media { height: clamp(300px, 80vw, 420px); padding: 36px 20px 0; }
+    .block-media :global(picture) { width: min(300px, 64vw); }
+    .pair { gap: 14px; }
+    .pair :global(picture) { width: min(250px, 40vw); }
+    .pair :global(picture:last-child) { margin-top: 28px; }
+  }
+
+</style>

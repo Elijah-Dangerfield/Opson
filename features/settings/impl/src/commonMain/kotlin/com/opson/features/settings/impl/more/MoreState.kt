@@ -24,6 +24,9 @@ sealed interface MoreRow {
     /** "Energy range and macro split", never the range itself. */
     data object Targets : MoreRow
 
+    /** More › Today screen (design sync 4, 13.6), with `release.goalsAndEnergy`. */
+    data object TodayScreen : MoreRow
+
     data object LookAndFeel : MoreRow
 
     /** "Quiet mode on" or "Quiet mode off", as v3. Only with `release.reminders` on. */
@@ -51,7 +54,8 @@ object MoreStateBuilder {
     /**
      * How the app treats you, optional extras, then help and plan. Reminders shows only with
      * [remindersOn]; [healthConnected] is null while `release.health` is off, and then there is
-     * no health row at all. [fastingReleased] is `release.fasting`, [widgetsOn] `release.widgets`.
+     * no health row at all. [fastingReleased] is `release.fasting`, [widgetsOn] `release.widgets`,
+     * [todayScreenOn] `release.goalsAndEnergy`.
      */
     fun build(
         settings: Settings,
@@ -59,14 +63,18 @@ object MoreStateBuilder {
         remindersOn: Boolean = false,
         fastingReleased: Boolean = false,
         widgetsOn: Boolean = false,
+        todayScreenOn: Boolean = false,
     ): MoreState = MoreState(
         groups = listOf(
             listOfNotNull(
                 MoreRow.Modes(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                 MoreRow.Targets,
+                MoreRow.TodayScreen.takeIf { todayScreenOn },
                 MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
-                MoreRow.LookAndFeel,
                 healthConnected?.let { MoreRow.Health(connected = it) },
+                // Not in the design's More (13.1), kept last on purpose: Appearance and text size
+                // have no other home.
+                MoreRow.LookAndFeel,
             ),
             listOfNotNull(
                 MoreRow.Water(glasses = settings.waterGlasses),

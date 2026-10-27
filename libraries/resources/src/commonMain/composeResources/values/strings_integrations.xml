@@ -36,7 +36,34 @@
     <string name="integrations_workouts">Workouts</string>
     <string name="integrations_total">Total</string>
     <string name="integrations_empty">Nothing from %1$s yet today.</string>
-    <string name="integrations_hidden">Your mode isn't showing energy numbers right now.</string>
+    <string name="integrations_hidden">Your watch syncs in the background. Nothing from it shows in this mode.</string>
+
+    <!-- Should exercise change your range? (v3 integrations.png) -->
+    <string name="integrations_exercise_title">Should exercise change your range?</string>
+    <string name="integrations_exercise_none">No</string>
+    <string name="integrations_exercise_none_line">Your range stays the same however much you move.</string>
+    <string name="integrations_exercise_some">Some of it</string>
+    <string name="integrations_exercise_some_line">Half of your movement and workouts is added.</string>
+    <string name="integrations_exercise_all">All of it</string>
+    <string name="integrations_exercise_all_line">All of your watch's active energy is added.</string>
+    <string name="integrations_exercise_note">Your range only ever goes up for movement. A quiet day never lowers it.</string>
+
+    <!-- Days left out of the math (v3 integrations, full page) -->
+    <string name="integrations_left_out_title">Days left out of the math</string>
+    <string name="integrations_left_out_add_another">Leave out another day</string>
+    <string name="integrations_left_out_add">Leave out a day</string>
+    <string name="integrations_left_out_empty">None yet. A day you leave out doesn't count in your averages.</string>
+
+    <!-- The Leave out a day sheet -->
+    <string name="integrations_leave_out_title">Leave out a day</string>
+    <string name="integrations_leave_out_body">Tap a day to leave it out of your averages. Tap it again to count it.</string>
+    <string name="integrations_leave_out_done">Done</string>
+    <string name="integrations_leave_out_day_left_out">%1$s, not counted</string>
+    <string name="integrations_leave_out_prev">Previous month</string>
+    <string name="integrations_leave_out_next">Next month</string>
+
+    <!-- Targets -->
+    <string name="integrations_targets_exercise">Exercise adjustment</string>
 
     <!-- Toasts -->
     <string name="integrations_toast_connected">Connected.</string>
