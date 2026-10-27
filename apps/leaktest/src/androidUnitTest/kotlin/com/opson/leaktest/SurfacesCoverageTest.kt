@@ -123,6 +123,7 @@ class SurfacesCoverageTest {
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "modes-end-after", "modes-each-number", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
                 "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
+                "targets-deficit-estimated", "targets-macros",
                 "resting-energy", "energy-today", "today-screen-settings",
                 "water-settings", "support", "support-delete", "support-find", "look-and-feel",
                 "reminders", "reminder-notification",
@@ -140,7 +141,7 @@ class SurfacesCoverageTest {
             "foods", "foods-create-meal", "foods-add-food",
             "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
-            "targets-goal-style", "energy-today",
+            "targets-goal-style", "energy-today", "targets-deficit-estimated", "targets-macros",
             "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
             "today-timer-ended", "today-timer-waiting", "today-expended", "today-exercise", "integrations",
             "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",

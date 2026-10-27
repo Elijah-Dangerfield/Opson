@@ -370,8 +370,8 @@ data class Targets(
     /** `null` when one more step down would cross the floor. [scaleMacros] as in [raise]. */
     fun lower(scaleMacros: Boolean = false): Targets? = if (canLower) shiftedBy(-STEP_KCAL, scaleMacros) else null
 
-    /** Sets the target directly, never below the floor. The range moves with it. */
-    fun withEnergy(kcal: Int): Targets = shiftedBy(max(kcal, floorKcal) - energyKcal)
+    /** Sets the target directly, never below the floor. The range moves with it; [scaleMacros] as in [raise]. */
+    fun withEnergy(kcal: Int, scaleMacros: Boolean = false): Targets = shiftedBy(max(kcal, floorKcal) - energyKcal, scaleMacros)
 
     /**
      * A day's range: [goal] plus whatever the user lets watch activity add, at most

@@ -15,14 +15,25 @@ import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.nutrition.ActivityLevel
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.GroupShape
+import com.opson.libraries.nutrition.MAX_MACRO_G
+import com.opson.libraries.nutrition.MacroPreset
+import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.StepBlock
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.nutrition.fitMacrosTo
+import com.opson.libraries.nutrition.stepMacro
+import com.opson.libraries.nutrition.useMacroEnergy
+import com.opson.libraries.nutrition.withMacroGrams
+import com.opson.libraries.nutrition.withMacroPercent
+import com.opson.libraries.nutrition.withPreset
+import com.opson.libraries.ui.components.text.NumberInput
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -33,17 +44,22 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_targets_deficit_cap_toast
 import opson.libraries.resources.generated.resources.settings_targets_floor_toast
 import opson.libraries.resources.generated.resources.settings_targets_gap_toast
+import opson.libraries.resources.generated.resources.settings_targets_macros_goal_floor_toast
 import opson.libraries.resources.generated.resources.settings_targets_surplus_cap
 
 /**
  * Targets. Every change runs inside [SettingsRepository.update] against the settings it is
  * about to replace, so the floor and the deficit and surplus caps are checked in the same step as
- * the write: a refused step writes nothing and the toast says why. Picking a goal style writes it
- * at once (design sync 4, 13.2e).
+ * the write: a refused step writes nothing and the toast says what the number is based on.
+ * Picking a goal style writes it at once (design sync 4, 13.2e).
  *
  * With `release.goalsAndEnergy` on, today's Burned ([BurnedRepository]) is what a set deficit or
- * surplus is aimed at, and what one starts from when picked. Off, nothing reads it: the deficit
- * waits on the range, and a surplus goes on top of the usual target.
+ * surplus is aimed at, and what one starts from when picked; without a health app it is resting
+ * energy plus the activity level's everyday movement. Off, nothing reads it, and the deficit and
+ * surplus are not offered.
+ *
+ * Typed fields (one number, a macro) keep what is typed on screen and write only once it is a
+ * value the step rules allow, so typing "2150" writes once and "21" never reaches sync.
  */
 @Inject
 class TargetsViewModel(
@@ -57,16 +73,19 @@ class TargetsViewModel(
 ) : SEAViewModel<TargetsState, TargetsEvent, TargetsAction>(initialStateArg = TargetsState()) {
 
     private var inputs: TargetsAction.InputsArrived? = null
+    private val today = calendar.today()
 
     // What is open on the page. Kept here rather than read back from state, because a write
     // (a new group) lands as new inputs after the action that opened it.
     private var editingGroup: Int? = null
     private var editingMacros: Boolean = false
+    private var choosingActivity: Boolean = false
+    private var drafts = TargetsDrafts()
 
     init {
         // With release.health off the store is never asked, so the exercise row can't show.
         val connected = if (healthFlag()) health.status.map { it == HealthStatus.Connected } else flowOf(false)
-        val burned = if (goalsAndEnergy()) burnedRepository.burned(calendar.today()) else flowOf(null)
+        val burned = if (goalsAndEnergy()) burnedRepository.burned(today) else flowOf(null)
         viewModelScope.launch {
             combine(settingsRepository.observe(), policySource.policy, connected, burned, TargetsAction::InputsArrived)
                 .collect(::takeAction)
@@ -74,6 +93,7 @@ class TargetsViewModel(
     }
 
     override suspend fun handleAction(action: TargetsAction) {
+        forgetDrafts(action)
         when (action) {
             is TargetsAction.InputsArrived -> {
                 inputs = action
@@ -81,11 +101,22 @@ class TargetsViewModel(
             }
             is TargetsAction.StylePicked -> pickStyle(action.kind)
             TargetsAction.RestingEnergyTapped -> sendEvent(TargetsEvent.OpenRestingEnergy)
-            TargetsAction.ActivityTapped -> sendEvent(TargetsEvent.OpenIntegrations)
+            TargetsAction.ActivityTapped -> if (inputs?.healthConnected == true) {
+                sendEvent(TargetsEvent.OpenIntegrations)
+            } else {
+                choosingActivity = !choosingActivity
+                rebuild(action)
+            }
+            is TargetsAction.ActivityLevelPicked -> {
+                choosingActivity = false
+                settingsRepository.update { it.copy(activityLevel = action.level) }
+                rebuild(action)
+            }
+            TargetsAction.ConnectHealthTapped -> sendEvent(TargetsEvent.OpenIntegrations)
             is TargetsAction.StepTapped -> step(action)
             is TargetsAction.DeficitStepped -> {
                 var refused = false
-                change { current -> current.targets.stepDeficit(action.up).also { refused = it == null } }
+                change { current -> current.targets.stepDeficit(action.up, action.group).also { refused = it == null } }
                 if (refused && action.up) toast(Toast(Res.string.settings_targets_deficit_cap_toast))
             }
             is TargetsAction.NumberStepped -> {
@@ -95,17 +126,22 @@ class TargetsViewModel(
                         .also { refused = it == null }
                 }
                 if (refused) toast(Toast(Res.string.settings_targets_floor_toast))
+                rebuild(action)
             }
+            is TargetsAction.NumberTyped -> typeNumber(action)
             is TargetsAction.SurplusStepped -> {
                 var refused = false
                 change { current -> current.targets.stepSurplus(action.up, action.group).also { refused = it == null } }
                 if (refused && action.up) toast(Toast(Res.string.settings_targets_surplus_cap))
             }
+            TargetsAction.StartFromBurnTapped -> change { current -> startFromBurn(current) }
             is TargetsAction.GroupShapePicked -> change { current ->
+                val preset = current.numbers.preset
                 val shape = when (action.shape) {
                     ShapeKind.Range -> GroupShape.Range
                     ShapeKind.Exact -> GroupShape.Exact
-                    ShapeKind.Surplus -> if (TargetStyle.surplusAllowed(current.numbers.preset)) GroupShape.Surplus(0, 0) else null
+                    ShapeKind.Deficit -> GroupShape.Deficit(0, 0).takeIf { TargetStyle.deficitAllowed(preset) && goalsAndEnergy() }
+                    ShapeKind.Surplus -> GroupShape.Surplus(0, 0).takeIf { TargetStyle.surplusAllowed(preset) && goalsAndEnergy() }
                 }
                 shape?.let { current.targets.shapeGroup(action.group, it, burnKcal()) }
             }
@@ -128,7 +164,29 @@ class TargetsViewModel(
                 editingMacros = !editingMacros
                 rebuild(action)
             }
-            is TargetsAction.MacroModePicked -> settingsRepository.update { it.copy(macroMode = action.mode) }
+            is TargetsAction.MacroModePicked -> {
+                settingsRepository.update { it.copy(macroMode = action.mode) }
+                rebuild(action)
+            }
+            is TargetsAction.MacroPresetPicked -> {
+                change { current -> current.targets.withPreset(action.preset, macroGoalKcal(current)) }
+                rebuild(action)
+            }
+            is TargetsAction.MacroStepped -> {
+                change { current -> current.targets.stepMacro(action.metric, action.up, inPercent(current), macroGoalKcal(current)) }
+                rebuild(action)
+            }
+            is TargetsAction.MacroTyped -> typeMacro(action)
+            TargetsAction.MacrosFitTapped -> {
+                change { current -> current.targets.fitMacrosTo(macroGoalKcal(current)) }
+                rebuild(action)
+            }
+            TargetsAction.MacrosAsGoalTapped -> {
+                var refused = false
+                change { current -> current.targets.useMacroEnergy().also { refused = it == null } }
+                if (refused) toast(Toast(Res.string.settings_targets_macros_goal_floor_toast))
+                rebuild(action)
+            }
             TargetsAction.ModesTapped -> sendEvent(TargetsEvent.OpenModes)
             TargetsAction.ExerciseAdjustmentTapped -> sendEvent(TargetsEvent.OpenIntegrations)
             TargetsAction.BackTapped -> sendEvent(TargetsEvent.Close)
@@ -138,7 +196,7 @@ class TargetsViewModel(
     /**
      * Writes [kind] unless it is already the style. Checked again inside the write: a mode change
      * since the page drew must not let a deficit or surplus through where it is not offered, nor
-     * one number or a surplus with the flag off. A new style starts on its own main number on
+     * one of the flag's styles with the flag off. A new style starts on its own main number on
      * Today, and a card on Rings goes back to In and out once the goal is a range (13.6c).
      */
     private suspend fun pickStyle(kind: StyleKind) {
@@ -152,11 +210,72 @@ class TargetsViewModel(
                 StyleKind.Surplus -> current.targets.useSurplus(burnKcal())
                 StyleKind.ByDay -> current.targets.useByDay()
             }
-            val rings = current.todayCard == SummaryCardPreset.Rings && !TodayScreenSettingsStateBuilder.singleTarget(targets.style)
-            current.copy(targets = targets, todayCard = if (rings) SummaryCardPreset.InOut else current.todayCard).forgetMainNumber()
+            current.withStyle(targets)
         }
         editingGroup = null
     }
+
+    /**
+     * A typed field keeps its draft only while it is being typed in. Anything else the person
+     * does can move the number under it (a step, a preset, a ratio-mode scale), so the field goes
+     * back to showing what is saved.
+     */
+    private fun forgetDrafts(action: TargetsAction) {
+        if (action is TargetsAction.InputsArrived) return
+        if (action !is TargetsAction.MacroTyped) drafts = drafts.copy(macros = emptyMap())
+        if (action !is TargetsAction.NumberTyped) drafts = drafts.copy(number = null)
+    }
+
+    private fun Settings.withStyle(targets: Targets): Settings {
+        val rings = todayCard == SummaryCardPreset.Rings && !TodayScreenSettingsStateBuilder.singleTarget(targets.style)
+        return copy(targets = targets, todayCard = if (rings) SummaryCardPreset.InOut else todayCard).forgetMainNumber()
+    }
+
+    /**
+     * A deficit or surplus that started at 0 with nothing known about the burn, started again now
+     * that Burned is known: exactly what picking the style afresh would do, so it can't go past
+     * what the goal already implies against today's burn.
+     */
+    private fun startFromBurn(current: Settings): Targets? {
+        val burn = burnKcal() ?: return null
+        return when (val style = current.targets.style) {
+            is TargetStyle.Deficit -> current.targets.takeIf { style.startingKcal == 0 }?.useRange()?.useDeficit(burn)
+            is TargetStyle.Surplus -> current.targets.takeIf { style.startingKcal == 0 }?.useRange()?.useSurplus(burn)
+            else -> null
+        }
+    }
+
+    private suspend fun typeNumber(action: TargetsAction.NumberTyped) {
+        val text = NumberInput.sanitize(action.text, allowDecimal = false).take(MAX_GOAL_DIGITS)
+        drafts = drafts.copy(number = text)
+        rebuild(action)
+        val kcal = text.toIntOrNull() ?: return
+        change { current ->
+            val targets = current.targets
+            if (targets.style != TargetStyle.Exact || kcal < targets.floorKcal || kcal == targets.energyKcal) return@change null
+            targets.withEnergy(kcal, scaleMacros = current.macroMode == MacroMode.Ratios)
+        }
+    }
+
+    private suspend fun typeMacro(action: TargetsAction.MacroTyped) {
+        val text = NumberInput.sanitize(action.text, allowDecimal = false).take(MAX_MACRO_DIGITS)
+        drafts = drafts.copy(macros = drafts.macros + (action.metric to text))
+        rebuild(action)
+        val value = text.toIntOrNull() ?: return
+        change { current ->
+            if (inPercent(current)) {
+                current.targets.takeIf { value <= PERCENT }?.withMacroPercent(action.metric, value, macroGoalKcal(current))
+            } else {
+                current.targets.takeIf { value <= MAX_MACRO_G }?.withMacroGrams(action.metric, value)
+            }
+        }
+    }
+
+    /** Percents are offered where calories show; otherwise a macro is always set in grams. */
+    private fun inPercent(current: Settings): Boolean =
+        current.macroMode == MacroMode.Ratios && inputs?.policy?.let(TargetsStateBuilder::percentsShown) == true
+
+    private fun macroGoalKcal(current: Settings): Int = TargetsStateBuilder.macroGoalKcal(current, burnKcal(), today, goalsAndEnergy())
 
     private fun burnKcal(): Int? = inputs?.burned?.totalKcal
 
@@ -191,11 +310,20 @@ class TargetsViewModel(
                 healthConnected = healthConnected,
                 goalsAndEnergy = goalsAndEnergy(),
                 healthSource = health.source.takeIf { healthConnected },
+                today = today,
+                choosingActivity = choosingActivity,
+                drafts = drafts,
             )
         }
     }
 
     private suspend fun toast(toast: Toast) = sendEvent(TargetsEvent.ShowToast(toast))
+
+    private companion object {
+        const val PERCENT = 100
+        const val MAX_MACRO_DIGITS = 3
+        const val MAX_GOAL_DIGITS = 4
+    }
 }
 
 sealed interface TargetsEvent {
@@ -221,17 +349,29 @@ sealed interface TargetsAction {
     /** A row in the goal style list: written at once. */
     data class StylePicked(val kind: StyleKind) : TargetsAction
     data object RestingEnergyTapped : TargetsAction
+
+    /** The Activity row: the health app's page when one is connected, else the activity level's choices. */
     data object ActivityTapped : TargetsAction
+    data class ActivityLevelPicked(val level: ActivityLevel) : TargetsAction
+    data object ConnectHealthTapped : TargetsAction
 
     /** One step on [end] of the range, or of day group [group]. */
     data class StepTapped(val end: RangeEnd, val up: Boolean, val group: Int? = null) : TargetsAction
-    data class DeficitStepped(val up: Boolean) : TargetsAction
+
+    /** One step on a deficit: the style's, or day group [group]'s. */
+    data class DeficitStepped(val up: Boolean, val group: Int? = null) : TargetsAction
 
     /** One step on one number: the goal under "One number", or day group [group]'s. */
     data class NumberStepped(val up: Boolean, val group: Int? = null) : TargetsAction
 
+    /** The one number's field, as typed. */
+    data class NumberTyped(val text: String) : TargetsAction
+
     /** One step on a surplus: the style's, or day group [group]'s. */
     data class SurplusStepped(val up: Boolean, val group: Int? = null) : TargetsAction
+
+    /** "Start from today's burn", for a deficit or surplus that began at 0 with nothing known. */
+    data object StartFromBurnTapped : TargetsAction
     data class GroupShapePicked(val group: Int, val shape: ShapeKind) : TargetsAction
     data class DayTapped(val group: Int, val day: DayOfWeek) : TargetsAction
     data object AddGroupTapped : TargetsAction
@@ -239,6 +379,17 @@ sealed interface TargetsAction {
     data class RemoveGroupTapped(val group: Int) : TargetsAction
     data object MacroCardTapped : TargetsAction
     data class MacroModePicked(val mode: MacroMode) : TargetsAction
+    data class MacroPresetPicked(val preset: MacroPreset) : TargetsAction
+
+    /** One step on [metric]: five grams, or five percent of the goal in percent mode. */
+    data class MacroStepped(val metric: Metric, val up: Boolean) : TargetsAction
+    data class MacroTyped(val metric: Metric, val text: String) : TargetsAction
+
+    /** The calorie goal drives: the macros scale to fit it. */
+    data object MacrosFitTapped : TargetsAction
+
+    /** The macros drive: the calorie goal becomes what they add up to. */
+    data object MacrosAsGoalTapped : TargetsAction
     data object ModesTapped : TargetsAction
     data object ExerciseAdjustmentTapped : TargetsAction
     data object BackTapped : TargetsAction

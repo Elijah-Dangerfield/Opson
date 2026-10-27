@@ -195,7 +195,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `logger-search-options` | logger | 0.2, `search-options.md`; the options sheet: sort, database, tabs | no |
 | new | | `targets-exact` | settings | 0.2, `release.goalsAndEnergy`; one number and its stepper | yes |
 | new | | `targets-surplus` | settings | 0.2, `release.goalsAndEnergy`; the surplus, the burn and the goal it comes to | yes |
-| new | | `targets-by-day-shapes` | settings | 0.2, `release.goalsAndEnergy`; a day group as one number, and as a surplus | yes |
+| new | | `targets-by-day-shapes` | settings | 0.2, `release.goalsAndEnergy`; a day group as one number, as a surplus, and as a deficit | yes |
+| new | | `targets-deficit-estimated` | settings | 0.2, `release.goalsAndEnergy`; a deficit against Burned with no health app (resting plus the activity level), the level's choices open | yes |
+| new | | `targets-macros` | settings | 0.2; the macro editor in percents and in grams, presets, and what doesn't add up | yes |
 | new | | `resting-energy` | settings | design sync 4, `release.goalsAndEnergy`; resting energy from each source, energy out only | no |
 | new | | `energy-today` | settings | design sync 4, `release.goalsAndEnergy`; eaten with its ±, Burned and the deficit so far | yes |
 | new | | `today-summary-in-out` | today | design sync 4; the card's default preset with a set deficit's target line | yes |

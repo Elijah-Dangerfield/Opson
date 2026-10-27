@@ -63,7 +63,8 @@ class TargetsGoalStylesTest : CoroutineTest() {
         val state = build(SettingsFixtures.exactTargets)
 
         assertEquals(StyleKind.Exact, state.style)
-        assertEquals(EndStepper(Display.Shown("2,200"), down = StepState.Open, up = StepState.Open), state.number)
+        assertEquals(EndStepper(Display.Shown("2,200"), down = StepState.Open, up = StepState.Open), state.number?.stepper)
+        assertEquals("2200", state.number?.text)
         assertNull(state.range)
         assertNull(state.surplus)
     }
@@ -71,7 +72,7 @@ class TargetsGoalStylesTest : CoroutineTest() {
     @Test
     fun oneNumber_atTheFloor_locksItsDownStep() {
         val atFloor = SettingsFixtures.rangeTargets.copy(startingKcal = 2100).useExact()
-        assertEquals(StepState.Locked, build(atFloor).number?.down)
+        assertEquals(StepState.Locked, build(atFloor).number?.stepper?.down)
     }
 
     // --- builder: surplus ---
@@ -266,7 +267,7 @@ class TargetsGoalStylesTest : CoroutineTest() {
         vm.takeAction(TargetsAction.NumberStepped(up = true))
 
         assertEquals(2250, repository.targets().energyKcal)
-        assertEquals(Display.Shown("2,250"), vm.state.number?.value)
+        assertEquals(Display.Shown("2,250"), vm.state.number?.stepper?.value)
         assertTrue(repository.targets().proteinG > SettingsFixtures.exactTargets.proteinG)
 
         val grams = FakeSettingsRepository(SettingsFixtures.settings(targets = SettingsFixtures.exactTargets).copy(macroMode = MacroMode.Grams))
