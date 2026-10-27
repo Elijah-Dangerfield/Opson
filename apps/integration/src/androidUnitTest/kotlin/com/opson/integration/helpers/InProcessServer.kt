@@ -145,6 +145,20 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
         }
     }
 
+    /**
+     * Every table with a `user_id` column, read from the migrated schema rather than listed, so a
+     * table a new migration adds is in every check that walks them the day it lands.
+     */
+    fun userTables(): List<String> = query(
+        """
+        SELECT c.table_name AS name
+        FROM information_schema.columns c
+        JOIN information_schema.tables t ON t.table_schema = c.table_schema AND t.table_name = c.table_name
+        WHERE c.table_schema = 'public' AND c.column_name = 'user_id' AND t.table_type = 'BASE TABLE'
+        ORDER BY 1
+        """.trimIndent(),
+    ).map { it.getValue("name").toString() }
+
     /** How many rows [table] holds for [userId], tombstones included. */
     fun countFor(table: String, userId: String): Long =
         query("SELECT count(*) AS n FROM $table WHERE user_id = ?::uuid", userId).single()["n"] as Long
@@ -162,12 +176,6 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
 
         /** The one origin the waitlist form accepts here, standing in for the marketing site. */
         const val SITE_ORIGIN = "https://site.integration.test"
-
-        /** Every table that holds a user's diary or account, keyed by `user_id`. */
-        val USER_TABLES = listOf(
-            "profiles", "log_entries", "day_records", "meal_feelings", "weigh_ins",
-            "custom_foods", "saved_meals", "user_settings", "fasts",
-        )
 
         private val shared by lazy {
             val container = PostgreSQLContainer(POSTGRES_IMAGE)
