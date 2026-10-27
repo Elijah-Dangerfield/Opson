@@ -75,6 +75,25 @@ class EditCopyTest : CoroutineTest() {
     }
 
     @Test
+    fun aNumberWithMoreThanOneDecimal_opensUnchanged_andIsSavedExactly() = runUnitTest {
+        // A catalog food weighed to 37 g: numbers like these, never whole.
+        val weighed = entry.copy(id = "pb-weighed", kcal = 219.67, protein = 9.25, carbs = 7.53, fat = 18.5, fiber = 2.0)
+        val diary = FakeDiaryRepository(listOf(Day(date = FoodsFixtures.today, itemsBySlot = mapOf(MealSlot.Snack to listOf(weighed)))))
+        val vm = EditCopyViewModel(EditCopyRoute(FoodsFixtures.today.toString(), weighed.id), "(mine)", diary, customFoods, FakeCalendar(), FakePolicySource())
+
+        assertEquals(listOf("219.7", "9.3", "7.5", "18.5", "2"), vm.state.fields.map { it.text })
+        assertTrue(vm.state.fields.all { it.was == null }, "nothing changed yet, so nothing is tinted or says Was")
+
+        vm.takeAction(EditCopyAction.NutritionTyped(Metric.Fat, "17"))
+        vm.takeAction(EditCopyAction.SaveTapped)
+
+        val draft = customFoods.created.single()
+        assertEquals(219.67, draft.kcal, "left as it opened, so the entry's own number")
+        assertEquals(7.53, draft.carbs)
+        assertEquals(17.0, draft.fat)
+    }
+
+    @Test
     fun save_makesTheCopy_pointsTheEntryAtIt_andLeavesTheOriginalAlone() = runUnitTest {
         val vm = vm()
         val events = events(vm)

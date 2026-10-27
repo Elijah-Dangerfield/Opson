@@ -89,7 +89,8 @@ object EditCopyStateBuilder {
         fields = shown(policy).map { metric ->
             val text = form.nutrition[metric].orEmpty()
             val before = original(item, metric)
-            val changed = text.toDoubleOrNull() != before
+            // Against the number as the field opened with it: 7.53 g opens as "7.5", which is not a change.
+            val changed = text.toDoubleOrNull() != before?.let(::opened)
             CopyField(
                 metric = metric,
                 text = text,
@@ -104,12 +105,16 @@ object EditCopyStateBuilder {
 
     /**
      * The new food: one serving is the logged amount. A shown field left blank is unknown, never
-     * 0; a field not shown keeps the entry's own number.
+     * 0; a field not shown, or shown and left as it opened, keeps the entry's own number unrounded.
      */
     fun draft(item: LogItem, form: CopyForm, policy: VisibilityPolicy): CustomFoodDraft {
         val shown = shown(policy)
-        fun value(metric: Metric): Double? =
-            if (metric in shown) form.nutrition[metric]?.toDoubleOrNull() else original(item, metric)
+        fun value(metric: Metric): Double? {
+            val before = original(item, metric)
+            if (metric !in shown) return before
+            val typed = form.nutrition[metric]?.toDoubleOrNull()
+            return if (typed != null && typed == before?.let(::opened)) before else typed
+        }
         val unit = item.unit
         return CustomFoodDraft(
             name = form.name.trim(),
@@ -151,6 +156,9 @@ object EditCopyStateBuilder {
         val tenths = (value * TENTHS).roundToInt()
         return if (tenths % TENTHS.toInt() == 0) (tenths / TENTHS.toInt()).toString() else (tenths / TENTHS).toString()
     }
+
+    /** [value] as its field opens, to the tenth [typed] writes. */
+    private fun opened(value: Double): Double = typed(value).toDouble()
 
     private fun serving(item: LogItem): String {
         val amount = item.amountLabel.ifBlank { HouseholdAmount.of(1.0, SERVING) }
