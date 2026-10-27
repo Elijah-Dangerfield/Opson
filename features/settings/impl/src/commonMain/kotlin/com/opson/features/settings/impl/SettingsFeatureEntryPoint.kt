@@ -16,6 +16,7 @@ import com.opson.features.settings.GoalStyleRoute
 import com.opson.features.settings.IntegrationsRoute
 import com.opson.features.settings.LeaveOutDayRoute
 import com.opson.features.settings.LookAndFeelRoute
+import com.opson.features.settings.EachNumberRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.MoreRoute
 import com.opson.features.settings.PauseBeforeMoreRoute
@@ -37,6 +38,7 @@ import com.opson.features.settings.impl.integrations.LeaveOutViewModel
 import com.opson.features.settings.impl.look.LookAndFeelEvent
 import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelViewModel
+import com.opson.features.settings.impl.modes.EachNumberScreen
 import com.opson.features.settings.impl.modes.ModesEvent
 import com.opson.features.settings.impl.modes.ModesScreen
 import com.opson.features.settings.impl.modes.ModesViewModel
@@ -143,10 +145,24 @@ class SettingsFeatureEntryPoint(
                     // TODO(review): two quick taps on a cell with the pause on push two pause sheets.
                     // Fix it once for every caller in the router (docs/review/findings/settings.md).
                     is ModesEvent.OpenPause -> router.navigate(event.change.toRoute())
+                    ModesEvent.OpenEachNumber -> router.navigate(EachNumberRoute())
                     ModesEvent.Close -> router.goBack()
                 }
             }
             ModesScreen(state = state, onAction = viewModel::takeAction)
+        }
+        screen<EachNumberRoute> {
+            val viewModel: ModesViewModel = viewModel { modesViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is ModesEvent.ShowToast -> show(event.toast)
+                    is ModesEvent.OpenPause -> router.navigate(event.change.toRoute())
+                    ModesEvent.OpenEachNumber -> Unit
+                    ModesEvent.Close -> router.goBack()
+                }
+            }
+            EachNumberScreen(state = state, onAction = viewModel::takeAction)
         }
 
         bottomSheet<PauseBeforeMoreRoute> { backStackEntry, sheetState ->

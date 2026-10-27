@@ -133,7 +133,7 @@ private fun TargetsGoalStylePreview() {
 @Preview
 @Composable
 private fun TargetsGoalStyleFuelDarkPreview() {
-    val fuel = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Fuel))
+    val fuel = SettingsFixtures.settings(NumbersSettings(preset = PresetId.NutrientsFirst))
     SettingsPreview(dark = true) {
         GoalStyleSheetContent(GoalStyleStateBuilder.build(fuel, picked = StyleKind.ByDay), onAction = {})
     }

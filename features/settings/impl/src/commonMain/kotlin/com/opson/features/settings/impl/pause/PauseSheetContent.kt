@@ -33,6 +33,10 @@ import com.opson.libraries.ui.system.minTouchTarget
 import com.opson.system.AppTheme
 import kotlinx.datetime.LocalTime
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.settings_pause_ready_reveal_daily
+import opson.libraries.resources.generated.resources.settings_pause_wait_reveal_daily
+import opson.libraries.resources.generated.resources.settings_pause_body_reveal_daily
+import opson.libraries.resources.generated.resources.settings_pause_title_reveal_daily
 import opson.libraries.resources.generated.resources.settings_pause_body_number
 import opson.libraries.resources.generated.resources.settings_pause_body_pause
 import opson.libraries.resources.generated.resources.settings_pause_body_preset
@@ -191,6 +195,15 @@ private fun copyFor(subject: PauseSubject, countdown: String?): PauseCopy = when
             stringResource(Res.string.settings_pause_wait_pause, countdown)
         } else {
             stringResource(Res.string.settings_pause_ready_pause)
+        },
+    )
+    PauseSubject.RevealDaily -> PauseCopy(
+        title = stringResource(Res.string.settings_pause_title_reveal_daily),
+        body = stringResource(Res.string.settings_pause_body_reveal_daily),
+        button = if (countdown != null) {
+            stringResource(Res.string.settings_pause_wait_reveal_daily, countdown)
+        } else {
+            stringResource(Res.string.settings_pause_ready_reveal_daily)
         },
     )
     is PauseSubject.RevealTime -> PauseCopy(

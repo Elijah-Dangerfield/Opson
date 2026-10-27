@@ -73,7 +73,7 @@ class TargetsTest : CoroutineTest() {
 
     @Test
     fun softDelayedAndHiddenCaloriesGetTheBackgroundCardWithNoAmounts() {
-        listOf(PresetId.Fuel, PresetId.Delayed, PresetId.Coast, PresetId.Blind, PresetId.Nutrient).forEach { preset ->
+        listOf(PresetId.NutrientsFirst, PresetId.Later, PresetId.Later, PresetId.NoNumbers, PresetId.NutrientsFirst).forEach { preset ->
             listOf(SettingsFixtures.rangeTargets, SettingsFixtures.deficitTargets, SettingsFixtures.byDayTargets).forEach { targets ->
                 val state = build(NumbersSettings(preset), targets, burn = SettingsFixtures.BURN_KCAL, editingGroup = 1)
                 assertEquals(TargetsState(visible = false), state, "in $preset")
@@ -276,7 +276,7 @@ class TargetsTest : CoroutineTest() {
         PresetId.entries.forEach { preset ->
             val options = GoalStyleStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset))).options
             assertEquals(
-                preset == PresetId.Full || preset == PresetId.Sprint,
+                preset == PresetId.Full || preset == PresetId.Full,
                 StyleKind.Deficit in options,
                 "in $preset",
             )
@@ -299,7 +299,7 @@ class TargetsTest : CoroutineTest() {
 
     @Test
     fun aDeficitCannotBePickedWhereItIsNotOffered() = runUnitTest {
-        val repository = FakeSettingsRepository(SettingsFixtures.settings(NumbersSettings(PresetId.Fuel)))
+        val repository = FakeSettingsRepository(SettingsFixtures.settings(NumbersSettings(PresetId.NutrientsFirst)))
         val vm = GoalStyleViewModel(repository)
 
         vm.takeAction(GoalStyleAction.StylePicked(StyleKind.Deficit))

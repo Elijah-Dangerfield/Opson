@@ -344,7 +344,7 @@ private fun IntegrationsPermissionDeniedPreview() {
 @Preview
 @Composable
 private fun IntegrationsBlindPreview() {
-    SettingsPreview { IntegrationsScreen(IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Blind)), onAction = {}) }
+    SettingsPreview { IntegrationsScreen(IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.NoNumbers)), onAction = {}) }
 }
 
 @Preview
@@ -395,7 +395,7 @@ private fun IntegrationsNumbersHardPreview() {
     SettingsPreview {
         IntegrationsScreen(
             IntegrationsFixtures.state(
-                SettingsFixtures.policy(PresetId.Fuel),
+                SettingsFixtures.policy(PresetId.NutrientsFirst),
                 settings = IntegrationsFixtures.settings.copy(onboarding = OnboardingAnswers(hard = true)),
                 days = emptyList(),
             ),
@@ -407,5 +407,5 @@ private fun IntegrationsNumbersHardPreview() {
 @Preview
 @Composable
 private fun IntegrationsBlindDarkPreview() {
-    SettingsPreview(dark = true) { IntegrationsScreen(IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Blind)), onAction = {}) }
+    SettingsPreview(dark = true) { IntegrationsScreen(IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.NoNumbers)), onAction = {}) }
 }

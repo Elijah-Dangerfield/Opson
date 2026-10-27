@@ -3,9 +3,13 @@ package com.opson.features.settings
 import com.opson.libraries.navigation.Route
 import kotlinx.serialization.Serializable
 
-/** Modes and numbers: the preset list, the per-metric grid and "Pause before showing more". */
+/** Modes and numbers: the four presets, End after a set time, Each number and "Pause before showing more". */
 @Serializable
 class ModesRoute : Route()
+
+/** Each number: the per-metric grid, opened from Modes and numbers. */
+@Serializable
+class EachNumberRoute : Route()
 
 /** The energy range and macro split. */
 @Serializable
@@ -32,8 +36,7 @@ class SupportRoute : Route()
 
 /**
  * Reminders and celebrations (0.2, behind `release.reminders`): quiet mode, the big-day card,
- * meal reminders and their times, tone and the hunger questions. Opened from More and from the
- * Rhythm card on Today.
+ * meal reminders and their times, tone and the hunger questions. Opened from More.
  */
 @Serializable
 class RemindersRoute : Route()
