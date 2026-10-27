@@ -50,61 +50,61 @@ keeps existing ticks.
 
 ## apps-shells (55 files)
 
-- [ ] `apps/admin/build.gradle.kts`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminApi.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminEnv.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/AuditView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Catching.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/ConfirmModal.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/DiffView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/FlagsView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/KillSwitchPanel.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Main.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Revert.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/RuleEditor.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Support.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/TargetBar.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/TokenStore.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/TypedValueEditor.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Validation.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/VersionsView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/WaitlistView.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/DiffRowsTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/FlagRowsTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/RevertTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/ValidationTest.kt`
-- [ ] `apps/compose/build.gradle.kts`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/AndroidActivityProvider.kt`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/AndroidAppComponent.kt`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/MainActivity.kt`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/OpsonApplication.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/App.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/AppComponent.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/AppShell.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/AppViewModel.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/BootLoadingScreen.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/NavigationQueueWatchdog.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/OpsonNetworkConfig.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/ShakeDialogEntryPoint.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/ShakeHandler.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/SplashScreen.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/UserTheme.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/ComposeAppCommonTest.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/OpsonNetworkConfigTest.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/UserThemeTest.kt`
-- [ ] `apps/compose/src/iosMain/kotlin/com/opson/IosAppComponent.kt`
-- [ ] `apps/compose/src/iosMain/kotlin/com/opson/MainViewController.kt`
-- [ ] `apps/compose/src/iosMain/kotlin/com/opson/SwiftUsageBridge.kt`
-- [ ] `apps/ios/iosApp/Platform/FileSharePresenter.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSAppleSignInCoordinator.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSNativeViewFactory.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSSecureSessionStorage.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSWidgetBridge.swift`
-- [ ] `apps/ios/iosApp/Platform/KotlinPrimitives.swift`
-- [ ] `apps/ios/iosApp/Platform/Logger+MessageScope.swift`
-- [ ] `apps/ios/iosApp/Platform/PermissionManager.swift`
-- [ ] `apps/ios/iosApp/Platform/ReviewLauncher.swift`
-- [ ] `apps/ios/iosApp/iOSApp.swift`
+- [x] `apps/admin/build.gradle.kts`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminApi.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminEnv.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AuditView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Catching.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/ConfirmModal.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/DiffView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/FlagsView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/KillSwitchPanel.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Main.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Revert.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/RuleEditor.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Support.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/TargetBar.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/TokenStore.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/TypedValueEditor.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Validation.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/VersionsView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/WaitlistView.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/DiffRowsTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/FlagRowsTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/RevertTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/ValidationTest.kt`
+- [x] `apps/compose/build.gradle.kts`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidActivityProvider.kt`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidAppComponent.kt`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/MainActivity.kt`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/OpsonApplication.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/App.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/AppComponent.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/AppShell.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/AppViewModel.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/BootLoadingScreen.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/NavigationQueueWatchdog.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/OpsonNetworkConfig.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/ShakeDialogEntryPoint.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/ShakeHandler.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/SplashScreen.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/UserTheme.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/ComposeAppCommonTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/OpsonNetworkConfigTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/UserThemeTest.kt`
+- [x] `apps/compose/src/iosMain/kotlin/com/opson/IosAppComponent.kt`
+- [x] `apps/compose/src/iosMain/kotlin/com/opson/MainViewController.kt`
+- [x] `apps/compose/src/iosMain/kotlin/com/opson/SwiftUsageBridge.kt`
+- [x] `apps/ios/iosApp/Platform/FileSharePresenter.swift`
+- [x] `apps/ios/iosApp/Platform/IOSAppleSignInCoordinator.swift`
+- [x] `apps/ios/iosApp/Platform/IOSNativeViewFactory.swift`
+- [x] `apps/ios/iosApp/Platform/IOSSecureSessionStorage.swift`
+- [x] `apps/ios/iosApp/Platform/IOSWidgetBridge.swift`
+- [x] `apps/ios/iosApp/Platform/KotlinPrimitives.swift`
+- [x] `apps/ios/iosApp/Platform/Logger+MessageScope.swift`
+- [x] `apps/ios/iosApp/Platform/PermissionManager.swift`
+- [x] `apps/ios/iosApp/Platform/ReviewLauncher.swift`
+- [x] `apps/ios/iosApp/iOSApp.swift`
 
 ## build-config (36 files)
 
@@ -365,58 +365,58 @@ keeps existing ticks.
 
 ## onboarding-foods (52 files)
 
-- [ ] `features/foods/build.gradle.kts`
-- [ ] `features/foods/impl/build.gradle.kts`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodViewModel.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealViewModel.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsCommon.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFeatureEntryPoint.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFixtures.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsLeakSurfaces.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsPreviews.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsViewModel.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/AddFoodTest.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/CreateMealTest.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/Fakes.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/FoodsTabTest.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/AddFoodRoute.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/CreateMealRoute.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/FoodsRoute.kt`
-- [ ] `features/onboarding/build.gradle.kts`
-- [ ] `features/onboarding/impl/build.gradle.kts`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/AuthScreens.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/DisplayNameSuggester.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModePreview.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModeRecommender.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingCopy.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFeatureEntryPoint.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFixtures.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingLeakSurfaces.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingScreen.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupAnswers.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInMethods.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignUpViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/AuthViewModelFakes.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModePreviewTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModeRecommenderTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupAnswersTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignInViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignUpViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModelTest.kt`
-- [ ] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/AuthRoutes.kt`
-- [ ] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/OnboardingRoute.kt`
+- [x] `features/foods/build.gradle.kts`
+- [x] `features/foods/impl/build.gradle.kts`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodViewModel.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealViewModel.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsCommon.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFeatureEntryPoint.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFixtures.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsLeakSurfaces.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsPreviews.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsViewModel.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/AddFoodTest.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/CreateMealTest.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/Fakes.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/FoodsTabTest.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/AddFoodRoute.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/CreateMealRoute.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/FoodsRoute.kt`
+- [x] `features/onboarding/build.gradle.kts`
+- [x] `features/onboarding/impl/build.gradle.kts`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/AuthScreens.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/DisplayNameSuggester.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModePreview.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModeRecommender.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingCopy.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFeatureEntryPoint.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFixtures.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingLeakSurfaces.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingScreen.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupAnswers.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInMethods.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignUpViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModel.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/AuthViewModelFakes.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModePreviewTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModeRecommenderTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupAnswersTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignInViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignUpViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModelTest.kt`
+- [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/AuthRoutes.kt`
+- [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/OnboardingRoute.kt`
 
 ## features-other (13 files)
 
@@ -1473,21 +1473,21 @@ keeps existing ticks.
 
 ## website (18 files)
 
-- [ ] `website/astro.config.mjs`
-- [ ] `website/src/components/Footer.astro`
-- [ ] `website/src/components/Nav.astro`
-- [ ] `website/src/components/Screenshot.astro`
-- [ ] `website/src/components/WaitlistForm.astro`
-- [ ] `website/src/consts.ts`
-- [ ] `website/src/layouts/Layout.astro`
-- [ ] `website/src/lib/dates.test.ts`
-- [ ] `website/src/lib/dates.ts`
-- [ ] `website/src/lib/paths.test.ts`
-- [ ] `website/src/lib/paths.ts`
-- [ ] `website/src/lib/waitlist.test.ts`
-- [ ] `website/src/lib/waitlist.ts`
-- [ ] `website/src/pages/404.astro`
-- [ ] `website/src/pages/contact.astro`
-- [ ] `website/src/pages/index.astro`
-- [ ] `website/src/pages/privacy.astro`
-- [ ] `website/src/pages/terms.astro`
+- [x] `website/astro.config.mjs`
+- [x] `website/src/components/Footer.astro`
+- [x] `website/src/components/Nav.astro`
+- [x] `website/src/components/Screenshot.astro`
+- [x] `website/src/components/WaitlistForm.astro`
+- [x] `website/src/consts.ts`
+- [x] `website/src/layouts/Layout.astro`
+- [x] `website/src/lib/dates.test.ts`
+- [x] `website/src/lib/dates.ts`
+- [x] `website/src/lib/paths.test.ts`
+- [x] `website/src/lib/paths.ts`
+- [x] `website/src/lib/waitlist.test.ts`
+- [x] `website/src/lib/waitlist.ts`
+- [x] `website/src/pages/404.astro`
+- [x] `website/src/pages/contact.astro`
+- [x] `website/src/pages/index.astro`
+- [x] `website/src/pages/privacy.astro`
+- [x] `website/src/pages/terms.astro`
