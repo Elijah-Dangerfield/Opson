@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
@@ -53,6 +54,7 @@ import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.system.MinTouchTarget
+import com.opson.libraries.ui.system.swipeCommitted
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone
@@ -91,7 +93,8 @@ private fun FoodRowBody(name: String, sub: String, calories: Display, modifier: 
  * screen's to keep. The button is out of the accessibility tree: the row offers [deleteLabel] as
  * a custom action instead, which TalkBack, Switch Access and VoiceOver all list.
  *
- * [onLongClick] starts selecting (2.12); null when that is off.
+ * [onLongClick] starts selecting (2.12); null when that is off. `combinedClickable` plays the
+ * long-press haptic itself. A swipe let go past half plays the swipe-committed one.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -121,6 +124,7 @@ fun SwipeFoodRow(
         if (drag != target) animate(drag, target) { value, _ -> drag = value }
     }
     val dragState = rememberDraggableState { delta -> drag = (drag + delta).coerceIn(-width.toFloat(), 0f) }
+    val haptics = LocalHapticFeedback.current
     Column(modifier.fillMaxWidth()) {
         HorizontalDivider(color = AppTheme.colors.line)
         Box(Modifier.fillMaxWidth().clipToBounds().onSizeChanged { width = it.width }) {
@@ -162,6 +166,7 @@ fun SwipeFoodRow(
                             scope.launch {
                                 when {
                                     drag < -width / 2f -> {
+                                        haptics.swipeCommitted()
                                         animate(drag, 0f) { value, _ -> drag = value }
                                         onDelete()
                                     }

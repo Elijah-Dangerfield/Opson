@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -26,6 +27,7 @@ import com.opson.libraries.ui.components.BottomNavItem
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.described
+import com.opson.libraries.ui.system.press
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.shell_add
 import opson.libraries.resources.generated.resources.shell_tab_foods
@@ -95,6 +97,7 @@ internal fun ShellBottomBar(
     // A plain holder rather than state: remembering the last tab must not schedule a recomposition.
     val lastTab = remember { LastTab() }
     val shownTab = currentTab?.also { lastTab.value = it } ?: lastTab.value
+    val haptics = LocalHapticFeedback.current
 
     AnimatedVisibility(
         visible = currentTab != null && !heldAway,
@@ -109,7 +112,10 @@ internal fun ShellBottomBar(
                 val tab = ShellTab.entries[index]
                 if (tab != currentTab) router.switchTab(tab.route())
             },
-            onAddClick = { router.navigate(LoggerRoute()) },
+            onAddClick = {
+                haptics.press()
+                router.navigate(LoggerRoute())
+            },
             addIcon = AppIcons.Add.described(stringResource(Res.string.shell_add)),
         )
     }

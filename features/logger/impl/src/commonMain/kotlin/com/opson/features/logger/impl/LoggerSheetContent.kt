@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -60,6 +61,8 @@ import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.SearchField
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.confirm
+import com.opson.libraries.ui.system.toggle
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.color.ToneColors
@@ -396,6 +399,7 @@ private fun OfflineCaption() {
 private fun FoodRows(rows: List<FoodRowUi>, onAction: (LoggerAction) -> Unit) {
     // Opening a food covers the search with the amount sheet; the keyboard would sit over it.
     val focusManager = LocalFocusManager.current
+    val haptics = LocalHapticFeedback.current
     FoodRowsCard {
         rows.forEachIndexed { index, row ->
             FoodPickRow(
@@ -409,7 +413,10 @@ private fun FoodRows(rows: List<FoodRowUi>, onAction: (LoggerAction) -> Unit) {
                     focusManager.clearFocus()
                     onAction(LoggerAction.FoodNameTapped(row))
                 },
-                onToggle = { onAction(LoggerAction.FoodToggleTapped(row)) },
+                onToggle = {
+                    haptics.toggle(on = !row.picked)
+                    onAction(LoggerAction.FoodToggleTapped(row))
+                },
                 iconSeed = row.key,
                 kind = row.kind,
                 showDivider = index < rows.lastIndex,
@@ -605,6 +612,7 @@ private fun NoResults(query: String, describable: Boolean, onAction: (LoggerActi
 
 @Composable
 private fun BasketBar(basket: BasketFooter, pickingForMeal: Boolean, onAction: (LoggerAction) -> Unit) {
+    val haptics = LocalHapticFeedback.current
     Column(modifier = Modifier.fillMaxWidth()) {
         HorizontalDivider(color = AppTheme.colors.line)
         Row(
@@ -641,7 +649,12 @@ private fun BasketBar(basket: BasketFooter, pickingForMeal: Boolean, onAction: (
                 color = AppTheme.colors.muted,
                 maxLines = 1,
             )
-            ButtonPrimary(onClick = { onAction(LoggerAction.AddToMealTapped) }) {
+            ButtonPrimary(
+                onClick = {
+                    haptics.confirm()
+                    onAction(LoggerAction.AddToMealTapped)
+                },
+            ) {
                 Text(
                     if (pickingForMeal) {
                         stringResource(Res.string.logger_add_to_this_meal)

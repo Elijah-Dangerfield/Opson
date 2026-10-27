@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -29,6 +30,7 @@ import com.opson.libraries.ui.components.chip.PillChipStyle
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.confirm
 import com.opson.libraries.ui.system.minTouchTarget
 import com.opson.system.AppTheme
 import kotlinx.datetime.LocalTime
@@ -77,6 +79,7 @@ fun PauseSheetContent(
     modifier: Modifier = Modifier,
 ) {
     val copy = copyFor(state.subject, countdown = state.countdown.takeIf { state.secondsLeft > 0 })
+    val haptics = LocalHapticFeedback.current
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -121,7 +124,11 @@ fun PauseSheetContent(
             )
             FlatButton(
                 text = copy.button,
-                onClick = { onAction(PauseAction.ShowThemTapped) },
+                // Enabled only once the wait is over, so this plays only when the change applies.
+                onClick = {
+                    haptics.confirm()
+                    onAction(PauseAction.ShowThemTapped)
+                },
                 tone = FlatButtonTone.Soft,
                 centered = true,
                 enabled = state.canShow,

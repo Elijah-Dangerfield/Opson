@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -62,6 +63,7 @@ import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.libraries.ui.system.toggle
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.background
@@ -633,6 +635,7 @@ private fun SourceCaption(source: SourceLine) {
  */
 @Composable
 private fun Buttons(state: AmountState, onAction: (AmountAction) -> Unit) {
+    val haptics = LocalHapticFeedback.current
     Column(modifier = Modifier.fillMaxWidth()) {
         HorizontalDivider(color = AppTheme.colors.line)
         Row(
@@ -643,7 +646,11 @@ private fun Buttons(state: AmountState, onAction: (AmountAction) -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ButtonPrimary(
-                onClick = { onAction(AmountAction.PickAndKeepGoingTapped) },
+                // In the basket, like a row's +. "Add to" plays its confirm once the log is saved.
+                onClick = {
+                    haptics.toggle(on = true)
+                    onAction(AmountAction.PickAndKeepGoingTapped)
+                },
                 style = ButtonStyle.Tonal,
             ) {
                 Text(stringResource(Res.string.logger_amount_keep_going), typography = AppTheme.type.buttonSmall, maxLines = 1)
