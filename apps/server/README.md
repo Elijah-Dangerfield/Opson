@@ -159,7 +159,7 @@ the usual `ProblemResponse`.
 | Method | Path | Notes |
 |---|---|---|
 | POST | `/v1/sync` | Push the outbox and pull changes in one call. 400 `too_many_mutations` (> 500), 400 `invalid_cursor`. |
-| GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`) and `sort` (`best`, `name`); 400 `invalid_category` / `invalid_source` / `invalid_sort`. |
+| GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`) and `sort` (`best`, `name`); 400 `invalid_category` / `invalid_source` / `invalid_sort`. NEVO foods only with `credits=nevo` (RIVM requires its citation, which 0.1 can't show). |
 | GET | `/v1/foods/search/options` | `{sources, categories}` this server takes; `off` only when `FOOD_SEARCH_OFF_ENABLED` is on. |
 | GET | `/v1/foods/{id}` | 400 `invalid_id`, 404 `not_found`. |
 | GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. 60/min per IP. |
@@ -199,7 +199,7 @@ from four tiers of source, best first (`foods.tier`, V10):
 
 | Tier | Sources (`foods.source`) | How rows get there | `verified` |
 |---|---|---|---|
-| 1 reference | `usda_foundation`, `usda_sr`, `usda_fndds` | committed seed, `import_usda_foods.py` | true |
+| 1 reference | `usda_foundation`, `usda_sr`, `usda_fndds`, `nevo` | committed seed, `import_usda_foods.py`; NEVO by `import_nevo_foods.py` | true |
 | 2 label | `usda_branded` | `import_usda_foods.py --branded`, monthly workflow | true |
 | 3 licensed | `nutritionix` (later NCCDB) | barcode miss, only with keys and caching on | true |
 | 4 community | `off` (later user submissions) | barcode miss, cached; the full export goes in its own table, `off_foods` | false |

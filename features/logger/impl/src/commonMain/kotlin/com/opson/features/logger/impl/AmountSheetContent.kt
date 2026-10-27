@@ -137,6 +137,7 @@ import opson.libraries.resources.generated.resources.logger_micros_vitamins
 import opson.libraries.resources.generated.resources.logger_precision_estimate
 import opson.libraries.resources.generated.resources.logger_precision_named
 import opson.libraries.resources.generated.resources.logger_precision_weighed
+import opson.libraries.resources.generated.resources.logger_source_nevo
 import opson.libraries.resources.generated.resources.logger_source_off
 import opson.libraries.resources.generated.resources.logger_source_usda
 import opson.libraries.resources.generated.resources.logger_source_yours
@@ -717,6 +718,7 @@ private val FoodOrigin.label: StringResource
     get() = when (this) {
         FoodOrigin.Usda -> Res.string.logger_source_usda
         FoodOrigin.OpenFoodFacts -> Res.string.logger_source_off
+        FoodOrigin.Nevo -> Res.string.logger_source_nevo
         FoodOrigin.Yours -> Res.string.logger_source_yours
     }
 
