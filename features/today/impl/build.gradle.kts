@@ -21,6 +21,8 @@ kotlin {
             implementation(projects.libraries.flowroutines)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.diary.ui)
+            // FoodRef keys, for Add to favorites on a food's sheet.
+            implementation(projects.libraries.foods)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.reminders)
@@ -45,6 +47,7 @@ kotlin {
             implementation(projects.libraries.core)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.diary.ui)
+            implementation(projects.libraries.foods)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.health)
             implementation(projects.libraries.resources)

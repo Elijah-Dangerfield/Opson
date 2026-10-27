@@ -33,6 +33,7 @@ class TodaySummaryBuilderTest {
         settings: Settings = Settings(),
         on: Boolean = true,
         ui: TodayUi = TodayUi(),
+        foodActionsOn: Boolean = false,
     ): TodayState = TodayStateBuilder.build(
         TodayFixtures.inputs(
             day = day,
@@ -41,6 +42,7 @@ class TodaySummaryBuilderTest {
             summaryOn = on,
             selectOn = on,
             weighIns = TodayFixtures.weighIns,
+            foodActionsOn = foodActionsOn,
         ),
         policy,
         ui = ui,
@@ -229,21 +231,34 @@ class TodaySummaryBuilderTest {
     }
 
     @Test
-    fun selectingTotalsThePicks_inFull() {
+    fun selecting_countsThePicks_namesTheFirst_andKnowsTheirMeals() {
         val selection = assertNotNull(build(ui = TodayUi(selected = TodayFixtures.picked)).selection)
 
         assertEquals(3, selection.count)
-        assertEquals("715 kcal", selection.calories.text())
-        assertEquals(listOf("37 g", "82 g", "26 g", "11 g"), selection.macros.map { it.display.text() })
+        assertEquals("Oat porridge with milk", selection.lead, "the first on the day, for the card a drag carries")
+        assertEquals(setOf(MealSlot.Breakfast, MealSlot.Lunch), selection.slots)
     }
 
     @Test
-    fun selectingInBlind_keepsOnlyTheCount() {
-        val selection = assertNotNull(build(policy(PresetId.Blind), ui = TodayUi(selected = TodayFixtures.picked)).selection)
+    fun selectingInBlind_isTheSame_sinceSelectModeShowsNoTotals() {
+        val full = assertNotNull(build(ui = TodayUi(selected = TodayFixtures.picked)).selection)
+        val blind = assertNotNull(build(policy(PresetId.Blind), ui = TodayUi(selected = TodayFixtures.picked)).selection)
 
-        assertEquals(3, selection.count)
-        assertIs<Display.Hidden>(selection.calories)
-        assertTrue(selection.macros.isEmpty())
+        assertEquals(full, blind)
+    }
+
+    @Test
+    fun aMove_showsItsUndo_onlyWithTheSelectFlag() {
+        val moved = MovedNotice(2, null, MealSlot.Dinner)
+
+        assertEquals(moved, build(ui = TodayUi(moved = moved)).moved)
+        assertNull(build(ui = TodayUi(moved = moved), on = false).moved)
+    }
+
+    @Test
+    fun foodMenus_followTheirFlag() {
+        assertTrue(build(foodActionsOn = true).foodMenus)
+        assertFalse(build().foodMenus)
     }
 
     @Test
