@@ -54,11 +54,20 @@ class QueryPlanTest : DatabaseTest() {
 
     @Test
     fun exportReadsEntriesByUserAndDay() {
-        val plan = plan(
-            "SELECT * FROM log_entries WHERE user_id = ? AND deleted = false ORDER BY day, logged_at",
+        val first = plan(
+            "SELECT * FROM log_entries WHERE user_id = ? AND deleted = false ORDER BY day, logged_at, id LIMIT 500",
             listOf(user),
         )
-        assertUses("log_entries_user_day_idx", plan)
+        assertUses("log_entries_user_day_idx", first)
+        // A later page, in the shape PostgresExportRepository writes its key.
+        val next = plan(
+            "SELECT * FROM log_entries WHERE user_id = ? AND deleted = false AND day >= DATE '2026-10-25' " +
+                "AND (day > DATE '2026-10-25' OR (day = DATE '2026-10-25' AND (logged_at > TIMESTAMPTZ '2026-10-25 08:00Z' " +
+                "OR (logged_at = TIMESTAMPTZ '2026-10-25 08:00Z' AND id > '00000000-0000-4000-8000-000000000000')))) " +
+                "ORDER BY day, logged_at, id LIMIT 500",
+            listOf(user),
+        )
+        assertUses("log_entries_user_day_idx", next)
     }
 
     @Test
