@@ -178,7 +178,9 @@ interface FoodCatalogRepository {
      * The food for a scanned code in any of its equivalent forms
      * ([Barcodes.equivalents]). When two rows carry the same product under
      * different forms (an Open Food Facts copy and the Branded Foods row),
-     * the better tier wins.
+     * the better tier wins. With `FOOD_SEARCH_OFF_ENABLED` on, a code
+     * `foods` lacks is looked up in `off_foods` too, so only a product the
+     * monthly export lacks costs a live Open Food Facts call.
      */
     suspend fun findByBarcode(barcode: String): Food?
 

@@ -3,8 +3,13 @@ package com.opson.server.data
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodsTable
+import com.opson.server.domain.BarcodeLookupResult
+import com.opson.server.domain.BarcodeOutcome
 import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.FoodSource
+import com.opson.server.domain.FoodSourceResult
 import com.opson.server.domain.FoodTier
+import com.opson.server.domain.LiveFoodSources
 import com.opson.server.domain.SearchCategory
 import com.opson.server.domain.SearchFilter
 import com.opson.server.domain.SearchSource
@@ -128,6 +133,32 @@ class OpenFoodFactsCatalogTest : DatabaseTest() {
         assertEquals(jar, results[1].food.id, "the most scanned copy")
         assertEquals(1, results.count { it.food.source == CatalogSource.OpenFoodFacts })
         assertEquals(10, results.size)
+    }
+
+    @Test
+    fun aScanReadsTheExportBeforeCallingOpenFoodFacts() = runTest {
+        val jar = seedOff("Nutella", "03017620422003", scans = 900)
+        val liveCalls = mutableListOf<String>()
+        val live = object : FoodSource {
+            override val catalogSource = CatalogSource.OpenFoodFacts
+            override val outcome = BarcodeOutcome.OpenFoodFacts
+            override val cacheable = true
+            override suspend fun lookup(barcode: String): FoodSourceResult {
+                liveCalls += barcode
+                return FoodSourceResult.NotFound
+            }
+        }
+        fun lookup(enabled: Boolean) = CatalogBarcodeLookup(repo(enabled), LiveFoodSources { listOf(live) })
+
+        // The EAN-13 as printed on the jar, and its 14-digit GTIN form.
+        for (scanned in listOf("3017620422003", "03017620422003")) {
+            val found = lookup(enabled = true).lookup(scanned)
+            assertEquals(jar, (found as BarcodeLookupResult.Found).food.id, scanned)
+        }
+        assertTrue(liveCalls.isEmpty(), "the export answered: $liveCalls")
+
+        assertEquals(BarcodeLookupResult.NotFound, lookup(enabled = false).lookup("3017620422003"))
+        assertEquals(listOf("3017620422003"), liveCalls, "with the flag off only the live API is asked")
     }
 
     @Test

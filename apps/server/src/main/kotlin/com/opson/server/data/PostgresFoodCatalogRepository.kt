@@ -208,6 +208,18 @@ class PostgresFoodCatalogRepository(
             .limit(1)
             .singleOrNull()
             ?.toFood()
+            ?: if (sources.searchOpenFoodFacts) openFoodFactsByBarcode(barcode) else null
+    }
+
+    /** An `off_foods` row for any equivalent form of [barcode]: the export is checked before the live API. */
+    private fun openFoodFactsByBarcode(barcode: String): Food? {
+        var food: Food? = null
+        TransactionManager.current().exec(
+            stmt = OpenFoodFactsSearch.BY_BARCODE_SQL,
+            args = listOf(TextColumnType() to Barcodes.equivalents(barcode).joinToString("|")),
+            explicitStatementType = StatementType.SELECT,
+        ) { rs -> if (rs.next()) food = rs.toFood() }
+        return food
     }
 
     override suspend fun upsertExternalProduct(source: CatalogSource, product: ExternalProduct): Food = database.transaction {
