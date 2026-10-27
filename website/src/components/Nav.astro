@@ -13,7 +13,7 @@ const links = [
 <header class="nav dark">
   <div class="wrap nav-inner">
     <a class="brand" href={href('/')} aria-current={current === '/' ? 'page' : undefined}>
-      <img src={href('/favicon.svg')} alt="" width="34" height="34" />
+      <img src={href('/opson-mark.svg')} alt="" width="40" height="40" />
       <span>Opson</span>
     </a>
     <nav aria-label="Main">
@@ -51,7 +51,6 @@ const links = [
     font-size: 23px;
     letter-spacing: -0.02em;
   }
-  .brand img { border-radius: 9px; }
   ul {
     display: flex;
     align-items: center;
@@ -79,7 +78,7 @@ const links = [
   @media (max-width: 420px) {
     .nav-inner { min-height: 64px; }
     .brand { font-size: 20px; }
-    .brand img { width: 30px; height: 30px; }
+    .brand img { width: 34px; height: 34px; }
     ul a:not(.button) { padding: 8px 7px; font-size: 15px; }
   }
 </style>
