@@ -10,9 +10,9 @@ again at the next prod deploy, which is a no-op.
 
 ## 0.1.0
 
-Waiting for App Review (build 202610261458). Sign in with Apple or no account;
-Google, email and "Coming later" are hidden. Don't approve the prod deploy
-waiting in GitHub while it's in review: 0.1 talks to prod as it is.
+Approved (build 202610261458) and left unreleased on purpose: that binary
+signs in to the dev Supabase project, so every call to prod fails with 401.
+Fixed on main (`d67368c3`). The next store submission will be 0.2.
 
 ## The whole-codebase review
 
