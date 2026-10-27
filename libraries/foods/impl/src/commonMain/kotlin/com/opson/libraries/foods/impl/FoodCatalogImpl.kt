@@ -36,15 +36,18 @@ class FoodCatalogImpl(
     private val clock: Clock,
 ) : FoodCatalog {
 
+    private val recentSearches = RecentSearches(clock)
+
     override suspend fun search(query: String, limit: Int, filter: FoodSearchFilter): Catching<FoodSearchResult> {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) return Catching.success(FoodSearchResult(query = "", foods = emptyList(), fromCache = false))
         val bounded = limit.coerceIn(1, MAX_LIMIT)
+        recentSearches.get(trimmed, bounded, filter)?.let { return Catching.success(it) }
         val online = api.search(trimmed, bounded, filter)
         online.getOrNull()?.let { response ->
-            return Catching.success(
-                FoodSearchResult(query = response.query, foods = response.foods.map { it.toDomain() }, fromCache = false),
-            )
+            val result = FoodSearchResult(query = response.query, foods = response.foods.map { it.toDomain() }, fromCache = false)
+            recentSearches.put(trimmed, bounded, filter, result)
+            return Catching.success(result)
         }
         // Out of reach (or the server failed): what the user has picked before
         // is better than an empty list in a grocery store basement.
@@ -54,6 +57,9 @@ class FoodCatalogImpl(
             FoodSearchResult(query = trimmed, foods = ordered, fromCache = true)
         }
     }
+
+    override fun recentSearch(query: String, limit: Int, filter: FoodSearchFilter): FoodSearchResult? =
+        query.trim().takeIf { it.isNotEmpty() }?.let { recentSearches.get(it, limit.coerceIn(1, MAX_LIMIT), filter) }
 
     override suspend fun searchOptions(): Catching<SearchOptions> = api.searchOptions().map { response ->
         SearchOptions(openFoodFacts = SearchSource.OpenFoodFacts.wire in response.sources)

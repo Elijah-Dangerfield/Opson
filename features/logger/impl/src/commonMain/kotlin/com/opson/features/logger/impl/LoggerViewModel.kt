@@ -297,8 +297,11 @@ class LoggerViewModel(
         searchJob?.cancel()
         if (wanted == null) return
         searchJob = viewModelScope.launch {
-            delay(SEARCH_DEBOUNCE)
-            val result = foodCatalog.search(query, SEARCH_LIMIT, wanted.second).getOrNull()
+            // Asked a moment ago (backspacing, a tab and back): no debounce, no round trip.
+            val result = foodCatalog.recentSearch(query, SEARCH_LIMIT, wanted.second) ?: run {
+                delay(SEARCH_DEBOUNCE)
+                foodCatalog.search(query, SEARCH_LIMIT, wanted.second).getOrNull()
+            }
             val outcome = SearchOutcome(
                 query = query,
                 foods = result?.foods.orEmpty(),
