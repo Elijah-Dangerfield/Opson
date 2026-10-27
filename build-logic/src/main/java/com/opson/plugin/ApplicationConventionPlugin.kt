@@ -18,10 +18,6 @@ import com.opson.util.releaseWarnings
 import com.opson.util.verifyGitHooksInstalled
 import com.opson.util.loadVersionMetadata
 import com.opson.util.optInKotlinMarkers
-import com.opson.util.VersionMetadata
-import com.opson.util.writeCommonMetadata
-import com.opson.util.writeSupabaseMetadata
-import com.github.gmazzo.buildconfig.BuildConfigExtension
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -35,7 +31,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
  *
  * The Android application (applicationId and version from `versions.properties`,
  * R8 and release signing), the static `ComposeApp` framework Xcode links, Compose,
- * kotlin-inject, the generated `AppBuildConfig`, and the git hooks check.
+ * kotlin-inject, the git hooks check and the release environment check. Version,
+ * Supabase and telemetry values are generated once, into `OpsonBuildConfig` in
+ * `:libraries:core`, which the framework exports.
  */
 class ApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -47,7 +45,6 @@ class ApplicationConventionPlugin : Plugin<Project> {
                 apply("org.jetbrains.compose")
                 apply("org.jetbrains.kotlin.plugin.compose")
                 apply(libs.plugins.kotlinSerialization.get().pluginId)
-                apply(libs.plugins.buildconfig.get().pluginId)
             }
 
             configureComposeMetrics()
@@ -109,7 +106,6 @@ class ApplicationConventionPlugin : Plugin<Project> {
             if (extensions.findByName("moduleConfig") == null) {
                 extensions.create("moduleConfig", ConfigurationExtension::class.java)
             }
-            configureAppBuildConfig(versionMetadata)
 
             verifyGitHooksInstalled()
             enforceModuleBoundaries()
@@ -154,18 +150,5 @@ class ApplicationConventionPlugin : Plugin<Project> {
         tasks.withType<KotlinNativeLink>()
             .matching { it.binary.buildType == NativeBuildType.RELEASE }
             .configureEach { dependsOn(verify) }
-    }
-
-    private fun Project.configureAppBuildConfig(metadata: VersionMetadata) {
-        val supabaseMetadata = loadSupabaseMetadata()
-        extensions.configure(BuildConfigExtension::class.java) {
-            packageName("${metadata.applicationId}.appconfig")
-            className("AppBuildConfig")
-            useKotlinOutput {
-                internalVisibility = false
-            }
-            writeCommonMetadata(metadata)
-            writeSupabaseMetadata(supabaseMetadata)
-        }
     }
 }
