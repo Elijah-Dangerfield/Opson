@@ -32,6 +32,9 @@ import com.opson.libraries.ui.components.icon.IconButton
 import com.opson.libraries.ui.components.icon.Icons
 import com.opson.libraries.ui.components.text.Text
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import opson.libraries.resources.generated.resources.Res as SharedRes
+import opson.libraries.resources.generated.resources.ds_back
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun TopBar(
@@ -65,7 +68,7 @@ fun TopBar(
             if (onNavigateBack != null) {
                 IconButton(
                     size = IconButton.Size.Large,
-                    icon = Icons.ChevronLeft("Navigate back"),
+                    icon = Icons.ChevronLeft(stringResource(SharedRes.string.ds_back)),
                     onClick = onNavigateBack
                 )
             }

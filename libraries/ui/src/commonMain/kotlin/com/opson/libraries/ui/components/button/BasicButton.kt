@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -177,13 +178,15 @@ internal fun ButtonSize.padding(hasIcon: Boolean): PaddingValues =
     }
 
 // Button type follows the handoff: sentence case, 700 weight. Large is the 1em primary
-// call to action (52dp tall), Medium and Small the 0.875em pill and inline buttons.
+// call to action (52dp tall), Medium and Small the 0.875em pill and inline buttons. Two lines,
+// so a label in large text wraps instead of losing its end.
 
 private val ExtraSmallButtonTextConfig: TextConfig
     @Composable get() = TextConfig(
         typography = AppTheme.type.secondarySmallStrong,
         overflow = TextOverflow.Ellipsis,
-        maxLines = 1,
+        maxLines = 2,
+        textAlign = TextAlign.Center,
         allCaps = false
     )
 
@@ -191,7 +194,8 @@ private val SmallButtonTextConfig: TextConfig
     @Composable get() = TextConfig(
         typography = AppTheme.type.buttonSmall,
         overflow = TextOverflow.Ellipsis,
-        maxLines = 1,
+        maxLines = 2,
+        textAlign = TextAlign.Center,
         allCaps = false
     )
 
@@ -199,7 +203,8 @@ private val MediumButtonTextConfig: TextConfig
     @Composable get() = TextConfig(
         typography = AppTheme.type.buttonSmall,
         overflow = TextOverflow.Ellipsis,
-        maxLines = 1,
+        maxLines = 2,
+        textAlign = TextAlign.Center,
         allCaps = false
     )
 
@@ -207,7 +212,8 @@ private val LargeButtonTextConfig: TextConfig
     @Composable get() = TextConfig(
         typography = AppTheme.type.button,
         overflow = TextOverflow.Ellipsis,
-        maxLines = 1,
+        maxLines = 2,
+        textAlign = TextAlign.Center,
         allCaps = false
     )
 

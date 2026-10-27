@@ -79,7 +79,7 @@ fun IconTile(
 /**
  * The round 40dp button the handoff puts on cards and rows (the + on a meal, the + on water):
  * accent icon on the accent tint. [selected] swaps to the solid accent, as the logger's + does
- * once a food is picked.
+ * once a food is picked. It lays out at [touchTarget], 48 by default, whatever [size] it draws.
  */
 @Composable
 fun RoundIconButton(
@@ -92,9 +92,9 @@ fun RoundIconButton(
     containerColor: ColorResource = if (selected) AppTheme.colors.accent else AppTheme.colors.accentTint,
     contentColor: ColorResource = if (selected) AppTheme.colors.onAccent else AppTheme.colors.accent,
     enabled: Boolean = true,
-    touchTarget: Dp = size,
+    touchTarget: Dp = AppTheme.spacing.touchTarget,
 ) {
-    // The tappable area can be larger than the drawn circle: v3 draws the row + at 40 and asks for 48 to tap.
+    // The tappable area is larger than the drawn circle: v3 draws the row + at 40 and asks for 48 to tap.
     Box(
         modifier = modifier
             .size(maxOf(size, touchTarget))

@@ -19,8 +19,6 @@ import com.opson.system.Dimension.D1300
 import com.opson.system.Dimension.D600
 import com.opson.system.Dimension.D800
 import com.opson.system.Dimension.D850
-import com.opson.system.Dimension.D900
-import com.opson.system.DimensionResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -68,34 +66,6 @@ fun SmallIcon(
     )
 }
 
-@Composable
-fun MediumIcon(
-    icon: IconResource,
-    modifier: Modifier = Modifier,
-    color: ColorResource = com.opson.libraries.ui.system.LocalContentColor.current
-) {
-    androidx.compose.material3.Icon(
-        imageVector = icon.imageVector,
-        contentDescription = icon.contentDescription,
-        modifier = modifier.size(IconSize.Medium.dp),
-        tint = color.color
-    )
-}
-
-@Composable
-fun LargeIcon(
-    icon: IconResource,
-    modifier: Modifier = Modifier,
-    color: ColorResource = com.opson.libraries.ui.system.LocalContentColor.current
-) {
-    androidx.compose.material3.Icon(
-        imageVector = icon.imageVector,
-        contentDescription = icon.contentDescription,
-        modifier = modifier.size(IconSize.Large.dp),
-        tint = color.color
-    )
-}
-
 enum class IconSize(val dp: Dp) {
     Smallest(D600),
     Small(D800),
@@ -113,7 +83,7 @@ private fun IconPreview() {
             items(IconSize.entries.toTypedArray()) {
                 com.opson.libraries.ui.components.icon.Icon(
                     size = it,
-                    icon = Icons.Home.Outlined("home")
+                    icon = Icons.Check("Check")
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(

@@ -1,7 +1,7 @@
 package com.opson.libraries.ui.snackbar
 
 import androidx.compose.material3.SnackbarResult
-import com.opson.libraries.ui.components.PodawanSnackbarVisuals
+import com.opson.libraries.ui.components.AppSnackbarVisuals
 import com.opson.libraries.ui.components.SnackbarDuration
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.Icons
@@ -72,7 +72,6 @@ fun showSnackBar(
  */
 object SnackBarPresenter {
 
-    private val callbacks = mutableMapOf<Long, SnackbarCallbacks>()
     private val _requests = MutableSharedFlow<SnackbarMessage>(
         replay = 0,
         extraBufferCapacity = 32,
@@ -81,14 +80,7 @@ object SnackBarPresenter {
 
     val requests: SharedFlow<SnackbarMessage> = _requests.asSharedFlow()
 
-    fun show(message: SnackbarMessage): Boolean {
-        callbacks[message.id] = SnackbarCallbacks(message.onAction, message.onDismiss)
-        val emitted = _requests.tryEmit(message)
-        if (!emitted) {
-            callbacks.remove(message.id)
-        }
-        return emitted
-    }
+    fun show(message: SnackbarMessage): Boolean = _requests.tryEmit(message)
 
     fun show(
         message: String,
@@ -115,19 +107,6 @@ object SnackBarPresenter {
             )
         )
     }
-
-    fun onResult(messageId: Long, result: SnackbarResult) {
-        val callback = callbacks.remove(messageId)
-        when (result) {
-            SnackbarResult.ActionPerformed -> callback?.onAction?.invoke()
-            SnackbarResult.Dismissed -> callback?.onDismiss?.invoke()
-        }
-    }
-
-    private data class SnackbarCallbacks(
-        val onAction: (() -> Unit)?,
-        val onDismiss: (() -> Unit)?,
-    )
 }
 
 /**
@@ -144,9 +123,17 @@ data class SnackbarMessage(
     val id: Long = Random.nextLong(),
     val onAction: (() -> Unit)? = null,
     val onDismiss: (() -> Unit)? = null,
-)
+) {
+    /** Runs the callback for how the snackbar ended. The message carries its own callbacks, so none outlive it. */
+    internal fun deliver(result: SnackbarResult) {
+        when (result) {
+            SnackbarResult.ActionPerformed -> onAction?.invoke()
+            SnackbarResult.Dismissed -> onDismiss?.invoke()
+        }
+    }
+}
 
-fun SnackbarMessage.toVisuals(): PodawanSnackbarVisuals = PodawanSnackbarVisuals(
+fun SnackbarMessage.toVisuals(): AppSnackbarVisuals = AppSnackbarVisuals(
     id = id,
     title = title,
     icon = icon,

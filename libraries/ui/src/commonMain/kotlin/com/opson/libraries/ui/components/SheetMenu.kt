@@ -32,6 +32,7 @@ import com.opson.libraries.ui.components.text.NumberInput
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.rememberTypedText
 import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.libraries.ui.system.minTouchTarget
 import com.opson.system.AppTheme
 import com.opson.system.background
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -134,10 +135,10 @@ fun SheetMenuNumberRow(
             Text(text = unit, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, maxLines = 1)
             Box(
                 modifier = Modifier
+                    .minTouchTarget()
                     .defaultMinSize(minHeight = AppTheme.spacing.compactTouchTarget)
                     .clip(AppTheme.shapes.pill)
                     .background(AppTheme.colors.soft)
-                    .semantics { role = Role.Button }
                     .bounceClick(scaleDown = 0.95f, onClick = onAction)
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center,

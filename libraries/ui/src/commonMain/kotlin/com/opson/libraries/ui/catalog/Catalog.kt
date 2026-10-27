@@ -49,7 +49,7 @@ import com.opson.system.Radii
 /** The "Aa" glyph shown on a swatch in its on-color. */
 private const val SampleGlyph = "Aa"
 
-/** Page heading — a big title + one-line intro. Reused by every page and the combined preview. */
+/** Page heading: a big title and a one-line intro. */
 @Composable
 internal fun CatalogHeader(title: String, subtitle: String? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
@@ -107,17 +107,6 @@ internal fun CatalogSection(
     }
 }
 
-/** A hairline divider between major areas in the combined preview. */
-@Composable
-internal fun CatalogDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(1.dp)
-            .background(AppTheme.colors.border.color),
-    )
-}
-
 /**
  * One color token as a documentation row: a swatch (with an "Aa" in its on-color), the token name +
  * hex, and a "when / where to use it" note. The ladder of these reads like a spec table.
@@ -170,67 +159,6 @@ internal fun ColorRow(
                 color = AppTheme.colors.textSecondary,
             )
         }
-    }
-}
-
-/**
- * A documented component example: a "what / when to use" label + note above the live sample. Use
- * for component variants so each reads as a spec entry, not a loose widget.
- */
-@Composable
-internal fun SpecRow(
-    label: String,
-    description: String,
-    content: @Composable () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D400)) {
-        Column(verticalArrangement = Arrangement.spacedBy(Dimension.D100)) {
-            Text(text = label, typography = AppTheme.typography.Label.L600)
-            Text(
-                text = description,
-                typography = AppTheme.typography.Body.B400,
-                color = AppTheme.colors.textSecondary,
-            )
-        }
-        content()
-    }
-}
-
-/** One color token as a compact chip (role + name + hex). For grids, not the ladder. */
-@Composable
-internal fun ColorSwatch(
-    role: String,
-    resource: ColorResource,
-    onColor: ColorResource? = null,
-) {
-    Column(
-        modifier = Modifier.width(150.dp),
-        verticalArrangement = Arrangement.spacedBy(Dimension.D200),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .size(width = 150.dp, height = 84.dp)
-                .clip(Radii.Card.shape)
-                .background(resource.color)
-                .border(1.dp, AppTheme.colors.border.color, Radii.Card.shape)
-                .padding(Dimension.D400),
-        ) {
-            if (onColor != null) {
-                Text(text = SampleGlyph, typography = AppTheme.typography.Label.L600, color = onColor)
-            }
-        }
-        Text(text = role, typography = AppTheme.typography.Label.L500)
-        Text(
-            text = resource.designSystemName,
-            typography = AppTheme.typography.Caption.C300,
-            color = AppTheme.colors.textSecondary,
-        )
-        Text(
-            text = resource.toHexString(),
-            typography = AppTheme.typography.Caption.C200,
-            color = AppTheme.colors.textSecondary,
-        )
     }
 }
 

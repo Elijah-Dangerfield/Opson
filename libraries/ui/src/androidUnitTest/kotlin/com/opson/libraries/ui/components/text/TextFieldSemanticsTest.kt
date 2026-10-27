@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import com.opson.system.AppTheme
 import org.junit.Rule
 import org.junit.Test
@@ -100,5 +101,30 @@ class TextFieldSemanticsTest {
     fun maskedTextField_unmasked_exposesItsValue() {
         render { MaskedTextField(value = "72.6", onValueChange = {}, masked = false, modifier = Modifier.testTag(FIELD)) }
         assertEquals("72.6", editableText())
+    }
+
+    @Test
+    fun numberField_aKeystrokeTheFilterDropsNeverShows() {
+        var value by mutableStateOf("1.5")
+        render { NumberField(value = value, onValueChange = { value = it }, modifier = Modifier.testTag(FIELD)) }
+
+        // A second point: the filter turns "1.5." back into "1.5", so nothing changed.
+        compose.onNodeWithTag(FIELD).performTextReplacement("1.5.")
+
+        assertEquals("1.5", editableText())
+        assertEquals("1.5", value)
+    }
+
+    @Test
+    fun aViewModelThatRefusesAnEdit_putsTheFieldBackOnItsValue() {
+        // A length cap in the ViewModel: past the limit the state does not change, so no echo comes.
+        var value by mutableStateOf("abc")
+        render { TextArea(value = value, onValueChange = { value = it.take(3) }, modifier = Modifier.testTag(FIELD)) }
+
+        compose.onNodeWithTag(FIELD).performTextReplacement("abcd")
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+
+        assertEquals("abc", editableText())
     }
 }

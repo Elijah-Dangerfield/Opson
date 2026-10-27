@@ -74,7 +74,7 @@ fun NumberField(
     val field = @Composable { fieldModifier: Modifier ->
         InputBox(
             value = value,
-            onValueChange = { onValueChange(NumberInput.sanitize(it, allowDecimal)) },
+            onValueChange = onValueChange,
             modifier = fieldModifier,
             placeholder = placeholder,
             suffix = unit,
@@ -94,6 +94,7 @@ fun NumberField(
             shape = AppTheme.shapes.input,
             contentPadding = PaddingValues(horizontal = 12.dp),
             minHeight = FieldMinHeight,
+            filter = { NumberInput.sanitize(it, allowDecimal) },
         )
     }
     if (label == null) {

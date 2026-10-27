@@ -44,31 +44,19 @@ fun IconButton(
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
-    val padding = size.padding
-    val iconSize = size.iconSize
-
-    @Composable
-    fun Button(modifier: Modifier) {
-        Surface(
-            modifier = modifier.minTouchTarget(),
-            contentPadding = PaddingValues(padding),
-            color = backgroundColor,
-            contentColor = iconColor,
-            radius = Radii.IconButton,
-            onClick = onClick,
-            enabled = enabled,
-            role = Role.Button,
-            interactionSource = interactionSource
-        ) {
-            Icon(
-                icon = icon,
-                size = iconSize
-            )
-        }
+    Surface(
+        modifier = modifier.minTouchTarget(),
+        contentPadding = PaddingValues(size.padding),
+        color = backgroundColor,
+        contentColor = iconColor,
+        radius = Radii.IconButton,
+        onClick = onClick,
+        enabled = enabled,
+        role = Role.Button,
+        interactionSource = interactionSource
+    ) {
+        Icon(icon = icon, size = size.iconSize)
     }
-
-    Button(modifier = modifier)
-
 }
 
 object IconButton {
