@@ -1,6 +1,7 @@
 package com.opson.libraries.navigation
 
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowNavigator
@@ -30,6 +31,22 @@ fun NavController.switchTab(route: TabRoute) {
         }
         launchSingleTop = true
         restoreState = true
+    }
+}
+
+/**
+ * The [Router.reselectTab] operation. Pops everything above [route]'s root, screens and sheets
+ * alike, and keeps the root. When the root is already the top entry there is nothing to pop, so
+ * it calls [onAtRoot] instead, which is where the tab hears it should scroll to the top. Does
+ * nothing when [route] is not on the stack, as when a tap lands mid-switch.
+ */
+fun NavController.reselectTab(route: TabRoute, onAtRoot: () -> Unit) {
+    val stack = currentBackStack.value.filter { it.destination !is NavGraph }
+    val rootIndex = stack.indexOfLast { it.destination.hasRoute(route::class) }
+    when {
+        rootIndex < 0 -> return
+        rootIndex == stack.lastIndex -> onAtRoot()
+        else -> popBackStack(stack[rootIndex].destination.id, inclusive = false)
     }
 }
 
