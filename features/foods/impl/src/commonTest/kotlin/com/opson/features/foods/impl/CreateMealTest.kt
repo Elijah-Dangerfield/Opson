@@ -118,6 +118,35 @@ class CreateMealTest : CoroutineTest() {
         assertEquals("Weekday breakfast", vm.state.name, "typing is not overwritten")
     }
 
+    /** Breakfast's two foods and one lunch, with no Uncategorized copies, as Today's select mode sees a day. */
+    private fun selectVm(entryIds: List<String>, slot: MealSlot? = null, prefillName: String? = null): CreateMealViewModel {
+        val lunch = breakfast.first().copy(id = "l-0", slot = MealSlot.Lunch, name = "Chicken adobo")
+        val day = Day(
+            date = FoodsFixtures.today,
+            itemsBySlot = mapOf(MealSlot.Breakfast to breakfast, MealSlot.Lunch to listOf(lunch)),
+        )
+        val route = CreateMealRoute(FoodsFixtures.today.toString(), slot, entryIds)
+        return CreateMealViewModel(route, prefillName, savedMeals, mealPicks, FakeDiaryRepository(listOf(day)), policySource)
+    }
+
+    @Test
+    fun fromTodaysSelectionOnlyThePickedEntriesArriveInTheDaysOrder() = runUnitTest {
+        val vm = selectVm(entryIds = listOf("l-0", "b-1"))
+
+        assertEquals(listOf("Banana", "Chicken adobo"), vm.state.items.map { it.name })
+        assertEquals("", vm.state.name, "foods from two meals give no meal to name it after")
+        assertEquals(MealSlot.Lunch, vm.state.usualSlot)
+    }
+
+    @Test
+    fun selectedEntriesFromOneMealAreNamedAndUsuallyAtThatMeal() = runUnitTest {
+        val vm = selectVm(entryIds = listOf("b-1"), slot = MealSlot.Breakfast, prefillName = "My breakfast")
+
+        assertEquals(listOf("Banana"), vm.state.items.map { it.name }, "not the whole breakfast")
+        assertEquals("My breakfast", vm.state.name)
+        assertEquals(MealSlot.Breakfast, vm.state.usualSlot)
+    }
+
     @Test
     fun anUncategorizedPrefillIsUsuallyAtLunch() = runUnitTest {
         val vm = vm(CreateMealRoute(FoodsFixtures.today.toString(), MealSlot.Uncategorized), prefillName = "My meal")
