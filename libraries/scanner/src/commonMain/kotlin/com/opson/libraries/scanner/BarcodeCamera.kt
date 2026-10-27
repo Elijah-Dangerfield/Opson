@@ -29,6 +29,24 @@ interface CameraPermissions {
 }
 
 /**
+ * The part of the viewfinder the decoder looks at, centred, as fractions of
+ * its width and height. Matching it to the frame drawn on screen means the
+ * decoder searches less of each frame and ignores a neighbouring pack's code.
+ */
+data class ScanArea(val width: Float, val height: Float) {
+    init {
+        require(width in 0f..1f && height in 0f..1f) { "A scan area is a fraction of the viewfinder" }
+    }
+}
+
+/**
+ * A tap on the viewfinder: focus and meter there. [x] and [y] are fractions
+ * of the viewfinder's width and height. A plain class, not a data class, so
+ * each tap is a new request even on the same spot.
+ */
+class FocusPoint(val x: Float, val y: Float)
+
+/**
  * The parts of scanning that have to live in composition: the live preview,
  * and the system permission prompt (an activity result on Android). Bound per
  * platform in `:libraries:scanner:impl`; previews and tests never touch it,
@@ -36,15 +54,28 @@ interface CameraPermissions {
  */
 interface BarcodeCamera {
     /**
-     * The live camera, reading EAN-13, EAN-8, UPC-A and UPC-E. Calls [onCode]
-     * for every read, many times a second for the same pack; the caller
-     * decides which to keep. Calls [onUnavailable] on the main thread when the
-     * camera cannot run even though it is allowed: no back camera (the iOS
-     * simulator), a failed start, or another app holding it. The camera stops
-     * when this leaves composition, and composing it again tries afresh.
+     * The live camera, reading EAN-13, EAN-8, UPC-A and UPC-E inside
+     * [scanArea]. Calls [onCode] on the main thread for every read, many times
+     * a second for the same pack; the caller decides which to keep. Calls
+     * [onUnavailable] on the main thread when the camera cannot run even
+     * though it is allowed: no back camera (the iOS simulator), a failed
+     * start, or another app holding it. The camera stops when this leaves
+     * composition, and composing it again tries afresh.
+     *
+     * [onTorchAvailable] says, once the camera is up, whether it has a torch
+     * for [torchOn] to light. A new [focusPoint] focuses and meters there, and
+     * keeps focusing there as the pack moves.
      */
     @Composable
-    fun Viewfinder(onCode: (ScannedCode) -> Unit, onUnavailable: () -> Unit, modifier: Modifier)
+    fun Viewfinder(
+        onCode: (ScannedCode) -> Unit,
+        onUnavailable: () -> Unit,
+        scanArea: ScanArea,
+        torchOn: Boolean,
+        onTorchAvailable: (Boolean) -> Unit,
+        focusPoint: FocusPoint?,
+        modifier: Modifier,
+    )
 
     /** A function that shows the system camera prompt; [onAnswer] gets the result. */
     @Composable
