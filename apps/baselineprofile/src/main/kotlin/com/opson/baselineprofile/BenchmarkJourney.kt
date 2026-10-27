@@ -1,7 +1,9 @@
 package com.opson.baselineprofile
 
 import android.content.Intent
+import android.widget.EditText
 import androidx.benchmark.macro.MacrobenchmarkScope
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.StaleObjectException
@@ -16,13 +18,12 @@ import java.util.regex.Pattern
  * drifting apart, and the first symptom of that drift is a profile that quietly
  * covers less while every assertion still passes.
  *
- * ## Replace this with your app's journey
+ * ## The journey
  *
- * What is here walks the shortest meaningful path: onboarding to the tab shell,
- * then every tab and the logger sheet. Swap the constants and the two journey
- * functions as the screens grow. Keep two things:
+ * Onboarding to the tab shell, then every tab and the logger sheet. Keep two
+ * things as the screens change:
  *
- * 1. **The adaptive structure.** [reachHome] walks whatever is on screen rather
+ * 1. **The adaptive structure.** [reachToday] walks whatever is on screen rather
  *    than replaying a fixed tap sequence. Onboarding gains and loses steps, and
  *    a hardcoded sequence breaks silently on every one of those changes.
  * 2. **[describeScreen].** A failure that says only "the thing I wanted was not
@@ -30,13 +31,19 @@ import java.util.regex.Pattern
  *    step nobody knew existed. Those need different fixes and guessing between
  *    them costs a full emulator run each time.
  *
- * ## If you add a hook to skip onboarding
+ * ## Signing in
  *
- * Generation runs a **release** variant, so a benchmark hook gated on
- * `BuildConfig.DEBUG` is dead exactly where it is needed. Gate on the backend
- * environment instead — which is also what stops a generation run creating real
- * accounts in production. There is no such hook here yet, because this journey
- * walks onboarding for real and the template ships no backend to protect.
+ * Accounts are required, so a fresh install stops at sign-in. The journey signs
+ * in with email as an account that has already finished onboarding, so sign-in
+ * lands straight on Today. The account comes in as instrumentation arguments
+ * (`-Pandroid.testInstrumentationRunnerArguments.benchmarkEmail=…` and
+ * `…benchmarkPassword=…`) and is never in the repo.
+ *
+ * Generation runs a **release** variant, which as built signs in to prod. The
+ * account belongs in the dev project, so the profile variants need to point at
+ * dev and offer email sign-in; until they do, the run stops at the sign-in step
+ * with no "Continue with email" on screen (docs/review/findings/build-config.md).
+ * Don't gate any of that on `BuildConfig.DEBUG`: it is false exactly here.
  *
  * Nothing on the launch path may be network-bound. An earlier downstream version
  * awaited sign-in inside `onCreate`, which put a network round trip on the main
@@ -60,19 +67,49 @@ object BenchmarkJourney {
      *
      * Adaptive rather than a fixed tap sequence, and that is a correctness
      * choice: the app may show onboarding, may skip it because the device is
-     * already onboarded, and may gain steps later. A hardcoded sequence breaks
+     * already signed in, and may gain steps later. A hardcoded sequence breaks
      * on all three.
      */
-    fun MacrobenchmarkScope.reachHome() {
-        val anyOnboardingCta = ciAnyOf(SKIP_AND_START_LOGGING, SETTING_UP)
+    fun MacrobenchmarkScope.reachHome() = device.reachToday()
+
+    /** [reachHome] for a plain instrumented test, which has a device but no benchmark scope. */
+    fun UiDevice.reachToday() {
+        val anyOnboardingCta = ciAnyOf(GET_STARTED, CONTINUE_WITH_EMAIL, SETTING_UP)
         repeat(ONBOARDING_MAX_STEPS) {
-            if (device.hasObject(todayScreen())) return
-            device.tapMatching(anyOnboardingCta, ONBOARDING_STEP_TIMEOUT_MS)
+            if (hasObject(todayScreen())) return
+            if (hasObject(textField())) signInWithEmail() else tapMatching(anyOnboardingCta, ONBOARDING_STEP_TIMEOUT_MS)
         }
-        check(device.wait(Until.hasObject(todayScreen()), FIRST_SCREEN_TIMEOUT_MS) == true) {
-            "Never reached Today. " + device.describeScreen()
+        check(wait(Until.hasObject(todayScreen()), FIRST_SCREEN_TIMEOUT_MS) == true) {
+            "Never reached Today. " + describeScreen()
         }
     }
+
+    /** Fills the email form with the benchmark account and waits for Today. */
+    private fun UiDevice.signInWithEmail() {
+        val (email, password) = benchmarkAccount()
+        val fields = findObjects(textField())
+        check(fields.size >= 2) { "Expected an email and a password field. " + describeScreen() }
+        fields[0].text = email
+        fields[1].text = password
+        tapRequired(SIGN_IN)
+        check(wait(Until.hasObject(todayScreen()), FIRST_SCREEN_TIMEOUT_MS) == true) {
+            "Signed in, but Today never appeared. Has the benchmark account finished onboarding? " + describeScreen()
+        }
+    }
+
+    private fun benchmarkAccount(): Pair<String, String> {
+        val arguments = InstrumentationRegistry.getArguments()
+        val email = arguments.getString(EMAIL_ARGUMENT)
+        val password = arguments.getString(PASSWORD_ARGUMENT)
+        check(!email.isNullOrBlank() && !password.isNullOrBlank()) {
+            "The app is asking for an account and none was passed. Run with " +
+                "-Pandroid.testInstrumentationRunnerArguments.$EMAIL_ARGUMENT=... and .$PASSWORD_ARGUMENT=... " +
+                "(a dev-project account that has finished onboarding)."
+        }
+        return email to password
+    }
+
+    private fun textField(): BySelector = By.clazz(EditText::class.java)
 
     /**
      * Every tab, then the logger sheet and back.
@@ -122,8 +159,9 @@ object BenchmarkJourney {
     // verifyBenchmarkJourneyCopy fails `check` when one of these leaves the
     // app's strings, so a copy change surfaces on the PR rather than in next
     // month's profile run.
-    /** Welcome's one-tap path: Full numbers, no questions and no account step. */
-    const val SKIP_AND_START_LOGGING = "Skip and start logging"
+    const val GET_STARTED = "Get started"
+    const val CONTINUE_WITH_EMAIL = "Continue with email"
+    const val SIGN_IN = "Sign in"
     const val SETTING_UP = "Setting things up…"
     const val TODAY = "Today"
     const val TRENDS = "Trends"
@@ -146,6 +184,9 @@ object BenchmarkJourney {
     const val SCREEN_TIMEOUT_MS = 15_000L
     const val ONBOARDING_STEP_TIMEOUT_MS = 15_000L
     const val ONBOARDING_MAX_STEPS = 8
+
+    const val EMAIL_ARGUMENT = "benchmarkEmail"
+    const val PASSWORD_ARGUMENT = "benchmarkPassword"
 
     private const val TAP_ATTEMPTS = 3
     private const val RETRY_FIND_MS = 500L

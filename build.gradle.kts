@@ -137,8 +137,8 @@ if (System.getProperty("serverOnly") != "true") {
                 .replace("&amp;", "&")
             val missing = Regex("""const val (\w+) = "([^"]+)"""").findAll(journey.readText())
                 .map { it.groupValues[1] to it.groupValues[2] }
-                // The package name is not copy.
-                .filter { (name, text) -> name != "PACKAGE" && text !in copy }
+                // The package name and the instrumentation argument names are not copy.
+                .filter { (name, text) -> name != "PACKAGE" && !name.endsWith("_ARGUMENT") && text !in copy }
                 .toList()
             if (missing.isNotEmpty()) {
                 throw org.gradle.api.GradleException(
