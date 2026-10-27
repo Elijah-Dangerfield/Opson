@@ -60,3 +60,17 @@ the rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its fate.
   failed with a bare `SQLException`; with a real exception class the same code
   passes. Not traced further: something under Room's transaction depends on the
   exception behaving like the framework's.
+
+## 2. A sync asked for mid-sync returned the stale one — fixed
+
+- **Where:** `libraries/diary/impl/.../DiarySyncer.kt`, `syncNow()`.
+- **Rule:** §3 "Offline first", §2 "Cancellation is cooperative".
+- **Failure:** a `syncNow()` that arrived while a background sync was running
+  joined it and returned its result, though that sync had pulled before the
+  call. Pull-to-refresh could miss another phone's change, and export could
+  miss the latest entries. It showed up as `SettingsMergeAcrossVersionsTest`
+  failing about one full-suite run in five; a timing probe stuck 1 in 20.
+- **Fix:** `0bb517e0`. A caller arriving mid-sync waits and gets one fresh
+  sync, shared with everyone else who arrived during the same sync.
+  `DiarySyncerTest.aSyncAskedForWhileOneIsInFlight_pullsWhatChangedAfterTheAsk`
+  fails on the old code.

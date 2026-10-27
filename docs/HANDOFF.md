@@ -41,6 +41,7 @@ The fixes that mattered most:
 - The server waited up to 27 s on a busy database; it now answers "busy" in seconds.
 - Health data and search text were reaching logs, traces, Sentry and Grafana.
 - One bad row could block a phone's sync forever.
+- Refreshing while a background sync ran could miss another phone's changes.
 - A failed Kotlin compile still produced a "successful" iOS build with the old code.
 - The Open Food Facts import could hang forever if Postgres restarted; it now
   builds each index separately and resumes.
