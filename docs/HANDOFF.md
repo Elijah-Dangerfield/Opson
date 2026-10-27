@@ -77,15 +77,14 @@ Export the design as PNGs named by those ids and run
 
 ## Needs you
 
-- **Google sign-in** (accounts are now required; Android has no other way
-  in). For dev and prod: in Google Cloud, publish the OAuth consent screen
-  and create a "Web application" OAuth client with the redirect URI
-  `https://<project-ref>.supabase.co/auth/v1/callback` (dev
-  `gfmstgbrdwqepmeycyid`, prod `qmftnivpklhhozthpxej`). Then in Supabase,
-  Authentication › Providers › Google: enable it and paste the client id and
-  secret. Manual identity linking (needed so guests keep their log when they
-  sign in) is already on for both projects. Keep anonymous sign-ins on while
-  0.1 and TestFlight 702 are installed anywhere.
+- **Google sign-in is set up** (2026-10-27): Google Cloud project `opson-512920`
+  ("Opson", published, External), one Web client per Supabase project, and
+  Google enabled on dev and prod with manual linking on. The client ids and
+  secrets are in the credential store (`opson.google.{dev,prod}.*`); Google
+  never shows a secret again. The account chooser says "continue to
+  <ref>.supabase.co" until Supabase has a custom domain (paid add-on), e.g.
+  `auth.opsontracker.com`. Keep anonymous sign-ins on while 0.1 and
+  TestFlight 702 are installed anywhere.
 - Decide three things the review left open: the Open Food Facts cache licence question,
   what "a set deficit" should count as burned, and whether a missing release
   signing key should fail the build. Each is in `docs/review/product-notes.md`
