@@ -192,17 +192,18 @@ cursor.
 ### Postgres (`public` schema, Flyway in `apps/server/src/main/resources/db/migration`)
 
 ```sql
--- Catalog, shared by everyone: USDA FoodData Central (generic + Branded), Open Food Facts, later paid sources
+-- Catalog, shared by everyone: USDA FoodData Central (generic + Branded), NEVO, Open Food Facts, later paid sources
 foods (
-  id uuid pk, source text check (source in ('usda_foundation','usda_sr','usda_fndds','usda_branded','nutritionix','off')),
+  id uuid pk, source text check (source in ('usda_foundation','usda_sr','usda_fndds','usda_branded','nutritionix','off','nevo')),
   source_id text, name text, brand text null, barcode text null unique,
   kcal_100g real, protein_100g real, carbs_100g real, fat_100g real, fiber_100g real,  -- nullable when unknown
   micros jsonb not null default '{}',          -- nutrient key -> amount per 100 g
   portions jsonb not null default '[]',        -- [{label:'1 cup', grams:240}]
   search tsvector generated always as (to_tsvector('simple', name || ' ' || coalesce(brand,''))) stored,
   popularity int not null default 0,
-  tier smallint not null,                      -- 1 reference (USDA generic), 2 label (USDA Branded), 3 licensed, 4 community (OFF)
+  tier smallint not null,                      -- 1 reference (USDA generic, NEVO), 2 label (USDA Branded), 3 licensed, 4 community (OFF)
   verified boolean not null,                   -- true for tiers 1-3
+  source_version text null,                    -- the release a row came from; NEVO's "2025/9.0"
   unique (source, source_id))
   -- GIN index on search, trigram index on lower(name) for prefix and typo tolerance.
   -- A trigger sets tier and verified from source (food_source_tier()), so loaders never write them.
@@ -366,7 +367,7 @@ errors in the `ProblemResponse` envelope.
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/v1/sync` | Push and pull, section 6 |
-| GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`), `sort` (`best`, `name`); without them the response is 0.1's. |
+| GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`), `sort` (`best`, `name`); without them the response is 0.1's. NEVO foods only with `credits=nevo`, which an app that shows RIVM's citation sends. |
 | GET | `/v1/foods/search/options` | The `sources` and `categories` search takes here; `off` only with `FOOD_SEARCH_OFF_ENABLED`. |
 | GET | `/v1/foods/{id}` | Detail with portions and micros |
 | GET | `/v1/foods/barcode/{code}` | Catalog first, in any equivalent form of the code (UPC-A, EAN-13, GTIN-14, UPC-E), then each enabled outside source in tier order (Nutritionix when configured, Open Food Facts); cacheable answers are stored in `foods`. 404 `not_found` when nobody has it, 503 when no source could answer. |

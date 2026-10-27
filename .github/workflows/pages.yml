@@ -24,8 +24,7 @@ on:
     branches: [main]
     paths:
       - 'website/**'
-      - 'legal/privacy.md'
-      - 'legal/terms.md'
+      - 'legal/*.md'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 

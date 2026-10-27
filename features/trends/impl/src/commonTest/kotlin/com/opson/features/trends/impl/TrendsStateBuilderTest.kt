@@ -9,11 +9,15 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsCards
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.nutrition.DayGoal
+import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Surface
+import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
 import kotlinx.datetime.DayOfWeek
@@ -339,8 +343,45 @@ class TrendsStateBuilderTest {
 
     @Test
     fun chartScale_isTheTopOfTheRangePlusAFifth_roundedUp() {
-        assertEquals(2800.0, TrendsStateBuilder.chartScale(Targets.Default))
-        assertEquals(3000.0, TrendsStateBuilder.chartScale(Targets.Default.copy(maxKcal = 2450)))
+        assertEquals(2800.0, TrendsStateBuilder.chartScale(DayGoal.Range(1900, 2300, 2100)))
+        assertEquals(3000.0, TrendsStateBuilder.chartScale(DayGoal.Range(1900, 2450, 2175)))
+    }
+
+    @Test
+    fun oneNumber_drawsAsALineAtTheNumber_andTheCaptionSaysSo() {
+        val exact = Settings(targets = Targets.Default.useExact())
+        val intake = assertNotNull(build(settings = exact).intake)
+
+        assertEquals(2100f / 2600f, intake.band.start)
+        assertEquals(intake.band.start, intake.band.endInclusive, "one number is a line, not a band")
+        assertTrue(intake.singleGoal)
+        assertEquals(false, assertNotNull(build().intake).singleGoal)
+    }
+
+    @Test
+    fun aSurplus_drawsAtTheUsualTargetPlusTheSurplus_whileTheBurnIsUnknown() {
+        val surplus = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300, 300)))
+        val intake = assertNotNull(build(settings = surplus).intake)
+
+        assertEquals(2400f / 2900f, intake.band.start)
+        assertEquals(intake.band.start, intake.band.endInclusive)
+    }
+
+    @Test
+    fun byDay_drawsOneBandOverEveryGroupsGoal() {
+        val byDay = Targets.Default.copy(
+            style = TargetStyle.ByDay(
+                listOf(
+                    DayGroup(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY), 1900, 2300),
+                    DayGroup(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), 2500, 2700, GroupShape.Exact),
+                ),
+            ),
+        )
+        val intake = assertNotNull(build(settings = Settings(targets = byDay)).intake)
+
+        // From the weekday range's low end to the weekend's 2,600, on a scale over 2,600.
+        assertEquals(1900f / 3200f..2600f / 3200f, intake.band)
+        assertEquals(false, intake.singleGoal)
     }
 
     private fun dayWith(date: LocalDate, item: LogItem) =

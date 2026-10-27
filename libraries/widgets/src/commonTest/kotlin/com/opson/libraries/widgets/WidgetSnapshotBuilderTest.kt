@@ -67,6 +67,18 @@ class WidgetSnapshotBuilderTest {
     }
 
     @Test
+    fun oneNumber_drawsAMarkAtIt_notABox() {
+        val base = WidgetFixtures.inputs(NumbersSettings(preset = PresetId.Full), WidgetFixtures.day, mealGroups = true)
+        val inputs = base.copy(settings = base.settings.copy(targets = base.settings.targets.useExact()))
+
+        val energy = assertNotNull(WidgetSnapshotBuilder.build(inputs, WidgetFixtures.policy(PresetId.Full), COPY).today.energy)
+
+        // The bar runs to 2,520 (2,100 plus 20%), and the goal's ends meet.
+        assertEquals(2100 / 2520f, energy.rangeStart, 0.001f)
+        assertEquals(energy.rangeStart, energy.rangeEnd)
+    }
+
+    @Test
     fun full_drawsNoMealsAndNoNote() {
         val today = build(PresetId.Full).today
         assertTrue(today.meals.isEmpty())

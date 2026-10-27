@@ -10,6 +10,8 @@
     <!-- Shared by the pages -->
     <string name="settings_back_more">‹ More</string>
     <string name="settings_back_today">‹ Today</string>
+    <string name="settings_back_targets">‹ Targets</string>
+    <string name="settings_back_energy">‹ Energy today</string>
     <string name="settings_saved">Saved.</string>
     <string name="settings_saved_fewer">Saved. Fewer numbers from now on.</string>
 
@@ -132,12 +134,23 @@
     <!-- Targets -->
     <string name="settings_targets_title">Targets</string>
     <string name="settings_targets_goal_style">Goal style</string>
-    <string name="settings_targets_style_range">A range</string>
-    <string name="settings_targets_style_range_line">Anywhere between a low and high end</string>
-    <string name="settings_targets_style_deficit">A set deficit</string>
-    <string name="settings_targets_style_deficit_line">A fixed amount under what you burn</string>
+    <string name="settings_targets_style_range">Range</string>
+    <string name="settings_targets_style_deficit">Set deficit</string>
+    <string name="settings_targets_style_deficit_line">Eat a set amount under what you burn</string>
     <string name="settings_targets_style_by_day">Different by day</string>
-    <string name="settings_targets_style_by_day_line">Say, more on training days</string>
+    <string name="settings_targets_style_exact">One number</string>
+    <string name="settings_targets_style_surplus">Set surplus</string>
+    <string name="settings_targets_style_surplus_line">Eat a set amount over what you burn</string>
+    <string name="settings_targets_kcal_a_day">kcal a day</string>
+    <string name="settings_targets_burn_target">Today's target %1$s · moves with what you burn</string>
+    <string name="settings_targets_burn_target_unknown">Until Burned is known, your goal is your range.</string>
+    <string name="settings_targets_burned_title">Burned comes from</string>
+    <string name="settings_targets_resting">Resting energy</string>
+    <string name="settings_targets_resting_calculated">Calculated</string>
+    <string name="settings_targets_resting_own">Your own number</string>
+    <string name="settings_targets_resting_unknown">Add your details</string>
+    <string name="settings_targets_activity">Activity</string>
+    <string name="settings_targets_activity_none">Not connected</string>
     <string name="settings_targets_low_end">Low end</string>
     <string name="settings_targets_high_end">High end</string>
     <string name="settings_targets_lower_end">Lower the %1$s</string>
@@ -157,26 +170,29 @@
     <string name="settings_targets_grams">Grams</string>
     <string name="settings_targets_ratios_note">Grams follow your energy target, so the split stays the same.</string>
     <string name="settings_targets_grams_note">Grams stay put when your energy target changes.</string>
-    <string name="settings_targets_deficit_title">Under what you burn, each day</string>
-    <string name="settings_targets_kcal">kcal</string>
     <string name="settings_targets_deficit_less">Less under what you burn</string>
     <string name="settings_targets_deficit_more">More under what you burn</string>
-    <string name="settings_targets_deficit_burn">You burn, 7-day average</string>
-    <string name="settings_targets_deficit_goal">Today's goal</string>
     <string name="settings_targets_deficit_about">About %1$s</string>
-    <string name="settings_targets_deficit_burn_unknown">Not known yet</string>
-    <string name="settings_targets_deficit_goal_unknown">Your range, for now</string>
     <string name="settings_targets_deficit_cap_toast">A bigger deficit needs a limit set with a dietitian first.</string>
     <string name="settings_targets_deficit_locked">Can't go higher yet</string>
     <string name="settings_targets_deficit_cap_note">The deficit can't grow past where it started until a dietitian sets a limit.</string>
-    <string name="settings_targets_burn_source">Work out what I burn from</string>
-    <string name="settings_targets_burn_source_body">Intake and weight trend is steadier. It needs about two weeks of logging first.</string>
-    <string name="settings_targets_rule_floor">Never below your floor, even on a low-burn day</string>
-    <string name="settings_targets_rule_big_day">After a big day, tomorrow's goal stays the same</string>
+    <string name="settings_targets_number_lower">Lower your goal</string>
+    <string name="settings_targets_number_raise">Raise your goal</string>
+    <string name="settings_targets_number_floor_note">Your goal can't go lower until a dietitian sets a safe floor.</string>
+    <string name="settings_targets_surplus_title">Over what you burn, each day</string>
+    <string name="settings_targets_surplus_less">Less over what you burn</string>
+    <string name="settings_targets_surplus_more">More over what you burn</string>
+    <string name="settings_targets_surplus_locked">Can't go higher</string>
+    <string name="settings_targets_surplus_cap">The surplus can't grow past where it started until a dietitian sets a limit.</string>
+    <string name="settings_targets_surplus_from_target">Today's target %1$s. Until Burned is known, the surplus goes on top of your usual target.</string>
     <string name="settings_targets_group_every_day">Every day</string>
     <string name="settings_targets_group_other_days">Other days</string>
     <string name="settings_targets_group_numbered">Day group %1$d</string>
     <string name="settings_targets_group_range">Range</string>
+    <string name="settings_targets_group_goal">Goal</string>
+    <string name="settings_targets_group_shape_range">Range</string>
+    <string name="settings_targets_group_shape_exact">One number</string>
+    <string name="settings_targets_group_shape_surplus">Surplus</string>
     <string name="settings_targets_group_edit">Edit %1$s</string>
     <string name="settings_targets_group_done">Done</string>
     <string name="settings_targets_group_remove">Remove this group</string>
@@ -187,9 +203,55 @@
     <string name="settings_targets_hidden_body">They're out of view in this mode. To see or change them, show calories in Modes and numbers.</string>
     <string name="settings_targets_hidden_link">Modes and numbers</string>
 
-    <!-- Goal style (sheet) -->
-    <string name="settings_goal_style_title">Goal style</string>
-    <string name="settings_goal_style_done">Done</string>
+    <!-- Resting energy (design sync 4, 13.2d) -->
+    <string name="settings_resting_title">Resting energy</string>
+    <string name="settings_resting_intro">The energy your body uses at rest. It's most of what you burn in a day.</string>
+    <string name="settings_resting_calculate">Calculate it for me</string>
+    <string name="settings_resting_calculate_line">From your age, height, weight and sex. Updates when you log a new weight.</string>
+    <string name="settings_resting_health">Use %1$s</string>
+    <string name="settings_resting_health_line">From your watch or phone. Changes day to day.</string>
+    <string name="settings_resting_own">Enter my own</string>
+    <string name="settings_resting_own_line">From a lab test or a number you trust.</string>
+    <string name="settings_resting_kcal_a_day">kcal a day</string>
+    <string name="settings_resting_details">For the calculation</string>
+    <string name="settings_resting_birth_year">Year you were born</string>
+    <string name="settings_resting_height">Height</string>
+    <string name="settings_resting_cm">cm</string>
+    <string name="settings_resting_in">in</string>
+    <string name="settings_resting_sex">Sex</string>
+    <string name="settings_resting_sex_female">Female</string>
+    <string name="settings_resting_sex_male">Male</string>
+    <string name="settings_resting_sex_unsaid">Rather not say</string>
+    <string name="settings_resting_weight_missing">Log a weight in Trends and this works it out.</string>
+    <string name="settings_resting_activity">Activity</string>
+    <string name="settings_resting_steps_workouts">Steps and workouts</string>
+    <string name="settings_resting_activity_none">Not connected</string>
+    <string name="settings_resting_add_activity">Add activity to Burned</string>
+    <string name="settings_resting_add_activity_line">Off counts resting energy only</string>
+
+    <!-- Energy today (design sync 4, 13.2c) -->
+    <string name="settings_energy_title">Energy today</string>
+    <string name="settings_energy_eaten">Eaten</string>
+    <string name="settings_energy_kcal">kcal</string>
+    <string name="settings_energy_plus_minus">± %1$s</string>
+    <string name="settings_energy_plus_minus_cd">Give or take %1$s</string>
+    <string name="settings_energy_likely">Likely %1$s.</string>
+    <string name="settings_energy_estimates">%1$d of %2$d foods are estimates.</string>
+    <string name="settings_energy_nutrients">Nutrients</string>
+    <string name="settings_energy_burned">Burned</string>
+    <string name="settings_energy_burned_unknown">Add your details to see what you burn.</string>
+    <string name="settings_energy_resting">Resting energy</string>
+    <string name="settings_energy_resting_calculated">Calculated from your profile</string>
+    <string name="settings_energy_resting_health">From %1$s</string>
+    <string name="settings_energy_resting_own">Your own number</string>
+    <string name="settings_energy_movement">Daily movement</string>
+    <string name="settings_energy_workouts">Workouts</string>
+    <string name="settings_energy_not_counted">Not added to Burned</string>
+    <string name="settings_energy_no_activity">No activity app connected</string>
+    <string name="settings_energy_deficit_so_far">Deficit so far</string>
+    <string name="settings_energy_surplus_so_far">Surplus so far</string>
+    <string name="settings_energy_to_range">To your range</string>
+    <string name="settings_energy_to_goal">To your goal</string>
 
     <!-- Water settings -->
     <string name="settings_water_title">Water</string>
@@ -244,8 +306,15 @@
     <string name="settings_delete_offline">We couldn't reach the server, so nothing was deleted. Try again when you're online.</string>
     <string name="settings_delete_failed">Something went wrong, so nothing was deleted. Try again in a little while.</string>
 
+    <!-- Support's About card: what Opson is and isn't, and the published legal pages -->
+    <string name="settings_about_title">About Opson</string>
+    <string name="settings_about_body">Opson is a food log, not medical advice. It doesn't diagnose or treat anything, and it can't take the place of a doctor, dietitian or eating disorder care. Food values are estimates and can be wrong.</string>
+    <string name="settings_about_privacy">Privacy policy</string>
+    <string name="settings_about_terms">Terms of service</string>
+    <string name="settings_about_credits">Credits and licenses</string>
+
     <!-- Design sync 2: More's Support subtitle, Support's Find support and crisis rows -->
-    <string name="settings_more_support_sub">Eating disorder helplines</string>
+    <string name="settings_more_support_sub">Helplines, your data and privacy</string>
     <string name="settings_support_find">Find support near you</string>
     <string name="settings_support_crisis_call_or_text">In crisis? Call or text %1$s</string>
     <string name="settings_support_crisis_call">In crisis? Call %1$s</string>
@@ -306,6 +375,8 @@
     <string name="settings_find_about_young">For young people, any worry</string>
     <string name="settings_find_about_text_keyword">Text %1$s to %2$s</string>
     <string name="settings_find_about_provider">Search for eating disorder care near you</string>
+    <string name="settings_find_directory">Find A Helpline</string>
+    <string name="settings_find_directory_about">Free lines in most other countries</string>
     <string name="settings_loading_cd">Loading</string>
 
 </resources>

@@ -10,11 +10,13 @@ import kotlinx.serialization.Serializable
  * the API.
  *
  * `source` is one of `usda_foundation`, `usda_sr`, `usda_fndds`,
- * `usda_branded`, `nutritionix`, `off`. An `off` food comes from Open Food
- * Facts (ODbL), which the Foods screen credits. `micros` keys carry their
- * unit (`sodium_mg`, `vitamin_d_ug`).
+ * `usda_branded`, `nutritionix`, `off`, `nevo`. An `off` food comes from Open
+ * Food Facts (ODbL), which the Foods screen credits. A `nevo` food comes from
+ * RIVM's NEVO, only to an app that asks with `credits=nevo` (0.1 reads an
+ * unknown source as "unknown" anyway). `micros` keys carry their unit
+ * (`sodium_mg`, `vitamin_d_ug`).
  *
- * `tier` is 1 reference (USDA generic), 2 label (USDA Branded), 3 licensed,
+ * `tier` is 1 reference (USDA generic, NEVO), 2 label (USDA Branded), 3 licensed,
  * 4 community (Open Food Facts); `verified` is true for tiers 1 to 3.
  */
 @Serializable

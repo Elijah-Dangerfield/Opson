@@ -665,7 +665,7 @@ private fun PreviewBrandTypography() {
                     modifier = Modifier.padding(bottom = Dimension.D500)
                 )
                 Text(
-                    text = "Lust Script font for brand identity, logos, and decorative headlines",
+                    text = "The wordmark face: Atkinson Hyperlegible Next ExtraBold",
                     fontSize = 14.sp,
                     color = Color(0xFF666666),
                     modifier = Modifier.padding(bottom = Dimension.D1000)

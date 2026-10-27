@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.semantics.Role
@@ -186,6 +187,9 @@ fun CountChip(
  * the end, so going past the range shows nothing new. 14 tall track, 18 tall box. Nutrients detail
  * draws it on a white card with [RangeBarDefaults.onSurface].
  *
+ * When [rangeStart] and [rangeEnd] meet, the goal is one number, and it is drawn as a solid mark
+ * across the bar at that point instead of a box. Both at 0 is no goal at all, and draws nothing.
+ *
  * [segments] split the fill end to end by their weights, each in its own colour with a hairline
  * between (Today's eaten bar by macro, design sync 2). Empty draws the fill in one colour.
  */
@@ -238,6 +242,9 @@ fun RangeBar(
                         cornerRadius = CornerRadius(BOX_RADIUS),
                         style = Stroke(width = STROKE, pathEffect = dash),
                     )
+                } else if (start > 0f) {
+                    // One number: a mark across the bar where it sits, never a box around nothing.
+                    drawLine(boxColor, Offset(start, 1f), Offset(start, size.height - 1f), strokeWidth = MARK_WIDTH, cap = StrokeCap.Round)
                 }
             },
     )
@@ -289,6 +296,7 @@ private const val SEGMENT_GAP = 3f
 private const val DASH = 8f
 private const val STROKE = 3f
 private const val BOX_RADIUS = 10f
+private const val MARK_WIDTH = 5f
 private const val RANGE_TRACK_ALPHA = 0.16f
 private const val RANGE_BOX_ALPHA = 0.7f
 private const val DISABLED_ALPHA = 0.5f
@@ -375,6 +383,8 @@ private fun DayHeaderPreview() {
                     RangeBarSegment(0.32f, n.fat.content),
                 ),
             )
+            // One number: a mark, not a box.
+            RangeBar(fill = 0.6f, rangeStart = 0.76f, rangeEnd = 0.76f, colors = RangeBarDefaults.onSurface())
             Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                 PillAction(label = "Plan it", onClick = {})
                 PillAction(label = "Copy", onClick = {}, solid = true)

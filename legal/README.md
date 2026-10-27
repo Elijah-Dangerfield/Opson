@@ -1,10 +1,18 @@
 # Legal documents
 
-`privacy.md` and `terms.md` are the **source of truth** for what Opson
-publishes at:
+These four files are the **source of truth** for what Opson publishes at:
 
-- <https://nightjarlabs.llc/opson/privacy>
-- <https://nightjarlabs.llc/opson/terms>
+- `privacy.md`: <https://nightjarlabs.llc/opson/privacy>
+- `terms.md`: <https://nightjarlabs.llc/opson/terms>
+- `health-data.md`: <https://nightjarlabs.llc/opson/health-data>, the consumer
+  health data policy that Washington's My Health My Data Act and Nevada's
+  SB 370 want as its own page, linked from the homepage.
+- `credits.md`: <https://nightjarlabs.llc/opson/credits>, the food data,
+  typeface and open-source licenses.
+
+The app's Support page links all four, and the Opson website renders them too.
+`docs/legal-review-2026-10.md` records what was checked and what still needs
+a lawyer.
 
 They live here, next to the code, because a privacy policy is a claim about what
 a specific binary does. Keeping it in a marketing repo guarantees the day comes
@@ -14,16 +22,17 @@ exists rather than a `pages/` folder of hand-written HTML.
 
 ## Before you ship
 
-Both files are **starting points, not documents**. The template cannot know what
-your app collects. Read each one against the code, and expect the "no ad or
-analytics SDKs" and "no account" claims in `privacy.md` to be the first two that
-stop being true.
+Every claim in these files is a claim about the code. When a change adds a data
+flow, a provider or a feature flag that sends something new, the matching
+paragraph changes in the same commit. `credits.md` changes when a food source
+or a shipped library with a new license is added.
 
 ## How they get published
 
-`.github/workflows/legal-sync.yml` watches `legal/**` on `main`. When either
-file changes it opens a pull request against the website repository, copying
-both files into `src/content/legal/opson/`. That repo merges the PR as
+`.github/workflows/legal-sync.yml` watches `legal/**` on `main`. When a file
+changes it opens a pull request against the website repository, copying every
+file in its `LEGAL_FILES` list into `src/content/legal/opson/`. A new document
+needs adding to that list, or it never leaves this repo. That repo merges the PR as
 soon as the site builds, and publishes.
 
 Run `./scripts/setup_legal_sync.sh` once to create the two secrets it needs.
@@ -46,6 +55,6 @@ is on you, which is the whole reason these files sit next to the code.
   policy to carry a date.
 - **Do not edit the copies in the website repo.** The next sync silently reverts
   them.
-- **The URLs get filed with Apple and Google.** They are also the compiled
-  defaults in `LaunchGateConfigValues.kt`. Changing the slug after submission
+- **The URLs get filed with Apple and Google.** The app also compiles them in
+  (`SupportViewModel.kt`, and the Android Health Connect rationale). Changing the slug after submission
   means re-filing on both stores and waiting out two reviews.

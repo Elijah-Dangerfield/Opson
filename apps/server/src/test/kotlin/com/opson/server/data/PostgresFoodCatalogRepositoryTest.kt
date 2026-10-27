@@ -208,6 +208,35 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
         assertEquals(listOf("Hazelnut spread, bio"), names("hazelnut spread", SearchFilter(source = SearchSource.OpenFoodFacts)))
     }
 
+    // ── NEVO: tier 1, and only for a client that shows its citation ──────────
+
+    @Test
+    fun nevoRowsAreGenericFoodsTheTriggerTiers() = runTest {
+        val id = seed("Apple with skin average", source = "nevo")
+        val row = database.blockingTransaction { FoodsTable.selectAll().where { FoodsTable.id eq id }.single() }
+        assertEquals(1, row[FoodsTable.tier].toInt())
+        assertTrue(row[FoodsTable.verified])
+        assertEquals(CatalogSource.Nevo, repo.findById(id)?.source)
+    }
+
+    @Test
+    fun nevoOnlyReachesAClientThatCitesIt() = runTest {
+        seed("Apple, raw")
+        seed("Apple with skin average", source = "nevo")
+        seed("Apple pie", source = "usda_branded", barcode = "00051000012618")
+
+        assertEquals(listOf("Apple, raw", "Apple pie"), names("apple", SearchFilter.None), "0.1 and Describe never see it")
+        assertEquals(
+            listOf("Apple, raw", "Apple with skin average", "Apple pie"),
+            names("apple", SearchFilter(nevo = true)),
+            "generic, so ahead of Branded",
+        )
+        assertTrue("Apple with skin average" in names("apple", SearchFilter(category = SearchCategory.Common, nevo = true)))
+        assertFalse("Apple with skin average" in names("apple", SearchFilter(category = SearchCategory.Common)))
+        assertFalse("Apple with skin average" in names("apple", SearchFilter(source = SearchSource.Usda, nevo = true)))
+        assertFalse("Apple with skin average" in names("aple", SearchFilter.None), "nor through the typo fallback")
+    }
+
     @Test
     fun sortByNameOrdersTheBestMatchesAToZ() = runTest {
         seed("Rice, white, cooked")

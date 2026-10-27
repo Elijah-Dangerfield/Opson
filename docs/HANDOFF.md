@@ -77,5 +77,6 @@ Export the design as PNGs named by those ids and run
 - The app icon is still Espresso's accent (#A4512D); the app is Slate, teal
   accent, since design sync 4. The design does not cover the icon.
 - Before public launch: a dietitian sets `GOAL_FLOOR_KCAL` and the maximum
-  deficit; a clinician reviews everything marked `TODO(clinician)`; check the
-  helpline and provider links marked `TODO(launch)`.
+  deficit; a clinician reviews everything marked `TODO(clinician)`. The
+  helpline list was checked on 2026-10-27; recheck it each quarter. Legal
+  follow-ups are in `docs/legal-review-2026-10.md`.

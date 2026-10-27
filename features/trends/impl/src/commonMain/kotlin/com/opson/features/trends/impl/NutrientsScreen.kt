@@ -54,6 +54,7 @@ import opson.libraries.resources.generated.resources.trends_micros_off_body
 import opson.libraries.resources.generated.resources.trends_micros_off_link
 import opson.libraries.resources.generated.resources.trends_micros_off_title
 import opson.libraries.resources.generated.resources.trends_nutrients_day
+import opson.libraries.resources.generated.resources.trends_nutrients_goal
 import opson.libraries.resources.generated.resources.trends_nutrients_nothing
 import opson.libraries.resources.generated.resources.trends_nutrients_range
 import opson.libraries.resources.generated.resources.trends_nutrients_title
@@ -197,7 +198,12 @@ private fun EnergyRowView(row: EnergyRow) {
                 NutrientText(metric = Metric.Calories, display = row.eaten, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.muted)
                 // "· range" is a label; the range itself renders through the policy's tagged text.
                 NutrientVisible(row.range) {
-                    Text(text = stringResource(Res.string.trends_nutrients_range), typography = AppTheme.type.body, color = AppTheme.colors.muted, maxLines = 1)
+                    Text(
+                        text = stringResource(if (row.singleGoal) Res.string.trends_nutrients_goal else Res.string.trends_nutrients_range),
+                        typography = AppTheme.type.body,
+                        color = AppTheme.colors.muted,
+                        maxLines = 1,
+                    )
                     NutrientText(metric = Metric.Calories, display = row.range, typography = AppTheme.type.body.Tabular, color = AppTheme.colors.muted, maxLines = 1)
                 }
             }

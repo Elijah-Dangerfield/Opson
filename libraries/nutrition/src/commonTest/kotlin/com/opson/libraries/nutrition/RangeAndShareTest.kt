@@ -15,6 +15,13 @@ class RangeAndShareTest {
     }
 
     @Test
+    fun range_whoseEndsMeet_isOneNumber_neverAFakeRange() {
+        val full = showAll()
+        assertEquals(Display.Shown("2,100"), full.resolveRange(Metric.Calories, 2100.0, 2100.0, Surface.Today, FormatContext(bare = true)))
+        assertEquals(Display.Shown("2,100 kcal"), full.resolveRange(Metric.Calories, 2100.0, 2100.0, Surface.Settings))
+    }
+
+    @Test
     fun range_hiddenAtEveryLevelButShow() {
         listOf(Visibility.Soften, Visibility.Hide).forEach { level ->
             val p = policy(PresetId.Full, overrides = mapOf(Metric.Calories to level))

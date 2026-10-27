@@ -44,6 +44,7 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_all_food
 import opson.libraries.resources.generated.resources.today_banner_sprint
 import opson.libraries.resources.generated.resources.today_banner_sprint_done
+import opson.libraries.resources.generated.resources.today_compact_goal
 import opson.libraries.resources.generated.resources.today_compact_range
 import opson.libraries.resources.generated.resources.today_locked_day_body
 import opson.libraries.resources.generated.resources.today_locked_day_body_warm
@@ -54,6 +55,7 @@ import opson.libraries.resources.generated.resources.today_macro_carbs
 import opson.libraries.resources.generated.resources.today_macro_fat
 import opson.libraries.resources.generated.resources.today_macro_fiber
 import opson.libraries.resources.generated.resources.today_macro_protein
+import opson.libraries.resources.generated.resources.today_stat_to_goal
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -217,6 +219,7 @@ object TodayStateBuilder {
             bar = if (empty) emptyList() else barParts(day, policy, context, eaten),
             stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range) else emptyList(),
             macrosPage = if (summaryOn && !empty && settings.todayMacrosPage) macrosPage(day, settings, policy, context, eaten) else null,
+            singleGoal = range.single,
         )
     }
 
@@ -237,7 +240,11 @@ object TodayStateBuilder {
         val offered = SummaryStats.offered(policy)
         return SummaryStats.chosen(inputs.settings)
             .filter { it in offered && SummaryStats.allowed(it, policy) }
-            .mapNotNull { stat -> statValue(stat, inputs, policy, context, eaten, range)?.let { StatTile(stat, it) } }
+            .mapNotNull { stat ->
+                statValue(stat, inputs, policy, context, eaten, range)?.let {
+                    StatTile(stat, it, if (stat == SummaryStat.ToRange && range.single) Res.string.today_stat_to_goal else stat.label)
+                }
+            }
             .take(SummaryStats.MAX)
     }
 
@@ -340,7 +347,8 @@ object TodayStateBuilder {
         val eaten = policy.resolve(Metric.Calories, totals.kcal.known, Surface.Today, context.copy(of = null, bare = false))
         val bar = CompactBar(summary.eaten, summary.rangeStart, summary.rangeEnd, summary.bar)
         val lead = CompactPart.Amount(Metric.Calories, eaten)
-        val energyLine = CompactLine(listOf(lead, CompactPart.Amount(Metric.Calories, summary.range, Res.string.today_compact_range)), bar)
+        val rangeLabel = if (summary.singleGoal) Res.string.today_compact_goal else Res.string.today_compact_range
+        val energyLine = CompactLine(listOf(lead, CompactPart.Amount(Metric.Calories, summary.range, rangeLabel)), bar)
         val macros = policy.macroLine(
             NutrientAmounts(kcal = totals.kcal.value, protein = totals.protein.known, carbs = totals.carbs.known, fat = totals.fat.known),
             Surface.Today,

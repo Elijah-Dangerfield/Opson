@@ -1,8 +1,11 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.BodyProfile
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.WaterDefaults
 import com.opson.libraries.nutrition.WaterUnit
@@ -28,7 +31,7 @@ import kotlinx.serialization.Serializable
  * Adding a field is non-breaking: missing keys decode to the default. Settings
  * only change when the user changes them. The server merges a write into what it
  * has one level deep, so a new field is a new top-level key: [SettingsSerializer]
- * lifts the one that lives under [numbers] out to the top.
+ * lifts the ones that live under [numbers] and [targets] (the goal style) out to the top.
  */
 @OptIn(ExperimentalSerializationApi::class)
 @KeepGeneratedSerializer
@@ -138,7 +141,25 @@ data class Settings(
      * A top-level key, because the server merges settings one level deep.
      */
     val checkIn: Boolean = true,
+
+    // Burned (design sync 4, `release.goalsAndEnergy`): where resting energy comes from, what the
+    // calculation needs, and whether synced activity counts. Top-level keys, because the server
+    // merges settings one level deep. Weight is the latest weigh-in, not a setting.
+    @Serializable(with = RestingSourceSerializer::class)
+    val restingSource: RestingSource = RestingSource.Calculate,
+    /** "Enter my own", in kcal a day; kept when another source is picked, so switching back finds it. */
+    val restingOwnKcal: Int? = null,
+    /** "Add activity to Burned". Off, Burned is resting energy only. */
+    val activityInBurned: Boolean = true,
+    val birthYear: Int? = null,
+    val heightCm: Double? = null,
+    @Serializable(with = BodySexSerializer::class)
+    val bodySex: BodySex? = null,
 ) {
+    /** What the resting energy calculation is told: these details and [weightKg], on [today]. */
+    fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile =
+        BodyProfile(weightKg = weightKg, heightCm = heightCm, ageYears = birthYear?.let { today.year - it }, sex = bodySex)
+
     fun isFavorite(foodKey: String): Boolean = foodKey in favoriteFoods
 
     /** Stars [foodKey], or takes the star off. */

@@ -58,7 +58,8 @@ into the generic catalog with its source and version on every row.
 | AFCD | AU | **Own table** (share-alike). Licence is a click-through on the FSANZ download page, so the user downloads the file and hands it over. |
 | MyPyramid Food Raw Data | US | Optional. USDA, CC BY 4.0, about 1,000 foods with common portions, last updated 2014. Useful only for its portion sizes. Skip if FNDDS portions already cover them. |
 
-Not yet: Korea (licence unconfirmed), and NZ, NEVO, IFCT and PhilFCT
+NEVO (NL) is cleared and has its importer, `scripts/import_nevo_foods.py`.
+Not yet: Korea (licence unconfirmed), and NZ, IFCT and PhilFCT
 (waiting on email replies). Don't import these until `food-data-sources.md`
 says they're cleared.
 

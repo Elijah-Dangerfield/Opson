@@ -21,6 +21,7 @@
     <string name="today_summary_eaten">Eaten</string>
     <string name="today_summary_kcal">kcal</string>
     <string name="today_summary_range">Your range</string>
+    <string name="today_summary_goal">Your goal</string>
     <string name="today_summary_nothing_yet">Nothing yet</string>
     <string name="today_summary_nutrients">Nutrients</string>
     <string name="today_macro_protein">Protein</string>
@@ -192,10 +193,15 @@
     <string name="today_dayclose_above">Above your range today</string>
     <string name="today_dayclose_above_other_day">Above your range that day</string>
     <string name="today_dayclose_below">Your range is %1$s</string>
+    <string name="today_dayclose_inside_goal">Close to your goal of %1$s</string>
+    <string name="today_dayclose_above_goal">Above your goal today</string>
+    <string name="today_dayclose_above_goal_other_day">Above your goal that day</string>
+    <string name="today_dayclose_below_goal">Your goal is %1$s</string>
     <string name="today_dayclose_soft_label">Today</string>
     <string name="today_dayclose_soft_label_other_day">That day</string>
     <string name="today_dayclose_big_day">Everyone has big days. Tomorrow is a fresh start, and you don't need to make up for today.</string>
     <string name="today_dayclose_tomorrow">Your range tomorrow is %1$s, the same as usual.</string>
+    <string name="today_dayclose_tomorrow_goal">Your goal tomorrow is %1$s, the same as usual.</string>
     <string name="today_dayclose_commit_normal">Back to normal tomorrow</string>
     <string name="today_dayclose_commit_can">I can do this</string>
     <string name="today_dayclose_committed">Heard. That stays between you and you.</string>
@@ -218,6 +224,7 @@
     <string name="today_stat_expended">Expended</string>
     <string name="today_stat_deficit">Deficit so far</string>
     <string name="today_stat_to_range">To your range</string>
+    <string name="today_stat_to_goal">To your goal</string>
     <string name="today_stat_meals">Meals</string>
     <string name="today_stat_water">Water</string>
     <string name="today_stat_expended_body">From your watch</string>
@@ -230,6 +237,7 @@
     <string name="today_macros_title">Macros</string>
     <string name="today_macros_of">of %1$s</string>
     <string name="today_compact_range">range</string>
+    <string name="today_compact_goal">goal</string>
     <string name="today_compact_meals">%1$d of %2$d meals</string>
     <string name="today_collapse_cd">Shrink the summary to one line</string>
     <string name="today_expand_cd">Show the whole summary</string>

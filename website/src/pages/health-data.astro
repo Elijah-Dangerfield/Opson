@@ -1,0 +1,22 @@
+---
+import Layout from '../layouts/Layout.astro';
+// Rendered from legal/health-data.md at build time, the same file synced to
+// nightjarlabs.llc. Washington's My Health My Data Act wants this policy on a
+// page of its own, linked from the homepage, which the footer does.
+import { Content, frontmatter } from '../../../legal/health-data.md';
+import { formatUpdated } from '../lib/dates';
+---
+
+<Layout title="Consumer health data, Opson" description="How Opson handles consumer health data, for people in Washington, Nevada and Connecticut.">
+  <article class="page">
+    <div class="wrap">
+      <header class="page-head">
+        <h1>{frontmatter.title}</h1>
+        <p>Last updated {formatUpdated(frontmatter.updated)}.</p>
+      </header>
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+  </article>
+</Layout>

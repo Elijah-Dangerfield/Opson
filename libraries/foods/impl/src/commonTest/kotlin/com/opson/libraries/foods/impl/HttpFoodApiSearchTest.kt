@@ -49,9 +49,9 @@ class HttpFoodApiSearchTest : CoroutineTest() {
     )
 
     @Test
-    fun anUnfilteredSearchIsThe01Call() = runUnitTest {
+    fun anUnfilteredSearchSendsNoOptionsAndCreditsNevo() = runUnitTest {
         api({ HttpStatusCode.OK }).search("rice", 25)
-        assertEquals(listOf("/v1/foods/search?q=rice&limit=25"), urls)
+        assertEquals(listOf("/v1/foods/search?q=rice&limit=25&credits=nevo"), urls)
     }
 
     @Test

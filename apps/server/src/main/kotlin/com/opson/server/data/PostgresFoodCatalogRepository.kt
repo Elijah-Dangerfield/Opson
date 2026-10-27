@@ -557,23 +557,28 @@ class PostgresFoodCatalogRepository(
             )
         }
 
-        /** The statement 0.1's search runs. [SearchFilter.None] must always get exactly this. */
-        internal val SEARCH_SQL: String = searchSqlWith("")
+        /**
+         * The statement 0.1's search runs. [SearchFilter.None] must always get
+         * exactly this. It leaves NEVO out, so 0.1 sees the catalog it always
+         * did ([SearchFilter.nevo]).
+         */
+        internal val SEARCH_SQL: String = searchSqlWith(foodsCondition(SearchFilter.None))
 
         private val filtered = ConcurrentHashMap<SearchFilter, String>()
 
         /**
-         * The statement for [filter]: [SEARCH_SQL] with one more condition on
+         * The statement for [filter]: the search with one more condition on
          * each of its three reads of `foods`. The condition is chosen from the
          * filter's enums, never built from request text.
          */
         internal fun searchSql(filter: SearchFilter): String {
-            val condition = foodsCondition(filter)
-            if (condition.isEmpty()) return SEARCH_SQL
-            return filtered.getOrPut(filter.copy(sort = SearchSort.BestMatch)) { searchSqlWith(condition) }
+            val key = filter.copy(sort = SearchSort.BestMatch)
+            if (key == SearchFilter.None) return SEARCH_SQL
+            return filtered.getOrPut(key) { searchSqlWith(foodsCondition(key)) }
         }
 
         private fun foodsCondition(filter: SearchFilter): String = buildString {
+            if (!filter.nevo) append(" AND f.source <> '${CatalogSource.Nevo.wire}'")
             when (filter.category) {
                 SearchCategory.Restaurant -> append(" AND f.category = '${FoodCategory.Restaurant.wire}'")
                 SearchCategory.Beverage -> append(" AND f.category = '${FoodCategory.Beverage.wire}'")

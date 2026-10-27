@@ -63,7 +63,7 @@ data class WidgetDay(
  * @property label the whole amount for a screen reader, "1,245 kcal".
  * @property fraction how far the bar fills, 0 to 1. The bar runs to 20% past the top of the range.
  * @property rangeStart where the range box starts on the bar, 0 to 1.
- * @property rangeEnd where it ends.
+ * @property rangeEnd where it ends. Equal to [rangeStart] when the goal is one number, drawn as a mark.
  */
 @Serializable
 data class WidgetEnergy(

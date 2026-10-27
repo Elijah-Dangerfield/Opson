@@ -66,7 +66,8 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
         val ENERGY_OUT_SURFACES = setOf(
             "integrations", "today-expended", "today-exercise", "today-summary", "day-close-check-in",
             "today-macros", "today-weight", "today-select", "today-select-remove", "today-swipe-delete",
-            "today-delete-confirm", "targets-deficit", "trends", "today-select-v4", "today-moved",
+            "today-delete-confirm", "targets-goal-style", "resting-energy", "energy-today", "trends",
+            "today-select-v4", "today-moved",
         )
 
         @JvmStatic

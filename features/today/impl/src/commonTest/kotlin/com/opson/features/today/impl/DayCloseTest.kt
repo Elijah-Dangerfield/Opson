@@ -104,6 +104,29 @@ class DayCloseTest : CoroutineTest() {
         assertEquals("2,200 to 2,600 kcal", bigDay.tomorrow.text(), "the user's own range, untouched by a 3,095 day")
     }
 
+    /** One number is judged with leeway either side, so a few bites past it are not a big day. */
+    @Test
+    fun closeToOneNumber_isOnIt_andNamedAsAGoal() {
+        val totals = assertNotNull(build(PresetId.Full, settings = Settings(targets = Targets.Default.useExact())).totals)
+
+        // 2,058 eaten against one number, 2,100.
+        assertEquals("2,100", assertIs<RangeLine.Inside>(totals.rangeLine).range.text())
+        assertTrue(totals.singleGoal)
+        assertEquals(false, assertNotNull(build(PresetId.Full).totals).singleGoal)
+    }
+
+    @Test
+    fun wellPastOneNumber_isABigDay_andTomorrowIsTheSameNumber() {
+        val low = Targets.Default.copy(energyKcal = 1900, minKcal = 1700, maxKcal = 2100, startingKcal = 1900).useExact()
+        val state = build(PresetId.Full, settings = Settings(targets = low))
+
+        // 2,058 is more than the leeway past 1,900.
+        assertEquals(RangeLine.Above, assertNotNull(state.totals).rangeLine)
+        val bigDay = assertNotNull(state.bigDay)
+        assertEquals("1,900 kcal", bigDay.tomorrow.text())
+        assertTrue(bigDay.singleGoal)
+    }
+
     @Test
     fun subtleHidesTheButtonsAndOffHidesTheCard() {
         assertEquals(Commitment.Hidden, build(PresetId.Full, bigDay = true, settings = Settings(bigDayEvent = EventLevel.Subtle)).bigDay?.commitment)

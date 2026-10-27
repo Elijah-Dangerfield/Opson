@@ -187,7 +187,7 @@ private fun Energy(energy: WidgetEnergy, colors: WidgetColors, small: Boolean) {
     }
 }
 
-/** The eaten bar and the dashed range box, positioned in dp because Glance has no fractions. */
+/** The eaten bar and the dashed range box (or one number's mark), positioned in dp because Glance has no fractions. */
 @Composable
 private fun Bar(energy: WidgetEnergy, colors: WidgetColors, width: Dp) {
     Box(modifier = GlanceModifier.width(width).height(Dimens.RangeHeight), contentAlignment = Alignment.CenterStart) {
@@ -217,6 +217,18 @@ private fun Bar(energy: WidgetEnergy, colors: WidgetColors, width: Dp) {
                     contentScale = ContentScale.FillBounds,
                     colorFilter = ColorFilter.tint(colors.tint { it.accent }),
                     modifier = GlanceModifier.width(rangeWidth).height(Dimens.RangeHeight),
+                )
+            }
+        } else if (energy.rangeStart > 0f) {
+            // One number: a solid mark where it sits, as Today draws it.
+            Row {
+                Spacer(modifier = GlanceModifier.width(width * energy.rangeStart - Dimens.Mark / 2))
+                Image(
+                    provider = ImageProvider(R.drawable.widget_bar),
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    colorFilter = ColorFilter.tint(colors.tint { it.accent }),
+                    modifier = GlanceModifier.width(Dimens.Mark).height(Dimens.RangeHeight),
                 )
             }
         }
@@ -293,6 +305,8 @@ private fun open(context: Context, link: String?): Action {
 
 /** The same measurements as `WidgetCard`'s, which Glance can't read from common code. */
 private object Dimens {
+    /** One number's mark on the bar, where a range has a box. */
+    val Mark = 3.dp
     val Padding = 16.dp
     val LogButton = 36.dp
     val LogIcon = 22.dp

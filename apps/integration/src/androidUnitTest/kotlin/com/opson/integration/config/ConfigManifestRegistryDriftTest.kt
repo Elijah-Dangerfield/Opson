@@ -6,6 +6,7 @@ import com.opson.features.upgrade.LatestVersionCode
 import com.opson.features.upgrade.MaintenanceMessage
 import com.opson.features.upgrade.MaintenanceMode
 import com.opson.features.upgrade.MinSupportedVersionCode
+import com.opson.features.settings.GoalsAndEnergyEnabled
 import com.opson.features.logger.impl.PhotoEstimateEnabled
 import com.opson.features.logger.impl.SearchOptionsEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
@@ -320,6 +321,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     LatestVersionCode(appConfigMap),
     MaintenanceMode(appConfigMap),
     MaintenanceMessage(appConfigMap),
+    GoalsAndEnergyEnabled(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"
