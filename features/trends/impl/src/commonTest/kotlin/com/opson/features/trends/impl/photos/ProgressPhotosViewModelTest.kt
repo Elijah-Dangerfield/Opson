@@ -34,8 +34,36 @@ class ProgressPhotosViewModelTest : CoroutineTest() {
         assertEquals(PhotoLockState.Unlocked, vm.state.lock)
         assertEquals(listOf(Month.OCTOBER, Month.SEPTEMBER), vm.state.months.map { it.month })
         assertEquals(listOf(3, 3), vm.state.months.map { it.tiles.size })
-        assertTrue(vm.state.months.flatMap { it.tiles }.all { it.image != null })
         assertTrue(vm.state.canCompare)
+    }
+
+    @Test
+    fun opening_readsNoThumbnail_untilItsTileAsks() = runUnitTest {
+        val vm = vm()
+
+        assertTrue(photos.imageReads.isEmpty(), "a year of photos is not read to show the dozen on screen")
+        assertTrue(vm.state.months.flatMap { it.tiles }.all { it.image == null })
+
+        vm.takeAction(ProgressPhotosAction.ThumbnailWanted("oct18-front"))
+
+        assertEquals(listOf("oct18-front"), photos.imageReads)
+        val tiles = vm.state.months.flatMap { it.tiles }
+        assertNotNull(tiles.single { it.id == "oct18-front" }.image)
+        assertTrue(tiles.filter { it.id != "oct18-front" }.all { it.image == null })
+    }
+
+    @Test
+    fun aTileAskingTwice_readsItsThumbnailOnce() = runUnitTest {
+        val disk = CompletableDeferred<Unit>()
+        photos.thumbnailsWaitFor = disk
+        val vm = vm()
+
+        vm.takeAction(ProgressPhotosAction.ThumbnailWanted("oct18-front"))
+        vm.takeAction(ProgressPhotosAction.ThumbnailWanted("oct18-front"))
+        disk.complete(Unit)
+        vm.takeAction(ProgressPhotosAction.ThumbnailWanted("oct18-front"))
+
+        assertEquals(listOf("oct18-front"), photos.imageReads)
     }
 
     @Test
@@ -45,6 +73,7 @@ class ProgressPhotosViewModelTest : CoroutineTest() {
         val vm = vm()
         val events = events(vm)
 
+        vm.takeAction(ProgressPhotosAction.ThumbnailWanted("oct25-front"))
         assertEquals(listOf(3, 3), vm.state.months.map { it.tiles.size }, "the dates and poses are already known")
         assertTrue(vm.state.months.flatMap { it.tiles }.all { it.image == null })
         vm.takeAction(ProgressPhotosAction.BackTapped)
@@ -52,7 +81,22 @@ class ProgressPhotosViewModelTest : CoroutineTest() {
 
         disk.complete(Unit)
 
-        assertTrue(vm.state.months.flatMap { it.tiles }.all { it.image != null })
+        assertNotNull(vm.state.months.flatMap { it.tiles }.single { it.id == "oct25-front" }.image)
+    }
+
+    @Test
+    fun locking_whileAThumbnailIsBeingRead_dropsIt_andAsksNothingMoreUntilUnlocked() = runUnitTest {
+        val disk = CompletableDeferred<Unit>()
+        photos.thumbnailsWaitFor = disk
+        val vm = vm()
+
+        vm.takeAction(ProgressPhotosAction.ThumbnailWanted("oct25-front"))
+        lifecycle.background()
+        disk.complete(Unit)
+        vm.takeAction(ProgressPhotosAction.ThumbnailWanted("oct18-front"))
+
+        assertTrue(vm.state.months.isEmpty())
+        assertTrue(photos.imageReads.isEmpty(), "the read in flight was cancelled and none starts while locked")
     }
 
     @Test
