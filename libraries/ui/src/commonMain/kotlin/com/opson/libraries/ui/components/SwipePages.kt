@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -35,7 +33,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.text.Text
-import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.background
@@ -123,8 +120,10 @@ fun SwipePages(
 }
 
 /**
- * Which page of a [SwipePages] is showing, as the design draws it: the current page a short dark
- * bar, the others small dots. Each is a 48 target that opens its page.
+ * Which page of a [SwipePages] is showing: a plain row of small dots, the current one filled in
+ * [selectedColor] and the rest in [unselectedColor], all the same size. Each dot is a tab that
+ * opens its page, which is how a screen reader moves between pages; the visible dot is small, the
+ * tap area around it is not.
  */
 @Composable
 fun PageIndicator(
@@ -133,28 +132,28 @@ fun PageIndicator(
     onPageSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     selectedColor: ColorResource = AppTheme.colors.ink,
-    unselectedColor: ColorResource = AppTheme.colors.muted,
+    unselectedColor: ColorResource = AppTheme.colors.muted.withAlpha(UNSELECTED_ALPHA),
 ) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         repeat(pageCount) { page ->
             val description = stringResource(SharedRes.string.ds_page_of, page + 1, pageCount)
             Box(
                 modifier = Modifier
-                    .height(MinTouchTarget)
-                    .width(if (page == currentPage) 32.dp else 20.dp)
+                    .size(width = DotTarget, height = DotTargetHeight)
                     .selectable(selected = page == currentPage, role = Role.Tab, onClick = { onPageSelected(page) })
                     .semantics { contentDescription = description },
                 contentAlignment = Alignment.Center,
             ) {
-                if (page == currentPage) {
-                    Box(Modifier.size(width = 22.dp, height = 6.dp).background(selectedColor, CircleShape))
-                } else {
-                    Box(Modifier.size(6.dp).background(unselectedColor, CircleShape))
-                }
+                Box(Modifier.size(DotSize).background(if (page == currentPage) selectedColor else unselectedColor, CircleShape))
             }
         }
     }
 }
+
+private val DotSize = 7.dp
+private val DotTarget = 18.dp
+private val DotTargetHeight = 28.dp
+private const val UNSELECTED_ALPHA = 0.35f
 
 private const val SETTLE_SHARE = 0.25f
 private const val FLING_VELOCITY = 600f
@@ -173,7 +172,8 @@ private fun SwipePagesPreview() {
                     modifier = Modifier.padding(20.dp),
                 )
             }
-            PageIndicator(pageCount = 2, currentPage = page, onPageSelected = { page = it })
+            PageIndicator(pageCount = 2, currentPage = page, onPageSelected = { page = it }, modifier = Modifier.align(Alignment.CenterHorizontally))
+            PageIndicator(pageCount = 3, currentPage = 1, onPageSelected = {}, modifier = Modifier.align(Alignment.CenterHorizontally))
         }
     }
 }

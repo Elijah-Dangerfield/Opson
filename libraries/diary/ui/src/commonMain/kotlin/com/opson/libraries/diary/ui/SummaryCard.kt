@@ -46,7 +46,6 @@ import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.system.MinTouchTarget
-import com.opson.libraries.ui.components.PageIndicator
 import com.opson.libraries.ui.components.RangeBar
 import com.opson.libraries.ui.components.RangeBarDefaults
 import com.opson.libraries.ui.components.RangeBarSegment
@@ -299,8 +298,8 @@ private fun SplitBar(segments: List<RangeBarSegment>, tag: Metric) {
 }
 
 /**
- * Under both pages: the page dots ([pageCount] over one), Nutrients, and the collapse chevron
- * ([collapseIcon]; null leaves it out). With the flag off it is the Nutrients link alone.
+ * Under both pages: Nutrients and the collapse chevron ([collapseIcon]; null leaves it out). The
+ * page dots sit centred under the card, not here. With the flag off it is the Nutrients link alone.
  * [showNutrients] false leaves the link out (More › Today screen's "Nutrients link").
  */
 @Composable
@@ -308,16 +307,12 @@ fun SummaryFooter(
     nutrientsLabel: String,
     onNutrients: () -> Unit,
     modifier: Modifier = Modifier,
-    pageCount: Int = 1,
-    page: Int = 0,
-    onPageSelected: (Int) -> Unit = {},
     collapseIcon: IconResource? = null,
     onCollapse: () -> Unit = {},
     showNutrients: Boolean = true,
     leading: @Composable RowScope.() -> Unit = {},
 ) {
     Row(modifier = modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (pageCount > 1) PageIndicator(pageCount = pageCount, currentPage = page, onPageSelected = onPageSelected)
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { leading() }
         if (showNutrients) SummaryLink(text = nutrientsLabel, onClick = onNutrients)
         if (collapseIcon != null) {
@@ -474,7 +469,7 @@ private fun SummaryCardPreview() {
                         )
                     }
                 }
-                SummaryFooter(nutrientsLabel = "Nutrients", onNutrients = {}, pageCount = 2, collapseIcon = AppIcons.ExpandLess)
+                SummaryFooter(nutrientsLabel = "Nutrients", onNutrients = {}, collapseIcon = AppIcons.ExpandLess)
             }
             CompactSummaryBar(
                 line = { CompactAmount(Metric.Calories, policy.resolve(Metric.Calories, 1245.0, Surface.Today)) },
