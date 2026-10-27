@@ -31,4 +31,11 @@ class UsersViewTest {
         assertEquals("android 0.1.0", runsLabel("android", "0.1.0", 0))
         assertEquals("—", runsLabel(null, null, null))
     }
+
+    @Test
+    fun aFirstSearchThatFailsSaysSoInsteadOfLoadingForever() {
+        assertEquals("Loading…", userListNote(results = null, searchFailed = false))
+        assertEquals("Couldn't load accounts. Search to try again.", userListNote(results = null, searchFailed = true))
+        assertEquals("No account matches.", userListNote(results = emptyList(), searchFailed = false))
+    }
 }
