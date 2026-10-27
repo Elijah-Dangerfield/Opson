@@ -109,7 +109,7 @@ class SurfacesCoverageTest {
             ),
             "LoggerLeakSurfaces" to listOf(
                 "logger", "logger-picked", "logger-search", "logger-search-empty", "logger-describe",
-                "logger-saved", "logger-amount", "logger-how-it-felt",
+                "logger-saved", "logger-amount",
                 "logger-photo", "logger-photo-swap", "logger-photo-start",
                 "logger-describe-voice",
                 "logger-search-tabs", "logger-search-options",

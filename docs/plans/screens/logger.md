@@ -23,7 +23,7 @@ Spec: the `logger-previews__*` screens in
 | Search bar | The barcode button sits inside the empty bar (`release.barcode`), unchanged. |
 | Food tiles | A glyph for the kind of food (rice bowl, salad leaf, fruit, dessert, fish, meat plate, drink, egg, bread, soup, default plate) from `FoodKind.of(name)` in `:libraries:foods`, tinted per kind. The catalog has no category per food yet, so the name decides. |
 | Search empty | Body: "Describe it, or save just the name." Two actions carry the term: Describe "{term}" and Save the name only. "Photograph the package" is dropped (package scan is out of scope). |
-| How it felt | No longer follows an add (design 3.10 note). `HowItFeltRoute` stays for Today's meal card. `Committed.askHowItFelt` and `Settings.asksHowItFelt()` go. |
+| How it felt | No longer follows an add (design 3.10 note). The logger's sheet and `HowItFeltRoute` are gone; Today's meal card opens its own (`MealFeelRoute`). `Committed.askHowItFelt` and `Settings.asksHowItFelt()` go. |
 | Describe | The mic sits inside the text box (`release.voice`). "Or just a number" is not built whenever calories are hidden (unchanged rule, now tested by name). |
 | Photo estimate | Photo and note compact up top, lines are the focus; the hint gets an info icon on a warm tint. No Plus badge (no pricing in 0.1). Blind drops the kcal column and the total (unchanged). Preview `LoggerPhotoPreview` moves into `LoggerPreviews.kt` so it pairs with `logger-previews__logger-photo`. |
 | Amount sheet | Rebuilt as 3.3: see "Amount sheet (design sync 2)" below. |
@@ -189,7 +189,6 @@ around %1$s, `logger_empty_body` Describe it, or save just the name.
 | Route | Where | Kind |
 |---|---|---|
 | `LoggerRoute(slot: MealSlot? = null, dayIso: String? = null, focusSearch: Boolean = false, prePickFoodId: String? = null, prePickIsCustom: Boolean = false, prePickSavedMealId: String? = null, start: LoggerStart = LoggerStart.Search)` | `:features:logger` | `bottomSheet<>`, `heightFraction = FullHeightFraction`, drag handle, typeMap for `MealSlot?` and `LoggerStart` |
-| `HowItFeltRoute(dayIso: String, slot: MealSlot)` | `:features:logger` | `bottomSheet<>`, typeMap for `MealSlot`. In the api so Today's meal sheet can open the same sheet instead of building `MealFeelRoute`. |
 | `AmountSheetRoute(foodId, isCustom, source: PickSource, dayIso: String, slot: MealSlot)` | `:features:logger:impl` | `bottomSheet<>` over the Logger, `heightFraction = 0.9`, typeMap for `PickSource` and `MealSlot`. Day and slot because its "Add to {meal}" commits. |
 
 `@Serializable enum class LoggerStart { Search, Describe, Saved, Number }`.

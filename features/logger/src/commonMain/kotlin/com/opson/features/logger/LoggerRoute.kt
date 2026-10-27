@@ -37,11 +37,3 @@ data class LoggerRoute(
 /** Where the logger sheet opens. [Number] is Describe it with the "Or just a number" field focused. */
 @Serializable
 enum class LoggerStart { Search, Describe, Saved, Number }
-
-/**
- * How it felt: hunger before, fullness after, mood and a note for one meal. Nothing opens it any
- * more: design sync 2 took it out of the add flow, and Today's meal card opens its own sheet
- * (`MealFeelRoute`). TODO(review): delete it with its sheet; the leak test still lists the surface.
- */
-@Serializable
-data class HowItFeltRoute(val dayIso: String, val slot: MealSlot) : Route()

@@ -16,7 +16,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
-import com.opson.features.logger.HowItFeltRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
 import com.opson.features.today.MealNoteRoute
@@ -54,7 +53,6 @@ import kotlin.reflect.typeOf
 class LoggerFeatureEntryPoint(
     private val loggerViewModelFactory: (LoggerRoute) -> LoggerViewModel,
     private val amountViewModelFactory: (AmountSheetRoute) -> AmountViewModel,
-    private val howItFeltViewModelFactory: (HowItFeltRoute) -> HowItFeltViewModel,
     private val barcodeScanViewModelFactory: (BarcodeScanRoute) -> BarcodeScanViewModel,
     private val barcodeCamera: BarcodeCamera,
     private val photoEstimateViewModelFactory: (PhotoEstimateRoute) -> PhotoEstimateViewModel,
@@ -140,30 +138,6 @@ class LoggerFeatureEntryPoint(
                 backgroundColor = AppTheme.colors.bg,
             ) {
                 SearchOptionsSheetContent(state = state, onAction = viewModel::takeAction)
-            }
-        }
-
-        bottomSheet<HowItFeltRoute>(
-            typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
-        ) { backStackEntry, sheetState ->
-            val route = backStackEntry.toRoute<HowItFeltRoute>()
-            val viewModel: HowItFeltViewModel = viewModel { howItFeltViewModelFactory(route) }
-            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-
-            viewModel.ObserveEvents { event ->
-                when (event) {
-                    HowItFeltEvent.Dismiss -> sheetState.dismiss()
-                }
-            }
-
-            BottomSheet(
-                onDismissRequest = { router.goBack() },
-                state = sheetState,
-                heightFraction = HOW_IT_FELT_HEIGHT_FRACTION,
-                showDragHandle = true,
-                backgroundColor = AppTheme.colors.bg,
-            ) {
-                HowItFeltSheetContent(state = state, onAction = viewModel::takeAction)
             }
         }
     }

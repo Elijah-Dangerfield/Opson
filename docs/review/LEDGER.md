@@ -465,7 +465,7 @@ keeps existing ticks.
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
 - [x] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
 
-## logger (63 files)
+## logger (60 files)
 
 - [x] `features/logger/build.gradle.kts`
 - [x] `features/logger/impl/build.gradle.kts`
@@ -483,8 +483,6 @@ keeps existing ticks.
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BasketCommitter.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoice.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoiceViews.kt`
-- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/HowItFelt.kt`
-- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/HowItFeltSheetContent.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerCommon.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFeatureEntryPoint.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFixtures.kt`
@@ -520,7 +518,6 @@ keeps existing ticks.
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BasketStoreTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeVoiceViewModelTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/Fakes.kt`
-- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/HowItFeltTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerStateBuilderTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerViewModelTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilderTest.kt`

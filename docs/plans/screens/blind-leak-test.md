@@ -152,7 +152,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `day-close` | today | | yes |
 | new | | `item-sheet` | today | | yes |
 | new | | `day-note`, `meal-note` | today | | no |
-| new | | `logger-search-empty`, `logger-how-it-felt` | logger | | no |
+| new | | `logger-search-empty` | logger | | no |
 | new | | `nutrients-week` | trends | | yes |
 | new | | `trends-settings` | trends | | no |
 | new | | `trends-blind`, `trends-coast` | trends | design v3 | yes |

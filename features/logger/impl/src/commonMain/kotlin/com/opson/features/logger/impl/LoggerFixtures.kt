@@ -4,14 +4,11 @@ import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.Precision
-import com.opson.libraries.diary.Fullness
-import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
-import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SearchDatabase
 import com.opson.libraries.diary.SearchSort
@@ -438,14 +435,5 @@ object LoggerFixtures {
     fun searchOptionsSheetState(): SearchOptionsState = SearchOptionsState.of(
         Settings(searchSort = SearchSort.MostRecent, searchDatabase = SearchDatabase.Usda),
         openFoodFacts = true,
-    )
-
-    /** After lunch in Mindful: very hungry before, full after, rushed, as in 3.10. */
-    fun howItFeltState(): HowItFeltState = HowItFeltState(
-        loading = false,
-        slot = MealSlot.Lunch,
-        hunger = Hunger.VeryHungry,
-        fullness = Fullness.Full,
-        moods = setOf(Mood.Rushed),
     )
 }

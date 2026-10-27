@@ -41,11 +41,6 @@ private fun Amount(state: AmountState, dark: Boolean = false, unitMenu: Boolean 
 // the search bar, Photo leading the chips), so the previews paired with it do too.
 // LoggerFlagsOffPreview is the same sheet as 0.1 ships it.
 
-@Composable
-private fun HowItFelt(dark: Boolean = false) = PreviewContent(darkTheme = dark) {
-    SheetFrame(heightFraction = HOW_IT_FELT_HEIGHT_FRACTION) { HowItFeltSheetContent(LoggerFixtures.howItFeltState(), onAction = {}) }
-}
-
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerPreview() = Logger(LoggerFixtures.loggerState(full, scanAvailable = true, photoAvailable = true))
@@ -245,17 +240,9 @@ private fun LoggerSearchOptionsDarkPreview() = SearchOptions(dark = true)
 
 private const val SEARCH_OPTIONS_PREVIEW_FRACTION = 0.92f
 
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun LoggerHowItFeltPreview() = HowItFelt()
-
 /** 3.7, the photo estimate's review, with its photo and note compact on top. Its other states are in PhotoEstimatePreviews.kt. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerPhotoPreview() = PreviewContent {
     SheetFrame { PhotoEstimateSheetContent(PhotoFixtures.reviewState(full), onAction = {}) }
 }
-
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun LoggerHowItFeltDarkPreview() = HowItFelt(dark = true)
