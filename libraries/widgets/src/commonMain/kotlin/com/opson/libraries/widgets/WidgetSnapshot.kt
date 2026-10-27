@@ -12,7 +12,8 @@ import kotlinx.serialization.json.Json
  *
  * Written as JSON ([WidgetJson]) to where each platform's widget reads it: SharedPreferences on
  * Android, the App Group's UserDefaults on iOS. The Swift extension decodes the same shape
- * (`apps/ios/OpsonWidgets/WidgetSnapshot.swift`); change both together and bump [version].
+ * (`apps/ios/OpsonWidgets/WidgetSnapshot.swift`, on `hold/0.2-widgets-native` until the widget
+ * ships); change both together and bump [version].
  *
  * @property days today, then tomorrow as an empty day, so the widget turns over at midnight while
  * the app is not running. [dayFor] picks one.

@@ -173,6 +173,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `logger-photo-swap` | logger | 0.2, `photo.md`; swapping a line's food | yes |
 | new | | `logger-uncategorized` | logger | design sync 2, 3.1b; the nav + with no usual meal, "Usual around" | yes |
 | new | | `logger-amount-units` | logger | design sync 2, 3.3b; the unit menu open over the amount sheet | yes |
+| new | | `logger-scan-amount` | logger | 0.2, barcode; the amount sheet after a scan | yes |
+| new | | `logger-scan-miss` | logger | 0.2, barcode; a scan the catalog doesn't know | yes |
 | new | | `logger-photo-start` | logger | 0.2, `photo.md`; the note and the two ways to a photo | no |
 | new | | `widgets` | settings | 0.2, `widgets.md`; the Widgets page under More, which previews the person's own widget | yes |
 | new | | `logger-search-tabs` | logger | 0.2, `search-options.md`; tabs, the options button and source badges over results | yes |
