@@ -2,7 +2,7 @@
 -- foreign key has something to point at. The real table (owned by Supabase Auth)
 -- has dozens more columns; we only need `id` (for the FK), `is_anonymous`
 -- (read by auth-aware queries), and the email and timestamps the support views
--- (V21) read. Production uses the real table and never runs
+-- (V22) read. Production uses the real table and never runs
 -- this script.
 CREATE SCHEMA IF NOT EXISTS auth;
 
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS auth.users (
     -- API sets this on the real table; the stub needs it so moderation reads
     -- work against local/test Postgres.
     banned_until TIMESTAMPTZ,
-    -- Read by the support views (V21), as on the real table.
+    -- Read by the support views (V22), as on the real table.
     email           TEXT,
     created_at      TIMESTAMPTZ DEFAULT now(),
     last_sign_in_at TIMESTAMPTZ

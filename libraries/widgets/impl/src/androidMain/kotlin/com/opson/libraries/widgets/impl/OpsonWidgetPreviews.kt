@@ -47,7 +47,7 @@ private fun OpsonWidgetFullPreview() {
 @Preview(widthDp = 250, heightDp = 110)
 @Composable
 private fun OpsonWidgetBlindPreview() {
-    OpsonWidgetContent(previewSnapshot(PresetId.Blind), WidgetFixtures.today, appName = "Opson", fallback = "Open Opson to start.")
+    OpsonWidgetContent(previewSnapshot(PresetId.NoNumbers), WidgetFixtures.today, appName = "Opson", fallback = "Open Opson to start.")
 }
 
 @OptIn(ExperimentalGlancePreviewApi::class)
@@ -61,7 +61,7 @@ private fun OpsonWidgetSmallFullPreview() {
 @Preview(widthDp = 110, heightDp = 110)
 @Composable
 private fun OpsonWidgetSmallBlindPreview() {
-    OpsonWidgetContent(previewSnapshot(PresetId.Blind), WidgetFixtures.today, appName = "Opson", fallback = "Open Opson to start.")
+    OpsonWidgetContent(previewSnapshot(PresetId.NoNumbers), WidgetFixtures.today, appName = "Opson", fallback = "Open Opson to start.")
 }
 
 /** Before the app has written anything, or after release.widgets went off. */

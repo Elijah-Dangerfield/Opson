@@ -6,24 +6,23 @@ import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.MacroLineStyle
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.ModeTiming
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RevealOn
+import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.core.fixed
+import com.opson.libraries.diary.ModeTimerEnded
+import kotlin.time.Clock
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_all_food
-import opson.libraries.resources.generated.resources.today_banner_sprint
-import opson.libraries.resources.generated.resources.today_banner_sprint_done
-import opson.libraries.resources.generated.resources.today_locked_day_body_warm
-import opson.libraries.resources.generated.resources.today_locked_day_title
-import opson.libraries.resources.generated.resources.today_locked_week_title
 import com.opson.libraries.diary.MealTimes
-import com.opson.libraries.diary.MealReminders
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,8 +38,9 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.minus
 
 /**
- * [TodayStateBuilder] against design v3: which hero card each layout and level gets, the meals
- * in each layout, water, planning, the menu, all through the real policy. What the view model
+ * [TodayStateBuilder] against design v3 and design sync 4's mode layouts (13.5b to 13.5d): which
+ * hero card each layout and level gets, the meals in each layout, water, planning, the menu and
+ * the End after a set time banner, all through the real policy. What the view model
  * does with taps is [TodayViewModelTest]'s; whether a hidden number reaches the screen is
  * `BlindModeLeakTest`'s, over these same builders.
  */
@@ -54,9 +54,8 @@ class TodayStateBuilderTest {
         overrides: Map<Metric, Visibility> = emptyMap(),
         menuOpen: Boolean = false,
         clearArmed: Boolean = false,
-        remindersOn: Boolean = false,
     ): TodayState = TodayStateBuilder.build(
-        TodayFixtures.inputs(day, settings, remindersOn = remindersOn),
+        TodayFixtures.inputs(day, settings),
         policy(preset, at, overrides),
         menuOpen,
         clearArmed,
@@ -141,148 +140,117 @@ class TodayStateBuilderTest {
     }
 
     @Test
-    fun delayedAtNoonLocksTotalsButKeepsCounts() {
-        val state = build(PresetId.Delayed)
+    fun laterAtNoonLocksTotals_countsWhatIsLogged_andKeepsTheWaterGlasses() {
+        val state = build(PresetId.Later)
 
-        val locked = assertIs<TodaySummary.Locked>(state.summary)
-        assertEquals(Res.string.today_locked_day_title, locked.title)
-        assertEquals(Counts(meals = 3, glasses = 3), state.counts)
-        assertNull(state.water, "the glasses count stands in for the card")
-        assertTrue(state.meals.filterIsInstance<MealEntry.Full>().all { it.card.calories is Display.Hidden && it.card.macros.isEmpty() })
+        val foods = TodayFixtures.day().allItems.size
+        assertEquals(TodaySummary.Locked(opensAt = LocalTime(21, 0), weekly = false, meals = 3, foods = foods), state.summary)
+        val water = assertNotNull(state.water, "13.5c keeps the glasses")
+        assertIs<Display.Soft>(water.display)
+        assertEquals(3, water.filled)
+        val breakfast = assertIs<MealEntry.Full>(state.meals.first()).card
+        assertEquals(Display.Hidden, breakfast.calories)
+        assertTrue(breakfast.macros.isEmpty())
+        assertEquals(Precision.Weighed, breakfast.items.first().precision, "rows keep how sure")
     }
 
     @Test
-    fun delayedOpensAtNineAsALinkToDayClose() {
-        assertEquals(TodaySummary.Revealed, build(PresetId.Delayed, at = Instant.parse("2026-10-25T21:00:00Z")).summary)
-        assertIs<TodaySummary.Energy>(build(PresetId.Delayed, day = TodayFixtures.pastDay()).summary, "a past day is simply open")
+    fun laterOpensAtTheRevealTime_asTheFullNumbersCard() {
+        assertIs<TodaySummary.Energy>(build(PresetId.Later, at = Instant.parse("2026-10-25T21:00:00Z")).summary)
+        assertIs<TodaySummary.Energy>(build(PresetId.Later, day = TodayFixtures.pastDay()).summary, "a past day is simply open")
+        val sevenThirty = Settings(numbers = NumbersSettings(PresetId.Later, revealAt = LocalTime(19, 30)))
+        val locked = TodayStateBuilder.build(TodayFixtures.inputs(settings = sevenThirty), VisibilityPolicy(sevenThirty.numbers, Clock.fixed(TodayFixtures.noon), TodayFixtures.timeZone))
+        assertEquals(LocalTime(19, 30), assertIs<TodaySummary.Locked>(locked.summary).opensAt, "the person's own reveal time")
     }
 
     @Test
-    fun coastStaysLockedForTheWeekAndShowsTiles() {
-        val state = build(PresetId.Coast, at = Instant.parse("2026-10-25T21:30:00Z"))
+    fun laterWeekly_staysLockedForTheWeek_evenInTheEvening() {
+        val weekly = NumbersSettings(PresetId.Later, revealOn = RevealOn.Week)
+        val evening = VisibilityPolicy(weekly, Clock.fixed(Instant.parse("2026-10-25T21:30:00Z")), TodayFixtures.timeZone)
 
-        assertEquals(Res.string.today_locked_week_title, assertIs<TodaySummary.Locked>(state.summary).title)
-        assertNotNull(state.mealTiles)
+        val locked = assertIs<TodaySummary.Locked>(TodayStateBuilder.build(TodayFixtures.inputs(), evening).summary)
+        assertTrue(locked.weekly)
     }
 
     @Test
-    fun warmToneSoftensTheLockedLine() {
-        val locked = assertIs<TodaySummary.Locked>(build(PresetId.Delayed, settings = Settings(tone = Tone.Warm)).summary)
-        assertEquals(Res.string.today_locked_day_body_warm, locked.body)
+    fun noNumbers_isAMealTimeline_withFoodsByNameAndHowTheyFelt() {
+        val state = build(PresetId.NoNumbers)
+
+        assertNull(state.summary, "the timeline says which meals are done")
+        val tiles = assertNotNull(state.mealTiles)
+        assertEquals(TileStatus.Logged(LocalTime(8, 10)), tiles.first().status)
+        assertEquals(TileStatus.Empty(MealTimes().dinner), tiles.last().status)
+        val breakfast = assertIs<MealEntry.Full>(state.meals.first()).card
+        assertEquals("Oat porridge with milk", breakfast.items.first().name)
+        assertNull(breakfast.items.first().precision, "names and household amounts only")
+        assertEquals(Display.Hidden, breakfast.calories)
+        assertNotNull(breakfast.feel, "how breakfast felt, answered")
+        assertNull(assertIs<MealEntry.Full>(state.meals[1]).card.feel, "lunch has only a note")
+        val water = assertNotNull(state.water)
+        assertIs<Display.Soft>(water.display)
     }
 
     @Test
-    fun blindCountsMealsAndListsWhatWasEaten() {
-        val state = build(PresetId.Blind)
-
-        assertEquals(TodaySummary.Counted(done = 3, next = MealSlot.Dinner, nextAround = MealTimes().dinner), state.summary)
-        assertEquals(TileStatus.Items(3, kotlinx.datetime.LocalTime(8, 10)), state.mealTiles?.first()?.status)
-        assertIs<TileStatus.Empty>(state.mealTiles?.last()?.status)
-        val had = assertIs<WhatYouHad.PerMeal>(state.whatYouHad)
-        assertEquals("Oat porridge with milk, banana, coffee with milk", had.rows.first().second)
-        assertTrue(state.meals.isEmpty())
-        assertNull(state.water, "no water amounts in Blind")
+    fun noNumbers_aMealEatenWithNoDetailsIsDone_atItsUsualTime() {
+        val day = TodayFixtures.day().copy(ateNoDetails = setOf(MealSlot.Dinner))
+        assertEquals(TileStatus.AteNoDetails(MealTimes().dinner), assertNotNull(build(PresetId.NoNumbers, day = day).mealTiles).last().status)
     }
 
     @Test
-    fun nutrientFocusShowsSoftenedProteinAndFiber() {
-        val focus = assertIs<TodaySummary.Focus>(build(PresetId.Nutrient).summary)
+    fun fullNumbers_neverShowsHowItFeltOnTheCard_orTheTimeline() {
+        val state = build(PresetId.Full)
+        assertNull(state.mealTiles)
+        assertNull(assertIs<MealEntry.Full>(state.meals.first()).card.feel)
+    }
+
+    @Test
+    fun nutrientsFirst_countsMeals_andShowsProteinFiberAndEnergyAsWords() {
+        val soft = assertIs<TodaySummary.Soft>(build(PresetId.NutrientsFirst).summary)
+
+        assertEquals(MealCount(3, 4), soft.mealCount)
+        assertEquals(listOf(Metric.Protein, Metric.Fiber), soft.rows.map { it.metric })
+        assertTrue(soft.rows.all { it.display is Display.Soft })
+        assertEquals("Partway through", soft.energy.text())
+        val breakfast = assertIs<MealEntry.Full>(build(PresetId.NutrientsFirst).meals.first()).card
+        assertTrue(breakfast.macros.isEmpty(), "words never join a macro line")
+        assertEquals(Display.Hidden, breakfast.calories)
+        assertEquals(Precision.Weighed, breakfast.items.first().precision, "rows keep how sure")
+    }
+
+    @Test
+    fun nutrientsFirst_withAProteinShownByChoice_showsItsAmount() {
+        val soft = assertIs<TodaySummary.Soft>(build(PresetId.NutrientsFirst, overrides = mapOf(Metric.Protein to Visibility.Show)).summary)
+        assertEquals("51 of 120 g", soft.rows.first().display.text())
+    }
+
+    @Test
+    fun caloriesHiddenWithNutrientsVisible_isTheFocusCard() {
+        val focus = assertIs<TodaySummary.Focus>(build(PresetId.NutrientsFirst, overrides = mapOf(Metric.Calories to Visibility.Hide)).summary)
 
         assertEquals(listOf(Metric.Protein, Metric.Fiber), focus.rows.map { it.metric })
         assertTrue(focus.rows.all { it.display is Display.Soft })
     }
 
     @Test
-    fun fuelLeadsWithMealsAndProteinAndSoftensEnergy() {
-        val soft = assertIs<TodaySummary.Soft>(build(PresetId.Fuel).summary)
+    fun theTimerBanner_saysSoOnTheDayItSwitched_andNoOtherDay() {
+        val ended = Settings(modeTimerEnded = ModeTimerEnded(on = TodayFixtures.today, from = PresetId.Full))
+        assertEquals(TodayBanner(from = PresetId.Full, to = PresetId.NoNumbers, waiting = false), build(PresetId.NoNumbers, settings = ended).banner)
 
-        assertEquals(MealCount(3, 4), soft.mealCount)
-        assertEquals(Metric.Protein, soft.lead?.metric)
-        assertEquals("51 of 120 g", soft.lead?.display?.text())
-        assertEquals(listOf(Metric.Fiber), soft.rows.map { it.metric })
-        assertEquals("Partway through", soft.energy.text())
-        val breakfast = assertIs<MealEntry.Full>(build(PresetId.Fuel).meals.first()).card
-        assertEquals(listOf("13 g protein"), breakfast.macros.map { it.text }, "only the macro on show, spelled out")
-        assertEquals(Display.Hidden, breakfast.calories)
+        val yesterday = Settings(modeTimerEnded = ModeTimerEnded(on = TodayFixtures.today.minus(DatePeriod(days = 1)), from = PresetId.Full))
+        assertNull(build(PresetId.NoNumbers, settings = yesterday).banner)
+        assertNull(build(PresetId.Full).banner)
     }
 
     @Test
-    fun rhythmIsAChecklistWithActionsOnTheNextMealOnly() {
-        val state = build(PresetId.Rhythm)
-
-        assertNull(state.summary)
-        val rhythm = assertNotNull(state.rhythm)
-        assertEquals(3, rhythm.done)
-        assertIs<RhythmStatus.Logged>(rhythm.rows.first().status)
-        assertEquals(listOf(false, false, false, true), rhythm.rows.map { it.showActions })
-        assertIs<WhatYouHad.Together>(state.whatYouHad)
-        assertTrue(state.meals.isEmpty())
-    }
-
-    @Test
-    fun rhythmPlansAroundTheMealTimesInSettings() {
-        val settings = Settings(mealTimes = MealTimes(dinner = LocalTime(18, 30)))
-        val dinner = assertNotNull(build(PresetId.Rhythm, settings = settings).rhythm).rows.last()
-        assertEquals(RhythmStatus.Pending(LocalTime(18, 30)), dinner.status)
-    }
-
-    @Test
-    fun rhythmShowsTheNextReminder_onlyWithTheFlag() {
-        assertNull(assertNotNull(build(PresetId.Rhythm, settings = TodayFixtures.remindersSet).rhythm).reminder)
-
-        val on = build(PresetId.Rhythm, settings = TodayFixtures.remindersSet, remindersOn = true)
-        assertEquals(RhythmReminder.Next(MealSlot.Dinner, LocalTime(19, 15)), assertNotNull(on.rhythm).reminder)
-    }
-
-    @Test
-    fun rhythmOffersSetUpWhileMealRemindersAreOff_andNothingOnceEveryMealIsDone() {
-        // Never chosen: the synced defaults are not reminders.
-        assertEquals(RhythmReminder.Off, assertNotNull(build(PresetId.Rhythm, remindersOn = true).rhythm).reminder)
-
-        val allDone = build(PresetId.Rhythm, day = TodayFixtures.day(dinner = true), settings = TodayFixtures.remindersSet, remindersOn = true)
-        assertNull(assertNotNull(allDone.rhythm).reminder)
-
-        val dinnerOff = TodayFixtures.remindersSet.copy(mealReminders = MealReminders(dinner = false))
-        assertNull(assertNotNull(build(PresetId.Rhythm, settings = dinnerOff, remindersOn = true).rhythm).reminder)
-    }
-
-    @Test
-    fun explorerShowsNewFoodsSafeFoodsAndCompactMeals() {
-        val state = build(PresetId.Explorer)
-
-        val newFoods = assertIs<TodaySummary.NewFoods>(state.summary)
-        assertEquals(listOf("Yesterday", "Thu", "Tue"), newFoods.foods.map { it.seen })
-        assertEquals("Rice", state.safeFoods?.first())
-        val breakfast = assertIs<MealEntry.Compact>(state.meals.first())
-        assertNull(breakfast.feel)
-        assertEquals(false, breakfast.askFeel)
-        assertNull(state.water)
-    }
-
-    @Test
-    fun mindfulShowsHowMealsFeltAndAsksWhenUntagged() {
-        val state = build(PresetId.Mindful)
-
-        assertNull(state.summary)
-        assertNull(state.banner, "v3 drops the explainer banner")
-        val breakfast = assertIs<MealEntry.Compact>(state.meals.first())
-        assertNotNull(breakfast.feel)
-        val snack = assertIs<MealEntry.Compact>(state.meals[2])
-        assertTrue(snack.askFeel)
-    }
-
-    @Test
-    fun sprintCountsTheDayAndSaysWhenItBreaks() {
-        val started = TodayFixtures.today.plus(DatePeriod(days = -8))
-        val banner = assertNotNull(build(PresetId.Sprint, settings = Settings(sprintStartedOn = started)).banner)
-
-        assertEquals(Res.string.today_banner_sprint, banner.text)
-        assertEquals(listOf<Any>(9, "Oct 31"), banner.args)
-        assertEquals(
-            Res.string.today_banner_sprint_done,
-            build(PresetId.Sprint, settings = Settings(sprintStartedOn = TodayFixtures.today.plus(DatePeriod(days = -20)))).banner?.text,
+    fun theTimerBanner_offersASwitchThePauseHolds() {
+        val waiting = Settings(
+            numbers = NumbersSettings(
+                preset = PresetId.NoNumbers,
+                pauseBeforeMore = true,
+                endAfter = ModeTiming(startedOn = TodayFixtures.today.minus(DatePeriod(days = 14)), weeks = 2, then = PresetId.Later),
+            ),
         )
-        assertNull(build(PresetId.Coast).banner, "Coast's banner moved to Trends")
+        assertEquals(TodayBanner(from = PresetId.NoNumbers, to = PresetId.Later, waiting = true), build(PresetId.NoNumbers, settings = waiting).banner)
     }
 
     @Test
@@ -360,13 +328,11 @@ class TodayStateBuilderTest {
 
     @Test
     fun anUntrackedDayIsCalm_itsMealsStayButNothingReadsItAsADay() {
-        listOf(PresetId.Full, PresetId.Delayed, PresetId.Blind, PresetId.Explorer).forEach { preset ->
+        listOf(PresetId.Full, PresetId.NutrientsFirst, PresetId.Later, PresetId.NoNumbers).forEach { preset ->
             val state = build(preset, day = TodayFixtures.untrackedDay(), menuOpen = true)
             assertTrue(state.untracked, "$preset")
             assertNull(state.summary, "no hero card to measure it by in $preset")
-            assertNull(state.counts)
             assertNull(state.closeDay)
-            assertNull(state.bridge)
             val menu = assertNotNull(state.menu).groups.flatten()
             assertTrue(DayMenuItem.Untracked(marked = true) in menu, "the menu offers to track it again")
             assertTrue(menu.none { it is DayMenuItem.CloseDay })
@@ -380,24 +346,14 @@ class TodayStateBuilderTest {
 
     @Test
     fun anAddShowsItsCountOnItsOwnDayOnly() {
-        val state = TodayFixtures.todayState(policy(PresetId.Blind), day = TodayFixtures.day(dinner = true), added = TodayFixtures.added())
-        assertEquals(AddedNotice(MealSlot.Dinner, count = 2), state.added, "a count of foods, so Blind gets it too")
+        val state = TodayFixtures.todayState(policy(PresetId.NoNumbers), day = TodayFixtures.day(dinner = true), added = TodayFixtures.added())
+        assertEquals(AddedNotice(MealSlot.Dinner, count = 2), state.added, "a count of foods, so No numbers gets it too")
         assertNull(TodayFixtures.todayState(policy(PresetId.Full), day = TodayFixtures.pastDay(), added = TodayFixtures.added()).added)
-    }
-
-    @Test
-    fun theFoodBridgeIsExplorersAndGoesWhenSkipped() {
-        val inputs = TodayFixtures.inputs()
-        val explorer = TodayStateBuilder.build(inputs, policy(PresetId.Explorer))
-        assertEquals(FoodBridgeCard(from = "rice", to = "rice pudding", shared = "rice"), explorer.bridge)
-        assertNull(TodayStateBuilder.build(inputs, policy(PresetId.Explorer), bridgeSkipped = true).bridge)
-        assertNull(TodayStateBuilder.build(inputs, policy(PresetId.Full)).bridge)
-        assertNull(TodayStateBuilder.build(inputs.copy(explorer = TodayFixtures.explorer().copy(bridge = null)), policy(PresetId.Explorer)).bridge)
     }
 
     @Test
     fun hiddenWaterHasNoCard() {
         assertNull(build(PresetId.Full, overrides = mapOf(Metric.Water to Visibility.Hide)).water)
-        assertNull(build(PresetId.Delayed, overrides = mapOf(Metric.Water to Visibility.Hide)).counts?.glasses)
+        assertNull(build(PresetId.NoNumbers, overrides = mapOf(Metric.Water to Visibility.Hide)).water)
     }
 }

@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 data class PickedForMeal(val requestId: String, val items: List<LogDraft>)
 
 /**
- * The hand-off from the logger sheet, opened in pick-for-this-meal mode, back
- * to Create a meal. The logger calls [picked] and closes; Create a meal, when
+ * The hand-off from search, opened in pick-for-this-meal mode, back
+ * to Create a meal. Search calls [picked] and closes; Create a meal, when
  * [latest] carries its own request id, adds the items and calls [consumed].
  *
  * A state rather than an event stream for the reason [RecentLogEvents] gives:

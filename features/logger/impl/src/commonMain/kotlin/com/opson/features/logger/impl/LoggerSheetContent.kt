@@ -1,21 +1,24 @@
 package com.opson.features.logger.impl
 
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,113 +27,60 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.ui.FoodPickRow
-import com.opson.libraries.diary.ui.FoodRowsCard
-import com.opson.libraries.diary.ui.SectionLabel
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.diary.ui.sentenceName
-import com.opson.libraries.nutrition.Metric
-import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
-import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.MenuItem
 import com.opson.libraries.ui.components.PopoverMenu
-import com.opson.libraries.ui.components.button.ButtonPrimary
-import com.opson.libraries.ui.components.button.ButtonStyle
-import com.opson.libraries.ui.components.chip.ActionChip
-import com.opson.libraries.ui.components.chip.PillChip
-import com.opson.libraries.ui.components.chip.PillChipSize
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.IconSize
-import com.opson.libraries.ui.components.icon.IconTile
-import com.opson.libraries.ui.components.icon.IconTileSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
-import com.opson.libraries.ui.components.text.SearchField
 import com.opson.libraries.ui.components.text.Text
-import com.opson.libraries.ui.system.confirm
-import com.opson.libraries.ui.system.toggle
-import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
+import com.opson.system.background
 import com.opson.system.color.ToneColors
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.barcode_scan_cd
-import opson.libraries.resources.generated.resources.logger_add_to
-import opson.libraries.resources.generated.resources.logger_add_to_this_meal
-import opson.libraries.resources.generated.resources.logger_add_to_title
-import opson.libraries.resources.generated.resources.logger_basket_count
+import opson.libraries.resources.generated.resources.adding_action_ate
+import opson.libraries.resources.generated.resources.adding_action_copy
+import opson.libraries.resources.generated.resources.adding_action_copy_cd
+import opson.libraries.resources.generated.resources.adding_action_describe
+import opson.libraries.resources.generated.resources.adding_action_fasting
+import opson.libraries.resources.generated.resources.adding_action_note
+import opson.libraries.resources.generated.resources.adding_action_photo
+import opson.libraries.resources.generated.resources.adding_action_quick
+import opson.libraries.resources.generated.resources.adding_action_saved
+import opson.libraries.resources.generated.resources.adding_action_say
+import opson.libraries.resources.generated.resources.adding_action_scan
+import opson.libraries.resources.generated.resources.adding_action_search
+import opson.libraries.resources.generated.resources.adding_action_water
+import opson.libraries.resources.generated.resources.adding_action_weigh
+import opson.libraries.resources.generated.resources.adding_title
 import opson.libraries.resources.generated.resources.logger_close_cd
-import opson.libraries.resources.generated.resources.logger_empty_body
-import opson.libraries.resources.generated.resources.logger_empty_caption
-import opson.libraries.resources.generated.resources.logger_empty_describe
-import opson.libraries.resources.generated.resources.logger_empty_save
-import opson.libraries.resources.generated.resources.logger_empty_title
-import opson.libraries.resources.generated.resources.logger_first_run
 import opson.libraries.resources.generated.resources.logger_for_meal
 import opson.libraries.resources.generated.resources.logger_loading_cd
-import opson.libraries.resources.generated.resources.logger_matches
 import opson.libraries.resources.generated.resources.logger_meal_picker_cd
-import opson.libraries.resources.generated.resources.logger_method_ate
-import opson.libraries.resources.generated.resources.logger_method_describe
-import opson.libraries.resources.generated.resources.photo_method
-import opson.libraries.resources.generated.resources.logger_method_note
-import opson.libraries.resources.generated.resources.logger_method_number
-import opson.libraries.resources.generated.resources.logger_method_saved
-import opson.libraries.resources.generated.resources.logger_method_yesterday
-import opson.libraries.resources.generated.resources.logger_method_yesterday_cd
-import opson.libraries.resources.generated.resources.logger_not_here
-import opson.libraries.resources.generated.resources.logger_not_here_describe
-import opson.libraries.resources.generated.resources.logger_not_here_or
-import opson.libraries.resources.generated.resources.logger_not_here_save
-import opson.libraries.resources.generated.resources.logger_offline_results
 import opson.libraries.resources.generated.resources.logger_recent
-import opson.libraries.resources.generated.resources.logger_search_clear_cd
-import opson.libraries.resources.generated.resources.logger_search_placeholder
-import opson.libraries.resources.generated.resources.logger_searching_cd
-import opson.libraries.resources.generated.resources.logger_this_meal
-import opson.libraries.resources.generated.resources.logger_usual_around
-import opson.libraries.resources.generated.resources.logger_usual_at
-import opson.libraries.resources.generated.resources.search_badge_branded
-import opson.libraries.resources.generated.resources.search_badge_nevo
-import opson.libraries.resources.generated.resources.search_badge_off
-import opson.libraries.resources.generated.resources.search_badge_usda
-import opson.libraries.resources.generated.resources.search_badge_yours
-import opson.libraries.resources.generated.resources.search_off_credit
-import opson.libraries.resources.generated.resources.search_options_cd
-import opson.libraries.resources.generated.resources.search_tab_all
-import opson.libraries.resources.generated.resources.search_tab_beverages
-import opson.libraries.resources.generated.resources.search_tab_common
-import opson.libraries.resources.generated.resources.search_tab_custom
-import opson.libraries.resources.generated.resources.search_tab_empty_custom
-import opson.libraries.resources.generated.resources.search_tab_empty_favorites
-import opson.libraries.resources.generated.resources.search_tab_favorites
-import opson.libraries.resources.generated.resources.search_tab_hint_beverages
-import opson.libraries.resources.generated.resources.search_tab_hint_common
-import opson.libraries.resources.generated.resources.search_tab_hint_restaurant
-import opson.libraries.resources.generated.resources.search_tab_restaurant
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The logger sheet's body. On [LoggerPane.Search]: the title with the meal
- * dropdown, search, the method chips, the picks and the pinned footer. Describe
- * it and Saved meals are the other two panes. Stateless; the entry point puts
- * it in a `BottomSheet` with a fixed height, which is what lets the list scroll
- * inside it.
+ * The add sheet's body (design sync 4, 13.4a and 13.4b). On [LoggerPane.Actions]: the title with
+ * the meal dropdown, the grid, and Recent under it at full height. Describe it and Saved meals
+ * are the other two panes. Stateless; the entry point puts it in a `BottomSheet` with a fixed
+ * height, which is what lets the grid scroll and fade inside it.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -139,147 +89,118 @@ fun LoggerSheetContent(
     onAction: (LoggerAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BackHandler(enabled = state.pane != LoggerPane.Search) { onAction(LoggerAction.BackTapped) }
+    BackHandler(enabled = state.pane != LoggerPane.Actions) { onAction(LoggerAction.BackTapped) }
     Column(modifier = modifier.fillMaxSize()) {
         when (state.pane) {
-            LoggerPane.Search -> SearchPane(state, onAction)
+            LoggerPane.Actions -> ActionsPane(state, onAction)
             LoggerPane.Describe -> DescribePane(state, onAction)
             LoggerPane.Saved -> SavedPane(state, onAction)
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SearchPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
-    // Whatever opens over the search (options, scanner, photo, a pane, the meal menu) puts the
-    // keyboard away first; left up, it covers half of what just opened.
-    val focusManager = LocalFocusManager.current
-    val away: (LoggerAction) -> Unit = { action ->
-        focusManager.clearFocus()
-        onAction(action)
-    }
+private fun ActionsPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
+    val listState = rememberLazyListState()
     Column(modifier = Modifier.fillMaxSize()) {
-        LoggerTitle(state, onAction, onOpenPicker = { focusManager.clearFocus() })
-        SearchField(
-            value = state.query,
-            onValueChange = { onAction(LoggerAction.SearchTyped(it)) },
-            placeholder = stringResource(Res.string.logger_search_placeholder),
-            focusOnOpen = state.focusSearch,
-            onClear = { onAction(LoggerAction.SearchCleared) },
-            clearDescription = stringResource(Res.string.logger_search_clear_cd),
-            modifier = Modifier
-                .padding(horizontal = AppTheme.spacing.page)
-                .onFocusChanged { if (it.isFocused) onAction(LoggerAction.SearchFocused) },
-            trailing = if (state.canScan) {
-                { BarcodeButton(onClick = { away(LoggerAction.BarcodeTapped) }) }
-            } else {
-                null
-            },
-            action = state.options?.let { options ->
-                { OptionsButton(active = options.active, onClick = { away(LoggerAction.SearchOptionsTapped) }) }
-            },
-        )
-        state.options?.tabs?.let { tabs -> SearchTabs(tabs, state.options.tab, onAction) }
-        if (state.methods.isNotEmpty()) {
-            // One row that scrolls sideways, so the list starts sooner; the design lets the last chip run off the edge.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = AppTheme.spacing.chip)
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = AppTheme.spacing.page),
-                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+        AddTitle(state, onAction)
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = AppTheme.spacing.page, end = AppTheme.spacing.page, bottom = AppTheme.spacing.page),
+                verticalArrangement = Arrangement.spacedBy(GRID_ROW_GAP),
             ) {
-                state.methods.forEach { method -> MethodChip(method, away) }
+                if (state.loading) {
+                    item(key = "loading", contentType = "loading") {
+                        DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_loading_cd))
+                    }
+                    return@LazyColumn
+                }
+                state.actions.chunked(GRID_COLUMNS).forEachIndexed { index, row ->
+                    item(key = "grid-$index", contentType = "grid") { GridRow(row, onAction) }
+                }
+                // Recent is what drag-up reveals; at 60% the grid already fills the sheet.
+                if (state.height == SheetHeight.Full && state.recent.isNotEmpty()) {
+                    item(key = "recent-label", contentType = "label") {
+                        Text(
+                            text = stringResource(Res.string.logger_recent),
+                            typography = AppTheme.type.secondaryStrong,
+                            color = AppTheme.colors.muted,
+                            modifier = Modifier.padding(top = AppTheme.spacing.section),
+                        )
+                    }
+                    itemsIndexed(state.recent, key = { _, row -> "recent:${row.key}" }, contentType = { _, _ -> "food" }) { index, row ->
+                        AddFoodRow(
+                            row = row,
+                            onOpen = { onAction(LoggerAction.RecentNameTapped(row)) },
+                            onAdd = { onAction(LoggerAction.RecentAddTapped(row)) },
+                            divider = index > 0,
+                        )
+                    }
+                }
             }
+            if (state.height == SheetHeight.Partial) BottomFade(listState, Modifier.align(Alignment.BottomCenter))
         }
-        if (state.quickMethods.isNotEmpty()) {
-            FlowRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, top = AppTheme.spacing.chip),
-                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
-            ) {
-                state.quickMethods.forEach { method -> MethodChip(method, away) }
-            }
-        }
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(
-                start = AppTheme.spacing.page,
-                end = AppTheme.spacing.page,
-                top = AppTheme.spacing.section,
-                bottom = AppTheme.spacing.page,
-            ),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
-        ) {
-            if (state.loading) {
-                item(key = "loading") { DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_loading_cd)) }
-            } else {
-                body(state.body, describable = !state.pickingForMeal, onAction)
-            }
-        }
-        state.basket?.let { BasketBar(it, state.pickingForMeal, onAction) }
     }
 }
 
 /**
- * Close, "Add to" over the meal with its dropdown, and the day on the right. Picking for a meal
- * being put together, the title is "This meal", with no dropdown and no day.
+ * The edge fades while there is more below (13.4a), so the half sheet reads as the top of
+ * something rather than all of it. Read in draw, so scrolling does not recompose the sheet.
  */
 @Composable
-private fun LoggerTitle(state: LoggerState, onAction: (LoggerAction) -> Unit, onOpenPicker: () -> Unit) {
+private fun BottomFade(listState: LazyListState, modifier: Modifier) {
+    val more by remember(listState) { derivedStateOf { listState.canScrollForward } }
+    if (!more) return
+    val bg = AppTheme.colors.bg.color
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(FADE_HEIGHT)
+            .background(Brush.verticalGradient(listOf(Color.Transparent, bg))),
+    )
+}
+
+/** Close, "Add to" over the meal with its dropdown. */
+@Composable
+private fun AddTitle(state: LoggerState, onAction: (LoggerAction) -> Unit) {
     var picking by remember { mutableStateOf(false) }
-    val canPick = state.slots.size > 1 && !state.pickingForMeal
-    val meal = stringResource(if (state.pickingForMeal) Res.string.logger_this_meal else state.slot.label)
+    val canPick = state.slots.size > 1
+    val meal = stringResource(state.slot.label)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = AppTheme.spacing.chip, end = AppTheme.spacing.page, bottom = AppTheme.spacing.row),
+            .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.chip, bottom = AppTheme.spacing.section),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
     ) {
-        RoundIconButton(
-            icon = AppIcons.Close.described(stringResource(Res.string.logger_close_cd)),
-            onClick = { onAction(LoggerAction.CloseTapped) },
-            size = AppTheme.spacing.touchTarget,
-            iconSize = IconSize.Medium.dp,
-            containerColor = AppTheme.colors.bg,
-            contentColor = AppTheme.colors.ink,
-        )
         Box(modifier = Modifier.weight(1f)) {
             val pickerDescription = stringResource(Res.string.logger_meal_picker_cd, meal)
-            Column(
+            Row(
                 modifier = if (canPick) {
                     Modifier
-                        .semantics {
+                        .semantics(mergeDescendants = true) {
                             role = Role.DropdownList
                             contentDescription = pickerDescription
                         }
-                        .bounceClick(scaleDown = 0.98f) {
-                            onOpenPicker()
-                            picking = true
-                        }
+                        .bounceClick(scaleDown = 0.98f) { picking = true }
                 } else {
                     Modifier
                 },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
             ) {
                 Text(
-                    text = stringResource(Res.string.logger_add_to_title),
-                    typography = AppTheme.type.secondarySmallStrong,
-                    color = AppTheme.colors.muted,
+                    text = stringResource(Res.string.adding_title, meal),
+                    typography = AppTheme.type.sheetTitle,
+                    color = AppTheme.colors.ink,
+                    maxLines = 2,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-                    Text(text = meal, typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink, maxLines = 1)
-                    if (canPick) Icon(icon = AppIcons.ExpandMore, size = IconSize.Medium, color = AppTheme.colors.ink)
-                }
+                if (canPick) Icon(icon = AppIcons.ArrowDropDown, size = IconSize.Medium, color = AppTheme.colors.muted)
             }
-            PopoverMenu(
-                expanded = picking,
-                onDismissRequest = { picking = false },
-                alignment = Alignment.TopStart,
-            ) {
+            PopoverMenu(expanded = picking, onDismissRequest = { picking = false }, alignment = Alignment.TopStart) {
                 state.slots.forEachIndexed { index, slot ->
                     MenuItem(
                         label = stringResource(slot.label),
@@ -293,47 +214,55 @@ private fun LoggerTitle(state: LoggerState, onAction: (LoggerAction) -> Unit, on
                 }
             }
         }
-        if (!state.typing && !state.pickingForMeal) {
-            Text(text = DateCopy.label(state.day), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.muted, maxLines = 1)
-        }
+        RoundIconButton(
+            icon = AppIcons.Close.described(stringResource(Res.string.logger_close_cd)),
+            onClick = { onAction(LoggerAction.CloseTapped) },
+            size = AppTheme.spacing.touchTarget,
+            iconSize = IconSize.Medium.dp,
+            containerColor = AppTheme.colors.bg,
+            contentColor = AppTheme.colors.ink,
+        )
+    }
+}
+
+/** Three tiles, the last row's empty places left empty so every tile keeps its column. */
+@Composable
+private fun GridRow(actions: List<AddAction>, onAction: (LoggerAction) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        actions.forEach { action -> ActionTile(action, onAction, Modifier.weight(1f)) }
+        repeat(GRID_COLUMNS - actions.size) { Spacer(Modifier.weight(1f)) }
     }
 }
 
 @Composable
-private fun MethodChip(method: LoggerMethod, onAction: (LoggerAction) -> Unit) {
-    val colors = AppTheme.colors
-    val nutrients = colors.nutrients
-    val plain = ToneColors(content = colors.ink, container = colors.soft)
-    val chip = when (method) {
-        LoggerMethod.Photo -> Chip(stringResource(Res.string.photo_method), AppIcons.PhotoCamera, nutrients.protein, LoggerAction.PhotoTapped)
-        LoggerMethod.DescribeIt -> Chip(stringResource(Res.string.logger_method_describe), AppIcons.Mic, nutrients.fat, LoggerAction.DescribeItTapped)
-        is LoggerMethod.Yesterday -> Chip(
-            stringResource(Res.string.logger_method_yesterday),
-            AppIcons.ContentCopy,
-            nutrients.carbs,
-            LoggerAction.YesterdayTapped,
-            description = stringResource(Res.string.logger_method_yesterday_cd, stringResource(method.slot.sentenceName)),
-        )
-        LoggerMethod.SavedMeals -> Chip(stringResource(Res.string.logger_method_saved), AppIcons.Bookmark, nutrients.fiber, LoggerAction.SavedMealsTapped)
-        LoggerMethod.AteNoDetails -> Chip(
-            stringResource(Res.string.logger_method_ate),
-            AppIcons.CheckCircle,
-            ToneColors(content = colors.accent, container = colors.accentTint),
-            LoggerAction.AteNoDetailsTapped,
-        )
-        LoggerMethod.JustANumber -> Chip(stringResource(Res.string.logger_method_number), AppIcons.Dialpad, plain, LoggerAction.JustANumberTapped)
-        LoggerMethod.AddANote -> Chip(stringResource(Res.string.logger_method_note), AppIcons.EditNote, plain, LoggerAction.AddANoteTapped)
+private fun ActionTile(action: AddAction, onAction: (LoggerAction) -> Unit, modifier: Modifier) {
+    val tile = action.tile()
+    val description = tile.description
+    Column(
+        modifier = modifier
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                description?.let { contentDescription = it }
+            }
+            .bounceClick(scaleDown = 0.95f) { onAction(tile.action) }
+            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(TILE_SIZE)
+                .clip(AppTheme.shapes.pill)
+                .background(tile.tone.container),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon = tile.icon, size = TILE_ICON, color = tile.tone.content)
+        }
+        Text(text = tile.label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, textAlign = TextAlign.Center, maxLines = 2)
     }
-    ActionChip(
-        label = chip.label,
-        icon = chip.icon,
-        tone = chip.tone,
-        onClick = { onAction(chip.action) },
-        modifier = chip.description?.let { description -> Modifier.semantics { contentDescription = description } } ?: Modifier,
-    )
 }
 
-private data class Chip(
+private data class Tile(
     val label: String,
     val icon: IconResource,
     val tone: ToneColors,
@@ -341,191 +270,45 @@ private data class Chip(
     val description: String? = null,
 )
 
-/** [describable] is false when picking for a meal: Describe writes to the diary, so a miss offers only the name. */
-private fun LazyListScope.body(body: LoggerBody, describable: Boolean, onAction: (LoggerAction) -> Unit) {
-    when (body) {
-        LoggerBody.FirstRun -> item(key = "first-run") {
-            Text(
-                text = stringResource(Res.string.logger_first_run),
-                typography = AppTheme.type.secondary,
-                color = AppTheme.colors.muted,
-            )
-        }
-        LoggerBody.Searching -> item(key = "searching") {
-            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_searching_cd))
-        }
-        is LoggerBody.NoResults -> {
-            if (body.offline) item(key = "offline") { OfflineCaption() }
-            item(key = "no-results") { NoResults(body.query, describable, onAction) }
-        }
-        is LoggerBody.Results -> {
-            if (body.offline) item(key = "offline") { OfflineCaption() }
-            item(key = "matches") { SectionLabel(pluralStringResource(Res.plurals.logger_matches, body.rows.size, body.rows.size)) }
-            item(key = "results") { FoodRows(body.rows, onAction) }
-            item(key = "not-here") { NotHere(describable, onAction) }
-            // Open Food Facts' licence asks for this wherever its foods appear; each of its rows names it too.
-            if (body.openFoodFacts) item(key = "off-credit") { Caption(stringResource(Res.string.search_off_credit)) }
-        }
-        is LoggerBody.Listed -> item(key = "listed") { FoodRows(body.rows, onAction) }
-        is LoggerBody.TabEmpty -> item(key = "tab-empty") { Caption(stringResource(body.tab.emptyCopy())) }
-        is LoggerBody.TabHint -> item(key = "tab-hint") { Caption(stringResource(body.tab.hintCopy())) }
-        is LoggerBody.Browse -> {
-            if (body.usual.isNotEmpty()) {
-                item(key = "usual-label") {
-                    val around = body.usualAround
-                    SectionLabel(
-                        if (around != null) {
-                            stringResource(Res.string.logger_usual_around, DateCopy.time(around.hour, around.minute))
-                        } else {
-                            stringResource(Res.string.logger_usual_at, stringResource(body.slot.sentenceName))
-                        },
-                    )
-                }
-                item(key = "usual") { FoodRows(body.usual, onAction) }
-            }
-            if (body.recent.isNotEmpty()) {
-                item(key = "recent-label") { SectionLabel(stringResource(Res.string.logger_recent)) }
-                item(key = "recent") { FoodRows(body.recent, onAction) }
-            }
-        }
+/** Food actions on the accent tint; water, weight and fasting in the cool tone; the note warm, as 13.4a draws them. */
+@Composable
+private fun AddAction.tile(): Tile {
+    val colors = AppTheme.colors
+    val food = ToneColors(content = colors.accent, container = colors.accentTint)
+    val body = colors.nutrients.fat
+    val note = colors.nutrients.carbs
+    return when (this) {
+        AddAction.SearchFood -> Tile(stringResource(Res.string.adding_action_search), AppIcons.Search, food, LoggerAction.SearchFoodTapped)
+        AddAction.ScanBarcode -> Tile(stringResource(Res.string.adding_action_scan), AppIcons.BarcodeScanner, food, LoggerAction.BarcodeTapped)
+        AddAction.Photo -> Tile(stringResource(Res.string.adding_action_photo), AppIcons.PhotoCamera, food, LoggerAction.PhotoTapped)
+        is AddAction.SayOrType -> Tile(
+            stringResource(if (voice) Res.string.adding_action_say else Res.string.adding_action_describe),
+            if (voice) AppIcons.Mic else AppIcons.EditNote,
+            food,
+            LoggerAction.DescribeItTapped,
+        )
+        AddAction.SavedMeals -> Tile(stringResource(Res.string.adding_action_saved), AppIcons.Bookmark, food, LoggerAction.SavedMealsTapped)
+        is AddAction.CopyMeal -> Tile(
+            stringResource(Res.string.adding_action_copy),
+            AppIcons.ContentCopy,
+            food,
+            LoggerAction.CopyMealTapped,
+            description = stringResource(Res.string.adding_action_copy_cd, stringResource(slot.sentenceName)),
+        )
+        AddAction.QuickAdd -> Tile(stringResource(Res.string.adding_action_quick), AppIcons.Dialpad, food, LoggerAction.QuickAddTapped)
+        AddAction.Water -> Tile(stringResource(Res.string.adding_action_water), AppIcons.WaterDrop, body, LoggerAction.WaterTapped)
+        AddAction.WeighIn -> Tile(stringResource(Res.string.adding_action_weigh), AppIcons.MonitorWeight, body, LoggerAction.WeighInTapped)
+        AddAction.Note -> Tile(stringResource(Res.string.adding_action_note), AppIcons.EditNote, note, LoggerAction.NoteTapped)
+        AddAction.AteNoDetails -> Tile(stringResource(Res.string.adding_action_ate), AppIcons.Restaurant, food, LoggerAction.AteNoDetailsTapped)
+        AddAction.Fasting -> Tile(stringResource(Res.string.adding_action_fasting), AppIcons.HourglassTop, body, LoggerAction.FastingTapped)
     }
 }
 
+/** "For dinner", the overline on the Describe and Saved panes. */
 @Composable
-private fun OfflineCaption() {
-    Text(text = stringResource(Res.string.logger_offline_results), typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
-}
+internal fun forMeal(slot: MealSlot): String = stringResource(Res.string.logger_for_meal, stringResource(slot.sentenceName))
 
-@Composable
-private fun FoodRows(rows: List<FoodRowUi>, onAction: (LoggerAction) -> Unit) {
-    // Opening a food covers the search with the amount sheet; the keyboard would sit over it.
-    val focusManager = LocalFocusManager.current
-    val haptics = LocalHapticFeedback.current
-    FoodRowsCard {
-        rows.forEachIndexed { index, row ->
-            FoodPickRow(
-                name = row.name,
-                subtitle = row.subtitle,
-                amount = row.amount,
-                macros = row.macros,
-                calories = row.calories,
-                picked = row.picked,
-                onOpen = {
-                    focusManager.clearFocus()
-                    onAction(LoggerAction.FoodNameTapped(row))
-                },
-                onToggle = {
-                    haptics.toggle(on = !row.picked)
-                    onAction(LoggerAction.FoodToggleTapped(row))
-                },
-                iconSeed = row.key,
-                kind = row.kind,
-                showDivider = index < rows.lastIndex,
-                source = row.badge?.let { stringResource(it.label) },
-                sourceAccent = row.badge == SourceBadge.YourFood,
-                verified = row.verified,
-            )
-        }
-    }
-}
-
-@Composable
-private fun Caption(text: String) {
-    Text(text = text, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
-}
-
-/** The search options button at the end of the search bar; tinted while a sort or database other than the default is on. */
-@Composable
-private fun OptionsButton(active: Boolean, onClick: () -> Unit) {
-    val description = stringResource(Res.string.search_options_cd)
-    IconTile(
-        icon = AppIcons.Tune,
-        contentColor = if (active) AppTheme.colors.accent else AppTheme.colors.ink,
-        containerColor = if (active) AppTheme.colors.accentTint else AppTheme.colors.soft,
-        size = IconTileSize.Large,
-        modifier = Modifier
-            .bounceClick(onClick = onClick)
-            .semantics {
-                role = Role.Button
-                contentDescription = description
-            },
-    )
-}
-
-/** All, Favorites, Custom, Common, Restaurant, Beverages: one row that scrolls sideways. */
-@Composable
-private fun SearchTabs(tabs: List<SearchTab>, selected: SearchTab, onAction: (LoggerAction) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = AppTheme.spacing.chip)
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = AppTheme.spacing.page),
-        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
-    ) {
-        tabs.forEach { tab ->
-            PillChip(
-                label = stringResource(tab.label),
-                selected = tab == selected,
-                onClick = { onAction(LoggerAction.TabPicked(tab)) },
-                size = PillChipSize.Compact,
-                role = Role.Tab,
-            )
-        }
-    }
-}
-
-private val SearchTab.label: StringResource
-    get() = when (this) {
-        SearchTab.All -> Res.string.search_tab_all
-        SearchTab.Favorites -> Res.string.search_tab_favorites
-        SearchTab.Custom -> Res.string.search_tab_custom
-        SearchTab.Common -> Res.string.search_tab_common
-        SearchTab.Restaurant -> Res.string.search_tab_restaurant
-        SearchTab.Beverages -> Res.string.search_tab_beverages
-    }
-
-/** Before typing on a tab that searches the catalog. */
-private fun SearchTab.hintCopy(): StringResource = when (this) {
-    SearchTab.Restaurant -> Res.string.search_tab_hint_restaurant
-    SearchTab.Beverages -> Res.string.search_tab_hint_beverages
-    else -> Res.string.search_tab_hint_common
-}
-
-/** A Favorites or Custom tab with nothing in it yet. */
-private fun SearchTab.emptyCopy(): StringResource =
-    if (this == SearchTab.Favorites) Res.string.search_tab_empty_favorites else Res.string.search_tab_empty_custom
-
-private val SourceBadge.label: StringResource
-    get() = when (this) {
-        SourceBadge.Usda -> Res.string.search_badge_usda
-        SourceBadge.UsdaBranded -> Res.string.search_badge_branded
-        SourceBadge.OpenFoodFacts -> Res.string.search_badge_off
-        SourceBadge.Nevo -> Res.string.search_badge_nevo
-        SourceBadge.YourFood -> Res.string.search_badge_yours
-    }
-
-/** "Not here? Describe it or save the name", under the results. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun NotHere(describable: Boolean, onAction: (LoggerAction) -> Unit) {
-    val muted = AppTheme.type.secondary
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.Center,
-        itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = stringResource(Res.string.logger_not_here), typography = muted, color = AppTheme.colors.muted)
-        if (describable) {
-            InlineLink(stringResource(Res.string.logger_not_here_describe)) { onAction(LoggerAction.DescribeTermTapped) }
-            Text(text = stringResource(Res.string.logger_not_here_or), typography = muted, color = AppTheme.colors.muted)
-        }
-        InlineLink(stringResource(Res.string.logger_not_here_save)) { onAction(LoggerAction.SaveNameTapped) }
-    }
-}
-
-/** A bold accent text button with a 48 dp tall touch area: "Describe it", "Stop asking this". */
+/** A bold accent text button with a 48 dp tall touch area: "Just save the name", "Describe it". */
 @Composable
 internal fun InlineLink(text: String, onClick: () -> Unit) {
     Box(
@@ -539,136 +322,9 @@ internal fun InlineLink(text: String, onClick: () -> Unit) {
     }
 }
 
-/** v3's square barcode button inside the empty search bar: a soft tile, ink glyph, a full touch target. */
-@Composable
-private fun BarcodeButton(onClick: () -> Unit) {
-    val description = stringResource(Res.string.barcode_scan_cd)
-    IconTile(
-        icon = AppIcons.BarcodeScanner,
-        contentColor = AppTheme.colors.ink,
-        containerColor = AppTheme.colors.soft,
-        size = IconTileSize.Large,
-        modifier = Modifier
-            .bounceClick(onClick = onClick)
-            .semantics {
-                role = Role.Button
-                contentDescription = description
-            },
-    )
-}
 
-/** A miss is never a dead end: describe it, or keep just the name. */
-@Composable
-private fun NoResults(query: String, describable: Boolean, onAction: (LoggerAction) -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = AppTheme.spacing.section * 3, start = AppTheme.spacing.row, end = AppTheme.spacing.row),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
-    ) {
-        IconTile(
-            icon = AppIcons.SearchOff,
-            contentColor = AppTheme.colors.muted,
-            containerColor = AppTheme.colors.soft,
-            size = IconTileSize.Huge,
-        )
-        Text(
-            text = stringResource(Res.string.logger_empty_title, query),
-            typography = AppTheme.type.sheetTitle,
-            color = AppTheme.colors.ink,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = stringResource(Res.string.logger_empty_body),
-            typography = AppTheme.type.body,
-            color = AppTheme.colors.muted,
-            textAlign = TextAlign.Center,
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            if (describable) {
-                ButtonPrimary(
-                    onClick = { onAction(LoggerAction.DescribeTermTapped) },
-                    icon = AppIcons.Mic,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(Res.string.logger_empty_describe, query))
-                }
-            }
-            ButtonPrimary(
-                onClick = { onAction(LoggerAction.SaveNameTapped) },
-                style = if (describable) ButtonStyle.Tonal else ButtonStyle.Filled,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(Res.string.logger_empty_save))
-            }
-        }
-        Text(
-            text = stringResource(Res.string.logger_empty_caption),
-            typography = AppTheme.type.secondary,
-            color = AppTheme.colors.muted,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-@Composable
-private fun BasketBar(basket: BasketFooter, pickingForMeal: Boolean, onAction: (LoggerAction) -> Unit) {
-    val haptics = LocalHapticFeedback.current
-    Column(modifier = Modifier.fillMaxWidth()) {
-        HorizontalDivider(color = AppTheme.colors.line)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = AppTheme.spacing.page,
-                    end = AppTheme.spacing.page,
-                    top = AppTheme.spacing.row,
-                    bottom = AppTheme.spacing.page,
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = pluralStringResource(Res.plurals.logger_basket_count, basket.count, basket.count),
-                    typography = AppTheme.type.cardTitle,
-                    color = AppTheme.colors.ink,
-                    maxLines = 1,
-                )
-                Text(
-                    text = basket.names,
-                    typography = AppTheme.type.secondary,
-                    color = AppTheme.colors.muted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            NutrientText(
-                metric = Metric.Calories,
-                display = basket.calories,
-                typography = AppTheme.type.numeric,
-                color = AppTheme.colors.muted,
-                maxLines = 1,
-            )
-            ButtonPrimary(
-                onClick = {
-                    haptics.confirm()
-                    onAction(LoggerAction.AddToMealTapped)
-                },
-            ) {
-                Text(
-                    if (pickingForMeal) {
-                        stringResource(Res.string.logger_add_to_this_meal)
-                    } else {
-                        stringResource(Res.string.logger_add_to, stringResource(basket.slot.sentenceName))
-                    },
-                )
-            }
-        }
-    }
-}
-
-/** "For dinner", the overline on the Describe and Saved panes. */
-@Composable
-internal fun forMeal(slot: MealSlot): String = stringResource(Res.string.logger_for_meal, stringResource(slot.sentenceName))
+private const val GRID_COLUMNS = 3
+private val GRID_ROW_GAP = 20.dp
+private val TILE_SIZE = 68.dp
+private val TILE_ICON = 30.dp
+private val FADE_HEIGHT = 96.dp

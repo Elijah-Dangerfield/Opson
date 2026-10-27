@@ -52,7 +52,7 @@ sealed interface CreateMealAction {
 }
 
 sealed interface CreateMealEvent {
-    /** The logger sheet in pick-for-this-meal mode, answering under [requestId]. */
+    /** Search in pick-for-this-meal mode, answering under [requestId]. */
     data class OpenPicker(val requestId: String) : CreateMealEvent
     data class ShowToast(val toast: Toast) : CreateMealEvent
     data object Close : CreateMealEvent

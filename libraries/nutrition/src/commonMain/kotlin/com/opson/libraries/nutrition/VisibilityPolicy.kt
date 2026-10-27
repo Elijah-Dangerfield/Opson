@@ -35,7 +35,7 @@ class VisibilityPolicy(
 
     /**
      * Whether delayed numbers are open on [surface] for the day in [context].
-     * Coast opens on the week view only, and there once a week: with a
+     * Later, weekly, opens on the week view only, and there once a week: with a
      * [FormatContext.day] on [Surface.Week], that day is the week's last, and
      * the week opens at the user's reveal time on it ([isWeekOpen]). Everything
      * else delayed also opens at day close, once the day is closed or past, and
@@ -51,8 +51,8 @@ class VisibilityPolicy(
         return day < now.date || (day == now.date && now.time >= revealTime)
     }
 
-    /** Delayed numbers open once a week, on the week view (Coast), rather than at day close. */
-    val revealsWeekly: Boolean get() = preset.revealOn == RevealOn.Week
+    /** Delayed numbers open once a week, on the week view (Later, weekly), rather than at day close. */
+    val revealsWeekly: Boolean get() = settings.revealsWeekly
 
     /** When the weekly check for the week ending on [weekEnd] opens: the reveal time on its last day. */
     fun weekOpensAt(weekEnd: LocalDate): LocalDateTime = LocalDateTime(weekEnd, revealTime)
@@ -122,7 +122,7 @@ class VisibilityPolicy(
         else -> SoftWord.FallingSlowly
     }
 
-    /** When anything set to Later opens on its day, and when Coast's week opens on its last day: the user's setting. */
+    /** When anything set to Later opens on its day, and when a weekly reveal opens on the week's last day: the user's setting. */
     private val revealTime: LocalTime get() = settings.revealAt
 
     private fun format(metric: Metric, value: Double, context: FormatContext): String = when (metric) {

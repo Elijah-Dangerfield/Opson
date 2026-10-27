@@ -1013,7 +1013,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT coalesce(l.day, m.day) AS day, coalesce(l.entries, 0) AS entries, coalesce(l.meals, 0) AS meals, coalesce(l.weighed, 0) AS weighed, coalesce(l.estimated, 0) AS estimated, coalesce(l.named_only, 0) AS named_only, coalesce(m.closed, false) AS closed, coalesce(m.checked_in, false) AS checked_in, coalesce(m.meals_tagged, 0) AS meals_tagged, coalesce(m.weigh_ins, 0) AS weigh_ins, coalesce(m.fasted, false) AS fasted FROM (SELECT * FROM support.user_daily_logging WHERE user_id = '$user') l FULL JOIN (SELECT * FROM support.user_daily_marks WHERE user_id = '$user') m ON m.day = l.day ORDER BY 1 DESC LIMIT 60"
+          "rawSql": "SELECT coalesce(l.day, m.day) AS day, coalesce(l.entries, 0) AS entries, coalesce(l.meals, 0) AS meals, coalesce(l.weighed, 0) AS weighed, coalesce(l.estimated, 0) AS estimated, coalesce(l.named_only, 0) AS named_only, coalesce(l.from_label, 0) AS from_label, coalesce(m.closed, false) AS closed, coalesce(m.checked_in, false) AS checked_in, coalesce(m.meals_tagged, 0) AS meals_tagged, coalesce(m.weigh_ins, 0) AS weigh_ins, coalesce(m.fasted, false) AS fasted FROM (SELECT * FROM support.user_daily_logging WHERE user_id = '$user') l FULL JOIN (SELECT * FROM support.user_daily_marks WHERE user_id = '$user') m ON m.day = l.day ORDER BY 1 DESC LIMIT 60"
         }
       ],
       "fieldConfig": {

@@ -21,7 +21,7 @@ import opson.libraries.resources.generated.resources.foods_meal_saved
 import kotlin.random.Random
 
 /**
- * Create a meal: a name, the meal it is usually at, and foods picked through the logger sheet
+ * Create a meal: a name, the meal it is usually at, and foods picked through search
  * in pick-for-this-meal mode, so there is one search to build. Saved with [SavedMealRepository].
  *
  * From Today's "Save as a meal" the route names a day and a slot, or a day and the selected

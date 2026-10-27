@@ -57,7 +57,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Create a meal (design v3, 11.2): name and "Usually at", the foods in it with a total, "Add a
- * food" (the logger sheet, picking for this meal), and Save meal pinned to the bottom, disabled
+ * food" (search, picking for this meal), and Save meal pinned to the bottom, disabled
  * until there is a name and a food. Stateless.
  */
 @Composable
@@ -225,7 +225,7 @@ private fun TotalRow(state: CreateMealState) {
     }
 }
 
-/** "+ Add a food": opens the logger sheet to pick for this meal. */
+/** "+ Add a food": opens search to pick for this meal. */
 @Composable
 private fun AddFoodCard(onClick: () -> Unit) {
     EdgeCard(edgeToEdge = false, contentPadding = PaddingValues(0.dp)) {

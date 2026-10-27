@@ -1,5 +1,6 @@
 package com.opson.libraries.nutrition
 
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.time.Instant
 
@@ -17,6 +18,9 @@ import kotlin.time.Instant
  * (`false`) and nothing between; `null` follows the preset. Photos are not a [Metric]: they carry
  * no amount and have no Soft or Later, so they stay out of [score]. Showing them is still
  * showing more, which [isRaise] knows.
+ *
+ * [revealOn] is Later's "a time each day or once a week" (design sync 4: Coast became Later,
+ * weekly). [endAfter] is "End after a set time", on any preset.
  */
 data class NumbersSettings(
     val preset: PresetId = PresetId.Full,
@@ -25,6 +29,8 @@ data class NumbersSettings(
     val changedAt: Instant? = null,
     val revealAt: LocalTime = DEFAULT_REVEAL_AT,
     val progressPhotos: Boolean? = null,
+    val revealOn: RevealOn = RevealOn.DayClose,
+    val endAfter: ModeTiming? = null,
 ) {
     /** The raw level, `Delay` included. Use [VisibilityPolicy.resolve] to render. */
     fun level(metric: Metric): Visibility = overrides[metric] ?: Presets[preset].level(metric)
@@ -40,16 +46,29 @@ data class NumbersSettings(
     /** Photos set apart from the preset's own choice: one of the "1 change" on Modes. */
     val progressPhotosChanged: Boolean get() = progressPhotos != null && progressPhotos != Presets[preset].progressPhotos
 
-    /** Picking a preset clears every override and the photos choice, so the preset means what its card says. */
-    fun pickPreset(id: PresetId, at: Instant): NumbersSettings =
-        copy(preset = id, overrides = emptyMap(), progressPhotos = null, changedAt = at)
+    /** Later numbers open once a week, on the week view, rather than each day. */
+    val revealsWeekly: Boolean get() = revealOn == RevealOn.Week
+
+    /**
+     * Picking a preset clears every override and the photos choice, so the preset means what its
+     * card says. A timer that would only switch to the preset just picked has nothing left to do.
+     */
+    fun pickPreset(id: PresetId, at: Instant): NumbersSettings = copy(
+        preset = id,
+        overrides = emptyMap(),
+        progressPhotos = null,
+        endAfter = endAfter?.takeIf { it.then != id },
+        changedAt = at,
+    )
 
     fun override(metric: Metric, level: Visibility, at: Instant): NumbersSettings =
         copy(overrides = overrides + (metric to level), changedAt = at)
 
-    /** More numbers, or photos that were hidden coming back. */
+    /** More numbers, photos that were hidden coming back, or Later numbers opening each day instead of weekly. */
     fun isRaise(next: NumbersSettings): Boolean =
-        next.score() > score() || (next.showsProgressPhotos && !showsProgressPhotos)
+        next.score() > score() ||
+            (next.showsProgressPhotos && !showsProgressPhotos) ||
+            (revealsWeekly && !next.revealsWeekly && Metric.entries.any { next.level(it) == Visibility.Delay })
 
     /** Fewer things on screen and nothing more: "Saved. Fewer numbers from now on." */
     fun isLower(next: NumbersSettings): Boolean =
@@ -64,6 +83,21 @@ data class NumbersSettings(
 
     /** Whether moving to [next] has to go through the friction sheet first. Lowering never does. */
     fun needsPause(next: NumbersSettings): Boolean = pauseBeforeMore && isRaise(next)
+
+    /**
+     * The settings once [endAfter] has run out on [today]: its preset, stamped [at]. `null` while
+     * there is no timer or it has time left, and when the switch shows more with the pause on,
+     * because that switch goes through the pause like any other ([timerWaiting]).
+     */
+    fun timedOut(today: LocalDate, at: Instant): NumbersSettings? {
+        val timing = endAfter?.takeIf { it.isDue(today) } ?: return null
+        val next = pickPreset(timing.then, at).copy(endAfter = null)
+        return next.takeUnless { needsPause(it) }
+    }
+
+    /** The timer ran out but its switch shows more with the pause on: Today offers it instead. */
+    fun timerWaiting(today: LocalDate): ModeTiming? =
+        endAfter?.takeIf { it.isDue(today) && timedOut(today, Instant.DISTANT_PAST) == null }
 
     companion object {
         /** 9:00 pm, the prototype's fixed reveal and the default for everyone who has not picked one. */

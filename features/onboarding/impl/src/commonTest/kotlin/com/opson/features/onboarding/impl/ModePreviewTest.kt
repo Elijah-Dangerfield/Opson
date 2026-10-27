@@ -16,14 +16,14 @@ class ModePreviewTest {
     private val subjects = listOf(Metric.Calories, Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber, Metric.Weight)
 
     @Test
-    fun fuel_readsAsTheDesignDrawsIt() {
-        val preview = ModePreview.of(Presets.Fuel)
+    fun nutrientsFirst_readsAsWordsAndBars() {
+        val preview = ModePreview.of(Presets.NutrientsFirst)
 
         assertEquals(
             listOf(
-                PreviewLine(PreviewMark.Shown, PreviewItem.ProteinFiberAmounts),
                 PreviewLine(PreviewMark.Shown, PreviewItem.MealCount),
                 PreviewLine(PreviewMark.Softened, PreviewItem.EnergyWord),
+                PreviewLine(PreviewMark.Softened, PreviewItem.ProteinFiberBars),
             ),
             preview.seen,
         )
@@ -104,8 +104,7 @@ class ModePreviewTest {
     fun delayedNumbers_sayWhenTheyOpen() {
         assertEquals(
             listOf(PreviewItem.CaloriesLater, PreviewItem.MacrosLater),
-            ModePreview.of(Presets.Delayed).seen.map { it.item },
+            ModePreview.of(Presets.Later).seen.map { it.item },
         )
-        assertTrue(PreviewItem.CaloriesWeekly in ModePreview.of(Presets.Coast).seen.map { it.item })
     }
 }

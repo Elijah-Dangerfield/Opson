@@ -9,6 +9,7 @@ import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
@@ -98,7 +99,7 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
 
     override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> {
         added += Added(day, slot, items, method)
-        return items.map { draft ->
+        val written = items.map { draft ->
             LogItem(
                 id = "new-${nextId++}",
                 day = day,
@@ -107,9 +108,19 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
                 name = draft.name,
                 precision = draft.precision,
                 method = draft.method ?: method,
+                foodId = draft.foodId,
+                customFoodId = draft.customFoodId,
+                amountText = draft.amountText,
+                quantity = draft.quantity,
+                unit = draft.unit,
                 kcal = draft.kcal,
             )
         }
+        // Written to the day too, so a screen reading it sees what it just logged.
+        daysState.value = daysState.value + (day to (daysState.value[day] ?: Day.empty(day)).let { d ->
+            d.copy(itemsBySlot = d.itemsBySlot + (slot to d.items(slot) + written))
+        })
+        return written
     }
 
     val updated = mutableListOf<LogItem>()
@@ -118,7 +129,12 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
         updated += item
     }
 
-    override suspend fun removeItem(id: String) = Unit
+    val removed = mutableListOf<String>()
+
+    override suspend fun removeItem(id: String) {
+        removed += id
+        daysState.value = daysState.value.mapValues { (_, d) -> d.copy(itemsBySlot = d.itemsBySlot.mapValues { (_, items) -> items.filterNot { it.id == id } }) }
+    }
 
     override suspend fun moveItem(id: String, slot: MealSlot) = Unit
 
@@ -310,7 +326,12 @@ class FakeRecentLogEvents : RecentLogEvents {
         if (latest.value == event) latest.value = null
     }
 
-    override suspend fun undo(event: LoggedToMeal) = consumed(event)
+    val undone = mutableListOf<LoggedToMeal>()
+
+    override suspend fun undo(event: LoggedToMeal) {
+        undone += event
+        consumed(event)
+    }
 }
 
 class FakeMealPicks : MealPicks {
@@ -534,3 +555,5 @@ class RecordingVoiceTelemetry : VoiceTelemetry {
         events += "fallback ${reason.wire}"
     }
 }
+
+fun fastingFlag(on: Boolean): FastingRelease = FastingRelease { on }

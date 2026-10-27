@@ -24,7 +24,7 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
 
 /**
- * The install history and the user lookup over the `support` views (V21). The load-bearing
+ * The install history and the user lookup over the `support` views (V22). The load-bearing
  * checks are the privacy ones: the lookup can show an account's email and counts, and nothing
  * anyone wrote or measured, however the settings or the log are filled in.
  */

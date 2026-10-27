@@ -10,14 +10,12 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * The ten presets match `PRESETS` in `docs/design/handoff/phone-logic.js`
- * metric for metric, including the line that softens water everywhere but
- * Full and Sprint, and the flags screens read (layout, reveal, meal count,
- * banner, fasting). One deliberate difference: Full and Sprint show micros,
- * where the prototype made them opt-in (`docs/decisions.md`, 2026-10-27).
+ * The four presets of design sync 4 (13.5a), metric for metric, and the flags screens read
+ * (layout, meal count, fasting, photos, meal gaps). Full numbers shows micros, where the
+ * prototype made them opt-in (`docs/decisions.md`, 2026-10-27).
  *
- * Not covered here: how a level renders, which is [VisibilityPolicyResolveTest]
- * and [VisibilityPolicyRevealTest].
+ * Not covered here: how a level renders, which is [VisibilityPolicyResolveTest] and
+ * [VisibilityPolicyRevealTest]; old presets, which is [LegacyPresetTest].
  */
 class PresetsTest {
 
@@ -31,49 +29,31 @@ class PresetsTest {
     }
 
     @Test
-    fun delayed_delaysEverythingSoftensWeightHidesMicros() {
-        assertEquals(listOf(Delay, Delay, Delay, Delay, Delay, Delay, Delay, Hide, Soften, Soften), levels(Presets.Delayed))
-        assertEquals(RevealOn.DayClose, Presets.Delayed.revealOn)
+    fun nutrientsFirst_isProteinFiberAndWaterUpFrontWithCaloriesAsAFillBar() {
+        assertEquals(listOf(Soften, Hide, Hide, Soften, Hide, Hide, Soften, Hide, Soften, Soften), levels(Presets.NutrientsFirst))
     }
 
     @Test
-    fun blind_hidesEverythingButTheWaterBar() {
-        assertEquals(listOf(Hide, Hide, Hide, Hide, Hide, Hide, Hide, Hide, Hide, Soften), levels(Presets.Blind))
+    fun later_delaysEverythingSoftensWeightHidesMicros() {
+        assertEquals(listOf(Delay, Delay, Delay, Delay, Delay, Delay, Delay, Hide, Soften, Soften), levels(Presets.Later))
     }
 
     @Test
-    fun nutrient_softensProteinFiberAndWeight() {
-        assertEquals(listOf(Hide, Hide, Hide, Soften, Hide, Hide, Soften, Hide, Soften, Soften), levels(Presets.Nutrient))
+    fun noNumbers_hidesEverythingButTheWaterBar() {
+        assertEquals(listOf(Hide, Hide, Hide, Hide, Hide, Hide, Hide, Hide, Hide, Soften), levels(Presets.NoNumbers))
     }
 
     @Test
-    fun rhythmExplorerMindful_hideEverythingButWater() {
-        val expected = listOf(Hide, Hide, Hide, Hide, Hide, Hide, Hide, Hide, Hide, Soften)
-        assertEquals(expected, levels(Presets.Rhythm))
-        assertEquals(expected, levels(Presets.Explorer))
-        assertEquals(expected, levels(Presets.Mindful))
+    fun noPresetButFull_showsAnAmount() {
+        Presets.all.filter { it.id != PresetId.Full }.forEach { preset ->
+            assertTrue(Metric.entries.none { preset.level(it) == Show }, preset.id.name)
+        }
     }
 
     @Test
-    fun fuel_softensCaloriesAndShowsProteinAndFiber() {
-        assertEquals(listOf(Soften, Hide, Hide, Show, Hide, Hide, Show, Hide, Soften, Soften), levels(Presets.Fuel))
-    }
-
-    @Test
-    fun sprint_matchesFull() {
-        assertEquals(Presets.Full.vis, Presets.Sprint.vis)
-    }
-
-    @Test
-    fun coast_delaysCaloriesToTheWeek() {
-        assertEquals(listOf(Delay, Hide, Hide, Hide, Hide, Hide, Hide, Hide, Soften, Soften), levels(Presets.Coast))
-        assertEquals(RevealOn.Week, Presets.Coast.revealOn)
-    }
-
-    @Test
-    fun water_isSoftenedEverywhereExceptFullAndSprint() {
+    fun water_isSoftenedEverywhereExceptFull() {
         Presets.all.forEach { preset ->
-            val expected = if (preset.id == PresetId.Full || preset.id == PresetId.Sprint) Show else Soften
+            val expected = if (preset.id == PresetId.Full) Show else Soften
             assertEquals(expected, preset.level(Metric.Water), preset.id.name)
         }
     }
@@ -85,49 +65,35 @@ class PresetsTest {
 
     @Test
     fun todayLayouts() {
-        val layouts = Presets.all.associate { it.id to it.today }
         assertEquals(
             mapOf(
                 PresetId.Full to TodayLayout.Full,
-                PresetId.Delayed to TodayLayout.Full,
-                PresetId.Blind to TodayLayout.Meals,
-                PresetId.Nutrient to TodayLayout.Full,
-                PresetId.Rhythm to TodayLayout.Rhythm,
-                PresetId.Explorer to TodayLayout.Explorer,
-                PresetId.Mindful to TodayLayout.Journal,
-                PresetId.Fuel to TodayLayout.Full,
-                PresetId.Sprint to TodayLayout.Full,
-                PresetId.Coast to TodayLayout.Meals,
+                PresetId.NutrientsFirst to TodayLayout.Full,
+                PresetId.Later to TodayLayout.Full,
+                PresetId.NoNumbers to TodayLayout.MealTimeline,
             ),
-            layouts,
+            Presets.all.associate { it.id to it.today },
         )
     }
 
     @Test
-    fun onlyDelayedAndCoast_haveARevealTime() {
-        val withReveal = Presets.all.filter { it.revealOn != null }.map { it.id }
-        assertEquals(listOf(PresetId.Delayed, PresetId.Coast), withReveal)
+    fun mealCount_isOnlyOnInNutrientsFirst() {
+        assertEquals(listOf(PresetId.NutrientsFirst), Presets.all.filter { it.mealCount }.map { it.id })
     }
 
     @Test
-    fun mealCount_isOnForRhythmAndFuel() {
-        assertEquals(listOf(PresetId.Rhythm, PresetId.Fuel), Presets.all.filter { it.mealCount }.map { it.id })
+    fun mealGaps_areOffInNoNumbers() {
+        assertEquals(listOf(PresetId.NoNumbers), Presets.all.filterNot { it.mealGaps }.map { it.id })
     }
 
     @Test
-    fun banner_isOnForMindfulSprintAndCoast() {
-        assertEquals(
-            listOf(PresetId.Mindful, PresetId.Sprint, PresetId.Coast),
-            Presets.all.filter { it.banner }.map { it.id },
-        )
+    fun photos_hideByDefaultInNutrientsFirstAndNoNumbers() {
+        assertEquals(listOf(PresetId.NutrientsFirst, PresetId.NoNumbers), Presets.all.filterNot { it.progressPhotos }.map { it.id })
     }
 
     @Test
-    fun fasting_isOnlyAllowedInFullAndSprint() {
-        PresetId.entries.forEach { id ->
-            val expected = id == PresetId.Full || id == PresetId.Sprint
-            assertEquals(expected, Fasting.allowed(id), id.name)
-        }
+    fun fasting_isOnlyAllowedInFull() {
+        PresetId.entries.forEach { id -> assertEquals(id == PresetId.Full, Fasting.allowed(id), id.name) }
     }
 
     @Test
@@ -137,17 +103,14 @@ class PresetsTest {
     }
 
     @Test
-    fun keys_matchThePrototype() {
+    fun keys_areStable() {
         assertEquals(
             listOf("calories", "remaining", "energyOut", "protein", "carbs", "fat", "fiber", "micros", "weight", "water"),
             Metric.entries.map { it.key },
         )
-        assertEquals(
-            listOf("full", "delayed", "blind", "nutrient", "rhythm", "explorer", "mindful", "fuel", "sprint", "coast"),
-            PresetId.entries.map { it.key },
-        )
-        assertEquals(PresetId.Coast, PresetId.fromKey("coast"))
-        assertEquals(null, PresetId.fromKey("strict"))
+        assertEquals(listOf("full", "nutrients_first", "later", "no_numbers"), PresetId.entries.map { it.key })
+        assertEquals(PresetId.Later, PresetId.fromKey("later"))
+        assertEquals(null, PresetId.fromKey("coast"), "a legacy key is LegacyPreset's to read")
     }
 
     @Test

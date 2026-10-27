@@ -32,8 +32,8 @@ import org.jetbrains.compose.resources.stringResource
  * its unit menu from now on. The weight is what lets the gram total follow the count.
  */
 @Composable
-internal fun CustomSizeDialog(size: CustomSizeUi, onAction: (AmountAction) -> Unit) {
-    Dialog(onDismissRequest = { onAction(AmountAction.CustomSizeDismissed) }) {
+internal fun CustomSizeDialog(size: CustomSizeUi, onAction: (FoodDetailAction) -> Unit) {
+    Dialog(onDismissRequest = { onAction(FoodDetailAction.CustomSizeDismissed) }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -45,24 +45,24 @@ internal fun CustomSizeDialog(size: CustomSizeUi, onAction: (AmountAction) -> Un
             Text(text = stringResource(Res.string.logger_amount_custom_body), typography = AppTheme.type.body, color = AppTheme.colors.muted)
             TextInput(
                 value = size.name,
-                onValueChange = { onAction(AmountAction.CustomSizeTyped(it, size.grams)) },
+                onValueChange = { onAction(FoodDetailAction.CustomSizeTyped(it, size.grams)) },
                 label = stringResource(Res.string.logger_amount_custom_name),
                 placeholder = stringResource(Res.string.logger_amount_custom_name_hint),
             )
             NumberField(
                 value = size.grams,
-                onValueChange = { onAction(AmountAction.CustomSizeTyped(size.name, it)) },
+                onValueChange = { onAction(FoodDetailAction.CustomSizeTyped(size.name, it)) },
                 label = stringResource(Res.string.logger_amount_custom_grams),
                 unit = stringResource(Res.string.logger_amount_custom_g),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                 ButtonPrimary(
-                    onClick = { onAction(AmountAction.CustomSizeDismissed) },
+                    onClick = { onAction(FoodDetailAction.CustomSizeDismissed) },
                     style = ButtonStyle.Tonal,
                     modifier = Modifier.weight(1f),
                 ) { Text(stringResource(Res.string.logger_amount_cancel)) }
                 ButtonPrimary(
-                    onClick = { onAction(AmountAction.CustomSizeSaved) },
+                    onClick = { onAction(FoodDetailAction.CustomSizeSaved) },
                     enabled = size.canSave,
                     modifier = Modifier.weight(1f),
                 ) { Text(stringResource(Res.string.logger_amount_custom_save)) }

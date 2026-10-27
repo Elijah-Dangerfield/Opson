@@ -33,6 +33,7 @@ class EatenUncertaintyOfDayTest {
     fun eachItem_readsByHowItWasLogged() {
         assertEquals(LoggedAs.Weighed, item(100.0, Precision.Weighed).loggedAs)
         assertEquals(LoggedAs.Label, item(100.0, Precision.Weighed, LogMethod.Barcode).loggedAs, "a label's own error stays")
+        assertEquals(LoggedAs.Label, item(100.0, Precision.Label).loggedAs, "From label on the food detail")
         assertEquals(LoggedAs.QuickAdd, item(100.0, method = LogMethod.QuickNumber).loggedAs)
         assertEquals(LoggedAs.Estimate, item(100.0, method = LogMethod.Describe).loggedAs)
         assertEquals(LoggedAs.Estimate, item(100.0, Precision.Named).loggedAs)

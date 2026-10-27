@@ -22,7 +22,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The scanner: camera permission, one lookup per read, and what a miss
- * offers. A hit hands the food to the amount sheet; a miss is reported once
+ * offers. A hit hands the food to the food detail; a miss is reported once
  * so the catalog's gaps show up on a dashboard, then offers "Save the name
  * only" first.
  *
@@ -37,13 +37,14 @@ class BarcodeScanViewModel(
     private val missReporter: BarcodeMissReporter,
     private val permissions: CameraPermissions,
     private val customFoods: CustomFoodRepository,
-    private val basketStore: BasketStore,
+    private val logger: FoodLogger,
     private val telemetry: BarcodeTelemetry,
 ) : SEAViewModel<BarcodeScanState, BarcodeScanEvent, BarcodeScanAction>(
     initialStateArg = BarcodeScanState(slot = route.slot),
 ) {
     private val day: LocalDate = LocalDate.parse(route.dayIso)
     private val slot: MealSlot = route.slot
+    private val overSearch: Boolean = route.overSearch
     private var model = ScanModel()
     private var slowJob: Job? = null
 
@@ -73,7 +74,7 @@ class BarcodeScanViewModel(
                 if (lookup !is Lookup.Running || lookup.code != action.code) return
                 slowJob?.cancel()
                 telemetry.hit(action.food.source, slow = lookup.slow, typed = lookup.typed)
-                sendEvent(BarcodeScanEvent.OpenAmount(action.food.id, day, slot))
+                sendEvent(BarcodeScanEvent.OpenFoodDetail(action.food.id, day, slot))
             }
             is BarcodeScanAction.FoodNotFound -> {
                 val lookup = model.lookup
@@ -90,7 +91,7 @@ class BarcodeScanViewModel(
             }
             is BarcodeScanAction.MissNameTyped -> action.rebuild { copy(name = action.text) }
             BarcodeScanAction.SaveNameTapped -> saveName()
-            BarcodeScanAction.SearchInsteadTapped -> sendEvent(BarcodeScanEvent.Close)
+            BarcodeScanAction.SearchInsteadTapped -> sendEvent(if (overSearch) BarcodeScanEvent.Close else BarcodeScanEvent.OpenSearch(day, slot))
             BarcodeScanAction.ScanAgainTapped -> action.rebuild { copy(lookup = Lookup.Idle, name = "", typed = null) }
             BarcodeScanAction.AllowCameraTapped -> sendEvent(BarcodeScanEvent.RequestPermission)
             BarcodeScanAction.OpenSettingsTapped -> permissions.openSettings()
@@ -183,7 +184,7 @@ class BarcodeScanViewModel(
     private suspend fun saveName() {
         val name = model.name.trim()
         if (model.lookup !is Lookup.Missed || name.isEmpty()) return
-        pickNameOnly(name, customFoods.observeAll().first(), customFoods, basketStore)
+        logger.log(day, slot, listOf(nameOnlyPick(name, customFoods.observeAll().first(), customFoods)))
         sendEvent(BarcodeScanEvent.Close)
     }
 

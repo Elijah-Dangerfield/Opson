@@ -32,28 +32,6 @@
     <string name="settings_more_plan">Plan</string>
     <string name="settings_more_plan_free">Free</string>
 
-    <!-- Presets, label and line -->
-    <string name="settings_preset_full">Full numbers</string>
-    <string name="settings_preset_full_line">Every number visible, all day.</string>
-    <string name="settings_preset_delayed">Delayed reveal</string>
-    <string name="settings_preset_delayed_line">Log all day. Totals open at a time you pick.</string>
-    <string name="settings_preset_blind">Blind</string>
-    <string name="settings_preset_blind_line">No calories anywhere in the app.</string>
-    <string name="settings_preset_nutrient">Nutrient focus</string>
-    <string name="settings_preset_nutrient_line">Calories hidden. Chosen nutrients as fill bars.</string>
-    <string name="settings_preset_rhythm">Rhythm</string>
-    <string name="settings_preset_rhythm_line">A meal checklist. Amounts optional.</string>
-    <string name="settings_preset_explorer">Explorer</string>
-    <string name="settings_preset_explorer_line">Safe foods, new foods, small wins for trying.</string>
-    <string name="settings_preset_mindful">Mindful</string>
-    <string name="settings_preset_mindful_line">Hunger, fullness and how it felt. No nutrition data.</string>
-    <string name="settings_preset_fuel">Fuel</string>
-    <string name="settings_preset_fuel_line">Eating enough first. Protein and meal count up front.</string>
-    <string name="settings_preset_sprint">Sprint</string>
-    <string name="settings_preset_sprint_line">Track for two weeks to learn, then take a break.</string>
-    <string name="settings_preset_coast">Coast</string>
-    <string name="settings_preset_coast_line">Light logging and one weekly check.</string>
-
     <!-- Metrics, as the per-number grid names them -->
     <string name="settings_metric_calories">Calories</string>
     <string name="settings_metric_remaining">Left in range</string>
@@ -80,13 +58,11 @@
 
     <!-- Modes and numbers -->
     <string name="settings_modes_title">Modes and numbers</string>
-    <string name="settings_modes_intro">Pick a starting point, then change any single number below. Showing fewer numbers applies right away.</string>
     <string name="settings_modes_presets_header">Starting point</string>
     <plurals name="settings_modes_changes">
         <item quantity="one">%1$d change</item>
         <item quantity="other">%1$d changes</item>
     </plurals>
-    <string name="settings_modes_matrix_header">Each number</string>
     <string name="settings_level_show">Show</string>
     <string name="settings_level_soft">Soft</string>
     <string name="settings_level_later">Later</string>
@@ -97,23 +73,25 @@
     <string name="settings_modes_photos_inline">progress photos</string>
     <string name="settings_modes_footnote">Soft swaps the amount for a word or a fill bar. Later keeps it locked until your reveal time.</string>
     <string name="settings_modes_pause_title">Pause before showing more</string>
-    <string name="settings_modes_pause_body">A short wait and a question before any number comes back.</string>
+    <string name="settings_modes_pause_body">A short wait before any number comes back</string>
     <string name="settings_modes_reveal_title">Reveal time</string>
     <string name="settings_modes_reveal_body">For anything set to Later</string>
     <string name="settings_modes_reveal_ok">OK</string>
     <string name="settings_modes_reveal_cancel">Cancel</string>
-    <string name="settings_modes_changed">Last changed by you, %1$s. Updates never change these.</string>
-    <string name="settings_modes_setup">Set by you during setup. Updates never change these.</string>
+    <string name="settings_modes_changed">Last changed by you, %1$s.</string>
+    <string name="settings_modes_setup">Set by you during setup.</string>
 
     <!-- Pause before showing more (sheet) -->
     <string name="settings_pause_title_number">Showing %1$s again</string>
     <string name="settings_pause_title_preset">Switching to %1$s</string>
     <string name="settings_pause_title_pause">Turning off the pause</string>
     <string name="settings_pause_title_reveal">Opening numbers earlier</string>
+    <string name="settings_pause_title_reveal_daily">Opening numbers each day</string>
     <string name="settings_pause_body_number">You asked for a pause before numbers come back. %1$s will show once the wait is over. Nothing changes if you close this.</string>
     <string name="settings_pause_body_preset">You asked for a pause before numbers come back. %1$s will start once the wait is over. Nothing changes if you close this.</string>
     <string name="settings_pause_body_pause">You asked for a pause before numbers come back. Turning it off takes the same short wait. Nothing changes if you close this.</string>
     <string name="settings_pause_body_reveal">You asked for a pause before numbers come back. Later numbers will open at %1$s once the wait is over. Nothing changes if you close this.</string>
+    <string name="settings_pause_body_reveal_daily">You asked for a pause before numbers come back. Later numbers will open each day once the wait is over. Nothing changes if you close this.</string>
     <string name="settings_pause_reason_prompt">What's prompting this? Only you see the answer.</string>
     <string name="settings_pause_reason_curious">Curious</string>
     <string name="settings_pause_reason_planning">Planning a meal</string>
@@ -129,6 +107,8 @@
     <string name="settings_pause_ready_pause">Turn it off</string>
     <string name="settings_pause_wait_reveal">Open earlier in %1$s</string>
     <string name="settings_pause_ready_reveal">Open at %1$s</string>
+    <string name="settings_pause_wait_reveal_daily">Open each day in %1$s</string>
+    <string name="settings_pause_ready_reveal_daily">Open each day</string>
     <string name="settings_pause_saved">Saved. You can hide them again any time.</string>
 
     <!-- Targets -->
@@ -379,4 +359,37 @@
     <string name="settings_find_directory_about">Free lines in most other countries</string>
     <string name="settings_loading_cd">Loading</string>
 
+    <!-- More › Today screen (design sync 4, 13.6) -->
+    <string name="settings_more_today">Today screen</string>
+    <string name="settings_more_today_sub">Summary card and list</string>
+    <string name="settings_today_title">Today screen</string>
+    <string name="settings_today_summary_card">Summary card</string>
+    <string name="settings_today_preset_in_out">In and out</string>
+    <string name="settings_today_preset_range_bar">Range bar</string>
+    <string name="settings_today_preset_rings">Rings</string>
+    <string name="settings_today_preset_equation">Equation</string>
+    <string name="settings_today_needs_single">Needs a single target</string>
+    <string name="settings_today_main_number">Main number</string>
+    <string name="settings_today_main_follow">Follow my goal</string>
+    <string name="settings_today_main_goal">To your range</string>
+    <string name="settings_today_main_balance">Deficit or surplus</string>
+    <string name="settings_today_main_eaten">Eaten</string>
+    <string name="settings_today_follow_range">Range shows To your range</string>
+    <string name="settings_today_follow_exact">One number shows Left to target</string>
+    <string name="settings_today_follow_deficit">Set deficit shows Deficit</string>
+    <string name="settings_today_follow_surplus">Set surplus shows To your surplus</string>
+    <string name="settings_today_follow_by_day">Different by day shows To your range</string>
+    <string name="settings_today_card_pages">Card pages</string>
+    <string name="settings_today_pages_energy">Energy</string>
+    <string name="settings_today_pages_energy_macros">Energy, Macros</string>
+    <string name="settings_today_on_card">On the card</string>
+    <string name="settings_today_burned_breakdown">Burned breakdown</string>
+    <string name="settings_today_burned_breakdown_line">Resting and active</string>
+    <string name="settings_today_meals_count">Meals count</string>
+    <string name="settings_today_nutrients_link">Nutrients link</string>
+    <string name="settings_today_in_list">In the list</string>
+    <string name="settings_today_water">Water</string>
+    <string name="settings_today_weight">Weight on days you weigh in</string>
+    <string name="settings_today_close_day">Close the day</string>
+    <string name="settings_today_card_from_mode">In this mode the card's layout comes from the mode.</string>
 </resources>

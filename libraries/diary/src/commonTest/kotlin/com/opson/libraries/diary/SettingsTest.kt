@@ -10,6 +10,7 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.RestingSource
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
@@ -91,7 +92,7 @@ class SettingsTest {
         assertEquals(WeightUnit.Kg, s.weightUnit)
         assertEquals(ThemeMode.System, s.theme)
         assertEquals(TextSize.Normal, s.textSize)
-        assertNull(s.sprintStartedOn)
+        assertNull(s.modeTimerEnded)
         assertEquals(OnboardingAnswers(), s.onboarding)
     }
 
@@ -99,12 +100,12 @@ class SettingsTest {
     fun everyFieldSurvivesAJsonRoundTrip() {
         val s = Settings(
             numbers = NumbersSettings(
-                preset = PresetId.Delayed,
+                preset = PresetId.Later,
                 overrides = mapOf(Metric.Water to Visibility.Hide, Metric.Protein to Visibility.Soften),
                 pauseBeforeMore = true,
                 changedAt = Instant.parse("2026-10-20T08:30:00Z"),
             ),
-            sprintStartedOn = LocalDate(2026, 10, 1),
+            modeTimerEnded = ModeTimerEnded(LocalDate(2026, 10, 1), PresetId.Full),
             targets = Targets.Default.raise(),
             macroMode = MacroMode.Grams,
             exercise = ExerciseAdjustment.None,
@@ -130,12 +131,12 @@ class SettingsTest {
         val json = SettingsJson.encodeToString(
             Settings.serializer(),
             Settings(
-                numbers = NumbersSettings(preset = PresetId.Coast, overrides = mapOf(Metric.EnergyOut to Visibility.Soften)),
+                numbers = NumbersSettings(preset = PresetId.Later, overrides = mapOf(Metric.EnergyOut to Visibility.Soften), revealOn = RevealOn.Week),
                 waterUnit = WaterUnit.FlOz,
             ),
         )
 
-        listOf("\"preset\":\"coast\"", "\"energyOut\":\"soften\"", "\"fastPlan\":\"14:10\"", "\"waterUnit\":\"oz\"", "\"exercise\":\"some\"")
+        listOf("\"preset\":\"coast\"", "\"preset\":\"later\"", "\"revealOn\":\"week\"", "\"energyOut\":\"soften\"", "\"fastPlan\":\"14:10\"", "\"waterUnit\":\"oz\"", "\"exercise\":\"some\"")
             .forEach { assertTrue(it in json, "missing $it in $json") }
     }
 
@@ -151,7 +152,7 @@ class SettingsTest {
             """{"numbers":{"preset":"hyperfocus","overrides":{"calories":"glimpse","sparkle":"show"}},"tone":"sassy","shiny":true}""",
         )
 
-        assertEquals(PresetId.Blind, decoded.numbers.preset, "an unknown mode shows fewer numbers, never more")
+        assertEquals(PresetId.NoNumbers, decoded.numbers.preset, "an unknown mode shows fewer numbers, never more")
         assertEquals(mapOf(Metric.Calories to Visibility.Hide), decoded.numbers.overrides)
         assertEquals(Tone.Plain, decoded.tone)
     }
@@ -168,7 +169,7 @@ class SettingsTest {
 
     @Test
     fun theRevealTimeTravelsAsHoursAndMinutes_andDefaultsToNine() {
-        val s = Settings(numbers = NumbersSettings(preset = PresetId.Delayed, revealAt = LocalTime(19, 30)))
+        val s = Settings(numbers = NumbersSettings(preset = PresetId.Later, revealAt = LocalTime(19, 30)))
         val json = SettingsJson.encodeToString(Settings.serializer(), s)
         assertTrue("\"revealAt\":\"19:30\"" in json, json)
         assertEquals(s, SettingsJson.decodeFromString(Settings.serializer(), json))

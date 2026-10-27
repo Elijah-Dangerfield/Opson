@@ -113,7 +113,7 @@ private fun WidgetsDarkPreview() {
 @Preview
 @Composable
 private fun WidgetsBlindPreview() {
-    SettingsPreview { WidgetsFixtureScreen(WidgetFixtures.policy(PresetId.Blind)) }
+    SettingsPreview { WidgetsFixtureScreen(WidgetFixtures.policy(PresetId.NoNumbers)) }
 }
 
 /** Before the first snapshot arrives: the words, no widget. */

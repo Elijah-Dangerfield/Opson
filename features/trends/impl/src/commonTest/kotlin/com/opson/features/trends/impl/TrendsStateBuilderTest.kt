@@ -1,5 +1,6 @@
 package com.opson.features.trends.impl
 
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -42,9 +43,10 @@ class TrendsStateBuilderTest {
         preset: PresetId = PresetId.Full,
         settings: Settings = Settings(),
         evening: Boolean = false,
+        revealOn: RevealOn = RevealOn.DayClose,
     ) = TrendsStateBuilder.build(
         TrendsFixtures.trendsInputs(settings),
-        TrendsFixtures.policy(preset, clock = if (evening) TrendsFixtures.evening else TrendsFixtures.clock),
+        TrendsFixtures.policy(preset, clock = if (evening) TrendsFixtures.evening else TrendsFixtures.clock, revealOn = revealOn),
     )
 
     private fun withWatch(
@@ -52,9 +54,10 @@ class TrendsStateBuilderTest {
         settings: Settings = Settings(),
         overrides: Map<Metric, Visibility> = emptyMap(),
         expended: Map<LocalDate, EnergyExpended>? = TrendsFixtures.expended(),
+        revealOn: RevealOn = RevealOn.DayClose,
     ) = TrendsStateBuilder.build(
         TrendsFixtures.trendsInputs(settings, expended = expended),
-        TrendsFixtures.policy(preset, overrides),
+        TrendsFixtures.policy(preset, overrides, revealOn = revealOn),
     )
 
     @Test
@@ -86,19 +89,19 @@ class TrendsStateBuilderTest {
     fun expended_removedWhereEnergyOutIsHiddenOrSoftened_orTheCardIsOff() {
         assertNull(withWatch(overrides = mapOf(Metric.EnergyOut to Visibility.Hide)).expended)
         assertNull(withWatch(overrides = mapOf(Metric.EnergyOut to Visibility.Soften)).expended, "energy out has no soft word")
-        assertNull(withWatch(PresetId.Blind).expended)
-        assertNull(withWatch(PresetId.Fuel).expended)
+        assertNull(withWatch(PresetId.NoNumbers).expended)
+        assertNull(withWatch(PresetId.NutrientsFirst).expended)
         assertNull(withWatch(settings = Settings(trendsCards = TrendsCards(expended = false))).expended)
     }
 
     @Test
     fun expended_delayed_showsOnTheWeekView_withTodayStillOut() {
-        assertNotNull(withWatch(PresetId.Delayed).expended, "Delayed opens the week view all day")
+        assertNotNull(withWatch(PresetId.Later).expended, "Delayed opens the week view all day")
     }
 
     @Test
-    fun expended_coastWithEnergyOutLater_waitsForTheWeeklyCheck() {
-        assertNull(withWatch(PresetId.Coast, overrides = mapOf(Metric.EnergyOut to Visibility.Delay)).expended)
+    fun expended_weeklyWithEnergyOutLater_waitsForTheWeeklyCheck() {
+        assertNull(withWatch(PresetId.Later, revealOn = RevealOn.Week).expended)
     }
 
     @Test
@@ -193,7 +196,7 @@ class TrendsStateBuilderTest {
         assertEquals(RecapRow.Breakfast(5, 6), assertNotNull(state.recap).rows[1])
         assertNull(WeekAverages.of(days.filter { it.date == tuesday }))
 
-        val blind = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(days = days), TrendsFixtures.policy(PresetId.Blind))
+        val blind = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(days = days), TrendsFixtures.policy(PresetId.NoNumbers))
         assertEquals(List(4) { null }, assertNotNull(blind.week).days[1].meals, "no dots for an untracked day")
     }
 
@@ -217,7 +220,7 @@ class TrendsStateBuilderTest {
 
     @Test
     fun blind_theWeekLeads_andNutrientsAndWeightAreRemoved() {
-        val state = build(PresetId.Blind)
+        val state = build(PresetId.NoNumbers)
         assertNull(state.intake)
         assertNull(state.nutrients)
         assertNull(state.weight, "removed, not greyed out")
@@ -235,8 +238,8 @@ class TrendsStateBuilderTest {
     }
 
     @Test
-    fun coast_beforeTheCheck_theCheckCountsAndLastWeekOnly() {
-        val state = build(PresetId.Coast)
+    fun weekly_beforeTheCheck_theCheckCountsAndLastWeekOnly() {
+        val state = build(PresetId.Later, revealOn = RevealOn.Week)
         assertEquals(WeeklyCheck(DayOfWeek.SUNDAY, LocalTime(21, 0), tonight = true), state.weeklyCheck)
         assertNull(state.intake)
         assertNull(state.week)
@@ -250,12 +253,12 @@ class TrendsStateBuilderTest {
         val last = assertNotNull(state.lastCheck)
         assertEquals("Oct 18", last.weekEnd)
         assertTrue(assertIs<Display.Shown>(last.average).text.endsWith("kcal"), "last week's check is open")
-        assertIs<Display.Soft>(last.weight, "Coast's weight is a slope word")
+        assertIs<Display.Soft>(last.weight, "Later's weight is a slope word")
     }
 
     @Test
-    fun coast_afterTheCheckOpens_theWeekIsOnTheChart() {
-        val state = build(PresetId.Coast, evening = true)
+    fun weekly_afterTheCheckOpens_theWeekIsOnTheChart() {
+        val state = build(PresetId.Later, evening = true, revealOn = RevealOn.Week)
         assertNull(state.weeklyCheck)
         assertNull(state.lastCheck)
         assertIs<Display.Shown>(assertNotNull(state.intake).average)
@@ -264,7 +267,7 @@ class TrendsStateBuilderTest {
 
     @Test
     fun delayed_beforeTheReveal_isOpenOnTheWeekView() {
-        val state = build(PresetId.Delayed)
+        val state = build(PresetId.Later)
         assertNull(state.weeklyCheck, "Delayed opens at day close, not once a week")
         assertIs<Display.Shown>(assertNotNull(state.intake).average)
     }
@@ -272,24 +275,24 @@ class TrendsStateBuilderTest {
     @Test
     fun delayed_beforeTheReveal_todaysBarIsAGap_untilTheRevealOpensIt() {
         assertNotNull(assertNotNull(build().intake).bars[6].fraction, "Full: today's bar so far")
-        assertNull(assertNotNull(build(PresetId.Delayed).intake).bars[6].fraction, "its height would say roughly what today came to")
-        assertNotNull(assertNotNull(build(PresetId.Delayed, evening = true).intake).bars[6].fraction)
+        assertNull(assertNotNull(build(PresetId.Later).intake).bars[6].fraction, "its height would say roughly what today came to")
+        assertNotNull(assertNotNull(build(PresetId.Later, evening = true).intake).bars[6].fraction)
     }
 
     @Test
-    fun coast_aMonthReachingIntoAWeekBeforeItsCheck_leavesThatWeekOut() {
+    fun weekly_aMonthReachingIntoAWeekBeforeItsCheck_leavesThatWeekOut() {
         // A Saturday start: the week window (Oct 17 to 23) has had its check, but the month's last
         // bar holds Saturday the 24th and today, whose week checks on Friday the 30th.
         val settings = Settings(weekStart = DayOfWeek.SATURDAY, trendsRange = TrendsRange.FourWeeks)
-        val coast = assertNotNull(build(PresetId.Coast, settings = settings).intake)
-        assertNull(coast.bars.last().fraction)
-        assertNotNull(coast.bars[coast.bars.lastIndex - 1].fraction, "a week past its check shows")
+        val weekly = assertNotNull(build(PresetId.Later, settings = settings, revealOn = RevealOn.Week).intake)
+        assertNull(weekly.bars.last().fraction)
+        assertNotNull(weekly.bars[weekly.bars.lastIndex - 1].fraction, "a week past its check shows")
         assertNotNull(assertNotNull(build(settings = settings).intake).bars.last().fraction, "Full: the week so far")
     }
 
     @Test
     fun fuel_noChart_theWeekLeads_proteinAndFiberTiles_weightAsAWord() {
-        val state = build(PresetId.Fuel)
+        val state = build(PresetId.NutrientsFirst)
         assertNull(state.intake, "a softened calorie chart would still read as amounts")
         assertNotNull(state.week)
         assertEquals(listOf(Metric.Protein, Metric.Fiber), assertNotNull(state.nutrients).macros.map { it.metric })
@@ -308,7 +311,7 @@ class TrendsStateBuilderTest {
 
     @Test
     fun nutrientFocus_softenedTileIsAWordWithABar() {
-        val protein = assertIs<Display.Soft>(assertNotNull(build(PresetId.Nutrient).nutrients).macros.single { it.metric == Metric.Protein }.display)
+        val protein = assertIs<Display.Soft>(assertNotNull(build(PresetId.NutrientsFirst).nutrients).macros.single { it.metric == Metric.Protein }.display)
         assertNotNull(protein.fraction)
     }
 
@@ -365,6 +368,17 @@ class TrendsStateBuilderTest {
 
         assertEquals(2400f / 2900f, intake.band.start)
         assertEquals(intake.band.start, intake.band.endInclusive)
+    }
+
+    @Test
+    fun aSurplus_drawsOnTodaysBurned_whenItIsKnown() {
+        val settings = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300, 300)))
+        val state = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(settings).copy(burnedKcal = 2180), TrendsFixtures.policy(PresetId.Full))
+        val intake = assertNotNull(state.intake)
+
+        // 2,180 plus 300, on a scale of 3,000.
+        assertEquals(2480f / 3000f, intake.band.start)
+        assertTrue(intake.singleGoal)
     }
 
     @Test

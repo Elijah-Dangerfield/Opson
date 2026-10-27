@@ -1,5 +1,6 @@
 package com.opson.features.trends.impl
 
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
@@ -31,9 +32,10 @@ class NutrientsStateBuilderTest {
         overrides: Map<Metric, Visibility> = emptyMap(),
         inputs: NutrientsInputs = TrendsFixtures.nutrientsInputs(range),
         policyAt: LocalTime = LocalTime(12, 0),
+        revealOn: RevealOn = RevealOn.DayClose,
     ) = NutrientsStateBuilder.build(
         inputs,
-        TrendsFixtures.policy(preset, overrides, TrendsFixtures.fixedClock(LocalDateTime(TrendsFixtures.today, policyAt))),
+        TrendsFixtures.policy(preset, overrides, TrendsFixtures.fixedClock(LocalDateTime(TrendsFixtures.today, policyAt)), revealOn),
     )
 
     @Test
@@ -98,40 +100,41 @@ class NutrientsStateBuilderTest {
 
     @Test
     fun delayed_weekAverage_isRevealed() {
-        val state = build(NutrientsRange.WeekAverage, PresetId.Delayed)
+        val state = build(NutrientsRange.WeekAverage, PresetId.Later)
         assertIs<Display.Shown>(assertNotNull(state.energy).eaten)
         assertEquals(true, state.microsOff)
     }
 
     @Test
     fun delayed_day_staysShutUntilNinePm() {
-        val noon = build(preset = PresetId.Delayed)
+        val noon = build(preset = PresetId.Later)
         assertNull(noon.energy)
         assertNull(noon.macros)
-        val evening = build(preset = PresetId.Delayed, policyAt = LocalTime(21, 30))
+        val evening = build(preset = PresetId.Later, policyAt = LocalTime(21, 30))
         assertIs<Display.Shown>(assertNotNull(evening.energy).eaten)
     }
 
     @Test
-    fun fuel_energyIsASoftWordWithNoRange_proteinAndFiberShow() {
-        val state = build(preset = PresetId.Fuel)
+    fun nutrientsFirst_energyIsASoftWordWithNoRange_proteinAndFiberAreWords() {
+        val state = build(preset = PresetId.NutrientsFirst)
         val energy = assertNotNull(state.energy)
         assertNotNull(assertIs<Display.Soft>(energy.eaten).text)
         assertEquals(Display.Hidden, energy.range, "a range has no soft word")
         val rows = assertNotNull(state.macros)
         assertEquals(listOf(Metric.Protein, Metric.Fiber), rows.map { it.metric })
-        assertIs<Display.Shown>(rows[0].display)
+        assertIs<Display.Soft>(rows[0].display)
     }
 
     @Test
-    fun coast_weekAverage_waitsForTheWeeklyCheck() {
-        assertNull(build(NutrientsRange.WeekAverage, PresetId.Coast).energy)
-        assertIs<Display.Shown>(assertNotNull(build(NutrientsRange.WeekAverage, PresetId.Coast, policyAt = LocalTime(21, 30)).energy).eaten)
+    fun weekly_weekAverage_waitsForTheWeeklyCheck() {
+        assertNull(build(NutrientsRange.WeekAverage, PresetId.Later, revealOn = RevealOn.Week).energy)
+        val evening = build(NutrientsRange.WeekAverage, PresetId.Later, policyAt = LocalTime(21, 30), revealOn = RevealOn.Week)
+        assertIs<Display.Shown>(assertNotNull(evening.energy).eaten)
     }
 
     @Test
     fun blind_nothing() {
-        val state = build(preset = PresetId.Blind)
+        val state = build(preset = PresetId.NoNumbers)
         assertNull(state.energy)
         assertNull(state.macros)
         assertEquals(false, state.microsOff)
@@ -141,7 +144,7 @@ class NutrientsStateBuilderTest {
 
     @Test
     fun blind_withMicrosOn_showsMicrosNotNothing() {
-        val state = build(preset = PresetId.Blind, overrides = microsOn)
+        val state = build(preset = PresetId.NoNumbers, overrides = microsOn)
         assertEquals(false, state.nothing)
         assertNotNull(state.micros)
         assertNull(state.macros)

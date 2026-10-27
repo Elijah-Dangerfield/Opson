@@ -5,12 +5,12 @@ import com.opson.libraries.nutrition.EatenUncertainty
 import com.opson.libraries.nutrition.LoggedAs
 
 /**
- * How this item's energy was arrived at, for the day's ±. A barcode reads a label; a quick
- * number is typed; a weighed amount is weighed; anything else is an estimate.
+ * How this item's energy was arrived at, for the day's ±. A barcode or a "From label" amount reads
+ * a label; a quick number is typed; a weighed amount is weighed; anything else is an estimate.
  */
 val LogItem.loggedAs: LoggedAs
     get() = when {
-        method == LogMethod.Barcode -> LoggedAs.Label
+        method == LogMethod.Barcode || precision == Precision.Label -> LoggedAs.Label
         method == LogMethod.QuickNumber -> LoggedAs.QuickAdd
         precision == Precision.Weighed -> LoggedAs.Weighed
         else -> LoggedAs.Estimate

@@ -79,6 +79,19 @@ class WidgetSnapshotBuilderTest {
     }
 
     @Test
+    fun aSetDeficit_drawsItsTargetAgainstBurned() {
+        val base = WidgetFixtures.inputs(NumbersSettings(preset = PresetId.Full), WidgetFixtures.day, mealGroups = true)
+        val deficit = base.settings.targets.copy(startingKcal = 1500, style = TargetStyle.Deficit(500, 500))
+        val inputs = base.copy(settings = base.settings.copy(targets = deficit), burnedKcal = 2180)
+
+        val energy = assertNotNull(WidgetSnapshotBuilder.build(inputs, WidgetFixtures.policy(PresetId.Full), COPY).today.energy)
+
+        // 2,180 less 500 is 1,680; the bar runs to 2,016.
+        assertEquals(1680 / 2016f, energy.rangeStart, 0.001f)
+        assertEquals(energy.rangeStart, energy.rangeEnd)
+    }
+
+    @Test
     fun full_drawsNoMealsAndNoNote() {
         val today = build(PresetId.Full).today
         assertTrue(today.meals.isEmpty())
@@ -122,19 +135,19 @@ class WidgetSnapshotBuilderTest {
     @Test
     fun delayed_staysOnTheCircles_afterTheRevealToo() {
         val evening = VisibilityPolicy(
-            NumbersSettings(preset = PresetId.Delayed),
+            NumbersSettings(preset = PresetId.Later),
             clockAt(LocalDateTime(WidgetFixtures.today, LocalTime(22, 0))),
             WidgetFixtures.timeZone,
         )
         val closed = WidgetFixtures.day.copy(closedAt = WidgetFixtures.noon)
-        val today = build(PresetId.Delayed, closed, policy = evening).today
+        val today = build(PresetId.Later, closed, policy = evening).today
         assertNull(today.energy)
         assertEquals(4, today.meals.size)
     }
 
     @Test
     fun theCircles_tickWhatIsDone() {
-        val meals = build(PresetId.Blind).today.meals
+        val meals = build(PresetId.NoNumbers).today.meals
         assertEquals(listOf(true, true, true, false), meals.map { it.done })
         assertEquals("diary_slot_breakfast, done", meals.first().description)
         assertEquals("diary_slot_dinner, not yet", meals.last().description)
@@ -144,12 +157,12 @@ class WidgetSnapshotBuilderTest {
     @Test
     fun ateNoDetails_countsAsDone() {
         val day = WidgetFixtures.day.copy(ateNoDetails = setOf(MealSlot.Dinner))
-        assertTrue(build(PresetId.Blind, day).today.meals.all { it.done })
+        assertTrue(build(PresetId.NoNumbers, day).today.meals.all { it.done })
     }
 
     @Test
     fun mealGroupsOff_withCaloriesHidden_saysTapToLog() {
-        val today = build(PresetId.Blind, mealGroups = false).today
+        val today = build(PresetId.NoNumbers, mealGroups = false).today
         assertTrue(today.meals.isEmpty())
         assertEquals(NOTE_LOG, today.note)
     }
@@ -177,7 +190,7 @@ class WidgetSnapshotBuilderTest {
         val tomorrow = snapshot.days.last()
         assertEquals("0", assertNotNull(tomorrow.energy).amount)
         assertEquals(0f, tomorrow.energy?.fraction)
-        assertTrue(build(PresetId.Blind).days.last().meals.none { it.done })
+        assertTrue(build(PresetId.NoNumbers).days.last().meals.none { it.done })
     }
 
     @Test

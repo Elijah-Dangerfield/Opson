@@ -39,7 +39,7 @@ class PatternsViewModelTest : CoroutineTest() {
     fun policyChange_rebuilds() = runUnitTest {
         val vm = vm()
         assertNotNull(vm.state.sizes)
-        policy.policy.value = TrendsFixtures.policy(PresetId.Blind)
+        policy.policy.value = TrendsFixtures.policy(PresetId.NoNumbers)
         assertNull(vm.state.sizes)
         assertNotNull(vm.state.often)
     }

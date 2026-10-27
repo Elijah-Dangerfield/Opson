@@ -54,7 +54,7 @@ class IntegrationsViewModelTest : CoroutineTest() {
     @Test
     fun policyArrives_andTheAmountsFollowIt() = runUnitTest {
         val vm = vm(FakeHealthRepository(status = HealthStatus.Connected, energy = IntegrationsFixtures.energy))
-        policy.policy.value = SettingsFixtures.policy(PresetId.Blind)
+        policy.policy.value = SettingsFixtures.policy(PresetId.NoNumbers)
         assertEquals(ExpendedCard.Hidden, vm.state.expended)
     }
 

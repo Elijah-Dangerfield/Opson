@@ -63,7 +63,7 @@ class PhotoRowsTest {
         assertEquals(LogMethod.Describe, draft.method)
         assertEquals(Precision.Estimate, draft.precision)
         assertEquals(198.0, draft.kcal)
-        assertEquals(PickSource.Photo, PhotoRows.fromEstimate("k", item(grams = 120.0), chicken, false).toBasketItem().source)
+        assertEquals(PickSource.Photo, PhotoRows.fromEstimate("k", item(grams = 120.0), chicken, false).toLogPick().source)
     }
 
     @Test

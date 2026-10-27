@@ -209,7 +209,7 @@ private fun FastingOffPreview() {
 @Preview
 @Composable
 private fun FastingNotInThisModePreview() {
-    SettingsPreview { FastingScreen(FastingFixtures.state(FastingFixtures.settings(preset = PresetId.Fuel)), onAction = {}) }
+    SettingsPreview { FastingScreen(FastingFixtures.state(FastingFixtures.settings(preset = PresetId.NutrientsFirst)), onAction = {}) }
 }
 
 @Preview
@@ -217,7 +217,7 @@ private fun FastingNotInThisModePreview() {
 private fun FastingRunningDarkPreview() {
     SettingsPreview(dark = true) {
         FastingScreen(
-            FastingFixtures.state(FastingFixtures.settings(preset = PresetId.Sprint), FastingFixtures.lastNight, FastingFixtures.morning),
+            FastingFixtures.state(FastingFixtures.settings(preset = PresetId.Full), FastingFixtures.lastNight, FastingFixtures.morning),
             onAction = {},
         )
     }

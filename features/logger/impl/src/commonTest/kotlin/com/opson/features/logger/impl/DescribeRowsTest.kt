@@ -141,6 +141,6 @@ class DescribeRowsTest {
         val line = row(old)
         assertNull(line.food)
         assertEquals(143.0, line.draft().kcal)
-        assertEquals("egg", line.toBasketItem().ref?.key?.substringAfter(':'))
+        assertEquals("egg", line.toLogPick().ref?.key?.substringAfter(':'))
     }
 }

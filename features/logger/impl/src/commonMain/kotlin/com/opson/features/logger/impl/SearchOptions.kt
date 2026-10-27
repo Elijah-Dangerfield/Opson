@@ -47,7 +47,7 @@ enum class SourceBadge {
 }
 
 /**
- * The search options as the Search pane draws them. [tabs] is null with the
+ * The search options as search draws them. [tabs] is null with the
  * Category tabs setting off. [active] lights the options button when the sort
  * or database is not the default, so a narrowed list never passes for a
  * short one.
@@ -59,11 +59,11 @@ internal fun Settings.effectiveDatabase(openFoodFacts: Boolean): SearchDatabase 
     if (searchDatabase == SearchDatabase.OpenFoodFacts && !openFoodFacts) SearchDatabase.All else searchDatabase
 
 /**
- * What the Logger asks the catalog for, or null when what is showing needs no
+ * What search asks the catalog for, or null when what is showing needs no
  * server at all (Favorites, Custom, My foods). With the options off it is
  * always [FoodSearchFilter.None], the call 0.1 makes.
  */
-internal fun searchFilterFor(settings: Settings, choices: LoggerChoices): FoodSearchFilter? {
+internal fun searchFilterFor(settings: Settings, choices: SearchChoices): FoodSearchFilter? {
     if (!choices.searchOptions) return FoodSearchFilter.None
     val order = if (settings.searchSort == SearchSort.AToZ) SearchOrder.Name else SearchOrder.BestMatch
     return when (choices.tab) {

@@ -12,7 +12,7 @@ object OnboardingFixtures {
     /**
      * The answers design v3 draws (1.2 to 1.5): eating enough and eating
      * regularly, some numbers are fine, and yes to the statement. Recommends
-     * Fuel, with Rhythm, Nutrient focus and Blind beside it.
+     * Nutrients first, with No numbers and Later beside it.
      */
     val DesignAnswers = SetupAnswers(
         why = setOf(Why.EatingEnough, Why.EatingRegularly),

@@ -1,16 +1,14 @@
 package com.opson.integration.config
 
 import com.opson.features.logger.impl.BarcodeScanEnabled
-import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.upgrade.LatestVersionCode
 import com.opson.features.upgrade.MaintenanceMessage
 import com.opson.features.upgrade.MaintenanceMode
 import com.opson.features.upgrade.MinSupportedVersionCode
-import com.opson.features.settings.GoalsAndEnergyEnabled
 import com.opson.features.logger.impl.PhotoEstimateEnabled
 import com.opson.features.logger.impl.SearchOptionsEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
-import com.opson.libraries.diary.CheckInEnabled
+import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.today.impl.TodayFoodActionsEnabled
 import com.opson.features.today.impl.TodaySelectEnabled
 import com.opson.features.today.impl.TodaySummaryEnabled
@@ -24,7 +22,9 @@ import com.opson.libraries.config.LongConfigValue
 import com.opson.libraries.config.StringConfigValue
 import com.opson.libraries.config.impl.ConfigRefreshThrottleMs
 import com.opson.libraries.config.impl.model.BasicMapAppConfig
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.FastingReleaseFlag
+import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.progressphotos.ProgressPhotosEnabled
 import com.opson.libraries.reminders.RemindersEnabled

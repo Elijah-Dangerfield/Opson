@@ -325,10 +325,10 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
     }
 
-    /** V21 is additive and safe to run twice (it is also applied by hand on dev), and cascades from the user. */
+    /** V22 is additive and safe to run twice (it is also applied by hand on dev), and cascades from the user. */
     @Test
     fun supportMigrationIsIdempotentAndCascadesFromTheUser() {
-        val migration = checkNotNull(javaClass.getResource("/db/migration/V21__support_views.sql")).readText()
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V22__support_views.sql")).readText()
         database.blockingTransaction { exec(migration) }
 
         val user = seedAuthUser().value

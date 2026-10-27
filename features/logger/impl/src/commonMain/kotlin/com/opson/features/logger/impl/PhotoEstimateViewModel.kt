@@ -23,7 +23,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Assisted
@@ -34,7 +33,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * Photo estimate: a note, a photo, the server's guess at what is on the
  * plate, and the person's corrections. The guess never gets the last word:
  * every line can be swapped, resized or removed, and all of it is logged as
- * an estimate. Logging is [BasketCommitter]'s, the same as every other way in
+ * an estimate. Logging is [FoodLogger]'s, the same as every other way in
  * the logger.
  *
  * Nothing here runs until the sheet opens, and the sheet only opens from the
@@ -47,8 +46,7 @@ class PhotoEstimateViewModel(
     private val estimator: MealPhotoEstimator,
     private val foodCatalog: FoodCatalog,
     private val permissions: CameraPermissions,
-    private val basketStore: BasketStore,
-    private val committer: BasketCommitter,
+    private val logger: FoodLogger,
     private val settingsRepository: SettingsRepository,
     private val appState: AppState,
     private val telemetry: PhotoTelemetry,
@@ -75,8 +73,7 @@ class PhotoEstimateViewModel(
 
     init {
         viewModelScope.launch {
-            combine(diary.observeDay(day), basketStore.basket) { d, basket -> PhotoInputs(calendar.today(), d, basket) }
-                .collect { takeAction(PhotoEstimateAction.InputsArrived(it)) }
+            diary.observeDay(day).collect { takeAction(PhotoEstimateAction.InputsArrived(PhotoInputs(calendar.today(), it))) }
         }
         viewModelScope.launch {
             policySource.policy.collect { takeAction(PhotoEstimateAction.PolicyArrived(it)) }
@@ -268,8 +265,7 @@ class PhotoEstimateViewModel(
     private suspend fun addToMeal() {
         val rows = model.rows
         if (logged || model.step != PhotoStep.Review || model.swap != null) return
-        rows.forEach { basketStore.upsert(it.toBasketItem()) }
-        val committed = committer.commit(day, slot) ?: return
+        val committed = logger.log(day, slot, rows.map { it.toLogPick() }) ?: return
         logged = true
         telemetry.added(items = rows.size)
         sendEvent(PhotoEstimateEvent.Logged(day, committed))

@@ -4,7 +4,6 @@ import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
-import kotlinx.datetime.LocalDate
 
 /**
  * The setup steps that take an answer, in order: three questions, then the optional statement.
@@ -127,11 +126,10 @@ data class SetupAnswers(
 
 /**
  * The settings onboarding leaves behind: [preset] with no overrides and the
- * pause off, the answers, and for Sprint the day it started. The caller saves
- * this without stamping `changedAt`, so Modes says "Set by you during setup".
+ * pause off, and the answers. The caller saves this without stamping
+ * `changedAt`, so Modes says "Set by you during setup".
  */
-internal fun Settings.startingWith(preset: PresetId, answers: SetupAnswers, today: LocalDate): Settings = copy(
+internal fun Settings.startingWith(preset: PresetId, answers: SetupAnswers): Settings = copy(
     numbers = NumbersSettings(preset = preset),
     onboarding = answers.toSettings(),
-    sprintStartedOn = if (preset == PresetId.Sprint) today else sprintStartedOn,
 )

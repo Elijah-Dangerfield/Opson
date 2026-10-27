@@ -442,7 +442,7 @@ shared by every app on the stack. This is the Cards rule.
 
 - A read-only Postgres role `grafana_ro` can read only the `analytics` and
   `support` schemas. `analytics` holds views that aggregate across users.
-  `support` (`V21__support_views.sql`) holds one row per person or per person
+  `support` (`V22__support_views.sql`) holds one row per person or per person
   and day for the Users and User detail boards and the admin lookup: account,
   email, builds, counts and Settings choices, never a food, an amount, a weight,
   a note or an answer. No view in either exposes a single user's intake.

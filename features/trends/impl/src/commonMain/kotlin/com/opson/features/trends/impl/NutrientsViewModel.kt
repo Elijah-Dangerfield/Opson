@@ -7,6 +7,8 @@ import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
+import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -33,6 +36,8 @@ class NutrientsViewModel(
     private val settingsRepository: SettingsRepository,
     private val policySource: VisibilityPolicySource,
     private val clock: Clock,
+    private val goalsAndEnergy: GoalsAndEnergyEnabled,
+    private val burnedRepository: BurnedRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<NutrientsState, NutrientsEvent, NutrientsAction>(
     initialStateArg = NutrientsState(range = initialRange),
@@ -73,8 +78,10 @@ class NutrientsViewModel(
                 .distinctUntilChanged()
                 .flatMapLatest { window -> diary.observeDays(window.start, window.end) }
         }
-        subscription = combine(settingsRepository.settings, policySource.policy, days) { settings, policy, days ->
-            NutrientsAction.InputsArrived(NutrientsInputs(today, day, range, fromTrends, settings, days), policy)
+        // Burned for the day shown; the week's chart takes today's, as Trends does.
+        val burned = if (goalsAndEnergy()) burnedRepository.burned(if (range == NutrientsRange.Day) day else today) else flowOf(null)
+        subscription = combine(settingsRepository.settings, policySource.policy, days, burned) { settings, policy, days, burned ->
+            NutrientsAction.InputsArrived(NutrientsInputs(today, day, range, fromTrends, settings, days, burned?.totalKcal), policy)
         }.collectIn(viewModelScope) { takeAction(it) }
     }
 }

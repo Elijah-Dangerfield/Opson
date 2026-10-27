@@ -36,6 +36,9 @@ enum class Precision(val wire: String) {
     Weighed("weighed"),
     Estimate("estimate"),
     Named("named"),
+
+    /** A serving as the package's label gives it. Clients from before 0.2 read it as an estimate. */
+    Label("label"),
     ;
 
     companion object {

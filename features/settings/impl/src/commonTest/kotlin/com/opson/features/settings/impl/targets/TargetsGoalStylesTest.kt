@@ -11,6 +11,7 @@ import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
 import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.libraries.diary.MacroMode
+import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.Burned
@@ -104,7 +105,7 @@ class TargetsGoalStylesTest : CoroutineTest() {
 
     @Test
     fun noModeWithoutShownCaloriesSeesEitherStyle() {
-        listOf(PresetId.Fuel, PresetId.Delayed, PresetId.Coast, PresetId.Blind, PresetId.Nutrient).forEach { preset ->
+        listOf(PresetId.NutrientsFirst, PresetId.Later, PresetId.Later, PresetId.NoNumbers, PresetId.NutrientsFirst).forEach { preset ->
             listOf(SettingsFixtures.exactTargets, SettingsFixtures.surplusTargets, SettingsFixtures.shapedByDayTargets).forEach { targets ->
                 val state = build(targets, NumbersSettings(preset), burned = SettingsFixtures.burned, editingGroup = 1)
                 assertEquals(TargetsState(visible = false), state, "in $preset")
@@ -343,5 +344,21 @@ class TargetsGoalStylesTest : CoroutineTest() {
 
         vm.takeAction(TargetsAction.SurplusStepped(up = false, group = 2))
         assertEquals(GroupShape.Surplus(250, 300), groups()[2].shape)
+    }
+
+    @Test
+    fun pickingAStyle_resetsTodaysMainNumber_andRingsWithARangeGoesBack() = runUnitTest {
+        val repository = FakeSettingsRepository(
+            SettingsFixtures.settings(targets = SettingsFixtures.exactTargets).copy(
+                todayCard = SummaryCardPreset.Rings,
+                todayMainNumberByStyle = mapOf("range" to "balance", "exact" to "balance"),
+            ),
+        )
+        val vm = viewModel(repository)
+
+        vm.takeAction(TargetsAction.StylePicked(StyleKind.Range))
+
+        assertEquals(mapOf("exact" to "balance"), repository.state.value.todayMainNumberByStyle, "the new style starts on its default")
+        assertEquals(SummaryCardPreset.InOut, repository.state.value.todayCard)
     }
 }

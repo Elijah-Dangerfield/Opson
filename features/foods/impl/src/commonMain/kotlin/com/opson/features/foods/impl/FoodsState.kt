@@ -1,6 +1,7 @@
 package com.opson.features.foods.impl
 
 import com.opson.features.logger.LoggerRoute
+import com.opson.libraries.navigation.Route
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.SavedMeal
@@ -26,7 +27,7 @@ sealed interface FoodsTarget {
 
     data class Food(val ref: FoodRef) : FoodsTarget
 
-    /** The logger, opened with this already picked, so the person still chooses the meal and the day. */
+    /** A food opens its detail, a saved meal the + sheet on Saved meals; either way the person still chooses the meal. */
     fun toLoggerRoute(): LoggerRoute = when (this) {
         is Meal -> LoggerRoute(prePickSavedMealId = id)
         is Food -> LoggerRoute(prePickFoodId = ref.id, prePickIsCustom = ref is FoodRef.Custom)
@@ -49,12 +50,13 @@ sealed interface FoodsAction {
     data object CreateMealTapped : FoodsAction
     data object AddFoodTapped : FoodsAction
 
-    /** The row or its +: both open the logger with it picked. */
+    /** The row or its +: a food opens its detail, a saved meal the + sheet on Saved meals. */
     data class RowTapped(val target: FoodsTarget) : FoodsAction
 }
 
 sealed interface FoodsEvent {
-    data class OpenLogger(val route: LoggerRoute) : FoodsEvent
+    /** The + sheet with a row already chosen, or search. */
+    data class OpenLogger(val route: Route) : FoodsEvent
     data object OpenCreateMeal : FoodsEvent
     data object OpenAddFood : FoodsEvent
 }

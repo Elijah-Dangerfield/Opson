@@ -5,18 +5,22 @@ import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.GroupShape
+import com.opson.libraries.nutrition.LegacyPreset
 import com.opson.libraries.nutrition.MAX_DEFICIT_KCAL
 import com.opson.libraries.nutrition.MAX_SURPLUS_KCAL
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WaterUnit
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -54,9 +58,9 @@ val SettingsJson: Json = Json {
  * is the prototype's: `full`, `soften`, `some`, `ml`, `14:10`.
  *
  * Unknown values fail closed. A preset this build does not know reads as
- * Blind and an unknown level as Hide, because showing a number the user chose
- * not to see is the one mistake this app cannot make; showing too few is a
- * tap to fix.
+ * No numbers and an unknown level as Hide, because showing a number the user
+ * chose not to see is the one mistake this app cannot make; showing too few is
+ * a tap to fix.
  */
 internal open class KeyedEnumSerializer<E : Enum<E>>(
     serialName: String,
@@ -73,8 +77,9 @@ internal open class KeyedEnumSerializer<E : Enum<E>>(
     fun fromKey(value: String): E? = values.firstOrNull { key(it) == value }
 }
 
-internal object PresetIdSerializer :
-    KeyedEnumSerializer<PresetId>("opson.PresetId", PresetId.entries, PresetId::key, PresetId.Blind)
+/** A preset by its key. Only names one in copy ("Your time on Full numbers is up"), never decides a level. */
+internal object PresetKeySerializer :
+    KeyedEnumSerializer<PresetId>("opson.PresetId", PresetId.entries, PresetId::key, PresetId.NoNumbers)
 
 internal val Visibility.key: String get() = name.lowercase()
 
@@ -146,46 +151,134 @@ internal object OverridesSerializer : KSerializer<Map<Metric, Visibility>> {
         }.toMap()
 }
 
+/**
+ * `numbers` as [NumbersSettingsSerializer] reads and writes it. On the wire [mode],
+ * [progressPhotos] and [sprintStartedOn] are top-level keys ([SettingsSerializer] moves them),
+ * and the rest is exactly 0.1's `numbers`, which 0.1 phones still read and rewrite whole.
+ */
 @Serializable
 private class NumbersWire(
-    @Serializable(with = PresetIdSerializer::class)
-    val preset: PresetId = PresetId.Full,
+    /** A [LegacyPreset] key, so a 0.1 phone shows the same levels. [mode] holds the real preset. */
+    val preset: String = LegacyPreset.Full.key,
     @Serializable(with = OverridesSerializer::class)
     val overrides: Map<Metric, Visibility> = emptyMap(),
     val pauseBeforeMore: Boolean = false,
     val changedAtEpochMs: Long? = null,
     /** `"21:00"`. Missing (settings from before v3) or unreadable is the default, 9:00 pm. */
     val revealAt: String? = null,
-    /** Travels as a top-level key ([SettingsSerializer]); here only between it and [NumbersSettingsSerializer]. */
     val progressPhotos: Boolean? = null,
+    val mode: ModeWire? = null,
+    /** 0.1's Sprint start, read only to migrate a Sprint into End after a set time. Never written. */
+    val sprintStartedOn: LocalDate? = null,
 )
 
+/**
+ * The top-level `mode` (design sync 4): the preset as one of the four, its overrides, when Later's
+ * totals open, and End after a set time. Written whole with the 0.1 `numbers` beside it, both
+ * stamped [changedAtEpochMs].
+ */
+@Serializable
+private class ModeWire(
+    val preset: String,
+    @Serializable(with = OverridesSerializer::class)
+    val overrides: Map<Metric, Visibility> = emptyMap(),
+    val changedAtEpochMs: Long? = null,
+    /** `"day"` or `"week"`. */
+    val revealOn: String? = null,
+    val endAfter: EndAfterWire? = null,
+)
+
+@Serializable
+private class EndAfterWire(val startedOn: LocalDate, val weeks: Int, val then: String)
+
+/**
+ * [NumbersSettings] on the wire, written for two app versions at once.
+ *
+ * Writing: the top-level `mode` carries the preset and its overrides, and `numbers` carries the
+ * [LegacyPreset] and overrides that show a 0.1 phone the same levels ([LegacyPreset.closestTo]).
+ *
+ * Reading: `mode` wins unless `numbers` changed after it. A 0.1 phone never sees `mode` and
+ * rewrites `numbers` whole on every save, but only stamps `numbers.changedAtEpochMs` when its
+ * person changes the mode, so a later stamp in `numbers` is a newer choice, made on an old phone,
+ * and it is migrated ([LegacyPreset.migrate]). A save that only changed water or a meal time
+ * leaves the stamps equal and `mode` stands.
+ */
 internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
+    private const val REVEAL_DAY = "day"
+    private const val REVEAL_WEEK = "week"
+
     override val descriptor: SerialDescriptor = NumbersWire.serializer().descriptor
 
-    override fun serialize(encoder: Encoder, value: NumbersSettings) = encoder.encodeSerializableValue(
-        NumbersWire.serializer(),
-        NumbersWire(
-            preset = value.preset,
-            overrides = value.overrides,
-            pauseBeforeMore = value.pauseBeforeMore,
-            changedAtEpochMs = value.changedAt?.toEpochMilliseconds(),
-            revealAt = value.revealAt.toWire(),
-            progressPhotos = value.progressPhotos,
-        ),
-    )
+    override fun serialize(encoder: Encoder, value: NumbersSettings) {
+        val (legacy, legacyOverrides) = LegacyPreset.closestTo(value)
+        val changedAt = value.changedAt?.toEpochMilliseconds()
+        encoder.encodeSerializableValue(
+            NumbersWire.serializer(),
+            NumbersWire(
+                preset = legacy.key,
+                overrides = legacyOverrides,
+                pauseBeforeMore = value.pauseBeforeMore,
+                changedAtEpochMs = changedAt,
+                revealAt = value.revealAt.toWire(),
+                progressPhotos = value.progressPhotos,
+                mode = ModeWire(
+                    preset = value.preset.key,
+                    overrides = value.overrides,
+                    changedAtEpochMs = changedAt,
+                    revealOn = if (value.revealsWeekly) REVEAL_WEEK else REVEAL_DAY,
+                    endAfter = value.endAfter?.let { EndAfterWire(it.startedOn, it.weeks, it.then.key) },
+                ),
+            ),
+        )
+    }
 
     override fun deserialize(decoder: Decoder): NumbersSettings {
         val wire = decoder.decodeSerializableValue(NumbersWire.serializer())
-        return NumbersSettings(
-            preset = wire.preset,
-            overrides = wire.overrides,
+        val mode = wire.mode?.takeIf { it.isCurrent(wire) }
+        val base = NumbersSettings(
             pauseBeforeMore = wire.pauseBeforeMore,
-            changedAt = wire.changedAtEpochMs?.let(Instant::fromEpochMilliseconds),
+            changedAt = (mode?.changedAtEpochMs ?: wire.changedAtEpochMs)?.let(Instant::fromEpochMilliseconds),
             revealAt = wire.revealAt?.let(::revealAtFromWire) ?: NumbersSettings.DEFAULT_REVEAL_AT,
             progressPhotos = wire.progressPhotos,
         )
+        val preset = mode?.let { PresetId.fromKey(it.preset) }
+        if (mode != null && preset != null) {
+            return base.copy(
+                preset = preset,
+                overrides = mode.overrides,
+                revealOn = revealOnFromWire(mode.revealOn),
+                endAfter = mode.endAfter?.toTiming(),
+            )
+        }
+        val migrated = LegacyPreset.migrate(wire.preset, wire.overrides, wire.progressPhotos, wire.sprintStartedOn)
+            ?: LegacyPreset.Migrated(PresetId.NoNumbers, wire.overrides, RevealOn.DayClose, wire.progressPhotos, null)
+        return base.copy(
+            preset = migrated.preset,
+            overrides = migrated.overrides,
+            progressPhotos = migrated.progressPhotos,
+            revealOn = migrated.revealOn,
+            // A timer set on a new phone survives a mode picked on an old one.
+            endAfter = migrated.endAfter ?: wire.mode?.endAfter?.toTiming(),
+        )
     }
+
+    /** Readable by this build, and not overtaken by a later change an old phone made to `numbers`. */
+    private fun ModeWire.isCurrent(wire: NumbersWire): Boolean {
+        if (PresetId.fromKey(preset) == null) return false
+        val numbersChanged = wire.changedAtEpochMs ?: return true
+        val modeChanged = changedAtEpochMs ?: return false
+        return modeChanged >= numbersChanged
+    }
+
+    /** Missing is each day, the default. A value this build doesn't know is weekly: the later opening. */
+    private fun revealOnFromWire(value: String?): RevealOn = when (value) {
+        null, REVEAL_DAY -> RevealOn.DayClose
+        else -> RevealOn.Week
+    }
+
+    /** A timer whose next preset this build can't read is dropped rather than guessed. */
+    private fun EndAfterWire.toTiming(): ModeTiming? =
+        PresetId.fromKey(then)?.let { ModeTiming(startedOn = startedOn, weeks = weeks.coerceAtLeast(1), then = it) }
 
     /** Hours and minutes only: a reveal time has no seconds, and `"21:00"` reads the same everywhere. */
     private fun LocalTime.toWire(): String =
@@ -195,16 +288,20 @@ internal object NumbersSettingsSerializer : KSerializer<NumbersSettings> {
 }
 
 /**
- * [Settings] as the plugin writes it, with two keys lifted out of their objects to the top level
- * and put back on the way in: `numbers.progressPhotos` as `progressPhotos`, and `targets.style`
- * as `targetStyle`. The server merges settings one level deep (`stored || incoming`) and a 0.1
- * build rewrites `numbers` and `targets` whole without either key, so inside them the choice
- * would be lost on that build's next save. Both are written even when null or a plain range, so
- * a change back to the default reaches the server instead of the merge keeping the old choice.
+ * [Settings] as the plugin writes it, with keys lifted out of their objects to the top level and
+ * put back on the way in: from `numbers`, `mode`, `progressPhotos` and 0.1's `sprintStartedOn`
+ * (read, never written); from `targets`, `style` as `targetStyle`. The server merges settings one
+ * level deep (`stored || incoming`) and a 0.1 build rewrites `numbers` and `targets` whole without
+ * them, so inside those objects they would be lost on that build's next save. `progressPhotos`
+ * and `targetStyle` are written even when null or a plain range, so a change back to the default
+ * reaches the server instead of the merge keeping the old choice.
  */
 internal object SettingsSerializer : JsonTransformingSerializer<Settings>(Settings.generatedSerializer()) {
     private const val NUMBERS = "numbers"
+    private const val MODE = "mode"
     private const val PROGRESS_PHOTOS = "progressPhotos"
+    private const val SPRINT_STARTED_ON = "sprintStartedOn"
+    private val fromNumbers = setOf(MODE, PROGRESS_PHOTOS, SPRINT_STARTED_ON)
     private const val TARGETS = "targets"
     private const val STYLE = "style"
     private const val TARGET_STYLE = "targetStyle"
@@ -215,8 +312,9 @@ internal object SettingsSerializer : JsonTransformingSerializer<Settings>(Settin
         val targets = settings[TARGETS] as? JsonObject
         val lifted = buildMap {
             if (numbers != null) {
-                put(NUMBERS, JsonObject(numbers - PROGRESS_PHOTOS))
+                put(NUMBERS, JsonObject(numbers - fromNumbers))
                 put(PROGRESS_PHOTOS, numbers[PROGRESS_PHOTOS] ?: JsonNull)
+                numbers[MODE]?.let { put(MODE, it) }
             }
             if (targets != null) {
                 put(TARGETS, JsonObject(targets - STYLE))
@@ -228,16 +326,16 @@ internal object SettingsSerializer : JsonTransformingSerializer<Settings>(Settin
 
     override fun transformDeserialize(element: JsonElement): JsonElement {
         val settings = element as? JsonObject ?: return element
-        return settings.withPhotosInNumbers().withStyleInTargets()
+        return settings.withNumbersKeysInNumbers().withStyleInTargets()
     }
 
-    private fun JsonObject.withPhotosInNumbers(): JsonObject {
-        val photos = this[PROGRESS_PHOTOS]
+    private fun JsonObject.withNumbersKeysInNumbers(): JsonObject {
+        val top = fromNumbers.mapNotNull { key -> this[key]?.takeUnless { it is JsonNull }?.let { key to it } }.toMap()
         val numbers = this[NUMBERS] as? JsonObject
-        if (photos == null && numbers?.containsKey(PROGRESS_PHOTOS) != true) return this
-        // Only the top-level key counts: one inside numbers came from nowhere this serializer wrote.
-        val moved = (numbers ?: JsonObject(emptyMap())) - PROGRESS_PHOTOS + (photos?.let { mapOf(PROGRESS_PHOTOS to it) } ?: emptyMap())
-        return JsonObject(this - PROGRESS_PHOTOS + (NUMBERS to JsonObject(moved)))
+        if (top.isEmpty() && numbers?.keys?.any { it in fromNumbers } != true) return JsonObject(this - fromNumbers)
+        // Only the top-level keys count: one inside numbers came from nowhere this serializer wrote.
+        val moved = (numbers ?: JsonObject(emptyMap())) - fromNumbers + top
+        return JsonObject(this - fromNumbers + (NUMBERS to JsonObject(moved)))
     }
 
     /**

@@ -1098,7 +1098,7 @@ private fun TargetsByDaySurplusDarkPreview() {
 @Preview
 @Composable
 private fun TargetsBlindPreview() {
-    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.Blind))
+    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.NoNumbers))
     SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 

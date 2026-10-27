@@ -9,9 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.opson.libraries.nutrition.MacroLineStyle
 import com.opson.libraries.nutrition.MacroPart
+import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NutrientAmounts
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Surface
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.macroLine
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.text.Text
@@ -76,7 +78,9 @@ private fun MacroLinePreview() {
 @Preview
 @Composable
 private fun MacroLineFuelPreview() {
-    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.Fuel)) {
+    // Protein shown and the rest hidden: a line with one part.
+    val proteinOnly = Metric.entries.associateWith { Visibility.Hide } + (Metric.Protein to Visibility.Show)
+    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.NutrientsFirst, overrides = proteinOnly)) {
         MacroLinePreview()
     }
 }

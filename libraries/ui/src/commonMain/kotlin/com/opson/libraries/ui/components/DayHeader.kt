@@ -190,6 +190,8 @@ fun CountChip(
  * When [rangeStart] and [rangeEnd] meet, the goal is one number, and it is drawn as a solid mark
  * across the bar at that point instead of a box. Both at 0 is no goal at all, and draws nothing.
  *
+ * [tick] marks one more point on the bar in [tickColor] (Burned, on the Range bar card).
+ *
  * [segments] split the fill end to end by their weights, each in its own colour with a hairline
  * between (Today's eaten bar by macro, design sync 2). Empty draws the fill in one colour.
  */
@@ -202,7 +204,10 @@ fun RangeBar(
     colors: RangeBarColors = RangeBarDefaults.onHero(),
     height: Dp = RangeBarDefaults.Height,
     segments: List<RangeBarSegment> = emptyList(),
+    tick: Float? = null,
+    tickColor: ColorResource = colors.box,
 ) {
+    val tickPaint = tickColor.color
     val track = colors.track.color
     val fillColor = colors.fill.color
     val parts = segments.filter { it.weight > 0f }.map { it.weight to it.color.color }
@@ -245,6 +250,10 @@ fun RangeBar(
                 } else if (start > 0f) {
                     // One number: a mark across the bar where it sits, never a box around nothing.
                     drawLine(boxColor, Offset(start, 1f), Offset(start, size.height - 1f), strokeWidth = MARK_WIDTH, cap = StrokeCap.Round)
+                }
+                if (tick != null) {
+                    val x = size.width * tick.coerceIn(0f, 1f)
+                    drawLine(tickPaint, Offset(x, 0f), Offset(x, size.height), strokeWidth = MARK_WIDTH, cap = StrokeCap.Round)
                 }
             },
     )

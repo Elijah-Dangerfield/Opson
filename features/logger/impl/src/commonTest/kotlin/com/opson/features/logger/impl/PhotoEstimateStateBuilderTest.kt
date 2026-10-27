@@ -1,11 +1,7 @@
 package com.opson.features.logger.impl
 
-import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.foods.Confidence
-import com.opson.libraries.foods.FoodAmount
-import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.ParsedItem
-import com.opson.libraries.foods.toLogDraft
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -19,7 +15,7 @@ import kotlin.test.assertTrue
 /** [PhotoEstimateStateBuilder]: every stage, and what each visibility level leaves on a line and in the footer. */
 class PhotoEstimateStateBuilderTest {
     private val full = policy(PresetId.Full)
-    private val blind = policy(PresetId.Blind)
+    private val blind = policy(PresetId.NoNumbers)
 
     private fun review(policy: VisibilityPolicy, editing: Boolean = false): PhotoStage.Review =
         assertIs(PhotoFixtures.reviewState(policy, editing).stage)
@@ -70,7 +66,7 @@ class PhotoEstimateStateBuilderTest {
 
     @Test
     fun delayedHoldsBackTodayBeforeTheReveal() {
-        val review = review(policy(PresetId.Delayed))
+        val review = review(policy(PresetId.Later))
         assertTrue(review.rows.all { it.calories == Display.Hidden })
         assertEquals(Display.Hidden, review.footer?.calories)
     }
@@ -99,12 +95,9 @@ class PhotoEstimateStateBuilderTest {
     }
 
     @Test
-    fun theFooterAlsoCountsWhatWasAlreadyPicked() {
-        val rice = LoggerFixtures.rice
-        val ref = FoodRef.Catalog(rice.id)
-        val picked = BasketItem(ref.key, ref, rice.toLogDraft(FoodAmount.Servings(1.0), method = LogMethod.Search), PickSource.Search, rice)
-        val review = assertIs<PhotoStage.Review>(PhotoFixtures.state(PhotoFixtures.reviewModel(full), full, listOf(picked)).stage)
-        assertEquals(4, review.footer?.count)
+    fun theFooterCountsExactlyTheLines() {
+        val review = assertIs<PhotoStage.Review>(PhotoFixtures.state(PhotoFixtures.reviewModel(full), full).stage)
+        assertEquals(PhotoFixtures.reviewModel(full).rows.size, review.footer?.count)
     }
 
     @Test

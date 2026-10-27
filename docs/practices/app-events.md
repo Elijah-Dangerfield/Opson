@@ -98,14 +98,17 @@ disclosure.
 
 ### Modes and the pause
 
-All three fire from `SettingsNumbersChanger` (`:libraries:diary:impl`), the only writer of the
+All of these fire from `SettingsNumbersChanger` (`:libraries:diary:impl`), the only writer of the
 numbers settings, so no screen emits them itself. None carries a level, an amount or the pause
 sheet's "What's prompting this?" answer.
 
 | Event | Attributes | Fires |
 |---|---|---|
 | `mode.changed` | `from`, `to` (preset keys), `adjusted` (overrides remain), `fewer` (the user now sees fewer numbers), `via_pause` | When a change moved the preset or an override, directly or after the pause. The pause switch on its own does not fire it |
-| `friction.shown` | `subject` (`preset` / `metric` / `pause`) | The "Pause before showing more" sheet opened |
+| `mode.timer_set` | `weeks`, `then` (preset key) | End after a set time turned on or changed |
+| `mode.timer_cleared` | | End after a set time turned off |
+| `mode.timer_ended` | `from`, `to` (preset keys), `fewer` | The timer ran out and the mode switched. A switch that would show more with the pause on waits for the person instead, and fires `mode.changed` when they take it |
+| `friction.shown` | `subject` (`preset` / `metric` / `pause` / `reveal_time` / `reveal_on` / `progress_photos`) | The "Pause before showing more" sheet opened |
 | `friction.completed` | `subject`, `applied` | The sheet closed: `applied=true` from "Show them" after the wait, `false` from "Keep things as they are", a swipe down or back |
 
 | Event | Attributes | Fires |

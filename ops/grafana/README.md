@@ -28,7 +28,7 @@ queries, so a board can never show prod's database beside dev's events. The
 three hand-written Loki boards keep their own `env` (`prod` or `dev`).
 
 **Two schemas.** The product boards read `analytics` (aggregates only). Users
-and User detail read `support` (V21): one row per person or per person and day,
+and User detail read `support` (V22): one row per person or per person and day,
 with counts, timestamps and Settings choices, never a food, an amount, a weight
 or a note. Only User detail selects an email (`DashboardQueryContractTest`
 holds that). User detail finds a person's app events in Loki by the install ids
@@ -41,7 +41,7 @@ say there is nothing to show rather than matching everyone.
 `opson-prod-db` (the default) and `opson-db` (dev) point at their Supabase
 session pooler as that project's `grafana_ro` role. That role can read the
 `analytics` and `support` schemas and nothing else (`V9__analytics.sql`,
-`V21__support_views.sql`). No panel can show one person's food log, and no
+`V22__support_views.sql`). No panel can show one person's food log, and no
 future panel can either, because the role cannot see the tables and no view
 carries the log.
 

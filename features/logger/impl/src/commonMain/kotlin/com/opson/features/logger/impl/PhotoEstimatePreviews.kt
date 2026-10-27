@@ -12,7 +12,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 // design sync 2's logger-previews__logger-photo; one theme per preview.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
-private val blind = previewVisibilityPolicy(PresetId.Blind)
+private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
 
 @Composable
 private fun Photo(state: PhotoEstimateState, dark: Boolean = false) = PreviewContent(darkTheme = dark) {
@@ -63,10 +63,3 @@ private fun LoggerPhotoFailedPreview() = Photo(PhotoFixtures.calmState(PhotoStep
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerPhotoCameraOffPreview() = Photo(PhotoFixtures.calmState(PhotoStep.CameraOff(canAskAgain = false), full))
-
-/** The logger with `release.photo` on: Photo leads the chips, as in logger.png. */
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun LoggerPhotoChipPreview() = PreviewContent {
-    SheetFrame { LoggerSheetContent(LoggerFixtures.loggerState(full, photoAvailable = true, scanAvailable = true), onAction = {}) }
-}

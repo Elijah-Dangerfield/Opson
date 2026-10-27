@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for adding food (design sync 4, 13.4a to 13.4d): the + sheet's grid,
+  full-screen search and the food detail. Older logger copy these screens
+  still use is in strings_logger.xml. Same rules as strings.xml: no backslash
+  escapes, positional %1$s arguments.
+-->
+<resources>
+
+    <!-- The + sheet -->
+    <string name="adding_title">Add to %1$s</string>
+    <string name="adding_action_search">Search food</string>
+    <string name="adding_action_scan">Scan barcode</string>
+    <string name="adding_action_photo">Photo</string>
+    <string name="adding_action_say">Say or type it</string>
+    <string name="adding_action_describe">Describe it</string>
+    <string name="adding_action_saved">Saved meals</string>
+    <string name="adding_action_copy">Copy a meal</string>
+    <string name="adding_action_copy_cd">Copy yesterday's %1$s</string>
+    <string name="adding_action_quick">Quick add</string>
+    <string name="adding_action_water">Water</string>
+    <string name="adding_action_weigh">Weigh-in</string>
+    <string name="adding_action_note">Note</string>
+    <string name="adding_action_ate">Ate, no details</string>
+    <string name="adding_action_fasting">Fasting</string>
+    <string name="adding_water_added">Added a glass of water</string>
+
+    <!-- A row with a + -->
+    <string name="adding_your_usual">Your usual</string>
+    <string name="adding_add_cd">Add %1$s</string>
+    <string name="adding_added_cd">Take %1$s back out</string>
+    <string name="adding_added">%1$s added to %2$s</string>
+    <string name="adding_undo">Undo</string>
+
+    <!-- Search -->
+    <string name="adding_search_back_cd">Back</string>
+    <string name="adding_meal_chip_cd">Meal, %1$s</string>
+    <string name="adding_scope_all">All</string>
+    <string name="adding_scope_yours">Your foods</string>
+    <string name="adding_scope_saved">Saved meals</string>
+    <string name="adding_not_finding">Not finding it?</string>
+    <string name="adding_not_finding_photo">Photograph it</string>
+    <string name="adding_not_finding_describe">Describe it</string>
+    <string name="adding_not_finding_save">Save the name</string>
+    <string name="adding_no_foods_yet">Foods you make or log show up here.</string>
+    <string name="adding_no_saved_match">No saved meal by that name.</string>
+
+    <!-- Food detail -->
+    <string name="adding_detail_back_cd">Back</string>
+    <string name="adding_detail_menu_cd">More for this food</string>
+    <string name="adding_detail_meal">Meal: %1$s</string>
+    <string name="adding_detail_time">Time: %1$s</string>
+    <string name="adding_detail_time_now">Time: now, %1$s</string>
+    <string name="adding_detail_amount">Amount</string>
+    <string name="adding_detail_amount_cd">Amount</string>
+    <string name="adding_detail_sure">How sure</string>
+    <string name="adding_detail_label">From label</string>
+    <string name="adding_detail_all">All nutrients</string>
+    <string name="adding_detail_all_cd">All nutrients, %1$s</string>
+    <string name="adding_detail_today">Today with this</string>
+    <string name="adding_detail_today_plus_minus">%1$s ± %2$s kcal</string>
+
+</resources>

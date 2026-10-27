@@ -237,6 +237,9 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
       the App Privacy label and `legal/privacy.md` before the flag flips.
 - [ ] Nothing on the server: every new setting is a top-level key, which the
       shallow merge keeps through a 0.1 save (`SettingsMergeAcrossVersionsTest`).
+- [ ] TODO(clinician): the summary card's Deficit main number and Equation
+      preset put eaten minus Burned front and centre, which `balanceRingValue`'s
+      note held back until review. Confirm before the flag flips.
 - [ ] Look at the goal style list, Resting energy and Energy today on a phone,
       and one number and a surplus on Today, Close the day, Trends and the
       widget, before flipping the flag.
@@ -258,6 +261,10 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [x] Grow prod's disk: 2 GB to 12 GB on 2026-10-26 (it was 83% used before
       any Open Food Facts data). Supabase allows one resize per 6 hours and
       never shrinks.
+- [x] **Loaded 2026-10-27:** prod's `off_foods` holds 3,290,890 products (2.3 GB
+      with indexes; disk peaked at 34%). The session dropped after the load and
+      `--swap-only` finished it, as designed. Search stays off on prod
+      (`FOOD_SEARCH_OFF_ENABLED` unset) until a build with the credit ships, step 3.
 - [ ] Open Food Facts on prod, after 0.1 clears review and prod is deployed
       (V12 creates `off_foods`, V15 adds its search indexes):
       1. Check prod's disk is under 40% used (Supabase API
@@ -296,6 +303,12 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [ ] Flip `release.searchOptions` with or before `FOOD_SEARCH_OFF_ENABLED`:
       its source badge and the line under results are the Logger's Open Food
       Facts credit (step 3 above).
+
+## Adding (design sync 4)
+
+- [ ] Deploy the server with V21 (`log_entries` takes precision `label`)
+      before a build with the new food detail reaches anyone. Until then the
+      old server rejects a "From label" item, so it does not sync.
 
 ## NEVO, the Dutch food table
 
@@ -364,10 +377,8 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 
 ### Before merging the legal changes to main (merging publishes them)
 
-- [ ] **You:** name the state Nightjar Labs LLC is organised in, in
-      `legal/terms.md` under "Governing law", and decide whether to add a
-      postal address to "Contact" (Apple's minimum EULA terms and CAN-SPAM
-      for waitlist emails both want one).
+- [x] Governing law is New York, and the contact carries the postal address
+      418 Broadway, Albany, NY 12207 (2026-10-27).
 - [ ] **Lawyer:** read `legal/privacy.md`, `legal/terms.md` and
       `legal/health-data.md` once before they go live. The items marked
       "lawyer" in the review are the ones that matter.
@@ -413,8 +424,11 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 
 ### Accounts and settings at providers
 
-- [ ] Sentry and Grafana Cloud: set retention to 90 days or less, as the
-      policy says. Supabase: confirm backups expire within 30 days.
+- [x] Retention checked 2026-10-27, all inside the policy's limits, nothing to
+      set: Sentry's Developer plan keeps events 30 days (fixed by the plan);
+      Grafana Cloud Pro keeps logs and traces 30 days and metrics 13 months
+      (counts with no account id); Supabase keeps daily backups 7 days. If
+      Sentry moves to a paid plan its retention becomes 90 days, still inside.
 - [ ] Confirm a data processing agreement is in place with Fly.io,
       Supabase, Sentry, Grafana Labs and Anthropic (most are part of their
       standard terms; accept or download each).

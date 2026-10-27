@@ -7,6 +7,7 @@ import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
@@ -125,5 +126,26 @@ class TwoDeviceSyncTest : IntegrationTest() {
         assertEquals(listOf(bar), b.customFoods.observeAll().first())
         assertEquals(listOf(meal), b.savedMeals.observeAll().first())
         assertTrue(b.pendingChanges() == 0, "nothing pulled is queued to go back up")
+    }
+
+    /** The food detail's "From label" (design sync 4): the server takes it, and the other device reads it back as label. */
+    @Test
+    fun aFromLabelAmount_syncsAsLabel() = integration {
+        val user = randomUserId()
+        val a = client(user)
+        val b = client(user)
+        val day = a.today()
+        a.diary.addItems(
+            day = day,
+            slot = MealSlot.Snack,
+            items = listOf(LogDraft("Peanut butter", Precision.Label, amountText = "2 tbsp", quantity = 2.0, unit = "tbsp", grams = 32.0, kcal = 190.0)),
+            method = LogMethod.Barcode,
+        )
+        a.syncNow().getOrThrow()
+        b.syncNow().getOrThrow()
+
+        assertEquals(Precision.Label, b.itemsToday().single().precision)
+        val id = a.itemsToday().single().id
+        assertEquals("label", server.query("SELECT precision FROM log_entries WHERE id = ?::uuid", id).single()["precision"])
     }
 }

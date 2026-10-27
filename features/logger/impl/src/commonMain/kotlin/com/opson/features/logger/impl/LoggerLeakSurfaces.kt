@@ -5,34 +5,45 @@ import com.opson.libraries.nutrition.ui.leak.LeakSurface
 /**
  * The logger's surfaces for `BlindModeLeakTest` (`docs/plans/screens/blind-leak-test.md`).
  * Each builds its state through the real builder from [LoggerFixtures], with the policy the
- * test hands it. Ids follow design v3's screen ids; Blind is a policy rather than a surface,
- * so v3's `logger-search-blind` is `logger-search` rendered in Blind.
+ * test hands it. The + sheet, search and the food detail use design sync 4's ids; the panes,
+ * the scanner and the photo keep design v3's. Blind is a policy rather than a surface.
  */
 object LoggerLeakSurfaces {
     val all: List<LeakSurface> = listOf(
-        LeakSurface(id = "logger", label = "Quick-add sheet", showsCaloriesInFull = true) { policy ->
-            LoggerSheetContent(state = LoggerFixtures.loggerState(policy), onAction = {})
+        // The grid names no number in any mode.
+        LeakSurface(id = "add-sheet", label = "Add sheet", showsCaloriesInFull = false) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.sheetState(policy), onAction = {})
         },
-        // The nav + at a time with no usual meal: "Usual around" lists foods from any meal.
-        LeakSurface(id = "logger-uncategorized", label = "Quick-add sheet, no usual meal", showsCaloriesInFull = true) { policy ->
+        // Dragged up: Recent's rows carry energy and macros.
+        LeakSurface(id = "add-sheet-expanded", label = "Add sheet, Recent", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.sheetState(policy, height = SheetHeight.Full, added = true), onAction = {})
+        },
+        // The nav + at a time with no usual meal: Uncategorized.
+        LeakSurface(id = "add-sheet-uncategorized", label = "Add sheet, no usual meal", showsCaloriesInFull = false) { policy ->
             LoggerSheetContent(state = LoggerFixtures.uncategorizedState(policy), onAction = {})
         },
-        LeakSurface(id = "logger-picked", label = "Logger with picked foods", showsCaloriesInFull = true) { policy ->
-            LoggerSheetContent(state = LoggerFixtures.loggerState(policy, basket = LoggerFixtures.pickedBasket()), onAction = {})
+        LeakSurface(id = "search-full", label = "Food search", showsCaloriesInFull = true) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchState(policy), onAction = {})
         },
-        LeakSurface(id = "logger-search", label = "Food search", showsCaloriesInFull = true) { policy ->
-            LoggerSheetContent(state = LoggerFixtures.searchState(policy), onAction = {})
+        LeakSurface(id = "search-browse", label = "Food search, before typing", showsCaloriesInFull = true) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchState(policy, query = "", added = false), onAction = {})
+        },
+        LeakSurface(id = "search-saved-meals", label = "Food search, saved meals", showsCaloriesInFull = true) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchState(policy, query = "", scope = SearchScope.SavedMeals, added = false), onAction = {})
+        },
+        LeakSurface(id = "search-pick-for-meal", label = "Food search, picking for a meal", showsCaloriesInFull = true) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchState(policy, pickingForMeal = true), onAction = {})
         },
         // release.searchOptions on: tabs, the options button and a source badge on every row. Badges carry no number.
-        LeakSurface(id = "logger-search-tabs", label = "Food search with options", showsCaloriesInFull = true) { policy ->
-            LoggerSheetContent(state = LoggerFixtures.optionsState(policy), onAction = {})
+        LeakSurface(id = "search-tabs", label = "Food search with options", showsCaloriesInFull = true) { policy ->
+            FoodSearchContent(state = LoggerFixtures.optionsState(policy), onAction = {})
         },
         // The options sheet: sort, database, tabs. Nothing in it is a number in any mode.
-        LeakSurface(id = "logger-search-options", label = "Search options", showsCaloriesInFull = false) { _ ->
+        LeakSurface(id = "search-options", label = "Search options", showsCaloriesInFull = false) { _ ->
             SearchOptionsSheetContent(state = LoggerFixtures.searchOptionsSheetState(), onAction = {})
         },
-        LeakSurface(id = "logger-search-empty", label = "Food search, no results", showsCaloriesInFull = false) { policy ->
-            LoggerSheetContent(state = LoggerFixtures.searchEmptyState(policy), onAction = {})
+        LeakSurface(id = "search-empty", label = "Food search, no results", showsCaloriesInFull = false) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchEmptyState(policy), onAction = {})
         },
         LeakSurface(id = "logger-describe", label = "Describe a meal", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeState(policy), onAction = {})
@@ -51,20 +62,24 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-saved", label = "Saved meals", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.savedState(policy), onAction = {})
         },
-        // This portion, Your day with this and All nutrients: Blind removes the cards.
-        LeakSurface(id = "logger-amount", label = "Add-food sheet", showsCaloriesInFull = true) { policy ->
-            AmountSheetContent(state = LoggerFixtures.amountState(policy), onAction = {})
+        // kcal, the macro tiles and Today with this: Blind removes the card.
+        LeakSurface(id = "food-detail", label = "Food detail", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.detailState(policy), onAction = {})
         },
-        // All nutrients open: every vitamin and mineral the plate carries, as a percent of a day.
-        LeakSurface(id = "logger-amount-nutrients", label = "Add-food sheet, all nutrients", showsCaloriesInFull = true) { policy ->
-            AmountSheetContent(state = LoggerFixtures.amountState(policy, nutrientsOpen = true), onAction = {})
+        // All nutrients open: every vitamin and mineral the food carries, as a percent of a day.
+        LeakSurface(id = "food-detail-nutrients", label = "Food detail, all nutrients", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.detailState(policy, nutrientsOpen = true), onAction = {})
         },
-        // The unit menu's weights are amounts of food, not nutrients; the sheet under it still follows the policy.
-        LeakSurface(id = "logger-amount-units", label = "Add-food sheet, unit menu", showsCaloriesInFull = true) { policy ->
-            AmountSheetContent(state = LoggerFixtures.amountState(policy), onAction = {}, unitMenuShown = true)
+        // The unit menu's weights are amounts of food, not nutrients; the detail under it still follows the policy.
+        LeakSurface(id = "food-detail-units", label = "Food detail, unit menu", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.detailUnitsState(policy), onAction = {}, unitMenuShown = true)
         },
-        LeakSurface(id = "logger-scan-amount", label = "Add-food sheet after a scan", showsCaloriesInFull = true) { policy ->
-            AmountSheetContent(state = LoggerFixtures.scannedAmountState(policy), onAction = {})
+        // 13.5e: No numbers' own detail, the amount in measures and the hunger check.
+        LeakSurface(id = "food-detail-no-numbers", label = "Food detail in No numbers", showsCaloriesInFull = false) { policy ->
+            FoodDetailContent(state = LoggerFixtures.noNumbersDetailState(policy), onAction = {})
+        },
+        LeakSurface(id = "food-detail-scan", label = "Food detail after a scan", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.scannedDetailState(policy), onAction = {})
         },
         // The scanner draws no food data in any stage; the miss is its fullest screen.
         LeakSurface(id = "logger-scan-miss", label = "Barcode not found", showsCaloriesInFull = false) { _ ->

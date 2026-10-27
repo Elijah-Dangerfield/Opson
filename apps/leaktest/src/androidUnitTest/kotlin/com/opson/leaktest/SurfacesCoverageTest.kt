@@ -58,23 +58,20 @@ class SurfacesCoverageTest {
     }
 
     @Test
-    fun everyPresetThatDoesNotShowCaloriesIsTested() {
-        assertEquals(
-            setOf(
-                PresetId.Delayed, PresetId.Blind, PresetId.Nutrient, PresetId.Rhythm,
-                PresetId.Explorer, PresetId.Mindful, PresetId.Fuel, PresetId.Coast,
-            ),
-            PRESETS_UNDER_TEST.toSet(),
-        )
+    fun everyModeThatDoesNotShowCaloriesIsTested_noNumbersFirst() {
+        assertEquals(listOf("no_numbers", "nutrients_first", "later", "later-weekly"), MODES_UNDER_TEST.map { it.name })
+        assertEquals(PresetId.entries.toSet() - PresetId.Full, MODES_UNDER_TEST.map { it.settings.preset }.toSet())
     }
 
     @Test
-    fun everyDesignedRevealNamesARealSurfaceInATestedPreset() {
+    fun everyDesignedRevealNamesARealSurfaceInATestedMode() {
         val ids = SURFACES.map { it.id }.toSet()
-        REVEALED_BY_DESIGN.keys.forEach { (preset, id) ->
+        val modes = MODES_UNDER_TEST.map { it.name }.toSet()
+        REVEALED_BY_DESIGN.keys.forEach { (mode, id) ->
             assertTrue(id in ids, "REVEALED_BY_DESIGN names $id, which no feature lists any more")
-            assertTrue(preset in PRESETS_UNDER_TEST, "REVEALED_BY_DESIGN names $preset, which the leak test does not run")
+            assertTrue(mode in modes, "REVEALED_BY_DESIGN names $mode, which the leak test does not run")
         }
+        assertTrue(REVEALED_BY_DESIGN.keys.none { (mode, _) -> mode == "no_numbers" }, "No numbers reveals nothing, anywhere")
     }
 
     /**
@@ -101,21 +98,21 @@ class SurfacesCoverageTest {
                 "today", "today-big-day", "today-added", "today-untracked", "today-groups-off", "today-past", "today-future",
                 "today-day-menu", "today-day-menu-armed", "today-cards", "calendar", "meal-sheet", "meal-note",
                 "meal-feel", "water-sheet", "item-sheet", "day-note", "day-close", "day-close-big-day",
-                "today-reminders",
+                "today-timer-ended", "today-timer-waiting",
                 "today-expended", "today-exercise",
                 "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
                 "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
                 "today-cards-summary",
+                "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
                 "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "food-actions-amount",
             ),
             "LoggerLeakSurfaces" to listOf(
-                "logger", "logger-picked", "logger-search", "logger-search-empty", "logger-describe",
-                "logger-saved", "logger-amount", "logger-amount-nutrients",
-                "logger-photo", "logger-photo-swap", "logger-photo-start",
-                "logger-describe-voice", "logger-describe-edited", "logger-describe-find",
-                "logger-search-tabs", "logger-search-options",
-                "logger-uncategorized", "logger-amount-units",
-                "logger-scan-amount", "logger-scan-miss",
+                "add-sheet", "add-sheet-expanded", "add-sheet-uncategorized",
+                "search-full", "search-browse", "search-saved-meals", "search-pick-for-meal", "search-tabs", "search-options",
+                "search-empty",
+                "logger-describe", "logger-describe-voice", "logger-describe-edited", "logger-describe-find", "logger-saved",
+                "food-detail", "food-detail-nutrients", "food-detail-units", "food-detail-scan", "food-detail-no-numbers",
+                "logger-photo", "logger-photo-swap", "logger-photo-start", "logger-scan-miss",
             ),
             "FoodsLeakSurfaces" to listOf("foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy"),
             "TrendsLeakSurfaces" to listOf(
@@ -123,9 +120,9 @@ class SurfacesCoverageTest {
                 "weight", "patterns", "patterns-blind", "progress-photos", "progress-photos-compare",
             ),
             "SettingsLeakSurfaces" to listOf(
-                "more", "modes", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
+                "more", "modes", "modes-end-after", "modes-each-number", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
                 "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
-                "resting-energy", "energy-today",
+                "resting-energy", "energy-today", "today-screen-settings",
                 "water-settings", "support", "support-delete", "support-find", "look-and-feel",
                 "reminders", "reminder-notification",
                 "integrations", "integrations-leave-out", "fasting",
@@ -136,18 +133,19 @@ class SurfacesCoverageTest {
         val SHOWS_CALORIES_IN_FULL: List<String> = listOf(
             "today", "today-big-day", "today-added", "today-untracked", "today-groups-off", "today-past", "today-future",
             "today-day-menu", "today-day-menu-armed", "item-sheet", "day-close", "day-close-big-day",
-            "logger", "logger-picked", "logger-search", "logger-describe", "logger-saved", "logger-amount",
-            "logger-photo", "logger-photo-swap",
+            "add-sheet-expanded", "search-full", "search-browse", "search-saved-meals", "search-pick-for-meal",
+            "logger-describe", "logger-saved", "food-detail", "logger-photo", "logger-photo-swap",
             "foods", "foods-create-meal", "foods-add-food",
             "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
             "targets-goal-style", "energy-today",
-            "today-reminders", "today-expended", "today-exercise", "integrations",
+            "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
+            "today-timer-ended", "today-timer-waiting", "today-expended", "today-exercise", "integrations",
             "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
             "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
             "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "edit-a-copy",
-            "logger-describe-voice", "logger-search-tabs", "logger-uncategorized", "logger-amount-units",
-            "logger-scan-amount", "logger-amount-nutrients", "logger-describe-edited", "logger-describe-find",
+            "logger-describe-voice", "search-tabs", "food-detail-units",
+            "food-detail-scan", "food-detail-nutrients", "logger-describe-edited", "logger-describe-find",
             "widget", "widgets",
         )
     }

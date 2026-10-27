@@ -1,5 +1,6 @@
 package com.opson.features.trends.impl
 
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Display
@@ -48,9 +49,9 @@ class PatternsStateBuilderTest {
     }
 
     @Test
-    fun coast_meanSizesWaitForTheCheckOfTheWeekHoldingToday() {
+    fun weekly_meanSizesWaitForTheCheckOfTheWeekHoldingToday() {
         // Sunday evening: a Monday week has had its check; a Saturday week checks on Friday.
-        val evening = TrendsFixtures.policy(PresetId.Coast, clock = TrendsFixtures.evening)
+        val evening = TrendsFixtures.policy(PresetId.Later, clock = TrendsFixtures.evening, revealOn = RevealOn.Week)
         assertNotNull(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(), evening).sizes)
         val saturdayWeek = TrendsFixtures.patternsInputs(Settings(weekStart = DayOfWeek.SATURDAY))
         assertNull(PatternsStateBuilder.build(saturdayWeek, evening).sizes)
@@ -71,7 +72,7 @@ class PatternsStateBuilderTest {
 
     @Test
     fun blind_noSizesAtAll_howOftenInstead() {
-        val state = build(PresetId.Blind)
+        val state = build(PresetId.NoNumbers)
         assertNull(state.sizes, "even percentages reveal amounts")
         val often = assertNotNull(state.often)
         assertEquals(MealSlot.meals, often.map { it.slot })
@@ -80,29 +81,29 @@ class PatternsStateBuilderTest {
     }
 
     @Test
-    fun blind_whenMealsHappen_neverTheGapsBetweenThem() {
-        val facts = assertNotNull(build(PresetId.Blind).timing).facts
+    fun noNumbers_whenMealsHappen_neverTheGapsBetweenThem() {
+        val facts = assertNotNull(build(PresetId.NoNumbers).timing).facts
         assertTrue(facts.all { it is TimingFact.Usually }, "gaps can feed restriction: $facts")
-        // Other gentle modes keep them: the gap is a time, and only Blind opts out.
-        val rhythm = assertNotNull(build(PresetId.Rhythm).timing).facts
-        assertTrue(rhythm.any { it is TimingFact.LongestGap })
+        // Other gentle modes keep them: the gap is a time, and only No numbers opts out.
+        val later = assertNotNull(build(PresetId.Later).timing).facts
+        assertTrue(later.any { it is TimingFact.LongestGap })
     }
 
     @Test
     fun delayed_beforeTheReveal_leavesTodayOutOfTheSizes() {
         val inputs = TrendsFixtures.patternsInputs()
         val beforeToday = TrendsFixtures.patternsInputs(days = inputs.days.filter { it.date < TrendsFixtures.today })
-        val noon = PatternsStateBuilder.build(inputs, TrendsFixtures.policy(PresetId.Delayed))
-        assertEquals(PatternsStateBuilder.build(beforeToday, TrendsFixtures.policy(PresetId.Delayed)).sizes, noon.sizes)
+        val noon = PatternsStateBuilder.build(inputs, TrendsFixtures.policy(PresetId.Later))
+        assertEquals(PatternsStateBuilder.build(beforeToday, TrendsFixtures.policy(PresetId.Later)).sizes, noon.sizes)
 
-        val evening = PatternsStateBuilder.build(inputs, TrendsFixtures.policy(PresetId.Delayed, clock = TrendsFixtures.evening))
+        val evening = PatternsStateBuilder.build(inputs, TrendsFixtures.policy(PresetId.Later, clock = TrendsFixtures.evening))
         assertEquals(build().sizes, evening.sizes, "after the reveal today counts, as in Full")
         assertNotEquals(noon.sizes, evening.sizes)
     }
 
     @Test
     fun fuel_softCalories_getHowOftenToo() {
-        assertNull(build(PresetId.Fuel).sizes)
+        assertNull(build(PresetId.NutrientsFirst).sizes)
     }
 
     @Test
@@ -116,7 +117,7 @@ class PatternsStateBuilderTest {
     @Test
     fun hunger_sitsUnderNewFoodsInBlind_andAboveInFull() {
         assertEquals(false, build().hungerLast)
-        val blind = build(PresetId.Blind)
+        val blind = build(PresetId.NoNumbers)
         assertEquals(true, blind.hungerLast)
         assertNotNull(blind.hunger, "hunger carries no amounts, so Blind keeps it")
     }

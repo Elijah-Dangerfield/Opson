@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- V21: which builds each person runs, and the `support` schema the admin
+-- V22: which builds each person runs, and the `support` schema the admin
 -- console's user lookup and Grafana's Users and User detail boards read.
 --
 -- user_installs: one row per (user, install, build), stamped by the server
@@ -114,7 +114,9 @@ SELECT
     count(*) FILTER (WHERE method = 'ate_no_details') AS ate_no_details,
     count(*) FILTER (WHERE precision = 'weighed') AS weighed,
     count(*) FILTER (WHERE precision = 'estimate') AS estimated,
-    count(*) FILTER (WHERE precision = 'named') AS named_only
+    count(*) FILTER (WHERE precision = 'named') AS named_only,
+    -- V21: amounts read off a nutrition label.
+    count(*) FILTER (WHERE precision = 'label') AS from_label
 FROM public.log_entries
 WHERE NOT deleted
 GROUP BY user_id, day;

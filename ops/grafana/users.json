@@ -1,7 +1,7 @@
 {
   "uid": "opson-users",
   "title": "Opson \u00b7 Users",
-  "description": "Who is using Opson, and how. Population, new and returning people, modes, platforms and builds, and the roster: click a user id to open everything about that person on User detail.\n\nReads the `support` views (V21): one row per person, counts and choices only, never what anyone logged. No email appears on this board; User detail is the one board that shows it. Postgres panels are durable; the two Loki panels cannot see past 31 days.",
+  "description": "Who is using Opson, and how. Population, new and returning people, modes, platforms and builds, and the roster: click a user id to open everything about that person on User detail.\n\nReads the `support` views (V22): one row per person, counts and choices only, never what anyone logged. No email appears on this board; User detail is the one board that shows it. Postgres panels are durable; the two Loki panels cannot see past 31 days.",
   "tags": [
     "opson"
   ],

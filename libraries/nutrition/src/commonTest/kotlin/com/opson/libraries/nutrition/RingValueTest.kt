@@ -100,7 +100,7 @@ class RingValueTest {
 
     @Test
     fun blind_noLabelForAnyRingMetric() {
-        val blind = policy(PresetId.Blind)
+        val blind = policy(PresetId.NoNumbers)
         listOf(Metric.Calories, Metric.Remaining, Metric.EnergyOut, Metric.Protein).forEach { metric ->
             Surface.entries.forEach { surface ->
                 assertNull(blind.ringValue(metric, 1245.0, surface), "$metric $surface")
@@ -110,9 +110,9 @@ class RingValueTest {
 
     @Test
     fun delay_opensAtNineLikeTheAmount() {
-        val evening = policy(PresetId.Delayed, now = at(21, 0))
+        val evening = policy(PresetId.Later, now = at(21, 0))
         assertEquals(RingValue("1,245", "kcal"), evening.ringValue(Metric.Calories, 1245.0, Surface.Today))
-        assertNull(policy(PresetId.Delayed).ringValue(Metric.Calories, 1245.0, Surface.Today))
+        assertNull(policy(PresetId.Later).ringValue(Metric.Calories, 1245.0, Surface.Today))
     }
 
     @Test
@@ -157,9 +157,9 @@ class RingValueTest {
         // Delayed reveals remaining at 9 pm, but a ring mode that comes and goes with the clock is not offered.
         assertEquals(
             listOf(SummaryRingMode.Target),
-            policy(PresetId.Delayed, now = at(22, 0)).availableRingModes(Surface.Today, hasEnergyOut = false),
+            policy(PresetId.Later, now = at(22, 0)).availableRingModes(Surface.Today, hasEnergyOut = false),
         )
-        assertEquals(listOf(SummaryRingMode.Target), policy(PresetId.Blind).availableRingModes(Surface.Today, false))
+        assertEquals(listOf(SummaryRingMode.Target), policy(PresetId.NoNumbers).availableRingModes(Surface.Today, false))
     }
 
     @Test

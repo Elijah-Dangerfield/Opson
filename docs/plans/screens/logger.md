@@ -1,5 +1,9 @@
 # Logger plan (design v3)
 
+> Design sync 4 replaced the Search pane, the basket and the amount sheet below:
+> see [adding.md](adding.md). Describe it and Saved meals are still panes of the
+> sheet, as described here and in [describe.md](describe.md).
+
 The center + sheet with everything that lives inside it (search, Describe it,
 Saved meals), the Amount sheet that stacks on it, and How it felt after
 adding. Read `shared.md` first.

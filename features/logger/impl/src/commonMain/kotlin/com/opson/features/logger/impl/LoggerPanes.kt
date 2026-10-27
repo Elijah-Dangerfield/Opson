@@ -25,47 +25,36 @@ import com.opson.libraries.ui.StandardBorderWidth
 import com.opson.libraries.diary.ui.FoodRowsCard
 import com.opson.libraries.diary.ui.FoodRowsNote
 import com.opson.libraries.diary.ui.SectionLabel
-import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
-import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.ListRow
 import com.opson.libraries.ui.components.SheetHeader
-import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.button.ButtonSecondary
 import com.opson.libraries.ui.components.button.ButtonSize
-import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.RoundIconButton
-import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextArea
 import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.logger_add_to
 import opson.libraries.resources.generated.resources.logger_describe_failed
 import opson.libraries.resources.generated.resources.logger_describe_offline
 import opson.libraries.resources.generated.resources.logger_describe_placeholder
 import opson.libraries.resources.generated.resources.logger_describe_reading
 import opson.libraries.resources.generated.resources.logger_describe_title
-import opson.libraries.resources.generated.resources.logger_described_estimate
-import opson.libraries.resources.generated.resources.logger_described_sub
-import opson.libraries.resources.generated.resources.logger_edit_line_cd
 import opson.libraries.resources.generated.resources.logger_name_only
 import opson.libraries.resources.generated.resources.logger_number_add
 import opson.libraries.resources.generated.resources.logger_number_caption
 import opson.libraries.resources.generated.resources.logger_number_placeholder
 import opson.libraries.resources.generated.resources.logger_or_number
-import opson.libraries.resources.generated.resources.logger_read_as
 import opson.libraries.resources.generated.resources.logger_saved_add
 import opson.libraries.resources.generated.resources.logger_saved_empty
 import opson.libraries.resources.generated.resources.logger_saved_loading_cd
 import opson.libraries.resources.generated.resources.logger_saved_title
 import org.jetbrains.compose.resources.stringResource
 
-/** Describe it: free text, read into editable lines that are picks while this pane is open. */
+/** Describe it: free text, read into lines the person fixes before Add logs them. */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun DescribePane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
@@ -176,7 +165,7 @@ private fun NumberCard(describe: DescribeUi, onAction: (LoggerAction) -> Unit) {
     }
 }
 
-/** Saved meals: picking one puts its foods in the basket and goes back to search. */
+/** Saved meals: Add logs the whole meal at once and the sheet closes. */
 @Composable
 internal fun SavedPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
     val meals = state.saved.meals

@@ -73,7 +73,7 @@ data class UserDetailResponse(
  *                                          name; a blank query lists the most recently seen. At most 25.
  *  - `GET  /v1/admin/users/{id}`           one account: its builds, its Settings choices, how it logs
  *
- * Both read the `support` views (V21), which carry an account's email and counts but nothing
+ * Both read the `support` views (V22), which carry an account's email and counts but nothing
  * anyone wrote or measured. The search is a POST so an email typed into it stays in the body and
  * out of URLs, where request logs and traces would keep it, as the waitlist's removal does.
  */

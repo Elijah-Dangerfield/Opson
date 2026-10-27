@@ -65,8 +65,8 @@ object PhotoFixtures {
         ),
     )
 
-    fun inputs(basket: List<BasketItem> = emptyList()): PhotoInputs =
-        PhotoInputs(today = LoggerFixtures.today, day = LoggerFixtures.day(), basket = basket)
+    fun inputs(): PhotoInputs =
+        PhotoInputs(today = LoggerFixtures.today, day = LoggerFixtures.day())
 
     fun rows(policy: VisibilityPolicy): List<PhotoRow> {
         val householdOnly = PhotoEstimateStateBuilder.householdOnly(policy)
@@ -82,8 +82,8 @@ object PhotoFixtures {
         editing = if (editing) "photo:2" else null,
     )
 
-    fun state(model: PhotoModel, policy: VisibilityPolicy, basket: List<BasketItem> = emptyList()): PhotoEstimateState =
-        PhotoEstimateStateBuilder.build(model, inputs(basket), policy)
+    fun state(model: PhotoModel, policy: VisibilityPolicy): PhotoEstimateState =
+        PhotoEstimateStateBuilder.build(model, inputs(), policy)
 
     fun startState(policy: VisibilityPolicy, note: String = ""): PhotoEstimateState = state(model(note = note), policy)
 

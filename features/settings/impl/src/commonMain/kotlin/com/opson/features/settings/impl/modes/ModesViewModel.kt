@@ -7,6 +7,7 @@ import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -23,8 +24,9 @@ import opson.libraries.resources.generated.resources.settings_saved
 import opson.libraries.resources.generated.resources.settings_saved_fewer
 
 /**
- * Modes and numbers. Every change goes through [NumbersChanger], which decides whether it
- * applies now or has to wait for the pause; this view model only reports the outcome.
+ * Modes and numbers, and its Each number page. Every change to what shows goes through
+ * [NumbersChanger], which decides whether it applies now or has to wait for the pause; this view
+ * model only reports the outcome.
  */
 @Inject
 class ModesViewModel(
@@ -38,6 +40,11 @@ class ModesViewModel(
     /** `release.progressPhotos`, read once when the page opens. */
     private val photosReleased = photosEnabled()
 
+    private var numbers: NumbersSettings = NumbersSettings()
+
+    /** End after a set time's choices are open; they show once the timer is written. */
+    private var editingEndAfter = false
+
     init {
         viewModelScope.launch {
             settingsRepository.observe()
@@ -49,8 +56,9 @@ class ModesViewModel(
 
     override suspend fun handleAction(action: ModesAction) {
         when (action) {
-            is ModesAction.InputsArrived -> action.updateState {
-                ModesStateBuilder.build(action.numbers, timeZone, pickingRevealTime = it.pickingRevealTime, photosReleased = photosReleased)
+            is ModesAction.InputsArrived -> {
+                numbers = action.numbers
+                action.updateState { rebuild(it) }
             }
             is ModesAction.PresetTapped -> {
                 // Picking the current preset again clears its changes; with none, there is nothing to do.
@@ -70,16 +78,51 @@ class ModesViewModel(
             ModesAction.PauseToggled -> {
                 if (state.pauseOn) request(NumbersChange.TurnOffPause) else numbersChanger.turnOnPause()
             }
+            ModesAction.EndAfterToggled -> {
+                editingEndAfter = !state.endAfter.on
+                action.updateState { rebuild(it) }
+                if (editingEndAfter) {
+                    numbersChanger.setEndAfter(ModeTiming.DEFAULT_WEEKS, ModeTiming.defaultThen(numbers.preset))
+                } else {
+                    numbersChanger.clearEndAfter()
+                }
+            }
+            ModesAction.EndAfterTapped -> {
+                editingEndAfter = !editingEndAfter
+                action.updateState { rebuild(it) }
+            }
+            is ModesAction.EndAfterWeeksPicked -> {
+                val timing = state.endAfter.timing ?: return
+                if (timing.weeks != action.weeks) numbersChanger.setEndAfter(action.weeks, timing.then)
+            }
+            is ModesAction.EndAfterThenPicked -> {
+                val timing = state.endAfter.timing ?: return
+                if (timing.then != action.then) numbersChanger.setEndAfter(timing.weeks, action.then)
+            }
+            ModesAction.EachNumberTapped -> sendEvent(ModesEvent.OpenEachNumber)
             ModesAction.RevealTimeTapped -> action.updateState { it.copy(pickingRevealTime = true) }
             ModesAction.RevealTimeDismissed -> action.updateState { it.copy(pickingRevealTime = false) }
             is ModesAction.RevealTimePicked -> {
                 action.updateState { it.copy(pickingRevealTime = false) }
-                if (action.time == state.revealAt) return
+                if (action.time == state.reveal?.time) return
                 request(NumbersChange.SetRevealAt(action.time))
+            }
+            ModesAction.RevealWeeklyToggled -> {
+                val reveal = state.reveal ?: return
+                request(NumbersChange.SetRevealWeekly(weekly = !reveal.weekly))
             }
             ModesAction.BackTapped -> sendEvent(ModesEvent.Close)
         }
     }
+
+    private fun rebuild(current: ModesState): ModesState =
+        ModesStateBuilder.build(
+            numbers,
+            timeZone,
+            pickingRevealTime = current.pickingRevealTime,
+            photosReleased = photosReleased,
+            editingEndAfter = editingEndAfter,
+        )
 
     private suspend fun request(change: NumbersChange) {
         when (val outcome = numbersChanger.request(change)) {
@@ -94,6 +137,7 @@ class ModesViewModel(
 sealed interface ModesEvent {
     data class ShowToast(val toast: Toast) : ModesEvent
     data class OpenPause(val change: NumbersChange) : ModesEvent
+    data object OpenEachNumber : ModesEvent
     data object Close : ModesEvent
 }
 
@@ -105,8 +149,20 @@ sealed interface ModesAction {
     /** The Progress photos row: Show ([shown]) or Hide. */
     data class PhotosTapped(val shown: Boolean) : ModesAction
     data object PauseToggled : ModesAction
+
+    /** The End after a set time switch. */
+    data object EndAfterToggled : ModesAction
+
+    /** The End after a set time row itself: opens or closes its choices. */
+    data object EndAfterTapped : ModesAction
+    data class EndAfterWeeksPicked(val weeks: Int) : ModesAction
+    data class EndAfterThenPicked(val then: PresetId) : ModesAction
+    data object EachNumberTapped : ModesAction
     data object RevealTimeTapped : ModesAction
     data object RevealTimeDismissed : ModesAction
     data class RevealTimePicked(val time: LocalTime) : ModesAction
+
+    /** "Once a week" for Later's totals. */
+    data object RevealWeeklyToggled : ModesAction
     data object BackTapped : ModesAction
 }

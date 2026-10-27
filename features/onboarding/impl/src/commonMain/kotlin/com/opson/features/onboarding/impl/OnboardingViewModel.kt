@@ -20,12 +20,9 @@ import com.opson.libraries.identity.auth.awaitCredential
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.opson.AppCache
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
 import me.tatarka.inject.annotations.Inject
 
 /**
@@ -41,8 +38,8 @@ import me.tatarka.inject.annotations.Inject
  *      recommendation ([ModeRecommender]). Every step can be skipped and
  *      nothing asks again later.
  *   3. **Recommendation**: the mode, what you'll see and what stays out of view
- *      ([ModePreview]), three alternatives and All modes. Full numbers and
- *      Sprint are never offered to someone who agreed numbers have been hard.
+ *      ([ModePreview]), the other modes and All modes. Full numbers is never
+ *      offered to someone who agreed numbers have been hard.
  *   4. **Account**: claim the guest with Apple, Google or email, or keep it on
  *      this phone. Skipping is normal. Shown only where one of those is on
  *      ([OnboardingState.canSignIn]): in 0.1 that is Apple, so iOS.
@@ -68,7 +65,6 @@ class OnboardingViewModel(
     private val guestAccountCreator: GuestAccountCreator,
     private val appleSignInCoordinator: AppleSignInCoordinator,
     private val settingsRepository: SettingsRepository,
-    private val clock: Clock,
     /** Native Sign in with Apple, which only iOS has. A parameter so tests can run either phone. */
     appleSignIn: Boolean = BuildInfo.isiOS(),
 ) : SEAViewModel<OnboardingState, OnboardingEvent, OnboardingAction>(
@@ -232,9 +228,8 @@ class OnboardingViewModel(
         val tookRecommendation = !skippedAll && preset == state.recommended
         updateState { it.copy(isFinishing = true, creationStarted = true, accountError = null) }
 
-        val today = clock.todayIn(TimeZone.currentSystemDefault())
         Catching {
-            settingsRepository.update(stampNumbersChange = false) { it.startingWith(preset, answers, today) }
+            settingsRepository.update(stampNumbersChange = false) { it.startingWith(preset, answers) }
         }.logOnFailure { "Onboarding could not save the starting mode" }
 
         val session = authRepository.current() as? AuthState.Authenticated

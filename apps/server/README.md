@@ -456,7 +456,7 @@ Grafana, create a login role outside migrations and grant it `grafana_ro`.
 and `barcode_misses_by_country` for the Food catalog board. `V16__waitlist.sql`
 adds `waitlist_daily` for Pulse.
 
-### Support: installs and the user lookup (`V21__support_views.sql`)
+### Support: installs and the user lookup (`V22__support_views.sql`)
 
 `user_installs` holds one row per user, install and build, with when that
 build was first and last seen. `InstallSightings` (`plugins/`) fills it from

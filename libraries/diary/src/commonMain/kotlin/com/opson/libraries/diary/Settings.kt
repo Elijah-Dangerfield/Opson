@@ -5,6 +5,7 @@ import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.WaterDefaults
@@ -37,11 +38,18 @@ import kotlinx.serialization.Serializable
 @KeepGeneratedSerializer
 @Serializable(with = SettingsSerializer::class)
 data class Settings(
-    /** Preset, overrides, "Pause before showing more" and when the user last changed them. */
+    /**
+     * Preset, overrides, "Pause before showing more", when Later opens, End after a set time, and
+     * when the user last changed them. Written for 0.1 phones too: see [NumbersSettingsSerializer].
+     */
     @Serializable(with = NumbersSettingsSerializer::class)
     val numbers: NumbersSettings = NumbersSettings(),
-    /** Set when Sprint is picked. Drives "day N of 14". */
-    val sprintStartedOn: LocalDate? = null,
+    /**
+     * When End after a set time last switched the mode, and from what, so Today says so on that
+     * day and no other (design sync 4, 13.5). A top-level key: the server merges settings one
+     * level deep.
+     */
+    val modeTimerEnded: ModeTimerEnded? = null,
     @Serializable(with = TargetsSerializer::class)
     val targets: Targets = Targets.Default,
     val macroMode: MacroMode = MacroMode.Ratios,
@@ -88,7 +96,7 @@ data class Settings(
     val healthOpen: Boolean = true,
     val quiet: Boolean = true,
     val mealReminders: MealReminders = MealReminders(),
-    /** When each meal usually happens: Today's "Usually around", Rhythm's "planned around", and the meal reminder times. */
+    /** When each meal usually happens: Today's "Usually around" and the meal reminder times. */
     @Serializable(with = MealTimesSerializer::class)
     val mealTimes: MealTimes = MealTimes(),
     /**
@@ -155,6 +163,22 @@ data class Settings(
     val heightCm: Double? = null,
     @Serializable(with = BodySexSerializer::class)
     val bodySex: BodySex? = null,
+
+    // More › Today screen (design sync 4, 13.6, `release.goalsAndEnergy`). Top-level keys, because
+    // the server merges settings one level deep. Card pages are [todayMacrosPage].
+    val todayCard: SummaryCardPreset = SummaryCardPreset.InOut,
+    val todayMainNumber: MainNumberChoice = MainNumberChoice.Follow,
+    /** The card's toggle, remembered per goal style ([mainNumberKey] to [MainNumberChoice.wire]). */
+    val todayMainNumberByStyle: Map<String, String> = emptyMap(),
+    /** "Resting 1,610 · Active 570" under the Burned bar. */
+    val todayBurnedBreakdown: Boolean = true,
+    /** "3 of 4 meals" on the card. */
+    val todayMealsCount: Boolean = false,
+    val todayNutrientsLink: Boolean = true,
+    /** Rows in Today's list that can be turned off on Today alone. */
+    val todayWater: Boolean = true,
+    val todayWeight: Boolean = true,
+    val todayCloseDay: Boolean = true,
 ) {
     /** What the resting energy calculation is told: these details and [weightKg], on [today]. */
     fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile =
@@ -189,6 +213,14 @@ data class Settings(
     /** Same settings with different numbers. `changedAt` is whatever [next] carries. */
     fun withNumbers(next: NumbersSettings): Settings = copy(numbers = next)
 }
+
+/** End after a set time switched from [from] [on] that day. */
+@Serializable
+data class ModeTimerEnded(
+    val on: LocalDate,
+    @Serializable(with = PresetKeySerializer::class)
+    val from: PresetId,
+)
 
 /** A size someone saved for a food: "my bowl" is 420 g. Grams are what make it convertible. */
 @Serializable

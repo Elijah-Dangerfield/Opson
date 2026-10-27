@@ -16,7 +16,7 @@ data class InstallSighting(
     val buildNumber: Int?,
 )
 
-/** The `user_installs` table (V21): which builds each account has run, and when. */
+/** The `user_installs` table (V22): which builds each account has run, and when. */
 interface UserInstallRepository {
     /** First sighting of a build inserts its row; every later one moves `last_seen_at`. */
     @OptIn(ExperimentalTime::class)
@@ -25,7 +25,7 @@ interface UserInstallRepository {
 
 /**
  * The owner's lookup of one account, for support: who it is, what it runs, what it chose in
- * Settings and how much it logs. Reads the `support` views (V21), so it can show nothing those
+ * Settings and how much it logs. Reads the `support` views (V22), so it can show nothing those
  * views leave out: no food, amount, weight, note or answer.
  */
 interface UserLookupRepository {

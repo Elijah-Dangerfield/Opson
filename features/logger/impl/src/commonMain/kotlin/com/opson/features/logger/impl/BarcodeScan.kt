@@ -9,12 +9,13 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 /**
- * The barcode scanner, a full screen over the logger sheet: only the logger
- * opens it, so the route lives in the impl like [AmountSheetRoute]. [dayIso]
- * and [slot] are where a found food is logged. Behind [BarcodeScanEnabled].
+ * The barcode scanner, a full screen: only the add sheet and search
+ * open it, so the route lives in the impl like [FoodDetailRoute]. [dayIso]
+ * and [slot] are where a found food is logged; [overSearch] when search opened it, so "Search
+ * instead" goes back to it rather than opening another. Behind [BarcodeScanEnabled].
  */
 @Serializable
-data class BarcodeScanRoute(val dayIso: String, val slot: MealSlot) : Route()
+data class BarcodeScanRoute(val dayIso: String, val slot: MealSlot, val overSearch: Boolean = false) : Route()
 
 /**
  * What the scanner draws. No nutrition number is ever in it: a found food
@@ -100,10 +101,13 @@ sealed interface BarcodeScanEvent {
     /** The camera's read was taken and is being looked up: say so with a haptic, once per scan. */
     data object Scanned : BarcodeScanEvent
 
-    /** A hit: this screen gives way to the amount sheet for [foodId], over the logger. */
-    data class OpenAmount(val foodId: String, val day: LocalDate, val slot: MealSlot) : BarcodeScanEvent
+    /** A hit: this screen gives way to the food detail for [foodId]. */
+    data class OpenFoodDetail(val foodId: String, val day: LocalDate, val slot: MealSlot) : BarcodeScanEvent
 
-    /** Back to the logger, which shows anything just picked in its footer. */
+    /** Search, in this screen's place: "Search instead" when the + sheet opened the scanner. */
+    data class OpenSearch(val day: LocalDate, val slot: MealSlot) : BarcodeScanEvent
+
+    /** Back to where the scanner was opened from. A name saved on a miss is logged by then. */
     data object Close : BarcodeScanEvent
 }
 

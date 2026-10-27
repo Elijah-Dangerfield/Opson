@@ -8,7 +8,7 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ## 2026-10-27: Grafana may see one person, through `support`, and never their log
 
-**Decision:** a second read-only schema, `support` (V21), holds per-person
+**Decision:** a second read-only schema, `support` (V22), holds per-person
 views for the owner's User detail and Users boards and the admin console's
 user lookup: account id, email, display name, which builds each install ran,
 counts per day, timestamps and Settings choices from an allowlist. `grafana_ro`

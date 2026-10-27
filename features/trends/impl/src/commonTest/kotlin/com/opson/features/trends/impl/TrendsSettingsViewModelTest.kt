@@ -36,7 +36,7 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
 
     @Test
     fun expended_notOfferedWhereEnergyOutIsHidden() {
-        val blind = TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(PresetId.Blind), healthConnected = true)
+        val blind = TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(PresetId.NoNumbers), healthConnected = true)
         assertTrue(blind.toggles.none { it.card == TrendsCard.Expended })
     }
 
@@ -44,9 +44,9 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
     fun toggles_filteredByWhatTheModeCanShow() {
         fun cards(preset: PresetId) = TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(preset)).toggles.map { it.card }
         assertEquals(TrendsCard.entries - TrendsCard.Expended, cards(PresetId.Full), "Expended waits for a connected watch")
-        assertEquals(listOf(TrendsCard.Recap), cards(PresetId.Blind), "weight is hidden, so its card never shows")
-        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.Fuel))
-        assertEquals(listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Weight), cards(PresetId.Coast))
+        assertEquals(listOf(TrendsCard.Recap), cards(PresetId.NoNumbers), "weight is hidden, so its card never shows")
+        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.NutrientsFirst))
+        assertEquals(listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.Later))
     }
 
     @Test

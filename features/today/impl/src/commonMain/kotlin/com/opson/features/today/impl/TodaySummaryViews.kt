@@ -1,6 +1,5 @@
 package com.opson.features.today.impl
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -11,8 +10,6 @@ import com.opson.libraries.diary.ui.CompactSummaryBar
 import com.opson.libraries.diary.ui.CompactText
 import com.opson.libraries.diary.ui.EnergyPage
 import com.opson.libraries.diary.ui.ExpendedSoFarLine
-import com.opson.libraries.diary.ui.ListSummaryCard
-import com.opson.libraries.diary.ui.LockedSummaryCard
 import com.opson.libraries.diary.ui.MacrosPage
 import com.opson.libraries.diary.ui.ShareCell
 import com.opson.libraries.diary.ui.StatCell
@@ -22,10 +19,7 @@ import com.opson.libraries.diary.ui.SummaryFooter
 import com.opson.libraries.diary.ui.SummaryMacro
 import com.opson.libraries.diary.ui.SummaryMacroColumns
 import com.opson.libraries.diary.ui.SummaryStatsRow
-import com.opson.libraries.diary.ui.TodayCard
-import com.opson.libraries.diary.ui.TodayCardPadding
 import com.opson.libraries.diary.ui.FocusSummaryCard
-import com.opson.libraries.diary.ui.SoftSummaryCard
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.MacroLineStyle
@@ -33,8 +27,6 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.MacroLine
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.separator
-import com.opson.libraries.ui.components.ListRow
-import com.opson.libraries.ui.components.ListRowChevron
 import com.opson.libraries.ui.components.PageIndicator
 import com.opson.libraries.ui.components.RangeBarSegment
 import com.opson.libraries.ui.components.SwipePages
@@ -44,12 +36,10 @@ import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.libraries.ui.time.RelativeDay
 import com.opson.system.AppTheme
-import com.opson.system.color.ToneColors
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.integrations_today_expended
 import opson.libraries.resources.generated.resources.today_collapse_cd
 import opson.libraries.resources.generated.resources.today_compact_meals
-import opson.libraries.resources.generated.resources.today_count_value
 import opson.libraries.resources.generated.resources.today_counted_four
 import opson.libraries.resources.generated.resources.today_counted_label
 import opson.libraries.resources.generated.resources.today_counted_label_other_day
@@ -60,19 +50,12 @@ import opson.libraries.resources.generated.resources.today_counted_three
 import opson.libraries.resources.generated.resources.today_counted_two
 import opson.libraries.resources.generated.resources.today_counts_meals_one
 import opson.libraries.resources.generated.resources.today_counts_meals_other
+import opson.libraries.resources.generated.resources.today_count_value
 import opson.libraries.resources.generated.resources.today_customise_cd
 import opson.libraries.resources.generated.resources.today_expand_cd
-import opson.libraries.resources.generated.resources.today_explorer_new_empty
 import opson.libraries.resources.generated.resources.today_focus_title
 import opson.libraries.resources.generated.resources.today_macros_of
 import opson.libraries.resources.generated.resources.today_macros_title
-import opson.libraries.resources.generated.resources.today_new_count_one
-import opson.libraries.resources.generated.resources.today_new_count_other
-import opson.libraries.resources.generated.resources.today_new_this_month
-import opson.libraries.resources.generated.resources.today_revealed_body
-import opson.libraries.resources.generated.resources.today_revealed_title
-import opson.libraries.resources.generated.resources.today_soft_energy
-import opson.libraries.resources.generated.resources.today_soft_meals
 import opson.libraries.resources.generated.resources.today_sticky_cd
 import opson.libraries.resources.generated.resources.today_summary_eaten
 import opson.libraries.resources.generated.resources.today_summary_kcal
@@ -93,32 +76,9 @@ import org.jetbrains.compose.resources.stringResource
 internal fun Summary(summary: TodaySummary, state: TodayState, onAction: (TodayAction) -> Unit) {
     when (summary) {
         is TodaySummary.Energy -> EnergySummary(summary, state, onAction)
-        is TodaySummary.Soft -> SoftSummaryCard(
-            energyLabel = stringResource(Res.string.today_soft_energy),
-            energy = summary.energy,
-            mealsLabel = summary.mealCount?.let { stringResource(Res.string.today_soft_meals) },
-            mealsValue = summary.mealCount?.let { stringResource(Res.string.today_count_value, it.done, it.total) },
-            mealsDone = summary.mealCount?.done ?: 0,
-            mealsTotal = summary.mealCount?.total ?: 0,
-            lead = summary.lead?.toSummaryMacro(),
-            rows = summary.rows.map { it.toSummaryMacro() },
-        )
+        is TodaySummary.Soft -> NutrientsFirstCard(summary, state, onAction)
         is TodaySummary.Focus -> FocusSummaryCard(title = stringResource(Res.string.today_focus_title), rows = summary.rows.map { it.toSummaryMacro() })
-        is TodaySummary.Locked -> LockedSummaryCard(title = stringResource(summary.title), body = stringResource(summary.body))
-        TodaySummary.Revealed -> TodayCard(
-            onClick = { onAction(TodayAction.RevealedTapped) },
-            contentPadding = TodayCardPadding.List,
-            verticalArrangement = Arrangement.Top,
-        ) {
-            ListRow(
-                title = stringResource(Res.string.today_revealed_title),
-                subtitle = stringResource(Res.string.today_revealed_body),
-                icon = AppIcons.Lock,
-                iconTone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint),
-            ) {
-                ListRowChevron()
-            }
-        }
+        is TodaySummary.Locked -> LaterLockedCard(summary)
         is TodaySummary.Counted -> StatementSummaryCard(
             label = stringResource(if (state.dayLabel == RelativeDay.Today) Res.string.today_counted_label else Res.string.today_counted_label_other_day),
             title = stringResource(countWord(summary.done)),
@@ -127,12 +87,6 @@ internal fun Summary(summary: TodaySummary, state: TodayState, onAction: (TodayA
             } else {
                 null
             },
-        )
-        is TodaySummary.NewFoods -> ListSummaryCard(
-            title = stringResource(Res.string.today_new_this_month),
-            trailing = stringResource(if (summary.foods.size == 1) Res.string.today_new_count_one else Res.string.today_new_count_other, summary.foods.size),
-            rows = summary.foods.map { it.name to it.seen },
-            emptyText = stringResource(Res.string.today_explorer_new_empty),
         )
     }
 }
@@ -152,10 +106,10 @@ private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAct
     ) {
         if (macrosPage != null) {
             SwipePages(page = state.summaryPage, pageCount = pageCount, onPageChange = { onAction(TodayAction.SummaryPageShown(it)) }) { page ->
-                if (page == 0) EnergyPageContent(summary) else MacrosPageContent(macrosPage)
+                if (page == 0) FirstPage(summary, onAction) else MacrosPageContent(macrosPage)
             }
         } else {
-            EnergyPageContent(summary)
+            FirstPage(summary, onAction)
         }
         SummaryFooter(
             nutrientsLabel = stringResource(Res.string.today_summary_nutrients),
@@ -165,12 +119,25 @@ private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAct
             onPageSelected = { onAction(TodayAction.SummaryPageShown(it)) },
             collapseIcon = if (tools && !summary.empty) AppIcons.ExpandLess.described(stringResource(Res.string.today_collapse_cd)) else null,
             onCollapse = { onAction(TodayAction.CollapseTapped) },
+            showNutrients = summary.card?.nutrientsLink ?: true,
             leading = {
-                // Expended has its own stat once there are stats; until then it is the line under the bar.
-                if (summary.stats.isEmpty()) ExpendedSoFarLine(stringResource(Res.string.integrations_today_expended), summary.expended)
+                val card = summary.card
+                when {
+                    // Design sync 4's card carries Burned itself; the footer has room for the meals.
+                    card != null -> CardMeals(card)
+                    // Expended has its own stat once there are stats; until then it is the line under the bar.
+                    summary.stats.isEmpty() -> ExpendedSoFarLine(stringResource(Res.string.integrations_today_expended), summary.expended)
+                }
             },
         )
     }
+}
+
+/** Page 1: design sync 4's card when built, else design sync 2's energy page. */
+@Composable
+private fun FirstPage(summary: TodaySummary.Energy, onAction: (TodayAction) -> Unit) {
+    val card = summary.card
+    if (card != null) EnergyCardContent(card, onAction) else EnergyPageContent(summary)
 }
 
 @Composable

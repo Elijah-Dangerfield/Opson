@@ -8,7 +8,7 @@ change to a view is one edit here instead of a hunt through JSON. Run it after
 changing a view, then push the files (see README.md).
 
 Two schemas, two rules. `analytics` views aggregate across users: the product
-boards read only them. `support` views (V21) hold one person's account, builds,
+boards read only them. `support` views (V22) hold one person's account, builds,
 counts and Settings choices, never what they logged or measured: only Users and
 User detail read them, and only User detail selects an email
 (DashboardQueryContractTest holds that).
@@ -310,7 +310,7 @@ b.write()
 b = Board("opson-users", "Opson · Users",
           "Who is using Opson, and how. Population, new and returning people, modes, platforms and builds, and "
           "the roster: click a user id to open everything about that person on User detail.\n\n"
-          "Reads the `support` views (V21): one row per person, counts and choices only, never what anyone "
+          "Reads the `support` views (V22): one row per person, counts and choices only, never what anyone "
           "logged. No email appears on this board; User detail is the one board that shows it. Postgres panels "
           "are durable; the two Loki panels cannot see past 31 days.",
           links=[PULSE_LINK])
@@ -478,7 +478,8 @@ b.sql_table("Methods, all time",
 b.sql_table("Days",
             "SELECT coalesce(l.day, m.day) AS day, coalesce(l.entries, 0) AS entries, coalesce(l.meals, 0) AS meals, "
             "coalesce(l.weighed, 0) AS weighed, coalesce(l.estimated, 0) AS estimated, "
-            "coalesce(l.named_only, 0) AS named_only, coalesce(m.closed, false) AS closed, "
+            "coalesce(l.named_only, 0) AS named_only, coalesce(l.from_label, 0) AS from_label, "
+            "coalesce(m.closed, false) AS closed, "
             "coalesce(m.checked_in, false) AS checked_in, coalesce(m.meals_tagged, 0) AS meals_tagged, "
             "coalesce(m.weigh_ins, 0) AS weigh_ins, coalesce(m.fasted, false) AS fasted "
             f"FROM (SELECT * FROM support.user_daily_logging {WHO}) l "

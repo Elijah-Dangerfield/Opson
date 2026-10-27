@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 
 /**
- * Records which build each signed-in install runs, into `user_installs` (V21): the version
+ * Records which build each signed-in install runs, into `user_installs` (V22): the version
  * history the admin lookup shows and the install ids the User detail board finds someone's app
  * events by.
  *

@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.MainNumberChoice
+import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.components.dialog.ModalDialogDefaults
 import com.opson.system.background
@@ -39,7 +41,7 @@ import com.opson.libraries.nutrition.ui.leak.LeakSurface
  * Today's surfaces for `BlindModeLeakTest` (`docs/plans/screens/blind-leak-test.md`).
  * Each builds its state through the real builder from [TodayFixtures] with the policy the
  * test hands it. The layout comes from that policy too, so the test's calories-hidden presets
- * cover the Meals, Rhythm, Explorer and Journal layouts with these same entries. The menu and
+ * cover Nutrients first, Later and No numbers' meal timeline with these same entries. The menu and
  * the sheets render their content in place, with no popup window.
  */
 object TodayLeakSurfaces {
@@ -47,12 +49,26 @@ object TodayLeakSurfaces {
         LeakSurface(id = "today", label = "Today", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy), onAction = {})
         },
-        // 0.2, release.reminders: Rhythm's reminder line is a time, never an amount.
-        LeakSurface(id = "today-reminders", label = "Today · with reminders", showsCaloriesInFull = true) { policy ->
-            TodayScreen(
-                state = TodayFixtures.todayState(policy, settings = TodayFixtures.remindersSet, remindersOn = true),
-                onAction = {},
-            )
+        // Design sync 4: End after a set time ran out. The banner names modes, never an amount.
+        LeakSurface(id = "today-timer-ended", label = "Today · the mode timer ran out", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = TodayFixtures.todayState(policy, settings = TodayFixtures.timerEnded), onAction = {})
+        },
+        LeakSurface(id = "today-timer-waiting", label = "Today · the mode timer waiting on the pause", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = TodayFixtures.todayState(policy, settings = TodayFixtures.timerWaiting(policy)), onAction = {})
+        },
+        // Design sync 4, release.goalsAndEnergy: the summary card in each preset, over Burned, with a
+        // set deficit (the target line) and a surplus, and one number as rings.
+        LeakSurface(id = "today-summary-in-out", label = "Today · In and out", showsCaloriesInFull = true) { policy ->
+            V4Today(policy, TodayFixtures.deficit500)
+        },
+        LeakSurface(id = "today-summary-range-bar", label = "Today · Range bar", showsCaloriesInFull = true) { policy ->
+            V4Today(policy, TodayFixtures.surplus300.copy(todayCard = SummaryCardPreset.RangeBar, todayMealsCount = true))
+        },
+        LeakSurface(id = "today-summary-rings", label = "Today · Rings", showsCaloriesInFull = true) { policy ->
+            V4Today(policy, TodayFixtures.oneNumber.copy(todayCard = SummaryCardPreset.Rings))
+        },
+        LeakSurface(id = "today-summary-equation", label = "Today · Equation", showsCaloriesInFull = true) { policy ->
+            V4Today(policy, Settings(todayCard = SummaryCardPreset.Equation, todayMainNumber = MainNumberChoice.Balance))
         },
         LeakSurface(id = "today-big-day", label = "Today · big day", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.day(bigDay = true, loose = true)), onAction = {})
@@ -276,3 +292,19 @@ private const val LUNCH_ROW_FLAGS_ON = 4
 
 /** Where dinner's card sits with the list scrolled to lunch. */
 private val DinnerUnderFinger = 500.dp
+
+@Composable
+private fun V4Today(policy: VisibilityPolicy, settings: Settings) {
+    TodayScreen(
+        state = TodayFixtures.todayState(
+            policy,
+            settings = settings,
+            expended = TodayFixtures.expended,
+            summaryOn = true,
+            goalsAndEnergyOn = true,
+            burned = TodayFixtures.burned,
+        ),
+        onAction = {},
+    )
+}
+
