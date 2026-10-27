@@ -271,6 +271,12 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
       its source badge and the line under results are the Logger's Open Food
       Facts credit (step 3 above).
 
+## Adding (design sync 4)
+
+- [ ] Deploy the server with V20 (`log_entries` takes precision `label`)
+      before a build with the new food detail reaches anyone. Until then the
+      old server rejects a "From label" item, so it does not sync.
+
 ## Held native commits
 
 The widget receiver and WidgetKit extension are on branch
