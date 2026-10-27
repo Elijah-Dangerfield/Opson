@@ -88,6 +88,10 @@ data class DescribedItemDto(
     val fiber: Double? = null,
     val micros: Map<String, Double>? = null,
     val confidence: String,
+    /** The matched food with its portions, from 0.2 servers. */
+    val food: FoodResponse? = null,
+    /** The next best foods for the same words, from 0.2 servers. */
+    val alternatives: List<FoodResponse> = emptyList(),
 )
 
 /** The catalog endpoints. An interface so the catalog's tests can fake the server. */
