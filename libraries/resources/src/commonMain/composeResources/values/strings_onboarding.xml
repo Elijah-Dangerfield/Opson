@@ -99,6 +99,11 @@
     <string name="onboarding_body_resting">About %1$s a day at rest</string>
     <string name="onboarding_body_activity">An ordinary day, outside workouts</string>
     <string name="onboarding_body_burned">About %1$s on an ordinary day, before workouts. Your goal starts from this.</string>
+    <string name="onboarding_body_year_hint">The year you were born, like 1990</string>
+    <string name="onboarding_body_height_hint_cm">Height in centimetres, like 170</string>
+    <string name="onboarding_body_height_hint_in">Height in inches, like 67 for 5 ft 7</string>
+    <string name="onboarding_body_weight_hint_kg">Weight in kilograms, like 70</string>
+    <string name="onboarding_body_weight_hint_lb">Weight in pounds, like 155</string>
 
     <string name="onboarding_meals_title">When do you usually eat?</string>
     <string name="onboarding_meals_body">Today shows what's next from these. Tap a time to change it.</string>

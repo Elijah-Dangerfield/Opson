@@ -136,6 +136,11 @@ import opson.libraries.resources.generated.resources.onboarding_body_title
 import opson.libraries.resources.generated.resources.onboarding_body_units_imperial
 import opson.libraries.resources.generated.resources.onboarding_body_units_metric
 import opson.libraries.resources.generated.resources.onboarding_body_weight
+import opson.libraries.resources.generated.resources.onboarding_body_weight_hint_kg
+import opson.libraries.resources.generated.resources.onboarding_body_weight_hint_lb
+import opson.libraries.resources.generated.resources.onboarding_body_year_hint
+import opson.libraries.resources.generated.resources.onboarding_body_height_hint_cm
+import opson.libraries.resources.generated.resources.onboarding_body_height_hint_in
 import opson.libraries.resources.generated.resources.onboarding_goal_burn_note
 import opson.libraries.resources.generated.resources.onboarding_goal_change
 import opson.libraries.resources.generated.resources.onboarding_goal_title
@@ -155,6 +160,7 @@ import opson.libraries.resources.generated.resources.settings_resting_sex_female
 import opson.libraries.resources.generated.resources.settings_resting_sex_male
 import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
 import opson.libraries.resources.generated.resources.settings_targets_floor_note
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -674,28 +680,40 @@ private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAc
                     )
                 },
             )
-            NumberField(
-                value = answer.birthYear,
-                onValueChange = { onAction(OnboardingAction.BirthYearTyped(it)) },
-                label = stringResource(Res.string.settings_resting_birth_year),
-                allowDecimal = false,
-                enabled = !state.isFinishing,
-            )
-            NumberField(
-                value = answer.height,
-                onValueChange = { onAction(OnboardingAction.HeightTyped(it)) },
-                label = stringResource(Res.string.settings_resting_height),
-                unit = stringResource(if (imperial) Res.string.settings_resting_in else Res.string.settings_resting_cm),
-                enabled = !state.isFinishing,
-            )
-            if (view.weightShown) {
+            HintedField(hint = Res.string.onboarding_body_year_hint.takeIf { view.birthYearInvalid }) {
                 NumberField(
-                    value = answer.weight,
-                    onValueChange = { onAction(OnboardingAction.WeightTyped(it)) },
-                    label = stringResource(Res.string.onboarding_body_weight),
-                    unit = stringResource(if (imperial) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg),
+                    value = answer.birthYear,
+                    onValueChange = { onAction(OnboardingAction.BirthYearTyped(it)) },
+                    label = stringResource(Res.string.settings_resting_birth_year),
+                    allowDecimal = false,
                     enabled = !state.isFinishing,
                 )
+            }
+            HintedField(
+                hint = (if (imperial) Res.string.onboarding_body_height_hint_in else Res.string.onboarding_body_height_hint_cm)
+                    .takeIf { view.heightInvalid },
+            ) {
+                NumberField(
+                    value = answer.height,
+                    onValueChange = { onAction(OnboardingAction.HeightTyped(it)) },
+                    label = stringResource(Res.string.settings_resting_height),
+                    unit = stringResource(if (imperial) Res.string.settings_resting_in else Res.string.settings_resting_cm),
+                    enabled = !state.isFinishing,
+                )
+            }
+            if (view.weightShown) {
+                HintedField(
+                    hint = (if (imperial) Res.string.onboarding_body_weight_hint_lb else Res.string.onboarding_body_weight_hint_kg)
+                        .takeIf { view.weightInvalid },
+                ) {
+                    NumberField(
+                        value = answer.weight,
+                        onValueChange = { onAction(OnboardingAction.WeightTyped(it)) },
+                        label = stringResource(Res.string.onboarding_body_weight),
+                        unit = stringResource(if (imperial) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg),
+                        enabled = !state.isFinishing,
+                    )
+                }
             }
             Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
                 Text(
@@ -751,6 +769,22 @@ private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAc
                     modifier = Modifier.testTag(Metric.EnergyOut.testTag()),
                 )
             }
+        }
+    }
+}
+
+/** A field with, when [hint] is set, a line under it saying what the field wants. */
+@Composable
+private fun HintedField(hint: StringResource?, field: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
+        field()
+        if (hint != null) {
+            Text(
+                text = stringResource(hint),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
         }
     }
 }

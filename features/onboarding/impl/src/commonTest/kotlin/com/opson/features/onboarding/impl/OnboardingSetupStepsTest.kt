@@ -272,12 +272,62 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         vm.takeAction(OnboardingAction.WeightTyped("6"))
         runCurrent()
         assertEquals(Display.Hidden, vm.state.bodyView?.resting)
+        val view = vm.state.bodyView!!
+        assertTrue(view.birthYearInvalid && view.heightInvalid && view.weightInvalid, "each field says what it wants")
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
 
         assertNull(settings.settings.value.birthYear, "someone born in 2020 is not 13")
         assertNull(settings.settings.value.heightCm)
         assertTrue(weights.added.isEmpty())
+    }
+
+    @Test
+    fun switchingUnits_convertsWhatIsTyped_soTheWeighInIsStillTheirs() = runUnitTest {
+        val weights = FakeWeightRepository()
+        val vm = atGoal(listOf(NumbersFeel.LoveThem), goalsAndEnergy = true, weights = weights)
+        vm.takeAction(OnboardingAction.GoalStyleTapped(GoalChoice.Surplus))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        vm.takeAction(OnboardingAction.BirthYearTyped("1992"))
+        vm.takeAction(OnboardingAction.HeightTyped("175"))
+        vm.takeAction(OnboardingAction.WeightTyped("70"))
+        vm.takeAction(OnboardingAction.SexPicked(BodySex.Female))
+        runCurrent()
+        val resting = vm.state.bodyView?.resting
+
+        vm.takeAction(OnboardingAction.UnitPicked(WeightUnit.Lb))
+        runCurrent()
+        assertEquals("68.9", vm.state.body.height, "175 cm, not 175 in")
+        assertEquals("154.3", vm.state.body.weight, "70 kg, not 70 lb")
+        assertEquals(resting, vm.state.bodyView?.resting, "the same person, so the same resting energy")
+
+        vm.takeAction(OnboardingAction.UnitPicked(WeightUnit.Kg))
+        runCurrent()
+        assertEquals("175", vm.state.body.height)
+        assertEquals("70", vm.state.body.weight)
+
+        vm.takeAction(OnboardingAction.UnitPicked(WeightUnit.Lb))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+        assertEquals(70.0, weights.added.single(), 0.05)
+    }
+
+    @Test
+    fun feetAndInchesTypedAsADecimal_saysHeightIsInInches() = runUnitTest {
+        val vm = atGoal(listOf(NumbersFeel.LoveThem), goalsAndEnergy = true)
+        vm.takeAction(OnboardingAction.GoalStyleTapped(GoalChoice.Deficit))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        vm.takeAction(OnboardingAction.UnitPicked(WeightUnit.Lb))
+        runCurrent()
+        assertFalse(vm.state.bodyView!!.heightInvalid, "nothing typed yet, nothing to say")
+
+        vm.takeAction(OnboardingAction.HeightTyped("5.10"))
+        runCurrent()
+        assertTrue(vm.state.bodyView!!.heightInvalid, "5.10 in is not 5 ft 10")
+
+        vm.takeAction(OnboardingAction.HeightTyped("70"))
+        runCurrent()
+        assertFalse(vm.state.bodyView!!.heightInvalid)
     }
 
     @Test

@@ -152,7 +152,7 @@ class OnboardingViewModel(
             is OnboardingAction.HeightTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withHeight(action.text)) }
             is OnboardingAction.WeightTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withWeight(action.text)) }
             is OnboardingAction.SexPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(sex = action.sex)) }
-            is OnboardingAction.UnitPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(unit = action.unit)) }
+            is OnboardingAction.UnitPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withUnit(action.unit)) }
             is OnboardingAction.ActivityPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(activity = action.level)) }
             is OnboardingAction.MealTimePicked -> action.updateSetup(OnboardingStep.Meals) {
                 it.copy(mealTimes = it.mealTimes.with(action.slot, action.time))

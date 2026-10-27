@@ -17,6 +17,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.ui.components.text.NumberInput
+import kotlin.math.roundToInt
 
 /**
  * The goal styles the goal step offers. Different by day is left to Targets: it means building
@@ -89,6 +90,21 @@ data class BodyAnswer(
 
     fun withWeight(text: String) = copy(weight = NumberInput.sanitize(text, allowDecimal = true))
 
+    /**
+     * Switches to [next], converting what is typed so it still means the same height and weight:
+     * 175 cm becomes 68.9 in, never 175 in. A field that is not a number yet is left as it is.
+     */
+    fun withUnit(next: WeightUnit): BodyAnswer {
+        if (next == unit) return this
+        val toImperial = next == WeightUnit.Lb
+        fun converted(text: String, convert: (Double) -> Double) = text.toDoubleOrNull()?.let { typed(convert(it)) } ?: text
+        return copy(
+            unit = next,
+            height = converted(height) { if (toImperial) it / CM_PER_INCH else it * CM_PER_INCH },
+            weight = converted(weight) { if (toImperial) Units.kgToLb(it) else Units.lbToKg(it) },
+        )
+    }
+
     /** The year, when [currentYear] makes it someone 13 to 120. */
     fun birthYearOrNull(currentYear: Int): Int? =
         birthYear.toIntOrNull()?.takeIf { it in (currentYear - MAX_AGE)..(currentYear - MIN_AGE) }
@@ -100,6 +116,14 @@ data class BodyAnswer(
     fun weightKgOrNull(): Double? = weight.toDoubleOrNull()
         ?.let { if (unit == WeightUnit.Lb) Units.lbToKg(it) else it }
         ?.takeIf { it in WEIGHT_KG }
+
+    /** Something is typed in the year field, but not a year that makes someone 13 to 120. */
+    fun birthYearInvalid(currentYear: Int): Boolean = birthYear.isNotEmpty() && birthYearOrNull(currentYear) == null
+
+    /** Something is typed for height that isn't a height in [unit]: 5.10 for 5 ft 10 in, or centimetres as inches. */
+    val heightInvalid: Boolean get() = height.isNotEmpty() && heightCmOrNull() == null
+
+    val weightInvalid: Boolean get() = weight.isNotEmpty() && weightKgOrNull() == null
 
     fun profile(currentYear: Int): BodyProfile = BodyProfile(
         weightKg = weightKgOrNull(),
@@ -118,6 +142,13 @@ data class BodyAnswer(
     fun burnKcal(currentYear: Int): Int? = restingKcal(currentYear)?.let { it + activity.kcalFor(it) }
 
     private companion object {
+        /** A number as it would be typed, to one decimal: "68.9", "70". */
+        fun typed(value: Double): String {
+            val tenths = (value * TENTHS).roundToInt()
+            return if (tenths % TENTHS == 0) "${tenths / TENTHS}" else "${tenths / TENTHS}.${tenths % TENTHS}"
+        }
+
+        const val TENTHS = 10
         const val YEAR_DIGITS = 4
         const val MIN_AGE = 13
         const val MAX_AGE = 120
@@ -150,6 +181,13 @@ data class BodyView(
     val burned: Display = Display.Hidden,
     /** Whether the weight field shows: weight is a number like any other. */
     val weightShown: Boolean,
+    /**
+     * A field holding something that can't be used, which gets a line saying what it wants.
+     * Without one, a height in the wrong unit just leaves resting energy blank with no reason given.
+     */
+    val birthYearInvalid: Boolean = false,
+    val heightInvalid: Boolean = false,
+    val weightInvalid: Boolean = false,
 )
 
 /** What onboarding writes past the mode and the answers, for the steps the person saw. */
@@ -190,5 +228,8 @@ object SetupViews {
             ?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Settings, FormatContext()) }
             ?: Display.Hidden,
         weightShown = policy.effectiveLevel(Metric.Weight, Surface.Settings) == Visibility.Show,
+        birthYearInvalid = answer.birthYearInvalid(currentYear),
+        heightInvalid = answer.heightInvalid,
+        weightInvalid = answer.weightInvalid,
     )
 }
