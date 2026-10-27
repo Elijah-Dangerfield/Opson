@@ -3,6 +3,7 @@ package com.opson.server.config
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 
 /**
  * The connection-string parser is the only thing between a value pasted from
@@ -60,6 +61,22 @@ class ParsedPostgresUrlTest {
     fun rejectsNonPostgresScheme() {
         assertFailsWith<IllegalArgumentException> {
             ParsedPostgresUrl.parse("mysql://u:p@host/db")
+        }
+    }
+
+    @Test
+    fun aRejectedUrlIsNeverQuoted() {
+        // The message reaches the boot log and Sentry; a password must not.
+        val rejected = listOf(
+            "mysql://u:hunter2@host/db",
+            "u:hunter2@host:5432/db",
+            "u:hunter2://@host/db",
+            "jdbc:postgresql://u:hunter2@host/db",
+            "postgresql://u:hunter2%zz@host/db",
+        )
+        for (raw in rejected) {
+            val message = assertFailsWith<IllegalArgumentException> { ParsedPostgresUrl.parse(raw) }.message.orEmpty()
+            assertFalse("hunter2" in message, message)
         }
     }
 

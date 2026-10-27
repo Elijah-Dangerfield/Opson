@@ -456,7 +456,8 @@ data class DatabaseConfig(
  *   - jdbcUrl: `jdbc:postgresql://host:port/db?params` (no credentials)
  *   - username, password: extracted and URL-decoded
  *
- * Internal helper, public only for tests.
+ * A malformed value fails boot with a message that never quotes it: the
+ * credentials sit near the front, and the message reaches the logs and Sentry.
  */
 internal data class ParsedPostgresUrl(
     val jdbcUrl: String,
@@ -466,7 +467,8 @@ internal data class ParsedPostgresUrl(
     companion object {
         fun parse(raw: String): ParsedPostgresUrl {
             require(raw.startsWith("postgresql://") || raw.startsWith("postgres://")) {
-                "DATABASE_URL must start with postgresql:// (got: ${raw.take(20)}…)"
+                val scheme = raw.substringBefore("://", missingDelimiterValue = "").takeIf { SCHEME.matches(it) } ?: "none"
+                "DATABASE_URL must start with postgresql:// (got scheme: $scheme)"
             }
             val noScheme = raw.substringAfter("://")
             val atIndex = noScheme.lastIndexOf('@')
@@ -484,7 +486,13 @@ internal data class ParsedPostgresUrl(
             )
         }
 
-        private fun urlDecode(s: String): String =
+        private val SCHEME = Regex("[a-z][a-z0-9+.-]{0,20}")
+
+        /** URLDecoder's own message quotes the bad escape, which is part of the password. */
+        private fun urlDecode(s: String): String = try {
             java.net.URLDecoder.decode(s, Charsets.UTF_8)
+        } catch (_: IllegalArgumentException) {
+            throw IllegalArgumentException("DATABASE_URL credentials have a malformed %-escape")
+        }
     }
 }
