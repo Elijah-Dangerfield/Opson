@@ -9,19 +9,20 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
- * The release flag for two more goal styles on Targets: one number and a set surplus, in the goal
- * style picker and as a day group's shape under "different by day". Off, the picker offers what
- * 0.1 did. A style already saved still shows as it is, so a phone with the flag off never
- * misreads a goal set on one with it on. Read when Targets opens; nothing runs at launch.
+ * The release flag for goals and energy (design sync 4, 13.2): one number and a set surplus on
+ * Targets, as goal styles and as day group shapes; Burned, its Resting energy page and Energy
+ * today. Off, Targets offers what 0.1 did and nothing reads Burned. A style already saved still
+ * shows as it is, so a phone with the flag off never misreads a goal set on one with it on.
+ * Read when a page opens; nothing runs at launch.
  */
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = QaConfigValue::class, multibinding = true)
-class GoalStylesEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap) {
-    override val name = "More goal styles"
+class GoalsAndEnergyEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap) {
+    override val name = "Goals and energy"
 
     // A literal on purpose: ConfigManifestRegistryDriftTest reads declared paths from source.
-    override val path = "release.goalStyles"
+    override val path = "release.goalsAndEnergy"
     override val default = false
-    override val description = "Targets: one number and a set surplus, as goal styles and day group shapes"
+    override val description = "Targets: one number and a set surplus; Burned, Resting energy and Energy today"
 }

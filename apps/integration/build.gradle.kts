@@ -64,7 +64,7 @@ kotlin {
             implementation(projects.features.today.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.widgets)
-            // FindSupportEnabled (release.findSupport) and GoalStylesEnabled (release.goalStyles), for ConfigManifestRegistryDriftTest.
+            // FindSupportEnabled (release.findSupport) and GoalsAndEnergyEnabled (release.goalsAndEnergy), for ConfigManifestRegistryDriftTest.
             implementation(projects.features.settings)
             // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.progressphotos)

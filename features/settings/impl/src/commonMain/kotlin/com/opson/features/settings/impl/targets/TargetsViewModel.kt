@@ -1,12 +1,15 @@
 package com.opson.features.settings.impl.targets
 
 import androidx.lifecycle.viewModelScope
-import com.opson.features.settings.GoalStylesEnabled
+import com.opson.features.settings.GoalsAndEnergyEnabled
 import com.opson.features.settings.impl.Toast
+import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.StepBlock
@@ -32,19 +35,22 @@ import opson.libraries.resources.generated.resources.settings_targets_surplus_ca
 /**
  * Targets. Every change runs inside [SettingsRepository.update] against the settings it is
  * about to replace, so the floor and the deficit and surplus caps are checked in the same step as
- * the write: a refused step writes nothing and the toast says why.
+ * the write: a refused step writes nothing and the toast says why. Picking a goal style writes it
+ * at once (design sync 4, 13.2e).
  *
- * What the user burns is not known yet (the watch's energy is today's, not a 7-day average, and
- * there is no intake and weight estimate), so the deficit and surplus cards are built without a
- * burn: the deficit waits on the range, and the surplus goes on top of the usual target.
+ * With `release.goalsAndEnergy` on, today's Burned ([BurnedRepository]) is what a set deficit or
+ * surplus is aimed at, and what one starts from when picked. Off, nothing reads it: the deficit
+ * waits on the range, and a surplus goes on top of the usual target.
  */
 @Inject
 class TargetsViewModel(
     private val settingsRepository: SettingsRepository,
     policySource: VisibilityPolicySource,
-    health: HealthRepository,
+    private val health: HealthRepository,
     healthFlag: HealthReleaseFlag,
-    private val goalStyles: GoalStylesEnabled,
+    private val goalsAndEnergy: GoalsAndEnergyEnabled,
+    burnedRepository: BurnedRepository,
+    calendar: LocalCalendar,
 ) : SEAViewModel<TargetsState, TargetsEvent, TargetsAction>(initialStateArg = TargetsState()) {
 
     private var inputs: TargetsAction.InputsArrived? = null
@@ -57,8 +63,9 @@ class TargetsViewModel(
     init {
         // With release.health off the store is never asked, so the exercise row can't show.
         val connected = if (healthFlag()) health.status.map { it == HealthStatus.Connected } else flowOf(false)
+        val burned = if (goalsAndEnergy()) burnedRepository.burned(calendar.today()) else flowOf(null)
         viewModelScope.launch {
-            combine(settingsRepository.observe(), policySource.policy, connected, TargetsAction::InputsArrived)
+            combine(settingsRepository.observe(), policySource.policy, connected, burned, TargetsAction::InputsArrived)
                 .collect(::takeAction)
         }
     }
@@ -69,7 +76,9 @@ class TargetsViewModel(
                 inputs = action
                 rebuild(action)
             }
-            TargetsAction.GoalStyleTapped -> sendEvent(TargetsEvent.OpenGoalStyle)
+            is TargetsAction.StylePicked -> pickStyle(action.kind)
+            TargetsAction.RestingEnergyTapped -> sendEvent(TargetsEvent.OpenRestingEnergy)
+            TargetsAction.ActivityTapped -> sendEvent(TargetsEvent.OpenIntegrations)
             is TargetsAction.StepTapped -> step(action)
             is TargetsAction.DeficitStepped -> {
                 var refused = false
@@ -89,15 +98,13 @@ class TargetsViewModel(
                 change { current -> current.targets.stepSurplus(action.up, action.group).also { refused = it == null } }
                 if (refused && action.up) toast(Toast(Res.string.settings_targets_surplus_cap))
             }
-            is TargetsAction.GroupShapePicked -> change {
-                it.targets.shapeGroup(
-                    action.group,
-                    when (action.shape) {
-                        ShapeKind.Range -> GroupShape.Range
-                        ShapeKind.Exact -> GroupShape.Exact
-                        ShapeKind.Surplus -> GroupShape.Surplus(0)
-                    },
-                )
+            is TargetsAction.GroupShapePicked -> change { current ->
+                val shape = when (action.shape) {
+                    ShapeKind.Range -> GroupShape.Range
+                    ShapeKind.Exact -> GroupShape.Exact
+                    ShapeKind.Surplus -> if (TargetStyle.surplusAllowed(current.numbers.preset)) GroupShape.Surplus(0, 0) else null
+                }
+                shape?.let { current.targets.shapeGroup(action.group, it, burnKcal()) }
             }
             is TargetsAction.DayTapped -> change { it.targets.moveDay(action.day, action.group) }
             TargetsAction.AddGroupTapped -> {
@@ -125,6 +132,28 @@ class TargetsViewModel(
         }
     }
 
+    /**
+     * Writes [kind] unless it is already the style. Checked again inside the write: a mode change
+     * since the page drew must not let a deficit or surplus through where it is not offered, nor
+     * one number or a surplus with the flag off.
+     */
+    private suspend fun pickStyle(kind: StyleKind) {
+        change { current ->
+            val offered = TargetsStateBuilder.offered(StyleKind.of(current.targets.style), current.numbers.preset, goalsAndEnergy())
+            if (kind !in offered || kind == StyleKind.of(current.targets.style)) return@change null
+            when (kind) {
+                StyleKind.Range -> current.targets.useRange()
+                StyleKind.Exact -> current.targets.useExact()
+                StyleKind.Deficit -> current.targets.useDeficit(burnKcal())
+                StyleKind.Surplus -> current.targets.useSurplus(burnKcal())
+                StyleKind.ByDay -> current.targets.useByDay()
+            }
+        }
+        editingGroup = null
+    }
+
+    private fun burnKcal(): Int? = inputs?.burned?.totalKcal
+
     private suspend fun step(action: TargetsAction.StepTapped) {
         var block: StepBlock? = null
         change { current ->
@@ -145,16 +174,17 @@ class TargetsViewModel(
             .targets
 
     private suspend fun rebuild(action: TargetsAction) {
-        val (settings, policy, healthConnected) = inputs ?: return
+        val (settings, policy, healthConnected, burned) = inputs ?: return
         action.updateState {
             TargetsStateBuilder.build(
                 settings,
                 policy,
-                burnKcal = null,
+                burned = burned,
                 editingGroup = editingGroup,
                 editingMacros = editingMacros,
                 healthConnected = healthConnected,
-                goalStyles = goalStyles(),
+                goalsAndEnergy = goalsAndEnergy(),
+                healthSource = health.source.takeIf { healthConnected },
             )
         }
     }
@@ -164,16 +194,28 @@ class TargetsViewModel(
 
 sealed interface TargetsEvent {
     data class ShowToast(val toast: Toast) : TargetsEvent
-    data object OpenGoalStyle : TargetsEvent
+    data object OpenRestingEnergy : TargetsEvent
     data object OpenModes : TargetsEvent
     data object OpenIntegrations : TargetsEvent
     data object Close : TargetsEvent
 }
 
 sealed interface TargetsAction {
-    /** [healthConnected]: `release.health` on and a store connected, which is when exercise can move the range. */
-    data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy, val healthConnected: Boolean = false) : TargetsAction
-    data object GoalStyleTapped : TargetsAction
+    /**
+     * [healthConnected]: `release.health` on and a store connected, which is when exercise can move
+     * the range. [burned]: today's, with `release.goalsAndEnergy` on and a resting source that answers.
+     */
+    data class InputsArrived(
+        val settings: Settings,
+        val policy: VisibilityPolicy,
+        val healthConnected: Boolean = false,
+        val burned: Burned? = null,
+    ) : TargetsAction
+
+    /** A row in the goal style list: written at once. */
+    data class StylePicked(val kind: StyleKind) : TargetsAction
+    data object RestingEnergyTapped : TargetsAction
+    data object ActivityTapped : TargetsAction
 
     /** One step on [end] of the range, or of day group [group]. */
     data class StepTapped(val end: RangeEnd, val up: Boolean, val group: Int? = null) : TargetsAction

@@ -5,11 +5,14 @@ import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.MealReminders
 import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RestingEnergy
+import com.opson.libraries.nutrition.RestingFrom
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
@@ -35,8 +38,11 @@ object SettingsFixtures {
 
     val timeZone: TimeZone = TimeZone.UTC
 
-    /** What the deficit fixtures burn, a 7-day average (v3 `targets-deficit`). 0.1 has no real source. */
-    const val BURN_KCAL = 2172
+    /**
+     * Design sync 4's Burned (`energy-today`): 1,610 resting, calculated, plus 390 of movement
+     * and a 180 kcal workout from the health app, 2,180 in all.
+     */
+    val burned: Burned = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 390, workoutKcal = 180)
 
     fun policy(numbers: NumbersSettings): VisibilityPolicy = VisibilityPolicy(numbers, clock, timeZone)
 
@@ -58,7 +64,7 @@ object SettingsFixtures {
         startingMinKcal = 1900,
     )
 
-    /** v3 `targets-deficit`: 300 under what the user burns, from a start low enough that the floor allows 1,870. */
+    /** v3 `targets-deficit`: 300 under what the user burns, from a start low enough that the floor allows 1,880 against [burned]. */
     val deficitTargets: Targets = rangeTargets.copy(
         startingKcal = 1800,
         style = TargetStyle.Deficit(kcal = 300, startingKcal = 300),
@@ -83,8 +89,8 @@ object SettingsFixtures {
     /** One number, 2,200, raised from where the user started, so it can step down as well as up. */
     val exactTargets: Targets = rangeTargets.copy(energyKcal = 2200, minKcal = 2000, maxKcal = 2400, style = TargetStyle.Exact)
 
-    /** A set surplus of 300: about 2,470 against a 2,172 burn, about 2,400 on the usual target before one is known. */
-    val surplusTargets: Targets = rangeTargets.copy(style = TargetStyle.Surplus(kcal = 300))
+    /** A set surplus of 300: about 2,480 against [burned], about 2,400 on the usual target before Burned is known. */
+    val surplusTargets: Targets = rangeTargets.copy(style = TargetStyle.Surplus(kcal = 300, startingKcal = 300))
 
     /**
      * Different by day with a shape per group: Thursday and Friday a range, Monday to Wednesday
@@ -95,7 +101,7 @@ object SettingsFixtures {
             listOf(
                 DayGroup(setOf(DayOfWeek.THURSDAY, DayOfWeek.FRIDAY), 1900, 2300),
                 DayGroup(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY), 2300, 2700, GroupShape.Exact),
-                DayGroup(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), 1900, 2300, GroupShape.Surplus(300)),
+                DayGroup(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), 1900, 2300, GroupShape.Surplus(300, 300)),
             ),
         ),
     )

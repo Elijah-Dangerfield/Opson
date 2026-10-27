@@ -225,15 +225,23 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [ ] Try swipe to delete with TalkBack and VoiceOver (the row's Delete action)
       and Undo on a phone.
 
-## More goal styles (`release.goalStyles`)
+## Goals and energy (`release.goalsAndEnergy`)
 
-- [ ] TODO(clinician): confirm `MAX_SURPLUS_KCAL` (500 kcal over the burn) and
-      `ONE_NUMBER_LEEWAY_KCAL` (100 kcal either side of one number before
-      Close the day calls it above). An engineer picked both.
-- [ ] Nothing on the server: the style is a new top-level settings key
-      (`targetStyle`), which the shallow merge keeps through a 0.1 save.
-- [ ] Look at one number and a surplus on Today, Close the day, Trends and
-      the widget on a phone before flipping the flag.
+- [ ] TODO(clinician): set `MAX_SURPLUS_KCAL` (null today, so a surplus can't
+      grow past where it started, as the deficit can't while
+      `MAX_DEFICIT_KCAL` is null; the owner's call, 2026-10-27).
+- [ ] TODO(clinician): confirm `ONE_NUMBER_LEEWAY_KCAL` (100 kcal either side
+      of one number before Close the day calls it above) and
+      `UsualMealSize`'s split of the aim across meals for someone with no
+      history. An engineer picked both.
+- [ ] Privacy: Burned's calculation adds birth year, height and sex to synced
+      settings (`birthYear`, `heightCm`, `bodySex`, new top-level keys). Check
+      the App Privacy label and `legal/privacy.md` before the flag flips.
+- [ ] Nothing on the server: every new setting is a top-level key, which the
+      shallow merge keeps through a 0.1 save (`SettingsMergeAcrossVersionsTest`).
+- [ ] Look at the goal style list, Resting energy and Energy today on a phone,
+      and one number and a surplus on Today, Close the day, Trends and the
+      widget, before flipping the flag.
 
 ## Search quality
 

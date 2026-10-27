@@ -88,8 +88,8 @@ Kept different on purpose:
   checklist. Amounts optional.` for Rhythm. The design's versions advertise watch
   sync and reminders, which are behind 0.2 flags. No Progress photos row: the
   feature doesn't exist.
-- Goal style has **One number** and adds **A set surplus**, both behind
-  `release.goalStyles` (see "One number and a set surplus" under Targets).
+- Goal style has **One number** and adds **Set surplus**, both behind
+  `release.goalsAndEnergy` (see "Goals and energy" under Targets).
 - Targets by day names groups `Day group 2`, not `Training days`: groups have no
   names yet. `TODO(design-sync-2)`.
 - Deficit has no `My watch` / `Intake and weight` switch: the watch isn't a burn
@@ -325,7 +325,7 @@ data class TargetsState(
     val visible: Boolean,                      // level(Calories) == Show
     val style: StyleKind,                      // Range | Deficit | ByDay
     val range: RangeCard?,                     // low and high Display, the three step flags, band position
-    val deficit: DeficitCard?,                 // deficit, burn and goal Displays, step flags, burnKnown
+    val deficit: BurnGoalCard?,                // amount, step flags, today's target against Burned
     val groups: List<DayGroupCard>,            // label, days, range Display, steppers while editing
     val week: List<WeekBand>,                  // each weekday's band, 0..1 on a shared scale
     val canAddGroup: Boolean,
@@ -338,7 +338,7 @@ data class TargetsState(
 | Action | Does |
 |---|---|
 | `InputsArrived(settings, policy)` | |
-| `GoalStyleTapped` | `OpenGoalStyle` (the sheet below). |
+| `StylePicked(kind)` | Writes the style at once (design sync 4 replaced the goal style sheet; see "Goals and energy"). |
 | `StepTapped(end, up, group)` | The step inside `SettingsRepository.update`; blocked writes nothing and toasts `The low end can't go down until a dietitian sets a safe floor.` |
 | `DeficitStepped(up)` | As above; a blocked raise toasts `A bigger deficit needs a limit set with a dietitian first.` |
 | `DayTapped(group, day)` | Moves the day to that group. |
@@ -348,10 +348,9 @@ data class TargetsState(
 | `MacroModePicked(mode)` | `settings.macroMode`. |
 | `ModesTapped`, `BackTapped` | `OpenModes`, `Close`. |
 
-Burn: 0.1 has no burn source (the watch is 0.2, and no intake and weight
-estimate exists yet), so the view model passes `burnKcal = null`, the deficit
-card says it needs about two weeks of logging, and Today keeps the range.
-Fixtures pass a burn so the layout can be checked.
+Burn: 0.1 had no burn source. With `release.goalsAndEnergy` the view model
+reads today's Burned (see "Goals and energy"); without it, the deficit keeps
+the range and a surplus goes on top of the usual target.
 
 Not in 0.1: the Exercise adjustment row (no watch data), "My watch" as a
 burn source. "One number" and a set surplus came in 0.2, below. The macro card
@@ -379,31 +378,45 @@ branch; view model per action. Previews: `targets` (range), `targets-deficit`,
 `targets-by-day`, Blind. `SURFACES`: `targets`, `targets-deficit`,
 `targets-by-day` (`showsCaloriesInFull = true`).
 
-### One number and a set surplus (`release.goalStyles`)
+### Goals and energy (design sync 4, `release.goalsAndEnergy`)
 
-Two more styles, and the same two as a day group's shape under "Different by
-day". The flag gates what can be picked; a style already saved always shows,
-so a phone with the flag off never misreads a goal set on one with it on.
+Design sync 4's 13.2 (`targets-goal-style-v4`, `resting-energy`,
+`energy-today`). The flag gates one number and a set surplus in the list, a
+day group's shape, "Burned comes from", and the two new pages. A style
+already saved always shows, so a phone with the flag off never misreads a
+goal set on one with it on.
+
+**The goal style list (13.2e).** Targets lists the styles in one card:
+Range ("1,900 to 2,300 kcal" under it), One number, Set deficit, Set surplus,
+Different by day. A tap writes the style at once (`StylePicked`); the old
+goal style sheet and `GoalStyleRoute` are gone. The picked row opens its
+controls under it: the range's ends, one number's stepper, or the deficit or
+surplus stepper with "Today's target 1,680 · moves with what you burn".
+Different by day's groups follow the card. Deficit and surplus are Full
+numbers only (`TargetStyle.surplusAllowed` is `deficitAllowed`).
 
 - `TargetStyle.Exact`: one number, the aim (`energyKcal`). The range's ends
   are kept and move with it (`stepNumber`, 50 kcal, macros scaling in ratio
   mode), so switching back to a range lands around the number and the floor
   under the range is the floor under the number. `rangeFor` answers
   `DayGoal.Exact(kcal)`.
-- `TargetStyle.Surplus(kcal)`: a fixed amount over what the user burns, 0 to
-  `MAX_SURPLUS_KCAL` (500, `TODO(clinician)`: an engineer picked it). The
-  goal is `DayGoal.About((burn ?: aim) + surplus)`, rounded to 10 and never
-  under the floor. Unlike the deficit it does not wait on a burn: a surplus
-  can only put the goal above the aim, so starting from the aim is safe, and
-  the card says so (`Until what you burn is known, the surplus goes on top of
-  your usual target.`). Picked, it starts at 0 (or what the aim already
-  implies against a known burn), so nothing moves on the day it is picked.
-  Offered in every mode that shows Targets.
+- `TargetStyle.Deficit` and `Surplus(kcal, startingKcal)` aim at Burned:
+  `rangeFor(date, preset, burnKcal = burned.totalKcal)`, never under
+  `GOAL_FLOOR_KCAL` (or where the user started). **Owner's call
+  (2026-10-27), which overrides the design's working 500 kcal stepper:** the
+  deficit stays locked until a dietitian sets `MAX_DEFICIT_KCAL`, and the
+  surplus has the same kind of cap, `MAX_SURPLUS_KCAL: Int? = null`
+  (`TODO(clinician)`). Until set, each can come down but never grow past
+  where it started, which is what the aim already implies against Burned
+  when picked (0 without Burned). The lock and its note say why.
+- A surplus does not wait on Burned: until it is known it goes on top of the
+  aim (it can only put the goal above it), and the card says so.
 - Day groups: `DayGroup.shape` is `GroupShape.Range`, `Exact` (the group's
-  middle, both ends moving with it) or `Surplus(kcal)` (over the burn, or
-  the group's middle until it is known). Editing a group shows a `Range /
-  One number / Surplus` switch above the stepper for its shape. A new group
-  is a range. A set deficit is not offered per group.
+  middle, both ends moving with it) or `Surplus(kcal, startingKcal)` (over
+  Burned, or the group's middle until it is known, capped as the style is,
+  Full numbers only). Editing a group shows a `Range / One number / Surplus`
+  switch above the stepper for its shape. A new group is a range. A set
+  deficit is not offered per group.
 - Drawn as one number everywhere a range is drawn: Today's bar and the
   widget mark it with a line, Trends draws a thin line where the band was,
   the words say "goal" ("Your goal", "To your goal", "Close to your goal of
@@ -411,53 +424,60 @@ so a phone with the flag off never misreads a goal set on one with it on.
   meet, never "2,100 to 2,100".
 - Judging a day against one number (Close the day's sentence and the
   big-day card) allows `ONE_NUMBER_LEEWAY_KCAL` (100, `TODO(clinician)`)
-  either side, so a few bites past it are not a big day. Only the words
-  and the card use it; the goal and how it is drawn do not.
+  either side, so a few bites past it are not a big day.
 - Trends draws one band for a span: `Targets.spanGoal` is every day's goal,
   or under "Different by day" the lowest group goal to the highest.
 - Sync: the style travels as the top-level `targetStyle`, lifted out of
   `targets` by `SettingsSerializer`, because the server merges one level
   deep and 0.1 rewrites `targets` whole. A style saved inside `targets` by an
-  earlier 0.2 build still reads. `SettingsMergeAcrossVersionsTest` proves a
-  0.1 save keeps it.
+  earlier 0.2 build still reads.
+
+**Burned.** `BurnedRepository.burned(day)` (`:libraries:health`) is resting
+energy for the whole day plus the activity the health app has synced so far
+when "Add activity to Burned" is on (`Burned`, `:libraries:nutrition`).
+Resting energy comes from `Settings.restingSource`: Calculate (Mifflin–St
+Jeor from `birthYear`, `heightCm`, `bodySex` and the latest weigh-in,
+recalculated when a weight is logged; the default), the health app (its most
+recent whole day in the last week, falling back to the calculation) or
+Enter my own (500 to 5,000). Onboarding collects none of age, height or sex,
+so the Resting energy page asks for what is missing while Calculate is
+picked; until then there is no Burned and every page says so. `BodySex` has
+`Unsaid`, the midpoint of the equation's two constants. "Burned comes from"
+on Targets shows resting energy (energy out) and the activity source.
+
+**Resting energy (13.2d)**, `RestingEnergyRoute(fromEnergyToday)`. The three
+sources with what each gives now, the details the calculation needs, "Steps
+and workouts" (to Integrations) and "Add activity to Burned". Typed fields
+write only once sensible, so typing "1600" writes once. Every amount is
+energy out on `Surface.Settings`; with it hidden, no amount shows, not even
+the person's own.
+
+**Energy today (13.2c)**, `EnergyTodayRoute()`, for Today's summary card to
+link to. Eaten with its ± and "Likely 1,145 to 1,345. 5 of 7 foods are
+estimates.", Burned with resting, daily movement and workouts and where each
+comes from, then "Deficit so far" (or "Surplus so far") and "To your range".
+Eaten is calories and Burned energy out, both on `Surface.Today`; the deficit
+needs both on show. The ± is `Day.eatenUncertainty(usual)` (`:libraries:diary`,
+the math in `EatenUncertainty`, `:libraries:nutrition`): σ per food by how it
+was logged (weighed 5%, label 10%, estimate 25%, quick add 15%, a meal eaten
+with no details 40% of that meal's usual size, `UsualMealSize`), √Σσ²,
+rounded to 10.
 
 | Action | Does |
 |---|---|
+| `StylePicked(kind)` | Writes the style unless it is already saved or not offered (checked again inside the write). A deficit or surplus starts from Burned. |
 | `NumberStepped(up, group)` | One number, or day group `group`'s; a blocked lower writes nothing and toasts the floor. |
-| `SurplusStepped(up, group)` | The surplus, or day group `group`'s; at the cap writes nothing and toasts `That's as high as a surplus goes.` |
+| `SurplusStepped(up, group)` | The surplus, or day group `group`'s; at the cap writes nothing and toasts the lock's reason. |
 | `GroupShapePicked(group, shape)` | The group's shape; its range is kept for when it goes back. |
+| `RestingEnergyTapped`, `ActivityTapped` | `OpenRestingEnergy`, `OpenIntegrations`. |
 
-Previews: `targets-exact`, `targets-exact-at-floor`, `targets-surplus`,
-`targets-surplus-no-burn-yet`, `targets-surplus-large-text`,
-`targets-by-day-shapes`, `targets-by-day-surplus-dark`,
-`targets-goal-style-all`. `SURFACES`: `targets-exact`, `targets-surplus`,
-`targets-by-day-shapes`.
-
-## Goal style (sheet)
-
-`GoalStyleRoute()`, `bottomSheet<>`. `GoalStyleViewModel`. v3
-(`targets-goal-style.png`).
-
-```kotlin
-data class GoalStyleState(val options: List<StyleKind>, val selected: StyleKind)
-```
-
-`A set deficit` is in `options` only when `TargetStyle.deficitAllowed(preset)`
-(Full numbers, Sprint); in every other mode the row is not rendered. `One
-number` and `A set surplus` are there with `release.goalStyles`, or when
-already saved.
-
-| Action | Does |
-|---|---|
-| `InputsArrived(settings)` | |
-| `StylePicked(kind)` | Local selection. |
-| `DoneTapped` | Writes the style (`Targets.withStyle`), nothing when unchanged, then `Dismiss`. |
-
-Copy: `Goal style`; `A range` / `Anywhere between a low and high end`; `A set
-deficit` / `A fixed amount under what you burn`; `Different by day` / `Say,
-more on training days`; `One number` / `A single daily target`; `A set
-surplus` / `A fixed amount over what you burn`; `Done`. Previews: Full (`targets-goal-style`), Fuel
-(no deficit row). `SURFACES`: `targets-goal-style`.
+Previews: `targets-goal-style-v4`, `targets-exact`, `targets-exact-at-floor`,
+`targets-surplus`, `targets-surplus-no-burn-yet`, `targets-surplus-large-text`,
+`targets-by-day-shapes`, `targets-by-day-surplus-dark`, `resting-energy`,
+`resting-energy-needs-details`, `resting-energy-own-dark`,
+`resting-energy-large-text`, `energy-today`, `energy-today-no-burned-dark`,
+`energy-today-large-text`. `SURFACES`: `targets-goal-style`, `targets-exact`,
+`targets-surplus`, `targets-by-day-shapes`, `resting-energy`, `energy-today`.
 
 ---
 

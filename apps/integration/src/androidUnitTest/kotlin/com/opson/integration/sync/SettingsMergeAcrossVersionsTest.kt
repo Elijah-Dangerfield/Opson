@@ -8,9 +8,11 @@ import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.impl.DiarySyncApi
 import com.opson.libraries.diary.impl.wire.SyncRequestDto
 import com.opson.libraries.diary.impl.wire.SyncResponseDto
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RangeEnd
+import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.TargetStyle
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.json.JsonObject
@@ -27,7 +29,7 @@ import kotlin.time.Instant
  * leaves out what 0.2 added. The server merges a settings write into the stored
  * object instead of replacing it, one level deep, so a 0.1 save on one phone
  * must not wipe what a 0.2 phone set at the top level: meal times, the exercise
- * choice, the check-in switch, the photos choice and the goal style.
+ * choice, the check-in switch, the photos choice, the goal style and where Burned comes from.
  */
 class SettingsMergeAcrossVersionsTest : IntegrationTest() {
 
@@ -132,8 +134,8 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         val newPhone = client(user)
         newPhone.syncNow().getOrThrow()
         newPhone.settings.isKnown.awaitState { it }
-        val surplus = newPhone.settings.update { it.copy(targets = it.targets.useSurplus(burnKcal = null).stepSurplus(up = true)!!) }
-        assertEquals(TargetStyle.Surplus(50), surplus.targets.style)
+        val surplus = newPhone.settings.update { it.copy(targets = it.targets.useSurplus(burnKcal = 1800).stepSurplus(up = false)!!) }
+        assertEquals(TargetStyle.Surplus(250, 300), surplus.targets.style)
         newPhone.syncNow().getOrThrow()
 
         val oldPhone = client(user, wrapSync = ::OldClientWire)
@@ -155,7 +157,50 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
 
         newPhone.syncNow().getOrThrow()
         val settings = newPhone.settings.settings.awaitState { it.targets.maxKcal == 2350 }
-        assertEquals(TargetStyle.Surplus(50), settings.targets.style)
+        assertEquals(TargetStyle.Surplus(250, 300), settings.targets.style)
+    }
+
+    @Test
+    fun aV01Save_keepsWhereBurnedComesFrom() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        newPhone.settings.update {
+            it.copy(
+                restingSource = RestingSource.Own,
+                restingOwnKcal = 1600,
+                activityInBurned = false,
+                birthYear = 1990,
+                heightCm = 172.0,
+                bodySex = BodySex.Unsaid,
+            )
+        }
+        newPhone.syncNow().getOrThrow()
+
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        oldPhone.settings.update { it.copy(waterGlasses = 7) }
+        oldPhone.syncNow().getOrThrow()
+
+        val stored = server.query(
+            "SELECT settings->>'restingSource' AS source, (settings->>'restingOwnKcal')::int AS own, " +
+                "(settings->>'waterGlasses')::int AS glasses FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals(7, stored["glasses"], "the 0.1 save landed")
+        assertEquals("own", stored["source"], "the merge kept restingSource")
+        assertEquals(1600, stored["own"], "the merge kept restingOwnKcal")
+
+        newPhone.syncNow().getOrThrow()
+        val settings = newPhone.settings.settings.awaitState { it.waterGlasses == 7 }
+        assertEquals(RestingSource.Own, settings.restingSource)
+        assertEquals(1600, settings.restingOwnKcal)
+        assertFalse(settings.activityInBurned)
+        assertEquals(1990, settings.birthYear)
+        assertEquals(172.0, settings.heightCm)
+        assertEquals(BodySex.Unsaid, settings.bodySex)
     }
 
     @Test
@@ -178,6 +223,9 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
 
     private companion object {
         /** Keys 0.1 doesn't know, so drops on decode and never sends. */
-        val V02_KEYS = setOf("mealTimes", "exerciseRange", "checkIn", "progressPhotos", "targetStyle")
+        val V02_KEYS = setOf(
+            "mealTimes", "exerciseRange", "checkIn", "progressPhotos", "targetStyle",
+            "restingSource", "restingOwnKcal", "activityInBurned", "birthYear", "heightCm", "bodySex",
+        )
     }
 }
