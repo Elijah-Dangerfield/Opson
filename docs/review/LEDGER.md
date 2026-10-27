@@ -171,7 +171,7 @@ keeps existing ticks.
 - [x] `telemetry.properties`
 - [x] `versions.properties`
 
-## test-apps (38 files)
+## test-apps (39 files)
 
 - [x] `apps/integration/build.gradle.kts`
 - [x] `apps/integration/src/androidUnitTest/kotlin/android/database/SQLException.kt`
@@ -193,6 +193,7 @@ keeps existing ticks.
 - [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/onboarding/GuestOnboardingSyncTest.kt`
 - [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/security/SyncAuthorizationTest.kt`
 - [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/setup/HarnessSmokeTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/storage/RoomMigrationTest.kt`
 - [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/OfflineOutboxTest.kt`
 - [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/SettingsMergeAcrossVersionsTest.kt`
 - [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/TwoDeviceSyncTest.kt`
@@ -464,7 +465,7 @@ keeps existing ticks.
 - [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
 - [x] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
 
-## logger (63 files)
+## logger (60 files)
 
 - [x] `features/logger/build.gradle.kts`
 - [x] `features/logger/impl/build.gradle.kts`
@@ -482,8 +483,6 @@ keeps existing ticks.
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BasketCommitter.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoice.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoiceViews.kt`
-- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/HowItFelt.kt`
-- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/HowItFeltSheetContent.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerCommon.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFeatureEntryPoint.kt`
 - [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFixtures.kt`
@@ -519,7 +518,6 @@ keeps existing ticks.
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BasketStoreTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeVoiceViewModelTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/Fakes.kt`
-- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/HowItFeltTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerStateBuilderTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerViewModelTest.kt`
 - [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilderTest.kt`
@@ -1224,7 +1222,7 @@ keeps existing ticks.
 - [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/RepeatNavigationTest.kt`
 - [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/TabNavigationTest.kt`
 - [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowHostTest.kt`
-- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/features/profile/BugReportRoute.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/BugReportRoute.kt`
 - [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/DeepLinkBridge.kt`
 - [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/ErrorRoutes.kt`
 - [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/FeatureEntryPoint.kt`

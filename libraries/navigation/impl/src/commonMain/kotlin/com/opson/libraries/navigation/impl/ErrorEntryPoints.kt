@@ -10,10 +10,10 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.today.TodayRoute
 import com.opson.features.onboarding.SignInRoute
-import com.opson.features.profile.BugReportRoute
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.AccessDeniedRoute
 import com.opson.libraries.navigation.BlockingErrorRoute
+import com.opson.libraries.navigation.BugReportRoute
 import com.opson.libraries.navigation.ErrorDialogAction
 import com.opson.libraries.navigation.ErrorDialogRoute
 import com.opson.libraries.navigation.FeatureEntryPoint

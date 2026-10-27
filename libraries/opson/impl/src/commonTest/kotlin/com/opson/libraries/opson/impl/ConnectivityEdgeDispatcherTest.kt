@@ -114,7 +114,6 @@ class ConnectivityEdgeDispatcherTest : CoroutineTest() {
     private class FakeAppState(
         override val isOffline: MutableStateFlow<Boolean>,
     ) : AppState {
-        override val isBlockActive: StateFlow<Boolean> = MutableStateFlow(false)
     }
 
     private class RecordingBus : AppEventBus {

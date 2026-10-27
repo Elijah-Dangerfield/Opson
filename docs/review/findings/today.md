@@ -64,17 +64,15 @@
   `:libraries:ui` (the amount sheet uses it). Both TODOs now say what they wait for.
 - Same commit as 4.
 
-## 6. "Save as meal" from multi-select: deferred (cross-slice)
+## 6. "Save as meal" from multi-select: fixed
 
 - **Where:** `TodaySelectViews.kt` `Actions`, `TODO(design-sync-2)`.
 - **Rule:** design 2.12 draws Save as meal first in the select panel's row.
-- **Why deferred:** Create a meal lives in `:features:foods` and takes a day and slot
-  (`CreateMealRoute(fromDayIso, fromSlot)`), not a set of foods. The change: add
-  `val entryIds: List<String>? = null` to `CreateMealRoute`
-  (`features/foods/src/commonMain/kotlin/com/opson/features/foods/CreateMealRoute.kt`) and prefill
-  Create a meal from those entries on `fromDayIso`. Then this slice adds a `SaveAsMealTapped`
-  select action, a `TodayEvent.OpenCreateMeal(day, ids)` and the panel button with the
-  bookmark-plus icon, before Copy to….
+- **Fix:** "refactor(foods): let Create a meal start from chosen diary entries" gave
+  `CreateMealRoute` an `entryIds` argument; "fix(today): add Save as meal to the select panel" adds
+  `SaveAsMealTapped`, `TodayEvent.OpenCreateMeal(day, entryIds, slot)` and the panel button with
+  the bookmark-plus icon, before Copy to…. Behind `release.todaySelect` like the rest of the panel.
+  The slot is passed only when every pick sits in the same meal, so it can name the meal.
 
 ## 7. A time picker for Move: deferred
 

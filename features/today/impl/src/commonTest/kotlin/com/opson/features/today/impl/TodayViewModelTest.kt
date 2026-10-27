@@ -726,6 +726,42 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun saveAsMeal_opensCreateAMealWithThePicksAndStopsSelecting() = runUnitTest {
+        val vm = vm(selectOn = true)
+        val events = events(vm)
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+        vm.takeAction(TodayAction.FoodToggled(banana))
+
+        vm.takeAction(TodayAction.SaveAsMealTapped)
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCreateMeal(today, listOf(oats, banana), MealSlot.Breakfast)), events)
+        assertNull(vm.state.selection)
+    }
+
+    @Test
+    fun saveAsMeal_fromTwoMealsNamesNoMeal() = runUnitTest {
+        val vm = vm(selectOn = true)
+        val events = events(vm)
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+        vm.takeAction(TodayAction.FoodToggled(adobo))
+
+        vm.takeAction(TodayAction.SaveAsMealTapped)
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCreateMeal(today, listOf(oats, adobo), slot = null)), events)
+    }
+
+    @Test
+    fun selectFlagOff_saveAsMealOpensNothing() = runUnitTest {
+        val vm = vm(selectOn = false)
+        val events = events(vm)
+
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+        vm.takeAction(TodayAction.SaveAsMealTapped)
+
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
     fun moveToAMeal_movesThePicks() = runUnitTest {
         val vm = vm(selectOn = true)
         vm.takeAction(TodayAction.FoodLongPressed(adobo))

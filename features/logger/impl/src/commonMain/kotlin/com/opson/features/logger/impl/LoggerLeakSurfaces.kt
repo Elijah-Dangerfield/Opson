@@ -69,8 +69,5 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-photo-start", label = "Photo estimate, before the photo", showsCaloriesInFull = false) { policy ->
             PhotoEstimateSheetContent(state = PhotoFixtures.startState(policy, note = PhotoFixtures.NOTE), onAction = {})
         },
-        LeakSurface(id = "logger-how-it-felt", label = "How it felt", showsCaloriesInFull = false) { _ ->
-            HowItFeltSheetContent(state = LoggerFixtures.howItFeltState(), onAction = {})
-        },
     )
 }

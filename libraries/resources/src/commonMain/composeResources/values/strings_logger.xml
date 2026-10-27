@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Copy for the logger: the center + sheet (search, Describe it, Saved meals),
-  the amount sheet and How it felt. Verbatim from design v3 where it has the
+  and the amount sheet. Verbatim from design v3 where it has the
   line, then the handoff prototype. Same rules as strings.xml: no backslash
   escapes, positional %1$s arguments.
 -->
@@ -93,7 +93,6 @@
     <string name="logger_amount_protein">Protein</string>
     <string name="logger_amount_carbs">Carbs</string>
     <string name="logger_amount_fat">Fat</string>
-    <string name="logger_hunger_bit">Peckish</string>
     <string name="logger_amount_keep_going">Pick and keep going</string>
     <string name="logger_amount_meal">Meal</string>
     <string name="logger_amount_meal_cd">Meal, %1$s</string>
@@ -151,17 +150,5 @@
     <string name="logger_micro_of_daily">%1$s of a day</string>
     <string name="logger_amount_loading_cd">Loading this food</string>
     <string name="logger_amount_missing">This food needs a connection to open.</string>
-
-    <!-- How it felt -->
-    <string name="logger_felt_title">How was %1$s?</string>
-    <string name="logger_felt_subtitle">Everything here is optional, and only you see it.</string>
-    <string name="logger_felt_hunger">Hunger before</string>
-    <string name="logger_felt_hunger_very">Very hungry</string>
-    <string name="logger_felt_fullness">Fullness after</string>
-    <string name="logger_felt_fullness_too">Too full</string>
-    <string name="logger_felt_mood">Mood · pick any</string>
-    <string name="logger_felt_note">Add a note</string>
-    <string name="logger_felt_skip">Skip</string>
-    <string name="logger_felt_save">Save</string>
 
 </resources>

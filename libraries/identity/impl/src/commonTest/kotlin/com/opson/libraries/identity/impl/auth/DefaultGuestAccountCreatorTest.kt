@@ -265,7 +265,6 @@ class DefaultGuestAccountCreatorTest : CoroutineTest() {
     private class FakeAppState(
         override val isOffline: MutableStateFlow<Boolean> = MutableStateFlow(false),
     ) : AppState {
-        override val isBlockActive: MutableStateFlow<Boolean> = MutableStateFlow(false)
     }
 
     private object InMemoryCacheFactory : CacheFactory {

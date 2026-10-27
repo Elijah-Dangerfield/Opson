@@ -55,6 +55,3 @@ internal fun List<LogDraft>.totalKcal(): Double? =
 
 /** The amount sheet stacks on the logger with a strip of it still showing above (3.3). */
 internal const val AMOUNT_HEIGHT_FRACTION = 0.9f
-
-/** How it felt: tall enough for every question and the note without scrolling (3.10). */
-internal const val HOW_IT_FELT_HEIGHT_FRACTION = 0.8f

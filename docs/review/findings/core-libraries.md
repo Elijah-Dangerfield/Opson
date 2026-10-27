@@ -5,7 +5,7 @@ networking, opson, progressphotos, review, storage, telemetry. Each finding name
 the place, the rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its
 fate. Line numbers are from before the fix.
 
-Counts: 31 fixed, 15 deferred (6 of them cross-slice), 5 not a problem (each a group of checks).
+Counts: 34 fixed, 12 deferred (3 of them cross-slice), 5 not a problem (each a group of checks).
 
 ## Identity, networking, flowroutines and core
 
@@ -202,14 +202,15 @@ Counts: 31 fixed, 15 deferred (6 of them cross-slice), 5 not a problem (each a g
 - **Why deferred:** needs a status flow on `SupabaseAuthGateway` and its fakes.
   `TODO(review)` in place.
 
-### 17. `AppState.isBlockActive` is never read: deferred (cross-slice)
+### 17. `AppState.isBlockActive` is never read: fixed (cross-slice)
 
 - **Where:** `libraries/core/.../AppState.kt:7`, `AppStateImpl.kt:78`.
 - **Rule:** §1 no speculative generality.
 - **Change:** delete the property from `AppState` and `AppStateImpl`, and the
   overrides in `features/logger/impl/src/commonTest/.../Fakes.kt:409` and
   `libraries/ui/src/commonMain/.../Preview.kt:160` (plus the identity and opson
-  test fakes in this slice). `TODO(review)` in place.
+  test fakes in this slice). Done by the orchestrator: "refactor(core): drop
+  AppState.isBlockActive, which nothing read".
 
 ### 18. Smaller things checked: not a problem
 
@@ -289,11 +290,12 @@ Counts: 31 fixed, 15 deferred (6 of them cross-slice), 5 not a problem (each a g
 - **Where:** `AndroidFileShareLauncher.kt:30`, `IosFileShareLauncher.kt:47`.
 - **Why:** making `FileShareLauncher.share` suspend changes the interface for a few milliseconds of cost today.
 
-### 29. `BugReportRoute` sits in a feature package inside a library: deferred (cross-slice)
+### 29. `BugReportRoute` sits in a feature package inside a library: fixed (cross-slice)
 
 - **Change:** move `libraries/navigation/src/commonMain/kotlin/com/opson/features/profile/BugReportRoute.kt`
   to `com.opson.libraries.navigation` and update its importers in the home
-  feature and the app shell.
+  feature and the app shell. Done by the orchestrator: "refactor(navigation): move
+  BugReportRoute into com.opson.libraries.navigation".
 
 ### 30. Navigation items checked: not a problem
 
@@ -412,12 +414,15 @@ Counts: 31 fixed, 15 deferred (6 of them cross-slice), 5 not a problem (each a g
 
 - "docs(telemetry): point GrafanaLogTree at the app-events doc that exists".
 
-### 48. No test runs the Room migrations 5 to 9: deferred (cross-slice)
+### 48. No test runs the Room migrations 5 to 9: fixed (cross-slice)
 
 - **Change (test-apps):** add a `RoomMigrationTest` to `:apps:integration` that,
   for each version 5 to 8, builds a file database from the exported schema JSON
   with `BundledSQLiteDriver`, sets `user_version`, inserts a `log_entries` row,
   reopens it with `Room.databaseBuilder<AppDatabase>` and asserts the row survives.
+- **Fix:** "test(integration): Room migrations from schema 5, 6, 7 and 8 keep every row". It
+  fills every table of the old schema, opens the file through `RealAppDatabaseProvider` and
+  compares every value; dropping `AutoMigration(7, 8)` fails it.
 
 ### 49. The Grafana SDK is built on main at cold start: deferred
 
@@ -445,7 +450,7 @@ Counts: 31 fixed, 15 deferred (6 of them cross-slice), 5 not a problem (each a g
    add `phone.lifecycle.background()` before each re-foreground. Required by
    finding 32: without it `RemoteFlagTest` times out, since it foregrounds twice
    with no background, which no device does.
-3. **test-apps:** the `RoomMigrationTest` in finding 48.
+3. **test-apps:** the `RoomMigrationTest` in finding 48. Done.
 4. **repo root:** `AGENTS.md:117`, replace "see `ExampleUserScopedSyncer` for the
    two-line registration recipe" with "see the `UserScopedSyncer` KDoc for the
    registration recipe".
@@ -453,8 +458,8 @@ Counts: 31 fixed, 15 deferred (6 of them cross-slice), 5 not a problem (each a g
    "`exception_type`/`exception_message` when a throwable was attached" to
    "`exception_type` (never the message, which can carry URLs and response
    bodies) when a throwable was attached".
-6. **logger and ui:** remove the `isBlockActive` overrides with finding 17.
-7. **home and apps-shells:** move `BugReportRoute` (finding 29).
+6. **logger and ui:** remove the `isBlockActive` overrides with finding 17. Done.
+7. **home and apps-shells:** move `BugReportRoute` (finding 29). Done.
 8. **apps-shells:** `apps/compose/src/androidMain/AndroidManifest.xml:36` says
    MainActivity forwards links to the `DeepLinkBridge`; `MainActivity` does not
    (only reminder and widget taps). Forward `intent.data` to

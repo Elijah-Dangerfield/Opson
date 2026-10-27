@@ -39,7 +39,7 @@ data class MealDraft(
 
 sealed interface CreateMealAction {
     data class PolicyArrived(val policy: VisibilityPolicy) : CreateMealAction
-    data class PrefillArrived(val slot: MealSlot, val items: List<LogDraft>) : CreateMealAction
+    data class PrefillArrived(val slot: MealSlot?, val items: List<LogDraft>) : CreateMealAction
     data class NameTyped(val text: String) : CreateMealAction
     data class UsualSlotPicked(val slot: MealSlot) : CreateMealAction
     data class ItemRemoveTapped(val index: Int) : CreateMealAction

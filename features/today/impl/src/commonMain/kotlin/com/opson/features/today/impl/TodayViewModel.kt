@@ -237,6 +237,7 @@ class TodayViewModel(
             }
             TodayAction.SelectAllTapped -> action.rebuild { copy(selected = inputs?.day?.allItems.orEmpty().mapTo(LinkedHashSet()) { it.id }) }
             TodayAction.SelectionClosed -> action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+            TodayAction.SaveAsMealTapped -> saveSelectedAsMeal(action)
             TodayAction.CopyToTapped -> action.rebuild { copy(step = SelectStep.CopyTo(slot = firstSelectedSlot())) }
             is TodayAction.CopyDayPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(day = action.day) ?: step) }
             is TodayAction.CopySlotPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(slot = action.slot) ?: step) }
@@ -288,6 +289,20 @@ class TodayViewModel(
             delay(LoggedToMeal.UNDO_WINDOW)
             takeAction(TodayAction.RemovedUndoExpired(token))
         }
+    }
+
+    /** Create a meal from the picks. Selecting ends here, as after Copy and Move. */
+    private suspend fun saveSelectedAsMeal(action: TodayAction) {
+        val ids = state.selection?.ids.orEmpty()
+        if (ids.isEmpty()) return
+        val slot = model.inputs?.day?.allItems.orEmpty()
+            .filter { it.id in ids }
+            .map { it.slot }
+            .distinct()
+            .singleOrNull()
+            ?.takeIf { it.isMeal }
+        action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+        sendEvent(TodayEvent.OpenCreateMeal(day(), ids.toList(), slot))
     }
 
     private suspend fun copySelected(action: TodayAction) {

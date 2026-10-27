@@ -1,7 +1,5 @@
-package com.opson.features.profile
+package com.opson.libraries.navigation
 
-import com.opson.libraries.navigation.NavigableWhileBlocked
-import com.opson.libraries.navigation.TrackableRoute
 import kotlinx.serialization.Serializable
 
 @Serializable

@@ -406,7 +406,6 @@ class RecordingBarcodeTelemetry : BarcodeTelemetry {
 
 class FakeAppState(offline: Boolean = false) : AppState {
     override val isOffline = MutableStateFlow(offline)
-    override val isBlockActive: StateFlow<Boolean> = MutableStateFlow(false)
 }
 
 /** `release.photo` as the remote config would set it. */

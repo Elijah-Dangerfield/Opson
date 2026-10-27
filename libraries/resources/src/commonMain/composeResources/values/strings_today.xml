@@ -261,6 +261,7 @@
     <string name="today_select_all_cd">Select every food</string>
     <string name="today_select_foods_one">1 food</string>
     <string name="today_select_foods_other">%1$d foods</string>
+    <string name="today_select_save_meal">Save as meal</string>
     <string name="today_select_copy">Copy to…</string>
     <string name="today_select_move">Move</string>
     <string name="today_select_remove">Remove</string>

@@ -73,7 +73,7 @@ from [PRACTICES.md](../PRACTICES.md), what breaks, and its fate.
   Saved, the meal menu) opened with the keyboard still covering half of it.
 - **Fix:** "fix(logger): the keyboard goes away before the search opens a sheet or menu". UI only.
 
-## 6. How it felt is dead, and the design asks for it to go: deferred (cross-slice)
+## 6. How it felt is dead, and the design asks for it to go: fixed
 
 - **Where:** `HowItFelt.kt`, `HowItFeltSheetContent.kt`, `HowItFeltRoute` in
   `features/logger/.../LoggerRoute.kt`, its registration in `LoggerFeatureEntryPoint.kt`.
@@ -82,7 +82,7 @@ from [PRACTICES.md](../PRACTICES.md), what breaks, and its fate.
 - **Failure:** nothing navigates to `HowItFeltRoute` (Today's meal card opens its own
   `MealFeelRoute`), but the sheet, its view model, two previews, a leak surface and a test are
   all kept up, and the previews still publish a screen the design has dropped.
-- **Why deferred:** removing the surface turns `SurfacesCoverageTest` red. The change, in one go:
+- **Fix:** "refactor(logger): delete the unreachable How it felt sheet", by the orchestrator in one go:
   in this slice delete `HowItFelt.kt`, `HowItFeltSheetContent.kt`, `HowItFeltTest.kt`,
   `HowItFeltRoute`, the `bottomSheet<HowItFeltRoute>` block and `howItFeltViewModelFactory` in
   `LoggerFeatureEntryPoint`, `LoggerHowItFeltPreview` and `LoggerHowItFeltDarkPreview` (and the
@@ -90,8 +90,9 @@ from [PRACTICES.md](../PRACTICES.md), what breaks, and its fate.
   `LoggerLeakSurfaces.kt`, `LoggerFixtures.howItFeltState`, and `HOW_IT_FELT_HEIGHT_FRACTION`; outside
   it remove `"logger-how-it-felt"` from `REQUIRED_SURFACES` in
   `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/SurfacesCoverageTest.kt:99` and the
-  `logger-how-it-felt` mention in `docs/plans/screens/blind-leak-test.md:155`. A `TODO(review)`
-  sits on `HowItFeltRoute`, and its KDoc and `HowItFelt`'s no longer claim the logger opens it.
+  `logger-how-it-felt` mention in `docs/plans/screens/blind-leak-test.md:155`. Its strings
+  (`logger_felt_*`, `logger_hunger_bit`) went too, and `docs/plans/screens/logger.md` no longer
+  says the route stays.
 
 ## 7. `LogRoute` had no callers: fixed, docs deferred (cross-slice)
 

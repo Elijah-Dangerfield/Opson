@@ -403,6 +403,7 @@ sealed interface TodayAction {
     data class MealHeaderToggled(val slot: MealSlot) : TodayAction
     data object SelectAllTapped : TodayAction
     data object SelectionClosed : TodayAction
+    data object SaveAsMealTapped : TodayAction
     data object CopyToTapped : TodayAction
     data class CopyDayPicked(val day: CopyDay) : TodayAction
     data class CopySlotPicked(val slot: MealSlot) : TodayAction
@@ -437,6 +438,9 @@ sealed interface TodayEvent {
     data class OpenDayNote(val day: LocalDate) : TodayEvent
     data class OpenMealSheet(val day: LocalDate, val slot: MealSlot) : TodayEvent
     data class OpenMealFeel(val day: LocalDate, val slot: MealSlot) : TodayEvent
+
+    /** Create a meal filled with [entryIds] from [day]; [slot] when they all sit in that one meal. */
+    data class OpenCreateMeal(val day: LocalDate, val entryIds: List<String>, val slot: MealSlot?) : TodayEvent
     data class OpenItemSheet(val day: LocalDate, val entryId: String) : TodayEvent
     data class OpenWaterSheet(val day: LocalDate) : TodayEvent
     data object OpenTodayCards : TodayEvent

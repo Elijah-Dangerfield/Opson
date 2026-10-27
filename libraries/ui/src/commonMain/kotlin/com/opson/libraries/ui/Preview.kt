@@ -111,5 +111,4 @@ private val ThemeBackground = ColorResource.FromColor(Color.Unspecified, "previe
 val PreviewAppState = object : AppState {
     override val isOffline: StateFlow<Boolean> = MutableStateFlow(false)
 
-    override val isBlockActive: StateFlow<Boolean> = MutableStateFlow(false)
 }
