@@ -42,7 +42,7 @@ import com.opson.libraries.ui.components.TrendLine
 import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.text.MaskedTextField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.MinTouchTarget
@@ -296,7 +296,7 @@ private fun GapNote(text: StringResource) {
 private fun HiddenCard() {
     WeightCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            IconTile(icon = AppIcons.VisibilityOff, tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint))
+            ToneIcon(icon = AppIcons.VisibilityOff, tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint))
             Text(text = stringResource(Res.string.trends_weight_hidden_title), typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink)
         }
         Text(text = stringResource(Res.string.trends_weight_hidden_body), typography = AppTheme.type.body, color = AppTheme.colors.muted)

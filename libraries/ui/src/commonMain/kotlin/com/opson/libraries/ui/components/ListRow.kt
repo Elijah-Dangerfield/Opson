@@ -18,8 +18,8 @@ import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.IconTile
-import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.libraries.ui.components.icon.ToneIcon
+import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.RowIcon
 import com.opson.libraries.ui.components.text.Text
@@ -31,15 +31,15 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * The handoff's list row (Foods, the logger's Recent and Usual picks, More pages): an optional
- * icon tile, a title with an optional subtitle, optional trailing text and an optional trailing
+ * icon, a title with an optional subtitle, optional trailing text and an optional trailing
  * action such as a [RoundIconButton] or a chevron.
  *
  * Texts arrive formatted. A nutrition figure on the right should come in through [trailing] as
  * a `NutrientValue`, which carries the metric test tag; [trailingText] is for anything else.
  * [onClick] covers the icon and the text, not the trailing action, which handles its own taps.
  * [subtitleContent] replaces [subtitle] when the subtitle carries a number that must render
- * through a tagged nutrient text. [iconTile] false draws the icon alone ([RowIcon]) in the tone's
- * content color, as Today's rows do.
+ * through a tagged nutrient text. The icon draws alone ([RowIcon]) in the
+ * tone's content color, never on a tinted square (the owner's call, 2026-10-27).
  */
 @Composable
 fun ListRow(
@@ -48,7 +48,6 @@ fun ListRow(
     subtitle: String? = null,
     icon: IconResource? = null,
     iconTone: ToneColors? = null,
-    iconTile: Boolean = true,
     trailingText: String? = null,
     onClick: (() -> Unit)? = null,
     showDivider: Boolean = false,
@@ -74,11 +73,7 @@ fun ListRow(
             ) {
                 if (icon != null) {
                     val tone = iconTone ?: ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint)
-                    if (iconTile) {
-                        IconTile(icon = icon, tone = tone, size = IconTileSize.Medium)
-                    } else {
-                        RowIcon(icon = icon, color = tone.content)
-                    }
+                    RowIcon(icon = icon, color = tone.content)
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(

@@ -20,8 +20,8 @@ import com.opson.libraries.reminders.ReminderKey
 import com.opson.libraries.reminders.ReminderPlanner
 import com.opson.libraries.reminders.ReminderText
 import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.IconTile
-import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.libraries.ui.components.icon.ToneIcon
+import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.background
@@ -47,11 +47,10 @@ fun ReminderNotificationCard(text: ReminderText, modifier: Modifier = Modifier) 
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-            IconTile(
+            ToneIcon(
                 icon = AppIcons.Restaurant,
-                contentColor = AppTheme.colors.onAccent,
-                containerColor = AppTheme.colors.accent,
-                size = IconTileSize.Small,
+                color = AppTheme.colors.onAccent,
+                size = ToneIconSize.Small,
             )
             Text(text = stringResource(Res.string.reminders_note_app), typography = AppTheme.type.secondaryStrong.Bold, color = AppTheme.colors.muted)
             Text(text = stringResource(Res.string.reminders_note_now), typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)

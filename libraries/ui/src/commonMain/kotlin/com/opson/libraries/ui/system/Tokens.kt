@@ -41,8 +41,6 @@ class AppShapes internal constructor() {
     /** Search field, primary buttons, stepper buttons, banners. */
     val inputLarge: Shape = RoundedCornerShape(14.dp)
 
-    /** Icon tiles at the default 38dp and larger. */
-    val iconTile: Shape = RoundedCornerShape(12.dp)
 
     /** The selected thumb inside a segmented control. */
     val segmentThumb: Shape = RoundedCornerShape(10.dp)

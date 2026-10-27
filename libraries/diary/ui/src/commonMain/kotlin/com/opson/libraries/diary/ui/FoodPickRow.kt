@@ -92,7 +92,7 @@ fun FoodPickRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            if (kind != null) FoodIconTile(kind = kind) else FoodIconTile(seed = iconSeed)
+            if (kind != null) FoodIcon(kind = kind) else FoodIcon(seed = iconSeed)
             Column(
                 modifier = Modifier
                     .weight(1f)

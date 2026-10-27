@@ -21,7 +21,7 @@ import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.background
@@ -48,7 +48,7 @@ fun PromptCard(
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            IconTile(icon = icon, tone = tone)
+            ToneIcon(icon = icon, tone = tone)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
                 Text(text = body, typography = AppTheme.type.body, color = AppTheme.colors.muted)

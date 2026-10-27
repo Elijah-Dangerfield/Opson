@@ -21,58 +21,50 @@ import com.opson.system.color.ToneColors
 import com.opson.system.thenIf
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/** Tile sizes the handoff uses. [Medium] is the one on cards and rows. */
-enum class IconTileSize(val tile: Dp, val icon: Dp, val corner: Dp) {
+/**
+ * Sizes for a [ToneIcon]: [box] is the space it takes in a layout (what the handoff's tinted
+ * square took, so rows keep their alignment) and [icon] the glyph drawn in it. [Medium] is the
+ * one on cards and rows.
+ */
+enum class ToneIconSize(val box: Dp, val icon: Dp) {
     /** Preset rows and compact lists. */
-    Small(tile = 36.dp, icon = 20.dp, corner = 11.dp),
+    Small(box = 36.dp, icon = 26.dp),
 
     /** Meal cards, food rows, Foods create rows. */
-    Medium(tile = 38.dp, icon = 22.dp, corner = 12.dp),
+    Medium(box = 38.dp, icon = 28.dp),
 
-    /** Touch-size tiles. */
-    Large(tile = 44.dp, icon = 24.dp, corner = 12.dp),
+    /** Touch-size icons. */
+    Large(box = 44.dp, icon = 30.dp),
 
     /** The glyph over an empty state ("No match for ... yet"). */
-    Huge(tile = 64.dp, icon = 32.dp, corner = 20.dp),
+    Huge(box = 64.dp, icon = 44.dp),
 }
 
 /**
- * A rounded square with a tinted background and a colored icon, e.g. the meal tiles and the
- * water tile. Take [tone] from `AppTheme.colors.meal(...)` or `AppTheme.colors.nutrients`.
+ * A colored icon in a fixed box, e.g. a meal's or water's icon. Take [tone] from
+ * `AppTheme.colors.meal(...)` or `AppTheme.colors.nutrients`; only its content color is drawn.
+ * The handoff put these on tinted rounded squares; the owner removed the squares everywhere
+ * on 2026-10-27, so nothing draws behind the icon.
  */
 @Composable
-fun IconTile(
+fun ToneIcon(
     icon: IconResource,
     tone: ToneColors,
     modifier: Modifier = Modifier,
-    size: IconTileSize = IconTileSize.Medium,
+    size: ToneIconSize = ToneIconSize.Medium,
 ) {
-    IconTile(
-        icon = icon,
-        contentColor = tone.content,
-        containerColor = tone.container,
-        modifier = modifier,
-        size = size,
-    )
+    ToneIcon(icon = icon, color = tone.content, modifier = modifier, size = size)
 }
 
 @Composable
-fun IconTile(
+fun ToneIcon(
     icon: IconResource,
-    contentColor: ColorResource,
-    containerColor: ColorResource,
+    color: ColorResource,
     modifier: Modifier = Modifier,
-    size: IconTileSize = IconTileSize.Medium,
+    size: ToneIconSize = ToneIconSize.Medium,
 ) {
-    val shape = RoundedCornerShape(size.corner)
-    Box(
-        modifier = modifier
-            .size(size.tile)
-            .clip(shape)
-            .background(containerColor),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon = icon, size = size.icon, color = contentColor)
+    Box(modifier = modifier.size(size.box), contentAlignment = Alignment.Center) {
+        Icon(icon = icon, size = size.icon, color = color)
     }
 }
 
@@ -133,14 +125,14 @@ fun RoundIconButton(
 
 @Preview
 @Composable
-private fun IconTilePreview() {
+private fun ToneIconPreview() {
     PreviewLightDark {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             MealTone.entries.forEach { meal ->
-                IconTile(icon = AppIcons.meal(meal), tone = AppTheme.colors.meal(meal))
+                ToneIcon(icon = AppIcons.meal(meal), tone = AppTheme.colors.meal(meal))
             }
-            IconTile(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water, size = IconTileSize.Small)
-            IconTile(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water, size = IconTileSize.Large)
+            ToneIcon(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water, size = ToneIconSize.Small)
+            ToneIcon(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water, size = ToneIconSize.Large)
             RowIcon(icon = AppIcons.WaterDrop, color = AppTheme.colors.nutrients.water.content)
             RoundIconButton(icon = AppIcons.Add, onClick = {})
             RoundIconButton(icon = AppIcons.Check, onClick = {}, selected = true)

@@ -10,7 +10,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.color.MealTone
@@ -45,7 +45,7 @@ private fun MealSlotStylePreview() {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             MealSlot.entries.forEach { slot ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconTile(icon = slot.icon, tone = slot.tileColors())
+                    ToneIcon(icon = slot.icon, tone = slot.tileColors())
                     Text(text = stringResource(slot.label), typography = AppTheme.type.caption, color = AppTheme.colors.muted)
                 }
             }

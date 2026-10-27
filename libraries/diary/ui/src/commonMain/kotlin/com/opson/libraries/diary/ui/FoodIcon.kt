@@ -9,39 +9,39 @@ import com.opson.libraries.diary.FoodKind
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.IconTile
-import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.libraries.ui.components.icon.ToneIcon
+import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.system.AppTheme
 import com.opson.system.color.ToneColors
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * A food's tile. The catalog has no categories to pick an icon from, so every
+ * A food's icon. The catalog has no categories to pick an icon from, so every
  * food gets the fork and knife, tinted by a stable hash of [seed] (the food's
  * key or id) over the four nutrient tints. The same food is the same colour on
  * every screen and every launch, and neighbouring rows usually differ.
  */
 @Composable
-fun FoodIconTile(
+fun FoodIcon(
     seed: String,
     modifier: Modifier = Modifier,
-    size: IconTileSize = IconTileSize.Medium,
+    size: ToneIconSize = ToneIconSize.Medium,
 ) {
-    IconTile(icon = AppIcons.Restaurant, tone = foodTone(seed), modifier = modifier, size = size)
+    ToneIcon(icon = AppIcons.Restaurant, tone = foodTone(seed), modifier = modifier, size = size)
 }
 
 /**
- * A food's tile as design sync 2 draws it: a picture of the [kind] of food, tinted per kind
+ * A food's icon as design sync 2 draws it: a picture of the [kind] of food, tinted per kind
  * (grains and fruit carbs orange, greens and desserts fibre brown, dairy and drinks fat blue,
- * plates, fish and eggs protein pink). The tints only tell tiles apart; none means good or bad.
+ * plates, fish and eggs protein pink). The tints only tell foods apart; none means good or bad.
  */
 @Composable
-fun FoodIconTile(
+fun FoodIcon(
     kind: FoodKind,
     modifier: Modifier = Modifier,
-    size: IconTileSize = IconTileSize.Medium,
+    size: ToneIconSize = ToneIconSize.Medium,
 ) {
-    IconTile(icon = kind.icon, tone = kindTone(kind), modifier = modifier, size = size)
+    ToneIcon(icon = kind.icon, tone = kindTone(kind), modifier = modifier, size = size)
 }
 
 /** The glyph for a kind of food. */
@@ -70,7 +70,7 @@ private fun kindTone(kind: FoodKind): ToneColors {
     }
 }
 
-/** The tint [FoodIconTile] uses for [seed], for anything drawn around it (the favorites' round tile). */
+/** The tint [FoodIcon] uses for [seed], for anything drawn around it (the favorites' round tile). */
 @Composable
 fun foodTone(seed: String): ToneColors {
     val nutrients = AppTheme.colors.nutrients
@@ -97,10 +97,10 @@ internal object FoodTint {
 
 @Preview
 @Composable
-private fun FoodIconTilePreview() {
+private fun FoodIconPreview() {
     PreviewLightDark {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            listOf("f:banana", "f:rice", "f:yogurt", "c:granola", "f:adobo").forEach { FoodIconTile(seed = it) }
+            listOf("f:banana", "f:rice", "f:yogurt", "c:granola", "f:adobo").forEach { FoodIcon(seed = it) }
         }
     }
 }
@@ -110,7 +110,7 @@ private fun FoodIconTilePreview() {
 private fun FoodKindTilePreview() {
     PreviewLightDark {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FoodKind.entries.forEach { FoodIconTile(kind = it) }
+            FoodKind.entries.forEach { FoodIcon(kind = it) }
         }
     }
 }

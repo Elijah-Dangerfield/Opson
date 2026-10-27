@@ -60,7 +60,7 @@ import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.radio.RadioDot
 import com.opson.libraries.ui.components.text.Text
@@ -935,7 +935,7 @@ private fun BackgroundCard(onAction: (TargetsAction) -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            IconTile(
+            ToneIcon(
                 icon = AppIcons.VisibilityOff,
                 tone = ToneColors(content = AppTheme.colors.accent, container = AppTheme.colors.accentTint),
             )

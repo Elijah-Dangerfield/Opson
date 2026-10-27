@@ -457,7 +457,6 @@ private fun WeightCard(weight: WeightRow, dayLabel: RelativeDay, onAction: (Toda
             },
             icon = AppIcons.MonitorWeight,
             iconTone = ToneColors(AppTheme.colors.ink, AppTheme.colors.soft),
-            iconTile = false,
         ) {
             NutrientText(Metric.Weight, weight.display, typography = AppTheme.type.cardTitle.Tabular, color = AppTheme.colors.ink, maxLines = 1)
             ListRowChevron()

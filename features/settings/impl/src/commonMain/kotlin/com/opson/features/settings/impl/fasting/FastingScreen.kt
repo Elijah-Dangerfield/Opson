@@ -27,7 +27,7 @@ import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
@@ -143,7 +143,7 @@ private fun SwitchRow(
 private fun NotInThisMode() {
     EdgeCard(edgeToEdge = false, contentPadding = SettingsDefaults.CardInset, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconTile(icon = AppIcons.Schedule, tone = AppTheme.colors.nutrients.fiber)
+            ToneIcon(icon = AppIcons.Schedule, tone = AppTheme.colors.nutrients.fiber)
             Text(text = stringResource(Res.string.fasting_not_in_mode), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
         }
         Text(text = stringResource(Res.string.fasting_not_in_mode_body), typography = AppTheme.type.body, color = AppTheme.colors.muted)

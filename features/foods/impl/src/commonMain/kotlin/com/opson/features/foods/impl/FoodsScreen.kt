@@ -31,8 +31,8 @@ import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.IconTile
-import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.libraries.ui.components.icon.ToneIcon
+import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.background
@@ -186,7 +186,7 @@ private fun RowScope.Tile(icon: IconResource, tone: ToneColors, title: String, s
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        IconTile(icon = icon, tone = tone, size = IconTileSize.Small)
+        ToneIcon(icon = icon, tone = tone, size = ToneIconSize.Small)
         Spacer(Modifier.height(8.dp))
         Text(text = title, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
         Text(text = sub, typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)

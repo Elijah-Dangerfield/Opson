@@ -29,7 +29,7 @@ import com.opson.system.typography.rememberTypography
  * Box(Modifier.background(AppTheme.colors.hero.color, AppTheme.shapes.heroBlock))
  * Text("Water", typography = AppTheme.type.cardTitle)
  * Spacer(Modifier.height(AppTheme.spacing.section))
- * IconTile(AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water)
+ * ToneIcon(AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water)
  * ```
  *
  * [type] is the handoff's scale and is what new code uses. [typography] is the older role-named

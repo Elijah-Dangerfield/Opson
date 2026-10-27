@@ -55,8 +55,8 @@ import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconButton
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.IconTile
-import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.libraries.ui.components.icon.ToneIcon
+import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.SingleLineField
@@ -163,11 +163,10 @@ private fun CameraWindow(
             } else {
                 CircularProgressIndicator()
             }
-            else -> IconTile(
+            else -> ToneIcon(
                 icon = AppIcons.BarcodeScanner,
-                contentColor = AppTheme.colors.muted,
-                containerColor = AppTheme.colors.surface,
-                size = IconTileSize.Huge,
+                color = AppTheme.colors.muted,
+                size = ToneIconSize.Huge,
             )
         }
         if (state.torch != Torch.None) {

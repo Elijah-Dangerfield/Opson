@@ -10,7 +10,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.color.ToneColors
@@ -41,7 +41,7 @@ fun EmptyCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            if (icon != null) IconTile(icon = icon, tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint))
+            if (icon != null) ToneIcon(icon = icon, tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint))
             Text(
                 text = message,
                 typography = AppTheme.type.body,

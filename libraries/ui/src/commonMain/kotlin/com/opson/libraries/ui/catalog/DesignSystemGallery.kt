@@ -61,7 +61,7 @@ import com.opson.libraries.ui.components.chip.PillTag
 import com.opson.libraries.ui.components.icon.AppIconGrid
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.radio.RadioRow
 import com.opson.libraries.ui.components.text.Text
@@ -258,7 +258,7 @@ private fun ColorSection() {
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         MealTone.entries.forEach { meal ->
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                IconTile(icon = AppIcons.meal(meal), tone = c.meal(meal))
+                ToneIcon(icon = AppIcons.meal(meal), tone = c.meal(meal))
                 Text(meal.name, typography = AppTheme.type.caption, color = c.muted)
             }
         }
@@ -349,7 +349,7 @@ private fun CardsSection() {
     SectionTitle("Cards and rows")
     EdgeCard(contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 12.dp, bottom = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconTile(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water)
+            ToneIcon(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text("Water", typography = AppTheme.type.cardTitle)
@@ -362,7 +362,7 @@ private fun CardsSection() {
     }
     EdgeCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconTile(icon = AppIcons.meal(MealTone.Breakfast), tone = AppTheme.colors.meal(MealTone.Breakfast))
+            ToneIcon(icon = AppIcons.meal(MealTone.Breakfast), tone = AppTheme.colors.meal(MealTone.Breakfast))
             Column(Modifier.weight(1f)) {
                 Text("Breakfast", typography = AppTheme.type.cardTitle)
                 Text("8:10 am", typography = AppTheme.type.secondarySmall.Tabular, color = AppTheme.colors.muted)

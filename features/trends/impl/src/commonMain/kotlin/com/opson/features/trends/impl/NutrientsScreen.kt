@@ -37,7 +37,7 @@ import com.opson.libraries.ui.components.RangeBarDefaults
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.system.color.ColorResource
@@ -302,7 +302,7 @@ private fun PercentRow(row: MicroRow, color: ColorResource) {
 private fun MicrosOffCard(onModes: () -> Unit) {
     EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.InsetPadding, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            IconTile(icon = AppIcons.Science, tone = AppTheme.colors.nutrients.fiber)
+            ToneIcon(icon = AppIcons.Science, tone = AppTheme.colors.nutrients.fiber)
             Text(text = stringResource(Res.string.trends_micros_off_title), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
         }
         Text(text = stringResource(Res.string.trends_micros_off_body), typography = AppTheme.type.body, color = AppTheme.colors.muted)

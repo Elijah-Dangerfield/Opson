@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.ui.components.chip.ChoiceChip
 import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.IconTile
-import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.libraries.ui.components.icon.ToneIcon
+import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextInput
@@ -155,7 +155,7 @@ private fun NutritionCard(state: AddFoodState, onAction: (AddFoodAction) -> Unit
 private fun HiddenCard() {
     FormCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
-            IconTile(icon = AppIcons.VisibilityOff, tone = AppTheme.colors.nutrients.fiber, size = IconTileSize.Small)
+            ToneIcon(icon = AppIcons.VisibilityOff, tone = AppTheme.colors.nutrients.fiber, size = ToneIconSize.Small)
             Text(
                 text = stringResource(Res.string.foods_food_hidden_title),
                 typography = AppTheme.type.cardTitle,

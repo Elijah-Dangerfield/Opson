@@ -49,8 +49,8 @@ import com.opson.libraries.ui.components.chip.PillChipStyle
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconSize
-import com.opson.libraries.ui.components.icon.IconTile
-import com.opson.libraries.ui.components.icon.IconTileSize
+import com.opson.libraries.ui.components.icon.ToneIcon
+import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.SearchField
@@ -358,7 +358,7 @@ private fun NoResults(state: FoodSearchState, query: String, away: (SearchAction
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
     ) {
-        IconTile(icon = AppIcons.SearchOff, contentColor = AppTheme.colors.muted, containerColor = AppTheme.colors.soft, size = IconTileSize.Huge)
+        ToneIcon(icon = AppIcons.SearchOff, color = AppTheme.colors.muted, size = ToneIconSize.Huge)
         Text(
             text = stringResource(Res.string.logger_empty_title, query),
             typography = AppTheme.type.sheetTitle,
@@ -421,11 +421,10 @@ private fun PicksBar(picks: PicksFooter, onAction: (SearchAction) -> Unit) {
 @Composable
 private fun OptionsButton(active: Boolean, onClick: () -> Unit) {
     val description = stringResource(Res.string.search_options_cd)
-    IconTile(
+    ToneIcon(
         icon = AppIcons.Tune,
-        contentColor = if (active) AppTheme.colors.accent else AppTheme.colors.ink,
-        containerColor = if (active) AppTheme.colors.accentTint else AppTheme.colors.soft,
-        size = IconTileSize.Large,
+        color = if (active) AppTheme.colors.accent else AppTheme.colors.ink,
+        size = ToneIconSize.Large,
         modifier = Modifier
             .bounceClick(onClick = onClick)
             .semantics {
@@ -439,11 +438,10 @@ private fun OptionsButton(active: Boolean, onClick: () -> Unit) {
 @Composable
 private fun BarcodeButton(onClick: () -> Unit) {
     val description = stringResource(Res.string.barcode_scan_cd)
-    IconTile(
+    ToneIcon(
         icon = AppIcons.BarcodeScanner,
-        contentColor = AppTheme.colors.ink,
-        containerColor = AppTheme.colors.surface,
-        size = IconTileSize.Large,
+        color = AppTheme.colors.ink,
+        size = ToneIconSize.Large,
         modifier = Modifier
             .bounceClick(onClick = onClick)
             .semantics {
