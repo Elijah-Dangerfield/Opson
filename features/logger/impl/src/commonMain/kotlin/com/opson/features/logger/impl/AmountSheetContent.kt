@@ -38,6 +38,7 @@ import com.opson.libraries.diary.ui.label
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.testTag
@@ -106,19 +107,30 @@ import opson.libraries.resources.generated.resources.logger_amount_time_title
 import opson.libraries.resources.generated.resources.logger_amount_unfavorite_cd
 import opson.libraries.resources.generated.resources.logger_amount_unit_cd
 import opson.libraries.resources.generated.resources.logger_micro_calcium
+import opson.libraries.resources.generated.resources.logger_micro_choline
+import opson.libraries.resources.generated.resources.logger_micro_copper
 import opson.libraries.resources.generated.resources.logger_micro_folate
 import opson.libraries.resources.generated.resources.logger_micro_iron
 import opson.libraries.resources.generated.resources.logger_micro_magnesium
+import opson.libraries.resources.generated.resources.logger_micro_manganese
+import opson.libraries.resources.generated.resources.logger_micro_niacin
 import opson.libraries.resources.generated.resources.logger_micro_of_daily
+import opson.libraries.resources.generated.resources.logger_micro_phosphorus
 import opson.libraries.resources.generated.resources.logger_micro_potassium
+import opson.libraries.resources.generated.resources.logger_micro_riboflavin
+import opson.libraries.resources.generated.resources.logger_micro_selenium
 import opson.libraries.resources.generated.resources.logger_micro_sodium
+import opson.libraries.resources.generated.resources.logger_micro_thiamin
 import opson.libraries.resources.generated.resources.logger_micro_vitamin_a
 import opson.libraries.resources.generated.resources.logger_micro_vitamin_b12
+import opson.libraries.resources.generated.resources.logger_micro_vitamin_b6
 import opson.libraries.resources.generated.resources.logger_micro_vitamin_c
 import opson.libraries.resources.generated.resources.logger_micro_vitamin_d
 import opson.libraries.resources.generated.resources.logger_micro_vitamin_e
 import opson.libraries.resources.generated.resources.logger_micro_vitamin_k
 import opson.libraries.resources.generated.resources.logger_micro_zinc
+import opson.libraries.resources.generated.resources.logger_micros_minerals
+import opson.libraries.resources.generated.resources.logger_micros_vitamins
 import opson.libraries.resources.generated.resources.logger_precision_estimate
 import opson.libraries.resources.generated.resources.logger_precision_named
 import opson.libraries.resources.generated.resources.logger_precision_weighed
@@ -596,21 +608,31 @@ private fun NutrientsSection(nutrients: AllNutrients, onAction: (AmountAction) -
             Icon(icon = if (nutrients.open) AppIcons.ExpandMore else AppIcons.ChevronRight, size = IconSize.Medium, color = AppTheme.colors.muted)
         }
         if (nutrients.open) {
-            nutrients.rows.forEach { row ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = stringResource(row.micro.label), typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
-                    val shown = row.display
-                    when (shown) {
-                        is Display.Shown -> Text(
-                            text = stringResource(Res.string.logger_micro_of_daily, shown.text),
-                            typography = AppTheme.type.secondary.Tabular,
-                            color = AppTheme.colors.muted,
-                            modifier = Modifier.testTag(Metric.Micros.testTag()),
-                        )
-                        else -> NutrientText(metric = Metric.Micros, display = shown, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
-                    }
-                }
+            nutrients.groups.forEach { group ->
+                Text(
+                    text = stringResource(group.group.label),
+                    typography = AppTheme.type.secondarySmallStrong,
+                    color = AppTheme.colors.muted,
+                    modifier = Modifier.padding(top = AppTheme.spacing.row),
+                )
+                group.rows.forEach { row -> NutrientLine(row) }
             }
+        }
+    }
+}
+
+@Composable
+private fun NutrientLine(row: NutrientRow) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text = stringResource(row.micro.label), typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+        when (val shown = row.display) {
+            is Display.Shown -> Text(
+                text = stringResource(Res.string.logger_micro_of_daily, shown.text),
+                typography = AppTheme.type.secondary.Tabular,
+                color = AppTheme.colors.muted,
+                modifier = Modifier.testTag(Metric.Micros.testTag()),
+            )
+            else -> NutrientText(metric = Metric.Micros, display = shown, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
         }
     }
 }
@@ -688,6 +710,12 @@ private val FoodOrigin.label: StringResource
         FoodOrigin.Yours -> Res.string.logger_source_yours
     }
 
+private val MicroGroup.label: StringResource
+    get() = when (this) {
+        MicroGroup.Vitamins -> Res.string.logger_micros_vitamins
+        MicroGroup.Minerals -> Res.string.logger_micros_minerals
+    }
+
 private val Micronutrient.label: StringResource
     get() = when (this) {
         Micronutrient.VitaminA -> Res.string.logger_micro_vitamin_a
@@ -703,6 +731,15 @@ private val Micronutrient.label: StringResource
         Micronutrient.Potassium -> Res.string.logger_micro_potassium
         Micronutrient.Sodium -> Res.string.logger_micro_sodium
         Micronutrient.Zinc -> Res.string.logger_micro_zinc
+        Micronutrient.Thiamin -> Res.string.logger_micro_thiamin
+        Micronutrient.Riboflavin -> Res.string.logger_micro_riboflavin
+        Micronutrient.Niacin -> Res.string.logger_micro_niacin
+        Micronutrient.VitaminB6 -> Res.string.logger_micro_vitamin_b6
+        Micronutrient.Choline -> Res.string.logger_micro_choline
+        Micronutrient.Copper -> Res.string.logger_micro_copper
+        Micronutrient.Manganese -> Res.string.logger_micro_manganese
+        Micronutrient.Phosphorus -> Res.string.logger_micro_phosphorus
+        Micronutrient.Selenium -> Res.string.logger_micro_selenium
     }
 
 private val COUNT_WIDTH = 64.dp

@@ -82,7 +82,7 @@ class NutrientsStateBuilderTest {
         assertEquals(false, state.microsOff)
         val groups = assertNotNull(state.micros)
         assertEquals(listOf(MicroGroup.Vitamins, MicroGroup.Minerals), groups.map { it.group })
-        assertEquals(listOf(7, 6), groups.map { it.rows.size })
+        assertEquals(listOf(12, 10), groups.map { it.rows.size })
         val sodium = groups[1].rows.single { it.micro == Micronutrient.Sodium }
         assertEquals("2,300 mg limit", sodium.reference)
         assertTrue(sodium.isLimit)

@@ -160,6 +160,11 @@ private fun LoggerAmountDarkPreview() = Amount(LoggerFixtures.amountState(full),
 @Composable
 private fun LoggerAmountBlindPreview() = Amount(LoggerFixtures.amountState(blind))
 
+/** All nutrients open, tall enough to show every vitamin and mineral the plate carries. */
+@Preview(widthDp = 390, heightDp = 1800)
+@Composable
+private fun LoggerAmountNutrientsPreview() = Amount(LoggerFixtures.amountState(full, nutrientsOpen = true))
+
 /** 3.3b: the unit menu, each unit with its weight, then "Custom size…". */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

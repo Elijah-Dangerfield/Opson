@@ -84,6 +84,15 @@
     <string name="trends_micro_potassium">Potassium</string>
     <string name="trends_micro_sodium">Sodium</string>
     <string name="trends_micro_zinc">Zinc</string>
+    <string name="trends_micro_thiamin">Thiamin (B1)</string>
+    <string name="trends_micro_riboflavin">Riboflavin (B2)</string>
+    <string name="trends_micro_niacin">Niacin (B3)</string>
+    <string name="trends_micro_vitamin_b6">Vitamin B6</string>
+    <string name="trends_micro_choline">Choline</string>
+    <string name="trends_micro_copper">Copper</string>
+    <string name="trends_micro_manganese">Manganese</string>
+    <string name="trends_micro_phosphorus">Phosphorus</string>
+    <string name="trends_micro_selenium">Selenium</string>
     <string name="trends_micro_of">of %1$s</string>
     <string name="trends_micro_of_limit">of a %1$s</string>
     <string name="trends_micros_caption">Percent of a typical daily target. Most people land under on some and over on others, and that's fine. A week tells you more than a day does.</string>
