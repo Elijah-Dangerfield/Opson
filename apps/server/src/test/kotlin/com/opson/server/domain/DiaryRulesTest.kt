@@ -51,6 +51,15 @@ class DiaryRulesTest {
     }
 
     @Test
+    fun textPostgresCannotStoreIsRefused() {
+        assertEquals("name contains a NUL character", DiaryRules.validate(entry(name = "Ban\u0000ana"), now))
+        assertNotNull(DiaryRules.validate(entry(micros = mapOf("sodium\u0000" to 1.0)), now))
+        val settings = UserSettings("""{"name":"a\u0000b"}""", null, now, false)
+        assertEquals("settings contains a NUL character", DiaryRules.validate(settings, now))
+        assertNull(DiaryRules.validate(UserSettings("""{"name":"ab"}""", null, now, false), now))
+    }
+
+    @Test
     fun microsAreCheckedToo() {
         assertNull(DiaryRules.validate(entry(micros = mapOf("sodium_mg" to 1.0)), now))
         assertNotNull(DiaryRules.validate(entry(micros = mapOf("sodium_mg" to -1.0)), now))

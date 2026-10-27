@@ -14,6 +14,7 @@ import com.opson.server.plugins.JwtVerification
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.installAdminWeb
 import com.opson.server.plugins.installAuthentication
+import com.opson.server.plugins.installBodyLimit
 import com.opson.server.plugins.installCors
 import com.opson.server.plugins.installHttpServerTracing
 import com.opson.server.plugins.installObservability
@@ -22,7 +23,6 @@ import com.opson.server.plugins.installRateLimits
 import com.opson.server.plugins.installSentry
 import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
-import com.opson.server.plugins.installWebSockets
 import com.opson.server.routes.appConfigRoutes
 import com.opson.server.routes.barcodeMissRoutes
 import com.opson.server.routes.configAdminRoutes
@@ -32,7 +32,6 @@ import com.opson.server.routes.foodRoutes
 import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
 import com.opson.server.routes.photoRoutes
-import com.opson.server.routes.playerReportRoutes
 import com.opson.server.routes.syncRoutes
 import com.opson.server.routes.waitlistAdminRoutes
 import com.opson.server.routes.waitlistRoutes
@@ -100,7 +99,7 @@ fun Application.module(config: ServerConfig) {
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
     // mode simply runs without it — same null-safe degradation as everything
     // else here.
-    val banGate = component?.let { BanGate(it.moderationRepository, config.accessControl.appealUrl) }
+    val banGate = component?.let { BanGate(it.moderationRepository, config.accessControl.appealUrl, it.clock) }
     installApp(
         component = component,
         verification = verification,
@@ -138,9 +137,9 @@ fun Application.installApp(
     waitlistConfig: WaitlistConfig = WaitlistConfig(),
 ) {
     installSerialization()
+    installBodyLimit()
     installRateLimits()
     installStatusPages()
-    installWebSockets()
     if (verification != null) installAuthentication(verification, banGate)
 
     routing {
@@ -178,7 +177,6 @@ fun Application.installApp(
         }
         if (component != null && verification != null) {
             meRoutes(component.profileRepository, component.supabaseAdminClient)
-            playerReportRoutes(component.playerReportRepository)
             syncRoutes(component.syncRepository, component.clock)
             foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber)
             photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.clock)

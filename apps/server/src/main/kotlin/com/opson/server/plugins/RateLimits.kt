@@ -20,11 +20,13 @@ import kotlin.time.Duration.Companion.minutes
  * abuse, not concerted DoS (your edge/CDN owns that).
  */
 const val PROFILE_WRITE_LIMIT = "profile-write"
-const val PLAYER_REPORT_LIMIT = "player-report"
 const val DELETE_ACCOUNT_LIMIT = "delete-account"
 const val BARCODE_LOOKUP_LIMIT = "barcode-lookup"
 const val BARCODE_MISS_LIMIT = "barcode-miss"
 const val PHOTO_ESTIMATE_LIMIT = "photo-estimate"
+const val FOOD_SEARCH_LIMIT = "food-search"
+const val DESCRIBE_LIMIT = "describe"
+const val EXPORT_LIMIT = "export"
 
 fun Application.installRateLimits() {
     install(RateLimit) {
@@ -75,13 +77,24 @@ fun Application.installRateLimits() {
             requestKey { call -> call.clientIp() }
         }
 
-        register(RateLimitName(PLAYER_REPORT_LIMIT)) {
-            // POST /v1/reports targets another user, so it's a harassment /
-            // spam surface (a bad actor mass-reporting someone). A real user
-            // files a report rarely; 20/hour/IP leaves ample headroom for
-            // legitimate use while making scripted report-floods impractical.
-            // Per-IP keying mirrors the rest of the policy (see file header).
-            rateLimiter(limit = 20, refillPeriod = 1.hours)
+        register(RateLimitName(FOOD_SEARCH_LIMIT)) {
+            // Each search is the catalog's heaviest statement. The app debounces
+            // typing, so a person stays well under 2 a second for a minute; under
+            // the global 600 alone, one client could keep the pool busy by itself.
+            rateLimiter(limit = 120, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(DESCRIBE_LIMIT)) {
+            // One description is up to 20 catalog searches (DescribeParser.MAX_PHRASES).
+            rateLimiter(limit = 30, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(EXPORT_LIMIT)) {
+            // An export streams someone's whole history and holds a pooled
+            // connection while it does. People export now and then, not in a loop.
+            rateLimiter(limit = 10, refillPeriod = 1.hours)
             requestKey { call -> call.clientIp() }
         }
     }

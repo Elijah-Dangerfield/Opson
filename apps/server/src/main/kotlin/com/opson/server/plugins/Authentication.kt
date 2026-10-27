@@ -14,7 +14,6 @@ import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.util.AttributeKey
-import org.slf4j.LoggerFactory
 import java.net.URI
 import java.util.concurrent.TimeUnit
 
@@ -106,17 +105,10 @@ private fun JWTAuthenticationProvider.Config.validateAndChallengeForUserId(banGa
 
 /**
  * True if [userId] is banned — and, as a side effect, stashes the locked `403`
- * envelope on the call so `challenge` can render it. A lookup failure logs and
- * returns false (fail **open**): a transient `auth` read must not lock every
- * user out, and the token still expires on its own.
+ * envelope on the call so `challenge` can render it.
  */
 private suspend fun ApplicationCall.rejectIfBanned(banGate: BanGate, userId: UserId): Boolean {
-    val status = runCatching { banGate.moderation.banStatusFor(userId) }
-        .getOrElse { error ->
-            LoggerFactory.getLogger("BanGate").warn("Ban lookup failed for {} — allowing through", userId, error)
-            null
-        } ?: return false
-
+    val status = banGate.banStatusFor(userId) ?: return false
     attributes.put(
         BannedResponseKey,
         AccessDeniedResponse(

@@ -46,7 +46,6 @@ dependencies {
     // Rate limiting + observability. Sentry is a no-op until SENTRY_DSN is set;
     // OpenTelemetry exports to stdout until OTEL_EXPORTER_OTLP_ENDPOINT is set.
     implementation(libs.ktor.serverRateLimit)
-    implementation(libs.ktor.serverWebsockets)
     implementation(libs.sentry.jvm)
     implementation(libs.opentelemetry.api)
     implementation(libs.opentelemetry.sdk)

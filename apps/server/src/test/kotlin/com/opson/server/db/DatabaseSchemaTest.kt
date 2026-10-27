@@ -38,16 +38,14 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     @Test
-    fun rowLevelSecurityIsOnForEveryNewTable() {
-        val tables = listOf(
-            "foods", "off_foods", "food_search_events", "barcode_lookups", "barcode_misses", "log_entries",
-            "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts",
-            "waitlist",
+    fun rowLevelSecurityIsOnForEveryTable() {
+        // On Supabase the anon key can reach any public table PostgREST is granted, and
+        // tables the postgres role creates are granted by default. RLS with no policies
+        // is what keeps them closed (V19 covers the tables created before the rule).
+        val withoutRls = strings(
+            "SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind = 'r' AND NOT relrowsecurity",
         )
-        val withRls = strings(
-            "SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relrowsecurity",
-        )
-        assertTrue(withRls.containsAll(tables), "RLS missing on ${tables - withRls.toSet()}")
+        assertEquals(listOf("flyway_schema_history"), withoutRls, "RLS off on $withoutRls")
     }
 
     @Test

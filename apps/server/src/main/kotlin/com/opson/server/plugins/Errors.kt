@@ -1,14 +1,19 @@
 package com.opson.server.plugins
 
+import com.opson.server.db.DatabaseBusyException
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.UnsupportedMediaTypeException
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.httpMethod
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 
 /**
  * Every error response from this server has this shape. Defining it once means
@@ -37,6 +42,9 @@ fun problem(code: String, message: String): ProblemResponse =
 
 private val logger = LoggerFactory.getLogger("StatusPages")
 
+/** Seconds a client is asked to wait after a 503 `busy`. */
+private const val BUSY_RETRY_AFTER_SECONDS = 2
+
 fun Application.installStatusPages() {
     install(StatusPages) {
         // A body that doesn't decode (`call.receive<T>()`) is the caller's
@@ -53,19 +61,47 @@ fun Application.installStatusPages() {
                 problem("unsupported_media_type", "Send application/json"),
             )
         }
+        exception<RequestTooLargeException> { call, _ ->
+            call.respond(
+                HttpStatusCode.PayloadTooLarge,
+                problem("request_too_large", "The request body is too large"),
+            )
+        }
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,
                 problem("bad_request", cause.message ?: "Bad request"),
             )
         }
-        exception<Throwable> { call, cause ->
-            logger.error("Unhandled error", cause)
-            captureToSentry(cause, context = "status-pages")
+        exception<DatabaseBusyException> { call, _ ->
+            logger.warn("Database busy, answered 503 to {}", call.request.httpMethod.value)
+            call.response.header(HttpHeaders.RetryAfter, BUSY_RETRY_AFTER_SECONDS)
             call.respond(
-                HttpStatusCode.InternalServerError,
-                problem("internal", cause.message ?: "unknown"),
+                HttpStatusCode.ServiceUnavailable,
+                problem("busy", "The server is busy. Try again in a moment."),
             )
+        }
+        exception<Throwable> { call, cause ->
+            val reported = cause.withoutSqlDetail()
+            logger.error("Unhandled error", reported)
+            captureToSentry(reported, context = "status-pages")
+            // Never the exception's message: it can quote SQL, row values or a stack detail.
+            call.respond(HttpStatusCode.InternalServerError, problem("internal", "Something went wrong"))
         }
     }
 }
+
+/**
+ * [this], or for a database error a stand-in that carries only the SQLSTATE
+ * and the stack. A JDBC or Exposed exception's message and `toString` quote
+ * the failed statement with its bound values, which here are someone's diary.
+ */
+internal fun Throwable.withoutSqlDetail(): Throwable {
+    val sql = generateSequence(this) { it.cause }.filterIsInstance<SQLException>().firstOrNull() ?: return this
+    val state = generateSequence(this) { it.cause }.filterIsInstance<SQLException>().firstNotNullOfOrNull { it.sqlState }
+    return RedactedSqlException("${sql::class.java.simpleName} sqlState=${state ?: "unknown"}").also {
+        it.stackTrace = stackTrace
+    }
+}
+
+internal class RedactedSqlException(message: String) : RuntimeException(message)

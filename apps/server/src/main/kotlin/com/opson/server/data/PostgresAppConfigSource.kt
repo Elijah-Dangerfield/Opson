@@ -3,6 +3,7 @@ package com.opson.server.data
 import com.opson.server.db.AppConfigRulesTable
 import com.opson.server.db.AppConfigValuesTable
 import com.opson.server.db.Database
+import com.opson.server.db.DatabaseBusyException
 import com.opson.server.di.ServerScope
 import com.opson.server.domain.AppConfigSource
 import com.opson.server.domain.RuleConditions
@@ -77,12 +78,22 @@ class PostgresAppConfigSource(
         return AppConfigTree.assemble(resolved)
     }
 
-    /** Cached view of the config store, refreshed past [cacheTtl]. */
+    /**
+     * Cached view of the config store, refreshed past [cacheTtl]. When the
+     * database is too busy to answer, the last snapshot keeps serving for
+     * another [cacheTtl]: the app fetches config at launch (kill switch,
+     * forced upgrade), and a stale answer beats a 503 for everyone.
+     */
     private suspend fun snapshot(): Snapshot = cacheMutex.withLock {
         val now = clock.now()
         val current = cache
         if (current != null && now - current.loadedAt < cacheTtl) return current
-        val fresh = load(now)
+        val fresh = try {
+            load(now)
+        } catch (e: DatabaseBusyException) {
+            if (current == null) throw e
+            current.copy(loadedAt = now)
+        }
         cache = fresh
         fresh
     }

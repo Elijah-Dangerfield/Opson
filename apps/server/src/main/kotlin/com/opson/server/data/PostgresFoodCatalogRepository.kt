@@ -104,12 +104,15 @@ class PostgresFoodCatalogRepository(
             val capped = limit.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
             val ranked = when {
                 terms == null -> emptyList()
-                openFoodFacts && sources.searchOpenFoodFacts && filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms) ->
+                openFoodFacts && sources.searchOpenFoodFacts && filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms) -> {
+                    // The merge drops copies of one product, so each side brings more than a page.
+                    val fetch = (capped * 2).coerceAtMost(FoodCatalogRepository.MAX_LIMIT)
                     OpenFoodFactsSearch.merge(
-                        catalog = runSearch(terms, capped, filter),
-                        openFoodFacts = runOpenFoodFactsSearch(terms, capped, OpenFoodFactsSearch.countryTag(country)),
+                        catalog = runSearch(terms, fetch, filter),
+                        openFoodFacts = runOpenFoodFactsSearch(terms, fetch, OpenFoodFactsSearch.countryTag(country)),
                         limit = capped,
                     )
+                }
                 else -> runSearch(terms, capped, filter)
             }
             val matches = when (filter.sort) {
@@ -130,34 +133,10 @@ class PostgresFoodCatalogRepository(
     override val searchesOpenFoodFacts: Boolean get() = sources.searchOpenFoodFacts
 
     private fun runSearch(terms: SearchTerms, limit: Int, filter: SearchFilter): List<FoodMatch> {
-        val text = TextColumnType()
-        val args = listOf<Pair<IColumnType<*>, Any?>>(
-            text to terms.likePrefix, // generic: prefix
-            text to terms.prefixTsQuery, // generic: full text
-            BooleanColumnType() to terms.canNameBrand, // Branded: always when a brand may be named,
-            IntegerColumnType() to limit, // otherwise only below this many generic matches
-            text to terms.likePrefix, // Branded: prefix
-            text to terms.prefixTsQuery, // Branded: full text
-            IntegerColumnType() to limit, // typo fallback below this many direct matches,
-            text to terms.likeWords, // or with no generic match and no brand carrying a query word
-            text to terms.normalized, // fallback: trigram similarity
-            text to terms.likePrefix, // fallback: not already direct
-            text to terms.prefixTsQuery, // fallback: not already direct
-            text to terms.phraseVariants.joinToString("|"), // p.variants
-            text to terms.wordPrefixRegex, // p.prefix_regex
-            text to terms.prefixTsQuery, // p.prefix_ts
-            text to terms.wholeWordTsQuery, // p.whole_ts
-            text to terms.queryWords, // p.query_words
-            text to terms.normalized, // p.normalized
-            BooleanColumnType() to terms.canNameBrand, // p.brandable
-            text to terms.likeWords, // p.like_words
-            text to terms.phrase, // p.phrase
-            IntegerColumnType() to limit,
-        )
         val results = mutableListOf<FoodMatch>()
         TransactionManager.current().exec(
             stmt = searchSql(filter),
-            args = args,
+            args = searchArgs(terms, limit),
             explicitStatementType = StatementType.SELECT,
         ) { rs ->
             while (rs.next()) {
@@ -205,6 +184,18 @@ class PostgresFoodCatalogRepository(
             .limit(1)
             .singleOrNull()
             ?.toFood()
+            ?: if (sources.searchOpenFoodFacts) openFoodFactsByBarcode(barcode) else null
+    }
+
+    /** An `off_foods` row for any equivalent form of [barcode]: the export is checked before the live API. */
+    private fun openFoodFactsByBarcode(barcode: String): Food? {
+        var food: Food? = null
+        TransactionManager.current().exec(
+            stmt = OpenFoodFactsSearch.BY_BARCODE_SQL,
+            args = listOf(TextColumnType() to Barcodes.equivalents(barcode).joinToString("|")),
+            explicitStatementType = StatementType.SELECT,
+        ) { rs -> if (rs.next()) food = rs.toFood() }
+        return food
     }
 
     override suspend fun upsertExternalProduct(source: CatalogSource, product: ExternalProduct): Food = database.transaction {
@@ -302,21 +293,6 @@ class PostgresFoodCatalogRepository(
         fun decodePortions(json: String): List<Portion> =
             JSON.decodeFromString(PORTIONS_SERIALIZER, json).map { Portion(it.label, it.grams) }
 
-        /**
-         * The column order here is what [toFood] on a ResultSet reads.
-         *
-         * Trigram similarity only runs when the direct matches (prefix and
-         * full text) number fewer than the limit. Similar-only rows always
-         * rank after direct ones, so skipping them changes nothing visible,
-         * and with Branded Foods loaded the `%` operator alone rechecks tens
-         * of thousands of rows for a word like "banana". The `count(*)`
-         * subquery is uncorrelated, so Postgres evaluates it once and skips
-         * the trigram scan entirely when it is false.
-         *
-         * A query counts as naming a brand only when no generic food is an
-         * exact or head match for it: "peanut butter" is a food first, even
-         * though "Peanut Butter & Co." is a brand.
-         */
         /**
          * A brand, a name's first segment or the query as words: lowercase,
          * filler dropped ("Inc.", "Foods", "and", the s of "Campbell's"), naive
@@ -476,6 +452,34 @@ class PostgresFoodCatalogRepository(
                      r.name
             LIMIT ?
         """.trimIndent()
+
+        /** What [SEARCH_SQL] binds, in its order. */
+        internal fun searchArgs(terms: SearchTerms, limit: Int): List<Pair<IColumnType<*>, Any?>> {
+            val text = TextColumnType()
+            return listOf<Pair<IColumnType<*>, Any?>>(
+                text to terms.likePrefix, // generic: prefix
+                text to terms.prefixTsQuery, // generic: full text
+                BooleanColumnType() to terms.canNameBrand, // Branded: always when a brand may be named,
+                IntegerColumnType() to limit, // otherwise only below this many generic matches
+                text to terms.likePrefix, // Branded: prefix
+                text to terms.prefixTsQuery, // Branded: full text
+                IntegerColumnType() to limit, // typo fallback below this many direct matches,
+                text to terms.likeWords, // or with no generic match and no brand carrying a query word
+                text to terms.normalized, // fallback: trigram similarity
+                text to terms.likePrefix, // fallback: not already direct
+                text to terms.prefixTsQuery, // fallback: not already direct
+                text to terms.phraseVariants.joinToString("|"), // p.variants
+                text to terms.wordPrefixRegex, // p.prefix_regex
+                text to terms.prefixTsQuery, // p.prefix_ts
+                text to terms.wholeWordTsQuery, // p.whole_ts
+                text to terms.queryWords, // p.query_words
+                text to terms.normalized, // p.normalized
+                BooleanColumnType() to terms.canNameBrand, // p.brandable
+                text to terms.likeWords, // p.like_words
+                text to terms.phrase, // p.phrase
+                IntegerColumnType() to limit,
+            )
+        }
 
         /** The statement 0.1's search runs. [SearchFilter.None] must always get exactly this. */
         internal val SEARCH_SQL: String = searchSqlWith("")

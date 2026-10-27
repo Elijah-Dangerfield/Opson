@@ -178,6 +178,22 @@ class MeRoutesTest {
         }
     }
 
+    @Test
+    fun patchMe_returns400_forControlCharacters() = runTest {
+        // A NUL used to reach Postgres, which refuses it in text: a 500. A newline or
+        // a bidi override is an invisible way to impersonate another name.
+        withMeApp(FakeProfileRepository(fakeProfile())) { client ->
+            for (name in listOf("Ada\u0000Byron", "Ada\nByron", "Ada\u202EnoryB")) {
+                val resp = client.patch("/v1/me") {
+                    header(HttpHeaders.Authorization, "Bearer ${validJwt()}")
+                    contentType(ContentType.Application.Json)
+                    setBody(UpdateMeRequest(displayName = name))
+                }
+                assertEquals(HttpStatusCode.BadRequest, resp.status, name)
+            }
+        }
+    }
+
     private suspend fun withMeApp(
         repo: ProfileRepository,
         admin: SupabaseAdminClient = FakeAdminClient(),
@@ -256,7 +272,6 @@ class MeRoutesTest {
             return deleteResult
         }
 
-        override suspend fun listAnonymousUsersOlderThan(olderThan: Instant): List<UserId> = emptyList()
 
         override suspend fun updateUserDisplayName(
             userId: UserId,

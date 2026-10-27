@@ -1,5 +1,6 @@
 package com.opson.server.data
 
+import com.opson.server.domain.Food
 import com.opson.server.domain.FoodMatch
 import com.opson.server.domain.FoodTier
 import com.opson.server.domain.MatchTier
@@ -20,7 +21,7 @@ import java.util.Locale
  *  - queries under [MIN_QUERY] letters and digits don't search Open Food
  *    Facts at all (the catalog still answers them);
  *  - products named exactly the query, up to [CAP_EXACT], through the btree
- *    on lower(name) (V13), so an exact name is never crowded out;
+ *    on lower(name) (V15), so an exact name is never crowded out;
  *  - products whose name or brand has every query word as a prefix, up to
  *    [CAP_WORDS]. The import writes rows most-scanned first, and a capped
  *    bitmap scan returns rows in physical order, so the cap keeps the
@@ -151,31 +152,71 @@ internal object OpenFoodFactsSearch {
         FROM off_foods o WHERE o.id = ?
     """.trimIndent()
 
+    /** By the `off_foods_barcode_key` unique index; the argument is the code's forms joined with `|`. */
+    val BY_BARCODE_SQL = """
+        SELECT o.id, o.source, o.barcode AS source_id, o.name, o.brand, o.barcode,
+               o.kcal_100g, o.protein_100g, o.carbs_100g, o.fat_100g, o.fiber_100g,
+               o.micros::text AS micros, o.portions::text AS portions, o.tier, o.verified
+        FROM off_foods o WHERE o.barcode = ANY (string_to_array(?, '|'))
+        ORDER BY o.scans DESC
+        LIMIT 1
+    """.trimIndent()
+
     /**
-     * The catalog's results with Open Food Facts rows worked in. An Open Food
-     * Facts row goes after every generic food that matched directly and every
-     * other row with the same or a better match tier, and keeps its own order;
-     * a typo match goes last. A product the catalog already has (same
-     * barcode, from Branded Foods) is left out.
+     * The catalog's results with Open Food Facts rows worked in. Each Open
+     * Food Facts row, in its own order, goes just above the first catalog row
+     * it outranks: a generic food that matched directly, or any row with the
+     * same or a better match tier, stays above it. A typo match goes last.
+     *
+     * Walking down from the top respects the catalog's own order. When a query
+     * names a brand ("nutella"), the catalog lists that brand's Branded rows
+     * above the generic foods; placing a row after the last catalog row that
+     * outranks it would put every Open Food Facts row below all of them, off
+     * the first screen.
+     *
+     * Left out: a product the catalog already has (same barcode, from Branded
+     * Foods), and any row that is the same food as one above it ([sameFood]).
+     * Both sources list one product many times, a row per jar size, country
+     * or multipack, so without this "nutella" filled a screen with copies.
+     * The first copy is kept: the catalog's best ranked, Open Food Facts' most
+     * scanned.
      */
     fun merge(catalog: List<FoodMatch>, openFoodFacts: List<FoodMatch>, limit: Int): List<FoodMatch> {
         val barcodes = catalog.mapNotNullTo(HashSet()) { it.food.barcode }
-        // (match, came from off_foods). `foods` has source "off" rows too, the barcode cache.
-        val merged = catalog.mapTo(mutableListOf()) { it to false }
+        val listed = HashSet<List<Any?>>()
+        val merged = catalog.filterTo(mutableListOf()) { listed.add(it.food.sameFood()) }
+        var floor = 0
         for (off in openFoodFacts) {
-            if (off.food.barcode in barcodes) continue
-            val after = if (off.tier == MatchTier.Similar) {
-                merged.lastIndex
+            if (off.food.barcode in barcodes || !listed.add(off.food.sameFood())) continue
+            val at = if (off.tier == MatchTier.Similar) {
+                merged.size
             } else {
-                merged.indexOfLast { (row, fromOff) -> fromOff || row.staysAbove(off) }
+                (floor until merged.size).firstOrNull { i -> !merged[i].staysAbove(off) } ?: merged.size
             }
-            merged.add(after + 1, off to true)
+            merged.add(at, off)
+            floor = at + 1
         }
-        return merged.take(limit).map { it.first }
+        return merged.take(limit)
     }
 
     private fun FoodMatch.staysAbove(off: FoodMatch): Boolean =
         tier != MatchTier.Similar && (food.tier == FoodTier.Reference || tier <= off.tier)
+
+    /**
+     * What makes two rows the same food to someone logging it: the name, as
+     * words, and the four headline numbers per 100 g as the app shows them.
+     * Open Food Facts lists one product many times (a jar size, a country, a
+     * multipack, each its own barcode) with identical labels.
+     */
+    private fun Food.sameFood(): List<Any?> = listOf(
+        name.lowercase().replace(NON_WORD, " ").trim(),
+        per100g.kcal?.let { Math.round(it) },
+        per100g.protein?.let { Math.round(it * 10) },
+        per100g.carbs?.let { Math.round(it * 10) },
+        per100g.fat?.let { Math.round(it * 10) },
+    )
+
+    private val NON_WORD = Regex("[^\\p{L}\\p{N}]+")
 
     /**
      * Open Food Facts' tag for an ISO 3166-1 alpha-2 code: `FR` → `en:france`,

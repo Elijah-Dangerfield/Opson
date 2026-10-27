@@ -65,7 +65,6 @@ fun Application.installOpenTelemetry(config: ObservabilityConfig): OpenTelemetry
         GlobalOpenTelemetry.get()
     }
     OpenTelemetryAppender.install(installed)
-    ServerMetrics.register()
 
     monitor.subscribe(ApplicationStopPreparing) {
         try {
@@ -114,6 +113,7 @@ fun buildOpenTelemetrySdk(
         // Runs first: copy correlation baggage onto every span (root + children)
         // as it starts, before the export processor sees it.
         .addSpanProcessor(BaggageAttributeSpanProcessor(CORRELATION_BAGGAGE_KEYS))
+        .addSpanProcessor(UrlRedactingSpanProcessor)
         .addSpanProcessor(
             if (spanExporter == null && otlp) BatchSpanProcessor.builder(resolvedSpanExporter).build()
             else SimpleSpanProcessor.create(resolvedSpanExporter),
@@ -212,6 +212,30 @@ internal class BaggageAttributeSpanProcessor(
         keys.forEach { key ->
             baggage.getEntryValue(key)?.let { span.setAttribute(key, it) }
         }
+    }
+
+    override fun isEndRequired(): Boolean = false
+
+    override fun onEnd(span: ReadableSpan) = Unit
+}
+
+/**
+ * Takes what someone eats out of the URL the Ktor instrumentation records on
+ * every HTTP server span, which carries the session and install ids: the
+ * query string (`/v1/foods/search?q=`) is replaced, and the path keeps its
+ * shape with food ids and barcodes masked ([redactedPath]). The span name is
+ * already the route template. A started span's attribute can't be dropped,
+ * so values are overwritten.
+ */
+internal object UrlRedactingSpanProcessor : SpanProcessor {
+    private val URL_QUERY: AttributeKey<String> = AttributeKey.stringKey("url.query")
+    private val URL_PATH: AttributeKey<String> = AttributeKey.stringKey("url.path")
+
+    override fun isStartRequired(): Boolean = true
+
+    override fun onStart(parentContext: Context, span: ReadWriteSpan) {
+        if (span.getAttribute(URL_QUERY) != null) span.setAttribute(URL_QUERY, "redacted")
+        span.getAttribute(URL_PATH)?.let { span.setAttribute(URL_PATH, redactedPath(it)) }
     }
 
     override fun isEndRequired(): Boolean = false

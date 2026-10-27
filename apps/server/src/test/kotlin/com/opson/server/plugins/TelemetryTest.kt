@@ -10,6 +10,11 @@ import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppen
 import io.opentelemetry.sdk.testing.exporter.InMemoryLogRecordExporter
 import io.opentelemetry.sdk.testing.exporter.InMemoryMetricReader
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter
+import io.ktor.client.request.get
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
+import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.Before
@@ -18,7 +23,9 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * Pins the OTel wiring contract: the SDK builds for both exporter modes,
@@ -165,6 +172,44 @@ class TelemetryTest {
             record.spanContext.traceId,
             "log record should carry the active span's trace_id for trace↔log correlation",
         )
+    }
+
+    @Test
+    fun httpSpans_neverCarryWhatSomeoneSearchedScannedOrOpened() = testApplication {
+        application {
+            installHttpServerTracing(sdk)
+            routing {
+                get("/v1/foods/search") { call.respondText("ok") }
+                get("/v1/foods/barcode/{code}") { call.respondText("ok") }
+                get("/v1/foods/{id}") { call.respondText("ok") }
+            }
+        }
+
+        client.get("/v1/foods/search?q=chocolate+cake&limit=5")
+        client.get("/v1/foods/barcode/0012345678905")
+        client.get("/v1/foods/6f1c2d3e-4b5a-4c6d-8e7f-9a0b1c2d3e4f")
+        flushSpans()
+
+        val spans = exporter.finishedSpanItems.filter { it.kind == io.opentelemetry.api.trace.SpanKind.SERVER }
+        assertEquals(3, spans.size)
+        for (span in spans) {
+            span.attributes.forEach { key, value ->
+                val text = value.toString()
+                assertFalse("chocolate" in text || "12345678905" in text || "6f1c2d3e" in text, "${key.key} = $value")
+            }
+        }
+        assertEquals(
+            setOf("/v1/foods/search", "/v1/foods/barcode/{code}", "/v1/foods/{id}"),
+            spans.map { it.attributes.get(AttributeKey.stringKey("url.path")) }.toSet(),
+        )
+    }
+
+    @Test
+    fun redactedPath_masksIdsAndCodesAndKeepsTheShape() {
+        assertEquals("/v1/foods/{id}", redactedPath("/v1/foods/6F1C2D3E-4B5A-4C6D-8E7F-9A0B1C2D3E4F"))
+        assertEquals("/v1/foods/barcode/{code}", redactedPath("/v1/foods/barcode/0012345678905"))
+        assertEquals("/v1/foods/search", redactedPath("/v1/foods/search"))
+        assertEquals("/v1/export.csv", redactedPath("/v1/export.csv"))
     }
 
     @Test

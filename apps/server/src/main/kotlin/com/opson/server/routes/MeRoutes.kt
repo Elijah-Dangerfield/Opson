@@ -51,10 +51,8 @@ import org.slf4j.LoggerFactory
  * so even if the local profile delete fails the user can't come back via the
  * same account), then local cleanup. An orphan profile is recoverable by a
  * future sweep; an orphan auth.users with a live JWT is a security problem.
- * When your app grows per-feature user tables, add their idempotent
- * `deleteAllForUser(userId)` calls in the success branch below, BEFORE
- * `repository.delete` — a mid-cascade crash then leaves recoverable partial
- * state, not stuck data.
+ * Every user-owned table references `auth.users` with `ON DELETE CASCADE`
+ * (V2, V8, V14), so the hard delete removes the diary with the account.
  */
 fun Route.meRoutes(repository: ProfileRepository, adminClient: SupabaseAdminClient) {
     val app = application
@@ -110,8 +108,6 @@ fun Route.meRoutes(repository: ProfileRepository, adminClient: SupabaseAdminClie
                 val userId = call.userId() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
                 when (val admin = adminClient.deleteUser(userId)) {
                     DeleteUserResult.Success, DeleteUserResult.AlreadyGone -> {
-                        // Extension point: as features add user-scoped tables,
-                        // call their idempotent deleteAllForUser(userId) here.
                         repository.delete(userId)
                         call.respond(HttpStatusCode.NoContent)
                     }

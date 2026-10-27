@@ -7,14 +7,11 @@ import com.opson.server.domain.SupabaseAdminClient
 import com.opson.server.domain.UpdateDisplayNameResult
 import com.opson.server.domain.UserId
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.delete
-import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.request.parameter
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -28,8 +25,6 @@ import me.tatarka.inject.annotations.Inject
 import org.slf4j.LoggerFactory
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
-import java.util.UUID
-import kotlin.time.Instant
 
 /**
  * Talks to `<projectUrl>/auth/v1/admin/users/<id>` using the service-role
@@ -124,59 +119,6 @@ class HttpSupabaseAdminClient(
         }
     }
 
-    override suspend fun listAnonymousUsersOlderThan(olderThan: Instant): List<UserId> {
-        val cfg = config ?: return emptyList()
-        val key = cfg.serviceRoleKey.takeUnless { it.isNullOrBlank() } ?: return emptyList()
-
-        // Supabase's admin/users endpoint is page-based (max per_page=1000).
-        // We page until we get an empty page or until safety cap kicks in
-        // — a runaway loop here would hammer the upstream rate limiter.
-        val matching = mutableListOf<UserId>()
-        var page = 1
-        val perPage = 1000
-        val safetyCap = 100 // up to 100k users — V1 will never approach this.
-
-        while (page <= safetyCap) {
-            val response = try {
-                client.get("${cfg.projectUrl}/auth/v1/admin/users") {
-                    parameter("page", page)
-                    parameter("per_page", perPage)
-                    header(HttpHeaders.Authorization, "Bearer $key")
-                    header("apikey", key)
-                }
-            } catch (e: Throwable) {
-                LoggerFactory.getLogger(HttpSupabaseAdminClient::class.java).warn(
-                    "Failed to page anon users at page=$page; sweep returning partial results", e,
-                )
-                return matching
-            }
-            if (response.status.value !in 200..299) {
-                LoggerFactory.getLogger(HttpSupabaseAdminClient::class.java).warn(
-                    "Admin /users page=$page returned ${response.status.value}; sweep returning partial results",
-                )
-                return matching
-            }
-
-            val body: AdminUsersListResponse = response.body()
-            val users = body.users.orEmpty()
-            if (users.isEmpty()) return matching
-
-            for (user in users) {
-                if (user.isAnonymous != true) continue
-                val lastSeen = user.lastSignInAt?.let { parseRfc3339OrNull(it) }
-                    ?: user.createdAt?.let { parseRfc3339OrNull(it) }
-                    ?: continue
-                if (lastSeen < olderThan) {
-                    UserId.parse(user.id)?.let { matching += it }
-                }
-            }
-
-            if (users.size < perPage) return matching
-            page++
-        }
-        return matching
-    }
-
     @Serializable
     private data class DeleteUserRequest(
         @SerialName("should_soft_delete") val shouldSoftDelete: Boolean,
@@ -192,30 +134,10 @@ class HttpSupabaseAdminClient(
         @SerialName("display_name") val displayName: String,
     )
 
-    @Serializable
-    private data class AdminUsersListResponse(val users: List<AdminUser>? = null)
-
-    @Serializable
-    private data class AdminUser(
-        val id: String,
-        @SerialName("is_anonymous") val isAnonymous: Boolean? = null,
-        @SerialName("last_sign_in_at") val lastSignInAt: String? = null,
-        @SerialName("created_at") val createdAt: String? = null,
-    )
-
     companion object {
         private val JSON_LENIENT = Json {
             ignoreUnknownKeys = true
             coerceInputValues = true
         }
-
-        private fun parseRfc3339OrNull(value: String): Instant? = runCatching {
-            // Supabase emits ISO-8601 / RFC-3339 timestamps. java.time
-            // parses them; we then bridge to kotlin.time.Instant via the
-            // epoch-millis adapter that's already imported elsewhere.
-            Instant.fromEpochMilliseconds(
-                java.time.Instant.parse(value).toEpochMilli(),
-            )
-        }.getOrNull()
     }
 }

@@ -4,6 +4,8 @@ import com.opson.server.db.DatabaseTest
 import com.opson.server.db.ProfilesTable
 import com.opson.server.domain.UpdateProfileOutcome
 import com.opson.server.domain.UserId
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.sql.deleteAll
 import org.junit.After
@@ -44,6 +46,20 @@ class PostgresProfileRepositoryTest : DatabaseTest() {
         val again = repo().findOrCreate(userId)
         assertEquals(created.displayName, again.displayName)
         assertEquals(created.createdAt, again.createdAt)
+    }
+
+    @Test
+    fun findOrCreate_concurrentFirstContactsAllSucceedAndOneCreates() = kotlinx.coroutines.runBlocking {
+        // A new phone fires GET /v1/me from several places at once on first launch.
+        repeat(10) {
+            val userId = seedAuthUser()
+            val results = List(8) {
+                async(kotlinx.coroutines.Dispatchers.IO) { repo().findOrCreateResult(userId) }
+            }.awaitAll()
+
+            assertEquals(1, results.count { it.created }, "exactly one call creates the profile")
+            assertEquals(1, results.map { it.profile.displayName }.toSet().size)
+        }
     }
 
     @Test
