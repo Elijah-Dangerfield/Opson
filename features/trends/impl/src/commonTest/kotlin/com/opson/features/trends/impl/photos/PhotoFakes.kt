@@ -30,6 +30,9 @@ class FakeProgressPhotoRepository(photos: List<ProgressPhoto> = ProgressPhotosFi
     /** While set, thumbnail reads wait for it: the disk being slow. */
     var thumbnailsWaitFor: CompletableDeferred<Unit>? = null
 
+    /** The same for full photos. */
+    var imagesWaitFor: CompletableDeferred<Unit>? = null
+
     /** Every write throws, as the file store does on a full disk. */
     var failWrites = false
 
@@ -48,6 +51,7 @@ class FakeProgressPhotoRepository(photos: List<ProgressPhoto> = ProgressPhotosFi
     }
 
     override suspend fun image(id: String): ByteArray? {
+        imagesWaitFor?.await()
         imageReads += id
         return byteArrayOf(1)
     }

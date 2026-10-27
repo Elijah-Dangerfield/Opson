@@ -23,7 +23,7 @@ class CompareViewModel(
     @Assisted rightId: String?,
     private val photos: ProgressPhotoRepository,
     private val lock: PhotoLock,
-) : SEAViewModel<CompareState, CompareEvent, CompareAction>(initialStateArg = CompareState()) {
+) : SEAViewModel<CompareState, CompareEvent, CompareAction>(initialStateArg = CompareState(lock = lock.state.value)) {
 
     private var list: List<ProgressPhoto>? = null
     private var comparisons: List<SavedComparison> = emptyList()
@@ -90,19 +90,26 @@ class CompareViewModel(
         }
     }
 
-    /** Fixes the pair against the photos that exist, reads its images if unlocked, and rebuilds. */
+    /**
+     * Fixes the pair against the photos that exist and rebuilds, then reads its images if unlocked
+     * and rebuilds again: the dates and pickers show while two full photos come off the disk.
+     */
     private suspend fun settle(action: CompareAction) {
         val current = list
         if (current != null) {
             val (left, right) = CompareStateBuilder.pair(current, ui.leftId, ui.rightId)
             ui = ui.copy(leftId = left, rightId = right)
             images.keys.retainAll(setOfNotNull(left, right))
-            if (lock.state.value == PhotoLockState.Unlocked) {
-                listOfNotNull(left, right).filter { it !in images }.forEach { id ->
-                    photos.image(id)?.let { images[id] = PhotoBytes(it) }
-                }
-            }
         }
+        rebuild(action)
+        if (current == null || lock.state.value != PhotoLockState.Unlocked) return
+        val missing = listOfNotNull(ui.leftId, ui.rightId).filter { it !in images }
+        if (missing.isEmpty()) return
+        missing.forEach { id -> photos.image(id)?.let { images[id] = PhotoBytes(it) } }
+        rebuild(action)
+    }
+
+    private suspend fun rebuild(action: CompareAction) {
         action.updateState { CompareStateBuilder.build(list, comparisons, images.toMap(), lock.state.value, ui) }
     }
 

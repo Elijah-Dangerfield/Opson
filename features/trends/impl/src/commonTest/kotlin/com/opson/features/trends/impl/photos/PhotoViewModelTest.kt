@@ -1,6 +1,7 @@
 package com.opson.features.trends.impl.photos
 
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.test.Test
@@ -32,6 +33,21 @@ class PhotoViewModelTest : CoroutineTest() {
         assertEquals("oct25-front", vm.state.photo?.id)
         assertNotNull(vm.state.photo?.image)
         assertEquals("Lifting three times a week since September", vm.state.note)
+    }
+
+    @Test
+    fun whileThePhotoIsRead_thePageIsUnlocked_withItsDate_neverTheLockPanel() = runUnitTest {
+        val disk = CompletableDeferred<Unit>()
+        photos.imagesWaitFor = disk
+        val vm = vm()
+
+        assertEquals(PhotoLockState.Unlocked, vm.state.lock, "already unlocked by the grid, so it never says locked")
+        assertEquals("oct25-front", vm.state.photo?.id)
+        assertNull(vm.state.photo?.image)
+
+        disk.complete(Unit)
+
+        assertNotNull(vm.state.photo?.image)
     }
 
     @Test

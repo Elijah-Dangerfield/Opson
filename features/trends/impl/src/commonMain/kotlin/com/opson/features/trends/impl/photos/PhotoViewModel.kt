@@ -25,7 +25,7 @@ class PhotoViewModel(
     @Assisted private val id: String,
     private val photos: ProgressPhotoRepository,
     private val lock: PhotoLock,
-) : SEAViewModel<PhotoState, PhotoEvent, PhotoAction>(initialStateArg = PhotoState()) {
+) : SEAViewModel<PhotoState, PhotoEvent, PhotoAction>(initialStateArg = PhotoState(lock = lock.state.value)) {
 
     private var photo: ProgressPhoto? = null
     private var image: PhotoBytes? = null
@@ -57,13 +57,17 @@ class PhotoViewModel(
         }
     }
 
+    /** Shows the photo's date and note at once, then reads the full image if unlocked and shows that. */
     private suspend fun settle(action: PhotoAction) {
+        if (lock.state.value != PhotoLockState.Unlocked) image = null
+        rebuild(action)
+        if (photo == null || image != null || lock.state.value != PhotoLockState.Unlocked) return
+        image = photos.image(id)?.let(::PhotoBytes) ?: return
+        rebuild(action)
+    }
+
+    private suspend fun rebuild(action: PhotoAction) {
         val unlocked = lock.state.value == PhotoLockState.Unlocked
-        if (!unlocked) {
-            image = null
-        } else if (image == null) {
-            image = photos.image(id)?.let(::PhotoBytes)
-        }
         val current = photo
         action.updateState { state ->
             if (!unlocked) {
