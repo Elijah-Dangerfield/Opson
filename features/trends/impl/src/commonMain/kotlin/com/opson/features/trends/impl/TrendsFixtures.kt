@@ -12,6 +12,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -71,11 +72,19 @@ object TrendsFixtures {
     fun settings(policy: VisibilityPolicy? = null): Settings =
         Settings(numbers = policy?.settings ?: NumbersSettings())
 
+    /** No watch energy unless asked for, as with `release.health` off; pass `expended()` to draw the Expended card. */
     fun trendsInputs(
         settings: Settings = Settings(),
         days: List<Day> = days(),
         weighIns: List<WeighIn> = weighIns(),
-    ): TrendsInputs = TrendsInputs(today, settings, days, weighIns, timeZone)
+        expended: Map<LocalDate, EnergyExpended>? = null,
+    ): TrendsInputs = TrendsInputs(today, settings, days, weighIns, timeZone, expended)
+
+    /** A watch's ninety days before today: resting about 1,600, active wandering around 550. */
+    fun expended(): Map<LocalDate, EnergyExpended> = (1..WEIGH_IN_DAYS).associate { back ->
+        val active = round(550 + sin(back * 1.3) * 140 + cos(back * 0.7) * 60)
+        today.minus(back, DateTimeUnit.DAY) to EnergyExpended(restingKcal = 1610.0, activeKcal = active, workoutKcal = null)
+    }
 
     fun nutrientsInputs(
         range: NutrientsRange = NutrientsRange.Day,

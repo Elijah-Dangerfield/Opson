@@ -124,7 +124,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 9 | Describe a meal | `logger-describe` | logger | a pane of the Logger in v3 | yes |
 | 10 | Saved meals | `logger-saved` | logger | a pane of the Logger in v3; copy yesterday is a chip | yes |
 | 11 | Day close · big day | `day-close-big-day` | today | ported | yes |
-| 12 | Trends (week history) | `trends` | trends | ported | yes |
+| 12 | Trends (week history) | `trends` | trends | ported; with the watch's Expended card, so it shows energyOut | yes |
 | 13 | Foods tab | `foods` | foods | ported | yes |
 | 14 | Nutrients detail | `nutrients` | trends | ported | yes |
 | 15 | Modes and numbers | `modes` | settings | ported | no |

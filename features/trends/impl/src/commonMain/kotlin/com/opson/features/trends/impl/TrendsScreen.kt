@@ -58,6 +58,8 @@ import opson.libraries.resources.generated.resources.trends_check_body
 import opson.libraries.resources.generated.resources.trends_check_on
 import opson.libraries.resources.generated.resources.trends_check_tonight
 import opson.libraries.resources.generated.resources.trends_eaten
+import opson.libraries.resources.generated.resources.trends_expended
+import opson.libraries.resources.generated.resources.trends_expended_sub
 import opson.libraries.resources.generated.resources.trends_intake_caption_plain
 import opson.libraries.resources.generated.resources.trends_intake_caption_today
 import opson.libraries.resources.generated.resources.trends_intake_caption_week
@@ -133,9 +135,7 @@ internal fun TrendsContent(
         state.recap?.let { RecapCardView(it, onPatterns = { onAction(TrendsAction.PatternsTapped) }) }
         state.lastCheck?.let { LastCheckCard(it) }
         state.nutrients?.let { NutrientsCardView(it, onClick = { onAction(TrendsAction.NutrientsCardTapped) }) }
-        // TODO(design-sync-2): the design's Expended card ("Daily average from your watch", a line)
-        // goes here behind release.health. :libraries:health reads one day at a time; a span
-        // average needs a range read there first.
+        state.expended?.let { ExpendedCardView(it) }
         state.weight?.let { WeightCardView(it, onClick = { onAction(TrendsAction.WeightCardTapped) }) }
     }
 }
@@ -384,6 +384,32 @@ private fun MacroTileView(tile: MacroTile, modifier: Modifier = Modifier) {
             )
         }
         NutrientFillBar(metric = tile.metric, display = tile.display, color = color)
+    }
+}
+
+/** Not a link: there is no Expended page. The line is neutral, as the design draws it. */
+@Composable
+private fun ExpendedCardView(card: ExpendedCard) {
+    TrendsCard {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+        ) {
+            Column(Modifier.weight(1f)) {
+                CardTitle(stringResource(Res.string.trends_expended))
+                Text(text = stringResource(Res.string.trends_expended_sub), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            }
+            NutrientText(Metric.EnergyOut, card.average, typography = AppTheme.type.figureMedium.ExtraBold, color = AppTheme.colors.ink)
+        }
+        if (card.trend.isNotEmpty()) {
+            TrendLine(
+                points = card.trend,
+                dots = null,
+                modifier = Modifier.fillMaxWidth().height(Dimension.D1600),
+                lineColor = AppTheme.colors.inkSoft,
+            )
+        }
     }
 }
 

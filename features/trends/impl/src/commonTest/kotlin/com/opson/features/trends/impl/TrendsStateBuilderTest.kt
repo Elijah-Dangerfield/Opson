@@ -8,10 +8,14 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsCards
 import com.opson.libraries.diary.TrendsRange
+import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Targets
+import com.opson.libraries.nutrition.Visibility
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -38,6 +42,60 @@ class TrendsStateBuilderTest {
         TrendsFixtures.trendsInputs(settings),
         TrendsFixtures.policy(preset, clock = if (evening) TrendsFixtures.evening else TrendsFixtures.clock),
     )
+
+    private fun withWatch(
+        preset: PresetId = PresetId.Full,
+        settings: Settings = Settings(),
+        overrides: Map<Metric, Visibility> = emptyMap(),
+        expended: Map<LocalDate, EnergyExpended>? = TrendsFixtures.expended(),
+    ) = TrendsStateBuilder.build(
+        TrendsFixtures.trendsInputs(settings, expended = expended),
+        TrendsFixtures.policy(preset, overrides),
+    )
+
+    @Test
+    fun expended_averagesTheWeeksPastDays_todayLeftOut() {
+        val card = assertNotNull(withWatch().expended)
+        val week = (19..24).map { TrendsFixtures.expended().getValue(LocalDate(2026, 10, it)).totalKcal!! }
+        assertEquals(TrendsFixtures.policy().resolve(Metric.EnergyOut, week.average(), Surface.Week, FormatContext(day = LocalDate(2026, 10, 25))), card.average)
+        assertIs<Display.Shown>(card.average)
+        assertEquals(6, card.trend.size)
+        assertTrue(card.trend.all { it in 0f..1f })
+    }
+
+    @Test
+    fun expended_aDayTheWatchMissedIsAGap_notAZero() {
+        val missing = TrendsFixtures.expended() - LocalDate(2026, 10, 22)
+        val card = assertNotNull(withWatch(expended = missing).expended)
+        val week = listOf(19, 20, 21, 23, 24).map { missing.getValue(LocalDate(2026, 10, it)).totalKcal!! }
+        assertEquals(TrendsFixtures.policy().resolve(Metric.EnergyOut, week.average(), Surface.Week, FormatContext(day = LocalDate(2026, 10, 25))), card.average)
+        assertEquals(5, card.trend.size)
+    }
+
+    @Test
+    fun expended_noWatch_noCard_andNoReadingsAtAll_noCard() {
+        assertNull(withWatch(expended = null).expended)
+        assertNull(withWatch(expended = emptyMap()).expended)
+    }
+
+    @Test
+    fun expended_removedWhereEnergyOutIsHiddenOrSoftened_orTheCardIsOff() {
+        assertNull(withWatch(overrides = mapOf(Metric.EnergyOut to Visibility.Hide)).expended)
+        assertNull(withWatch(overrides = mapOf(Metric.EnergyOut to Visibility.Soften)).expended, "energy out has no soft word")
+        assertNull(withWatch(PresetId.Blind).expended)
+        assertNull(withWatch(PresetId.Fuel).expended)
+        assertNull(withWatch(settings = Settings(trendsCards = TrendsCards(expended = false))).expended)
+    }
+
+    @Test
+    fun expended_delayed_showsOnTheWeekView_withTodayStillOut() {
+        assertNotNull(withWatch(PresetId.Delayed).expended, "Delayed opens the week view all day")
+    }
+
+    @Test
+    fun expended_coastWithEnergyOutLater_waitsForTheWeeklyCheck() {
+        assertNull(withWatch(PresetId.Coast, overrides = mapOf(Metric.EnergyOut to Visibility.Delay)).expended)
+    }
 
     @Test
     fun full_week_everyBarTheSameKind_todayStriped_thursdayAGap() {

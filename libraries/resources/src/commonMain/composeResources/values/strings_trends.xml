@@ -38,6 +38,8 @@
     <string name="trends_weight">Weight</string>
     <string name="trends_weight_trend">Smoothed 7-day trend</string>
     <string name="trends_weight_none">No weigh-ins yet. Tap to log one.</string>
+    <string name="trends_expended">Expended</string>
+    <string name="trends_expended_sub">Daily average from your watch</string>
 
     <!-- Nutrient labels -->
     <string name="trends_energy">Energy</string>
@@ -57,6 +59,7 @@
     <string name="trends_settings_card_recap">Recap</string>
     <string name="trends_settings_card_nutrients">Nutrients</string>
     <string name="trends_settings_card_weight">Weight</string>
+    <string name="trends_settings_card_expended">Expended</string>
 
     <!-- Sub-screens: where back goes, "‹ Trends" or "‹ Today", spoken on the arrow -->
     <string name="trends_back">‹ %1$s</string>

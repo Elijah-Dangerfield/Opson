@@ -23,6 +23,8 @@ kotlin {
             implementation(projects.libraries.scanner)
             // AppLifecycle: the photos lock again when the app goes to the background.
             implementation(projects.libraries.opson)
+            // The Expended card: energy from the watch, behind release.health.
+            implementation(projects.libraries.health)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -45,6 +47,7 @@ kotlin {
             implementation(projects.libraries.scanner)
             implementation(projects.libraries.config)
             implementation(projects.libraries.opson)
+            implementation(projects.libraries.health)
         }
     }
 }

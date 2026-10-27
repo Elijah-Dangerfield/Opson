@@ -33,7 +33,10 @@ private fun below(): Modifier = Modifier.verticalScroll(rememberScrollState(init
 private const val BELOW_FOLD_PX = 2_200
 
 @Composable
-private fun Trends(policy: VisibilityPolicy, inputs: TrendsInputs = TrendsFixtures.trendsInputs(settings = TrendsFixtures.settings(policy))) {
+private fun Trends(
+    policy: VisibilityPolicy,
+    inputs: TrendsInputs = TrendsFixtures.trendsInputs(settings = TrendsFixtures.settings(policy), expended = TrendsFixtures.expended()),
+) {
     TrendsScreen(TrendsStateBuilder.build(inputs, policy), onAction = {})
 }
 

@@ -17,7 +17,7 @@ object TrendsLeakSurfaces {
 
     val all: List<LeakSurface> = listOf(
         LeakSurface(id = "trends", label = "Trends (week history)", showsCaloriesInFull = true) { policy ->
-            TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(), policy), onAction = {})
+            TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(expended = TrendsFixtures.expended()), policy), onAction = {})
         },
         // The design's Blind and Coast screens. The test passes the policy, so these differ from
         // `trends` in what they are built from: Month (every card follows the range) and the
@@ -32,7 +32,7 @@ object TrendsLeakSurfaces {
             TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(Settings(askTags = false)), policy), onAction = {})
         },
         LeakSurface(id = "trends-settings", label = "Trends settings", showsCaloriesInFull = false) { policy ->
-            TrendsSettingsSheetContent(TrendsSettingsStateBuilder.build(Settings(), policy), onAction = {})
+            TrendsSettingsSheetContent(TrendsSettingsStateBuilder.build(Settings(), policy, healthConnected = true), onAction = {})
         },
         LeakSurface(id = "nutrients", label = "Nutrients detail", showsCaloriesInFull = true) { policy ->
             NutrientsContent(NutrientsStateBuilder.build(TrendsFixtures.nutrientsInputs(NutrientsRange.Day), policy), onAction = {})
