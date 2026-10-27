@@ -58,4 +58,13 @@ class DisplayNameRulesTest {
         assertTrue(DisplayNameRules.containsEmoji("😀"))
         assertTrue(DisplayNameRules.containsEmoji("❤"))
     }
+
+    @Test
+    fun isValid_rejects_control_characters_and_bidi_overrides_like_the_server() {
+        assertFalse(DisplayNameRules.isValid("Sam\nJones"))
+        assertFalse(DisplayNameRules.isValid("Sam\u0000x"))
+        assertFalse(DisplayNameRules.isValid("abc\u202Edef"))
+        assertFalse(DisplayNameRules.isValid("abc\u2066def"))
+        assertTrue(DisplayNameRules.isValid("Mi\u200Cna"))
+    }
 }
