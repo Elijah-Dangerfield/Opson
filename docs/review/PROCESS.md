@@ -18,8 +18,16 @@
    - marks each file reviewed in `LEDGER.md` (slice section only);
    - writes product ideas (not code issues) under `## Product notes` in its
      findings file; the orchestrator gathers them into `product-notes.md`.
-4. **Orchestrator** merges each slice, runs the full check (detekt, all module
+4. **Cross-cutting audits** run first, read-only, because the bugs that hurt
+   most live between files: environments and the release path, the
+   client and server contract, user journeys end to end, Compose
+   performance, and comments and docs that no longer match the code. Each
+   audit writes `docs/review/findings/audit-<name>.md` with exact fixes, and
+   every finding is routed to the slice that owns the file, so the slice
+   reviewer fixes it with everything else.
+5. **Orchestrator** merges each slice, runs the full check (detekt, all module
    tests, leak test, server tests, integration tests, iOS build, launch
    smoke), and walks the touched screens in the simulator.
-5. **Done** when every file in the ledger is marked, every finding has a fate,
-   and the full check is green.
+6. **Done** when every file in the ledger is marked, every finding has a fate,
+   and the full check is green, including a release build's journeys
+   against the environment it ships to (PRACTICES.md section 9).

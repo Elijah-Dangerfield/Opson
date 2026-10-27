@@ -156,3 +156,51 @@ worth fixing if the fix is small.
   no work on the main thread, process death survives (state restoration).
 - **Accessibility:** content descriptions, 44 pt targets, live regions for
   status changes, dynamic type that doesn't truncate (see the Targets fix).
+
+## 9. Environments and the release path
+
+Added 2026-10-27, after 0.1.0 and the first 0.2 TestFlight build shipped
+signing in to the dev Supabase project while calling the prod server. Every
+request came back 401. A file-by-file review can't see this: each file was
+fine, and the bug was in how values from three places met in one binary.
+
+- **One switch per build picks the environment, and every environment value
+  follows it.** API base URL, Supabase project and key, Sentry environment,
+  Grafana endpoint, ad unit ids, OAuth client ids, deep link scheme, bundle
+  and App Group ids. List them all and check each one for debug, release,
+  local and CI builds on iOS and Android.
+- **Release values come from committed config or CI secrets, never from a
+  developer's `local.properties`.** A release build must not depend on whose
+  machine built it.
+- **A wrong environment fails loudly at build time,** not as a 401 on a
+  phone. Where a value can be checked (the Supabase host matches the server's
+  `SUPABASE_URL`, no placeholder values in a release build), a build-logic
+  test or a release-build check does it.
+- **The server and the client agree on the contract.** Route paths, auth
+  header, DTO fields and their nullability, status codes the client handles,
+  and what 0.1 clients still send. A change on one side gets a test that runs
+  both sides (`:apps:integration`).
+- **Before a build is called ready, its release configuration has been
+  exercised end to end:** sign in, search, barcode, log, sync, settings,
+  delete, against the environment it will talk to. "It compiles and uploads"
+  is not ready.
+- **Server env vars:** every one the server reads is documented, set on dev
+  and prod (or deliberately absent with a logged reason), and the server
+  logs which optional features are off at boot.
+- **Secrets and repo settings the pipelines need exist** (GitHub secrets and
+  variables, Fly secrets), and a step that skips for a missing secret says so
+  as a warning someone will see, not a silent pass.
+
+## 10. Journeys, not just files
+
+- **Fresh install** reaches sign-in and onboarding, every time, on both
+  platforms, including after a reinstall when the iOS Keychain still holds
+  an old session.
+- **Every user-visible flow has a non-empty state, a loading state, an empty
+  state and an error state,** and the error state tells the person what they
+  can do.
+- **Permissions:** asked in context, denied handled, the usage string present
+  for every API the binary references (App Store Connect rejects the upload
+  otherwise: ITMS-90683 for `NSHealthUpdateUsageDescription`, 2026-10-27).
+- **Lifecycle:** backgrounding, process death, offline, a slow network, a
+  token that expires mid-session, two devices editing the same day.
