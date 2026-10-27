@@ -95,13 +95,17 @@ internal fun randomUuid(): String = js("crypto.randomUUID()") as String
 internal fun dangerousWarning(path: String, value: String): String? {
     val v = value.trim()
     return when {
-        // No released app reads these yet, so each warning names the effect for the build that will.
+        // Opson 0.2 and later read these; 0.1 has no guard, so each warning says so.
         path == "upgrade.maintenanceMode" && v == "\"blocking\"" ->
-            "This sets maintenance mode to BLOCKING. Once the app reads it, it locks ALL users out. Continue?"
+            "This sets maintenance mode to BLOCKING. Every Opson 0.2+ phone that can reach the server gets a " +
+                "full-screen stop with your message; a phone that cannot reach it gets the banner and keeps " +
+                "logging on the phone. 0.1 is not affected. Continue?"
         path == "upgrade.maintenanceMode" && v == "\"banner\"" ->
-            "This sets maintenance mode to BANNER. Once the app reads it, ALL users see the banner. Continue?"
+            "This sets maintenance mode to BANNER. Every Opson 0.2+ user sees your message above the app; " +
+                "0.1 is not affected. Continue?"
         path == "upgrade.minSupportedVersionCode" ->
-            "Once the app reads it, raising the minimum supported version force-upgrades every user below it. " +
+            "Raising the minimum supported build sends every Opson 0.2+ build below it to a full-screen " +
+                "update screen, offline too. 0.1 does not read it, so it cannot make 0.1 update. " +
                 "Double-check the number. Continue?"
         else -> null
     }
