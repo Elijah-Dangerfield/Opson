@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
@@ -200,6 +201,28 @@ class OfflineFirstAppConfigRepositoryTest : CoroutineTest() {
     }
 
     @Test
+    fun finishedRefreshes_leaveNothingBehindInTheAppScope() = runUnitTest {
+        val cache = FakeConfigCache().apply { seed(configJson = """{"config":{"refreshThrottleMs":0}}""") }
+        val source = FakeRemoteDataSource(response = MapAppConfig(mapOf("config" to mapOf("refreshThrottleMs" to 0))))
+        val events = FakeAppEvents()
+        val appScope = AppCoroutineScope(dispatchers)
+        newRepo(source = source, cache = cache, events = events, appScope = appScope)
+
+        events.foreground(isColdBoot = true)
+        runCurrent()
+        val afterOne = appScope.coroutineContext.job.children.count()
+
+        repeat(5) {
+            events.foreground(isColdBoot = false)
+            runCurrent()
+        }
+
+        assertEquals(6, source.callCount)
+        assertEquals(afterOne, appScope.coroutineContext.job.children.count(), "each refresh left a job in the app scope")
+        appScope.coroutineContext.job.cancel()
+    }
+
+    @Test
     fun overrides_apply_onTopOfCachedConfig() = runUnitTest {
         val source = FakeRemoteDataSource(response = MapAppConfig(mapOf("foo" to "bar")))
         val overrides = FakeConfigOverrideRepository()
@@ -280,6 +303,7 @@ class OfflineFirstAppConfigRepositoryTest : CoroutineTest() {
         overrides: FakeConfigOverrideRepository = FakeConfigOverrideRepository(),
         events: FakeAppEvents = FakeAppEvents(),
         clock: FakeClock = FakeClock(nowMs = 0L),
+        appScope: AppCoroutineScope = AppCoroutineScope(dispatchers),
     ): OfflineFirstAppConfigRepository {
         val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
         val converter = ConfigJsonConverter(json)
@@ -292,7 +316,7 @@ class OfflineFirstAppConfigRepositoryTest : CoroutineTest() {
             configOverrideRepository = overrides,
             appEvents = events.appEvents,
             clock = clock,
-            appScope = AppCoroutineScope(dispatchers),
+            appScope = appScope,
         )
     }
 
