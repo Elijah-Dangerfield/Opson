@@ -10,6 +10,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -277,10 +279,12 @@ class LoggerFeatureEntryPoint(
             viewModel.takeAction(BarcodeScanAction.Resumed)
             onPauseOrDispose { }
         }
+        val haptics = LocalHapticFeedback.current
 
         viewModel.ObserveEvents { event ->
             when (event) {
                 BarcodeScanEvent.RequestPermission -> requestPermission()
+                BarcodeScanEvent.Scanned -> haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                 // The amount sheet takes this screen's place over the logger, as it does for a tapped search row.
                 is BarcodeScanEvent.OpenAmount -> router.batch {
                     goBack()
@@ -301,10 +305,14 @@ class LoggerFeatureEntryPoint(
         BarcodeScanScreen(
             state = state,
             onAction = viewModel::takeAction,
-            viewfinder = { modifier ->
+            viewfinder = { request, modifier ->
                 barcodeCamera.Viewfinder(
                     onCode = { viewModel.takeAction(BarcodeScanAction.CodeRead(it)) },
                     onUnavailable = { viewModel.takeAction(BarcodeScanAction.CameraUnavailable) },
+                    scanArea = request.scanArea,
+                    torchOn = request.torchOn,
+                    onTorchAvailable = { viewModel.takeAction(BarcodeScanAction.CameraStarted(hasTorch = it)) },
+                    focusPoint = request.focusPoint,
                     modifier = modifier,
                 )
             },

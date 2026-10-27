@@ -72,6 +72,28 @@ class BarcodeScanStateBuilderTest {
     }
 
     @Test
+    fun theLightIsOfferedWhereverTheLiveCameraShows() {
+        fun torch(model: ScanModel) = BarcodeScanStateBuilder.build(MealSlot.Lunch, model).torch
+
+        assertEquals(Torch.Off, torch(LoggerFixtures.scanning))
+        assertEquals(Torch.On, torch(LoggerFixtures.scanningLit))
+        assertEquals(Torch.On, torch(LoggerFixtures.scanningLit.copy(lookup = Lookup.Running("123"))), "under the lookup's scrim")
+        assertEquals(Torch.None, torch(LoggerFixtures.scanning.copy(hasTorch = false)), "no torch, no button")
+    }
+
+    @Test
+    fun theLightIsNotOfferedWithoutALiveCamera() {
+        fun torch(model: ScanModel) = BarcodeScanStateBuilder.build(MealSlot.Lunch, model.copy(hasTorch = true, torchOn = true)).torch
+
+        assertEquals(Torch.None, torch(LoggerFixtures.missed))
+        assertEquals(Torch.None, torch(LoggerFixtures.unavailable))
+        assertEquals(Torch.None, torch(LoggerFixtures.cameraUnavailable))
+        assertEquals(Torch.None, torch(LoggerFixtures.cameraOff))
+        assertEquals(Torch.None, torch(LoggerFixtures.scanning.copy(typed = "123")))
+        assertEquals(Torch.None, torch(LoggerFixtures.cameraUnavailable.copy(lookup = Lookup.Running("123", typed = true))))
+    }
+
+    @Test
     fun theSlotIsCarriedThrough() {
         assertEquals(MealSlot.Lunch, BarcodeScanStateBuilder.build(MealSlot.Lunch, ScanModel()).slot)
     }

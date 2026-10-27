@@ -27,7 +27,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * only" first.
  *
  * The camera reads the same pack many times a second, so only a read that
- * arrives while scanning, and that is a real GTIN, starts a lookup.
+ * arrives while scanning, and that is a real GTIN, starts a lookup, and only
+ * that read buzzes ([BarcodeScanEvent.Scanned]).
  */
 @Inject
 class BarcodeScanViewModel(
@@ -98,6 +99,10 @@ class BarcodeScanViewModel(
                 action.rebuild { copy(cameraUnavailable = true) }
                 telemetry.cameraUnavailable()
             }
+            is BarcodeScanAction.CameraStarted -> if (model.hasTorch != action.hasTorch) {
+                action.rebuild { copy(hasTorch = action.hasTorch) }
+            }
+            BarcodeScanAction.TorchTapped -> if (model.hasTorch) action.rebuild { copy(torchOn = !torchOn) }
             // Composing the viewfinder again starts a new camera session.
             BarcodeScanAction.RetryCameraTapped -> action.rebuild { copy(cameraUnavailable = false) }
             BarcodeScanAction.TypeCodeTapped -> if (model.lookup == Lookup.Idle) {
@@ -149,6 +154,9 @@ class BarcodeScanViewModel(
         val code = if (read.format == BarcodeFormat.UpcE) Gtin.completeUpcE(read.value) else read.value
         // A failed check digit is a misread, not a product: keep scanning.
         if (Gtin.normalize(code) == null) return
+        // The first valid read is taken at once: the check digit already rules out a misread, so
+        // waiting for the same code twice would only make the person hold still longer.
+        sendEvent(BarcodeScanEvent.Scanned)
         lookUp(action, code, typed = false)
     }
 
