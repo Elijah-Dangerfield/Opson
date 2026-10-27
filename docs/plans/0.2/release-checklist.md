@@ -280,6 +280,29 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
       its source badge and the line under results are the Logger's Open Food
       Facts credit (step 3 above).
 
+## NEVO, the Dutch food table
+
+RIVM's terms and the mapping are in `docs/food-data-sources.md` ("NEVO
+(Netherlands): imported"). Search only gives NEVO foods to an app that cites
+them, so loading prod before 0.2 ships changes nothing 0.1 sees.
+
+- [ ] **You:** download NEVO-online 2025/9.0 from RIVM's
+      [request form](https://www.rivm.nl/en/dutch-food-composition-database/use-of-nevo-online/request-dataset)
+      (it asks you to accept the conditions of use).
+- [ ] Load it into dev, then prod, once each has V20 (deployed with this
+      change). This prompts for the file and the database URL, counts first,
+      then loads; run it once with dev's session pooler URL and once with
+      prod's. A second run changes nothing.
+
+      ```bash
+      printf "Full path to the NEVO CSV or zip: "; read -r F
+      stty -echo; printf "CATALOG_DATABASE_URL (session pooler): "; read -r V; stty echo; printf "\n"
+      if [ -n "$V" ] && [ -f "$F" ]; then
+        python3 -I scripts/import_nevo_foods.py --file "$F" &&
+        CATALOG_DATABASE_URL="$V" python3 -I scripts/import_nevo_foods.py --file "$F" --psql
+      else echo "No URL, or no file at that path. Nothing run."; fi; unset V F
+      ```
+
 ## Held native commits
 
 The widget receiver and WidgetKit extension are on branch
