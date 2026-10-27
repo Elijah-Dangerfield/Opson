@@ -201,8 +201,8 @@ fun App(appComponent: AppComponent) {
                         // Stage 1: null until the async AppData read resolves — the
                         // platform splash (keyed on appViewModel.isReady) covers the
                         // gap. Stage 2: the Compose boot gate holds a loading screen
-                        // until the remaining boot work (config + profile resolve)
-                        // lands, so the first real frame renders authoritative data.
+                        // until the app config is in, so the first real frame renders
+                        // config-driven values.
                         val bootComplete by appViewModel.isBootComplete.collectAsState()
                         val startDestination by appViewModel.startDestination.collectAsState()
                         val route = startDestination
