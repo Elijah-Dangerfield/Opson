@@ -152,7 +152,7 @@ object MealPatterns {
 
     /** Each tagged, done meal's hunger, 0 (stuffed) to [HUNGER_STEPS] (starving). */
     private fun Day.hungerLevels(): List<Int> = MealSlot.meals.mapNotNull { slot ->
-        feelings[slot]?.hunger?.takeIf { isMealDone(slot) }?.let { HUNGER_STEPS - it.ordinal }
+        feelings[slot]?.hunger?.takeIf { isMealDone(slot) }?.level
     }
 
     /** The check-in's hunger, 0 (rarely) to [CHECK_IN_STEPS] (very), when it was answered. */
@@ -220,7 +220,7 @@ object MealPatterns {
     private fun roundTo(minutes: Int, step: Int): Int = ((minutes + step / 2) / step) * step
 
     /** The tag seen most; a tie goes to the hungrier one, which comes first in [Hunger]. */
-    private fun mostCommon(tags: List<Hunger>): Hunger {
+    internal fun mostCommon(tags: List<Hunger>): Hunger {
         val counts = tags.groupingBy { it }.eachCount()
         return counts.keys.sortedWith(compareByDescending<Hunger> { counts.getValue(it) }.thenBy { it.ordinal }).first()
     }
