@@ -94,6 +94,24 @@
   `MealCard.feel` (and the assertion at `TodayStateBuilderTest.kt:113`) and `TodayMealCard`'s
   `feel` parameter.
 
+## 9. "Different by day" never reached Today or Close the day: fixed
+
+- **Where:** `ExerciseRange.kt` `todayRange` called `Targets.today` with the base range;
+  `dayclose/DayCloseState.kt` took tomorrow from `Targets.tomorrow()`, the base range too.
+- **Rule:** checklist "derived values are computed in the domain"; the Targets screen's own goal
+  styles.
+- **Failure:** with a training-day group of 2,300 to 2,700, Today and Close the day still drew
+  the base range on a training day, and the big-day card named the base as tomorrow's range.
+- **Fix:** "fix(today): a day's range starts from its own goal, a training day's included", on top
+  of 9c434c0 from the nutrition slice (cherry-picked here). `todayRange` passes
+  `rangeFor(day.date, settings.numbers.preset)`; tomorrow is `rangeFor` of the next date, which
+  still reads only settings and the date, so a big day cannot move it.
+  `TodayStateBuilderTest.aTrainingDayShowsItsOwnRange` and
+  `DayCloseTest.tomorrowIsTomorrowsOwnRangeUnderDifferentByDay`.
+- **Left open:** a set deficit still reads as the base range. `rangeFor` needs `burnKcal` for it,
+  and nothing on Today passes one; whether that is today's burn so far, a typical burn, or the
+  watch's total is a product call, not a review one.
+
 ## Not a problem
 
 - **Check-in wording.** The check-in strings (`today_checkin_*`) match design 4.1 word for word:
