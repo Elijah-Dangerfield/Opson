@@ -24,6 +24,7 @@ import com.opson.libraries.nutrition.ui.NutrientFillBarDefaults
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.ui.components.ColorDot
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -45,6 +46,7 @@ import com.opson.system.background
 import androidx.compose.ui.draw.clip
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_back
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_micro_of
 import opson.libraries.resources.generated.resources.trends_micro_of_limit
 import opson.libraries.resources.generated.resources.trends_micros_caption
@@ -112,6 +114,10 @@ internal fun NutrientsContent(
             },
             minHeight = MinTouchTarget,
         )
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
+            return@Column
+        }
         if (state.energy != null || state.macros != null) {
             ListCard {
                 var first = true

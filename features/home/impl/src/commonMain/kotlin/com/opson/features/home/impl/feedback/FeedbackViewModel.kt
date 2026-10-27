@@ -1,59 +1,60 @@
 package com.opson.features.home.impl.feedback
 
-import com.opson.libraries.core.eitherWay
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.opson.AppCache
-import com.opson.libraries.navigation.Router
-import com.opson.libraries.ui.snackbar.showSnackBar
 import me.tatarka.inject.annotations.Inject
-import kotlin.time.Duration.Companion.seconds
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.feedback_empty
+import opson.libraries.resources.generated.resources.feedback_failed
+import org.jetbrains.compose.resources.StringResource
 
 @Inject
 class FeedbackViewModel(
     private val repository: FeedbackRepository,
-    private val router: Router,
     private val appCache: AppCache,
-) : SEAViewModel<FeedbackState, Unit, FeedbackAction>(
+) : SEAViewModel<FeedbackState, FeedbackEvent, FeedbackAction>(
     initialStateArg = FeedbackState()
 ) {
 
     override suspend fun handleAction(action: FeedbackAction) {
         when (action) {
-            FeedbackAction.Back -> router.goBack()
-            is FeedbackAction.MessageChanged -> action.updateMessage()
+            FeedbackAction.Back -> sendEvent(FeedbackEvent.Close)
+            is FeedbackAction.MessageChanged -> action.updateState { it.copy(message = action.value, errorMessage = null) }
             FeedbackAction.Submit -> action.submitFeedback()
         }
     }
 
-    private suspend fun FeedbackAction.MessageChanged.updateMessage() {
-        val updated = value
-        updateState { it.copy(message = updated, errorMessage = null) }
-    }
-
+    /** Only a sent message counts and closes the page; a failed one stays, with a line saying so. */
     private suspend fun FeedbackAction.submitFeedback() {
         val current = state
+        if (current.isSubmitting) return
         if (current.message.isBlank()) {
-            updateState { it.copy(errorMessage = "Add a quick note before sending.") }
+            updateState { it.copy(errorMessage = Res.string.feedback_empty) }
             return
         }
         updateState { it.copy(isSubmitting = true, errorMessage = null) }
-        repository.submitFeedback(
-            message = current.message.trim(),
-            isBugReport = false
-        ).eitherWay {
-            appCache.update { it.copy(feedbacksGiven = it.feedbacksGiven + 1) }
-            updateState { it.copy(isSubmitting = false) }
-            showSnackBar(message = "Got it. Thank you!", delayBy = 1.seconds)
-            router.goBack()
+        val sent = repository.submitFeedback(message = current.message.trim(), isBugReport = false).isSuccess
+        if (!sent) {
+            updateState { it.copy(isSubmitting = false, errorMessage = Res.string.feedback_failed) }
+            return
         }
+        appCache.update { it.copy(feedbacksGiven = it.feedbacksGiven + 1) }
+        updateState { it.copy(isSubmitting = false) }
+        sendEvent(FeedbackEvent.Sent)
     }
 }
 
 data class FeedbackState(
     val message: String = "",
     val isSubmitting: Boolean = false,
-    val errorMessage: String? = null,
+    val errorMessage: StringResource? = null,
 )
+
+sealed interface FeedbackEvent {
+    /** Thank them and close. */
+    data object Sent : FeedbackEvent
+    data object Close : FeedbackEvent
+}
 
 sealed interface FeedbackAction {
     data object Back : FeedbackAction

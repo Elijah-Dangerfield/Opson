@@ -71,7 +71,9 @@ class WeightViewModel(
             is WeightAction.RangePicked -> action.updateState { rebuild(it.ui().copy(range = action.range)) ?: it.copy(range = action.range) }
             is WeightAction.WeightTyped -> {
                 val input = NumberInput.sanitize(action.text, allowDecimal = true)
-                action.updateState { rebuild(it.ui().copy(input = input, saved = false)) ?: it.copy(input = input, saved = null) }
+                action.updateState {
+                    rebuild(it.ui().copy(input = input, saved = false, failed = false)) ?: it.copy(input = input, saved = null, saveFailed = false)
+                }
             }
             WeightAction.SaveTapped -> save(action)
             WeightAction.BackTapped -> sendEvent(WeightEvent.Close)
@@ -89,14 +91,17 @@ class WeightViewModel(
         if (kg <= 0.0 || kg > MAX_KG) return
         // The amount is health data: it never goes in a log line, only the failure does.
         val written = Catching { weights.addWeighIn(kg) }.logOnFailure("Couldn't save a weigh-in").isSuccess
-        if (!written) return
+        if (!written) {
+            action.updateState { rebuild(it.ui().copy(saved = false, failed = true)) ?: it.copy(saved = null, saveFailed = true) }
+            return
+        }
         action.updateState { rebuild(it.ui().copy(input = "", saved = true)) ?: it.copy(input = "") }
     }
 
     private fun rebuild(ui: WeightUi): WeightState? =
         latest?.let { WeightStateBuilder.build(it.inputs, ui, it.policy) }
 
-    private fun WeightState.ui() = WeightUi(range = range, input = input, saved = saved != null)
+    private fun WeightState.ui() = WeightUi(range = range, input = input, saved = saved != null, failed = saveFailed)
 
     private companion object {
         /** Seeds the EMA before the 3-month window, and covers it. */

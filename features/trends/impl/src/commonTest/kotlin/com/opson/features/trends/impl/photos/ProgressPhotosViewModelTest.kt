@@ -3,6 +3,7 @@ package com.opson.features.trends.impl.photos
 import com.opson.features.trends.impl.TrendsFixtures
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.progressphotos.DeviceLockResult
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Month
@@ -35,6 +36,23 @@ class ProgressPhotosViewModelTest : CoroutineTest() {
         assertEquals(listOf(3, 3), vm.state.months.map { it.tiles.size })
         assertTrue(vm.state.months.flatMap { it.tiles }.all { it.image != null })
         assertTrue(vm.state.canCompare)
+    }
+
+    @Test
+    fun theGridShowsBeforeTheThumbnailsAreRead_andBackStillWorksMeanwhile() = runUnitTest {
+        val disk = CompletableDeferred<Unit>()
+        photos.thumbnailsWaitFor = disk
+        val vm = vm()
+        val events = events(vm)
+
+        assertEquals(listOf(3, 3), vm.state.months.map { it.tiles.size }, "the dates and poses are already known")
+        assertTrue(vm.state.months.flatMap { it.tiles }.all { it.image == null })
+        vm.takeAction(ProgressPhotosAction.BackTapped)
+        assertEquals(listOf<ProgressPhotosEvent>(ProgressPhotosEvent.Close), events)
+
+        disk.complete(Unit)
+
+        assertTrue(vm.state.months.flatMap { it.tiles }.all { it.image != null })
     }
 
     @Test

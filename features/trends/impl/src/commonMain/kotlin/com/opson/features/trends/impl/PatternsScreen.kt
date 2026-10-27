@@ -27,6 +27,7 @@ import com.opson.libraries.diary.ui.tileColors
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.ColorDot
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -43,6 +44,7 @@ import com.opson.system.background
 import kotlinx.datetime.DayOfWeek
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_back
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_patterns_and
 import opson.libraries.resources.generated.resources.trends_patterns_axis_12p
 import opson.libraries.resources.generated.resources.trends_patterns_axis_3p
@@ -103,6 +105,10 @@ internal fun PatternsContent(
             backLabel = stringResource(Res.string.trends_back, stringResource(Res.string.trends_title)),
             onBack = { onAction(PatternsAction.BackTapped) },
         )
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
+            return@Column
+        }
         state.timing?.let { TimingCardView(it) }
         state.sizes?.let { SizesCard(it) }
         state.often?.let { OftenCard(it) }

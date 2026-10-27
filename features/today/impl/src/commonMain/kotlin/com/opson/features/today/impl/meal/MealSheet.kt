@@ -115,6 +115,9 @@ class MealSheetViewModel(
 ) : SEAViewModel<MealSheetState, MealSheetEvent, MealSheetAction>(
     initialStateArg = MealSheetState(slot = slot, title = slot.label),
 ) {
+    /** Copied or marked, and the sheet is closing: a second tap queued behind the first would copy the meal again. */
+    private var written = false
+
     init {
         viewModelScope.launch {
             combine(
@@ -134,12 +137,14 @@ class MealSheetViewModel(
             MealSheetAction.AddFoodTapped -> sendEvent(MealSheetEvent.OpenLogger(day, slot))
             MealSheetAction.AddNoteTapped -> sendEvent(MealSheetEvent.OpenMealNote(day, slot))
             MealSheetAction.HowItFeltTapped -> sendEvent(MealSheetEvent.OpenMealFeel(day, slot))
-            MealSheetAction.CopyFromDayBeforeTapped -> {
+            MealSheetAction.CopyFromDayBeforeTapped -> if (!written) {
+                written = true
                 diary.copySlot(fromDay = day.minus(DatePeriod(days = 1)), toDay = day, slot = slot)
                 sendEvent(MealSheetEvent.ShowToast(Toast(Res.string.today_toast_added_to, listOf(slot.sentenceName))))
                 sendEvent(MealSheetEvent.Dismiss)
             }
-            MealSheetAction.AteNoDetailsTapped -> {
+            MealSheetAction.AteNoDetailsTapped -> if (!written) {
+                written = true
                 diary.setAteNoDetails(day, slot, ate = true)
                 sendEvent(MealSheetEvent.ShowToast(Toast(Res.string.today_toast_marked_eaten, listOf(slot.sentenceName))))
                 sendEvent(MealSheetEvent.Dismiss)

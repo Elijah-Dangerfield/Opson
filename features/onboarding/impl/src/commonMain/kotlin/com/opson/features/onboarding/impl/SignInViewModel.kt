@@ -93,8 +93,8 @@ class SignInViewModel(
                                 handleSignInOutcome(authRepository.signInWithApple(credential))
                             }
                         },
-                        onFailure = { e ->
-                            logger.w(e) { "SignInWithApple: credential request threw — surfacing Unknown" }
+                        // logOnFailure above already reported it.
+                        onFailure = {
                             updateState { it.copy(isSubmitting = false, error = SignInError.Unknown) }
                         },
                     )

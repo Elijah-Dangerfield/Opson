@@ -20,12 +20,12 @@ private const val RADII_SUBTITLE =
     "Reach for the semantic getter (Button / Card / Banner / Header) — never a raw R-value at a " +
         "call site. The R-scale is the underlying ramp the semantics point at."
 
-/** The radii page body. Reused by [DesignSystemPreview]. */
+/** The radii page body. */
 @Composable
 internal fun RadiiCatalogBody() {
     CatalogSection(
         "Semantic",
-        "What components actually use. Buttons are a 25% rounded rect; Card and Banner share R400.",
+        "What components actually use. Buttons and Banner are 14 dp, Card is 22 dp.",
     ) {
         SwatchFlow {
             RadiusTile("Button", Radii.Button)

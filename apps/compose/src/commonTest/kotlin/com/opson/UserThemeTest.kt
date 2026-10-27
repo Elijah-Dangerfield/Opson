@@ -30,4 +30,13 @@ class UserThemeTest {
         assertEquals(UserTheme(PaletteChoice.Plum, ThemeMode.Dark, TextSize.Large), settings.userTheme())
         assertEquals(settings.userTheme(), unrelatedChange.userTheme())
     }
+
+    /** The app and the Android system bars both read this, so a forced theme gets readable bar icons. */
+    @Test
+    fun aPickedThemeOverridesTheSystem_andSystemFollowsIt() {
+        assertEquals(true, ThemeMode.Dark.isDark(systemDark = false))
+        assertEquals(false, ThemeMode.Light.isDark(systemDark = true))
+        assertEquals(true, ThemeMode.System.isDark(systemDark = true))
+        assertEquals(false, ThemeMode.System.isDark(systemDark = false))
+    }
 }

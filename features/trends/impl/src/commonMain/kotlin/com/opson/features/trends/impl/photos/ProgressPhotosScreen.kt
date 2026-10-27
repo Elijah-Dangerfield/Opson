@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.opson.libraries.ui.PreviewContent
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.HeaderIconButton
 import com.opson.libraries.ui.components.MenuItem
 import com.opson.libraries.ui.components.PageHeader
@@ -39,6 +40,7 @@ import opson.libraries.resources.generated.resources.photos_saved_pair
 import opson.libraries.resources.generated.resources.photos_saved_title
 import opson.libraries.resources.generated.resources.photos_take
 import opson.libraries.resources.generated.resources.photos_title
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_weight_title
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -112,6 +114,7 @@ internal fun ProgressPhotosContent(
             return@Column
         }
         PrivacyCard()
+        if (state.loading) DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
         if (state.empty) {
             Text(text = stringResource(Res.string.photos_empty), typography = AppTheme.type.body, color = AppTheme.colors.muted)
         }

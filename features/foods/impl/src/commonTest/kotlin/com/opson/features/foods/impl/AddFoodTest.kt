@@ -158,6 +158,19 @@ class AddFoodTest : CoroutineTest() {
     }
 
     @Test
+    fun aSecondSaveTapBeforeTheScreenClosesAddsNothing() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        vm.takeAction(AddFoodAction.NameTyped("Lola's pandesal"))
+
+        vm.takeAction(AddFoodAction.SaveTapped)
+        vm.takeAction(AddFoodAction.SaveTapped)
+
+        assertEquals(1, customFoods.created.size)
+        assertEquals(1, events.count { it == AddFoodEvent.Close })
+    }
+
+    @Test
     fun saveWithoutANameDoesNothing() = runUnitTest {
         val vm = vm()
         val events = events(vm)

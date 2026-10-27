@@ -32,6 +32,11 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import com.opson.libraries.nutrition.DayGroup
+import com.opson.libraries.nutrition.TargetStyle
+import com.opson.libraries.nutrition.Targets
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.minus
 
 /**
  * [TodayStateBuilder] against design v3: which hero card each layout and level gets, the meals
@@ -72,6 +77,29 @@ class TodayStateBuilderTest {
         assertEquals(CloseDayCard(closed = false), state.closeDay)
         assertNull(state.mealTiles)
         assertEquals(MealSlot.meals, state.meals.map { it.slot })
+    }
+
+    /** A blank list under the header read as an empty day while the diary (or the health store) was still answering. */
+    @Test
+    fun beforeTheDayIsReadTheListIsOnlyTheSpinner() {
+        assertEquals(listOf<TodayRow>(TodayRow.Loading), todayRows(TodayState(day = TodayFixtures.today)))
+        assertTrue(TodayRow.Loading !in todayRows(build(PresetId.Full)))
+    }
+
+    /** "Different by day": a training day's range is the one Today draws, not the base. */
+    @Test
+    fun aTrainingDayShowsItsOwnRange() {
+        val today = TodayFixtures.today.dayOfWeek
+        val training = DayGroup(setOf(today), minKcal = 2300, maxKcal = 2700)
+        val rest = DayGroup(DayOfWeek.entries.toSet() - today, minKcal = 1800, maxKcal = 2200)
+        val byDay = Settings(targets = Targets.Default.copy(style = TargetStyle.ByDay(listOf(rest, training))))
+
+        assertEquals("2,300 to 2,700", assertIs<TodaySummary.Energy>(build(PresetId.Full, settings = byDay).summary).range.text())
+        val restDay = TodayFixtures.day().copy(date = TodayFixtures.today.minus(DatePeriod(days = 1)))
+        assertEquals(
+            "1,800 to 2,200",
+            assertIs<TodaySummary.Energy>(build(PresetId.Full, day = restDay, settings = byDay).summary).range.text(),
+        )
     }
 
     @Test

@@ -20,6 +20,9 @@ primary_region = 'iad'   # pick the region closest to your database
   SERVER_HOST = '0.0.0.0'
   SERVER_PORT = '8080'
   LOG_LEVEL = 'INFO'
+  # Dev has the full Open Food Facts load (3.29M products). Prod stays off until
+  # its own load and the attribution check in docs/plans/0.2/release-checklist.md.
+  FOOD_SEARCH_OFF_ENABLED = 'true'
   # JVM heap tuned for a 512MB machine. The Ktor + Exposed + Hikari + OTel set
   # has a ~150-200MB off-heap floor (metaspace, thread stacks, JIT, Netty direct
   # buffers) before the heap counts at all, so a naive 256MB total OOM-loops.

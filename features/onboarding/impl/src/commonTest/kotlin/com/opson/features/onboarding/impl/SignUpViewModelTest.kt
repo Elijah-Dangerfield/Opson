@@ -299,6 +299,8 @@ class SignUpViewModelTest : CoroutineTest() {
         vm.eventFlow.test {
             val event = assertIs<SignUpEvent.NavigateToVerifyEmail>(awaitItem())
             assertEquals("ok@example.com", event.email)
+            // Without it the verify screen treats the claim as a new sign-up.
+            assertEquals(true, event.guestLink, "a linked guest must reach verify as a guest link")
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(1, identity.linkEmailCalls, "anonymous guest must take the link path")
@@ -318,7 +320,7 @@ class SignUpViewModelTest : CoroutineTest() {
         vm.takeAction(SignUpAction.Submit)
 
         vm.eventFlow.test {
-            awaitItem()
+            assertEquals(false, assertIs<SignUpEvent.NavigateToVerifyEmail>(awaitItem()).guestLink)
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(1, identity.signUpCalls)

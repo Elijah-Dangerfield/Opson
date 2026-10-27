@@ -208,6 +208,24 @@ class TrendsStateBuilderTest {
     }
 
     @Test
+    fun delayed_beforeTheReveal_todaysBarIsAGap_untilTheRevealOpensIt() {
+        assertNotNull(assertNotNull(build().intake).bars[6].fraction, "Full: today's bar so far")
+        assertNull(assertNotNull(build(PresetId.Delayed).intake).bars[6].fraction, "its height would say roughly what today came to")
+        assertNotNull(assertNotNull(build(PresetId.Delayed, evening = true).intake).bars[6].fraction)
+    }
+
+    @Test
+    fun coast_aMonthReachingIntoAWeekBeforeItsCheck_leavesThatWeekOut() {
+        // A Saturday start: the week window (Oct 17 to 23) has had its check, but the month's last
+        // bar holds Saturday the 24th and today, whose week checks on Friday the 30th.
+        val settings = Settings(weekStart = DayOfWeek.SATURDAY, trendsRange = TrendsRange.FourWeeks)
+        val coast = assertNotNull(build(PresetId.Coast, settings = settings).intake)
+        assertNull(coast.bars.last().fraction)
+        assertNotNull(coast.bars[coast.bars.lastIndex - 1].fraction, "a week past its check shows")
+        assertNotNull(assertNotNull(build(settings = settings).intake).bars.last().fraction, "Full: the week so far")
+    }
+
+    @Test
     fun fuel_noChart_theWeekLeads_proteinAndFiberTiles_weightAsAWord() {
         val state = build(PresetId.Fuel)
         assertNull(state.intake, "a softened calorie chart would still read as amounts")

@@ -17,8 +17,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.logger.HowItFeltRoute
-import com.opson.features.logger.LogRoute
-import com.opson.features.logger.LogTab
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
 import com.opson.features.today.MealNoteRoute
@@ -74,16 +72,6 @@ class LoggerFeatureEntryPoint(
             ),
         ) { backStackEntry, sheetState ->
             LoggerSheet(backStackEntry.toRoute<LoggerRoute>(), sheetState, router)
-        }
-
-        // The Log screen's old route, kept as an alias: the same sheet on the matching pane.
-        bottomSheet<LogRoute>(
-            typeMap = mapOf(
-                typeOf<MealSlot>() to serializableType<MealSlot>(),
-                typeOf<LogTab>() to serializableType<LogTab>(),
-            ),
-        ) { backStackEntry, sheetState ->
-            LoggerSheet(backStackEntry.toRoute<LogRoute>().toLoggerRoute(), sheetState, router)
         }
 
         bottomSheet<AmountSheetRoute>(

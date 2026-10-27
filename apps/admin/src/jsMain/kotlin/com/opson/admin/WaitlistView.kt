@@ -37,14 +37,19 @@ private const val PAGE_SIZE = 50
 @Composable
 internal fun WaitlistView(ctx: AdminCtx) {
     var page by remember { mutableStateOf<WaitlistPageDto?>(null) }
+    var loadFailed by remember { mutableStateOf(false) }
     var offset by remember { mutableStateOf(0L) }
     var reloadKey by remember { mutableStateOf(0) }
     var removeDraft by remember { mutableStateOf("") }
     var exporting by remember { mutableStateOf(false) }
 
     LaunchedEffect(offset, reloadKey) {
+        loadFailed = false
         Catching { page = ctx.api.listWaitlist(PAGE_SIZE, offset) }
-            .onFailure { ctx.setStatus(Status(false, it.message ?: "Failed to load the waitlist")) }
+            .onFailure {
+                loadFailed = true
+                ctx.setStatus(Status(false, it.message ?: "Failed to load the waitlist"))
+            }
     }
 
     fun confirmRemove(email: String) {
@@ -77,7 +82,13 @@ internal fun WaitlistView(ctx: AdminCtx) {
     Div(attrs = { classes("panel") }) {
         Div(attrs = { classes("row") }) {
             Span(attrs = { classes("flag-path") }) {
-                Text(if (current == null) "Loading…" else "${current.total} on the waitlist")
+                Text(
+                    when {
+                        current != null -> "${current.total} on the waitlist"
+                        loadFailed -> "Couldn't load the waitlist. Refresh to try again."
+                        else -> "Loading…"
+                    },
+                )
             }
             Div(attrs = { classes("spacer") }) {}
             Button(attrs = {

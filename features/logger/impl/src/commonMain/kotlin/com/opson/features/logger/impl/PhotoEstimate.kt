@@ -143,7 +143,7 @@ sealed interface PhotoEstimateEvent {
     /** Close this sheet and reopen the logger on Describe it. */
     data class OpenDescribe(val day: LocalDate, val slot: MealSlot) : PhotoEstimateEvent
 
-    /** Written: close this sheet and the logger, and ask How it felt when the commit says to. */
+    /** Written: close this sheet and the logger. Today takes it from `RecentLogEvents`. */
     data class Logged(val day: LocalDate, val committed: Committed) : PhotoEstimateEvent
     data object Dismiss : PhotoEstimateEvent
 }

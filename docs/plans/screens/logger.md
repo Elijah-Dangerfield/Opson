@@ -42,7 +42,7 @@ Spec: the `logger-previews__*` screens in
 | `NoteBanner(text)` | `:libraries:ui` | The photo estimate's note: an outlined i on the warm tint. |
 | `AppShapes.dialog` | `:libraries:ui` | The time picker and Custom size dialogs. |
 | `StripedBar(before, added, color)` | `:libraries:ui` | "Your day with this": today so far solid, this food striped on top, capped at full. |
-| `TimePickerDialog` | `:libraries:ui` | The amount sheet's time. A public copy of Settings' internal `TimeDialog`; Settings can move to it later. |
+| `TimePickerDialog` | `:libraries:ui` | The amount sheet's time; Modes and Reminders use it too. |
 
 ### Logger state and actions added
 
@@ -172,8 +172,7 @@ around %1$s, `logger_empty_body` Describe it, or save just the name.
   (Add a note when calories are Hide). Photo is Later and not built; Water and
   Weigh-in are no longer chips. Chips hide while the person is typing.
 - **Describe and Saved meals are panes of the sheet.** The Log screen with tabs
-  is gone. `LogRoute` survives only as an alias that opens the sheet on the
-  matching pane, so callers keep working (Today's in-flight branch uses it).
+  is gone; `LoggerRoute(start = ...)` opens the sheet on a pane.
 - Search rows get a brand line (cuisine once the catalog has it), a real
   no-results state that carries the term into Describe or "Save the name only".
 - Amount sheet: Weighed / Estimate / Just the name, stepper and unit chips,
@@ -190,7 +189,6 @@ around %1$s, `logger_empty_body` Describe it, or save just the name.
 | Route | Where | Kind |
 |---|---|---|
 | `LoggerRoute(slot: MealSlot? = null, dayIso: String? = null, focusSearch: Boolean = false, prePickFoodId: String? = null, prePickIsCustom: Boolean = false, prePickSavedMealId: String? = null, start: LoggerStart = LoggerStart.Search)` | `:features:logger` | `bottomSheet<>`, `heightFraction = FullHeightFraction`, drag handle, typeMap for `MealSlot?` and `LoggerStart` |
-| `LogRoute(dayIso, slot, tab: LogTab = Describe, focusNumber = false)` | `:features:logger` | Alias: the same sheet, `start` from `tab` / `focusNumber`. Kept so callers written against the old Log screen keep working. New code uses `LoggerRoute(start = ...)`. |
 | `HowItFeltRoute(dayIso: String, slot: MealSlot)` | `:features:logger` | `bottomSheet<>`, typeMap for `MealSlot`. In the api so Today's meal sheet can open the same sheet instead of building `MealFeelRoute`. |
 | `AmountSheetRoute(foodId, isCustom, source: PickSource, dayIso: String, slot: MealSlot)` | `:features:logger:impl` | `bottomSheet<>` over the Logger, `heightFraction = 0.9`, typeMap for `PickSource` and `MealSlot`. Day and slot because its "Add to {meal}" commits. |
 

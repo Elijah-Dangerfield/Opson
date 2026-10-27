@@ -63,6 +63,8 @@ data class WeightUi(
     val range: WeightRange = WeightRange.M1,
     val input: String = "",
     val saved: Boolean = false,
+    /** The last save didn't reach the database. */
+    val failed: Boolean = false,
 )
 
 /**
@@ -87,6 +89,8 @@ data class WeightState(
     val trendOnlyNote: Boolean = false,
     val unit: WeightUnit = WeightUnit.Kg,
     val saved: SavedNote? = null,
+    /** The weigh-in wasn't saved: it stays in the field, with a line saying so. */
+    val saveFailed: Boolean = false,
     /** `null` while the release flag is off or the mode hides photos. */
     val photos: PhotosRow? = null,
 )
@@ -151,6 +155,7 @@ object WeightStateBuilder {
                 level == Visibility.Soften -> SavedNote.TrendOnly
                 else -> SavedNote.OutOfView
             },
+            saveFailed = ui.failed,
             photos = if (inputs.photosReleased && ProgressPhotosVisibility.shown(policy)) PhotosRow(inputs.photosLastTaken) else null,
         )
     }

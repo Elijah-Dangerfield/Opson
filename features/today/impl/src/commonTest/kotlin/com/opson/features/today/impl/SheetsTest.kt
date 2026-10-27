@@ -142,7 +142,6 @@ class SheetsTest : CoroutineTest() {
         vm.takeAction(MealSheetAction.HowItFeltTapped)
         vm.takeAction(MealSheetAction.SaveAsMealTapped)
         vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
-        vm.takeAction(MealSheetAction.AteNoDetailsTapped)
 
         assertEquals(
             listOf(
@@ -154,8 +153,24 @@ class SheetsTest : CoroutineTest() {
             events.take(4),
         )
         assertEquals(listOf(Triple(yesterday, today, MealSlot.Dinner)), diary.copiedSlots)
+        assertEquals(1, events.count { it == MealSheetEvent.Dismiss })
+
+        val other = MealSheetViewModel(today, MealSlot.Dinner, diary, FakeSettingsRepository(), FakeCalendar())
+        other.takeAction(MealSheetAction.AteNoDetailsTapped)
         assertEquals(listOf(today to MealSlot.Dinner), diary.ateNoDetails)
-        assertEquals(2, events.count { it == MealSheetEvent.Dismiss })
+    }
+
+    /** The sheet animates down after a write; a second tap in that time is queued behind the first. */
+    @Test
+    fun aSecondTapWhileTheMealSheetClosesWritesNothingMore() = runUnitTest {
+        val vm = MealSheetViewModel(today, MealSlot.Dinner, diary, FakeSettingsRepository(), FakeCalendar())
+
+        vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
+        vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
+        vm.takeAction(MealSheetAction.AteNoDetailsTapped)
+
+        assertEquals(1, diary.copiedSlots.size)
+        assertTrue(diary.ateNoDetails.isEmpty())
     }
 
     // Meal note and how it felt
@@ -215,16 +230,29 @@ class SheetsTest : CoroutineTest() {
 
     @Test
     fun waterSheetAddsRemovesAndOpensSettings() = runUnitTest {
-        val vm = WaterSheetViewModel(today, diary, FakeSettingsRepository())
+        fun sheet() = WaterSheetViewModel(today, diary, FakeSettingsRepository())
 
-        vm.takeAction(WaterSheetAction.AddGlassTapped)
-        vm.takeAction(WaterSheetAction.CustomAmountTyped("3a0"))
-        assertEquals("30", vm.state.custom)
-        vm.takeAction(WaterSheetAction.AddCustomTapped)
-        vm.takeAction(WaterSheetAction.RemoveGlassTapped)
+        sheet().takeAction(WaterSheetAction.AddGlassTapped)
+        val custom = sheet()
+        custom.takeAction(WaterSheetAction.CustomAmountTyped("3a0"))
+        assertEquals("30", custom.state.custom)
+        custom.takeAction(WaterSheetAction.AddCustomTapped)
+        sheet().takeAction(WaterSheetAction.RemoveGlassTapped)
 
         assertEquals(listOf(today to 250, today to 30), diary.water)
         assertEquals(listOf(today to 250), diary.removedWater)
+    }
+
+    @Test
+    fun aSecondTapWhileTheWaterSheetClosesCountsNoSecondGlass() = runUnitTest {
+        val vm = WaterSheetViewModel(today, diary, FakeSettingsRepository())
+
+        vm.takeAction(WaterSheetAction.AddGlassTapped)
+        vm.takeAction(WaterSheetAction.AddGlassTapped)
+        vm.takeAction(WaterSheetAction.RemoveGlassTapped)
+
+        assertEquals(listOf(today to 250), diary.water)
+        assertTrue(diary.removedWater.isEmpty())
     }
 
     // Item

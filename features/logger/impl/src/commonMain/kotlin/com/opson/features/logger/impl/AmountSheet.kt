@@ -198,13 +198,8 @@ data class AmountChoice(
             val fresh = initial(food, slot, saved)
             val unit = food.units(saved).firstOrNull { it.label == item.draft.unit || it.chipLabel == item.draft.unit }
             val quantity = item.draft.quantity
-            val known = unit != null && quantity != null
-            return fresh.copy(
-                precision = item.draft.precision,
-                unit = if (known) unit else fresh.unit,
-                quantity = if (known) quantity!! else fresh.quantity,
-                time = time,
-            )
+            val picked = fresh.copy(precision = item.draft.precision, time = time)
+            return if (unit != null && quantity != null) picked.copy(unit = unit, quantity = quantity) else picked
         }
     }
 }
@@ -276,13 +271,20 @@ object AmountStateBuilder {
         // Soften needs a goal and a portion has none, so a softened metric hides here.
         val kcal = draft.kcal
         val energy = policy.resolve(Metric.Calories, kcal, Surface.Logger, FormatContext(bare = true))
-        val macros = listOf(
+        val parts = listOf(
             Triple(Metric.Protein, draft.protein, KCAL_PER_G_PROTEIN),
             Triple(Metric.Carbs, draft.carbs, KCAL_PER_G_CARBS),
             Triple(Metric.Fat, draft.fat, KCAL_PER_G_FAT),
-        ).map { (metric, grams, perGram) ->
-            // The goal is the grams that would make up all the energy, so the fraction is this macro's share of it.
-            val whole = kcal?.takeIf { it > 0.0 }?.div(perGram)
+        )
+        // "% of energy" is a share of the energy of the macros on show, as on Today's macros page: it
+        // sums to 100 (a label's kcal rarely equals 4/4/9 of its grams), and a hidden macro's share
+        // cannot be read off what is left over.
+        val shownEnergy = parts.sumOf { (metric, grams, perGram) ->
+            if (grams != null && policy.effectiveLevel(metric, Surface.Logger) == Visibility.Show) grams * perGram else 0.0
+        }
+        val macros = parts.map { (metric, grams, perGram) ->
+            // The goal is the grams that would make up all that energy, so the fraction is this macro's share of it.
+            val whole = shownEnergy.takeIf { it > 0.0 }?.div(perGram)
             val amount = policy.resolve(metric, grams, Surface.Logger, FormatContext(of = whole, goal = GoalStyle.None))
             val share = (amount as? Display.Shown)?.fraction?.let { policy.share(metric, it * PERCENT, Surface.Logger) } ?: Display.Hidden
             PortionMacro(metric, amount, share)

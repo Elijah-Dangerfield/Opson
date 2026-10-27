@@ -56,7 +56,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The calendar sheet: one month, Sunday first as the prototype, with a dot on
- * days that have something logged. Up to six days ahead can be picked.
+ * days that have something logged. Up to [TodayStateBuilder.MAX_DAYS_AHEAD] days ahead can be picked.
  */
 data class CalendarState(
     /** The first of the month shown. */

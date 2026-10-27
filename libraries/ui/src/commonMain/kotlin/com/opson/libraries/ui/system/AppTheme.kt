@@ -95,66 +95,63 @@ fun AppTheme(
     }
 }
 
-/** The default theme: Pine, following the system light or dark setting. */
-@Composable
-fun AppThemeProvider(
-    content: @Composable () -> Unit
-) {
-    AppTheme(content = content)
-}
-
+/**
+ * Material components read their colors and type from here, and nothing should be reading them:
+ * every value is red, so a Material default that slips through is easy to spot.
+ */
 @Composable
 private fun MaterialWrapper(content: @Composable () -> Unit) {
-    val invalidTextStyle = TextStyle(color = Color.Red)
-    MaterialTheme(
-        typography = Typography(
-            displayLarge = invalidTextStyle,
-            displayMedium = invalidTextStyle,
-            displaySmall = invalidTextStyle,
-            headlineLarge = invalidTextStyle,
-            headlineMedium = invalidTextStyle,
-            headlineSmall = invalidTextStyle,
-            titleLarge = invalidTextStyle,
-            titleMedium = invalidTextStyle,
-            titleSmall = invalidTextStyle,
-            bodyLarge = invalidTextStyle,
-            bodyMedium = invalidTextStyle,
-            bodySmall = invalidTextStyle,
-            labelLarge = invalidTextStyle,
-            labelMedium = invalidTextStyle,
-            labelSmall = invalidTextStyle
-        ),
-        colorScheme = ColorScheme(
-            primary = Color.Red,
-            onPrimary = Color.Red,
-            primaryContainer = Color.Red,
-            onPrimaryContainer = Color.Red,
-            inversePrimary = Color.Red,
-            secondary = Color.Red,
-            onSecondary = Color.Red,
-            secondaryContainer = Color.Red,
-            onSecondaryContainer = Color.Red,
-            tertiary = Color.Red,
-            onTertiary = Color.Red,
-            tertiaryContainer = Color.Red,
-            onTertiaryContainer = Color.Red,
-            background = Color.Red,
-            onBackground = Color.Red,
-            surface = Color.Red,
-            onSurface = Color.Red,
-            surfaceVariant = Color.Red,
-            onSurfaceVariant = Color.Red,
-            surfaceTint = Color.Red,
-            inverseSurface = Color.Red,
-            inverseOnSurface = Color.Red,
-            error = Color.Red,
-            onError = Color.Red,
-            errorContainer = Color.Red,
-            onErrorContainer = Color.Red,
-            outline = Color.Red,
-            outlineVariant = Color.Red,
-            scrim = Color.Red
-        ),
-        content = content
-    )
+    MaterialTheme(typography = InvalidTypography, colorScheme = InvalidColorScheme, content = content)
 }
+
+private val InvalidTextStyle = TextStyle(color = Color.Red)
+
+private val InvalidTypography = Typography(
+    displayLarge = InvalidTextStyle,
+    displayMedium = InvalidTextStyle,
+    displaySmall = InvalidTextStyle,
+    headlineLarge = InvalidTextStyle,
+    headlineMedium = InvalidTextStyle,
+    headlineSmall = InvalidTextStyle,
+    titleLarge = InvalidTextStyle,
+    titleMedium = InvalidTextStyle,
+    titleSmall = InvalidTextStyle,
+    bodyLarge = InvalidTextStyle,
+    bodyMedium = InvalidTextStyle,
+    bodySmall = InvalidTextStyle,
+    labelLarge = InvalidTextStyle,
+    labelMedium = InvalidTextStyle,
+    labelSmall = InvalidTextStyle,
+)
+
+private val InvalidColorScheme = ColorScheme(
+    primary = Color.Red,
+    onPrimary = Color.Red,
+    primaryContainer = Color.Red,
+    onPrimaryContainer = Color.Red,
+    inversePrimary = Color.Red,
+    secondary = Color.Red,
+    onSecondary = Color.Red,
+    secondaryContainer = Color.Red,
+    onSecondaryContainer = Color.Red,
+    tertiary = Color.Red,
+    onTertiary = Color.Red,
+    tertiaryContainer = Color.Red,
+    onTertiaryContainer = Color.Red,
+    background = Color.Red,
+    onBackground = Color.Red,
+    surface = Color.Red,
+    onSurface = Color.Red,
+    surfaceVariant = Color.Red,
+    onSurfaceVariant = Color.Red,
+    surfaceTint = Color.Red,
+    inverseSurface = Color.Red,
+    inverseOnSurface = Color.Red,
+    error = Color.Red,
+    onError = Color.Red,
+    errorContainer = Color.Red,
+    onErrorContainer = Color.Red,
+    outline = Color.Red,
+    outlineVariant = Color.Red,
+    scrim = Color.Red,
+)

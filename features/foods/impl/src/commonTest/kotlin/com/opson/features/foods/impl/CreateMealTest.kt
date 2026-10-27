@@ -167,6 +167,18 @@ class CreateMealTest : CoroutineTest() {
     }
 
     @Test
+    fun aSecondSaveTapBeforeTheScreenClosesSavesNothing() = runUnitTest {
+        val vm = vm(CreateMealRoute(FoodsFixtures.today.toString(), MealSlot.Breakfast), prefillName = "My breakfast")
+        val events = events(vm)
+
+        vm.takeAction(CreateMealAction.SaveTapped)
+        vm.takeAction(CreateMealAction.SaveTapped)
+
+        assertEquals(1, savedMeals.created.size)
+        assertEquals(1, events.count { it == CreateMealEvent.Close })
+    }
+
+    @Test
     fun saveWritesTheMealSaysSoAndCloses() = runUnitTest {
         val vm = vm(CreateMealRoute(FoodsFixtures.today.toString(), MealSlot.Breakfast), prefillName = "My breakfast")
         val events = events(vm)

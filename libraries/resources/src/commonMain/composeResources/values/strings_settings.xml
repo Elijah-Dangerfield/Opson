@@ -230,11 +230,6 @@
     <string name="settings_support_helpline">National Alliance for Eating Disorders helpline</string>
     <string name="settings_support_provider">Find a provider</string>
     <string name="settings_support_opens_browser">Opens in your browser</string>
-    <string name="settings_support_trusted">Trusted person</string>
-    <string name="settings_support_trusted_sub">They approve turning numbers back on</string>
-    <string name="settings_support_clinician">Dietitian, therapist or coach</string>
-    <string name="settings_support_clinician_sub">They see what you choose to share</string>
-    <string name="settings_support_coming_later">Coming later</string>
     <string name="settings_support_data_title">Your data</string>
     <string name="settings_support_data_body">Saved on this phone and synced to your account. No ad tracking.</string>
     <string name="settings_support_export">Export everything (CSV)</string>
@@ -312,5 +307,6 @@
     <string name="settings_find_about_young">For young people, any worry</string>
     <string name="settings_find_about_text_keyword">Text %1$s to %2$s</string>
     <string name="settings_find_about_provider">Search for eating disorder care near you</string>
+    <string name="settings_loading_cd">Loading</string>
 
 </resources>

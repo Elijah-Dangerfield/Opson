@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -67,6 +68,21 @@ class WeightViewModelTest : CoroutineTest() {
         assertEquals(listOf(72.4), weights.added)
         assertEquals("", vm.state.input)
         assertEquals(SavedNote.Plain, vm.state.saved)
+    }
+
+    @Test
+    fun saveTapped_aFailedWrite_keepsTheWeight_andSaysSo_untilTheyTypeAgain() = runUnitTest {
+        weights.failWrites = true
+        val vm = vm()
+        vm.takeAction(WeightAction.WeightTyped("72.4"))
+        vm.takeAction(WeightAction.SaveTapped)
+        assertEquals("72.4", vm.state.input)
+        assertEquals(null, vm.state.saved)
+        assertTrue(vm.state.saveFailed)
+
+        vm.takeAction(WeightAction.WeightTyped("72.45"))
+
+        assertFalse(vm.state.saveFailed)
     }
 
     @Test

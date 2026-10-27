@@ -29,9 +29,11 @@ class MoreViewModel(
     private val widgetsEnabled: WidgetsEnabled,
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
+    // Read once, as the page opens: with the flag off the health store is never touched, not even to check it.
+    private val healthOn = healthFlag()
+
     init {
-        // With the flag off the health store is never touched, not even to check it.
-        val healthConnected: Flow<Boolean?> = if (healthFlag()) {
+        val healthConnected: Flow<Boolean?> = if (healthOn) {
             flow {
                 health.refresh()
                 emitAll(health.status.map { it == HealthStatus.Connected })
@@ -55,7 +57,7 @@ class MoreViewModel(
                     widgetsOn = widgetsEnabled(),
                 )
             }
-            MoreAction.ScreenResumed -> health.refresh()
+            MoreAction.ScreenResumed -> if (healthOn) health.refresh()
             is MoreAction.RowTapped -> when (action.row) {
                 is MoreRow.Modes -> sendEvent(MoreEvent.OpenModes)
                 MoreRow.Targets -> sendEvent(MoreEvent.OpenTargets)

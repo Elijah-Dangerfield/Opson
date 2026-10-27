@@ -55,7 +55,7 @@ import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.ListRow
-import com.opson.libraries.ui.components.MinTouchTarget
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.SheetHeader
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonTone

@@ -92,7 +92,7 @@ writes nothing and opens Modes, `NeedsPause` opens the pause sheet.
 | `DayMenuTapped` | `menu = Day`, `clearArmed = false`. |
 | `MenuDismissed` | `menu = null`, `clearArmed = false`. |
 | `AddFoodTapped` | Close menu, `OpenLogger(day, slot = null)`. |
-| `AddDescribeTapped` | Close menu, `OpenLog(day, MealSlot.defaultFor(now, groupsOn), Describe)` (`LogRoute`). |
+| `AddDescribeTapped` | Close menu, `OpenLog(day, MealSlot.defaultFor(now, groupsOn), Describe)` (`LoggerRoute` on the Describe pane). |
 | `AddGlassOfWaterTapped` | Close menu, `DiaryRepository.addWater(day, glassMl)`, toast. |
 | `AddWeighInTapped` | Close menu, `OpenWeight`. |
 | `AddNoteTapped` / `DayNoteTapped` | Close menu, `OpenDayNote(day)` (not Day close, see `shared.md`). |

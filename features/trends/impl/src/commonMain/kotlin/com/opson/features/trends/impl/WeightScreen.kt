@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
@@ -23,6 +26,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.PreviewContent
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.ListRow
@@ -48,6 +52,7 @@ import opson.libraries.resources.generated.resources.photos_row_last
 import opson.libraries.resources.generated.resources.photos_row_none
 import opson.libraries.resources.generated.resources.photos_title
 import opson.libraries.resources.generated.resources.trends_back
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_title
 import opson.libraries.resources.generated.resources.trends_weight_caption
 import opson.libraries.resources.generated.resources.trends_weight_chip_1m
@@ -61,6 +66,7 @@ import opson.libraries.resources.generated.resources.trends_weight_range_1m
 import opson.libraries.resources.generated.resources.trends_weight_range_1w
 import opson.libraries.resources.generated.resources.trends_weight_range_3m
 import opson.libraries.resources.generated.resources.trends_weight_save
+import opson.libraries.resources.generated.resources.trends_weight_save_failed
 import opson.libraries.resources.generated.resources.trends_weight_saved
 import opson.libraries.resources.generated.resources.trends_weight_saved_hidden
 import opson.libraries.resources.generated.resources.trends_weight_saved_trend
@@ -103,6 +109,11 @@ internal fun WeightContent(
             backLabel = stringResource(Res.string.trends_back, stringResource(Res.string.trends_title)),
             onBack = { onAction(WeightAction.BackTapped) },
         )
+        // The log card waits too: until settings arrive it would take a weight in the default unit.
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
+            return@Column
+        }
         when (val trend = state.trend) {
             is Display.Shown -> {
                 SummaryCard(trend, state)
@@ -114,6 +125,14 @@ internal fun WeightContent(
         if (state.hiddenCard) HiddenCard()
         LogCard(state, onAction)
         state.saved?.let { SavedBanner(it) }
+        if (state.saveFailed) {
+            Text(
+                text = stringResource(Res.string.trends_weight_save_failed),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.muted,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
         state.photos?.let { PhotosRowView(it, onAction) }
     }
 }

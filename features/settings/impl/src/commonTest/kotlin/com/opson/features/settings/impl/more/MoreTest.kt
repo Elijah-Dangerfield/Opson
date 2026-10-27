@@ -171,6 +171,16 @@ class MoreTest : CoroutineTest() {
     }
 
     @Test
+    fun healthFlagOff_comingBackToMore_stillNeverTouchesTheStore() = runUnitTest {
+        val health = FakeHealthRepository(status = HealthStatus.Connected)
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag())
+
+        vm.takeAction(MoreAction.ScreenResumed)
+
+        assertEquals(0, health.refreshes)
+    }
+
+    @Test
     fun healthFlagOn_theRowSaysWhetherItIsConnected() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.NotConnected)
         val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag())

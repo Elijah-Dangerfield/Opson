@@ -39,7 +39,6 @@
 
     <!-- Trends -->
     <string name="trends_title">Trends</string>
-    <string name="trends_placeholder">How your weeks go will show up here.</string>
 
     <!-- Bug report -->
     <string name="bug_report_title">Report a Bug</string>
@@ -47,10 +46,14 @@
     <string name="bug_report_error_code_label">Error code</string>
     <string name="bug_report_id_label">Report id</string>
     <string name="bug_report_prompt">Help us understand what went wrong. We would love to fix it!</string>
+    <string name="bug_report_thanks">Thanks for reporting this!</string>
 
     <!-- Feedback -->
     <string name="feedback_title">Share Your Feedback</string>
     <string name="feedback_prompt">We'd love to hear from you</string>
+    <string name="feedback_thanks">Got it. Thank you!</string>
+    <string name="feedback_empty">Add a quick note before sending.</string>
+    <string name="feedback_failed">That didn't send. Try again in a moment.</string>
 
     <!-- Sign in / sign up / password reset / email verification -->
     <string name="auth_email_label">Email</string>

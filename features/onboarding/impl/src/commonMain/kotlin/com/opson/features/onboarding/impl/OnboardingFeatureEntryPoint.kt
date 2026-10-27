@@ -99,7 +99,7 @@ class OnboardingFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is SignUpEvent.NavigateToVerifyEmail -> router.navigate(
-                        VerifyEmailRoute(event.email),
+                        VerifyEmailRoute(event.email, guestLink = event.guestLink),
                     )
                 }
             }
@@ -140,8 +140,7 @@ class OnboardingFeatureEntryPoint(
                         NavigationOptions(launchSingleTop = true, clearBackStack = true),
                     )
                     // Anon guest linked email: their account and progress are
-                    // intact, so clear the auth/claim stack and land on Today. A
-                    // generated project can float a confirmation surface here.
+                    // intact, so clear the auth/claim stack and land on Today.
                     VerifyEmailEvent.NavigateToAccountSaved -> router.enterTab(TodayRoute())
                 }
             }

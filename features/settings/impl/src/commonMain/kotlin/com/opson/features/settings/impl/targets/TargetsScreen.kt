@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -197,7 +198,10 @@ private fun EndSteppers(low: EndStepper, high: EndStepper, group: Int?, onAction
     val ends = listOf(RangeEnd.Low to low, RangeEnd.High to high)
     val measurer = rememberTextMeasurer()
     val style = StepperValueType.style
-    val widestPx = ends.maxOf { (_, stepper) -> stepper.value.words?.let { measurer.measure(it, style, maxLines = 1).size.width } ?: 0 }
+    // Measured again only when an amount or the text size changes, not on every recomposition.
+    val widestPx = remember(low.value, high.value, style, measurer) {
+        ends.maxOf { (_, stepper) -> stepper.value.words?.let { measurer.measure(it, style, maxLines = 1).size.width } ?: 0 }
+    }
     val widest = with(LocalDensity.current) { widestPx.toDp() }
     val gap = AppTheme.spacing.row
     BoxWithConstraints {

@@ -147,21 +147,23 @@ class DiaryRepositoryImpl(
         }
     }
 
-    override suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem> = writer.write {
+    override suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem> {
         val source = ids.mapNotNull { id -> tables.entries.get(id)?.takeUnless { it.deleted }?.toDomain() }
-        insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy)
-    }.also { if (it.isNotEmpty()) foodLoggedOn(toDay) }
+        if (source.isNotEmpty()) foodLoggedOn(toDay)
+        return writer.write { insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy) }
+    }
 
-    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> = writer.write {
+    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> {
         val source = tables.entries.getDay(from.toString()).mapNotNull { it.toDomain() }
-        insertDrafts(to, source.map { it.slot to it.toDraft() }, LogMethod.Copy)
-    }.also { if (it.isNotEmpty()) foodLoggedOn(to) }
+        if (source.isNotEmpty()) foodLoggedOn(to)
+        return writer.write { insertDrafts(to, source.map { it.slot to it.toDraft() }, LogMethod.Copy) }
+    }
 
-    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> =
-        writer.write {
-            val source = tables.entries.getDay(fromDay.toString()).mapNotNull { it.toDomain() }.filter { it.slot == slot }
-            insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy)
-        }.also { if (it.isNotEmpty()) foodLoggedOn(toDay) }
+    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> {
+        val source = tables.entries.getDay(fromDay.toString()).mapNotNull { it.toDomain() }.filter { it.slot == slot }
+        if (source.isNotEmpty()) foodLoggedOn(toDay)
+        return writer.write { insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy) }
+    }
 
     override suspend fun clearDay(day: LocalDate) = writer.write {
         tables.entries.getDay(day.toString()).forEach { existing ->
@@ -219,6 +221,10 @@ class DiaryRepositoryImpl(
     /**
      * Logging food ends a fast. Only on today or earlier: planning tomorrow's meals is not eating
      * now. Fasting never gets in the way of logging, so a failure here is logged and dropped.
+     *
+     * Before the food is written: a fast that was due and never started (the app was closed when
+     * the window shut) is written first, and it is only due while nothing was logged since the
+     * close. After the write, the new food would be that something.
      */
     private suspend fun foodLoggedOn(day: LocalDate) {
         if (day > calendar.today()) return

@@ -48,6 +48,15 @@ class PatternsStateBuilderTest {
     }
 
     @Test
+    fun coast_meanSizesWaitForTheCheckOfTheWeekHoldingToday() {
+        // Sunday evening: a Monday week has had its check; a Saturday week checks on Friday.
+        val evening = TrendsFixtures.policy(PresetId.Coast, clock = TrendsFixtures.evening)
+        assertNotNull(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(), evening).sizes)
+        val saturdayWeek = TrendsFixtures.patternsInputs(Settings(weekStart = DayOfWeek.SATURDAY))
+        assertNull(PatternsStateBuilder.build(saturdayWeek, evening).sizes)
+    }
+
+    @Test
     fun full_howBigEachMealIs_energyAndShare_noHowOften() {
         val state = build()
         val sizes = assertNotNull(state.sizes)

@@ -204,12 +204,20 @@ data class Targets(
     fun withEnergy(kcal: Int): Targets = shiftedBy(max(kcal, floorKcal) - energyKcal)
 
     /**
-     * Today's range: the base plus whatever the user lets watch activity add, at most
-     * [EXERCISE_CAP_KCAL]. Never below the base, whatever the readings.
+     * A day's range: [goal] plus whatever the user lets watch activity add, at most
+     * [EXERCISE_CAP_KCAL]. Never below [goal], whatever the readings.
+     *
+     * Pass the day's [rangeFor] as [goal], or a "different by day" or deficit goal is lost. The
+     * default is the base range, which is the goal only under [TargetStyle.Range].
      */
-    fun today(adjustment: ExerciseAdjustment, movementKcal: Int, workoutKcal: Int): EnergyRange {
+    fun today(
+        adjustment: ExerciseAdjustment,
+        movementKcal: Int,
+        workoutKcal: Int,
+        goal: DayGoal = DayGoal.Range(minKcal, maxKcal, energyKcal),
+    ): EnergyRange {
         val activity = adjustment.activityKcal(movementKcal, workoutKcal)
-        return EnergyRange(energyKcal + activity, minKcal + activity, maxKcal + activity, activity)
+        return EnergyRange(goal.targetKcal + activity, goal.minKcal + activity, goal.maxKcal + activity, activity)
     }
 
     /**

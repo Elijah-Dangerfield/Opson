@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.datetime.DayOfWeek
 import me.tatarka.inject.annotations.Inject
 
-/** The cards a user can switch on or off. Expended is 0.2 (no watch data), so it is not one. */
+/** The cards a user can switch on or off. Expended is not built yet (see TrendsScreen), so it is not one. */
 enum class TrendsCard { Intake, Recap, Nutrients, Weight }
 
 data class CardToggle(val card: TrendsCard, val on: Boolean)

@@ -39,7 +39,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
@@ -100,12 +99,8 @@ private fun PreviewDialog() {
 }
 
 /**
- * Window-free dialog host that handles scrim + content animations and dismissal behaviour entirely
- * in Compose Multiplatform.
- */
-/**
- * Lower-level alternative used when callers want to provide their own dialog surface.
- * Registers the provided [content] with [DialogHostState] so it renders on top of the app.
+ * Registers [content] with the ambient [DialogHostState], which draws it on top of the app with
+ * its scrim and animations. No platform window is involved.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -222,10 +217,7 @@ internal fun DialogOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .semantics(mergeDescendants = true) {
-                dialog()
-                stateDescription = "Dialog"
-            },
+            .semantics(mergeDescendants = true) { dialog() },
         contentAlignment = contentAlignment
     ) {
         AnimatedVisibility(

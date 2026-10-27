@@ -36,6 +36,9 @@ import com.opson.system.typography.TypographyResource
  * "190 kcal" and fails the test in Blind, exactly like a printed amount would.
  * A field drawn any other way would be invisible to it. With a password
  * transformation the semantics carry the bullets, not the value.
+ *
+ * [filter] runs on every edit before anything else sees it, so a keystroke it
+ * drops never shows, even for a frame.
  */
 @Composable
 internal fun InputBox(
@@ -57,12 +60,13 @@ internal fun InputBox(
     contentPadding: PaddingValues,
     minHeight: Dp,
     borderColor: ColorResource = AppTheme.colors.line,
+    filter: (String) -> String = { it },
 ) {
     val typed = rememberTypedText(value, onValueChange)
     val ink = AppTheme.colors.ink
     BasicTextField(
         value = typed.text,
-        onValueChange = typed::onType,
+        onValueChange = { typed.onType(filter(it)) },
         modifier = modifier,
         enabled = enabled,
         textStyle = typography.style(ink.color).copy(textAlign = textAlign),

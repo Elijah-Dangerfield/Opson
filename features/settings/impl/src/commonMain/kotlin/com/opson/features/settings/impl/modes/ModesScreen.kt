@@ -17,13 +17,13 @@ import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.SettingsRow
-import com.opson.features.settings.impl.TimeDialog
 import com.opson.features.settings.impl.label
 import com.opson.features.settings.impl.line
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.EdgeCard
+import com.opson.libraries.ui.components.dialog.TimePickerDialog
 import com.opson.libraries.ui.components.radio.RadioMatrix
 import com.opson.libraries.ui.components.radio.RadioMatrixRow
 import com.opson.libraries.ui.components.radio.RadioRow
@@ -111,7 +111,7 @@ fun ModesScreen(
         )
     }
     if (state.pickingRevealTime) {
-        TimeDialog(
+        TimePickerDialog(
             title = stringResource(Res.string.settings_modes_reveal_title),
             initial = state.revealAt,
             okLabel = stringResource(Res.string.settings_modes_reveal_ok),

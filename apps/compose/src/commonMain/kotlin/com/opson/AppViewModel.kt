@@ -27,12 +27,13 @@ import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
- * Hard cap on how long the Compose boot gate waits for the unauthed
- * app-config to resolve. The config repository already times its network
- * refresh out and falls back to bundled defaults, so this is just a backstop
- * so a wedged fetch can never strand the user on the loading screen.
+ * Hard cap on each wait behind the Compose boot gate: the unauthed app-config
+ * and, for a returning user, the first profile. The config repository times
+ * its own refresh out and the profile falls back to its cache, so this is a
+ * backstop: a wedged fetch, or a resolve that throws and never emits, must not
+ * strand the user on the loading screen.
  */
-private const val BootConfigTimeoutMillis = 8_000L
+internal const val BootWaitTimeoutMillis = 8_000L
 
 /**
  * App-level ViewModel. Resolves the start destination by reading the
@@ -141,13 +142,15 @@ class AppViewModel(
                 // Capped so a wedged fetch can't strand the user — the config
                 // repo falls back to bundled defaults.
                 val config = launch {
-                    withTimeoutOrNull(BootConfigTimeoutMillis) { ensureAppConfigLoaded() }
+                    withTimeoutOrNull(BootWaitTimeoutMillis) { ensureAppConfigLoaded() }
                 }
                 if (onboarded) {
                     // Returning users: also wait for the profile resolve so
                     // home renders authoritative data on the first frame
-                    // instead of flashing stale cache values.
-                    profileRepository.observe().first()
+                    // instead of flashing stale cache values. Capped like the
+                    // config: the resolve is a network call, and one that
+                    // throws emits nothing at all.
+                    withTimeoutOrNull(BootWaitTimeoutMillis) { profileRepository.observe().first() }
                 }
                 config.join()
             }

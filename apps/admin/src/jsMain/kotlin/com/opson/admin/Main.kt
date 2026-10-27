@@ -60,6 +60,20 @@ private fun App() {
     val scope = rememberCoroutineScope()
     fun setStatus(s: Status) { status = s }
 
+    // Everything read from one environment. Cleared on disconnect, so a console
+    // pointed at prod next never shows dev's flags while (or if) its reload fails.
+    fun forgetEnvironment() {
+        api = null
+        connectedEnv = null
+        pendingConfirm = null
+        flags = emptyList()
+        resolvedByPath = emptyMap()
+        manifest = null
+        manifestVersions = emptyList()
+        versionsSelected = null
+        versionsEntries = emptyList()
+    }
+
     fun resolveNow() {
         val a = api ?: return
         scope.launch {
@@ -136,12 +150,7 @@ private fun App() {
             if (env != null) {
                 Span(attrs = { classes("muted") }) { Text("as ${actor.trim().ifBlank { "admin" }}") }
                 Button(attrs = { onClick { reloadAll() } }) { Text("Reload") }
-                Button(attrs = {
-                    onClick {
-                        api = null
-                        connectedEnv = null
-                    }
-                }) { Text("Disconnect") }
+                Button(attrs = { onClick { forgetEnvironment() } }) { Text("Disconnect") }
             }
         }
         if (env == AdminEnv.Prod) {
@@ -178,7 +187,10 @@ private fun App() {
                         entry.attempted?.let { Span(attrs = { classes("muted") }) { Text("attempted: $it") } }
                         Span(attrs = { classes("err") }) { Text(entry.message) }
                         Div(attrs = { classes("spacer") }) {}
-                        Button(attrs = { onClick { errorLog = errorLog - entry } }) { Text("✕") }
+                        Button(attrs = {
+                            attr("aria-label", "Dismiss")
+                            onClick { errorLog = errorLog - entry }
+                        }) { Text("✕") }
                     }
                 }
             }
@@ -212,10 +224,12 @@ private fun App() {
                         val candidate = AdminApi(envToConnect.baseUrl, token, actorName)
                         scope.launch {
                             Catching { candidate.listFlags() }
-                                .onSuccess {
+                                .onSuccess { loaded ->
                                     TokenStore.saveToken(envToConnect, token)
                                     TokenStore.actor = actorName
                                     tokenDraft = ""
+                                    forgetEnvironment()
+                                    flags = loaded
                                     api = candidate
                                     connectedEnv = envToConnect
                                     reloadAll()

@@ -101,6 +101,9 @@ class WaterSheetViewModel(
     private var inputs: Pair<Day, Settings>? = null
     private var custom = ""
 
+    /** Added or removed, and the sheet is closing: a second tap queued behind the first would count a second glass. */
+    private var written = false
+
     init {
         viewModelScope.launch {
             combine(diary.observeDay(day), settingsRepository.settings) { d, s -> WaterSheetAction.InputsArrived(d, s) }
@@ -114,7 +117,8 @@ class WaterSheetViewModel(
                 inputs = action.day to action.settings
                 action.rebuild()
             }
-            WaterSheetAction.AddGlassTapped -> {
+            WaterSheetAction.AddGlassTapped -> if (!written) {
+                written = true
                 diary.addWater(day, settings().glassMl)
                 finish(Toast(Res.string.today_toast_water))
             }
@@ -123,11 +127,14 @@ class WaterSheetViewModel(
                 action.rebuild()
             }
             WaterSheetAction.AddCustomTapped -> {
+                if (written) return
                 val ml = WaterSheetStateBuilder.customMl(custom, settings().waterUnit) ?: return
+                written = true
                 diary.addWater(day, ml)
                 finish(Toast(Res.string.today_toast_water_added))
             }
-            WaterSheetAction.RemoveGlassTapped -> {
+            WaterSheetAction.RemoveGlassTapped -> if (!written) {
+                written = true
                 diary.removeWater(day, settings().glassMl)
                 finish(Toast(Res.string.today_toast_water_removed))
             }

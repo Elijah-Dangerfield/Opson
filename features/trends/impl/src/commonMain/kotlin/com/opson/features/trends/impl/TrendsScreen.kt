@@ -30,6 +30,7 @@ import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.ui.components.ChevronLink
 import com.opson.libraries.ui.components.ColorDot
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HeroCard
@@ -63,6 +64,7 @@ import opson.libraries.resources.generated.resources.trends_intake_caption_week
 import opson.libraries.resources.generated.resources.trends_last_check
 import opson.libraries.resources.generated.resources.trends_last_check_average
 import opson.libraries.resources.generated.resources.trends_last_check_weight
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_nutrients
 import opson.libraries.resources.generated.resources.trends_nutrients_sub
 import opson.libraries.resources.generated.resources.trends_patterns
@@ -112,6 +114,10 @@ internal fun TrendsContent(
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
     ) {
         Header(state.rangeLabel, onSettings = { onAction(TrendsAction.SettingsTapped) })
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
+            return@Column
+        }
         state.range?.let { range ->
             SegmentedControl(
                 options = TrendsRange.entries,

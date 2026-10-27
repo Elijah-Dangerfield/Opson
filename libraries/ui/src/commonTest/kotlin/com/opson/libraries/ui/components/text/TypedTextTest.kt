@@ -49,4 +49,21 @@ class TypedTextTest {
 
         assertEquals("rice", typed.text)
     }
+
+    @Test
+    fun `an edit the view model refused is undone when typing settles`() {
+        typed.onType("abcd")
+        // The view model capped the length, kept "abc", and so sent nothing back.
+        typed.settle("abc")
+
+        assertEquals("abc", typed.text)
+    }
+
+    @Test
+    fun `a keystroke a filter turned into no change is not sent`() {
+        typed.onType("1.5")
+        typed.onType("1.5")
+
+        assertEquals(listOf("1.5"), sent)
+    }
 }

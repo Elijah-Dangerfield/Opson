@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import com.opson.libraries.core.logging.KLog
-import io.ktor.util.date.getTimeMillis
 import kotlin.time.Duration
+import kotlin.time.TimeSource
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -58,9 +58,10 @@ private class RecompositionTracker(
     private val rapidCooldownMillis: Long,
 ) {
     private val logger = KLog.withTag("Recompose/$tag")
+    private val started = TimeSource.Monotonic.markNow()
     private var totalCount: Long = 0
     private val timestamps = ArrayDeque<Long>()
-    private var lastRapidLoggedAt: Long = 0
+    private var lastRapidLoggedAt: Long = -rapidCooldownMillis
 
     fun onRecompose(
         onRecompose: (Long) -> Unit,
@@ -74,7 +75,7 @@ private class RecompositionTracker(
 
         if (rapidWindowMillis <= 0L) return
 
-        val now = getTimeMillis()
+        val now = started.elapsedNow().inWholeMilliseconds
         timestamps.addLast(now)
         prune(now)
 

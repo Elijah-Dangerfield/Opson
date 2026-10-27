@@ -5,7 +5,6 @@ import ComposeApp
 @main
 struct iOSApp: App {
     
-    let permissionManager = IOSPermissionManager()
     let reviewLauncher = IOSReviewLauncher()
     let appleSignInCoordinator = IOSAppleSignInCoordinator()
     let secureSessionStorage = IOSSecureSessionStorage()
@@ -17,7 +16,6 @@ struct iOSApp: App {
 
     init() {
         self.iOSAppComponent = create(
-            permissionManager: permissionManager,
             reviewLauncher: reviewLauncher,
             appleSignInCoordinator: appleSignInCoordinator,
             secureSessionStorage: secureSessionStorage,
@@ -48,7 +46,6 @@ struct iOSApp: App {
 }
 
 struct RootComposeView: View {
-    @Environment(\.scenePhase) private var scenePhase
     let appComponent: IosAppComponent
     let nativeViewFactory: OpsonNativeViewFactory
 

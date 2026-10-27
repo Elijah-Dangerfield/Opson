@@ -70,10 +70,14 @@ class FakeWeightRepository(weighIns: List<WeighIn> = TrendsFixtures.weighIns()) 
     val weighIns = MutableStateFlow(weighIns)
     val added = mutableListOf<Double>()
 
+    /** The database refusing the write. */
+    var failWrites = false
+
     override fun observeWeighIns(since: Instant?): Flow<List<WeighIn>> =
         weighIns.map { all -> all.filter { since == null || it.measuredAt >= since } }
 
     override suspend fun addWeighIn(kg: Double, measuredAt: Instant?): WeighIn {
+        if (failWrites) throw IllegalStateException("disk full")
         added += kg
         val weighIn = WeighIn(id = "added-${added.size}", measuredAt = measuredAt ?: TrendsFixtures.clock.now(), kg = kg)
         weighIns.value = weighIns.value + weighIn
