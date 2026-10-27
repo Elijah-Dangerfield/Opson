@@ -1,27 +1,14 @@
 package com.opson.libraries.diary.ui
 
-import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.Precision
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.diary_fullness_full
-import opson.libraries.resources.generated.resources.diary_fullness_satisfied
-import opson.libraries.resources.generated.resources.diary_fullness_still_hungry
-import opson.libraries.resources.generated.resources.diary_fullness_very_full
 import opson.libraries.resources.generated.resources.diary_hunger_full
 import opson.libraries.resources.generated.resources.diary_hunger_hungry
 import opson.libraries.resources.generated.resources.diary_hunger_neutral
 import opson.libraries.resources.generated.resources.diary_hunger_starving
 import opson.libraries.resources.generated.resources.diary_hunger_stuffed
-import opson.libraries.resources.generated.resources.diary_mood_anxious
-import opson.libraries.resources.generated.resources.diary_mood_calm
-import opson.libraries.resources.generated.resources.diary_mood_happy
-import opson.libraries.resources.generated.resources.diary_mood_low
-import opson.libraries.resources.generated.resources.diary_mood_rushed
-import opson.libraries.resources.generated.resources.diary_mood_social
-import opson.libraries.resources.generated.resources.diary_mood_stressed
 import opson.libraries.resources.generated.resources.diary_precision_picker_estimate
 import opson.libraries.resources.generated.resources.diary_precision_picker_label
 import opson.libraries.resources.generated.resources.diary_precision_picker_named
@@ -87,23 +74,4 @@ val Hunger.label: StringResource
         Hunger.Neutral -> Res.string.diary_hunger_neutral
         Hunger.Full -> Res.string.diary_hunger_full
         Hunger.Stuffed -> Res.string.diary_hunger_stuffed
-    }
-
-val Fullness.label: StringResource
-    get() = when (this) {
-        Fullness.StillHungry -> Res.string.diary_fullness_still_hungry
-        Fullness.Satisfied -> Res.string.diary_fullness_satisfied
-        Fullness.Full -> Res.string.diary_fullness_full
-        Fullness.VeryFull -> Res.string.diary_fullness_very_full
-    }
-
-val Mood.label: StringResource
-    get() = when (this) {
-        Mood.Calm -> Res.string.diary_mood_calm
-        Mood.Happy -> Res.string.diary_mood_happy
-        Mood.Social -> Res.string.diary_mood_social
-        Mood.Rushed -> Res.string.diary_mood_rushed
-        Mood.Stressed -> Res.string.diary_mood_stressed
-        Mood.Anxious -> Res.string.diary_mood_anxious
-        Mood.Low -> Res.string.diary_mood_low
     }

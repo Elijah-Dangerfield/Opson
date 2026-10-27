@@ -8,7 +8,6 @@ import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.item.ItemSheetContent
-import com.opson.features.today.impl.meal.MealFeelSheetContent
 import com.opson.features.today.impl.meal.MealNoteSheetContent
 import com.opson.features.today.impl.meal.MealSheetContent
 import com.opson.features.today.impl.water.WaterSheetContent
@@ -443,11 +442,11 @@ private fun MealNoteSheetPreview() = Phone { MealNoteSheetContent(TodayFixtures.
 
 @Preview(widthDp = 390)
 @Composable
-private fun MealFeelSheetPreview() = Phone { MealFeelSheetContent(TodayFixtures.mealFeelState(), onAction = {}) }
+private fun MealNoteSheetEmptyPreview() = Phone { MealNoteSheetContent(TodayFixtures.mealNoteEmptyState(), onAction = {}) }
 
 @Preview(widthDp = 390)
 @Composable
-private fun MealFeelSheetDarkPreview() = Phone(dark = true) { MealFeelSheetContent(TodayFixtures.mealFeelState(), onAction = {}) }
+private fun MealNoteSheetDarkPreview() = Phone(dark = true) { MealNoteSheetContent(TodayFixtures.mealNoteState(), onAction = {}) }
 
 @Preview(widthDp = 390)
 @Composable

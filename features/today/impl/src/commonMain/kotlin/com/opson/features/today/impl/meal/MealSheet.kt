@@ -32,11 +32,10 @@ import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_all_food
 import opson.libraries.resources.generated.resources.today_meal_add_food
-import opson.libraries.resources.generated.resources.today_meal_add_note
 import opson.libraries.resources.generated.resources.today_meal_ate
 import opson.libraries.resources.generated.resources.today_meal_copy_day_before
 import opson.libraries.resources.generated.resources.today_meal_copy_yesterday
-import opson.libraries.resources.generated.resources.today_meal_how_felt
+import opson.libraries.resources.generated.resources.today_meal_note
 import opson.libraries.resources.generated.resources.today_meal_save_as_meal
 import opson.libraries.resources.generated.resources.today_toast_added_to
 import opson.libraries.resources.generated.resources.today_toast_marked_eaten
@@ -56,8 +55,9 @@ data class MealSheetState(
 
 sealed interface MealSheetItem {
     data object AddFood : MealSheetItem
-    data object AddNote : MealSheetItem
-    data object HowItFelt : MealSheetItem
+
+    /** A note and how hungry, in one sheet. */
+    data object Note : MealSheetItem
 
     /** Only when the day before has this meal. "Yesterday's" when the day is today. */
     data class CopyFromDayBefore(val dayIsToday: Boolean) : MealSheetItem
@@ -70,8 +70,7 @@ sealed interface MealSheetItem {
 sealed interface MealSheetAction {
     data class DaysArrived(val today: LocalDate, val day: Day, val dayBefore: Day, val settings: Settings) : MealSheetAction
     data object AddFoodTapped : MealSheetAction
-    data object AddNoteTapped : MealSheetAction
-    data object HowItFeltTapped : MealSheetAction
+    data object NoteTapped : MealSheetAction
     data object CopyFromDayBeforeTapped : MealSheetAction
     data object AteNoDetailsTapped : MealSheetAction
     data object SaveAsMealTapped : MealSheetAction
@@ -81,7 +80,6 @@ sealed interface MealSheetAction {
 sealed interface MealSheetEvent {
     data class OpenLogger(val day: LocalDate, val slot: MealSlot) : MealSheetEvent
     data class OpenMealNote(val day: LocalDate, val slot: MealSlot) : MealSheetEvent
-    data class OpenMealFeel(val day: LocalDate, val slot: MealSlot) : MealSheetEvent
     data class OpenCreateMeal(val day: LocalDate, val slot: MealSlot) : MealSheetEvent
     data class ShowToast(val toast: Toast) : MealSheetEvent
     data object Dismiss : MealSheetEvent
@@ -95,8 +93,7 @@ object MealSheetStateBuilder {
             title = if (slot == MealSlot.Uncategorized && !groupsOn) Res.string.today_all_food else slot.label,
             items = buildList {
                 add(MealSheetItem.AddFood)
-                add(MealSheetItem.AddNote)
-                add(MealSheetItem.HowItFelt)
+                add(MealSheetItem.Note)
                 if (dayBefore.items(slot).isNotEmpty()) add(MealSheetItem.CopyFromDayBefore(dayIsToday = day.date == today))
                 if (slot.isMeal) add(MealSheetItem.AteNoDetails)
                 if (day.items(slot).isNotEmpty()) add(MealSheetItem.SaveAsMeal)
@@ -135,8 +132,7 @@ class MealSheetViewModel(
                 MealSheetStateBuilder.build(slot, action.today, action.day, action.dayBefore, action.settings)
             }
             MealSheetAction.AddFoodTapped -> sendEvent(MealSheetEvent.OpenLogger(day, slot))
-            MealSheetAction.AddNoteTapped -> sendEvent(MealSheetEvent.OpenMealNote(day, slot))
-            MealSheetAction.HowItFeltTapped -> sendEvent(MealSheetEvent.OpenMealFeel(day, slot))
+            MealSheetAction.NoteTapped -> sendEvent(MealSheetEvent.OpenMealNote(day, slot))
             MealSheetAction.CopyFromDayBeforeTapped -> if (!written) {
                 written = true
                 diary.copySlot(fromDay = day.minus(DatePeriod(days = 1)), toDay = day, slot = slot)
@@ -173,8 +169,7 @@ fun MealSheetContent(
             state.items.forEachIndexed { index, item ->
                 val (label, icon, action) = when (item) {
                     MealSheetItem.AddFood -> Triple(stringResource(Res.string.today_meal_add_food), AppIcons.Restaurant, MealSheetAction.AddFoodTapped)
-                    MealSheetItem.AddNote -> Triple(stringResource(Res.string.today_meal_add_note), AppIcons.EditNote, MealSheetAction.AddNoteTapped)
-                    MealSheetItem.HowItFelt -> Triple(stringResource(Res.string.today_meal_how_felt), AppIcons.Mood, MealSheetAction.HowItFeltTapped)
+                    MealSheetItem.Note -> Triple(stringResource(Res.string.today_meal_note), AppIcons.EditNote, MealSheetAction.NoteTapped)
                     is MealSheetItem.CopyFromDayBefore -> Triple(
                         stringResource(if (item.dayIsToday) Res.string.today_meal_copy_yesterday else Res.string.today_meal_copy_day_before, meal),
                         AppIcons.History,

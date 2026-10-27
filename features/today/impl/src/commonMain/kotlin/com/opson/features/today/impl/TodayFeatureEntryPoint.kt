@@ -38,9 +38,6 @@ import com.opson.features.today.impl.daynote.DayNoteViewModel
 import com.opson.features.today.impl.item.ItemSheetContent
 import com.opson.features.today.impl.item.ItemSheetEvent
 import com.opson.features.today.impl.item.ItemSheetViewModel
-import com.opson.features.today.impl.meal.MealFeelEvent
-import com.opson.features.today.impl.meal.MealFeelSheetContent
-import com.opson.features.today.impl.meal.MealFeelViewModel
 import com.opson.features.today.impl.meal.MealNoteEvent
 import com.opson.features.today.impl.meal.MealNoteSheetContent
 import com.opson.features.today.impl.meal.MealNoteViewModel
@@ -92,7 +89,6 @@ class TodayFeatureEntryPoint(
     private val calendarViewModelFactory: (LocalDate) -> CalendarViewModel,
     private val mealSheetViewModelFactory: (LocalDate, MealSlot) -> MealSheetViewModel,
     private val mealNoteViewModelFactory: (LocalDate, MealSlot) -> MealNoteViewModel,
-    private val mealFeelViewModelFactory: (LocalDate, MealSlot) -> MealFeelViewModel,
     private val waterSheetViewModelFactory: (LocalDate) -> WaterSheetViewModel,
     private val itemSheetViewModelFactory: (LocalDate, String) -> ItemSheetViewModel,
     private val dayNoteViewModelFactory: (LocalDate) -> DayNoteViewModel,
@@ -164,10 +160,6 @@ class TodayFeatureEntryPoint(
                         goBack()
                         navigate(MealNoteRoute(event.day.toString(), event.slot))
                     }
-                    is MealSheetEvent.OpenMealFeel -> router.batch {
-                        goBack()
-                        navigate(MealFeelRoute(event.day.toString(), event.slot))
-                    }
                     is MealSheetEvent.OpenCreateMeal -> router.batch {
                         goBack()
                         navigate(CreateMealRoute(fromDayIso = event.day.toString(), fromSlot = event.slot))
@@ -190,19 +182,6 @@ class TodayFeatureEntryPoint(
                 }
             }
             TodaySheet(router, sheetState) { MealNoteSheetContent(state = state, onAction = viewModel::takeAction) }
-        }
-
-        bottomSheet<MealFeelRoute>(typeMap = slotType) { backStackEntry, sheetState ->
-            val route = backStackEntry.toRoute<MealFeelRoute>()
-            val viewModel: MealFeelViewModel = viewModel { mealFeelViewModelFactory(LocalDate.parse(route.dayIso), route.slot) }
-            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-            viewModel.ObserveEvents { event ->
-                when (event) {
-                    is MealFeelEvent.ShowToast -> showToast(event.toast)
-                    MealFeelEvent.Dismiss -> sheetState.dismiss()
-                }
-            }
-            TodaySheet(router, sheetState) { MealFeelSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
         bottomSheet<WaterSheetRoute> { backStackEntry, sheetState ->

@@ -159,7 +159,7 @@ fun StatusPill(
     }
 }
 
-/** [PillTag] sizes: [Small] for how-it-felt chips on a meal card, [Regular] for Explorer's safe foods. */
+/** [PillTag] sizes: [Small] for the hunger chip on a meal card, [Regular] for Explorer's safe foods. */
 enum class PillTagSize(internal val padding: PaddingValues) {
     Small(PaddingValues(horizontal = 10.dp, vertical = 5.dp)),
     Regular(PaddingValues(horizontal = 12.dp, vertical = 7.dp)),

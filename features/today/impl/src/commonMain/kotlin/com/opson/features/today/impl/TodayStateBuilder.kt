@@ -3,7 +3,6 @@ package com.opson.features.today.impl
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LoggedToMeal
-import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Settings
@@ -440,10 +439,6 @@ object TodayStateBuilder {
         return TodayBanner(from = ended.from, to = policy.preset.id, waiting = false)
     }
 
-    private fun feelLine(feeling: MealFeeling): FeelLine? =
-        FeelLine(feeling.hunger?.label, feeling.fullness?.label, feeling.moods.sortedBy { it.ordinal }.map { it.label })
-            .takeIf { it.hunger != null || it.fullness != null || it.moods.isNotEmpty() }
-
     private fun tileStatus(day: Day, slot: MealSlot, inputs: TodayInputs): TileStatus {
         val items = day.items(slot)
         val around = inputs.settings.mealTimes.at(slot)
@@ -525,7 +520,7 @@ object TodayStateBuilder {
         val allMacrosShow = listOf(Metric.Protein, Metric.Carbs, Metric.Fat).all { policy.effectiveLevel(it, Surface.Today, context) == Visibility.Show }
         val style = if (allMacrosShow) MacroLineStyle.Compact else MacroLineStyle.Long
         val feeling = day.feelings[slot]
-        // No numbers keeps a food to its name and household amount, and shows how the meal felt (13.5d).
+        // No numbers keeps a food to its name and household amount (13.5d).
         val timeline = layout == TodayLayout.MealTimeline
         return MealCard(
             slot = slot,
@@ -556,7 +551,8 @@ object TodayStateBuilder {
             ateNoDetails = items.isEmpty() && slot in day.ateNoDetails,
             note = feeling?.note?.trim()?.takeIf { it.isNotEmpty() },
             fileable = inputs.selectOn && slot == MealSlot.Uncategorized && items.isNotEmpty() && groupsOn(inputs),
-            feel = feeling?.takeIf { timeline }?.let { feelLine(it) },
+            // The Note is on every meal's + in every mode, so what it holds shows in every mode too.
+            hunger = feeling?.hunger?.label,
         )
     }
 

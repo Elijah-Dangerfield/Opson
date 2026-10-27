@@ -21,6 +21,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.DatePeriod
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.diary_hunger_hungry
 import opson.libraries.resources.generated.resources.today_all_food
 import com.opson.libraries.diary.MealTimes
 import kotlinx.datetime.LocalTime
@@ -173,7 +174,7 @@ class TodayStateBuilderTest {
     }
 
     @Test
-    fun noNumbers_isAMealTimeline_withFoodsByNameAndHowTheyFelt() {
+    fun noNumbers_isAMealTimeline_withFoodsByNameAndHowHungry() {
         val state = build(PresetId.NoNumbers)
 
         assertNull(state.summary, "the timeline says which meals are done")
@@ -184,8 +185,10 @@ class TodayStateBuilderTest {
         assertEquals("Oat porridge with milk", breakfast.items.first().name)
         assertNull(breakfast.items.first().precision, "names and household amounts only")
         assertEquals(Display.Hidden, breakfast.calories)
-        assertNotNull(breakfast.feel, "how breakfast felt, answered")
-        assertNull(assertIs<MealEntry.Full>(state.meals[1]).card.feel, "lunch has only a note")
+        assertEquals(Res.string.diary_hunger_hungry, breakfast.hunger, "breakfast's Note says how hungry")
+        val lunch = assertIs<MealEntry.Full>(state.meals[1]).card
+        assertNull(lunch.hunger, "lunch's Note is words only")
+        assertEquals("Ate outside with Sam. Felt relaxed.", lunch.note)
         val water = assertNotNull(state.water)
         assertIs<Display.Soft>(water.display)
     }
@@ -196,11 +199,12 @@ class TodayStateBuilderTest {
         assertEquals(TileStatus.AteNoDetails(MealTimes().dinner), assertNotNull(build(PresetId.NoNumbers, day = day).mealTiles).last().status)
     }
 
+    /** The Note is on every meal's + in every mode, so its hunger shows in every mode too. */
     @Test
-    fun fullNumbers_neverShowsHowItFeltOnTheCard_orTheTimeline() {
+    fun fullNumbers_showsTheNotesHungerOnTheCard_withNoTimeline() {
         val state = build(PresetId.Full)
         assertNull(state.mealTiles)
-        assertNull(assertIs<MealEntry.Full>(state.meals.first()).card.feel)
+        assertEquals(Res.string.diary_hunger_hungry, assertIs<MealEntry.Full>(state.meals.first()).card.hunger)
     }
 
     @Test

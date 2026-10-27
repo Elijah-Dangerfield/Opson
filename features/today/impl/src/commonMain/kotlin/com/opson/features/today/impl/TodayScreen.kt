@@ -101,7 +101,6 @@ import opson.libraries.resources.generated.resources.today_closed_body
 import opson.libraries.resources.generated.resources.today_closed_title
 import opson.libraries.resources.generated.resources.today_day_menu_cd
 import opson.libraries.resources.generated.resources.today_drop_to
-import opson.libraries.resources.generated.resources.today_feel_pair
 import opson.libraries.resources.generated.resources.today_food_menu_cd
 import opson.libraries.resources.generated.resources.today_item_sub
 import opson.libraries.resources.generated.resources.today_loading_cd
@@ -520,17 +519,6 @@ private fun Meal(entry: MealEntry, state: TodayState, drag: FoodDrag, onAction: 
 }
 
 @Composable
-internal fun feelChips(feel: FeelLine): List<String> {
-    val hunger = feel.hunger?.let { stringResource(it) }
-    val fullness = feel.fullness?.let { stringResource(it) }
-    val pair = when {
-        hunger != null && fullness != null -> stringResource(Res.string.today_feel_pair, hunger, fullness)
-        else -> hunger ?: fullness
-    }
-    return listOfNotNull(pair) + feel.moods.map { stringResource(it) }
-}
-
-@Composable
 private fun FullMeal(card: MealCard, state: TodayState, drag: FoodDrag, dropLabel: String?, onAction: (TodayAction) -> Unit) {
     val sentence = stringResource(card.slot.sentenceName)
     val selection = state.selection
@@ -556,7 +544,7 @@ private fun FullMeal(card: MealCard, state: TodayState, drag: FoodDrag, dropLabe
             )
         },
         note = card.note,
-        tags = card.feel?.let { feelChips(it) }.orEmpty(),
+        tags = listOfNotNull(card.hunger?.let { stringResource(it) }),
         highlighted = state.highlight == card.slot,
         onHeaderClick = if (selection != null) ({ onAction(TodayAction.MealHeaderToggled(card.slot)) }) else null,
         headerTrailing = {

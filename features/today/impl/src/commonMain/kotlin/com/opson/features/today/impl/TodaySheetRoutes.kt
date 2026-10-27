@@ -14,13 +14,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CalendarRoute(val selectedIso: String) : Route()
 
-/** The + on a meal: add food, a note, how it felt, copy, ate no details, save as a meal. */
+/** The + on a meal: add food, a note, copy, ate no details, save as a meal. */
 @Serializable
 data class MealSheetRoute(val dayIso: String, val slot: MealSlot) : Route()
-
-/** Hunger, fullness and mood for one meal. */
-@Serializable
-data class MealFeelRoute(val dayIso: String, val slot: MealSlot) : Route()
 
 /** Add a glass, a custom amount, remove a glass, water settings. */
 @Serializable
