@@ -22,7 +22,7 @@ class GoalStyleRoute : Route()
 @Serializable
 class WaterSettingsRoute(val fromMore: Boolean = false) : Route()
 
-/** Palette, theme, text size, weight units, tone and the hunger questions. */
+/** Appearance, text size, weight units, tone and the hunger questions. */
 @Serializable
 class LookAndFeelRoute : Route()
 

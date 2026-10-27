@@ -3,7 +3,6 @@ package com.opson.features.settings.impl.look
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.eventsOf
 import com.opson.features.settings.impl.remindersFlag
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.diary.TextSize
 import com.opson.libraries.diary.ThemeMode
 import com.opson.libraries.diary.Tone
@@ -24,7 +23,6 @@ class LookAndFeelViewModelTest : CoroutineTest() {
         val repository = FakeSettingsRepository()
         val vm = LookAndFeelViewModel(repository, remindersFlag())
 
-        vm.takeAction(LookAndFeelAction.PalettePicked(PaletteChoice.Clay))
         vm.takeAction(LookAndFeelAction.ThemePicked(ThemeMode.Dark))
         vm.takeAction(LookAndFeelAction.TextSizePicked(TextSize.Large))
         vm.takeAction(LookAndFeelAction.WeightUnitPicked(WeightUnit.Lb))
@@ -32,7 +30,6 @@ class LookAndFeelViewModelTest : CoroutineTest() {
         vm.takeAction(LookAndFeelAction.HungerQuestionsToggled)
 
         val expected = LookAndFeelState(
-            palette = PaletteChoice.Clay,
             theme = ThemeMode.Dark,
             textSize = TextSize.Large,
             weightUnit = WeightUnit.Lb,
