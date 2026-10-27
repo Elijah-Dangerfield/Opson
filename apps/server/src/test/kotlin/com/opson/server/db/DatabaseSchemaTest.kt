@@ -325,6 +325,45 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
     }
 
+    /** V21 is additive and safe to run twice (it is also applied by hand on dev), and cascades from the user. */
+    @Test
+    fun supportMigrationIsIdempotentAndCascadesFromTheUser() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V21__support_views.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val user = seedAuthUser().value
+        database.blockingTransaction {
+            exec("INSERT INTO user_installs (user_id, install_id, platform, app_version, build_number) VALUES ('$user', 'i', 'ios', '0.2.0', 52)")
+        }
+        assertEquals(listOf("1"), strings("SELECT count(*)::text FROM support.user_installs WHERE user_id = '$user'"))
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM user_installs WHERE user_id = '$user'"))
+    }
+
+    /**
+     * Grafana reads the per-person `support` views as well as `analytics`, and still no table: the
+     * views are the allowlist, so the role must not reach around them.
+     */
+    @Test
+    fun grafanaRoleReadsTheSupportViewsButNoTableBehindThem() {
+        database.blockingTransaction {
+            exec("SET LOCAL ROLE grafana_ro")
+            SUPPORT_VIEWS.forEach { exec("SELECT * FROM support.$it LIMIT 1") }
+        }
+        assertEquals(
+            SUPPORT_VIEWS.toSet(),
+            strings("SELECT table_name::text FROM information_schema.views WHERE table_schema = 'support'").toSet(),
+        )
+        listOf("public.user_installs", "auth.users").forEach { table ->
+            assertFailsWith<Exception>("grafana_ro must not read $table") {
+                database.blockingTransaction {
+                    exec("SET LOCAL ROLE grafana_ro")
+                    exec("SELECT * FROM $table LIMIT 1")
+                }
+            }
+        }
+    }
+
     private fun exec(sql: String) {
         TransactionManager.current().exec(sql)
     }
@@ -342,5 +381,6 @@ class DatabaseSchemaTest : DatabaseTest() {
             "weekly_retention_cohorts", "retention_d1_d7_d30", "barcode_hit_rate_daily", "top_missed_barcodes",
             "barcode_misses_by_country", "waitlist_daily",
         )
+        val SUPPORT_VIEWS = listOf("users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings")
     }
 }

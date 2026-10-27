@@ -6,6 +6,29 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: Grafana may see one person, through `support`, and never their log
+
+**Decision:** a second read-only schema, `support` (V21), holds per-person
+views for the owner's User detail and Users boards and the admin console's
+user lookup: account id, email, display name, which builds each install ran,
+counts per day, timestamps and Settings choices from an allowlist. `grafana_ro`
+reads it as well as `analytics`. `analytics` keeps its rule: aggregates only,
+no user id.
+
+**Why:** the owner asked for Cards' user detail board as a CRM stand-in, and
+support needs to answer "what is this person running and how do they use it".
+The V9 promise that mattered was never "no user id" for its own sake; it was
+that no panel can show one person's food log. That holds: no `support` column
+carries a food name, amount, nutrient, weight, water, note, feeling, check-in
+or onboarding answer, target or fast length, and `PostgresUserSupportTest`
+fails if one appears. Emails reach the admin console and the User detail board,
+which read the database; they never reach telemetry.
+
+**Alternatives:** stamping `user_id` on client events in Loki. Rejected: it
+only reaches builds from 0.2 on, and it would put the account id on every
+event, where the install id is enough once `user_installs` maps one to the
+other.
+
 ## 2026-10-27: One colour scheme, Slate; the palette setting is dropped
 
 **Decision:** the four palettes (Pine, Espresso, Clay, Plum) are gone. Slate,
