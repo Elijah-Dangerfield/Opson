@@ -410,8 +410,11 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 
 ### Accounts and settings at providers
 
-- [ ] Sentry and Grafana Cloud: set retention to 90 days or less, as the
-      policy says. Supabase: confirm backups expire within 30 days.
+- [x] Retention checked 2026-10-27, all inside the policy's limits, nothing to
+      set: Sentry's Developer plan keeps events 30 days (fixed by the plan);
+      Grafana Cloud Pro keeps logs and traces 30 days and metrics 13 months
+      (counts with no account id); Supabase keeps daily backups 7 days. If
+      Sentry moves to a paid plan its retention becomes 90 days, still inside.
 - [ ] Confirm a data processing agreement is in place with Fly.io,
       Supabase, Sentry, Grafana Labs and Anthropic (most are part of their
       standard terms; accept or download each).

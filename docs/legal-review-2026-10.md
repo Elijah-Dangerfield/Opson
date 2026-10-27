@@ -78,7 +78,7 @@ pages, in the muted colour.
 | Progress photos | **Added.** On the phone only and excluded from backups. |
 | Processors | **Added** a table: Fly.io, Supabase, Sentry, Grafana Labs, Anthropic, Apple, Google. Open Food Facts gets only barcodes. |
 | Crash reports | **Fixed.** The old text said reports "never include what you logged". They carry the account ID, and **a failed food search can carry its words in the request URL**. The policy now says so. **Open:** strip query strings in `AppTelemetry.kt`, then delete that sentence. |
-| Retention | **Added.** Account data until deleted (with tombstones until the account goes), backups 30 days, crash reports and logs 90 days, usage events 90 days. **Open (You):** set Sentry and Grafana retention, and confirm Supabase backups, to match. |
+| Retention | **Added.** Account data until deleted (with tombstones until the account goes), backups 30 days, crash reports and logs 90 days, usage events 90 days. **Checked 2026-10-27:** Sentry 30 days, Grafana logs and traces 30 days, Supabase backups 7 days, all inside the policy. |
 | Deletion and export | **Fixed.** The export is a CSV of entries, weigh-ins and water only. The policy now says so and offers the rest by email. |
 | Phone backups | **Added.** The log on the phone is in iCloud and Google backups today. **Open:** exclude it (see Apple below). |
 | Children | **Done.** Under 13 not allowed, and the terms now say so. Age rating 12+. No age gate, which is fine for a general-audience app under COPPA's actual-knowledge standard. **Lawyer:** whether an ED-adjacent app should go 16+ in the EEA. |
