@@ -145,7 +145,12 @@ class LoggerViewModel(
                 unshown.shown(action.inputs.day)
                 action.rebuild { copy(inputs = action.inputs, choices = choices.withPickedSlot(action.inputs).withSeen(action.inputs)) }
             }
-            is LoggerAction.PolicyArrived -> action.rebuild { copy(policy = action.policy) }
+            is LoggerAction.PolicyArrived -> action.rebuild {
+                // Calories hidden while Describe is open: a weighed line moves to its household measure, as the photo's do.
+                val householdOnly = action.policy.level(Metric.Calories) == Visibility.Hide
+                val review = choices.review.copy(rows = choices.review.rows.map { DescribeRows.forPolicy(it, householdOnly) })
+                copy(policy = action.policy, choices = choices.copy(review = review))
+            }
             is LoggerAction.SlotPicked -> action.choose { copy(slot = action.slot, slotChosen = true) }
             LoggerAction.SheetExpanded -> if (model.choices.height != SheetHeight.Full) action.choose { copy(height = SheetHeight.Full) }
             LoggerAction.SearchFoodTapped -> sendEvent(LoggerEvent.OpenSearch(day, slot()))

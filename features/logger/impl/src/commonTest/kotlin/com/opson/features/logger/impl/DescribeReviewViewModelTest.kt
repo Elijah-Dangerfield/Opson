@@ -312,6 +312,20 @@ class DescribeReviewViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun caloriesHiddenWhileDescribeIsOpenMovesAWeighedLineToItsMeasure() = runUnitTest {
+        catalog.describeResult = Catching.success(listOf(LoggerFixtures.parsed[0].copy(portionLabel = null)))
+        val vm = described("2 eggs")
+        assertTrue("grams" in vm.lines.single().units)
+        val weighed = vm.lines.single().amount
+
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        settle()
+
+        assertTrue(vm.lines.single().amount != weighed, "was $weighed")
+        assertTrue("grams" !in vm.lines.single().units)
+    }
+
+    @Test
     fun addLogsTheLinesAsCorrected() = runUnitTest {
         val vm = described()
         vm.takeAction(DescribeReviewAction.MoreTapped(vm.key("Egg, large")))
