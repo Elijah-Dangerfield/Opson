@@ -31,6 +31,7 @@ import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.ui.components.AppSwitch
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.ProgressRing
 import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.components.icon.AppIcons
@@ -42,6 +43,7 @@ import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_back_more
+import opson.libraries.resources.generated.resources.settings_loading_cd
 import opson.libraries.resources.generated.resources.settings_today_burned_breakdown
 import opson.libraries.resources.generated.resources.settings_today_burned_breakdown_line
 import opson.libraries.resources.generated.resources.settings_today_card_from_mode
@@ -89,7 +91,10 @@ fun TodayScreenSettingsScreen(
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(TodayScreenSettingsAction.BackTapped) },
         )
-        if (!state.loaded) return@SettingsPage
+        if (!state.loaded) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
+            return@SettingsPage
+        }
         SectionLabel(stringResource(Res.string.settings_today_summary_card))
         if (state.cardArranged) {
             Presets(state.presets, onAction)

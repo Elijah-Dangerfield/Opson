@@ -39,6 +39,7 @@ import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.AppSwitch
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
@@ -73,6 +74,7 @@ import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
 import opson.libraries.resources.generated.resources.settings_resting_steps_workouts
 import opson.libraries.resources.generated.resources.settings_resting_title
 import opson.libraries.resources.generated.resources.settings_resting_weight_missing
+import opson.libraries.resources.generated.resources.settings_loading_cd
 import opson.libraries.resources.generated.resources.everyday_activity_body
 import opson.libraries.resources.generated.resources.everyday_activity_title
 import org.jetbrains.compose.resources.stringResource
@@ -97,7 +99,11 @@ fun RestingEnergyScreen(
             color = AppTheme.colors.ink,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
-        if (!state.loaded) return@SettingsPage
+        if (!state.loaded) {
+            // The health app's resting energy is read before the choices can draw.
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
+            return@SettingsPage
+        }
         Sources(state, onAction)
         SectionLabel(stringResource(Res.string.settings_resting_activity))
         SettingsCard {
