@@ -30,15 +30,12 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.libraries.networking)
-            implementation(libs.ktor.client.mock)
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
 
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.client.auth)
-            implementation(libs.ktor.client.logging)
-            implementation(libs.ktor.client.websockets)
             implementation(libs.ktor.serialization.kotlinx.json)
 
             // Wiretap's Ktor plugin + launcher API, for compilation only.

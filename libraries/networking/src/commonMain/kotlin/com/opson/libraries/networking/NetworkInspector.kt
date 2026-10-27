@@ -2,7 +2,7 @@ package com.opson.libraries.networking
 
 /**
  * Opens the on-device network inspector (WiretapKMP) — a debug tool for
- * browsing captured HTTP / WebSocket / SSE traffic with full headers, bodies,
+ * browsing captured HTTP traffic with full headers, bodies,
  * status codes, and timing.
  *
  * This is a debug affordance. In release builds the underlying inspector is
