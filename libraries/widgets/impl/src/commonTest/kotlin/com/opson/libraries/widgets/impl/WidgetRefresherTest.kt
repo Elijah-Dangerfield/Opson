@@ -1,5 +1,6 @@
 package com.opson.libraries.widgets.impl
 
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.NumbersSettings
@@ -21,11 +22,18 @@ class WidgetRefresherTest : CoroutineTest() {
     private val flag = MutableStateFlow(true)
     private val source = FakeSnapshotSource()
     private val publisher = FakePublisher()
+    private val settings = FakeSettingsRepository(Settings())
     private lateinit var appScope: AppCoroutineScope
 
     private fun refresher(): WidgetRefresher {
         appScope = AppCoroutineScope(dispatchers)
-        return WidgetRefresher(config = configFlow(flag), source = source, publisher = publisher, appScope = appScope)
+        return WidgetRefresher(
+            config = configFlow(flag),
+            settingsRepository = settings,
+            source = source,
+            publisher = publisher,
+            appScope = appScope,
+        )
     }
 
     private fun test(block: suspend TestScope.() -> Unit) = runUnitTest {
@@ -87,6 +95,30 @@ class WidgetRefresherTest : CoroutineTest() {
 
         assertEquals(1, publisher.clears)
         assertEquals(1, publisher.published.size)
+    }
+
+    @Test
+    fun aUserChange_clearsTheLastAccountsDay_untilTheNextAccountsSettingsArrive() = test {
+        refresher()
+        val full = snapshot(PresetId.Full)
+        source.snapshots.emit(full)
+
+        // Signed out and back in as someone else: their mode has not arrived yet.
+        settings.known.value = false
+        assertEquals(1, publisher.clears, "the last account's numbers leave the home screen")
+
+        settings.known.value = true
+        assertEquals(listOf(full, full), publisher.published, "and the snapshot comes back once settings are known")
+    }
+
+    @Test
+    fun settingsNotKnownYetAtLaunch_publishNothing_andClearNothing() = test {
+        settings.known.value = false
+        refresher()
+        source.snapshots.emit(snapshot(PresetId.Full))
+
+        assertEquals(0, source.collections)
+        assertEquals(0, publisher.clears)
     }
 
     @Test

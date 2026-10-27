@@ -83,6 +83,12 @@ class AmountViewModel(
     private val source: PickSource = route.source
     private val day: LocalDate = LocalDate.parse(route.dayIso)
 
+    /**
+     * The food is in the basket (or logged) and the sheet is closing. A second tap queued behind
+     * the first would put it back into a basket the first just logged and cleared, and log it twice.
+     */
+    private var done = false
+
     private var model = Model(
         settings = settingsRepository.settings.value,
         policy = policySource.policy.value,
@@ -141,7 +147,10 @@ class AmountViewModel(
             is AmountAction.SlotPicked -> action.choose { copy(slot = action.slot) }
             is AmountAction.TimePicked -> action.choose { copy(time = action.time) }
             AmountAction.AllNutrientsTapped -> action.choose { copy(nutrientsOpen = !nutrientsOpen) }
-            AmountAction.PickAndKeepGoingTapped -> if (pick()) sendEvent(AmountEvent.Dismiss)
+            AmountAction.PickAndKeepGoingTapped -> if (!done && pick()) {
+                done = true
+                sendEvent(AmountEvent.Dismiss)
+            }
             AmountAction.AddToMealTapped -> addToMeal()
             AmountAction.BackTapped -> sendEvent(AmountEvent.Dismiss)
         }
@@ -191,7 +200,8 @@ class AmountViewModel(
     }
 
     private suspend fun addToMeal() {
-        if (!pick()) return
+        if (done || !pick()) return
+        done = true
         // With meal groups off for the day, everything goes to Uncategorized, as the sheet shows.
         val groupsOn = model.day?.mealGroupsOn(model.settings) ?: model.settings.mealGroups
         val slot = if (groupsOn) model.choice.slot else MealSlot.Uncategorized

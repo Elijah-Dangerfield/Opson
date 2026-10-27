@@ -8,9 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.opson.libraries.ui.components.Switch
-import com.opson.libraries.ui.components.checkbox.Checkbox
-import com.opson.libraries.ui.components.radio.RadioButton
+import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.text.OutlinedTextField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
@@ -24,14 +22,11 @@ internal const val FORM_SUBTITLE =
 // See the VerifyStrings note in Catalog.kt.
 private const val PLACEHOLDER_SAMPLE = "Display name"
 
-/** All form controls — used by [DesignSystemPreview]. Each control also has its own body below so a
- *  component file can preview just itself. */
+/** All form controls, one section per control. */
 @Composable
 internal fun FormCatalogBody() {
     TextFieldCatalogBody()
     SwitchCatalogBody()
-    CheckboxCatalogBody()
-    RadioCatalogBody()
 }
 
 @Composable
@@ -59,40 +54,10 @@ internal fun SwitchCatalogBody() {
         "Immediate on/off setting (no save step). On = accentPrimary track.",
     ) {
         ControlRow {
-            Labeled("On") { Switch(checked = true, onCheckedChange = {}) }
-            Labeled("Off") { Switch(checked = false, onCheckedChange = {}) }
-            Labeled("On · disabled") { Switch(checked = true, onCheckedChange = {}, enabled = false) }
-            Labeled("Off · disabled") { Switch(checked = false, onCheckedChange = {}, enabled = false) }
-        }
-    }
-}
-
-@Composable
-internal fun CheckboxCatalogBody() {
-    CatalogSection(
-        "Checkbox",
-        "Multi-select, or a single opt-in (terms, \"don't show again\"). Checked fill = accentPrimary.",
-    ) {
-        ControlRow {
-            Labeled("Checked") { Checkbox(checked = true, onCheckedChange = {}) }
-            Labeled("Unchecked") { Checkbox(checked = false, onCheckedChange = {}) }
-            Labeled("Checked · disabled") { Checkbox(checked = true, onCheckedChange = {}, enabled = false) }
-            Labeled("Unchecked · disabled") { Checkbox(checked = false, onCheckedChange = {}, enabled = false) }
-        }
-    }
-}
-
-@Composable
-internal fun RadioCatalogBody() {
-    CatalogSection(
-        "Radio",
-        "Pick exactly one from a small set. Selected ring = accentPrimary.",
-    ) {
-        ControlRow {
-            Labeled("Selected") { RadioButton(selected = true, onClick = {}) }
-            Labeled("Unselected") { RadioButton(selected = false, onClick = {}) }
-            Labeled("Selected · disabled") { RadioButton(selected = true, onClick = {}, enabled = false) }
-            Labeled("Unselected · disabled") { RadioButton(selected = false, onClick = {}, enabled = false) }
+            Labeled("On") { AppSwitch(checked = true, onCheckedChange = {}) }
+            Labeled("Off") { AppSwitch(checked = false, onCheckedChange = {}) }
+            Labeled("On · disabled") { AppSwitch(checked = true, onCheckedChange = {}, enabled = false) }
+            Labeled("Off · disabled") { AppSwitch(checked = false, onCheckedChange = {}, enabled = false) }
         }
     }
 }

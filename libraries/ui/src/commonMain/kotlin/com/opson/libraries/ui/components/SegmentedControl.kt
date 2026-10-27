@@ -70,7 +70,8 @@ fun <T> SegmentedControl(
                     typography = AppTheme.type.bodyStrong,
                     color = if (isSelected) colors.ink else colors.muted,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
+                    // Two lines, so large text wraps "Just the name" rather than cutting it off.
+                    maxLines = 2,
                 )
             }
         }

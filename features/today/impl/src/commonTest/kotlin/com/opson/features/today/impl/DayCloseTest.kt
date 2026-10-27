@@ -37,6 +37,9 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import com.opson.libraries.nutrition.DayGroup
+import com.opson.libraries.nutrition.TargetStyle
+import kotlinx.datetime.DayOfWeek
 
 /**
  * Day close (design v3, 4.1 to 4.5): the builder for every visibility branch and the view
@@ -78,6 +81,19 @@ class DayCloseTest : CoroutineTest() {
         assertEquals(Commitment.Offered, bigDay.commitment)
         assertEquals("1,900 to 2,300 kcal", bigDay.tomorrow.text())
         assertEquals(Commitment.Committed, build(PresetId.Full, bigDay = true, committed = true).bigDay?.commitment)
+    }
+
+    /** "Different by day": the big-day card names tomorrow's own range, a training day's here. */
+    @Test
+    fun tomorrowIsTomorrowsOwnRangeUnderDifferentByDay() {
+        val tomorrow = TodayFixtures.today.plus(DatePeriod(days = 1)).dayOfWeek
+        val training = DayGroup(setOf(tomorrow), minKcal = 2300, maxKcal = 2700)
+        val rest = DayGroup(DayOfWeek.entries.toSet() - tomorrow, minKcal = 1900, maxKcal = 2300)
+        val byDay = Targets.Default.copy(style = TargetStyle.ByDay(listOf(rest, training)))
+
+        val bigDay = assertNotNull(build(PresetId.Full, bigDay = true, settings = Settings(targets = byDay)).bigDay)
+
+        assertEquals("2,300 to 2,700 kcal", bigDay.tomorrow.text())
     }
 
     @Test

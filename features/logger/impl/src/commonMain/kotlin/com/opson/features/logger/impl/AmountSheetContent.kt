@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -298,7 +299,20 @@ private fun UnitMenu(state: AmountState, onAction: (AmountAction) -> Unit, modif
     val unit = state.unit ?: return
     val label = listOfNotNull(unit.label, unit.grams).joinToString(UNIT_SEPARATOR)
     Box(modifier = modifier) {
-        Pill(label = label, description = stringResource(Res.string.logger_amount_unit_cd, label)) { open = true }
+        Pill(description = stringResource(Res.string.logger_amount_unit_cd, label), onClick = { open = true }) {
+            // The weight is what makes a unit more than a guess (3.3b), so a long name never pushes it off:
+            // "container (7 oz)" goes over "200 g" instead of being cut to "container (7 oz) · 2…".
+            OneLineOrStacked(
+                oneLine = { PillText(label) },
+                stacked = {
+                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                        Text(text = unit.label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        unit.grams?.let { Text(text = it, typography = AppTheme.type.secondary.Tabular, color = AppTheme.colors.muted, maxLines = 1) }
+                    }
+                },
+                modifier = Modifier.weight(1f, fill = false),
+            )
+        }
         PopoverMenu(expanded = open, onDismissRequest = { open = false }, alignment = Alignment.TopEnd) {
             UnitMenuItems(state, onAction, close = { open = false })
         }
@@ -346,9 +360,21 @@ private fun MenuRow(label: String, detail: String?, selected: Boolean, onClick: 
     }
 }
 
-/** A soft rounded pill with a ⌄, for the unit, meal and time menus. */
+/** A soft rounded pill with a ⌄, for the meal and time menus. */
 @Composable
 private fun Pill(label: String, description: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Pill(description = description, modifier = modifier, onClick = onClick) {
+        PillText(label, modifier = Modifier.weight(1f, fill = false))
+    }
+}
+
+@Composable
+private fun PillText(label: String, modifier: Modifier = Modifier) {
+    Text(text = label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = modifier)
+}
+
+@Composable
+private fun Pill(description: String, modifier: Modifier = Modifier, onClick: () -> Unit, label: @Composable RowScope.() -> Unit) {
     Row(
         modifier = modifier
             .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
@@ -363,8 +389,19 @@ private fun Pill(label: String, description: String, modifier: Modifier = Modifi
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(text = label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+        label()
         Icon(icon = AppIcons.ExpandMore, size = IconSize.Small, color = AppTheme.colors.ink)
+    }
+}
+
+/** [oneLine] when it fits the width on offer, else [stacked]. Only the one in use is placed. */
+@Composable
+private fun OneLineOrStacked(oneLine: @Composable () -> Unit, stacked: @Composable () -> Unit, modifier: Modifier = Modifier) {
+    Layout(contents = listOf(oneLine, stacked), modifier = modifier) { (single, twoLines), constraints ->
+        val line = single.first()
+        val chosen = if (line.maxIntrinsicWidth(constraints.maxHeight) <= constraints.maxWidth) line else twoLines.first()
+        val placeable = chosen.measure(constraints)
+        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     }
 }
 

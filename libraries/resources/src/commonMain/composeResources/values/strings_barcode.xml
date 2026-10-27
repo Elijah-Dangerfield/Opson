@@ -14,7 +14,6 @@
 
     <!-- Scanner -->
     <string name="barcode_title">Scan a barcode</string>
-    <string name="barcode_close_cd">Close</string>
     <string name="barcode_hint">Hold the barcode inside the frame.</string>
     <string name="barcode_looking_up">First time anyone's scanned this one. Looking it up now, and it'll be instant for the next person.</string>
     <string name="barcode_scan_again">Scan again</string>

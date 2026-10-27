@@ -140,6 +140,12 @@ class LoggerViewModel(
     /** Whether the running session recognises on the phone, for `voice.started`. */
     private var onDevice = false
 
+    /**
+     * Something was written and the sheet is on its way down. A second tap on the same button
+     * while it animates is still queued behind the first, and would write it all again.
+     */
+    private var written = false
+
     private data class Model(
         val choices: LoggerChoices,
         val policy: VisibilityPolicy,
@@ -388,7 +394,7 @@ class LoggerViewModel(
     }
 
     private suspend fun copyYesterday() {
-        if (model.inputs == null) return
+        if (model.inputs == null || written) return
         val slot = slot()
         val copied = diary.copySlot(day.minus(1, DateTimeUnit.DAY), day, slot)
         telemetry.methodPicked(LogVia.Yesterday, copied.size)
@@ -397,6 +403,8 @@ class LoggerViewModel(
     }
 
     private suspend fun ateNoDetails() {
+        if (written) return
+        written = true
         val slot = slot()
         diary.setAteNoDetails(day, slot, ate = true)
         telemetry.methodPicked(LogVia.AteNoDetails, items = 0)
@@ -405,7 +413,7 @@ class LoggerViewModel(
     }
 
     private suspend fun addNumber() {
-        if (model.inputs == null) return
+        if (model.inputs == null || written) return
         // Typing a number is a calorie entry, so the policy has the last word even if the field was showing.
         if (model.policy.level(Metric.Calories) == Visibility.Hide) return
         val kcal = model.choices.number.toIntOrNull()?.takeIf { it > 0 } ?: return
@@ -418,14 +426,16 @@ class LoggerViewModel(
     }
 
     private suspend fun commit() {
-        if (model.inputs == null) return
+        if (model.inputs == null || written) return
         committer.commit(day, slot()) ?: return
         finish()
     }
 
     /** Pick-for-this-meal mode's "Add to this meal": the picks go back to Create a meal, and nothing is logged. */
     private fun handBack(requestId: String) {
+        if (written) return
         val drafts = basketStore.basket.value.map { it.draft }.ifEmpty { return }
+        written = true
         mealPicks.picked(PickedForMeal(requestId, drafts))
         basketStore.clear()
         sendEvent(LoggerEvent.Dismiss)
@@ -433,6 +443,7 @@ class LoggerViewModel(
 
     /** Logged: the sheet closes and Today takes it from `RecentLogEvents`. How it felt no longer follows (design sync 2). */
     private fun finish() {
+        written = true
         sendEvent(LoggerEvent.Dismiss)
     }
 

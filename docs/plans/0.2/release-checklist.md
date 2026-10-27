@@ -239,6 +239,11 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
          `GET /v1/projects/qmftnivpklhhozthpxej/config/disk/util`).
       2. `scripts/load_off_watched.sh qmftnivpklhhozthpxej apps/server/.env.prod`
          (the same watched load dev got). It stops itself above 75%.
+         On dev (2026-10-26) Postgres restarted partway through the index
+         build, which rolled back every index and left psql hanging on the
+         pooler. Check the importer builds indexes one per statement before
+         running this on prod (the scripts review is fixing it). Dev now has
+         3,290,890 products and `FOOD_SEARCH_OFF_ENABLED=true` in `fly.toml`.
       3. Ship the app's Open Food Facts credit wherever its foods appear
          (ODbL requires it), then set `FOOD_SEARCH_OFF_ENABLED=true` on
          `opson-server-prod`.

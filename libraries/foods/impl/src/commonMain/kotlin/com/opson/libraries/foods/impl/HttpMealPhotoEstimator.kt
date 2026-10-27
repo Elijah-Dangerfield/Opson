@@ -41,7 +41,12 @@ class HttpMealPhotoEstimator(private val networkClient: NetworkClient) : MealPho
             val response = client.post(PATH) {
                 // Statuses are part of the answer here (503, 429), so they are read rather than thrown.
                 expectSuccess = false
-                timeout { requestTimeoutMillis = TIMEOUT_MS }
+                // The socket timeout too: the server sends nothing until the model answers, and the
+                // client's default socket timeout would give up long before the request timeout.
+                timeout {
+                    requestTimeoutMillis = TIMEOUT_MS
+                    socketTimeoutMillis = TIMEOUT_MS
+                }
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }

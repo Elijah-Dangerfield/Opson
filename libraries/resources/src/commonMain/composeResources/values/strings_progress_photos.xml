@@ -20,7 +20,6 @@
     <string name="photos_saved_title">Saved comparisons</string>
     <string name="photos_saved_pair">%1$s and %2$s</string>
     <string name="photos_tile">%1$s, %2$s</string>
-    <string name="photos_back">Back to %1$s</string>
 
     <!-- The lock -->
     <string name="photos_locked_title">Progress photos are locked</string>

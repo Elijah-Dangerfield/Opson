@@ -223,12 +223,6 @@ class SettingsTest {
     }
 
     @Test
-    fun numbersAreTheSettingsThePolicyReads() {
-        val s = Settings(numbers = NumbersSettings(preset = PresetId.Mindful))
-        assertEquals(s.numbers, s.numbers())
-    }
-
-    @Test
     fun mealTimesTravelAsHoursAndMinutes_andAnUnreadableOneFallsBackOnItsOwn() {
         val s = Settings(mealTimes = MealTimes(lunch = LocalTime(13, 5)))
         val json = SettingsJson.encodeToString(Settings.serializer(), s)

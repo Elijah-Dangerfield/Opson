@@ -13,28 +13,8 @@ fun VerticalSpacerD100() {
 }
 
 @Composable
-fun VerticalSpacerD200() {
-    Spacer(modifier = Modifier.height(Dimension.D200))
-}
-
-@Composable
-fun VerticalSpacerD300() {
-    Spacer(modifier = Modifier.height(Dimension.D300))
-}
-
-@Composable
-fun VerticalSpacerD400() {
-    Spacer(modifier = Modifier.height(Dimension.D400))
-}
-
-@Composable
 fun VerticalSpacerD500() {
     Spacer(modifier = Modifier.height(Dimension.D500))
-}
-
-@Composable
-fun VerticalSpacerD700() {
-    Spacer(modifier = Modifier.height(Dimension.D700))
 }
 
 @Composable
@@ -45,11 +25,6 @@ fun VerticalSpacerD800() {
 @Composable
 fun VerticalSpacerD1200() {
     Spacer(modifier = Modifier.height(Dimension.D1200))
-}
-
-@Composable
-fun VerticalSpacerD1400() {
-    Spacer(modifier = Modifier.height(Dimension.D1400))
 }
 
 @Composable
@@ -67,21 +42,6 @@ fun HorizontalSpacerD800() {
     Spacer(modifier = Modifier.width(Dimension.D800))
 }
 
-
-@Composable
-fun HorizontalSpacerD400() {
-    Spacer(modifier = Modifier.width(Dimension.D400))
-}
-
-@Composable
-fun HorizontalSpacerD200() {
-    Spacer(modifier = Modifier.width(Dimension.D200))
-}
-
-@Composable
-fun HorizontalSpacerD500() {
-    Spacer(modifier = Modifier.width(Dimension.D500))
-}
 
 @Composable
 fun HorizontalSpacerD600() {

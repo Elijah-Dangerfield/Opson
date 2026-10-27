@@ -5,11 +5,6 @@ package com.opson.system
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Immutable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Immutable
@@ -25,16 +20,6 @@ class Radius private constructor(val shape: RoundedCornerShape) {
     override fun equals(other: Any?): Boolean = this === other || other is Radius && shape == other.shape
     override fun hashCode(): Int = shape.hashCode()
     override fun toString(): String = "Radius(cornerSize=$cornerSize)"
-}
-
-fun Radius.cornerRadius(density: Density, size: Size): Float {
-    return when (val corner = cornerSize) {
-        is CornerSize -> {
-            // CornerSize can be absolute (Dp) or percentage
-            // You need density and size to resolve it
-            corner.toPx(size, density)
-        }
-    }
 }
 
 object Radii {
@@ -55,7 +40,6 @@ object Radii {
 }
 
 
-fun Modifier.clip(radius: Radius): Modifier = clip(radius.shape)
 
 private val SquareCornerSize = CornerSize(0.dp)
 
