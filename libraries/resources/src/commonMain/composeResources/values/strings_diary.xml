@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Copy for :libraries:diary:ui, the meal, precision and feeling labels every
+  Copy for :libraries:diary:ui, the meal, precision and hunger labels every
   diary screen shares. Same rules as strings.xml: no backslash escapes,
   positional %1$s arguments.
 -->
@@ -30,22 +30,12 @@
     <string name="diary_precision_picker_named">Just the name</string>
     <string name="diary_precision_picker_label">From label</string>
 
-    <!-- How it felt -->
-    <string name="diary_hunger_very_hungry">Very hungry</string>
+    <!-- Hunger on a meal's Note, Starving to Stuffed -->
+    <string name="diary_hunger_starving">Starving</string>
     <string name="diary_hunger_hungry">Hungry</string>
-    <string name="diary_hunger_peckish">Peckish</string>
-    <string name="diary_hunger_not_hungry">Not hungry</string>
-    <string name="diary_fullness_still_hungry">Still hungry</string>
-    <string name="diary_fullness_satisfied">Satisfied</string>
-    <string name="diary_fullness_full">Full</string>
-    <string name="diary_fullness_very_full">Very full</string>
-    <string name="diary_mood_calm">Calm</string>
-    <string name="diary_mood_happy">Happy</string>
-    <string name="diary_mood_social">Social</string>
-    <string name="diary_mood_rushed">Rushed</string>
-    <string name="diary_mood_stressed">Stressed</string>
-    <string name="diary_mood_anxious">Anxious</string>
-    <string name="diary_mood_low">Low</string>
+    <string name="diary_hunger_neutral">Neutral</string>
+    <string name="diary_hunger_full">Full</string>
+    <string name="diary_hunger_stuffed">Stuffed</string>
 
     <!-- Food rows -->
     <string name="diary_pick_cd">Pick %1$s</string>

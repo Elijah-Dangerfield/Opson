@@ -14,9 +14,8 @@ import com.opson.features.today.impl.daynote.DayNoteViewModel
 import com.opson.features.today.impl.item.ItemSheetAction
 import com.opson.features.today.impl.item.ItemSheetEvent
 import com.opson.features.today.impl.item.ItemSheetViewModel
-import com.opson.features.today.impl.meal.MealFeelAction
-import com.opson.features.today.impl.meal.MealFeelViewModel
 import com.opson.features.today.impl.meal.MealNoteAction
+import com.opson.features.today.impl.meal.MealNoteEvent
 import com.opson.features.today.impl.meal.MealNoteViewModel
 import com.opson.features.today.impl.meal.MealSheetAction
 import com.opson.features.today.impl.meal.MealSheetEvent
@@ -58,7 +57,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Today's sheets: the calendar, the meal sheet, the meal note and how it felt, water, the item
+ * Today's sheets: the calendar, the meal sheet, the meal's Note, water, the item
  * sheet, the day note and Today's cards. One test per action, plus their builders. Explorer's
  * new-food rule is here too, being the one pure helper Today owns outside the builder.
  */
@@ -138,8 +137,7 @@ class SheetsTest : CoroutineTest() {
         val events = collect(vm.eventFlow)
 
         vm.takeAction(MealSheetAction.AddFoodTapped)
-        vm.takeAction(MealSheetAction.AddNoteTapped)
-        vm.takeAction(MealSheetAction.HowItFeltTapped)
+        vm.takeAction(MealSheetAction.NoteTapped)
         vm.takeAction(MealSheetAction.SaveAsMealTapped)
         vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
 
@@ -147,10 +145,9 @@ class SheetsTest : CoroutineTest() {
             listOf(
                 MealSheetEvent.OpenLogger(today, MealSlot.Dinner),
                 MealSheetEvent.OpenMealNote(today, MealSlot.Dinner),
-                MealSheetEvent.OpenMealFeel(today, MealSlot.Dinner),
                 MealSheetEvent.OpenCreateMeal(today, MealSlot.Dinner),
             ),
-            events.take(4),
+            events.take(3),
         )
         assertEquals(listOf(Triple(yesterday, today, MealSlot.Dinner)), diary.copiedSlots)
         assertEquals(1, events.count { it == MealSheetEvent.Dismiss })
@@ -173,19 +170,65 @@ class SheetsTest : CoroutineTest() {
         assertTrue(diary.ateNoDetails.isEmpty())
     }
 
-    // Meal note and how it felt
+    // A meal's Note
 
     @Test
-    fun mealNotePrefillsOnceAndSavesTrimmedKeepingTheFeeling() = runUnitTest {
+    fun mealSheetOffersOneNoteForTheNoteAndHunger() {
+        val items = TodayFixtures.mealSheetState().items
+        assertEquals(1, items.count { it == MealSheetItem.Note })
+    }
+
+    @Test
+    fun mealNotePrefillsOnceAndSavesTrimmedKeepingTheHunger() = runUnitTest {
         val vm = MealNoteViewModel(today, MealSlot.Breakfast, diary)
         assertEquals("", vm.state.draft)
+        assertEquals(Hunger.Hungry, vm.state.hunger)
 
         vm.takeAction(MealNoteAction.NoteTyped("  Sunny bench  "))
         vm.takeAction(MealNoteAction.SaveTapped)
 
         val saved = diary.feelings.single().third
         assertEquals("Sunny bench", saved?.note)
-        assertEquals(Hunger.Hungry, saved?.hunger, "the note does not wipe how it felt")
+        assertEquals(Hunger.Hungry, saved?.hunger, "typing a note does not wipe the hunger")
+    }
+
+    @Test
+    fun mealNoteHungerPicksAndClearsWhenTappedAgain() = runUnitTest {
+        val vm = MealNoteViewModel(today, MealSlot.Dinner, diary)
+        assertNull(vm.state.hunger)
+
+        vm.takeAction(MealNoteAction.HungerTapped(Hunger.Stuffed))
+        assertEquals(Hunger.Stuffed, vm.state.hunger)
+        vm.takeAction(MealNoteAction.HungerTapped(Hunger.Stuffed))
+        assertNull(vm.state.hunger)
+        vm.takeAction(MealNoteAction.HungerTapped(Hunger.Starving))
+        vm.takeAction(MealNoteAction.SaveTapped)
+
+        assertEquals(MealFeeling(hunger = Hunger.Starving), diary.feelings.single().third, "a hunger with no note is a Note too")
+    }
+
+    /** Rows from the old "How it felt" sheet keep their fullness and moods: the Note only edits its own two. */
+    @Test
+    fun mealNoteKeepsWhatTheOldSheetStored() = runUnitTest {
+        val old = MealFeeling(hunger = Hunger.Hungry, fullness = Fullness.Satisfied, moods = setOf(Mood.Calm), note = "Picnic")
+        val stored = FakeDiaryRepository(listOf(TodayFixtures.day().copy(feelings = mapOf(MealSlot.Lunch to old))))
+        val vm = MealNoteViewModel(today, MealSlot.Lunch, stored)
+
+        vm.takeAction(MealNoteAction.HungerTapped(Hunger.Full))
+        vm.takeAction(MealNoteAction.NoteTyped("Picnic in the park"))
+        vm.takeAction(MealNoteAction.SaveTapped)
+
+        assertEquals(old.copy(hunger = Hunger.Full, note = "Picnic in the park"), stored.feelings.single().third)
+    }
+
+    @Test
+    fun anUntouchedEmptyMealNoteSavesQuietly() = runUnitTest {
+        val vm = MealNoteViewModel(today, MealSlot.Dinner, diary)
+        val events = collect(vm.eventFlow)
+
+        vm.takeAction(MealNoteAction.SaveTapped)
+
+        assertEquals(listOf<MealNoteEvent>(MealNoteEvent.Dismiss), events, "no toast for nothing saved")
     }
 
     @Test
@@ -197,24 +240,6 @@ class SheetsTest : CoroutineTest() {
         vm.takeAction(MealNoteAction.SaveTapped)
 
         assertNull(diary.feelings.single().third?.note)
-    }
-
-    @Test
-    fun mealFeelTogglesAndSavesWithTheNote() = runUnitTest {
-        val vm = MealFeelViewModel(today, MealSlot.Lunch, diary)
-
-        vm.takeAction(MealFeelAction.HungerTapped(Hunger.Peckish))
-        vm.takeAction(MealFeelAction.HungerTapped(Hunger.Peckish))
-        vm.takeAction(MealFeelAction.FullnessTapped(Fullness.Satisfied))
-        vm.takeAction(MealFeelAction.MoodTapped(Mood.Calm))
-        vm.takeAction(MealFeelAction.MoodTapped(Mood.Social))
-        vm.takeAction(MealFeelAction.MoodTapped(Mood.Calm))
-        vm.takeAction(MealFeelAction.SaveTapped)
-
-        assertEquals(
-            MealFeeling(hunger = null, fullness = Fullness.Satisfied, moods = setOf(Mood.Social), note = "Ate outside with Sam. Felt relaxed."),
-            diary.feelings.single().third,
-        )
     }
 
     // Water

@@ -1,7 +1,7 @@
 # Today menus and sheets plan
 
-Rebuilt to design v3 (`docs/design/v3/`). The Day menu, Edit Today's cards, Calendar, Meal sheet (with its note and how-it-felt
-sheets), Water sheet, and two small sheets the handoff does not have: Item and
+Rebuilt to design v3 (`docs/design/v3/`). The Day menu, Edit Today's cards, Calendar, Meal sheet (with its Note
+sheet), Water sheet, and two small sheets the handoff does not have: Item and
 Day note. Read `shared.md` and `today.md` first.
 
 ## Source
@@ -186,8 +186,7 @@ data class MealSheetState(
 )
 sealed interface MealSheetItem {
     data object AddFood : MealSheetItem
-    data object AddNote : MealSheetItem
-    data object HowItFelt : MealSheetItem
+    data object Note : MealSheetItem                                       // the note and how hungry, one sheet
     data class CopyFromDayBefore(val dayIsToday: Boolean) : MealSheetItem   // only when day − 1 has items in this slot
     data object AteNoDetails : MealSheetItem
     data object SaveAsMeal : MealSheetItem                                 // only when this slot has items
@@ -198,8 +197,7 @@ sealed interface MealSheetItem {
 |---|---|
 | `DaysArrived(day, dayBefore, settings)` | Rebuilds `items` and `title`. |
 | `AddFoodTapped` | `OpenLogger(day, slot)`. |
-| `AddNoteTapped` | `OpenMealNote(day, slot)`. |
-| `HowItFeltTapped` | `OpenMealFeel(day, slot)`. |
+| `NoteTapped` | `OpenMealNote(day, slot)`. |
 | `CopyFromDayBeforeTapped` | `DiaryRepository.copySlot(from = day − 1, to = day, slot)`, toast, `Dismiss`. |
 | `AteNoDetailsTapped` | `DiaryRepository.markAteNoDetails(day, slot)`, toast, `Dismiss`. |
 | `SaveAsMealTapped` | `OpenCreateMeal(dayIso, slot)`: `CreateMealRoute(fromDayIso, fromSlot)`, added to `:features:foods` as `foods.md` specifies (Foods registers it). |
@@ -208,53 +206,45 @@ Every `Open*` event dismisses this sheet first (`router.goBack()` then
 `router.navigate(next)`). Data: `DiaryRepository.observeDay(day)` and `(day − 1)`,
 `SettingsRepository.observe()`.
 
-Copy: `today_meal_add_food` Add food, `_add_note` Add a note, `_how_felt` How it
-felt, `_copy_yesterday` Copy yesterday's %s, `_copy_day_before` (new, when the
+Copy: `today_meal_add_food` Add food, `_note` Note, `_copy_yesterday` Copy yesterday's %s, `_copy_day_before` (new, when the
 viewed day is not today) Copy %s from the day before, `_ate` Ate, no details,
 `_save_as_meal` Save as a meal, `today_close_cd` Close. Toasts: `Added to %s.` /
-`Marked %s as eaten.` Icons `restaurant`, `edit_note`, `mood`, `history`,
+`Marked %s as eaten.` Icons `restaurant`, `edit_note`, `history`,
 `check_circle`, `bookmark_add`. Scan a barcode, Photo and Voice log are not built.
 
 Visibility: none. Tests: copy item only when the day before has that slot;
 save-as-meal only with items; each tap's event and write. `SURFACES`: `meal-sheet`.
 
-### Meal note sheet
+### Note sheet
 
-`MealNoteRoute(dayIso, slot)`. `MealNoteState(title args = slot, draft: String, loaded: Boolean)`.
+One entry for a meal's journal note and how hungry it was. It replaced the
+separate "Add a note" and "How it felt" entries (owner feedback on TestFlight
+702: "How it felt" read badly, and two entries for one thought was one too
+many). The add sheet's Note tile opens the same sheet.
+
+`MealNoteRoute(dayIso, slot)`. `MealNoteState(slot, hunger: Hunger?, draft: String, loaded: Boolean)`.
 
 | Action | Does |
 |---|---|
-| `NoteLoaded(text)` | Prefills `draft` once. |
+| `FeelingLoaded(feeling)` | Prefills `hunger` and `draft` once. |
+| `HungerTapped(h)` | Selects, or clears when tapped again. |
 | `NoteTyped(text)` | `draft = text`. |
-| `SaveTapped` | The note is `MealFeeling.note` (there is no separate meal note): `setFeeling(day, slot, feeling.copy(note = trimmed or null))`, keeping hunger, fullness and moods. Non-empty: toast. `Dismiss`. |
+| `SaveTapped` | Both live on `MealFeeling` (there is no separate meal note): `setFeeling(day, slot, feeling.copy(hunger, note = trimmed or null))`, keeping any fullness and moods an old "How it felt" row holds. Anything answered: toast. `Dismiss`. |
 
-Copy: `today_note_title` Note, %s; placeholder `today_note_placeholder` Where
-you were, who with, anything worth remembering; `today_note_save` Save; toast
-`Note saved to %s.` Voice log (0.2) is not built. Tests: prefill, empty clears,
-trimmed save. `SURFACES`: `meal-note`.
+Storage: the `meal_feelings` row, unchanged, so no migration. `Hunger` is one
+scale, Starving / Hungry / Neutral / Full / Stuffed; the first three keep the
+wire values of the old four-step scale (`very_hungry`, `hungry`, `not_hungry`)
+and the old `peckish` reads as Hungry. Today shows the hunger as a chip beside
+the meal's note, in every mode.
 
-### How it felt sheet
+Copy: `today_note_title` Note, %s; subtitle `today_note_subtitle` Both
+optional, and only you see them; `today_note_hunger` How hungry; placeholder
+`today_note_placeholder` Where you were, who with, anything worth remembering;
+`today_note_save` Save; toast `Note saved to %s.`
 
-`MealFeelRoute(dayIso, slot)`. 
-
-```kotlin
-data class MealFeelState(val hunger: Hunger?, val fullness: Fullness?, val moods: Set<Mood>)
-```
-
-| Action | Does |
-|---|---|
-| `FeelingLoaded(feeling)` | Prefills once. |
-| `HungerTapped(h)` / `FullnessTapped(f)` | Selects, or clears when tapped again. |
-| `MoodTapped(m)` | Toggles in the set. |
-| `SaveTapped` | `DiaryRepository.setFeeling(day, slot, ...)`, keeping the note, toast, `Dismiss`. |
-
-Copy: title `How %s felt`, subtitle `All optional. Only you see this.`, `Hunger
-before`: Very hungry / Hungry / Peckish / Not hungry; `Fullness after`: Still
-hungry / Satisfied / Full / Very full; `Mood, pick any`: Calm / Happy / Social /
-Rushed / Stressed / Anxious / Low; `Save`; toast `Saved. Only you see this.`
-
-No telemetry from this sheet at all: feelings are health data. Tests: toggle
-semantics, save payload. `SURFACES`: `meal-feel`.
+No telemetry from this sheet at all: hunger is health data. Tests: prefill,
+hunger toggle, old fullness and moods kept, empty clears, trimmed save.
+`SURFACES`: `meal-note`.
 
 ---
 

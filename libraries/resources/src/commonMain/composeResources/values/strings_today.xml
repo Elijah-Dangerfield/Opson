@@ -54,7 +54,6 @@
     <string name="today_item_sub">%1$s · %2$s</string>
     <string name="today_meal_usually">Usually around %1$s</string>
     <string name="today_meal_around">Around %1$s</string>
-    <string name="today_feel_pair">%1$s → %2$s</string>
     <string name="today_plan_title">Planned meals count as logged</string>
     <string name="today_plan_body">Edit anything tomorrow if plans change.</string>
     <string name="today_planned">Planned</string>
@@ -99,20 +98,18 @@
 
     <!-- Meal sheet -->
     <string name="today_meal_add_food">Add food</string>
-    <string name="today_meal_add_note">Add a note</string>
-    <string name="today_meal_how_felt">How it felt</string>
+    <string name="today_meal_note">Note</string>
     <string name="today_meal_copy_yesterday">Copy yesterday's %1$s</string>
     <string name="today_meal_copy_day_before">Copy %1$s from the day before</string>
     <string name="today_meal_ate">Ate, no details</string>
     <string name="today_meal_save_as_meal">Save as a meal</string>
 
-    <!-- Meal note and How it felt -->
+    <!-- A meal's Note: how hungry, and a few words -->
     <string name="today_note_title">Note, %1$s</string>
+    <string name="today_note_subtitle">Both optional, and only you see them.</string>
+    <string name="today_note_hunger">How hungry</string>
     <string name="today_note_placeholder">Where you were, who with, anything worth remembering</string>
     <string name="today_note_save">Save</string>
-    <string name="today_feel_hunger">Hunger before</string>
-    <string name="today_feel_fullness">Fullness after</string>
-    <string name="today_feel_save">Save</string>
 
     <!-- Water sheet -->
     <string name="today_water_title">Water</string>
@@ -146,7 +143,6 @@
     <string name="today_untracked_action">Track it again</string>
     <string name="today_toast_marked_eaten">Marked %1$s as eaten.</string>
     <string name="today_toast_note_saved">Note saved to %1$s.</string>
-    <string name="today_toast_feel_saved">Saved. Only you see this.</string>
     <string name="today_toast_removed">Removed from %1$s.</string>
     <string name="today_toast_daynote_saved">Note saved.</string>
 
@@ -254,15 +250,6 @@
     <string name="today_toast_copied_foods_one">Copied 1 food.</string>
     <string name="today_toast_copied_foods_other">Copied %1$d foods.</string>
     <string name="today_move_to">Move to…</string>
-
-    <!-- Design sync 2: how it felt (3.10) -->
-    <string name="today_feel_title_question">How was %1$s?</string>
-    <string name="today_feel_subtitle_optional">Everything here is optional, and only you see it.</string>
-    <string name="today_feel_mood_any">Mood · pick any</string>
-    <string name="today_feel_note">Add a note</string>
-    <string name="today_feel_skip">Skip</string>
-    <string name="today_feel_a_bit">A bit</string>
-    <string name="today_feel_too_full">Too full</string>
 
     <!-- Design sync 2: Day close (4.1 to 4.5) -->
     <string name="today_dayclose_why_not">Why not cut back?</string>

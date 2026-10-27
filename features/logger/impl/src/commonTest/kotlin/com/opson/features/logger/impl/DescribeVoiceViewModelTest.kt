@@ -39,8 +39,8 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
     private val speech = FakeSpeechToText()
     private val telemetry = RecordingVoiceTelemetry()
 
-    private fun vm(voiceOn: Boolean = true) = LoggerViewModel(
-        route = LoggerRoute(slot = MealSlot.Breakfast, start = LoggerStart.Describe),
+    private fun vm(voiceOn: Boolean = true, start: LoggerStart = LoggerStart.Describe) = LoggerViewModel(
+        route = LoggerRoute(slot = MealSlot.Breakfast, start = start),
         diary = diary,
         customFoods = FakeCustomFoodRepository(),
         savedMeals = FakeSavedMealRepository(),
@@ -101,6 +101,71 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
         assertEquals(VoiceAnnouncement.Listening, vm.voice?.announcement)
         assertTrue(events.isEmpty(), "no prompt when already allowed")
         assertEquals(listOf("started on_device=true asked=false"), telemetry.events)
+    }
+
+    @Test
+    fun theVoiceTileOpensDescribeAlreadyListening() = runUnitTest {
+        val vm = vm(start = LoggerStart.Actions)
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(LoggerAction.DescribeItTapped)
+
+        assertEquals(LoggerPane.Describe, vm.state.pane)
+        assertTrue(speech.listening, "one tap: no second tap on the mic")
+        assertEquals(VoicePhase.Listening, vm.voice?.phase)
+        assertTrue(events.isEmpty(), "no prompt when already allowed")
+    }
+
+    @Test
+    fun theVoiceTileAsksForTheMicAtOnceAndListensOnYes() = runUnitTest {
+        speech.permission = MicPermission.NotAsked
+        val vm = vm(start = LoggerStart.Actions)
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(LoggerAction.DescribeItTapped)
+        runCurrent()
+
+        assertEquals(LoggerPane.Describe, vm.state.pane)
+        assertEquals(listOf<LoggerEvent>(RequestMicPermission), events)
+        assertFalse(speech.listening)
+
+        vm.takeAction(VoiceAction.MicPermissionAnswered(MicPermission.Granted))
+
+        assertTrue(speech.listening)
+        assertEquals(VoicePhase.Listening, vm.voice?.phase)
+    }
+
+    @Test
+    fun theVoiceTileStopsLikeTheMicAndKeepsTheReview() = runUnitTest {
+        val vm = vm(start = LoggerStart.Actions)
+        settle()
+        vm.takeAction(LoggerAction.DescribeItTapped)
+        speech.say(Heard.Partial("2 eggs, toast"))
+
+        vm.takeAction(VoiceAction.MicTapped)
+        assertEquals(VoicePhase.Transcribing, vm.voice?.phase)
+        speech.say(Heard.Final(VoiceFixtures.SPOKEN))
+        runCurrent()
+
+        assertFalse(speech.listening)
+        assertEquals(DescribeStatus.Parsed, vm.state.describe.status)
+        assertEquals(listOf("Egg, large", "Toast, white"), vm.state.describe.lines.map { it.name })
+    }
+
+    @Test
+    fun withVoiceOffTheTileOpensDescribeAndListensToNothing() = runUnitTest {
+        val vm = vm(voiceOn = false, start = LoggerStart.Actions)
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(LoggerAction.DescribeItTapped)
+        settle()
+
+        assertEquals(LoggerPane.Describe, vm.state.pane)
+        assertEquals(0, speech.sessions)
+        assertTrue(events.isEmpty())
     }
 
     @Test

@@ -145,7 +145,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 20 | More | `more` | settings | ported | yes |
 | 21 | Widgets and watch | `widget` | settings | 0.2, `widgets.md`, behind `release.widgets`: the home screen widget drawn from its snapshot (today and tomorrow, both sizes). The watch is still Later. | yes |
 | 22 | Meal options | `meal-sheet` | today | ported | no |
-| 23 | How it felt | `meal-feel` | today | ported | no |
+| 23 | How it felt | none | | merged into the meal's Note (`meal-note`) | |
 | 24 | Water options | `water-sheet` | today | ported | no |
 | 25 | Water settings | `water-settings` | settings | ported | no |
 | 26 | Calendar | `calendar` | today | ported | no |

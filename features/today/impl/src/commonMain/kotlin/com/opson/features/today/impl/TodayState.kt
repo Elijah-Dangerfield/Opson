@@ -260,9 +260,6 @@ sealed interface MealEntry {
     data class NotPlanned(override val slot: MealSlot) : MealEntry
 }
 
-/** How a meal felt, as chips: "Hungry → Satisfied", then moods. */
-data class FeelLine(val hunger: StringResource?, val fullness: StringResource?, val moods: List<StringResource>)
-
 data class MealCard(
     val slot: MealSlot,
     /** The slot's name, or "All food" when meal groups are off. */
@@ -278,8 +275,8 @@ data class MealCard(
     val note: String?,
     /** Uncategorized with `release.todaySelect`: "Move to…" files its foods into a meal. */
     val fileable: Boolean = false,
-    /** How it felt, when the person answered (No numbers, 13.5d). */
-    val feel: FeelLine? = null,
+    /** How hungry, from the meal's Note, as a chip beside the note. */
+    val hunger: StringResource? = null,
 )
 
 /** A food on a meal card. [precision] is null where only the household amount shows (No numbers). */

@@ -39,8 +39,8 @@ data class MealPatternFacts(
     /** Average energy of one meal, over the meals with known energy. */
     val energyPerMeal: Map<MealSlot, Double>,
     /**
-     * How hungry the tagged meals on each weekday were, on average: 0 for not
-     * hungry up to [MealPatterns.HUNGER_STEPS] for very hungry. Weekdays with
+     * How hungry the tagged meals on each weekday were, on average: 0 for
+     * stuffed up to [MealPatterns.HUNGER_STEPS] for starving. Weekdays with
      * no tag are missing.
      */
     val hungerByWeekday: Map<DayOfWeek, Double> = emptyMap(),
@@ -74,8 +74,8 @@ object MealPatterns {
     /** How much later a weekday has to run before it is worth saying. */
     const val LATER_MINUTES = 45
 
-    /** Very hungry, on the scale [MealPatternFacts.hungerByWeekday] uses. */
-    const val HUNGER_STEPS = 3
+    /** Starving, on the scale [MealPatternFacts.hungerByWeekday] uses: [Hunger.Starving] is the first entry. */
+    val HUNGER_STEPS = Hunger.entries.lastIndex
 
     // TODO(clinician): how many tagged days, and how big a difference, before
     // "Hungrier on days you skipped breakfast" is worth saying.
@@ -150,7 +150,7 @@ object MealPatterns {
         )
     }
 
-    /** Each tagged, done meal's hunger, 0 (not hungry) to [HUNGER_STEPS] (very hungry). */
+    /** Each tagged, done meal's hunger, 0 (stuffed) to [HUNGER_STEPS] (starving). */
     private fun Day.hungerLevels(): List<Int> = MealSlot.meals.mapNotNull { slot ->
         feelings[slot]?.hunger?.takeIf { isMealDone(slot) }?.let { HUNGER_STEPS - it.ordinal }
     }

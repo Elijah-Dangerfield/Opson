@@ -25,7 +25,6 @@ data class LoggerChoices(
     /** Describe's lines as the person has corrected them. */
     val review: DescribeReview = DescribeReview(),
     val number: String = "",
-    val focusNumber: Boolean = false,
     /** `release.barcode`, read once when the sheet opens. */
     val scanAvailable: Boolean = false,
     /** `release.photo`, read once when the sheet opens. */
@@ -76,7 +75,6 @@ object LoggerStateBuilder {
                 find = choices.review.find?.let { describeFind(it, choices.review, policy, bare) },
                 canNumber = canNumber,
                 number = if (canNumber) choices.number else "",
-                focusNumber = choices.focusNumber && canNumber,
                 // A spoken description becomes the same text and the same lines as a typed one.
                 voice = VoiceStateBuilder.build(choices.voiceEnabled, choices.voice),
             ),
@@ -108,8 +106,6 @@ object LoggerStateBuilder {
         add(AddAction.SayOrType(voice = choices.voiceEnabled))
         add(AddAction.SavedMeals)
         if (inputs.dayBefore.items(slot).isNotEmpty()) add(AddAction.CopyMeal(slot))
-        // Typing a number is itself a calorie entry.
-        if (policy.level(Metric.Calories) != Visibility.Hide) add(AddAction.QuickAdd)
         add(AddAction.Water)
         add(AddAction.WeighIn)
         add(AddAction.Note)

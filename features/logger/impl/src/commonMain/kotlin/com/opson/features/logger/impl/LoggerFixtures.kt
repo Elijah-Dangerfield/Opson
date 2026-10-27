@@ -479,7 +479,7 @@ object LoggerFixtures {
      */
     fun noNumbersDetailState(policy: VisibilityPolicy): FoodDetailState {
         val food = AmountFood.Catalog(peanutButter)
-        val choice = DetailChoice.initial(food, MealSlot.Snack).typed("2", weighs = false).copy(hunger = Hunger.Peckish)
+        val choice = DetailChoice.initial(food, MealSlot.Snack).typed("2", weighs = false).copy(hunger = Hunger.Neutral)
         return FoodDetailStateBuilder.build(food, choice, detailInputs(policy, Settings(askTags = true)), FoodRef.Catalog(peanutButter.id), PickSource.Search)
     }
 

@@ -11,7 +11,6 @@ import com.opson.features.today.impl.daynote.DayNoteState
 import com.opson.features.today.impl.item.ItemSheetState
 import com.opson.features.today.impl.item.ItemSheetStateBuilder
 import com.opson.features.today.impl.item.ItemStep
-import com.opson.features.today.impl.meal.MealFeelState
 import com.opson.features.today.impl.meal.MealNoteState
 import com.opson.features.today.impl.meal.MealSheetState
 import com.opson.features.today.impl.meal.MealSheetStateBuilder
@@ -23,7 +22,6 @@ import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.Energy
-import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -31,7 +29,6 @@ import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ModeTimerEnded
-import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
@@ -174,7 +171,7 @@ object TodayFixtures {
         ),
         waterMl = 750,
         feelings = mapOf(
-            MealSlot.Breakfast to MealFeeling(hunger = Hunger.Hungry, fullness = Fullness.Satisfied, moods = setOf(Mood.Calm)),
+            MealSlot.Breakfast to MealFeeling(hunger = Hunger.Hungry),
             MealSlot.Lunch to MealFeeling(note = "Ate outside with Sam. Felt relaxed."),
         ),
     )
@@ -367,11 +364,12 @@ object TodayFixtures {
     fun mealSheetState(slot: MealSlot = MealSlot.Dinner): MealSheetState =
         MealSheetStateBuilder.build(slot, today, day(), yesterday(), Settings())
 
-    fun mealNoteState(): MealNoteState = MealNoteState(MealSlot.Lunch, draft = "Ate outside with Sam. Felt relaxed.", loaded = true)
+    /** Lunch's Note with both halves answered. */
+    fun mealNoteState(): MealNoteState =
+        MealNoteState(MealSlot.Lunch, hunger = Hunger.Hungry, draft = "Ate outside with Sam. Felt relaxed.", loaded = true)
 
-    /** v3 `logger-how-it-felt`: lunch, very hungry before, full after, rushed. */
-    fun mealFeelState(): MealFeelState =
-        MealFeelState(MealSlot.Lunch, hunger = Hunger.VeryHungry, fullness = Fullness.Full, moods = setOf(Mood.Rushed), loaded = true)
+    /** A meal with no Note yet: nothing picked, the placeholder showing. */
+    fun mealNoteEmptyState(): MealNoteState = MealNoteState(MealSlot.Snack, loaded = true)
 
     fun waterSheetState(settings: Settings = Settings()): WaterSheetState = WaterSheetStateBuilder.build(day(), settings, custom = "")
 

@@ -30,9 +30,9 @@ data class LoggerRoute(
     val describeText: String? = null,
 ) : Route()
 
-/** Where the add sheet opens. [Number] is Describe it with the "Or just a number" field focused (Quick add). */
+/** Where the add sheet opens. */
 @Serializable
-enum class LoggerStart { Actions, Describe, Saved, Number }
+enum class LoggerStart { Actions, Describe, Saved }
 
 /**
  * Search, a full screen (design sync 4, 13.4c): + on a result logs it at once and stays here.

@@ -28,7 +28,6 @@ import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.item.ItemSheetContent
 import com.opson.features.today.impl.item.ItemSheetStateBuilder
-import com.opson.features.today.impl.meal.MealFeelSheetContent
 import com.opson.features.today.impl.meal.MealNoteSheetContent
 import com.opson.features.today.impl.meal.MealSheetContent
 import com.opson.features.today.impl.water.WaterSheetContent
@@ -116,9 +115,6 @@ object TodayLeakSurfaces {
         },
         LeakSurface(id = "meal-note", label = "Meal note", showsCaloriesInFull = false) {
             MealNoteSheetContent(state = TodayFixtures.mealNoteState(), onAction = {})
-        },
-        LeakSurface(id = "meal-feel", label = "How it felt", showsCaloriesInFull = false) {
-            MealFeelSheetContent(state = TodayFixtures.mealFeelState(), onAction = {})
         },
         LeakSurface(id = "water-sheet", label = "Water options", showsCaloriesInFull = false) {
             WaterSheetContent(state = TodayFixtures.waterSheetState(), onAction = {})

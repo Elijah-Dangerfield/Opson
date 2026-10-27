@@ -107,7 +107,7 @@ class TwoDeviceSyncTest : IntegrationTest() {
 
         a.diary.addWater(day, 500)
         a.diary.setDayNote(day, "Long run in the morning")
-        a.diary.setFeeling(day, MealSlot.Lunch, MealFeeling(hunger = Hunger.VeryHungry))
+        a.diary.setFeeling(day, MealSlot.Lunch, MealFeeling(hunger = Hunger.Starving))
         val weighIn = a.weights.addWeighIn(71.5)
         val bar = a.customFoods.create(CustomFoodDraft(name = "Gran's flapjack", servingAmount = 60.0, servingUnit = "g", kcal = 250.0))
         val meal = a.savedMeals.create(
@@ -121,7 +121,7 @@ class TwoDeviceSyncTest : IntegrationTest() {
         val onB = b.diary.observeDay(day).first()
         assertEquals(500, onB.waterMl)
         assertEquals("Long run in the morning", onB.note)
-        assertEquals(Hunger.VeryHungry, onB.feelings[MealSlot.Lunch]?.hunger)
+        assertEquals(Hunger.Starving, onB.feelings[MealSlot.Lunch]?.hunger)
         assertEquals(listOf(weighIn), b.weights.observeWeighIns().first())
         assertEquals(listOf(bar), b.customFoods.observeAll().first())
         assertEquals(listOf(meal), b.savedMeals.observeAll().first())

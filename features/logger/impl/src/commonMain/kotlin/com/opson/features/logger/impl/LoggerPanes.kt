@@ -136,12 +136,6 @@ private fun DescribeBox(describe: DescribeUi, onAction: (LoggerAction) -> Unit) 
 
 @Composable
 private fun NumberCard(describe: DescribeUi, onAction: (LoggerAction) -> Unit) {
-    val focusRequester = remember { FocusRequester() }
-    val inPreview = LocalInspectionMode.current
-    LaunchedEffect(describe.focusNumber) {
-        // Without a window there is nothing to focus, and requesting it throws.
-        if (describe.focusNumber && !inPreview) Catching { focusRequester.requestFocus() }
-    }
     FoodRowsCard {
         Column(
             modifier = Modifier.padding(vertical = AppTheme.spacing.section),
@@ -154,7 +148,7 @@ private fun NumberCard(describe: DescribeUi, onAction: (LoggerAction) -> Unit) {
                     onValueChange = { onAction(LoggerAction.NumberTyped(it)) },
                     placeholder = stringResource(Res.string.logger_number_placeholder),
                     allowDecimal = false,
-                    modifier = Modifier.weight(1f).focusRequester(focusRequester),
+                    modifier = Modifier.weight(1f),
                 )
                 ButtonSecondary(onClick = { onAction(LoggerAction.AddNumberTapped) }, size = ButtonSize.Medium) {
                     Text(stringResource(Res.string.logger_number_add))

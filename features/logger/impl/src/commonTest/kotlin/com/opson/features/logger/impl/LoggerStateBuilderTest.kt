@@ -85,7 +85,7 @@ class LoggerStateBuilderTest {
         assertEquals(
             listOf(
                 AddAction.SearchFood, AddAction.ScanBarcode, AddAction.Photo, AddAction.SayOrType(voice = true), AddAction.SavedMeals,
-                AddAction.CopyMeal(MealSlot.Dinner), AddAction.QuickAdd, AddAction.Water, AddAction.WeighIn, AddAction.Note,
+                AddAction.CopyMeal(MealSlot.Dinner), AddAction.Water, AddAction.WeighIn, AddAction.Note,
                 AddAction.AteNoDetails, AddAction.Fasting,
             ),
             actions,
@@ -96,7 +96,7 @@ class LoggerStateBuilderTest {
     fun withEveryFlagOffTheGridIsWhatShipped() {
         assertEquals(
             listOf(
-                AddAction.SearchFood, AddAction.SayOrType(voice = false), AddAction.SavedMeals, AddAction.QuickAdd,
+                AddAction.SearchFood, AddAction.SayOrType(voice = false), AddAction.SavedMeals,
                 AddAction.Water, AddAction.WeighIn, AddAction.Note, AddAction.AteNoDetails,
             ),
             build().actions,
@@ -109,13 +109,6 @@ class LoggerStateBuilderTest {
         assertFalse(AddAction.Fasting in build(inputs(settings = Settings(fasting = false)), choices = released).actions, "timer off")
         assertFalse(AddAction.Fasting in build(inputs(settings = Settings(fasting = true))).actions, "flag off")
         assertTrue(AddAction.Fasting in build(inputs(settings = Settings(fasting = true)), choices = released).actions)
-    }
-
-    @Test
-    fun quickAddFollowsTheCalorieLevel() {
-        assertTrue(AddAction.QuickAdd in build().actions)
-        assertFalse(AddAction.QuickAdd in build(policy = policy(PresetId.NoNumbers)).actions)
-        assertFalse(AddAction.QuickAdd in build(policy = policy(PresetId.NoNumbers)).actions)
     }
 
     @Test

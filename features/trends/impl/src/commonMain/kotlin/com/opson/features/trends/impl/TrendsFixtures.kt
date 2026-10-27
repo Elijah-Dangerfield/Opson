@@ -245,10 +245,10 @@ object TrendsFixtures {
     }
 
     private val HUNGER = mapOf(
-        MealSlot.Breakfast to Hunger.Peckish,
+        MealSlot.Breakfast to Hunger.Neutral,
         MealSlot.Lunch to Hunger.Hungry,
-        MealSlot.Snack to Hunger.Peckish,
-        MealSlot.Dinner to Hunger.VeryHungry,
+        MealSlot.Snack to Hunger.Neutral,
+        MealSlot.Dinner to Hunger.Starving,
     )
 
     private val MEAL_TIMES = mapOf(
