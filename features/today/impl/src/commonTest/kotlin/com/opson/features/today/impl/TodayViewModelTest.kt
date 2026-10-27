@@ -234,9 +234,9 @@ class TodayViewModelTest : CoroutineTest() {
         val vm = vm()
         val events = events(vm)
 
-        vm.takeAction(TodayAction.CloseDayCardTapped)
+        vm.takeAction(TodayAction.CloseDayButtonTapped)
         selectedDay.select(tomorrow)
-        vm.takeAction(TodayAction.CloseDayCardTapped)
+        vm.takeAction(TodayAction.CloseDayButtonTapped)
 
         assertEquals(listOf<TodayEvent>(TodayEvent.OpenDayClose(today)), events)
     }

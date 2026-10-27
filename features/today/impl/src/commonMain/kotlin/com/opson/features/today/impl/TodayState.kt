@@ -42,8 +42,8 @@ data class TodayState(
     val mealTiles: List<MealTile>? = null,
     val water: WaterRow? = null,
     val meals: List<MealEntry> = emptyList(),
-    /** The labeled "Close the day" card after the meals. None on a planned day. */
-    val closeDay: CloseDayCard? = null,
+    /** Close the day's button in the header. None on a planned day, an untracked one, or before anything is logged. */
+    val closeDay: CloseDayButton? = null,
     /** The meal that just changed, outlined for a moment and scrolled to. */
     val highlight: MealSlot? = null,
     /** "Added 2 foods to dinner" with Undo, for six seconds after the logger adds (3.9). */
@@ -296,7 +296,8 @@ data class MealCard(
 /** A food on a meal card. [precision] is null where only the household amount shows (No numbers). */
 data class ItemRowUi(val entryId: String, val name: String, val amount: String, val precision: Precision?, val calories: Display)
 
-data class CloseDayCard(val closed: Boolean)
+/** [closed]: the day is closed already, so the button opens it to look back. */
+data class CloseDayButton(val closed: Boolean)
 
 /** The ⋮ menu, grouped by what each item affects (2.11). */
 data class DayMenu(val groups: List<List<DayMenuItem>>, val clearArmed: Boolean)
@@ -336,7 +337,7 @@ sealed interface TodayAction {
     /** A food row's ⋮ (`release.foodActions`). */
     data class ItemMenuTapped(val entryId: String) : TodayAction
     data object WaterPlusTapped : TodayAction
-    data object CloseDayCardTapped : TodayAction
+    data object CloseDayButtonTapped : TodayAction
     data object HighlightFaded : TodayAction
 
     /** The logger added food (`RecentLogEvents.latest`) while Today showed [shown]. */

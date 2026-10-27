@@ -125,7 +125,7 @@ object TodayStateBuilder {
             water = if (future || !listRow(inputs) { it.todayWater }) null else water(day, inputs.settings, policy, context),
             meals = if (future) planned(inputs, policy, context, groupsOn) else meals(inputs, policy, context, layout, groupsOn),
             // Nothing logged, nothing to close yet (design sync 2, 2.2); the ⋮ menu still offers it.
-            closeDay = if (future || untracked || !day.hasLogged || !listRow(inputs) { it.todayCloseDay }) null else CloseDayCard(closed = day.isClosed(today)),
+            closeDay = if (future || untracked || !day.hasLogged || !listRow(inputs) { it.todayCloseDay }) null else CloseDayButton(closed = day.isClosed(today)),
             highlight = highlight,
             added = added?.takeIf { it.day == date }?.let { AddedNotice(it.slot, it.itemIds.size) },
             untracked = untracked,

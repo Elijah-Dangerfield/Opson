@@ -87,7 +87,7 @@ class TodayStateBuilderTest {
         assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), energy.macros.map { it.metric })
         assertEquals("51 g", energy.macros.first().display.text())
         assertEquals("750 of 2,000 ml", state.water?.display?.text())
-        assertEquals(CloseDayCard(closed = false), state.closeDay)
+        assertEquals(CloseDayButton(closed = false), state.closeDay)
         assertNull(state.mealTiles)
         assertEquals(MealSlot.meals, state.meals.map { it.slot })
     }
@@ -311,7 +311,7 @@ class TodayStateBuilderTest {
 
     @Test
     fun aPastDayIsClosed() {
-        assertEquals(CloseDayCard(closed = true), build(PresetId.Full, day = TodayFixtures.pastDay()).closeDay)
+        assertEquals(CloseDayButton(closed = true), build(PresetId.Full, day = TodayFixtures.pastDay()).closeDay)
     }
 
     @Test

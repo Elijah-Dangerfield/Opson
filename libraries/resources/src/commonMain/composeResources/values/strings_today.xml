@@ -61,10 +61,9 @@
     <string name="today_planned">Planned</string>
     <string name="today_not_planned">Not planned</string>
     <string name="today_plan_it">Plan it</string>
-    <string name="today_close_title">Close the day</string>
-    <string name="today_close_body">Look back and add a note. It takes about a minute.</string>
-    <string name="today_closed_title">Day closed</string>
-    <string name="today_closed_body">Look back, or change the note.</string>
+    <!-- The header's moon button, read out -->
+    <string name="today_close_day_cd">Close the day</string>
+    <string name="today_closed_day_cd">Day closed. Look back or change the note</string>
 
     <!-- Day menu -->
     <string name="today_menu_close_day">Close the day</string>

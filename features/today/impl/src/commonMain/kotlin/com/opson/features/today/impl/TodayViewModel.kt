@@ -160,7 +160,7 @@ class TodayViewModel(
                 val next = ((state.summary as? TodaySummary.Energy)?.card?.next) ?: return
                 settingsRepository.update { it.rememberMainNumber(next) }
             }
-            TodayAction.CloseDayCardTapped -> if (!isFuture()) sendEvent(TodayEvent.OpenDayClose(day()))
+            TodayAction.CloseDayButtonTapped -> if (!isFuture()) sendEvent(TodayEvent.OpenDayClose(day()))
             is TodayAction.MealTileTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
             is TodayAction.PlanItTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
             is TodayAction.MealPlusTapped -> sendEvent(TodayEvent.OpenMealSheet(day(), action.slot))

@@ -95,10 +95,8 @@ import opson.libraries.resources.generated.resources.today_add_to_cd
 import opson.libraries.resources.generated.resources.today_added_one
 import opson.libraries.resources.generated.resources.today_added_other
 import opson.libraries.resources.generated.resources.today_added_undo
-import opson.libraries.resources.generated.resources.today_close_body
-import opson.libraries.resources.generated.resources.today_close_title
-import opson.libraries.resources.generated.resources.today_closed_body
-import opson.libraries.resources.generated.resources.today_closed_title
+import opson.libraries.resources.generated.resources.today_close_day_cd
+import opson.libraries.resources.generated.resources.today_closed_day_cd
 import opson.libraries.resources.generated.resources.today_day_menu_cd
 import opson.libraries.resources.generated.resources.today_drop_to
 import opson.libraries.resources.generated.resources.today_food_menu_cd
@@ -151,9 +149,9 @@ import opson.libraries.resources.generated.resources.today_weight_today
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The Today tab (design sync 2, 2.1 to 2.14): the pinned day header (or the select header), the
- * collapsed summary line when the person chose it, then the list: the summary card the layout
- * and levels call for, the cards the state carries, the meals, and Close the day. Once the card
+ * The Today tab (design sync 2, 2.1 to 2.14): the pinned day header with Close the day's button
+ * (or the select header), the collapsed summary line when the person chose it, then the list: the
+ * summary card the layout and levels call for, the cards the state carries, and the meals. Once the card
  * scrolls away its one-line form sticks under the header. Stateless; [TodayViewModel] owns what
  * it shows and the scroll is the only thing kept here.
  */
@@ -340,7 +338,6 @@ internal sealed interface TodayRow {
     data class Water(val water: WaterRow) : TodayRow { override val key = "water" }
     data class Weight(val weight: WeightRow) : TodayRow { override val key = "weight" }
     data class Meal(val entry: MealEntry) : TodayRow { override val key = "meal-${entry.slot.wire}" }
-    data class Close(val card: CloseDayCard) : TodayRow { override val key = "close-day" }
 }
 
 internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
@@ -358,7 +355,6 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
     state.water?.let { add(TodayRow.Water(it)) }
     state.weight?.let { add(TodayRow.Weight(it)) }
     state.meals.forEach { add(TodayRow.Meal(it)) }
-    state.closeDay?.let { add(TodayRow.Close(it)) }
 }
 
 /** The rows foods can be dropped on, by list key: a meal with foods, or an empty one drawn as a row. */
@@ -408,19 +404,6 @@ private fun TodayListItem(row: TodayRow, state: TodayState, drag: FoodDrag, onAc
         )
         is TodayRow.Weight -> WeightCard(row.weight, state.dayLabel, onAction)
         is TodayRow.Meal -> Meal(row.entry, state, drag, onAction)
-        is TodayRow.Close -> TodayCard(
-            contentPadding = TodayCardPadding.List,
-            onClick = { onAction(TodayAction.CloseDayCardTapped) },
-        ) {
-            ListRow(
-                title = stringResource(if (row.card.closed) Res.string.today_closed_title else Res.string.today_close_title),
-                subtitle = stringResource(if (row.card.closed) Res.string.today_closed_body else Res.string.today_close_body),
-                icon = AppIcons.Bedtime,
-                iconTone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint),
-            ) {
-                ListRowChevron()
-            }
-        }
     }
 }
 
@@ -437,6 +420,12 @@ private fun Header(state: TodayState, onAction: (TodayAction) -> Unit) {
         titleDescription = stringResource(Res.string.today_pick_day_cd) + ", " + label,
         nextEnabled = state.canGoForward,
     ) {
+        state.closeDay?.let { close ->
+            HeaderIconButton(
+                icon = AppIcons.Bedtime.described(stringResource(if (close.closed) Res.string.today_closed_day_cd else Res.string.today_close_day_cd)),
+                onClick = { onAction(TodayAction.CloseDayButtonTapped) },
+            )
+        }
         Box {
             HeaderIconButton(
                 icon = AppIcons.MoreVert.described(stringResource(Res.string.today_day_menu_cd)),
