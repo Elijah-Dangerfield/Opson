@@ -255,7 +255,6 @@ class AuthGateImplTest : CoroutineTest() {
 
     private class FakeAppState(offline: Boolean) : AppState {
         override val isOffline: StateFlow<Boolean> = MutableStateFlow(offline)
-        override val isBlockActive: StateFlow<Boolean> = MutableStateFlow(false)
     }
 
     private class FakeAppCache(onboarded: Boolean) : AppCache {

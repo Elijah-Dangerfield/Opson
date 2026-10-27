@@ -12,16 +12,12 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 
 /**
  * Pins the offline-banner contract:
  *  - initial value is optimistically `false` (online) so cold launches
  *    don't flash a banner before the platform observer's first emission;
- *  - subsequent emissions invert the observer (`observe() == true → isOffline == false`);
- *  - `isBlockActive` is always `false` in the V1 impl — the field is on
- *    the interface for future overlay use but unwired today, and a
- *    regression that lights it up shouldn't ship silently.
+ *  - subsequent emissions invert the observer (`observe() == true → isOffline == false`).
  */
 class AppStateImplTest : CoroutineTest() {
 
@@ -90,22 +86,6 @@ class AppStateImplTest : CoroutineTest() {
             assertEquals(true, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
-    }
-
-    @Test
-    fun isBlockActive_alwaysFalseInV1() = runUnitTest {
-        val observer = FakeConnectivityObserver()
-        val state = AppStateImpl(
-            connectivityObserver = observer,
-            reachability = FakeNetworkReachability(),
-            appScope = AppCoroutineScope(dispatchers),
-        )
-
-        assertFalse(state.isBlockActive.value)
-        observer.emit(online = false)
-        assertFalse(state.isBlockActive.value)
-        observer.emit(online = true)
-        assertFalse(state.isBlockActive.value)
     }
 
     @Test
