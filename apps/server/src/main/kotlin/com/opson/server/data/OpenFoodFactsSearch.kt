@@ -21,7 +21,7 @@ import java.util.Locale
  *  - queries under [MIN_QUERY] letters and digits don't search Open Food
  *    Facts at all (the catalog still answers them);
  *  - products named exactly the query, up to [CAP_EXACT], through the btree
- *    on lower(name) (V13), so an exact name is never crowded out;
+ *    on lower(name) (V15), so an exact name is never crowded out;
  *  - products whose name or brand has every query word as a prefix, up to
  *    [CAP_WORDS]. The import writes rows most-scanned first, and a capped
  *    bitmap scan returns rows in physical order, so the cap keeps the

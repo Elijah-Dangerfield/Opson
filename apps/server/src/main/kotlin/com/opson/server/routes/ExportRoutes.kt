@@ -22,8 +22,10 @@ import java.io.Writer
 import java.time.ZoneOffset
 
 /**
- * `GET /v1/export.csv`: everything the caller has logged, as one CSV, streamed
- * row by row. The handoff's Support page links here ("export my data").
+ * `GET /v1/export.csv`: the caller's log entries, weigh-ins and water, as one
+ * CSV, streamed row by row. The handoff's Support page links here ("export my
+ * data"). Not in it: day notes, feelings and check-ins, meal feelings, fasts,
+ * custom foods, saved meals and settings.
  *
  * One `record_type` column (`entry`, `weight`, `water`) and a fixed set of
  * columns, blank where a column does not apply. Times are UTC ISO-8601.

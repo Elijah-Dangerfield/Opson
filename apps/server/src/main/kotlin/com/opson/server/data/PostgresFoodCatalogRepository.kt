@@ -306,21 +306,6 @@ class PostgresFoodCatalogRepository(
             JSON.decodeFromString(PORTIONS_SERIALIZER, json).map { Portion(it.label, it.grams) }
 
         /**
-         * The column order here is what [toFood] on a ResultSet reads.
-         *
-         * Trigram similarity only runs when the direct matches (prefix and
-         * full text) number fewer than the limit. Similar-only rows always
-         * rank after direct ones, so skipping them changes nothing visible,
-         * and with Branded Foods loaded the `%` operator alone rechecks tens
-         * of thousands of rows for a word like "banana". The `count(*)`
-         * subquery is uncorrelated, so Postgres evaluates it once and skips
-         * the trigram scan entirely when it is false.
-         *
-         * A query counts as naming a brand only when no generic food is an
-         * exact or head match for it: "peanut butter" is a food first, even
-         * though "Peanut Butter & Co." is a brand.
-         */
-        /**
          * A brand, a name's first segment or the query as words: lowercase,
          * filler dropped ("Inc.", "Foods", "and", the s of "Campbell's"), naive
          * singulars, single spaces. Both sides of a "does the query name this
