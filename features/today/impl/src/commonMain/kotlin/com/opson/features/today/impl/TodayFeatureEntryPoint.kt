@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -54,6 +55,7 @@ import com.opson.features.trends.WeightRoute
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
+import com.opson.libraries.navigation.OnTabReselected
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.navigation.bottomSheet
@@ -109,7 +111,9 @@ class TodayFeatureEntryPoint(
                 tabBar.hide(TAB_BAR_OWNER, selecting)
                 onDispose { tabBar.hide(TAB_BAR_OWNER, false) }
             }
-            TodayScreen(state = state, onAction = viewModel::takeAction)
+            val listState = rememberLazyListState()
+            router.OnTabReselected(TodayRoute::class) { listState.animateScrollToItem(0) }
+            TodayScreen(state = state, onAction = viewModel::takeAction, listState = listState)
         }
 
         screen<DayCloseRoute> { backStackEntry ->

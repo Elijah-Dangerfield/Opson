@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl
 
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -75,6 +76,7 @@ import com.opson.features.settings.toRoute
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.NavigationOptions
+import com.opson.libraries.navigation.OnTabReselected
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.bottomSheet
 import com.opson.libraries.navigation.screen
@@ -131,7 +133,9 @@ class SettingsFeatureEntryPoint(
                 viewModel.takeAction(MoreAction.ScreenResumed)
                 onPauseOrDispose {}
             }
-            MoreScreen(state = state, onAction = viewModel::takeAction)
+            val scrollState = rememberScrollState()
+            router.OnTabReselected(MoreRoute::class) { scrollState.animateScrollTo(0) }
+            MoreScreen(state = state, onAction = viewModel::takeAction, scrollState = scrollState)
         }
 
         screen<ModesRoute> {

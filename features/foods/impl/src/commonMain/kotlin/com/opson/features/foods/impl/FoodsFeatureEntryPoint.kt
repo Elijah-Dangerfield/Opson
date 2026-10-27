@@ -1,5 +1,6 @@
 package com.opson.features.foods.impl
 
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -13,6 +14,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
+import com.opson.libraries.navigation.OnTabReselected
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.nullableSerializableType
 import com.opson.libraries.navigation.screen
@@ -50,7 +52,9 @@ class FoodsFeatureEntryPoint(
                     },
                 )
             }
-            FoodsScreen(state = state, onAction = viewModel::takeAction)
+            val listState = rememberLazyListState()
+            router.OnTabReselected(FoodsRoute::class) { listState.animateScrollToItem(0) }
+            FoodsScreen(state = state, onAction = viewModel::takeAction, listState = listState)
         }
 
         screen<CreateMealRoute>(

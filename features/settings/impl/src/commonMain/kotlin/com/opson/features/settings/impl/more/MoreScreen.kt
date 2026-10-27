@@ -1,6 +1,8 @@
 package com.opson.features.settings.impl.more
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -49,8 +51,9 @@ fun MoreScreen(
     state: MoreState,
     onAction: (MoreAction) -> Unit,
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
 ) {
-    SettingsPage(modifier = modifier) {
+    SettingsPage(modifier = modifier, scrollState = scrollState) {
         Text(
             text = stringResource(Res.string.settings_more_title),
             typography = AppTheme.type.h1,

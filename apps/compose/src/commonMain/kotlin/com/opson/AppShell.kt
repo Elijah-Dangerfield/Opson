@@ -110,7 +110,8 @@ internal fun ShellBottomBar(
             },
             onItemClick = { index ->
                 val tab = ShellTab.entries[index]
-                if (tab != currentTab) router.switchTab(tab.route())
+                // The showing tab again: back to its root, or to the top of its list if already there.
+                if (tab == currentTab) router.reselectTab(tab.route()) else router.switchTab(tab.route())
             },
             onAddClick = {
                 haptics.press()
