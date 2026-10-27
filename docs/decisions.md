@@ -6,6 +6,37 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: "Ate, no details" is no longer offered; old marks stay
+
+**Decision:** the meal sheet and the add sheet stop offering "Ate, no details".
+The stored mark (`ate_no_details` on the day) is untouched: meals marked before
+still read as eaten on Today, in No numbers' timeline and in Trends, and the
+record still syncs.
+
+**Why:** the owner tried it on a phone and called it pointless next to the
+Note, which already records that a meal happened and how it felt. Removing the
+offer is a client change; removing the record would need a migration and would
+erase what people already marked.
+
+**Alternatives:** dropping the column and its sync. Rejected for now: 0.1
+phones still write it, and old marks are the person's own log.
+
+## 2026-10-27: Today's card opens Nutrients from a page, and Close the day is a header button
+
+**Decision:** the summary card loses its "Nutrients ›" link and gains a last
+page with sodium, potassium, calcium and iron and See all. Close the day's card
+at the end of the list becomes a moon button in the header; the ⋮ menu keeps
+it. More › Today screen's two switches (`todayNutrientsLink`, `todayCloseDay`)
+keep their wire names and now govern the page and the button.
+
+**Why:** the owner asked for both after using a dev build. Fiber already sits
+with the macros on page 1, and sugars and saturated fat are not tracked, so the
+page is the minerals people watch most. Keeping the setting keys means nobody's
+choice resets.
+
+**Alternatives:** new setting keys named for what they do now. Rejected: a
+rename is a migration for no change anyone would see.
+
 ## 2026-10-27: Accounts are required; a reinstall starts signed out
 
 **Decision:** onboarding goes Welcome, sign in, questions, mode, Today. Sign-in
