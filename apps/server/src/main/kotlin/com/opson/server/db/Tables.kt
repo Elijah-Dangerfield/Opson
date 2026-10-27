@@ -316,7 +316,7 @@ object UserSettingsTable : SyncedTable("user_settings") {
     override val primaryKey = PrimaryKey(userId)
 }
 
-/** The Sign in with Apple refresh token per account, kept so deletion can revoke it (V21). */
+/** The Sign in with Apple refresh token per account, kept so deletion can revoke it (V23). */
 object AppleRefreshTokensTable : Table("apple_refresh_tokens") {
     val userId = uuid("user_id")
     val refreshToken = text("refresh_token")

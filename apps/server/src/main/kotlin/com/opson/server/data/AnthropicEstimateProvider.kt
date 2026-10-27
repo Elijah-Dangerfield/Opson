@@ -67,8 +67,8 @@ class ConfiguredEstimateProvider(config: FoodSourcesConfig) : EstimateProvider {
  * so it is not sent there.
  *
  * **Privacy.** The image and the note are passed through and dropped. Nothing
- * from either reaches a log: the log line is the outcome, the item count,
- * token counts and the latency.
+ * from either reaches a log: the log line is the outcome, the item count
+ * and the latency.
  */
 class AnthropicEstimateProvider(
     private val config: AnthropicConfig,
