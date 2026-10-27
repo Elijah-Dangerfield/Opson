@@ -9,19 +9,23 @@ import com.opson.libraries.diary.impl.DiarySyncApi
 import com.opson.libraries.diary.impl.wire.SyncRequestDto
 import com.opson.libraries.diary.impl.wire.SyncResponseDto
 import com.opson.libraries.nutrition.ExerciseAdjustment
+import com.opson.libraries.nutrition.PresetId
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.time.Instant
 
 /**
  * **Settings across app versions.** A 0.1 phone decodes settings with
  * `ignoreUnknownKeys` and re-encodes only what it knows, so every save it makes
  * leaves out what 0.2 added. The server merges a settings write into the stored
- * object instead of replacing it, so a 0.1 save on one phone must not wipe the
- * meal times and exercise choice a 0.2 phone set.
+ * object instead of replacing it, one level deep, so a 0.1 save on one phone
+ * must not wipe what a 0.2 phone set at the top level: meal times, the exercise
+ * choice, the check-in switch and the photos choice.
  */
 class SettingsMergeAcrossVersionsTest : IntegrationTest() {
 
@@ -77,7 +81,59 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         assertFalse(newPhone.pendingChanges() > 0)
     }
 
+    @Test
+    fun aV01Save_keepsTheCheckInSwitchAndThePhotosChoice() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        newPhone.settings.update { it.copy(checkIn = false, numbers = it.numbers.copy(progressPhotos = false)) }
+        newPhone.syncNow().getOrThrow()
+
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        assertNull(oldPhone.settings.settings.value.numbers.progressPhotos, "0.1 never sees the photos choice")
+        // 0.1 rewrites numbers whole: the photos choice must not live inside it.
+        oldPhone.settings.update { it.copy(waterGlasses = 9, numbers = it.numbers.copy(pauseBeforeMore = true)) }
+        oldPhone.syncNow().getOrThrow()
+
+        val stored = server.query(
+            "SELECT settings->>'checkIn' AS check_in, settings->>'progressPhotos' AS photos, " +
+                "(settings->>'waterGlasses')::int AS glasses FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals(9, stored["glasses"], "the 0.1 save landed")
+        assertEquals("false", stored["check_in"], "the merge kept checkIn")
+        assertEquals("false", stored["photos"], "the merge kept progressPhotos")
+
+        newPhone.syncNow().getOrThrow()
+        val settings = newPhone.settings.settings.value
+        assertFalse(settings.checkIn)
+        assertEquals(false, settings.numbers.progressPhotos)
+        assertEquals(true, settings.numbers.pauseBeforeMore)
+    }
+
+    @Test
+    fun pickingAPresetClearsThePhotosChoice_onTheServerToo() = integration {
+        val user = randomUserId()
+        val phone = client(user)
+        phone.syncNow().getOrThrow()
+        phone.settings.isKnown.awaitState { it }
+        phone.settings.update { it.copy(numbers = it.numbers.copy(preset = PresetId.Fuel, progressPhotos = true)) }
+        phone.syncNow().getOrThrow()
+        phone.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.Fuel, Instant.parse("2026-10-25T20:00:00Z"))) }
+        phone.syncNow().getOrThrow()
+
+        val secondPhone = client(user)
+        secondPhone.syncNow().getOrThrow()
+        secondPhone.settings.isKnown.awaitState { it }
+        assertNull(secondPhone.settings.settings.value.numbers.progressPhotos, "a null is written, so the merge can't keep the old choice")
+        assertFalse(secondPhone.settings.settings.value.numbers.showsProgressPhotos)
+    }
+
     private companion object {
-        val V02_KEYS = setOf("mealTimes", "exerciseRange")
+        /** Keys 0.1 doesn't know, so drops on decode and never sends. */
+        val V02_KEYS = setOf("mealTimes", "exerciseRange", "checkIn", "progressPhotos")
     }
 }
