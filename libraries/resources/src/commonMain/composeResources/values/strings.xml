@@ -116,10 +116,9 @@
     <string name="session_expired_title">Session expired</string>
     <string name="session_expired_message">For your security you've been signed out. Sign in again to pick up where you left off.</string>
     <string name="session_lost_title">Session lost</string>
-    <string name="session_lost_message">Your guest session can't be recovered. Start fresh to keep using the app.</string>
-    <string name="session_start_fresh_failed">Couldn't start a new session. Check your connection and try again.</string>
+    <string name="session_lost_message">The log you kept without an account can't be recovered. Sign in to start again with an account.</string>
     <string name="session_working">Working…</string>
-    <string name="session_start_fresh">Start fresh</string>
+    <string name="session_sign_in">Sign in</string>
     <string name="session_sign_in_again">Sign in again</string>
 
     <!-- Shake-to-report dialog -->

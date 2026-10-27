@@ -37,8 +37,6 @@ import kotlin.test.assertTrue
  * The interesting edges all flow through the [SupabaseAuthGateway] seam:
  *  - cold-boot resolve: `Initializing → … → Authenticated`,
  *  - no-session resolve: `NotAuthenticated → Unauthenticated` (NO auto-anon),
- *  - explicit guest creation: `createGuestSession → signInAnonymously →
- *    Authenticated`,
  *  - exhausted resolve attempts (gateway stays Transient forever),
  *  - `retry()` is a no-op when already Authenticated,
  *  - `signOut()` flips state, dumps the prior user's local data, and
@@ -72,7 +70,6 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         assertEquals("user-1", state.userId)
         assertEquals(false, state.isAnonymous)
         assertEquals("a@b.com", state.email)
-        assertEquals(0, gateway.signInAnonymouslyCalls, "no anon sign-in when already authenticated")
     }
 
     // ---------- session rejection (server rejected our token) ----------
@@ -182,43 +179,6 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
 
         val state = assertIs<AuthState.Unauthenticated>(repo.current())
         assertNull(state.cause, "a clean no-session resolve carries no error")
-        assertEquals(0, gateway.signInAnonymouslyCalls, "no anonymous sign-in on launch")
-    }
-
-    @Test
-    fun createGuestSession_signsInAnonymously_andEmitsAuthenticated() = runUnitTest {
-        // Explicit guest creation (onboarding finish): anon sign-in fires here,
-        // not on launch.
-        val gateway = FakeSupabaseAuthGateway(
-            initialStatus = AuthGatewayStatus.NotAuthenticated,
-            session = null,
-            onSignInAnonymously = { advanceToAuthenticated(anonymousSession()) },
-        )
-        val repo = build(gateway = gateway)
-        advanceUntilIdle()
-        assertIs<AuthState.Unauthenticated>(repo.current())
-
-        val outcome = repo.createGuestSession()
-        assertIs<com.opson.libraries.identity.auth.SignInOutcome.Success>(outcome)
-        val state = assertIs<AuthState.Authenticated>(repo.current())
-        assertEquals(true, state.isAnonymous)
-        assertNull(state.email)
-        assertEquals(1, gateway.signInAnonymouslyCalls)
-    }
-
-    @Test
-    fun createGuestSession_whenAnonSignInThrows_returnsFailureOutcome_andStaysUnauthenticated() = runUnitTest {
-        val gateway = FakeSupabaseAuthGateway(
-            initialStatus = AuthGatewayStatus.NotAuthenticated,
-            session = null,
-            onSignInAnonymously = { throw RuntimeException("offline") },
-        )
-        val repo = build(gateway = gateway)
-        advanceUntilIdle()
-
-        val outcome = repo.createGuestSession()
-        assertIs<com.opson.libraries.identity.auth.SignInOutcome.Unknown>(outcome)
-        assertIs<AuthState.Unauthenticated>(repo.current())
     }
 
     @Test
@@ -1039,7 +999,7 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
 /**
  * In-memory [SupabaseAuthGateway] for unit tests. Tracks call counts +
  * lets the test drive every method outcome via small callbacks. Default
- * mutations (`onSignInAnonymously`, `onSignOut`, `onRefreshSession`)
+ * mutations (`onSignOut`, `onRefreshSession`)
  * succeed silently and leave session state untouched — overrides set
  * `currentStatus` / `currentSession` as needed.
  *
@@ -1052,7 +1012,6 @@ internal class FakeSupabaseAuthGateway(
     session: GatewaySession?,
     statusSequence: List<AuthGatewayStatus>? = null,
     var onAwaitInitialization: suspend FakeSupabaseAuthGateway.() -> Unit = {},
-    var onSignInAnonymously: suspend FakeSupabaseAuthGateway.() -> Unit = {},
     var onSignOut: suspend FakeSupabaseAuthGateway.() -> Unit = {},
     var onRefreshSession: suspend FakeSupabaseAuthGateway.() -> Unit = {},
     var onSignInWithOAuth: suspend FakeSupabaseAuthGateway.(OAuthProvider) -> Unit = {},
@@ -1080,8 +1039,6 @@ internal class FakeSupabaseAuthGateway(
 
     var statusReads: Int = 0
         private set
-    var signInAnonymouslyCalls: Int = 0
-        private set
     var refreshSessionCalls: Int = 0
         private set
     var signOutCalls: Int = 0
@@ -1097,8 +1054,8 @@ internal class FakeSupabaseAuthGateway(
 
     /**
      * Flip the gateway to Authenticated with the given session. Use from
-     * inside an `onSignInAnonymously` block to model "supabase-kt's status
-     * moves to Authenticated after the anon sign-in resolves".
+     * inside a stubbed sign-in to model "supabase-kt's status moves to
+     * Authenticated after the sign-in resolves".
      */
     fun advanceToAuthenticated(session: GatewaySession) {
         status = AuthGatewayStatus.Authenticated
@@ -1129,11 +1086,6 @@ internal class FakeSupabaseAuthGateway(
     }
 
     override fun currentSession(): GatewaySession? = session
-
-    override suspend fun signInAnonymously() {
-        signInAnonymouslyCalls++
-        onSignInAnonymously()
-    }
 
     override suspend fun refreshSession() {
         refreshSessionCalls++

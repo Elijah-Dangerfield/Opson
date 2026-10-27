@@ -10,10 +10,8 @@ import com.opson.libraries.core.AutoInit
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.flowroutines.AppCoroutineScope
-import com.opson.libraries.identity.auth.AccountCreationState
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
-import com.opson.libraries.identity.auth.GuestAccountCreator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -30,10 +28,10 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * reachable well after resolve; launch-time callers go through [awaitVerdict].
  *
  * A stranded user (onboarded + online + genuinely session-less) gets
- * [AuthReason.FinishingSetup] — honest *now* — and a fire-and-forget
- * [GuestSessionHealer.heal] kick; the user's retry succeeds once the heal
- * lands. The kick never happens for unresolved, signed-out, expired, offline,
- * or pre-onboarding states.
+ * [AuthReason.FinishingSetup] and a fire-and-forget [SessionHealer.heal] kick,
+ * which either revives the session or routes them to sign in again. The kick
+ * never happens for unresolved, signed-out, expired, offline, or
+ * pre-onboarding states.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = AuthGate::class)
@@ -41,25 +39,19 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 @Inject
 class AuthGateImpl(
     authRepository: AuthRepository,
-    guestAccountCreator: GuestAccountCreator,
     appCache: AppCache,
     private val appState: AppState,
-    private val healer: GuestSessionHealer,
+    private val healer: SessionHealer,
     appScope: AppCoroutineScope,
 ) : AuthGate, AutoInit {
 
     private val authState = MutableStateFlow<AuthState?>(null)
-    private val creationState = MutableStateFlow<AccountCreationState>(AccountCreationState.Idle)
     private val hasOnboarded = MutableStateFlow(false)
 
     init {
         appScope.launch {
             Catching { authRepository.observe().collect { authState.value = it } }
                 .logOnFailure { "Auth-gate auth observation failed" }
-        }
-        appScope.launch {
-            Catching { guestAccountCreator.state.collect { creationState.value = it } }
-                .logOnFailure { "Auth-gate creation observation failed" }
         }
         appScope.launch {
             Catching {
@@ -91,25 +83,19 @@ class AuthGateImpl(
         return verdict(requirement)
     }
 
-    private fun blockedReason(unauth: AuthState.Unauthenticated?): AuthReason {
-        val creation = creationState.value
-        val creationDegraded =
-            creation is AccountCreationState.InProgress || creation is AccountCreationState.Failed
-        return when {
-            creationDegraded -> AuthReason.FinishingSetup
-            healable(unauth) -> {
-                healer.heal("authGate")
-                AuthReason.FinishingSetup
-            }
-            appState.isOffline.value -> AuthReason.Offline
-            unauth?.reason == AuthState.Unauthenticated.Reason.SessionExpired -> AuthReason.SessionExpired
-            else -> AuthReason.NeedAccount
+    private fun blockedReason(unauth: AuthState.Unauthenticated?): AuthReason = when {
+        healable(unauth) -> {
+            healer.heal("authGate")
+            AuthReason.FinishingSetup
         }
+        appState.isOffline.value -> AuthReason.Offline
+        unauth?.reason == AuthState.Unauthenticated.Reason.SessionExpired -> AuthReason.SessionExpired
+        else -> AuthReason.NeedAccount
     }
 
     // Stranded: onboarded, online, and genuinely session-less — resolved to
     // Unauthenticated with no deliberate sign-out and no server-killed session.
-    // Unresolved (null) auth is never healable: fail closed, don't mint.
+    // Unresolved (null) auth is never healable: fail closed.
     private fun healable(unauth: AuthState.Unauthenticated?): Boolean =
         unauth != null &&
             unauth.reason == AuthState.Unauthenticated.Reason.None &&

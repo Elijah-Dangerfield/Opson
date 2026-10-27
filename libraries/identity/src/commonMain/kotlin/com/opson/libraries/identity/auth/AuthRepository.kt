@@ -7,11 +7,11 @@ import kotlinx.coroutines.flow.first
  * Owns the device's Supabase user lifecycle + access token.
  *
  * Sessions are never minted implicitly. Construction only hydrates whatever
- * session supabase-kt persisted; new sessions are created explicitly —
- * onboarding drives [createGuestSession] (via `GuestAccountCreator`), the
- * sign-in flows mint claimed ones, and `GuestSessionHealer` recovers a
- * stranded onboarded device. [retry] re-resolves a dormant session but never
- * mints. After init resolves, [current] / [observe] return either
+ * session supabase-kt persisted; new sessions come only from signing in with
+ * Apple, Google or email. Anonymous (guest) sessions still exist for people who
+ * started before accounts were required, and the sign-in step links an identity
+ * onto them ([linkAppleIdentity], [linkOAuthIdentity]); nothing creates new
+ * ones. [retry] re-resolves a dormant session but never mints. After init resolves, [current] / [observe] return either
  * [AuthState.Authenticated] or [AuthState.Unauthenticated] (whose
  * [AuthState.Unauthenticated.reason] says why: none/offline, session
  * expired, signed out).
@@ -73,18 +73,6 @@ interface AuthRepository {
     suspend fun <T> ifAuthenticated(block: suspend (AuthState.Authenticated) -> T): T? =
         (current() as? AuthState.Authenticated)?.let { block(it) }
 
-    /**
-     * Create a fresh anonymous (guest) session and emit
-     * [AuthState.Authenticated]. The app no longer auto-creates one on launch —
-     * onboarding calls this when the user commits to playing as a guest, so a
-     * throwaway anon account is never minted for users who sign in instead.
-     *
-     * Default-throws so test fakes that don't drive guest creation needn't
-     * implement it; the production impl overrides.
-     */
-    suspend fun createGuestSession(): SignInOutcome =
-        throw NotImplementedError("createGuestSession not implemented by ${this::class.simpleName}")
-
     /** Email/password sign-in. Server-issued JWT replaces any current session. */
     suspend fun signInWithEmail(email: String, password: String): SignInOutcome
 
@@ -132,10 +120,7 @@ interface AuthRepository {
      */
     suspend fun markSessionUnrecoverable(wasAnonymous: Boolean) {}
 
-    /**
-     * Tear down the current Supabase session. The next [current] call
-     * will trigger a fresh anonymous sign-in.
-     */
+    /** Tear down the current Supabase session. The person signs in again to come back. */
     suspend fun signOut()
 
     /**

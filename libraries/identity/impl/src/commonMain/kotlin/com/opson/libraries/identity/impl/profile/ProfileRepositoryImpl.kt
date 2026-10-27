@@ -303,12 +303,10 @@ class ProfileRepositoryImpl(
     }
 
     /**
-     * Build a [Profile.Fallback], enriching it with the user's locally-chosen
-     * identity when one is owed but unsynced — the name picked during an
-     * offline onboarding (held in [PendingGuestAccountStore]). Surfacing it lets
-     * the app show the user's choice instead of a generic "You" while we're
-     * session-less; it syncs to the server once a session is minted. When nothing
-     * is owed (no offline onboarding pending), the fields stay null.
+     * Build a [Profile.Fallback], enriching it with a name chosen while
+     * session-less (held in [PendingGuestAccountStore]), so the app shows the
+     * user's choice instead of a generic "You". When none is held, the fields
+     * stay null.
      */
     private suspend fun buildFallbackLocked(): Profile.Fallback {
         val pending = Catching { pendingGuestAccountStore.read() }
@@ -322,10 +320,10 @@ class ProfileRepositoryImpl(
 
     /**
      * Apply an offline profile edit for a session-less (Fallback) user by
-     * merging it into the owed guest-account record. The guest-mint path applies
-     * that identity when a session is established, so the single mint is the
-     * sync. Emits an enriched [Profile.Fallback] immediately so the UI reflects
-     * the change without waiting on the network. Assumes [mutex] is held.
+     * holding it in [PendingGuestAccountStore]. It stays on this device: the
+     * account made at sign-in has a name of its own. Emits an enriched
+     * [Profile.Fallback] immediately so the UI reflects the change. Assumes
+     * [mutex] is held.
      */
     private suspend fun queueGuestIdentityEditLocked(
         displayName: String?,
@@ -342,7 +340,7 @@ class ProfileRepositoryImpl(
                 displayName = merged.displayName,
             ),
         )
-        logger.i { "update: Queued offline identity edit (will sync on session mint)" }
+        logger.i { "update: Held offline identity edit for the Fallback profile" }
         return UpdateProfileOutcome.Queued
     }
 

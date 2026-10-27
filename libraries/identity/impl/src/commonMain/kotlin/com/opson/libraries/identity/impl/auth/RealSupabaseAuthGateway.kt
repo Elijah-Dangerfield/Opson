@@ -11,7 +11,6 @@ import io.github.jan.supabase.auth.providers.Apple
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
-import io.github.jan.supabase.auth.signInAnonymously
 import io.github.jan.supabase.auth.status.SessionSource
 import io.github.jan.supabase.auth.status.SessionStatus
 import me.tatarka.inject.annotations.Inject
@@ -63,10 +62,6 @@ class RealSupabaseAuthGateway(
             isAnonymous = isAnon,
             isEmailConfirmed = user.emailConfirmedAt != null,
         )
-    }
-
-    override suspend fun signInAnonymously() {
-        supabase.auth.signInAnonymously()
     }
 
     override suspend fun refreshSession() {

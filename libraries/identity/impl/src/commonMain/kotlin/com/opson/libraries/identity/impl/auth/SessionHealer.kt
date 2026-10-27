@@ -8,11 +8,8 @@ import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.flowroutines.AppCoroutineScope
-import com.opson.libraries.identity.auth.AccountCreationState
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
-import com.opson.libraries.identity.auth.GuestAccountCreator
-import com.opson.libraries.identity.auth.PendingIdentity
 import com.opson.libraries.identity.profile.Profile
 import com.opson.libraries.identity.profile.ProfileRepository
 import kotlinx.coroutines.launch
@@ -28,46 +25,35 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * — and, on each, asks "is this device stranded?": onboarded + online + genuinely
  * session-less (not a deliberate sign-out, not a server-killed session).
  *
- * When stranded it drives [GuestAccountCreator.ensureSession], which mints (or
- * finishes an owed) anonymous session. Success flips auth to Authenticated,
- * which fires the existing `UserChanged(null→X)` fan-out — re-syncing every
- * user-scoped repo and re-resolving `/v1/me` — so the healer doesn't have to
- * refresh anything itself. It only ever *creates the identity*; the rest rides
- * the machinery that already exists.
+ * First it tries [AuthRepository.retry], which revives a dormant session that
+ * only needed a refresh. If that fails, the device is stranded, and since
+ * accounts are required and nothing mints guests any more, the only way back is
+ * signing in: it declares the session unrecoverable
+ * ([AuthRepository.markSessionUnrecoverable]), which routes the person to the
+ * session-expired screen and from there to sign-in. A cached server-backed
+ * profile (AUTH-19: storage lost the token across an upgrade) takes the same
+ * route, carrying whether that account was a guest.
  *
- * **It never mints over an existing account** (AUTH-19): when a cached
- * server-backed profile survives locally but its session is gone (storage lost
- * the token across an upgrade), minting would silently strand that account's
- * progression behind a fresh empty guest. Instead the healer declares the
- * session unrecoverable ([AuthRepository.markSessionUnrecoverable]), which
- * routes the user to the explicit recovery screen.
- *
- * This is the permanent fix for the stranding bug: even if the durable pending
- * record was ever lost, the next foreground/connectivity edge recovers the user.
- *
- * Each trigger emits one structured decision line (see [HealAction]) so the old
- * silent failure is now observable; mint success/failure is logged too.
+ * Each trigger emits one structured decision line (see [HealAction]).
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = AppEventListener::class, multibinding = true)
 @Inject
-class GuestSessionHealer(
+class SessionHealer(
     // Lazy providers break the DI construction cycle: this is an AppEventListener
     // (in the dispatcher's set), and AuthRepository → AppEventBus → the dispatcher
-    // → this set. GuestAccountCreator and ProfileRepository reach AuthRepository
-    // transitively, so they're deferred too. Mirrors InAppMessageManagerImpl.
+    // → this set. ProfileRepository reaches AuthRepository transitively, so it's
+    // deferred too. Mirrors InAppMessageManagerImpl.
     authRepositoryProvider: () -> AuthRepository,
-    guestAccountCreatorProvider: () -> GuestAccountCreator,
     profileRepositoryProvider: () -> ProfileRepository,
     private val appCache: AppCache,
     private val appState: AppState,
     private val appScope: AppCoroutineScope,
 ) : AppEventListener {
 
-    private val logger = KLog.withTag("GuestSessionHealer")
+    private val logger = KLog.withTag("SessionHealer")
     private val inFlight = Mutex()
     private val authRepository: AuthRepository by lazy { authRepositoryProvider() }
-    private val guestAccountCreator: GuestAccountCreator by lazy { guestAccountCreatorProvider() }
     private val profileRepository: ProfileRepository by lazy { profileRepositoryProvider() }
 
     override fun onColdBoot(event: AppEvent.ColdBoot) = heal("coldBoot")
@@ -85,8 +71,7 @@ class GuestSessionHealer(
     /**
      * Single-flight: overlapping triggers skip rather than queue — every source
      * re-fires on a later edge anyway. This guards the decision run (duplicate
-     * [AuthRepository.retry] hits); mint-level serialization is separately owned
-     * by the creator's own mutex.
+     * [AuthRepository.retry] hits).
      */
     fun heal(source: String) {
         if (!inFlight.tryLock()) {
@@ -122,40 +107,38 @@ class GuestSessionHealer(
         when {
             unauth.cause is SessionUnconfirmed -> {
                 // An account is stored on the device and only its refresh is
-                // failing; supabase-kt keeps retrying. Neither minting over it
-                // nor declaring it unrecoverable is right.
+                // failing; supabase-kt keeps retrying. Declaring it
+                // unrecoverable would sign out someone who is merely offline.
                 log(source, HealAction.SKIP_SESSION_UNCONFIRMED)
             }
             unauth.reason == AuthState.Unauthenticated.Reason.SessionExpired -> {
-                // The session is declared dead (server rejection or client
-                // unrecoverable); the app routes to manual re-auth. Minting a
-                // guest here would paper over a real account.
+                // Already declared dead (server rejection or client
+                // unrecoverable); the app is routing to sign-in.
                 log(source, HealAction.SKIP_SESSION_EXPIRED)
             }
             unauth.reason == AuthState.Unauthenticated.Reason.SignedOut -> {
-                // Deliberate sign-out — do not resurrect as a fresh guest.
+                // Deliberate sign-out: onboarding's sign-in step is next.
                 log(source, HealAction.SKIP_SIGNED_OUT)
             }
             else -> {
                 val stranded = cachedServerProfile()
                 when {
                     // A server account demonstrably exists on this device but
-                    // its session is gone and retry couldn't revive it. Minting
-                    // a fresh guest here is exactly the AUTH-19 disaster: the
-                    // real account's diary gets silently stranded behind a
-                    // brand-new empty one. Stop and route to recovery instead.
-                    stranded != null -> stopForRecovery(source, stranded)
+                    // its session is gone and retry couldn't revive it (AUTH-19).
+                    stranded != null -> stopForRecovery(source, wasAnonymous = stranded.isAnonymous, id = stranded.id)
                     !hasUserOnboarded() -> {
-                        // Pre-onboarding: the user hasn't committed to playing
-                        // yet, so there's no identity owed. Onboarding's own
-                        // start() mints.
+                        // Pre-onboarding: onboarding's sign-in step is where a
+                        // session comes from.
                         log(source, HealAction.SKIP_NOT_ONBOARDED)
                     }
                     appState.isOffline.value -> {
-                        // Can't mint offline; the connectivity-regained edge will retry.
+                        // Offline looks the same as no session; the
+                        // connectivity-regained edge decides again.
                         log(source, HealAction.SKIP_OFFLINE)
                     }
-                    else -> mint(source)
+                    // Onboarded with no account at all: a guest from an older
+                    // build whose creation never landed. Signing in is the way in.
+                    else -> stopForRecovery(source, wasAnonymous = false, id = null)
                 }
             }
         }
@@ -172,31 +155,14 @@ class GuestSessionHealer(
             .logOnFailure { "Reading profile for heal decision failed; assuming none cached" }
             .getOrNull() as? Profile.Authenticated
 
-    private suspend fun stopForRecovery(source: String, stranded: Profile.Authenticated) {
+    private suspend fun stopForRecovery(source: String, wasAnonymous: Boolean, id: String?) {
         log(source, HealAction.STOP_FOR_RECOVERY)
         logger.w {
-            "Session unrecoverable: cached profile ${stranded.id} " +
-                "(isAnonymous=${stranded.isAnonymous}) has no session and retry could not revive it — " +
-                "routing to recovery instead of minting over the account"
+            "Session unrecoverable: ${id?.let { "cached profile $it" } ?: "no cached profile"} " +
+                "(isAnonymous=$wasAnonymous) has no session and retry could not revive it; routing to sign-in"
         }
-        Catching { authRepository.markSessionUnrecoverable(wasAnonymous = stranded.isAnonymous) }
+        Catching { authRepository.markSessionUnrecoverable(wasAnonymous = wasAnonymous) }
             .logOnFailure { "Marking session unrecoverable failed; will re-decide on the next trigger" }
-    }
-
-    private suspend fun mint(source: String) {
-        log(source, HealAction.MINT)
-        // Null fields let the server generate an identity; the creator prefers
-        // a durably-owed pending record (the user's offline-chosen name)
-        // over this fallback anyway.
-        val fallback = PendingIdentity(displayName = null)
-        when (val result = guestAccountCreator.ensureSession(fallback)) {
-            is AccountCreationState.Succeeded ->
-                logger.i { "heal source=$source mint=success — UserChanged fan-out will re-sync everything" }
-            is AccountCreationState.Failed ->
-                logger.w { "heal source=$source mint=failed (${result.cause?.let { it::class.simpleName }}) — will retry on next trigger" }
-            else ->
-                logger.w { "heal source=$source mint=unexpected(${result::class.simpleName})" }
-        }
     }
 
     private suspend fun hasUserOnboarded(): Boolean =
@@ -219,6 +185,5 @@ class GuestSessionHealer(
         SKIP_OFFLINE,
         RETRY_RECOVERED,
         STOP_FOR_RECOVERY,
-        MINT,
     }
 }

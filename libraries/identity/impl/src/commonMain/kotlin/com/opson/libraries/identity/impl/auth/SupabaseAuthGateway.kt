@@ -33,9 +33,6 @@ interface SupabaseAuthGateway {
     /** Snapshot of the current Supabase session, or null if none. */
     fun currentSession(): GatewaySession?
 
-    /** Sign in as an anonymous Supabase user. Throws on failure. */
-    suspend fun signInAnonymously()
-
     /** Force-refresh the current session. Throws on failure. */
     suspend fun refreshSession()
 

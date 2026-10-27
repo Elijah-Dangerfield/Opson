@@ -25,27 +25,24 @@ import opson.libraries.resources.generated.resources.session_expired_message
 import opson.libraries.resources.generated.resources.session_expired_title
 import opson.libraries.resources.generated.resources.session_lost_message
 import opson.libraries.resources.generated.resources.session_lost_title
+import opson.libraries.resources.generated.resources.session_sign_in
 import opson.libraries.resources.generated.resources.session_sign_in_again
-import opson.libraries.resources.generated.resources.session_start_fresh
-import opson.libraries.resources.generated.resources.session_start_fresh_failed
 import opson.libraries.resources.generated.resources.session_working
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * Blocking surface for a server-rejected session. Back is swallowed — the
- * stack beneath is unusable until the user recovers. Claimed accounts get
- * "Sign in again"; anonymous guests get "Start fresh" (their session is
- * unrecoverable, so a new guest account is minted in place).
+ * Blocking surface for a dead session. Back is swallowed: the stack beneath is
+ * unusable until the user signs in. Claimed accounts are told to sign in again;
+ * a guest is told their log can't be recovered, since a guest session has no
+ * credential to come back with, and signing in starts a new account.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SessionExpiredScreen(
     wasAnonymous: Boolean,
     working: Boolean,
-    startFreshFailed: Boolean,
-    onSignInAgain: () -> Unit,
-    onStartFresh: () -> Unit,
+    onSignIn: () -> Unit,
 ) {
     BackHandler { doNothing() }
 
@@ -82,28 +79,18 @@ internal fun SessionExpiredScreen(
                 textAlign = TextAlign.Center,
             )
 
-            if (startFreshFailed) {
-                Spacer(modifier = Modifier.height(Dimension.D400))
-                Text(
-                    text = stringResource(Res.string.session_start_fresh_failed),
-                    typography = AppTheme.typography.Body.B500,
-                    color = AppTheme.colors.status.warning,
-                    textAlign = TextAlign.Center,
-                )
-            }
-
             Spacer(modifier = Modifier.weight(2f))
 
             ButtonPrimary(
                 enabled = !working,
-                onClick = if (wasAnonymous) onStartFresh else onSignInAgain,
+                onClick = onSignIn,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     text = stringResource(
                         when {
                             working -> Res.string.session_working
-                            wasAnonymous -> Res.string.session_start_fresh
+                            wasAnonymous -> Res.string.session_sign_in
                             else -> Res.string.session_sign_in_again
                         },
                     ),
@@ -122,23 +109,19 @@ private fun SessionExpiredScreenPreview_Claimed() {
         SessionExpiredScreen(
             wasAnonymous = false,
             working = false,
-            startFreshFailed = false,
-            onSignInAgain = {},
-            onStartFresh = {},
+            onSignIn = {},
         )
     }
 }
 
 @Preview
 @Composable
-private fun SessionExpiredScreenPreview_Guest_Failed() {
+private fun SessionExpiredScreenPreview_Guest() {
     PreviewContent {
         SessionExpiredScreen(
             wasAnonymous = true,
             working = false,
-            startFreshFailed = true,
-            onSignInAgain = {},
-            onStartFresh = {},
+            onSignIn = {},
         )
     }
 }

@@ -38,8 +38,10 @@ import kotlin.time.Instant
  * The Supabase Auth SDK as a phone would see it, holding at most one session.
  * Its tokens are signed by [IntegrationAuth], which the in-process server
  * trusts, so every request a client makes carries a JWT the server's real auth
- * plugin verifies. [newAccount] stands in for Supabase creating an anonymous
- * user: it returns the new id after seeding the server's `auth.users` row.
+ * plugin verifies. A session the client starts with ([signedInAs]) is an
+ * anonymous guest, as every account was before accounts were required.
+ * [newAccount] stands in for Supabase creating a user on a first sign-in: it
+ * returns the new id after seeding the server's `auth.users` row.
  */
 class StubSupabaseGateway(
     signedInAs: String?,
@@ -56,12 +58,8 @@ class StubSupabaseGateway(
 
     override fun currentSession(): GatewaySession? = session
 
-    override suspend fun signInAnonymously() {
-        session = sessionFor(newAccount())
-    }
-
     override suspend fun refreshSession() {
-        session = session?.let { sessionFor(it.userId) }
+        session = session?.let { sessionFor(it.userId, anonymous = it.isAnonymous) }
     }
 
     override suspend fun signOut() {
@@ -77,23 +75,28 @@ class StubSupabaseGateway(
     override suspend fun completeOAuthRedirect(url: String) = unused()
     override suspend fun hydrateCurrentUser() = Unit
     override fun isOAuthRedirect(url: String): Boolean = false
-    // Apple says yes to whoever is signed in already; the journeys use it for the
-    // authorization code the app sends afterwards, not for switching accounts.
+    // With nobody signed in, Apple makes a new account, as Supabase does on a first
+    // sign-in. With someone signed in it says yes to them: the journeys use that for
+    // the authorization code the app sends afterwards, not for switching accounts.
     override suspend fun signInWithAppleIdToken(idToken: String, nonce: String) {
-        session = checkNotNull(session) { "Sign in first: the stub signs Apple in as the current user" }
+        session = session ?: sessionFor(newAccount(), anonymous = false)
     }
-    override suspend fun linkAppleIdToken(idToken: String, nonce: String) = unused()
+
+    // Linking keeps the user and claims it; the app refreshes afterwards for the new token.
+    override suspend fun linkAppleIdToken(idToken: String, nonce: String) {
+        session = checkNotNull(session) { "Linking needs a guest to link onto" }.copy(isAnonymous = false)
+    }
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?) = unused()
     override suspend fun linkEmailIdentity(email: String, password: String) = unused()
 
     private fun unused(): Nothing = error("Not used by the integration suite")
 
     private companion object {
-        fun sessionFor(userId: String) = GatewaySession(
+        fun sessionFor(userId: String, anonymous: Boolean = true) = GatewaySession(
             userId = userId,
             email = null,
             accessToken = IntegrationAuth.mintJwt(userId),
-            isAnonymous = true,
+            isAnonymous = anonymous,
             isEmailConfirmed = true,
         )
     }

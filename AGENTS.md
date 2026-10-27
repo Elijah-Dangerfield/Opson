@@ -102,14 +102,16 @@ The `Set<AutoInit>` is resolved at app start (`Application.onCreate` on Android,
 
 ## Auth model (`:libraries:identity`)
 
-Anonymous-first Supabase auth. Sessions are never minted implicitly: onboarding drives guest creation (`GuestAccountCreator`), the sign-in flows mint claimed ones, and `GuestSessionHealer` recovers a stranded onboarded device.
+Supabase auth with accounts required. Sessions are never minted implicitly and nothing creates anonymous ones any more: onboarding goes Welcome, sign in (Apple on iOS, Google via the browser, email when `SignInMethods.EMAIL` is on), then setup. Anonymous sessions still exist for people who started on a build where accounts were optional; the sign-in step links an identity onto them so their log stays (`AppViewModel.signInRequired` sends an onboarded guest there). `SessionHealer` revives a dormant session or, failing that, routes a stranded device to sign in again.
+
+- **A new install starts signed out.** iOS keeps Keychain items when the app is deleted, so `SecureSessionManager` drops a signed-in session found on an install's first load (`FreshInstall`); an anonymous one is kept for the sign-in step to link.
 
 - **`AuthState` is sealed with no in-flight sentinel**: `Authenticated(userId, isAnonymous, email)` or `Unauthenticated(cause, reason, wasAnonymous)`. `current()` suspends until the answer is real; `observe()` emits only resolved values. UI renders a spinner while awaiting its first emission, never off a `Loading` enum.
 - **Per-operation sealed outcomes** (`SignInOutcome`, `SignUpOutcome`, …) instead of thrown exceptions. Screens render specific messages for invalid-credentials vs offline vs already-registered.
-- **`Unauthenticated.reason` drives app routing**: `SessionExpired` pushes the blocking recovery screen (sign-in-again for claimed, start-fresh for guests); `SignedOut` marks a deliberate exit this run so self-heal never resurrects a signed-out user; `None` is the ordinary no-session state.
+- **`Unauthenticated.reason` drives app routing**: `SessionExpired` pushes the blocking recovery screen, whose one way on is signing in (a guest is told their log can't be recovered); `SignedOut` marks a deliberate exit this run so self-heal leaves a signed-out user alone; `None` is the ordinary no-session state.
 - **User-change choke point**: every transition flows through the auth orchestrator, which runs the `UserScopedDataReset` dump (Room tables via `ClearableDao` multibinding, profile caches, account-scoped `AppData` fields) *before* the new `AuthState` is emitted. A reactive loader can't race the wipe. `AppEvent.UserChanged(previous, current)` is the after-the-fact announcement for side effects that hold no user-scoped storage.
 - **Tokens**: the network layer only sees `AuthTokenProvider` (`awaitReady()` then `accessToken()`); a server-confirmed 401-after-refresh routes through `SessionRejectionBus` (no 401 loops), a 403 ban envelope through `AccessDeniedBus`.
-- **Session persistence is OS-encrypted** (Keychain on iOS via the Swift `IOSSecureSessionStorage`, `EncryptedSharedPreferences` on Android) with a file mirror for anonymous sessions so a TestFlight Keychain wipe can't strand a guest.
+- **Session persistence is OS-encrypted** (Keychain on iOS via the Swift `IOSSecureSessionStorage`, `EncryptedSharedPreferences` on Android) with a file mirror for anonymous sessions so a TestFlight Keychain wipe can't strand a guest before they link.
 - The browser-OAuth redirect is `opson://login-callback` (the scheme renames with the project); `App.kt` hands it to `completeOAuthRedirect`, never the nav graph.
 
 ## Triggered sync (`UserScopedSyncer`)
