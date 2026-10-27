@@ -2,10 +2,6 @@
 
 Utility scripts for this project.
 
-> Template maintainers: init/verification tooling (`init_project.main.kts`,
-> `verify_template.sh`) is documented in `docs/template-maintenance.md`.
-> Those scripts are removed from generated projects.
-
 ## install_hooks.sh
 
 Installs the repo's git hooks (`.githooks/`) into your local clone. Run once
@@ -14,18 +10,6 @@ after cloning, before your first commit:
 ```bash
 ./scripts/install_hooks.sh
 ```
-
-## enable_ci.sh
-
-Present only if CI was declined at project init. Installs the staged CI /
-release automation (`.github/workflows/`, fastlane files, `legal/`,
-release-please config) and then removes itself:
-
-```bash
-./scripts/enable_ci.sh
-```
-
-See SETUP.md for the GitHub secrets the pipeline needs.
 
 ## create_module.main.kts
 

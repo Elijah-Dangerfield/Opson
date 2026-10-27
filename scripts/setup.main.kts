@@ -72,9 +72,18 @@ fun flyDone(): Boolean? {
  * `install_hooks.sh` points `core.hooksPath` at `.githooks/` rather than
  * copying anything into `.git/hooks/`, so the presence of files is not the
  * question — the git config is.
+ *
+ * Compared as a path, not as the string ".githooks": `git config` run inside a
+ * worktree writes an absolute path into the main checkout's config, the hooks
+ * still work, and only a string comparison notices (build-logic's GitHooks.kt
+ * hit the same thing).
  */
-fun hooksInstalled(): Boolean =
-    run("git", "config", "core.hooksPath").output.trim() == ".githooks"
+fun hooksInstalled(): Boolean {
+    val configured = run("git", "config", "core.hooksPath").takeIf { it.ok }?.output?.trim()
+        ?.takeIf { it.isNotEmpty() } ?: return false
+    val path = File(configured).let { if (it.isAbsolute) it else File(root, configured) }
+    return path.canonicalFile == File(root, ".githooks").canonicalFile
+}
 
 fun mark(done: Boolean?) = when (done) {
     true -> "\u001b[32m✓\u001b[0m"
