@@ -9,8 +9,10 @@ helpers they call, so the mistake shows up on the PR instead.
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -80,6 +82,48 @@ class StoreReleaseNotesTest(unittest.TestCase):
         release = workflow("release.yml")
         self.assertNotIn("--json body", release)
         self.assertEqual(release.count("python3 -I scripts/store_release_notes.py"), 3, "Play, TestFlight and the App Store")
+
+
+FASTFILE = ROOT / "apps" / "ios" / "fastlane" / "Fastfile"
+
+# Loads the Fastfile's helpers without fastlane: the DSL calls at its top level
+# become no-ops and UI prints what it was told, so a helper can run on its own.
+FASTFILE_HARNESS = """
+def default_platform(*); end
+def platform(*); end
+module UI
+  def self.important(message) = puts("important: #{message}")
+  def self.user_error!(message) = raise(message)
+end
+def sh(command) = puts("sh: #{command}")
+load ARGV.fetch(0)
+"""
+
+
+@unittest.skipUnless(shutil.which("ruby"), "needs ruby")
+class FastfileTest(unittest.TestCase):
+    def ruby(self, code: str, env: dict[str, str]) -> str:
+        result = subprocess.run(
+            ["ruby", "-e", FASTFILE_HARNESS + code, str(FASTFILE)],
+            env={"PATH": os.environ["PATH"], **env}, capture_output=True, text=True, timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout
+
+    def test_sentry_release_is_the_one_the_app_reports_under(self):
+        # The app tags events opson@<versionName>+<buildNumber> (AppTelemetry.kt).
+        # The release used to carry the CFBundleVersion timestamp instead, so it
+        # had the commits and none of the events.
+        output = self.ruby(
+            "puts sentry_release_name",
+            {"VERSION_NAME_OVERRIDE": "0.2.0", "BUILD_NUMBER_OVERRIDE": "702"},
+        )
+        self.assertEqual(output.strip(), "opson@0.2.0+702")
+
+    def test_a_missing_sentry_token_says_so(self):
+        output = self.ruby("upload_sentry_release", {"SENTRY_AUTH_TOKEN": ""})
+        self.assertIn("important: SENTRY_AUTH_TOKEN not set", output)
+        self.assertNotIn("sh:", output)
 
 
 if __name__ == "__main__":
