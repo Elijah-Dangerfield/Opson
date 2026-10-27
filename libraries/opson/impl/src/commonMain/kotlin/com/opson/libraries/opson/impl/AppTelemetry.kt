@@ -13,6 +13,7 @@ import com.opson.libraries.opson.Telemetry
 import com.opson.libraries.opson.impl.logging.DevConsoleWriter
 import com.opson.libraries.opson.impl.logging.KermitLogTree
 import com.opson.libraries.opson.impl.logging.SentryLogTree
+import com.opson.libraries.opson.impl.logging.scrubbed
 import co.touchlab.kermit.Logger as KermitLogger
 import co.touchlab.kermit.Severity as KermitSeverity
 import io.sentry.kotlin.multiplatform.Attachment
@@ -343,8 +344,15 @@ data class SentryRuntimeConfig(
             event.getTag(FEEDBACK_EVENT_TAG)?.let { id ->
                 event.fingerprint = mutableListOf(FEEDBACK_FINGERPRINT, id)
             }
-            event
+            event.scrubbed()
         }
+        // A search URL carries the words searched. Every breadcrumb, the SDK's own
+        // network ones included, loses its query on the way in (SentryUrlScrubbing.kt).
+        options.beforeBreadcrumb = { breadcrumb -> breadcrumb.scrubbed() }
+        // The iOS SDK reports a failed HTTP request as an event of its own, with the
+        // request's query string in a field beforeSend cannot reach from Kotlin. The
+        // app logs its own failures (NetworkCall), so nothing is lost by turning it off.
+        options.enableCaptureFailedRequests = false
     }
 
     data class LogPolicy(
