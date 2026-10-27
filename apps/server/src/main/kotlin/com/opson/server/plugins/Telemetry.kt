@@ -65,7 +65,6 @@ fun Application.installOpenTelemetry(config: ObservabilityConfig): OpenTelemetry
         GlobalOpenTelemetry.get()
     }
     OpenTelemetryAppender.install(installed)
-    ServerMetrics.register()
 
     monitor.subscribe(ApplicationStopPreparing) {
         try {

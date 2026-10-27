@@ -256,7 +256,6 @@ class MeRoutesTest {
             return deleteResult
         }
 
-        override suspend fun listAnonymousUsersOlderThan(olderThan: Instant): List<UserId> = emptyList()
 
         override suspend fun updateUserDisplayName(
             userId: UserId,

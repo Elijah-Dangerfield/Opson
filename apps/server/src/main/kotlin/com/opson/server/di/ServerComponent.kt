@@ -15,7 +15,6 @@ import com.opson.server.domain.FoodDescriber
 import com.opson.server.domain.ExampleSource
 import com.opson.server.domain.ModerationRepository
 import com.opson.server.domain.PhotoEstimateLimiter
-import com.opson.server.domain.PlayerReportRepository
 import com.opson.server.domain.ProfileRepository
 import com.opson.server.domain.SupabaseAdminClient
 import com.opson.server.domain.SyncRepository
@@ -71,7 +70,6 @@ abstract class ServerComponent(
     abstract val exampleSource: ExampleSource
     abstract val profileRepository: ProfileRepository
     abstract val moderationRepository: ModerationRepository
-    abstract val playerReportRepository: PlayerReportRepository
     abstract val supabaseAdminClient: SupabaseAdminClient
     abstract val appConfigSource: AppConfigSource
     abstract val appConfigAdminRepository: AppConfigAdminRepository

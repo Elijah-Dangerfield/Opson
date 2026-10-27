@@ -24,22 +24,6 @@ object ProfilesTable : Table("profiles") {
 }
 
 /**
- * Append-only player reports (trust and safety). One row per report; reads
- * are deferred to a future moderation-review surface. See
- * `V3__player_reports.sql`.
- */
-object PlayerReportsTable : Table("player_reports") {
-    val id = long("id").autoIncrement()
-    val reporterUserId = uuid("reporter_user_id")
-    val reportedUserId = uuid("reported_user_id")
-    val context = text("context").nullable()
-    val reason = text("reason").nullable()
-    val reasonCategories = text("reason_categories").nullable()
-    val createdAt = timestamp("created_at")
-    override val primaryKey = PrimaryKey(id)
-}
-
-/**
  * DB-backed remote-config base values. One row per `ConfiguredValue.path`
  * the server overrides; `value_jsonb` is the value served when no targeting
  * rule matches. Backs [com.opson.server.data.PostgresAppConfigSource].

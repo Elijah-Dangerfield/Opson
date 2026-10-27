@@ -23,7 +23,6 @@ import com.opson.server.plugins.installRateLimits
 import com.opson.server.plugins.installSentry
 import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
-import com.opson.server.plugins.installWebSockets
 import com.opson.server.routes.appConfigRoutes
 import com.opson.server.routes.barcodeMissRoutes
 import com.opson.server.routes.configAdminRoutes
@@ -33,7 +32,6 @@ import com.opson.server.routes.foodRoutes
 import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
 import com.opson.server.routes.photoRoutes
-import com.opson.server.routes.playerReportRoutes
 import com.opson.server.routes.syncRoutes
 import com.opson.server.routes.waitlistAdminRoutes
 import com.opson.server.routes.waitlistRoutes
@@ -142,7 +140,6 @@ fun Application.installApp(
     installBodyLimit()
     installRateLimits()
     installStatusPages()
-    installWebSockets()
     if (verification != null) installAuthentication(verification, banGate)
 
     routing {
@@ -180,7 +177,6 @@ fun Application.installApp(
         }
         if (component != null && verification != null) {
             meRoutes(component.profileRepository, component.supabaseAdminClient)
-            playerReportRoutes(component.playerReportRepository)
             syncRoutes(component.syncRepository, component.clock)
             foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber)
             photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.clock)
