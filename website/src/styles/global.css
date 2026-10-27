@@ -166,6 +166,10 @@ p { margin: 0; text-wrap: pretty; }
 .prose li { margin-bottom: 6px; }
 .prose strong { color: var(--ink); font-weight: 700; }
 .prose > :first-child { margin-top: 0; }
+/* The legal pages list providers and licenses in plain two-column tables. */
+.prose table { width: 100%; border-collapse: collapse; margin: 0 0 18px; font-size: 16px; }
+.prose th, .prose td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); }
+.prose th { color: var(--ink); font-weight: 700; }
 
 .callout {
   background: var(--surface);

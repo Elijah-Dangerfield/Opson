@@ -1,0 +1,21 @@
+---
+import Layout from '../layouts/Layout.astro';
+// Rendered from legal/credits.md at build time, the same file synced to
+// nightjarlabs.llc, where the app's Support page links it.
+import { Content, frontmatter } from '../../../legal/credits.md';
+import { formatUpdated } from '../lib/dates';
+---
+
+<Layout title="Credits, Opson" description="The food data, typeface and open-source software Opson is built on, and their licenses.">
+  <article class="page">
+    <div class="wrap">
+      <header class="page-head">
+        <h1>{frontmatter.title}</h1>
+        <p>Last updated {formatUpdated(frontmatter.updated)}.</p>
+      </header>
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+  </article>
+</Layout>

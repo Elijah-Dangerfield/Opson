@@ -62,6 +62,8 @@ class FindSupportViewModel(
                 val line = action.line
                 open(action, line.url, CouldNotOpen(line.shown, isLink = line.reach is Reach.Web))
             }
+            FindSupportAction.DirectoryTapped ->
+                open(action, FIND_A_HELPLINE_URL, CouldNotOpen(FIND_A_HELPLINE_URL.removePrefix("https://").removeSuffix("/"), isLink = true))
             FindSupportAction.BackTapped -> sendEvent(FindSupportEvent.Close)
         }
     }
@@ -83,5 +85,8 @@ sealed interface FindSupportAction {
     data object CrisisCallTapped : FindSupportAction
     data object CrisisTextTapped : FindSupportAction
     data class LineTapped(val line: SupportLine) : FindSupportAction
+
+    /** Find A Helpline, for a country with no list of its own. */
+    data object DirectoryTapped : FindSupportAction
     data object BackTapped : FindSupportAction
 }
