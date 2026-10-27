@@ -74,6 +74,10 @@ import java.util.UUID
  *     user. Older and replayed mutations change nothing and do not bump
  *     `server_seq`. The `user_id` predicate means a client that sends another
  *     user's row id cannot touch that row.
+ *     An update writes only the columns the sending client knows. A 0.1 day
+ *     record has no check-in, so its update leaves `check_in` as a 0.2 phone
+ *     stored it rather than clearing it. A column added to a synced table
+ *     later needs the same care.
  *  3. New entries that reference a catalog food bump `foods.popularity`, in id
  *     order so concurrent syncs cannot deadlock on the shared rows.
  *  4. Pull every entity past the cursor, [DiaryRules.PAGE_SIZE] per entity.
@@ -98,6 +102,9 @@ class PostgresSyncRepository(
     ): SyncResult =
         database.readCommittedTransaction {
             lockUser(userId)
+            // `accepts` shipped before check-ins did, and 0.1 never sends it. A request without
+            // it comes from a client whose day records have no check-in field to send.
+            val knowsCheckIn = pullFasts || pullExercises
 
             val entries = mutations.map { it.row }.filterIsInstance<LogEntry>()
             val knownFoods = knownFoodIds(entries.mapNotNull { it.foodId }.toSet())
@@ -116,7 +123,7 @@ class PostgresSyncRepository(
                         existingEntries += entry.id
                     }
 
-                    else -> upsertOther(userId, row)
+                    else -> upsertOther(userId, row, knowsCheckIn)
                 }
             }
             bumpPopularity(picks)
@@ -195,13 +202,14 @@ class PostgresSyncRepository(
             it[deleted] = row.deleted
         }.insertedCount > 0
 
-    private fun upsertOther(userId: UserId, row: DiaryRow) {
+    private fun upsertOther(userId: UserId, row: DiaryRow, knowsCheckIn: Boolean) {
         when (row) {
             is LogEntry -> upsertEntry(userId, row)
 
             is DayRecord -> DayRecordsTable.upsert(
                 DayRecordsTable.userId,
                 DayRecordsTable.day,
+                onUpdateExclude = if (knowsCheckIn) null else listOf(DayRecordsTable.checkIn),
                 where = { DayRecordsTable.newerThanStored(userId, row) },
             ) {
                 it[this.userId] = userId.value
