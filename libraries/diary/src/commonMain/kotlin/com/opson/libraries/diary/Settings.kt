@@ -269,6 +269,8 @@ data class TrendsCards(
     val nutrients: Boolean = true,
     val expended: Boolean = true,
     val weight: Boolean = true,
+    /** Hunger and the Notes summary, read from the meal notes. */
+    val journal: Boolean = true,
 )
 
 /** How the Logger orders search results. */

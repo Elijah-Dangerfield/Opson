@@ -43,6 +43,38 @@
     <string name="trends_weight_none">No weigh-ins yet. Tap to log one.</string>
     <string name="trends_expended">Expended</string>
     <string name="trends_expended_sub">Daily average from your watch</string>
+    <!-- Hunger and notes: read from each meal's note. Hunger is information, never a score. -->
+    <string name="trends_hunger">Hunger</string>
+    <plurals name="trends_hunger_sub">
+        <item quantity="one">From %1$d meal note</item>
+        <item quantity="other">From %1$d meal notes</item>
+    </plurals>
+    <string name="trends_hunger_caption_days">Each bar is a day's average. Taller means hungrier.</string>
+    <string name="trends_hunger_caption_weeks">Each bar is a week's average. Taller means hungrier.</string>
+    <string name="trends_hunger_by_meal">Before each meal</string>
+    <string name="trends_hunger_meal_cd">%1$s, usually %2$s</string>
+    <string name="trends_hunger_empty">Add how hungry you were to a meal's note, and it shows up here.</string>
+    <string name="trends_journal">Notes</string>
+    <string name="trends_journal_all">All notes</string>
+    <string name="trends_journal_noted">Meals with a note</string>
+    <string name="trends_journal_fullness">How full afterwards</string>
+    <string name="trends_journal_moods">Moods</string>
+    <string name="trends_journal_mood_count">%1$s · %2$d</string>
+    <plurals name="trends_journal_meals">
+        <item quantity="one">%1$d meal</item>
+        <item quantity="other">%1$d meals</item>
+    </plurals>
+    <string name="trends_fullness_still_hungry">Still hungry</string>
+    <string name="trends_fullness_satisfied">Satisfied</string>
+    <string name="trends_fullness_full">Full</string>
+    <string name="trends_fullness_very_full">Very full</string>
+    <string name="trends_mood_calm">Calm</string>
+    <string name="trends_mood_happy">Happy</string>
+    <string name="trends_mood_social">Social</string>
+    <string name="trends_mood_rushed">Rushed</string>
+    <string name="trends_mood_stressed">Stressed</string>
+    <string name="trends_mood_anxious">Anxious</string>
+    <string name="trends_mood_low">Low</string>
 
     <!-- Nutrient labels -->
     <string name="trends_energy">Energy</string>
@@ -63,6 +95,7 @@
     <string name="trends_settings_card_nutrients">Nutrients</string>
     <string name="trends_settings_card_weight">Weight</string>
     <string name="trends_settings_card_expended">Expended</string>
+    <string name="trends_settings_card_journal">Hunger and notes</string>
 
     <!-- Sub-screens: where back goes, "‹ Trends" or "‹ Today", spoken on the arrow -->
     <string name="trends_back">‹ %1$s</string>

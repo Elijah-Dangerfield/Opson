@@ -48,10 +48,25 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
         fun cards(preset: PresetId, overrides: Map<Metric, Visibility> = emptyMap()) =
             TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(preset, overrides)).toggles.map { it.card }
         assertEquals(TrendsCard.entries - TrendsCard.Expended, cards(PresetId.Full), "Expended waits for a connected watch")
-        assertEquals(listOf(TrendsCard.Recap), cards(PresetId.NoNumbers), "weight is hidden, so its card never shows")
-        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.MacrosOnly))
-        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.MacrosWithGrams), "no calorie chart")
-        assertEquals(listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight), cards(PresetId.Full, Presets.laterLevels))
+        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Journal), cards(PresetId.NoNumbers), "weight is hidden, so its card never shows")
+        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal), cards(PresetId.MacrosOnly))
+        assertEquals(
+            listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal),
+            cards(PresetId.MacrosWithGrams),
+            "no calorie chart",
+        )
+        assertEquals(
+            listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal),
+            cards(PresetId.Full, Presets.laterLevels),
+        )
+    }
+
+    @Test
+    fun journalToggled_turnsHungerAndNotesOff() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(TrendsSettingsAction.CardToggled(TrendsCard.Journal))
+        assertEquals(TrendsCards(journal = false), settings.settings.value.trendsCards)
+        assertEquals(false, vm.state.toggles.single { it.card == TrendsCard.Journal }.on)
     }
 
     @Test
