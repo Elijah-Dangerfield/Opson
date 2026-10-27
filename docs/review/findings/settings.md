@@ -93,7 +93,7 @@ the place, the rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its f
   equals the current back stack entry's route (same class and arguments), or pass
   `NavigationOptions(launchSingleTop = true)` from these callers.
 
-## 8. Design sync 2: the Photos Show / Hide row in Modes and numbers: deferred (cross-slice)
+## 8. Design sync 2: the Photos Show / Hide row in Modes and numbers: fixed (was deferred)
 
 - **Where:** `modes/*`, and its reader `features/trends/.../WeightState.kt:53`.
 - **Rule:** 0.2 brief "every new user-facing surface sits behind a release flag"; checklist
@@ -105,8 +105,12 @@ the place, the rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its f
   `SettingsNumbersChanger` (`libraries/diary`) treats as raising when it goes to Show, the row in
   `RadioMatrix` with two disabled cells (`libraries/ui`), and Trends'
   `ProgressPhotosVisibility` reading it, all behind `release.progressPhotos`.
+- **Fix:** `feat(nutrition): a Progress photos choice in NumbersSettings, behind the pause`,
+  `feat(ui): RadioMatrix rows can leave columns out`,
+  `feat(settings): Progress photos row in Modes and numbers`,
+  `feat(trends): Weight's photos row follows Modes' Show or Hide`.
 
-## 9. Design sync 2: "Check in at day close" in Reminders: deferred (cross-slice)
+## 9. Design sync 2: "Check in at day close" in Reminders: fixed (was deferred)
 
 - **Where:** `reminders/*`.
 - **Why deferred:** the switch needs a settings key that Today's day close reads
@@ -114,6 +118,11 @@ the place, the rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its f
   flag `CheckInEnabled` lives in `features/today/impl/.../TodayReleaseFlags.kt:46`, which a
   settings impl cannot depend on. Move `CheckInEnabled` to `libraries/diary` (beside
   `FastingRelease`), add the key, then the row here is a `SwitchCard` like Quiet mode.
+- **Fix:** `refactor(diary): move CheckInEnabled to libraries/diary`,
+  `feat(today): a checkIn setting that turns Close the day's check-in off`,
+  `feat(settings): Check in at day close switch in Reminders`. The hunger and fullness questions
+  row stays above it: the logger still asks them, so removing their switch would leave no way to
+  stop it.
 
 ## Not a problem
 

@@ -86,7 +86,7 @@ the place, the rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its f
 - **Fix:** `refactor(trends): drop the unused trends_placeholder string`,
   `docs(trends): the cards comment no longer says Expended waits on 0.2`.
 
-## 8. Design sync 2: the Expended card: deferred (cross-slice)
+## 8. Design sync 2: the Expended card: fixed (was deferred)
 
 - **Where:** `TrendsScreen.kt:136` (`TODO(design-sync-2)`).
 - **Why deferred:** the card is a daily average across the range. `HealthRepository.energy(day)`
@@ -95,8 +95,11 @@ the place, the rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its f
   on `HealthRepository` and both readers, plus a `TrendsCards.expended` settings field
   (`libraries/diary`). Then the card is `policy.resolve(Metric.EnergyOut, …, Surface.Week)`
   behind `release.health`.
+- **Fix:** `feat(health): read energy for a range of days in one query`,
+  `feat(trends): the Expended card, the watch's daily average`. `TrendsCards.expended` already
+  existed, so no settings change was needed.
 
-## 9. Design sync 2: hunger from the check-ins on Patterns: deferred (cross-slice)
+## 9. Design sync 2: hunger from the check-ins on Patterns: fixed (was deferred)
 
 - **Where:** `PatternsState.kt` `hunger`.
 - **Why deferred:** the card reads per-meal hunger tags through `MealPatterns`
@@ -106,11 +109,15 @@ the place, the rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its f
   `MealPatternFacts.checkInHungerByWeekday` (average `DayHunger.ordinal / 4` per weekday over
   days with a check-in) to `MealPatterns.of`; then `PatternsStateBuilder` uses it when the flag
   is on and the tags otherwise, with a "From your check-ins" caption string.
+- **Fix:** `feat(trends): Patterns' hunger from the daily check-ins`. Until anyone has answered
+  the check-in's hunger row the card keeps reading the tags, and a tag card now says "From your
+  meal tags" rather than claiming the check-ins.
 
-## 10. Design sync 2: the photos visibility switch: deferred
+## 10. Design sync 2: the photos visibility switch: fixed (was deferred)
 
 - **Where:** `WeightState.kt:53` (`TODO(design-sync-2)`). Waits on settings finding 8; until
   then the preset default stands, which is what the design defaults to.
+- **Fix:** `feat(trends): Weight's photos row follows Modes' Show or Hide`.
 
 ## Not a problem
 
