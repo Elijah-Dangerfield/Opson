@@ -13,7 +13,6 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
-import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -125,12 +124,6 @@ class LoggerStateBuilderTest {
 
         assertEquals(listOf(MealSlot.Uncategorized), state.slots)
         assertEquals(MealSlot.Uncategorized, state.slot)
-    }
-
-    @Test
-    fun theDayIsTheOneItLogsTo() {
-        assertEquals(RelativeDay.Today, build().day)
-        assertEquals(RelativeDay.Yesterday, build(inputs(day = Day.empty(yesterday))).day)
     }
 
     @Test

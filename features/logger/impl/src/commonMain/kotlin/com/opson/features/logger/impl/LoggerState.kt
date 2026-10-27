@@ -10,7 +10,6 @@ import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.VisibilityPolicy
-import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -19,8 +18,6 @@ import kotlinx.datetime.TimeZone
 /** What the add sheet draws. Built by [LoggerStateBuilder]; every number in it is policy-resolved. */
 data class LoggerState(
     val loading: Boolean = true,
-    /** The day it logs to, for the a11y of the title when it is not today. */
-    val day: RelativeDay = RelativeDay.Today,
     val slot: MealSlot = MealSlot.Dinner,
     /** The title's dropdown. One entry, and no chevron, with meal groups off. */
     val slots: List<MealSlot> = MealSlot.entries,
@@ -173,8 +170,8 @@ sealed interface LoggerAction {
 }
 
 /**
- * Everything but [ShowToast], [WaterAdded] and [Dismiss] opens something in place of the sheet,
- * so Back from there lands where the sheet was opened.
+ * Everything but [WaterAdded] and [Dismiss] opens something in place of the sheet, so Back from
+ * there lands where the sheet was opened.
  */
 sealed interface LoggerEvent {
     data class OpenSearch(val day: LocalDate, val slot: MealSlot) : LoggerEvent
@@ -188,7 +185,6 @@ sealed interface LoggerEvent {
 
     /** A glass went in, [ml] of it, on [day]: the snackbar's Undo takes it off again. */
     data class WaterAdded(val day: LocalDate, val ml: Int) : LoggerEvent
-    data class ShowToast(val toast: Toast) : LoggerEvent
     data object Dismiss : LoggerEvent
 }
 

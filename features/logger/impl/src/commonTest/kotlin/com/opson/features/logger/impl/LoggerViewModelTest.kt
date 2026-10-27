@@ -14,7 +14,6 @@ import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.nutrition.PresetId
-import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -506,7 +505,6 @@ class LoggerViewModelTest : CoroutineTest() {
         selectedDay.select(yesterday)
         val vm = vm()
 
-        assertEquals(RelativeDay.Yesterday, vm.state.day)
         vm.takeAction(LoggerAction.WaterTapped)
         assertEquals(yesterday, diary.water.single().first)
     }

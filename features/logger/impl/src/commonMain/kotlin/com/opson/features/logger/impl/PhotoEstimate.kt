@@ -26,8 +26,8 @@ import kotlin.math.max
 import kotlin.math.round
 
 /**
- * Photo estimate over the logger (docs/plans/screens/photo.md). Only the
- * logger's Photo chip opens it, and that chip is behind `release.photo`.
+ * Photo estimate over the logger (docs/plans/screens/photo.md). Only Photo
+ * on the + sheet and search's "Photograph it" open it, both behind `release.photo`.
  * [dayIso] and [slot] are where its "Add to {meal}" logs.
  */
 @Serializable

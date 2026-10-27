@@ -19,7 +19,7 @@ data class BarcodeScanRoute(val dayIso: String, val slot: MealSlot, val overSear
 
 /**
  * What the scanner draws. No nutrition number is ever in it: a found food
- * leaves for the amount sheet before anything about it is shown.
+ * leaves for the food detail before anything about it is shown.
  */
 data class BarcodeScanState(
     val slot: MealSlot = MealSlot.Dinner,

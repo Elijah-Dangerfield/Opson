@@ -165,7 +165,7 @@ object DescribeRows {
         return row.quantity > step(food, unit)
     }
 
-    /** The unit menu's pick: the count stays and the weight follows, as on the amount sheet; to or from grams converts. */
+    /** The unit menu's pick: the count stays and the weight follows, as on the food detail; to or from grams converts. */
     fun unitPicked(row: DescribeRow, index: Int, householdOnly: Boolean): DescribeRow {
         val food = row.food ?: return row
         val from = row.unit ?: return row

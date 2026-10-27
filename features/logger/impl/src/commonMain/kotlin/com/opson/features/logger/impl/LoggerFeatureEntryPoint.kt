@@ -242,7 +242,6 @@ class LoggerFeatureEntryPoint(
                     navigate(ExerciseRoute(dayIso = event.day.toString()))
                 }
                 is LoggerEvent.WaterAdded -> showWaterAdded(event.day, event.ml)
-                is LoggerEvent.ShowToast -> showToast(event.toast)
                 // Animate the sheet down first; its dismiss callback pops the route.
                 LoggerEvent.Dismiss -> sheetState.dismiss()
                 RequestMicPermission -> latestRequestMic?.invoke()

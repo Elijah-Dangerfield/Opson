@@ -216,7 +216,7 @@ private fun FocusLayer(onFocus: (FocusPoint) -> Unit, modifier: Modifier) {
 
 /**
  * The moment a code is caught: the frame snaps tight in the accent colour
- * with a tick in it, so a fast hit that goes straight to the amount sheet
+ * with a tick in it, so a fast hit that goes straight to the food detail
  * still shows it worked. A slow lookup swaps this for the spinner at 400 ms.
  */
 @Composable

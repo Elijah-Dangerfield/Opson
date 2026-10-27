@@ -15,7 +15,6 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
-import com.opson.libraries.ui.time.RelativeDay
 
 /** What the person has done on the sheet so far, as opposed to what it read. */
 data class LoggerChoices(
@@ -63,7 +62,6 @@ object LoggerStateBuilder {
         val canNumber = policy.level(Metric.Calories) != Visibility.Hide
         return LoggerState(
             loading = false,
-            day = RelativeDay.of(inputs.day.date, inputs.today),
             slot = slot,
             slots = if (groupsOn) MealSlot.entries else listOf(MealSlot.Uncategorized),
             pane = choices.pane,
