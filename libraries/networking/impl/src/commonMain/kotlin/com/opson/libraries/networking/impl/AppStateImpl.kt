@@ -73,8 +73,8 @@ class AppStateImpl(
         .map { it.value.isOffline }
         .stateIn(appScope, SharingStarted.Eagerly, initialValue = false)
 
-    // Block state is unwired in V1; see PreviewAppState for the contract.
-    // Kept on the interface for future overlay use-cases.
+    // TODO(review): nothing reads isBlockActive. Removing it from AppState also
+    // touches fakes in the logger and ui slices, so it waits for the orchestrator.
     override val isBlockActive: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
 
     private data class Signals(val osOnline: Boolean, val reachable: Boolean) {

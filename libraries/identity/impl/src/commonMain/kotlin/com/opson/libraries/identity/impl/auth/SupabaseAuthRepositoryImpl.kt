@@ -214,6 +214,9 @@ class SupabaseAuthRepositoryImpl(
      * [SessionUnconfirmed] as the cause so identity self-heal neither mints a
      * guest over the stored account nor declares it unrecoverable.
      */
+    // TODO(review): nothing watches supabase-kt's status, so when its own retry
+    // succeeds the app stays Unauthenticated until the next foreground or
+    // connectivity edge calls retry(). Re-resolve on the status flipping instead.
     private suspend fun settleUnconfirmedLocked(): AuthState.Unauthenticated {
         val last = lastEmittedOrNull() as? AuthState.Unauthenticated
         if (last?.reason == AuthState.Unauthenticated.Reason.SessionExpired) return settleUnauthenticatedLocked()
