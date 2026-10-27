@@ -149,6 +149,9 @@ class IosLocalNotifications(
             setDay(local.day.toLong())
             setHour(local.hour.toLong())
             setMinute(local.minute.toLong())
+            // Planned nudges sit on the minute; a snooze or a QA test fire does not, and without
+            // seconds a test fire seconds away matches a time already past and never arrives.
+            setSecond(local.second.toLong())
         }
         val trigger = UNCalendarNotificationTrigger.triggerWithDateMatchingComponents(components, repeats = false)
         val request = UNNotificationRequest.requestWithIdentifier(reminder.id, content, trigger)
