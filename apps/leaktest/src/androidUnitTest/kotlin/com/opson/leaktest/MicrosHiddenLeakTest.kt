@@ -52,7 +52,7 @@ class MicrosHiddenLeakTest(private val surface: LeakSurface, private val case: M
 
     companion object {
         /** Every surface that draws micros. [LeakTestControlTest] fails on one missing from here. */
-        val MICROS_SURFACES = setOf("nutrients", "nutrients-week", "logger-amount-nutrients")
+        val MICROS_SURFACES = setOf("nutrients", "nutrients-week", "food-detail-nutrients")
 
         /** Derived, so a preset added later is covered the day it hides micros. */
         private val PRESETS_HIDING_MICROS: List<PresetId> = Presets.all
