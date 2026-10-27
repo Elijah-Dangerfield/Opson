@@ -33,6 +33,7 @@ class DatabaseSchemaTest : DatabaseTest() {
                 FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable, BarcodeMissesTable,
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable,
                 CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, WaitlistTable,
+                AppleRefreshTokensTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
@@ -314,7 +315,7 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
         listOf(
             "log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "barcode_misses",
-            "profiles", "waitlist",
+            "profiles", "waitlist", "apple_refresh_tokens",
         ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {

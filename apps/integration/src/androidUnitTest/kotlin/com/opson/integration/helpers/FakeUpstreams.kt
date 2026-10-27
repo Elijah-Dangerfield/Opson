@@ -6,6 +6,7 @@ import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.netty.NettyApplicationEngine
+import io.ktor.server.request.receiveParameters
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.delete
@@ -22,12 +23,15 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Stand-ins for the three services outside Opson that the server calls, on one
+ * Stand-ins for the services outside Opson that the server calls, on one
  * local port, so a journey that reaches them never leaves the machine:
  *
  *  - **Supabase Auth admin** (`/auth/v1/admin/users/{id}`): a hard delete removes
  *    the `auth.users` row, as GoTrue does, and the database's `ON DELETE CASCADE`
  *    does the rest. A display-name mirror is accepted and ignored.
+ *  - **Sign in with Apple** (`/auth/token`, `/auth/revoke`): a code becomes the
+ *    refresh token `apple-refresh-<code>`, and revocations are recorded in
+ *    [revokedAppleTokens].
  *  - **Anthropic Messages** (`/v1/messages`): answers [photoFoods] as the model's
  *    structured output, so the real `AnthropicEstimateProvider` and SDK parse it.
  *  - **Open Food Facts** (`/api/v2/product/{code}.json`): knows the products in
@@ -51,6 +55,9 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
     /** User ids the server asked Supabase to delete. */
     val deletedUsers: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
+    /** Refresh tokens the server asked Apple to revoke, in order. */
+    val revokedAppleTokens: MutableList<String> = Collections.synchronizedList(mutableListOf())
+
     data class PhotoFood(val name: String, val quantity: Double, val unit: String, val grams: Double)
 
     data class OffProduct(val name: String, val brand: String, val kcalPer100g: Double)
@@ -70,6 +77,14 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
                 }
                 put("/auth/v1/admin/users/{id}") {
                     call.respondText("{}", ContentType.Application.Json)
+                }
+                post("/auth/token") {
+                    val code = call.receiveParameters()["code"].orEmpty()
+                    call.respondText("""{"refresh_token":"apple-refresh-$code"}""", ContentType.Application.Json)
+                }
+                post("/auth/revoke") {
+                    revokedAppleTokens += call.receiveParameters()["token"].orEmpty()
+                    call.respondText("", ContentType.Text.Plain)
                 }
                 post("/v1/messages") {
                     call.respondText(messagesReply(photoFoods), ContentType.Application.Json)

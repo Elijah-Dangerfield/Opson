@@ -94,6 +94,9 @@ robolectricAndroidAll = "15-robolectric-13954326-i7"
 # previews can move to the androidx annotation without breaking the iOS link.
 roborazzi = "1.77.0"
 composablePreviewScanner = "0.9.3"
+# Only its exportLibraryDefinitions task, which writes the app's open-source
+# licence list for Support › Credits. Not part of an ordinary build.
+aboutLibraries = "15.3.0"
 
 [libraries]
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-security-crypto" }
@@ -282,4 +285,5 @@ baselineProfile = { id = "androidx.baselineprofile", version.ref = "androidx-ben
 buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
 kotlinCocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
+aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibraries" }
 

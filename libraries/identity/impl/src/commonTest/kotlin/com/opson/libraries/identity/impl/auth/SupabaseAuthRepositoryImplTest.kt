@@ -6,10 +6,12 @@ import com.opson.libraries.opson.AppEventBus
 import com.opson.libraries.opson.UserScopedDataReset
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.identity.auth.AppleSignInCredential
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.LinkEmailIdentityOutcome
 import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.auth.RefreshOutcome
+import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.identity.impl.MeDto
 import com.opson.libraries.identity.impl.PatchMeRequest
@@ -750,6 +752,59 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         assertEquals(0, gateway.refreshSessionCalls, "no session → skip the refresh entirely")
     }
 
+    // ---------- Sign in with Apple ----------
+
+    @Test
+    fun signInWithApple_sendsTheAuthorizationCodeSoDeletionCanRevoke() = runUnitTest {
+        val api = RecordingProfileApi()
+        val gateway = appleGateway()
+        val repo = build(gateway = gateway, profileApi = api)
+        advanceUntilIdle()
+
+        val outcome = repo.signInWithApple(appleCredential(authorizationCode = "code-1"))
+        advanceUntilIdle()
+
+        assertEquals(SignInOutcome.Success, outcome)
+        assertEquals(listOf("code-1"), api.sentCodes)
+    }
+
+    @Test
+    fun signInWithApple_stillSucceeds_whenTheServerWontKeepTheCode() = runUnitTest {
+        val api = RecordingProfileApi(failSend = true)
+        val repo = build(gateway = appleGateway(), profileApi = api)
+        advanceUntilIdle()
+
+        val outcome = repo.signInWithApple(appleCredential(authorizationCode = "code-1"))
+        advanceUntilIdle()
+
+        assertEquals(SignInOutcome.Success, outcome)
+        assertIs<AuthState.Authenticated>(repo.current())
+    }
+
+    @Test
+    fun signInWithApple_withoutACode_sendsNothing() = runUnitTest {
+        val api = RecordingProfileApi()
+        val repo = build(gateway = appleGateway(), profileApi = api)
+        advanceUntilIdle()
+
+        repo.signInWithApple(appleCredential(authorizationCode = null))
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), api.sentCodes)
+    }
+
+    private fun appleGateway() = FakeSupabaseAuthGateway(
+        initialStatus = AuthGatewayStatus.NotAuthenticated,
+        session = null,
+        onSignInWithAppleIdToken = { _, _ -> advanceToAuthenticated(claimedSession()) },
+    )
+
+    private fun appleCredential(authorizationCode: String?) = AppleSignInCredential(
+        identityToken = "id-token",
+        nonce = "nonce",
+        authorizationCode = authorizationCode,
+    )
+
     // ---------- deleteAccount ----------
 
     @Test
@@ -894,9 +949,10 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         userScopedDataReset: UserScopedDataReset = NoOpUserScopedDataReset,
         sessionRejectionBus: com.opson.libraries.networking.SessionRejectionBus =
             FakeSessionRejectionBus(),
+        profileApi: ProfileApi = UnusedProfileApi,
     ): SupabaseAuthRepositoryImpl = SupabaseAuthRepositoryImpl(
         gateway = gateway,
-        profileApi = UnusedProfileApi,
+        profileApi = profileApi,
         appEventBus = appEventBus,
         userScopedDataReset = userScopedDataReset,
         tokenInvalidator = NoOpTokenInvalidator,
@@ -964,6 +1020,19 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
             error("ProfileApi not used by these tests")
         override suspend fun deleteMe(): HttpResponse =
             error("ProfileApi not used by these tests")
+        override suspend fun sendAppleAuthorization(authorizationCode: String) =
+            error("ProfileApi not used by these tests")
+    }
+
+    private class RecordingProfileApi(private val failSend: Boolean = false) : ProfileApi {
+        val sentCodes = mutableListOf<String>()
+        override suspend fun me(): MeDto = error("unused")
+        override suspend fun patchMe(request: PatchMeRequest): MeDto = error("unused")
+        override suspend fun deleteMe(): HttpResponse = error("unused")
+        override suspend fun sendAppleAuthorization(authorizationCode: String) {
+            sentCodes += authorizationCode
+            if (failSend) throw RuntimeException("503 apple_not_configured")
+        }
     }
 }
 
@@ -999,6 +1068,9 @@ internal class FakeSupabaseAuthGateway(
     },
     var onLinkEmailIdentity: suspend FakeSupabaseAuthGateway.(String, String) -> Unit = { _, _ ->
         error("linkEmailIdentity not stubbed for this test")
+    },
+    var onSignInWithAppleIdToken: suspend FakeSupabaseAuthGateway.(String, String) -> Unit = { _, _ ->
+        error("signInWithAppleIdToken not stubbed for these tests")
     },
 ) : SupabaseAuthGateway {
 
@@ -1108,8 +1180,9 @@ internal class FakeSupabaseAuthGateway(
     override fun isOAuthRedirect(url: String): Boolean =
         url.startsWith("opson://login-callback")
 
-    override suspend fun signInWithAppleIdToken(idToken: String, nonce: String): Unit =
-        error("signInWithAppleIdToken not stubbed for these tests")
+    override suspend fun signInWithAppleIdToken(idToken: String, nonce: String) {
+        onSignInWithAppleIdToken(idToken, nonce)
+    }
 
     override suspend fun linkAppleIdToken(idToken: String, nonce: String): Unit =
         error("linkAppleIdToken not stubbed for these tests")

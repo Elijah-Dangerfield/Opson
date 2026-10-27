@@ -403,24 +403,47 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
       is off. The sentence is gone from `legal/privacy.md` and
       `legal/health-data.md`. 0.1 still sends the URL, so the App Store label
       keeps Search history as linked until 0.1 is off the store.
-- [ ] Exclude `opson.db` from iCloud and device backups on iOS
-      (`isExcludedFromBackup` in `IosAppDatabaseBuilderFactory.kt`), and add
-      backup and data-extraction rules on Android (`allowBackup` is true with
-      no rules). The log is on the server anyway, and Apple's 5.1.3(ii) reads
-      most safely with no health data in iCloud at all.
-- [ ] Account deletion: revoke the Sign in with Apple token through Apple's
-      REST API as part of `DELETE /v1/me`. Apple asks for this when an app
-      offers Sign in with Apple and account deletion.
-- [ ] Remove the Lust Script font (`libraries/ui/.../font/lust-script-regular.ttf`,
-      `BrandFontFamily`), or buy Positype's app license. It's a commercial
-      font marked "All rights reserved", ships in the binary, and is used only
-      by the typography catalog.
-- [ ] Add `PrivacyInfo.xcprivacy` to the iOS app, declaring the
-      required-reason APIs the app's own code uses (UserDefaults, file
-      timestamps). There is none in the repo.
-- [ ] Before the Android release: a generated open-source license screen in
-      the app (AboutLibraries or similar) to back up `legal/credits.md`, which
-      is hand-written from the 2026-10-27 dependency report.
+- [x] The phone's copy of the log is out of device backups. On iOS the
+      database and every settings file live in `Application Support/no_backup`,
+      a folder flagged `NSURLIsExcludedFromBackupKey` on every open, and older
+      installs move across from `Documents` on their first launch
+      (`NoBackupDirectory.kt`). Android has `allowBackup="false"` and data
+      extraction rules that also stop phone-to-phone transfer. The privacy
+      policy says so.
+- [x] Account deletion revokes the Sign in with Apple token. The app sends
+      Apple's authorization code after an Apple sign-in, the server keeps the
+      refresh token (V23), and `DELETE /v1/me` revokes it once the account is
+      gone. A failed or skipped revocation never blocks deletion.
+- [ ] **You:** give the server a Sign in with Apple key, or revocation is
+      skipped with a warning in the logs. In the Apple developer site,
+      Certificates, Identifiers & Profiles › Keys, create a key with Sign in
+      with Apple enabled for `com.opson.Opson` and download the `.p8`. Then
+      set the three secrets on each server app (one deploy each):
+
+      ```bash
+      printf "Fly app (opson-server-dev or opson-server-prod): "; read -r APP
+      printf "Apple team id: "; read -r TEAM
+      printf "Key id: "; read -r KID
+      printf "Full path to the .p8 file: "; read -r P8
+      if [ -n "$APP" ] && [ -n "$TEAM" ] && [ -n "$KID" ] && [ -f "$P8" ]; then
+        fly secrets set -a "$APP" APPLE_TEAM_ID="$TEAM" APPLE_KEY_ID="$KID" APPLE_PRIVATE_KEY="$(cat "$P8")"
+      else echo "Something was empty, or no file at that path. Nothing set."; fi; unset APP TEAM KID P8
+      ```
+
+      People who signed in with Apple before this build have no stored token
+      until they next sign in with Apple, so their deletion can't revoke.
+- [x] The Lust Script font is gone; the wordmark uses Atkinson Hyperlegible
+      (`260fb927`).
+- [x] `apps/ios/iosApp/PrivacyInfo.xcprivacy` declares no tracking, the
+      required-reason APIs (UserDefaults, file timestamps, system boot time,
+      disk space, with the callers in its comment) and the App Privacy data
+      types. The `iosApp` folder is synchronized, so it needs no
+      `project.pbxproj` entry.
+- [x] Support › About Opson › Credits and licenses is a screen in the app,
+      generated from the build (AboutLibraries), with every license's full
+      text. After changing dependencies, run
+      `./gradlew :apps:compose:exportLibraryDefinitions` and commit
+      `libraries/resources/.../files/licenses.json`.
 - [ ] Export: include notes, feelings, settings, custom foods, saved meals
       and fasts in the CSV, or keep the policy's "email us for the rest".
 
@@ -455,7 +478,7 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 
 ### When NEVO lands
 
-- [ ] Add "Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven"
+- [x] Add "Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven"
       to `legal/credits.md` and the in-app food credit, wherever NEVO foods
       appear. NEVO data must stay free to users, including after Plus, and
       its values may not be changed.

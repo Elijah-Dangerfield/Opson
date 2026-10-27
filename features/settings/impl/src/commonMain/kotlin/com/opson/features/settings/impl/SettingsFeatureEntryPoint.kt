@@ -13,6 +13,7 @@ import com.opson.features.home.FeedbackRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
+import com.opson.features.settings.CreditsRoute
 import com.opson.features.settings.FindSupportRoute
 import com.opson.features.settings.IntegrationsRoute
 import com.opson.features.settings.LeaveOutDayRoute
@@ -65,6 +66,9 @@ import com.opson.features.settings.impl.reminders.RemindersEvent
 import com.opson.features.settings.impl.reminders.RemindersScreen
 import com.opson.features.settings.impl.reminders.RemindersViewModel
 import com.opson.features.settings.impl.support.EXPORT_MIME_TYPE
+import com.opson.features.settings.impl.support.CreditsEvent
+import com.opson.features.settings.impl.support.CreditsScreen
+import com.opson.features.settings.impl.support.CreditsViewModel
 import com.opson.features.settings.impl.support.FindSupportEvent
 import com.opson.features.settings.impl.support.FindSupportScreen
 import com.opson.features.settings.impl.support.FindSupportViewModel
@@ -128,6 +132,7 @@ class SettingsFeatureEntryPoint(
     private val leaveOutViewModel: () -> LeaveOutViewModel,
     private val widgetsViewModel: () -> WidgetsViewModel,
     private val findSupportViewModel: () -> FindSupportViewModel,
+    private val creditsViewModel: () -> CreditsViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -351,6 +356,7 @@ class SettingsFeatureEntryPoint(
                     is SupportEvent.ShowToast -> show(event.toast)
                     SupportEvent.OpenFeedback -> router.navigate(FeedbackRoute())
                     SupportEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
+                    SupportEvent.OpenCredits -> router.navigate(CreditsRoute())
                     SupportEvent.GoToOnboarding -> router.navigate(
                         OnboardingRoute(),
                         NavigationOptions(clearBackStack = true),
@@ -425,6 +431,18 @@ class SettingsFeatureEntryPoint(
                 }
             }
             FindSupportScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        screen<CreditsRoute> {
+            val viewModel: CreditsViewModel = viewModel { creditsViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is CreditsEvent.OpenLink -> router.openWebLink(event.url)
+                    CreditsEvent.Close -> router.goBack()
+                }
+            }
+            CreditsScreen(state = state, onAction = viewModel::takeAction)
         }
     }
 

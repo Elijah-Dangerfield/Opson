@@ -180,7 +180,12 @@ fun Application.installApp(
             waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
         }
         if (component != null && verification != null) {
-            meRoutes(component.profileRepository, component.supabaseAdminClient)
+            meRoutes(
+                component.profileRepository,
+                component.supabaseAdminClient,
+                component.appleTokenRepository,
+                component.appleSignInClient,
+            )
             syncRoutes(component.syncRepository, component.clock)
             foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber)
             photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.clock)

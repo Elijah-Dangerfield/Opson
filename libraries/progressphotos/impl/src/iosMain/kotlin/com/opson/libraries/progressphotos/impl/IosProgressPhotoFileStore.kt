@@ -49,9 +49,10 @@ class IosProgressPhotoFileStore @Inject constructor() : ProgressPhotoFileStore {
         val folder = support.URLByAppendingPathComponent(FOLDER, isDirectory = true) ?: return null
         if (create) {
             manager.createDirectoryAtURL(folder, withIntermediateDirectories = true, attributes = null, error = null)
-            // Set every time, not only on creation: a restore or an older build could have dropped it.
-            folder.setResourceValue(NSNumber(bool = true), forKey = NSURLIsExcludedFromBackupKey, error = null)
         }
+        // Set on every access, reads included, not only on creation: a restore or an older build
+        // could have dropped it, and a phone that only ever views its photos never writes.
+        folder.setResourceValue(NSNumber(bool = true), forKey = NSURLIsExcludedFromBackupKey, error = null)
         return folder
     }
 

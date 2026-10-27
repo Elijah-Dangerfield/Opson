@@ -24,7 +24,6 @@ const val PROVIDER_URL = "https://www.findedhelp.com/"
 // policy reachable inside the app as well as on the listing.
 const val PRIVACY_URL = "https://nightjarlabs.llc/opson/privacy"
 const val TERMS_URL = "https://nightjarlabs.llc/opson/terms"
-const val CREDITS_URL = "https://nightjarlabs.llc/opson/credits"
 
 /** The file the share sheet offers, matching the server's Content-Disposition. */
 const val EXPORT_FILE_NAME = "opson-export.csv"
@@ -99,7 +98,7 @@ class SupportViewModel(
             SupportAction.SendFeedbackTapped -> sendEvent(SupportEvent.OpenFeedback)
             SupportAction.PrivacyTapped -> sendEvent(SupportEvent.OpenLink(PRIVACY_URL))
             SupportAction.TermsTapped -> sendEvent(SupportEvent.OpenLink(TERMS_URL))
-            SupportAction.CreditsTapped -> sendEvent(SupportEvent.OpenLink(CREDITS_URL))
+            SupportAction.CreditsTapped -> sendEvent(SupportEvent.OpenCredits)
             SupportAction.DeleteTapped -> action.updateState { it.copy(delete = DeleteStep.Confirming) }
             SupportAction.KeepMyDataTapped -> action.updateState { it.copy(delete = DeleteStep.Idle) }
             SupportAction.DeleteConfirmed -> delete(action)
@@ -159,6 +158,9 @@ sealed interface SupportEvent {
     data class ShowToast(val toast: Toast) : SupportEvent
     data object OpenFeedback : SupportEvent
     data object OpenFindSupport : SupportEvent
+
+    /** In the app rather than the web page, so the licence texts ship with the binary. */
+    data object OpenCredits : SupportEvent
 
     /** Everything is gone; start again from onboarding with nothing behind it. */
     data object GoToOnboarding : SupportEvent

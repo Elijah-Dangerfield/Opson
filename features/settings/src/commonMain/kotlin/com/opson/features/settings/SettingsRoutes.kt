@@ -94,3 +94,10 @@ class WidgetsRoute : Route()
  */
 @Serializable
 class FindSupportRoute : Route()
+
+/**
+ * Credits and licenses: food data, the typeface and the open-source licences in the shipped
+ * builds. Opened from Support's About card.
+ */
+@Serializable
+class CreditsRoute : Route()

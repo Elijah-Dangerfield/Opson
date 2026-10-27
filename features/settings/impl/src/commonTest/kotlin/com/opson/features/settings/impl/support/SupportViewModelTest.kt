@@ -58,7 +58,7 @@ class SupportViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun theAboutRowsOpenThePublishedLegalPages() = runUnitTest {
+    fun theAboutRowsOpenThePublishedLegalPages_andTheCreditsInTheApp() = runUnitTest {
         val rig = Rig()
         val events = eventsOf(rig.vm)
 
@@ -67,10 +67,10 @@ class SupportViewModelTest : CoroutineTest() {
         rig.vm.takeAction(SupportAction.CreditsTapped)
 
         assertEquals(
-            listOf<SupportEvent>(
+            listOf(
                 SupportEvent.OpenLink("https://nightjarlabs.llc/opson/privacy"),
                 SupportEvent.OpenLink("https://nightjarlabs.llc/opson/terms"),
-                SupportEvent.OpenLink("https://nightjarlabs.llc/opson/credits"),
+                SupportEvent.OpenCredits,
             ),
             events,
         )

@@ -2,34 +2,28 @@ package com.opson.libraries.storage.impl.db
 
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import kotlinx.cinterop.ExperimentalForeignApi
+import com.opson.libraries.storage.impl.NoBackupDirectory
 import me.tatarka.inject.annotations.Inject
-import platform.Foundation.NSDocumentDirectory
-import platform.Foundation.NSFileManager
-import platform.Foundation.NSUserDomainMask
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
-@OptIn(ExperimentalForeignApi::class)
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class IosAppDatabaseBuilderFactory @Inject constructor() : AppDatabaseBuilderFactory {
 
     override fun create(): RoomDatabase.Builder<AppDatabase> {
-        val documentsUrl = requireNotNull(
-            NSFileManager.defaultManager.URLForDirectory(
-                directory = NSDocumentDirectory,
-                inDomain = NSUserDomainMask,
-                appropriateForURL = null,
-                create = true,
-                error = null
-            )
-        )
-        val dbUrl = documentsUrl.URLByAppendingPathComponent("opson.db")
-        val dbPath = requireNotNull(dbUrl?.path)
+        val dbUrl = NoBackupDirectory().adopt(DB_NAME, companions = SQLITE_SIDE_FILES.map { DB_NAME + it })
         return Room.databaseBuilder<AppDatabase>(
-            name = dbPath
+            name = requireNotNull(dbUrl.path),
         )
+    }
+
+    private companion object {
+        const val DB_NAME = "opson.db"
+
+        // Writes SQLite hasn't folded into the database yet live in the -wal, so it moves with
+        // the database or the newest entries are lost.
+        val SQLITE_SIDE_FILES = listOf("-wal", "-shm", "-journal")
     }
 }

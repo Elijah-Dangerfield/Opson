@@ -3,6 +3,35 @@ plugins {
     id("co.touchlab.skie") version "0.10.12"
     alias(libs.plugins.sentryAndroid)
     alias(libs.plugins.baselineProfile)
+    alias(libs.plugins.aboutLibraries)
+}
+
+/**
+ * The open-source licences for Support › Credits, read from the app's own dependency graph.
+ * Regenerate after changing dependencies, and commit the result:
+ *
+ *     ./gradlew :apps:compose:exportLibraryDefinitions
+ *
+ * What ships: the Android release classpath and the iOS source set's dependencies, merged.
+ * Licences come from each artifact's POM, with the full text of each SPDX licence fetched once
+ * per export. `aboutlibraries/libraries` adds what Gradle never sees: Sentry Cocoa, which Xcode
+ * links through Swift Package Manager (keep its version with `project.pbxproj`).
+ */
+aboutLibraries {
+    collect {
+        configPath = file("aboutlibraries")
+        filterVariants.addAll("release", "metadataIosMain")
+    }
+    export {
+        outputFile = rootProject.file("libraries/resources/src/commonMain/composeResources/files/licenses.json")
+        excludeFields.addAll("description", "developers", "funding", "organization", "scm", "generated")
+        prettyPrint = true
+    }
+    library {
+        duplicationMode = com.mikepenz.aboutlibraries.plugin.DuplicateMode.MERGE
+        duplicationRule = com.mikepenz.aboutlibraries.plugin.DuplicateRule.SIMPLE
+        mergePlatformArtifacts = true
+    }
 }
 
 android {

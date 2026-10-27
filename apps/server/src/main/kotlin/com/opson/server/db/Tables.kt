@@ -301,3 +301,11 @@ object UserSettingsTable : SyncedTable("user_settings") {
     val changedAt = timestamp("changed_at").nullable()
     override val primaryKey = PrimaryKey(userId)
 }
+
+/** The Sign in with Apple refresh token per account, kept so deletion can revoke it (V21). */
+object AppleRefreshTokensTable : Table("apple_refresh_tokens") {
+    val userId = uuid("user_id")
+    val refreshToken = text("refresh_token")
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(userId)
+}

@@ -61,6 +61,8 @@ Data used to track you: **No**.
 | Search History → Search history (food searches, stored without the account; can appear in a crash report about a failed search) | Yes | Yes | App functionality, Analytics |
 | Contact info → Email | Only if the user signs in with Apple | Yes | App functionality |
 
+The app's privacy manifest, `apps/ios/iosApp/PrivacyInfo.xcprivacy`, declares the same types. Change it with this table.
+
 Diagnostics count as linked because `TelemetryUserBinder` attaches the anonymous account id to crash reports and feedback. It never sends the email. Usage events carry an install id rather than the account id, but server logs pair the two, so they are declared as linked too. Search history is declared as linked for the same conservative reason, until crash reports stop carrying failed search URLs (docs/legal-review-2026-10.md).
 
 ## App Review information
