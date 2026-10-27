@@ -1,5 +1,6 @@
 package com.opson.features.onboarding.impl
 
+import com.opson.features.onboarding.OnboardingRoute
 import com.opson.libraries.core.logging.EXTRA_APP_EVENT
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.LogEntry
@@ -22,7 +23,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.datetime.LocalTime
@@ -58,7 +58,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
 
-        assertEquals(OnboardingStep.Account, vm.state.step)
+        assertTrue(vm.state.isFinishing, "saved and on the way to Today")
         assertEquals(Targets.Default, settings.settings.value.targets)
     }
 
@@ -78,10 +78,10 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
 
-        assertEquals(OnboardingStep.Account, vm.state.step)
+        assertTrue(vm.state.isFinishing, "saved and on the way to Today")
         assertEquals(TargetStyle.Range, settings.settings.value.targets.style)
         assertEquals(listOf(false), settings.stampFlags)
-        assertEquals("goal", events.steps().dropLast(1).last())
+        assertEquals("goal", events.steps().last())
     }
 
     @Test
@@ -289,19 +289,6 @@ class OnboardingSetupStepsTest : CoroutineTest() {
     }
 
     @Test
-    fun backFromTheAccountStep_landsOnTheLastSetupStep() = runUnitTest {
-        val vm = atRecommendation(listOf(NumbersFeel.RatherNot))
-        vm.takeAction(OnboardingAction.StartTapped)
-        vm.takeAction(OnboardingAction.ContinueTapped)
-        runCurrent()
-        assertEquals(OnboardingStep.Account, vm.state.step)
-
-        vm.takeAction(OnboardingAction.Back)
-        runCurrent()
-        assertEquals(OnboardingStep.Meals, vm.state.step)
-    }
-
-    @Test
     fun someoneWhoAgreedNumbersWereHard_neverSeesAGoal() = runUnitTest {
         // Full numbers is never on offer to them, and the goal step only comes with it.
         val vm = atRecommendation(listOf(NumbersFeel.LoveThem, StatementAnswer.Agree))
@@ -310,21 +297,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         assertFalse(vm.state.showsGoal)
         vm.takeAction(OnboardingAction.StartTapped)
         runCurrent()
-        assertEquals(OnboardingStep.Account, vm.state.step)
-    }
-
-    @Test
-    fun skipAll_writesNoSetup_withTheFlagOn() = runUnitTest {
-        val settings = FakeSettingsRepository()
-        val vm = newVm(settings = settings, setupSteps = true, goalsAndEnergy = true)
-        val received = collectEvents(vm)
-
-        vm.takeAction(OnboardingAction.SkipAllTapped)
-        runCurrent()
-
-        assertEquals(OnboardingEvent.NavigateToToday, received.single())
-        assertEquals(Targets.Default, settings.settings.value.targets)
-        assertEquals(MealTimes(), settings.settings.value.mealTimes)
+        assertTrue(vm.state.isFinishing, "saved straight away, no setup step")
     }
 
     @Test
@@ -364,11 +337,10 @@ class OnboardingSetupStepsTest : CoroutineTest() {
             OnboardingAction.ContinueTapped,
             OnboardingAction.MealTimePicked(MealSlot.Breakfast, LocalTime(9, 30)),
             OnboardingAction.ContinueTapped,
-            OnboardingAction.KeepOnPhoneTapped,
         ).forEach(vm::takeAction)
         runCurrent()
 
-        assertEquals(listOf("goal", "resting_energy", "meal_times", "account"), events.steps().takeLast(4))
+        assertEquals(listOf("goal", "resting_energy", "meal_times"), events.steps().takeLast(3))
         val values = events.entries
             .filter { it.context.extras[EXTRA_APP_EVENT].toString().startsWith("onboarding.") }
             .flatMap { entry -> entry.context.extras.values.map { it.toString().lowercase() } }
@@ -387,23 +359,18 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         goalsAndEnergy: Boolean = false,
     ) = OnboardingViewModel(
         appCache = FakeAppCache(),
-        authRepository = FakeAuthRepository(),
-        guestAccountCreator = FakeGuestAccountCreator(),
+        // Signed in to a new account, so onboarding opens at the first question.
+        authRepository = FakeAuthRepository(initialAuthState = sampleAuthenticated),
+        authOutcomeClassifier = StubAuthOutcomeClassifier(),
         appleSignInCoordinator = FakeAppleSignInCoordinator(),
         settingsRepository = settings,
         weightRepository = weights,
         calendar = FixedCalendar,
         setupEnabled = onboardingSetupFlag(setupSteps),
         goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergy),
+        route = OnboardingRoute(),
         appleSignIn = true,
     )
-
-    private fun TestScope.collectEvents(vm: OnboardingViewModel): MutableList<OnboardingEvent> {
-        val received = mutableListOf<OnboardingEvent>()
-        backgroundScope.launch { vm.eventFlow.collect { received += it } }
-        runCurrent()
-        return received
-    }
 
     private fun TestScope.atRecommendation(
         answers: List<SetupOption>,
@@ -413,7 +380,6 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         weights: FakeWeightRepository = FakeWeightRepository(),
     ): OnboardingViewModel {
         val vm = newVm(settings, weights, setupSteps, goalsAndEnergy)
-        vm.takeAction(OnboardingAction.GetStartedTapped)
         SetupQuestion.entries.forEach { question ->
             answers.filter { it in question.options }.forEach { vm.takeAction(OnboardingAction.OptionTapped(it)) }
             vm.takeAction(OnboardingAction.ContinueTapped)

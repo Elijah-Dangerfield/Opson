@@ -8,8 +8,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
-import com.opson.features.today.TodayRoute
-import com.opson.features.onboarding.SignInRoute
+import com.opson.features.onboarding.OnboardingRoute
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.AccessDeniedRoute
 import com.opson.libraries.navigation.BlockingErrorRoute
@@ -46,25 +45,20 @@ class ErrorEntryPoints(
 
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    // Claimed account: tear down happened in the VM — land on
-                    // sign-in with a clean stack (Back must not resurrect the
-                    // dead session's screens).
+                    // Tear down happened in the VM: land on onboarding's
+                    // sign-in step with a clean stack (Back must not resurrect
+                    // the dead session's screens).
                     SessionExpiredViewModel.Event.NavigateToSignIn -> router.navigate(
-                        SignInRoute(),
+                        OnboardingRoute(signInFirst = true),
                         NavigationOptions(launchSingleTop = true, clearBackStack = true),
                     )
-                    // Guest: a fresh anonymous session is live — the old stack
-                    // belonged to the dead account, so restart at Today.
-                    SessionExpiredViewModel.Event.StartedFresh -> router.enterTab(TodayRoute())
                 }
             }
 
             SessionExpiredScreen(
                 wasAnonymous = route.wasAnonymous,
                 working = state.working,
-                startFreshFailed = state.startFreshFailed,
-                onSignInAgain = { viewModel.takeAction(SessionExpiredViewModel.Action.SignInAgain) },
-                onStartFresh = { viewModel.takeAction(SessionExpiredViewModel.Action.StartFresh) },
+                onSignIn = { viewModel.takeAction(SessionExpiredViewModel.Action.SignInAgain) },
             )
         }
 

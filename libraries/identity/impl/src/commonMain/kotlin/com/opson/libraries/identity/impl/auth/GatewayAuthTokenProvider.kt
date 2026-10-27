@@ -16,10 +16,9 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  *  - [awaitReady] suspends until supabase-kt has hydrated any persisted
  *    session. [NetworkClient.awaitAuthReady] calls this before issuing a
  *    request, so the request timeout clock doesn't include the hydration wait.
- *    It does **not** create a session — the app is intentionally session-less
- *    until onboarding explicitly creates an account
- *    ([AuthRepository.createGuestSession] or a sign-in). A pre-account request
- *    therefore goes unauthed, which is correct: onboarding only hits public
+ *    It does **not** create a session: the app is session-less until the
+ *    person signs in on onboarding's sign-in step. A pre-account request
+ *    therefore goes unauthed, which is correct: Welcome only hits public
  *    endpoints.
  *  - [accessToken] is a synchronous peek of the gateway's current session.
  *    Returns null if there's no session. Ktor's bearer plugin calls this

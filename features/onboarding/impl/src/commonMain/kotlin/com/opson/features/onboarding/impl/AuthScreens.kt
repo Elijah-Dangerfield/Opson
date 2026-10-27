@@ -157,16 +157,14 @@ fun SignInScreen(
         )
 
         Spacer(modifier = Modifier.height(Dimension.D800))
-        if (SignInMethods.GOOGLE) {
-            ButtonSecondary(
-                onClick = { onAction(SignInAction.SignInWithOAuth(OAuthProvider.Google)) },
-                enabled = !state.isSubmitting,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(Res.string.auth_continue_with_google))
-            }
-            Spacer(modifier = Modifier.height(Dimension.D400))
+        ButtonSecondary(
+            onClick = { onAction(SignInAction.SignInWithOAuth(OAuthProvider.Google)) },
+            enabled = !state.isSubmitting,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(Res.string.auth_continue_with_google))
         }
+        Spacer(modifier = Modifier.height(Dimension.D400))
         if (state.appleEnabled) {
             // Native sign-in — runs the system sheet via the coordinator, not
             // the web flow. After the sheet, the sign-in itself is a network

@@ -20,8 +20,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * PATCH carrying the user's final choice. Cleared once the server confirms it
  * (or on a terminal validation rejection — that edit can never succeed as-is).
  *
- * The guest (never-had-an-account) case does **not** use this — it rides
- * [PendingGuestAccountStore], because the guest-mint path is its sync.
+ * The never-had-an-account case does **not** use this: it rides
+ * [PendingGuestAccountStore], which the Fallback profile reads its name from.
  */
 @SingleIn(AppScope::class)
 @Inject

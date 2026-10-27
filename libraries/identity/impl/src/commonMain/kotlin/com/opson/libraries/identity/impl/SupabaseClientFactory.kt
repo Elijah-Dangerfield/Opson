@@ -4,6 +4,7 @@ import com.opson.libraries.core.Catching
 import com.opson.libraries.flowroutines.DispatcherProvider
 import com.opson.libraries.identity.IdentityConfig
 import com.opson.libraries.identity.auth.SecureSessionStorage
+import com.opson.libraries.identity.impl.auth.FreshInstall
 import com.opson.libraries.identity.impl.auth.SecureSessionManager
 import com.opson.libraries.identity.impl.auth.SessionMirror
 import com.opson.libraries.networking.platformHttpEngineFactory
@@ -45,6 +46,7 @@ interface SupabaseClientComponent {
         config: IdentityConfig,
         secureSessionStorage: SecureSessionStorage,
         sessionMirror: SessionMirror,
+        freshInstall: FreshInstall,
         dispatchers: DispatcherProvider,
     ): SupabaseClient =
         createSupabaseClient(
@@ -82,6 +84,9 @@ interface SupabaseClientComponent {
                     // Keychain lost a session across a TestFlight upgrade and
                     // a guest has no way back in (AUTH-19).
                     mirror = sessionMirror,
+                    // iOS keeps the Keychain across a delete and reinstall; a
+                    // new install must not come back signed in.
+                    freshInstall = freshInstall,
                     dispatchers = dispatchers,
                 )
 

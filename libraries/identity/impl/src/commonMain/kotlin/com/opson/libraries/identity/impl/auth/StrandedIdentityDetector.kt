@@ -25,7 +25,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * warns (which lands as a Sentry breadcrumb via the log tree, tagged
  * [STRANDED_TOKEN]) so the condition is observable in production.
  *
- * Post-[GuestSessionHealer] this should read **zero** — if it ever fires, the
+ * Post-[SessionHealer] this should read **zero** — if it ever fires, the
  * heal path isn't recovering someone it should. Deliberately observe-only: the
  * healer owns recovery; this just measures it.
  */
@@ -63,7 +63,7 @@ class StrandedIdentityDetector(
         if (!onboarded) return
         if (appState.isOffline.value) return
         // A declared-dead session (server rejection or AUTH-19 unrecoverable)
-        // is the healer *deliberately* not minting while the user sits on the
+        // is the healer *deliberately* waiting while the user sits on the
         // recovery screen — not a heal failure. Don't cry wolf over it.
         val auth = Catching { authRepository.current() }.getOrNull()
         if (auth is AuthState.Unauthenticated &&

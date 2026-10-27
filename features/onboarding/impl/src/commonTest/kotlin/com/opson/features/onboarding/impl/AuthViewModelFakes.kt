@@ -4,7 +4,6 @@ package com.opson.features.onboarding.impl
 
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
-import com.opson.libraries.identity.auth.AccountCreationState
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.AppleSignInCredential
 import com.opson.libraries.identity.auth.AuthOutcome
@@ -12,11 +11,9 @@ import com.opson.libraries.identity.auth.AuthOutcomeClassifier
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.DeleteAccountOutcome
-import com.opson.libraries.identity.auth.GuestAccountCreator
 import com.opson.libraries.identity.auth.LinkEmailIdentityOutcome
 import com.opson.libraries.identity.auth.LinkIdentityOutcome
 import com.opson.libraries.identity.auth.OAuthProvider
-import com.opson.libraries.identity.auth.PendingIdentity
 import com.opson.libraries.identity.auth.RefreshOutcome
 import com.opson.libraries.identity.auth.ResendOutcome
 import com.opson.libraries.identity.auth.SendResetOutcome
@@ -29,10 +26,10 @@ import com.opson.libraries.opson.AppCache
 import com.opson.libraries.opson.AppData
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 
 /**
  * Pluggable in-memory [AuthRepository] for unit-testing the onboarding
@@ -56,6 +53,11 @@ internal class FakeAuthRepository(
     val appleSignInOutcome: SignInOutcome = SignInOutcome.Unknown(RuntimeException("not stubbed")),
     val linkOAuthOutcome: LinkIdentityOutcome = LinkIdentityOutcome.Unknown(RuntimeException("not stubbed")),
     initialAuthState: AuthState = AuthState.Unauthenticated(),
+    /**
+     * Holds the Google round trip open until completed, as a browser the
+     * person closed without finishing does (until supabase-kt's timeout).
+     */
+    private val googleGate: CompletableDeferred<Unit>? = null,
 ) : AuthRepository {
     var signInCalls: Int = 0
         private set
@@ -136,6 +138,7 @@ internal class FakeAuthRepository(
     override suspend fun linkOAuthIdentity(provider: OAuthProvider): LinkIdentityOutcome {
         linkOAuthCalls += 1
         lastLinkOAuthProvider = provider
+        googleGate?.await()
         return linkOAuthOutcome
     }
 
@@ -148,6 +151,7 @@ internal class FakeAuthRepository(
     override suspend fun signInWithOAuth(provider: OAuthProvider): SignInOutcome {
         oauthSignInCalls += 1
         lastOAuthProvider = provider
+        googleGate?.await()
         return oauthSignInOutcome
     }
 
@@ -199,44 +203,14 @@ internal class FakeAppCache(
     override suspend fun clear() { state.value = AppData() }
 }
 
-internal class FakeGuestAccountCreator(
-    private val failCreation: Boolean = false,
-    private val failureCause: Throwable? = null,
-    // Models a wedged / offline creation that never reaches a terminal state —
-    // start() parks in InProgress and awaitTerminal() never returns. The finish
-    // path must time out and proceed Home anyway rather than trap the user.
-    private val hangInProgress: Boolean = false,
-    private val onStart: () -> Unit = {},
-) : GuestAccountCreator {
-    private val _state = MutableStateFlow<AccountCreationState>(AccountCreationState.Idle)
-    override val state: StateFlow<AccountCreationState> = _state
-
-    var startCalls: Int = 0
-        private set
-    var lastIdentity: PendingIdentity? = null
+/** Answers every sign-in with [outcome]: a new account, a returning one, or a link. */
+internal class StubAuthOutcomeClassifier(var outcome: AuthOutcome = AuthOutcome.SignedUp) : AuthOutcomeClassifier {
+    var calls = 0
         private set
 
-    override fun start(identity: PendingIdentity) {
-        startCalls++
-        lastIdentity = identity
-        onStart()
-        _state.value = when {
-            hangInProgress -> AccountCreationState.InProgress
-            failCreation -> AccountCreationState.Failed(identity, failureCause)
-            else -> AccountCreationState.Succeeded
-        }
-    }
-
-    override suspend fun awaitTerminal(): AccountCreationState =
-        state.first { it is AccountCreationState.Succeeded || it is AccountCreationState.Failed }
-
-    override fun retry() {
-        lastIdentity?.let { start(it) }
-    }
-
-    override suspend fun ensureSession(fallbackIdentity: PendingIdentity): AccountCreationState {
-        start(fallbackIdentity)
-        return _state.value
+    override suspend fun classify(wasLink: Boolean): AuthOutcome {
+        calls++
+        return outcome
     }
 }
 

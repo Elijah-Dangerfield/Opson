@@ -8,15 +8,12 @@ import com.opson.libraries.core.AuthRequirement
 import com.opson.libraries.core.AuthVerdict
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
-import com.opson.libraries.identity.auth.AccountCreationState
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.DeleteAccountOutcome
-import com.opson.libraries.identity.auth.GuestAccountCreator
 import com.opson.libraries.identity.auth.LinkEmailIdentityOutcome
 import com.opson.libraries.identity.auth.LinkIdentityOutcome
 import com.opson.libraries.identity.auth.OAuthProvider
-import com.opson.libraries.identity.auth.PendingIdentity
 import com.opson.libraries.identity.auth.RefreshOutcome
 import com.opson.libraries.identity.auth.ResendOutcome
 import com.opson.libraries.identity.auth.SendResetOutcome
@@ -47,9 +44,9 @@ import kotlin.test.assertSame
  *  - the stranded-but-healable state (onboarded + online + session-less) now
  *    reads [AuthReason.FinishingSetup] and kicks the healer (was NeedAccount).
  *
- * Healer *kick* behavior is asserted here via the real [GuestSessionHealer]
- * (mint = the fake creator's ensureSession count); the healer's own eligibility
- * matrix and single-flight live in GuestSessionHealerTest.
+ * Healer *kick* behavior is asserted here via the real [SessionHealer] (its
+ * decision = the fake repository's markSessionUnrecoverable count); the
+ * healer's own eligibility matrix and single-flight live in SessionHealerTest.
  */
 class AuthGateImplTest : CoroutineTest() {
 
@@ -97,7 +94,7 @@ class AuthGateImplTest : CoroutineTest() {
 
         assertEquals(blocked(AuthReason.NeedAccount), h.gate.verdict(AuthRequirement.Account))
         advanceUntilIdle()
-        assertEquals(0, h.creator.ensureCalls, "pre-onboarding there's no identity owed")
+        assertEquals(0, h.auth.unrecoverableCalls, "pre-onboarding the sign-in step is where a session comes from")
     }
 
     @Test
@@ -112,29 +109,7 @@ class AuthGateImplTest : CoroutineTest() {
             "offline + unconfirmed session should read as offline, not 'account needed'",
         )
         advanceUntilIdle()
-        assertEquals(0, h.creator.ensureCalls, "can't heal offline")
-    }
-
-    @Test
-    fun account_whileCreationDegraded_blocksWithFinishingSetup() = runUnitTest {
-        val h = build(creation = failedCreation())
-        h.auth.emit(AuthState.Unauthenticated())
-        advanceUntilIdle()
-
-        assertEquals(blocked(AuthReason.FinishingSetup), h.gate.verdict(AuthRequirement.Account))
-    }
-
-    @Test
-    fun account_whenCreationDegradedAndOffline_prefersFinishingSetupOverOffline() = runUnitTest {
-        val h = build(creation = failedCreation(), offline = true)
-        h.auth.emit(AuthState.Unauthenticated())
-        advanceUntilIdle()
-
-        assertEquals(
-            blocked(AuthReason.FinishingSetup),
-            h.gate.verdict(AuthRequirement.Account),
-            "an actively-healing guest should still be told setup is finishing",
-        )
+        assertEquals(0, h.auth.unrecoverableCalls, "can't heal offline")
     }
 
     @Test
@@ -146,7 +121,7 @@ class AuthGateImplTest : CoroutineTest() {
 
         assertEquals(blocked(AuthReason.FinishingSetup), h.gate.verdict(AuthRequirement.Account))
         advanceUntilIdle()
-        assertEquals(1, h.creator.ensureCalls, "a healable verdict kicks the healer")
+        assertEquals(1, h.auth.unrecoverableCalls, "a healable verdict kicks the healer")
     }
 
     @Test
@@ -210,23 +185,19 @@ class AuthGateImplTest : CoroutineTest() {
 
     private class Harness(
         val auth: FakeAuthRepository,
-        val creator: FakeGuestAccountCreator,
         val gate: AuthGateImpl,
     )
 
     private fun build(
         onboarded: Boolean = false,
         offline: Boolean = false,
-        creation: AccountCreationState = AccountCreationState.Idle,
     ): Harness {
         val auth = FakeAuthRepository()
-        val creator = FakeGuestAccountCreator(creation)
         val appCache = FakeAppCache(onboarded)
         val appState = FakeAppState(offline)
         val scope = AppCoroutineScope(dispatchers)
-        val healer = GuestSessionHealer(
+        val healer = SessionHealer(
             authRepositoryProvider = { auth },
-            guestAccountCreatorProvider = { creator },
             profileRepositoryProvider = { FakeProfileRepository() },
             appCache = appCache,
             appState = appState,
@@ -234,24 +205,18 @@ class AuthGateImplTest : CoroutineTest() {
         )
         val gate = AuthGateImpl(
             authRepository = auth,
-            guestAccountCreator = creator,
             appCache = appCache,
             appState = appState,
             healer = healer,
             appScope = scope,
         )
-        return Harness(auth, creator, gate)
+        return Harness(auth, gate)
     }
 
     private fun authed(isAnonymous: Boolean = true, email: String? = null) =
         AuthState.Authenticated(userId = "u1", isAnonymous = isAnonymous, email = email)
 
     private fun blocked(reason: AuthReason) = AuthVerdict.Blocked(reason)
-
-    private fun failedCreation() = AccountCreationState.Failed(
-        PendingIdentity("Foxy"),
-        cause = RuntimeException("offline"),
-    )
 
     private class FakeAppState(offline: Boolean) : AppState {
         override val isOffline: StateFlow<Boolean> = MutableStateFlow(offline)
@@ -273,26 +238,12 @@ class AuthGateImplTest : CoroutineTest() {
         ): UpdateProfileOutcome = error("unused")
     }
 
-    private class FakeGuestAccountCreator(
-        initial: AccountCreationState,
-    ) : GuestAccountCreator {
-        var ensureCalls = 0
-            private set
-
-        override val state = MutableStateFlow(initial)
-        override fun start(identity: PendingIdentity) = error("unused")
-        override fun retry() = error("unused")
-        override suspend fun awaitTerminal(): AccountCreationState = state.value
-        override suspend fun ensureSession(fallbackIdentity: PendingIdentity): AccountCreationState {
-            ensureCalls++
-            return AccountCreationState.Succeeded
-        }
-    }
-
     private class FakeAuthRepository : AuthRepository {
         private val flow = MutableSharedFlow<AuthState>(replay = 1, extraBufferCapacity = 4)
         private var latest: AuthState = AuthState.Unauthenticated()
         var retryCalls = 0
+            private set
+        var unrecoverableCalls = 0
             private set
 
         fun emit(state: AuthState) {
@@ -305,6 +256,9 @@ class AuthGateImplTest : CoroutineTest() {
         override suspend fun retry(): AuthState {
             retryCalls++
             return latest
+        }
+        override suspend fun markSessionUnrecoverable(wasAnonymous: Boolean) {
+            unrecoverableCalls++
         }
         override suspend fun signInWithEmail(email: String, password: String): SignInOutcome = error("unused")
         override suspend fun signUpWithEmail(email: String, password: String): SignUpOutcome = error("unused")

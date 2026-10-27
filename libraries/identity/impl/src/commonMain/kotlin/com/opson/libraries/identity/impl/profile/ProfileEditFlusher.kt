@@ -23,7 +23,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  *
  * Lazy `() -> ProfileRepository` provider breaks the DI construction cycle:
  * this is in the `AppEventListener` set, and `ProfileRepository → AuthRepository
- * → AppEventBus → dispatcher → that set`. Mirrors `GuestSessionHealer` /
+ * → AppEventBus → dispatcher → that set`. Mirrors `SessionHealer` /
  * `InAppMessageManagerImpl`.
  */
 @SingleIn(AppScope::class)

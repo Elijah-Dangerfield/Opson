@@ -10,13 +10,13 @@ import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
- * Persists the chosen identity for a guest account whose creation hasn't
- * succeeded yet (offline at onboarding finish). Survives process death so the
- * creator can re-attempt on the next launch and finish the job with the same
- * name — instead of leaving the user a permanent local-only Fallback.
+ * Holds a display name chosen while the device had no session, so the local
+ * `Profile.Fallback` can show it instead of a generic name.
  *
- * Cleared the moment creation succeeds. A non-null [read] means "we still owe
- * this device a guest account."
+ * Guest accounts were once created from this record when onboarding finished
+ * offline. Nothing creates them any more (accounts are required), so all that
+ * is left is the name the Fallback shows. The cache name stays as it was so an
+ * update reads what an older build wrote.
  */
 @SingleIn(AppScope::class)
 @Inject
@@ -28,7 +28,7 @@ class PendingGuestAccountStore(
         serializer = versionedJsonSerializer(defaultValue = { PendingRecord.EMPTY }),
     )
 
-    /** The held identity if a guest-account creation is still pending, else null. */
+    /** The held name, or null when none is held. */
     suspend fun read(): PendingIdentity? {
         val record = cache.get()
         return if (!record.pending) null
@@ -37,7 +37,7 @@ class PendingGuestAccountStore(
         )
     }
 
-    /** Mark a guest-account creation as owed, holding [identity] for the retry. */
+    /** Hold [identity] until a session exists to save it to. */
     suspend fun set(identity: PendingIdentity) {
         cache.set(
             PendingRecord(
@@ -45,11 +45,6 @@ class PendingGuestAccountStore(
                 displayName = identity.displayName,
             ),
         )
-    }
-
-    /** Clear the owed flag — called once creation succeeds. */
-    suspend fun clear() {
-        cache.set(PendingRecord.EMPTY)
     }
 
     @Serializable

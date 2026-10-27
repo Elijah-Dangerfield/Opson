@@ -42,7 +42,6 @@ class GatewayAuthTokenProviderTest : CoroutineTest() {
 
         provider.awaitReady()
         assertNull(provider.accessToken())
-        assertEquals(0, gateway.signInAnonymouslyCalls, "awaitReady must never sign in")
     }
 
     @Test
@@ -54,7 +53,6 @@ class GatewayAuthTokenProviderTest : CoroutineTest() {
         val provider = GatewayAuthTokenProvider(gateway, FakeSessionRejectionBus())
 
         assertNull(provider.accessToken())
-        assertEquals(0, gateway.signInAnonymouslyCalls, "peek must not drive sign-in")
     }
 
     @Test

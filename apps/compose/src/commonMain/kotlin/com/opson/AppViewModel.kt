@@ -108,6 +108,16 @@ class AppViewModel(
     private val _accessDenied = Channel<AccessDeniedBus.Denial>(Channel.UNLIMITED)
     val accessDenied: Flow<AccessDeniedBus.Denial> = _accessDenied.receiveAsFlow()
 
+    /**
+     * Fires when an onboarded person turns out to be an anonymous guest: they
+     * started on a build where accounts were optional. Accounts are required
+     * now, so the App composable sends them to onboarding's sign-in step, which
+     * links Apple or Google onto the guest and keeps their log. Same Channel
+     * shape as [sessionExpired].
+     */
+    private val _signInRequired = Channel<Unit>(Channel.UNLIMITED)
+    val signInRequired: Flow<Unit> = _signInRequired.receiveAsFlow()
+
     private val _isReady = MutableStateFlow(false)
 
     /**
@@ -164,7 +174,15 @@ class AppViewModel(
         // event can't do from a feature screen.
         viewModelScope.launch {
             var previousExpired = false
+            var previousGuest = false
             authRepository.observe().collect { auth ->
+                // Fire on the edge into an onboarded guest session, once.
+                val guest = auth is AuthState.Authenticated && auth.isAnonymous
+                if (guest && !previousGuest && appCache.get().hasUserOnboarded) {
+                    _signInRequired.trySend(Unit)
+                }
+                previousGuest = guest
+
                 val expired = auth is AuthState.Unauthenticated &&
                     auth.reason == AuthState.Unauthenticated.Reason.SessionExpired
                 // Fire only on the edge into SessionExpired, never repeatedly.

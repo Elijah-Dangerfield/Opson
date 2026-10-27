@@ -27,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.opson.features.logger.LoggerRoute
+import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.upgrade.impl.AppGuardLayer
 import com.opson.features.settings.FindSupportRoute
 import com.opson.libraries.core.Catching
@@ -224,15 +225,28 @@ fun App(appComponent: AppComponent) {
                     SplashGate()
 
                     // The auth server rejected our session mid-run: push a blocking
-                    // SessionExpired screen (kept on top, stack intact) that owns
-                    // "sign in again" (claimed) vs "start fresh" (guest). An ambient
-                    // network event can't present this from a feature screen, so it
-                    // routes here. The screen picks its copy off wasAnonymous.
+                    // SessionExpired screen (kept on top, stack intact) whose one
+                    // way on is signing in. An ambient network event can't present
+                    // this from a feature screen, so it routes here. The screen
+                    // picks its copy off wasAnonymous.
                     LaunchedEffect(Unit) {
                         appViewModel.sessionExpired.collect { event ->
                             router.navigate(
                                 SessionExpiredRoute(wasAnonymous = event.wasAnonymous),
                                 NavigationOptions(launchSingleTop = true),
+                            )
+                        }
+                    }
+
+                    // An onboarded guest from a build where accounts were optional.
+                    // Accounts are required, so onboarding opens on sign-in, which
+                    // links onto the guest. A clean stack: nothing behind it works
+                    // without an account.
+                    LaunchedEffect(Unit) {
+                        appViewModel.signInRequired.collect {
+                            router.navigate(
+                                OnboardingRoute(),
+                                NavigationOptions(launchSingleTop = true, clearBackStack = true),
                             )
                         }
                     }

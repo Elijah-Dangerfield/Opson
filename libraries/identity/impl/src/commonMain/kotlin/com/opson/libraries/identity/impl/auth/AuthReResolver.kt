@@ -20,11 +20,10 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * backgrounded/offline; [AuthRepository.retry] refreshes it (no-op if already
  * Authenticated) so the next authed call rides a live token instead of failing.
  *
- * **Division of labor:** this only ever *re-resolves* — it never mints. Minting a
- * brand-new session for a genuinely session-less (stranded) user is
- * [GuestSessionHealer]'s job. Keeping the two split means a warm resume can
- * cheaply refresh a real account without risking an accidental guest mint, and
- * the healer's mint decision stays the single gated place that creates accounts.
+ * **Division of labor:** this only ever *re-resolves*. Deciding that a
+ * session-less (stranded) user has to sign in again is [SessionHealer]'s job,
+ * so a warm resume can cheaply refresh a real account without ever tearing one
+ * down.
  *
  * Skips cold-boot foreground (the initial bootstrap resolve already runs then).
  */

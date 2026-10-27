@@ -20,10 +20,12 @@ import com.opson.libraries.networking.AccessDeniedBus
 import com.opson.libraries.opson.AppCache
 import com.opson.libraries.opson.AppData
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -39,7 +41,7 @@ class AppViewModelTest : CoroutineTest() {
         val vm = AppViewModel(
             appCache = FakeAppCache(AppData(hasUserOnboarded = true)),
             profileRepository = SilentProfileRepository,
-            authRepository = SignedOutAuthRepository,
+            authRepository = FakeAuthRepository(AuthState.Unauthenticated()),
             ensureAppConfigLoaded = { Result.success(Unit) },
             accessDeniedBus = QuietAccessDeniedBus,
         )
@@ -52,6 +54,45 @@ class AppViewModelTest : CoroutineTest() {
 
         assertTrue(vm.isBootComplete.value, "a profile that never arrives must not strand the user")
     }
+
+    @Test
+    fun anOnboardedGuest_isSentToSignIn_once() = runUnitTest {
+        // Someone who started when accounts were optional. Accounts are required now.
+        val auth = FakeAuthRepository(guest)
+        val vm = vm(onboarded = true, auth = auth)
+        val sent = mutableListOf<Unit>()
+        backgroundScope.launch { vm.signInRequired.collect { sent += it } }
+        runCurrent()
+
+        auth.state.value = guest.copy(email = "still-a-guest")
+        runCurrent()
+
+        assertEquals(1, sent.size)
+    }
+
+    @Test
+    fun aGuestStillInOnboarding_orASignedInAccount_isLeftAlone() = runUnitTest {
+        listOf(
+            vm(onboarded = false, auth = FakeAuthRepository(guest)),
+            vm(onboarded = true, auth = FakeAuthRepository(guest.copy(isAnonymous = false))),
+        ).forEach { vm ->
+            val sent = mutableListOf<Unit>()
+            backgroundScope.launch { vm.signInRequired.collect { sent += it } }
+            runCurrent()
+
+            assertTrue(sent.isEmpty())
+        }
+    }
+
+    private val guest = AuthState.Authenticated(userId = "guest-1", isAnonymous = true, email = null)
+
+    private fun vm(onboarded: Boolean, auth: AuthRepository) = AppViewModel(
+        appCache = FakeAppCache(AppData(hasUserOnboarded = onboarded)),
+        profileRepository = SilentProfileRepository,
+        authRepository = auth,
+        ensureAppConfigLoaded = { Result.success(Unit) },
+        accessDeniedBus = QuietAccessDeniedBus,
+    )
 }
 
 private class FakeAppCache(initial: AppData) : AppCache {
@@ -78,8 +119,8 @@ private object QuietAccessDeniedBus : AccessDeniedBus {
     override val denials: Flow<AccessDeniedBus.Denial> = emptyFlow()
 }
 
-private object SignedOutAuthRepository : AuthRepository {
-    private val state = MutableStateFlow<AuthState>(AuthState.Unauthenticated())
+private class FakeAuthRepository(initial: AuthState) : AuthRepository {
+    val state = MutableStateFlow(initial)
     override suspend fun current(): AuthState = state.value
     override fun observe(): Flow<AuthState> = state
     override suspend fun retry(): AuthState = state.value

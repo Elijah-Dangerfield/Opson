@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.first
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class SessionExpiredViewModelTest : CoroutineTest() {
 
@@ -40,39 +39,10 @@ class SessionExpiredViewModelTest : CoroutineTest() {
         assertFalse(cache.get().hasUserOnboarded)
         assertFalse(viewModel.state.working)
     }
-
-    @Test
-    fun startingFreshMintsAGuestAndGoesBackIn() = runUnitTest {
-        auth.guestOutcome = SignInOutcome.Success
-
-        viewModel.takeAction(SessionExpiredViewModel.Action.StartFresh)
-
-        assertEquals(SessionExpiredViewModel.Event.StartedFresh, viewModel.eventFlow.first())
-        assertTrue(cache.get().hasUserOnboarded)
-        assertEquals(SessionExpiredViewModel.State(), viewModel.state)
-    }
-
-    @Test
-    fun startingFreshOfflineStaysAndOffersAnotherTry() = runUnitTest {
-        auth.guestOutcome = SignInOutcome.NetworkError(IllegalStateException("offline"))
-
-        viewModel.takeAction(SessionExpiredViewModel.Action.StartFresh)
-
-        assertEquals(SessionExpiredViewModel.State(working = false, startFreshFailed = true), viewModel.state)
-
-        auth.guestOutcome = SignInOutcome.Success
-        viewModel.takeAction(SessionExpiredViewModel.Action.StartFresh)
-
-        assertEquals(SessionExpiredViewModel.Event.StartedFresh, viewModel.eventFlow.first())
-        assertFalse(viewModel.state.startFreshFailed)
-    }
 }
 
 private class FakeAuthRepository : AuthRepository {
-    var guestOutcome: SignInOutcome = SignInOutcome.Success
     var signOuts = 0
-
-    override suspend fun createGuestSession(): SignInOutcome = guestOutcome
 
     override suspend fun signOut() {
         signOuts++

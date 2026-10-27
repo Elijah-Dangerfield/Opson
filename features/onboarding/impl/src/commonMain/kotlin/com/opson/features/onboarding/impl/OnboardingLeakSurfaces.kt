@@ -4,7 +4,7 @@ import com.opson.libraries.nutrition.ui.leak.LeakSurface
 
 /**
  * Onboarding's entries in `BlindModeLeakTest.SURFACES`, ids as design v3 names
- * the screens. The questions, the recommendation and the account step show no
+ * the screens. The questions, the recommendation and the sign-in step show no
  * nutrition number in any mode, so they ignore the policy and the test holds
  * each to showing none. The setup steps (onboarding v2) do: the goal step's
  * range and the resting energy step's estimate are built through the policy
@@ -51,8 +51,8 @@ object OnboardingLeakSurfaces {
         },
         LeakSurface(
             id = "onboarding-account",
-            label = "Onboarding · account",
+            label = "Onboarding · sign in",
             showsCaloriesInFull = false,
-        ) { OnboardingScreen(state = OnboardingFixtures.account(), onAction = {}) },
+        ) { OnboardingScreen(state = OnboardingFixtures.signIn(), onAction = {}) },
     )
 }

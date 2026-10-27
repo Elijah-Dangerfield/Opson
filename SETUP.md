@@ -387,9 +387,21 @@ or something failed:
    supabase.url=https://<ref>.supabase.co
    supabase.anonKey=<publishable key>
    ```
-3. Enable providers in the Supabase dashboard (Authentication → Providers):
-   **Anonymous sign-ins** (required for the guest flow), **Email**
-   (confirm-email on), and optionally **Apple** / **Google**.
+3. Enable providers in the Supabase dashboard (Authentication → Providers).
+   An account is required, so **Apple** (iOS) and **Google** (both
+   platforms; Android has nothing else) must both work. **Email**
+   (confirm-email on) only matters once `SignInMethods.EMAIL` is on. Turn on
+   **Allow manual linking** (Authentication → Sign In / Providers): the
+   sign-in step links Apple or Google onto guests from builds where accounts
+   were optional. Leave **Anonymous sign-ins** on while any of those older
+   builds is still installed; this build never creates a guest.
+
+   **Google goes through the browser**, as in Cards, so the app holds no
+   Google client ID. In Google Cloud, set up the OAuth consent screen (and
+   publish it, or only listed test users can sign in), then create an OAuth
+   client of type *Web application* with the authorized redirect URI
+   `https://<ref>.supabase.co/auth/v1/callback`, one per Supabase project.
+   Paste its client ID and secret into Supabase's Google provider.
 
    **Apple is set-and-forget here, and it is worth knowing why.** This app
    signs in with Apple *natively* on iOS: the system sheet returns an identity
@@ -417,9 +429,9 @@ or something failed:
    verification, and `SUPABASE_SERVICE_ROLE_KEY` if you want in-app account
    deletion (`DELETE /v1/me`) and display-name mirroring. Treat the service
    role key as a root password, server secrets only, never the client.
-6. Verify: launch the app → complete onboarding as a guest → a user appears
-   in Supabase → Authentication → Users with `is_anonymous = true`, and
-   `GET /v1/me` (through the app) creates the profile row.
+6. Verify: launch the app → Get started → sign in with Apple or Google → a
+   user appears in Supabase → Authentication → Users, and `GET /v1/me`
+   (through the app) creates the profile row.
 
 ## Deep links
 

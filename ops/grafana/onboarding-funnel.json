@@ -243,7 +243,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "`onboarding.completed` with `account_ready=false`: the user is on Today and guest creation did not land in time. They are not signed in and nothing on Today says so.\n\nAnything but zero here deserves a look.",
+      "description": "`onboarding.sign_in_failed`: a sign-in on onboarding's sign-in step that came back with an error (`reason` is `offline`, `not_enabled`, `in_use` or `failed`). Signing in is required, so each of these is someone stuck at the door.\n\nAny `not_enabled` means a provider is switched off in Supabase.",
       "fieldConfig": {
         "defaults": {
           "decimals": 0,
@@ -280,12 +280,12 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.completed\" | account_ready=\"false\" [$__range]))",
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.sign_in_failed\" [$__range]))",
           "refId": "A",
           "queryType": "instant"
         }
       ],
-      "title": "Finished without an account",
+      "title": "Sign-in failures",
       "type": "stat"
     },
     {
@@ -451,7 +451,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "How people leave the optional account step that follows the mode: `phone` (Keep it on this phone), `google` or `apple` (a successful link onto the guest) or `email` (handed to sign-up, verified later). Skipping is normal; a large `phone` share is the design working, not a problem.",
+      "description": "How people got through onboarding's sign-in step: `apple` or `google`, from `onboarding.auth_selected`. Email sign-in runs on its own screens and does not fire it.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -502,13 +502,13 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "sum by (choice) (count_over_time({service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.account_choice\" [$__range]))",
+          "expr": "sum by (method) (count_over_time({service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.auth_selected\" [$__range]))",
           "refId": "A",
           "queryType": "instant",
-          "legendFormat": "{{choice}}"
+          "legendFormat": "{{method}}"
         }
       ],
-      "title": "Account step",
+      "title": "Signed in with",
       "type": "piechart"
     },
     {
@@ -516,7 +516,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "`returning=true` is a prior guest whose onboarded flag was lost and whose session was adopted at entry. Returning users who sign in from Welcome's link go through the sign-in screen and do not fire `onboarding.auth_selected`. A high share on a young app usually means devices are losing their onboarded flag, not that people are coming back.",
+      "description": "`returning=false` is a new account, which goes on to the questions. `returning=true` is an account that already existed and goes straight to Today, or a guest from before accounts were required linking onto their log.",
       "fieldConfig": {
         "defaults": {
           "color": {

@@ -69,7 +69,8 @@ screen passed through in three frames does not report 33% jank.
 | `onboarding.step_viewed` | `step` | both | `OnboardingViewModel` |
 | `onboarding.auth_selected` | `method`, `returning` | both | `OnboardingViewModel` |
 | `onboarding.abandoned` | `step` | both | `OnboardingViewModel` |
-| `onboarding.completed` | `duration_sec`, `account_ready` | both | `OnboardingViewModel` |
+| `onboarding.completed` | `duration_sec`, `preset`, `took_recommendation` | both | `OnboardingViewModel` |
+| `onboarding.sign_in_failed` | `method`, `reason` | both | `OnboardingViewModel` |
 
 ## Names that exist only in tests
 

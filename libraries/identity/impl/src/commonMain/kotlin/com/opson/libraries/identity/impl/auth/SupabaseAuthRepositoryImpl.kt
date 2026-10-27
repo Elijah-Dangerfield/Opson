@@ -46,11 +46,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  *
  * **No account is created on launch.** On init this class resolves whatever
  * persisted session supabase-kt hydrates: a live session → [AuthState.Authenticated],
- * none → [AuthState.Unauthenticated]. It deliberately does *not* sign in
- * anonymously — the app stays session-less through onboarding and only mints an
- * account when the user finishes as a guest ([createGuestSession]) or signs in.
- * (This is what kills the orphan-anon-on-every-install problem the old
- * auto-anon bootstrap caused.)
+ * none → [AuthState.Unauthenticated]. It never signs in anonymously: a session
+ * comes from signing in, and onboarding requires that before anything else.
  *
  * The resolve loop tolerates supabase-kt's transient hydration states
  * (Initializing / RefreshFailure) by re-polling a bounded number of times
@@ -211,8 +208,8 @@ class SupabaseAuthRepositoryImpl(
      * supabase-kt still holds a session but its token expired and the refresh
      * can't get through (offline, auth server down). It keeps the session and
      * retries on its own. Until then the app runs unauthenticated, with
-     * [SessionUnconfirmed] as the cause so identity self-heal neither mints a
-     * guest over the stored account nor declares it unrecoverable.
+     * [SessionUnconfirmed] as the cause so identity self-heal doesn't declare
+     * the stored account unrecoverable.
      */
     // TODO(review): nothing watches supabase-kt's status, so when its own retry
     // succeeds the app stays Unauthenticated until the next foreground or
@@ -230,7 +227,7 @@ class SupabaseAuthRepositoryImpl(
      * SessionExpired-screen retry) that still finds nothing keeps the reason —
      * and its [AuthState.Unauthenticated.wasAnonymous] — instead of decaying to
      * `None`, which would make identity self-heal read the dead session as an
-     * ordinary stranding and mint a fresh guest over it (AUTH-19).
+     * ordinary stranding (AUTH-19).
      */
     private suspend fun settleUnauthenticatedLocked(): AuthState.Unauthenticated {
         val last = lastEmittedOrNull() as? AuthState.Unauthenticated
@@ -291,10 +288,9 @@ class SupabaseAuthRepositoryImpl(
     }
 
     /**
-     * The persisted session is gone and [GuestSessionHealer]'s retry couldn't
-     * revive it, while a cached server profile proves an account exists — the
-     * client-declared twin of a server rejection. Same teardown: the app routes
-     * to recovery instead of the healer minting over the stranded account.
+     * The persisted session is gone and [SessionHealer]'s retry couldn't revive
+     * it — the client-declared twin of a server rejection. Same teardown: the
+     * app routes to the session-expired screen and from there to sign-in.
      */
     override suspend fun markSessionUnrecoverable(wasAnonymous: Boolean) {
         // A session supabase-kt is still trying to refresh is not lost, and
@@ -313,7 +309,7 @@ class SupabaseAuthRepositoryImpl(
      * unrecoverable ([markSessionUnrecoverable]). Tear it down: clear the
      * supabase session so the bearer stops re-attaching a dead token, then emit
      * [AuthState.Unauthenticated.Reason.SessionExpired] so the app can route the
-     * user to re-auth (claimed) or a fresh start (guest).
+     * user to sign in again.
      *
      * Idempotent: a burst of rejected requests collapses to one teardown.
      */
@@ -380,28 +376,6 @@ class SupabaseAuthRepositoryImpl(
     private fun lastEmittedOrNull(): AuthState? = state.replayCache.firstOrNull()
 
     // ---------- Auth operations ----------
-
-    override suspend fun createGuestSession(): SignInOutcome = mutex.withLock {
-        logger.d { "createGuestSession: signing in anonymously" }
-        Catching {
-            gateway.signInAnonymously()
-            emitAuthenticatedFromGatewayLocked()
-        }.fold(
-            onSuccess = {
-                logger.i { "createGuestSession: Success" }
-                SignInOutcome.Success
-            },
-            onFailure = { e ->
-                val outcome = when (e) {
-                    is RestException -> mapOAuthSignInRestException(e)
-                    is HttpRequestException -> SignInOutcome.NetworkError(e)
-                    else -> SignInOutcome.Unknown(e)
-                }
-                logger.w(e) { "createGuestSession: ${outcome::class.simpleName}" }
-                outcome
-            },
-        )
-    }
 
     override suspend fun signInWithEmail(email: String, password: String): SignInOutcome =
         mutex.withLock {
@@ -555,13 +529,12 @@ class SupabaseAuthRepositoryImpl(
         logger.i { "signOut: tearing down session" }
         Catching { gateway.signOut() }
             .logOnFailure { "Supabase signOut failed; clearing local state anyway" }
-        // No session is created in its place — the user lands on the
-        // logged-out landing page and must pick a method (guest / sign-in)
-        // again. A later retry() just re-resolves (still Unauthenticated).
+        // No session is created in its place: the user lands on onboarding's
+        // sign-in step. A later retry() just re-resolves (still Unauthenticated).
         // emitUnauthenticatedLocked → emitLocked dumps the prior user's local
         // data and dispatches UserChanged(prev, null); no explicit dispatch here.
-        // Reason.SignedOut so identity self-heal doesn't resurrect this
-        // deliberate sign-out as a fresh anonymous guest.
+        // Reason.SignedOut so identity self-heal doesn't treat this deliberate
+        // sign-out as a lost session.
         emitUnauthenticatedLocked(
             cause = null,
             reason = AuthState.Unauthenticated.Reason.SignedOut,
@@ -609,8 +582,7 @@ class SupabaseAuthRepositoryImpl(
                 .logOnFailure { "Supabase signOut after delete failed; clearing local state anyway" }
             // emitUnauthenticatedLocked → emitLocked dumps this user's local
             // data and dispatches UserChanged(prev, null). Reason.SignedOut so
-            // identity self-heal treats a delete like a sign-out and doesn't
-            // mint a fresh guest in its place.
+            // identity self-heal treats a delete like a sign-out.
             emitUnauthenticatedLocked(
                 cause = null,
                 reason = AuthState.Unauthenticated.Reason.SignedOut,
