@@ -26,6 +26,12 @@ sealed interface LogOutStep {
     data class Confirming(val guest: Boolean) : LogOutStep
 
     data class Working(val guest: Boolean) : LogOutStep
+
+    /**
+     * The sync before logging out didn't reach the account, so changes made since the last one
+     * may be only on this phone, and logging out deletes them. Stay is the safe choice.
+     */
+    data object Unsynced : LogOutStep
 }
 
 /**

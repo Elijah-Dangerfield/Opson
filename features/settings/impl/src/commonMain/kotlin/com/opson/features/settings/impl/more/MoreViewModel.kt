@@ -2,6 +2,7 @@ package com.opson.features.settings.impl.more
 
 import androidx.lifecycle.viewModelScope
 import com.opson.features.settings.MoreRowContribution
+import com.opson.libraries.diary.DiarySync
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -23,7 +24,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import me.tatarka.inject.annotations.Inject
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * [contributions] are the rows other modules add ([MoreRowContribution]). Empty by default, so a
@@ -40,6 +43,7 @@ class MoreViewModel(
     private val widgetsEnabled: WidgetsEnabled,
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val auth: AuthRepository,
+    private val diarySync: DiarySync,
     private val contributions: Set<MoreRowContribution> = emptySet(),
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
@@ -109,15 +113,43 @@ class MoreViewModel(
     }
 
     /**
-     * Ends the session through the auth layer, which wipes this account's data from the phone and
-     * resets onboarding before it reports the signed-out state, then starts over at onboarding.
+     * Ends the session through the auth layer, which wipes this account's data from the phone,
+     * the outbox included, and resets onboarding before it reports the signed-out state, then
+     * starts over at onboarding. Signed in, it pushes what is queued first, and if the account
+     * can't be reached it asks again ([LogOutStep.Unsynced]) rather than wipe changes that never
+     * left the phone.
      */
     private suspend fun logOut(action: MoreAction) {
-        val step = state.logOut as? LogOutStep.Confirming ?: return
-        action.updateState { it.copy(logOut = LogOutStep.Working(guest = step.guest)) }
+        when (val step = state.logOut) {
+            is LogOutStep.Confirming -> {
+                action.updateState { it.copy(logOut = LogOutStep.Working(guest = step.guest)) }
+                // A guest's log can't be reached again once they leave, so there is nothing to send it for.
+                if (!step.guest && !reachedAccount()) {
+                    action.updateState { it.copy(logOut = LogOutStep.Unsynced) }
+                    return
+                }
+            }
+            // "Log out anyway", having been told what stays behind.
+            LogOutStep.Unsynced -> action.updateState { it.copy(logOut = LogOutStep.Working(guest = false)) }
+            LogOutStep.Idle, is LogOutStep.Working -> return
+        }
         auth.signOut()
         action.updateState { it.copy(logOut = LogOutStep.Idle) }
         sendEvent(MoreEvent.GoToOnboarding)
+    }
+
+    /**
+     * Whether a sync reached the account. The wait is capped so a server that hangs can't hold
+     * the dialog; the sync itself runs on in the app scope.
+     */
+    private suspend fun reachedAccount(): Boolean {
+        // TODO(review): a sync that succeeds can still leave rows queued (days ahead the server
+        // won't take yet). Ask DiarySync how many are left once it can say (findings/settings.md).
+        return withTimeoutOrNull(LOG_OUT_SYNC_WAIT) { diarySync.syncNow() }?.isSuccess == true
+    }
+
+    private companion object {
+        val LOG_OUT_SYNC_WAIT = 10.seconds
     }
 }
 
