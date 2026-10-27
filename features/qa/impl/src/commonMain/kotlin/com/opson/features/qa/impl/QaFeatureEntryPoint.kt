@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.qa.impl
 
 import androidx.compose.runtime.getValue
@@ -23,7 +25,11 @@ import org.jetbrains.compose.resources.getString
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 
+// Hidden from the iOS header like MoreRowContribution, which says why. Swift never uses either.
+@HiddenFromObjC
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, multibinding = true)
 @Inject
@@ -52,6 +58,7 @@ class QaFeatureEntryPoint(
 }
 
 /** More › Testing › QA menu, shown where [QaAccess] allows it. */
+@HiddenFromObjC
 @Inject
 @ContributesBinding(AppScope::class, multibinding = true)
 class QaMoreRow(private val qaAccess: QaAccess) : MoreRowContribution {
