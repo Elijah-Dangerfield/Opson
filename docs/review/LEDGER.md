@@ -1097,379 +1097,369 @@ keeps existing ticks.
 - [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/nativeviews/NativeViewFactory.kt`
 - [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/system/color/ColorResource+UIColor.kt`
 
-## core-libraries (371 files)
+## core-libraries (361 files)
 
-- [ ] `libraries/config/build.gradle.kts`
-- [ ] `libraries/config/impl/build.gradle.kts`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/ConfigDiModule.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/ConfigRefreshThrottleMs.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/EnsureAppConfigLoadedImpl.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/MapOverrides.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/ConfigCache.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/ConfigOverrideRepositoryImpl.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/RemoteConfigDataSource.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/RemoteConfigRemoteDataSource.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/model/BasicMapAppConfig.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/model/FallbackConfigMap.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/repository/OfflineFirstAppConfigRepository.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/serialization/ConfigJsonConverter.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/serialization/JsonValueConverters.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/JsonConfigValueTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/MapExtTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/MapOverridesTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/data/ConfigOverrideRepositoryImplTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/repository/OfflineFirstAppConfigRepositoryTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/serialization/ConfigJsonConverterTest.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigFlow.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigMap.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigRepository.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfigOverride.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfigOverrideRepository.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfiguredValue.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/EnsureAppConfigLoaded.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/JsonConfigValue.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/MapExt.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/TypedConfiguredValues.kt`
-- [ ] `libraries/core/build.gradle.kts`
-- [ ] `libraries/core/src/androidMain/kotlin/com/opson/libraries/core/AndroidMotionDetector.kt`
-- [ ] `libraries/core/src/androidMain/kotlin/com/opson/libraries/core/AndroidShakeDetector.kt`
-- [ ] `libraries/core/src/androidMain/kotlin/com/opson/libraries/core/BuildConfig.android.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AnyExts.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AppState.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AuthGate.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AutoInit.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/BuildInfo.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/Catching.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ConcurrentHashMap.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/MotionDetector.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/RateLimiter.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeDetector.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeMessageProvider.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeRecognizer.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/StringExt.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/SupabaseInfo.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/TelemetryInfo.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ThrowableExtensions.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/Time.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/AppEvents.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/KLog.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogContext.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogEntry.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogLevel.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogTree.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/Logger.kt`
-- [ ] `libraries/core/src/commonTest/kotlin/com/opson/libraries/core/ShakeRecognizerTest.kt`
-- [ ] `libraries/core/src/iosMain/kotlin/com/opson/libraries/core/BuildConfig.ios.kt`
-- [ ] `libraries/core/src/iosMain/kotlin/com/opson/libraries/core/IosMotionDetector.kt`
-- [ ] `libraries/core/src/iosMain/kotlin/com/opson/libraries/core/IosShakeDetector.kt`
-- [ ] `libraries/flowroutines/build.gradle.kts`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/CalculateOnce.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/Compose.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/Coroutines.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/DispatcherProvider.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/FlowExt.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/LazySuspend.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/RunWhen.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/SEAViewModel.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/TriggerFlow.kt`
-- [ ] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/AppCoroutineScopeTest.kt`
-- [ ] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/RunWhenTest.kt`
-- [ ] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/SEAViewModelEventExpiryTest.kt`
-- [ ] `libraries/flowroutines/testing/build.gradle.kts`
-- [ ] `libraries/flowroutines/testing/src/commonMain/kotlin/com/opson/libraries/flowroutines/testing/CoroutineTest.kt`
-- [ ] `libraries/flowroutines/testing/src/commonMain/kotlin/com/opson/libraries/flowroutines/testing/TestDispatcherProvider.kt`
-- [ ] `libraries/identity/build.gradle.kts`
-- [ ] `libraries/identity/impl/build.gradle.kts`
-- [ ] `libraries/identity/impl/src/androidMain/kotlin/com/opson/libraries/identity/impl/auth/AndroidAppleSignInCoordinator.kt`
-- [ ] `libraries/identity/impl/src/androidMain/kotlin/com/opson/libraries/identity/impl/auth/EncryptedSessionStorage.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/DefaultIdentityConfig.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/MeDto.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/ProfileApi.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/SupabaseClientFactory.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthClaims.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthGateImpl.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthReResolver.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/DefaultAuthOutcomeClassifier.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/DefaultGuestAccountCreator.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/GatewayAuthTokenProvider.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/GuestSessionHealer.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/PendingGuestAccountStore.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/RealSupabaseAuthGateway.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/RefreshFailureClassifier.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SecureSessionManager.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SessionMirrorStore.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/StrandedIdentityDetector.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthGateway.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthRepositoryImpl.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/PendingProfileEditStore.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileCache.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileEditFlusher.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileRepositoryImpl.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/UserScopedProfileCacheCleaner.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/AuthClaimsTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/AuthGateImplTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/DefaultAuthOutcomeClassifierTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/DefaultGuestAccountCreatorTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/FakeSessionRejectionBus.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/GatewayAuthTokenProviderTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/GuestSessionHealerTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/RefreshFailureClassifierTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SecureSessionManagerTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthRepositoryImplTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/profile/ProfileEditFlusherTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/profile/ProfileRepositoryImplTest.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/IdentityConfig.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AppleSignInCoordinator.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcome.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcomeClassifier.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcomes.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthRepository.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/GuestAccountCreator.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/SecureSessionStorage.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/profile/DisplayNameRules.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/profile/ProfileRepository.kt`
-- [ ] `libraries/identity/src/commonTest/kotlin/com/opson/libraries/identity/profile/DisplayNameRulesTest.kt`
-- [ ] `libraries/navigation/build.gradle.kts`
-- [ ] `libraries/navigation/impl/build.gradle.kts`
-- [ ] `libraries/navigation/impl/src/androidMain/kotlin/com/opson/libraries/navigation/impl/AndroidFileShareLauncher.kt`
-- [ ] `libraries/navigation/impl/src/androidMain/kotlin/com/opson/libraries/navigation/impl/AndroidWebLinkLauncher.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/AccessDeniedScreen.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/AppNavigationTracker.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/BlockingErrorScreen.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ChannelDrain.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/DeepLinkBridgeImpl.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/DelegatingRouter.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ErrorDialogContent.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ErrorEntryPoints.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/SessionExpiredScreen.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/SessionExpiredViewModel.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/TabBarImpl.kt`
-- [ ] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/ChannelDrainTest.kt`
-- [ ] `libraries/navigation/impl/src/iosMain/kotlin/com/opson/libraries/navigation/impl/IosFileShareLauncher.kt`
-- [ ] `libraries/navigation/impl/src/iosMain/kotlin/com/opson/libraries/navigation/impl/IosWebLinkLauncher.kt`
-- [ ] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/NullableNavTypeTest.kt`
-- [ ] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/TabNavigationTest.kt`
-- [ ] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowHostTest.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/features/profile/BugReportRoute.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/Anims.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/DeepLinkBridge.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/ErrorRoutes.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/FeatureEntryPoint.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/FileShareLauncher.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/KnownErrorCodes.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavGraphBuilderExt.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigableWhileBlocked.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigationRecovery.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigationTracker.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/Route.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/Router.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/ShakeDialogRoute.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabBar.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabNavigation.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TrackableRoute.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/WebLinkLauncher.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/BottomSheetDestination.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/DialogDestination.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowHost.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowNavDestinationBuilder.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowNavigator.kt`
-- [ ] `libraries/navigation/src/commonTest/kotlin/com/opson/libraries/navigation/ShareFileNameTest.kt`
-- [ ] `libraries/navigation/src/iosMain/kotlin/com/opson/libraries/navigation/FileSharePresenter.kt`
-- [ ] `libraries/networking/build.gradle.kts`
-- [ ] `libraries/networking/impl/build.gradle.kts`
-- [ ] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/AndroidConnectivityObserver.kt`
-- [ ] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.android.kt`
-- [ ] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/NetworkInspectorLauncher.android.kt`
-- [ ] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/WebSocketKeepalive.android.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/AccessDeniedBusImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/AppStateImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/BearerTokenInvalidator.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/ConnectivityObserver.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/DefaultClientHeadersProvider.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/DefaultNetworkConfig.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/NetworkClientImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/NetworkReachabilityImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/SessionRejectionBusImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/UnresolvedRelativeRequest.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/WebSocketKeepalive.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/WiretapNetworkInspector.kt`
-- [ ] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/AppStateImplTest.kt`
-- [ ] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/NetworkReachabilityImplTest.kt`
-- [ ] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/UnresolvedRelativeRequestTest.kt`
-- [ ] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/IosConnectivityObserver.kt`
-- [ ] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.ios.kt`
-- [ ] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/NetworkInspectorLauncher.ios.kt`
-- [ ] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/WebSocketKeepalive.ios.kt`
-- [ ] `libraries/networking/src/androidMain/kotlin/com/opson/libraries/networking/OfflineErrors.android.kt`
-- [ ] `libraries/networking/src/androidMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.android.kt`
-- [ ] `libraries/networking/src/androidUnitTest/kotlin/com/opson/libraries/networking/OfflineErrorsTest.kt`
-- [ ] `libraries/networking/src/androidUnitTest/kotlin/com/opson/libraries/networking/PlatformHttpEngineTest.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AccessDeniedBus.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/ApiProblem.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AuthTokenInvalidator.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AuthTokenProvider.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/ClientHeaders.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/InstallIdProvider.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/InternalNetworkingApi.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkCall.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkClient.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkConfig.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkInspector.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkJson.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkReachability.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NoOpAuthTokenProvider.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/OfflineErrors.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/SessionIdProvider.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/SessionRejectionBus.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/Backoff.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/Jitter.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/RetryPolicy.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/WithRetry.kt`
-- [ ] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/BackoffTest.kt`
-- [ ] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/JitterTest.kt`
-- [ ] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/RetryPolicyTest.kt`
-- [ ] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/WithRetryTest.kt`
-- [ ] `libraries/networking/src/iosMain/kotlin/com/opson/libraries/networking/OfflineErrors.ios.kt`
-- [ ] `libraries/networking/src/iosMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.ios.kt`
-- [ ] `libraries/networking/src/iosTest/kotlin/com/opson/libraries/networking/OfflineErrorsTest.kt`
-- [ ] `libraries/networking/src/iosTest/kotlin/com/opson/libraries/networking/PlatformHttpEngineTest.kt`
-- [ ] `libraries/opson/build.gradle.kts`
-- [ ] `libraries/opson/impl/build.gradle.kts`
-- [ ] `libraries/opson/impl/src/androidUnitTest/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTreeConnectivityTest.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppEventDispatcher.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppEventsDiModule.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppTelemetry.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/CachedInstallIdProvider.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/ConnectivityEdgeDispatcher.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/DefaultUserScopedDataReset.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/ExampleUserScopedSyncer.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/LifecycleAppEventLogger.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SessionTelemetryBinder.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SessionTrackerImpl.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SyncTriggers.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/TelemetryUserBinder.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedAppDataReset.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedSyncCoordinator.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedWorkRegistry.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/DevConsoleWriter.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/KermitLogTree.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/LogRingBuffer.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTree.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/AppEventDispatcherTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/CachedInstallIdProviderTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/ConnectivityEdgeDispatcherTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/DefaultUserScopedDataResetTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/LifecycleAppEventLoggerTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/SentryRuntimeConfigTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/SessionTrackerImplTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/TelemetryUserBinderTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/UserScopedSyncCoordinatorTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/LogRingBufferTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTreeTest.kt`
-- [ ] `libraries/opson/src/androidMain/kotlin/com/opson/libraries/ActivityProvider.kt`
-- [ ] `libraries/opson/src/androidMain/kotlin/com/opson/libraries/opson/AndroidAppLifecycle.kt`
-- [ ] `libraries/opson/src/androidUnitTest/kotlin/com/opson/libraries/opson/AndroidAppLifecycleTest.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppCache.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppEvent.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppEvents.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/Permission.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/PermissionManager.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/Session.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/StartUpWarning.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/Telemetry.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/UserScopedData.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/UserScopedSyncer.kt`
-- [ ] `libraries/opson/src/iosMain/kotlin/com/opson/libraries/opson/IosAppLifecycle.kt`
-- [ ] `libraries/opson/storage/build.gradle.kts`
-- [ ] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/ClearableDao.kt`
-- [ ] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/DatabaseTransactor.kt`
-- [ ] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/ExampleUserDataDao.kt`
-- [ ] `libraries/progressphotos/build.gradle.kts`
-- [ ] `libraries/progressphotos/impl/build.gradle.kts`
-- [ ] `libraries/progressphotos/impl/src/androidMain/kotlin/com/opson/libraries/progressphotos/impl/AndroidDeviceLock.kt`
-- [ ] `libraries/progressphotos/impl/src/androidMain/kotlin/com/opson/libraries/progressphotos/impl/AndroidProgressPhotoFileStore.kt`
-- [ ] `libraries/progressphotos/impl/src/commonMain/kotlin/com/opson/libraries/progressphotos/impl/ProgressPhotoRepositoryImpl.kt`
-- [ ] `libraries/progressphotos/impl/src/commonMain/kotlin/com/opson/libraries/progressphotos/impl/ProgressPhotosClearer.kt`
-- [ ] `libraries/progressphotos/impl/src/commonTest/kotlin/com/opson/libraries/progressphotos/impl/ProgressPhotoRepositoryImplTest.kt`
-- [ ] `libraries/progressphotos/impl/src/commonTest/kotlin/com/opson/libraries/progressphotos/impl/ProgressPhotosClearerTest.kt`
-- [ ] `libraries/progressphotos/impl/src/iosMain/kotlin/com/opson/libraries/progressphotos/impl/IosDeviceLock.kt`
-- [ ] `libraries/progressphotos/impl/src/iosMain/kotlin/com/opson/libraries/progressphotos/impl/IosProgressPhotoFileStore.kt`
-- [ ] `libraries/progressphotos/src/commonMain/kotlin/com/opson/libraries/progressphotos/DeviceLock.kt`
-- [ ] `libraries/progressphotos/src/commonMain/kotlin/com/opson/libraries/progressphotos/ProgressPhotos.kt`
-- [ ] `libraries/progressphotos/src/commonMain/kotlin/com/opson/libraries/progressphotos/ProgressPhotosEnabled.kt`
-- [ ] `libraries/review/build.gradle.kts`
-- [ ] `libraries/review/impl/build.gradle.kts`
-- [ ] `libraries/review/impl/src/androidMain/kotlin/com/opson/libraries/review/impl/AndroidReviewLauncher.kt`
-- [ ] `libraries/review/impl/src/commonMain/kotlin/com/opson/libraries/review/impl/RealReviewPromptCoordinator.kt`
-- [ ] `libraries/review/impl/src/commonTest/kotlin/com/opson/libraries/review/impl/RealReviewPromptCoordinatorTest.kt`
-- [ ] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewLauncher.kt`
-- [ ] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewPromptCoordinator.kt`
-- [ ] `libraries/storage/build.gradle.kts`
-- [ ] `libraries/storage/impl/build.gradle.kts`
-- [ ] `libraries/storage/impl/src/androidMain/kotlin/com/opson/libraries/storage/impl/cache/AndroidFileManager.kt`
-- [ ] `libraries/storage/impl/src/androidMain/kotlin/com/opson/libraries/storage/impl/db/AndroidAppDatabaseBuilderFactory.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/CacheFactoryImpl.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/UserScopedDaoCleaner.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/cache/InMemoryCache.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabase.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabaseBuilderFactory.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabaseProvider.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/CoreTypeConverters.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/ProvideDaos.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/RealAppDatabaseProvider.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/RoomDatabaseTransactor.kt`
-- [ ] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/cache/DataStoreCacheTest.kt`
-- [ ] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/cache/InMemoryCacheTest.kt`
-- [ ] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/cache/IosFileManager.kt`
-- [ ] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/db/IosAppDatabaseBuilderFactory.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/Cache.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/CacheFactory.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/CacheJsonSerializer.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/FileManager.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/VersionedCacheJsonSerializer.kt`
-- [ ] `libraries/telemetry/impl/build.gradle.kts`
-- [ ] `libraries/telemetry/impl/src/androidMain/kotlin/com/opson/libraries/telemetry/impl/AndroidInstallFactsProvider.kt`
-- [ ] `libraries/telemetry/impl/src/androidMain/kotlin/com/opson/libraries/telemetry/impl/AndroidJankMonitor.kt`
-- [ ] `libraries/telemetry/impl/src/androidMain/kotlin/com/opson/libraries/telemetry/impl/AndroidPreviousExitProvider.kt`
-- [ ] `libraries/telemetry/impl/src/androidMain/kotlin/com/opson/libraries/telemetry/impl/AndroidProcessStartTimeProvider.kt`
-- [ ] `libraries/telemetry/impl/src/androidUnitTest/kotlin/com/opson/libraries/telemetry/impl/AndroidInstallFactsTest.kt`
-- [ ] `libraries/telemetry/impl/src/androidUnitTest/kotlin/com/opson/libraries/telemetry/impl/PreviousExitReasonMappingTest.kt`
-- [ ] `libraries/telemetry/impl/src/androidUnitTest/kotlin/com/opson/libraries/telemetry/impl/TestTelemetryBufferDirectory.android.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/DurableLogExport.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/FailSafeLogRecordExporter.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/GrafanaAppEvents.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/GrafanaLogTree.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/InstallFacts.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/JankMonitor.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/JankTally.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/MetricKitExitReport.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/OtlpJsonLogRecordExporter.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/PreviousExitProvider.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/StartupReporter.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/TelemetryBackgroundFlusher.kt`
-- [ ] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/TelemetryConfigValues.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/AppLaunchedEventTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/AppLaunchedSessionOrderingTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/FailSafeLogRecordExporterTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/GrafanaLogTreeTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/InstallFactsResourceTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/InstallFactsTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/JankTallyTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/MetricKitExitReportTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/OfflineDurabilityTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/OtlpJsonLogRecordExporterTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/RecordingLogRecordProcessor.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/StartupReporterTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/TelemetryBackgroundFlusherTest.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/TestInstallFacts.kt`
-- [ ] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/TestTelemetryBufferDirectory.kt`
-- [ ] `libraries/telemetry/impl/src/iosMain/kotlin/com/opson/libraries/telemetry/impl/IosInstallFactsProvider.kt`
-- [ ] `libraries/telemetry/impl/src/iosMain/kotlin/com/opson/libraries/telemetry/impl/IosJankMonitor.kt`
-- [ ] `libraries/telemetry/impl/src/iosMain/kotlin/com/opson/libraries/telemetry/impl/IosPreviousExitProvider.kt`
-- [ ] `libraries/telemetry/impl/src/iosMain/kotlin/com/opson/libraries/telemetry/impl/IosProcessStartTimeProvider.kt`
-- [ ] `libraries/telemetry/impl/src/iosTest/kotlin/com/opson/libraries/telemetry/impl/TestTelemetryBufferDirectory.ios.kt`
+- [x] `libraries/config/build.gradle.kts`
+- [x] `libraries/config/impl/build.gradle.kts`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/ConfigDiModule.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/ConfigRefreshThrottleMs.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/EnsureAppConfigLoadedImpl.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/MapOverrides.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/ConfigCache.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/ConfigOverrideRepositoryImpl.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/RemoteConfigDataSource.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/RemoteConfigRemoteDataSource.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/model/BasicMapAppConfig.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/model/FallbackConfigMap.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/repository/OfflineFirstAppConfigRepository.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/serialization/ConfigJsonConverter.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/serialization/JsonValueConverters.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/JsonConfigValueTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/MapExtTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/MapOverridesTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/data/ConfigOverrideRepositoryImplTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/repository/OfflineFirstAppConfigRepositoryTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/serialization/ConfigJsonConverterTest.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigFlow.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigMap.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigRepository.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfigOverride.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfigOverrideRepository.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfiguredValue.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/EnsureAppConfigLoaded.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/JsonConfigValue.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/MapExt.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/TypedConfiguredValues.kt`
+- [x] `libraries/core/build.gradle.kts`
+- [x] `libraries/core/src/androidMain/kotlin/com/opson/libraries/core/AndroidShakeDetector.kt`
+- [x] `libraries/core/src/androidMain/kotlin/com/opson/libraries/core/BuildConfig.android.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AnyExts.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AppState.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AuthGate.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AutoInit.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/BuildInfo.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/Catching.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/RateLimiter.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeDetector.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeMessageProvider.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeRecognizer.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/SupabaseInfo.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/TelemetryInfo.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ThrowableExtensions.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/Time.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/AppEvents.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/KLog.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogContext.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogEntry.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogLevel.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogTree.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/Logger.kt`
+- [x] `libraries/core/src/commonTest/kotlin/com/opson/libraries/core/ShakeRecognizerTest.kt`
+- [x] `libraries/core/src/iosMain/kotlin/com/opson/libraries/core/BuildConfig.ios.kt`
+- [x] `libraries/core/src/iosMain/kotlin/com/opson/libraries/core/IosShakeDetector.kt`
+- [x] `libraries/flowroutines/build.gradle.kts`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/Compose.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/Coroutines.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/DispatcherProvider.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/FlowExt.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/RunWhen.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/SEAViewModel.kt`
+- [x] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/AppCoroutineScopeTest.kt`
+- [x] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/RunWhenTest.kt`
+- [x] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/SEAViewModelEventExpiryTest.kt`
+- [x] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/SEAViewModelStateTest.kt`
+- [x] `libraries/flowroutines/testing/build.gradle.kts`
+- [x] `libraries/flowroutines/testing/src/commonMain/kotlin/com/opson/libraries/flowroutines/testing/CoroutineTest.kt`
+- [x] `libraries/flowroutines/testing/src/commonMain/kotlin/com/opson/libraries/flowroutines/testing/TestDispatcherProvider.kt`
+- [x] `libraries/identity/build.gradle.kts`
+- [x] `libraries/identity/impl/build.gradle.kts`
+- [x] `libraries/identity/impl/src/androidMain/kotlin/com/opson/libraries/identity/impl/auth/AndroidAppleSignInCoordinator.kt`
+- [x] `libraries/identity/impl/src/androidMain/kotlin/com/opson/libraries/identity/impl/auth/EncryptedSessionStorage.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/DefaultIdentityConfig.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/MeDto.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/ProfileApi.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/SupabaseClientFactory.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthClaims.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthGateImpl.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthReResolver.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/DefaultAuthOutcomeClassifier.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/DefaultGuestAccountCreator.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/GatewayAuthTokenProvider.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/GuestSessionHealer.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/PendingGuestAccountStore.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/RealSupabaseAuthGateway.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/RefreshFailureClassifier.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SecureSessionManager.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SessionMirrorStore.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/StrandedIdentityDetector.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthGateway.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthRepositoryImpl.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/PendingProfileEditStore.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileCache.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileEditFlusher.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileRepositoryImpl.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/UserScopedProfileCacheCleaner.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/AuthClaimsTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/AuthGateImplTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/DefaultAuthOutcomeClassifierTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/DefaultGuestAccountCreatorTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/FakeSessionRejectionBus.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/GatewayAuthTokenProviderTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/GuestSessionHealerTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/RefreshFailureClassifierTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SecureSessionManagerTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthRepositoryImplTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/profile/ProfileEditFlusherTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/profile/ProfileRepositoryImplTest.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/IdentityConfig.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AppleSignInCoordinator.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcome.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcomeClassifier.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcomes.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthRepository.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/GuestAccountCreator.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/SecureSessionStorage.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/profile/DisplayNameRules.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/profile/ProfileRepository.kt`
+- [x] `libraries/identity/src/commonTest/kotlin/com/opson/libraries/identity/profile/DisplayNameRulesTest.kt`
+- [x] `libraries/navigation/build.gradle.kts`
+- [x] `libraries/navigation/impl/build.gradle.kts`
+- [x] `libraries/navigation/impl/src/androidMain/kotlin/com/opson/libraries/navigation/impl/AndroidFileShareLauncher.kt`
+- [x] `libraries/navigation/impl/src/androidMain/kotlin/com/opson/libraries/navigation/impl/AndroidWebLinkLauncher.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/AccessDeniedScreen.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/AppNavigationTracker.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/BlockingErrorScreen.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ChannelDrain.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/DeepLinkBridgeImpl.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/DelegatingRouter.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ErrorDialogContent.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ErrorEntryPoints.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/SessionExpiredScreen.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/SessionExpiredViewModel.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/TabBarImpl.kt`
+- [x] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/AccessRestoredDateTest.kt`
+- [x] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/ChannelDrainTest.kt`
+- [x] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/DeepLinkBridgeImplTest.kt`
+- [x] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/SessionExpiredViewModelTest.kt`
+- [x] `libraries/navigation/impl/src/iosMain/kotlin/com/opson/libraries/navigation/impl/IosFileShareLauncher.kt`
+- [x] `libraries/navigation/impl/src/iosMain/kotlin/com/opson/libraries/navigation/impl/IosWebLinkLauncher.kt`
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/NullableNavTypeTest.kt`
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/RepeatNavigationTest.kt`
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/TabNavigationTest.kt`
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowHostTest.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/features/profile/BugReportRoute.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/DeepLinkBridge.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/ErrorRoutes.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/FeatureEntryPoint.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/FileShareLauncher.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavGraphBuilderExt.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigableWhileBlocked.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigationRecovery.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigationTracker.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/RepeatNavigation.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/Route.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/Router.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/ShakeDialogRoute.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabBar.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabNavigation.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TrackableRoute.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/WebLinkLauncher.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/BottomSheetDestination.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/DialogDestination.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowHost.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowNavDestinationBuilder.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowNavigator.kt`
+- [x] `libraries/navigation/src/commonTest/kotlin/com/opson/libraries/navigation/ShareFileNameTest.kt`
+- [x] `libraries/navigation/src/iosMain/kotlin/com/opson/libraries/navigation/FileSharePresenter.kt`
+- [x] `libraries/networking/build.gradle.kts`
+- [x] `libraries/networking/impl/build.gradle.kts`
+- [x] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/AndroidConnectivityObserver.kt`
+- [x] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.android.kt`
+- [x] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/NetworkInspectorLauncher.android.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/AccessDeniedBusImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/AppStateImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/BearerTokenInvalidator.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/ConnectivityObserver.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/DefaultClientHeadersProvider.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/DefaultNetworkConfig.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/NetworkClientImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/NetworkReachabilityImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/SessionRejectionBusImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/UnresolvedRelativeRequest.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/WiretapNetworkInspector.kt`
+- [x] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/AppStateImplTest.kt`
+- [x] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/CommonConfigTimeoutTest.kt`
+- [x] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/NetworkReachabilityImplTest.kt`
+- [x] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/UnresolvedRelativeRequestTest.kt`
+- [x] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/IosConnectivityObserver.kt`
+- [x] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.ios.kt`
+- [x] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/NetworkInspectorLauncher.ios.kt`
+- [x] `libraries/networking/src/androidMain/kotlin/com/opson/libraries/networking/OfflineErrors.android.kt`
+- [x] `libraries/networking/src/androidMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.android.kt`
+- [x] `libraries/networking/src/androidUnitTest/kotlin/com/opson/libraries/networking/OfflineErrorsTest.kt`
+- [x] `libraries/networking/src/androidUnitTest/kotlin/com/opson/libraries/networking/PlatformHttpEngineTest.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AccessDeniedBus.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AuthTokenInvalidator.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AuthTokenProvider.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/ClientHeaders.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/InstallIdProvider.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/InternalNetworkingApi.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkCall.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkClient.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkConfig.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkInspector.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkJson.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkReachability.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NoOpAuthTokenProvider.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/OfflineErrors.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/SessionIdProvider.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/SessionRejectionBus.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/Backoff.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/Jitter.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/RetryPolicy.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/WithRetry.kt`
+- [x] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/BackoffTest.kt`
+- [x] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/JitterTest.kt`
+- [x] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/RetryPolicyTest.kt`
+- [x] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/WithRetryTest.kt`
+- [x] `libraries/networking/src/iosMain/kotlin/com/opson/libraries/networking/OfflineErrors.ios.kt`
+- [x] `libraries/networking/src/iosMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.ios.kt`
+- [x] `libraries/networking/src/iosTest/kotlin/com/opson/libraries/networking/OfflineErrorsTest.kt`
+- [x] `libraries/networking/src/iosTest/kotlin/com/opson/libraries/networking/PlatformHttpEngineTest.kt`
+- [x] `libraries/opson/build.gradle.kts`
+- [x] `libraries/opson/impl/build.gradle.kts`
+- [x] `libraries/opson/impl/src/androidUnitTest/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTreeConnectivityTest.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppEventDispatcher.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppEventsDiModule.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppTelemetry.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/CachedInstallIdProvider.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/ConnectivityEdgeDispatcher.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/DefaultUserScopedDataReset.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/LifecycleAppEventLogger.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SessionTelemetryBinder.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SessionTrackerImpl.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SyncTriggers.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/TelemetryUserBinder.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedAppDataReset.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedSyncCoordinator.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedWorkRegistry.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/DevConsoleWriter.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/KermitLogTree.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/LogRingBuffer.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTree.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/AppEventDispatcherTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/CachedInstallIdProviderTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/ConnectivityEdgeDispatcherTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/DefaultUserScopedDataResetTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/LifecycleAppEventLoggerTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/SentryRuntimeConfigTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/SessionTrackerImplTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/TelemetryUserBinderTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/UserScopedSyncCoordinatorTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/LogRingBufferTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTreeTest.kt`
+- [x] `libraries/opson/src/androidMain/kotlin/com/opson/libraries/ActivityProvider.kt`
+- [x] `libraries/opson/src/androidMain/kotlin/com/opson/libraries/opson/AndroidAppLifecycle.kt`
+- [x] `libraries/opson/src/androidUnitTest/kotlin/com/opson/libraries/opson/AndroidAppLifecycleTest.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppCache.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppEvent.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppEvents.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/Session.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/Telemetry.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/UserScopedData.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/UserScopedSyncer.kt`
+- [x] `libraries/opson/src/iosMain/kotlin/com/opson/libraries/opson/IosAppLifecycle.kt`
+- [x] `libraries/opson/storage/build.gradle.kts`
+- [x] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/ClearableDao.kt`
+- [x] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/DatabaseTransactor.kt`
+- [x] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/ExampleUserDataDao.kt`
+- [x] `libraries/progressphotos/build.gradle.kts`
+- [x] `libraries/progressphotos/impl/build.gradle.kts`
+- [x] `libraries/progressphotos/impl/src/androidMain/kotlin/com/opson/libraries/progressphotos/impl/AndroidDeviceLock.kt`
+- [x] `libraries/progressphotos/impl/src/androidMain/kotlin/com/opson/libraries/progressphotos/impl/AndroidProgressPhotoFileStore.kt`
+- [x] `libraries/progressphotos/impl/src/commonMain/kotlin/com/opson/libraries/progressphotos/impl/ProgressPhotoRepositoryImpl.kt`
+- [x] `libraries/progressphotos/impl/src/commonMain/kotlin/com/opson/libraries/progressphotos/impl/ProgressPhotosClearer.kt`
+- [x] `libraries/progressphotos/impl/src/commonTest/kotlin/com/opson/libraries/progressphotos/impl/ProgressPhotoRepositoryImplTest.kt`
+- [x] `libraries/progressphotos/impl/src/commonTest/kotlin/com/opson/libraries/progressphotos/impl/ProgressPhotosClearerTest.kt`
+- [x] `libraries/progressphotos/impl/src/iosMain/kotlin/com/opson/libraries/progressphotos/impl/IosDeviceLock.kt`
+- [x] `libraries/progressphotos/impl/src/iosMain/kotlin/com/opson/libraries/progressphotos/impl/IosProgressPhotoFileStore.kt`
+- [x] `libraries/progressphotos/src/commonMain/kotlin/com/opson/libraries/progressphotos/DeviceLock.kt`
+- [x] `libraries/progressphotos/src/commonMain/kotlin/com/opson/libraries/progressphotos/ProgressPhotos.kt`
+- [x] `libraries/progressphotos/src/commonMain/kotlin/com/opson/libraries/progressphotos/ProgressPhotosEnabled.kt`
+- [x] `libraries/review/build.gradle.kts`
+- [x] `libraries/review/impl/build.gradle.kts`
+- [x] `libraries/review/impl/src/androidMain/kotlin/com/opson/libraries/review/impl/AndroidReviewLauncher.kt`
+- [x] `libraries/review/impl/src/commonMain/kotlin/com/opson/libraries/review/impl/RealReviewPromptCoordinator.kt`
+- [x] `libraries/review/impl/src/commonTest/kotlin/com/opson/libraries/review/impl/RealReviewPromptCoordinatorTest.kt`
+- [x] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewLauncher.kt`
+- [x] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewPromptCoordinator.kt`
+- [x] `libraries/storage/build.gradle.kts`
+- [x] `libraries/storage/impl/build.gradle.kts`
+- [x] `libraries/storage/impl/src/androidMain/kotlin/com/opson/libraries/storage/impl/cache/AndroidFileManager.kt`
+- [x] `libraries/storage/impl/src/androidMain/kotlin/com/opson/libraries/storage/impl/db/AndroidAppDatabaseBuilderFactory.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/UserScopedDaoCleaner.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/cache/DataStoreCacheFactory.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/cache/InMemoryCache.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabase.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabaseBuilderFactory.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabaseProvider.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/ProvideDaos.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/RealAppDatabaseProvider.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/RoomDatabaseTransactor.kt`
+- [x] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/UserScopedDaoCleanerTest.kt`
+- [x] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/cache/DataStoreCacheTest.kt`
+- [x] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/cache/InMemoryCacheTest.kt`
+- [x] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/cache/IosFileManager.kt`
+- [x] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/db/IosAppDatabaseBuilderFactory.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/Cache.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/CacheFactory.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/CacheJsonSerializer.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/FileManager.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/VersionedCacheJsonSerializer.kt`
+- [x] `libraries/storage/src/commonTest/kotlin/com/opson/libraries/storage/VersionedCacheJsonSerializerTest.kt`
+- [x] `libraries/telemetry/impl/build.gradle.kts`
+- [x] `libraries/telemetry/impl/src/androidMain/kotlin/com/opson/libraries/telemetry/impl/AndroidInstallFactsProvider.kt`
+- [x] `libraries/telemetry/impl/src/androidMain/kotlin/com/opson/libraries/telemetry/impl/AndroidJankMonitor.kt`
+- [x] `libraries/telemetry/impl/src/androidMain/kotlin/com/opson/libraries/telemetry/impl/AndroidPreviousExitProvider.kt`
+- [x] `libraries/telemetry/impl/src/androidMain/kotlin/com/opson/libraries/telemetry/impl/AndroidProcessStartTimeProvider.kt`
+- [x] `libraries/telemetry/impl/src/androidUnitTest/kotlin/com/opson/libraries/telemetry/impl/AndroidInstallFactsTest.kt`
+- [x] `libraries/telemetry/impl/src/androidUnitTest/kotlin/com/opson/libraries/telemetry/impl/PreviousExitReasonMappingTest.kt`
+- [x] `libraries/telemetry/impl/src/androidUnitTest/kotlin/com/opson/libraries/telemetry/impl/TestTelemetryBufferDirectory.android.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/DurableLogExport.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/FailSafeLogRecordExporter.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/GrafanaAppEvents.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/GrafanaLogTree.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/InstallFacts.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/JankMonitor.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/JankTally.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/MetricKitExitReport.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/OtlpJsonLogRecordExporter.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/PreviousExitProvider.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/StartupReporter.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/TelemetryBackgroundFlusher.kt`
+- [x] `libraries/telemetry/impl/src/commonMain/kotlin/com/opson/libraries/telemetry/impl/TelemetryConfigValues.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/AppLaunchedEventTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/AppLaunchedSessionOrderingTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/FailSafeLogRecordExporterTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/GrafanaLogTreeTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/InstallFactsResourceTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/InstallFactsTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/JankTallyTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/MetricKitExitReportTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/OfflineDurabilityTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/OtlpJsonLogRecordExporterTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/RecordingLogRecordProcessor.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/StartupReporterTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/TelemetryBackgroundFlusherTest.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/TestInstallFacts.kt`
+- [x] `libraries/telemetry/impl/src/commonTest/kotlin/com/opson/libraries/telemetry/impl/TestTelemetryBufferDirectory.kt`
+- [x] `libraries/telemetry/impl/src/iosMain/kotlin/com/opson/libraries/telemetry/impl/IosInstallFactsProvider.kt`
+- [x] `libraries/telemetry/impl/src/iosMain/kotlin/com/opson/libraries/telemetry/impl/IosJankMonitor.kt`
+- [x] `libraries/telemetry/impl/src/iosMain/kotlin/com/opson/libraries/telemetry/impl/IosPreviousExitProvider.kt`
+- [x] `libraries/telemetry/impl/src/iosMain/kotlin/com/opson/libraries/telemetry/impl/IosProcessStartTimeProvider.kt`
+- [x] `libraries/telemetry/impl/src/iosTest/kotlin/com/opson/libraries/telemetry/impl/TestTelemetryBufferDirectory.ios.kt`
 
 ## website (18 files)
 
