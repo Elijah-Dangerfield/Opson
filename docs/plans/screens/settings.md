@@ -350,13 +350,33 @@ data class TargetsState(
 | `ModesTapped`, `BackTapped` | `OpenModes`, `Close`. |
 
 Burn: 0.1 had no burn source. With `release.goalsAndEnergy` the view model
-reads today's Burned (see "Goals and energy"); without it, the deficit keeps
-the range and a surplus goes on top of the usual target.
+reads today's Burned (see "Goals and energy"), and a set deficit and surplus
+are offered; without it nothing reads Burned, so neither is offered (one saved
+on a phone with the flag on still shows).
 
 Not in 0.1: the Exercise adjustment row (no watch data), "My watch" as a
-burn source. "One number" and a set surplus came in 0.2, below. The macro card
-edits how macros are set (Ratios or Grams); per-gram editing needs its own
-safety review first.
+burn source. "One number" and a set surplus came in 0.2, below.
+
+**Macros (2026-10-27, after `docs/research/goals-ux.md`).** "Edit macros"
+opens the editor in the macro card. Grams are what is stored and what every
+screen reads (`Targets.proteinG` and the rest), so Today, Trends and the
+widget show the same numbers whichever way they were set. "% of calories"
+(`MacroMode.Ratios`) edits each macro as a whole percent of the calorie goal
+and the grams follow the goal on later steps; "Grams" edits grams and they
+stay put. Each macro has a stepper (5 g, or 5%, snapping to the step) and a
+typed field that writes every sensible value as it is typed. Presets are
+Balanced 20/50/30, Higher protein 30/40/30 and Lower carb 30/25/45
+(`MacroPreset`, `TODO(dietitian)`); Custom shows when none matches. The goal
+the macros are measured against is the aim for a range or one number, and
+today's goal (`rangeFor`) for a deficit, a surplus or by day. When the
+macros' own energy (4/4/9 kcal a gram) is more than `MACRO_FIT_TOLERANCE_KCAL`
+off it, the card says by how much and offers both fixes: fit the macros to
+the goal (`fitMacrosTo`, the goal drives), or make their total the goal
+(`useMacroEnergy`, the macros drive; a range or one number only, never under
+the floor). Where calories are hidden (Macros with grams) the editor is grams
+alone: no percents, presets or comparison, since each would be the calorie
+goal in disguise. Where no macro shows as an amount (Macros only) there is
+nothing to edit.
 
 Visibility (surface `Settings`): every amount appears only when calories are
 configured `Show`; otherwise the page is the `Targets work in the background`
@@ -403,21 +423,29 @@ numbers only (`TargetStyle.surplusAllowed` is `deficitAllowed`).
   `DayGoal.Exact(kcal)`.
 - `TargetStyle.Deficit` and `Surplus(kcal, startingKcal)` aim at Burned:
   `rangeFor(date, preset, burnKcal = burned.totalKcal)`, never under
-  `GOAL_FLOOR_KCAL` (or where the user started). **Owner's call
-  (2026-10-27), which overrides the design's working 500 kcal stepper:** the
-  deficit stays locked until a dietitian sets `MAX_DEFICIT_KCAL`, and the
-  surplus has the same kind of cap, `MAX_SURPLUS_KCAL: Int? = null`
-  (`TODO(clinician)`). Until set, each can come down but never grow past
-  where it started, which is what the aim already implies against Burned
-  when picked (0 without Burned). The lock and its note say why.
+  `GOAL_FLOOR_KCAL` (or where the user started). Either can be picked with or
+  without a health app (decisions, 2026-10-27, "A deficit can be chosen"):
+  Burned falls back to resting energy plus everyday activity. The caps hold:
+  `MAX_DEFICIT_KCAL` and `MAX_SURPLUS_KCAL` stay null (`TODO(dietitian)`,
+  `TODO(clinician)`), so each can come down but never grow past where it
+  started, which is what the aim already implies against Burned when picked
+  (0 without Burned). The card says what the target is based on ("Based on
+  about 2,210 burned today", and whether that is an estimate). With no Burned
+  it asks for the details instead and links to Resting energy. One that
+  started at 0 for want of a burn offers "Start from today's burn" once there
+  is one, which is the same as picking the style again.
 - A surplus does not wait on Burned: until it is known it goes on top of the
   aim (it can only put the goal above it), and the card says so.
 - Day groups: `DayGroup.shape` is `GroupShape.Range`, `Exact` (the group's
-  middle, both ends moving with it) or `Surplus(kcal, startingKcal)` (over
-  Burned, or the group's middle until it is known, capped as the style is,
-  Full numbers only). Editing a group shows a `Range / One number / Surplus`
-  switch above the stepper for its shape. A new group is a range. A set
-  deficit is not offered per group.
+  middle, both ends moving with it), `Deficit(kcal, startingKcal)` (under
+  Burned, the group's range until it is known) or `Surplus(kcal,
+  startingKcal)` (over Burned, or the group's middle until it is known), the
+  last two capped as the styles are and Full numbers only. So Monday can be a
+  range, Tuesday a deficit and Thursday a surplus. Editing a group shows a
+  `Range / One number / Deficit / Surplus` switch above the stepper for its
+  shape. A new group is a range. On the wire a group keeps `minKcal` and
+  `maxKcal` whatever its shape, so a build that predates a shape reads that
+  day as its own range.
 - Drawn as one number everywhere a range is drawn: Today's bar and the
   widget mark it with a line, Trends draws a thin line where the band was,
   the words say "goal" ("Your goal", "To your goal", "Close to your goal of
@@ -440,11 +468,18 @@ Resting energy comes from `Settings.restingSource`: Calculate (Mifflin–St
 Jeor from `birthYear`, `heightCm`, `bodySex` and the latest weigh-in,
 recalculated when a weight is logged; the default), the health app (its most
 recent whole day in the last week, falling back to the calculation) or
-Enter my own (500 to 5,000). Onboarding collects none of age, height or sex,
-so the Resting energy page asks for what is missing while Calculate is
-picked; until then there is no Burned and every page says so. `BodySex` has
-`Unsaid`, the midpoint of the equation's two constants. "Burned comes from"
-on Targets shows resting energy (energy out) and the activity source.
+Enter my own (500 to 5,000). Onboarding collects age, height and sex only
+when a deficit or surplus is picked, so the Resting energy page asks for what
+is missing while Calculate is picked; until then there is no Burned and every
+page says so. `BodySex` has `Unsaid`, the midpoint of the equation's two
+constants. While no health app reads activity (none connected, or
+`release.health` off), `Settings.everydayActivity` stands in for movement:
+`EverydayActivity.kcalFor`, resting energy times the standard Mifflin–St Jeor
+factor less one (Mostly sitting 0.2, the default; Some walking 0.375; On my feet
+a lot 0.55; Physical work 0.725). Logged exercise (`release.exercise`) adds on
+top; `burnedFor` is the one rule. "Burned comes from" on Targets shows resting
+energy (energy out) and either the health app or "Everyday activity", whose
+choices open in place; Resting energy and onboarding edit the same setting.
 
 **Resting energy (13.2d)**, `RestingEnergyRoute(fromEnergyToday)`. The three
 sources with what each gives now, the details the calculation needs, "Steps

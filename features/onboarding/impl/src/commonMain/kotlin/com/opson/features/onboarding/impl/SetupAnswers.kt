@@ -131,4 +131,5 @@ fun Settings.startingWith(preset: PresetId, answers: SetupAnswers, setup: Starti
     bodySex = setup.sex ?: bodySex,
     weightUnit = setup.weightUnit ?: weightUnit,
     mealTimes = setup.mealTimes ?: mealTimes,
+    everydayActivity = setup.everydayActivity ?: everydayActivity,
 )

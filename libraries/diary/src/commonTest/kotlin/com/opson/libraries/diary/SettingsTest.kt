@@ -2,6 +2,7 @@ package com.opson.libraries.diary
 
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.DayGroup
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.GroupShape
@@ -19,6 +20,10 @@ import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
@@ -187,8 +192,10 @@ class SettingsTest {
             .moveDay(DayOfWeek.MONDAY, 1)
             .step(RangeEnd.High, up = true, group = 1)!!
         val shaped = byDay.shapeGroup(1, GroupShape.Surplus(0, 0), burnKcal = 1900)!!.stepSurplus(up = false, group = 1)!!.shapeGroup(0, GroupShape.Exact)!!
+        val deficitDay = byDay.shapeGroup(1, GroupShape.Deficit(0, 0), burnKcal = 2900)!!.stepDeficit(up = false, group = 1)!!
         listOf(
             Targets.Default,
+            deficitDay,
             Targets.Default.useDeficit(burnKcal = 2420).stepDeficit(up = false)!!,
             byDay,
             shaped,
@@ -221,6 +228,49 @@ class SettingsTest {
         assertEquals(BodySex.Unsaid, future.bodySex)
         assertEquals(RestingSource.Calculate, Settings().restingSource)
         assertTrue(Settings().activityInBurned)
+    }
+
+    @Test
+    fun everydayActivity_travelsAsATopLevelKey_andAnUnknownOrMissingOneIsMostlySitting() {
+        val s = Settings(everydayActivity = EverydayActivity.OnMyFeet)
+        val json = SettingsJson.encodeToJsonElement(Settings.serializer(), s).jsonObject
+        assertEquals("on_my_feet", json.getValue("everydayActivity").jsonPrimitive.content)
+        assertEquals(s, SettingsJson.decodeFromJsonElement(Settings.serializer(), json))
+        assertEquals(EverydayActivity.MostlySitting, SettingsJson.decodeFromString(Settings.serializer(), """{"everydayActivity":"athlete"}""").everydayActivity)
+        assertEquals(EverydayActivity.MostlySitting, SettingsJson.decodeFromString(Settings.serializer(), "{}").everydayActivity)
+    }
+
+    /**
+     * A deficit day goes up inside `targetStyle` with its range kept beside it. A build from
+     * before deficit days reads an unknown shape as a range, so that day reads as its own range:
+     * never nothing, and never lower than the range it had.
+     */
+    @Test
+    fun aDeficitDay_keepsItsRangeOnTheWire_soAnOlderBuildReadsThatRange() {
+        val byDay = requireNotNull(Targets.Default.useByDay().addDayGroup()).moveDay(DayOfWeek.TUESDAY, 1).step(RangeEnd.High, up = true, group = 1)!!
+        val targets = byDay.shapeGroup(1, GroupShape.Deficit(0, 0), burnKcal = 2600)!!
+        val json = SettingsJson.encodeToJsonElement(Settings.serializer(), Settings(targets = targets)).jsonObject
+        val group = json.getValue("targetStyle").jsonObject.getValue("groups").jsonArray[1].jsonObject
+        assertEquals("deficit", group.getValue("shape").jsonPrimitive.content)
+        assertEquals(450, group.getValue("deficitKcal").jsonPrimitive.content.toInt())
+        assertEquals(1900 to 2350, group.getValue("minKcal").jsonPrimitive.content.toInt() to group.getValue("maxKcal").jsonPrimitive.content.toInt())
+
+        // What an older build does with a shape it doesn't know.
+        val unknownShape = JsonObject(group + ("shape" to JsonPrimitive("from_a_later_build")))
+        val style = json.getValue("targetStyle").jsonObject
+        val groups = style.getValue("groups").jsonArray.mapIndexed { index, it -> if (index == 1) unknownShape else it }
+        val older = JsonObject(json + ("targetStyle" to JsonObject(style + ("groups" to JsonArray(groups)))))
+        val read = SettingsJson.decodeFromJsonElement(Settings.serializer(), older).targets
+        assertEquals(DayGroup(setOf(DayOfWeek.TUESDAY), 1900, 2350), (read.style as TargetStyle.ByDay).groups[1])
+    }
+
+    @Test
+    fun aDeficitDayPastWhereItStarted_isHeldThere() {
+        val targets = """"energyKcal":2100,"minKcal":1900,"maxKcal":2300,"proteinG":120,"carbsG":250,"fatG":70,"fiberG":30"""
+        val style = """{"kind":"by_day","groups":[{"days":["mon"],"minKcal":1900,"maxKcal":2300,"shape":"deficit","deficitKcal":1500,"startingDeficitKcal":200},""" +
+            """{"days":["tue"],"minKcal":1900,"maxKcal":2300,"shape":"deficit","deficitKcal":-50}]}"""
+        val read = SettingsJson.decodeFromString(Settings.serializer(), """{"targets":{$targets},"targetStyle":$style}""").targets.style
+        assertEquals(listOf(GroupShape.Deficit(200, 200), GroupShape.Deficit(0, 0)), (read as TargetStyle.ByDay).groups.map { it.shape })
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.nutrition.BodyProfile
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.RestingEnergies
@@ -70,8 +71,9 @@ data class GoalAnswer(
 }
 
 /**
- * Resting energy's details, as typed. Text, so a half-typed year is not lost. Weight is the
- * first weigh-in rather than a setting, as everywhere else in the app.
+ * Resting energy's details, as typed, and how active an ordinary day is. Text, so a half-typed
+ * year is not lost. Weight is the first weigh-in rather than a setting, as everywhere else in the
+ * app.
  */
 data class BodyAnswer(
     val birthYear: String = "",
@@ -79,6 +81,7 @@ data class BodyAnswer(
     val weight: String = "",
     val sex: BodySex? = null,
     val unit: WeightUnit = WeightUnit.Kg,
+    val activity: EverydayActivity = EverydayActivity.Default,
 ) {
     fun withBirthYear(text: String) = copy(birthYear = NumberInput.sanitize(text, allowDecimal = false).take(YEAR_DIGITS))
 
@@ -108,6 +111,12 @@ data class BodyAnswer(
     /** Resting energy from what is typed so far; null until every detail is in. */
     fun restingKcal(currentYear: Int): Int? = RestingEnergies.calculate(profile(currentYear))
 
+    /**
+     * An ordinary day's burn: resting energy plus the [activity] level's everyday movement, as
+     * Burned works it out with no health app. What a deficit or surplus starts from.
+     */
+    fun burnKcal(currentYear: Int): Int? = restingKcal(currentYear)?.let { it + activity.kcalFor(it) }
+
     private companion object {
         const val YEAR_DIGITS = 4
         const val MIN_AGE = 13
@@ -131,10 +140,14 @@ data class GoalView(
     val canLower: Boolean,
 )
 
-/** The resting energy step as drawn. [resting] is energy out, through the policy. */
+/**
+ * The resting energy step as drawn. [resting] and [burned] (an ordinary day, with the activity
+ * level) are energy out, through the policy.
+ */
 data class BodyView(
     val answer: BodyAnswer,
     val resting: Display,
+    val burned: Display = Display.Hidden,
     /** Whether the weight field shows: weight is a number like any other. */
     val weightShown: Boolean,
 )
@@ -147,6 +160,7 @@ data class StartingSetup(
     val sex: BodySex? = null,
     val weightUnit: WeightUnit? = null,
     val mealTimes: MealTimes? = null,
+    val everydayActivity: EverydayActivity? = null,
 )
 
 object SetupViews {
@@ -170,6 +184,9 @@ object SetupViews {
     fun body(answer: BodyAnswer, currentYear: Int, policy: VisibilityPolicy): BodyView = BodyView(
         answer = answer,
         resting = answer.restingKcal(currentYear)
+            ?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Settings, FormatContext()) }
+            ?: Display.Hidden,
+        burned = answer.burnKcal(currentYear)
             ?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Settings, FormatContext()) }
             ?: Display.Hidden,
         weightShown = policy.effectiveLevel(Metric.Weight, Surface.Settings) == Visibility.Show,

@@ -115,7 +115,7 @@ enum class EverydayActivity(val key: String, val shareOfResting: Double) {
     ;
 
     /** For [restingKcal], rounded to 10 like resting energy. */
-    fun kcalFor(restingKcal: Int): Int = (restingKcal * shareOfResting / 10).roundToInt() * 10
+    fun kcalFor(restingKcal: Int): Int = (restingKcal.coerceAtLeast(0) * shareOfResting / 10).roundToInt() * 10
 
     companion object {
         val Default = MostlySitting
@@ -145,7 +145,8 @@ data class HealthActivity(val movementKcal: Int?, val workoutKcal: Int?)
  *   recorded by the watch.
  * - otherwise: [everyday] activity and all logged [exercise].
  *
- * [everyday] and [exercise] are null with `release.exercise` off, which is Burned as it was.
+ * [everyday] counts whenever no health app reads activity, so a deficit or surplus is aimed at a
+ * whole day without one. [exercise] is null with `release.exercise` off: nothing logged by hand.
  */
 fun burnedFor(
     resting: RestingEnergy,

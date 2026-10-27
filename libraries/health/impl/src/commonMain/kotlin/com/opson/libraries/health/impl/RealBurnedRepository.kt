@@ -35,9 +35,11 @@ import kotlin.math.roundToInt
 
 /**
  * [BurnedRepository] from settings, the latest weigh-in and, with `release.health` on and a store
- * connected, the health app. With `release.exercise` on, everyday activity and the day's logged
- * exercise too, taken or left by [burnedFor]'s rule so the health app's activity and the manual
- * side never add up. Holds nothing: every value is read while a flow is collected.
+ * connected, the health app. Everyday activity, and with `release.exercise` on the day's logged
+ * exercise, are taken or left by [burnedFor]'s rule so the health app's activity and the manual
+ * side never add up: with no health app reading activity, everyday activity is the day's
+ * movement whatever `release.exercise` says. Holds nothing: every value is read while a flow is
+ * collected.
  *
  * The health app's resting energy is a whole day's, so it is the most recent full day the store
  * has, within the last week, never today's so far.
@@ -63,7 +65,7 @@ class RealBurnedRepository(
             burnedFor(
                 resting = resting,
                 health = activity?.toHealthActivity(),
-                everyday = settings.everydayActivity.takeIf { manual },
+                everyday = settings.everydayActivity,
                 exercise = totals,
                 activityCounted = settings.activityInBurned,
             )

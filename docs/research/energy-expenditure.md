@@ -59,7 +59,9 @@ for example walking 3.5 to 3.9 mph at 4.8 (17200) and running 6 mph at 9.3
 
 Burned already had resting energy (Mifflin-St Jeor, the health app's own
 number, or one the person types) plus the health app's movement and workouts.
-With `release.exercise` on, two things join it.
+Two things join it: everyday activity, with `release.goalsAndEnergy`, so a
+deficit works without a health app, and logged exercise, with
+`release.exercise` on.
 
 **Logged exercise.** An entry is an activity from a list of about fifty common
 Compendium activities, a duration and a start time. Its energy is

@@ -11,7 +11,9 @@ import com.opson.libraries.diary.impl.DiarySyncApi
 import com.opson.libraries.diary.impl.wire.SyncRequestDto
 import com.opson.libraries.diary.impl.wire.SyncResponseDto
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
+import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ModeTiming
@@ -22,6 +24,7 @@ import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Visibility
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.json.JsonObject
@@ -174,6 +177,41 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         assertEquals(TargetStyle.Surplus(250, 300), settings.targets.style)
     }
 
+    /**
+     * A week with a deficit day goes up inside `targetStyle`, so a 0.1 save of `targets` leaves it
+     * alone, and the deficit day comes back to the 0.2 phone as it was.
+     */
+    @Test
+    fun aV01SaveOfTargets_keepsADeficitDay() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        val week = newPhone.settings.update {
+            val byDay = it.targets.useByDay().addDayGroup()!!.moveDay(DayOfWeek.TUESDAY, 1)
+            it.copy(targets = byDay.shapeGroup(1, GroupShape.Deficit(0, 0), burnKcal = 2600)!!)
+        }
+        val tuesday = (week.targets.style as TargetStyle.ByDay).groups[1]
+        assertEquals(GroupShape.Deficit(500, 500), tuesday.shape)
+        newPhone.syncNow().getOrThrow()
+
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        oldPhone.settings.update { it.copy(targets = it.targets.step(RangeEnd.High, up = true)!!) }
+        oldPhone.syncNow().getOrThrow()
+
+        val stored = server.query(
+            "SELECT settings->'targetStyle'->'groups'->1->>'shape' AS shape FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals("deficit", stored["shape"], "the merge kept targetStyle")
+
+        newPhone.syncNow().getOrThrow()
+        val settings = newPhone.settings.settings.awaitState { it.targets.maxKcal == week.targets.maxKcal + 50 }
+        assertEquals(tuesday, (settings.targets.style as TargetStyle.ByDay).groups[1])
+    }
+
     @Test
     fun aV01Save_keepsWhereBurnedComesFrom() = integration {
         val user = randomUserId()
@@ -185,6 +223,7 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
                 restingSource = RestingSource.Own,
                 restingOwnKcal = 1600,
                 activityInBurned = false,
+                everydayActivity = EverydayActivity.OnMyFeet,
                 birthYear = 1990,
                 heightCm = 172.0,
                 bodySex = BodySex.Unsaid,
@@ -212,6 +251,7 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         assertEquals(RestingSource.Own, settings.restingSource)
         assertEquals(1600, settings.restingOwnKcal)
         assertFalse(settings.activityInBurned)
+        assertEquals(EverydayActivity.OnMyFeet, settings.everydayActivity)
         assertEquals(1990, settings.birthYear)
         assertEquals(172.0, settings.heightCm)
         assertEquals(BodySex.Unsaid, settings.bodySex)
@@ -366,7 +406,7 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         /** Keys 0.1 doesn't know, so drops on decode and never sends. */
         val V02_KEYS = setOf(
             "mealTimes", "exerciseRange", "checkIn", "progressPhotos", "targetStyle",
-            "restingSource", "restingOwnKcal", "activityInBurned", "birthYear", "heightCm", "bodySex",
+            "restingSource", "restingOwnKcal", "activityInBurned", "everydayActivity", "birthYear", "heightCm", "bodySex",
             "todayCard", "todayMainNumber", "todayMainNumberByStyle", "todayBurnedBreakdown", "todayMealsCount",
             "todayNutrientsLink", "todayWater", "todayWeight", "todayCloseDay",
             "mode", "modeTimerEnded",

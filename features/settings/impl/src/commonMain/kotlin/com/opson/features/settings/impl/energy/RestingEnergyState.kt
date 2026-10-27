@@ -39,8 +39,8 @@ data class RestingEnergyState(
     /** The connected store for "Steps and workouts", null when none. */
     val activitySource: HealthSource? = null,
     val activityInBurned: Boolean = true,
-    /** Everyday activity's pick (`release.exercise`); null hides the choice. */
-    val everyday: EverydayActivity? = null,
+    /** Everyday activity's pick, the same setting Targets and onboarding edit. */
+    val everyday: EverydayActivity = EverydayActivity.Default,
 )
 
 /**
@@ -70,7 +70,6 @@ object RestingEnergyStateBuilder {
         policy: VisibilityPolicy,
         drafts: RestingDrafts = RestingDrafts(),
         activitySource: HealthSource? = null,
-        exerciseReleased: Boolean = false,
     ): RestingEnergyState {
         val heightUnit = if (settings.weightUnit == WeightUnit.Lb) HeightUnit.In else HeightUnit.Cm
         return RestingEnergyState(
@@ -94,7 +93,7 @@ object RestingEnergyStateBuilder {
             },
             activitySource = activitySource,
             activityInBurned = settings.activityInBurned,
-            everyday = settings.everydayActivity.takeIf { exerciseReleased },
+            everyday = settings.everydayActivity,
         )
     }
 

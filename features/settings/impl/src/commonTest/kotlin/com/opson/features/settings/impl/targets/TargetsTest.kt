@@ -363,7 +363,7 @@ class TargetsTest : CoroutineTest() {
         val events = eventsOf(vm)
 
         vm.takeAction(TargetsAction.RestingEnergyTapped)
-        vm.takeAction(TargetsAction.ActivityTapped)
+        vm.takeAction(TargetsAction.ConnectHealthTapped)
         vm.takeAction(TargetsAction.ModesTapped)
         vm.takeAction(TargetsAction.BackTapped)
 
@@ -376,22 +376,21 @@ class TargetsTest : CoroutineTest() {
     // --- goal style list ---
 
     @Test
-    fun aSetDeficitIsOfferedOnlyInFullNumbersAndSprint() {
+    fun aSetDeficitIsOfferedOnlyInFullNumbers_withGoalsAndEnergy() {
         PresetId.entries.forEach { preset ->
-            val options = TargetsStateBuilder.offered(StyleKind.Range, preset, goalsAndEnergy = false)
-            assertEquals(
-                preset == PresetId.Full || preset == PresetId.Full,
-                StyleKind.Deficit in options,
-                "in $preset",
-            )
+            val options = TargetsStateBuilder.offered(StyleKind.Range, preset, goalsAndEnergy = true)
+            assertEquals(preset == PresetId.Full, StyleKind.Deficit in options, "in $preset")
         }
+        // Without the flag nothing reads Burned, so a deficit would only ever be the range.
+        assertFalse(StyleKind.Deficit in TargetsStateBuilder.offered(StyleKind.Range, PresetId.Full, goalsAndEnergy = false))
+        assertTrue(StyleKind.Deficit in TargetsStateBuilder.offered(StyleKind.Deficit, PresetId.Full, goalsAndEnergy = false), "a saved one still shows")
     }
 
     @Test
     fun theListMarksTheSavedStyle_andTheRangeRowSaysItsRange() {
         val styles = build(targets = SettingsFixtures.byDayTargets).styles
 
-        assertEquals(listOf(StyleKind.Range, StyleKind.Deficit, StyleKind.ByDay), styles.map { it.kind })
+        assertEquals(listOf(StyleKind.Range, StyleKind.ByDay), styles.map { it.kind }, "release.goalsAndEnergy off")
         assertEquals(StyleKind.ByDay, styles.single { it.selected }.kind)
         assertEquals(Display.Shown("1,900 to 2,300 kcal"), styles.first().range)
     }

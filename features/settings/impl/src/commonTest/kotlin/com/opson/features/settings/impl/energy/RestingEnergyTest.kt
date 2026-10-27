@@ -16,10 +16,9 @@ import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
-import com.opson.libraries.health.ExerciseRelease
-import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Visibility
@@ -79,7 +78,6 @@ class RestingEnergyTest : CoroutineTest() {
     private fun viewModel(
         repository: FakeSettingsRepository,
         health: FakeHealthRepository = FakeHealthRepository(HealthStatus.Connected),
-        exerciseOn: Boolean = false,
     ) = RestingEnergyViewModel(
         repository,
         FakeBurnedRepository(choices = choices),
@@ -87,16 +85,14 @@ class RestingEnergyTest : CoroutineTest() {
         health,
         healthFlag(true),
         FakeCalendar(),
-        ExerciseRelease { exerciseOn },
     )
 
     @Test
-    fun everydayActivity_showsWithReleaseExercise_andIsSaved() = runUnitTest {
-        val off = viewModel(FakeSettingsRepository())
-        assertNull(off.state.everyday, "release.exercise off: no choice")
-
+    fun everydayActivity_showsWithoutReleaseExercise_andIsSaved() = runUnitTest {
+        // Everyday activity is Burned's movement with no health app, so a deficit works without
+        // one; it does not wait for logged exercise.
         val repository = FakeSettingsRepository()
-        val vm = viewModel(repository, exerciseOn = true)
+        val vm = viewModel(repository)
         assertEquals(EverydayActivity.MostlySitting, vm.state.everyday, "the default")
 
         vm.takeAction(RestingEnergyAction.EverydayPicked(EverydayActivity.OnMyFeet))

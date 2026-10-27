@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -30,6 +32,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.opson.features.settings.impl.SectionLabel
@@ -42,8 +45,12 @@ import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.SettingsRow
 import com.opson.features.settings.impl.integrations.title
 import com.opson.libraries.diary.MacroMode
+import com.opson.libraries.diary.ui.detail
+import com.opson.libraries.diary.ui.label
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.MacroPreset
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -51,18 +58,21 @@ import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.RestingFrom
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.nutrition.withPreset
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonTone
+import com.opson.libraries.ui.components.chip.PillChip
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.radio.RadioDot
+import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.system.color.ColorResource
@@ -76,19 +86,28 @@ import com.opson.system.typography.TypographyResource
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_targets_activity
+import opson.libraries.resources.generated.resources.settings_targets_activity_connect
+import opson.libraries.resources.generated.resources.everyday_activity_title
 import opson.libraries.resources.generated.resources.settings_targets_activity_none
+import opson.libraries.resources.generated.resources.settings_targets_activity_note
+import opson.libraries.resources.generated.resources.settings_targets_add_details
+import opson.libraries.resources.generated.resources.settings_targets_burn_based
+import opson.libraries.resources.generated.resources.settings_targets_burn_estimated
+import opson.libraries.resources.generated.resources.settings_targets_burn_needs_details
 import opson.libraries.resources.generated.resources.settings_targets_burn_target
-import opson.libraries.resources.generated.resources.settings_targets_burn_target_unknown
 import opson.libraries.resources.generated.resources.settings_targets_burned_title
 import opson.libraries.resources.generated.resources.settings_targets_deficit_about
 import opson.libraries.resources.generated.resources.settings_targets_deficit_cap_note
 import opson.libraries.resources.generated.resources.settings_targets_deficit_less
 import opson.libraries.resources.generated.resources.settings_targets_deficit_locked
 import opson.libraries.resources.generated.resources.settings_targets_deficit_more
+import opson.libraries.resources.generated.resources.settings_targets_deficit_title
+import opson.libraries.resources.generated.resources.settings_targets_deficit_zero_note
 import opson.libraries.resources.generated.resources.settings_targets_floor_note
 import opson.libraries.resources.generated.resources.settings_targets_goal_style
 import opson.libraries.resources.generated.resources.settings_targets_grams
 import opson.libraries.resources.generated.resources.settings_targets_grams_note
+import opson.libraries.resources.generated.resources.settings_targets_grams_only_note
 import opson.libraries.resources.generated.resources.settings_targets_group_add
 import opson.libraries.resources.generated.resources.settings_targets_group_day
 import opson.libraries.resources.generated.resources.settings_targets_group_done
@@ -99,9 +118,11 @@ import opson.libraries.resources.generated.resources.settings_targets_group_numb
 import opson.libraries.resources.generated.resources.settings_targets_group_other_days
 import opson.libraries.resources.generated.resources.settings_targets_group_range
 import opson.libraries.resources.generated.resources.settings_targets_group_remove
+import opson.libraries.resources.generated.resources.settings_targets_group_shape_deficit
 import opson.libraries.resources.generated.resources.settings_targets_group_shape_exact
 import opson.libraries.resources.generated.resources.settings_targets_group_shape_range
 import opson.libraries.resources.generated.resources.settings_targets_group_shape_surplus
+import opson.libraries.resources.generated.resources.settings_targets_group_waiting
 import opson.libraries.resources.generated.resources.settings_targets_hidden_body
 import opson.libraries.resources.generated.resources.settings_targets_hidden_link
 import opson.libraries.resources.generated.resources.settings_targets_hidden_title
@@ -114,12 +135,32 @@ import opson.libraries.resources.generated.resources.settings_targets_low_end_in
 import opson.libraries.resources.generated.resources.settings_targets_lower_end
 import opson.libraries.resources.generated.resources.settings_targets_macro_carbs
 import opson.libraries.resources.generated.resources.settings_targets_macro_fat
+import opson.libraries.resources.generated.resources.settings_targets_macro_less
+import opson.libraries.resources.generated.resources.settings_targets_macro_more
+import opson.libraries.resources.generated.resources.settings_targets_macro_name_carbs
+import opson.libraries.resources.generated.resources.settings_targets_macro_name_fat
+import opson.libraries.resources.generated.resources.settings_targets_macro_name_protein
 import opson.libraries.resources.generated.resources.settings_targets_macro_protein
 import opson.libraries.resources.generated.resources.settings_targets_macro_split
+import opson.libraries.resources.generated.resources.settings_targets_macros_done
+import opson.libraries.resources.generated.resources.settings_targets_macros_edit
+import opson.libraries.resources.generated.resources.settings_targets_macros_fit
+import opson.libraries.resources.generated.resources.settings_targets_macros_goal_number
+import opson.libraries.resources.generated.resources.settings_targets_macros_goal_range
+import opson.libraries.resources.generated.resources.settings_targets_macros_goal_today
+import opson.libraries.resources.generated.resources.settings_targets_macros_over
 import opson.libraries.resources.generated.resources.settings_targets_macros_title
+import opson.libraries.resources.generated.resources.settings_targets_macros_under
+import opson.libraries.resources.generated.resources.settings_targets_macros_use
+import opson.libraries.resources.generated.resources.settings_targets_number_field
 import opson.libraries.resources.generated.resources.settings_targets_number_floor_note
 import opson.libraries.resources.generated.resources.settings_targets_number_lower
 import opson.libraries.resources.generated.resources.settings_targets_number_raise
+import opson.libraries.resources.generated.resources.settings_targets_number_too_low
+import opson.libraries.resources.generated.resources.settings_targets_preset_balanced
+import opson.libraries.resources.generated.resources.settings_targets_preset_custom
+import opson.libraries.resources.generated.resources.settings_targets_preset_higher_protein
+import opson.libraries.resources.generated.resources.settings_targets_preset_lower_carb
 import opson.libraries.resources.generated.resources.settings_targets_raise_end
 import opson.libraries.resources.generated.resources.settings_targets_ratios
 import opson.libraries.resources.generated.resources.settings_targets_ratios_note
@@ -127,6 +168,8 @@ import opson.libraries.resources.generated.resources.settings_targets_resting
 import opson.libraries.resources.generated.resources.settings_targets_resting_calculated
 import opson.libraries.resources.generated.resources.settings_targets_resting_own
 import opson.libraries.resources.generated.resources.settings_targets_resting_unknown
+import opson.libraries.resources.generated.resources.settings_targets_start_from_burn
+import opson.libraries.resources.generated.resources.settings_targets_start_from_burn_note
 import opson.libraries.resources.generated.resources.settings_targets_style_by_day
 import opson.libraries.resources.generated.resources.settings_targets_style_deficit
 import opson.libraries.resources.generated.resources.settings_targets_style_deficit_line
@@ -141,6 +184,8 @@ import opson.libraries.resources.generated.resources.settings_targets_surplus_lo
 import opson.libraries.resources.generated.resources.settings_targets_surplus_more
 import opson.libraries.resources.generated.resources.settings_targets_surplus_title
 import opson.libraries.resources.generated.resources.settings_targets_title
+import opson.libraries.resources.generated.resources.settings_targets_unit_g
+import opson.libraries.resources.generated.resources.settings_targets_unit_percent
 import opson.libraries.resources.generated.resources.settings_targets_week
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -480,20 +525,37 @@ private fun BigStep(state: StepState, icon: IconResource, locked: String, onClic
     }
 }
 
-/** One number: the goal, each day, stepped 50 at a time down to the floor. */
+/** One number: the goal, each day, stepped 50 at a time or typed, down to where it started. */
 @Composable
-private fun NumberBody(number: EndStepper, onAction: (TargetsAction) -> Unit) {
+private fun NumberBody(number: NumberCard, onAction: (TargetsAction) -> Unit) {
     BigStepper(
-        stepper = number,
+        stepper = number.stepper,
         lower = stringResource(Res.string.settings_targets_number_lower),
         raise = stringResource(Res.string.settings_targets_number_raise),
         locked = stringResource(Res.string.settings_targets_locked),
         onStep = { up -> onAction(TargetsAction.NumberStepped(up)) },
     )
-    if (number.down == StepState.Locked) Note(stringResource(Res.string.settings_targets_number_floor_note))
+    NumberField(
+        value = number.text,
+        onValueChange = { onAction(TargetsAction.NumberTyped(it)) },
+        label = stringResource(Res.string.settings_targets_number_field),
+        unit = stringResource(Res.string.settings_targets_kcal_a_day),
+        allowDecimal = false,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    when {
+        number.tooLow -> NutrientPhrase(
+            metric = Metric.Calories,
+            display = number.floor,
+            phrase = { stringResource(Res.string.settings_targets_number_too_low, it) },
+            typography = AppTheme.type.secondary.Tabular,
+            color = AppTheme.colors.muted,
+        )
+        number.stepper.down == StepState.Locked -> Note(stringResource(Res.string.settings_targets_number_floor_note))
+    }
 }
 
-/** A set deficit: the amount, locked at its cap, and the target it comes to against Burned. */
+/** A set deficit: the amount, held at where it started, and the target it comes to against Burned. */
 @Composable
 private fun DeficitBody(deficit: BurnGoalCard, onAction: (TargetsAction) -> Unit) {
     BigStepper(
@@ -503,8 +565,13 @@ private fun DeficitBody(deficit: BurnGoalCard, onAction: (TargetsAction) -> Unit
         locked = stringResource(Res.string.settings_targets_deficit_locked),
         onStep = { up -> onAction(TargetsAction.DeficitStepped(up)) },
     )
-    BurnTarget(deficit.target, unknown = stringResource(Res.string.settings_targets_burn_target_unknown))
-    if (deficit.up == StepState.Locked) Note(stringResource(Res.string.settings_targets_deficit_cap_note))
+    BurnTarget(deficit.target)
+    BurnBasis(deficit, onAction)
+    when {
+        deficit.needsDetails || deficit.canStartFromBurn -> Unit
+        deficit.down == StepState.Closed && deficit.up == StepState.Locked -> Note(stringResource(Res.string.settings_targets_deficit_zero_note))
+        deficit.up == StepState.Locked -> Note(stringResource(Res.string.settings_targets_deficit_cap_note))
+    }
 }
 
 /** A set surplus: as the deficit, over what the user burns, or over the usual target until that is known. */
@@ -523,27 +590,67 @@ private fun SurplusBody(surplus: BurnGoalCard, onAction: (TargetsAction) -> Unit
             display = surplus.target,
             phrase = { stringResource(Res.string.settings_targets_surplus_from_target, it) },
             typography = AppTheme.type.secondary.Tabular,
-            color = AppTheme.colors.muted,
-        )
-    } else {
-        BurnTarget(surplus.target, unknown = null)
-    }
-    if (surplus.up == StepState.Locked) Note(stringResource(Res.string.settings_targets_surplus_cap))
-}
-
-/** "Today's target 1,680 · moves with what you burn", or [unknown] without one. */
-@Composable
-private fun BurnTarget(target: Display?, unknown: String?) {
-    if (target != null && target !is Display.Hidden) {
-        NutrientPhrase(
-            metric = Metric.Calories,
-            display = target,
-            phrase = { stringResource(Res.string.settings_targets_burn_target, it) },
-            typography = AppTheme.type.secondary.Tabular,
             color = AppTheme.colors.ink,
         )
-    } else if (unknown != null) {
-        Note(unknown)
+    } else {
+        BurnTarget(surplus.target)
+    }
+    BurnBasis(surplus, onAction)
+    if (surplus.up == StepState.Locked && surplus.down == StepState.Open && !surplus.canStartFromBurn) {
+        Note(stringResource(Res.string.settings_targets_surplus_cap))
+    }
+}
+
+/** "Today's target 1,680 · moves with what you burn". */
+@Composable
+private fun BurnTarget(target: Display?) {
+    if (target == null || target is Display.Hidden) return
+    NutrientPhrase(
+        metric = Metric.Calories,
+        display = target,
+        phrase = { stringResource(Res.string.settings_targets_burn_target, it) },
+        typography = AppTheme.type.secondary.Tabular,
+        color = AppTheme.colors.ink,
+    )
+}
+
+/**
+ * What the target is based on: "Based on about 2,180 burned today", and whether that is an
+ * estimate; or, with no Burned yet, what Opson needs to work it out and a way to add it. Then,
+ * for an amount that started at 0 with nothing known, a way to start again from today's burn.
+ */
+@Composable
+private fun BurnBasis(card: BurnGoalCard, onAction: (TargetsAction) -> Unit) {
+    if (card.needsDetails) {
+        Note(stringResource(Res.string.settings_targets_burn_needs_details))
+        FlatButton(
+            text = stringResource(Res.string.settings_targets_add_details),
+            onClick = { onAction(TargetsAction.RestingEnergyTapped) },
+            tone = FlatButtonTone.Outlined,
+            centered = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        return
+    }
+    card.burned?.let { burned ->
+        NutrientPhrase(
+            metric = Metric.EnergyOut,
+            display = burned,
+            phrase = { stringResource(Res.string.settings_targets_burn_based, it) },
+            typography = AppTheme.type.secondary.Tabular,
+            color = AppTheme.colors.muted,
+        )
+    }
+    if (card.estimated) Note(stringResource(Res.string.settings_targets_burn_estimated))
+    if (card.canStartFromBurn) {
+        Note(stringResource(Res.string.settings_targets_start_from_burn_note))
+        FlatButton(
+            text = stringResource(Res.string.settings_targets_start_from_burn),
+            onClick = { onAction(TargetsAction.StartFromBurnTapped) },
+            tone = FlatButtonTone.Outlined,
+            centered = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -554,7 +661,7 @@ private fun Note(text: String) {
 
 /**
  * "Burned comes from" (design sync 4): resting energy as it is now and where it comes from, and
- * the activity source. Each opens its own page.
+ * everyday activity: the health app when one is connected, else everyday activity, picked here.
  */
 @Composable
 private fun BurnedSourceCard(burned: BurnedCard, onAction: (TargetsAction) -> Unit) {
@@ -578,12 +685,46 @@ private fun BurnedSourceCard(burned: BurnedCard, onAction: (TargetsAction) -> Un
                 NutrientText(metric = Metric.EnergyOut, display = burned.resting, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink)
             },
         )
+        val source = burned.activity
         SettingsRow(
-            title = stringResource(Res.string.settings_targets_activity),
+            title = stringResource(if (source != null) Res.string.settings_targets_activity else Res.string.everyday_activity_title),
             icon = null,
-            subtitle = burned.activity?.let { stringResource(it.title) } ?: stringResource(Res.string.settings_targets_activity_none),
-            chevron = true,
+            subtitle = source?.let { stringResource(it.title) } ?: stringResource(burned.everydayActivity.label),
+            chevron = source != null,
             onClick = { onAction(TargetsAction.ActivityTapped) },
+        )
+        if (burned.levels.isNotEmpty()) EverydayActivities(burned, onAction)
+    }
+}
+
+@Composable
+private fun EverydayActivities(burned: BurnedCard, onAction: (TargetsAction) -> Unit) {
+    Column(modifier = Modifier.selectableGroup().padding(bottom = SettingsDefaults.CardPadding)) {
+        burned.levels.forEach { level ->
+            val selected = level == burned.everydayActivity
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = SettingsDefaults.RowMinHeight)
+                    .selectable(selected = selected, role = Role.RadioButton, onClick = { onAction(TargetsAction.EverydayActivityPicked(level)) })
+                    .padding(vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(text = stringResource(level.label), typography = AppTheme.type.body, color = AppTheme.colors.ink)
+                    Text(text = stringResource(level.detail), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+                }
+                RadioDot(selected = selected)
+            }
+        }
+        Note(stringResource(Res.string.settings_targets_activity_note))
+        FlatButton(
+            text = stringResource(Res.string.settings_targets_activity_connect),
+            onClick = { onAction(TargetsAction.ConnectHealthTapped) },
+            tone = FlatButtonTone.Outlined,
+            centered = true,
+            modifier = Modifier.fillMaxWidth().padding(top = AppTheme.spacing.row),
         )
     }
 }
@@ -689,6 +830,17 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
                 )
                 GroupSummary(group)
             }
+            group.deficit?.let { deficit ->
+                GroupStepper(
+                    title = stringResource(Res.string.settings_targets_deficit_title),
+                    stepper = deficit,
+                    lower = stringResource(Res.string.settings_targets_deficit_less),
+                    raise = stringResource(Res.string.settings_targets_deficit_more),
+                    raiseLocked = stringResource(Res.string.settings_targets_deficit_locked),
+                    onStep = { up -> onAction(TargetsAction.DeficitStepped(up, group.index)) },
+                )
+                GroupSummary(group)
+            }
             if (group.removable) {
                 FlatButton(
                     text = stringResource(Res.string.settings_targets_group_remove),
@@ -701,23 +853,24 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
         } else {
             GroupSummary(group)
         }
+        if (group.waitingOnBurn) Note(stringResource(Res.string.settings_targets_group_waiting))
     }
 }
 
-/** "Range 2,300 to 2,700 kcal", "Goal 2,500 kcal", or "Goal About 2,800 kcal" for a surplus. */
+/** "Range 2,300 to 2,700 kcal", "Goal 2,500 kcal", or "Goal About 2,800 kcal" for a deficit or surplus. */
 @Composable
 private fun GroupSummary(group: DayGroupCard) {
     val typography = AppTheme.type.bodyBold.Tabular
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = stringResource(
-                if (group.shape == ShapeKind.Range) Res.string.settings_targets_group_range else Res.string.settings_targets_group_goal,
+                if (group.shape == ShapeKind.Range || group.waitingOnBurn) Res.string.settings_targets_group_range else Res.string.settings_targets_group_goal,
             ),
             typography = AppTheme.type.body,
             color = AppTheme.colors.ink,
             modifier = Modifier.weight(1f),
         )
-        if (group.shape == ShapeKind.Surplus) {
+        if ((group.shape == ShapeKind.Surplus || group.shape == ShapeKind.Deficit) && !group.waitingOnBurn) {
             NutrientPhrase(
                 metric = Metric.Calories,
                 display = group.summary,
@@ -751,6 +904,7 @@ internal val ShapeKind.label: StringResource
     get() = when (this) {
         ShapeKind.Range -> Res.string.settings_targets_group_shape_range
         ShapeKind.Exact -> Res.string.settings_targets_group_shape_exact
+        ShapeKind.Deficit -> Res.string.settings_targets_group_shape_deficit
         ShapeKind.Surplus -> Res.string.settings_targets_group_shape_surplus
     }
 
@@ -828,6 +982,10 @@ private fun GroupLabel.text(): String = when (this) {
     is GroupLabel.Numbered -> stringResource(Res.string.settings_targets_group_numbered, number)
 }
 
+/**
+ * The macro split: a bar of protein, carbs and fat, their grams, and the editor under them while
+ * it is open (grams or percents, presets, typed amounts, and what doesn't add up).
+ */
 @Composable
 private fun MacroCard(state: TargetsState, onAction: (TargetsAction) -> Unit) {
     val modeLabel = stringResource(
@@ -840,7 +998,6 @@ private fun MacroCard(state: TargetsState, onAction: (TargetsAction) -> Unit) {
         edgeToEdge = false,
         contentPadding = SettingsDefaults.CardInset,
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
-        onClick = { onAction(TargetsAction.MacroCardTapped) },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -849,7 +1006,7 @@ private fun MacroCard(state: TargetsState, onAction: (TargetsAction) -> Unit) {
                 color = AppTheme.colors.ink,
                 modifier = Modifier.weight(1f),
             )
-            Text(text = modeLabel, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
+            if (state.visible) Text(text = modeLabel, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
         }
         // One bar of flush segments, rounded only at its ends (design sync 2).
         Row(
@@ -877,38 +1034,167 @@ private fun MacroCard(state: TargetsState, onAction: (TargetsAction) -> Unit) {
                 )
             }
         }
-        if (state.editingMacros) {
-            Text(
-                text = stringResource(Res.string.settings_targets_macros_title),
-                typography = AppTheme.type.secondaryStrong,
-                color = AppTheme.colors.muted,
-            )
-            SegmentedControl(
-                options = MacroMode.entries,
-                selected = state.macroMode,
-                onSelect = { onAction(TargetsAction.MacroModePicked(it)) },
-                label = {
-                    stringResource(
-                        when (it) {
-                            MacroMode.Ratios -> Res.string.settings_targets_ratios
-                            MacroMode.Grams -> Res.string.settings_targets_grams
-                        },
-                    )
-                },
-            )
-            Text(
-                text = stringResource(
-                    when (state.macroMode) {
-                        MacroMode.Ratios -> Res.string.settings_targets_ratios_note
-                        MacroMode.Grams -> Res.string.settings_targets_grams_note
+        state.macroEditor?.let { MacroEditorView(it, onAction) }
+        FlatButton(
+            text = stringResource(if (state.editingMacros) Res.string.settings_targets_macros_done else Res.string.settings_targets_macros_edit),
+            onClick = { onAction(TargetsAction.MacroCardTapped) },
+            tone = FlatButtonTone.Outlined,
+            centered = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MacroEditorView(editor: MacroEditor, onAction: (TargetsAction) -> Unit) {
+    if (editor.percents) {
+        Text(
+            text = stringResource(Res.string.settings_targets_macros_title),
+            typography = AppTheme.type.secondaryStrong,
+            color = AppTheme.colors.muted,
+        )
+        SegmentedControl(
+            options = MacroMode.entries,
+            selected = editor.mode,
+            onSelect = { onAction(TargetsAction.MacroModePicked(it)) },
+            label = {
+                stringResource(
+                    when (it) {
+                        MacroMode.Ratios -> Res.string.settings_targets_ratios
+                        MacroMode.Grams -> Res.string.settings_targets_grams
                     },
-                ),
-                typography = AppTheme.type.secondarySmall,
+                )
+            },
+        )
+    }
+    Text(
+        text = stringResource(
+            when {
+                !editor.percents -> Res.string.settings_targets_grams_only_note
+                editor.mode == MacroMode.Ratios -> Res.string.settings_targets_ratios_note
+                else -> Res.string.settings_targets_grams_note
+            },
+        ),
+        typography = AppTheme.type.secondarySmall,
+        color = AppTheme.colors.muted,
+    )
+    if (editor.presets.isNotEmpty()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.selectableGroup(),
+        ) {
+            editor.presets.forEach { chip ->
+                PillChip(
+                    label = stringResource(chip.preset.label),
+                    selected = chip.selected,
+                    onClick = { chip.preset?.let { onAction(TargetsAction.MacroPresetPicked(it)) } },
+                )
+            }
+        }
+    }
+    editor.rows.forEach { row -> MacroEditRowView(row, editor.inPercent, onAction) }
+    editor.fit?.let { MacroFitView(it, onAction) }
+}
+
+/** Protein: − [field] + with the other unit beside it ("131 g" in percent mode, "25%" in grams). */
+@Composable
+private fun MacroEditRowView(row: MacroEditRow, inPercent: Boolean, onAction: (TargetsAction) -> Unit) {
+    val name = stringResource(row.metric.nameLabel)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = name, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted, modifier = Modifier.weight(1f))
+            NutrientText(
+                metric = row.metric,
+                display = if (inPercent) row.grams else row.percent,
+                typography = AppTheme.type.secondary.Tabular,
                 color = AppTheme.colors.muted,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StepButton(
+                icon = AppIcons.Remove.described(stringResource(Res.string.settings_targets_macro_less, name)),
+                enabled = row.canLower,
+                onClick = { onAction(TargetsAction.MacroStepped(row.metric, up = false)) },
+                container = AppTheme.colors.soft,
+            )
+            NumberField(
+                value = row.text,
+                onValueChange = { onAction(TargetsAction.MacroTyped(row.metric, it)) },
+                unit = stringResource(if (inPercent) Res.string.settings_targets_unit_percent else Res.string.settings_targets_unit_g),
+                allowDecimal = false,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f),
+            )
+            StepButton(
+                icon = AppIcons.Add.described(stringResource(Res.string.settings_targets_macro_more, name)),
+                enabled = row.canRaise,
+                onClick = { onAction(TargetsAction.MacroStepped(row.metric, up = true)) },
+                container = AppTheme.colors.soft,
             )
         }
     }
 }
+
+/**
+ * "Your macros come to 2,210 kcal, 110 over your goal of 2,100." and the two ways to agree: the
+ * goal drives (fit the macros) or the macros drive (make their total the goal).
+ */
+@Composable
+private fun MacroFitView(fit: MacroFitLine, onAction: (TargetsAction) -> Unit) {
+    val macroKcal = fit.macroKcal.words ?: return
+    val goal = fit.goal.words ?: return
+    val gap = fit.gap.words ?: return
+    val goalPhrase = stringResource(
+        when (fit.goalKind) {
+            MacroGoalKind.Number -> Res.string.settings_targets_macros_goal_number
+            MacroGoalKind.RangeMiddle -> Res.string.settings_targets_macros_goal_range
+            MacroGoalKind.Today -> Res.string.settings_targets_macros_goal_today
+        },
+        goal,
+    )
+    Text(
+        text = stringResource(
+            if (fit.over) Res.string.settings_targets_macros_over else Res.string.settings_targets_macros_under,
+            macroKcal,
+            gap,
+            goalPhrase,
+        ),
+        typography = AppTheme.type.secondary.Tabular,
+        color = AppTheme.colors.ink,
+    )
+    FlatButton(
+        text = stringResource(Res.string.settings_targets_macros_fit, goal),
+        onClick = { onAction(TargetsAction.MacrosFitTapped) },
+        centered = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    if (fit.canUseAsGoal) {
+        FlatButton(
+            text = stringResource(Res.string.settings_targets_macros_use, macroKcal),
+            onClick = { onAction(TargetsAction.MacrosAsGoalTapped) },
+            tone = FlatButtonTone.Outlined,
+            centered = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+private val MacroPreset?.label: StringResource
+    get() = when (this) {
+        MacroPreset.Balanced -> Res.string.settings_targets_preset_balanced
+        MacroPreset.HigherProtein -> Res.string.settings_targets_preset_higher_protein
+        MacroPreset.LowerCarb -> Res.string.settings_targets_preset_lower_carb
+        null -> Res.string.settings_targets_preset_custom
+    }
+
+private val Metric.nameLabel: StringResource
+    get() = when (this) {
+        Metric.Protein -> Res.string.settings_targets_macro_name_protein
+        Metric.Carbs -> Res.string.settings_targets_macro_name_carbs
+        else -> Res.string.settings_targets_macro_name_fat
+    }
 
 private val Metric.gramsPhrase: StringResource
     get() = when (this) {
@@ -1111,6 +1397,115 @@ private fun TargetsMacrosWithGramsPreview() {
     SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 
+/** A deficit with no health app: Burned is resting energy plus everyday activity, whose choices are open. */
+@Preview
+@Composable
+private fun TargetsDeficitEstimatedPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.deficitTargets).copy(everydayActivity = EverydayActivity.SomeWalking)
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(
+                settings,
+                SettingsFixtures.policy(settings.numbers),
+                burned = SettingsFixtures.estimatedBurned,
+                goalsAndEnergy = true,
+                choosingActivity = true,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+/** A deficit picked before Burned was known, which started at 0: now it is, it can start from today's burn. */
+@Preview
+@Composable
+private fun TargetsDeficitStartFromBurnPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.newDeficitTargets.copy(startingKcal = 1800))
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), burned = SettingsFixtures.estimatedBurned, goalsAndEnergy = true),
+            onAction = {},
+        )
+    }
+}
+
+/** One number, typed under where the goal started: the field keeps it and the note says where it starts. */
+@Preview
+@Composable
+private fun TargetsExactTypedTooLowPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.exactTargets)
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), drafts = TargetsDrafts(number = "1800")),
+            onAction = {},
+        )
+    }
+}
+
+/** Different by day with every goal type, the deficit day open. */
+@Preview
+@Composable
+private fun TargetsByDayEveryShapePreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.everyShapeByDayTargets)
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), burned = SettingsFixtures.burned, editingGroup = 2, goalsAndEnergy = true),
+            onAction = {},
+        )
+    }
+}
+
+/** A deficit day with no Burned yet: it reads as its range, and says why. */
+@Preview
+@Composable
+private fun TargetsByDayDeficitNoBurnPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.everyShapeByDayTargets)
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 2, goalsAndEnergy = true),
+            onAction = {},
+        )
+    }
+}
+
+/** The macro editor in percents of the calorie goal, on a preset. */
+@Preview
+@Composable
+private fun TargetsMacrosPercentPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.rangeTargets.withPreset(MacroPreset.HigherProtein, 2100))
+    SettingsPreview {
+        TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingMacros = true), onAction = {})
+    }
+}
+
+/** The macro editor in grams that add up to more than the goal: both ways to make them agree. */
+@Preview
+@Composable
+private fun TargetsMacrosOverPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.gramsOverTargets).copy(macroMode = MacroMode.Grams)
+    SettingsPreview {
+        TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingMacros = true), onAction = {})
+    }
+}
+
+/** Macros with grams: calories stay out of view, so the editor is grams alone. */
+@Preview
+@Composable
+private fun TargetsMacrosWithGramsEditingPreview() {
+    val settings = SettingsFixtures.settings(NumbersSettings(preset = PresetId.MacrosWithGrams))
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(
+                settings,
+                SettingsFixtures.policy(settings.numbers),
+                editingMacros = true,
+                drafts = TargetsDrafts(macros = mapOf(Metric.Protein to "13")),
+            ),
+            onAction = {},
+        )
+    }
+}
+
 // The largest text size the app offers (Look and feel, Large): every stepper and amount whole.
 
 @Preview
@@ -1129,6 +1524,15 @@ private fun TargetsDeficitLargeTextPreview() {
             TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), burned = SettingsFixtures.burned),
             onAction = {},
         )
+    }
+}
+
+@Preview
+@Composable
+private fun TargetsMacrosOverLargeTextPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.gramsOverTargets).copy(macroMode = MacroMode.Grams)
+    SettingsPreview(largeText = true) {
+        TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingMacros = true), onAction = {})
     }
 }
 

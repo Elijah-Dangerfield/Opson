@@ -121,11 +121,11 @@ fun RestingEnergyScreen(
                 },
             )
         }
-        state.everyday?.let { picked -> Everyday(picked, onAction) }
+        Everyday(state.everyday, onAction)
     }
 }
 
-/** Everyday activity (`release.exercise`): one of four, each with what it looks like. */
+/** Everyday activity: one of four, each with what it looks like. Targets and onboarding pick the same setting. */
 @Composable
 private fun Everyday(picked: EverydayActivity, onAction: (RestingEnergyAction) -> Unit) {
     SectionLabel(stringResource(Res.string.everyday_activity_title))
@@ -300,7 +300,7 @@ private fun RestingEnergyOwnDarkPreview() {
     }
 }
 
-/** release.exercise on: everyday activity under the activity card. */
+/** Everyday activity under the activity card, with a pick other than the default. */
 @Preview
 @Composable
 private fun RestingEnergyEverydayPreview() {

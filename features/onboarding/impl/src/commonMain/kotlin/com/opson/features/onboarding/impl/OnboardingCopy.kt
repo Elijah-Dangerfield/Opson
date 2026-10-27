@@ -2,19 +2,19 @@ package com.opson.features.onboarding.impl
 
 import com.opson.libraries.nutrition.PresetId
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.modes_preset_full
+import opson.libraries.resources.generated.resources.modes_preset_full_line
+import opson.libraries.resources.generated.resources.modes_preset_macros_grams
+import opson.libraries.resources.generated.resources.modes_preset_macros_grams_line
+import opson.libraries.resources.generated.resources.modes_preset_macros_only
+import opson.libraries.resources.generated.resources.modes_preset_macros_only_line
+import opson.libraries.resources.generated.resources.modes_preset_no_numbers
+import opson.libraries.resources.generated.resources.modes_preset_no_numbers_line
 import opson.libraries.resources.generated.resources.onboarding_feel_love_them
 import opson.libraries.resources.generated.resources.onboarding_feel_not_sure
 import opson.libraries.resources.generated.resources.onboarding_feel_rather_not
 import opson.libraries.resources.generated.resources.onboarding_feel_some_are_fine
 import opson.libraries.resources.generated.resources.onboarding_pick_any
-import opson.libraries.resources.generated.resources.modes_preset_full
-import opson.libraries.resources.generated.resources.modes_preset_full_line
-import opson.libraries.resources.generated.resources.modes_preset_no_numbers
-import opson.libraries.resources.generated.resources.modes_preset_no_numbers_line
-import opson.libraries.resources.generated.resources.modes_preset_macros_grams
-import opson.libraries.resources.generated.resources.modes_preset_macros_only
-import opson.libraries.resources.generated.resources.modes_preset_macros_grams_line
-import opson.libraries.resources.generated.resources.modes_preset_macros_only_line
 import opson.libraries.resources.generated.resources.onboarding_preview_calorie_amounts
 import opson.libraries.resources.generated.resources.onboarding_preview_calories_hidden
 import opson.libraries.resources.generated.resources.onboarding_preview_calories_later
@@ -22,13 +22,13 @@ import opson.libraries.resources.generated.resources.onboarding_preview_carbs_fa
 import opson.libraries.resources.generated.resources.onboarding_preview_energy_word
 import opson.libraries.resources.generated.resources.onboarding_preview_how_meals_felt
 import opson.libraries.resources.generated.resources.onboarding_preview_macro_amounts
+import opson.libraries.resources.generated.resources.onboarding_preview_macro_bars
 import opson.libraries.resources.generated.resources.onboarding_preview_macros_hidden
 import opson.libraries.resources.generated.resources.onboarding_preview_macros_later
 import opson.libraries.resources.generated.resources.onboarding_preview_meal_by_meal
 import opson.libraries.resources.generated.resources.onboarding_preview_meal_count
 import opson.libraries.resources.generated.resources.onboarding_preview_other_nutrients_hidden
 import opson.libraries.resources.generated.resources.onboarding_preview_protein_fiber_amounts
-import opson.libraries.resources.generated.resources.onboarding_preview_macro_bars
 import opson.libraries.resources.generated.resources.onboarding_preview_protein_fiber_bars
 import opson.libraries.resources.generated.resources.onboarding_preview_some_nutrient_amounts
 import opson.libraries.resources.generated.resources.onboarding_preview_some_nutrient_bars
@@ -39,6 +39,12 @@ import opson.libraries.resources.generated.resources.onboarding_preview_weight_t
 import opson.libraries.resources.generated.resources.onboarding_q_feel
 import opson.libraries.resources.generated.resources.onboarding_q_statement
 import opson.libraries.resources.generated.resources.onboarding_q_why
+import opson.libraries.resources.generated.resources.onboarding_reason_gentler
+import opson.libraries.resources.generated.resources.onboarding_reason_loves_numbers
+import opson.libraries.resources.generated.resources.onboarding_reason_no_answers
+import opson.libraries.resources.generated.resources.onboarding_reason_not_sure
+import opson.libraries.resources.generated.resources.onboarding_reason_rather_not
+import opson.libraries.resources.generated.resources.onboarding_reason_some_are_fine
 import opson.libraries.resources.generated.resources.onboarding_statement_no
 import opson.libraries.resources.generated.resources.onboarding_statement_yes
 import opson.libraries.resources.generated.resources.onboarding_why_changing_weight
@@ -48,12 +54,6 @@ import opson.libraries.resources.generated.resources.onboarding_why_eating_regul
 import opson.libraries.resources.generated.resources.onboarding_why_medical_need
 import opson.libraries.resources.generated.resources.onboarding_why_performance
 import opson.libraries.resources.generated.resources.onboarding_why_working_with_provider
-import opson.libraries.resources.generated.resources.onboarding_reason_gentler
-import opson.libraries.resources.generated.resources.onboarding_reason_loves_numbers
-import opson.libraries.resources.generated.resources.onboarding_reason_no_answers
-import opson.libraries.resources.generated.resources.onboarding_reason_not_sure
-import opson.libraries.resources.generated.resources.onboarding_reason_rather_not
-import opson.libraries.resources.generated.resources.onboarding_reason_some_are_fine
 import opson.libraries.resources.generated.resources.settings_targets_style_deficit
 import opson.libraries.resources.generated.resources.settings_targets_style_deficit_line
 import opson.libraries.resources.generated.resources.settings_targets_style_exact
@@ -161,3 +161,4 @@ internal val GoalChoice.line: StringResource?
         GoalChoice.Deficit -> Res.string.settings_targets_style_deficit_line
         GoalChoice.Surplus -> Res.string.settings_targets_style_surplus_line
     }
+

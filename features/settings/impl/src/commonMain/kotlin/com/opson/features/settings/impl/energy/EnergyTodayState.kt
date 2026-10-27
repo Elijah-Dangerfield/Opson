@@ -69,7 +69,7 @@ data class BurnedSection(
     val activitySource: HealthSource? = null,
     val movement: Display = Display.Hidden,
     val workouts: Display = Display.Hidden,
-    /** Everyday activity and logged exercise (`release.exercise`), Hidden when the day does not count them. */
+    /** Everyday activity, and logged exercise (`release.exercise`); Hidden when the day does not count them. */
     val everyday: Display = Display.Hidden,
     val exercise: Display = Display.Hidden,
     /** "Add activity to Burned" is on. */

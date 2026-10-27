@@ -165,8 +165,9 @@ data class Settings(
     @Serializable(with = BodySexSerializer::class)
     val bodySex: BodySex? = null,
     /**
-     * Activity outside workouts (`release.exercise`), counted in Burned when no health app reads
-     * activity. A top-level key, like the rest of Burned's settings.
+     * How active an ordinary day is, outside workouts: Burned's everyday movement whenever no
+     * health app reads activity, so a deficit or surplus works without one. Picked on Resting
+     * energy, Targets and onboarding. A top-level key, like the rest of Burned's settings.
      */
     @Serializable(with = EverydayActivitySerializer::class)
     val everydayActivity: EverydayActivity = EverydayActivity.Default,

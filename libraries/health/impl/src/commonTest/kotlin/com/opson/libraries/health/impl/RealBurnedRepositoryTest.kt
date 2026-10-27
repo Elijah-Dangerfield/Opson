@@ -71,7 +71,19 @@ class RealBurnedRepositoryTest {
     @Test
     fun calculated_fromTheLatestWeighIn() = runTest {
         val burned = repository(health = FakeHealth(connected = false)).burned(today).first()
-        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated), activityCounted = true), burned)
+        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated), activityCounted = true, everydayKcal = 290), burned)
+        assertEquals(1720, burned?.totalKcal, "sedentary until the person says otherwise: 1,430 plus 0.2 of it")
+    }
+
+    @Test
+    fun withNoHealthApp_everydayActivityIsTheDaysMovement_withExerciseOff() = runTest {
+        val light = repository(settings = profiled.copy(everydayActivity = EverydayActivity.SomeWalking), health = FakeHealth(connected = false)).burned(today).first()
+        assertEquals(true, light?.movementEstimated)
+        assertEquals(1430 + 540, light?.totalKcal)
+        // Connected, the reading wins and everyday activity is left out.
+        val connected = repository(settings = profiled.copy(everydayActivity = EverydayActivity.PhysicalWork)).burned(today).first()
+        assertEquals(false, connected?.movementEstimated)
+        assertEquals(1430 + 570, connected?.totalKcal)
     }
 
     @Test
@@ -107,7 +119,7 @@ class RealBurnedRepositoryTest {
     fun withReleaseHealthOff_theStoreIsNeverAsked() = runTest {
         val health = FakeHealth()
         val burned = repository(settings = profiled.copy(restingSource = RestingSource.Health), health = health, healthOn = false).burned(today).first()
-        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated)), burned)
+        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated), everydayKcal = 290), burned)
         assertEquals(0, health.reads)
         assertNull(repository(healthOn = false).restingChoices().first().healthSource)
     }
@@ -147,11 +159,11 @@ class RealBurnedRepositoryTest {
     }
 
     @Test
-    fun withReleaseExerciseOff_burnedIsAsItWas_andExerciseIsNeverRead() = runTest {
+    fun withReleaseExerciseOff_loggedExerciseIsLeftOut_butEverydayActivityStillCounts() = runTest {
         val exercise = listOf(entry(200))
         val burned = repository(health = FakeHealth(connected = false), exercise = exercise, exerciseOn = false).burned(today).first()
 
-        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated)), burned)
+        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated), everydayKcal = 290), burned)
     }
 
     @Test

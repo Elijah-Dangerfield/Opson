@@ -25,6 +25,7 @@ import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.awaitCredential
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -152,6 +153,7 @@ class OnboardingViewModel(
             is OnboardingAction.WeightTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withWeight(action.text)) }
             is OnboardingAction.SexPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(sex = action.sex)) }
             is OnboardingAction.UnitPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(unit = action.unit)) }
+            is OnboardingAction.ActivityPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(activity = action.level)) }
             is OnboardingAction.MealTimePicked -> action.updateSetup(OnboardingStep.Meals) {
                 it.copy(mealTimes = it.mealTimes.with(action.slot, action.time))
             }
@@ -590,17 +592,19 @@ data class OnboardingState(
     /**
      * What the setup steps the person saw will save. Only those steps: a goal is never written
      * for someone who never saw one, so their range stays the app's starting one. A deficit or
-     * surplus is aimed at resting energy for now; activity joins Burned once it syncs.
+     * surplus starts from an ordinary day's burn, resting energy plus everyday activity, as
+     * Burned works it out with no health app.
      */
     fun startingSetup(): StartingSetup {
         val body = body.takeIf { showsBody }
         return StartingSetup(
-            targets = goal.takeIf { showsGoal }?.resolve(burnKcal = body?.restingKcal(currentYear)),
+            targets = goal.takeIf { showsGoal }?.resolve(burnKcal = body?.burnKcal(currentYear)),
             birthYear = body?.birthYearOrNull(currentYear),
             heightCm = body?.heightCmOrNull(),
             sex = body?.sex,
             weightUnit = body?.unit,
             mealTimes = mealTimes.takeIf { showsMeals },
+            everydayActivity = body?.activity,
         )
     }
 
@@ -738,6 +742,9 @@ sealed interface OnboardingAction {
     data class HeightTyped(val text: String) : OnboardingAction
     data class WeightTyped(val text: String) : OnboardingAction
     data class SexPicked(val sex: BodySex) : OnboardingAction
+
+    /** How active an ordinary day is, on the resting energy step. */
+    data class ActivityPicked(val level: EverydayActivity) : OnboardingAction
     /** Kilograms and centimetres, or pounds and inches. */
     data class UnitPicked(val unit: WeightUnit) : OnboardingAction
     data class MealTimePicked(val slot: MealSlot, val time: LocalTime) : OnboardingAction

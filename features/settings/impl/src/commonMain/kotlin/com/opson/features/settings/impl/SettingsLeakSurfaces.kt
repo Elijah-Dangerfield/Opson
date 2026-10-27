@@ -41,6 +41,7 @@ import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsStateBuil
 import com.opson.features.settings.impl.water.WaterSettingsScreen
 import com.opson.features.settings.impl.water.WaterSettingsStateBuilder
 import com.opson.features.settings.impl.widgets.WidgetsFixtureScreen
+import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.RestingChoices
@@ -118,9 +119,31 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "targets-by-day-shapes", label = "Targets, day groups by shape", showsCaloriesInFull = true) { policy ->
             val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.shapedByDayTargets)
+            val everyShape = SettingsFixtures.settings(policy.settings, SettingsFixtures.everyShapeByDayTargets)
             Column {
                 TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 1, goalsAndEnergy = true), onAction = {})
                 TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 2, goalsAndEnergy = true), onAction = {})
+                TargetsScreen(
+                    TargetsStateBuilder.build(everyShape, policy, burned = SettingsFixtures.burned, editingGroup = 2, goalsAndEnergy = true),
+                    onAction = {},
+                )
+            }
+        },
+        // A deficit with no health app: Burned is resting energy plus everyday activity.
+        LeakSurface(id = "targets-deficit-estimated", label = "Targets, deficit without a health app", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.deficitTargets)
+            TargetsScreen(
+                TargetsStateBuilder.build(settings, policy, burned = SettingsFixtures.estimatedBurned, goalsAndEnergy = true, choosingActivity = true),
+                onAction = {},
+            )
+        },
+        // The macro editor in percents and in grams, its presets, and macros that don't add up.
+        LeakSurface(id = "targets-macros", label = "Targets, macro editor", showsCaloriesInFull = true) { policy ->
+            val ratios = SettingsFixtures.settings(policy.settings)
+            val grams = SettingsFixtures.settings(policy.settings, SettingsFixtures.gramsOverTargets).copy(macroMode = MacroMode.Grams)
+            Column {
+                TargetsScreen(TargetsStateBuilder.build(ratios, policy, editingMacros = true), onAction = {})
+                TargetsScreen(TargetsStateBuilder.build(grams, policy, editingMacros = true), onAction = {})
             }
         },
         LeakSurface(id = "targets-deficit", label = "Targets, set deficit", showsCaloriesInFull = true) { policy ->

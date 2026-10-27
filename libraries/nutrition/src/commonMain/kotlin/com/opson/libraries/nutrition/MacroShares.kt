@@ -5,6 +5,15 @@ private const val KCAL_PER_G_CARBS = 4.0
 private const val KCAL_PER_G_FAT = 9.0
 private const val PERCENT = 100.0
 
+/** The Atwater factors every tracker uses: 4 kcal a gram for protein and carbs, 9 for fat. */
+val Metric.kcalPerGram: Double
+    get() = when (this) {
+        Metric.Protein -> KCAL_PER_G_PROTEIN
+        Metric.Carbs -> KCAL_PER_G_CARBS
+        Metric.Fat -> KCAL_PER_G_FAT
+        else -> error("$this has no energy per gram")
+    }
+
 /**
  * The energy in each macro whose grams are known, at 4 kcal a gram for protein and carbs and 9
  * for fat, in that order.

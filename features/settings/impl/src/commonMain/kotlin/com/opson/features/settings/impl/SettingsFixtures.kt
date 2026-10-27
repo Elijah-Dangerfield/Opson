@@ -7,6 +7,7 @@ import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.DayGroup
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ModeTiming
@@ -45,6 +46,12 @@ object SettingsFixtures {
      * and a 180 kcal workout from the health app, 2,180 in all.
      */
     val burned: Burned = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 390, workoutKcal = 180)
+
+    /**
+     * Burned with no health app: the same 1,610 resting, and lightly active everyday movement
+     * (600) from everyday activity in its place, 2,210 in all.
+     */
+    val estimatedBurned: Burned = Burned(RestingEnergy(1610, RestingFrom.Calculated), everydayKcal = EverydayActivity.SomeWalking.kcalFor(1610))
 
     fun policy(numbers: NumbersSettings): VisibilityPolicy = VisibilityPolicy(numbers, clock, timeZone)
 
@@ -107,6 +114,25 @@ object SettingsFixtures {
             ),
         ),
     )
+
+    /**
+     * Different by day with every goal type: Thursday and Friday a range, Monday one number
+     * (2,500), Tuesday and Wednesday 200 under what the user burns, the weekend 300 over it.
+     */
+    val everyShapeByDayTargets: Targets = rangeTargets.copy(
+        startingKcal = 1800,
+        style = TargetStyle.ByDay(
+            listOf(
+                DayGroup(setOf(DayOfWeek.THURSDAY, DayOfWeek.FRIDAY), 1900, 2300),
+                DayGroup(setOf(DayOfWeek.MONDAY), 2300, 2700, GroupShape.Exact),
+                DayGroup(setOf(DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY), 1900, 2300, GroupShape.Deficit(200, 300)),
+                DayGroup(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), 1900, 2300, GroupShape.Surplus(300, 300)),
+            ),
+        ),
+    )
+
+    /** Macros set in grams that add up to 2,360 kcal, 260 over the 2,100 aim. */
+    val gramsOverTargets: Targets = rangeTargets.copy(proteinG = 150, carbsG = 260, fatG = 80)
 
     /** The design's user with [numbers] and [targets]: ratio macros, eight 250 ml glasses. */
     fun settings(numbers: NumbersSettings = NumbersSettings(), targets: Targets = rangeTargets): Settings = Settings(

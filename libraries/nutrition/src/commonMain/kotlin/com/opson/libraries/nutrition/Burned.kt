@@ -99,8 +99,10 @@ object RestingEnergies {
  *
  * [movementKcal] and [workoutKcal] are null when nothing reads them (no health app, or
  * `release.health` off), which is not the same as a synced zero. [everydayKcal] and
- * [exerciseKcal] are the manual side (`release.exercise`): everyday activity and logged exercise,
- * null when not counted. [burnedFor] decides which side a day takes, so the two never add up.
+ * [exerciseKcal] are the manual side: everyday activity, which stands in for movement whenever
+ * nothing reads it so a deficit works without a health app, and logged exercise
+ * (`release.exercise`), null when not counted. [burnedFor] decides which side a day takes, so the
+ * two never add up.
  */
 data class Burned(
     val resting: RestingEnergy,
@@ -110,6 +112,9 @@ data class Burned(
     val everydayKcal: Int? = null,
     val exerciseKcal: Int? = null,
 ) {
+    /** Whether the day's everyday movement is the [EverydayActivity] estimate, not a health app's reading. */
+    val movementEstimated: Boolean get() = activityCounted && everydayKcal != null
+
     /** Everything above resting as counted: zero when switched off, nothing read or logged. */
     val activityKcal: Int
         get() = if (activityCounted) listOf(movementKcal, workoutKcal, everydayKcal, exerciseKcal).sumOf { (it ?: 0).coerceAtLeast(0) } else 0

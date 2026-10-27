@@ -6,6 +6,73 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: One everyday activity setting for exercise and goals
+
+**Decision:** the exercise work and the goals work each added a "how active is
+an ordinary day" choice (`EverydayActivity` with `everydayActivity`, and
+`ActivityLevel` with `activityLevel`), with the same four shares of resting
+energy. Neither had shipped, so they are one now: `EverydayActivity`, the
+`everydayActivity` key, and `burnedFor` as the only place that decides what a
+day's activity is. Resting energy, Targets ("Burned comes from") and
+onboarding's body step all edit that one setting.
+
+Everyday activity no longer waits for `release.exercise`. With
+`release.goalsAndEnergy` on and no health app reading activity, Burned is
+resting energy plus everyday activity, so a deficit works without Health;
+`release.exercise` only adds logged exercise on top. With a health app reading
+activity, its movement and workouts replace both, as before. "Add activity to
+Burned" off is still resting energy only, whatever the source.
+
+**Why:** two keys for one answer would let Today and Targets disagree about
+Burned. `EverydayActivity` matches `Burned.everydayKcal` and the research note.
+
+## 2026-10-27: A deficit can be chosen without a health app; the caps stay
+
+**Decision:** a set deficit (and a set surplus) can be picked whether or not a
+health app is connected, as a style or for any day group. With no health app,
+Burned is resting energy (Mifflin–St Jeor, as before) plus the everyday
+activity the person picks (`EverydayActivity`, Mostly sitting unless they say
+otherwise), and logged exercise on top. When Burned can't be worked out at
+all, the card asks for the missing details instead of saying "Until Burned is
+known, your goal is your range."
+
+The safety rules do not change. `GOAL_FLOOR_KCAL`, `MAX_DEFICIT_KCAL` and
+`MAX_SURPLUS_KCAL` stay null until a dietitian sets them, and while they are
+null no goal goes under where the person started and no deficit or surplus
+grows past where it started. Choosing a deficit is not the same as growing
+one: it starts at what the aim already implies against Burned, so on the day
+it is picked the goal is the aim. The copy now says what a number is based on
+("Based on about 2,210 burned today", "This is the deficit you started with")
+rather than what a dietitian has not done yet.
+
+This replaces the owner's earlier call (design sync 4 notes, Targets) that the
+deficit stay locked until `MAX_DEFICIT_KCAL` is set. They tried the screens
+and asked to be able to choose one; the lock on growing it is what keeps it
+safe, and that stays.
+
+The deficit and surplus are offered only with `release.goalsAndEnergy`, the
+flag that has Today, Trends and the widget read Burned at all. Without it a
+deficit could only ever be the range everywhere, which is the dead end this
+removes. One saved on a phone with the flag on still shows.
+
+**Per-day goals:** a day group can be any goal type (range, one number,
+deficit, surplus). `GroupShape.Deficit` travels inside the top-level
+`targetStyle` with the group's `minKcal` and `maxKcal` kept, so a build that
+predates it reads that day as its own range. Everyday activity is the
+top-level `everydayActivity` key, which the server's one-level merge keeps
+through an older save.
+
+**Alternatives:** an activity multiplier on all of Burned, health app or not
+(rejected: the health app measures movement, so it would count it twice);
+defaulting to Lightly active as some trackers do (rejected: a higher estimate
+starts a bigger deficit, so the default is the lowest); balancing per-day
+goals against a weekly total as Lose It and MacroFactor do (rejected: raising
+one day would quietly lower another, which the floor rule exists to stop).
+Research in `docs/research/goals-ux.md`.
+
+**Reconcile:** built beside the exercise entry below, which had the same
+idea; see the entry above for how the two became one.
+
 ## 2026-10-27: "Ate, no details" is no longer offered; old marks stay
 
 **Decision:** the meal sheet and the add sheet stop offering "Ate, no details".
@@ -62,6 +129,8 @@ several hundred calories too low. One source per day is easy to explain and
 never counts the same walk twice. Research and sources:
 `docs/research/energy-expenditure.md`. Server table `exercises` is V24; Room
 schema 10.
+
+---
 
 ## 2026-10-27: Accounts are required; a reinstall starts signed out
 

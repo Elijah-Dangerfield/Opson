@@ -36,7 +36,8 @@ sealed interface TargetStyle {
     data class Surplus(val kcal: Int, val startingKcal: Int) : TargetStyle
 
     /**
-     * Up to [MAX_GROUPS] groups of weekdays, each with its own range. Every weekday is in exactly
+     * Up to [MAX_GROUPS] groups of weekdays, each with its own goal of any shape ([GroupShape]):
+     * a range on Monday, a deficit on Tuesday, a surplus on Thursday. Every weekday is in exactly
      * one group; build and change it through [Targets], which keeps that true.
      */
     data class ByDay(val groups: List<DayGroup>) : TargetStyle
@@ -75,8 +76,8 @@ data class DayGroup(
 }
 
 /**
- * How one day group's goal is shaped, so "different by day" can mix them: a range on rest days,
- * one number or a surplus on training days. A set deficit is not offered per group.
+ * How one day group's goal is shaped, so "different by day" can mix every style there is: a range
+ * on rest days, a deficit midweek, one number or a surplus on training days.
  */
 sealed interface GroupShape {
     /** The group's low and high end. */
@@ -90,6 +91,12 @@ sealed interface GroupShape {
      * [TargetStyle.Surplus] is.
      */
     data class Surplus(val kcal: Int, val startingKcal: Int) : GroupShape
+
+    /**
+     * [kcal] under what the user burns, capped as [TargetStyle.Deficit] is and never under the
+     * floor. Until the burn is known the group's goal is its range, which a deficit can't go under.
+     */
+    data class Deficit(val kcal: Int, val startingKcal: Int) : GroupShape
 }
 
 /** Which end of a range a step moves. */

@@ -11,6 +11,7 @@ import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
@@ -154,6 +155,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         runCurrent()
         assertEquals("1992", vm.state.body.birthYear, "only digits reach the field")
         assertEquals(Display.Shown("1,360 kcal"), vm.state.bodyView?.resting)
+        assertEquals(Display.Shown("1,630 kcal"), vm.state.bodyView?.burned, "mostly sitting until the person says otherwise")
 
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
@@ -161,8 +163,9 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         assertEquals(1992, saved.birthYear)
         assertEquals(168.0, saved.heightCm)
         assertEquals(BodySex.Female, saved.bodySex)
-        // The aim, 2,100, over resting energy, 1,360: 740, floored to 50, and its own cap.
-        assertEquals(TargetStyle.Surplus(kcal = 700, startingKcal = 700), saved.targets.style)
+        // The aim, 2,100, over an ordinary day's 1,630 (1,360 resting, 270 sitting): 470, floored to 50, and its own cap.
+        assertEquals(TargetStyle.Surplus(kcal = 450, startingKcal = 450), saved.targets.style)
+        assertEquals(EverydayActivity.MostlySitting, saved.everydayActivity)
         assertEquals(listOf(64.0), weights.added)
 
         // Back and on again saves again, but the weigh-in is not logged twice.
@@ -189,10 +192,36 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         ).forEach(vm::takeAction)
         runCurrent()
 
-        // Resting energy (1,360) is under the aim (2,100): no deficit at all, and the floor holds.
+        // An ordinary day (1,630) is under the aim (2,100): no deficit at all, and the floor holds.
         val targets = settings.settings.value.targets
         assertEquals(TargetStyle.Deficit(kcal = 0, startingKcal = 0), targets.style)
         assertEquals(Targets.Default.startingKcal, targets.floorKcal)
+    }
+
+    @Test
+    fun theEverydayActivity_isWhatADeficitStartsFrom_andIsSaved() = runUnitTest {
+        val settings = FakeSettingsRepository()
+        val vm = atGoal(listOf(NumbersFeel.LoveThem), goalsAndEnergy = true, settings = settings)
+        vm.takeAction(OnboardingAction.GoalStyleTapped(GoalChoice.Deficit))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        listOf(
+            OnboardingAction.BirthYearTyped("1992"),
+            OnboardingAction.HeightTyped("168"),
+            OnboardingAction.WeightTyped("64"),
+            OnboardingAction.SexPicked(BodySex.Female),
+            OnboardingAction.ActivityPicked(EverydayActivity.PhysicalWork),
+        ).forEach(vm::takeAction)
+        runCurrent()
+        // 1,360 resting and 990 of a very active day.
+        assertEquals(Display.Shown("2,350 kcal"), vm.state.bodyView?.burned)
+
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+        val saved = settings.settings.value
+        assertEquals(EverydayActivity.PhysicalWork, saved.everydayActivity)
+        // 2,350 burned against the 2,100 aim: 250 under, and that is also as far as it can go.
+        assertEquals(TargetStyle.Deficit(kcal = 250, startingKcal = 250), saved.targets.style)
+        assertEquals(Targets.Default.startingKcal, saved.targets.floorKcal, "the goal still never goes under where it started")
     }
 
     @Test

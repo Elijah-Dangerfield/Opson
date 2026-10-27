@@ -6,7 +6,6 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
-import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
@@ -39,12 +38,10 @@ class RestingEnergyViewModel(
     health: HealthRepository,
     healthFlag: HealthReleaseFlag,
     private val calendar: LocalCalendar,
-    exerciseRelease: ExerciseRelease,
 ) : SEAViewModel<RestingEnergyState, RestingEnergyEvent, RestingEnergyAction>(initialStateArg = RestingEnergyState()) {
 
     private var inputs: RestingEnergyAction.InputsArrived? = null
     private var drafts = RestingDrafts()
-    private val exerciseReleased = exerciseRelease.isOn()
 
     init {
         val activity = if (healthFlag()) {
@@ -100,7 +97,7 @@ class RestingEnergyViewModel(
 
     private suspend fun rebuild(action: RestingEnergyAction) {
         val (settings, choices, policy, activity) = inputs ?: return
-        action.updateState { RestingEnergyStateBuilder.build(settings, choices, policy, drafts, activity, exerciseReleased) }
+        action.updateState { RestingEnergyStateBuilder.build(settings, choices, policy, drafts, activity) }
     }
 
     private companion object {
