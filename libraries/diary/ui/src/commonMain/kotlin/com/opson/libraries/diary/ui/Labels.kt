@@ -22,9 +22,11 @@ import opson.libraries.resources.generated.resources.diary_mood_rushed
 import opson.libraries.resources.generated.resources.diary_mood_social
 import opson.libraries.resources.generated.resources.diary_mood_stressed
 import opson.libraries.resources.generated.resources.diary_precision_picker_estimate
+import opson.libraries.resources.generated.resources.diary_precision_picker_label
 import opson.libraries.resources.generated.resources.diary_precision_picker_named
 import opson.libraries.resources.generated.resources.diary_precision_picker_weighed
 import opson.libraries.resources.generated.resources.diary_precision_row_estimate
+import opson.libraries.resources.generated.resources.diary_precision_row_label
 import opson.libraries.resources.generated.resources.diary_precision_row_named
 import opson.libraries.resources.generated.resources.diary_precision_row_weighed
 import opson.libraries.resources.generated.resources.diary_slot_breakfast
