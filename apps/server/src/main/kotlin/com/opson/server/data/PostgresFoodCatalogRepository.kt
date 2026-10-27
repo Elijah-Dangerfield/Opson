@@ -23,6 +23,8 @@ import com.opson.server.domain.SearchCategory
 import com.opson.server.domain.SearchFilter
 import com.opson.server.domain.SearchSort
 import com.opson.server.domain.SearchSource
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -90,6 +92,13 @@ class PostgresFoodCatalogRepository(
     private val sources: FoodSourcesConfig = FoodSourcesConfig(),
 ) : FoodCatalogRepository {
 
+    /**
+     * With Open Food Facts on, the catalog and `off_foods` statements run at
+     * once, each in its own transaction on its own connection, so a search
+     * waits for the slower of the two rather than both. Neither transaction
+     * waits on the other, so a full pool cannot deadlock them. The search
+     * event is written after, in a transaction of its own.
+     */
     override suspend fun search(
         query: String,
         limit: Int,
@@ -97,29 +106,16 @@ class PostgresFoodCatalogRepository(
         country: String?,
         openFoodFacts: Boolean,
         filter: SearchFilter,
-    ): List<FoodMatch> =
-        database.transaction {
-            val normalized = FoodCatalogRepository.normalizeQuery(query)
-            val terms = SearchTerms.of(normalized)
-            val capped = limit.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
-            val ranked = when {
-                terms == null -> emptyList()
-                openFoodFacts && sources.searchOpenFoodFacts && filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms) -> {
-                    // The merge drops copies of one product, so each side brings more than a page.
-                    val fetch = (capped * 2).coerceAtMost(FoodCatalogRepository.MAX_LIMIT)
-                    OpenFoodFactsSearch.merge(
-                        catalog = runSearch(terms, fetch, filter),
-                        openFoodFacts = runOpenFoodFactsSearch(terms, fetch, OpenFoodFactsSearch.countryTag(country)),
-                        limit = capped,
-                    )
-                }
-                else -> runSearch(terms, capped, filter)
-            }
-            val matches = when (filter.sort) {
-                SearchSort.BestMatch -> ranked
-                SearchSort.Name -> ranked.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.food.name })
-            }
-            if (record && normalized.isNotEmpty()) {
+    ): List<FoodMatch> {
+        val normalized = FoodCatalogRepository.normalizeQuery(query)
+        val terms = SearchTerms.of(normalized)
+        val capped = limit.coerceIn(1, FoodCatalogRepository.MAX_LIMIT)
+        val withOpenFoodFacts = terms != null && openFoodFacts && sources.searchOpenFoodFacts &&
+            filter.allowsOpenFoodFacts && OpenFoodFactsSearch.searches(terms)
+        val countryTag = if (withOpenFoodFacts) OpenFoodFactsSearch.countryTag(country) else null
+        val matches = rank(terms, capped, filter, withOpenFoodFacts, countryTag)
+        if (record && normalized.isNotEmpty()) {
+            database.transaction {
                 FoodSearchEventsTable.insert {
                     it[at] = clock.now().toJavaInstant()
                     it[queryNorm] = normalized
@@ -127,8 +123,33 @@ class PostgresFoodCatalogRepository(
                     it[picked] = false
                 }
             }
-            matches
         }
+        return matches
+    }
+
+    private suspend fun rank(
+        terms: SearchTerms?,
+        limit: Int,
+        filter: SearchFilter,
+        withOpenFoodFacts: Boolean,
+        countryTag: String?,
+    ): List<FoodMatch> {
+        val ranked = when {
+            terms == null -> emptyList()
+            withOpenFoodFacts -> coroutineScope {
+                // The merge drops copies of one product, so each side brings more than a page.
+                val fetch = (limit * 2).coerceAtMost(FoodCatalogRepository.MAX_LIMIT)
+                val off = async { database.transaction { runOpenFoodFactsSearch(terms, fetch, countryTag) } }
+                val catalog = database.transaction { runSearch(terms, fetch, filter) }
+                OpenFoodFactsSearch.merge(catalog = catalog, openFoodFacts = off.await(), limit = limit)
+            }
+            else -> database.transaction { runSearch(terms, limit, filter) }
+        }
+        return when (filter.sort) {
+            SearchSort.BestMatch -> ranked
+            SearchSort.Name -> ranked.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.food.name })
+        }
+    }
 
     override val searchesOpenFoodFacts: Boolean get() = sources.searchOpenFoodFacts
 
