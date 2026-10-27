@@ -79,10 +79,6 @@ fun HeroLink(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-/** The v3 minimum touch target. */
-// TODO(review): duplicates com.opson.libraries.ui.system.MinTouchTarget; delete once Today imports that one.
-val MinTouchTarget: Dp = com.opson.libraries.ui.system.MinTouchTarget
-
 /**
  * The card for delayed numbers: a lock-clock tile, [title] ("Totals open at 9:00 pm") and
  * [body]. Says when numbers open, never what they are.
