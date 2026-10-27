@@ -28,6 +28,7 @@ import java.io.File
 import java.security.KeyPairGenerator
 import java.security.interfaces.ECPrivateKey
 import java.security.interfaces.ECPublicKey
+import java.security.interfaces.RSAPublicKey
 import java.security.spec.ECGenParameterSpec
 import java.util.Base64
 import java.util.Date
@@ -111,6 +112,31 @@ class AppConfigRoutesTest {
                 HttpStatusCode.Unauthorized,
                 client.get("/protected") { header(HttpHeaders.Authorization, "Bearer $forged") }.status,
             )
+        }
+    }
+
+    @Test
+    fun unreachableOrBrokenKeys_leaveAppConfigAnonymous_andProtectedRoutesClosed() {
+        val issuer = "https://jwks-project.supabase.co/auth/v1"
+        val ours = ecKeyPair()
+        val token = es256Token(ours, "our-key", issuer)
+        val rsa = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair().public as RSAPublicKey
+        fun b64(value: java.math.BigInteger) = Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray())
+        // An entry whose alg doesn't match its key type.
+        val mismatched = File.createTempFile("jwks", ".json").apply {
+            deleteOnExit()
+            writeText("""{"keys":[{"kty":"RSA","alg":"ES256","kid":"our-key","n":"${b64(rsa.modulus)}","e":"${b64(rsa.publicExponent)}"}]}""")
+        }
+        val missing = File(System.getProperty("java.io.tmpdir"), "no-such-jwks-${UUID.randomUUID()}.json")
+
+        for (jwksUrl in listOf(missing.toURI().toString(), mismatched.toURI().toString())) {
+            app(JwtVerification.Jwks(jwksUrl, issuer)) {
+                assertServed("anonymous", client.get("/v1/app-config") { header(HttpHeaders.Authorization, "Bearer $token") })
+                assertEquals(
+                    HttpStatusCode.Unauthorized,
+                    client.get("/protected") { header(HttpHeaders.Authorization, "Bearer $token") }.status,
+                )
+            }
         }
     }
 

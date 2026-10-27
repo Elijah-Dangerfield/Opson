@@ -106,23 +106,30 @@ class BearerVerifier(verification: JwtVerification) {
     }
 }
 
+/**
+ * The verifier for the key [token] names, or null when the key is unknown, the
+ * JWKS can't be fetched, or its entry doesn't hold the key type its `alg` says.
+ * Never throws: app config must answer even when the keys are unreachable.
+ */
 private fun jwksVerifier(jwkProvider: JwkProvider, issuer: String, token: String): JWTVerifier? {
-    val jwk = try {
-        jwkProvider.get(JWT.decode(token).keyId)
+    val algorithm = try {
+        val jwk = jwkProvider.get(JWT.decode(token).keyId)
+        val publicKey = jwk.publicKey
+        when (jwk.algorithm) {
+            "ES256" -> Algorithm.ECDSA256(publicKey as ECPublicKey, null)
+            "ES384" -> Algorithm.ECDSA384(publicKey as ECPublicKey, null)
+            "ES512" -> Algorithm.ECDSA512(publicKey as ECPublicKey, null)
+            "RS384" -> Algorithm.RSA384(publicKey as RSAPublicKey, null)
+            "RS512" -> Algorithm.RSA512(publicKey as RSAPublicKey, null)
+            "RS256", null -> Algorithm.RSA256(publicKey as RSAPublicKey, null)
+            else -> return null
+        }
     } catch (_: JWTDecodeException) {
         return null
     } catch (_: JwkException) {
         return null
-    }
-    val publicKey = jwk.publicKey
-    val algorithm = when (jwk.algorithm) {
-        "ES256" -> Algorithm.ECDSA256(publicKey as ECPublicKey, null)
-        "ES384" -> Algorithm.ECDSA384(publicKey as ECPublicKey, null)
-        "ES512" -> Algorithm.ECDSA512(publicKey as ECPublicKey, null)
-        "RS384" -> Algorithm.RSA384(publicKey as RSAPublicKey, null)
-        "RS512" -> Algorithm.RSA512(publicKey as RSAPublicKey, null)
-        "RS256", null -> Algorithm.RSA256(publicKey as RSAPublicKey, null)
-        else -> return null
+    } catch (_: ClassCastException) {
+        return null
     }
     return JWT.require(algorithm).withIssuer(issuer).withAudience("authenticated").build()
 }
