@@ -11,10 +11,19 @@
 #   - Console:   fly ssh console -a opson-server-prod
 #   - Status:    fly status -a opson-server-prod
 #
-# Required secrets (set separately, see apps/server/DEPLOY.md):
-#   DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and optionally
-#   SENTRY_DSN. The `-prod` suffix on the app name is load-bearing: the server
-#   derives environment=prod from FLY_APP_NAME (see ServerConfig).
+# Secrets (set separately, see apps/server/DEPLOY.md and the README's
+# environment table):
+#   - required: DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY;
+#   - required for App Review: APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY
+#     (deletion revokes the Sign in with Apple token);
+#   - before release.photo is on: ANTHROPIC_API_KEY;
+#   - for the admin console and the site's form: ADMIN_API_TOKEN,
+#     WAITLIST_ALLOWED_ORIGINS;
+#   - to see errors and traces anywhere but `fly logs`: SENTRY_DSN,
+#     OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS.
+# The boot log's "Features" line says which of these are on. The `-prod`
+# suffix on the app name is load-bearing: the server derives environment=prod
+# from FLY_APP_NAME (see ServerConfig).
 #
 # Rename `app` to your own Fly app before the first deploy.
 

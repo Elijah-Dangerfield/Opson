@@ -28,6 +28,26 @@ data class ServerConfig(
     val foodSources: FoodSourcesConfig = FoodSourcesConfig(),
     val waitlist: WaitlistConfig = WaitlistConfig(),
 ) {
+    /**
+     * Every optional feature, on or off, in one line for the boot log, named by
+     * what it does rather than the variable behind it. A feature that is off on
+     * prod by accident (no Apple key, so deletion can't revoke the Apple token;
+     * no Sentry DSN) shows up here instead of only when someone needs it.
+     */
+    fun featureSummary(): String = listOf(
+        "database" to (database != null),
+        "auth" to (supabase != null),
+        "accountDeletion" to (supabase?.serviceRoleKey != null),
+        "appleRevoke" to (supabase?.appleSignIn != null),
+        "sentry" to (sentry.dsn != null),
+        "otlp" to (observability.otlpEndpoint != null),
+        "admin" to !admin.apiToken.isNullOrBlank(),
+        "configWebhook" to (configChange.webhookUrl != null),
+        "photo" to (foodSources.anthropic != null),
+        "nutritionix" to (foodSources.nutritionix != null),
+        "offSearch" to foodSources.searchOpenFoodFacts,
+    ).joinToString(" ") { (name, on) -> "$name=${if (on) "on" else "off"}" }
+
     companion object {
         fun fromEnv(env: Env = Env()): ServerConfig = ServerConfig(
             http = HttpConfig.fromEnv(env),

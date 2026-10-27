@@ -87,15 +87,11 @@ fun Application.module(config: ServerConfig) {
         logger.warn("SUPABASE_URL not set — authenticated routes (/v1/me) are disabled.")
     }
 
+    logger.info("Features ({}): {}", config.observability.environment, config.featureSummary())
     config.foodSources.nutritionix?.let {
-        logger.info("Nutritionix barcode lookups on, caching ${if (it.cacheResults) "on" else "off"}")
+        logger.info("Nutritionix caching ${if (it.cacheResults) "on" else "off"}")
     }
-    val anthropic = config.foodSources.anthropic
-    if (anthropic != null) {
-        logger.info("Photo estimates on, model ${anthropic.photoModel}")
-    } else {
-        logger.info("ANTHROPIC_API_KEY not set — photo estimates answer 503 unavailable.")
-    }
+    config.foodSources.anthropic?.let { logger.info("Photo estimates use ${it.photoModel}") }
     val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources, Clock.System) }
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
     // mode simply runs without it — same null-safe degradation as everything
