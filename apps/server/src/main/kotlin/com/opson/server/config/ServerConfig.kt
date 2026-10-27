@@ -131,30 +131,39 @@ data class FoodSourcesConfig(
 }
 
 /**
- * The Anthropic API, for photo estimates (`POST /v1/describe/photo`). Null
- * until `ANTHROPIC_API_KEY` is set, and the route then answers 503
- * `photo_estimate_unavailable`, which the app shows as a calm "not available
- * right now". [photoModel] is `ANTHROPIC_PHOTO_MODEL`, so the model can change
- * without a release (see `AnthropicEstimateProvider` for the default and why).
- * Treat the key like a password: never log it.
+ * The Anthropic API, for photo estimates (`POST /v1/describe/photo`) and
+ * reading pack labels (`POST /v1/foods/labels/parse`). Null until
+ * `ANTHROPIC_API_KEY` is set, and both routes then answer 503, which the app
+ * shows as a calm "not available right now". [photoModel] is
+ * `ANTHROPIC_PHOTO_MODEL` and [labelModel] `ANTHROPIC_LABEL_MODEL`, so either
+ * model can change without a release (see `AnthropicEstimateProvider` and
+ * `AnthropicLabelParser` for the defaults and why). Treat the key like a
+ * password: never log it.
  */
 data class AnthropicConfig(
     val apiKey: String,
     val photoModel: String = DEFAULT_PHOTO_MODEL,
+    val labelModel: String = DEFAULT_LABEL_MODEL,
     /**
      * Null for Anthropic's own API. Never set from the environment; the
      * end-to-end tests point it at a stand-in that answers like the Messages API.
      */
     val baseUrl: String? = null,
 ) {
-    override fun toString(): String = "AnthropicConfig(apiKey=***, photoModel=$photoModel, baseUrl=$baseUrl)"
+    override fun toString(): String =
+        "AnthropicConfig(apiKey=***, photoModel=$photoModel, labelModel=$labelModel, baseUrl=$baseUrl)"
 
     companion object {
         const val DEFAULT_PHOTO_MODEL = "claude-opus-5-5"
+        const val DEFAULT_LABEL_MODEL = "claude-fable-5-1"
 
         fun fromEnv(env: Env): AnthropicConfig? {
             val key = env["ANTHROPIC_API_KEY"] ?: return null
-            return AnthropicConfig(apiKey = key, photoModel = env["ANTHROPIC_PHOTO_MODEL"]?.trim() ?: DEFAULT_PHOTO_MODEL)
+            return AnthropicConfig(
+                apiKey = key,
+                photoModel = env["ANTHROPIC_PHOTO_MODEL"]?.trim() ?: DEFAULT_PHOTO_MODEL,
+                labelModel = env["ANTHROPIC_LABEL_MODEL"]?.trim()?.ifEmpty { null } ?: DEFAULT_LABEL_MODEL,
+            )
         }
     }
 }

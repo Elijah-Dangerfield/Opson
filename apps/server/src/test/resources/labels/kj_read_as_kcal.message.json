@@ -1,0 +1,18 @@
+{
+  "id": "msg_fixture",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-fable-5-1",
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"label_found\": true, \"name\": {\"value\": \"Corn flakes\", \"confidence\": 0.95}, \"brand\": {\"value\": \"Morning\", \"confidence\": 0.95}, \"barcode\": {\"value\": \"4006381333931\", \"confidence\": 0.9}, \"serving\": {\"amount\": 30, \"unit\": \"g\", \"household\": null, \"confidence\": 0.9}, \"servings_per_container\": {\"value\": 16, \"confidence\": 0.95}, \"basis\": \"eu\", \"nutrients\": [{\"nutrient\": \"energy\", \"per_serving\": null, \"per_100\": 1590, \"unit\": \"kcal\", \"less_than\": false, \"confidence\": 0.5}, {\"nutrient\": \"fat\", \"per_serving\": null, \"per_100\": 3, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"carbohydrate\", \"per_serving\": null, \"per_100\": 80, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"protein\", \"per_serving\": null, \"per_100\": 8, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"salt\", \"per_serving\": null, \"per_100\": 1.1, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}]}"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 5200,
+    "output_tokens": 900
+  }
+}

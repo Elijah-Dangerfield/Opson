@@ -39,6 +39,13 @@ enum class CatalogSource(val wire: String, val tier: FoodTier) {
     UsdaBranded("usda_branded", FoodTier.Label),
     Nutritionix("nutritionix", FoodTier.Licensed),
     OpenFoodFacts("off", FoodTier.Community),
+
+    /**
+     * A food someone added from photos of its pack (V25). Tier 4 like Open
+     * Food Facts until a reviewer approves it, which sets `verified`; only its
+     * submitter sees it before then.
+     */
+    UserSubmitted("user_submitted", FoodTier.Community),
     ;
 
     companion object {
