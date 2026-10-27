@@ -9,10 +9,11 @@
 #   1. Fails fast if main's HEAD already equals the existing tag's commit —
 #      there's nothing new to ship in that case.
 #   2. Deletes the existing GitHub Release + tag for the version (if any).
-#   3. Creates the tag at current origin/main and pushes it.
-#   4. Cancels the auto-triggered release.yml run that fired on tag push
-#      (we can't pass `skip_play_store` through a push trigger).
-#   5. Dispatches release.yml explicitly with `skip_play_store` honored.
+#   3. Creates the tag at current origin/main and pushes it. The push uses
+#      GITHUB_TOKEN, and GitHub starts no workflow for a push made with it,
+#      so release.yml's tag trigger does not fire (release-please.yml relies
+#      on the same rule).
+#   4. Dispatches release.yml explicitly with `skip_play_store` honored.
 #
 # Why a separate workflow:
 #   release.yml's blast radius is huge (uploads to Play + App Store). Tag
@@ -78,10 +79,13 @@ jobs:
           fetch-depth: 0
 
       - name: Validate inputs
+        # Through the environment, not spliced into the script, so the input is
+        # only ever data.
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           set -e
-          VERSION="${{ inputs.version }}"
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::Version '$VERSION' must look like 'X.Y.Z'. No leading v."
             exit 1
           fi
@@ -123,33 +127,6 @@ jobs:
           git tag "$TAG" origin/main
           git push origin "$TAG"
           echo "Pushed $TAG at $(git rev-parse "$TAG")"
-
-      - name: Cancel auto-triggered release.yml run
-        # The tag push we just did fires release.yml via its `push: tags:`
-        # trigger. That triggered run doesn't see workflow_dispatch inputs,
-        # so it would run Android + Play even though the user asked to
-        # skip Play. We cancel it and redispatch with the right inputs.
-        run: |
-          set -e
-          DEADLINE=$((SECONDS + 60))
-          RUN_ID=""
-          while [ $SECONDS -lt $DEADLINE ]; do
-            RUN_ID=$(gh run list --workflow=release.yml --limit 5 \
-              --json databaseId,event,headBranch,status \
-              --jq ".[] | select(.event == \"push\" and .headBranch == \"$TAG\" and .status != \"completed\") | .databaseId" \
-              | head -n 1)
-            if [ -n "$RUN_ID" ]; then
-              break
-            fi
-            echo "Waiting for auto-triggered release.yml run for $TAG…"
-            sleep 3
-          done
-          if [ -z "$RUN_ID" ]; then
-            echo "::warning::Didn't see an auto-triggered release.yml run within 60s. Skipping cancel; the redispatch below will still run but a parallel push-triggered run may proceed."
-          else
-            echo "Cancelling auto-triggered run $RUN_ID"
-            gh run cancel "$RUN_ID"
-          fi
 
       - name: Dispatch release.yml with scoped inputs
         # Every input release.yml grows must be plumbed through here too — a

@@ -1178,6 +1178,29 @@ class Psql:
             raise SystemExit(f"psql query failed: {result.stderr.strip()}")
         return [line.split("\t") for line in result.stdout.splitlines() if line]
 
+    def start(self, sql: str) -> subprocess.Popen:
+        """Runs `sql` in a session of its own, stopping at the first error. Returns at once."""
+        proc = subprocess.Popen(
+            [self.binary, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-d", KEEPALIVES, "-f", "-"],
+            stdin=subprocess.PIPE, env=self.env,
+        )
+        proc.stdin.write(sql.encode("utf-8"))
+        proc.stdin.close()
+        return proc
+
+    def statement_running(self, marker: str) -> bool:
+        """Whether another session is running a statement containing `marker`. False when it can't tell."""
+        try:
+            rows = subprocess.run(
+                [self.binary, "-X", "-A", "-t", "-d", KEEPALIVES, "-c",
+                 "SELECT count(*) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND state = 'active' "
+                 f"AND strpos(query, {sql_text(marker)}) > 0"],
+                env={**self.env, "PGCONNECT_TIMEOUT": "15"}, capture_output=True, text=True, timeout=60,
+            )
+        except subprocess.TimeoutExpired:
+            return False
+        return rows.returncode == 0 and rows.stdout.strip() not in ("", "0")
+
 
 class PsqlOutput:
     """Streams SQL into psql, stopping at the first error.

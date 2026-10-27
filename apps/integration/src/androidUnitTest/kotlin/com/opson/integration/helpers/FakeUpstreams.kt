@@ -30,8 +30,9 @@ import java.util.concurrent.ConcurrentHashMap
  *    does the rest. A display-name mirror is accepted and ignored.
  *  - **Anthropic Messages** (`/v1/messages`): answers [photoFoods] as the model's
  *    structured output, so the real `AnthropicEstimateProvider` and SDK parse it.
- *  - **Open Food Facts** (`/api/v2/product/{code}.json`): knows nothing, so every
- *    code the catalog lacks is a clean miss.
+ *  - **Open Food Facts** (`/api/v2/product/{code}.json`): knows the products in
+ *    [openFoodFactsProducts] and nothing else, so any other code the catalog
+ *    lacks is a clean miss.
  *
  * Everything Opson owns stays real; only these boundaries are faked.
  */
@@ -41,6 +42,9 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
     @Volatile
     var photoFoods: List<PhotoFood> = listOf(PhotoFood("Broccoli, steamed", 1.0, "cup", 150.0))
 
+    /** What Open Food Facts knows, by the code as asked. */
+    val openFoodFactsProducts: MutableMap<String, OffProduct> = ConcurrentHashMap()
+
     /** Codes Open Food Facts was asked about, in order. */
     val openFoodFactsLookups: MutableList<String> = Collections.synchronizedList(mutableListOf())
 
@@ -48,6 +52,8 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
     val deletedUsers: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     data class PhotoFood(val name: String, val quantity: Double, val unit: String, val grams: Double)
+
+    data class OffProduct(val name: String, val brand: String, val kcalPer100g: Double)
 
     private val engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =
         embeddedServer(Netty, port = 0, host = "127.0.0.1") {
@@ -69,12 +75,18 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
                     call.respondText(messagesReply(photoFoods), ContentType.Application.Json)
                 }
                 get("/api/v2/product/{file}") {
-                    openFoodFactsLookups += call.parameters["file"].orEmpty().removeSuffix(".json")
-                    call.respondText(
-                        """{"status":0,"status_verbose":"product not found"}""",
-                        ContentType.Application.Json,
-                        HttpStatusCode.NotFound,
-                    )
+                    val code = call.parameters["file"].orEmpty().removeSuffix(".json")
+                    openFoodFactsLookups += code
+                    val product = openFoodFactsProducts[code]
+                    if (product == null) {
+                        call.respondText(
+                            """{"status":0,"status_verbose":"product not found"}""",
+                            ContentType.Application.Json,
+                            HttpStatusCode.NotFound,
+                        )
+                    } else {
+                        call.respondText(offReply(code, product), ContentType.Application.Json)
+                    }
                 }
             }
         }.start(wait = false)
@@ -84,6 +96,20 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
     override fun close() {
         engine.stop(0, 0)
     }
+
+    private fun offReply(code: String, product: OffProduct): String = buildJsonObject {
+        put("status", 1)
+        put("code", code)
+        put(
+            "product",
+            buildJsonObject {
+                put("code", code)
+                put("product_name", product.name)
+                put("brands", product.brand)
+                put("nutriments", buildJsonObject { put("energy-kcal_100g", product.kcalPer100g) })
+            },
+        )
+    }.toString()
 
     private fun messagesReply(foods: List<PhotoFood>): String {
         val output = buildJsonObject {

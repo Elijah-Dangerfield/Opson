@@ -23,29 +23,11 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 
 /**
- * Convention plugin for the main Android application module.
+ * `opson.application`: `:apps:compose` only, the app on both platforms.
  *
- * **When to use this plugin:**
- * - The main app module that gets installed on devices
- * - The module that contains MainActivity and app-level configuration
- * - The module that defines the applicationId and app metadata
- *
- * **What this plugin provides:**
- * - Android application plugin configuration
- * - Kotlin Multiplatform setup with Android and iOS targets
- * - Compose and Compose Compiler plugins
- * - iOS framework configuration for KMP
- * - Application-specific build configuration (version codes, signing, etc.)
- * - Activity Compose dependencies
- *
- * **Examples of modules that should use this:**
- * - apps:compose (your main app)
- * - apps:desktop (if you have a desktop app variant)
- *
- * **Don't use this plugin for:**
- * - Feature modules (use opson.feature instead)
- * - Library modules (use opson.compose.multiplatform or opson.kotlin.multiplatform)
- * - Server modules (these wouldn't be Android applications)
+ * The Android application (applicationId and version from `versions.properties`,
+ * R8 and release signing), the static `ComposeApp` framework Xcode links, Compose,
+ * kotlin-inject, the generated `AppBuildConfig`, and the git hooks check.
  */
 class ApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {

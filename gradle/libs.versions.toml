@@ -21,7 +21,6 @@ androidx-health-connect = "1.1.0"
 androidx-glance = "1.1.1"
 atomicfu = "0.29.0"
 composeMultiplatform = "1.9.3"
-compottie="2.0.2"
 configurationAnnotations = "0.10.12"
 detekt = "2.0.0-alpha.6"
 buildconfig = "5.5.0"
@@ -135,6 +134,7 @@ roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose"
 roborazzi-junitRule = { module = "io.github.takahirom.roborazzi:roborazzi-junit-rule", version.ref = "roborazzi" }
 composablePreviewScanner-common = { module = "io.github.sergio-sastre.ComposablePreviewScanner:common", version.ref = "composablePreviewScanner" }
 compose-backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "composeMultiplatform" }
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "androidx-camera" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "androidx-camera" }
@@ -259,12 +259,6 @@ composeCompiler-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler
 jetbrains-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "jetbrainsNavigationCompose" }
 anvil-runtime = { module = "software.amazon.lastmile.kotlin.inject.anvil:runtime", version.ref = "kotlinInjectAnvil" }
 anvil-runtime-optional = { module = "software.amazon.lastmile.kotlin.inject.anvil:runtime-optional", version.ref = "kotlinInjectAnvil" }
-
-compottie = { module = "io.github.alexzhirkevich:compottie", version.ref = "compottie" }
-compottie-lite = { module = "io.github.alexzhirkevich:compottie-lite", version.ref = "compottie" }
-compottie-dot = { module = "io.github.alexzhirkevich:compottie-dot", version.ref = "compottie" }
-compottie-network = { module = "io.github.alexzhirkevich:compottie-network", version.ref = "compottie" }
-compottie-resources = { module = "io.github.alexzhirkevich:compottie-resources", version.ref = "compottie" }
 
 # Cant be defined under plugings because the build logic module needs to depend on them to propagate the version to the convention plugins (which cant specify a version for whatever reason)
 ksp-gradlePlugin = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }

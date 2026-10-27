@@ -19,35 +19,15 @@ import com.github.gmazzo.buildconfig.BuildConfigExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
-import org.jetbrains.kotlin.gradle.internal.config.AnalysisFlags.optIn
 
 /**
- * Convention plugin for pure Kotlin multiplatform library modules without UI dependencies.
- * 
- * **When to use this plugin:**
- * - Pure Kotlin libraries that contain business logic, utilities, or data models
- * - Libraries that provide platform abstractions (storage, networking, etc.)
- * - Modules that don't need Compose or any UI dependencies
- * - Core libraries that other modules depend on
- * - Data layer modules (repositories, data sources, models)
- * 
- * **What this plugin provides:**
- * - Kotlin Multiplatform setup (Android, iOS, JVM targets)
- * - Android library configuration
- * - Common KMP dependencies (coroutines, kotlin-test)
- * - No UI or Compose dependencies (keeps modules lean)
- * 
- * **Examples of modules that should use this:**
- * - libraries:core (your core utilities and abstractions)
- * - libraries:database (database abstractions and implementations)
- * - libraries:networking (API clients and network utilities)
- * - libraries:storage (storage abstractions)
- * - libraries:user (user domain models and business logic)
- * 
- * **Don't use this plugin for:**
- * - Modules that need Compose UI (use opson.compose.multiplatform instead)
- * - Feature modules with screens (use opson.feature instead)
- * - The main application module (use opson.android.application instead)
+ * `opson.kotlin.multiplatform`: a library with no Compose, such as `:libraries:core`
+ * or `:libraries:networking`.
+ *
+ * Android and iOS targets, kotlinx.serialization, kotlin-inject, coroutines and
+ * kotlin-test, and the module-boundary check. `:libraries:core` also gets the
+ * generated `OpsonBuildConfig` (version, commit, Supabase and telemetry config).
+ * Libraries with composables use `opson.compose.multiplatform`.
  */
 class KotlinMultiplatformConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {

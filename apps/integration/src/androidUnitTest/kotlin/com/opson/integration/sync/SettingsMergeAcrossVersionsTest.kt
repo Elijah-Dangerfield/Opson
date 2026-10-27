@@ -70,8 +70,9 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         assertEquals(true, stored["has_range"], "the merge kept exerciseRange")
 
         newPhone.syncNow().getOrThrow()
-        val settings = newPhone.settings.settings.value
-        assertEquals(10, settings.waterGlasses)
+        // The pull lands in the store, and the settings flow catches up on the app
+        // scope a moment later, so wait on the flow the way a screen reads it.
+        val settings = newPhone.settings.settings.awaitState { it.waterGlasses == 10 }
         assertEquals(earlyBreakfast, settings.mealTimes)
         assertEquals(ExerciseAdjustment.Some, settings.exerciseRange)
         assertFalse(newPhone.pendingChanges() > 0)

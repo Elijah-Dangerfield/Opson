@@ -1,10 +1,8 @@
 #!/bin/sh
-rm -rf .idea
+# Deletes build output and IDE state. Leaves alone everything git tracks: the
+# Xcode project's shared workspace holds Package.resolved.
+set -e
+cd "$(dirname "$0")/.."
 ./gradlew clean
-rm -rf .gradle
-rm -rf build
-rm -rf */build
-rm -rf iosApp/iosApp.xcworkspace
-rm -rf iosApp/Pods
-rm -rf iosApp/iosApp.xcodeproj/project.xcworkspace
-rm -rf iosApp/iosApp.xcodeproj/xcuserdata
+rm -rf .idea .gradle build
+rm -rf apps/ios/iosApp.xcodeproj/xcuserdata

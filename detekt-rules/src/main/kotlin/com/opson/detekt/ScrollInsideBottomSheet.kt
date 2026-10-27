@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
 /**
- * Flags a hand-rolled scroll container inside a `BottomSheet` / `BasicBottomSheet` content lambda.
+ * Flags a hand-rolled scroll container inside a `BottomSheet` content lambda.
  *
  * Material3 derives the sheet's Expanded anchor from the sheet's *measured* height, recomputes the
  * anchors on every measure pass, and snaps to the recomputed target whenever the new anchors differ
@@ -32,10 +32,8 @@ import org.jetbrains.kotlin.psi.psiUtil.parents
  * height and throws.
  *
  * Matched by name, with no type resolution: the callee must be exactly `BottomSheet`, and the
- * scroll call must sit inside one of its lambda arguments. Two deliberate omissions — Material's
- * own `ModalBottomSheet`, which is what the design-system wrapper is built on top of, and
- * `BasicBottomSheet`, whose sticky top and bottom regions mean its middle *is* meant to scroll on
- * its own and where `scrollableContent` would therefore be the wrong advice.
+ * scroll call must sit inside one of its lambda arguments. Material's own `ModalBottomSheet` is
+ * left out on purpose: it is what the design-system wrapper is built on.
  */
 class ScrollInsideBottomSheet(config: Config) : Rule(
     config,
