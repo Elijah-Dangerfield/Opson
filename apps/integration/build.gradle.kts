@@ -142,6 +142,9 @@ tasks.withType<Test>().configureEach {
     // against the views these migrations create.
     inputs.dir(rootProject.file("apps/server/src/main/resources/db/migration")).withPropertyName("serverMigrations")
 
+    // RoomMigrationTest builds each old database from the exported Room schemas.
+    inputs.dir(rootProject.file("libraries/storage/impl/schemas")).withPropertyName("roomSchemas")
+
     // The same hole one level along: the tests also grep the Kotlin tree, for
     // `ConfiguredValue` declarations and for `logEvent(...)` call sites, and
     // Gradle cannot see either read. A
