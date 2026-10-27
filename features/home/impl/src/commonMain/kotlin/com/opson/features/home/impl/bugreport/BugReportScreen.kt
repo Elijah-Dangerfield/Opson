@@ -14,6 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import com.opson.system.AppTheme
@@ -160,6 +163,8 @@ fun BugReportScreen(
                 VerticalSpacerD500()
                 Text(
                     text = stringResource(it),
+                    // Arrives after a failed send, away from where focus is; say it out loud.
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     color = AppTheme.colors.ink,
                     textAlign = TextAlign.Start
                 )
