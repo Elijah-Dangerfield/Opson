@@ -48,7 +48,10 @@ data class TargetsState(
     val exercise: ExerciseAdjustment? = null,
 )
 
-/** What a "−" step does: move, show a lock (the floor), or nothing (the ends would touch). */
+/**
+ * What a step does: move, show a lock (a limit only a dietitian can move: the floor under a
+ * range, the cap over a deficit), or nothing (the ends would touch, or the deficit is at 0).
+ */
 enum class StepState { Open, Locked, Closed }
 
 /** One end: "1,900", bare, with its two steps. */
@@ -69,12 +72,18 @@ data class RangeCard(
 /**
  * The deficit card. [burn] and [goal] are null until a burn is known (0.1 has no source yet),
  * and the card says so instead.
+ *
+ * [up] is [StepState.Locked] at the cap: while `MAX_DEFICIT_KCAL` is unset that is where the
+ * deficit started, which is 0 for one picked with no burn known. The lock and its note say why
+ * the step is gone, where a greyed-out "+" looked like a stepper that had stopped working.
  */
 data class DeficitCard(
     /** "300", bare: the big number. */
     val amount: Display,
-    val canLower: Boolean,
-    val canRaise: Boolean,
+    /** Open, or Closed at 0. */
+    val down: StepState,
+    /** Open, or Locked at the cap. */
+    val up: StepState,
     /** "2,172 kcal", the 7-day average. */
     val burn: Display?,
     /** "1,870 kcal", inside "About %s". */
@@ -193,8 +202,8 @@ object TargetsStateBuilder {
         burnKcal: Int?,
     ) = DeficitCard(
         amount = policy.resolve(Metric.Calories, deficit.kcal.toDouble(), Surface.Settings, FormatContext(bare = true)),
-        canLower = targets.stepDeficit(up = false) != null,
-        canRaise = targets.stepDeficit(up = true) != null,
+        down = if (targets.stepDeficit(up = false) != null) StepState.Open else StepState.Closed,
+        up = if (targets.stepDeficit(up = true) != null) StepState.Open else StepState.Locked,
         // What the user burns is energy out, so it follows that metric's level.
         burn = burnKcal?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Settings) },
         goal = burnKcal?.let {

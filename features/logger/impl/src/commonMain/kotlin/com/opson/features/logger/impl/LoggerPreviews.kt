@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import com.opson.libraries.diary.SearchDatabase
 import com.opson.libraries.diary.SearchSort
@@ -33,9 +34,14 @@ private fun Logger(state: LoggerState, dark: Boolean = false) = PreviewContent(d
 }
 
 @Composable
-private fun Amount(state: AmountState, dark: Boolean = false, unitMenu: Boolean = false) = PreviewContent(darkTheme = dark) {
-    SheetFrame(heightFraction = AMOUNT_HEIGHT_FRACTION) { AmountSheetContent(state, onAction = {}, unitMenuShown = unitMenu) }
-}
+private fun Amount(state: AmountState, dark: Boolean = false, unitMenu: Boolean = false, atBottom: Boolean = false) =
+    PreviewContent(darkTheme = dark) {
+        // A scroll state past the end settles on the last card.
+        val scroll = rememberScrollState(initial = if (atBottom) Int.MAX_VALUE else 0)
+        SheetFrame(heightFraction = AMOUNT_HEIGHT_FRACTION) {
+            AmountSheetContent(state, onAction = {}, unitMenuShown = unitMenu, scrollState = scroll)
+        }
+    }
 
 // Design sync 2 draws the logger with release.barcode and release.photo on (the barcode button in
 // the search bar, Photo leading the chips), so the previews paired with it do too.
@@ -159,6 +165,11 @@ private fun LoggerAmountDarkPreview() = Amount(LoggerFixtures.amountState(full),
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerAmountBlindPreview() = Amount(LoggerFixtures.amountState(blind))
+
+/** All nutrients open, scrolled to the end: the plate's vitamins and minerals as a percent of a day. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerAmountNutrientsPreview() = Amount(LoggerFixtures.amountState(full, nutrientsOpen = true), atBottom = true)
 
 /** 3.3b: the unit menu, each unit with its weight, then "Custom size…". */
 @Preview(widthDp = 390, heightDp = 844)

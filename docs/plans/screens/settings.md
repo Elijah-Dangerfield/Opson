@@ -310,6 +310,10 @@ Domain (`:libraries:nutrition`), all additive so existing callers compile:
   user's aim already implies (`burn - energyKcal`, floored to 50, at least
   0), so while the maximum is unset the deficit can never grow past where it
   began.
+  At the cap "+" becomes a lock with a note under the stepper, as the range's
+  floor does, and "−" goes quiet at 0. A deficit picked with no burn known
+  starts at 0, so it is locked at 0 until a burn source or a dietitian's
+  maximum exists; a greyed "+" there read as a broken stepper.
 - By day: at most four groups, each weekday in exactly one. Tapping a day in
   a group moves it there; a day is never removed, only moved. Removing a group
   hands its days to the first group. Each group has its own range, stepped

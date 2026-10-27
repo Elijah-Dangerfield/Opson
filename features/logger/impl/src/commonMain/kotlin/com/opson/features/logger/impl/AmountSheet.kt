@@ -25,13 +25,14 @@ import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.GoalStyle
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
-import com.opson.libraries.nutrition.fromWireKey
 import com.opson.libraries.nutrition.macroEnergyShares
 import com.opson.libraries.nutrition.share
+import com.opson.libraries.nutrition.toMicronutrients
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
@@ -91,7 +92,10 @@ data class AmountState(
     val portion: PortionCard? = null,
     /** "Your day with this": null when every row hides. */
     val day: DayWithThis? = null,
-    /** All nutrients: null unless vitamins and minerals are visible in Modes and numbers. */
+    /**
+     * All nutrients: null unless vitamins and minerals are visible in Modes and numbers and the
+     * food carries at least one of them.
+     */
     val nutrients: AllNutrients? = null,
     val source: SourceLine? = null,
     /** The Custom size dialog, while it is open. */
@@ -122,8 +126,12 @@ data class DayWithThis(val rows: List<DayRow>)
 /** [before] and [after] carry the bar's fractions; a softened row has only [after]'s word. */
 data class DayRow(val metric: Metric, val before: Display, val added: Display, val after: Display)
 
-data class AllNutrients(val open: Boolean, val rows: List<NutrientRow>)
+/** Vitamins, then minerals, each in the table's order; a group the food has nothing in is left out. */
+data class AllNutrients(val open: Boolean, val groups: List<NutrientGroup>)
 
+data class NutrientGroup(val group: MicroGroup, val rows: List<NutrientRow>)
+
+/** [display] is the portion's share of the daily reference, `12%`. */
 data class NutrientRow(val micro: Micronutrient, val display: Display)
 
 /** "Per 350 g plate · Source: USDA FoodData Central". [per] is null for grams. */
@@ -323,12 +331,17 @@ object AmountStateBuilder {
     private fun nutrients(draft: LogDraft, policy: VisibilityPolicy, open: Boolean): AllNutrients? {
         // Hidden unless vitamins and minerals are on in Modes and numbers.
         if (policy.level(Metric.Micros) == Visibility.Hide) return null
-        val micros = draft.micros.orEmpty().mapNotNull { (key, amount) -> Micronutrient.fromWireKey(key)?.let { it to amount } }.toMap()
-        val rows = Micronutrient.entries.mapNotNull { micro ->
-            val amount = micros[micro] ?: return@mapNotNull null
-            NutrientRow(micro, policy.resolve(Metric.Micros, micro.percentOf(amount), Surface.Logger, FormatContext(of = PERCENT)))
-        }.filter { it.display !is Display.Hidden }
-        return AllNutrients(open = open, rows = rows)
+        // Only what the food carries: a micronutrient it has no value for is unknown, not 0%.
+        val micros = draft.micros.orEmpty().toMicronutrients()
+        val groups = MicroGroup.entries.mapNotNull { group ->
+            val rows = Micronutrient.inGroup(group).mapNotNull { micro ->
+                val amount = micros[micro] ?: return@mapNotNull null
+                NutrientRow(micro, policy.resolve(Metric.Micros, micro.percentOf(amount), Surface.Logger, FormatContext(of = PERCENT)))
+            }.filter { it.display !is Display.Hidden }
+            rows.takeIf { it.isNotEmpty() }?.let { NutrientGroup(group, it) }
+        }
+        // A card that opens onto nothing reads as broken; a food with no micro data has no card.
+        return groups.takeIf { it.isNotEmpty() }?.let { AllNutrients(open = open, groups = it) }
     }
 
     private fun sourceLine(food: AmountFood, unit: AmountUnit): SourceLine {

@@ -37,7 +37,7 @@ class NutrientsStateBuilderTest {
     )
 
     @Test
-    fun fullDay_energyAgainstItsRange_macrosSpellTheGoal_microsOffLinksToModes() {
+    fun fullDay_energyAgainstItsRange_macrosSpellTheGoal_microsShow() {
         val state = build()
         val energy = assertNotNull(state.energy)
         assertEquals("1,130 kcal", assertIs<Display.Shown>(energy.eaten).text)
@@ -47,6 +47,14 @@ class NutrientsStateBuilderTest {
         val rows = assertNotNull(state.macros)
         assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), rows.map { it.metric })
         assertEquals("53 of 120 g", assertIs<Display.Shown>(rows[0].display).text)
+        assertEquals(false, state.microsOff)
+        assertNotNull(state.micros)
+        assertEquals(false, state.nothing)
+    }
+
+    @Test
+    fun fullWithMicrosHidden_offCardLinksToModes() {
+        val state = build(overrides = mapOf(Metric.Micros to Visibility.Hide))
         assertEquals(true, state.microsOff)
         assertNull(state.micros)
         assertEquals(false, state.nothing)
@@ -74,7 +82,7 @@ class NutrientsStateBuilderTest {
         assertEquals(false, state.microsOff)
         val groups = assertNotNull(state.micros)
         assertEquals(listOf(MicroGroup.Vitamins, MicroGroup.Minerals), groups.map { it.group })
-        assertEquals(listOf(7, 6), groups.map { it.rows.size })
+        assertEquals(listOf(12, 10), groups.map { it.rows.size })
         val sodium = groups[1].rows.single { it.micro == Micronutrient.Sodium }
         assertEquals("2,300 mg limit", sodium.reference)
         assertTrue(sodium.isLimit)
@@ -144,8 +152,9 @@ class NutrientsStateBuilderTest {
         val inputs = TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage, days = emptyList())
         val state = build(NutrientsRange.WeekAverage, inputs = inputs)
         assertNull(state.energy)
+        assertNull(state.micros)
         assertEquals(false, state.nothing)
-        assertEquals(true, state.microsOff)
+        assertEquals(false, state.microsOff)
     }
 
     @Test

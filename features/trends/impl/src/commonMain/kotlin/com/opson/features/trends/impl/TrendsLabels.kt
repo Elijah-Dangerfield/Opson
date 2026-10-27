@@ -11,13 +11,22 @@ import opson.libraries.resources.generated.resources.trends_energy
 import opson.libraries.resources.generated.resources.trends_fat
 import opson.libraries.resources.generated.resources.trends_fiber
 import opson.libraries.resources.generated.resources.trends_micro_calcium
+import opson.libraries.resources.generated.resources.trends_micro_choline
+import opson.libraries.resources.generated.resources.trends_micro_copper
 import opson.libraries.resources.generated.resources.trends_micro_folate
 import opson.libraries.resources.generated.resources.trends_micro_iron
 import opson.libraries.resources.generated.resources.trends_micro_magnesium
+import opson.libraries.resources.generated.resources.trends_micro_manganese
+import opson.libraries.resources.generated.resources.trends_micro_niacin
+import opson.libraries.resources.generated.resources.trends_micro_phosphorus
 import opson.libraries.resources.generated.resources.trends_micro_potassium
+import opson.libraries.resources.generated.resources.trends_micro_riboflavin
+import opson.libraries.resources.generated.resources.trends_micro_selenium
 import opson.libraries.resources.generated.resources.trends_micro_sodium
+import opson.libraries.resources.generated.resources.trends_micro_thiamin
 import opson.libraries.resources.generated.resources.trends_micro_vitamin_a
 import opson.libraries.resources.generated.resources.trends_micro_vitamin_b12
+import opson.libraries.resources.generated.resources.trends_micro_vitamin_b6
 import opson.libraries.resources.generated.resources.trends_micro_vitamin_c
 import opson.libraries.resources.generated.resources.trends_micro_vitamin_d
 import opson.libraries.resources.generated.resources.trends_micro_vitamin_e
@@ -59,6 +68,15 @@ internal val Micronutrient.label: StringResource
         Micronutrient.Potassium -> Res.string.trends_micro_potassium
         Micronutrient.Sodium -> Res.string.trends_micro_sodium
         Micronutrient.Zinc -> Res.string.trends_micro_zinc
+        Micronutrient.Thiamin -> Res.string.trends_micro_thiamin
+        Micronutrient.Riboflavin -> Res.string.trends_micro_riboflavin
+        Micronutrient.Niacin -> Res.string.trends_micro_niacin
+        Micronutrient.VitaminB6 -> Res.string.trends_micro_vitamin_b6
+        Micronutrient.Choline -> Res.string.trends_micro_choline
+        Micronutrient.Copper -> Res.string.trends_micro_copper
+        Micronutrient.Manganese -> Res.string.trends_micro_manganese
+        Micronutrient.Phosphorus -> Res.string.trends_micro_phosphorus
+        Micronutrient.Selenium -> Res.string.trends_micro_selenium
     }
 
 internal val MicroGroup.label: StringResource

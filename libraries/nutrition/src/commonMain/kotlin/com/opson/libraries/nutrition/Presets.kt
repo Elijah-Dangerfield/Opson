@@ -61,7 +61,13 @@ object Presets {
 
     private fun fill(level: Visibility): Map<Metric, Visibility> = Metric.entries.associateWith { level }
 
-    private val fullVis = fill(Visibility.Show) + (Metric.Micros to Visibility.Hide)
+    /**
+     * Every metric shown, micros included. The prototype's `FULL_VIS` hid micros as an opt-in;
+     * Full promises every number, and that opt-in left a Full user with vitamin and mineral data
+     * on nearly every food and no sign of it anywhere (2026-10-27, `docs/decisions.md`). Sprint is
+     * "same as full, plus a banner", so it shares this map.
+     */
+    private val fullVis = fill(Visibility.Show)
 
     // The prototype softens water in every preset that does not share Full's
     // map, so Full and Sprint show water and every gentler mode keeps the bar.

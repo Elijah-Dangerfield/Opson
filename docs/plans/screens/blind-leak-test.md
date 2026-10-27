@@ -106,6 +106,14 @@ Two companion tests in the same module:
    resolves it through `VisibilityPolicy` and stays in this surface. Proved by breaking it once:
    a meal body changed to "About 640 kcal left" failed `reminder-notification` in all eight
    presets under test (2026-10-26).
+10. **Vitamins and minerals hide with their own level.** Calories hidden is not the only case:
+   micros show in Full and Sprint and hide in every other preset, and a person can turn them off
+   in Full. `MicrosHiddenLeakTest` renders every surface in `MICROS_SURFACES` in each preset that
+   hides micros and in Full with micros off, and asserts no node tagged `metric:micros`; its
+   Full case is the control. `LeakTestControlTest` fails on a surface that draws micros in Full
+   without being listed. Proved by breaking it once: the amount sheet's rows built without the
+   policy failed `logger-amount-nutrients` in all eight presets and in Full with micros off
+   (2026-10-27).
 
 ## SURFACES, ported
 
@@ -174,6 +182,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `logger-uncategorized` | logger | design sync 2, 3.1b; the nav + with no usual meal, "Usual around" | yes |
 | new | | `logger-amount-units` | logger | design sync 2, 3.3b; the unit menu open over the amount sheet | yes |
 | new | | `logger-scan-amount` | logger | 0.2, barcode; the amount sheet after a scan | yes |
+| new | | `logger-amount-nutrients` | logger | the amount sheet with All nutrients open, vitamins and minerals as a percent of a day | yes |
 | new | | `logger-scan-miss` | logger | 0.2, barcode; a scan the catalog doesn't know | yes |
 | new | | `logger-photo-start` | logger | 0.2, `photo.md`; the note and the two ways to a photo | no |
 | new | | `widgets` | settings | 0.2, `widgets.md`; the Widgets page under More, which previews the person's own widget | yes |

@@ -47,7 +47,7 @@ Formatting rules, all inside the policy:
 ### Presets (`PRESETS` in Phone logic)
 | id | Today layout | Notes |
 |---|---|---|
-| full | full | Everything SHOW except micros HIDE (opt-in) |
+| full | full | Everything SHOW. The prototype hid micros as an opt-in; the app shows them (`docs/decisions.md`, 2026-10-27) |
 | delayed | full | Everything DELAY, weight SOFTEN, revealOn = day |
 | blind | meals | Everything HIDE. 2×2 meal tiles with checkmarks |
 | nutrient | full | Calories HIDE. Protein and fiber SOFTEN, weight SOFTEN |

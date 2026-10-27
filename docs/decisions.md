@@ -6,6 +6,31 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: Full numbers shows vitamins and minerals
+
+**Decision:** Full numbers (and Sprint, which is "same as full, plus a banner")
+shows micros. Every other preset keeps its level: Delayed, Blind, Nutrient,
+Rhythm, Explorer, Mindful, Fuel and Coast all still hide them.
+
+**Why:** the handoff ported the prototype's `FULL_VIS`, which made micros an
+opt-in through Modes and numbers. Full's own line is "Every number visible, all
+day", and the owner, on Full on a real phone, asked why no food had a
+micronutrient breakdown when about 98% of catalog rows carry one. The opt-in
+was a tidiness call with no safety reason behind it (nothing in the plans or
+the `TODO(clinician)` notes mentions micros), and the modes that exist for
+safety never showed micros in the first place.
+
+**Alternatives:** keep the opt-in and make the Nutrients page's "turn them on"
+card louder. Rejected: it still breaks Full's promise, and the amount sheet
+has no such card, so a Full user there sees nothing at all.
+
+**What changes for people:** a Full or Sprint user sees All nutrients on the
+amount sheet and vitamins and minerals on the Nutrients page. Anyone who
+turned micros on by hand keeps an override that now matches the preset; anyone
+who turned them off keeps them off.
+
+---
+
 ## 2026-09-21: One Grafana stack for every project, separated by service_name
 
 **Decision:** every app generated from this template sends to the same Grafana

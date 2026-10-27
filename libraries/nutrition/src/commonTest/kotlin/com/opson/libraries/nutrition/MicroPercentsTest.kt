@@ -3,17 +3,25 @@ package com.opson.libraries.nutrition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** The prototype's `MICROS` table, and how logged amounts become percents of each reference. */
+/**
+ * The prototype's `MICROS` table and the catalog's other vitamins and minerals, and how logged
+ * amounts become percents of each reference.
+ */
 class MicroPercentsTest {
 
     @Test
-    fun table_thirteenInPrototypeOrder() {
-        assertEquals(13, Micronutrient.entries.size)
-        assertEquals(7, Micronutrient.inGroup(MicroGroup.Vitamins).size)
+    fun table_twelveVitaminsAndTenMinerals() {
+        assertEquals(22, Micronutrient.entries.size)
+        assertEquals(12, Micronutrient.inGroup(MicroGroup.Vitamins).size)
         assertEquals(
-            listOf("Calcium", "Iron", "Magnesium", "Potassium", "Sodium", "Zinc"),
+            listOf("Calcium", "Copper", "Iron", "Magnesium", "Manganese", "Phosphorus", "Potassium", "Selenium", "Sodium", "Zinc"),
             Micronutrient.inGroup(MicroGroup.Minerals).map { it.name },
         )
+    }
+
+    @Test
+    fun onlySodiumIsALimit() {
+        assertEquals(listOf(Micronutrient.Sodium), Micronutrient.entries.filter { it.isLimit })
     }
 
     @Test
@@ -28,6 +36,20 @@ class MicroPercentsTest {
     }
 
     @Test
+    fun references_forTheCatalogsOtherMicros_areTheFdaDailyValues() {
+        val f = EnglishNutritionFormatter
+        assertEquals("1.2 mg", f.microReference(Micronutrient.Thiamin))
+        assertEquals("1.3 mg", f.microReference(Micronutrient.Riboflavin))
+        assertEquals("16 mg", f.microReference(Micronutrient.Niacin))
+        assertEquals("1.7 mg", f.microReference(Micronutrient.VitaminB6))
+        assertEquals("550 mg", f.microReference(Micronutrient.Choline))
+        assertEquals("0.9 mg", f.microReference(Micronutrient.Copper))
+        assertEquals("2.3 mg", f.microReference(Micronutrient.Manganese))
+        assertEquals("1,250 mg", f.microReference(Micronutrient.Phosphorus))
+        assertEquals("55 µg", f.microReference(Micronutrient.Selenium))
+    }
+
+    @Test
     fun percents_sumEntriesAndDivideByTheReference() {
         val percents = MicroPercents.of(
             listOf(
@@ -39,6 +61,6 @@ class MicroPercentsTest {
         assertEquals(46.0, percents.getValue(Micronutrient.Calcium), 1e-9)
         assertEquals(50.0, percents.getValue(Micronutrient.VitaminC), 1e-9)
         assertEquals(0.0, percents.getValue(Micronutrient.Zinc), 1e-9)
-        assertEquals(13, percents.size)
+        assertEquals(Micronutrient.entries.size, percents.size)
     }
 }

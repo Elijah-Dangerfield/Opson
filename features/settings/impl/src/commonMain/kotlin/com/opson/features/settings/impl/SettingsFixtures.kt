@@ -63,6 +63,12 @@ object SettingsFixtures {
         style = TargetStyle.Deficit(kcal = 300, startingKcal = 300),
     )
 
+    /**
+     * A deficit just picked with no burn known: it starts at 0, which is also its cap while
+     * `MAX_DEFICIT_KCAL` is unset, so neither step can move it.
+     */
+    val newDeficitTargets: Targets = rangeTargets.useDeficit(burnKcal = null)
+
     /** v3 `targets-by-day`: Monday to Wednesday at 2,300 to 2,700, the rest at 1,900 to 2,300. */
     val byDayTargets: Targets = rangeTargets.copy(
         style = TargetStyle.ByDay(

@@ -18,8 +18,9 @@ import kotlin.test.assertFalse
  * runs Full beside Blind for the same reason.
  *
  * The same render catches a surface that draws energy out without being in
- * [EnergyOutHiddenLeakTest.ENERGY_OUT_SURFACES], a hand list that otherwise only grows when
- * someone remembers it.
+ * [EnergyOutHiddenLeakTest.ENERGY_OUT_SURFACES], or vitamins and minerals without being in
+ * [MicrosHiddenLeakTest.MICROS_SURFACES]: hand lists that otherwise only grow when someone
+ * remembers them.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h4000dp")
@@ -40,6 +41,10 @@ class LeakTestControlTest(private val surface: LeakSurface) {
         assertFalse(
             scan.tagged.any { it.metric == Metric.EnergyOut } && surface.id !in EnergyOutHiddenLeakTest.ENERGY_OUT_SURFACES,
             "${surface.id} shows energy out, so EnergyOutHiddenLeakTest.ENERGY_OUT_SURFACES has to list it.",
+        )
+        assertFalse(
+            compose.microTexts().isNotEmpty() && surface.id !in MicrosHiddenLeakTest.MICROS_SURFACES,
+            "${surface.id} shows vitamins or minerals, so MicrosHiddenLeakTest.MICROS_SURFACES has to list it.",
         )
     }
 

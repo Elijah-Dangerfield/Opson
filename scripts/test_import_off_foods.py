@@ -12,6 +12,7 @@ from unittest import mock
 
 import import_off_foods
 from import_off_foods import (
+    MICROS,
     SCAN_BUCKETS,
     Stats,
     batch_sql,
@@ -34,6 +35,17 @@ from import_off_foods import (
     scan_bucket,
     scan_count,
 )
+
+
+# The vitamin and mineral keys the app's Micronutrient table reads, as
+# MicroWireKeysTest in :libraries:nutrition pins them. A key the importer
+# names differently is a nutrient no food ever shows.
+APP_MICRO_KEYS = {
+    "vitamin_a_rae_ug", "thiamin_mg", "riboflavin_mg", "niacin_mg", "vitamin_b6_mg", "folate_dfe_ug",
+    "vitamin_b12_ug", "vitamin_c_mg", "vitamin_d_ug", "vitamin_e_mg", "vitamin_k_ug", "choline_mg",
+    "calcium_mg", "copper_mg", "iron_mg", "magnesium_mg", "manganese_mg", "phosphorus_mg", "potassium_mg",
+    "selenium_ug", "sodium_mg", "zinc_mg",
+}
 
 
 def row(**values):
@@ -227,6 +239,10 @@ class FieldsTest(unittest.TestCase):
                      "sugars_100g": "56.3", "iron_100g": "-1", "calcium_100g": "150"})
         self.assertEqual({"sodium_mg": 400.0, "vitamin_c_mg": 30.0, "vitamin_d_ug": 2.5, "sugars_g": 56.3},
                          micros_for(get))
+
+    def test_keeps_every_vitamin_and_mineral_the_app_shows_but_folate(self):
+        # The export's vitamin-b9 is not in dietary folate equivalents, so it is left out on purpose.
+        self.assertEqual({"folate_dfe_ug"}, APP_MICRO_KEYS - set(MICROS))
 
     def test_scan_count(self):
         self.assertEqual(12, scan_count("12"))

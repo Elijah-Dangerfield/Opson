@@ -101,7 +101,8 @@ private fun Nutrients(policy: VisibilityPolicy, inputs: NutrientsInputs, modifie
     if (modifier == null) NutrientsScreen(state, onAction = {}) else NutrientsContent(state, onAction = {}, modifier = modifier)
 }
 
-private val microsOn = TrendsFixtures.policy(overrides = mapOf(Metric.Micros to Visibility.Show))
+/** Full with vitamins and minerals turned off by hand: the card that links to Modes and numbers. */
+private val microsOff = TrendsFixtures.policy(overrides = mapOf(Metric.Micros to Visibility.Hide))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -113,12 +114,16 @@ private fun NutrientsDayDarkPreview() = Phone(dark = true) { Nutrients(full, Tre
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun NutrientsWeekPreview() = Phone { Nutrients(microsOn, TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage)) }
+private fun NutrientsWeekPreview() = Phone { Nutrients(full, TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage)) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun NutrientsWeekBelowPreview() =
-    Phone { Nutrients(microsOn, TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage), below()) }
+    Phone { Nutrients(full, TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage), below()) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NutrientsMicrosOffPreview() = Phone { Nutrients(microsOff, TrendsFixtures.nutrientsInputs()) }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
