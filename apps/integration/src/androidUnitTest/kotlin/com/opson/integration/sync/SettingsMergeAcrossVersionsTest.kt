@@ -109,7 +109,8 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         assertEquals("false", stored["photos"], "the merge kept progressPhotos")
 
         newPhone.syncNow().getOrThrow()
-        val settings = newPhone.settings.settings.value
+        // The pull lands in the store, and the settings flow catches up on the app scope a moment later.
+        val settings = newPhone.settings.settings.awaitState { it.numbers.pauseBeforeMore }
         assertFalse(settings.checkIn)
         assertEquals(false, settings.numbers.progressPhotos)
         assertEquals(true, settings.numbers.pauseBeforeMore)
