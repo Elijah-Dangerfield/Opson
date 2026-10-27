@@ -68,6 +68,13 @@ way.
 - **Versions.** What a captured build shipped with: the in-code defaults per
   app version (see the manifest section below).
 - **Audit.** Every change, newest first, with before/after diffs.
+- **Users.** Support's lookup: find an account by its user id or part of
+  its email or display name (blank lists the 25 most recently seen), then see
+  the account (email, guest or claimed, joined, last seen, last change
+  synced), every build each install has run, the Settings it chose and how it
+  logs, in counts. It links to the Grafana User detail board and to Sentry
+  for the same id. Server side it's `/v1/admin/users`, reading the `support`
+  views, so it shows no food, amount, weight or note.
 - **Waitlist.** The website waitlist for the connected environment: how many
   addresses, the newest 50 (page back with *Older*), *Export CSV*
   (`email,source,created_at`, downloaded by the browser), and *Remove*, per
