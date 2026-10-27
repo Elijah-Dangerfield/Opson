@@ -865,6 +865,27 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         assertIs<LinkEmailIdentityOutcome.Timeout>(outcome)
     }
 
+    @Test
+    fun aStoredSessionAwaitingRefresh_isNeverSignedOutAsUnrecoverable() = runUnitTest {
+        // Offline launch after the token expired: supabase-kt reports
+        // RefreshFailure and keeps retrying with the stored session.
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.RefreshFailure(cause = null),
+            session = null,
+        )
+        val repo = build(gateway = gateway)
+        advanceUntilIdle()
+
+        val state = assertIs<AuthState.Unauthenticated>(repo.current())
+        assertEquals(AuthState.Unauthenticated.Reason.None, state.reason)
+
+        repo.markSessionUnrecoverable(wasAnonymous = true)
+        advanceUntilIdle()
+
+        assertEquals(0, gateway.signOutCalls, "the stored session must survive")
+        assertEquals(AuthState.Unauthenticated.Reason.None, (repo.current() as AuthState.Unauthenticated).reason)
+    }
+
     // ---------- scaffolding ----------
 
     private fun build(

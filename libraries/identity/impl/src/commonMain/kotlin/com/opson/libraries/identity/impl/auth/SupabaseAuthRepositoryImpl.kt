@@ -164,9 +164,12 @@ class SupabaseAuthRepositoryImpl(
      * user action.
      */
     private suspend fun resolveAndEmitLocked(): AuthState {
+        var refreshFailing = false
         repeat(MaxResolveAttempts) {
             gateway.awaitInitialization()
-            when (gateway.currentStatus()) {
+            val status = gateway.currentStatus()
+            refreshFailing = status is AuthGatewayStatus.RefreshFailure
+            when (status) {
                 AuthGatewayStatus.Authenticated -> {
                     val session = gateway.currentSession()
                     if (session == null) {
@@ -199,8 +202,23 @@ class SupabaseAuthRepositoryImpl(
                 is AuthGatewayStatus.RefreshFailure -> Unit
             }
         }
+        if (refreshFailing) return settleUnconfirmedLocked()
         logger.w { "Resolve exhausted $MaxResolveAttempts attempts without settling" }
         return settleUnauthenticatedLocked()
+    }
+
+    /**
+     * supabase-kt still holds a session but its token expired and the refresh
+     * can't get through (offline, auth server down). It keeps the session and
+     * retries on its own. Until then the app runs unauthenticated, with
+     * [SessionUnconfirmed] as the cause so identity self-heal neither mints a
+     * guest over the stored account nor declares it unrecoverable.
+     */
+    private suspend fun settleUnconfirmedLocked(): AuthState.Unauthenticated {
+        val last = lastEmittedOrNull() as? AuthState.Unauthenticated
+        if (last?.reason == AuthState.Unauthenticated.Reason.SessionExpired) return settleUnauthenticatedLocked()
+        logger.i { "Stored session can't be refreshed yet — unauthenticated until it can" }
+        return emitUnauthenticatedLocked(cause = SessionUnconfirmed())
     }
 
     /**
@@ -262,6 +280,7 @@ class SupabaseAuthRepositoryImpl(
         tokenInvalidator.invalidate()
         emitLocked(next)
         when {
+            cause is SessionUnconfirmed -> logger.i { "Emitted Unauthenticated (reason=$reason, session unconfirmed)" }
             cause != null -> logger.w(cause) { "Emitted Unauthenticated (reason=$reason)" }
             else -> logger.i { "Emitted Unauthenticated (reason=$reason)" }
         }
@@ -275,6 +294,12 @@ class SupabaseAuthRepositoryImpl(
      * to recovery instead of the healer minting over the stranded account.
      */
     override suspend fun markSessionUnrecoverable(wasAnonymous: Boolean) {
+        // A session supabase-kt is still trying to refresh is not lost, and
+        // tearing it down here would sign out an account that is only offline.
+        if (gateway.currentStatus() is AuthGatewayStatus.RefreshFailure) {
+            logger.i { "markSessionUnrecoverable ignored: the stored session is still being refreshed" }
+            return
+        }
         logger.w { "Session declared unrecoverable by identity self-heal (wasAnonymous=$wasAnonymous)" }
         onSessionRejected(wasAnonymous)
     }
@@ -1020,3 +1045,10 @@ class SupabaseAuthRepositoryImpl(
         val OAuthRedirectTimeout = 3.minutes
     }
 }
+
+/**
+ * The cause on an [AuthState.Unauthenticated] whose stored session exists but
+ * could not be refreshed yet. See `settleUnconfirmedLocked`.
+ */
+internal class SessionUnconfirmed :
+    Exception("stored session awaiting refresh"), com.opson.libraries.core.ExpectedControlFlow

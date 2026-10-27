@@ -120,6 +120,12 @@ class GuestSessionHealer(
         val unauth = afterRetry as AuthState.Unauthenticated
 
         when {
+            unauth.cause is SessionUnconfirmed -> {
+                // An account is stored on the device and only its refresh is
+                // failing; supabase-kt keeps retrying. Neither minting over it
+                // nor declaring it unrecoverable is right.
+                log(source, HealAction.SKIP_SESSION_UNCONFIRMED)
+            }
             unauth.reason == AuthState.Unauthenticated.Reason.SessionExpired -> {
                 // The session is declared dead (server rejection or client
                 // unrecoverable); the app routes to manual re-auth. Minting a
@@ -207,6 +213,7 @@ class GuestSessionHealer(
         SKIP_ALREADY_RUNNING,
         SKIP_HAS_SESSION,
         SKIP_SESSION_EXPIRED,
+        SKIP_SESSION_UNCONFIRMED,
         SKIP_SIGNED_OUT,
         SKIP_NOT_ONBOARDED,
         SKIP_OFFLINE,
