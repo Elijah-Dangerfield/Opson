@@ -105,6 +105,14 @@ class PatternsStateBuilderTest {
     }
 
     @Test
+    fun nothingLogged_isTheEmptyCard_notRowsOfZeros() {
+        val state = PatternsStateBuilder.build(TrendsFixtures.patternsInputs(days = emptyList()), TrendsFixtures.policy())
+        assertTrue(state.empty)
+        assertNull(state.often)
+        assertNull(state.timing)
+    }
+
+    @Test
     fun fuel_softCalories_getHowOftenToo() {
         assertNull(build(PresetId.MacrosOnly, overrides = mapOf(Metric.Calories to Visibility.Soften)).sizes)
         assertNull(build(PresetId.MacrosWithGrams).sizes, "no calories, no sizes")

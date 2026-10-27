@@ -10,6 +10,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -136,6 +137,21 @@ class WeightStateBuilderTest {
         )
         assertNull(state.trend)
         assertNull(state.latest)
-        assertEquals(emptyList(), state.chart?.trend)
+        assertNull(state.chart, "no empty chart")
+        assertTrue(state.empty)
+        assertFalse(build(PresetId.NoNumbers).empty, "hidden weight has its own card")
+    }
+
+    @Test
+    fun aRangeWithNoLine_saysWhy() {
+        val one = WeightStateBuilder.build(TrendsFixtures.weightInputs(weighIns = TrendsFixtures.weighIns().takeLast(1)), WeightUi(), TrendsFixtures.policy())
+        assertEquals(ChartGap.OneReading, one.chart?.gap)
+        val old = WeightStateBuilder.build(
+            TrendsFixtures.weightInputs(weighIns = TrendsFixtures.weighIns().take(30)),
+            WeightUi(range = WeightRange.W1),
+            TrendsFixtures.policy(),
+        )
+        assertEquals(ChartGap.NoneInRange, old.chart?.gap)
+        assertNull(build().chart?.gap)
     }
 }

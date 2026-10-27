@@ -27,6 +27,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -304,6 +305,13 @@ class TrendsStateBuilderTest {
         assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), assertNotNull(state.nutrients).macros.map { it.metric })
         assertIs<Display.Soft>(assertNotNull(state.weight).value)
         assertEquals(TrendsRange.Week, state.range, "nutrients and weight follow the range, so the control shows")
+    }
+
+    @Test
+    fun anEmptyWeek_saysWhatWillShowUp_insteadOfAnEmptyChart() {
+        val empty = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(days = emptyList()), TrendsFixtures.policy())
+        assertTrue(assertNotNull(empty.intake).empty)
+        assertFalse(assertNotNull(build().intake).empty)
     }
 
     @Test

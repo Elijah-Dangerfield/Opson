@@ -131,6 +131,11 @@ private fun NutrientsMicrosOffPreview() = Phone { Nutrients(microsOff, TrendsFix
 @Composable
 private fun NutrientsEmptyDayPreview() = Phone { Nutrients(full, TrendsFixtures.nutrientsInputs(days = emptyList())) }
 
+/** Nothing logged before today this week: the week's averages have nothing to average. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun NutrientsEmptyWeekPreview() = Phone { Nutrients(full, TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage, days = emptyList())) }
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun NutrientsFuelPreview() = Phone { Nutrients(TrendsFixtures.policy(PresetId.MacrosOnly), TrendsFixtures.nutrientsInputs()) }

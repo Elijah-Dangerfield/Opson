@@ -49,6 +49,8 @@ data class NutrientsState(
     val microsOff: Boolean = false,
     /** Nothing on this page can show in this mode. */
     val nothing: Boolean = false,
+    /** Nothing logged on the day, or in the week before today: one card says so instead of a page of zeros. */
+    val empty: Boolean = false,
 )
 
 /**
@@ -110,16 +112,20 @@ object NutrientsStateBuilder {
         val surface = if (inputs.range == NutrientsRange.Day) Surface.Nutrients else Surface.Week
         val values: NutrientDay?
         val base: FormatContext
+        val logged: Boolean
         when (inputs.range) {
             NutrientsRange.Day -> {
                 val day = inputs.days.firstOrNull { it.date == inputs.day } ?: Day.empty(inputs.day)
                 values = WeekAverages.ofDay(day)
                 base = day.formatContext(inputs.today)
+                logged = day.allItems.isNotEmpty()
             }
             NutrientsRange.WeekAverage -> {
                 val byDate = inputs.days.associateBy { it.date }
                 // Today is still in progress, so it stays out of the average, as on Trends.
-                values = WeekAverages.of(window.days.filter { it < inputs.today }.map { byDate[it] ?: Day.empty(it) })
+                val days = window.days.filter { it < inputs.today }.map { byDate[it] ?: Day.empty(it) }
+                values = WeekAverages.of(days)
+                logged = days.any { it.allItems.isNotEmpty() }
                 // The week's last day, so a weekly reveal's week opens at its weekly check and not before.
                 base = FormatContext(day = window.end)
             }
@@ -190,11 +196,12 @@ object NutrientsStateBuilder {
                 NutrientsRange.WeekAverage -> NutrientsSubtitle.WeekAverage(DateCopy.range(window.start, window.end))
             },
             range = inputs.range,
-            energy = energy,
-            macros = macros,
-            micros = micros,
-            microsOff = !microsShown && macrosAllowed,
+            energy = energy.takeIf { logged },
+            macros = macros.takeIf { logged },
+            micros = micros.takeIf { logged },
+            microsOff = !microsShown && macrosAllowed && logged,
             nothing = !microsShown && !macrosAllowed,
+            empty = !logged && (microsShown || macrosAllowed),
         )
     }
 

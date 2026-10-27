@@ -13,6 +13,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -162,8 +163,20 @@ class NutrientsStateBuilderTest {
     }
 
     @Test
-    fun emptyDay_isARealZero() {
+    fun emptyDay_isTheEmptyCard_notAPageOfZeros() {
         val state = build(inputs = TrendsFixtures.nutrientsInputs(days = emptyList()))
-        assertEquals("0 of 120 g", assertIs<Display.Shown>(assertNotNull(state.macros).single { it.metric == Metric.Protein }.display).text)
+        assertTrue(state.empty)
+        assertNull(state.energy)
+        assertNull(state.macros)
+        assertNull(state.micros)
+        assertFalse(state.microsOff)
+    }
+
+    @Test
+    fun emptyWeek_isTheEmptyCard_andNoNumbersStillSaysNothingShowsHere() {
+        assertTrue(build(NutrientsRange.WeekAverage, inputs = TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage, days = emptyList())).empty)
+        val blind = build(preset = PresetId.NoNumbers, inputs = TrendsFixtures.nutrientsInputs(days = emptyList()))
+        assertFalse(blind.empty)
+        assertTrue(blind.nothing)
     }
 }

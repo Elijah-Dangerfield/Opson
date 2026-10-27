@@ -59,6 +59,7 @@ import opson.libraries.resources.generated.resources.trends_check_body
 import opson.libraries.resources.generated.resources.trends_check_on
 import opson.libraries.resources.generated.resources.trends_check_tonight
 import opson.libraries.resources.generated.resources.trends_eaten
+import opson.libraries.resources.generated.resources.trends_eaten_empty
 import opson.libraries.resources.generated.resources.trends_expended
 import opson.libraries.resources.generated.resources.trends_expended_sub
 import opson.libraries.resources.generated.resources.trends_intake_caption_plain
@@ -203,6 +204,10 @@ private fun IntakeCardView(card: IntakeCard) {
                     Text(text = stringResource(Res.string.trends_avg), typography = AppTheme.type.body, color = AppTheme.colors.ink)
                 }
             }
+        }
+        if (card.empty) {
+            Text(text = stringResource(Res.string.trends_eaten_empty), typography = AppTheme.type.body, color = AppTheme.colors.inkSoft)
+            return@TrendsCard
         }
         IntakeBarChart(bars = card.bars, band = card.band, bandColor = AppTheme.colors.accentTint)
         Text(

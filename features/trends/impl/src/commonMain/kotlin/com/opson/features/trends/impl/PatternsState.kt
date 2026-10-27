@@ -49,6 +49,8 @@ data class PatternsState(
     val newFoods: List<String> = emptyList(),
     /** Blind: hunger sits under New foods, below the fold (design sync 2, 5.7). */
     val hungerLast: Boolean = false,
+    /** No meal logged in the four weeks: one card says what will show up, not four rows of zeros. */
+    val empty: Boolean = false,
 )
 
 /** One meal on the 6 am to 9 pm timeline: a dot per logged meal, the usual window behind them. */
@@ -108,6 +110,7 @@ object PatternsStateBuilder {
     fun build(inputs: PatternsInputs, policy: VisibilityPolicy): PatternsState {
         val from = inputs.today.minus(DAYS - 1, DateTimeUnit.DAY)
         val facts = MealPatterns.of(inputs.days, from, inputs.today, inputs.timeZone)
+        if (facts.frequency.values.sum() == 0) return PatternsState(loading = false, empty = true)
         val context = FormatContext(day = inputs.today)
         // On the week view a weekly reveal (Later, weekly) opens with the check on the last day of the
         // week holding today, by the user's week start, not on whichever day today is.

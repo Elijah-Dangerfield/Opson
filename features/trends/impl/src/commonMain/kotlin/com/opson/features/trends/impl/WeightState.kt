@@ -66,8 +66,10 @@ data class WeightState(
     val latest: Display? = null,
     val latestWhen: WeighInWhen? = null,
     val range: WeightRange = WeightRange.M1,
-    /** `null` while weight is hidden, a delayed weight before its reveal included. */
+    /** `null` while weight is hidden, a delayed weight before its reveal included, and before any weigh-in. */
     val chart: WeightChart? = null,
+    /** No weigh-in yet, and weight not hidden: the empty card stands where the chart would. */
+    val empty: Boolean = false,
     val hiddenCard: Boolean = false,
     val input: String = "",
     /** Dots instead of digits unless the weight is shown. */
@@ -93,7 +95,12 @@ data class WeightChart(
     val from: String?,
     val to: String?,
     val ranges: Boolean,
+    /** Why the line is missing in this range, when it is; `null` when there is a line. */
+    val gap: ChartGap? = null,
 )
+
+/** Why a range has no line: nothing in it, or a single weigh-in, which is not a trend yet. */
+enum class ChartGap { NoneInRange, OneReading }
 
 /**
  * Builds [WeightState] on [Surface.Weight]. No weight change readout anywhere
@@ -120,7 +127,7 @@ object WeightStateBuilder {
                 null
             },
             range = ui.range,
-            chart = if (level == Visibility.Hide) {
+            chart = if (level == Visibility.Hide || inputs.weighIns.isEmpty()) {
                 null
             } else {
                 WeightChart(
@@ -129,8 +136,14 @@ object WeightStateBuilder {
                     from = if (shown) curve.from?.let(DateCopy::monthDay) else null,
                     to = if (shown) curve.to?.let(DateCopy::monthDay) else null,
                     ranges = shown,
+                    gap = when {
+                        curve.readings.isEmpty() -> ChartGap.NoneInRange
+                        curve.trend.isEmpty() -> ChartGap.OneReading
+                        else -> null
+                    },
                 )
             },
+            empty = level != Visibility.Hide && inputs.weighIns.isEmpty(),
             hiddenCard = level == Visibility.Hide,
             input = ui.input,
             inputMasked = !shown,

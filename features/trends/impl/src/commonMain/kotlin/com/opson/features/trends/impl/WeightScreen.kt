@@ -13,9 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -29,6 +32,7 @@ import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
+import com.opson.libraries.ui.components.EmptyCard
 import com.opson.libraries.ui.components.ListRow
 import com.opson.libraries.ui.components.ListRowChevron
 import com.opson.libraries.ui.components.PageHeader
@@ -60,7 +64,11 @@ import opson.libraries.resources.generated.resources.trends_weight_chip_1w
 import opson.libraries.resources.generated.resources.trends_weight_chip_3m
 import opson.libraries.resources.generated.resources.trends_weight_hidden_body
 import opson.libraries.resources.generated.resources.trends_weight_hidden_title
+import opson.libraries.resources.generated.resources.trends_weight_empty
+import opson.libraries.resources.generated.resources.trends_weight_empty_action
 import opson.libraries.resources.generated.resources.trends_weight_log
+import opson.libraries.resources.generated.resources.trends_weight_none_in_range
+import opson.libraries.resources.generated.resources.trends_weight_one_reading
 import opson.libraries.resources.generated.resources.trends_weight_now
 import opson.libraries.resources.generated.resources.trends_weight_range_1m
 import opson.libraries.resources.generated.resources.trends_weight_range_1w
@@ -75,6 +83,7 @@ import opson.libraries.resources.generated.resources.trends_weight_trend_label
 import opson.libraries.resources.generated.resources.trends_weight_trend_only_note
 import opson.libraries.resources.generated.resources.trends_weight_unit_kg
 import opson.libraries.resources.generated.resources.trends_weight_unit_lb
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -114,6 +123,7 @@ internal fun WeightContent(
             DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
             return@Column
         }
+        val weightField = remember { FocusRequester() }
         when (val trend = state.trend) {
             is Display.Shown -> {
                 SummaryCard(trend, state)
@@ -122,8 +132,17 @@ internal fun WeightContent(
             is Display.Soft -> SoftCard(trend, state.chart, state.range)
             Display.Hidden, null -> state.chart?.let { ChartCard(it, state.range, onAction) }
         }
+        if (state.empty) {
+            EmptyCard(
+                message = stringResource(Res.string.trends_weight_empty),
+                icon = AppIcons.MonitorWeight,
+                actionLabel = stringResource(Res.string.trends_weight_empty_action),
+                // The field is right below; focusing it is the whole action, so it stays in the view.
+                onAction = { weightField.requestFocus() },
+            )
+        }
         if (state.hiddenCard) HiddenCard()
-        LogCard(state, onAction)
+        LogCard(state, onAction, Modifier.focusRequester(weightField))
         state.saved?.let { SavedBanner(it) }
         if (state.saveFailed) {
             Text(
@@ -228,8 +247,15 @@ private fun ChartCard(chart: WeightChart, range: WeightRange, onAction: (WeightA
                 )
             }
         }
-        TrendLine(points = chart.trend, dots = chart.dots)
-        if (chart.from != null && chart.to != null) {
+        when (chart.gap) {
+            ChartGap.NoneInRange -> GapNote(Res.string.trends_weight_none_in_range)
+            ChartGap.OneReading -> {
+                TrendLine(points = chart.trend, dots = chart.dots)
+                GapNote(Res.string.trends_weight_one_reading)
+            }
+            null -> TrendLine(points = chart.trend, dots = chart.dots)
+        }
+        if (chart.gap != ChartGap.NoneInRange && chart.from != null && chart.to != null) {
             Row(Modifier.fillMaxWidth()) {
                 Text(text = chart.from, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, modifier = Modifier.weight(1f))
                 Text(text = chart.to, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
@@ -252,7 +278,18 @@ private fun SoftCard(word: Display, chart: WeightChart?, range: WeightRange) {
                 modifier = Modifier.fillMaxWidth().height(Dimension.D1900).padding(vertical = Dimension.D700),
             )
         }
+        when (chart?.gap) {
+            ChartGap.NoneInRange -> GapNote(Res.string.trends_weight_none_in_range)
+            ChartGap.OneReading -> GapNote(Res.string.trends_weight_one_reading)
+            null -> Unit
+        }
     }
+}
+
+/** A range with no line yet says why, rather than drawing an empty chart. */
+@Composable
+private fun GapNote(text: StringResource) {
+    Text(text = stringResource(text), typography = AppTheme.type.body, color = AppTheme.colors.inkSoft)
 }
 
 @Composable
@@ -267,7 +304,7 @@ private fun HiddenCard() {
 }
 
 @Composable
-private fun LogCard(state: WeightState, onAction: (WeightAction) -> Unit) {
+private fun LogCard(state: WeightState, onAction: (WeightAction) -> Unit, fieldModifier: Modifier = Modifier) {
     WeightCard {
         Label(stringResource(Res.string.trends_weight_log))
         Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row), verticalAlignment = Alignment.CenterVertically) {
@@ -277,7 +314,7 @@ private fun LogCard(state: WeightState, onAction: (WeightAction) -> Unit) {
                 masked = state.inputMasked,
                 unit = stringResource(state.unit.label),
                 keyboardActions = KeyboardActions(onDone = { onAction(WeightAction.SaveTapped) }),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).then(fieldModifier),
             )
             ButtonPrimary(onClick = { onAction(WeightAction.SaveTapped) }) {
                 Text(text = stringResource(Res.string.trends_weight_save))
@@ -351,6 +388,22 @@ private fun WeightDarkPreview() = Weight(TrendsFixtures.policy(), dark = true)
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun WeightEmptyPreview() = Weight(TrendsFixtures.policy(), inputs = TrendsFixtures.weightInputs(weighIns = emptyList()))
+
+/** No weigh-in yet, weight as its trend only: the same empty card, never an empty line. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightEmptyTrendPreview() = Weight(TrendsFixtures.policy(PresetId.MacrosOnly), inputs = TrendsFixtures.weightInputs(weighIns = emptyList()))
+
+/** The first weigh-in: its dot, and a line saying the trend needs one more. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightOneReadingPreview() = Weight(TrendsFixtures.policy(), inputs = TrendsFixtures.weightInputs(weighIns = TrendsFixtures.weighIns().takeLast(1)))
+
+/** Weigh-ins, but none in the last week: the range says so instead of drawing nothing. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightNoneInRangePreview() =
+    Weight(TrendsFixtures.policy(), inputs = TrendsFixtures.weightInputs(weighIns = TrendsFixtures.weighIns().take(30)), ui = WeightUi(range = WeightRange.W1))
 
 /** Flag off: as 0.1 shipped, no photos row. */
 @Preview(widthDp = 390, heightDp = 844)
