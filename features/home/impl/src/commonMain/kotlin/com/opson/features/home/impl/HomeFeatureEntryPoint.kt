@@ -11,8 +11,8 @@ import com.opson.features.home.impl.bugreport.BugReportViewModel
 import com.opson.features.home.impl.feedback.FeedbackEvent
 import com.opson.features.home.impl.feedback.FeedbackScreen
 import com.opson.features.home.impl.feedback.FeedbackViewModel
-import com.opson.features.profile.BugReportRoute
 import com.opson.libraries.flowroutines.ObserveEvents
+import com.opson.libraries.navigation.BugReportRoute
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.screen
