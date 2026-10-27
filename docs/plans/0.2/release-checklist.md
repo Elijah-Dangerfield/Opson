@@ -261,6 +261,10 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [x] Grow prod's disk: 2 GB to 12 GB on 2026-10-26 (it was 83% used before
       any Open Food Facts data). Supabase allows one resize per 6 hours and
       never shrinks.
+- [x] **Loaded 2026-10-27:** prod's `off_foods` holds 3,290,890 products (2.3 GB
+      with indexes; disk peaked at 34%). The session dropped after the load and
+      `--swap-only` finished it, as designed. Search stays off on prod
+      (`FOOD_SEARCH_OFF_ENABLED` unset) until a build with the credit ships, step 3.
 - [ ] Open Food Facts on prod, after 0.1 clears review and prod is deployed
       (V12 creates `off_foods`, V15 adds its search indexes):
       1. Check prod's disk is under 40% used (Supabase API
