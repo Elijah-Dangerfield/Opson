@@ -24,6 +24,8 @@
     <string name="today_summary_goal">Your goal</string>
     <string name="today_summary_nothing_yet">Nothing yet</string>
     <string name="today_summary_nutrients">Nutrients</string>
+    <!-- The summary card's nutrients page: opens the full Nutrients screen -->
+    <string name="today_nutrients_see_all">See all</string>
     <string name="today_macro_protein">Protein</string>
     <string name="today_macro_carbs">Carbs</string>
     <string name="today_macro_fat">Fat</string>

@@ -133,7 +133,19 @@ class TodayEnergyCardTest {
         val card = assertNotNull(card(Settings(todayBurnedBreakdown = false, todayMealsCount = true, todayNutrientsLink = false)))
         assertEquals(false, card.burned?.breakdown)
         assertEquals(MealCount(3, 4), card.meals)
-        assertEquals(false, card.nutrientsLink)
+    }
+
+    @Test
+    fun theNutrientsSwitch_turnsTheNutrientsPageOff() {
+        fun energy(settings: Settings) = TodayFixtures.todayState(
+            policy(PresetId.Full),
+            settings = settings,
+            summaryOn = true,
+            goalsAndEnergyOn = true,
+            burned = TodayFixtures.burned,
+        ).summary as TodaySummary.Energy
+        assertNotNull(energy(Settings()).nutrientsPage)
+        assertNull(energy(Settings(todayNutrientsLink = false)).nutrientsPage)
     }
 
     @Test

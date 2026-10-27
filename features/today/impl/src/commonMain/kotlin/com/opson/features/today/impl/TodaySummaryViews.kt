@@ -12,6 +12,8 @@ import com.opson.libraries.diary.ui.CompactSummaryBar
 import com.opson.libraries.diary.ui.CompactText
 import com.opson.libraries.diary.ui.EnergyPage
 import com.opson.libraries.diary.ui.ExpendedSoFarLine
+import com.opson.libraries.diary.ui.KeyNutrientCell
+import com.opson.libraries.diary.ui.KeyNutrientsPage
 import com.opson.libraries.diary.ui.MacrosPage
 import com.opson.libraries.diary.ui.ShareCell
 import com.opson.libraries.diary.ui.StatCell
@@ -58,6 +60,7 @@ import opson.libraries.resources.generated.resources.today_expand_cd
 import opson.libraries.resources.generated.resources.today_focus_title
 import opson.libraries.resources.generated.resources.today_macros_of
 import opson.libraries.resources.generated.resources.today_macros_title
+import opson.libraries.resources.generated.resources.today_nutrients_see_all
 import opson.libraries.resources.generated.resources.today_sticky_cd
 import opson.libraries.resources.generated.resources.today_summary_eaten
 import opson.libraries.resources.generated.resources.today_summary_kcal
@@ -65,6 +68,8 @@ import opson.libraries.resources.generated.resources.today_summary_nothing_yet
 import opson.libraries.resources.generated.resources.today_summary_nutrients
 import opson.libraries.resources.generated.resources.today_summary_goal
 import opson.libraries.resources.generated.resources.today_summary_range
+import opson.libraries.resources.generated.resources.trends_micro_of
+import opson.libraries.resources.generated.resources.trends_micro_of_limit
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -94,14 +99,13 @@ internal fun Summary(summary: TodaySummary, state: TodayState, onAction: (TodayA
 }
 
 /**
- * The calories-shown card (2.1, 2.1b): the energy page and, when on, the macros page, swiping in
- * one card of one height, with Nutrients and the collapse chevron under both and the page dots
- * centred under the card.
+ * The calories-shown card (2.1, 2.1b): the energy page, then the macros page and the nutrients page
+ * when there are, swiping in one card of one height, with the collapse chevron under every page
+ * and the page dots centred under the card.
  */
 @Composable
 private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAction: (TodayAction) -> Unit) {
-    val macrosPage = summary.macrosPage
-    val pageCount = if (macrosPage != null) 2 else 1
+    val pageCount = summary.pages.size
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         EnergyCard(summary, state, onAction)
         if (pageCount > 1) {
@@ -118,24 +122,25 @@ private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAct
 @Composable
 private fun EnergyCard(summary: TodaySummary.Energy, state: TodayState, onAction: (TodayAction) -> Unit) {
     val tools = state.summaryTools
-    val macrosPage = summary.macrosPage
+    val pages = summary.pages
     SummaryCard(
         onLongClick = if (tools) ({ onAction(TodayAction.SummaryLongPressed) }) else null,
         longClickLabel = stringResource(Res.string.today_customise_cd),
     ) {
-        if (macrosPage != null) {
-            SwipePages(page = state.summaryPage, pageCount = 2, onPageChange = { onAction(TodayAction.SummaryPageShown(it)) }) { page ->
-                if (page == 0) FirstPage(summary, onAction) else MacrosPageContent(macrosPage)
+        if (pages.size > 1) {
+            SwipePages(page = state.summaryPage, pageCount = pages.size, onPageChange = { onAction(TodayAction.SummaryPageShown(it)) }) { page ->
+                when (pages[page]) {
+                    SummaryPage.Energy -> FirstPage(summary, onAction)
+                    SummaryPage.Macros -> summary.macrosPage?.let { MacrosPageContent(it) }
+                    SummaryPage.Nutrients -> summary.nutrientsPage?.let { NutrientsPageContent(it, onAction) }
+                }
             }
         } else {
             FirstPage(summary, onAction)
         }
         SummaryFooter(
-            nutrientsLabel = stringResource(Res.string.today_summary_nutrients),
-            onNutrients = { onAction(TodayAction.NutrientsTapped) },
             collapseIcon = if (tools && !summary.empty) AppIcons.ExpandLess.described(stringResource(Res.string.today_collapse_cd)) else null,
             onCollapse = { onAction(TodayAction.CollapseTapped) },
-            showNutrients = summary.card?.nutrientsLink ?: true,
             leading = {
                 val card = summary.card
                 when {
@@ -193,6 +198,22 @@ private fun MacrosPageContent(page: MacrosPage) {
         },
         macros = page.rows.map { it.toSummaryMacro() },
         shares = page.shares.map { ShareCell(it.metric, stringResource(it.label), it.share, it.weight, it.metric.color()) },
+    )
+}
+
+@Composable
+private fun NutrientsPageContent(page: NutrientsPage, onAction: (TodayAction) -> Unit) {
+    KeyNutrientsPage(
+        title = stringResource(Res.string.today_summary_nutrients),
+        seeAllLabel = stringResource(Res.string.today_nutrients_see_all),
+        onSeeAll = { onAction(TodayAction.NutrientsTapped) },
+        rows = page.rows.map { row ->
+            KeyNutrientCell(
+                label = stringResource(row.label),
+                reference = stringResource(if (row.isLimit) Res.string.trends_micro_of_limit else Res.string.trends_micro_of, row.reference),
+                display = row.display,
+            )
+        },
     )
 }
 

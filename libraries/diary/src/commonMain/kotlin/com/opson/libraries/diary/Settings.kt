@@ -174,10 +174,12 @@ data class Settings(
     val todayBurnedBreakdown: Boolean = true,
     /** "3 of 4 meals" on the card. */
     val todayMealsCount: Boolean = false,
+    /** The card's last page, a few vitamins and minerals and See all. Named for the link it replaced, so a stored choice carries over. */
     val todayNutrientsLink: Boolean = true,
     /** Rows in Today's list that can be turned off on Today alone. */
     val todayWater: Boolean = true,
     val todayWeight: Boolean = true,
+    /** Close the day's button in Today's header, once a card at the end of the list. The ⋮ menu offers it either way. */
     val todayCloseDay: Boolean = true,
 ) {
     /** What the resting energy calculation is told: these details and [weightKg], on [today]. */

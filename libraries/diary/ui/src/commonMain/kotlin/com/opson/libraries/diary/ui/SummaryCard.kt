@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -287,6 +288,47 @@ fun MacrosPage(
     }
 }
 
+/** One row of [KeyNutrientsPage]: "Sodium", "of a 2,300 mg limit", its percent through the micros level. */
+data class KeyNutrientCell(val label: String, val reference: String, val display: Display)
+
+/**
+ * The last page: "Nutrients" with [seeAllLabel] on the right, which opens the Nutrients screen, then
+ * a few vitamins and minerals, each its name over what the percent is of, a bar and the percent.
+ */
+@Composable
+fun KeyNutrientsPage(
+    title: String,
+    seeAllLabel: String,
+    onSeeAll: () -> Unit,
+    rows: List<KeyNutrientCell>,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            SummaryLabel(title, modifier = Modifier.weight(1f))
+            SummaryLink(text = seeAllLabel, onClick = onSeeAll)
+        }
+        rows.forEach { row ->
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                Column(Modifier.weight(1f)) {
+                    Text(text = row.label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 1)
+                    Text(text = row.reference, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, maxLines = 1)
+                }
+                NutrientBar(
+                    metric = Metric.Micros,
+                    display = row.display,
+                    color = AppTheme.colors.nutrients.fat.content.color,
+                    trackColor = AppTheme.colors.track.color,
+                    modifier = Modifier.width(KeyNutrientBarWidth).height(6.dp),
+                )
+                NutrientText(Metric.Micros, row.display, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink, maxLines = 1)
+            }
+        }
+    }
+}
+
+private val KeyNutrientBarWidth = 72.dp
+
 /** The macros laid end to end, a full bar split by their weights. Tagged with the first macro. */
 @Composable
 private fun SplitBar(segments: List<RangeBarSegment>, tag: Metric) {
@@ -302,23 +344,22 @@ private fun SplitBar(segments: List<RangeBarSegment>, tag: Metric) {
 }
 
 /**
- * Under both pages: Nutrients and the collapse chevron ([collapseIcon]; null leaves it out). The
- * page dots sit centred under the card, not here. With the flag off it is the Nutrients link alone.
- * [showNutrients] false leaves the link out (More › Today screen's "Nutrients link").
+ * Under every page: [leading], a Nutrients link when there is a [nutrientsLabel], and the collapse
+ * chevron ([collapseIcon]; null leaves it out). The page dots sit centred under the card, not here.
+ * The calories card has no link: its last page opens the Nutrients screen.
  */
 @Composable
 fun SummaryFooter(
-    nutrientsLabel: String,
-    onNutrients: () -> Unit,
     modifier: Modifier = Modifier,
+    nutrientsLabel: String? = null,
+    onNutrients: () -> Unit = {},
     collapseIcon: IconResource? = null,
     onCollapse: () -> Unit = {},
-    showNutrients: Boolean = true,
     leading: @Composable RowScope.() -> Unit = {},
 ) {
     Row(modifier = modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { leading() }
-        if (showNutrients) SummaryLink(text = nutrientsLabel, onClick = onNutrients)
+        if (nutrientsLabel != null) SummaryLink(text = nutrientsLabel, onClick = onNutrients)
         if (collapseIcon != null) {
             // Quiet, not an action colour: the chevron changes the view, it does not do anything.
             RoundIconButton(
@@ -473,7 +514,7 @@ private fun SummaryCardPreview() {
                         )
                     }
                 }
-                SummaryFooter(nutrientsLabel = "Nutrients", onNutrients = {}, collapseIcon = AppIcons.ExpandLess)
+                SummaryFooter(collapseIcon = AppIcons.ExpandLess)
             }
             CompactSummaryBar(
                 line = { CompactAmount(Metric.Calories, policy.resolve(Metric.Calories, 1245.0, Surface.Today)) },

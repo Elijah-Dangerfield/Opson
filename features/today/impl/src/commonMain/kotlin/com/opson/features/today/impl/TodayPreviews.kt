@@ -172,6 +172,11 @@ private fun TodayFullFlagsOffPreview() = Phone { Today(full, expended = TodayFix
 @Composable
 private fun TodayMacrosPreview() = Phone { TodayFull(settings = Settings(todaySummaryPage = 1)) }
 
+/** The last page: key minerals and See all, which opens the Nutrients screen. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayNutrientsPagePreview() = Phone(dark = true) { TodayV4(Settings(todaySummaryPage = 2)) }
+
 /** 2.1c: scrolled to lunch, the card pinned under the header as one line. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

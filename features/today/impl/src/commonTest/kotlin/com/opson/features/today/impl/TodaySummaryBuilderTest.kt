@@ -17,6 +17,10 @@ import kotlinx.datetime.minus
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_stat_to_goal
 import opson.libraries.resources.generated.resources.today_stat_to_range
+import opson.libraries.resources.generated.resources.trends_micro_calcium
+import opson.libraries.resources.generated.resources.trends_micro_iron
+import opson.libraries.resources.generated.resources.trends_micro_potassium
+import opson.libraries.resources.generated.resources.trends_micro_sodium
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -121,6 +125,36 @@ class TodaySummaryBuilderTest {
         assertTrue(words.rows.all { it.display is Display.Soft }, "words and bars, never a gram")
 
         assertNull(top(PresetId.NoNumbers), "No numbers has its meal timeline instead")
+    }
+
+    @Test
+    fun theLastPage_isKeyMinerals_andTheStickyBarHasADotForIt() {
+        val state = build()
+        val energy = state.energy()
+
+        assertEquals(listOf(SummaryPage.Energy, SummaryPage.Macros, SummaryPage.Nutrients), energy.pages)
+        val page = assertNotNull(energy.nutrientsPage)
+        assertEquals(
+            listOf(Res.string.trends_micro_sodium, Res.string.trends_micro_potassium, Res.string.trends_micro_calcium, Res.string.trends_micro_iron),
+            page.rows.map { it.label },
+        )
+        assertTrue(page.rows.first().isLimit, "sodium is a limit")
+        assertEquals(3, assertNotNull(state.compact).pages.size)
+    }
+
+    @Test
+    fun withMicrosHidden_thereIsNoNutrientsPage() {
+        val energy = build(policy(PresetId.Full, overrides = mapOf(Metric.Micros to Visibility.Hide))).energy()
+
+        assertNull(energy.nutrientsPage)
+        assertEquals(listOf(SummaryPage.Energy, SummaryPage.Macros), energy.pages)
+    }
+
+    @Test
+    fun theNutrientsPage_needsNoFlag_soTheCardStillReachesNutrients() {
+        val energy = build(on = false).energy()
+
+        assertEquals(listOf(SummaryPage.Energy, SummaryPage.Nutrients), energy.pages)
     }
 
     @Test
@@ -257,8 +291,10 @@ class TodaySummaryBuilderTest {
 
     @Test
     fun theSavedPageIsKept_andClampedWhenThereIsOnlyOne() {
-        assertEquals(1, build(settings = Settings(todaySummaryPage = 1)).summaryPage)
-        assertEquals(0, build(settings = Settings(todaySummaryPage = 1, todayMacrosPage = false)).summaryPage)
+        assertEquals(2, build(settings = Settings(todaySummaryPage = 2)).summaryPage)
+        assertEquals(1, build(settings = Settings(todaySummaryPage = 2, todayMacrosPage = false)).summaryPage)
+        val noMicros = policy(PresetId.Full, overrides = mapOf(Metric.Micros to Visibility.Hide))
+        assertEquals(0, build(noMicros, settings = Settings(todaySummaryPage = 1, todayMacrosPage = false)).summaryPage)
     }
 
     @Test

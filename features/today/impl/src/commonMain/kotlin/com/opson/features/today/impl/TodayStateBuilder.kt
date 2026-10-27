@@ -106,7 +106,7 @@ object TodayStateBuilder {
         val settings = inputs.settings
         val summaryOn = inputs.summaryOn
         val compact = if (summaryOn && !future && !untracked) compact(summary, inputs, policy, context) else null
-        val pageCount = (summary as? TodaySummary.Energy)?.macrosPage?.let { 2 } ?: 1
+        val pageCount = (summary as? TodaySummary.Energy)?.pages?.size ?: 1
         val selecting = ui.selected?.takeIf { inputs.selectOn }
 
         return TodayState(
@@ -192,6 +192,8 @@ object TodayStateBuilder {
             bar = if (empty) emptyList() else barParts(day, policy, context, eaten),
             stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range, macros.map { it.metric }.toSet()) else emptyList(),
             macrosPage = if (summaryOn && !empty && settings.todayMacrosPage) macrosPage(day, settings, policy, context, eaten) else null,
+            // More › Today screen's Nutrients switch, which turned the card's link off, turns this page off.
+            nutrientsPage = if (!empty && listRow(inputs) { it.todayNutrientsLink }) TodayNutrientsPage.build(day, policy, context) else null,
             singleGoal = range.single,
             // Only All numbers' card: outside it (Later after its reveal, too) the mode sets the layout.
             card = if (inputs.goalsAndEnergyOn && policy.preset.today == TodayLayout.Full && policy.level(Metric.Calories) == Visibility.Show) {
@@ -345,8 +347,15 @@ object TodayStateBuilder {
             MacroLineStyle.Compact,
         )
         val macrosLine = if (summary.macrosPage != null && macros.isNotEmpty()) CompactLine(listOf(CompactPart.Macros(macros)), bar) else null
+        // One line per card page, so the sticky bar's dots match the card's; vitamins and minerals have no line of their own.
+        val pages = summary.pages.map { page ->
+            when (page) {
+                SummaryPage.Macros -> macrosLine ?: energyLine
+                else -> energyLine
+            }
+        }
         return CompactSummary(
-            pages = listOfNotNull(energyLine, macrosLine),
+            pages = pages,
             collapsed = CompactLine(listOfNotNull(lead, macrosLine?.parts?.first()), bar),
         )
     }

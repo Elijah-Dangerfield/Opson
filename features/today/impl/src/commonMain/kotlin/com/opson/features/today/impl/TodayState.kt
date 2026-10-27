@@ -58,7 +58,7 @@ data class TodayState(
     val fasting: FastingStatus? = null,
     /** `release.todaySummary`: the dots, the chevron, long-press to customise, the sticky bar. */
     val summaryTools: Boolean = false,
-    /** The summary page left open: 0 energy, 1 macros. Remembered across days and restarts. */
+    /** The summary page left open, by its place in [TodaySummary.Energy.pages]. Remembered across days and restarts. */
     val summaryPage: Int = 0,
     /** The summary shrunk to one pinned line by choice. */
     val collapsed: Boolean = false,
@@ -96,6 +96,12 @@ sealed interface StatValue {
 
 /** Page 2 (2.1b): "of 1,245 kcal", the macros two by two, and each Show macro's share of the energy. */
 data class MacrosPage(val eaten: Display, val rows: List<MacroTile>, val shares: List<MacroShare>)
+
+/** The last page: a few vitamins and minerals as a percent of a typical day's, and See all. */
+data class NutrientsPage(val rows: List<KeyNutrient>)
+
+/** "Sodium, of a 2,300 mg limit, 38%". [reference] is the amount the percent is of, formatted. */
+data class KeyNutrient(val label: StringResource, val reference: String, val isLimit: Boolean, val display: Display)
 
 data class MacroShare(val metric: Metric, val label: StringResource, val share: Display, val weight: Float)
 
@@ -184,10 +190,16 @@ sealed interface TodaySummary {
         val stats: List<StatTile> = emptyList(),
         /** Page 2, the macros (`release.todaySummary`); null when off or nothing to show. */
         val macrosPage: MacrosPage? = null,
+        /** The last page, key vitamins and minerals; null on an empty day, or when the levels hide micros. */
+        val nutrientsPage: NutrientsPage? = null,
         val singleGoal: Boolean = false,
         /** Design sync 4's page 1 (`release.goalsAndEnergy`, All numbers); null draws the design sync 2 page. */
         val card: EnergyCard? = null,
-    ) : TodaySummary
+    ) : TodaySummary {
+        /** The pages the card swipes through, in order; the dots count them. */
+        val pages: List<SummaryPage>
+            get() = listOfNotNull(SummaryPage.Energy, macrosPage?.let { SummaryPage.Macros }, nutrientsPage?.let { SummaryPage.Nutrients })
+    }
 
     /**
      * Calories set to Soft (once Nutrients first, design sync 4, 13.5b): meals counted when the mode counts
@@ -213,6 +225,8 @@ sealed interface TodaySummary {
 }
 
 data class MacroTile(val metric: Metric, val label: StringResource, val display: Display)
+
+enum class SummaryPage { Energy, Macros, Nutrients }
 
 data class MealCount(val done: Int, val total: Int)
 

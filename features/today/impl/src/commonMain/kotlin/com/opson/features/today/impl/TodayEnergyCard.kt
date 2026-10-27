@@ -44,7 +44,6 @@ data class EnergyCard(
     val toGoal: MainNumber,
     /** "3 of 4 meals" with More › Today screen's Meals count on. */
     val meals: MealCount?,
-    val nutrientsLink: Boolean,
     /** Rings' third ring: how much of it [main] fills, 0 to 1. */
     val mainFraction: Float,
     /** Rings' first ring: eaten against the goal, 0 to 1. */
@@ -165,7 +164,6 @@ object EnergyCardBuilder {
             },
             toGoal = gap(policy, context.copy(bare = false), eaten, range, goalKind),
             meals = if (settings.todayMealsCount) MealCount(day.doneMealCount, MealSlot.meals.size) else null,
-            nutrientsLink = settings.todayNutrientsLink,
             mainFraction = when (main.kind) {
                 MainKind.Deficit, MainKind.Surplus -> burned?.let { (abs(it.totalKcal - eaten) / it.totalKcal).toFloat() } ?: 0f
                 MainKind.Eaten -> (eaten / target).toFloat()
