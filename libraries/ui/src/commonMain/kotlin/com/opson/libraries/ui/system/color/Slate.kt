@@ -71,8 +71,10 @@ internal data class SchemeColors(
  *   remain (day close, fasting, find support) take the dark scheme's raised, which keeps white
  *   text on them at 12:1.
  * - **scrim** is the sheet's #363D4C at the handoff's 45%.
- * - **Nutrient tints** are unchanged: the light nutrient colors are the same hex as before.
- *
+ * - **Nutrient tints** are unchanged: the light nutrient colors are the same hex as before, except
+ *   carbs.
+ * - **carbs** was the squash. With the accent now orange it moved to a wheat gold, #C4920A on
+ *   #FBF0D0, so the Eaten bar, the breakfast tile and the logger's note never pass for the accent.
  * - **accent** is the logo's squash (#E0892B) burnt down to #A3500A. The squash itself is 2.7:1 on
  *   white and white on it is 2.7:1, so it can carry neither text nor a white label. The burnt one
  *   is text on surface (5.7), bg (5.0), raised (4.7) and its tint (4.7), and white on it is 5.7, so
@@ -99,7 +101,7 @@ internal val SlateLight = SchemeColors(
     activeEnergy = Color(0xFF1F7F78),
     nutrients = NutrientColors(
         protein = tone("protein", 0xFFD1477A, 0xFFFAE3EC),
-        carbs = tone("carbs", 0xFFE0892B, 0xFFFCEBD8),
+        carbs = tone("carbs", 0xFFC4920A, 0xFFFBF0D0),
         fat = tone("fat", 0xFF3D7FD9, 0xFFDFEAFA),
         fiber = tone("fiber", 0xFF8E6E3A, 0xFFF1E8DC),
     ),
@@ -117,7 +119,8 @@ internal val SlateLight = SchemeColors(
  *   near-black teal (`today-later.png`), not bg.
  * - **activeEnergy** stays the bowl teal it was. Burned is cool on purpose (see [Colors]).
  * - **scrim** is the sheet's #0B0E14 at 63%, measured under the add sheet (`add-sheet-half.png`).
- * - **Nutrient tints** are the meal tiles (`today-select-v4.png`, `today-later.png`).
+ * - **Nutrient tints** are the meal tiles (`today-select-v4.png`, `today-later.png`), except
+ *   carbs, which went gold with the light theme's: #F2CC66 on #3F3822.
  */
 internal val SlateDark = SchemeColors(
     bg = Color(0xFF1B2130),
@@ -136,7 +139,7 @@ internal val SlateDark = SchemeColors(
     activeEnergy = Color(0xFF6CCBBF),
     nutrients = NutrientColors(
         protein = tone("protein", 0xFFEE8BAE, 0xFF43293A),
-        carbs = tone("carbs", 0xFFF0AC66, 0xFF43352A),
+        carbs = tone("carbs", 0xFFF2CC66, 0xFF3F3822),
         fat = tone("fat", 0xFF84AEF0, 0xFF263552),
         fiber = tone("fiber", 0xFFCBA97A, 0xFF3B3329),
     ),
