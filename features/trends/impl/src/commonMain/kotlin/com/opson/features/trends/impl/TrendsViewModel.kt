@@ -1,6 +1,7 @@
 package com.opson.features.trends.impl
 
 import androidx.lifecycle.viewModelScope
+import com.opson.features.trends.NotesListLink
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.SettingsRepository
@@ -46,6 +47,8 @@ class TrendsViewModel(
     goalsAndEnergy: GoalsAndEnergyEnabled,
     burnedRepository: BurnedRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    /** Unbound until the Notes list's module binds it; the Notes card leaves its link off until then. */
+    notesListLink: NotesListLink? = null,
 ) : SEAViewModel<TrendsState, TrendsEvent, TrendsAction>(initialStateArg = TrendsState()) {
 
     private val today: LocalDate get() = clock.now().toLocalDateTime(timeZone).date
@@ -70,9 +73,11 @@ class TrendsViewModel(
 
         val burned = if (goalsAndEnergy()) span.flatMapLatest { burnedRepository.burned(it.today) } else flowOf(null)
 
+        val notesLinked = notesListLink != null
+
         combine(settingsRepository.settings, policySource.policy, records, expended, burned) { settings, policy, records, expended, burned ->
             TrendsAction.InputsArrived(
-                TrendsInputs(records.today, settings, records.days, records.weighIns, timeZone, expended, burned?.totalKcal),
+                TrendsInputs(records.today, settings, records.days, records.weighIns, timeZone, expended, burned?.totalKcal, notesLinked),
                 policy,
             )
         }.collectIn(viewModelScope) { takeAction(it) }
@@ -103,6 +108,7 @@ class TrendsViewModel(
             TrendsAction.PatternsTapped -> sendEvent(TrendsEvent.OpenPatterns)
             TrendsAction.NutrientsCardTapped -> sendEvent(TrendsEvent.OpenNutrients(today.toString()))
             TrendsAction.WeightCardTapped -> sendEvent(TrendsEvent.OpenWeight)
+            TrendsAction.AllNotesTapped -> sendEvent(TrendsEvent.OpenNotes)
         }
     }
 
@@ -123,6 +129,7 @@ sealed interface TrendsAction {
     data object PatternsTapped : TrendsAction
     data object NutrientsCardTapped : TrendsAction
     data object WeightCardTapped : TrendsAction
+    data object AllNotesTapped : TrendsAction
 }
 
 sealed interface TrendsEvent {
@@ -132,4 +139,7 @@ sealed interface TrendsEvent {
     /** Nutrients detail on Week average, with "Trends" as the back label. */
     data class OpenNutrients(val dayIso: String) : TrendsEvent
     data object OpenWeight : TrendsEvent
+
+    /** The Notes list, through [NotesListLink]. */
+    data object OpenNotes : TrendsEvent
 }

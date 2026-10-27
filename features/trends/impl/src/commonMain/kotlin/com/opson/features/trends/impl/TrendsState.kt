@@ -48,6 +48,8 @@ data class TrendsInputs(
      * chart draws one goal for the span, so today's stands in for each day's.
      */
     val burnedKcal: Int? = null,
+    /** A Notes list is bound to open ([com.opson.features.trends.NotesListLink]), so the Notes card links to it. */
+    val notesLinked: Boolean = false,
 )
 
 /** The Trends tab, top to bottom. Each card is `null` when it is off or the mode has nothing to put on it. */
@@ -65,6 +67,8 @@ data class TrendsState(
     val nutrients: NutrientsCard? = null,
     val expended: ExpendedCard? = null,
     val weight: WeightCard? = null,
+    val hunger: HungerTrend? = null,
+    val journal: JournalCard? = null,
 )
 
 sealed interface RangeLabel {
@@ -169,6 +173,8 @@ object TrendsStateBuilder {
 
         val intake = if (cards.intake && !checkPending) intake(inputs, span, dayAt, policy, weekContext) else null
         val leads = intake == null && !checkPending
+        // Hunger and notes carry no amount, so they show in every mode and before a weekly check.
+        val journal = if (cards.journal) TrendsJournal.facts(inputs, span) else null
 
         return TrendsState(
             loading = false,
@@ -190,7 +196,15 @@ object TrendsStateBuilder {
             nutrients = if (cards.nutrients && !checkPending) nutrients(inputs, span, dayAt, policy, weekContext) else null,
             expended = if (cards.expended && !checkPending) expended(inputs, span, dayAt, policy, weekContext) else null,
             weight = if (cards.weight && !checkPending) weight(inputs, span, policy) else null,
+            hunger = journal?.let { TrendsJournal.hunger(inputs, span, it) },
+            journal = journal?.let { TrendsJournal.journal(it, inputs.notesLinked) },
         )
+    }
+
+    /** A weekly bar's label, `10/19`; on 3 months every third, counting back from this week, so they fit. */
+    internal fun weekBarLabel(starts: List<LocalDate>, index: Int, range: TrendsRange): String {
+        val labelled = range == TrendsRange.FourWeeks || (starts.lastIndex - index) % THREE_MONTHS_LABEL_EVERY == 0
+        return if (labelled) "${starts[index].month.number}/${starts[index].day}" else ""
     }
 
     /** Calories effectively shown on the week view: a soft word on a bar chart would still read as an amount. */
@@ -243,9 +257,8 @@ object TrendsStateBuilder {
                         .filter { opens(Metric.Calories, it, inputs, policy) }
                     val days = week.mapNotNull { it.intakeKcal() }
                     if (current) inProgress = IntakeCaption.WeekInProgress else tracked.addAll(days)
-                    val labelled = span.range == TrendsRange.FourWeeks || (starts.lastIndex - index) % THREE_MONTHS_LABEL_EVERY == 0
                     IntakeBar(
-                        label = if (labelled) "${start.month.number}/${start.day}" else "",
+                        label = weekBarLabel(starts, index, span.range),
                         fraction = days.averageOrNull()?.let { (it / scale).toFloat() },
                         isCurrent = current,
                     )

@@ -1,10 +1,14 @@
 package com.opson.features.trends.impl
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.opson.features.trends.NutrientsRange
+import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.nutrition.Metric
@@ -14,6 +18,7 @@ import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.PreviewContent
+import com.opson.system.AppTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // Every state here comes from the real builders over TrendsFixtures, the same path the app and
@@ -87,6 +92,61 @@ private fun TrendsCoastOpenPreview() = Phone { Trends(TrendsFixtures.policy(over
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TrendsNutrientFocusPreview() = Phone { Trends(TrendsFixtures.policy(PresetId.MacrosOnly)) }
+
+/**
+ * The Hunger and Notes cards on their own, as they sit at the foot of the page: [hunger] and
+ * [notes] pick which, since both at full size don't fit one 844 dp render.
+ */
+@Composable
+private fun Journal(inputs: TrendsInputs, dark: Boolean = false, hunger: Boolean = true, notes: Boolean = true) = Phone(dark) {
+    val state = TrendsStateBuilder.build(inputs, full)
+    Column(
+        modifier = Modifier.padding(AppTheme.spacing.page),
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+    ) {
+        if (hunger) state.hunger?.let { HungerCardView(it) }
+        if (notes) state.journal?.let { JournalCardView(it, onAllNotes = {}) }
+    }
+}
+
+/** The week: a bar a day, and starving by dinner. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsHungerPreview() = Journal(TrendsFixtures.trendsInputs(), notes = false)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsHungerDarkPreview() = Journal(TrendsFixtures.trendsInputs(), dark = true, notes = false)
+
+/** Month: a bar a week. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsHungerMonthPreview() =
+    Journal(TrendsFixtures.trendsInputs(Settings(trendsRange = TrendsRange.FourWeeks)), notes = false)
+
+/** Nothing noted at all: the one sentence, and no Notes card. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsHungerEmptyPreview() =
+    Journal(TrendsFixtures.trendsInputs(days = TrendsFixtures.days().map { it.copy(feelings = emptyMap()) }))
+
+/** The week's notes, older fullness and moods, and the link to every note once a Notes list is bound. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsNotesPreview() = Journal(TrendsFixtures.trendsInputs(notesLinked = true), hunger = false)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsNotesDarkPreview() = Journal(TrendsFixtures.trendsInputs(notesLinked = true), dark = true, hunger = false)
+
+/** Notes but no hunger picked, and no Notes list bound (the app today): the hunger sentence, then just the count. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsNotesOnlyPreview() = Journal(
+    TrendsFixtures.trendsInputs(
+        days = TrendsFixtures.days().map { day -> day.copy(feelings = day.feelings.mapValues { (_, it) -> MealFeeling(note = it.note) }) },
+    ),
+)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

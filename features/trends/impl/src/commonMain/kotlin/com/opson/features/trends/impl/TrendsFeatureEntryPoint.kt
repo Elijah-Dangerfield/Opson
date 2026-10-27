@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.settings.ModesRoute
+import com.opson.features.trends.NotesListLink
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
 import com.opson.features.trends.PatternsRoute
@@ -68,6 +69,8 @@ class TrendsFeatureEntryPoint(
     private val captureViewModelFactory: () -> CaptureViewModel,
     private val stillCamera: StillCamera,
     private val cameraPrompt: BarcodeCamera,
+    /** The Notes list's route, once its module binds one (see [NotesListLink]). */
+    private val notesListLink: NotesListLink? = null,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -81,6 +84,7 @@ class TrendsFeatureEntryPoint(
                         router.navigate(NutrientsRoute(event.dayIso, NutrientsRange.WeekAverage, fromTrends = true))
                     TrendsEvent.OpenWeight -> router.navigate(WeightRoute())
                     TrendsEvent.OpenPatterns -> router.navigate(PatternsRoute())
+                    TrendsEvent.OpenNotes -> notesListLink?.let { router.navigate(it.route()) }
                 }
             }
             val scrollState = rememberScrollState()
