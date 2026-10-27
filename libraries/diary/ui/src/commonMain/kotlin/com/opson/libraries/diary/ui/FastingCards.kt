@@ -16,7 +16,7 @@ import com.opson.libraries.ui.components.HeroCard
 import com.opson.libraries.ui.components.HeroWashButton
 import com.opson.libraries.ui.components.PillAction
 import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.RowIcon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
@@ -120,7 +120,7 @@ fun FastingStatusCard(
 }
 
 /**
- * Today's fasting card: a tile, what is happening, and End fast while a fast runs. Tapping the
+ * Today's fasting card: its icon, what is happening, and End fast while a fast runs. Tapping the
  * card opens the Fasting page.
  */
 @Composable
@@ -141,9 +141,9 @@ fun FastingTodayCard(
         onClick = onOpen,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            IconTile(
+            RowIcon(
                 icon = if (status is FastingStatus.Running) AppIcons.HourglassTop else AppIcons.Restaurant,
-                tone = AppTheme.colors.nutrients.fiber,
+                color = AppTheme.colors.nutrients.fiber.content,
             )
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(text = lines.label, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)

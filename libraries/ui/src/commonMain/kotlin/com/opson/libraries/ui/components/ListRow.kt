@@ -21,6 +21,7 @@ import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.IconTile
 import com.opson.libraries.ui.components.icon.IconTileSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
+import com.opson.libraries.ui.components.icon.RowIcon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.color.MealTone
@@ -37,7 +38,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * a `NutrientValue`, which carries the metric test tag; [trailingText] is for anything else.
  * [onClick] covers the icon and the text, not the trailing action, which handles its own taps.
  * [subtitleContent] replaces [subtitle] when the subtitle carries a number that must render
- * through a tagged nutrient text.
+ * through a tagged nutrient text. [iconTile] false draws the icon alone ([RowIcon]) in the tone's
+ * content color, as Today's rows do.
  */
 @Composable
 fun ListRow(
@@ -46,6 +48,7 @@ fun ListRow(
     subtitle: String? = null,
     icon: IconResource? = null,
     iconTone: ToneColors? = null,
+    iconTile: Boolean = true,
     trailingText: String? = null,
     onClick: (() -> Unit)? = null,
     showDivider: Boolean = false,
@@ -70,11 +73,12 @@ fun ListRow(
                 horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
             ) {
                 if (icon != null) {
-                    IconTile(
-                        icon = icon,
-                        tone = iconTone ?: ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint),
-                        size = IconTileSize.Medium,
-                    )
+                    val tone = iconTone ?: ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint)
+                    if (iconTile) {
+                        IconTile(icon = icon, tone = tone, size = IconTileSize.Medium)
+                    } else {
+                        RowIcon(icon = icon, color = tone.content)
+                    }
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(

@@ -77,6 +77,24 @@ fun IconTile(
 }
 
 /**
+ * A row's icon on its own, in its [color] with no tile behind it: Today's water, meal, fasting,
+ * weight and note rows (2026-10-27, the owner found the tinted squares heavy). Sized so its
+ * glyph reads as large as a tile's whole square did.
+ */
+@Composable
+fun RowIcon(
+    icon: IconResource,
+    color: ColorResource,
+    modifier: Modifier = Modifier,
+    size: Dp = RowIconSize,
+) {
+    Icon(icon = icon, size = size, color = color, modifier = modifier)
+}
+
+/** A [RowIcon]'s size: between a Medium tile's glyph and its square, so a row keeps its weight. */
+val RowIconSize: Dp = 28.dp
+
+/**
  * The round 40dp button the handoff puts on cards and rows (the + on a meal, the + on water):
  * accent icon on the accent tint. [selected] swaps to the solid accent, as the logger's + does
  * once a food is picked. It lays out at [touchTarget], 48 by default, whatever [size] it draws.
@@ -123,6 +141,7 @@ private fun IconTilePreview() {
             }
             IconTile(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water, size = IconTileSize.Small)
             IconTile(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water, size = IconTileSize.Large)
+            RowIcon(icon = AppIcons.WaterDrop, color = AppTheme.colors.nutrients.water.content)
             RoundIconButton(icon = AppIcons.Add, onClick = {})
             RoundIconButton(icon = AppIcons.Check, onClick = {}, selected = true)
         }

@@ -265,6 +265,8 @@ sealed interface MealEntry {
         override val slot: MealSlot,
         val around: LocalTime,
         val usual: Boolean,
+        /** A Note on a meal with nothing logged yet still shows, under the row. */
+        val note: MealNoteUi? = null,
     ) : MealEntry
 
     /** A planned meal on a day ahead: "Planned", its energy and foods. */
@@ -284,14 +286,19 @@ data class MealCard(
     /** Compact (13P 80C 8F) when every macro shows, else the long form of the ones that do. */
     val macroStyle: MacroLineStyle,
     val items: List<ItemRowUi>,
-    /** Marked "ate, no details": the card says so instead of listing items. */
+    /** Marked "ate, no details" (no longer offered; older marks still show): the card says so instead of listing items. */
     val ateNoDetails: Boolean,
-    val note: String?,
+    /** The meal's Note, under its foods. */
+    val note: MealNoteUi? = null,
     /** Uncategorized with `release.todaySelect`: "Move to…" files its foods into a meal. */
     val fileable: Boolean = false,
-    /** How hungry, from the meal's Note, as a chip beside the note. */
-    val hunger: StringResource? = null,
 )
+
+/**
+ * A meal's Note as Today shows it: the hunger level and the words, either one alone. Read from the
+ * "How it felt" record the Note sheet writes; null when it holds neither.
+ */
+data class MealNoteUi(val hunger: StringResource?, val text: String?)
 
 /** A food on a meal card. [precision] is null where only the household amount shows (No numbers). */
 data class ItemRowUi(val entryId: String, val name: String, val amount: String, val precision: Precision?, val calories: Display)

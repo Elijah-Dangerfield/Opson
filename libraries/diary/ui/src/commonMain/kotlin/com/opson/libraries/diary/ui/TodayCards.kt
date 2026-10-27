@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -54,18 +55,16 @@ import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.dashedBorder
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.SegmentedBar
-import com.opson.libraries.ui.components.chip.PillTag
-import com.opson.libraries.ui.components.chip.PillTagSize
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.IconTile
+import com.opson.libraries.ui.components.icon.RowIcon
+import com.opson.libraries.ui.components.icon.RowIconSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.background
-import com.opson.system.color.ToneColors
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /*
@@ -156,7 +155,7 @@ fun StatementSummaryCard(
 }
 
 /**
- * Today's water card: the water tile, "Water" and its amount (nothing when hidden), the glasses
+ * Today's water card: the water drop, "Water" and its amount (nothing when hidden), the glasses
  * as segments, and the + that opens the water sheet.
  */
 @Composable
@@ -172,7 +171,7 @@ fun WaterCard(
 ) {
     TodayCard(modifier = modifier, contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            IconTile(icon = AppIcons.WaterDrop, tone = AppTheme.colors.nutrients.water)
+            RowIcon(icon = AppIcons.WaterDrop, color = AppTheme.colors.nutrients.water.content)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                     Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
@@ -194,14 +193,14 @@ data class MealCardItem(
 )
 
 /**
- * A meal's header: tile, name, a muted line ([subtitle], then the macro line when there is one,
+ * A meal's header: its icon in [iconColor], name, a muted line ([subtitle], then the macro line when there is one,
  * "8:10 am · 13P 80C 8F"), its energy and [trailing] (the 48 +). Shared by every meal card.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MealHeader(
     icon: IconResource,
-    tone: ToneColors,
+    iconColor: ColorResource,
     title: String,
     subtitle: String?,
     modifier: Modifier = Modifier,
@@ -211,7 +210,7 @@ fun MealHeader(
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-        IconTile(icon = icon, tone = tone)
+        RowIcon(icon = icon, color = iconColor)
         Column(Modifier.weight(1f)) {
             Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
             FlowRow {
@@ -230,8 +229,7 @@ private const val SUBTITLE_SEPARATOR = " · "
 /**
  * A meal with its items (2.1): the [MealHeader] with [headerTrailing] (the + , or Move to… on
  * Uncategorized), each item drawn by [itemRow] (a plain row, a swipe row, a tickable row while
- * selecting, or its own confirmation), the note, and [tags] for how it felt (No numbers, design
- * sync 4, 13.5d).
+ * selecting, or its own confirmation), then the meal's [note].
  * [onHeaderClick] makes the header a target: while selecting it toggles the meal's foods.
  * [dropLabel] marks the card as where dragged foods will land (13.3c): "Move to Dinner".
  */
@@ -239,16 +237,15 @@ private const val SUBTITLE_SEPARATOR = " · "
 @Composable
 fun TodayMealCard(
     icon: IconResource,
-    tone: ToneColors,
+    iconColor: ColorResource,
     title: String,
     time: String?,
     calories: Display,
     macros: List<MacroPart>,
     macroStyle: MacroLineStyle,
     items: List<MealCardItem>,
-    note: String?,
+    note: MealCardNote?,
     modifier: Modifier = Modifier,
-    tags: List<String> = emptyList(),
     highlighted: Boolean = false,
     onHeaderClick: (() -> Unit)? = null,
     headerTrailing: @Composable RowScope.() -> Unit = {},
@@ -264,7 +261,7 @@ fun TodayMealCard(
     ) {
         MealHeader(
             icon,
-            tone,
+            iconColor,
             title,
             time,
             calories = calories,
@@ -280,27 +277,36 @@ fun TodayMealCard(
         Column(Modifier.padding(end = 6.dp)) {
             items.forEach { item -> itemRow(item) }
         }
-        if (note != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(icon = AppIcons.EditNote, size = 18.dp, color = AppTheme.colors.muted, modifier = Modifier.padding(top = 1.dp))
-                Text(text = note, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
-            }
-        }
+        if (note != null) MealNoteBlock(note, Modifier.padding(end = 6.dp))
         if (dropLabel != null) DropZone(dropLabel)
-        if (tags.isNotEmpty()) {
-            Column {
-                HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(end = 6.dp))
-                FlowRow(
-                    modifier = Modifier.padding(top = AppTheme.spacing.row),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    tags.forEach { PillTag(label = it, size = PillTagSize.Regular) }
-                }
+    }
+}
+
+/** A meal's Note as its card shows it: [hunger] ("Hunger level: Hungry") over the [text]. Either may be absent. */
+data class MealCardNote(val hunger: String?, val text: String?)
+
+/**
+ * A meal's Note under its foods, in body text so it reads as what was written rather than a
+ * caption: a line, the note icon under the meal's icon, and the hunger and words lined up with
+ * the meal's name.
+ */
+@Composable
+fun MealNoteBlock(note: MealCardNote, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth()) {
+        HorizontalDivider(color = AppTheme.colors.line)
+        Row(Modifier.padding(top = AppTheme.spacing.row), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            Box(Modifier.width(RowIconSize), contentAlignment = Alignment.TopCenter) {
+                RowIcon(icon = AppIcons.EditNote, color = AppTheme.colors.muted, size = NoteIconSize)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                note.hunger?.let { Text(text = it, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.inkSoft) }
+                note.text?.let { Text(text = it, typography = AppTheme.type.body, color = AppTheme.colors.ink) }
             }
         }
     }
 }
+
+private val NoteIconSize = 22.dp
 
 /** Where dragged foods will land (13.3c): a dashed accent box saying "Move to Dinner". */
 @Composable
@@ -343,7 +349,7 @@ fun MealCardRow(item: MealCardItem, onClick: () -> Unit, trailing: @Composable R
 @Composable
 fun MealRowCard(
     icon: IconResource,
-    tone: ToneColors,
+    iconColor: ColorResource,
     title: String,
     subtitle: String?,
     modifier: Modifier = Modifier,
@@ -359,7 +365,7 @@ fun MealRowCard(
         contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
-        MealHeader(icon, tone, title, subtitle, calories = calories, trailing = trailing)
+        MealHeader(icon, iconColor, title, subtitle, calories = calories, trailing = trailing)
         if (below != null) Column(Modifier.padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row), content = below)
         if (dropLabel != null) DropZone(dropLabel)
     }
@@ -576,20 +582,20 @@ private fun TodayCardsPreview() {
             WaterCard("Water", policy.resolve(Metric.Water, 750.0, Surface.Today), 3, 8, true, {}, AppIcons.Add)
             TodayMealCard(
                 icon = AppIcons.LunchDining,
-                tone = n.fat,
+                iconColor = n.fat.content,
                 title = "Lunch",
                 time = "12:40 PM",
                 calories = policy.resolve(Metric.Calories, 515.0, Surface.Today),
                 macros = policy.macroLine(lunch, Surface.Today, style = MacroLineStyle.Compact),
                 macroStyle = MacroLineStyle.Compact,
                 items = listOf(MealCardItem("1", "Chicken adobo", "1 thigh · Estimate", policy.resolve(Metric.Calories, 310.0, Surface.Today, FormatContext(bare = true)))),
-                note = null,
+                note = MealCardNote(hunger = "Hunger level: Hungry", text = "Ate outside with Sam."),
                 headerTrailing = { RoundIconButton(icon = AppIcons.Add, onClick = {}, size = MinTouchTarget) },
                 itemRow = { MealCardRow(it, onClick = {}) },
             )
             MealRowCard(
                 icon = AppIcons.DinnerDining,
-                tone = n.protein,
+                iconColor = n.protein.content,
                 title = "Dinner",
                 subtitle = "Usually around 7:00 PM",
                 trailing = { RoundIconButton(icon = AppIcons.Add, onClick = {}, size = MinTouchTarget) },

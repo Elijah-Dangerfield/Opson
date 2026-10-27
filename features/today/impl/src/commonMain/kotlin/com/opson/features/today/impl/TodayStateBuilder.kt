@@ -508,7 +508,15 @@ object TodayStateBuilder {
     private fun nextEmpty(day: Day): MealSlot? = MealSlot.meals.firstOrNull { !day.isMealDone(it) }
 
     private fun collapsed(inputs: TodayInputs, slot: MealSlot, usual: Boolean): MealEntry.Collapsed =
-        MealEntry.Collapsed(slot = slot, around = inputs.settings.mealTimes.at(slot), usual = usual)
+        MealEntry.Collapsed(slot = slot, around = inputs.settings.mealTimes.at(slot), usual = usual, note = noteOf(inputs.day, slot))
+
+    /** The Note is on every meal's + in every mode, so what it holds shows in every mode too. */
+    private fun noteOf(day: Day, slot: MealSlot): MealNoteUi? {
+        val feeling = day.feelings[slot] ?: return null
+        val text = feeling.note?.trim()?.takeIf { it.isNotEmpty() }
+        val hunger = feeling.hunger?.label
+        return if (text == null && hunger == null) null else MealNoteUi(hunger, text)
+    }
 
     private fun planned(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, groupsOn: Boolean): List<MealEntry> {
         val day = inputs.day
@@ -537,7 +545,6 @@ object TodayStateBuilder {
         val hasMacros = items.any { it.protein != null || it.carbs != null || it.fat != null }
         val allMacrosShow = listOf(Metric.Protein, Metric.Carbs, Metric.Fat).all { policy.effectiveLevel(it, Surface.Today, context) == Visibility.Show }
         val style = if (allMacrosShow) MacroLineStyle.Compact else MacroLineStyle.Long
-        val feeling = day.feelings[slot]
         // No numbers keeps a food to its name and household amount (13.5d).
         val timeline = layout == TodayLayout.MealTimeline
         return MealCard(
@@ -567,10 +574,8 @@ object TodayStateBuilder {
                 )
             },
             ateNoDetails = items.isEmpty() && slot in day.ateNoDetails,
-            note = feeling?.note?.trim()?.takeIf { it.isNotEmpty() },
+            note = noteOf(day, slot),
             fileable = inputs.selectOn && slot == MealSlot.Uncategorized && items.isNotEmpty() && groupsOn(inputs),
-            // The Note is on every meal's + in every mode, so what it holds shows in every mode too.
-            hunger = feeling?.hunger?.label,
         )
     }
 

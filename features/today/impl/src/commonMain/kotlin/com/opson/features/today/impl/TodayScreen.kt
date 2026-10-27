@@ -42,6 +42,8 @@ import com.opson.libraries.diary.ui.FastingTodayCard
 import com.opson.libraries.diary.ui.FoodMenuButton
 import com.opson.libraries.diary.ui.FoodsLine
 import com.opson.libraries.diary.ui.MealCardItem
+import com.opson.libraries.diary.ui.MealCardNote
+import com.opson.libraries.diary.ui.MealNoteBlock
 import com.opson.libraries.diary.ui.MealCardRow
 import com.opson.libraries.diary.ui.MealRowCard
 import com.opson.libraries.diary.ui.RemoveConfirmRow
@@ -123,6 +125,7 @@ import opson.libraries.resources.generated.resources.today_move_to
 import opson.libraries.resources.generated.resources.today_moved_one
 import opson.libraries.resources.generated.resources.today_moved_other
 import opson.libraries.resources.generated.resources.today_next_day_cd
+import opson.libraries.resources.generated.resources.today_note_hunger_line
 import opson.libraries.resources.generated.resources.today_not_planned
 import opson.libraries.resources.generated.resources.today_pick_day_cd
 import opson.libraries.resources.generated.resources.today_plan_body
@@ -453,6 +456,7 @@ private fun WeightCard(weight: WeightRow, dayLabel: RelativeDay, onAction: (Toda
             },
             icon = AppIcons.MonitorWeight,
             iconTone = ToneColors(AppTheme.colors.ink, AppTheme.colors.soft),
+            iconTile = false,
         ) {
             NutrientText(Metric.Weight, weight.display, typography = AppTheme.type.cardTitle.Tabular, color = AppTheme.colors.ink, maxLines = 1)
             ListRowChevron()
@@ -478,7 +482,7 @@ private fun Meal(entry: MealEntry, state: TodayState, drag: FoodDrag, onAction: 
         is MealEntry.Full -> FullMeal(entry.card, state, drag, dropLabel, onAction)
         is MealEntry.Collapsed -> MealRowCard(
             icon = slot.icon,
-            tone = slot.tileColors(),
+            iconColor = slot.tileColors().content,
             title = stringResource(slot.label),
             subtitle = if (slot.isMeal) {
                 stringResource(if (entry.usual) Res.string.today_meal_usually else Res.string.today_meal_around, entry.around.clock())
@@ -487,11 +491,12 @@ private fun Meal(entry: MealEntry, state: TodayState, drag: FoodDrag, onAction: 
             },
             trailing = add,
             dropLabel = dropLabel,
+            below = entry.note?.let { note -> { MealNoteBlock(note.forCard()) } },
         )
         // A planned meal is filled in from Plan it or the add sheet; the card itself has no + (2.10).
         is MealEntry.Planned -> MealRowCard(
             icon = slot.icon,
-            tone = slot.tileColors(),
+            iconColor = slot.tileColors().content,
             title = stringResource(slot.label),
             subtitle = stringResource(Res.string.today_planned),
             calories = entry.calories,
@@ -499,7 +504,7 @@ private fun Meal(entry: MealEntry, state: TodayState, drag: FoodDrag, onAction: 
         )
         is MealEntry.NotPlanned -> MealRowCard(
             icon = slot.icon,
-            tone = slot.tileColors(),
+            iconColor = slot.tileColors().content,
             title = stringResource(slot.label),
             subtitle = stringResource(Res.string.today_not_planned),
             trailing = { PillAction(label = stringResource(Res.string.today_plan_it), onClick = { onAction(TodayAction.PlanItTapped(slot)) }) },
@@ -513,7 +518,7 @@ private fun FullMeal(card: MealCard, state: TodayState, drag: FoodDrag, dropLabe
     val selection = state.selection
     TodayMealCard(
         icon = card.slot.icon,
-        tone = card.slot.tileColors(),
+        iconColor = card.slot.tileColors().content,
         title = stringResource(card.title),
         time = card.time?.clock() ?: if (card.ateNoDetails) stringResource(Res.string.today_tile_ate) else null,
         calories = card.calories,
@@ -532,8 +537,7 @@ private fun FullMeal(card: MealCard, state: TodayState, drag: FoodDrag, dropLabe
                 calories = item.calories,
             )
         },
-        note = card.note,
-        tags = listOfNotNull(card.hunger?.let { stringResource(it) }),
+        note = card.note?.forCard(),
         highlighted = state.highlight == card.slot,
         onHeaderClick = if (selection != null) ({ onAction(TodayAction.MealHeaderToggled(card.slot)) }) else null,
         headerTrailing = {
@@ -607,6 +611,11 @@ private fun FoodRow(item: MealCardItem, meal: String, state: TodayState, drag: F
         else -> MealCardRow(item, onClick = { onAction(TodayAction.ItemTapped(id)) }, trailing = menu)
     }
 }
+
+/** "Hunger level: Hungry" over the words, as a meal's card shows them. */
+@Composable
+private fun MealNoteUi.forCard(): MealCardNote =
+    MealCardNote(hunger = hunger?.let { stringResource(Res.string.today_note_hunger_line, stringResource(it)) }, text = text)
 
 /** The ⋮ menu's groups, for inside a popover. */
 @Composable

@@ -108,6 +108,8 @@
     <string name="today_note_title">Note, %1$s</string>
     <string name="today_note_subtitle">Both optional, and only you see them.</string>
     <string name="today_note_hunger">Hunger level</string>
+    <!-- A meal's Note on Today: "Hunger level: Hungry" -->
+    <string name="today_note_hunger_line">Hunger level: %1$s</string>
     <string name="today_note_placeholder">Where you were, who with, anything worth remembering</string>
     <string name="today_note_save">Save</string>
 

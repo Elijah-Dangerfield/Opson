@@ -3,6 +3,8 @@ package com.opson.features.today.impl
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.Hunger
+import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
@@ -198,10 +200,9 @@ class TodayStateBuilderTest {
         assertEquals("Oat porridge with milk", breakfast.items.first().name)
         assertNull(breakfast.items.first().precision, "names and household amounts only")
         assertEquals(Display.Hidden, breakfast.calories)
-        assertEquals(Res.string.diary_hunger_hungry, breakfast.hunger, "breakfast's Note says how hungry")
+        assertEquals(Res.string.diary_hunger_hungry, breakfast.note?.hunger, "breakfast's Note says how hungry")
         val lunch = assertIs<MealEntry.Full>(state.meals[1]).card
-        assertNull(lunch.hunger, "lunch's Note is words only")
-        assertEquals("Ate outside with Sam. Felt relaxed.", lunch.note)
+        assertEquals(MealNoteUi(hunger = null, text = "Ate outside with Sam. Felt relaxed."), lunch.note, "lunch's Note is words only")
         val water = assertNotNull(state.water)
         assertIs<Display.Soft>(water.display)
     }
@@ -217,7 +218,17 @@ class TodayStateBuilderTest {
     fun fullNumbers_showsTheNotesHungerOnTheCard_withNoTimeline() {
         val state = build(PresetId.Full)
         assertNull(state.mealTiles)
-        assertEquals(Res.string.diary_hunger_hungry, assertIs<MealEntry.Full>(state.meals.first()).card.hunger)
+        assertEquals(Res.string.diary_hunger_hungry, assertIs<MealEntry.Full>(state.meals.first()).card.note?.hunger)
+    }
+
+    /** A Note written before anything is logged still shows, under the meal's row. */
+    @Test
+    fun aNoteOnAnEmptyMeal_showsUnderItsRow() {
+        val day = TodayFixtures.day().let { it.copy(feelings = it.feelings + (MealSlot.Dinner to MealFeeling(hunger = Hunger.Hungry, note = "  Late shift  "))) }
+        val dinner = assertIs<MealEntry.Collapsed>(build(PresetId.Full, day = day).meals.first { it.slot == MealSlot.Dinner })
+
+        assertEquals(MealNoteUi(Res.string.diary_hunger_hungry, "Late shift"), dinner.note)
+        assertNull(assertIs<MealEntry.Collapsed>(build(PresetId.Full).meals.first { it.slot == MealSlot.Dinner }).note)
     }
 
     @Test
