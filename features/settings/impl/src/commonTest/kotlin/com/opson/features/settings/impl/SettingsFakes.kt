@@ -140,9 +140,15 @@ class FakeDataExport(private val sync: FakeDiarySync, var result: Result<ByteArr
     }
 }
 
-/** Only account deletion is driven; everything else is out of scope for settings. */
-class FakeAuthRepository(var deleteOutcome: DeleteAccountOutcome = DeleteAccountOutcome.Success) : AuthRepository {
+/** Who is signed in, signing out and account deletion; everything else is out of scope for settings. */
+class FakeAuthRepository(
+    var deleteOutcome: DeleteAccountOutcome = DeleteAccountOutcome.Success,
+    initial: AuthState = AuthState.Unauthenticated(),
+) : AuthRepository {
+    val state = MutableStateFlow(initial)
     var deletes = 0
+        private set
+    var signOuts = 0
         private set
 
     override suspend fun deleteAccount(): DeleteAccountOutcome {
@@ -150,15 +156,19 @@ class FakeAuthRepository(var deleteOutcome: DeleteAccountOutcome = DeleteAccount
         return deleteOutcome
     }
 
-    override suspend fun current(): AuthState = unused()
-    override fun observe(): Flow<AuthState> = unused()
+    override suspend fun signOut() {
+        signOuts++
+        state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
+    }
+
+    override suspend fun current(): AuthState = state.value
+    override fun observe(): Flow<AuthState> = state
     override suspend fun retry(): AuthState = unused()
     override suspend fun signInWithEmail(email: String, password: String): SignInOutcome = unused()
     override suspend fun signUpWithEmail(email: String, password: String): SignUpOutcome = unused()
     override suspend fun refreshSession(): RefreshOutcome = unused()
     override suspend fun resendVerificationEmail(email: String): ResendOutcome = unused()
     override suspend fun sendPasswordResetEmail(email: String): SendResetOutcome = unused()
-    override suspend fun signOut() = unused()
     override suspend fun linkOAuthIdentity(provider: OAuthProvider): LinkIdentityOutcome = unused()
     override suspend fun signInWithOAuth(provider: OAuthProvider): SignInOutcome = unused()
     override suspend fun linkEmailIdentity(email: String, password: String): LinkEmailIdentityOutcome = unused()

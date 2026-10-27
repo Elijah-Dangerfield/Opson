@@ -97,7 +97,15 @@ class FindSupportRoute : Route()
 
 /**
  * Credits and licenses: food data, the typeface and the open-source licences in the shipped
- * builds. Opened from Support's About card.
+ * builds. Opened from Support's About card and More.
  */
 @Serializable
 class CreditsRoute : Route()
+
+/**
+ * The QA menu: fire notifications, open the check-in, reset onboarding, override config flags,
+ * identity details and clearing caches. Debug and beta builds only; the route is not even
+ * registered on a build that may not show it, so no deep link reaches it there.
+ */
+@Serializable
+class QaMenuRoute : Route()
