@@ -66,7 +66,7 @@ object MoreStateBuilder {
                 MoreRow.Targets,
                 MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
                 healthConnected?.let { MoreRow.Health(connected = it) },
-                // Not in design sync 2's More, kept last on purpose: palette, theme and text size
+                // Not in the design's More (13.1), kept last on purpose: Appearance and text size
                 // have no other home.
                 MoreRow.LookAndFeel,
             ),
