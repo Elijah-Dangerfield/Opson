@@ -2,17 +2,13 @@ package com.opson.features.logger.impl
 
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.FoodKind
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.Settings
-import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
-import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.nutrition.Display
-import com.opson.libraries.nutrition.MacroPart
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.LocalDate
@@ -20,127 +16,66 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 
-/** What the logger sheet draws. Built by [LoggerStateBuilder]; every number in it is policy-resolved. */
+/** What the add sheet draws. Built by [LoggerStateBuilder]; every number in it is policy-resolved. */
 data class LoggerState(
     val loading: Boolean = true,
-    /** Right of the title: Today, Yesterday or a date. */
+    /** The day it logs to, for the a11y of the title when it is not today. */
     val day: RelativeDay = RelativeDay.Today,
     val slot: MealSlot = MealSlot.Dinner,
     /** The title's dropdown. One entry, and no chevron, with meal groups off. */
     val slots: List<MealSlot> = MealSlot.entries,
-    val pane: LoggerPane = LoggerPane.Search,
-    val query: String = "",
-    val focusSearch: Boolean = false,
-    /** About 60% tall when opened from a +, full once dragged up or searched (design sync 2). */
+    val pane: LoggerPane = LoggerPane.Actions,
+    /** About 60% tall when opened from a +, full once dragged up or on Describe or Saved. */
     val height: SheetHeight = SheetHeight.Partial,
-    /** The sideways row: Photo, Describe, Yesterday's, Saved. Empty while the person is typing, so more results fit. */
-    val methods: List<LoggerMethod> = emptyList(),
-    /**
-     * The second row, Ate no details and Just a number (or Add a note). Both log at once, so they
-     * step aside while something is picked, as well as while typing.
-     */
-    val quickMethods: List<LoggerMethod> = emptyList(),
-    val body: LoggerBody = LoggerBody.FirstRun,
+    /** The grid, in the design's order, only the ones that can run (design sync 4, 13.4a). */
+    val actions: List<AddAction> = emptyList(),
+    /** Under the grid at full height (13.4b): the last foods logged, each with a one-tap +. */
+    val recent: List<FoodRowUi> = emptyList(),
     val describe: DescribeUi = DescribeUi(),
     val saved: SavedUi = SavedUi(),
-    /** Null when nothing is picked, and on Describe and Saved, which have their own buttons. */
-    val basket: BasketFooter? = null,
-    /**
-     * Opened by Create a meal's "Add a food": the title reads "This meal" with no
-     * dropdown or day, and a miss offers only "Save the name only".
-     */
-    val pickingForMeal: Boolean = false,
-    /** The barcode button in the empty search bar: `release.barcode` on, and not picking for a meal. */
-    val canScan: Boolean = false,
-    /** The options button and the category tabs; null with `release.searchOptions` off. */
-    val options: SearchOptionsBar? = null,
-) {
-    /** The search is not blank, so the chips and the day label step aside. */
-    val typing: Boolean get() = query.isNotBlank()
-}
-
-/** How tall the logger sheet is. It opens [Partial] from a + and only ever grows. */
-enum class SheetHeight { Partial, Full }
-
-/** The three faces of the sheet. Describe and Saved were the Log screen's tabs before design v3. */
-enum class LoggerPane { Search, Describe, Saved }
-
-/** The method chips, in the design's order. Photo is 0.2, behind `release.photo`. */
-sealed interface LoggerMethod {
-    data object Photo : LoggerMethod
-    data object DescribeIt : LoggerMethod
-    data class Yesterday(val slot: MealSlot) : LoggerMethod
-    data object SavedMeals : LoggerMethod
-    data object AteNoDetails : LoggerMethod
-    data object JustANumber : LoggerMethod
-
-    /** Stands in for [JustANumber] when calories are hidden: typing a number is itself a calorie entry. */
-    data object AddANote : LoggerMethod
-}
-
-/** A food the user can pick. [key] is unique per food, so the same food reads as picked in every section. */
-data class FoodRowUi(
-    val key: String,
-    val ref: FoodRef,
-    val source: PickSource,
-    val name: String,
-    val shortName: String,
-    /** The brand (cuisine, once the catalog has it), or null. */
-    val subtitle: String?,
-    val amount: String,
-    val macros: List<MacroPart>,
-    /** Bare, as v3 draws a row: "525". */
-    val calories: Display,
-    val picked: Boolean,
-    /** Where the food came from; null with the search options off, or for a source with no badge. */
-    val badge: SourceBadge? = null,
-    /** Tiers 1 to 3: someone accountable stands behind the numbers. Never set for the person's own foods. */
-    val verified: Boolean = false,
-    /** The tile's picture, read from the name. */
-    val kind: FoodKind = FoodKind.Plate,
 )
 
-sealed interface LoggerBody {
-    /**
-     * "Usual at {slot}" (left out when there is nothing usual yet), then Recent. For
-     * Uncategorized the first list is "Usual around {usualAround}": what this person logs near
-     * this time of day, whatever the meal.
-     */
-    data class Browse(
-        val slot: MealSlot,
-        val usual: List<FoodRowUi>,
-        val recent: List<FoodRowUi>,
-        val usualAround: LocalTime? = null,
-    ) : LoggerBody
+/** How tall the add sheet is. It opens [Partial] from a + and only ever grows. */
+enum class SheetHeight { Partial, Full }
 
-    /** Nothing logged yet, so no usual picks or recents. */
-    data object FirstRun : LoggerBody
+/** The three faces of the sheet: the grid, and the two panes it opens in place. */
+enum class LoggerPane { Actions, Describe, Saved }
 
-    data object Searching : LoggerBody
+/** The grid's actions (design sync 4, 13.4a). Each is in the list only when it can run. */
+sealed interface AddAction {
+    data object SearchFood : AddAction
 
-    /** [openFoodFacts]: some rows are Open Food Facts', so the licence's credit goes under them. */
-    data class Results(val rows: List<FoodRowUi>, val offline: Boolean, val openFoodFacts: Boolean = false) : LoggerBody
+    /** `release.barcode`. */
+    data object ScanBarcode : AddAction
 
-    /** Favorites, Custom or My foods before typing: the list itself, no heading. */
-    data class Listed(val rows: List<FoodRowUi>) : LoggerBody
+    /** `release.photo`. */
+    data object Photo : AddAction
 
-    /** Favorites or Custom with nothing in them yet. */
-    data class TabEmpty(val tab: SearchTab) : LoggerBody
+    /** Describe it; "Say or type it" when [voice] (`release.voice`) is on, since only then can it hear. */
+    data class SayOrType(val voice: Boolean) : AddAction
+    data object SavedMeals : AddAction
 
-    /** Common, Restaurant or Beverages before typing: they search the catalog, so they need words. */
-    data class TabHint(val tab: SearchTab) : LoggerBody
+    /** Copies yesterday's [slot]: only when yesterday has one. */
+    data class CopyMeal(val slot: MealSlot) : AddAction
 
-    /** A miss is never a dead end: [query] goes into Describe or becomes a saved name. */
-    data class NoResults(val query: String, val offline: Boolean) : LoggerBody
+    /** "Just a number": a calorie entry, so never when calories are hidden. */
+    data object QuickAdd : AddAction
+    data object Water : AddAction
+    data object WeighIn : AddAction
+    data object Note : AddAction
+
+    /** Only for a real meal: Uncategorized has no "ate" mark. */
+    data object AteNoDetails : AddAction
+
+    /** `release.fasting`, offered in this mode, and the timer on. */
+    data object Fasting : AddAction
 }
-
-data class BasketFooter(val count: Int, val names: String, val calories: Display, val slot: MealSlot)
 
 /** The Describe it pane. */
 data class DescribeUi(
     val text: String = "",
     val status: DescribeStatus = DescribeStatus.Idle,
-    /** What the parse put in the basket, in order, each with its own amount controls. */
+    /** What the read made of the text, in order, each with its own amount controls. */
     val lines: List<DescribedLine> = emptyList(),
     /** "3 items · About 379 kcal" over Add: everything Add writes. Null with nothing to add. */
     val total: DescribeTotal? = null,
@@ -195,82 +130,79 @@ sealed interface LoggerAction {
     data class InputsArrived(val inputs: LoggerInputs) : LoggerAction
     data class PolicyArrived(val policy: VisibilityPolicy) : LoggerAction
     data class SlotPicked(val slot: MealSlot) : LoggerAction
-    data class SearchTyped(val text: String) : LoggerAction
-    data object SearchCleared : LoggerAction
-    data class SearchResultsArrived(val outcome: SearchOutcome) : LoggerAction
-    data class FoodNameTapped(val row: FoodRowUi) : LoggerAction
-    data class FoodToggleTapped(val row: FoodRowUi) : LoggerAction
+
+    /** The handle or the grid dragged up while the sheet is at 60%. */
+    data object SheetExpanded : LoggerAction
+
+    // The grid.
+    data object SearchFoodTapped : LoggerAction
+    data object BarcodeTapped : LoggerAction
+    data object PhotoTapped : LoggerAction
     data object DescribeItTapped : LoggerAction
-
-    /** The no-results state's "Describe {term}" and the "Describe it" link under results. */
-    data object DescribeTermTapped : LoggerAction
-
-    /** "Save the name only", "save the name", and Describe's "Just save the name". */
-    data object SaveNameTapped : LoggerAction
     data object SavedMealsTapped : LoggerAction
-    data class SavedMealPicked(val id: String) : LoggerAction
-    data object YesterdayTapped : LoggerAction
+    data object CopyMealTapped : LoggerAction
+    data object QuickAddTapped : LoggerAction
+    data object WaterTapped : LoggerAction
+    data object WeighInTapped : LoggerAction
+    data object NoteTapped : LoggerAction
     data object AteNoDetailsTapped : LoggerAction
-    data object JustANumberTapped : LoggerAction
-    data object AddANoteTapped : LoggerAction
+    data object FastingTapped : LoggerAction
+
+    /** Recent's + at full height: logs it at its last amount, and ✓ takes it back out. */
+    data class RecentAddTapped(val row: FoodRowUi) : LoggerAction
+    data class RecentNameTapped(val row: FoodRowUi) : LoggerAction
+
+    // Saved meals.
+    data class SavedMealPicked(val id: String) : LoggerAction
+
+    // Describe it.
     data class DescribeTyped(val text: String) : LoggerAction
     data class DescribeArrived(val text: String, val items: List<ParsedItem>) : LoggerAction
     data class DescribeFailed(val text: String) : LoggerAction
+
+    /** Describe's "Just save the name". */
+    data object SaveNameTapped : LoggerAction
     data class NumberTyped(val text: String) : LoggerAction
     data object AddNumberTapped : LoggerAction
-    data object BackTapped : LoggerAction
+
+    /** Describe's Add: logs its lines. */
     data object AddToMealTapped : LoggerAction
+
+    data object BackTapped : LoggerAction
     data object CloseTapped : LoggerAction
-
-    /** The handle or the list dragged up while the sheet is at 60%. */
-    data object SheetExpanded : LoggerAction
-
-    /** A tap in the search field. */
-    data object SearchFocused : LoggerAction
-
-    /** The barcode button in the empty search bar. */
-    data object BarcodeTapped : LoggerAction
-
-    /** The Photo chip. */
-    data object PhotoTapped : LoggerAction
-
-    /** The options button in the search bar (`release.searchOptions`). */
-    data object SearchOptionsTapped : LoggerAction
-
-    data class TabPicked(val tab: SearchTab) : LoggerAction
-
-    /** Whether the server searches Open Food Facts, asked once when the sheet opens. */
-    data class SearchOptionsArrived(val openFoodFacts: Boolean) : LoggerAction
 }
 
+/**
+ * Everything but [ShowToast], [WaterAdded] and [Dismiss] opens something in place of the sheet,
+ * so Back from there lands where the sheet was opened.
+ */
 sealed interface LoggerEvent {
-    data class OpenAmount(val ref: FoodRef, val source: PickSource, val day: LocalDate, val slot: MealSlot) : LoggerEvent
+    data class OpenSearch(val day: LocalDate, val slot: MealSlot) : LoggerEvent
+    data class OpenFoodDetail(val ref: FoodRef, val source: PickSource, val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenMealNote(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenScanner(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenPhoto(val day: LocalDate, val slot: MealSlot) : LoggerEvent
-    data class OpenSearchOptions(val openFoodFacts: Boolean) : LoggerEvent
+    data object OpenWeighIn : LoggerEvent
+    data object OpenFasting : LoggerEvent
+
+    /** A glass went in, [ml] of it, on [day]: the snackbar's Undo takes it off again. */
+    data class WaterAdded(val day: LocalDate, val ml: Int) : LoggerEvent
     data class ShowToast(val toast: Toast) : LoggerEvent
     data object Dismiss : LoggerEvent
 }
 
-/** Everything the logger reads, gathered in one place so the builder is a pure function of it. */
+/** Everything the add sheet reads, gathered in one place so the builder is a pure function of it. */
 data class LoggerInputs(
     val today: LocalDate,
     val day: Day,
     val dayBefore: Day,
     val settings: Settings,
-    val basket: List<BasketItem>,
-    val usualBySlot: Map<MealSlot, List<LogItem>>,
+    /** The foods logged most lately, newest first: Recent at full height. */
     val recent: List<LogItem>,
-    val customFoods: List<CustomFood>,
     val savedMeals: List<SavedMeal>,
-    /** What the Logger calls Favorites: the foods logged most lately. Empty with the search options off. */
-    val favorites: List<LogItem> = emptyList(),
-    /** Foods logged, newest first, for Most recent and My foods. Empty with the search options off. */
-    val history: List<LogItem> = emptyList(),
-    /** Catalog foods on the device by id, so a row from the diary can still name its source. */
-    val known: Map<String, Food> = emptyMap(),
-    /** The last 14 days and today (`MealSlotPicker.HISTORY_DAYS`), which the meal picker and "Usual around" read. */
+    /** The person's own foods: "Save the name" reuses one by the same name. */
+    val customFoods: List<CustomFood> = emptyList(),
+    /** The last 14 days and today (`MealSlotPicker.HISTORY_DAYS`), which the meal picker reads. */
     val recentDays: List<Day> = emptyList(),
     /** When these inputs were read, on the person's clock. */
     val now: LocalDateTime = LocalDateTime(today, LocalTime(NOON, 0)),
@@ -278,14 +210,3 @@ data class LoggerInputs(
 )
 
 private const val NOON = 12
-
-/**
- * A catalog search answer for [query] asked with [filter]; [offline] when it came from the device
- * cache, or nowhere. An answer for another query or filter is stale.
- */
-data class SearchOutcome(
-    val query: String,
-    val foods: List<Food>,
-    val offline: Boolean,
-    val filter: FoodSearchFilter = FoodSearchFilter.None,
-)

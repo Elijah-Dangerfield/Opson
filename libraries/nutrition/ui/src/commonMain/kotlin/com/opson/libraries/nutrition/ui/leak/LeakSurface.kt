@@ -14,7 +14,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
  * hand-written `Display`, or the test checks the fixture instead of the mapping.
  */
 class LeakSurface(
-    /** Stable, kebab case, and listed in `REQUIRED_SURFACES`: `today`, `logger-picked`. */
+    /** Stable, kebab case, and listed in `REQUIRED_SURFACES`: `today`, `add-sheet`. */
     val id: String,
     /** The prototype's label where it has one, for failure messages. */
     val label: String,

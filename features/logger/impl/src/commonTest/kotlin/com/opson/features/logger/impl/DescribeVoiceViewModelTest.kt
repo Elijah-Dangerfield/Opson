@@ -35,7 +35,6 @@ import kotlin.time.Clock
 class DescribeVoiceViewModelTest : CoroutineTest() {
     private val diary = FakeDiaryRepository(listOf(LoggerFixtures.day(), LoggerFixtures.dayBefore()))
     private val catalog = FakeFoodCatalog().apply { describeResult = Catching.success(LoggerFixtures.parsed) }
-    private val basket = BasketStore()
     private val loggerTelemetry = RecordingTelemetry()
     private val speech = FakeSpeechToText()
     private val telemetry = RecordingVoiceTelemetry()
@@ -48,19 +47,16 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
         foodCatalog = catalog,
         settingsRepository = FakeSettingsRepository(Settings(askTags = false)),
         policySource = FakePolicySource(),
-        basketStore = basket,
-        committer = BasketCommitter(diary, catalog, basket, FakeRecentLogEvents(), loggerTelemetry, Clock.fixed(NOON)),
+        logger = FoodLogger(diary, catalog, FakeRecentLogEvents(), loggerTelemetry, Clock.fixed(NOON)),
         calendar = FakeCalendar(),
         selectedDay = FakeSelectedDay(),
         clock = Clock.fixed(NOON),
         appState = FakeAppState(),
         telemetry = loggerTelemetry,
-        mealPicks = FakeMealPicks(),
         scanEnabled = scanFlag(false),
         photoEnabled = photoFlag(false),
         voice = DescribeVoice(speech, voiceFlag(voiceOn), telemetry),
-        searchOptionsEnabled = searchOptionsFlag(false),
-        optionsTelemetry = RecordingSearchOptionsTelemetry(),
+        fastingRelease = fastingFlag(false),
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {
@@ -400,7 +396,7 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
         settle()
 
         assertFalse(speech.listening)
-        assertEquals(LoggerPane.Search, vm.state.pane)
+        assertEquals(LoggerPane.Actions, vm.state.pane)
         assertEquals("", vm.state.describe.text)
         assertTrue(catalog.described.isEmpty())
     }

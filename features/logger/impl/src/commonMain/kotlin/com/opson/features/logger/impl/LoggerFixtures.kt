@@ -3,7 +3,6 @@ package com.opson.features.logger.impl
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FoodUnit
-import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -13,6 +12,7 @@ import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SearchDatabase
 import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.foods.AmountUnit
 import com.opson.libraries.foods.Confidence
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
@@ -177,7 +177,6 @@ object LoggerFixtures {
     )
 
     fun inputs(
-        basket: List<BasketItem> = emptyList(),
         settings: Settings = Settings(),
         date: LocalDate = today,
         firstRun: Boolean = false,
@@ -186,57 +185,46 @@ object LoggerFixtures {
         day = if (firstRun) Day.empty(date) else day(date),
         dayBefore = if (firstRun) Day.empty(date.minus(1, DateTimeUnit.DAY)) else dayBefore(),
         settings = settings,
-        basket = basket,
-        usualBySlot = if (firstRun) emptyMap() else mapOf(MealSlot.Dinner to listOf(arroz, sinangag, salad).map { item(it, MealSlot.Dinner) }),
-        recent = if (firstRun) emptyList() else listOf(banana, yogurt, poutine).map { item(it, MealSlot.Lunch) },
-        customFoods = listOf(granola),
+        recent = if (firstRun) emptyList() else listOf(rice, arroz, yogurt, banana, poutine, salad).map { item(it, MealSlot.Lunch) },
         savedMeals = if (firstRun) emptyList() else savedMeals,
+        customFoods = listOf(granola),
     )
 
-    /** Arroz con pollo and the garlic rice picked from "Usual at dinner", as in 3.2. */
-    fun pickedBasket(): List<BasketItem> = listOf(arroz, sinangag).map { food ->
-        val ref = FoodRef.Catalog(food.id)
-        BasketItem(ref.key, ref, food.toLogDraft(FoodAmount.Servings(1.0), method = LogMethod.Favorite), PickSource.Usual, food)
-    }
-
-    fun search(query: String = "rice", offline: Boolean = false): SearchOutcome = SearchOutcome(
-        query = query,
-        foods = if (offline) listOf(rice) else listOf(rice, sinangag, pudding, arroz, mango, kabsa),
-        offline = offline,
-    )
-
-    /** A term the catalog has nothing for, as in 3.6. */
-    const val MISSING_TERM: String = "kare-kare"
-
-    fun emptySearch(): SearchOutcome = SearchOutcome(query = MISSING_TERM, foods = emptyList(), offline = false)
-
+    /**
+     * The + sheet (13.4a, 13.4b) with every flag the design draws on: the barcode, the photo,
+     * voice and fasting (with the timer on). [height] Full is the sheet dragged up, Recent showing.
+     */
     @Suppress("LongParameterList")
-    fun loggerState(
+    fun sheetState(
         policy: VisibilityPolicy,
-        basket: List<BasketItem> = emptyList(),
-        query: String = "",
-        search: SearchOutcome? = null,
-        settings: Settings = Settings(),
+        height: SheetHeight = SheetHeight.Partial,
+        settings: Settings = Settings(fasting = true),
         date: LocalDate = today,
         firstRun: Boolean = false,
-        pickingForMeal: Boolean = false,
-        scanAvailable: Boolean = false,
-        photoAvailable: Boolean = false,
+        flags: Boolean = true,
         slot: MealSlot = MealSlot.Dinner,
-        height: SheetHeight = if (query.isBlank() && !pickingForMeal) SheetHeight.Partial else SheetHeight.Full,
-    ): LoggerState = LoggerStateBuilder.build(
-        inputs = inputs(basket = basket, settings = settings, date = date, firstRun = firstRun),
-        policy = policy,
-        choices = LoggerChoices(
-            slot = slot,
-            query = query,
-            search = search,
-            pickingForMeal = pickingForMeal,
-            scanAvailable = scanAvailable,
-            photoAvailable = photoAvailable,
-            height = height,
-        ),
-    )
+        added: Boolean = false,
+    ): LoggerState {
+        val inputs = inputs(settings = settings, date = date, firstRun = firstRun)
+        // Jasmine rice went in from Recent's + since the sheet opened: its row draws ✓.
+        val logged = if (added) inputs.copy(day = inputs.day.with(item(rice, slot, date, minutesAgo = 1))) else inputs
+        return LoggerStateBuilder.build(
+            inputs = logged,
+            policy = policy,
+            choices = LoggerChoices(
+                slot = slot,
+                height = height,
+                scanAvailable = flags,
+                photoAvailable = flags,
+                voiceEnabled = flags,
+                fastingReleased = flags,
+                seen = inputs.day.allItems.mapTo(HashSet()) { it.id },
+            ),
+        )
+    }
+
+    /** [this] with [item] logged to its slot. */
+    private fun Day.with(item: LogItem): Day = copy(itemsBySlot = itemsBySlot + (item.slot to items(item.slot) + item))
 
     /** 10:40 on [today]: a time this person has no regular meal at (3.1b). */
     val midMorning: LocalDateTime = LocalDateTime(today, LocalTime(10, 40))
@@ -265,24 +253,79 @@ object LoggerFixtures {
         )
     }
 
-    /** The logger the nav + opens at 10:40, the meal picked from this history: Uncategorized, "Usual around 10:30 AM". */
-    fun uncategorizedInputs(): LoggerInputs =
-        inputs().copy(recentDays = midMorningHistory(), now = midMorning, timeZone = TimeZone.UTC)
-
-    fun uncategorizedState(policy: VisibilityPolicy, scanAvailable: Boolean = false, photoAvailable: Boolean = false): LoggerState {
-        val inputs = uncategorizedInputs()
+    /** The + sheet at 10:40, the meal picked from this history: Uncategorized. */
+    fun uncategorizedState(policy: VisibilityPolicy): LoggerState {
+        val inputs = inputs().copy(recentDays = midMorningHistory(), now = midMorning, timeZone = TimeZone.UTC)
         val slot = MealSlotPicker.pick(inputs.recentDays, inputs.now, inputs.timeZone)
-        return LoggerStateBuilder.build(
-            inputs = inputs,
-            policy = policy,
-            choices = LoggerChoices(slot = slot, scanAvailable = scanAvailable, photoAvailable = photoAvailable),
-        )
+        return LoggerStateBuilder.build(inputs = inputs, policy = policy, choices = LoggerChoices(slot = slot))
     }
 
-    fun searchState(policy: VisibilityPolicy): LoggerState = loggerState(policy, query = "rice", search = search())
+    // ── Search (13.4c) ──────────────────────────────────────────────────────
 
-    fun searchEmptyState(policy: VisibilityPolicy): LoggerState =
-        loggerState(policy, query = MISSING_TERM, search = emptySearch())
+    /** What search reads: rice is this person's usual cup, so its row says so. */
+    fun searchInputs(settings: Settings = Settings(), date: LocalDate = today, firstRun: Boolean = false): SearchInputs = SearchInputs(
+        today = today,
+        day = if (firstRun) Day.empty(date) else day(date),
+        settings = settings,
+        usualBySlot = if (firstRun) emptyMap() else mapOf(MealSlot.Dinner to listOf(arroz, sinangag, salad).map { item(it, MealSlot.Dinner) }),
+        recent = if (firstRun) emptyList() else listOf(banana, yogurt, poutine).map { item(it, MealSlot.Lunch) },
+        customFoods = listOf(granola),
+        savedMeals = if (firstRun) emptyList() else savedMeals,
+        history = if (firstRun) emptyList() else listOf(rice, banana, yogurt, arroz).mapIndexed { i, food -> item(food, MealSlot.Dinner, date.minus(1, DateTimeUnit.DAY), minutesAgo = i) },
+        frequent = if (firstRun) emptyList() else listOf(rice, banana).map { item(it, MealSlot.Dinner, date.minus(1, DateTimeUnit.DAY)) },
+    )
+
+    fun search(query: String = "rice", offline: Boolean = false): SearchOutcome = SearchOutcome(
+        query = query,
+        foods = if (offline) listOf(rice) else listOf(rice, brownRice, riceNoodles, friedRice, riceCakes, pudding),
+        offline = offline,
+    )
+
+    /** A term the catalog has nothing for, as in 3.6. */
+    const val MISSING_TERM: String = "kare-kare"
+
+    fun emptySearch(): SearchOutcome = SearchOutcome(query = MISSING_TERM, foods = emptyList(), offline = false)
+
+    /**
+     * Search for [query] with the catalog's [search] answer, as 13.4c draws it: [added] logs
+     * jasmine rice from its + since search opened, so its row draws ✓.
+     */
+    @Suppress("LongParameterList")
+    fun searchState(
+        policy: VisibilityPolicy,
+        query: String = "rice",
+        search: SearchOutcome? = if (query.isBlank()) null else search(query),
+        scope: SearchScope = SearchScope.All,
+        added: Boolean = true,
+        pickingForMeal: Boolean = false,
+        flags: Boolean = true,
+        firstRun: Boolean = false,
+        settings: Settings = Settings(),
+    ): FoodSearchState {
+        val inputs = searchInputs(settings = settings, firstRun = firstRun)
+        val logged = if (added && !pickingForMeal) inputs.copy(day = inputs.day.with(item(rice, MealSlot.Dinner, minutesAgo = 1))) else inputs
+        val choices = SearchChoices(
+            slot = MealSlot.Dinner,
+            query = query,
+            search = search,
+            scope = scope,
+            scanAvailable = flags,
+            photoAvailable = flags,
+            pickingForMeal = pickingForMeal,
+            seen = inputs.day.allItems.mapTo(HashSet()) { it.id },
+        )
+        val picked = if (pickingForMeal) FoodSearchStateBuilder.picks(logged, choices).take(2).map { it.toLogPick() } else emptyList()
+        return FoodSearchStateBuilder.build(logged, policy, choices.copy(picked = picked))
+    }
+
+    fun searchEmptyState(policy: VisibilityPolicy): FoodSearchState =
+        searchState(policy, query = MISSING_TERM, search = emptySearch(), added = false)
+
+    // More rice for 13.4c.
+    val brownRice = food("brown-rice", "Brown rice, cooked", "1 cup", 195.0, 215.0, 5.0, 45.0, 1.8)
+    val riceNoodles = food("rice-noodles", "Rice noodles, cooked", "1 cup", 176.0, 190.0, 3.2, 42.0, 0.4)
+    val friedRice = food("fried-rice", "Fried rice, takeout", "1 cup", 198.0, 280.0, 6.0, 42.0, 9.0)
+    val riceCakes = food("rice-cakes", "Rice cakes, plain", "1 cake", 9.0, 35.0, 0.7, 7.3, 0.3)
 
     // Describe's foods, with the measures and the alternatives the server sends with them.
     val eggLarge = food("egg", "Egg, large", "1 large", 50.0, 78.0, 6.3, 0.6, 5.3, more = listOf(Portion("1 cup", 135.0)))
@@ -341,7 +384,7 @@ object LoggerFixtures {
         review: DescribeReview = if (parsedLines) describeReview(policy) else DescribeReview(),
         text: String = if (parsedLines) "2 eggs and toast" else "",
     ): LoggerState = LoggerStateBuilder.build(
-        inputs = inputs(basket = review.rows.map { it.toBasketItem() }),
+        inputs = inputs(),
         policy = policy,
         choices = LoggerChoices(
             slot = MealSlot.Breakfast,
@@ -380,41 +423,59 @@ object LoggerFixtures {
     val coffee = food("coffee", "Coffee, brewed", "1 cup (8 fl oz)", 240.0, 2.0, 0.3, 0.0, 0.0)
     val latte = food("latte", "Coffee, latte", "1 medium", 480.0, 206.0, 13.0, 20.0, 8.0)
 
+
     fun savedState(policy: VisibilityPolicy): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(),
         policy = policy,
         choices = LoggerChoices(slot = MealSlot.Dinner, pane = LoggerPane.Saved, height = SheetHeight.Full),
     )
 
-    /** 6:15 pm on [today], when the amount sheet fixtures are opened. */
-    val evening: LocalTime = LocalTime(18, 15)
+    // ── Food detail (13.4d) ─────────────────────────────────────────────────
 
-    /** Sizes this person saved for arroz con pollo, so the unit menu (3.3b) has more than the catalog's. */
+    /** 6:12 pm on [today], when the detail fixtures are opened. */
+    val evening: LocalTime = LocalTime(18, 12)
+
+    /** Peanut butter as 13.4d draws it: a tablespoon is 16 g, and the label's numbers per 32 g. */
+    val peanutButter = food(
+        "peanut-butter", "Peanut butter", "1 tbsp", 16.0, 95.0, 4.0, 3.5, 8.0,
+        micros = mapOf("vitamin_e_mg" to 1.4, "magnesium_mg" to 27.0, "potassium_mg" to 104.0, "niacin_mg" to 2.1, "sodium_mg" to 73.0),
+    )
+
+    /** Sizes this person saved for arroz con pollo, so the unit menu has more than the catalog's. */
     val arrozSizes: Settings = Settings()
         .withUnit("f:arroz", FoodUnit("serving", 300.0))
         .withUnit("f:arroz", FoodUnit("oz", 28.0))
         .toggleFavorite("f:arroz")
 
-    fun amountInputs(policy: VisibilityPolicy, settings: Settings = arrozSizes): AmountInputs =
-        AmountInputs(settings = settings, policy = policy, day = day(), today = today, now = evening)
+    fun detailInputs(policy: VisibilityPolicy, settings: Settings = Settings()): DetailInputs =
+        DetailInputs(settings = settings, policy = policy, day = day(), today = today, now = evening)
 
-    /** Arroz con pollo, one plate, an estimate, for dinner, starred: 3.3. [nutrientsOpen]: All nutrients tapped open. */
-    fun amountState(
-        policy: VisibilityPolicy,
-        settings: Settings = arrozSizes,
-        precision: Precision = Precision.Estimate,
-        nutrientsOpen: Boolean = false,
-    ): AmountState {
-        val food = AmountFood.Catalog(arroz)
-        val ref = FoodRef.Catalog(arroz.id)
-        val choice = AmountChoice.initial(food, MealSlot.Dinner, settings.unitsFor(ref.key))
-            .copy(precision = precision, nutrientsOpen = nutrientsOpen)
-        return AmountStateBuilder.build(food, choice, amountInputs(policy, settings), ref, PickSource.Usual)
+    /**
+     * 13.4d: peanut butter, 32 typed into the field in grams, which made the estimate weighed.
+     * [nutrientsOpen]: All nutrients tapped open.
+     */
+    fun detailState(policy: VisibilityPolicy, nutrientsOpen: Boolean = false): FoodDetailState {
+        val food = AmountFood.Catalog(peanutButter)
+        val ref = FoodRef.Catalog(peanutButter.id)
+        val grams = food.units(emptyList()).indexOf(AmountUnit.Grams)
+        val choice = DetailChoice.initial(food, MealSlot.Dinner)
+            .copy(unit = food.units(emptyList())[grams], nutrientsOpen = nutrientsOpen)
+            .typed("32")
+        return FoodDetailStateBuilder.build(food, choice, detailInputs(policy), ref, PickSource.Search)
     }
 
-    /** The Custom size dialog open over 3.3, "my bowl" half typed. */
-    fun customSizeState(policy: VisibilityPolicy): AmountState =
-        amountState(policy).copy(customSize = CustomSizeUi(name = "my bowl", grams = "420"))
+    /** Arroz con pollo as it opens, one plate, with the person's own sizes in the unit menu. */
+    fun detailUnitsState(policy: VisibilityPolicy): FoodDetailState {
+        val food = AmountFood.Catalog(arroz)
+        val ref = FoodRef.Catalog(arroz.id)
+        val choice = DetailChoice.initial(food, MealSlot.Dinner, arrozSizes.unitsFor(ref.key))
+        return FoodDetailStateBuilder.build(food, choice, detailInputs(policy, arrozSizes), ref, PickSource.Usual)
+    }
+
+    /** The Custom size dialog open, "my bowl" half typed. */
+    fun customSizeState(policy: VisibilityPolicy): FoodDetailState =
+        detailUnitsState(policy).copy(customSize = CustomSizeUi(name = "my bowl", grams = "420"))
+
 
     /** A packaged food a scan found: a manufacturer's label, its serving first. */
     val scannedYogurt: Food = food(
@@ -431,14 +492,15 @@ object LoggerFixtures {
         micros = mapOf("calcium_mg" to 150.0, "potassium_mg" to 200.0, "vitamin_d_ug" to 0.0, "iron_mg" to 0.0, "sodium_mg" to 55.0),
     ).copy(source = FoodSource.UsdaBranded, barcode = "00036632027627", tier = FoodTier.Label, verified = true)
 
+
     /** The code the scan fixtures read and missed. */
     const val MISSED_CODE = "4006381333931"
 
-    /** The amount sheet a hit opens, as it opens: the label's serving, nothing chosen yet. */
-    fun scannedAmountState(policy: VisibilityPolicy): AmountState {
+    /** The detail a hit opens, as it opens: the label's serving, nothing chosen yet. */
+    fun scannedDetailState(policy: VisibilityPolicy): FoodDetailState {
         val food = AmountFood.Catalog(scannedYogurt)
         val ref = FoodRef.Catalog(scannedYogurt.id)
-        return AmountStateBuilder.build(food, AmountChoice.initial(food, MealSlot.Dinner), amountInputs(policy, Settings()), ref, PickSource.Barcode)
+        return FoodDetailStateBuilder.build(food, DetailChoice.initial(food, MealSlot.Dinner), detailInputs(policy), ref, PickSource.Barcode)
     }
 
     fun scanState(model: ScanModel): BarcodeScanState = BarcodeScanStateBuilder.build(MealSlot.Dinner, model)
@@ -477,16 +539,16 @@ object LoggerFixtures {
     )
 
     /** Everything the options read: favorites, a longer history, and the catalog foods the device knows. */
-    fun optionsInputs(settings: Settings = Settings()): LoggerInputs = inputs(settings = settings).copy(
+    fun optionsInputs(settings: Settings = Settings()): SearchInputs = searchInputs(settings = settings).copy(
         customFoods = listOf(granola, riceBowl),
-        favorites = listOf(arroz, banana, yogurt).map { item(it, MealSlot.Dinner) },
+        frequent = listOf(arroz, banana, yogurt).map { item(it, MealSlot.Dinner) },
         history = listOf(sinangag, banana, arroz, yogurt, kabsa).mapIndexed { i, food -> item(food, MealSlot.Lunch, minutesAgo = i * 60) },
         known = listOf(arroz, banana, yogurt, sinangag, kabsa).associateBy { it.id },
     )
 
     /**
-     * The Logger with `release.searchOptions` on: tabs, the options button and a badge on every
-     * row. The catalog's answer is for exactly the filter these choices ask for.
+     * Search with `release.searchOptions` on: tabs, the options button and a badge on every row.
+     * The catalog's answer is for exactly the filter these choices ask for.
      */
     fun optionsState(
         policy: VisibilityPolicy,
@@ -494,17 +556,16 @@ object LoggerFixtures {
         query: String = "rice",
         settings: Settings = Settings(),
         openFoodFacts: Boolean = true,
-    ): LoggerState {
+    ): FoodSearchState {
         val inputs = optionsInputs(settings)
-        val choices = LoggerChoices(
+        val choices = SearchChoices(
             slot = MealSlot.Dinner,
             query = query,
             searchOptions = true,
             tab = tab,
             openFoodFacts = openFoodFacts,
-            height = SheetHeight.Full,
         )
-        val filter = LoggerStateBuilder.catalogFilter(inputs, choices)
+        val filter = FoodSearchStateBuilder.catalogFilter(inputs, choices)
         val foods = when {
             filter?.source == SearchSource.Usda || tab == SearchTab.Common -> listOf(usdaRice, brandedRice, pudding)
             filter?.source == SearchSource.OpenFoodFacts -> listOf(offRice)
@@ -512,7 +573,7 @@ object LoggerFixtures {
             else -> listOf(usdaRice, brandedRice, offRice, pudding)
         }
         val search = filter?.let { SearchOutcome(query = query.trim(), foods = foods, offline = false, filter = it) }
-        return LoggerStateBuilder.build(inputs, policy, choices.copy(search = search))
+        return FoodSearchStateBuilder.build(inputs, policy, choices.copy(search = search))
     }
 
     /** The options sheet with a sort and a database picked, Open Food Facts offered. */

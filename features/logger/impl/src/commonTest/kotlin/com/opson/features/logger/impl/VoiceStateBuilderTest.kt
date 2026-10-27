@@ -1,6 +1,5 @@
 package com.opson.features.logger.impl
 
-import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.PresetId
 import kotlin.test.Test
@@ -57,16 +56,6 @@ class VoiceStateBuilderTest {
         val denied = VoiceNotice.Denied(canAskAgain = false)
         assertEquals(VoiceUi(notice = denied), VoiceFixtures.notice(full, denied).describe.voice)
         assertTrue(VoiceStateBuilder.build(true, VoiceCapture.Idle(focusText = true))?.focusText == true)
-    }
-
-    @Test
-    fun pickingForAMealHasNoMic() {
-        val state = LoggerStateBuilder.build(
-            inputs = LoggerFixtures.inputs(),
-            policy = full,
-            choices = LoggerChoices(slot = MealSlot.Dinner, pickingForMeal = true, voiceEnabled = true),
-        )
-        assertNull(state.describe.voice)
     }
 
     /** The voice path's lines are the Describe lines: Full shows their energy, Blind hides it. */

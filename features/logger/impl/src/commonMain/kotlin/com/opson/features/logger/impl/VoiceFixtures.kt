@@ -26,7 +26,7 @@ object VoiceFixtures {
     ): LoggerState {
         val review = if (parsedLines) LoggerFixtures.describeReview(policy) else DescribeReview()
         return LoggerStateBuilder.build(
-            inputs = LoggerFixtures.inputs(basket = review.rows.map { it.toBasketItem() }),
+            inputs = LoggerFixtures.inputs(),
             policy = policy,
             choices = LoggerChoices(
                 slot = MealSlot.Breakfast,

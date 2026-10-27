@@ -10,7 +10,6 @@
 <resources>
 
     <!-- Logger chip -->
-    <string name="photo_method">Photo</string>
 
     <!-- Header -->
     <string name="photo_overline">Photo for %1$s</string>

@@ -10,8 +10,10 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.features.logger)
-            // The meal note sheet behind "Add a note".
+            // Routes the + sheet opens in its place: the meal note (Note), Weight (Weigh-in) and Fasting.
             implementation(projects.features.today)
+            implementation(projects.features.trends)
+            implementation(projects.features.settings)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
