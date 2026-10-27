@@ -106,16 +106,28 @@ class WeightViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun saveTapped_invalid_isIgnored() = runUnitTest {
+    fun saveTapped_empty_doesNothing() = runUnitTest {
         val vm = vm()
         vm.takeAction(WeightAction.SaveTapped)
+        assertTrue(weights.added.isEmpty())
+        assertFalse(vm.state.notAWeight)
+    }
+
+    @Test
+    fun saveTapped_aNumberNoOneWeighs_savesNothing_andSaysSo_untilTheyTypeAgain() = runUnitTest {
+        val vm = vm(preset = PresetId.NoNumbers)
         vm.takeAction(WeightAction.WeightTyped("0"))
         vm.takeAction(WeightAction.SaveTapped)
-        vm.takeAction(WeightAction.WeightTyped("7000"))
+        assertTrue(vm.state.notAWeight, "a masked field doesn't show the typo, so the page says it")
+
+        vm.takeAction(WeightAction.WeightTyped("7255"))
+        assertFalse(vm.state.notAWeight)
         vm.takeAction(WeightAction.SaveTapped)
+
         assertTrue(weights.added.isEmpty())
-        assertEquals("7000", vm.state.input)
+        assertEquals("7255", vm.state.input)
         assertEquals(null, vm.state.saved)
+        assertTrue(vm.state.notAWeight)
     }
 
     @Test

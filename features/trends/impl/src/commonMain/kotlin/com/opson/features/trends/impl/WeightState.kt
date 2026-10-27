@@ -52,6 +52,8 @@ data class WeightUi(
     val saved: Boolean = false,
     /** The last save didn't reach the database. */
     val failed: Boolean = false,
+    /** The last save was refused: zero, or more than anyone weighs. */
+    val notAWeight: Boolean = false,
 )
 
 /**
@@ -80,6 +82,11 @@ data class WeightState(
     val saved: SavedNote? = null,
     /** The weigh-in wasn't saved: it stays in the field, with a line saying so. */
     val saveFailed: Boolean = false,
+    /**
+     * What was typed is not a weight (zero, or past the 700 kg ceiling), so Save kept nothing. Said
+     * out loud because a masked field doesn't show the typo.
+     */
+    val notAWeight: Boolean = false,
     /** `null` while the release flag is off or Modes has photos at Hide. */
     val photos: PhotosRow? = null,
 )
@@ -156,6 +163,7 @@ object WeightStateBuilder {
                 else -> SavedNote.OutOfView
             },
             saveFailed = ui.failed,
+            notAWeight = ui.notAWeight,
             // Modes' Progress photos row, Show or Hide; Hide removes this row (design sync 2, 8.x).
             photos = if (inputs.photosReleased && policy.settings.showsProgressPhotos) PhotosRow(inputs.photosLastTaken) else null,
         )
