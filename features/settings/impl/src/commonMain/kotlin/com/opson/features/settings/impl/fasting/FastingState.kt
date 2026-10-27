@@ -10,9 +10,8 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
-/** The Fasting page (docs/plans/screens/fasting.md). */
+/** The Fasting page (docs/plans/screens/fasting.md). [page] is null while its inputs load. */
 data class FastingState(
-    val loading: Boolean = true,
     val page: FastingPage? = null,
 )
 
@@ -68,6 +67,6 @@ object FastingStateBuilder {
                 },
             )
         }
-        return FastingState(loading = false, page = page)
+        return FastingState(page = page)
     }
 }
