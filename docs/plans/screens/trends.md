@@ -336,7 +336,7 @@ week tells you more than a day.`; off card `Vitamins and minerals are off` /
 detail in this mode. Your meals are all still logged.`
 
 ### Tests
-Builder: Full day (off card), micros shown on Week average, Delayed week (open),
+Builder: Full day (micros shown), Full with micros hidden (off card), micros shown on Week average, Delayed week (open),
 Fuel (soft words, no range), Blind (`nothing`), bars capped by the component.
 ViewModel: range switch re-subscribes, `ModesTapped` emits `OpenModes`.
 `SURFACES`: `nutrients`, `nutrients-week`.

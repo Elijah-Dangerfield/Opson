@@ -13,7 +13,8 @@ import kotlin.test.assertTrue
  * The ten presets match `PRESETS` in `docs/design/handoff/phone-logic.js`
  * metric for metric, including the line that softens water everywhere but
  * Full and Sprint, and the flags screens read (layout, reveal, meal count,
- * banner, fasting).
+ * banner, fasting). One deliberate difference: Full and Sprint show micros,
+ * where the prototype made them opt-in (`docs/decisions.md`, 2026-10-27).
  *
  * Not covered here: how a level renders, which is [VisibilityPolicyResolveTest]
  * and [VisibilityPolicyRevealTest].
@@ -25,8 +26,8 @@ class PresetsTest {
     // Order: calories, remaining, energyOut, protein, carbs, fat, fiber, micros, weight, water.
 
     @Test
-    fun full_showsEverythingButMicros() {
-        assertEquals(listOf(Show, Show, Show, Show, Show, Show, Show, Hide, Show, Show), levels(Presets.Full))
+    fun full_showsEverything_microsIncluded() {
+        assertEquals(listOf(Show, Show, Show, Show, Show, Show, Show, Show, Show, Show), levels(Presets.Full))
     }
 
     @Test
