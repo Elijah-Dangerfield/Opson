@@ -26,6 +26,7 @@ import com.opson.libraries.opson.UserScopedWorkStopper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -94,9 +96,13 @@ internal enum class DrainOutcome {
  * after the last one. Every sync posts at least once, even with nothing
  * queued, because the response is how other devices' changes arrive.
  *
- * **Single flight.** Concurrent callers share the sync already running rather
- * than stacking requests. The sync runs in the app scope, so a screen that
- * asked for it and then closed does not cancel it halfway.
+ * **One at a time, never stale.** A caller never joins a sync that is already
+ * talking to the server: that sync may have pulled before the change the
+ * caller is after, and nothing would pull again until the next trigger. It
+ * waits for that sync and gets the next one, which everyone who asks in the
+ * meantime shares, so a burst of callers costs one extra sync, not one each.
+ * Syncs run in the app scope, so a screen that asked for one and then closed
+ * does not cancel it halfway.
  *
  * **Drain.** Up to [MAX_REQUESTS_PER_SYNC] requests of [OUTBOX_PAGE_SIZE]
  * rows, following `hasMore` on the pull side. Progress is judged by the outbox
@@ -130,8 +136,17 @@ class DiarySyncer(
 
     private val logger = KLog.withTag("DiarySync")
 
+    /** Guards [next] and [running]. */
     private val syncMutex = Mutex()
-    private var inFlight: Deferred<Result<Unit>>? = null
+
+    /** Held for a whole drain, so syncs run one after another. */
+    private val drainLock = Mutex()
+
+    /** A sync waiting for [drainLock]. Everyone who asks before it starts shares it. */
+    private var next: Deferred<Result<Unit>>? = null
+
+    /** The sync that holds [drainLock], for [stopWorkFor] to cancel. */
+    private var running: Job? = null
 
     /**
      * The user whose work [stopWorkFor] stopped. Their data is about to be
@@ -167,7 +182,7 @@ class DiarySyncer(
 
     override suspend fun sync(): Result<Unit> {
         val deferred = syncMutex.withLock {
-            inFlight?.takeIf { it.isActive } ?: appScope.async { runSync() }.also { inFlight = it }
+            next?.takeIf { it.isActive } ?: appScope.async { drainLock.withLock { runSync() } }.also { next = it }
         }
         return try {
             deferred.await()
@@ -181,11 +196,22 @@ class DiarySyncer(
 
     override suspend fun stopWorkFor(previousUserId: String) {
         stoppedFor = previousUserId
-        val running = syncMutex.withLock { inFlight.also { inFlight = null } }
-        running?.cancelAndJoin()
+        val stopping = syncMutex.withLock {
+            listOfNotNull(next, running).also {
+                next = null
+                running = null
+            }
+        }
+        stopping.forEach { it.cancelAndJoin() }
     }
 
+    /** Runs holding [drainLock]. From here on, callers wait for the sync after this one. */
     private suspend fun runSync(): Result<Unit> {
+        val self = currentCoroutineContext().job
+        syncMutex.withLock {
+            if (next === self) next = null
+            running = self
+        }
         val user = activeUser.user.value
         if (user is ActiveUser.SignedIn && user.userId == stoppedFor) return Result.success(Unit)
         return Catching { drain() }
