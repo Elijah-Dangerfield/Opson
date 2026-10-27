@@ -71,11 +71,18 @@ internal data class SchemeColors(
  *   remain (day close, fasting, find support) take the dark scheme's raised, which keeps white
  *   text on them at 12:1.
  * - **scrim** is the sheet's #363D4C at the handoff's 45%.
- * - **Nutrient tints** are unchanged: the light nutrient colors are the same hex as before.
+ * - **Nutrient tints** are unchanged: the light nutrient colors are the same hex as before, except
+ *   carbs.
+ * - **carbs** was the squash. With the accent now orange it moved to a wheat gold, #C4920A on
+ *   #FBF0D0, so the Eaten bar, the breakfast tile and the logger's note never pass for the accent.
+ * - **accent** is the logo's squash (#E0892B) burnt down to #A3500A. The squash itself is 2.7:1 on
+ *   white and white on it is 2.7:1, so it can carry neither text nor a white label. The burnt one
+ *   is text on surface (5.7), bg (5.0), raised (4.7) and its tint (4.7), and white on it is 5.7, so
+ *   buttons keep white labels. It sits between the danger brick and the fiber brown: yellower
+ *   than one, fuller than the other.
+ * - **accentTint** is a pale peach, not the carbs tint, so a selected row never reads as breakfast.
  *
- * WCAG AA, checked by `SlateTest`: ink, inkSoft and muted pass on bg, surface and raised. The
- * accent passes as text on the surface (4.8) but not on bg (4.25) or raised (4.0), so accent text
- * belongs on a card; on bg it is for icons, fills and large text, which need 3:1.
+ * WCAG AA, checked by `SlateTest`: ink, inkSoft, muted and the accent pass on bg, surface and raised.
  */
 internal val SlateLight = SchemeColors(
     bg = Color(0xFFEEF1F6),
@@ -85,9 +92,8 @@ internal val SlateLight = SchemeColors(
     ink = Color(0xFF18202E),
     inkSoft = Color(0xFF3F485A),
     muted = Color(0xFF5A6478),
-    // The design's #1F7F78, one step darker so accent text passes AA on the page, raised and tint too.
-    accent = Color(0xFF0F766F),
-    accentTint = Color(0xFFD8EEEB),
+    accent = Color(0xFFA3500A),
+    accentTint = Color(0xFFFCE7D8),
     onAccent = Color(0xFFFFFFFF),
     hero = Color(0xFF2D3647),
     scrim = Color(0x73363D4C),
@@ -95,7 +101,7 @@ internal val SlateLight = SchemeColors(
     activeEnergy = Color(0xFF1F7F78),
     nutrients = NutrientColors(
         protein = tone("protein", 0xFFD1477A, 0xFFFAE3EC),
-        carbs = tone("carbs", 0xFFE0892B, 0xFFFCEBD8),
+        carbs = tone("carbs", 0xFFC4920A, 0xFFFBF0D0),
         fat = tone("fat", 0xFF3D7FD9, 0xFFDFEAFA),
         fiber = tone("fiber", 0xFF8E6E3A, 0xFFF1E8DC),
     ),
@@ -106,9 +112,15 @@ internal val SlateLight = SchemeColors(
  * sheet, so derived or measured on the Round 4 dark screens:
  *
  * - **inkSoft**, **hero**: as light.
- * - **onAccent** is the near-black teal of the + on the add button (`today-later.png`), not bg.
+ * - **accent** is a lit pumpkin, #F7924A: text on bg (7.0), surface (6.1), raised (5.3) and its
+ *   tint (5.5). Redder and fuller than the logo's egg (#F0AC66), so it reads as the same orange as
+ *   the light theme's and stays clear of the carbs color.
+ * - **onAccent** is a near-black brown (8.0 on the accent), as the + on the add button was a
+ *   near-black teal (`today-later.png`), not bg.
+ * - **activeEnergy** stays the bowl teal it was. Burned is cool on purpose (see [Colors]).
  * - **scrim** is the sheet's #0B0E14 at 63%, measured under the add sheet (`add-sheet-half.png`).
- * - **Nutrient tints** are the meal tiles (`today-select-v4.png`, `today-later.png`).
+ * - **Nutrient tints** are the meal tiles (`today-select-v4.png`, `today-later.png`), except
+ *   carbs, which went gold with the light theme's: #F2CC66 on #3F3822.
  */
 internal val SlateDark = SchemeColors(
     bg = Color(0xFF1B2130),
@@ -118,16 +130,16 @@ internal val SlateDark = SchemeColors(
     ink = Color(0xFFE6EAF2),
     inkSoft = Color(0xFFB6BECC),
     muted = Color(0xFF98A2B4),
-    accent = Color(0xFF6CCBBF),
-    accentTint = Color(0xFF22403F),
-    onAccent = Color(0xFF0F1E1D),
+    accent = Color(0xFFF7924A),
+    accentTint = Color(0xFF4A2C17),
+    onAccent = Color(0xFF1F120A),
     hero = Color(0xFF2D3647),
     scrim = Color(0xA10B0E14),
     restingEnergy = Color(0xFF8A96B2),
     activeEnergy = Color(0xFF6CCBBF),
     nutrients = NutrientColors(
         protein = tone("protein", 0xFFEE8BAE, 0xFF43293A),
-        carbs = tone("carbs", 0xFFF0AC66, 0xFF43352A),
+        carbs = tone("carbs", 0xFFF2CC66, 0xFF3F3822),
         fat = tone("fat", 0xFF84AEF0, 0xFF263552),
         fiber = tone("fiber", 0xFFCBA97A, 0xFF3B3329),
     ),

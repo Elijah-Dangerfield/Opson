@@ -25,6 +25,7 @@ import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.text.ProvideTextConfig
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
+import com.opson.system.AppTheme
 import com.opson.system.typography.TypographyResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -153,8 +154,8 @@ private fun NutrientValuePreview() {
                 metric = Metric.Protein,
                 value = 47.0,
                 surface = Surface.Today,
-                color = Color.DarkGray,
-                trackColor = Color.LightGray,
+                color = AppTheme.colors.nutrients.protein.content.color,
+                trackColor = AppTheme.colors.track.color,
                 context = FormatContext(of = 120.0),
                 modifier = Modifier.fillMaxWidth().height(8.dp),
             )

@@ -33,7 +33,7 @@
    Contrast (WCAG 2.x), every pair used for text:
      ink #241C18 on bg 15.1, ink-soft 8.6, muted 5.6, clay links 5.0, pine titles 10.8
      white on pine 12.0, on-hero-soft on pine 7.9, ink on light clay 7.3
-     ink on breakfast 6.2, white on lunch 4.8, snack 4.7, dinner 4.9, clay 5.5
+     ink on breakfast 6.0, white on lunch 4.8, snack 4.7, dinner 4.9, clay 5.5
    The light clay button against pine is 5.2, past the 3:1 a control needs. */
 :root {
   --bg: #F5F3F2;
@@ -55,10 +55,10 @@
   --cta: #E39A6F;
   --on-cta: #241C18;
 
-  /* The meal colors (Colors.meal): breakfast is the carbs orange, lunch the fat
+  /* The meal colors (Colors.meal): breakfast is the carbs gold, lunch the fat
      blue, snack the fiber brown, dinner the protein pink. Lunch and dinner are a
      step darker than in the app so white text on them passes AA. */
-  --breakfast: #E0892B;
+  --breakfast: #C4920A;
   --on-breakfast: #241C18;
   --lunch: #3572C9;
   --on-lunch: #FFFFFF;
