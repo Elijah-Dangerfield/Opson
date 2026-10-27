@@ -219,19 +219,29 @@ app actually ships:
 ./scripts/setup_supabase.main.kts
 ```
 
-Turns on anonymous sign-ins (the guest flow does not work without it), sets the
-site URL and redirect allow-list to this project's custom scheme, authorizes
-your iOS bundle ID for native Sign in with Apple, writes
-`supabase.projectId` / `url` / `anonKey` into `local.properties`, and fills the
-Supabase half of `apps/server/.env`. Needs a Supabase personal access token
-(`sbp_…`). The credential store holds it after the first time.
+Sets the site URL and redirect allow-list to this project's custom scheme,
+authorizes your iOS bundle ID for native Sign in with Apple, turns on manual
+linking, writes `supabase.projectId` / `url` / `anonKey` into
+`local.properties`, and fills the Supabase half of `apps/server/.env`. Needs a
+Supabase personal access token (`sbp_…`). The credential store holds it after
+the first time.
+
+Anonymous sign-ins go off on a project it creates: nothing in the app creates
+guests any more, so there they would only let anyone with the publishable key
+mint accounts. An adopted project keeps its setting, because 0.1 builds still
+make a guest on first launch. `--allow-anonymous` turns them on.
+
+`local.properties` is what debug builds sign in with. Release builds read the
+prod project from the committed `supabase.properties` and nothing else; if
+this run set up prod, copy the id and key there and commit it.
 
 It prints the generated database password exactly once. That value is per
 project, so it is deliberately not stored, and the Management API will not hand
 it back.
 
 Not covered: Google sign-in, which needs an OAuth client from the Google Cloud
-console. The app runs fine without it.
+console. Android has no other way to sign in, so an Android build cannot get
+past onboarding until it is set up (SETUP.md, step 3).
 
 ## setup_fly.main.kts
 

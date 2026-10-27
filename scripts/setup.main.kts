@@ -117,7 +117,7 @@ fun steps(): List<Step> {
         Step(
             name = "Supabase",
             script = "scripts/setup_supabase.main.kts",
-            what = "create the project, turn on anonymous sign-ins, wire the redirect URLs",
+            what = "create the project, authorize Sign in with Apple, wire the redirect URLs",
             applicable = true,
             alreadyDone = supabaseDone(),
         ),
