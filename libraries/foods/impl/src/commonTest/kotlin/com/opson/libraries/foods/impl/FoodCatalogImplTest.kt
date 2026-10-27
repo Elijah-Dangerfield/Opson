@@ -308,4 +308,8 @@ private class FakeFoodCacheDao : FoodCacheDao {
     override suspend fun deleteAll() {
         rows.value = emptyMap()
     }
+
+    override suspend fun deleteAllButFavorites() {
+        rows.value = rows.value.filterValues { it.favorite }
+    }
 }
