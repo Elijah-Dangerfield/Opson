@@ -84,6 +84,18 @@ class StoreReleaseNotesTest(unittest.TestCase):
         self.assertEqual(release.count("python3 -I scripts/store_release_notes.py"), 3, "Play, TestFlight and the App Store")
 
 
+class AndroidSentryTest(unittest.TestCase):
+    def test_a_missing_token_is_a_warning_not_a_silent_skip(self):
+        release = workflow("release.yml")
+        warning = re.search(r"if: env\.SENTRY_AUTH_TOKEN == ''\s+run: echo \"::warning::SENTRY_AUTH_TOKEN", release)
+        self.assertIsNotNone(warning, "the Sentry step skips on a missing token with nothing to say so")
+
+    def test_the_mapping_is_left_to_the_gradle_plugin(self):
+        # A hand-run upload-proguard has no ProGuard UUID to match against, so
+        # it associates with nothing and still reports success.
+        self.assertNotRegex(workflow("release.yml"), r"sentry/cli@\S+ upload-proguard")
+
+
 FASTFILE = ROOT / "apps" / "ios" / "fastlane" / "Fastfile"
 
 # Loads the Fastfile's helpers without fastlane: the DSL calls at its top level
