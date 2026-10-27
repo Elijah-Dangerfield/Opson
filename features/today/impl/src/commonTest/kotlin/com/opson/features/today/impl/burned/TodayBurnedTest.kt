@@ -101,11 +101,11 @@ class TodayBurnedTest : CoroutineTest() {
     }
 
     @Test
-    fun activitySwitchedOff_leavesOnlyResting() {
+    fun activitySwitchedOff_leavesRestingAndTheEverydayBaseline() {
         val card = assertNotNull(build(burned = burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(760, 0), activityCounted = false)))
 
-        assertEquals("1,600 kcal", card.total.text())
-        assertEquals(listOf(BurnedPartKind.Resting), card.parts.map { it.kind })
+        assertEquals("1,920 kcal", card.total.text(), "logged exercise stops counting; the ordinary day doesn't")
+        assertEquals(listOf(BurnedPartKind.Resting, BurnedPartKind.Everyday), card.parts.map { it.kind })
     }
 
     @Test

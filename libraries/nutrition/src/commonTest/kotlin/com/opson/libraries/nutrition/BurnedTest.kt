@@ -69,8 +69,8 @@ class BurnedTest {
         val logged = burnedFor(resting, health = null, EverydayActivity.SomeWalking, ExerciseTotals(180, 0), activityCounted = true)
         assertEquals(2390, logged.totalKcal, "logged exercise adds on top")
         val off = burnedFor(resting, health = null, EverydayActivity.SomeWalking, exercise = null, activityCounted = false)
-        assertEquals(1610, off.totalKcal, "Add activity to Burned off is resting energy only, whatever the source")
-        assertFalse(off.movementEstimated)
+        assertEquals(2210, off.totalKcal, "Add activity to Burned off still counts the ordinary day")
+        assertTrue(off.movementEstimated)
     }
 
     @Test

@@ -113,11 +113,17 @@ data class Burned(
     val exerciseKcal: Int? = null,
 ) {
     /** Whether the day's everyday movement is the [EverydayActivity] estimate, not a health app's reading. */
-    val movementEstimated: Boolean get() = activityCounted && everydayKcal != null
+    val movementEstimated: Boolean get() = everydayKcal != null
 
-    /** Everything above resting as counted: zero when switched off, nothing read or logged. */
+    /**
+     * Everything above resting as counted. Switched off, only the [everydayKcal] baseline is left
+     * ([burnedFor] explains why); nothing read or logged is zero.
+     */
     val activityKcal: Int
-        get() = if (activityCounted) listOf(movementKcal, workoutKcal, everydayKcal, exerciseKcal).sumOf { (it ?: 0).coerceAtLeast(0) } else 0
+        get() {
+            val counted = if (activityCounted) listOf(movementKcal, workoutKcal, everydayKcal, exerciseKcal) else listOf(everydayKcal)
+            return counted.sumOf { (it ?: 0).coerceAtLeast(0) }
+        }
 
     val totalKcal: Int get() = resting.kcal + activityKcal
 }

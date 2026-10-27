@@ -77,8 +77,14 @@ class ExerciseTest {
     }
 
     @Test
-    fun activitySwitchedOff_isRestingOnly_whateverTheSource() {
-        assertEquals(1600, burnedFor(resting, null, EverydayActivity.PhysicalWork, ExerciseTotals(500, 0), activityCounted = false).totalKcal)
+    fun activitySwitchedOff_keepsOnlyTheEverydayBaseline_whateverTheSource() {
+        val physical = EverydayActivity.PhysicalWork.kcalFor(1600)
+        assertEquals(1600 + physical, burnedFor(resting, null, EverydayActivity.PhysicalWork, ExerciseTotals(500, 0), activityCounted = false).totalKcal)
+        assertEquals(
+            1600 + physical,
+            burnedFor(resting, HealthActivity(300, 100), EverydayActivity.PhysicalWork, ExerciseTotals(500, 500), activityCounted = false).totalKcal,
+            "the watch's reading and logged exercise stop counting; the ordinary day doesn't",
+        )
         assertEquals(1600, burnedFor(resting, HealthActivity(300, 100), null, ExerciseTotals(500, 500), activityCounted = false).totalKcal)
     }
 

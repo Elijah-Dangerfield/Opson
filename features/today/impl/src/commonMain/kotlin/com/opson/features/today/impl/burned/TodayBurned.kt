@@ -107,8 +107,9 @@ object TodayBurnedStateBuilder {
                 total = energy(burned?.totalKcal),
                 parts = if (burned == null) emptyList() else buildList {
                     add(BurnedPart(BurnedPartKind.Resting, energy(burned.resting.kcal)))
+                    // The everyday baseline counts even with activity switched off (burnedFor).
+                    burned.everydayKcal?.let { add(BurnedPart(BurnedPartKind.Everyday, energy(it))) }
                     if (counted) {
-                        burned.everydayKcal?.let { add(BurnedPart(BurnedPartKind.Everyday, energy(it))) }
                         if (healthRead) add(BurnedPart(BurnedPartKind.Health, energy((burned.movementKcal ?: 0) + (burned.workoutKcal ?: 0))))
                         burned.exerciseKcal?.takeIf { it > 0 }?.let { add(BurnedPart(BurnedPartKind.Exercise, energy(it))) }
                     }

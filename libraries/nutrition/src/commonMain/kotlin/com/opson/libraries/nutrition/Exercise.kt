@@ -147,6 +147,11 @@ data class HealthActivity(val movementKcal: Int?, val workoutKcal: Int?)
  *
  * [everyday] counts whenever no health app reads activity, so a deficit or surplus is aimed at a
  * whole day without one. [exercise] is null with `release.exercise` off: nothing logged by hand.
+ *
+ * With [activityCounted] off ("Add activity to Burned"), workouts and movement stop earning
+ * calories, but the [everyday] baseline stays: an ordinary day is still an ordinary day. Dropping
+ * it too would aim a deficit at resting energy alone, several hundred calories lower, which is
+ * the unsafe direction (the owner's call, 2026-10-27).
  */
 fun burnedFor(
     resting: RestingEnergy,
@@ -154,7 +159,9 @@ fun burnedFor(
     everyday: EverydayActivity?,
     exercise: ExerciseTotals?,
     activityCounted: Boolean,
-): Burned = if (health != null) {
+): Burned = if (!activityCounted) {
+    Burned(resting = resting, activityCounted = false, everydayKcal = everyday?.kcalFor(resting.kcal))
+} else if (health != null) {
     Burned(
         resting = resting,
         movementKcal = health.movementKcal,

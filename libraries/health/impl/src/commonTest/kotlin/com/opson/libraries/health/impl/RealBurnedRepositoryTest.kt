@@ -103,7 +103,7 @@ class RealBurnedRepositoryTest {
         assertEquals(1430 + 570, burned?.totalKcal)
 
         val off = repository(settings = profiled.copy(activityInBurned = false)).burned(today).first()
-        assertEquals(1430, off?.totalKcal)
+        assertEquals(1430 + 290, off?.totalKcal, "switched off, the watch stops counting and the everyday baseline stays")
     }
 
     @Test

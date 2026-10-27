@@ -274,6 +274,7 @@
     <string name="settings_energy_movement">Daily movement</string>
     <string name="settings_energy_workouts">Workouts</string>
     <string name="settings_energy_not_counted">Not added to Burned</string>
+    <string name="settings_energy_everyday_always">An ordinary day, always counted</string>
     <string name="settings_energy_no_activity">No activity app connected</string>
     <string name="settings_energy_deficit_so_far">Deficit so far</string>
     <string name="settings_energy_surplus_so_far">Surplus so far</string>

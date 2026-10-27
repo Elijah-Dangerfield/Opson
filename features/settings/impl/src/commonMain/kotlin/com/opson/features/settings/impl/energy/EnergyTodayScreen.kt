@@ -64,6 +64,7 @@ import opson.libraries.resources.generated.resources.settings_energy_kcal
 import opson.libraries.resources.generated.resources.settings_energy_likely
 import opson.libraries.resources.generated.resources.settings_energy_logged
 import opson.libraries.resources.generated.resources.settings_energy_movement
+import opson.libraries.resources.generated.resources.settings_energy_everyday_always
 import opson.libraries.resources.generated.resources.today_burned_everyday
 import opson.libraries.resources.generated.resources.today_burned_exercise
 import opson.libraries.resources.generated.resources.settings_energy_no_activity
@@ -192,7 +193,10 @@ private fun BurnedCardView(burned: BurnedSection, onAction: (EnergyTodayAction) 
             BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.settings_energy_workouts), activityLine, burned.workouts)
         } else {
             HorizontalDivider(color = AppTheme.colors.line)
-            BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.today_burned_everyday), activityLine, burned.everyday)
+            // The everyday baseline still counts with activity switched off (burnedFor), so its
+            // line never says "Not added".
+            val everydayLine = if (burned.activityCounted) activityLine else stringResource(Res.string.settings_energy_everyday_always)
+            BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.today_burned_everyday), everydayLine, burned.everyday)
         }
         NutrientVisible(burned.exercise) {
             HorizontalDivider(color = AppTheme.colors.line)
