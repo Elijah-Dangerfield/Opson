@@ -6,6 +6,40 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: Accounts are required; a reinstall starts signed out
+
+**Decision:** onboarding goes Welcome, sign in, questions, mode, Today. Sign-in
+is Apple on iOS and Google through the browser, as in Cards; email stays behind
+`SignInMethods.EMAIL`. There is no guest path: `GuestAccountCreator`,
+`createGuestSession` and anonymous sign-in are gone, and the healer
+(`SessionHealer`) sends a stranded device to sign in instead of minting.
+
+A new account goes on to the questions. An account that already exists goes
+straight to Today: its mode is on the server, and running setup again would
+write over it, which for someone who hides numbers is the worse mistake. The
+split reads the server's one-shot `isNewAccount` (`AuthOutcomeClassifier`).
+
+**Guests from older builds** keep their log. An onboarded guest is sent to the
+sign-in step (`AppViewModel.signInRequired`), which links Apple or Google onto
+the anonymous user (Supabase identity linking, as the account step did). If
+that Apple ID or Google account already has an Opson account, the step says
+so and offers to sign in to it, warning that the guest's log stays behind.
+
+**A new install starts signed out.** iOS keeps Keychain items when the app is
+deleted, so a reinstall read the last install's session; `OnboardingViewModel`
+then took a leftover guest for a returning one and went to Today. That is why
+the owner's fresh TestFlight install skipped onboarding (`release.onboardingSetup`
+only adds steps and was not the cause). Now the first session load of an
+install that has not finished onboarding (`FreshInstall`, a marker in the app's
+own files) drops a signed-in session it finds in the Keychain. Signing in again
+brings the account back. An anonymous one is kept, because a guest has no
+credential to come back with and the sign-in step links onto it.
+
+**Alternatives:** keep the Keychain session on reinstall and skip sign-in.
+Rejected: deleting an app reads as signing out, the person may not be the same
+one, and it is the behaviour the owner reported as a bug. Run setup again for
+returning accounts. Rejected for the reason above.
+
 ## 2026-10-27: Grafana may see one person, through `support`, and never their log
 
 **Decision:** a second read-only schema, `support` (V22), holds per-person
