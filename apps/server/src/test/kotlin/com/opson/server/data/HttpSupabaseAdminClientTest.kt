@@ -12,10 +12,12 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -149,5 +151,15 @@ class HttpSupabaseAdminClientTest {
         val result = client.deleteUser(userId)
         val failure = assertIs<DeleteUserResult.Failure>(result)
         assertTrue(failure.cause is java.io.IOException)
+    }
+
+    @Test
+    fun cancellationIsNotAFailure() = runTest {
+        // The caller went away mid-request: the route must stop, not answer a 502.
+        val engine = MockEngine { throw CancellationException("caller cancelled") }
+        val client = HttpSupabaseAdminClient(config = SupabaseConfig(projectUrl, serviceRoleKey), engine = engine)
+
+        assertFailsWith<CancellationException> { client.deleteUser(userId) }
+        assertFailsWith<CancellationException> { client.updateUserDisplayName(userId, "Ada") }
     }
 }
