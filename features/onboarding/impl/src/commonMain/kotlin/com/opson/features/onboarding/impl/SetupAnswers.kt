@@ -15,7 +15,7 @@ enum class SetupQuestion(val number: Int, val multiSelect: Boolean, val eventNam
     /** Why are you tracking? */
     Reason(1, multiSelect = true, eventName = "question_1"),
 
-    /** How do you feel about seeing numbers? */
+    /** How do numbers sit with you? */
     Feeling(2, multiSelect = false, eventName = "question_2"),
 
     /**

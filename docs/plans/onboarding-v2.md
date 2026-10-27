@@ -18,7 +18,7 @@ surplus, and meal times for No numbers or someone eating regularly.
 |---|---|---|---|
 | Welcome | everyone | nothing ("Skip and start logging" writes Full numbers) | |
 | 1 of 3: Why are you tracking? | everyone, skippable | `onboarding.why` | |
-| 2 of 3: How do you feel about seeing numbers? | everyone, skippable | `onboarding.feel` | |
+| 2 of 3: How do numbers sit with you? | everyone, skippable | `onboarding.feel` | |
 | 3 of 3: Does this sound like you? (optional) | everyone, skippable | `onboarding.hard` | |
 | Your starting point | everyone | `numbers` (the mode), unstamped | |
 | Your daily goal | the mode shows calories, so Full numbers | `targets` (style and range) | `release.onboardingSetup` |
@@ -36,7 +36,7 @@ never gets a goal written for them.
 | Question | What reads the answer | Verdict |
 |---|---|---|
 | Why are you tracking? | The summary card's starting stats (`SummaryStats.suggestionGoal`: changing weight, eating regularly, eating enough, performance). Two nudges in the alternatives. Now also whether meal times are asked. | **Keep.** Cheap, a soft opener, and Today uses it. Three of seven options (curious, a medical need, working with a provider) change nothing yet. |
-| How do you feel about seeing numbers? | The recommendation. It decides it in every case but one. | **Keep.** It is the question. |
+| How do numbers sit with you? | The recommendation. It decides it in every case but one. | **Keep.** It is the question. |
 | What do you want to notice? | Only the recommendation, and only when the numbers answer was skipped or "Not sure yet": "How eating feels" gave No numbers, everything else gave Later. Nothing else in the app read it. | **Cut.** One tap for almost no signal, and the numbers question already covers it. `OnboardingAnswers.notice` stays in the model, empty. |
 | Numbers or tracking have been hard for me before | Full numbers is never offered (`ModeRecommender.isOffered`), the fasting timer stays out (`Fasts`), watch activity never adds to the range (`Settings.exerciseInRange`). | **Keep**, as an optional statement. It is the most important safety input. |
 
@@ -92,10 +92,12 @@ recommended, never in the alternatives and never in All modes. The rules are:
 | Numbers answer | Without the statement | With the statement |
 |---|---|---|
 | skipped everything | Full numbers | No numbers |
-| I love them | Full numbers | Later |
-| Some are fine | Nutrients first | Nutrients first (calories are already hidden, as the design draws) |
+| I like seeing them | Full numbers | Macros with grams |
+| Some are fine, just not calories | Macros only | Macros only (calories are already hidden, as the design draws) |
 | I'd rather not see them | No numbers | No numbers |
-| Not sure yet, or only a reason | Later | No numbers |
+| I'm not sure yet, or only a reason | Macros only | No numbers |
+
+(Updated for the four modes, 2026-10-27: Later and Nutrients first are retired.)
 
 Two gaps outside onboarding, for the owner: the statement can't be changed
 later anywhere in the app, and Modes still offers Full numbers behind the pause

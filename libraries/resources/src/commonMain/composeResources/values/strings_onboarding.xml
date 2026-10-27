@@ -42,12 +42,18 @@
     <string name="onboarding_why_changing_weight">Changing my weight</string>
     <string name="onboarding_why_working_with_provider">Working with a provider</string>
 
-    <string name="onboarding_q_feel">How do you feel about seeing numbers?</string>
-    <string name="onboarding_feel_love_them">I love them</string>
-    <string name="onboarding_feel_some_are_fine">Some are fine</string>
+    <!--
+      The numbers question. Opens by saying plainly that numbers don't suit everyone, so the
+      gentler answers read as ordinary choices rather than admissions. Each answer names what it
+      changes in words a person can check against themselves ("just not calories").
+    -->
+    <string name="onboarding_q_feel">How do numbers sit with you?</string>
+    <string name="onboarding_feel_intro">Not everyone does well seeing calories, or thinking about them much.</string>
+    <string name="onboarding_feel_love_them">I like seeing them</string>
+    <string name="onboarding_feel_some_are_fine">Some are fine, just not calories</string>
     <string name="onboarding_feel_rather_not">I'd rather not see them</string>
-    <string name="onboarding_feel_not_sure">Not sure yet</string>
-    <string name="onboarding_feel_footnote">This only picks a starting point. Later you can change any single number.</string>
+    <string name="onboarding_feel_not_sure">I'm not sure yet</string>
+    <string name="onboarding_feel_footnote">This only picks where you start. You can change any number later.</string>
 
     <!--
       The statement. A statement to agree with, never a question about a diagnosis.
@@ -77,11 +83,11 @@
 
     <!-- The answer that picked the starting point (ModeRecommender.reason), under the mode's line. -->
     <string name="onboarding_reason_no_answers">You skipped the questions, so you start with every number.</string>
-    <string name="onboarding_reason_loves_numbers">You said you love numbers.</string>
-    <string name="onboarding_reason_some_are_fine">You said some numbers are fine.</string>
+    <string name="onboarding_reason_loves_numbers">You said you like seeing the numbers.</string>
+    <string name="onboarding_reason_some_are_fine">You said some numbers are fine, just not calories.</string>
     <string name="onboarding_reason_rather_not">You said you'd rather not see numbers.</string>
     <string name="onboarding_reason_gentler">You asked for a gentler start.</string>
-    <string name="onboarding_reason_not_sure">You weren't sure yet, so numbers wait until the day is done.</string>
+    <string name="onboarding_reason_not_sure">You weren't sure yet, so you start without calories or amounts.</string>
 
     <!--
       Setup steps (release.onboardingSetup). Goal style names and lines are Targets' own
