@@ -184,16 +184,18 @@ private struct MealCircle: View {
 }
 
 extension WidgetColors {
-    /// Pine, for the moment before the app has written a snapshot. Every
-    /// colour after that comes from the snapshot, which reads the app's theme.
+    /// Slate, for the moment before the app has written a snapshot: the
+    /// placeholder, a widget added from the gallery before sign-in, and after
+    /// sign-out. Every colour after that comes from the snapshot, which reads
+    /// the app's theme (`WidgetPalette` in :libraries:widgets).
     static let fallback = WidgetColors(
         light: WidgetSwatch(
-            background: "#F2F4F3", ink: "#16201E", muted: "#5A6461", track: "#E6EAE8",
-            bar: "#16201E", accent: "#1D7A6B", onAccent: "#FFFFFF", meals: [:]
+            background: "#EEF1F6", ink: "#18202E", muted: "#5A6478", track: "#E0E5ED",
+            bar: "#18202E", accent: "#A3500A", onAccent: "#FFFFFF", meals: [:]
         ),
         dark: WidgetSwatch(
-            background: "#0E1312", ink: "#EAF1EF", muted: "#9EA8A6", track: "#252C2B",
-            bar: "#EAF1EF", accent: "#5CC2AE", onAccent: "#0E1312", meals: [:]
+            background: "#161B27", ink: "#E6EAF2", muted: "#98A2B4", track: "#323B4D",
+            bar: "#E6EAF2", accent: "#FA9E5C", onAccent: "#1F120A", meals: [:]
         )
     )
 }
@@ -223,9 +225,11 @@ extension WidgetSnapshot {
             amount: "1,245", unit: "kcal", label: "1,245 kcal",
             fraction: 1245.0 / 2760, rangeStart: 1900.0 / 2760, rangeEnd: 2300.0 / 2760
         )
+        let slate = WidgetColors.fallback
         let light = WidgetSwatch(
-            background: "#F2F4F3", ink: "#16201E", muted: "#5A6461", track: "#E6EAE8",
-            bar: "#16201E", accent: "#1D7A6B", onAccent: "#FFFFFF", meals: tones
+            background: slate.light.background, ink: slate.light.ink, muted: slate.light.muted,
+            track: slate.light.track, bar: slate.light.bar, accent: slate.light.accent,
+            onAccent: slate.light.onAccent, meals: tones
         )
         return WidgetSnapshot(
             version: WidgetSnapshot.supportedVersion,
@@ -234,7 +238,7 @@ extension WidgetSnapshot {
             ],
             logLabel: "Log food",
             logLink: "opson://widget/log",
-            colors: WidgetColors(light: light, dark: WidgetColors.fallback.dark)
+            colors: WidgetColors(light: light, dark: slate.dark)
         )
     }
 }
@@ -245,7 +249,7 @@ extension WidgetSnapshot {
     TodayEntry(date: .now, snapshot: .preview(numbers: true))
 }
 
-#Preview("Blind and gentle modes", as: .systemMedium) {
+#Preview("No numbers", as: .systemMedium) {
     TodayWidget()
 } timeline: {
     TodayEntry(date: .now, snapshot: .preview(numbers: false))
@@ -257,7 +261,7 @@ extension WidgetSnapshot {
     TodayEntry(date: .now, snapshot: .preview(numbers: true))
 }
 
-#Preview("Small, blind", as: .systemSmall) {
+#Preview("Small, no numbers", as: .systemSmall) {
     TodayWidget()
 } timeline: {
     TodayEntry(date: .now, snapshot: .preview(numbers: false))
