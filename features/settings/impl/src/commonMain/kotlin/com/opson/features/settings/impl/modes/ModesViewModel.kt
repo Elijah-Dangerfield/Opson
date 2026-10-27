@@ -11,6 +11,7 @@ import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.progressphotos.ProgressPhotosEnabled
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -29,9 +30,13 @@ import opson.libraries.resources.generated.resources.settings_saved_fewer
 class ModesViewModel(
     settingsRepository: SettingsRepository,
     private val numbersChanger: NumbersChanger,
+    photosEnabled: ProgressPhotosEnabled,
 ) : SEAViewModel<ModesState, ModesEvent, ModesAction>(initialStateArg = ModesState()) {
 
     private val timeZone: TimeZone get() = TimeZone.currentSystemDefault()
+
+    /** `release.progressPhotos`, read once when the page opens. */
+    private val photosReleased = photosEnabled()
 
     init {
         viewModelScope.launch {
@@ -45,7 +50,7 @@ class ModesViewModel(
     override suspend fun handleAction(action: ModesAction) {
         when (action) {
             is ModesAction.InputsArrived -> action.updateState {
-                ModesStateBuilder.build(action.numbers, timeZone, pickingRevealTime = it.pickingRevealTime)
+                ModesStateBuilder.build(action.numbers, timeZone, pickingRevealTime = it.pickingRevealTime, photosReleased = photosReleased)
             }
             is ModesAction.PresetTapped -> {
                 // Picking the current preset again clears its changes; with none, there is nothing to do.
@@ -55,6 +60,12 @@ class ModesViewModel(
             is ModesAction.LevelTapped -> {
                 if (state.matrix.any { it.metric == action.metric && it.level == action.level }) return
                 request(NumbersChange.Override(action.metric, action.level))
+            }
+            is ModesAction.PhotosTapped -> {
+                val photos = state.photos ?: return
+                if (photos.shown == action.shown) return
+                // Showing them is showing more: the changer holds it for the pause when that is on.
+                request(NumbersChange.SetProgressPhotos(action.shown))
             }
             ModesAction.PauseToggled -> {
                 if (state.pauseOn) request(NumbersChange.TurnOffPause) else numbersChanger.turnOnPause()
@@ -90,6 +101,9 @@ sealed interface ModesAction {
     data class InputsArrived(val numbers: NumbersSettings) : ModesAction
     data class PresetTapped(val id: PresetId) : ModesAction
     data class LevelTapped(val metric: Metric, val level: Visibility) : ModesAction
+
+    /** The Progress photos row: Show ([shown]) or Hide. */
+    data class PhotosTapped(val shown: Boolean) : ModesAction
     data object PauseToggled : ModesAction
     data object RevealTimeTapped : ModesAction
     data object RevealTimeDismissed : ModesAction

@@ -26,6 +26,7 @@ import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.progressphotos.ProgressPhotosEnabled
 import com.opson.libraries.reminders.NotificationPermission
 import com.opson.libraries.reminders.NotificationPermissions
 import com.opson.libraries.reminders.RemindersEnabled
@@ -156,6 +157,13 @@ fun remindersFlag(on: Boolean = false): RemindersEnabled = RemindersEnabled(
 fun checkInFlag(on: Boolean = false): CheckInEnabled = CheckInEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("checkIn" to on))
+    },
+)
+
+/** `release.progressPhotos`, on or off. */
+fun photosFlag(on: Boolean = false): ProgressPhotosEnabled = ProgressPhotosEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("progressPhotos" to on))
     },
 )
 

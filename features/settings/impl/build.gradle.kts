@@ -27,6 +27,8 @@ kotlin {
             implementation(projects.libraries.health)
             // The Widgets page and its More row, and the widget's leak surface.
             implementation(projects.libraries.widgets)
+            // ProgressPhotosEnabled: Modes' Progress photos row.
+            implementation(projects.libraries.progressphotos)
 
             implementation(libs.kotlinx.datetime)
 
@@ -50,6 +52,7 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
             implementation(projects.libraries.widgets)
+            implementation(projects.libraries.progressphotos)
             implementation(libs.kotlinx.datetime)
             implementation(projects.libraries.resources)
             implementation(compose.components.resources)

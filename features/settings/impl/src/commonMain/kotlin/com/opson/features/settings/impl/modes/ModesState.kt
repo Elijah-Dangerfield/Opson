@@ -14,6 +14,8 @@ import kotlinx.datetime.toLocalDateTime
 data class ModesState(
     val presets: List<PresetRow> = emptyList(),
     val matrix: List<MatrixRow> = emptyList(),
+    /** The matrix's last row, Show or Hide. `null` while `release.progressPhotos` is off. */
+    val photos: PhotosRow? = null,
     val pauseOn: Boolean = false,
     val revealAt: LocalTime = NumbersSettings.DEFAULT_REVEAL_AT,
     /** "9:00 PM", the trailing text of the Reveal time row. */
@@ -35,6 +37,11 @@ data class PresetRow(val id: PresetId, val selected: Boolean, val changes: Int =
  */
 data class MatrixRow(val metric: Metric, val level: Visibility, val changedFrom: Visibility? = null)
 
+/** Progress photos: [shown] or hidden, and the preset's own choice when this one differs from it. */
+data class PhotosRow(val shown: Boolean, val changedFrom: Boolean? = null) {
+    val level: Visibility get() = if (shown) Visibility.Show else Visibility.Hide
+}
+
 sealed interface ChangedNote {
     /** "Set by you during setup." Onboarding writes the first preset without a stamp. */
     data object DuringSetup : ChangedNote
@@ -48,16 +55,32 @@ object ModesStateBuilder {
     /** The grid's columns, left to right. */
     val levels: List<Visibility> = listOf(Visibility.Show, Visibility.Soften, Visibility.Delay, Visibility.Hide)
 
-    fun build(numbers: NumbersSettings, timeZone: TimeZone, pickingRevealTime: Boolean = false): ModesState {
+    /** The two levels the photos row offers. Soft and Later don't apply to a photo. */
+    val photoLevels: Set<Visibility> = setOf(Visibility.Show, Visibility.Hide)
+
+    /** [photosReleased]: `release.progressPhotos`; off, the photos row and its change don't show. */
+    fun build(
+        numbers: NumbersSettings,
+        timeZone: TimeZone,
+        pickingRevealTime: Boolean = false,
+        photosReleased: Boolean = false,
+    ): ModesState {
         val changes = numbers.changes
+        val photosChanged = photosReleased && numbers.progressPhotosChanged
         val preset = Presets[numbers.preset]
         return ModesState(
             presets = Presets.all.map {
                 val current = it.id == numbers.preset
-                PresetRow(it.id, selected = current, changes = if (current) changes.size else 0)
+                val count = changes.size + if (photosChanged) 1 else 0
+                PresetRow(it.id, selected = current, changes = if (current) count else 0)
             },
             matrix = Metric.entries.map { metric ->
                 MatrixRow(metric, numbers.level(metric), changedFrom = preset.level(metric).takeIf { metric in changes })
+            },
+            photos = if (photosReleased) {
+                PhotosRow(numbers.showsProgressPhotos, changedFrom = preset.progressPhotos.takeIf { photosChanged })
+            } else {
+                null
             },
             pauseOn = numbers.pauseBeforeMore,
             revealAt = numbers.revealAt,

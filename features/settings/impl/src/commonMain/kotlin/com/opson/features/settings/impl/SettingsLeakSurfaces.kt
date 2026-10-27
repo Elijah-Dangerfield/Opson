@@ -54,7 +54,7 @@ object SettingsLeakSurfaces {
             MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})
         },
         LeakSurface(id = "modes", label = "Modes and numbers", showsCaloriesInFull = false) { policy ->
-            ModesScreen(ModesStateBuilder.build(policy.settings, SettingsFixtures.timeZone), onAction = {})
+            ModesScreen(ModesStateBuilder.build(policy.settings, SettingsFixtures.timeZone, photosReleased = true), onAction = {})
         },
         LeakSurface(id = "pause-sheet", label = "Pause before showing more", showsCaloriesInFull = false) { _ ->
             PauseSheetContent(PauseState(subject = PauseSubject.Preset(PresetId.Full), secondsLeft = 7), onAction = {})
