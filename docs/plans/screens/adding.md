@@ -107,7 +107,7 @@ Back, the name, ⋮ (Meal, Time, Save to favorites). Then:
 - **Add to {meal}** pinned.
 
 `Precision.Label` ("label") is new in `:libraries:diary` and on the server
-(V20 widens the check). A 0.1 client reads it as Estimate.
+(V21 widens the check). A 0.1 client reads it as Estimate.
 
 The day's ± (`eatenUncertainty`) is another area's work in
 `:libraries:nutrition` and not on main yet. `TodayWithThis.uncertainty` is the

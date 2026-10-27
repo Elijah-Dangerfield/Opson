@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- V20: "From label" as a precision on log entries (design sync 4, the food
+-- V21: "From label" as a precision on log entries (design sync 4, the food
 -- detail's How sure: Estimate, Weighed, From label).
 --
 -- V8 wrote the check inline, so Postgres named it log_entries_precision_check.
