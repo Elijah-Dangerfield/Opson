@@ -39,7 +39,7 @@ class AdminUserLookupTest : IntegrationTest() {
         phone.lifecycle.foreground()
         phone.syncNow().getOrThrow()
         phone.settings.isKnown.awaitState { it }
-        phone.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.Blind, phone.clock.now())) }
+        phone.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, phone.clock.now())) }
         phone.log(name = "Grandma's secret soup", kcal = 640.0)
         phone.syncNow().getOrThrow()
 
@@ -57,7 +57,7 @@ class AdminUserLookupTest : IntegrationTest() {
 
         val account = detail.getValue("user").jsonObject
         assertEquals("sam.lee@example.com", account.getValue("email").jsonPrimitive.content)
-        assertEquals("blind", account.getValue("preset").jsonPrimitive.content)
+        assertEquals("no_numbers", account.getValue("preset").jsonPrimitive.content)
         assertEquals("1", account.getValue("entries").jsonPrimitive.content)
         val install = detail.getValue("installs").jsonArray.single().jsonObject
         assertEquals("ios", install.getValue("platform").jsonPrimitive.content)
