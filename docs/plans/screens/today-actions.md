@@ -83,11 +83,25 @@ Edit a copy.
 
 ## Tests
 - `TodayViewModelTest`: long-press, toggles, select all, Move, Copy, Delete,
-  drop, Undo of a move, the title opening the calendar.
-- `ItemSheetTest` (in `SheetsTest`): each action, flag off.
-- `EditCopyTest`: prefill, Was hints, save with and without the switch,
-  hidden metrics carried over, the original untouched.
-- Leak test: `food-actions`, `food-actions-amount`, `edit-a-copy`,
-  `today-calendar`, `today-drag-move`.
+  a drop, Undo of a move, a handle on an unpicked row, the row's Move action,
+  the ⋮ behind its flag, the title opening the calendar.
+- `ItemSheetTest`: each action, the header through the policy, flag off.
+- `EditCopyTest`: what it opens with, Was hints, save with and without the
+  switch, hidden metrics carried over, the original untouched.
+- `LogItemQuantityTest` in `:libraries:diary`: Change amount's scaling.
+- Leak test: `today-calendar`, `today-select-v4`, `today-drag-move`,
+  `today-moved`, `food-actions`, `food-actions-amount`, `edit-a-copy`.
 - Previews: `TodayCalendarPreview`, `TodaySelectV4Preview`,
-  `TodayDragMovePreview`, `FoodActionsPreview`, `EditACopyPreview`.
+  `TodayDragMovePreview`, `FoodActionsPreview`, `EditACopyPreview`, with Blind
+  and step variants.
+
+## Deliberate differences
+- Change amount keeps the precision as logged. Round 4's "typing switches
+  Estimate to Weighed" belongs to the food detail (Adding); applying it here
+  would relabel a "1 medium" apple as weighed.
+- Serving on Edit a copy is read only: one serving is the logged amount, and
+  Change amount is where the amount changes.
+- The calendar's header repeats ‹ › for months and drops the ⋮, which would
+  have nothing to open there.
+- In Nutrients first, macros are soft words, so Edit a copy shows no number
+  field at all and copies every number as it was.
