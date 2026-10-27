@@ -1,6 +1,7 @@
 package com.opson.plugin
 
 import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.opson.ext.ConfigurationExtension
 import com.opson.util.SharedConstants
 import com.opson.util.configureAndroid
@@ -11,6 +12,9 @@ import com.opson.util.configureReleaseSigning
 import com.opson.util.enforceModuleBoundaries
 import com.opson.util.libs
 import com.opson.util.loadSupabaseMetadata
+import com.opson.util.loadTelemetryMetadata
+import com.opson.util.releaseProblems
+import com.opson.util.releaseWarnings
 import com.opson.util.verifyGitHooksInstalled
 import com.opson.util.loadVersionMetadata
 import com.opson.util.optInKotlinMarkers
@@ -18,9 +22,13 @@ import com.opson.util.VersionMetadata
 import com.opson.util.writeCommonMetadata
 import com.opson.util.writeSupabaseMetadata
 import com.github.gmazzo.buildconfig.BuildConfigExtension
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
 
 /**
  * `opson.application`: `:apps:compose` only, the app on both platforms.
@@ -105,7 +113,47 @@ class ApplicationConventionPlugin : Plugin<Project> {
 
             verifyGitHooksInstalled()
             enforceModuleBoundaries()
+            verifyReleaseEnvironment()
         }
+    }
+
+    /**
+     * `verifyReleaseEnvironment`: fails a build that would ship pointing at the wrong
+     * place (a placeholder or dev Supabase project, no Sentry DSN, half-set Grafana) and
+     * warns about telemetry that is off. Every non-debug Android variant and every
+     * release iOS link depends on it, because those are the builds that read the prod
+     * values (`SupabaseInfo` in :libraries:core keys on `BuildInfo.isDebug`), so
+     * release.yml, beta.yml, the Fastfile and scripts/beta_ios.sh all run it.
+     */
+    private fun Project.verifyReleaseEnvironment() {
+        val telemetry = loadTelemetryMetadata()
+        val problems = loadSupabaseMetadata().releaseProblems() + telemetry.releaseProblems()
+        val warnings = telemetry.releaseWarnings()
+        // GitHub turns a line starting ::warning:: into an annotation on the run.
+        val warningPrefix = if (System.getenv("GITHUB_ACTIONS") == "true") "::warning::" else ""
+        val verify = tasks.register("verifyReleaseEnvironment") {
+            group = "verification"
+            description = "Fails if a release build would sign in to the wrong Supabase project or ship without crash reporting."
+            doLast {
+                warnings.forEach { logger.warn("$warningPrefix$it") }
+                if (problems.isNotEmpty()) {
+                    throw GradleException(
+                        "This release build is misconfigured:\n" + problems.joinToString("\n") { "  - $it" },
+                    )
+                }
+            }
+        }
+
+        extensions.configure<ApplicationAndroidComponentsExtension> {
+            onVariants { variant ->
+                if (variant.buildType == "debug") return@onVariants
+                val preBuild = "pre${variant.name.replaceFirstChar(Char::titlecase)}Build"
+                tasks.matching { it.name == preBuild }.configureEach { dependsOn(verify) }
+            }
+        }
+        tasks.withType<KotlinNativeLink>()
+            .matching { it.binary.buildType == NativeBuildType.RELEASE }
+            .configureEach { dependsOn(verify) }
     }
 
     private fun Project.configureAppBuildConfig(metadata: VersionMetadata) {
