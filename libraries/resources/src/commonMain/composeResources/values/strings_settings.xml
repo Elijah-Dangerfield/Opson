@@ -244,8 +244,15 @@
     <string name="settings_delete_offline">We couldn't reach the server, so nothing was deleted. Try again when you're online.</string>
     <string name="settings_delete_failed">Something went wrong, so nothing was deleted. Try again in a little while.</string>
 
+    <!-- Support's About card: what Opson is and isn't, and the published legal pages -->
+    <string name="settings_about_title">About Opson</string>
+    <string name="settings_about_body">Opson is a food log, not medical advice. It doesn't diagnose or treat anything, and it can't take the place of a doctor, dietitian or eating disorder care. Food values are estimates and can be wrong.</string>
+    <string name="settings_about_privacy">Privacy policy</string>
+    <string name="settings_about_terms">Terms of service</string>
+    <string name="settings_about_credits">Credits and licenses</string>
+
     <!-- Design sync 2: More's Support subtitle, Support's Find support and crisis rows -->
-    <string name="settings_more_support_sub">Eating disorder helplines</string>
+    <string name="settings_more_support_sub">Helplines, your data and privacy</string>
     <string name="settings_support_find">Find support near you</string>
     <string name="settings_support_crisis_call_or_text">In crisis? Call or text %1$s</string>
     <string name="settings_support_crisis_call">In crisis? Call %1$s</string>
@@ -306,6 +313,8 @@
     <string name="settings_find_about_young">For young people, any worry</string>
     <string name="settings_find_about_text_keyword">Text %1$s to %2$s</string>
     <string name="settings_find_about_provider">Search for eating disorder care near you</string>
+    <string name="settings_find_directory">Find A Helpline</string>
+    <string name="settings_find_directory_about">Free lines in most other countries</string>
     <string name="settings_loading_cd">Loading</string>
 
 </resources>

@@ -14,10 +14,17 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_delete_done
 import opson.libraries.resources.generated.resources.settings_export_ready
 
-// TODO(launch): verify both links before launch. The handoff gives only the Alliance's home
-// page; point each at the right page once someone has checked them. Do not guess a path.
-const val HELPLINE_URL = "https://www.allianceforeatingdisorders.com"
-const val PROVIDER_URL = "https://www.allianceforeatingdisorders.com"
+// Checked on the Alliance's site on 2026-10-27. Find treatment names the helpline number, its
+// hours, and 988 for anyone in crisis, since the helpline is not a 24/7 line. findEDhelp is the
+// Alliance's own provider directory.
+const val HELPLINE_URL = "https://www.allianceforeatingdisorders.com/find-treatment/"
+const val PROVIDER_URL = "https://www.findedhelp.com/"
+
+// The published legal pages (legal/*.md, synced to nightjarlabs.llc). Apple wants the privacy
+// policy reachable inside the app as well as on the listing.
+const val PRIVACY_URL = "https://nightjarlabs.llc/opson/privacy"
+const val TERMS_URL = "https://nightjarlabs.llc/opson/terms"
+const val CREDITS_URL = "https://nightjarlabs.llc/opson/credits"
 
 /** The file the share sheet offers, matching the server's Content-Disposition. */
 const val EXPORT_FILE_NAME = "opson-export.csv"
@@ -90,6 +97,9 @@ class SupportViewModel(
             SupportAction.CrisisTapped -> crisis(action)
             SupportAction.ExportTapped -> export(action)
             SupportAction.SendFeedbackTapped -> sendEvent(SupportEvent.OpenFeedback)
+            SupportAction.PrivacyTapped -> sendEvent(SupportEvent.OpenLink(PRIVACY_URL))
+            SupportAction.TermsTapped -> sendEvent(SupportEvent.OpenLink(TERMS_URL))
+            SupportAction.CreditsTapped -> sendEvent(SupportEvent.OpenLink(CREDITS_URL))
             SupportAction.DeleteTapped -> action.updateState { it.copy(delete = DeleteStep.Confirming) }
             SupportAction.KeepMyDataTapped -> action.updateState { it.copy(delete = DeleteStep.Idle) }
             SupportAction.DeleteConfirmed -> delete(action)
@@ -162,6 +172,9 @@ sealed interface SupportAction {
     data object CrisisTapped : SupportAction
     data object ExportTapped : SupportAction
     data object SendFeedbackTapped : SupportAction
+    data object PrivacyTapped : SupportAction
+    data object TermsTapped : SupportAction
+    data object CreditsTapped : SupportAction
     data object DeleteTapped : SupportAction
     data object KeepMyDataTapped : SupportAction
     data object DeleteConfirmed : SupportAction
