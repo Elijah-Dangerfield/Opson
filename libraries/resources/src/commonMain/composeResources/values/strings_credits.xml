@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Support › About Opson › Credits and licenses. The title is settings_about_credits. -->
+    <string name="credits_intro">Opson is built on other people's work. This page credits it and gives the licenses it comes under.</string>
+    <string name="credits_food_header">Food data</string>
+    <string name="credits_food_note">Nutrition values come from public food databases and the people who add to them. They are estimates and can be wrong.</string>
+    <string name="credits_usda">USDA FoodData Central</string>
+    <string name="credits_usda_detail">U.S. Department of Agriculture, Agricultural Research Service. Public domain (CC0 1.0).</string>
+    <string name="credits_off">Open Food Facts</string>
+    <!-- Open Food Facts' own attribution wording. -->
+    <string name="credits_off_detail">Contains data from Open Food Facts, available under the Open Database License. Individual contents of the database are available under the Database Contents License.</string>
+    <string name="credits_nevo">NEVO</string>
+    <string name="credits_font_header">Typeface</string>
+    <string name="credits_font">Atkinson Hyperlegible Next</string>
+    <string name="credits_font_detail">By the Braille Institute of America. Copyright 2020-2024 The Atkinson Hyperlegible Next Project Authors. SIL Open Font License 1.1.</string>
+    <string name="credits_libraries_header">Open-source software</string>
+    <string name="credits_library_detail">%1$s · %2$s</string>
+    <string name="credits_licenses_header">License texts</string>
+    <string name="credits_license_show">Show</string>
+    <string name="credits_license_hide">Hide</string>
+    <string name="credits_license_open">Open</string>
+</resources>

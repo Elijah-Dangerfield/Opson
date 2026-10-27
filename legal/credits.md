@@ -21,6 +21,8 @@ to them. They are estimates and can be wrong.
   [Open Database License](https://opendatacommons.org/licenses/odbl/1-0/).
   Individual contents of the database are available under the
   [Database Contents License](https://opendatacommons.org/licenses/dbcl/1-0/).
+- **NEVO.** Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven.
+  [Dutch Food Composition Database](https://www.rivm.nl/en/dutch-food-composition-database).
 
 ## Typeface
 
@@ -30,7 +32,9 @@ to them. They are estimates and can be wrong.
 
 ## Open-source software
 
-Opson uses these open-source libraries, each under the license named.
+Opson uses these open-source libraries, each under the license named. The app
+lists every library in its builds, with each license's full text, under More ›
+Support and sharing › Credits and licenses.
 
 | Library | License |
 |---|---|

@@ -540,7 +540,11 @@ data class SupportState(
 `HELPLINE_URL` is the Alliance's Find treatment page, which has the helpline
 number, its hours and the 988 note; `PROVIDER_URL` is findEDhelp, its provider
 directory. Both checked 2026-10-27. Support ends with an About Opson card: the
-not-medical-advice note and links to the privacy policy, terms and credits.
+not-medical-advice note and links to the privacy policy and terms on the web, and
+Credits and licenses (`CreditsRoute`) in the app: food data, the typeface, and
+every open-source library with its license's full text, from the committed
+`files/licenses.json` that `./gradlew :apps:compose:exportLibraryDefinitions`
+writes.
 
 **Conflict resolved:** the handoff says `Kept on this phone. No ad tracking.`
 and the delete confirm says `This removes every log, photo and setting from this
