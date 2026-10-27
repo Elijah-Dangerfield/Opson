@@ -714,7 +714,7 @@ keeps existing ticks.
 - [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/TrendsSettingsRoute.kt`
 - [x] `features/trends/src/commonMain/kotlin/com/opson/features/trends/WeightRoute.kt`
 
-## domain-diary-nutrition (124 files)
+## domain-diary-nutrition (127 files)
 
 - [x] `libraries/diary/build.gradle.kts`
 - [x] `libraries/diary/impl/build.gradle.kts`
@@ -743,6 +743,7 @@ keeps existing ticks.
 - [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChangerTest.kt`
 - [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsStoreTest.kt`
 - [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySourceTest.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/CheckInEnabled.kt`
 - [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/DataExport.kt`
 - [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Day.kt`
 - [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FastingReleaseFlag.kt`
@@ -764,6 +765,7 @@ keeps existing ticks.
 - [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SettingsSerializers.kt`
 - [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryDaos.kt`
 - [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryEntities.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/CheckInSettingTest.kt`
 - [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/DayTest.kt`
 - [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ExerciseRangeSettingTest.kt`
 - [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FastsTest.kt`
@@ -772,6 +774,7 @@ keeps existing ticks.
 - [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HouseholdAmountTest.kt`
 - [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealPatternsTest.kt`
 - [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealSlotPickerTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ProgressPhotosSettingTest.kt`
 - [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SearchOptionsSettingTest.kt`
 - [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SettingsTest.kt`
 - [x] `libraries/diary/ui/build.gradle.kts`
@@ -943,10 +946,11 @@ keeps existing ticks.
 - [x] `libraries/widgets/src/commonTest/kotlin/com/opson/libraries/widgets/WidgetSnapshotBuilderTest.kt`
 - [x] `libraries/widgets/src/iosMain/kotlin/com/opson/libraries/widgets/WidgetBridge.kt`
 
-## ui-library (126 files)
+## ui-library (127 files)
 
 - [x] `libraries/resources/build.gradle.kts`
 - [x] `libraries/ui/build.gradle.kts`
+- [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/radio/RadioMatrixTest.kt`
 - [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextFieldSemanticsTest.kt`
 - [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextTest.kt`
 - [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/system/BounceClickTest.kt`
