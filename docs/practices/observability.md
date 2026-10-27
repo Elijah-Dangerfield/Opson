@@ -94,7 +94,7 @@ builds, prod for release).
 
 ## Dashboards live in the repo
 
-Three boards over the client events are committed as JSON under
+The boards (Pulse, Users, User detail and the product boards) are committed as JSON under
 [`ops/grafana/`](../../ops/grafana/README.md) and imported by hand, rather than created in Grafana
 and left there. The reason is what a broken panel looks like: one that filters on an attribute the
 app does not emit renders **empty**, which is indistinguishable from a healthy panel before launch.
