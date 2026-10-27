@@ -113,7 +113,7 @@ internal val SlateLight = SchemeColors(
  *
  * - **inkSoft**, **hero**: as light.
  * - **accent** is a lit pumpkin, #F7924A: text on bg (7.0), surface (6.1), raised (5.3) and its
- *   tint (5.7). Redder and fuller than the logo's egg (#F0AC66), so it reads as the same orange as
+ *   tint (5.5). Redder and fuller than the logo's egg (#F0AC66), so it reads as the same orange as
  *   the light theme's and stays clear of the carbs color.
  * - **onAccent** is a near-black brown (8.0 on the accent), as the + on the add button was a
  *   near-black teal (`today-later.png`), not bg.
@@ -131,7 +131,7 @@ internal val SlateDark = SchemeColors(
     inkSoft = Color(0xFFB6BECC),
     muted = Color(0xFF98A2B4),
     accent = Color(0xFFF7924A),
-    accentTint = Color(0xFF452B1E),
+    accentTint = Color(0xFF4A2C17),
     onAccent = Color(0xFF1F120A),
     hero = Color(0xFF2D3647),
     scrim = Color(0xA10B0E14),
