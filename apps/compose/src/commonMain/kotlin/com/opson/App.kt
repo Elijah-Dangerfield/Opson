@@ -384,64 +384,43 @@ private fun AppNavigation(
                     .consumeWindowInsets(shellPadding),
                 navController = navController,
                 startDestination = startDestination,
-                //To make this more readable consider Screens A and B
+                // A route carries its own animations. Going A to B, B enters with its `enter` and
+                // A leaves with its `exit`; popping B back to A, B leaves with its `popExit` and A
+                // enters with the mirror of it, so a screen that slides out reveals one sliding
+                // in. A tab switch animates as nothing, and so does a destination with no Route.
                 enterTransition = {
-                    // A -> B
-                    // How should we animate the B screen?
-                    // Enter animation should match B's Enter
-                    val targetRoute = targetState.toRouteOrNull<Route>()
-                    val animationType = when {
-                        isSwitchingTabs() -> AnimationType.None // Switching tabs
-                        targetRoute != null -> targetRoute.enter // Using target route enter animation
-                        else -> AnimationType.None // Target destination is not a Route; default to none
-                    }
-
-                    animationType.toEnterTransition()
+                    val target = targetState.toRouteOrNull<Route>()
+                    when {
+                        isSwitchingTabs() -> AnimationType.None
+                        target != null -> target.enter
+                        else -> AnimationType.None
+                    }.toEnterTransition()
                 },
                 popEnterTransition = {
-                    // Popping from B back to A
-                    // How should we animate the A screen?
-                    // Enter animation should match initials pop EXIT transition
-                    // AKA if B slides out, A should slide IN
-                    val initialRoute = initialState.toRouteOrNull<Route>()
-                    val targetRoute = targetState.toRouteOrNull<Route>()
-                    val animationType = when {
-                        isSwitchingTabs() -> AnimationType.None // Switching tabs
-                        initialRoute != null -> initialRoute.popExit.opposite() // Mirroring initial popExit animation
-                        targetRoute != null -> targetRoute.enter // Fallback to target route enter animation
-                        else -> AnimationType.None // No route metadata; default to none
-                    }
-
-                    animationType.toEnterTransition()
+                    val initial = initialState.toRouteOrNull<Route>()
+                    val target = targetState.toRouteOrNull<Route>()
+                    when {
+                        isSwitchingTabs() -> AnimationType.None
+                        initial != null -> initial.popExit.opposite()
+                        target != null -> target.enter
+                        else -> AnimationType.None
+                    }.toEnterTransition()
                 },
                 exitTransition = {
-                    // A -> B
-                    // Initial: A | Target B
-                    // How should we animate the A screen
-                    // Exit animation should match A's Exit
-                    val initialRoute = initialState.toRouteOrNull<Route>()
-                    val animationType = when {
-                        isSwitchingTabs() -> AnimationType.None // Switching tabs
-                        initialRoute != null -> initialRoute.exit // Using initial route exit animation
-                        else -> AnimationType.None // Initial destination is not a Route; default to none
-                    }
-
-                    animationType.toExitTransition()
+                    val initial = initialState.toRouteOrNull<Route>()
+                    when {
+                        isSwitchingTabs() -> AnimationType.None
+                        initial != null -> initial.exit
+                        else -> AnimationType.None
+                    }.toExitTransition()
                 },
                 popExitTransition = {
-                    // Popping from B back to A
-                    // Initial: B | Target A
-                    // How should we animate the B screen
-                    // Exit animation should match B's pope Exit
-                    val initialRoute = initialState.toRouteOrNull<Route>()
-
-                    val animationType = when {
-                        isSwitchingTabs() -> AnimationType.None // Switching tabs
-                        initialRoute != null -> initialRoute.popExit // Using initial route popExit animation
-                        else -> AnimationType.None // Initial destination is not a Route; default to none
-                    }
-
-                    animationType.toExitTransition()
+                    val initial = initialState.toRouteOrNull<Route>()
+                    when {
+                        isSwitchingTabs() -> AnimationType.None
+                        initial != null -> initial.popExit
+                        else -> AnimationType.None
+                    }.toExitTransition()
                 },
                 typeMap = mapOf(
                     typeOf<AnimationType>() to serializableType<AnimationType>()

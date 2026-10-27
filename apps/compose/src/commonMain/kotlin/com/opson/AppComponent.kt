@@ -62,7 +62,7 @@ interface AppComponent {
     /** The live numbers policy App.kt provides to every screen as `LocalVisibilityPolicy`. */
     val visibilityPolicySource: VisibilityPolicySource
 
-    /** The user's palette, theme and text size, which App.kt applies to `AppTheme`. */
+    /** The user's theme and text size, which App.kt applies to `AppTheme`. */
     val settingsRepository: SettingsRepository
 
     /** Tapped reminders asking for the Logger, which App.kt routes. */

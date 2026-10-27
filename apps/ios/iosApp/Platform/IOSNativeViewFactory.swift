@@ -1,4 +1,3 @@
-import SwiftUI
 import UIKit
 import AuthenticationServices
 import ComposeApp
@@ -6,8 +5,7 @@ import ComposeApp
 final class IOSNativeViewFactory: OpsonNativeViewFactory {
 
     static let shared = IOSNativeViewFactory()
-    private let decoder = JSONDecoder()
-    private let logger = KLog.shared.withTag(tag:"NativeViewFactory")
+    private let logger = KLog.shared.withTag(tag: "NativeViewFactory")
 
     func createAppleSignInButton(
         kind: OpsonNativeAppleSignInButtonKind,
