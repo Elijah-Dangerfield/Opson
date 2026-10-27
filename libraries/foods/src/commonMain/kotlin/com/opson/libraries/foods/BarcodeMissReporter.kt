@@ -10,6 +10,10 @@ package com.opson.libraries.foods
  * stores no account.
  */
 interface BarcodeMissReporter {
-    /** Fire and forget. A report that never arrives only undercounts a gap, so failures are dropped. */
+    /**
+     * Fire and forget. A report that never arrives only undercounts a gap, so failures are dropped.
+     * Returns once the report is done, but cancelling the caller doesn't cancel the report: it
+     * outlives the screen that asked.
+     */
     suspend fun report(code: String)
 }
