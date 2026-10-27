@@ -59,7 +59,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Edit a copy (design sync 4, 13.3e): ✕, the title and Save; the name, brand and serving; the
+ * Edit a copy (design sync 4, 13.3e): Close, the title and Save; the name, brand and serving; the
  * numbers per serving that the mode shows, a changed one on the accent tint with "Was 190" under
  * its label; then Use for this entry. Stateless.
  */

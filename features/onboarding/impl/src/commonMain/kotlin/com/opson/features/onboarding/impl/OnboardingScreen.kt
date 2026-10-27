@@ -166,9 +166,10 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Onboarding (design v3, 1.1 to 1.6, with sign-in moved to the front when accounts became
- * required): Welcome and the plan, sign in, three questions, the optional statement and the
- * starting mode. All routing lives in [OnboardingViewModel]; this is a pure render of the state.
- * It shows no nutrition numbers.
+ * required): Welcome and the plan, sign in, two questions, the optional statement, the
+ * starting mode and its setup steps. All routing lives in [OnboardingViewModel]; this is a pure
+ * render of the state. The only numbers are the setup steps' goal and resting energy, which the
+ * state holds already resolved through the mode's policy.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
