@@ -14,6 +14,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.Tone
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.GoalPosition
 import com.opson.libraries.nutrition.Metric
@@ -125,6 +126,8 @@ data class DayCloseInputs(
     val expended: EnergyExpended? = null,
     /** `release.checkIn`, and the check-in switch in Reminders on ([Settings.checkIn]). */
     val checkInOn: Boolean = false,
+    /** The day's Burned with `release.goalsAndEnergy`, what a set deficit or surplus aims at. */
+    val burned: Burned? = null,
 )
 
 /**
@@ -147,7 +150,7 @@ object DayCloseStateBuilder {
         val today = inputs.today
         val settings = inputs.settings
         val isToday = day.date == today
-        val range = todayRange(settings, day, today, inputs.expended)
+        val range = todayRange(settings, day, today, inputs.expended, inputs.burned)
         val totals = day.totals()
         val eaten = totals.kcal.known
         val bare = day.formatContext(today, bare = true)
@@ -170,7 +173,8 @@ object DayCloseStateBuilder {
         } else {
             null
         }
-        val tomorrow = settings.targets.rangeFor(day.date.plus(1, DateTimeUnit.DAY), settings.numbers.preset)
+        // Tomorrow's burn isn't known; today's Burned stands in for it, as the target moves with it.
+        val tomorrow = settings.targets.rangeFor(day.date.plus(1, DateTimeUnit.DAY), settings.numbers.preset, inputs.burned?.totalKcal)
         val revealed = isToday && shown && policy.level(Metric.Calories) == Visibility.Delay
         return DayCloseState(
             loading = false,

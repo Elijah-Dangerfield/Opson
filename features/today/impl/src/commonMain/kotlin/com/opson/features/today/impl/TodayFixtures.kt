@@ -38,8 +38,13 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.nutrition.RestingEnergy
+import com.opson.libraries.nutrition.RestingFrom
+import com.opson.libraries.nutrition.TargetStyle
+import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -229,6 +234,8 @@ object TodayFixtures {
         selectOn: Boolean = false,
         weighIns: List<WeighIn> = emptyList(),
         foodActionsOn: Boolean = false,
+        goalsAndEnergyOn: Boolean = false,
+        burned: Burned? = null,
     ): TodayInputs = TodayInputs(
         today = today,
         timeZone = timeZone,
@@ -242,6 +249,8 @@ object TodayFixtures {
         selectOn = selectOn,
         weighIns = weighIns,
         foodActionsOn = foodActionsOn,
+        goalsAndEnergyOn = goalsAndEnergyOn,
+        burned = burned,
     )
 
     /** Two weeks of morning weigh-ins ending on [today] at 7:02 am, 73.9 kg, the line about level. */
@@ -271,6 +280,18 @@ object TodayFixtures {
     /** v3 `today-full`'s "Expended so far 1,990 kcal": 1,580 resting and 410 active, 150 of it in a workout. */
     val expended: EnergyExpended = EnergyExpended(restingKcal = 1580.0, activeKcal = 410.0, workoutKcal = 150.0)
 
+    /** Design sync 4's Burned: 1,610 resting, calculated, and 570 active (390 movement, a 180 kcal run). */
+    val burned: Burned = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 390, workoutKcal = 180)
+
+    /** Design sync 4's 13.2a: 500 under what you burn. The floor sits low enough to let 1,680 through. */
+    val deficit500: Settings = Settings(targets = Targets.Default.copy(startingKcal = 1500, style = TargetStyle.Deficit(500, 500)))
+
+    /** Design sync 4's 13.2b: 300 over what you burn. */
+    val surplus300: Settings = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300, 300)))
+
+    /** Design sync 4's 13.6c: one number, 2,100. */
+    val oneNumber: Settings = Settings(targets = Targets.Default.useExact())
+
     /** Someone who let all of their activity into the range: [expended]'s 410 active moves 1,900 to 2,300 up to 2,310 to 2,710. */
     val exerciseAll: Settings = Settings(exerciseRange = ExerciseAdjustment.All)
 
@@ -292,6 +313,8 @@ object TodayFixtures {
         weighIns: List<WeighIn> = emptyList(),
         ui: TodayUi = TodayUi(),
         foodActionsOn: Boolean = false,
+        goalsAndEnergyOn: Boolean = false,
+        burned: Burned? = null,
     ): TodayState = TodayStateBuilder.build(
         inputs(
             day,
@@ -302,6 +325,8 @@ object TodayFixtures {
             selectOn = selectOn,
             weighIns = weighIns,
             foodActionsOn = foodActionsOn,
+            goalsAndEnergyOn = goalsAndEnergyOn,
+            burned = burned,
         ),
         policy,
         menuOpen,
@@ -322,8 +347,16 @@ object TodayFixtures {
         expended: EnergyExpended? = null,
         checkInOn: Boolean = false,
         checkIn: CheckIn? = null,
+        burned: Burned? = null,
     ): DayCloseState = DayCloseStateBuilder.build(
-        DayCloseInputs(today = today, day = day(date, bigDay = bigDay, dinner = !bigDay), settings = settings, expended = expended, checkInOn = checkInOn),
+        DayCloseInputs(
+            today = today,
+            day = day(date, bigDay = bigDay, dinner = !bigDay),
+            settings = settings,
+            expended = expended,
+            checkInOn = checkInOn,
+            burned = burned,
+        ),
         policy,
         note = note,
         committed = committed,

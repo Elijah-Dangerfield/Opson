@@ -8,6 +8,7 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.MacroLineStyle
 import com.opson.libraries.nutrition.MacroPart
@@ -196,6 +197,8 @@ sealed interface TodaySummary {
         /** Page 2, the macros (`release.todaySummary`); null when off or nothing to show. */
         val macrosPage: MacrosPage? = null,
         val singleGoal: Boolean = false,
+        /** Design sync 4's page 1 (`release.goalsAndEnergy`, Full numbers); null draws the design sync 2 page. */
+        val card: EnergyCard? = null,
     ) : TodaySummary
 
     /** Calories softened (2.6): meals counted when the mode counts them, the lead macro, the rest as bars. */
@@ -361,6 +364,12 @@ sealed interface TodayAction {
     /** The day's title: the calendar drops from it. */
     data object DayLabelTapped : TodayAction
     data object NutrientsTapped : TodayAction
+
+    /** The summary card's "Energy ›" (design sync 4): Energy today. */
+    data object EnergyTapped : TodayAction
+
+    /** The main number's label: switches it, remembered for the goal style. */
+    data object MainNumberToggled : TodayAction
     data object RevealedTapped : TodayAction
     data class MealTileTapped(val slot: MealSlot) : TodayAction
     data class MealPlusTapped(val slot: MealSlot) : TodayAction
@@ -459,6 +468,7 @@ sealed interface TodayEvent {
     data class OpenCalendar(val day: LocalDate) : TodayEvent
     data class OpenDayClose(val day: LocalDate) : TodayEvent
     data class OpenNutrients(val day: LocalDate) : TodayEvent
+    data object OpenEnergyToday : TodayEvent
     data class OpenLogger(val day: LocalDate, val slot: MealSlot?) : TodayEvent
 
     /** The logger with [foodId] already picked (the food bridge's "I tried it"). */
@@ -500,6 +510,13 @@ data class TodayInputs(
     val foodActionsOn: Boolean = false,
     /** Recent weigh-ins, oldest first, for the Weight row and its trend word. Only read with [summaryOn]. */
     val weighIns: List<WeighIn> = emptyList(),
+    /**
+     * `release.goalsAndEnergy` (design sync 4): the summary card's presets and main number, the
+     * list's own switches, and [burned] as what a set deficit or surplus aims at.
+     */
+    val goalsAndEnergyOn: Boolean = false,
+    /** The day's Burned, with [goalsAndEnergyOn]; null while no resting source can say. */
+    val burned: Burned? = null,
 )
 
 /**

@@ -15,10 +15,14 @@ import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
+import com.opson.libraries.diary.rememberMainNumber
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -41,9 +45,9 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.today_toast_cleared
 import opson.libraries.resources.generated.resources.today_toast_copied_foods_one
 import opson.libraries.resources.generated.resources.today_toast_copied_foods_other
-import opson.libraries.resources.generated.resources.today_toast_cleared
 import opson.libraries.resources.generated.resources.today_toast_copied_previous
 import opson.libraries.resources.generated.resources.today_toast_copied_tomorrow
 import kotlin.time.Clock
@@ -83,6 +87,8 @@ class TodayViewModel(
     private val summaryEnabled: TodaySummaryEnabled,
     private val selectEnabled: TodaySelectEnabled,
     private val foodActionsEnabled: TodayFoodActionsEnabled,
+    private val goalsAndEnergy: GoalsAndEnergyEnabled,
+    private val burnedRepository: BurnedRepository,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value, dayLabel = RelativeDay.of(selectedDay.date.value, calendar.today())),
 ) {
@@ -153,6 +159,11 @@ class TodayViewModel(
             TodayAction.NextDayTapped -> if (canGoForward()) selectedDay.select(day().plus(DatePeriod(days = 1)))
             TodayAction.DayLabelTapped -> sendEvent(TodayEvent.OpenCalendar(day()))
             TodayAction.NutrientsTapped -> sendEvent(TodayEvent.OpenNutrients(day()))
+            TodayAction.EnergyTapped -> sendEvent(TodayEvent.OpenEnergyToday)
+            TodayAction.MainNumberToggled -> {
+                val next = ((state.summary as? TodaySummary.Energy)?.card?.next) ?: return
+                settingsRepository.update { it.rememberMainNumber(next) }
+            }
             TodayAction.RevealedTapped, TodayAction.CloseDayCardTapped -> if (!isFuture()) sendEvent(TodayEvent.OpenDayClose(day()))
             is TodayAction.MealTileTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
             is TodayAction.RhythmLogTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
@@ -473,7 +484,8 @@ class TodayViewModel(
             .map { it.preset.today == TodayLayout.Explorer }
             .distinctUntilChanged()
             .flatMapLatest { on -> if (on) explorerStats() else flowOf(null) }
-        return combine(days, settingsRepository.settings, explorer, expended(), weighIns()) { (d, before), settings, stats, expended, weighIns ->
+        val energy = combine(expended(), burned()) { expended, burned -> expended to burned }
+        return combine(days, settingsRepository.settings, explorer, energy, weighIns()) { (d, before), settings, stats, (expended, burned), weighIns ->
             TodayInputs(
                 today = calendar.today(),
                 timeZone = calendar.timeZone(),
@@ -487,8 +499,16 @@ class TodayViewModel(
                 selectOn = selectEnabled(),
                 foodActionsOn = foodActionsEnabled(),
                 weighIns = weighIns,
+                goalsAndEnergyOn = goalsAndEnergy(),
+                burned = burned,
             )
         }
+    }
+
+    /** The shown day's Burned (design sync 4). With `release.goalsAndEnergy` off nothing reads it. */
+    private fun burned(): Flow<Burned?> {
+        if (!goalsAndEnergy()) return flowOf(null)
+        return selectedDay.date.flatMapLatest { date -> burnedRepository.burned(date) }
     }
 
     /** The last few weeks of weigh-ins for the Weight row. With `release.todaySummary` off the store is never read. */

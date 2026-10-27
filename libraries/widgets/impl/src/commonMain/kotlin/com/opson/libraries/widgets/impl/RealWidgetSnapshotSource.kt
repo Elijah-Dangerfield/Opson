@@ -4,6 +4,9 @@ import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.GoalsAndEnergyEnabled
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEvents
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
@@ -57,16 +61,22 @@ class RealWidgetSnapshotSource(
     private val clock: Clock,
     private val appEvents: AppEvents,
     private val strings: WidgetStrings,
+    private val burnedRepository: BurnedRepository,
+    private val goalsAndEnergy: GoalsAndEnergyEnabled,
 ) : WidgetSnapshotSource {
 
     override fun observe(): Flow<WidgetSnapshot> = flow {
         val copy = WidgetCopy.resolve(strings)
         emitAll(
-            combine(knownSettings(), today().flatMapLatest(diary::observeDay), policies.policy) { settings, day, policy ->
-                WidgetSnapshotBuilder.build(WidgetInputs(today = day, settings = settings), policy, copy)
+            combine(knownSettings(), today().flatMapLatest(diary::observeDay), policies.policy, burned()) { settings, day, policy, burned ->
+                WidgetSnapshotBuilder.build(WidgetInputs(today = day, settings = settings, burnedKcal = burned?.totalKcal), policy, copy)
             },
         )
     }.distinctUntilChanged()
+
+    /** Today's Burned, what a set deficit or surplus aims at. With `release.goalsAndEnergy` off nothing reads it. */
+    private fun burned(): Flow<Burned?> =
+        if (goalsAndEnergy()) today().flatMapLatest(burnedRepository::burned) else flowOf(null)
 
     /** The user's own settings: before the first read, the defaults would show the wrong mode. */
     private fun knownSettings(): Flow<Settings> =

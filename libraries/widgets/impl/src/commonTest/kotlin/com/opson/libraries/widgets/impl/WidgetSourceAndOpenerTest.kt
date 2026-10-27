@@ -52,6 +52,8 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         clock = clock,
         appEvents = AppEvents(bus),
         strings = KeyStrings,
+        burnedRepository = FakeBurnedRepository(),
+        goalsAndEnergy = goalsAndEnergyFlag(),
     )
 
     private fun opener(): WidgetOpener = WidgetOpener(diary, settings, calendar, clock, appScope)

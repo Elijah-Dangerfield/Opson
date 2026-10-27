@@ -15,6 +15,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(projects.libraries.widgets)
+            // Burned and release.goalsAndEnergy, for a set deficit or surplus's target.
+            implementation(projects.libraries.health)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.config)
@@ -27,6 +29,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
         }
         commonTest.dependencies {
+            implementation(projects.libraries.health)
             implementation(projects.libraries.widgets)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.nutrition)

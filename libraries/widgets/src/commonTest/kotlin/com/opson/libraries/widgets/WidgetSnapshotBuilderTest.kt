@@ -79,6 +79,19 @@ class WidgetSnapshotBuilderTest {
     }
 
     @Test
+    fun aSetDeficit_drawsItsTargetAgainstBurned() {
+        val base = WidgetFixtures.inputs(NumbersSettings(preset = PresetId.Full), WidgetFixtures.day, mealGroups = true)
+        val deficit = base.settings.targets.copy(startingKcal = 1500, style = TargetStyle.Deficit(500, 500))
+        val inputs = base.copy(settings = base.settings.copy(targets = deficit), burnedKcal = 2180)
+
+        val energy = assertNotNull(WidgetSnapshotBuilder.build(inputs, WidgetFixtures.policy(PresetId.Full), COPY).today.energy)
+
+        // 2,180 less 500 is 1,680; the bar runs to 2,016.
+        assertEquals(1680 / 2016f, energy.rangeStart, 0.001f)
+        assertEquals(energy.rangeStart, energy.rangeEnd)
+    }
+
+    @Test
     fun full_drawsNoMealsAndNoNote() {
         val today = build(PresetId.Full).today
         assertTrue(today.meals.isEmpty())

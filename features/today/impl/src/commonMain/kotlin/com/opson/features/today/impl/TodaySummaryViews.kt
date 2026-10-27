@@ -152,10 +152,10 @@ private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAct
     ) {
         if (macrosPage != null) {
             SwipePages(page = state.summaryPage, pageCount = pageCount, onPageChange = { onAction(TodayAction.SummaryPageShown(it)) }) { page ->
-                if (page == 0) EnergyPageContent(summary) else MacrosPageContent(macrosPage)
+                if (page == 0) FirstPage(summary, onAction) else MacrosPageContent(macrosPage)
             }
         } else {
-            EnergyPageContent(summary)
+            FirstPage(summary, onAction)
         }
         SummaryFooter(
             nutrientsLabel = stringResource(Res.string.today_summary_nutrients),
@@ -165,12 +165,25 @@ private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAct
             onPageSelected = { onAction(TodayAction.SummaryPageShown(it)) },
             collapseIcon = if (tools && !summary.empty) AppIcons.ExpandLess.described(stringResource(Res.string.today_collapse_cd)) else null,
             onCollapse = { onAction(TodayAction.CollapseTapped) },
+            showNutrients = summary.card?.nutrientsLink ?: true,
             leading = {
-                // Expended has its own stat once there are stats; until then it is the line under the bar.
-                if (summary.stats.isEmpty()) ExpendedSoFarLine(stringResource(Res.string.integrations_today_expended), summary.expended)
+                val card = summary.card
+                when {
+                    // Design sync 4's card carries Burned itself; the footer has room for the meals.
+                    card != null -> CardMeals(card)
+                    // Expended has its own stat once there are stats; until then it is the line under the bar.
+                    summary.stats.isEmpty() -> ExpendedSoFarLine(stringResource(Res.string.integrations_today_expended), summary.expended)
+                }
             },
         )
     }
+}
+
+/** Page 1: design sync 4's card when built, else design sync 2's energy page. */
+@Composable
+private fun FirstPage(summary: TodaySummary.Energy, onAction: (TodayAction) -> Unit) {
+    val card = summary.card
+    if (card != null) EnergyCardContent(card, onAction) else EnergyPageContent(summary)
 }
 
 @Composable

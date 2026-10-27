@@ -155,6 +155,22 @@ data class Settings(
     val heightCm: Double? = null,
     @Serializable(with = BodySexSerializer::class)
     val bodySex: BodySex? = null,
+
+    // More › Today screen (design sync 4, 13.6, `release.goalsAndEnergy`). Top-level keys, because
+    // the server merges settings one level deep. Card pages are [todayMacrosPage].
+    val todayCard: SummaryCardPreset = SummaryCardPreset.InOut,
+    val todayMainNumber: MainNumberChoice = MainNumberChoice.Follow,
+    /** The card's toggle, remembered per goal style ([mainNumberKey] to [MainNumberChoice.wire]). */
+    val todayMainNumberByStyle: Map<String, String> = emptyMap(),
+    /** "Resting 1,610 · Active 570" under the Burned bar. */
+    val todayBurnedBreakdown: Boolean = true,
+    /** "3 of 4 meals" on the card. */
+    val todayMealsCount: Boolean = false,
+    val todayNutrientsLink: Boolean = true,
+    /** Rows in Today's list that can be turned off on Today alone. */
+    val todayWater: Boolean = true,
+    val todayWeight: Boolean = true,
+    val todayCloseDay: Boolean = true,
 ) {
     /** What the resting energy calculation is told: these details and [weightKg], on [today]. */
     fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile =

@@ -127,6 +127,18 @@ class DayCloseTest : CoroutineTest() {
         assertTrue(bigDay.singleGoal)
     }
 
+    /** Design sync 4: a set deficit's goal is Burned less the deficit, and tomorrow's moves with it too. */
+    @Test
+    fun aSetDeficit_isJudgedAgainstBurned() {
+        val state = TodayFixtures.dayCloseState(policy(PresetId.Full), bigDay = true, settings = TodayFixtures.deficit500, burned = TodayFixtures.burned)
+
+        // 3,095 against 1,680 (2,180 less 500).
+        assertEquals(RangeLine.Above, assertNotNull(state.totals).rangeLine)
+        assertEquals("1,680 kcal", assertNotNull(state.bigDay).tomorrow.text())
+        val withoutBurned = TodayFixtures.dayCloseState(policy(PresetId.Full), bigDay = true, settings = TodayFixtures.deficit500)
+        assertEquals("1,900 to 2,300 kcal", assertNotNull(withoutBurned.bigDay).tomorrow.text(), "no Burned, the range")
+    }
+
     @Test
     fun subtleHidesTheButtonsAndOffHidesTheCard() {
         assertEquals(Commitment.Hidden, build(PresetId.Full, bigDay = true, settings = Settings(bigDayEvent = EventLevel.Subtle)).bigDay?.commitment)
@@ -192,6 +204,8 @@ class DayCloseTest : CoroutineTest() {
         healthFlag = healthFlag(false),
         checkIns = diary,
         checkInEnabled = checkInFlag(checkInOn),
+        goalsAndEnergy = goalsAndEnergyFlag(),
+        burnedRepository = FakeBurnedRepository(),
     )
 
     @Test
