@@ -84,19 +84,20 @@ import org.jetbrains.compose.resources.stringResource
  * [TodayAction]s.
  */
 
+/** [macros] is the macro row, drawn under the eaten bar (or the rings, or the sum). */
 @Composable
-internal fun EnergyCardContent(card: EnergyCard, onAction: (TodayAction) -> Unit) {
+internal fun EnergyCardContent(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Composable () -> Unit = {}) {
     when (card.preset) {
-        SummaryCardPreset.InOut -> InOut(card, onAction)
-        SummaryCardPreset.RangeBar -> RangeBarCard(card, onAction)
-        SummaryCardPreset.Rings -> Rings(card, onAction)
-        SummaryCardPreset.Equation -> Equation(card, onAction)
+        SummaryCardPreset.InOut -> InOut(card, onAction, macros)
+        SummaryCardPreset.RangeBar -> RangeBarCard(card, onAction, macros)
+        SummaryCardPreset.Rings -> Rings(card, onAction, macros)
+        SummaryCardPreset.Equation -> Equation(card, onAction, macros)
     }
 }
 
 /** 13.1 1d: the main number and the goal, then Eaten and Burned, each on its own bar. */
 @Composable
-private fun InOut(card: EnergyCard, onAction: (TodayAction) -> Unit) {
+private fun InOut(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
@@ -110,6 +111,7 @@ private fun InOut(card: EnergyCard, onAction: (TodayAction) -> Unit) {
         }
         FigureRow(stringResource(Res.string.today_card_eaten), Metric.Calories, card.eaten)
         EatenBar(card)
+        macros()
         card.burned?.let { burned ->
             FigureRow(stringResource(Res.string.today_card_burned), Metric.EnergyOut, burned.total)
             BurnedBar(burned)
@@ -121,7 +123,7 @@ private fun InOut(card: EnergyCard, onAction: (TodayAction) -> Unit) {
 
 /** 13.1 1c: the main number over one bar, Burned as a tick on it, and what each mark is. */
 @Composable
-private fun RangeBarCard(card: EnergyCard, onAction: (TodayAction) -> Unit) {
+private fun RangeBarCard(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -143,13 +145,14 @@ private fun RangeBarCard(card: EnergyCard, onAction: (TodayAction) -> Unit) {
                 box = true,
             )
         }
+        macros()
         SummaryLink(text = stringResource(Res.string.today_card_energy), onClick = { onAction(TodayAction.EnergyTapped) })
     }
 }
 
 /** 13.6c: Eaten, Burned and the main number as rings. Only with a single target. */
 @Composable
-private fun Rings(card: EnergyCard, onAction: (TodayAction) -> Unit) {
+private fun Rings(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SummaryLink(text = stringResource(Res.string.today_card_energy), onClick = { onAction(TodayAction.EnergyTapped) })
@@ -183,13 +186,14 @@ private fun Rings(card: EnergyCard, onAction: (TodayAction) -> Unit) {
                 MainLabel(card, onAction, short = true)
             }
         }
+        macros()
     }
 }
 
 /** 13.1 1b: Eaten − Burned = the main number, the bar, and the gap to the goal in words. */
 @Composable
-private fun Equation(card: EnergyCard, onAction: (TodayAction) -> Unit) {
-    val burned = card.burned ?: return InOut(card, onAction)
+private fun Equation(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Composable () -> Unit) {
+    val burned = card.burned ?: return InOut(card, onAction, macros)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SummaryLink(text = stringResource(Res.string.today_card_energy), onClick = { onAction(TodayAction.EnergyTapped) })
@@ -223,6 +227,7 @@ private fun Equation(card: EnergyCard, onAction: (TodayAction) -> Unit) {
             typography = AppTheme.type.secondaryStrong,
             color = AppTheme.colors.inkSoft,
         )
+        macros()
     }
 }
 

@@ -178,20 +178,19 @@ object TodayStateBuilder {
         val scaleMax = range.maxKcal * BAR_HEADROOM
         val empty = day.allItems.isEmpty() && day.ateNoDetails.isEmpty()
         val summaryOn = inputs.summaryOn
+        // Every macro the levels show, in grams, under the bar. The stats row and design sync 4's
+        // card once took this row's place, so All numbers showed one macro at most (2026-10-27).
+        val macros = if (empty) emptyList() else macroTiles(day, settings, policy, context, GoalStyle.None)
         return TodaySummary.Energy(
             eaten = policy.resolve(Metric.Calories, eaten, Surface.Today, context.copy(of = scaleMax, bare = true)),
             empty = empty,
             range = policy.resolveRange(Metric.Calories, range.minKcal.toDouble(), range.maxKcal.toDouble(), Surface.Today, context.copy(bare = true)),
             rangeStart = (range.minKcal / scaleMax).toFloat(),
             rangeEnd = (range.maxKcal / scaleMax).toFloat(),
-            macros = if (empty || summaryOn) {
-                emptyList()
-            } else {
-                macroTiles(day, settings, policy, context, GoalStyle.Slash).filter { it.metric != Metric.Fiber }
-            },
+            macros = macros,
             expended = expended(inputs, policy, context),
             bar = if (empty) emptyList() else barParts(day, policy, context, eaten),
-            stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range) else emptyList(),
+            stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range, macros.map { it.metric }.toSet()) else emptyList(),
             macrosPage = if (summaryOn && !empty && settings.todayMacrosPage) macrosPage(day, settings, policy, context, eaten) else null,
             singleGoal = range.single,
             // Only All numbers' card: outside it (Later after its reveal, too) the mode sets the layout.
@@ -215,11 +214,21 @@ object TodayStateBuilder {
             listOfNotNull(BarPart(null, (rest / total).toFloat()).takeIf { rest / total > MIN_PART })
     }
 
-    /** Page 1's stats, in the person's order (or the goals' suggestion), the ones the levels hide left out. */
-    private fun stats(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, eaten: Double, range: EnergyRange): List<StatTile> {
+    /**
+     * Page 1's stats, in the person's order (or the goals' suggestion), the ones the levels hide
+     * left out, and a macro left out when the macro row above already shows it ([inRow]).
+     */
+    private fun stats(
+        inputs: TodayInputs,
+        policy: VisibilityPolicy,
+        context: FormatContext,
+        eaten: Double,
+        range: EnergyRange,
+        inRow: Set<Metric>,
+    ): List<StatTile> {
         val offered = SummaryStats.offered(policy)
         return SummaryStats.chosen(inputs.settings)
-            .filter { it in offered && SummaryStats.allowed(it, policy) }
+            .filter { it in offered && SummaryStats.allowed(it, policy) && it.metric !in inRow }
             .mapNotNull { stat ->
                 statValue(stat, inputs, policy, context, eaten, range)?.let {
                     StatTile(stat, it, if (stat == SummaryStat.ToRange && range.single) Res.string.today_stat_to_goal else stat.label)

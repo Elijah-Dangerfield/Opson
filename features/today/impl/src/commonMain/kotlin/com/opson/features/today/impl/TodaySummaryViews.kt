@@ -153,7 +153,11 @@ private fun EnergyCard(summary: TodaySummary.Energy, state: TodayState, onAction
 @Composable
 private fun FirstPage(summary: TodaySummary.Energy, onAction: (TodayAction) -> Unit) {
     val card = summary.card
-    if (card != null) EnergyCardContent(card, onAction) else EnergyPageContent(summary)
+    if (card != null) {
+        EnergyCardContent(card, onAction, macros = { SummaryMacroColumns(summary.macros.map { it.toSummaryMacro() }) })
+    } else {
+        EnergyPageContent(summary)
+    }
 }
 
 @Composable
@@ -169,11 +173,8 @@ private fun EnergyPageContent(summary: TodaySummary.Energy) {
         segments = summary.bar.toSegments(),
         emptyTitle = if (summary.empty) stringResource(Res.string.today_summary_nothing_yet) else null,
     ) {
-        if (summary.stats.isNotEmpty()) {
-            SummaryStatsRow(summary.stats.map { it.toCell() })
-        } else {
-            SummaryMacroColumns(summary.macros.map { it.toSummaryMacro() })
-        }
+        SummaryMacroColumns(summary.macros.map { it.toSummaryMacro() })
+        SummaryStatsRow(summary.stats.map { it.toCell() })
     }
 }
 

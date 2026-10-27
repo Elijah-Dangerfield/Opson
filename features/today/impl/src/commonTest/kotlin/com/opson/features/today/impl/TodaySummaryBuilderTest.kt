@@ -66,7 +66,7 @@ class TodaySummaryBuilderTest {
         val state = build(on = false)
         val energy = state.energy()
 
-        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat), energy.macros.map { it.metric })
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), energy.macros.map { it.metric })
         assertTrue(energy.stats.isEmpty())
         assertNull(energy.macrosPage)
         assertNull(state.compact)
@@ -74,6 +74,53 @@ class TodaySummaryBuilderTest {
         assertFalse(state.summaryTools)
         assertFalse(state.selectTools)
         assertNull(build(on = false, ui = TodayUi(selected = TodayFixtures.picked)).selection)
+    }
+
+    /**
+     * The owner's phone, All numbers with every Today flag on: page 1 showed Protein alone under
+     * the eaten bar, because the stats row (a goal's suggestion of Protein, Meals, To your range)
+     * or design sync 4's card took the macro row's place. Every macro, in grams, in every case.
+     */
+    @Test
+    fun allNumbers_showsEveryMacroInGrams_underTheBar_whateverTheFlags() {
+        val performance = Settings(onboarding = OnboardingAnswers(why = listOf("performance")))
+        listOf(false to false, true to false, true to true).forEach { (summaryOn, goalsOn) ->
+            val energy = assertIs<TodaySummary.Energy>(
+                TodayFixtures.todayState(
+                    policy(PresetId.Full),
+                    settings = performance,
+                    summaryOn = summaryOn,
+                    goalsAndEnergyOn = goalsOn,
+                    burned = TodayFixtures.burned,
+                ).summary,
+            )
+            val flags = "summary $summaryOn, goals and energy $goalsOn"
+            assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), energy.macros.map { it.metric }, flags)
+            assertEquals(listOf("51 g", "162 g", "44 g", "18 g"), energy.macros.map { it.display.text() }, flags)
+            assertTrue(energy.stats.none { it.stat.metric in energy.macros.map { m -> m.metric } }, "no macro twice: $flags")
+        }
+    }
+
+    /** What each mode puts at the top of Today with every flag on, as the owner runs it. */
+    @Test
+    fun everyMode_showsItsOwnNumbersAtTheTop() {
+        fun top(preset: PresetId) = TodayFixtures.todayState(
+            policy(preset),
+            summaryOn = true,
+            goalsAndEnergyOn = true,
+            burned = TodayFixtures.burned,
+        ).summary
+        val macros = listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber)
+
+        val grams = assertIs<TodaySummary.Focus>(top(PresetId.MacrosWithGrams))
+        assertEquals(macros, grams.rows.map { it.metric })
+        assertEquals("51 of 120 g", grams.rows.first().display.text())
+
+        val words = assertIs<TodaySummary.Focus>(top(PresetId.MacrosOnly))
+        assertEquals(macros, words.rows.map { it.metric })
+        assertTrue(words.rows.all { it.display is Display.Soft }, "words and bars, never a gram")
+
+        assertNull(top(PresetId.NoNumbers), "No numbers has its meal timeline instead")
     }
 
     @Test
@@ -141,10 +188,17 @@ class TodaySummaryBuilderTest {
 
     @Test
     fun thePersonsOwnOrderWins_andUnknownKeysAreSkipped() {
-        val stats = build(settings = Settings(todaySummaryStats = listOf("fiber", "sparkles", "protein"))).energy().stats
+        val stats = build(settings = Settings(todaySummaryStats = listOf("water", "sparkles", "meals"))).energy().stats
 
-        assertEquals(listOf(SummaryStat.Fiber, SummaryStat.Protein), stats.map { it.stat })
-        assertEquals(listOf("18 g", "51 g"), stats.map { it.text() })
+        assertEquals(listOf(SummaryStat.Water, SummaryStat.Meals), stats.map { it.stat })
+        assertEquals(listOf("3 of 8", "3 of 4"), stats.map { it.text() })
+    }
+
+    @Test
+    fun aMacroStatTheMacroRowShows_isNotRepeated() {
+        val stats = build(settings = Settings(todaySummaryStats = listOf("fiber", "meals", "protein"))).energy().stats
+
+        assertEquals(listOf(SummaryStat.Meals), stats.map { it.stat })
     }
 
     @Test

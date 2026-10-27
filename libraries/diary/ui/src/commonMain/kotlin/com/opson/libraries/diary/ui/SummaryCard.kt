@@ -195,16 +195,20 @@ fun CountFigure(
     }
 }
 
-/** The macros as three columns under the bar: the card before the stats row, and with the flag off. */
+/**
+ * The macros as columns under the bar, each its name, amount and bar. Four (fiber too) sit closer
+ * with a smaller name, so "Protein" still fits a phone's quarter of the card.
+ */
 @Composable
 fun SummaryMacroColumns(macros: List<SummaryMacro>, modifier: Modifier = Modifier) {
     if (macros.isEmpty()) return
+    val four = macros.size > 3
     Column(modifier.fillMaxWidth()) {
         HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(vertical = AppTheme.spacing.section))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.page)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (four) AppTheme.spacing.row else AppTheme.spacing.page)) {
             macros.forEach { macro ->
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MacroName(macro)
+                    MacroName(macro, typography = if (four) AppTheme.type.secondaryStrong.Bold else AppTheme.type.bodyBold)
                     NutrientFigure(macro.metric, macro.display, typography = AppTheme.type.cardTitle.Tabular, restTypography = AppTheme.type.secondary)
                     MacroBar(macro, height = 6)
                 }
