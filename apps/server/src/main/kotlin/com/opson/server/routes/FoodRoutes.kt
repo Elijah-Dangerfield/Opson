@@ -2,6 +2,7 @@ package com.opson.server.routes
 
 import com.opson.server.domain.BarcodeLookup
 import com.opson.server.domain.BarcodeLookupResult
+import com.opson.server.domain.CatalogSource
 import com.opson.server.domain.DescribeParser
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodDescriber
@@ -34,6 +35,8 @@ import java.util.UUID
  *    `category` (`restaurant`, `beverage`, `common`), `source` (`usda`,
  *    `off`) and `sort` (`best`, `name`) narrow or reorder it ([SearchFilter]);
  *    without them the call is exactly 0.1's. An unknown value is a 400.
+ *    `credits=nevo` says the app shows NEVO's citation, which lets NEVO's
+ *    foods into the results; without it there are none ([SearchFilter.nevo]).
  *  - `GET /v1/foods/search/options` which of those this server offers: `off`
  *    only when `FOOD_SEARCH_OFF_ENABLED` is on.
  *  - `GET /v1/foods/{id}` one food with portions and micros.
@@ -79,12 +82,15 @@ fun Route.foodRoutes(
                     SearchSort.fromWire(it)
                         ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_sort", "Unknown sort"))
                 } ?: SearchSort.BestMatch
+                // Sources whose citation the app shows. Unknown names are ignored, so a newer app can list more.
+                val credits = params["credits"].orEmpty().split(',').map { it.trim() }
+                val filter = SearchFilter(category, source, sort, nevo = CatalogSource.Nevo.wire in credits)
                 val matches = catalog.search(
                     query,
                     limit,
                     country = call.clientContext().countryCode,
                     openFoodFacts = true, // still only when the server's FOOD_SEARCH_OFF_ENABLED is on
-                    filter = SearchFilter(category = category, source = source, sort = sort),
+                    filter = filter,
                 )
                 call.respond(FoodSearchResponse(query = query, foods = matches.map { it.food.toResponse() }))
             }

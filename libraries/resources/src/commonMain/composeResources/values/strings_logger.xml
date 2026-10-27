@@ -133,6 +133,8 @@
     <string name="logger_amount_close_cd">Close</string>
     <string name="logger_source_usda">USDA FoodData Central</string>
     <string name="logger_source_off">Open Food Facts</string>
+    <!-- RIVM's required citation, word for word. The version moves with CITED_VERSION in scripts/import_nevo_foods.py. -->
+    <string name="logger_source_nevo">Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven</string>
     <string name="logger_source_yours">your own food</string>
     <string name="logger_micros_vitamins">Vitamins</string>
     <string name="logger_micros_minerals">Minerals</string>

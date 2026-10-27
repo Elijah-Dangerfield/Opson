@@ -263,6 +263,70 @@ All of these go in as tier 1 (reference), each with its source and version on
 every row. They cover about 20,000 foods in total. This is the same shape of
 importer as the USDA one.
 
+## NEVO (Netherlands): imported
+
+`scripts/import_nevo_foods.py` loads NEVO-online 2025/9.0 (2,328 foods in
+the release) into `foods` as source `nevo`, tier 1, under RIVM's written
+permission (Replies, below). Not loaded on dev or prod yet; the release
+checklist has the step.
+
+- **Getting the file.** RIVM hands out the download link only after its
+  conditions of use are accepted on the
+  [request form](https://www.rivm.nl/en/dutch-food-composition-database/use-of-nevo-online/request-dataset),
+  so the importer never fetches it on its own. Download it there, then pass
+  the file (or the zip it comes in) with `--file`, or the link with `--url`.
+  Other projects that import it describe `NEVO2025_v9.0.csv`, pipe-separated
+  with decimal commas, which is what the importer reads; the real file
+  hasn't been through it yet.
+- **The command.** Counts only, then a load:
+
+  ```bash
+  python3 -I scripts/import_nevo_foods.py --file ~/Downloads/NEVO2025_v9.0.csv
+  CATALOG_DATABASE_URL=... python3 -I scripts/import_nevo_foods.py --file ~/Downloads/NEVO2025_v9.0.csv --psql
+  ```
+
+  It needs V20 on the database and checks for it first. Re-running changes
+  no row.
+- **Amounts unchanged.** Every value is copied as published; only decimal
+  commas become points. Each nutrient column is matched on its code and its
+  unit, and a unit other than ours stops the run.
+- **Left out:** the "Foods for special nutritional use" group (infant and
+  toddler formula, per 100 ml), and any other row not given per 100 g.
+- **Names:** the English name, with NEVO's `w`, `wo` and `av` written out
+  ("Apple with skin average"). `foods` has nowhere to keep an alias, so the
+  Dutch name isn't stored, and a Dutch query won't find these foods until
+  it does.
+- **Citation:** the search row's badge ("NEVO 2025/9.0, RIVM"), the amount
+  sheet's source line and the Foods tab's credit carry it. The importer
+  refuses any release other than the one the app cites. Search only returns
+  NEVO foods to an app that sends `credits=nevo`, so 0.1, which shows no
+  citation, never sees them, and Describe never picks them.
+
+| Our key | NEVO | Note |
+|---|---|---|
+| kcal | ENERCC (kcal) | |
+| protein | PROT (g) | |
+| carbs | CHO (g) | Available carbohydrate: fibre is not included, unlike USDA's |
+| fat | FAT (g) | |
+| fiber | FIBT (g) | |
+| sugars_g | SUGAR (g) | |
+| saturated_fat_g | FASAT (g) | |
+| trans_fat_g | FATRS (g) | |
+| cholesterol_mg | CHORL (mg) | |
+| sodium_mg, potassium_mg, calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, zinc_mg, copper_mg | NA, K, CA, FE, MG, P, ZN, CU (mg) | |
+| selenium_ug | SE (µg) | |
+| vitamin_a_rae_ug | VITA_RAE (µg) | |
+| vitamin_c_mg | VITC (mg) | |
+| vitamin_d_ug | VITD (µg) | |
+| vitamin_e_mg | TOCPHA (mg) | Alpha-tocopherol, as USDA; not VITE |
+| vitamin_k_ug | VITK1 (µg) | Phylloquinone, as USDA; not VITK (K1 + K2) |
+| thiamin_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg | THIA, RIBF, NIA, VITB6 (mg) | Niacin preformed, not NIAEQ |
+| vitamin_b12_ug | VITB12 (µg) | |
+| folate_dfe_ug | FOLFD (µg) | Only when FOLAC (folic acid) is 0, where DFE is the food folate exactly. Otherwise left out: DFE would have to be calculated |
+| added_sugars_g, manganese_mg, choline_mg | none | NEVO doesn't give them |
+
+NEVO has no household portions, so the app weighs these foods in grams.
+
 ## Hold
 
 | Source | Why |
@@ -295,7 +359,7 @@ importer as the USDA one.
   stays free. Their one caution: "foods for special nutritional use" (infant
   and toddler formula) are per 100 ml with no density, so leave those out.
   Cite "Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven".
-  NEVO moves from Hold to ready to import.
+  Imported: see "NEVO (Netherlands): imported" above.
 - **Philippines PhilFCT: not now.** FNRI can't license it yet and has no
   CSV, Excel or API; they're building a data platform (i.fnri) and will
   announce access on their Facebook page. Only the printed book is for sale.

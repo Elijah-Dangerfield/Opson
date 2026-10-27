@@ -160,6 +160,24 @@ class FoodRoutesTest {
     }
 
     @Test
+    fun nevoIsOnlyForAnAppThatCreditsIt() = runTest {
+        val catalog = FakeFoodCatalog(listOf(banana))
+        withApp(catalog) { client ->
+            client.get("/v1/foods/search?q=banana&credits=nevo") { auth() }
+            client.get("/v1/foods/search?q=banana&credits=someday,nevo&category=common") { auth() }
+            client.get("/v1/foods/search?q=banana&credits=someday") { auth() }
+            assertEquals(
+                listOf(
+                    SearchFilter(nevo = true),
+                    SearchFilter(category = SearchCategory.Common, nevo = true),
+                    SearchFilter.None,
+                ),
+                catalog.filters,
+            )
+        }
+    }
+
+    @Test
     fun unknownSearchOptionsAre400s() = runTest {
         val catalog = FakeFoodCatalog(listOf(banana))
         withApp(catalog) { client ->

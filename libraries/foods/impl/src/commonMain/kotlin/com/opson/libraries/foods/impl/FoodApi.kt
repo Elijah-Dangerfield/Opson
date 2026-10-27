@@ -2,6 +2,7 @@ package com.opson.libraries.foods.impl
 
 import com.opson.libraries.core.Catching
 import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.SearchOrder
 import com.opson.libraries.networking.NetworkClient
 import com.opson.libraries.networking.authedCall
@@ -129,10 +130,13 @@ class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
                 timeout { requestTimeoutMillis = SEARCH_TIMEOUT_MS }
                 parameter("q", query)
                 parameter("limit", limit)
-                // Only what differs from the default, so an unfiltered search is the exact call 0.1 makes.
+                // Only the options that differ from the default, so an unfiltered search asks what 0.1 did.
                 filter.category?.let { parameter("category", it.wire) }
                 filter.source?.let { parameter("source", it.wire) }
                 if (filter.order != SearchOrder.BestMatch) parameter("sort", filter.order.wire)
+                // This app shows NEVO's citation (its source badge, the amount sheet, the Foods credit),
+                // which RIVM requires wherever its foods appear; without this the server leaves them out.
+                parameter("credits", FoodSource.Nevo.wire)
             }.body<FoodSearchResponse>()
         }
 
