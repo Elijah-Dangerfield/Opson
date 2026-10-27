@@ -47,6 +47,12 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
 
 ## Photo estimate (`release.photo`)
 
+**Not shipping in 0.2** (the owner, 2026-10-27): a photo of a meal is a rough
+guess, and packaged foods now go through label capture (`release.submitFood`).
+The estimate stays behind `release.photo`, off on prod, and is reachable only
+from the add sheet's quick actions. The Anthropic key below is still needed,
+for label parsing.
+
 - [ ] Create an Anthropic API key for the server, and check the org's data
       settings match the privacy text below (API inputs not used for
       training, retention as short as the org allows).
