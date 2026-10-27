@@ -15,6 +15,8 @@ kotlin {
             implementation(projects.features.onboarding)
             // NutrientsRoute, which Energy today links to.
             implementation(projects.features.trends)
+            // DayCloseRoute: the QA menu opens today's check-in.
+            implementation(projects.features.today)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
@@ -31,6 +33,10 @@ kotlin {
             implementation(projects.libraries.widgets)
             // ProgressPhotosEnabled: Modes' Progress photos row.
             implementation(projects.libraries.progressphotos)
+            // The QA menu: AppCache (reset onboarding), NetworkConfig (the server), the food cache.
+            implementation(projects.libraries.opson)
+            implementation(projects.libraries.networking)
+            implementation(projects.libraries.foods)
 
             implementation(libs.kotlinx.datetime)
 
@@ -55,6 +61,9 @@ kotlin {
             implementation(projects.libraries.health)
             implementation(projects.libraries.widgets)
             implementation(projects.libraries.progressphotos)
+            implementation(projects.libraries.opson)
+            implementation(projects.libraries.networking)
+            implementation(projects.libraries.foods)
             implementation(libs.kotlinx.datetime)
             implementation(projects.libraries.resources)
             implementation(compose.components.resources)

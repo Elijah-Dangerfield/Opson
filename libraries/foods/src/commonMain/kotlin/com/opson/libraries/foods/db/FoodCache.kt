@@ -55,4 +55,11 @@ interface FoodCacheDao : ClearableDao {
 
     @Query("DELETE FROM food_cache")
     override suspend fun deleteAll()
+
+    /**
+     * The QA menu's "Clear caches": Recent and the offline search go, Favorites stay. Favorites
+     * live only here, so this is the most a cache clear may take.
+     */
+    @Query("DELETE FROM food_cache WHERE favorite = 0")
+    suspend fun deleteAllButFavorites()
 }

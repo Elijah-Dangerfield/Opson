@@ -1,12 +1,32 @@
 package com.opson.features.settings.impl.more
 
+import com.opson.features.settings.impl.qa.QaGate
 import com.opson.libraries.diary.FastingAccess
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.PresetId
 
-/** The More list as cards of rows, top to bottom. */
-data class MoreState(val groups: List<List<MoreRow>> = emptyList())
+/**
+ * The More list as cards of rows, top to bottom, then the version line under them.
+ *
+ * @property logOut where the log out confirmation is; Idle draws no dialog.
+ */
+data class MoreState(
+    val groups: List<List<MoreRow>> = emptyList(),
+    val logOut: LogOutStep = LogOutStep.Idle,
+)
+
+/** Who is signed in, for the Log out row and its confirmation. */
+data class MoreAccount(val email: String?, val guest: Boolean)
+
+sealed interface LogOutStep {
+    data object Idle : LogOutStep
+
+    /** The dialog is up. A guest is told their log stays behind with no way back to it. */
+    data class Confirming(val guest: Boolean) : LogOutStep
+
+    data class Working(val guest: Boolean) : LogOutStep
+}
 
 /**
  * One row. No row carries an amount (design v3: "Row subtitles never show amounts"), so More
@@ -43,19 +63,32 @@ sealed interface MoreRow {
     /** Home screen widgets. No subtitle and no value, as v3. Only with `release.widgets` on. */
     data object Widgets : MoreRow
 
+    /** Help: helplines, export, feedback and deleting the account. */
     data object Support : MoreRow
 
     /** "Free". There is no purchase flow in 0.1, so it opens nothing. */
     data object Plan : MoreRow
+
+    /** The published legal pages, also on Support's About card; Apple wants privacy one tap from More. */
+    data object Privacy : MoreRow
+    data object Terms : MoreRow
+    data object Credits : MoreRow
+
+    /** "Signed in as …", or "Guest on this phone". Only while there is a session to end. */
+    data class LogOut(val account: MoreAccount) : MoreRow
+
+    /** The QA menu, on debug and beta builds only (`QaAccess`). */
+    data object Qa : MoreRow
 }
 
 object MoreStateBuilder {
 
     /**
-     * How the app treats you, optional extras, then help and plan. Reminders shows only with
-     * [remindersOn]; [healthConnected] is null while `release.health` is off, and then there is
-     * no health row at all. [fastingReleased] is `release.fasting`, [widgetsOn] `release.widgets`,
-     * [todayScreenOn] `release.goalsAndEnergy`.
+     * How the app treats you, optional extras, help and plan, about, the account, then the QA
+     * menu. Reminders shows only with [remindersOn]; [healthConnected] is null while
+     * `release.health` is off, and then there is no health row at all. [fastingReleased] is
+     * `release.fasting`, [widgetsOn] `release.widgets`, [todayScreenOn] `release.goalsAndEnergy`.
+     * [account] is null with no session, and then there is no Account card.
      */
     fun build(
         settings: Settings,
@@ -64,8 +97,10 @@ object MoreStateBuilder {
         fastingReleased: Boolean = false,
         widgetsOn: Boolean = false,
         todayScreenOn: Boolean = false,
+        account: MoreAccount? = null,
+        qa: Boolean = false,
     ): MoreState = MoreState(
-        groups = listOf(
+        groups = listOfNotNull(
             listOfNotNull(
                 MoreRow.Modes(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                 MoreRow.Targets,
@@ -83,6 +118,32 @@ object MoreStateBuilder {
                 MoreRow.Widgets.takeIf { widgetsOn },
             ),
             listOf(MoreRow.Support, MoreRow.Plan),
+            listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
+            account?.let { listOf(MoreRow.LogOut(it)) },
+            listOf(MoreRow.Qa).takeIf { qa },
         ),
     )
+}
+
+/** The cards that get a label above them; the first three read as the design draws them, bare. */
+enum class MoreSection { About, Account, Testing }
+
+fun List<MoreRow>.section(): MoreSection? = when (firstOrNull()) {
+    MoreRow.Privacy -> MoreSection.About
+    is MoreRow.LogOut -> MoreSection.Account
+    MoreRow.Qa -> MoreSection.Testing
+    else -> null
+}
+
+/**
+ * The line under the cards: "Version 0.2.0 (702)". Off the store channel it adds the channel and
+ * the commit, so a tester's screenshot names the exact build.
+ */
+object MoreVersion {
+    fun line(versionName: String, buildNumber: Int, channel: String, commitSha: String): String {
+        val base = "$versionName ($buildNumber)"
+        return if (channel == QaGate.STORE_CHANNEL) base else "$base · $channel · ${commitSha.take(SHORT_SHA)}"
+    }
+
+    private const val SHORT_SHA = 7
 }

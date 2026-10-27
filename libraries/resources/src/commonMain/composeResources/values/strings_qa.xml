@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The QA menu (More › QA menu), on debug and beta builds only. Testers read it, customers never
+  do, so it is plain and technical rather than in the app's voice.
+  Same rules as strings.xml: no backslash escapes, positional format specifiers.
+-->
+<resources>
+    <string name="qa_title">QA menu</string>
+    <string name="qa_copy_hint">Tap a row to copy it.</string>
+    <string name="qa_copied">Copied %1$s.</string>
+
+    <string name="qa_section_build">This build</string>
+    <string name="qa_label_version">Version</string>
+    <string name="qa_label_channel">Channel</string>
+    <string name="qa_label_commit">Commit</string>
+    <string name="qa_label_platform">Platform</string>
+
+    <string name="qa_section_account">Account</string>
+    <string name="qa_label_user">User id</string>
+    <string name="qa_label_provider">Session</string>
+    <string name="qa_label_email">Email</string>
+    <string name="qa_label_server">Server</string>
+    <string name="qa_label_supabase">Supabase project</string>
+    <string name="qa_provider_guest">Guest (anonymous)</string>
+    <string name="qa_provider_account">Account (email or Apple or Google)</string>
+    <string name="qa_provider_none">No session</string>
+    <string name="qa_none">None</string>
+
+    <string name="qa_section_notifications">Notifications</string>
+    <string name="qa_notifications_body">Each fires in 5 seconds with the real copy and buttons, whatever the switches and release.reminders say.</string>
+    <string name="qa_fire_breakfast">Missed breakfast</string>
+    <string name="qa_fire_lunch">Missed lunch</string>
+    <string name="qa_fire_snack">Missed snack</string>
+    <string name="qa_fire_dinner">Missed dinner</string>
+    <string name="qa_fire_water">Water nudge</string>
+    <string name="qa_fired">Fires in 5 seconds.</string>
+    <string name="qa_fire_no_permission">Notifications are off for Opson. Turn them on in Settings first.</string>
+
+    <string name="qa_section_shortcuts">Shortcuts</string>
+    <string name="qa_check_in">Open today's check-in</string>
+    <string name="qa_check_in_sub">Close the day for today with the check-in showing. Turns on release.checkIn and the Reminders switch if they're off.</string>
+    <string name="qa_reset_onboarding">Reset onboarding</string>
+    <string name="qa_reset_onboarding_sub">Shows on next launch. A live guest session skips back to Today, so log out to see Welcome.</string>
+    <string name="qa_reset_onboarding_done">Onboarding shows on next launch.</string>
+    <string name="qa_clear_caches">Clear caches</string>
+    <string name="qa_clear_caches_sub">Refetches remote config and empties the food cache (Recent and offline search). Favorites, your log and settings stay.</string>
+    <string name="qa_clear_caches_done">Caches cleared.</string>
+    <string name="qa_failed">That didn't work. The log has why.</string>
+
+    <string name="qa_section_flags">Remote config</string>
+    <string name="qa_flags_body">Overrides stay on this phone until you clear them or uninstall.</string>
+    <string name="qa_clear_overrides">Clear all overrides</string>
+    <string name="qa_overrides_cleared">Overrides cleared.</string>
+    <string name="qa_overridden">Overridden</string>
+    <string name="qa_set">Set</string>
+</resources>

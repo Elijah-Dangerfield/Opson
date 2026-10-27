@@ -1,6 +1,9 @@
 package com.opson.features.settings.impl.more
 
+import com.opson.features.settings.impl.FakeAuthRepository
 import com.opson.features.settings.impl.FakeSettingsRepository
+import com.opson.features.settings.impl.qa.QaAccess
+import com.opson.libraries.identity.auth.AuthState
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
 import com.opson.features.settings.impl.goalsAndEnergyFlag
@@ -20,25 +23,102 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * The More list (design v3): three cards, the changes count on the Modes row, the water goal,
- * and where each row goes. No row carries an amount, so nothing here reads the policy. Not
- * covered: the routes the events become (the entry point).
+ * The More list (design v3): its three cards then About, Account and the QA menu, the changes
+ * count on the Modes row, the water goal, log out, and where each row goes. No row carries an
+ * amount, so nothing here reads the policy. Not covered: the routes the events become (the entry
+ * point).
  */
 class MoreTest : CoroutineTest() {
 
     private fun build(numbers: NumbersSettings = NumbersSettings()) = MoreStateBuilder.build(SettingsFixtures.settings(numbers))
 
     @Test
-    fun theRowsAreThreeCardsInOrder() {
+    fun theRowsAreTheDesignsThreeCards_thenAbout() {
         assertEquals(
             listOf(
                 listOf(MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.LookAndFeel),
                 listOf(MoreRow.Water(glasses = 8)),
                 listOf(MoreRow.Support, MoreRow.Plan),
+                listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
             ),
             build().groups,
         )
     }
+
+    @Test
+    fun signedIn_anAccountCardFollowsAbout_andTheQaMenuComesLast() {
+        val account = MoreAccount(email = "sam@example.com", guest = false)
+        val groups = MoreStateBuilder.build(SettingsFixtures.settings(), account = account, qa = true).groups
+
+        assertEquals(listOf(MoreRow.LogOut(account)), groups[4])
+        assertEquals(listOf(MoreRow.Qa), groups[5])
+        assertEquals(listOf(null, null, null, MoreSection.About, MoreSection.Account, MoreSection.Testing), groups.map { it.section() })
+    }
+
+    @Test
+    fun theAccountCardFollowsTheSession() = runUnitTest {
+        val auth = FakeAuthRepository(initial = AuthState.Authenticated(userId = "u1", isAnonymous = true, email = null))
+        val vm = moreVm(auth = auth)
+        assertEquals(MoreRow.LogOut(MoreAccount(email = null, guest = true)), vm.state.groups.flatten().filterIsInstance<MoreRow.LogOut>().single())
+
+        auth.state.value = AuthState.Unauthenticated()
+
+        assertTrue(vm.state.groups.flatten().none { it is MoreRow.LogOut })
+    }
+
+    @Test
+    fun logOut_asksFirst_thenSignsOut_andGoesToOnboarding() = runUnitTest {
+        val auth = FakeAuthRepository(initial = AuthState.Authenticated(userId = "u1", isAnonymous = false, email = "sam@example.com"))
+        val vm = moreVm(auth = auth)
+        val events = eventsOf(vm)
+        val row = vm.state.groups.flatten().filterIsInstance<MoreRow.LogOut>().single()
+
+        vm.takeAction(MoreAction.RowTapped(row))
+        assertEquals(LogOutStep.Confirming(guest = false), vm.state.logOut)
+        assertEquals(0, auth.signOuts, "nothing happens before the confirmation")
+
+        vm.takeAction(MoreAction.LogOutConfirmed)
+
+        assertEquals(1, auth.signOuts)
+        assertEquals(LogOutStep.Idle, vm.state.logOut)
+        assertEquals(listOf<MoreEvent>(MoreEvent.GoToOnboarding), events)
+    }
+
+    @Test
+    fun logOut_cancelled_signsNothingOut() = runUnitTest {
+        val auth = FakeAuthRepository(initial = AuthState.Authenticated(userId = "u1", isAnonymous = true, email = null))
+        val vm = moreVm(auth = auth)
+
+        vm.takeAction(MoreAction.RowTapped(vm.state.groups.flatten().filterIsInstance<MoreRow.LogOut>().single()))
+        assertEquals(LogOutStep.Confirming(guest = true), vm.state.logOut, "a guest is warned their log stays behind")
+        vm.takeAction(MoreAction.LogOutCancelled)
+        vm.takeAction(MoreAction.LogOutConfirmed)
+
+        assertEquals(LogOutStep.Idle, vm.state.logOut)
+        assertEquals(0, auth.signOuts)
+    }
+
+    @Test
+    fun theQaRow_onlyWhereQaAccessAllowsIt() = runUnitTest {
+        assertTrue(moreVm(qa = false).state.groups.flatten().none { it == MoreRow.Qa })
+
+        val vm = moreVm(qa = true)
+        val events = eventsOf(vm)
+        vm.takeAction(MoreAction.RowTapped(MoreRow.Qa))
+
+        assertEquals(listOf<MoreEvent>(MoreEvent.OpenQa), events)
+    }
+
+    @Test
+    fun theVersionLine_namesTheCommitOffTheStoreOnly() {
+        assertEquals("0.2.0 (702)", MoreVersion.line("0.2.0", 702, "store", "4a8b46391234"))
+        assertEquals("0.2.0 (702) · beta · 4a8b463", MoreVersion.line("0.2.0", 702, "beta", "4a8b46391234"))
+    }
+
+    private fun moreVm(auth: FakeAuthRepository = FakeAuthRepository(), qa: Boolean = false) = MoreViewModel(
+        FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(),
+        FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), auth, QaAccess { qa },
+    )
 
     @Test
     fun theModesRowCountsTheChanges() {
@@ -57,7 +137,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun settingsArriveAsState() = runUnitTest {
         val settings = FakeSettingsRepository(SettingsFixtures.settings())
-        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
+        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), QaAccess { false })
 
         settings.state.value = settings.state.value.copy(waterGlasses = 10)
 
@@ -66,7 +146,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun eachRowOpensItsPage_andPlanOpensNothing() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), QaAccess { false })
         val events = eventsOf(vm)
 
         vm.state.groups.flatten().forEach { vm.takeAction(MoreAction.RowTapped(it)) }
@@ -74,7 +154,7 @@ class MoreTest : CoroutineTest() {
         assertEquals(
             listOf(
                 MoreEvent.OpenModes, MoreEvent.OpenTargets, MoreEvent.OpenHealth, MoreEvent.OpenLookAndFeel,
-                MoreEvent.OpenWater, MoreEvent.OpenSupport,
+                MoreEvent.OpenWater, MoreEvent.OpenSupport, MoreEvent.OpenPrivacy, MoreEvent.OpenTerms, MoreEvent.OpenCredits,
             ),
             events,
         )
@@ -121,7 +201,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theFastingRowOpensFasting() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true }, widgetsFlag(), goalsAndEnergyFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), QaAccess { false })
         val events = eventsOf(vm)
 
         vm.takeAction(MoreAction.RowTapped(vm.state.groups[1][1]))
@@ -154,7 +234,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theWidgetsRowOpensWidgets() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(on = true), goalsAndEnergyFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(on = true), goalsAndEnergyFlag(), FakeAuthRepository(), QaAccess { false })
         val events = eventsOf(vm)
 
         vm.takeAction(MoreAction.RowTapped(vm.state.groups[1].last()))
@@ -165,7 +245,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOff_noRow_andTheStoreIsNeverTouched() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.Connected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), QaAccess { false })
 
         assertTrue(vm.state.groups.flatten().none { it is MoreRow.Health })
         assertEquals(0, health.refreshes)
@@ -174,7 +254,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOff_comingBackToMore_stillNeverTouchesTheStore() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.Connected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), QaAccess { false })
 
         vm.takeAction(MoreAction.ScreenResumed)
 
@@ -184,7 +264,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOn_theRowSaysWhetherItIsConnected() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.NotConnected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), QaAccess { false })
         assertEquals(MoreRow.Health(connected = false), vm.state.groups[0].filterIsInstance<MoreRow.Health>().single())
 
         health.statusFlow.value = HealthStatus.Connected
@@ -195,7 +275,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun screenResumed_rechecksTheConnection() = runUnitTest {
         val health = FakeHealthRepository()
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), QaAccess { false })
         val before = health.refreshes
         vm.takeAction(MoreAction.ScreenResumed)
         assertEquals(before + 1, health.refreshes)
@@ -229,7 +309,7 @@ class MoreTest : CoroutineTest() {
             MoreStateBuilder.build(settings, remindersOn = true).groups[0],
         )
 
-        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag())
+        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), QaAccess { false })
         val events = eventsOf(vm)
         vm.takeAction(MoreAction.RowTapped(MoreRow.Reminders(quiet = false)))
         assertEquals(listOf<MoreEvent>(MoreEvent.OpenReminders), events)
