@@ -318,6 +318,8 @@ data class SupabaseConfig(
     /** e.g. `https://abcdefgh.supabase.co`. */
     val projectUrl: String,
     val serviceRoleKey: String? = null,
+    /** Lets account deletion revoke the person's Sign in with Apple token. Null skips it. */
+    val appleSignIn: AppleSignInConfig? = null,
 ) {
     /** Issuer the Auth service stamps on every JWT it issues. */
     val expectedIssuer: String get() = "$projectUrl/auth/v1"
@@ -331,8 +333,47 @@ data class SupabaseConfig(
                 SupabaseConfig(
                     projectUrl = it,
                     serviceRoleKey = env["SUPABASE_SERVICE_ROLE_KEY"],
+                    appleSignIn = AppleSignInConfig.fromEnv(env),
                 )
             }
+    }
+}
+
+/**
+ * The Sign in with Apple key the server signs its client secret with, for Apple's token
+ * and revoke endpoints. Apple asks an app that offers Sign in with Apple to revoke the
+ * person's token when they delete their account, and revoking needs a token only this
+ * exchange can produce.
+ *
+ * Null unless all three of `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY` are
+ * set; then the app's authorization codes are refused and deletion skips revocation,
+ * with a warning. [privateKeyPem] is the `.p8` file's contents: treat it as a password.
+ */
+data class AppleSignInConfig(
+    val teamId: String,
+    val keyId: String,
+    val privateKeyPem: String,
+    /** The app's bundle id, which native Sign in with Apple uses as its client id. */
+    val clientId: String = DEFAULT_CLIENT_ID,
+    val baseUrl: String = "https://appleid.apple.com",
+) {
+    override fun toString(): String = "AppleSignInConfig(teamId=$teamId, keyId=$keyId, clientId=$clientId, baseUrl=$baseUrl)"
+
+    companion object {
+        const val DEFAULT_CLIENT_ID = "com.opson.Opson"
+
+        fun fromEnv(env: Env): AppleSignInConfig? {
+            val teamId = env["APPLE_TEAM_ID"]?.takeIf { it.isNotBlank() } ?: return null
+            val keyId = env["APPLE_KEY_ID"]?.takeIf { it.isNotBlank() } ?: return null
+            // Fly secrets and .env files flatten newlines, so a literal "\n" stands for one.
+            val key = env["APPLE_PRIVATE_KEY"]?.takeIf { it.isNotBlank() }?.replace("\\n", "\n") ?: return null
+            return AppleSignInConfig(
+                teamId = teamId,
+                keyId = keyId,
+                privateKeyPem = key,
+                clientId = env["APPLE_CLIENT_ID"]?.takeIf { it.isNotBlank() } ?: DEFAULT_CLIENT_ID,
+            )
+        }
     }
 }
 

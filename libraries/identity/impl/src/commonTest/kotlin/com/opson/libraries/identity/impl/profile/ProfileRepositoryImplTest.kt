@@ -598,6 +598,9 @@ class ProfileRepositoryImplTest : CoroutineTest() {
         }
 
         override suspend fun deleteMe(): HttpResponse = error("deleteMe not used by ProfileRepository")
+
+        override suspend fun sendAppleAuthorization(authorizationCode: String) =
+            error("sendAppleAuthorization not used by ProfileRepository")
     }
 
     /**

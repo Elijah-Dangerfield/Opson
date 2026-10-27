@@ -2,6 +2,7 @@ package com.opson.integration.helpers
 
 import com.opson.server.config.AdminConfig
 import com.opson.server.config.AnthropicConfig
+import com.opson.server.config.AppleSignInConfig
 import com.opson.server.config.DatabaseConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.config.SupabaseConfig
@@ -18,8 +19,11 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assume
 import org.testcontainers.DockerClientFactory
 import org.testcontainers.containers.PostgreSQLContainer
+import java.security.KeyPairGenerator
+import java.security.spec.ECGenParameterSpec
 import java.sql.Connection
 import java.sql.DriverManager
+import java.util.Base64
 import java.util.UUID
 
 /**
@@ -57,7 +61,16 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
             installApp(
                 component = ServerComponent::class.create(
                     sharedDatabase(),
-                    SupabaseConfig(projectUrl = upstreams.baseUrl, serviceRoleKey = "integration-service-role"),
+                    SupabaseConfig(
+                        projectUrl = upstreams.baseUrl,
+                        serviceRoleKey = "integration-service-role",
+                        appleSignIn = AppleSignInConfig(
+                            teamId = "INTEGRATN1",
+                            keyId = "INTEGRATN2",
+                            privateKeyPem = throwawayEcKeyPem(),
+                            baseUrl = upstreams.baseUrl,
+                        ),
+                    ),
                     FoodSourcesConfig(
                         anthropic = if (photoEstimates) AnthropicConfig(apiKey = "integration", baseUrl = upstreams.baseUrl) else null,
                         openFoodFactsUrl = upstreams.baseUrl,
@@ -201,6 +214,15 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
                     false
                 },
             )
+        }
+
+        /** A P-256 key in the `.p8` format Apple hands out, so the server signs real client secrets. */
+        private fun throwawayEcKeyPem(): String {
+            val key = KeyPairGenerator.getInstance("EC")
+                .apply { initialize(ECGenParameterSpec("secp256r1")) }
+                .generateKeyPair()
+                .private
+            return "-----BEGIN PRIVATE KEY-----\n${Base64.getMimeEncoder().encodeToString(key.encoded)}\n-----END PRIVATE KEY-----"
         }
     }
 }

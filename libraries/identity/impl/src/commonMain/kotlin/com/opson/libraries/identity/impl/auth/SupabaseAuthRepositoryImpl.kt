@@ -76,7 +76,7 @@ class SupabaseAuthRepositoryImpl(
     private val userScopedDataReset: UserScopedDataReset,
     private val tokenInvalidator: AuthTokenInvalidator,
     private val sessionRejectionBus: SessionRejectionBus,
-    appScope: AppCoroutineScope,
+    private val appScope: AppCoroutineScope,
 ) : AuthRepository {
 
     private val logger = KLog.withTag("AuthRepository")
@@ -863,6 +863,7 @@ class SupabaseAuthRepositoryImpl(
             }.fold(
                 onSuccess = {
                     logger.i { "signInWithApple: Success" }
+                    credential.authorizationCode?.let(::sendAppleAuthorization)
                     SignInOutcome.Success
                 },
                 onFailure = { e ->
@@ -892,6 +893,7 @@ class SupabaseAuthRepositoryImpl(
             }.fold(
                 onSuccess = {
                     logger.i { "linkAppleIdentity: Success" }
+                    credential.authorizationCode?.let(::sendAppleAuthorization)
                     LinkIdentityOutcome.Success
                 },
                 onFailure = { e ->
@@ -929,6 +931,20 @@ class SupabaseAuthRepositoryImpl(
                 },
             )
         }
+
+    /**
+     * Apple asks apps with Sign in with Apple to revoke the person's Apple token when they
+     * delete their account. Revoking takes a refresh token, which only the server can get,
+     * from this code, within five minutes. Sent in the background: if it fails, deletion
+     * can't revoke, but the sign-in itself stands.
+     */
+    private fun sendAppleAuthorization(authorizationCode: String) {
+        appScope.launch {
+            Catching { profileApi.sendAppleAuthorization(authorizationCode) }
+                .onSuccess { logger.d { "sendAppleAuthorization: kept" } }
+                .onFailure { logger.w(it) { "sendAppleAuthorization: not kept, so deleting this account won't revoke its Apple token" } }
+        }
+    }
 
     /** Shared failure mapping for the native id-token sign-in paths (Apple / Google). */
     private fun mapNativeSignInFailure(e: Throwable): SignInOutcome = when (e) {

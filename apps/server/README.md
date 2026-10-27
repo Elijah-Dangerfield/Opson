@@ -464,6 +464,10 @@ adds `waitlist_daily` for Pulse.
 | `DATABASE_POOL_MAX_SIZE` | no | 10 | |
 | `DATABASE_POOL_MIN_IDLE` | no | 2 | |
 | `SUPABASE_URL` | no |, | `https://<project>.supabase.co`. Unset → `/v1/me` not mounted. |
+| `APPLE_TEAM_ID` | no |, | With `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY`, lets `DELETE /v1/me` revoke the person's Sign in with Apple token, which App Review requires. Unset → `POST /v1/me/apple-authorization` answers 503 and deletion skips revocation with a warning. |
+| `APPLE_KEY_ID` | no |, | The id of a Sign in with Apple key (Certificates, Identifiers & Profiles › Keys). |
+| `APPLE_PRIVATE_KEY` | no |, | Secret. That key's `.p8` file contents; `\n` may stand for the newlines. |
+| `APPLE_CLIENT_ID` | no | `com.opson.Opson` | The app's bundle id. |
 | `SERVER_HOST` | no | `0.0.0.0` | |
 | `SERVER_PORT` | no | 8080 | |
 | `NUTRITIONIX_APP_ID` | no |, | With `NUTRITIONIX_APP_KEY`, turns on Nutritionix barcode lookups (tier 3, asked before Open Food Facts). |

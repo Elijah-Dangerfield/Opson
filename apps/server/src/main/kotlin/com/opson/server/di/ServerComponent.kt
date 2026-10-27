@@ -7,6 +7,8 @@ import com.opson.server.db.Database
 import com.opson.server.domain.AppConfigAdminRepository
 import com.opson.server.domain.AppConfigManifestRepository
 import com.opson.server.domain.AppConfigSource
+import com.opson.server.domain.AppleSignInClient
+import com.opson.server.domain.AppleTokenRepository
 import com.opson.server.domain.BarcodeMissRepository
 import com.opson.server.domain.BarcodeLookup
 import com.opson.server.domain.ExportRepository
@@ -71,6 +73,8 @@ abstract class ServerComponent(
     abstract val profileRepository: ProfileRepository
     abstract val moderationRepository: ModerationRepository
     abstract val supabaseAdminClient: SupabaseAdminClient
+    abstract val appleSignInClient: AppleSignInClient
+    abstract val appleTokenRepository: AppleTokenRepository
     abstract val appConfigSource: AppConfigSource
     abstract val appConfigAdminRepository: AppConfigAdminRepository
     abstract val appConfigManifestRepository: AppConfigManifestRepository

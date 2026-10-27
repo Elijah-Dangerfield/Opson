@@ -77,7 +77,11 @@ class StubSupabaseGateway(
     override suspend fun completeOAuthRedirect(url: String) = unused()
     override suspend fun hydrateCurrentUser() = Unit
     override fun isOAuthRedirect(url: String): Boolean = false
-    override suspend fun signInWithAppleIdToken(idToken: String, nonce: String) = unused()
+    // Apple says yes to whoever is signed in already; the journeys use it for the
+    // authorization code the app sends afterwards, not for switching accounts.
+    override suspend fun signInWithAppleIdToken(idToken: String, nonce: String) {
+        session = checkNotNull(session) { "Sign in first: the stub signs Apple in as the current user" }
+    }
     override suspend fun linkAppleIdToken(idToken: String, nonce: String) = unused()
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?) = unused()
     override suspend fun linkEmailIdentity(email: String, password: String) = unused()

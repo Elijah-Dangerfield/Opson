@@ -7,6 +7,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.patch
+import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
@@ -43,11 +44,23 @@ interface ProfileApi {
      * (delete_not_configured), 401 (session gone), etc.
      */
     suspend fun deleteMe(): HttpResponse
+
+    /**
+     * `POST /v1/me/apple-authorization`: the one-use code from a native Sign in with
+     * Apple, which the server trades for the token that account deletion revokes.
+     * Throws on a non-2xx (503 when the server has no Apple key).
+     */
+    suspend fun sendAppleAuthorization(authorizationCode: String)
 }
 
 @Serializable
 data class PatchMeRequest(
     val displayName: String? = null,
+)
+
+@Serializable
+data class AppleAuthorizationRequest(
+    val authorizationCode: String,
 )
 
 @SingleIn(AppScope::class)
@@ -82,4 +95,14 @@ class HttpProfileApi(
         networkClient.authedCall("me.delete") { client ->
             client.delete("/v1/me")
         }.getOrThrow()
+
+    // The code works once, so a retry after the server used it would only be refused.
+    override suspend fun sendAppleAuthorization(authorizationCode: String) {
+        networkClient.authedCall("me.apple_authorization") { client ->
+            client.post("/v1/me/apple-authorization") {
+                contentType(ContentType.Application.Json)
+                setBody(AppleAuthorizationRequest(authorizationCode))
+            }
+        }.getOrThrow()
+    }
 }

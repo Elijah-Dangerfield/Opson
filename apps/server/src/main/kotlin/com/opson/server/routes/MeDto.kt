@@ -26,6 +26,12 @@ data class UpdateMeRequest(
     val displayName: String? = null,
 )
 
+/** The one-use code from a native Sign in with Apple, sent straight after signing in. */
+@Serializable
+data class AppleAuthorizationRequest(
+    val authorizationCode: String? = null,
+)
+
 fun Profile.toMeResponse(isAnonymous: Boolean, isNewAccount: Boolean = false): MeResponse = MeResponse(
     userId = userId.toString(),
     displayName = displayName,
