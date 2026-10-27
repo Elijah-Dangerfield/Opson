@@ -189,7 +189,7 @@ class WidgetSnapshotBuilderTest {
     @Test
     fun colours_areSlate() {
         val slate = build(PresetId.Full).colors
-        assertEquals("#1F7F78", slate.light.accent)
+        assertEquals("#0F766F", slate.light.accent)
         assertEquals("#EEF1F6", slate.light.background)
         assertEquals("#18202E", slate.light.bar)
         assertEquals("#E0892B", slate.light.meals.getValue("breakfast").content)

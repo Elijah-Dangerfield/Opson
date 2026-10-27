@@ -85,7 +85,8 @@ internal val SlateLight = SchemeColors(
     ink = Color(0xFF18202E),
     inkSoft = Color(0xFF3F485A),
     muted = Color(0xFF5A6478),
-    accent = Color(0xFF1F7F78),
+    // The design's #1F7F78, one step darker so accent text passes AA on the page, raised and tint too.
+    accent = Color(0xFF0F766F),
     accentTint = Color(0xFFD8EEEB),
     onAccent = Color(0xFFFFFFFF),
     hero = Color(0xFF2D3647),

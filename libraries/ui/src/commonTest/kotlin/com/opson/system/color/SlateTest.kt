@@ -29,9 +29,8 @@ class SlateTest {
 
     /** Accent text belongs on a card. On the page and on raised it is icons, fills and large text. */
     @Test
-    fun accent_meetsAaOnTheSurface_andTheNonTextMinimumElsewhere() = schemes.forEach { c ->
-        assertContrast(c.accent, c.surface, AA, c)
-        listOf(c.bg, c.soft, c.accentTint).forEach { assertContrast(c.accent, it, NON_TEXT, c) }
+    fun accent_meetsAaAsText_onEveryBackgroundItSitsOn() = schemes.forEach { c ->
+        listOf(c.surface, c.bg, c.soft, c.accentTint).forEach { assertContrast(c.accent, it, AA, c) }
     }
 
     @Test
