@@ -133,34 +133,10 @@ class PostgresFoodCatalogRepository(
     override val searchesOpenFoodFacts: Boolean get() = sources.searchOpenFoodFacts
 
     private fun runSearch(terms: SearchTerms, limit: Int, filter: SearchFilter): List<FoodMatch> {
-        val text = TextColumnType()
-        val args = listOf<Pair<IColumnType<*>, Any?>>(
-            text to terms.likePrefix, // generic: prefix
-            text to terms.prefixTsQuery, // generic: full text
-            BooleanColumnType() to terms.canNameBrand, // Branded: always when a brand may be named,
-            IntegerColumnType() to limit, // otherwise only below this many generic matches
-            text to terms.likePrefix, // Branded: prefix
-            text to terms.prefixTsQuery, // Branded: full text
-            IntegerColumnType() to limit, // typo fallback below this many direct matches,
-            text to terms.likeWords, // or with no generic match and no brand carrying a query word
-            text to terms.normalized, // fallback: trigram similarity
-            text to terms.likePrefix, // fallback: not already direct
-            text to terms.prefixTsQuery, // fallback: not already direct
-            text to terms.phraseVariants.joinToString("|"), // p.variants
-            text to terms.wordPrefixRegex, // p.prefix_regex
-            text to terms.prefixTsQuery, // p.prefix_ts
-            text to terms.wholeWordTsQuery, // p.whole_ts
-            text to terms.queryWords, // p.query_words
-            text to terms.normalized, // p.normalized
-            BooleanColumnType() to terms.canNameBrand, // p.brandable
-            text to terms.likeWords, // p.like_words
-            text to terms.phrase, // p.phrase
-            IntegerColumnType() to limit,
-        )
         val results = mutableListOf<FoodMatch>()
         TransactionManager.current().exec(
             stmt = searchSql(filter),
-            args = args,
+            args = searchArgs(terms, limit),
             explicitStatementType = StatementType.SELECT,
         ) { rs ->
             while (rs.next()) {
@@ -476,6 +452,34 @@ class PostgresFoodCatalogRepository(
                      r.name
             LIMIT ?
         """.trimIndent()
+
+        /** What [SEARCH_SQL] binds, in its order. */
+        internal fun searchArgs(terms: SearchTerms, limit: Int): List<Pair<IColumnType<*>, Any?>> {
+            val text = TextColumnType()
+            return listOf<Pair<IColumnType<*>, Any?>>(
+                text to terms.likePrefix, // generic: prefix
+                text to terms.prefixTsQuery, // generic: full text
+                BooleanColumnType() to terms.canNameBrand, // Branded: always when a brand may be named,
+                IntegerColumnType() to limit, // otherwise only below this many generic matches
+                text to terms.likePrefix, // Branded: prefix
+                text to terms.prefixTsQuery, // Branded: full text
+                IntegerColumnType() to limit, // typo fallback below this many direct matches,
+                text to terms.likeWords, // or with no generic match and no brand carrying a query word
+                text to terms.normalized, // fallback: trigram similarity
+                text to terms.likePrefix, // fallback: not already direct
+                text to terms.prefixTsQuery, // fallback: not already direct
+                text to terms.phraseVariants.joinToString("|"), // p.variants
+                text to terms.wordPrefixRegex, // p.prefix_regex
+                text to terms.prefixTsQuery, // p.prefix_ts
+                text to terms.wholeWordTsQuery, // p.whole_ts
+                text to terms.queryWords, // p.query_words
+                text to terms.normalized, // p.normalized
+                BooleanColumnType() to terms.canNameBrand, // p.brandable
+                text to terms.likeWords, // p.like_words
+                text to terms.phrase, // p.phrase
+                IntegerColumnType() to limit,
+            )
+        }
 
         /** The statement 0.1's search runs. [SearchFilter.None] must always get exactly this. */
         internal val SEARCH_SQL: String = searchSqlWith("")
