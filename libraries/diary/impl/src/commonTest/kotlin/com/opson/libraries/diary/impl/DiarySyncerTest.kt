@@ -9,6 +9,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsJson
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.SyncRejection
+import com.opson.libraries.diary.impl.wire.ExerciseRowDto
 import com.opson.libraries.diary.impl.wire.FastRowDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.SettingsRowDto
@@ -178,10 +179,67 @@ class DiarySyncerTest : CoroutineTest() {
     }
 
     @Test
-    fun everyRequestSaysItAcceptsFasts() = runUnitTest {
+    fun everyRequestSaysItAcceptsFastsAndExercise() = runUnitTest {
         syncer.sync()
 
-        assertEquals(listOf("fast"), api.requests.single().accepts)
+        assertEquals(listOf("fast", "exercise"), api.requests.single().accepts)
+    }
+
+    @Test
+    fun aPulledExerciseIsStoredUnlessALocalChangeIsWaiting() = runUnitTest {
+        val pulled = ExerciseRowDto(
+            id = "00000000-0000-4000-8000-000000000001",
+            day = "2026-10-24",
+            startedAtEpochMs = 1_000,
+            activity = "walking",
+            minutes = 30,
+            kcal = 120,
+            clientUpdatedAtEpochMs = 1_000,
+        )
+        api.respond = { ackEverything(it).copy(changes = SyncChangesDto(exercises = listOf(pulled))) }
+        syncer.sync()
+        assertEquals(pulled.toEntity(), db.exercises.state.value[pulled.id])
+
+        val local = pulled.copy(minutes = 45, kcal = 180, clientUpdatedAtEpochMs = 5_000).toEntity()
+        db.exercises.put(local.id, local)
+        db.outboxDao.enqueue(SyncEntity.Exercise, local.id, "{}", base = null, nowEpochMs = 5_000)
+        api.respond = { ackEverything(it).copy(applied = emptyList(), changes = SyncChangesDto(exercises = listOf(pulled))) }
+        syncer.sync()
+        assertEquals(local, db.exercises.state.value[pulled.id], "the waiting local edit wins")
+    }
+
+    @Test
+    fun aRefusedExerciseEditRollsBack_andARefusedNewOneIsRemoved() = runUnitTest {
+        val json = com.opson.libraries.diary.impl.wire.WireJson
+        val synced = ExerciseRowDto(
+            id = "00000000-0000-4000-8000-000000000002",
+            day = "2026-10-25",
+            startedAtEpochMs = 1_000,
+            activity = "yoga",
+            minutes = 60,
+            kcal = 90,
+            clientUpdatedAtEpochMs = 1_000,
+        )
+        val edited = synced.copy(minutes = 90, kcal = 135, clientUpdatedAtEpochMs = 2_000)
+        val fresh = synced.copy(id = "00000000-0000-4000-8000-000000000003")
+        db.exercises.put(edited.id, edited.toEntity())
+        db.exercises.put(fresh.id, fresh.toEntity())
+        db.outboxDao.enqueue(
+            SyncEntity.Exercise,
+            edited.id,
+            json.encodeToString(ExerciseRowDto.serializer(), edited),
+            base = json.encodeToString(ExerciseRowDto.serializer(), synced),
+            nowEpochMs = 2_000,
+            day = edited.day,
+        )
+        db.outboxDao.enqueue(SyncEntity.Exercise, fresh.id, json.encodeToString(ExerciseRowDto.serializer(), fresh), base = null, nowEpochMs = 2_000)
+        api.respond = { request -> refuseEverything(request) }
+
+        syncer.sync()
+
+        assertEquals(synced.toEntity(), db.exercises.state.value[synced.id])
+        assertEquals(null, db.exercises.state.value[fresh.id])
+        assertTrue(db.outbox.rows.isEmpty())
     }
 
     @Test

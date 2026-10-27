@@ -185,6 +185,24 @@ interface FastDao : ClearableDao {
 }
 
 @Dao
+interface ExerciseDao : ClearableDao {
+    @Upsert
+    suspend fun upsert(rows: List<ExerciseEntity>)
+
+    @Query("SELECT * FROM exercises WHERE id = :id")
+    suspend fun get(id: String): ExerciseEntity?
+
+    @Query("SELECT * FROM exercises WHERE day = :day AND deleted = 0 ORDER BY startedAtEpochMs, id")
+    fun observeDay(day: String): Flow<List<ExerciseEntity>>
+
+    @Query("DELETE FROM exercises WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("DELETE FROM exercises")
+    override suspend fun deleteAll()
+}
+
+@Dao
 interface OutboxDao : ClearableDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(row: OutboxEntity)

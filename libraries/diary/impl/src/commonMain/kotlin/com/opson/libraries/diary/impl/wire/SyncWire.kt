@@ -28,7 +28,7 @@ data class SyncRequestDto(
 )
 
 /** Every entity past the 0.1 set this client reads from `changes`. */
-internal val SYNC_ACCEPTS: List<String> = listOf("fast")
+internal val SYNC_ACCEPTS: List<String> = listOf("fast", "exercise")
 
 @Serializable
 data class SyncMutationDto(
@@ -65,6 +65,8 @@ data class SyncChangesDto(
     val settings: SettingsRowDto? = null,
     /** Present only when the request accepts `fast`. */
     val fasts: List<FastRowDto>? = null,
+    /** Present only when the request accepts `exercise`. */
+    val exercises: List<ExerciseRowDto>? = null,
 )
 
 @Serializable
@@ -175,6 +177,26 @@ data class FastRowDto(
     val startedAtEpochMs: Long,
     val endedAtEpochMs: Long? = null,
     val goalHours: Int? = null,
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean = false,
+)
+
+@Serializable
+data class ExerciseRowDto(
+    val id: String,
+    /** The local day it counts on. */
+    val day: String,
+    val startedAtEpochMs: Long,
+    /** An `ExerciseActivities` key, or `other`. */
+    val activity: String,
+    /** Other's name; null for a listed activity. */
+    val name: String? = null,
+    val minutes: Int,
+    /** What counts in Burned, worked out or typed when it was saved. */
+    val kcal: Int,
+    val kcalTyped: Boolean = false,
+    /** Counts even when a health app reads activity. */
+    val notOnWatch: Boolean = false,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean = false,
 )

@@ -130,6 +130,25 @@ data class FastEntity(
 )
 
 /**
+ * One logged exercise. Schema 10. [kcal] is stored as counted when it was saved; [activity] is an
+ * `ExerciseActivities` key or `other`, with [name] for the latter.
+ */
+@Entity(tableName = "exercises", indices = [Index("day")])
+data class ExerciseEntity(
+    @PrimaryKey val id: String,
+    val day: String,
+    val startedAtEpochMs: Long,
+    val activity: String,
+    val name: String?,
+    val minutes: Int,
+    val kcal: Int,
+    val kcalTyped: Boolean,
+    val notOnWatch: Boolean,
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean,
+)
+
+/**
  * A change waiting to reach the server. There is at most one per
  * (`entity`, `entityId`): a newer change to the same row replaces the older
  * mutation under a fresh [id], so the server's `applied` list for the old id
