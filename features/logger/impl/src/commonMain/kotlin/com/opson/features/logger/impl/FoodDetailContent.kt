@@ -125,11 +125,7 @@ import opson.libraries.resources.generated.resources.logger_micro_vitamin_k
 import opson.libraries.resources.generated.resources.logger_micro_zinc
 import opson.libraries.resources.generated.resources.logger_micros_minerals
 import opson.libraries.resources.generated.resources.logger_micros_vitamins
-import opson.libraries.resources.generated.resources.modes_hunger_a_little
-import opson.libraries.resources.generated.resources.modes_hunger_hungry
-import opson.libraries.resources.generated.resources.modes_hunger_not_really
 import opson.libraries.resources.generated.resources.modes_hunger_question
-import opson.libraries.resources.generated.resources.modes_hunger_very
 import opson.libraries.resources.generated.resources.logger_precision_estimate
 import opson.libraries.resources.generated.resources.logger_precision_named
 import opson.libraries.resources.generated.resources.logger_precision_weighed
@@ -331,16 +327,16 @@ private fun AmountCard(state: FoodDetailState, onAction: (FoodDetailAction) -> U
     }
 }
 
-/** No numbers' optional "How hungry were you?" (13.5e): least to most, the same answer again clears it. */
+/** No numbers' optional "How hungry were you?" (13.5e): the Note's scale, Starving to Stuffed; the same answer again clears it. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HungerCard(check: HungerCheck, onAction: (FoodDetailAction) -> Unit) {
     Card {
         CardLabel(stringResource(Res.string.modes_hunger_question))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-            HUNGER_ORDER.forEach { hunger ->
+            Hunger.entries.forEach { hunger ->
                 PillChip(
-                    label = stringResource(hunger.askLabel),
+                    label = stringResource(hunger.label),
                     selected = hunger == check.picked,
                     onClick = { onAction(FoodDetailAction.HungerPicked(hunger)) },
                     style = PillChipStyle.Tint,
@@ -665,15 +661,3 @@ private val UNIT_MENU_TOP = 150.dp
 
 /** The amount field and the unit dropdown beside it, the same height. */
 private val UNIT_HEIGHT = 64.dp
-
-/** Least to most, as the question reads. */
-private val HUNGER_ORDER = listOf(Hunger.NotHungry, Hunger.Peckish, Hunger.Hungry, Hunger.VeryHungry)
-
-/** The answers as the question asks them: "How hungry were you?" "A little". */
-private val Hunger.askLabel: StringResource
-    get() = when (this) {
-        Hunger.NotHungry -> Res.string.modes_hunger_not_really
-        Hunger.Peckish -> Res.string.modes_hunger_a_little
-        Hunger.Hungry -> Res.string.modes_hunger_hungry
-        Hunger.VeryHungry -> Res.string.modes_hunger_very
-    }

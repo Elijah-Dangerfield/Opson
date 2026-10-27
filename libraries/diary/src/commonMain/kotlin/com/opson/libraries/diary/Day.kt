@@ -92,7 +92,11 @@ data class Day(
     }
 }
 
-/** "How it felt" for one meal. Only the user sees it. */
+/**
+ * A meal's note and how hungry it was. Only the user sees it. [fullness] and [moods] came from
+ * the "How it felt" sheet the Note replaced: nothing asks for them now, but a row that has them
+ * keeps them, so every write copies the stored feeling and changes only what it means to.
+ */
 data class MealFeeling(
     val hunger: Hunger? = null,
     val fullness: Fullness? = null,
@@ -180,16 +184,25 @@ enum class CheckInMood(val wire: String) {
     }
 }
 
-/** Hunger before eating, in the Meal sheet's order. [wire] is what syncs. */
+/**
+ * How hungry, one five-step scale from [Starving] to [Stuffed], in that order. [wire] is what syncs.
+ *
+ * The scale used to be four steps of hunger alone. [Starving], [Hungry] and [Neutral] keep the
+ * wire values those steps were stored under, so rows written then still read, and app versions
+ * from then still read these three. The old "peckish" reads as [Hungry].
+ */
 enum class Hunger(val wire: String) {
-    VeryHungry("very_hungry"),
+    Starving("very_hungry"),
     Hungry("hungry"),
-    Peckish("peckish"),
-    NotHungry("not_hungry"),
+    Neutral("not_hungry"),
+    Full("full"),
+    Stuffed("stuffed"),
     ;
 
     companion object {
-        fun fromWire(value: String?): Hunger? = entries.firstOrNull { it.wire == value }
+        private const val OLD_PECKISH = "peckish"
+
+        fun fromWire(value: String?): Hunger? = if (value == OLD_PECKISH) Hungry else entries.firstOrNull { it.wire == value }
     }
 }
 

@@ -371,7 +371,7 @@ object TodayFixtures {
 
     /** v3 `logger-how-it-felt`: lunch, very hungry before, full after, rushed. */
     fun mealFeelState(): MealFeelState =
-        MealFeelState(MealSlot.Lunch, hunger = Hunger.VeryHungry, fullness = Fullness.Full, moods = setOf(Mood.Rushed), loaded = true)
+        MealFeelState(MealSlot.Lunch, hunger = Hunger.Starving, fullness = Fullness.Full, moods = setOf(Mood.Rushed), loaded = true)
 
     fun waterSheetState(settings: Settings = Settings()): WaterSheetState = WaterSheetStateBuilder.build(day(), settings, custom = "")
 

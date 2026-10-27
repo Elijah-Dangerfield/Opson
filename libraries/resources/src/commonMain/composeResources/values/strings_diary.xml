@@ -31,10 +31,11 @@
     <string name="diary_precision_picker_label">From label</string>
 
     <!-- How it felt -->
-    <string name="diary_hunger_very_hungry">Very hungry</string>
+    <string name="diary_hunger_starving">Starving</string>
     <string name="diary_hunger_hungry">Hungry</string>
-    <string name="diary_hunger_peckish">Peckish</string>
-    <string name="diary_hunger_not_hungry">Not hungry</string>
+    <string name="diary_hunger_neutral">Neutral</string>
+    <string name="diary_hunger_full">Full</string>
+    <string name="diary_hunger_stuffed">Stuffed</string>
     <string name="diary_fullness_still_hungry">Still hungry</string>
     <string name="diary_fullness_satisfied">Satisfied</string>
     <string name="diary_fullness_full">Full</string>

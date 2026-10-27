@@ -159,7 +159,7 @@ class FoodDetailTest : CoroutineTest() {
         assertTrue(state.units.all { it.grams == null })
         assertEquals(listOf("1 tbsp", "2 tbsp"), state.servings.map { it.label })
         assertTrue(state.servings.all { it.grams == null })
-        assertEquals(HungerCheck(Hunger.Peckish), state.hunger)
+        assertEquals(HungerCheck(Hunger.Neutral), state.hunger)
         assertNull(state.energy)
         assertNull(state.nutrients)
         assertEquals(null, state.source?.per)
@@ -206,16 +206,16 @@ class FoodDetailTest : CoroutineTest() {
         val vm = vm()
 
         vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Hungry))
-        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Peckish))
-        assertEquals(Hunger.Peckish, vm.state.hunger?.picked)
-        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Peckish))
+        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Neutral))
+        assertEquals(Hunger.Neutral, vm.state.hunger?.picked)
+        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Neutral))
         assertEquals(null, vm.state.hunger?.picked, "the same answer again clears it")
-        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Peckish))
+        vm.takeAction(FoodDetailAction.HungerPicked(Hunger.Neutral))
         vm.takeAction(FoodDetailAction.AddToMealTapped)
 
         val (_, slot, feeling) = diary.feelings.single()
         assertEquals(MealSlot.Dinner, slot)
-        assertEquals(Hunger.Peckish, feeling?.hunger)
+        assertEquals(Hunger.Neutral, feeling?.hunger)
     }
 
     @Test

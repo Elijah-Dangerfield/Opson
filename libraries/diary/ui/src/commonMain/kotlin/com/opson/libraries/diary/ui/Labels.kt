@@ -10,10 +10,11 @@ import opson.libraries.resources.generated.resources.diary_fullness_full
 import opson.libraries.resources.generated.resources.diary_fullness_satisfied
 import opson.libraries.resources.generated.resources.diary_fullness_still_hungry
 import opson.libraries.resources.generated.resources.diary_fullness_very_full
+import opson.libraries.resources.generated.resources.diary_hunger_full
 import opson.libraries.resources.generated.resources.diary_hunger_hungry
-import opson.libraries.resources.generated.resources.diary_hunger_not_hungry
-import opson.libraries.resources.generated.resources.diary_hunger_peckish
-import opson.libraries.resources.generated.resources.diary_hunger_very_hungry
+import opson.libraries.resources.generated.resources.diary_hunger_neutral
+import opson.libraries.resources.generated.resources.diary_hunger_starving
+import opson.libraries.resources.generated.resources.diary_hunger_stuffed
 import opson.libraries.resources.generated.resources.diary_mood_anxious
 import opson.libraries.resources.generated.resources.diary_mood_calm
 import opson.libraries.resources.generated.resources.diary_mood_happy
@@ -81,10 +82,11 @@ val Precision.pickerLabel: StringResource
 
 val Hunger.label: StringResource
     get() = when (this) {
-        Hunger.VeryHungry -> Res.string.diary_hunger_very_hungry
+        Hunger.Starving -> Res.string.diary_hunger_starving
         Hunger.Hungry -> Res.string.diary_hunger_hungry
-        Hunger.Peckish -> Res.string.diary_hunger_peckish
-        Hunger.NotHungry -> Res.string.diary_hunger_not_hungry
+        Hunger.Neutral -> Res.string.diary_hunger_neutral
+        Hunger.Full -> Res.string.diary_hunger_full
+        Hunger.Stuffed -> Res.string.diary_hunger_stuffed
     }
 
 val Fullness.label: StringResource

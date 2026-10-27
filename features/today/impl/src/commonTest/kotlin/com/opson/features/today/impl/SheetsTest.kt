@@ -203,8 +203,8 @@ class SheetsTest : CoroutineTest() {
     fun mealFeelTogglesAndSavesWithTheNote() = runUnitTest {
         val vm = MealFeelViewModel(today, MealSlot.Lunch, diary)
 
-        vm.takeAction(MealFeelAction.HungerTapped(Hunger.Peckish))
-        vm.takeAction(MealFeelAction.HungerTapped(Hunger.Peckish))
+        vm.takeAction(MealFeelAction.HungerTapped(Hunger.Neutral))
+        vm.takeAction(MealFeelAction.HungerTapped(Hunger.Neutral))
         vm.takeAction(MealFeelAction.FullnessTapped(Fullness.Satisfied))
         vm.takeAction(MealFeelAction.MoodTapped(Mood.Calm))
         vm.takeAction(MealFeelAction.MoodTapped(Mood.Social))

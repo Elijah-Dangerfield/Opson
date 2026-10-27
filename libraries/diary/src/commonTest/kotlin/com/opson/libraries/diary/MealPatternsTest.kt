@@ -161,11 +161,11 @@ class MealPatternsTest {
         fun tagged(i: Int, hunger: Hunger) = start.plus(i, DateTimeUnit.DAY).let { date ->
             day(date, item(date, MealSlot.Dinner, 19), feelings = mapOf(MealSlot.Dinner to MealFeeling(hunger = hunger)))
         }
-        val days = listOf(tagged(0, Hunger.Hungry), tagged(1, Hunger.VeryHungry), tagged(2, Hunger.VeryHungry), tagged(3, Hunger.Hungry))
+        val days = listOf(tagged(0, Hunger.Hungry), tagged(1, Hunger.Starving), tagged(2, Hunger.Starving), tagged(3, Hunger.Hungry))
 
         val facts = facts(days)
 
-        assertEquals(Hunger.VeryHungry, facts.hunger.getValue(MealSlot.Dinner))
+        assertEquals(Hunger.Starving, facts.hunger.getValue(MealSlot.Dinner))
         assertEquals(4, facts.taggedMeals)
     }
 
@@ -182,14 +182,15 @@ class MealPatternsTest {
     fun hungerByWeekdayAveragesThatWeekdaysTaggedMeals() {
         // start is a Monday: day 0 and day 7 are Mondays, day 1 a Tuesday.
         val days = listOf(
-            hungerDay(0, Hunger.VeryHungry, breakfast = true),
-            hungerDay(7, Hunger.Peckish, breakfast = true),
-            hungerDay(1, Hunger.NotHungry, breakfast = true),
+            hungerDay(0, Hunger.Starving, breakfast = true),
+            hungerDay(7, Hunger.Neutral, breakfast = true),
+            hungerDay(1, Hunger.Stuffed, breakfast = true),
         )
 
         val byWeekday = facts(days).hungerByWeekday
 
-        assertEquals(2.0, byWeekday.getValue(DayOfWeek.MONDAY))
+        // Starving is 4 and Neutral 2 on the five-step scale.
+        assertEquals(3.0, byWeekday.getValue(DayOfWeek.MONDAY))
         assertEquals(0.0, byWeekday.getValue(DayOfWeek.TUESDAY))
         assertNull(byWeekday[DayOfWeek.WEDNESDAY])
     }
@@ -197,11 +198,11 @@ class MealPatternsTest {
     @Test
     fun hungrierWithoutBreakfastNamesThoseWeekdays() {
         val days = listOf(
-            hungerDay(1, Hunger.VeryHungry, breakfast = false),
-            hungerDay(3, Hunger.VeryHungry, breakfast = false),
+            hungerDay(1, Hunger.Starving, breakfast = false),
+            hungerDay(3, Hunger.Starving, breakfast = false),
             hungerDay(8, Hunger.Hungry, breakfast = false),
-            hungerDay(0, Hunger.Peckish, breakfast = true),
-            hungerDay(2, Hunger.NotHungry, breakfast = true),
+            hungerDay(0, Hunger.Neutral, breakfast = true),
+            hungerDay(2, Hunger.Full, breakfast = true),
         )
 
         assertEquals(listOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY), facts(days).hungrierWithoutBreakfast)
@@ -261,12 +262,12 @@ class MealPatternsTest {
     @Test
     fun noSkippedBreakfastFactWhenTheTagsDontSaySo() {
         val even = listOf(
-            hungerDay(1, Hunger.Peckish, breakfast = false),
-            hungerDay(3, Hunger.Peckish, breakfast = false),
-            hungerDay(0, Hunger.Peckish, breakfast = true),
-            hungerDay(2, Hunger.Peckish, breakfast = true),
+            hungerDay(1, Hunger.Neutral, breakfast = false),
+            hungerDay(3, Hunger.Neutral, breakfast = false),
+            hungerDay(0, Hunger.Neutral, breakfast = true),
+            hungerDay(2, Hunger.Neutral, breakfast = true),
         )
-        val tooFew = listOf(hungerDay(1, Hunger.VeryHungry, breakfast = false), hungerDay(0, Hunger.NotHungry, breakfast = true))
+        val tooFew = listOf(hungerDay(1, Hunger.Starving, breakfast = false), hungerDay(0, Hunger.Full, breakfast = true))
 
         assertNull(facts(even).hungrierWithoutBreakfast)
         assertNull(facts(tooFew).hungrierWithoutBreakfast)
