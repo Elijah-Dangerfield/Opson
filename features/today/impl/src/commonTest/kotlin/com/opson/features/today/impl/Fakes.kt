@@ -31,6 +31,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -49,7 +50,12 @@ fun policy(
     at: Instant = TodayFixtures.noon,
     overrides: Map<Metric, Visibility> = emptyMap(),
     pause: Boolean = false,
-): VisibilityPolicy = VisibilityPolicy(NumbersSettings(preset = preset, overrides = overrides, pauseBeforeMore = pause), Clock.fixed(at), TimeZone.UTC)
+    revealOn: RevealOn = RevealOn.DayClose,
+): VisibilityPolicy = VisibilityPolicy(
+    NumbersSettings(preset = preset, overrides = overrides, pauseBeforeMore = pause, revealOn = revealOn),
+    Clock.fixed(at),
+    TimeZone.UTC,
+)
 
 /** A display's words, or null when it renders nothing. */
 fun Display.text(): String? = when (this) {
@@ -238,6 +244,12 @@ class FakeNumbersChanger(var outcome: NumbersOutcome = NumbersOutcome.Applied(fe
     override suspend fun confirm(change: NumbersChange) = Unit
 
     override suspend fun turnOnPause() = Unit
+
+    override suspend fun setEndAfter(weeks: Int, then: PresetId) = Unit
+
+    override suspend fun clearEndAfter() = Unit
+
+    override suspend fun endTimedMode() = Unit
 
     override fun pauseShown(change: NumbersChange) = Unit
 

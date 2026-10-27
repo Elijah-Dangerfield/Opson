@@ -1,13 +1,12 @@
 package com.opson.features.today.impl
 
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LoggedToMeal
+import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Settings
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.totals
 import com.opson.libraries.diary.ui.label
@@ -18,8 +17,6 @@ import com.opson.libraries.nutrition.GoalStyle
 import com.opson.libraries.nutrition.MacroLineStyle
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NutrientAmounts
-import com.opson.libraries.nutrition.PresetId
-import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.Visibility
@@ -31,25 +28,16 @@ import com.opson.libraries.nutrition.macroEnergyShares
 import com.opson.libraries.nutrition.macroLine
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.nutrition.share
-import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_all_food
-import opson.libraries.resources.generated.resources.today_banner_sprint
-import opson.libraries.resources.generated.resources.today_banner_sprint_done
 import opson.libraries.resources.generated.resources.today_compact_range
-import opson.libraries.resources.generated.resources.today_locked_day_body
-import opson.libraries.resources.generated.resources.today_locked_day_body_warm
-import opson.libraries.resources.generated.resources.today_locked_day_title
-import opson.libraries.resources.generated.resources.today_locked_week_body
-import opson.libraries.resources.generated.resources.today_locked_week_title
 import opson.libraries.resources.generated.resources.today_macro_carbs
 import opson.libraries.resources.generated.resources.today_macro_fat
 import opson.libraries.resources.generated.resources.today_macro_fiber
@@ -71,13 +59,14 @@ data class TodayUi(
 )
 
 /**
- * Today's state as a pure function of what it reads (design v3, 2.1 to 2.11), so previews and
- * the Blind leak test run the same mapping as the app.
+ * Today's state as a pure function of what it reads (design v3, 2.1 to 2.11, and design sync 4's
+ * mode layouts, 13.5b to 13.5d), so previews and the leak test run the same mapping as the app.
  *
  * The hero card comes from the layout (`policy.preset.today`) and the calorie level: shown is
- * the eaten bar, softened is Fuel's floors-first card, delayed is the lock (or "your totals are
- * open" tonight), hidden with a nutrient visible is the focus card, and nothing visible is the
- * meal count. Nothing here asks which mode is on, except Sprint's banner copy.
+ * the eaten bar (also once Later's totals open), softened is Nutrients first's words and bars,
+ * delayed is the lock with what is logged so far, hidden with a nutrient visible is the focus
+ * card, and nothing visible is the meal count, or No numbers' meal timeline. Nothing here asks
+ * which mode is on, except the End after a set time banner, which names the modes.
  */
 object TodayStateBuilder {
     /** How far ahead the header and the calendar go: one day, "plan, then hide". */
@@ -85,7 +74,6 @@ object TodayStateBuilder {
 
     /** The eaten bar runs to 20% past the top of the range, so the range box sits inside it. */
     private const val BAR_HEADROOM = 1.2
-    private const val SPRINT_DAYS = 14
 
     /** A sliver under this share of the bar is not drawn. */
     private const val MIN_PART = 0.01
@@ -100,7 +88,6 @@ object TodayStateBuilder {
         clearArmed: Boolean = false,
         highlight: MealSlot? = null,
         added: LoggedToMeal? = null,
-        bridgeSkipped: Boolean = false,
         ui: TodayUi = TodayUi(),
     ): TodayState {
         val day = inputs.day
@@ -125,29 +112,20 @@ object TodayStateBuilder {
             dayLabel = RelativeDay.of(date, today),
             canGoForward = date < today.plus(DatePeriod(days = MAX_DAYS_AHEAD)),
             summary = summary,
-            banner = banner(policy, inputs.settings, inputs.timeZone, today),
+            banner = banner(inputs.settings, policy, today),
             planning = future && !untracked,
-            counts = if (summary is TodaySummary.Locked) counts(day, inputs.settings, policy) else null,
-            mealTiles = if (!future && layout == TodayLayout.Meals && groupsOn) {
+            mealTiles = if (!future && layout == TodayLayout.MealTimeline && groupsOn) {
                 MealSlot.meals.map { MealTile(it, tileStatus(day, it, inputs)) }
             } else {
                 null
             },
-            rhythm = if (!future && layout == TodayLayout.Rhythm && groupsOn) rhythm(day, inputs) else null,
-            safeFoods = if (!future && layout == TodayLayout.Explorer) inputs.explorer?.safeFoods.orEmpty() else null,
-            water = if (!future && layout == TodayLayout.Full && summary !is TodaySummary.Locked) water(day, inputs.settings, policy, context) else null,
+            water = if (future) null else water(day, inputs.settings, policy, context),
             meals = if (future) planned(inputs, policy, context, groupsOn) else meals(inputs, policy, context, layout, groupsOn),
-            whatYouHad = if (future) null else whatYouHad(day, layout),
             // Nothing logged, nothing to close yet (design sync 2, 2.2); the ⋮ menu still offers it.
             closeDay = if (future || untracked || !day.hasLogged) null else CloseDayCard(closed = day.isClosed(today)),
             highlight = highlight,
             added = added?.takeIf { it.day == date }?.let { AddedNotice(it.slot, it.itemIds.size) },
             untracked = untracked,
-            bridge = if (!future && !untracked && !bridgeSkipped && layout == TodayLayout.Explorer) {
-                inputs.explorer?.bridge?.let(::bridgeCard)
-            } else {
-                null
-            },
             menu = if (menuOpen) menu(inputs, clearArmed) else null,
             summaryTools = summaryOn,
             summaryPage = settings.todaySummaryPage.coerceIn(0, pageCount - 1),
@@ -161,18 +139,11 @@ object TodayStateBuilder {
         )
     }
 
-    private fun bridgeCard(bridge: FoodBridge): FoodBridgeCard =
-        FoodBridgeCard(from = inSentence(bridge.from), to = inSentence(bridge.to), shared = bridge.shared)
-
     /** "Rice pudding" reads "rice pudding" mid-sentence; "BBQ chips" stays as it is. */
     internal fun inSentence(name: String): String =
         if (name.length < 2 || name[1].isUpperCase()) name else name.replaceFirstChar { it.lowercaseChar() }
 
     private fun summary(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext): TodaySummary? {
-        val layout = policy.preset.today
-        if (layout == TodayLayout.Explorer) return explorer(inputs)
-        if (layout == TodayLayout.Rhythm || layout == TodayLayout.Journal) return null
-
         val day = inputs.day
         val settings = inputs.settings
         val range = todayRange(settings, day, inputs.today, inputs.expended)
@@ -182,12 +153,13 @@ object TodayStateBuilder {
         val soft = policy.resolve(Metric.Calories, eaten, Surface.Today, context.copy(of = range.targetKcal.toDouble(), bare = true))
 
         return when {
-            shown && delayed && day.date == inputs.today -> TodaySummary.Revealed
+            // Later, once open: the Full numbers card for the rest of the day (13.5c).
             shown -> energy(inputs, policy, context, eaten)
-            delayed -> locked(policy, settings)
+            delayed -> locked(day, policy)
             soft is Display.Soft -> softCard(inputs, policy, context, soft)
             else -> macroTiles(day, settings, policy, context, GoalStyle.Default).takeIf { it.isNotEmpty() }?.let(TodaySummary::Focus)
-                ?: counted(day, inputs.settings.mealTimes)
+                // No numbers' meal timeline already says which meals are done.
+                ?: counted(day, inputs.settings.mealTimes).takeIf { policy.preset.today != TodayLayout.MealTimeline }
         }
     }
 
@@ -321,7 +293,7 @@ object TodayStateBuilder {
             is TodaySummary.Soft -> CompactLine(
                 listOfNotNull(
                     summary.mealCount?.let { CompactPart.Meals(it.done, it.total) },
-                    summary.lead?.let { CompactPart.Amount(it.metric, it.display, it.label) },
+                    summary.rows.firstOrNull()?.let { CompactPart.Amount(it.metric, it.display, it.label) },
                 ),
             ).takeIf { it.parts.isNotEmpty() } ?: meals
             is TodaySummary.Focus -> CompactLine(summary.rows.map { CompactPart.Amount(it.metric, it.display, it.label) })
@@ -405,35 +377,24 @@ object TodayStateBuilder {
             policy.resolve(Metric.EnergyOut, inputs.expended?.totalKcal, Surface.Today, context.copy(of = null, bare = false))
         }
 
-    private fun softCard(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, energy: Display): TodaySummary.Soft {
-        val macros = macroTiles(inputs.day, inputs.settings, policy, context, GoalStyle.Of)
-        val lead = macros.firstOrNull { it.display is Display.Shown }
-        return TodaySummary.Soft(
+    private fun softCard(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, energy: Display): TodaySummary.Soft =
+        TodaySummary.Soft(
             mealCount = if (policy.preset.mealCount) MealCount(inputs.day.doneMealCount, MealSlot.meals.size) else null,
-            lead = lead,
-            rows = macros - listOfNotNull(lead).toSet(),
+            rows = macroTiles(inputs.day, inputs.settings, policy, context, GoalStyle.Of),
             energy = energy,
         )
-    }
 
-    private fun locked(policy: VisibilityPolicy, settings: Settings): TodaySummary.Locked =
-        if (policy.preset.revealOn == RevealOn.Week) {
-            TodaySummary.Locked(Res.string.today_locked_week_title, Res.string.today_locked_week_body)
-        } else {
-            TodaySummary.Locked(
-                title = Res.string.today_locked_day_title,
-                body = if (settings.tone == Tone.Warm) Res.string.today_locked_day_body_warm else Res.string.today_locked_day_body,
-            )
-        }
+    private fun locked(day: Day, policy: VisibilityPolicy): TodaySummary.Locked = TodaySummary.Locked(
+        opensAt = policy.settings.revealAt,
+        weekly = policy.revealsWeekly,
+        meals = day.doneMealCount,
+        foods = day.allItems.size,
+    )
 
     private fun counted(day: Day, times: MealTimes): TodaySummary.Counted {
         val next = MealSlot.meals.firstOrNull { !day.isMealDone(it) }
         return TodaySummary.Counted(done = day.doneMealCount, next = next, nextAround = next?.let(times::at))
     }
-
-    private fun explorer(inputs: TodayInputs): TodaySummary.NewFoods = TodaySummary.NewFoods(
-        inputs.explorer?.newFoods.orEmpty().map { NewFood(it.name, ExplorerStatsBuilder.seenLabel(it.firstLogged, inputs.today)) },
-    )
 
     private fun macroTiles(day: Day, settings: Settings, policy: VisibilityPolicy, context: FormatContext, goal: GoalStyle): List<MacroTile> {
         val totals = day.totals()
@@ -455,69 +416,28 @@ object TodayStateBuilder {
         else -> Res.string.today_macro_fiber
     }
 
-    private fun counts(day: Day, settings: Settings, policy: VisibilityPolicy): Counts = Counts(
-        meals = day.doneMealCount,
-        glasses = if (policy.level(Metric.Water) != Visibility.Hide) {
-            WaterProgress.glasses(day.waterMl.toDouble(), settings.glassMl, settings.waterGlasses).filled
-        } else {
-            null
-        },
-    )
-
-    /** Sprint's banner, keyed by the mode as the presets' copy is; the levels play no part. */
-    private fun banner(policy: VisibilityPolicy, settings: Settings, timeZone: TimeZone, today: LocalDate): TodayBanner? {
-        if (policy.preset.id != PresetId.Sprint) return null
-        val start = settings.sprintStartedOn ?: settings.numbers.changedAt?.toLocalDateTime(timeZone)?.date ?: today
-        val dayNumber = start.daysUntil(today) + 1
-        return if (dayNumber > SPRINT_DAYS) {
-            TodayBanner(Res.string.today_banner_sprint_done)
-        } else {
-            TodayBanner(Res.string.today_banner_sprint, listOf(dayNumber.coerceAtLeast(1), DateCopy.monthDay(start.plus(DatePeriod(days = SPRINT_DAYS)))))
-        }
+    /**
+     * End after a set time (design sync 4, 13.5): on the day it switched, say so; while the pause
+     * holds a switch that shows more, offer it. Never any other day.
+     */
+    private fun banner(settings: Settings, policy: VisibilityPolicy, today: LocalDate): TodayBanner? {
+        val numbers = settings.numbers
+        numbers.timerWaiting(today)?.let { return TodayBanner(from = numbers.preset, to = it.then, waiting = true) }
+        val ended = settings.modeTimerEnded?.takeIf { it.on == today } ?: return null
+        return TodayBanner(from = ended.from, to = policy.preset.id, waiting = false)
     }
+
+    private fun feelLine(feeling: MealFeeling): FeelLine? =
+        FeelLine(feeling.hunger?.label, feeling.fullness?.label, feeling.moods.sortedBy { it.ordinal }.map { it.label })
+            .takeIf { it.hunger != null || it.fullness != null || it.moods.isNotEmpty() }
 
     private fun tileStatus(day: Day, slot: MealSlot, inputs: TodayInputs): TileStatus {
         val items = day.items(slot)
+        val around = inputs.settings.mealTimes.at(slot)
         return when {
-            items.isNotEmpty() -> TileStatus.Items(items.size, items.first().localTime(inputs.timeZone))
-            slot in day.ateNoDetails -> TileStatus.AteNoDetails
-            else -> TileStatus.Empty(inputs.settings.mealTimes.at(slot))
-        }
-    }
-
-    private fun rhythm(day: Day, inputs: TodayInputs): RhythmCard {
-        val next = MealSlot.meals.firstOrNull { !day.isMealDone(it) }
-        val times = inputs.settings.mealTimes
-        val rows = MealSlot.meals.map { slot ->
-            val items = day.items(slot)
-            val around = times.at(slot)
-            val status = when {
-                items.isNotEmpty() -> RhythmStatus.Logged(items.first().localTime(inputs.timeZone), around)
-                slot in day.ateNoDetails -> RhythmStatus.AteNoDetails(around)
-                else -> RhythmStatus.Pending(around)
-            }
-            RhythmRow(slot, status, showActions = slot == next)
-        }
-        return RhythmCard(
-            done = day.doneMealCount,
-            total = MealSlot.meals.size,
-            rows = rows,
-            reminder = rhythmReminder(day, next, inputs),
-        )
-    }
-
-    /**
-     * v3 `today-rhythm.png`: the next meal's reminder under the checklist, with Change times. Only
-     * today, only with `release.reminders` on, and only while a meal is still to come; "Off" with
-     * Set up while meal reminders are off. A next meal whose own switch is off gets no card.
-     */
-    private fun rhythmReminder(day: Day, next: MealSlot?, inputs: TodayInputs): RhythmReminder? {
-        if (!inputs.remindersOn || day.date != inputs.today || next == null) return null
-        val settings = inputs.settings
-        return when {
-            settings.mealReminderLevel == EventLevel.Off -> RhythmReminder.Off
-            settings.mealReminders.isOn(next) -> RhythmReminder.Next(next, settings.mealTimes.at(next))
-            else -> null
+            items.isNotEmpty() -> TileStatus.Logged(items.first().localTime(inputs.timeZone))
+            slot in day.ateNoDetails -> TileStatus.AteNoDetails(around)
+            else -> TileStatus.Empty(around)
         }
     }
 
@@ -528,8 +448,8 @@ object TodayStateBuilder {
             Surface.Today,
             context.copy(of = settings.waterGoalMl.toDouble(), unit = settings.waterUnit),
         )
-        // v3 draws the water card only with the amount on show; a softened or hidden water level has no card.
-        if (display !is Display.Shown) return null
+        // Softened water is the glasses alone, no amount (design sync 4, 13.5b to 13.5d); hidden has no card.
+        if (display is Display.Hidden) return null
         val glasses = WaterProgress.glasses(day.waterMl.toDouble(), settings.glassMl, settings.waterGlasses)
         return WaterRow(display = display, filled = glasses.filled, total = glasses.total, showSegments = true)
     }
@@ -542,47 +462,20 @@ object TodayStateBuilder {
         groupsOn: Boolean,
     ): List<MealEntry> {
         val day = inputs.day
-        return when (layout) {
-            TodayLayout.Meals, TodayLayout.Rhythm -> emptyList()
-            TodayLayout.Full -> if (!groupsOn) {
-                listOf(MealEntry.Full(mealCard(inputs, policy, context, MealSlot.Uncategorized, day.allItems, Res.string.today_all_food)))
-            } else {
-                val next = nextEmpty(day)
-                val loose = day.items(MealSlot.Uncategorized)
-                    .takeIf { it.isNotEmpty() }
-                    ?.let { MealEntry.Full(mealCard(inputs, policy, context, MealSlot.Uncategorized, it, MealSlot.Uncategorized.label)) }
-                MealSlot.meals.map { slot ->
-                    if (day.items(slot).isNotEmpty() || slot in day.ateNoDetails) {
-                        MealEntry.Full(mealCard(inputs, policy, context, slot, day.items(slot), slot.label))
-                    } else {
-                        collapsed(inputs, slot, usual = slot == next)
-                    }
-                } + listOfNotNull(loose)
-            }
-            TodayLayout.Explorer, TodayLayout.Journal -> {
-                val next = nextEmpty(day)
-                val slots = if (groupsOn) MealSlot.meals else listOf(MealSlot.Uncategorized)
-                slots.map { slot ->
-                    val items = if (groupsOn) day.items(slot) else day.allItems
-                    if (items.isEmpty()) {
-                        collapsed(inputs, slot, usual = slot == next)
-                    } else {
-                        val feeling = day.feelings[slot]
-                        val feel = feeling?.let {
-                            FeelLine(it.hunger?.label, it.fullness?.label, it.moods.sortedBy { mood -> mood.ordinal }.map { mood -> mood.label })
-                        }?.takeIf { it.hunger != null || it.fullness != null || it.moods.isNotEmpty() }
-                        MealEntry.Compact(
-                            slot = slot,
-                            title = if (groupsOn) slot.label else Res.string.today_all_food,
-                            time = items.first().localTime(inputs.timeZone),
-                            foods = foods(items),
-                            feel = if (layout == TodayLayout.Journal) feel else null,
-                            askFeel = layout == TodayLayout.Journal && feel == null,
-                        )
-                    }
-                }
-            }
+        if (!groupsOn) {
+            return listOf(MealEntry.Full(mealCard(inputs, policy, context, layout, MealSlot.Uncategorized, day.allItems, Res.string.today_all_food)))
         }
+        val next = nextEmpty(day)
+        val loose = day.items(MealSlot.Uncategorized)
+            .takeIf { it.isNotEmpty() }
+            ?.let { MealEntry.Full(mealCard(inputs, policy, context, layout, MealSlot.Uncategorized, it, MealSlot.Uncategorized.label)) }
+        return MealSlot.meals.map { slot ->
+            if (day.items(slot).isNotEmpty() || slot in day.ateNoDetails) {
+                MealEntry.Full(mealCard(inputs, policy, context, layout, slot, day.items(slot), slot.label))
+            } else {
+                collapsed(inputs, slot, usual = slot == next)
+            }
+        } + listOfNotNull(loose)
     }
 
     /** The meal to offer first: the first one with nothing in it. */
@@ -604,20 +497,11 @@ object TodayStateBuilder {
         }
     }
 
-    private fun whatYouHad(day: Day, layout: TodayLayout): WhatYouHad? {
-        val logged = MealSlot.entries.mapNotNull { slot -> day.items(slot).takeIf { it.isNotEmpty() }?.let { slot to foods(it) } }
-        if (logged.isEmpty()) return null
-        return when (layout) {
-            TodayLayout.Meals -> WhatYouHad.PerMeal(logged)
-            TodayLayout.Rhythm -> WhatYouHad.Together(logged.joinToString(MEAL_SEPARATOR) { it.second })
-            else -> null
-        }
-    }
-
     private fun mealCard(
         inputs: TodayInputs,
         policy: VisibilityPolicy,
         context: FormatContext,
+        layout: TodayLayout,
         slot: MealSlot,
         items: List<LogItem>,
         title: StringResource,
@@ -628,6 +512,8 @@ object TodayStateBuilder {
         val allMacrosShow = listOf(Metric.Protein, Metric.Carbs, Metric.Fat).all { policy.effectiveLevel(it, Surface.Today, context) == Visibility.Show }
         val style = if (allMacrosShow) MacroLineStyle.Compact else MacroLineStyle.Long
         val feeling = day.feelings[slot]
+        // No numbers keeps a food to its name and household amount, and shows how the meal felt (13.5d).
+        val timeline = layout == TodayLayout.MealTimeline
         return MealCard(
             slot = slot,
             title = title,
@@ -649,7 +535,7 @@ object TodayStateBuilder {
                     entryId = item.id,
                     name = item.name,
                     amount = item.amountLabel,
-                    precision = item.precision,
+                    precision = item.precision.takeUnless { timeline },
                     // The meal header carries the unit, so each item is a plain number (v3 2.1).
                     calories = policy.resolve(Metric.Calories, item.kcal, Surface.Today, context.copy(bare = true)),
                 )
@@ -657,6 +543,7 @@ object TodayStateBuilder {
             ateNoDetails = items.isEmpty() && slot in day.ateNoDetails,
             note = feeling?.note?.trim()?.takeIf { it.isNotEmpty() },
             fileable = inputs.selectOn && slot == MealSlot.Uncategorized && items.isNotEmpty() && groupsOn(inputs),
+            feel = feeling?.takeIf { timeline }?.let { feelLine(it) },
         )
     }
 
@@ -686,7 +573,6 @@ object TodayStateBuilder {
         if (index == 0 || name.length < 2 || name[1].isUpperCase()) name else name.replaceFirstChar { it.lowercaseChar() }
     }.joinToString(", ")
 
-    private const val MEAL_SEPARATOR = " · "
 
     private fun LogItem.localTime(timeZone: TimeZone): LocalTime = loggedAt.toLocalDateTime(timeZone).time
 }

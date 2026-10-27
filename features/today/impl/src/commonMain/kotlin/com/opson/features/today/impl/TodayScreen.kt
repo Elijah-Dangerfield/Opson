@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,14 +35,11 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.ui.FastingTodayCard
-import com.opson.libraries.diary.ui.FoodListCard
 import com.opson.libraries.diary.ui.FoodsLine
-import com.opson.libraries.diary.ui.JournalEntry
 import com.opson.libraries.diary.ui.MealCardItem
 import com.opson.libraries.diary.ui.MealCardRow
 import com.opson.libraries.diary.ui.MealRowCard
 import com.opson.libraries.diary.ui.RemoveConfirmRow
-import com.opson.libraries.diary.ui.SafeFoodsCard
 import com.opson.libraries.diary.ui.SelectableFoodRow
 import com.opson.libraries.diary.ui.SwipeFoodRow
 import com.opson.libraries.diary.ui.TodayCard
@@ -58,14 +54,9 @@ import com.opson.libraries.diary.ui.tileColors
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.Banner
-import com.opson.libraries.ui.components.ChecklistAction
-import com.opson.libraries.ui.components.ChecklistRow
-import com.opson.libraries.ui.components.CountChip
 import com.opson.libraries.ui.components.DayHeader
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
-import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HeaderIconButton
-import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.InfoBanner
 import com.opson.libraries.ui.components.ListRow
 import com.opson.libraries.ui.components.ListRowChevron
@@ -79,15 +70,10 @@ import com.opson.libraries.ui.components.PopoverMenu
 import com.opson.libraries.ui.components.PromptAction
 import com.opson.libraries.ui.components.PromptCard
 import com.opson.libraries.ui.components.Screen
-import com.opson.libraries.ui.components.TintTile
-import com.opson.libraries.ui.components.TintTileGrid
 import com.opson.libraries.ui.components.UndoBar
-import com.opson.libraries.ui.components.button.FlatButton
-import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
-import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.time.RelativeDay
 import com.opson.system.AppTheme
@@ -98,35 +84,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.reminders_rhythm_change
-import opson.libraries.resources.generated.resources.reminders_rhythm_next
-import opson.libraries.resources.generated.resources.reminders_rhythm_next_body
-import opson.libraries.resources.generated.resources.reminders_rhythm_off
-import opson.libraries.resources.generated.resources.reminders_rhythm_off_body
-import opson.libraries.resources.generated.resources.reminders_rhythm_set_up
 import opson.libraries.resources.generated.resources.today_add_to_cd
 import opson.libraries.resources.generated.resources.today_added_one
 import opson.libraries.resources.generated.resources.today_added_other
 import opson.libraries.resources.generated.resources.today_added_undo
-import opson.libraries.resources.generated.resources.today_bridge_body
-import opson.libraries.resources.generated.resources.today_bridge_not_today
-import opson.libraries.resources.generated.resources.today_bridge_title
-import opson.libraries.resources.generated.resources.today_bridge_tried
 import opson.libraries.resources.generated.resources.today_calendar_cd
 import opson.libraries.resources.generated.resources.today_close_body
 import opson.libraries.resources.generated.resources.today_close_title
 import opson.libraries.resources.generated.resources.today_closed_body
 import opson.libraries.resources.generated.resources.today_closed_title
-import opson.libraries.resources.generated.resources.today_count_value
-import opson.libraries.resources.generated.resources.today_counts_glasses_one
-import opson.libraries.resources.generated.resources.today_counts_glasses_other
-import opson.libraries.resources.generated.resources.today_counts_meals_one
-import opson.libraries.resources.generated.resources.today_counts_meals_other
 import opson.libraries.resources.generated.resources.today_day_menu_cd
-import opson.libraries.resources.generated.resources.today_explorer_safe
-import opson.libraries.resources.generated.resources.today_explorer_safe_empty
 import opson.libraries.resources.generated.resources.today_feel_pair
-import opson.libraries.resources.generated.resources.today_feel_prompt
 import opson.libraries.resources.generated.resources.today_item_sub
 import opson.libraries.resources.generated.resources.today_loading_cd
 import opson.libraries.resources.generated.resources.today_label_today
@@ -159,17 +127,9 @@ import opson.libraries.resources.generated.resources.today_remove_keep
 import opson.libraries.resources.generated.resources.today_remove_one
 import opson.libraries.resources.generated.resources.today_removed_one
 import opson.libraries.resources.generated.resources.today_removed_other
-import opson.libraries.resources.generated.resources.today_rhythm_already_ate
-import opson.libraries.resources.generated.resources.today_rhythm_ate
-import opson.libraries.resources.generated.resources.today_rhythm_log
-import opson.libraries.resources.generated.resources.today_rhythm_logged
-import opson.libraries.resources.generated.resources.today_rhythm_planned
-import opson.libraries.resources.generated.resources.today_rhythm_title
 import opson.libraries.resources.generated.resources.today_select_start
 import opson.libraries.resources.generated.resources.today_swipe_delete
 import opson.libraries.resources.generated.resources.today_tile_ate
-import opson.libraries.resources.generated.resources.today_tile_items_one
-import opson.libraries.resources.generated.resources.today_tile_items_other
 import opson.libraries.resources.generated.resources.today_untracked_action
 import opson.libraries.resources.generated.resources.today_untracked_body
 import opson.libraries.resources.generated.resources.today_untracked_title
@@ -178,7 +138,6 @@ import opson.libraries.resources.generated.resources.today_water_cd
 import opson.libraries.resources.generated.resources.today_weight
 import opson.libraries.resources.generated.resources.today_weight_this_morning
 import opson.libraries.resources.generated.resources.today_weight_today
-import opson.libraries.resources.generated.resources.today_what_you_had
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -212,7 +171,7 @@ fun TodayScreen(
         snapshotFlow { listState.isScrollInProgress }.filter { it }.first()
         onAction(TodayAction.ListScrolled)
     }
-    val anchor = rows.indexOfFirst { it is TodayRow.Summary || it is TodayRow.Rhythm }.coerceAtLeast(0)
+    val anchor = rows.indexOfFirst { it is TodayRow.Summary || it is TodayRow.Tiles }.coerceAtLeast(0)
     val scrolledPast by remember(listState, anchor) {
         derivedStateOf {
             val first = listState.firstVisibleItemIndex
@@ -326,17 +285,11 @@ internal sealed interface TodayRow {
     data object Planning : TodayRow { override val key = "planning" }
     data class Summary(val summary: TodaySummary) : TodayRow { override val key = "summary" }
     data object Untracked : TodayRow { override val key = "untracked" }
-    data class Bridge(val card: FoodBridgeCard) : TodayRow { override val key = "food-bridge" }
-    data class CountsRow(val counts: Counts) : TodayRow { override val key = "counts" }
     data class Tiles(val tiles: List<MealTile>) : TodayRow { override val key = "tiles" }
-    data class Rhythm(val card: RhythmCard) : TodayRow { override val key = "rhythm" }
-    data class RhythmReminderLine(val reminder: RhythmReminder) : TodayRow { override val key = "rhythm-reminder" }
-    data class SafeFoods(val foods: List<String>) : TodayRow { override val key = "safe-foods" }
     data class Fasting(val status: FastingStatus) : TodayRow { override val key = "fasting" }
     data class Water(val water: WaterRow) : TodayRow { override val key = "water" }
     data class Weight(val weight: WeightRow) : TodayRow { override val key = "weight" }
     data class Meal(val entry: MealEntry) : TodayRow { override val key = "meal-${entry.slot.wire}" }
-    data class Had(val had: WhatYouHad) : TodayRow { override val key = "what-you-had" }
     data class Close(val card: CloseDayCard) : TodayRow { override val key = "close-day" }
 }
 
@@ -350,18 +303,11 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
     // Collapsed, the card is the pinned line above the list instead.
     state.summary?.takeUnless { state.collapsed }?.let { add(TodayRow.Summary(it)) }
     if (state.untracked) add(TodayRow.Untracked)
-    state.counts?.let { add(TodayRow.CountsRow(it)) }
     state.mealTiles?.let { add(TodayRow.Tiles(it)) }
-    state.rhythm?.let { add(TodayRow.Rhythm(it)) }
-    state.rhythm?.reminder?.let { add(TodayRow.RhythmReminderLine(it)) }
-    state.whatYouHad?.takeIf { state.rhythm == null }?.let { add(TodayRow.Had(it)) }
-    state.bridge?.let { add(TodayRow.Bridge(it)) }
-    state.safeFoods?.let { add(TodayRow.SafeFoods(it)) }
     state.fasting?.let { add(TodayRow.Fasting(it)) }
     state.water?.let { add(TodayRow.Water(it)) }
     state.weight?.let { add(TodayRow.Weight(it)) }
     state.meals.forEach { add(TodayRow.Meal(it)) }
-    state.whatYouHad?.takeIf { state.rhythm != null }?.let { add(TodayRow.Had(it)) }
     state.closeDay?.let { add(TodayRow.Close(it)) }
 }
 
@@ -370,7 +316,7 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
 private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayAction) -> Unit) {
     when (row) {
         TodayRow.Loading -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.today_loading_cd))
-        is TodayRow.Banner -> Banner(text = stringResource(row.banner.text, *row.banner.args.toTypedArray()))
+        is TodayRow.Banner -> ModeTimerBanner(row.banner, onAction)
         TodayRow.Planning -> InfoBanner(
             icon = AppIcons.EventNote,
             title = stringResource(Res.string.today_plan_title),
@@ -389,46 +335,7 @@ private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayActi
                 modifier = Modifier.weight(1f),
             )
         }
-        is TodayRow.Bridge -> PromptCard(
-            icon = AppIcons.Route,
-            tone = AppTheme.colors.nutrients.carbs,
-            title = stringResource(Res.string.today_bridge_title, row.card.from),
-            body = stringResource(Res.string.today_bridge_body, row.card.to, row.card.shared),
-        ) {
-            PromptAction(
-                label = stringResource(Res.string.today_bridge_tried),
-                onClick = { onAction(TodayAction.BridgeTriedTapped) },
-                emphasis = true,
-                modifier = Modifier.weight(1f),
-            )
-            PromptAction(
-                label = stringResource(Res.string.today_bridge_not_today),
-                onClick = { onAction(TodayAction.BridgeNotTodayTapped) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-        is TodayRow.CountsRow -> Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            CountChip(
-                icon = AppIcons.Restaurant,
-                iconColor = AppTheme.colors.accent,
-                text = stringResource(if (row.counts.meals == 1) Res.string.today_counts_meals_one else Res.string.today_counts_meals_other, row.counts.meals),
-            )
-            row.counts.glasses?.let { glasses ->
-                CountChip(
-                    icon = AppIcons.WaterDrop,
-                    iconColor = AppTheme.colors.nutrients.water.content,
-                    text = stringResource(if (glasses == 1) Res.string.today_counts_glasses_one else Res.string.today_counts_glasses_other, glasses),
-                )
-            }
-        }
-        is TodayRow.Tiles -> MealTiles(row.tiles, onAction)
-        is TodayRow.Rhythm -> Rhythm(row.card, onAction)
-        is TodayRow.RhythmReminderLine -> RhythmReminderCard(row.reminder, onAction)
-        is TodayRow.SafeFoods -> SafeFoodsCard(
-            title = stringResource(Res.string.today_explorer_safe),
-            foods = row.foods,
-            emptyText = stringResource(Res.string.today_explorer_safe_empty),
-        )
+        is TodayRow.Tiles -> MealTimelineCard(row.tiles, onAction)
         is TodayRow.Fasting -> FastingTodayCard(
             status = row.status,
             onOpen = { onAction(TodayAction.FastingCardTapped) },
@@ -445,10 +352,6 @@ private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayActi
         )
         is TodayRow.Weight -> WeightCard(row.weight, state.dayLabel, onAction)
         is TodayRow.Meal -> Meal(row.entry, state, onAction)
-        is TodayRow.Had -> when (val had = row.had) {
-            is WhatYouHad.PerMeal -> FoodListCard(rows = had.rows.map { (slot, foods) -> stringResource(slot.label) to foods })
-            is WhatYouHad.Together -> FoodListCard(rows = listOf(null to had.text), title = stringResource(Res.string.today_what_you_had))
-        }
         is TodayRow.Close -> TodayCard(
             contentPadding = TodayCardPadding.List,
             onClick = { onAction(TodayAction.CloseDayCardTapped) },
@@ -518,103 +421,6 @@ private fun WeightCard(weight: WeightRow, dayLabel: RelativeDay, onAction: (Toda
 }
 
 @Composable
-private fun MealTiles(tiles: List<MealTile>, onAction: (TodayAction) -> Unit) {
-    TintTileGrid(count = tiles.size) { index, tileModifier ->
-        val tile = tiles[index]
-        val status = tile.status
-        TintTile(
-            icon = tile.slot.icon,
-            tone = tile.slot.tileColors(),
-            title = stringResource(tile.slot.label),
-            subtitle = when (status) {
-                is TileStatus.Empty -> stringResource(Res.string.today_meal_around, status.around.shortClock())
-                TileStatus.AteNoDetails -> stringResource(Res.string.today_tile_ate)
-                is TileStatus.Items -> stringResource(
-                    if (status.count == 1) Res.string.today_tile_items_one else Res.string.today_tile_items_other,
-                    status.count,
-                    status.time.clock(),
-                )
-            },
-            done = status !is TileStatus.Empty,
-            onClick = { onAction(TodayAction.MealTileTapped(tile.slot)) },
-            modifier = tileModifier,
-        )
-    }
-}
-
-/** v3 `today-rhythm.png`, under the checklist: when the next nudge comes, and where to change it. */
-@Composable
-private fun RhythmReminderCard(reminder: RhythmReminder, onAction: (TodayAction) -> Unit) {
-    val (title, body, action) = when (reminder) {
-        is RhythmReminder.Next -> Triple(
-            stringResource(Res.string.reminders_rhythm_next, stringResource(reminder.slot.label)),
-            stringResource(Res.string.reminders_rhythm_next_body, reminder.at.clock(), stringResource(reminder.slot.sentenceName)),
-            stringResource(Res.string.reminders_rhythm_change),
-        )
-        RhythmReminder.Off -> Triple(
-            stringResource(Res.string.reminders_rhythm_off),
-            stringResource(Res.string.reminders_rhythm_off_body),
-            stringResource(Res.string.reminders_rhythm_set_up),
-        )
-    }
-    EdgeCard(edgeToEdge = false) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
-                Text(text = body, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
-            }
-            FlatButton(text = action, onClick = { onAction(TodayAction.RemindersTapped) }, tone = FlatButtonTone.AccentText)
-        }
-    }
-}
-
-@Composable
-private fun Rhythm(card: RhythmCard, onAction: (TodayAction) -> Unit) {
-    TodayCard(verticalArrangement = Arrangement.Top, contentPadding = TodayCardPadding.Checklist) {
-        Row(Modifier.fillMaxWidth()) {
-            Text(text = stringResource(Res.string.today_rhythm_title), typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
-            Text(
-                text = stringResource(Res.string.today_count_value, card.done, card.total),
-                typography = AppTheme.type.cardTitle.Tabular,
-                color = AppTheme.colors.muted,
-            )
-        }
-        HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(top = AppTheme.spacing.row))
-        card.rows.forEachIndexed { index, row ->
-            val status = row.status
-            val actions: (@Composable RowScope.() -> Unit)? = if (row.showActions && status is RhythmStatus.Pending) {
-                {
-                    ChecklistAction(
-                        label = stringResource(Res.string.today_rhythm_already_ate),
-                        onClick = { onAction(TodayAction.AlreadyAteTapped(row.slot)) },
-                        modifier = Modifier.weight(1f),
-                    )
-                    ChecklistAction(
-                        label = stringResource(Res.string.today_rhythm_log),
-                        onClick = { onAction(TodayAction.RhythmLogTapped(row.slot)) },
-                        primary = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            } else {
-                null
-            }
-            ChecklistRow(
-                title = stringResource(row.slot.label),
-                subtitle = when (status) {
-                    is RhythmStatus.Pending -> stringResource(Res.string.today_rhythm_planned, status.around.shortClock())
-                    is RhythmStatus.Logged -> stringResource(Res.string.today_rhythm_logged, status.time.clock(), status.around.shortClock())
-                    is RhythmStatus.AteNoDetails -> stringResource(Res.string.today_rhythm_ate, status.around.shortClock())
-                },
-                done = status !is RhythmStatus.Pending,
-                showDivider = index < card.rows.lastIndex,
-                actions = actions,
-            )
-        }
-    }
-}
-
-@Composable
 private fun Meal(entry: MealEntry, state: TodayState, onAction: (TodayAction) -> Unit) {
     val slot = entry.slot
     val sentence = stringResource(slot.sentenceName)
@@ -640,25 +446,6 @@ private fun Meal(entry: MealEntry, state: TodayState, onAction: (TodayAction) ->
             },
             trailing = add,
         )
-        is MealEntry.Compact -> MealRowCard(
-            icon = slot.icon,
-            tone = slot.tileColors(),
-            title = stringResource(entry.title),
-            subtitle = if (entry.feel == null && !entry.askFeel) entry.foods else entry.time?.clock(),
-            trailing = add,
-            below = if (entry.feel != null || entry.askFeel) {
-                {
-                    JournalEntry(
-                        foods = entry.foods,
-                        feel = entry.feel?.let { feelChips(it) }.orEmpty(),
-                        prompt = stringResource(Res.string.today_feel_prompt),
-                        onPrompt = { onAction(TodayAction.FeelPromptTapped(slot)) },
-                    )
-                }
-            } else {
-                null
-            },
-        )
         // A planned meal is filled in from Plan it or the add sheet; the card itself has no + (2.10).
         is MealEntry.Planned -> MealRowCard(
             icon = slot.icon,
@@ -679,7 +466,7 @@ private fun Meal(entry: MealEntry, state: TodayState, onAction: (TodayAction) ->
 }
 
 @Composable
-private fun feelChips(feel: FeelLine): List<String> {
+internal fun feelChips(feel: FeelLine): List<String> {
     val hunger = feel.hunger?.let { stringResource(it) }
     val fullness = feel.fullness?.let { stringResource(it) }
     val pair = when {
@@ -702,15 +489,20 @@ private fun FullMeal(card: MealCard, state: TodayState, onAction: (TodayAction) 
         macros = card.macros,
         macroStyle = card.macroStyle,
         items = card.items.map { item ->
-            val precision = stringResource(item.precision.rowLabel)
+            val precision = item.precision?.let { stringResource(it.rowLabel) }
             MealCardItem(
                 key = item.entryId,
                 name = item.name,
-                sub = if (item.amount.isBlank()) precision else stringResource(Res.string.today_item_sub, item.amount, precision),
+                sub = when {
+                    precision == null -> item.amount
+                    item.amount.isBlank() -> precision
+                    else -> stringResource(Res.string.today_item_sub, item.amount, precision)
+                },
                 calories = item.calories,
             )
         },
         note = card.note,
+        tags = card.feel?.let { feelChips(it) }.orEmpty(),
         highlighted = state.highlight == card.slot,
         onHeaderClick = if (selection != null) ({ onAction(TodayAction.MealHeaderToggled(card.slot)) }) else null,
         headerTrailing = {

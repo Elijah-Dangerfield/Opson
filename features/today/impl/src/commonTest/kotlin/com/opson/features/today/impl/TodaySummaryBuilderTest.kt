@@ -128,8 +128,8 @@ class TodaySummaryBuilderTest {
     @Test
     fun deficitSoFarIsOfferedOnlyWhereDeficitsAre() {
         assertTrue(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Full)))
-        assertTrue(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Sprint)))
-        assertFalse(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Nutrient)))
+        assertTrue(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Full)))
+        assertFalse(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.NutrientsFirst)))
     }
 
     @Test
@@ -191,7 +191,7 @@ class TodaySummaryBuilderTest {
 
     @Test
     fun blindRhythmAndMindfulCompactToTheMealCountAlone() {
-        listOf(PresetId.Blind, PresetId.Rhythm, PresetId.Mindful, PresetId.Explorer).forEach { preset ->
+        listOf(PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers, PresetId.NoNumbers).forEach { preset ->
             val compact = assertNotNull(build(policy(preset)).compact, "$preset")
             assertEquals(listOf<CompactPart>(CompactPart.Meals(3, 4)), compact.pages.single().parts, "$preset")
             assertNull(compact.pages.single().bar, "$preset")
@@ -199,15 +199,16 @@ class TodaySummaryBuilderTest {
     }
 
     @Test
-    fun fuelCompactsToMealsAndProtein_nutrientToTheWords_delayedToTheCount() {
-        val fuel = assertNotNull(build(policy(PresetId.Fuel)).compact).pages.single().parts
-        assertEquals(CompactPart.Meals(3, 4), fuel[0])
-        assertEquals(Metric.Protein, assertIs<CompactPart.Amount>(fuel[1]).metric)
+    fun nutrientsFirstCompactsToMealsAndProtein_caloriesHiddenToTheWords_laterToTheCount() {
+        val first = assertNotNull(build(policy(PresetId.NutrientsFirst)).compact).pages.single().parts
+        assertEquals(CompactPart.Meals(3, 4), first[0])
+        assertEquals(Metric.Protein, assertIs<CompactPart.Amount>(first[1]).metric)
 
-        val nutrient = assertNotNull(build(policy(PresetId.Nutrient)).compact).pages.single().parts
-        assertTrue(nutrient.all { it is CompactPart.Amount && it.display is Display.Soft })
+        val hidden = policy(PresetId.NutrientsFirst, overrides = mapOf(Metric.Calories to Visibility.Hide))
+        val words = assertNotNull(build(hidden).compact).pages.single().parts
+        assertTrue(words.all { it is CompactPart.Amount && it.display is Display.Soft })
 
-        val delayed = assertNotNull(build(policy(PresetId.Delayed)).compact).pages.single().parts
+        val delayed = assertNotNull(build(policy(PresetId.Later)).compact).pages.single().parts
         assertEquals(listOf<CompactPart>(CompactPart.Logged(3)), delayed)
     }
 
@@ -223,8 +224,8 @@ class TodaySummaryBuilderTest {
         assertEquals("73.9 kg", full.display.text())
         assertTrue(full.morning)
 
-        assertEquals("Steady", build(policy(PresetId.Delayed)).weight?.display?.text(), "Delayed softens weight to its trend word")
-        assertNull(build(policy(PresetId.Blind)).weight, "hidden weight, no row")
+        assertEquals("Steady", build(policy(PresetId.Later)).weight?.display?.text(), "Delayed softens weight to its trend word")
+        assertNull(build(policy(PresetId.NoNumbers)).weight, "hidden weight, no row")
         assertNull(build(day = TodayFixtures.day(TodayFixtures.today.minus(DatePeriod(days = 20)))).weight, "no weigh-in that day")
     }
 
@@ -239,7 +240,7 @@ class TodaySummaryBuilderTest {
 
     @Test
     fun selectingInBlind_keepsOnlyTheCount() {
-        val selection = assertNotNull(build(policy(PresetId.Blind), ui = TodayUi(selected = TodayFixtures.picked)).selection)
+        val selection = assertNotNull(build(policy(PresetId.NoNumbers), ui = TodayUi(selected = TodayFixtures.picked)).selection)
 
         assertEquals(3, selection.count)
         assertIs<Display.Hidden>(selection.calories)

@@ -73,7 +73,7 @@ private fun NutrientTilePreview() {
 @Preview(widthDp = 390)
 @Composable
 private fun NutrientTileBlindPreview() {
-    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.Blind)) {
+    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.NoNumbers)) {
         NutrientTilePreview()
     }
 }

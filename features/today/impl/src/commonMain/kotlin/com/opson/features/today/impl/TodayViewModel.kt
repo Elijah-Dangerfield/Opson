@@ -20,10 +20,9 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
-import com.opson.libraries.nutrition.TodayLayout
+import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
-import com.opson.libraries.reminders.RemindersEnabled
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -80,7 +79,6 @@ class TodayViewModel(
     private val fasting: FastingRepository,
     private val fastingRelease: FastingRelease,
     private val ticker: MinuteTicker,
-    private val remindersEnabled: RemindersEnabled,
     private val editor: DiaryItemEditor,
     private val weights: WeightRepository,
     private val summaryEnabled: TodaySummaryEnabled,
@@ -104,8 +102,6 @@ class TodayViewModel(
         val seen: Pair<LocalDate, Set<String>>? = null,
         /** What the logger just added, while its Undo is open. */
         val added: LoggedToMeal? = null,
-        /** "Not today" or "I tried it" on the food bridge, for this date. Kept nowhere else. */
-        val bridgeSkippedOn: LocalDate? = null,
         val fasting: FastingStatus? = null,
         /** The foods being selected; null when not selecting. */
         val selected: Set<String>? = null,
@@ -120,7 +116,7 @@ class TodayViewModel(
 
     init {
         viewModelScope.launch {
-            inputs(policySource).collect { takeAction(TodayAction.InputsArrived(it)) }
+            inputs().collect { takeAction(TodayAction.InputsArrived(it)) }
         }
         viewModelScope.launch {
             policySource.policy.collect { takeAction(TodayAction.PolicyArrived(it)) }
@@ -148,20 +144,16 @@ class TodayViewModel(
             TodayAction.NextDayTapped -> if (canGoForward()) selectedDay.select(day().plus(DatePeriod(days = 1)))
             TodayAction.DayLabelTapped, TodayAction.CalendarTapped -> sendEvent(TodayEvent.OpenCalendar(day()))
             TodayAction.NutrientsTapped -> sendEvent(TodayEvent.OpenNutrients(day()))
-            TodayAction.RevealedTapped, TodayAction.CloseDayCardTapped -> if (!isFuture()) sendEvent(TodayEvent.OpenDayClose(day()))
+            TodayAction.CloseDayCardTapped -> if (!isFuture()) sendEvent(TodayEvent.OpenDayClose(day()))
             is TodayAction.MealTileTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
-            is TodayAction.RhythmLogTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
             is TodayAction.PlanItTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
             is TodayAction.MealPlusTapped -> sendEvent(TodayEvent.OpenMealSheet(day(), action.slot))
-            is TodayAction.FeelPromptTapped -> sendEvent(TodayEvent.OpenMealFeel(day(), action.slot))
             is TodayAction.ItemTapped -> if (model.swipe.open != null) {
                 action.rebuild { copy(swipe = SwipeState()) }
             } else {
                 sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
             }
             TodayAction.WaterPlusTapped -> sendEvent(TodayEvent.OpenWaterSheet(day()))
-            is TodayAction.AlreadyAteTapped -> diary.setAteNoDetails(day(), action.slot, ate = true)
-            TodayAction.RemindersTapped -> sendEvent(TodayEvent.OpenReminders)
             TodayAction.HighlightFaded -> action.rebuild { copy(highlight = null) }
             is TodayAction.LoggedArrived -> loggedArrived(action)
             TodayAction.UndoTapped -> model.added?.let { event ->
@@ -171,19 +163,8 @@ class TodayViewModel(
             }
             is TodayAction.UndoExpired -> if (model.added == action.event) action.rebuild { copy(added = null) }
             TodayAction.TrackAgainTapped -> diary.setUntracked(day(), untracked = false)
-            TodayAction.BridgeTriedTapped -> {
-                val bridge = model.inputs?.explorer?.bridge
-                action.rebuild { copy(bridgeSkippedOn = day()) }
-                val foodId = bridge?.foodId ?: bridge?.customFoodId
-                sendEvent(
-                    if (foodId == null) {
-                        TodayEvent.OpenLogger(day(), slot = null)
-                    } else {
-                        TodayEvent.OpenLoggerWithFood(day(), foodId, isCustom = bridge?.foodId == null)
-                    },
-                )
-            }
-            TodayAction.BridgeNotTodayTapped -> action.rebuild { copy(bridgeSkippedOn = day()) }
+            // The banner only offers this when the switch has to wait for the pause, so open it.
+            is TodayAction.TimedSwitchTapped -> sendEvent(TodayEvent.OpenPause(NumbersChange.PickPreset(action.to)))
             is TodayAction.FastingArrived -> {
                 action.rebuild { copy(fasting = action.status) }
                 // A card on show means the timer is on: start the evening's fast once the window closes.
@@ -433,7 +414,6 @@ class TodayViewModel(
                 clearArmed = current.clearArmed,
                 highlight = current.highlight,
                 added = current.added,
-                bridgeSkipped = current.bridgeSkippedOn == inputs.day.date,
                 ui = TodayUi(
                     selected = current.selected,
                     step = current.step,
@@ -451,23 +431,17 @@ class TodayViewModel(
         block()
     }
 
-    private fun inputs(policySource: VisibilityPolicySource): Flow<TodayInputs> {
+    private fun inputs(): Flow<TodayInputs> {
         val days = selectedDay.date.flatMapLatest { date ->
             combine(diary.observeDay(date), diary.observeDay(date.minus(DatePeriod(days = 1)))) { d, before -> d to before }
         }
-        val explorer = policySource.policy
-            .map { it.preset.today == TodayLayout.Explorer }
-            .distinctUntilChanged()
-            .flatMapLatest { on -> if (on) explorerStats() else flowOf(null) }
-        return combine(days, settingsRepository.settings, explorer, expended(), weighIns()) { (d, before), settings, stats, expended, weighIns ->
+        return combine(days, settingsRepository.settings, expended(), weighIns()) { (d, before), settings, expended, weighIns ->
             TodayInputs(
                 today = calendar.today(),
                 timeZone = calendar.timeZone(),
                 day = d,
                 dayBefore = before,
                 settings = settings,
-                explorer = stats,
-                remindersOn = remindersEnabled(),
                 expended = expended,
                 summaryOn = summaryEnabled(),
                 selectOn = selectEnabled(),
@@ -506,20 +480,11 @@ class TodayViewModel(
         }
     }
 
-    private fun explorerStats(): Flow<ExplorerStats> {
-        val today = calendar.today()
-        return combine(
-            diary.frequentFoods(limit = ExplorerStatsBuilder.SAFE_FOOD_COUNT, days = SAFE_FOOD_DAYS),
-            diary.observeDays(today.minus(DatePeriod(days = ExplorerStatsBuilder.LOOKBACK_DAYS)), today),
-        ) { frequent, days -> ExplorerStatsBuilder.from(frequent, days, today) }
-    }
-
     companion object {
         /** How long a changed meal stays outlined. */
         val HIGHLIGHT_FOR = 2.seconds
 
         /** The Weight row's trend reads two weeks; a little more covers a day in the past. */
         private val WEIGH_IN_LOOKBACK = 42.days
-        private const val SAFE_FOOD_DAYS = 30
     }
 }

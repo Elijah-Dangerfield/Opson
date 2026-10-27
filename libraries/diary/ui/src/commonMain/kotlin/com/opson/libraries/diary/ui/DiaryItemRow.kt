@@ -119,7 +119,7 @@ private fun DiaryItemRowPreview() {
 @Preview(widthDp = 390)
 @Composable
 private fun DiaryItemRowBlindPreview() {
-    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.Blind)) {
+    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.NoNumbers)) {
         DiaryItemRowPreview()
     }
 }

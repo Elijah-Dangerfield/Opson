@@ -187,7 +187,7 @@ private fun FoodPickRowPreview() {
 @Preview(widthDp = 390)
 @Composable
 private fun FoodPickRowBlindPreview() {
-    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.Blind)) {
+    CompositionLocalProvider(LocalVisibilityPolicy provides previewVisibilityPolicy(PresetId.NoNumbers)) {
         FoodPickRowPreview()
     }
 }
