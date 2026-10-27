@@ -6,7 +6,12 @@ import com.opson.libraries.core.isiOS
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.logEvent
+import com.opson.libraries.health.GoalsAndEnergyEnabled
+import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.identity.auth.AccountCreationState
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
@@ -17,34 +22,49 @@ import com.opson.libraries.identity.auth.LinkIdentityOutcome
 import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.auth.PendingIdentity
 import com.opson.libraries.identity.auth.awaitCredential
+import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
+import com.opson.libraries.nutrition.TodayLayout
+import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.opson.AppCache
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
+import kotlinx.datetime.LocalTime
 import kotlinx.coroutines.withTimeoutOrNull
 import me.tatarka.inject.annotations.Inject
 
 /**
- * Onboarding (design v3): Welcome with the plan, three skippable questions, an
- * optional statement, a starting mode, then an optional account step. No
- * account exists on launch; the anonymous guest is minted when the mode is
- * saved, and the account step only claims it.
+ * Onboarding (design v3, reworked in docs/plans/onboarding-v2.md): Welcome with
+ * the plan, two skippable questions, an optional statement, a starting mode, the
+ * setup steps that mode needs, then an optional account step. No account exists
+ * on launch; the anonymous guest is minted when the setup is saved, and the
+ * account step only claims it.
  *
  *   1. **Welcome**: "Get started" enters the questions; "Skip and start
  *      logging" saves Full numbers and goes straight to Today, past the account
  *      step; "Sign in" opens the existing sign-in flow for returning users.
- *   2. **Questions 1 to 3 and the statement**: each answer recomputes the
+ *   2. **Questions 1 and 2 and the statement**: each answer recomputes the
  *      recommendation ([ModeRecommender]). Every step can be skipped and
  *      nothing asks again later.
- *   3. **Recommendation**: the mode, what you'll see and what stays out of view
- *      ([ModePreview]), the other modes and All modes. Full numbers is never
- *      offered to someone who agreed numbers have been hard.
- *   4. **Account**: claim the guest with Apple, Google or email, or keep it on
+ *   3. **Recommendation**: the mode, the answer that picked it, what you'll see
+ *      and what stays out of view ([ModePreview]), the other modes and All
+ *      modes. Full numbers is never offered to someone who agreed numbers have
+ *      been hard.
+ *   4. **Setup** (`release.onboardingSetup`, [OnboardingState.setupSteps]): the
+ *      goal where the mode shows calories, resting energy details for a set
+ *      deficit or surplus (`release.goalsAndEnergy`), and meal times where Today
+ *      is built around them. Each is skippable and keeps the defaults.
+ *   5. **Account**: claim the guest with Apple, Google or email, or keep it on
  *      this phone. Skipping is normal. Shown only where one of those is on
  *      ([OnboardingState.canSignIn]): in 0.1 that is Apple, so iOS.
  *
- * Saving writes the preset and the answers to settings without stamping
+ * Saving writes the preset, the answers and the setup to settings without stamping
  * `changedAt` (so Modes says "Set by you during setup"), creates the guest
  * ([GuestAccountCreator], app-scoped so it survives the ViewModel) with a
  * bounded wait, and marks `hasUserOnboarded`. A claimed identity, or a guest
@@ -65,10 +85,20 @@ class OnboardingViewModel(
     private val guestAccountCreator: GuestAccountCreator,
     private val appleSignInCoordinator: AppleSignInCoordinator,
     private val settingsRepository: SettingsRepository,
+    private val weightRepository: WeightRepository,
+    private val calendar: LocalCalendar,
+    setupEnabled: OnboardingSetupEnabled,
+    goalsAndEnergy: GoalsAndEnergyEnabled,
     /** Native Sign in with Apple, which only iOS has. A parameter so tests can run either phone. */
     appleSignIn: Boolean = BuildInfo.isiOS(),
+    private val clock: Clock = Clock.System,
 ) : SEAViewModel<OnboardingState, OnboardingEvent, OnboardingAction>(
-    initialStateArg = OnboardingState(appleEnabled = appleSignIn),
+    initialStateArg = OnboardingState(
+        appleEnabled = appleSignIn,
+        setupSteps = setupEnabled(),
+        goalsAndEnergy = goalsAndEnergy(),
+        currentYear = calendar.today().year,
+    ),
 ) {
 
     private val logger = KLog.withTag("OnboardingFlow")
@@ -84,6 +114,9 @@ class OnboardingViewModel(
 
     /** True once this ViewModel created the guest the account step can claim. */
     private var guestCreated = false
+
+    /** The weigh-in the resting energy step logged, so saving again after Back does not log it twice. */
+    private var weighedKg: Double? = null
 
     init {
         // Resolve where onboarding opens (Today bounce / questions re-entry /
@@ -101,6 +134,18 @@ class OnboardingViewModel(
             OnboardingAction.TalkToSomeoneTapped -> sendEvent(OnboardingEvent.NavigateToSupport)
             is OnboardingAction.OptionTapped -> action.handleOptionTapped(action.option)
             OnboardingAction.ContinueTapped, OnboardingAction.SkipQuestionTapped -> action.advance()
+            is OnboardingAction.GoalStyleTapped -> action.updateSetup(OnboardingStep.Goal) {
+                if (action.style in it.goalStyles) it.copy(goal = it.goal.copy(style = action.style)) else it
+            }
+            is OnboardingAction.GoalStepped -> action.updateSetup(OnboardingStep.Goal) { it.copy(goal = it.goal.stepped(action.up)) }
+            is OnboardingAction.BirthYearTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withBirthYear(action.text)) }
+            is OnboardingAction.HeightTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withHeight(action.text)) }
+            is OnboardingAction.WeightTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withWeight(action.text)) }
+            is OnboardingAction.SexPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(sex = action.sex)) }
+            is OnboardingAction.UnitPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(unit = action.unit)) }
+            is OnboardingAction.MealTimePicked -> action.updateSetup(OnboardingStep.Meals) {
+                it.copy(mealTimes = it.mealTimes.with(action.slot, action.time))
+            }
             is OnboardingAction.AlternativeTapped -> action.handleAlternativeTapped(action.preset)
             OnboardingAction.AllModesTapped -> action.handleAllModes()
             OnboardingAction.StartTapped -> action.handleStart()
@@ -176,15 +221,38 @@ class OnboardingViewModel(
         }
     }
 
-    /** Continue and Skip both move on; Skip leaves the answer as it is. */
+    /**
+     * Continue and Skip both move on; Skip leaves the answer as it is. Off the last setup step
+     * they save, as Start does when the mode needs no setup.
+     */
     private suspend fun OnboardingAction.advance() {
-        val question = state.question ?: return
-        val next = SetupQuestion.of(question.number + 1)
-            ?.let { OnboardingStep.Question(it) }
-            ?: OnboardingStep.Recommendation
-        updateState { it.copy(step = next) }
-        logStepViewed(next)
+        if (state.isFinishing) return
+        val next = when (val step = state.step) {
+            is OnboardingStep.Question -> SetupQuestion.of(step.question.number + 1)
+                ?.let { OnboardingStep.Question(it) }
+                ?: OnboardingStep.Recommendation
+            OnboardingStep.Goal, OnboardingStep.Body, OnboardingStep.Meals -> state.setupAfter(step)
+                ?: return finish(state.chosen, state.answers, skippedAll = false)
+            else -> return
+        }
+        goTo(next)
     }
+
+    private suspend fun OnboardingAction.goTo(step: OnboardingStep) {
+        updateState { it.copy(step = step, accountError = null).withViews(policyFor(it.chosen)) }
+        logStepViewed(step)
+    }
+
+    /** A change on [step], ignored anywhere else or while saving. The views follow. */
+    private suspend fun OnboardingAction.updateSetup(step: OnboardingStep, transform: (OnboardingState) -> OnboardingState) {
+        updateState {
+            if (it.step != step || it.isFinishing) it else transform(it).withViews(policyFor(it.chosen))
+        }
+    }
+
+    /** The policy for [preset] as onboarding starts it, no overrides, as [startingWith] saves it. */
+    private fun policyFor(preset: PresetId): VisibilityPolicy =
+        VisibilityPolicy(NumbersSettings(preset = preset), clock, calendar.timeZone())
 
     private suspend fun OnboardingAction.handleAlternativeTapped(preset: PresetId) {
         updateState {
@@ -200,10 +268,15 @@ class OnboardingViewModel(
         }
     }
 
-    /** "Start with ...": save the mode, then the account step when there is a guest to claim. */
+    /**
+     * "Start with ...": the setup steps the mode needs or, with none, save the mode and go on to
+     * the account step when there is a guest to claim.
+     */
     private suspend fun OnboardingAction.handleStart() {
-        if (state.step != OnboardingStep.Recommendation) return
-        finish(state.chosen, state.answers, skippedAll = false)
+        if (state.step != OnboardingStep.Recommendation || state.isFinishing) return
+        val first = state.setupAfter(OnboardingStep.Recommendation)
+            ?: return finish(state.chosen, state.answers, skippedAll = false)
+        goTo(first)
     }
 
     /**
@@ -228,12 +301,14 @@ class OnboardingViewModel(
         val tookRecommendation = !skippedAll && preset == state.recommended
         updateState { it.copy(isFinishing = true, creationStarted = true, accountError = null) }
 
+        val setup = if (skippedAll) StartingSetup() else state.startingSetup()
         Catching {
-            settingsRepository.update(stampNumbersChange = false) { it.startingWith(preset, answers) }
+            settingsRepository.update(stampNumbersChange = false) { it.startingWith(preset, answers, setup) }
         }.logOnFailure { "Onboarding could not save the starting mode" }
 
         val session = authRepository.current() as? AuthState.Authenticated
         if (session == null && !guestCreated) createGuest()
+        if (!skippedAll) logWeighIn()
 
         if (!completed) {
             completed = true
@@ -257,6 +332,19 @@ class OnboardingViewModel(
             updateState { it.copy(step = OnboardingStep.Account, isFinishing = false) }
             logStepViewed(OnboardingStep.Account)
         }
+    }
+
+    /**
+     * The resting energy step's weight as a weigh-in, once the account it belongs to exists or
+     * is being retried. Weight is never a setting: Burned reads the latest weigh-in.
+     */
+    private suspend fun logWeighIn() {
+        if (!state.showsBody) return
+        val kg = state.body.weightKgOrNull() ?: return
+        if (kg == weighedKg) return
+        Catching { weightRepository.addWeighIn(kg) }
+            .logOnFailure { "Onboarding could not log the first weigh-in" }
+            .onSuccess { weighedKg = kg }
     }
 
     private suspend fun OnboardingAction.createGuest() {
@@ -341,16 +429,15 @@ class OnboardingViewModel(
     }
 
     /**
-     * Account → Recommendation → Statement → Question n − 1 → Welcome. Gated by
-     * [OnboardingState.canGoBack]: nothing moves while saving or linking, and
-     * question 1 cannot return to Welcome once the mode was saved or an
-     * identity is claimed.
+     * Account → the setup steps → Recommendation → Statement → Question n − 1 → Welcome. Gated by
+     * [OnboardingState.canGoBack]: nothing moves while saving or linking, and question 1 cannot
+     * return to Welcome once the mode was saved or an identity is claimed.
      */
     private suspend fun OnboardingAction.handleBack() {
         if (!state.canGoBack) return
         val previous = when (val step = state.step) {
             OnboardingStep.Welcome -> return
-            OnboardingStep.Account -> OnboardingStep.Recommendation
+            OnboardingStep.Account, OnboardingStep.Goal, OnboardingStep.Body, OnboardingStep.Meals -> state.setupBefore(step)
             OnboardingStep.Recommendation -> OnboardingStep.Question(SetupQuestion.Statement)
             is OnboardingStep.Question ->
                 SetupQuestion.of(step.question.number - 1)?.let { OnboardingStep.Question(it) }
@@ -385,6 +472,9 @@ class OnboardingViewModel(
         private val FINISH_CREATION_AWAIT_TIMEOUT = 5_000.milliseconds
     }
 }
+
+/** The year previews and tests start in, the fixtures' 2026. The view model passes the real one. */
+internal const val DEFAULT_YEAR = 2026
 
 /** How the account step claims the guest in place. Email hands off to the sign-up screen. */
 enum class AccountMethod { Apple, Google }
@@ -435,6 +525,20 @@ data class OnboardingState(
 
     /** Native "Sign in with Apple" is iOS-only; hides the button elsewhere. */
     val appleEnabled: Boolean = false,
+
+    /** `release.onboardingSetup`: the goal, resting energy and meal times steps. Off, Start saves straight away. */
+    val setupSteps: Boolean = false,
+    /** `release.goalsAndEnergy`: one number, a set deficit and surplus on the goal step, and the resting energy step. */
+    val goalsAndEnergy: Boolean = false,
+    /** For the birth year field: who could be 13 to 120. */
+    val currentYear: Int = DEFAULT_YEAR,
+    val goal: GoalAnswer = GoalAnswer(),
+    val body: BodyAnswer = BodyAnswer(),
+    val mealTimes: MealTimes = MealTimes(),
+    /** The goal step as drawn, through the policy of the mode being started. Null until it opens. */
+    val goalView: GoalView? = null,
+    /** The resting energy step as drawn. Null until it opens. */
+    val bodyView: BodyView? = null,
 ) {
     /**
      * This phone offers a way to sign in or claim the guest. Without one, Welcome hides
@@ -456,6 +560,69 @@ data class OnboardingState(
     /** What [chosen] shows and keeps out of view. */
     val preview: ModePreview get() = ModePreview.of(Presets[chosen])
 
+    /** The answer that picked the recommendation, while it is the one chosen. */
+    val reason: RecommendationReason? get() = ModeRecommender.reason(answers).takeIf { chosen == recommended }
+
+    /** The goal step: where the mode starts with calorie amounts on show, which is Full numbers. */
+    val showsGoal: Boolean get() = setupSteps && Presets[chosen].level(Metric.Calories) == Visibility.Show
+
+    /** The goal styles on offer, Range first. */
+    val goalStyles: List<GoalChoice> get() = GoalChoice.offered(goalsAndEnergy)
+
+    /** The resting energy step: a set deficit or surplus has to know what the person burns. */
+    val showsBody: Boolean get() = showsGoal && goalsAndEnergy && goal.style.needsBurn
+
+    /**
+     * The meal times step: where Today is built around meal times (No numbers' timeline), or the
+     * person is tracking to eat regularly.
+     */
+    val showsMeals: Boolean
+        get() = setupSteps && (Presets[chosen].today == TodayLayout.MealTimeline || Why.EatingRegularly in answers.why)
+
+    /** The setup steps for [chosen], in order. Empty with `release.onboardingSetup` off. */
+    val setupFlow: List<OnboardingStep>
+        get() = buildList {
+            if (showsGoal) add(OnboardingStep.Goal)
+            if (showsBody) add(OnboardingStep.Body)
+            if (showsMeals) add(OnboardingStep.Meals)
+        }
+
+    /** The setup step after [step] (the recommendation, or a setup step), or null when saving comes next. */
+    fun setupAfter(step: OnboardingStep): OnboardingStep? {
+        val flow = setupFlow
+        return if (step == OnboardingStep.Recommendation) flow.firstOrNull() else flow.getOrNull(flow.indexOf(step) + 1)
+    }
+
+    /** The step before [step] (a setup step or the account step): the setup step before it, or the recommendation. */
+    fun setupBefore(step: OnboardingStep): OnboardingStep {
+        val flow = setupFlow
+        val index = if (step == OnboardingStep.Account) flow.size else flow.indexOf(step)
+        return flow.getOrNull(index - 1) ?: OnboardingStep.Recommendation
+    }
+
+    /**
+     * What the setup steps the person saw will save. Only those steps: a goal is never written
+     * for someone who never saw one, so their range stays the app's starting one. A deficit or
+     * surplus is aimed at resting energy for now; activity joins Burned once it syncs.
+     */
+    fun startingSetup(): StartingSetup {
+        val body = body.takeIf { showsBody }
+        return StartingSetup(
+            targets = goal.takeIf { showsGoal }?.resolve(burnKcal = body?.restingKcal(currentYear)),
+            birthYear = body?.birthYearOrNull(currentYear),
+            heightCm = body?.heightCmOrNull(),
+            sex = body?.sex,
+            weightUnit = body?.unit,
+            mealTimes = mealTimes.takeIf { showsMeals },
+        )
+    }
+
+    /** The goal and resting energy views, built through [policy] (the mode being started). */
+    internal fun withViews(policy: VisibilityPolicy): OnboardingState = copy(
+        goalView = SetupViews.goal(goal, goalStyles, policy),
+        bodyView = SetupViews.body(body, currentYear, policy),
+    )
+
     /** The account step's buttons work: on the step, with nothing running. */
     val canClaim: Boolean
         get() = step == OnboardingStep.Account && accountInFlight == null && !isFinishing
@@ -463,7 +630,7 @@ data class OnboardingState(
     val canGoBack: Boolean
         get() = when (step) {
             OnboardingStep.Welcome -> false
-            OnboardingStep.Recommendation -> !isFinishing
+            OnboardingStep.Recommendation, OnboardingStep.Goal, OnboardingStep.Body, OnboardingStep.Meals -> !isFinishing
             OnboardingStep.Account -> accountInFlight == null && !isFinishing
             is OnboardingStep.Question ->
                 !isFinishing && (step.question != SetupQuestion.Reason || (!identityClaimed && !creationStarted))
@@ -500,6 +667,21 @@ sealed interface OnboardingStep {
 
     data object Recommendation : OnboardingStep {
         override val eventName = "recommendation"
+    }
+
+    /** The goal style and range, in Full numbers. */
+    data object Goal : OnboardingStep {
+        override val eventName = "goal"
+    }
+
+    /** Resting energy's details, for a set deficit or surplus. */
+    data object Body : OnboardingStep {
+        override val eventName = "resting_energy"
+    }
+
+    /** When meals usually happen. */
+    data object Meals : OnboardingStep {
+        override val eventName = "meal_times"
     }
 
     data object Account : OnboardingStep {
@@ -544,9 +726,20 @@ sealed interface OnboardingAction {
 
     /** "Talk to someone" on the statement, shown whichever answer is picked. */
     data object TalkToSomeoneTapped : OnboardingAction
-    /** "Continue", or "See my starting point" on the statement. */
+    /** "Continue", "See my starting point" on the statement, or "Start logging" on the last setup step. */
     data object ContinueTapped : OnboardingAction
+    /** "Skip" on a question or a setup step: on, with the answer as it is. */
     data object SkipQuestionTapped : OnboardingAction
+    data class GoalStyleTapped(val style: GoalChoice) : OnboardingAction
+    /** The goal step's stepper, 50 kcal a tap. Lower stops at the floor. */
+    data class GoalStepped(val up: Boolean) : OnboardingAction
+    data class BirthYearTyped(val text: String) : OnboardingAction
+    data class HeightTyped(val text: String) : OnboardingAction
+    data class WeightTyped(val text: String) : OnboardingAction
+    data class SexPicked(val sex: BodySex) : OnboardingAction
+    /** Kilograms and centimetres, or pounds and inches. */
+    data class UnitPicked(val unit: WeightUnit) : OnboardingAction
+    data class MealTimePicked(val slot: MealSlot, val time: LocalTime) : OnboardingAction
     data class AlternativeTapped(val preset: PresetId) : OnboardingAction
     data object AllModesTapped : OnboardingAction
     /** "Start with ..." on the recommendation step. */

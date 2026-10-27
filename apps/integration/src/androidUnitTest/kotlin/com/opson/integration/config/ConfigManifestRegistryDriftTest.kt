@@ -4,6 +4,7 @@ import com.opson.features.logger.impl.BarcodeScanEnabled
 import com.opson.features.logger.impl.PhotoEstimateEnabled
 import com.opson.features.logger.impl.SearchOptionsEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
+import com.opson.features.onboarding.impl.OnboardingSetupEnabled
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.today.impl.TodayFoodActionsEnabled
 import com.opson.features.today.impl.TodaySelectEnabled
@@ -28,6 +29,11 @@ import com.opson.libraries.telemetry.impl.AppEventsEnabled
 import com.opson.libraries.telemetry.impl.AppEventsSampleRate
 import com.opson.libraries.telemetry.impl.KlogForwardingEnabled
 import com.opson.libraries.widgets.WidgetsEnabled
+import java.io.File
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.fail
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -37,11 +43,6 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import java.io.File
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-import kotlin.test.fail
 
 /**
  * `apps/admin/config-manifest-registry.json` is a committed transcription of the
@@ -335,6 +336,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     PhotoEstimateEnabled(appConfigMap),
     WidgetsEnabled(appConfigMap),
     SearchOptionsEnabled(appConfigMap),
+    OnboardingSetupEnabled(appConfigMap),
     FindSupportEnabled(appConfigMap),
     ProgressPhotosEnabled(appConfigMap),
     TodaySummaryEnabled(appConfigMap),

@@ -6,8 +6,10 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 
 /**
- * The setup steps that take an answer, in order: three questions, then the optional statement.
- * Every one can be skipped. [eventName] is what `onboarding.step_viewed` carries, never an index.
+ * The setup steps that take an answer, in order: two questions, then the optional statement.
+ * Every one can be skipped. [eventName] is what `onboarding.step_viewed` carries, never an index:
+ * the statement keeps its name, and the numbers question keeps `question_2`, so the funnel reads
+ * the same across the change that took out "What do you want to notice?" (docs/plans/onboarding-v2.md).
  */
 enum class SetupQuestion(val number: Int, val multiSelect: Boolean, val eventName: String) {
     /** Why are you tracking? */
@@ -16,21 +18,18 @@ enum class SetupQuestion(val number: Int, val multiSelect: Boolean, val eventNam
     /** How do you feel about seeing numbers? */
     Feeling(2, multiSelect = false, eventName = "question_2"),
 
-    /** What do you want to notice? */
-    Focus(3, multiSelect = false, eventName = "question_3"),
-
     /**
      * "Numbers or tracking have been hard for me before": a statement to agree with, never a
-     * question about a diagnosis. Agreeing unlocks the gentler presets.
+     * question about a diagnosis. Agreeing keeps Full numbers off the list, and keeps fasting and
+     * exercise adjustments out of the app.
      */
-    Statement(4, multiSelect = false, eventName = "statement"),
+    Statement(3, multiSelect = false, eventName = "statement"),
     ;
 
     val options: List<SetupOption>
         get() = when (this) {
             Reason -> Why.entries
             Feeling -> NumbersFeel.entries
-            Focus -> Notice.entries
             Statement -> StatementAnswer.entries
         }
 
@@ -63,13 +62,6 @@ enum class NumbersFeel(override val key: String) : SetupOption {
     NotSure("not_sure"),
 }
 
-enum class Notice(override val key: String) : SetupOption {
-    Amounts("amounts"),
-    Nutrients("nutrients"),
-    Patterns("patterns"),
-    HowEatingFeels("how_eating_feels"),
-}
-
 /** The answer to the statement. Only [Agree] is stored, as `OnboardingAnswers.hard`. */
 enum class StatementAnswer(override val key: String) : SetupOption {
     Agree("agree"),
@@ -86,19 +78,17 @@ data class SetupChoice(val option: SetupOption, val selected: Boolean)
 data class SetupAnswers(
     val why: Set<Why> = emptySet(),
     val feel: NumbersFeel? = null,
-    val notice: Notice? = null,
     val statement: StatementAnswer? = null,
 ) {
     /** The person agreed that numbers or tracking have been hard for them. */
     val hard: Boolean get() = statement == StatementAnswer.Agree
 
     /** Nothing said that could shape a starting point. "Not really" says nothing on its own. */
-    val isEmpty: Boolean get() = why.isEmpty() && feel == null && notice == null && !hard
+    val isEmpty: Boolean get() = why.isEmpty() && feel == null && !hard
 
     fun has(option: SetupOption): Boolean = when (option) {
         is Why -> option in why
         is NumbersFeel -> feel == option
-        is Notice -> notice == option
         is StatementAnswer -> statement == option
     }
 
@@ -106,18 +96,19 @@ data class SetupAnswers(
     fun tap(option: SetupOption): SetupAnswers = when (option) {
         is Why -> copy(why = why.toggle(option))
         is NumbersFeel -> copy(feel = option)
-        is Notice -> copy(notice = option)
         is StatementAnswer -> copy(statement = option)
     }
 
     fun choices(question: SetupQuestion): List<SetupChoice> =
         question.options.map { SetupChoice(it, selected = has(it)) }
 
-    /** Kept in question order, so the stored lists read the same every time. */
+    /**
+     * Kept in question order, so the stored lists read the same every time. `notice` stays empty:
+     * its question is gone, and nothing read it.
+     */
     fun toSettings(): OnboardingAnswers = OnboardingAnswers(
         why = Why.entries.filter { it in why }.map { it.key },
         feel = feel?.key,
-        notice = listOfNotNull(notice?.key),
         hard = hard,
     )
 
@@ -126,10 +117,18 @@ data class SetupAnswers(
 
 /**
  * The settings onboarding leaves behind: [preset] with no overrides and the
- * pause off, and the answers. The caller saves this without stamping
- * `changedAt`, so Modes says "Set by you during setup".
+ * pause off, the answers, and whatever the setup steps the person saw set
+ * ([setup]; a step not shown leaves its settings as they are). Every key here is
+ * already a top-level one, as settings sync needs. The caller saves this without
+ * stamping `changedAt`, so Modes says "Set by you during setup".
  */
-internal fun Settings.startingWith(preset: PresetId, answers: SetupAnswers): Settings = copy(
+fun Settings.startingWith(preset: PresetId, answers: SetupAnswers, setup: StartingSetup = StartingSetup()): Settings = copy(
     numbers = NumbersSettings(preset = preset),
     onboarding = answers.toSettings(),
+    targets = setup.targets ?: targets,
+    birthYear = setup.birthYear ?: birthYear,
+    heightCm = setup.heightCm ?: heightCm,
+    bodySex = setup.sex ?: bodySex,
+    weightUnit = setup.weightUnit ?: weightUnit,
+    mealTimes = setup.mealTimes ?: mealTimes,
 )

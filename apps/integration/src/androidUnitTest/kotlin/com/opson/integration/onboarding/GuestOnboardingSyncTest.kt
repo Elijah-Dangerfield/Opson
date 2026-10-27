@@ -1,10 +1,20 @@
 package com.opson.integration.onboarding
 
+import com.opson.features.onboarding.impl.NumbersFeel
+import com.opson.features.onboarding.impl.SetupAnswers
+import com.opson.features.onboarding.impl.StartingSetup
+import com.opson.features.onboarding.impl.Why
+import com.opson.features.onboarding.impl.startingWith
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.awaitState
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.SignInOutcome
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Targets
+import com.opson.libraries.nutrition.WeightUnit
+import kotlinx.datetime.LocalTime
 import kotlinx.coroutines.flow.first
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -60,5 +70,55 @@ class GuestOnboardingSyncTest : IntegrationTest() {
         assertEquals(listOf(soup.id), day.allItems.map { it.id })
         assertEquals(420.0, day.allItems.single().kcal)
         assertEquals(0, reinstall.pendingChanges(), "pulling queues nothing to push back")
+    }
+
+    /**
+     * Onboarding v2's setup steps (docs/plans/onboarding-v2.md): the goal, resting energy's
+     * details and meal times are saved with the mode before the guest exists, and the first
+     * weigh-in right after. All of it must reach the server as top-level keys and come back on
+     * a fresh install, or a set surplus would start a new phone with no burn to aim at.
+     */
+    @Test
+    fun setupSteps_reachTheServer_andAFreshInstallPullsThemBack() = integration {
+        val phone = client(userId = null)
+        phone.auth.observe().first { it is AuthState.Unauthenticated }
+
+        val breakfast = MealTimes(breakfast = LocalTime(9, 30))
+        val setup = StartingSetup(
+            targets = Targets.Default.raise().useSurplus(burnKcal = 1360),
+            birthYear = 1992,
+            heightCm = 168.0,
+            sex = BodySex.Female,
+            weightUnit = WeightUnit.Lb,
+            mealTimes = breakfast,
+        )
+        val answers = SetupAnswers(why = setOf(Why.EatingRegularly), feel = NumbersFeel.LoveThem)
+        phone.settings.update(stampNumbersChange = false) { it.startingWith(PresetId.Full, answers, setup) }
+        assertEquals(SignInOutcome.Success, phone.auth.createGuestSession())
+        val guest = assertNotNull(phone.userId)
+        phone.weights.addWeighIn(64.0)
+
+        phone.syncNow().getOrThrow()
+        assertEquals(0, phone.pendingChanges())
+        val stored = server.query(
+            "SELECT jsonb_exists(settings, 'mealTimes') AS has_times, (settings->>'birthYear')::int AS year, " +
+                "settings->>'targetStyle' AS style FROM user_settings WHERE user_id = ?::uuid",
+            guest,
+        ).single()
+        assertEquals(true, stored["has_times"])
+        assertEquals(1992, stored["year"])
+        assertNotNull(stored["style"], "the goal style is its own top-level key")
+        assertEquals(1L, server.countFor("weigh_ins", guest))
+
+        val reinstall = client(guest)
+        reinstall.syncNow().getOrThrow()
+        val pulled = reinstall.settings.settings.awaitState { it.birthYear == 1992 }
+        assertEquals(breakfast, pulled.mealTimes)
+        assertEquals(168.0, pulled.heightCm)
+        assertEquals(BodySex.Female, pulled.bodySex)
+        assertEquals(WeightUnit.Lb, pulled.weightUnit)
+        assertEquals(setup.targets, pulled.targets)
+        assertEquals(listOf("eating_regularly"), pulled.onboarding.why)
+        assertEquals(listOf(64.0), reinstall.weights.observeWeighIns().first().map { it.kg })
     }
 }

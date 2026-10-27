@@ -28,6 +28,7 @@ import kotlin.test.assertNull
  *  - typing on email after an error clears the error
  *  - OAuth Success marks onboarded and emits NavigateToToday
  *  - Apple: a credential runs signInWithApple; a dismissed sheet is silent
+ *  - A brand-new account (Apple makes one on a fresh install) goes to setup, not onboarded
  */
 class SignInViewModelTest : CoroutineTest() {
 
@@ -266,6 +267,61 @@ class SignInViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun signInWithApple_onAFreshInstall_withNoAccountYet_goesToSetup_notToday() = runUnitTest {
+        // Sign in with Apple creates the account when the Apple ID has none. That person has
+        // never seen setup, so they must not land on Today in Full numbers.
+        val cache = FakeAppCache()
+        val vm = buildVm(
+            identity = FakeAuthRepository(appleSignInOutcome = SignInOutcome.Success),
+            appCache = cache,
+            appleCoordinator = FakeAppleSignInCoordinator(credential = sampleAppleCredential),
+            profile = FakeProfileRepository().apply { isNewAccount = true },
+        )
+        vm.takeAction(SignInAction.SignInWithApple)
+
+        vm.eventFlow.test {
+            assertIs<SignInEvent.NavigateToSetup>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(false, cache.get().hasUserOnboarded, "setup still has to run")
+        assertEquals(false, vm.state.isSubmitting)
+    }
+
+    @Test
+    fun submit_success_forANewAccount_goesToSetup() = runUnitTest {
+        val cache = FakeAppCache()
+        val vm = buildVm(
+            identity = FakeAuthRepository(signInOutcome = SignInOutcome.Success),
+            appCache = cache,
+            profile = FakeProfileRepository().apply { isNewAccount = true },
+        )
+        vm.takeAction(SignInAction.EmailChanged("new@example.com"))
+        vm.takeAction(SignInAction.PasswordChanged("123456"))
+        vm.takeAction(SignInAction.Submit)
+
+        vm.eventFlow.test {
+            assertIs<SignInEvent.NavigateToSetup>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(false, cache.get().hasUserOnboarded)
+    }
+
+    @Test
+    fun signInWithOAuth_success_onlyOpenedTheBrowser_soItNeverAsksWhetherTheAccountIsNew() = runUnitTest {
+        // The browser round trip has no session yet; the new-account latch would be meaningless.
+        val vm = buildVm(
+            identity = FakeAuthRepository(oauthSignInOutcome = SignInOutcome.Success),
+            profile = FakeProfileRepository().apply { isNewAccount = true },
+        )
+        vm.takeAction(SignInAction.SignInWithOAuth(OAuthProvider.Google))
+
+        vm.eventFlow.test {
+            assertIs<SignInEvent.NavigateToToday>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun signInWithApple_sheetDismissed_clearsSubmitting_andNoError() = runUnitTest {
         val identity = FakeAuthRepository()
         val vm = buildVm(
@@ -289,9 +345,11 @@ class SignInViewModelTest : CoroutineTest() {
         identity: FakeAuthRepository = FakeAuthRepository(),
         appCache: FakeAppCache = FakeAppCache(),
         appleCoordinator: FakeAppleSignInCoordinator = FakeAppleSignInCoordinator(),
+        profile: FakeProfileRepository = FakeProfileRepository(),
     ): SignInViewModel = SignInViewModel(
         authRepository = identity,
         appCache = appCache,
         appleSignInCoordinator = appleCoordinator,
+        authOutcomeClassifier = FakeAuthOutcomeClassifier(profile),
     )
 }

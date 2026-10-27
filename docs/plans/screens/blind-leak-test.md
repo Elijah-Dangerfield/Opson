@@ -203,6 +203,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-summary-rings` | today | design sync 4; one number as rings | yes |
 | new | | `today-summary-equation` | today | design sync 4; Eaten − Burned = Deficit | yes |
 | new | | `today-screen-settings` | settings | design sync 4; More › Today screen and its main number sheet, no amounts | no |
+| new | | `onboarding-goal` | onboarding | `onboarding-v2.md`, `release.onboardingSetup`; goal styles and the range on a stepper | yes |
+| new | | `onboarding-resting-energy` | onboarding | `onboarding-v2.md`; resting energy's details and the estimate they give, energy out | yes |
+| new | | `onboarding-meal-times` | onboarding | `onboarding-v2.md`; when meals usually happen, no amounts | no |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and

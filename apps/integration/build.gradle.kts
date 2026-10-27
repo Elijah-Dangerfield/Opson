@@ -62,6 +62,8 @@ kotlin {
             implementation(projects.features.logger.impl)
             // release.todaySummary, release.todaySelect and release.checkIn live next to Today.
             implementation(projects.features.today.impl)
+            // release.onboardingSetup lives next to onboarding.
+            implementation(projects.features.onboarding.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.widgets)
             // FindSupportEnabled (release.findSupport), for ConfigManifestRegistryDriftTest.

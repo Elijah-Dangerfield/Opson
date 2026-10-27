@@ -93,6 +93,7 @@ class SurfacesCoverageTest {
         val REQUIRED_SURFACES: Map<String, List<String>> = mapOf(
             "OnboardingLeakSurfaces" to listOf(
                 "onboarding-welcome", "onboarding-statement", "onboarding-recommendation", "onboarding-account",
+                "onboarding-goal", "onboarding-resting-energy", "onboarding-meal-times",
             ),
             "TodayLeakSurfaces" to listOf(
                 "today", "today-big-day", "today-added", "today-untracked", "today-groups-off", "today-past", "today-future",
@@ -131,6 +132,7 @@ class SurfacesCoverageTest {
         )
 
         val SHOWS_CALORIES_IN_FULL: List<String> = listOf(
+            "onboarding-goal", "onboarding-resting-energy",
             "today", "today-big-day", "today-added", "today-untracked", "today-groups-off", "today-past", "today-future",
             "today-day-menu", "today-day-menu-armed", "item-sheet", "day-close", "day-close-big-day",
             "add-sheet-expanded", "search-full", "search-browse", "search-saved-meals", "search-pick-for-meal",

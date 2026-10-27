@@ -7,6 +7,8 @@ import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
+import com.opson.libraries.identity.auth.AuthOutcome
+import com.opson.libraries.identity.auth.AuthOutcomeClassifier
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.auth.SignInOutcome
@@ -18,7 +20,10 @@ import me.tatarka.inject.annotations.Inject
  * Drives the sign-in screen. On submit:
  *  - validate inputs locally (non-empty email + ≥ 6 char password)
  *  - call `authRepository.signInWithEmail(...)`
- *  - on success: mark onboarded + emit [SignInEvent.NavigateToToday]
+ *  - on success: an account that existed before is set up already, so mark
+ *    onboarded + emit [SignInEvent.NavigateToToday]; a brand-new one (Sign in
+ *    with Apple makes the account on the spot) emits [SignInEvent.NavigateToSetup]
+ *    and stays not onboarded, so setup runs for it
  *  - on failure: surface a specific error message
  *
  * No try/catch — the repository returns sealed outcome types so we just
@@ -31,6 +36,7 @@ class SignInViewModel(
     private val authRepository: AuthRepository,
     private val appCache: AppCache,
     private val appleSignInCoordinator: AppleSignInCoordinator,
+    private val authOutcomeClassifier: AuthOutcomeClassifier,
 ) : SEAViewModel<SignInState, SignInEvent, SignInAction>(
     initialStateArg = SignInState(
         // Apple is the native flow only, which is iOS-only.
@@ -75,7 +81,9 @@ class SignInViewModel(
             is SignInAction.SignInWithOAuth -> action.run {
                 logger.i { "SignInWithOAuth(${action.provider}): starting" }
                 updateState { it.copy(isSubmitting = true, error = null) }
-                handleSignInOutcome(authRepository.signInWithOAuth(action.provider))
+                // Success here only means the browser opened; the session comes later, through
+                // the redirect, so there is no account yet to ask about.
+                handleSignInOutcome(authRepository.signInWithOAuth(action.provider), sessionEstablished = false)
             }
 
             is SignInAction.SignInWithApple -> action.run {
@@ -103,15 +111,23 @@ class SignInViewModel(
     }
 
     /** Receiver is required so [updateState] (defined on `A`) resolves. */
-    private suspend fun SignInAction.handleSignInOutcome(outcome: SignInOutcome) {
+    private suspend fun SignInAction.handleSignInOutcome(outcome: SignInOutcome, sessionEstablished: Boolean = true) {
         logger.i { "Received SignInOutcome=${outcome::class.simpleName}" }
         when (outcome) {
             is SignInOutcome.Success -> {
-                // Signing in is "I have an account" → straight to Today.
-                appCache.update { it.copy(hasUserOnboarded = true) }
+                // Sign in with Apple on a fresh install makes a new account when the Apple ID has
+                // none, so "Sign in" is not always "I have an account". A new account has nothing
+                // to restore: it goes through setup rather than landing on Today in Full numbers.
+                val isNew = sessionEstablished && authOutcomeClassifier.classify() == AuthOutcome.SignedUp
                 updateState { it.copy(isSubmitting = false) }
-                logger.i { "Success → marked onboarded, NavigateToToday" }
-                sendEvent(SignInEvent.NavigateToToday)
+                if (isNew) {
+                    logger.i { "Success, new account → NavigateToSetup" }
+                    sendEvent(SignInEvent.NavigateToSetup)
+                } else {
+                    appCache.update { it.copy(hasUserOnboarded = true) }
+                    logger.i { "Success → marked onboarded, NavigateToToday" }
+                    sendEvent(SignInEvent.NavigateToToday)
+                }
             }
             is SignInOutcome.InvalidCredentials -> updateState {
                 it.copy(isSubmitting = false, error = SignInError.InvalidCredentials)
@@ -156,6 +172,9 @@ data class SignInState(
 
 sealed interface SignInEvent {
     data object NavigateToToday : SignInEvent
+
+    /** A brand-new account: onboarding's questions, with nothing left to claim. */
+    data object NavigateToSetup : SignInEvent
     data class NavigateToVerifyEmail(val email: String) : SignInEvent
 }
 
