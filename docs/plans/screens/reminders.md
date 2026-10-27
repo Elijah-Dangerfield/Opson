@@ -88,7 +88,7 @@ Off. `timeLabel` is `DateCopy.time` ("8:30 AM"); the row shows it when on and
 | `BigDayPicked(level)` | `bigDayEvent`. |
 | `MealLevelPicked(level)` | `remindersEvent = level`, `remindersChosen = true`; not Off asks for permission if not asked yet. `reminder.set`. |
 | `MealToggled(slot)` | Flips the meal. Turning one on while the level is Off sets the level to Subtle (turning a reminder on turns reminders on) and asks for permission. `reminder.set`. |
-| `MealTimeTapped(slot)` / `MealTimeDismissed` | Opens and closes the time dialog (the shared settings `TimeDialog`, extracted from Modes). |
+| `MealTimeTapped(slot)` / `MealTimeDismissed` | Opens and closes the time dialog (`:libraries:ui`'s `TimePickerDialog`). |
 | `MealTimePicked(time)` | `mealTimes.with(slot, time)`; the same time writes nothing. |
 | `TonePicked(tone)` / `HungerQuestionsToggled` | As Look and feel. |
 | `OpenSettingsTapped` | `NotificationPermissions.openSettings()`. |

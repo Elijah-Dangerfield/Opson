@@ -42,7 +42,7 @@ Spec: the `logger-previews__*` screens in
 | `NoteBanner(text)` | `:libraries:ui` | The photo estimate's note: an outlined i on the warm tint. |
 | `AppShapes.dialog` | `:libraries:ui` | The time picker and Custom size dialogs. |
 | `StripedBar(before, added, color)` | `:libraries:ui` | "Your day with this": today so far solid, this food striped on top, capped at full. |
-| `TimePickerDialog` | `:libraries:ui` | The amount sheet's time. A public copy of Settings' internal `TimeDialog`; Settings can move to it later. |
+| `TimePickerDialog` | `:libraries:ui` | The amount sheet's time; Modes and Reminders use it too. |
 
 ### Logger state and actions added
 

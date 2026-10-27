@@ -29,8 +29,8 @@ import kotlinx.datetime.LocalTime
 
 /**
  * A time picked in a dialog. The dial is the platform's Material time picker; only the confirmed
- * time leaves the dialog, as one callback. The amount sheet's Time uses it; it is the public twin
- * of Settings' own `TimeDialog` (Modes' reveal time, Reminders' meal times), which can move here.
+ * time leaves the dialog, as one callback. The amount sheet's Time, Modes' reveal time and
+ * Reminders' meal times use it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
