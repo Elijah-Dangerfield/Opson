@@ -68,6 +68,9 @@ class FakeHealthRepository(
         return combine(statusFlow, energyFlow) { status, energy -> energy.takeIf { status == HealthStatus.Connected } }
     }
 
+    override suspend fun energyBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Map<LocalDate, EnergyExpended>? =
+        error("Settings reads one day at a time")
+
     override fun openSourceSettings(): Boolean {
         settingsOpened++
         return true

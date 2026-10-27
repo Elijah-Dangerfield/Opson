@@ -12,6 +12,7 @@ import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
@@ -19,6 +20,11 @@ import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.opson.ActivityProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.toKotlinLocalDate
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import me.tatarka.inject.annotations.Inject
@@ -30,6 +36,8 @@ import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import java.time.Instant as JavaInstant
+import java.time.LocalDateTime as JavaLocalDateTime
+import java.time.Period
 
 /**
  * Health Connect. Reads total and active energy and exercise sessions; nothing else is asked
@@ -124,6 +132,23 @@ class HealthConnectReader(
         return EnergyExpended(restingKcal = resting, activeKcal = active, workoutKcal = workouts.takeIf { active != null })
     }
 
+    /** Health Connect slices by local time itself, so the range goes in as local date-times in [timeZone]. */
+    override suspend fun readDaily(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, EnergyExpended> {
+        val days = client.aggregateGroupByPeriod(
+            AggregateGroupByPeriodRequest(
+                metrics = setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL, ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),
+                timeRangeFilter = TimeRangeFilter.between(from.toJavaLocal(timeZone), to.toJavaLocal(timeZone)),
+                timeRangeSlicer = Period.ofDays(1),
+            ),
+        )
+        return days.associate { slice ->
+            val total = slice.result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories
+            val active = slice.result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories
+            val resting = total?.let { (it - (active ?: 0.0)).coerceAtLeast(0.0) }
+            slice.startTime.toLocalDate().toKotlinLocalDate() to EnergyExpended(restingKcal = resting, activeKcal = active, workoutKcal = null)
+        }
+    }
+
     override suspend fun revokeAccess() {
         client.permissionController.revokeAllPermissions()
     }
@@ -136,6 +161,8 @@ class HealthConnectReader(
     }
 
     private fun Instant.toJava(): JavaInstant = JavaInstant.ofEpochSecond(epochSeconds, nanosecondsOfSecond.toLong())
+
+    private fun Instant.toJavaLocal(timeZone: TimeZone): JavaLocalDateTime = toLocalDateTime(timeZone).toJavaLocalDateTime()
 
     companion object {
         /** Mirrors the `uses-permission` entries in this module's AndroidManifest.xml. */

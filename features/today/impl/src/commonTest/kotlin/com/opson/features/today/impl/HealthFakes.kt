@@ -34,6 +34,9 @@ class FakeHealthRepository(connected: Boolean = false, energy: EnergyExpended? =
         return energyFlow.map { it.takeIf { status.value == HealthStatus.Connected } }
     }
 
+    override suspend fun energyBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Map<LocalDate, EnergyExpended>? =
+        error("Today reads one day at a time")
+
     override fun openSourceSettings(): Boolean = error("Today never opens the store")
 }
 
