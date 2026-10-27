@@ -9,6 +9,8 @@ import com.opson.libraries.diary.db.CustomFoodDao
 import com.opson.libraries.diary.db.CustomFoodEntity
 import com.opson.libraries.diary.db.DayRecordDao
 import com.opson.libraries.diary.db.DayRecordEntity
+import com.opson.libraries.diary.db.ExerciseDao
+import com.opson.libraries.diary.db.ExerciseEntity
 import com.opson.libraries.diary.db.FastDao
 import com.opson.libraries.diary.db.FastEntity
 import com.opson.libraries.diary.db.LogEntryDao
@@ -76,6 +78,7 @@ class FakeDiaryDb {
     val customFoods = FakeTable<String, CustomFoodEntity>()
     val savedMeals = FakeTable<String, SavedMealEntity>()
     val fasts = FakeTable<String, FastEntity>()
+    val exercises = FakeTable<String, ExerciseEntity>()
     val outbox = FakeTable<String, OutboxEntity>()
     val syncState = FakeTable<Int, SyncStateEntity>()
 
@@ -293,6 +296,26 @@ class FakeDiaryDb {
             rows.values.filter { !it.deleted }.maxWithOrNull(compareBy<FastEntity> { it.startedAtEpochMs }.thenBy { it.day })
     }
 
+    val exerciseDao = object : ExerciseDao {
+        override suspend fun upsert(rows: List<ExerciseEntity>) {
+            recordWrite("exercises")
+            rows.forEach { exercises.put(it.id, it) }
+        }
+
+        override suspend fun get(id: String) = exercises.state.value[id]
+
+        override fun observeDay(day: String) = exercises.observe().map { rows ->
+            rows.values.filter { it.day == day && !it.deleted }.sortedWith(compareBy<ExerciseEntity> { it.startedAtEpochMs }.thenBy { it.id })
+        }
+
+        override suspend fun delete(id: String) {
+            recordWrite("exercises")
+            exercises.remove(id)
+        }
+
+        override suspend fun deleteAll() = exercises.clear()
+    }
+
     val outboxDao = object : OutboxDao {
         override suspend fun insert(row: OutboxEntity) {
             recordWrite("outbox")
@@ -354,6 +377,7 @@ class FakeDiaryDb {
         customFoods = customFoodDao,
         savedMeals = savedMealDao,
         fasts = fastDao,
+        exercises = exerciseDao,
         outbox = outboxDao,
         syncState = syncStateDao,
         transactor = transactor,

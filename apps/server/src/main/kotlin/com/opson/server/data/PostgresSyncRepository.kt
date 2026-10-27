@@ -3,6 +3,7 @@ package com.opson.server.data
 import com.opson.server.db.CustomFoodsTable
 import com.opson.server.db.Database
 import com.opson.server.db.DayRecordsTable
+import com.opson.server.db.ExercisesTable
 import com.opson.server.db.FastsTable
 import com.opson.server.db.FoodsTable
 import com.opson.server.db.LogEntriesTable
@@ -20,6 +21,7 @@ import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryChanges
 import com.opson.server.domain.DiaryRow
 import com.opson.server.domain.DiaryRules
+import com.opson.server.domain.Exercise
 import com.opson.server.domain.Fast
 import com.opson.server.domain.LogEntry
 import com.opson.server.domain.LogMethod
@@ -87,7 +89,13 @@ class PostgresSyncRepository(
     private val database: Database,
 ) : SyncRepository {
 
-    override suspend fun sync(userId: UserId, cursor: Long, mutations: List<SyncMutation>, pullFasts: Boolean): SyncResult =
+    override suspend fun sync(
+        userId: UserId,
+        cursor: Long,
+        mutations: List<SyncMutation>,
+        pullFasts: Boolean,
+        pullExercises: Boolean,
+    ): SyncResult =
         database.readCommittedTransaction {
             lockUser(userId)
 
@@ -113,7 +121,7 @@ class PostgresSyncRepository(
             }
             bumpPopularity(picks)
 
-            pull(userId, cursor, mutations.map { it.outboxId }, pullFasts)
+            pull(userId, cursor, mutations.map { it.outboxId }, pullFasts, pullExercises)
         }
 
     private fun lockUser(userId: UserId) {
@@ -288,6 +296,24 @@ class PostgresSyncRepository(
                 it[deleted] = row.deleted
             }
 
+            is Exercise -> ExercisesTable.upsert(
+                ExercisesTable.id,
+                where = { ExercisesTable.newerThanStored(userId, row) },
+            ) {
+                it[id] = row.id
+                it[this.userId] = userId.value
+                it[day] = row.day
+                it[startedAt] = row.startedAt.toJavaInstant()
+                it[activity] = row.activity
+                it[name] = row.name
+                it[minutes] = row.minutes.toShort()
+                it[kcal] = row.kcal
+                it[kcalTyped] = row.kcalTyped
+                it[notOnWatch] = row.notOnWatch
+                it[clientUpdatedAt] = row.clientUpdatedAt.toJavaInstant()
+                it[deleted] = row.deleted
+            }
+
             // Settings is one object per user, last write wins, but merged rather than replaced:
             // a client drops keys it doesn't know, so without the merge a 0.1 phone saving its
             // settings would erase what a 0.2 phone added. Shallow, so new settings go in new
@@ -330,10 +356,10 @@ class PostgresSyncRepository(
      * entities already returned beyond that point come back on the next call,
      * which is harmless: the client replaces a row with itself.
      *
-     * Fasts are paged only when [pullFasts]. A 0.1 client never asks, so it neither sees them
-     * nor has its cursor held back by them.
+     * Fasts are paged only when [pullFasts], exercises only when [pullExercises]. A 0.1 client
+     * never asks, so it neither sees them nor has its cursor held back by them.
      */
-    private fun pull(userId: UserId, cursor: Long, applied: List<String>, pullFasts: Boolean): SyncResult {
+    private fun pull(userId: UserId, cursor: Long, applied: List<String>, pullFasts: Boolean, pullExercises: Boolean): SyncResult {
         val limit = DiaryRules.PAGE_SIZE
         val entries = page(LogEntriesTable, userId, cursor, limit) { it.toLogEntry() }
         val days = page(DayRecordsTable, userId, cursor, limit) { it.toDayRecord() }
@@ -343,8 +369,9 @@ class PostgresSyncRepository(
         val savedMeals = page(SavedMealsTable, userId, cursor, limit) { it.toSavedMeal() }
         val settings = page(UserSettingsTable, userId, cursor, 1) { it.toUserSettings() }
         val fasts = if (pullFasts) page(FastsTable, userId, cursor, limit) { it.toFast() } else null
+        val exercises = if (pullExercises) page(ExercisesTable, userId, cursor, limit) { it.toExercise() } else null
 
-        val pages = listOfNotNull(entries, days, feelings, weighIns, customFoods, savedMeals, settings, fasts)
+        val pages = listOfNotNull(entries, days, feelings, weighIns, customFoods, savedMeals, settings, fasts, exercises)
         val truncated = pages.filter { it.truncated }
         val nextCursor = if (truncated.isNotEmpty()) {
             truncated.minOf { it.lastSeq ?: cursor }
@@ -362,6 +389,7 @@ class PostgresSyncRepository(
                 savedMeals = savedMeals.rows,
                 settings = settings.rows.firstOrNull(),
                 fasts = fasts?.rows,
+                exercises = exercises?.rows,
             ),
             cursor = nextCursor,
             hasMore = truncated.isNotEmpty(),
@@ -462,6 +490,20 @@ class PostgresSyncRepository(
         goalHours = this[FastsTable.goalHours]?.toInt(),
         clientUpdatedAt = this[FastsTable.clientUpdatedAt].toKotlinInstant(),
         deleted = this[FastsTable.deleted],
+    )
+
+    private fun ResultRow.toExercise(): Exercise = Exercise(
+        id = this[ExercisesTable.id],
+        day = this[ExercisesTable.day],
+        startedAt = this[ExercisesTable.startedAt].toKotlinInstant(),
+        activity = this[ExercisesTable.activity],
+        name = this[ExercisesTable.name],
+        minutes = this[ExercisesTable.minutes].toInt(),
+        kcal = this[ExercisesTable.kcal],
+        kcalTyped = this[ExercisesTable.kcalTyped],
+        notOnWatch = this[ExercisesTable.notOnWatch],
+        clientUpdatedAt = this[ExercisesTable.clientUpdatedAt].toKotlinInstant(),
+        deleted = this[ExercisesTable.deleted],
     )
 
     private fun ResultRow.toUserSettings(): UserSettings = UserSettings(

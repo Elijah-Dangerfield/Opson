@@ -48,3 +48,15 @@ data class FoodSearchRoute(
     val dayIso: String? = null,
     val pickForMeal: String? = null,
 ) : Route()
+
+/**
+ * The exercise sheet (`release.exercise`): log an activity, or edit or delete one.
+ *
+ * @param entryId the entry to edit; `null` logs a new one.
+ * @param dayIso the day a new entry counts on; `null` is the day Today is showing.
+ */
+@Serializable
+data class ExerciseRoute(
+    val entryId: String? = null,
+    val dayIso: String? = null,
+) : Route()

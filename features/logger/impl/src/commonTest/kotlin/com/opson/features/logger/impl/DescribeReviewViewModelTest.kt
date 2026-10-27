@@ -7,6 +7,7 @@ import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
@@ -53,6 +54,7 @@ class DescribeReviewViewModelTest : CoroutineTest() {
         photoEnabled = photoFlag(false),
         voice = DescribeVoice(FakeSpeechToText(), voiceFlag(false), RecordingVoiceTelemetry()),
         fastingRelease = fastingFlag(false),
+        exerciseRelease = ExerciseRelease { false },
     )
 
     private fun TestScope.settle() {

@@ -174,6 +174,24 @@ data class Fast(
     override val deleted: Boolean,
 ) : DiaryRow
 
+/**
+ * Exercise logged by hand (`release.exercise`). [activity] is a client list key or `other`, with
+ * [name] for the latter. [kcal] is what it counts in Burned, worked out or typed on the device.
+ */
+data class Exercise(
+    val id: UUID,
+    val day: LocalDate,
+    val startedAt: Instant,
+    val activity: String,
+    val name: String?,
+    val minutes: Int,
+    val kcal: Int,
+    val kcalTyped: Boolean,
+    val notOnWatch: Boolean,
+    override val clientUpdatedAt: Instant,
+    override val deleted: Boolean,
+) : DiaryRow
+
 /** One outbox row from the client: its outbox id (echoed back) and the full row. */
 data class SyncMutation(val outboxId: String, val row: DiaryRow)
 
@@ -188,6 +206,8 @@ data class DiaryChanges(
     val settings: UserSettings? = null,
     /** Null when the request did not accept fasts, so a 0.1 client's response stays the 0.1 shape. */
     val fasts: List<Fast>? = null,
+    /** Null when the request did not accept exercise. */
+    val exercises: List<Exercise>? = null,
 )
 
 /**
@@ -208,11 +228,18 @@ data class SyncResult(
  * its client key when [DiaryRow.clientUpdatedAt] is strictly newer than the
  * stored copy (last write wins, so a replay is a no-op), scope every read and
  * write to [userId], then return rows past [cursor] capped at
- * [DiaryRules.PAGE_SIZE] per entity. Fasts come back only when [pullFasts]: entities added
- * after 0.1 are left out for a client that did not ask for them.
+ * [DiaryRules.PAGE_SIZE] per entity. Fasts come back only when [pullFasts], and exercises only
+ * when [pullExercises]: entities added after 0.1 are left out for a client that did not ask for
+ * them.
  *
  * Mutations arrive already validated by [DiaryRules].
  */
 interface SyncRepository {
-    suspend fun sync(userId: UserId, cursor: Long, mutations: List<SyncMutation>, pullFasts: Boolean = false): SyncResult
+    suspend fun sync(
+        userId: UserId,
+        cursor: Long,
+        mutations: List<SyncMutation>,
+        pullFasts: Boolean = false,
+        pullExercises: Boolean = false,
+    ): SyncResult
 }

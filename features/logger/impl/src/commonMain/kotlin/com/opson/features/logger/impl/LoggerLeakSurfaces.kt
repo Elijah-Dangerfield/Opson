@@ -95,5 +95,17 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-photo-start", label = "Photo estimate, before the photo", showsCaloriesInFull = false) { policy ->
             PhotoEstimateSheetContent(state = PhotoFixtures.startState(policy, note = PhotoFixtures.NOTE), onAction = {})
         },
+        // release.exercise: the estimate is energy out; a typed number is only offered where energy out is not hidden.
+        LeakSurface(id = "exercise-sheet", label = "Exercise", showsCaloriesInFull = true) { policy ->
+            ExerciseSheetContent(state = ExerciseFixtures.formState(policy), onAction = {})
+        },
+        // Other, with the number the person typed.
+        LeakSurface(id = "exercise-sheet-other", label = "Exercise, other", showsCaloriesInFull = true) { policy ->
+            ExerciseSheetContent(state = ExerciseFixtures.otherState(policy), onAction = {})
+        },
+        // The activity list names no number in any mode.
+        LeakSurface(id = "exercise-sheet-pick", label = "Exercise, pick an activity", showsCaloriesInFull = false) { policy ->
+            ExerciseSheetContent(state = ExerciseFixtures.pickState(policy), onAction = {})
+        },
     )
 }

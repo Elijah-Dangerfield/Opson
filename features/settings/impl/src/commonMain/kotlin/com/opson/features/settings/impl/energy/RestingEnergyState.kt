@@ -6,6 +6,7 @@ import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.RestingSource
@@ -38,6 +39,8 @@ data class RestingEnergyState(
     /** The connected store for "Steps and workouts", null when none. */
     val activitySource: HealthSource? = null,
     val activityInBurned: Boolean = true,
+    /** Everyday activity's pick (`release.exercise`); null hides the choice. */
+    val everyday: EverydayActivity? = null,
 )
 
 /**
@@ -67,6 +70,7 @@ object RestingEnergyStateBuilder {
         policy: VisibilityPolicy,
         drafts: RestingDrafts = RestingDrafts(),
         activitySource: HealthSource? = null,
+        exerciseReleased: Boolean = false,
     ): RestingEnergyState {
         val heightUnit = if (settings.weightUnit == WeightUnit.Lb) HeightUnit.In else HeightUnit.Cm
         return RestingEnergyState(
@@ -90,6 +94,7 @@ object RestingEnergyStateBuilder {
             },
             activitySource = activitySource,
             activityInBurned = settings.activityInBurned,
+            everyday = settings.everydayActivity.takeIf { exerciseReleased },
         )
     }
 

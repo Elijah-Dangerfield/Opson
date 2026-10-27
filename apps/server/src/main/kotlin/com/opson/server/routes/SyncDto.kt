@@ -4,6 +4,7 @@ import com.opson.server.domain.CustomFood
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryChanges
 import com.opson.server.domain.DiaryRow
+import com.opson.server.domain.Exercise
 import com.opson.server.domain.Fast
 import com.opson.server.domain.LogEntry
 import com.opson.server.domain.LogMethod
@@ -39,12 +40,13 @@ data class SyncRequest(
     val cursor: Long = 0,
     val mutations: List<SyncMutationDto> = emptyList(),
     /**
-     * Entities added after 0.1 that the client reads from `changes` (today only `fast`). 0.1
+     * Entities added after 0.1 that the client reads from `changes` (`fast`, `exercise`). 0.1
      * clients never send it, and get exactly the 0.1 response.
      */
     val accepts: List<String> = emptyList(),
 ) {
     val acceptsFasts: Boolean get() = SyncEntity.Fast.wire in accepts
+    val acceptsExercise: Boolean get() = SyncEntity.Exercise.wire in accepts
 }
 
 @Serializable
@@ -84,6 +86,8 @@ data class SyncChangesDto(
     val settings: SettingsRowDto? = null,
     /** Only for a request that accepts `fast`; absent otherwise (`explicitNulls = false`). */
     val fasts: List<FastRowDto>? = null,
+    /** Only for a request that accepts `exercise`; absent otherwise. */
+    val exercises: List<ExerciseRowDto>? = null,
 )
 
 /** `entity` values a mutation may carry. */
@@ -98,6 +102,9 @@ enum class SyncEntity(val wire: String) {
 
     /** 0.2. */
     Fast("fast"),
+
+    /** Exercise logged by hand, `release.exercise`. */
+    Exercise("exercise"),
     ;
 
     companion object {
@@ -210,6 +217,24 @@ data class FastRowDto(
 )
 
 @Serializable
+data class ExerciseRowDto(
+    val id: String,
+    /** The local day it counts on. */
+    val day: String,
+    val startedAtEpochMs: Long,
+    /** A client list key, or `other`. */
+    val activity: String,
+    val name: String? = null,
+    val minutes: Int,
+    /** What it counts in Burned, worked out or typed on the device. */
+    val kcal: Int,
+    val kcalTyped: Boolean = false,
+    val notOnWatch: Boolean = false,
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean = false,
+)
+
+@Serializable
 data class SettingsRowDto(
     /** The client's whole Settings object. The server only ever reads `preset`, in aggregate. */
     val settings: JsonObject,
@@ -238,6 +263,7 @@ fun SyncEntity.decodeRow(row: JsonObject): DiaryRow = when (this) {
     SyncEntity.SavedMeal -> SyncJson.decodeFromJsonElement(SavedMealRowDto.serializer(), row).toDomain()
     SyncEntity.Settings -> SyncJson.decodeFromJsonElement(SettingsRowDto.serializer(), row).toDomain()
     SyncEntity.Fast -> SyncJson.decodeFromJsonElement(FastRowDto.serializer(), row).toDomain()
+    SyncEntity.Exercise -> SyncJson.decodeFromJsonElement(ExerciseRowDto.serializer(), row).toDomain()
 }
 
 private fun uuid(field: String, value: String): UUID =
@@ -351,6 +377,34 @@ fun Fast.toRowDto(): FastRowDto = FastRowDto(
     deleted = deleted,
 )
 
+fun ExerciseRowDto.toDomain(): Exercise = Exercise(
+    id = uuid("id", id),
+    day = day(day),
+    startedAt = instant(startedAtEpochMs),
+    activity = activity,
+    name = name,
+    minutes = minutes,
+    kcal = kcal,
+    kcalTyped = kcalTyped,
+    notOnWatch = notOnWatch,
+    clientUpdatedAt = instant(clientUpdatedAtEpochMs),
+    deleted = deleted,
+)
+
+fun Exercise.toRowDto(): ExerciseRowDto = ExerciseRowDto(
+    id = id.toString(),
+    day = day.toString(),
+    startedAtEpochMs = startedAt.toEpochMilliseconds(),
+    activity = activity,
+    name = name,
+    minutes = minutes,
+    kcal = kcal,
+    kcalTyped = kcalTyped,
+    notOnWatch = notOnWatch,
+    clientUpdatedAtEpochMs = clientUpdatedAt.toEpochMilliseconds(),
+    deleted = deleted,
+)
+
 fun LogEntry.toRowDto(): LogEntryRowDto = LogEntryRowDto(
     id = id.toString(),
     day = day.toString(),
@@ -448,6 +502,7 @@ fun DiaryChanges.toDto(): SyncChangesDto = SyncChangesDto(
     savedMeals = savedMeals.map { it.toRowDto() },
     settings = settings?.toRowDto(),
     fasts = fasts?.map { it.toRowDto() },
+    exercises = exercises?.map { it.toRowDto() },
 )
 
 fun SyncResult.toResponse(rejected: List<SyncRejectionDto>): SyncResponse = SyncResponse(

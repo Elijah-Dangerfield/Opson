@@ -1,6 +1,9 @@
 package com.opson.libraries.health.impl
 
 import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.diary.ExerciseDraft
+import com.opson.libraries.diary.ExerciseEntry
+import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -8,6 +11,7 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.health.ConnectOutcome
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
@@ -15,6 +19,7 @@ import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.RestingEnergy
 import com.opson.libraries.nutrition.RestingFrom
 import com.opson.libraries.nutrition.RestingSource
@@ -48,7 +53,20 @@ class RealBurnedRepositoryTest {
         weighIns: List<WeighIn> = listOf(WeighIn("w1", Instant.parse("2026-10-01T08:00:00Z"), 80.0), WeighIn("w2", Instant.parse("2026-10-20T08:00:00Z"), 70.0)),
         health: FakeHealth = FakeHealth(),
         healthOn: Boolean = true,
-    ) = RealBurnedRepository(FakeSettings(settings), FakeWeights(weighIns), health, healthFlag(healthOn), FixedCalendar(today))
+        exercise: List<ExerciseEntry> = emptyList(),
+        exerciseOn: Boolean = false,
+    ) = RealBurnedRepository(
+        FakeSettings(settings),
+        FakeWeights(weighIns),
+        health,
+        healthFlag(healthOn),
+        FixedCalendar(today),
+        FakeExercise(exercise),
+        ExerciseRelease { exerciseOn },
+    )
+
+    private fun entry(kcal: Int, notOnWatch: Boolean = false) =
+        ExerciseEntry("e$kcal", today, Instant.parse("2026-10-27T07:00:00Z"), "cycling", minutes = 30, kcal = kcal, notOnWatch = notOnWatch)
 
     @Test
     fun calculated_fromTheLatestWeighIn() = runTest {
@@ -95,6 +113,48 @@ class RealBurnedRepositoryTest {
     }
 
     @Test
+    fun withoutAHealthApp_burnedIsRestingPlusEverydayActivityPlusLoggedExercise() = runTest {
+        val repository = repository(
+            settings = profiled.copy(everydayActivity = EverydayActivity.SomeWalking),
+            health = FakeHealth(connected = false),
+            exercise = listOf(entry(200), entry(150)),
+            exerciseOn = true,
+        )
+
+        val burned = repository.burned(today).first()
+
+        // 1,430 resting, 1,430 x 0.375 = 536 everyday (540 to the nearest 10), 350 logged.
+        assertEquals(540, burned?.everydayKcal)
+        assertEquals(350, burned?.exerciseKcal)
+        assertEquals(1430 + 540 + 350, burned?.totalKcal)
+    }
+
+    @Test
+    fun withAHealthApp_itsActivityReplacesTheManualSide_exceptWhatTheWatchMissed() = runTest {
+        val burned = repository(exercise = listOf(entry(200), entry(150, notOnWatch = true)), exerciseOn = true).burned(today).first()
+
+        assertNull(burned?.everydayKcal)
+        assertEquals(150, burned?.exerciseKcal)
+        assertEquals(1430 + 390 + 180 + 150, burned?.totalKcal)
+    }
+
+    @Test
+    fun aStoreThatReadNoActivity_fallsBackToTheManualSide() = runTest {
+        val burned = repository(health = FakeHealth(todayEnergy = EnergyExpended(900.0, null, null)), exercise = listOf(entry(200)), exerciseOn = true)
+            .burned(today).first()
+
+        assertEquals(1430 + 290 + 200, burned?.totalKcal)
+    }
+
+    @Test
+    fun withReleaseExerciseOff_burnedIsAsItWas_andExerciseIsNeverRead() = runTest {
+        val exercise = listOf(entry(200))
+        val burned = repository(health = FakeHealth(connected = false), exercise = exercise, exerciseOn = false).burned(today).first()
+
+        assertEquals(Burned(RestingEnergy(1430, RestingFrom.Calculated)), burned)
+    }
+
+    @Test
     fun yourOwnNumber_wins() = runTest {
         val own = repository(settings = profiled.copy(restingSource = RestingSource.Own, restingOwnKcal = 1600)).burned(today).first()
         assertEquals(RestingEnergy(1600, RestingFrom.Own), own?.resting)
@@ -122,6 +182,14 @@ class RealBurnedRepositoryTest {
         override suspend fun removeWeighIn(id: String) = Unit
     }
 
+    private class FakeExercise(private val entries: List<ExerciseEntry>) : ExerciseRepository {
+        override fun observeDay(day: LocalDate): Flow<List<ExerciseEntry>> = flowOf(entries.filter { it.day == day })
+        override suspend fun get(id: String): ExerciseEntry? = entries.firstOrNull { it.id == id }
+        override suspend fun add(draft: ExerciseDraft): ExerciseEntry = error("not used")
+        override suspend fun update(id: String, draft: ExerciseDraft) = Unit
+        override suspend fun delete(id: String) = Unit
+    }
+
     private class FixedCalendar(private val today: LocalDate) : LocalCalendar {
         override fun timeZone(): TimeZone = TimeZone.UTC
         override fun today(): LocalDate = today
@@ -130,6 +198,7 @@ class RealBurnedRepositoryTest {
     /** Connected, with 390 movement and 180 workout today, and 1,562 resting the day before yesterday. */
     private inner class FakeHealth(
         connected: Boolean = true,
+        private val todayEnergy: EnergyExpended = EnergyExpended(restingKcal = 900.0, activeKcal = 570.0, workoutKcal = 180.0),
         private val week: Map<LocalDate, EnergyExpended> = mapOf(
             LocalDate(2026, 10, 25) to EnergyExpended(restingKcal = 1562.0, activeKcal = 500.0, workoutKcal = null),
             LocalDate(2026, 10, 20) to EnergyExpended(restingKcal = 1700.0, activeKcal = 500.0, workoutKcal = null),
@@ -142,7 +211,7 @@ class RealBurnedRepositoryTest {
         override suspend fun connect(): ConnectOutcome = ConnectOutcome.Connected
         override suspend fun disconnect() = Unit
         override fun energy(day: LocalDate, timeZone: TimeZone): Flow<EnergyExpended?> =
-            flowOf(EnergyExpended(restingKcal = 900.0, activeKcal = 570.0, workoutKcal = 180.0)).map { reads++; it }
+            flowOf(todayEnergy).map { reads++; it }
 
         override suspend fun energyBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Map<LocalDate, EnergyExpended> {
             reads++

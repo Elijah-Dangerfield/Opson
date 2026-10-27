@@ -4,6 +4,7 @@ import com.opson.features.logger.impl.FoodPicks.toPick
 import com.opson.features.logger.impl.FoodPicks.toRow
 import com.opson.libraries.diary.HouseholdAmount
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.exerciseOffered
 import com.opson.libraries.diary.fastingTimerOn
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.amountTextFor
@@ -33,6 +34,8 @@ data class LoggerChoices(
     val voiceEnabled: Boolean = false,
     /** `release.fasting`, read once when the sheet opens. */
     val fastingReleased: Boolean = false,
+    /** `release.exercise`, read once when the sheet opens. */
+    val exerciseReleased: Boolean = false,
     val voice: VoiceCapture = VoiceCapture.Idle(),
     /** How tall the sheet is; it only ever grows. */
     val height: SheetHeight = SheetHeight.Partial,
@@ -110,6 +113,7 @@ object LoggerStateBuilder {
         add(AddAction.WeighIn)
         add(AddAction.Note)
         if (inputs.settings.fastingTimerOn(choices.fastingReleased)) add(AddAction.Fasting)
+        if (inputs.settings.exerciseOffered(choices.exerciseReleased, policy.level(Metric.EnergyOut))) add(AddAction.Exercise)
     }
 
     private fun recentRows(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot, choices: LoggerChoices, bare: FormatContext): List<FoodRowUi> {

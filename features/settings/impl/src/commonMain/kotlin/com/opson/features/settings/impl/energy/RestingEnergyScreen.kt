@@ -13,6 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import com.opson.libraries.diary.ui.detail
+import com.opson.libraries.diary.ui.label
+import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.ui.components.ChoiceRow
 import androidx.compose.ui.unit.dp
 import com.opson.features.settings.impl.SectionLabel
 import com.opson.features.settings.impl.SettingsCard
@@ -69,6 +73,8 @@ import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
 import opson.libraries.resources.generated.resources.settings_resting_steps_workouts
 import opson.libraries.resources.generated.resources.settings_resting_title
 import opson.libraries.resources.generated.resources.settings_resting_weight_missing
+import opson.libraries.resources.generated.resources.everyday_activity_body
+import opson.libraries.resources.generated.resources.everyday_activity_title
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -113,6 +119,30 @@ fun RestingEnergyScreen(
                         onCheckedChange = { onAction(RestingEnergyAction.ActivityInBurnedToggled(it)) },
                     )
                 },
+            )
+        }
+        state.everyday?.let { picked -> Everyday(picked, onAction) }
+    }
+}
+
+/** Everyday activity (`release.exercise`): one of four, each with what it looks like. */
+@Composable
+private fun Everyday(picked: EverydayActivity, onAction: (RestingEnergyAction) -> Unit) {
+    SectionLabel(stringResource(Res.string.everyday_activity_title))
+    Text(
+        text = stringResource(Res.string.everyday_activity_body),
+        typography = AppTheme.type.secondary,
+        color = AppTheme.colors.muted,
+        modifier = Modifier.padding(horizontal = 4.dp),
+    )
+    Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+        EverydayActivity.entries.forEach { activity ->
+            ChoiceRow(
+                label = stringResource(activity.label),
+                detail = stringResource(activity.detail),
+                selected = activity == picked,
+                onClick = { onAction(RestingEnergyAction.EverydayPicked(activity)) },
+                role = Role.RadioButton,
             )
         }
     }
@@ -268,6 +298,13 @@ private fun RestingEnergyOwnDarkPreview() {
     SettingsPreview(dark = true) {
         RestingEnergyScreen(previewState(settings = Settings(restingSource = RestingSource.Own, restingOwnKcal = 1600)), onAction = {})
     }
+}
+
+/** release.exercise on: everyday activity under the activity card. */
+@Preview
+@Composable
+private fun RestingEnergyEverydayPreview() {
+    SettingsPreview { RestingEnergyScreen(previewState().copy(everyday = EverydayActivity.SomeWalking), onAction = {}) }
 }
 
 @Preview

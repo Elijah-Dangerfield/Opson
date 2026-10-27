@@ -57,6 +57,7 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.adding_action_copy
 import opson.libraries.resources.generated.resources.adding_action_copy_cd
 import opson.libraries.resources.generated.resources.adding_action_describe
+import opson.libraries.resources.generated.resources.adding_action_exercise
 import opson.libraries.resources.generated.resources.adding_action_fasting
 import opson.libraries.resources.generated.resources.adding_action_note
 import opson.libraries.resources.generated.resources.adding_action_photo
@@ -268,7 +269,7 @@ private data class Tile(
     val description: String? = null,
 )
 
-/** Food actions on the accent tint; water, weight and fasting in the cool tone; the note warm, as 13.4a draws them. */
+/** Food actions on the accent tint; water, weight, fasting and exercise in the cool tone; the note warm, as 13.4a draws them. */
 @Composable
 private fun AddAction.tile(): Tile {
     val colors = AppTheme.colors
@@ -297,6 +298,7 @@ private fun AddAction.tile(): Tile {
         AddAction.WeighIn -> Tile(stringResource(Res.string.adding_action_weigh), AppIcons.MonitorWeight, body, LoggerAction.WeighInTapped)
         AddAction.Note -> Tile(stringResource(Res.string.adding_action_note), AppIcons.EditNote, note, LoggerAction.NoteTapped)
         AddAction.Fasting -> Tile(stringResource(Res.string.adding_action_fasting), AppIcons.HourglassTop, body, LoggerAction.FastingTapped)
+        AddAction.Exercise -> Tile(stringResource(Res.string.adding_action_exercise), AppIcons.FitnessCenter, body, LoggerAction.ExerciseTapped)
     }
 }
 

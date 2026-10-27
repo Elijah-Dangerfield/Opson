@@ -9,6 +9,7 @@ import com.opson.libraries.diary.db.OutboxEntity
 import com.opson.libraries.diary.db.SyncStateEntity
 import com.opson.libraries.diary.impl.wire.CustomFoodRowDto
 import com.opson.libraries.diary.impl.wire.DayRecordRowDto
+import com.opson.libraries.diary.impl.wire.ExerciseRowDto
 import com.opson.libraries.diary.impl.wire.FastRowDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.MealFeelingRowDto
@@ -361,6 +362,12 @@ class DiarySyncer(
             fasts.filter { it.day !in waiting }.map { it.toEntity() }
                 .takeIf { it.isNotEmpty() }?.let { tables.fasts.upsert(it) }
         }
+        val exercises = changes.exercises.orEmpty()
+        if (exercises.isNotEmpty()) {
+            val waiting = pending(SyncEntity.Exercise)
+            exercises.filter { it.id !in waiting }.map { it.toEntity() }
+                .takeIf { it.isNotEmpty() }?.let { tables.exercises.upsert(it) }
+        }
     }
 
     /** Puts a refused row back as it was before the change, or removes it if it was new. */
@@ -397,6 +404,10 @@ class DiarySyncer(
                 SyncEntity.Fast ->
                     if (base == null) tables.fasts.delete(row.entityId)
                     else tables.fasts.upsert(listOf(decode(FastRowDto.serializer(), base).toEntity()))
+
+                SyncEntity.Exercise ->
+                    if (base == null) tables.exercises.delete(row.entityId)
+                    else tables.exercises.upsert(listOf(decode(ExerciseRowDto.serializer(), base).toEntity()))
 
                 SyncEntity.Settings -> Unit
             }

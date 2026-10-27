@@ -32,7 +32,7 @@ class DatabaseSchemaTest : DatabaseTest() {
             listOf(
                 FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable, BarcodeMissesTable,
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable,
-                CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, WaitlistTable,
+                CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, ExercisesTable, WaitlistTable,
                 AppleRefreshTokensTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
@@ -52,7 +52,7 @@ class DatabaseSchemaTest : DatabaseTest() {
     @Test
     fun everySyncedTableHasTheCursorTrigger() {
         val triggers = strings("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal")
-        listOf("log_entries", "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts")
+        listOf("log_entries", "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts", "exercises")
             .forEach { assertTrue("${it}_bump_server_seq" in triggers, "no cursor trigger on $it") }
     }
 
@@ -144,6 +144,36 @@ class DatabaseSchemaTest : DatabaseTest() {
             "INSERT INTO fasts (user_id, day, started_at, ended_at, client_updated_at) " +
                 "VALUES ('$user', '2026-10-25', now(), now() + interval '17 hours', now())",
         ).forEach { sql ->
+            assertFailsWith<Exception>(sql) { database.blockingTransaction { exec(sql) } }
+        }
+    }
+
+    /** V24 (exercises) is additive and safe to run twice; account deletion still cascades into it. */
+    @Test
+    fun exercisesMigrationIsIdempotentAndCascadesFromTheUser() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V24__exercises.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val user = seedAuthUser().value
+        database.blockingTransaction {
+            exec(
+                "INSERT INTO exercises (id, user_id, day, started_at, activity, minutes, kcal, client_updated_at) " +
+                    "VALUES (gen_random_uuid(), '$user', '2026-10-25', now(), 'walking', 30, 120, now())",
+            )
+        }
+        assertEquals(listOf("1"), strings("SELECT count(*)::text FROM exercises WHERE user_id = '$user'"))
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM exercises WHERE user_id = '$user'"))
+    }
+
+    /** The limits DiaryRules checks hold in the table too. */
+    @Test
+    fun exercisesRefuseALengthOrANumberOutOfRange() {
+        val user = seedAuthUser().value
+        fun insert(minutes: Int, kcal: Int, activity: String = "walking") =
+            "INSERT INTO exercises (id, user_id, day, started_at, activity, minutes, kcal, client_updated_at) " +
+                "VALUES (gen_random_uuid(), '$user', '2026-10-25', now(), '$activity', $minutes, $kcal, now())"
+        listOf(insert(0, 100), insert(1441, 100), insert(30, -1), insert(30, 5001), insert(30, 100, activity = "")).forEach { sql ->
             assertFailsWith<Exception>(sql) { database.blockingTransaction { exec(sql) } }
         }
     }

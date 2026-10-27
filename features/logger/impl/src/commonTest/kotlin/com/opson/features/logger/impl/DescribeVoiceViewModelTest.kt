@@ -5,6 +5,7 @@ import com.opson.features.logger.LoggerStart
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.speech.Heard
@@ -57,6 +58,7 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
         photoEnabled = photoFlag(false),
         voice = DescribeVoice(speech, voiceFlag(voiceOn), telemetry),
         fastingRelease = fastingFlag(false),
+        exerciseRelease = ExerciseRelease { false },
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {

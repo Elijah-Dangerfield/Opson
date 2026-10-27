@@ -2,6 +2,7 @@ package com.opson.libraries.diary
 
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.DayGroup
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.GroupShape
@@ -119,6 +120,14 @@ internal object RestingSourceSerializer : KeyedEnumSerializer<RestingSource>(
     RestingSource.entries,
     { it.name.lowercase() },
     RestingSource.Calculate,
+)
+
+/** [Settings.everydayActivity]: anything unreadable is the default, mostly sitting. */
+internal object EverydayActivitySerializer : KeyedEnumSerializer<EverydayActivity>(
+    "opson.EverydayActivity",
+    EverydayActivity.entries,
+    EverydayActivity::key,
+    EverydayActivity.Default,
 )
 
 /** [Settings.bodySex]: anything unreadable is unsaid, the midpoint of the equation's two constants. */

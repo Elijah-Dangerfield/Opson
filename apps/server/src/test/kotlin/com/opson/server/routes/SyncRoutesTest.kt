@@ -2,6 +2,7 @@ package com.opson.server.routes
 
 import com.opson.server.domain.DiaryChanges
 import com.opson.server.domain.DiaryRules
+import com.opson.server.domain.Exercise
 import com.opson.server.domain.Fast
 import com.opson.server.domain.LogEntry
 import com.opson.server.domain.SyncMutation
@@ -56,6 +57,19 @@ class SyncRoutesTest {
             clientUpdatedAt = Instant.parse("2026-10-24T19:00:00Z"),
             deleted = false,
         )
+        val EXERCISE = Exercise(
+            id = UUID.fromString("22222222-2222-4222-8222-222222222222"),
+            day = LocalDate.parse("2026-10-24"),
+            startedAt = Instant.parse("2026-10-24T07:00:00Z"),
+            activity = "running_10",
+            name = null,
+            minutes = 30,
+            kcal = 290,
+            kcalTyped = false,
+            notOnWatch = false,
+            clientUpdatedAt = Instant.parse("2026-10-24T08:00:00Z"),
+            deleted = false,
+        )
     }
 
     private val userId = UserId(UUID.fromString("11111111-1111-1111-1111-111111111111"))
@@ -67,11 +81,20 @@ class SyncRoutesTest {
     private class FakeSyncRepository : SyncRepository {
         val calls = mutableListOf<Triple<UserId, Long, List<SyncMutation>>>()
         val pulledFasts = mutableListOf<Boolean>()
-        override suspend fun sync(userId: UserId, cursor: Long, mutations: List<SyncMutation>, pullFasts: Boolean): SyncResult {
+        val pulledExercises = mutableListOf<Boolean>()
+        override suspend fun sync(
+            userId: UserId,
+            cursor: Long,
+            mutations: List<SyncMutation>,
+            pullFasts: Boolean,
+            pullExercises: Boolean,
+        ): SyncResult {
             calls += Triple(userId, cursor, mutations)
             pulledFasts += pullFasts
+            pulledExercises += pullExercises
             val fasts = if (pullFasts) listOf(FAST) else null
-            return SyncResult(mutations.map { it.outboxId }, DiaryChanges(fasts = fasts), cursor = cursor + 7, hasMore = false)
+            val exercises = if (pullExercises) listOf(EXERCISE) else null
+            return SyncResult(mutations.map { it.outboxId }, DiaryChanges(fasts = fasts, exercises = exercises), cursor = cursor + 7, hasMore = false)
         }
     }
 
@@ -83,6 +106,17 @@ class SyncRoutesTest {
         put("goalHours", goalHours)
         put("clientUpdatedAtEpochMs", now.toEpochMilliseconds())
     }
+
+    private fun exerciseRow(minutes: Int = 30, kcal: Int = 290, activity: String = "running_10", day: String = "2026-10-24"): JsonObject =
+        buildJsonObject {
+            put("id", UUID.randomUUID().toString())
+            put("day", day)
+            put("startedAtEpochMs", Instant.parse("2026-10-24T07:00:00Z").toEpochMilliseconds())
+            put("activity", activity)
+            put("minutes", minutes)
+            put("kcal", kcal)
+            put("clientUpdatedAtEpochMs", now.toEpochMilliseconds())
+        }
 
     private fun entryRow(day: String = "2026-10-25", kcal: Double = 105.0, slot: String = "breakfast"): JsonObject =
         buildJsonObject {
@@ -205,6 +239,44 @@ class SyncRoutesTest {
                 "no key a 0.1 client does not know",
             )
             assertEquals(listOf(false), repo.pulledFasts)
+            assertEquals(listOf(false), repo.pulledExercises)
+        }
+    }
+
+    @Test
+    fun aRequestThatAcceptsExerciseGetsIt_andOnlyThat() = runTest {
+        val repo = FakeSyncRepository()
+        withApp(repo) { client ->
+            val resp = client.sync("""{"cursor":0,"mutations":[],"accepts":["exercise"]}""")
+            val changes = Json.parseToJsonElement(resp.bodyAsText()).jsonObject.getValue("changes").jsonObject
+            assertTrue("exercises" in changes)
+            assertTrue("fasts" !in changes, "fasts were not asked for")
+            assertEquals(listOf(EXERCISE.toRowDto()), Json.decodeFromString<SyncResponse>(resp.bodyAsText()).changes.exercises)
+            assertEquals(listOf(true), repo.pulledExercises)
+        }
+    }
+
+    @Test
+    fun anExerciseIsDecoded_andOneOutOfRangeIsRefused() = runTest {
+        val repo = FakeSyncRepository()
+        val mutations = listOf(
+            SyncMutationDto("ok", "exercise", exerciseRow()),
+            SyncMutationDto("long", "exercise", exerciseRow(minutes = 1441)),
+            SyncMutationDto("none", "exercise", exerciseRow(minutes = 0)),
+            SyncMutationDto("big", "exercise", exerciseRow(kcal = 9_000)),
+            SyncMutationDto("blank", "exercise", exerciseRow(activity = " ")),
+            SyncMutationDto("future", "exercise", exerciseRow(day = "2026-12-25")),
+        )
+        withApp(repo) { client ->
+            val body = client.sync(SyncRequest(mutations = mutations, accepts = listOf("exercise"))).body<SyncResponse>()
+            assertEquals(listOf("ok"), body.applied)
+            assertEquals(
+                mapOf("long" to "invalid_row", "none" to "invalid_row", "big" to "invalid_row", "blank" to "invalid_row", "future" to "invalid_row"),
+                body.rejected.associate { it.id to it.code },
+            )
+            val exercise = assertIs<Exercise>(repo.calls.single().third.single().row)
+            assertEquals(290, exercise.kcal)
+            assertEquals("running_10", exercise.activity)
         }
     }
 

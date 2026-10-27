@@ -26,6 +26,8 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.scanner)
             implementation(projects.libraries.speech)
+            // release.exercise, and whether a health app is connected, for the exercise sheet.
+            implementation(projects.libraries.health)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -50,6 +52,7 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.scanner)
             implementation(projects.libraries.speech)
+            implementation(projects.libraries.health)
         }
     }
 }

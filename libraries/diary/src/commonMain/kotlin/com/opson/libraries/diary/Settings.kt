@@ -2,6 +2,7 @@ package com.opson.libraries.diary
 
 import com.opson.libraries.nutrition.BodyProfile
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.NumbersSettings
@@ -163,6 +164,12 @@ data class Settings(
     val heightCm: Double? = null,
     @Serializable(with = BodySexSerializer::class)
     val bodySex: BodySex? = null,
+    /**
+     * Activity outside workouts (`release.exercise`), counted in Burned when no health app reads
+     * activity. A top-level key, like the rest of Burned's settings.
+     */
+    @Serializable(with = EverydayActivitySerializer::class)
+    val everydayActivity: EverydayActivity = EverydayActivity.Default,
 
     // More › Today screen (design sync 4, 13.6, `release.goalsAndEnergy`). Top-level keys, because
     // the server merges settings one level deep. Card pages are [todayMacrosPage].

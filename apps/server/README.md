@@ -177,8 +177,10 @@ POST /v1/sync  { "cursor": 0, "mutations": [ { "id": "<outbox id>", "entity": "l
 ```
 
 - `entity` is `log_entry`, `day_record`, `meal_feeling`, `weigh_in`,
-  `custom_food`, `saved_meal` or `settings`. Row shapes are the `*RowDto`
-  classes in `routes/SyncDto.kt`; pulled rows come back in the same shapes.
+  `custom_food`, `saved_meal`, `settings`, `fast` or `exercise`. Row shapes
+  are the `*RowDto` classes in `routes/SyncDto.kt`; pulled rows come back in
+  the same shapes. `fasts` and `exercises` come back only to a request whose
+  `accepts` names `fast` or `exercise`, so a 0.1 client gets the 0.1 response.
 - Rejections carry a stable code: `unknown_entity`, or `invalid_row` (could
   not be decoded, or broke a rule in `domain/DiaryRules.kt`). Messages name
   the field and never echo the value. A rejection never blocks the rest.

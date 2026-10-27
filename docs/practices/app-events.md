@@ -238,6 +238,18 @@ longest-fast record, which the app refuses to keep.
 | `fast.started` | `plan` (`12:12`, `14:10`, `16:8`) | When this device writes the evening's fast. A fast starts when the eating window closes, so this fires the first time a screen showing the timer looks after the close, not at the close itself. A fast pulled from another device does not fire it |
 | `fast.ended` | `by` (`user`, `food`, `timer_off`) | End fast, logging food on today or earlier, or switching the timer off, while a fast runs. Reaching the goal is derived, not written, and fires nothing |
 
+### Exercise (`release.exercise`)
+
+All from `ExerciseRepositoryImpl` (`:libraries:diary:impl`), the only writer of exercise, so no
+screen emits them. **No event carries the activity, its length or its energy.** Those are
+health data, and what someone burns is a number the app hides in most modes.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `exercise.logged` | `listed` (`true` for an activity from the list, `false` for Other), `typed` (`true` when the person typed the number) | Save on a new entry |
+| `exercise.edited` | `listed`, `typed`, as above | Save on an entry that already existed |
+| `exercise.deleted` | | Delete on an entry. An entry deleted on another phone and pulled fires nothing |
+
 ## Warn+ log forwarding (not events)
 
 Besides events, `GrafanaLogTree` forwards plain KLog lines at Warn and above to Loki as ordinary

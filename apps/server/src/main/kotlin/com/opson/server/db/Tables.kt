@@ -295,6 +295,20 @@ object FastsTable : SyncedTable("fasts") {
     override val primaryKey = PrimaryKey(userId, day)
 }
 
+/** Exercise logged by hand (V24). [kcal] is what it counts in Burned, stored as it was saved. */
+object ExercisesTable : SyncedTable("exercises") {
+    val id = uuid("id")
+    val day = date("day")
+    val startedAt = timestamp("started_at")
+    val activity = text("activity")
+    val name = text("name").nullable()
+    val minutes = short("minutes")
+    val kcal = integer("kcal")
+    val kcalTyped = bool("kcal_typed")
+    val notOnWatch = bool("not_on_watch")
+    override val primaryKey = PrimaryKey(id)
+}
+
 /** The whole client `Settings` object as one jsonb document per user. */
 object UserSettingsTable : SyncedTable("user_settings") {
     val settings = jsonb("settings")
