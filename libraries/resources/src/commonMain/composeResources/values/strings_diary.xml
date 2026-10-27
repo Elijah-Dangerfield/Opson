@@ -24,9 +24,11 @@
     <string name="diary_precision_row_weighed">Weighed</string>
     <string name="diary_precision_row_estimate">Estimate</string>
     <string name="diary_precision_row_named">Named</string>
+    <string name="diary_precision_row_label">From label</string>
     <string name="diary_precision_picker_weighed">Weighed</string>
     <string name="diary_precision_picker_estimate">Estimated</string>
     <string name="diary_precision_picker_named">Just the name</string>
+    <string name="diary_precision_picker_label">From label</string>
 
     <!-- How it felt -->
     <string name="diary_hunger_very_hungry">Very hungry</string>

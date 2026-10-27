@@ -59,12 +59,13 @@ val MealSlot.sentenceName: StringResource
         MealSlot.Uncategorized -> Res.string.diary_slot_sentence_uncategorized
     }
 
-/** How sure, as an item row says it: Weighed / Estimate / Named. */
+/** How sure, as an item row says it: Weighed / Estimate / Named / Label. */
 val Precision.rowLabel: StringResource
     get() = when (this) {
         Precision.Weighed -> Res.string.diary_precision_row_weighed
         Precision.Estimate -> Res.string.diary_precision_row_estimate
         Precision.Named -> Res.string.diary_precision_row_named
+        Precision.Label -> Res.string.diary_precision_row_label
     }
 
 /** How sure, as the amount sheet asks it: Weighed / Estimated / Just the name. */
@@ -73,6 +74,7 @@ val Precision.pickerLabel: StringResource
         Precision.Weighed -> Res.string.diary_precision_picker_weighed
         Precision.Estimate -> Res.string.diary_precision_picker_estimate
         Precision.Named -> Res.string.diary_precision_picker_named
+        Precision.Label -> Res.string.diary_precision_picker_label
     }
 
 val Hunger.label: StringResource
