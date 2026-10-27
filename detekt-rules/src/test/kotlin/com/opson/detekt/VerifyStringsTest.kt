@@ -9,20 +9,18 @@ class VerifyStringsTest {
     private val rule get() = VerifyStrings(Config.empty)
 
     @Test
-    fun `reports a literal passed to each text composable`() {
+    fun `reports a literal passed to Text, positional or named`() {
         val findings = rule.findingsOn(
             """
             @Composable
             fun Screen() {
                 Text("Log food")
-                OutlinedText(text = "Skip for now")
-                ClickableText("Privacy policy", onClick = {})
-                BoldPrefixedText("Note:", "rest")
+                Text(text = "Skip for now", style = AppTheme.type.body)
             }
             """
         )
 
-        assertEquals(5, findings.size)
+        assertEquals(2, findings.size)
     }
 
     @Test

@@ -90,6 +90,13 @@ rule from [PRACTICES.md](../PRACTICES.md), what breaks, and its fate.
   place) and `telemetry.properties` (only the DSN, which is not a secret) are as their
   comments say.
 
+## Changes made for the UI review
+
+- `ScrollInsideBottomSheet` no longer mentions the deleted `BasicBottomSheet`.
+- `VerifyStrings` checks `Text` only; `OutlinedText`, `ClickableText` and
+  `BoldPrefixedText` are deleted. Its test now covers positional and named `Text`.
+- The unused compottie version and its five library entries are gone from the catalog.
+
 ## Product notes
 
 None from this slice.

@@ -57,11 +57,9 @@ class VerifyStrings(config: Config) : Rule(
     }
 
     private companion object {
-        // The DS text composables that render a user-facing String argument. Their
-        // wrappers (e.g. OutlinedText) pass the string on to Text internally, but
-        // the literal lives at the wrapper call site, so each is checked directly.
-        // AsteriskText is absent on purpose — it takes a composable lambda, whose
-        // inner Text is already covered.
-        val TEXT_CALLEES = setOf("Text", "OutlinedText", "ClickableText", "BoldPrefixedText")
+        // The DS text composables that render a user-facing String argument. A
+        // wrapper that takes a String and hands it to Text belongs here too: the
+        // literal lives at the wrapper's call site, not inside Text.
+        val TEXT_CALLEES = setOf("Text")
     }
 }
