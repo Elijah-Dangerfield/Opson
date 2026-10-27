@@ -40,6 +40,9 @@ libraries/<name>/impl/ # Implementations
 - Feature `impl` modules may depend on another feature's `api`. Feature `api` modules may **not** depend on other feature `api`s (api-to-api is a cycle risk, shared types go in a library).
 - Sub-modules of the same feature (`:features:foo:storage` → `:features:foo`) are allowed.
 - `:libraries:storage:impl` is the one shared impl: it owns the `AppDatabase`.
+- Only `:apps:*` may depend on `:features:qa` or `:features:qa:impl`.
+
+**The QA menu is not in store builds.** It lives in `:features:qa` (the route) and `:features:qa:impl` (screen, view model, `QaAccess`). `:apps:compose` depends on them only when `isStoreBuild()` (build-logic, `Versioning.kt`) is false, i.e. the channel is `dev` or `beta`; any other channel counts as store. Its More row and route come in through DI (`MoreRowContribution` and a `FeatureEntryPoint`), so settings never names it. `:apps:compose:verifyQaExclusion` checks the resolved graph, and every store build runs it before building. The runtime `QaAccess` check stays as the second layer, for a beta binary promoted to the App Store (Known landmines). New QA tools go in `:features:qa:impl`.
 
 Shared code → libraries. Main modules expose interfaces only; impl modules contain implementations.
 
