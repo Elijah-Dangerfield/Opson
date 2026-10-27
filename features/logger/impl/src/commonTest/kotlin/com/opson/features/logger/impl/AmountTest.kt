@@ -439,7 +439,8 @@ class AmountTest : CoroutineTest() {
 
     @Test
     fun editingADescribedLineReplacesThatLine() = runUnitTest {
-        val line = LoggerFixtures.parsed.first().toDescribedItem(0).copy(ref = FoodRef.Catalog("banana"), key = "f:banana")
+        val line = DescribeRows.fromItem("describe:0", LoggerFixtures.parsed.first(), householdOnly = false).toBasketItem()
+            .copy(ref = FoodRef.Catalog("banana"), key = "f:banana")
         basket.upsert(line)
         val vm = vm(source = PickSource.Describe)
 

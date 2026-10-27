@@ -133,6 +133,7 @@ class LoggerViewModel(
     /** The query and filter the running or last search asked for, so a rebuild only searches again when one changed. */
     private var requested: Pair<String, FoodSearchFilter>? = null
     private var describeJob: Job? = null
+    private var findJob: Job? = null
     private var listenJob: Job? = null
     private var voiceTimer: Job? = null
     private var voiceCap: Job? = null
@@ -232,13 +233,10 @@ class LoggerViewModel(
             is LoggerAction.DescribeFailed -> {
                 if (action.text == model.choices.describeText.trim()) {
                     val status = if (appState.isOffline.value) DescribeStatus.Offline else DescribeStatus.Failed
-                    basketStore.removeWhere { it.source == PickSource.Describe }
-                    action.choose { copy(describeStatus = status) }
+                    reviewed(action, DescribeRows.cleared(model.choices.review)) { copy(describeStatus = status) }
                 }
             }
-            is LoggerAction.DescribedLineEditTapped -> action.line.ref?.let {
-                sendEvent(LoggerEvent.OpenAmount(it, PickSource.Describe, day, slot()))
-            }
+            is DescribeReviewAction -> reviewAction(action)
             is LoggerAction.NumberTyped -> action.choose { copy(number = NumberInput.sanitize(action.text, allowDecimal = false)) }
             LoggerAction.AddNumberTapped -> addNumber()
             LoggerAction.BackTapped -> back(action)
@@ -314,7 +312,7 @@ class LoggerViewModel(
         action.choose { copy(describeText = text, describeStatus = if (parsing) DescribeStatus.Parsing else DescribeStatus.Idle) }
         describeJob?.cancel()
         if (!parsing) {
-            basketStore.removeWhere { it.source == PickSource.Describe }
+            reviewed(action, DescribeRows.cleared(model.choices.review))
             return
         }
         val trimmed = text.trim()
@@ -327,10 +325,87 @@ class LoggerViewModel(
 
     private suspend fun describeArrived(action: LoggerAction.DescribeArrived) {
         if (action.text != model.choices.describeText.trim()) return
-        // A new parse replaces the last one's lines; picks from search stay.
-        basketStore.removeWhere { it.source == PickSource.Describe }
-        action.items.forEachIndexed { index, item -> basketStore.upsert(item.toDescribedItem(index)) }
-        action.choose { copy(describeStatus = if (action.items.isEmpty()) DescribeStatus.Failed else DescribeStatus.Parsed) }
+        // A new parse replaces the last one's lines, except those the person changed or added; picks from search stay.
+        val review = DescribeRows.read(model.choices.review, action.items, householdOnly())
+        reviewed(action, review) { copy(describeStatus = if (action.items.isEmpty()) DescribeStatus.Failed else DescribeStatus.Parsed) }
+    }
+
+    /** Calories hidden: a line's amount is a household measure, never grams. */
+    private fun householdOnly(): Boolean = model.policy.level(Metric.Calories) == Visibility.Hide
+
+    /** Describe's lines changed: the state shows them and the basket holds exactly them. */
+    private suspend fun reviewed(action: LoggerAction, review: DescribeReview, also: LoggerChoices.() -> LoggerChoices = { this }) {
+        action.choose { copy(review = review).also() }
+        val keys = review.rows.map { it.key }.toSet()
+        basketStore.removeWhere { it.source == PickSource.Describe && it.key !in keys }
+        review.rows.forEach { basketStore.upsert(it.toBasketItem()) }
+    }
+
+    // Describe's review (docs/plans/screens/describe.md): every change is to one line, and none touches the others.
+
+    private suspend fun reviewAction(action: DescribeReviewAction) {
+        val review = model.choices.review
+        val householdOnly = householdOnly()
+        fun change(key: String, edit: (DescribeRow) -> DescribeRow) =
+            review.copy(rows = review.rows.map { if (it.key == key) edit(it) else it })
+        when (action) {
+            is DescribeReviewAction.LessTapped -> reviewed(action, change(action.key, DescribeRows::less))
+            is DescribeReviewAction.MoreTapped -> reviewed(action, change(action.key, DescribeRows::more))
+            is DescribeReviewAction.UnitPicked -> reviewed(action, change(action.key) { DescribeRows.unitPicked(it, action.index, householdOnly) })
+            is DescribeReviewAction.AlternativePicked -> {
+                val alternative = review.rows.firstOrNull { it.key == action.key }?.alternatives?.getOrNull(action.index) ?: return
+                reviewed(action, change(action.key) { DescribeRows.swapped(it, alternative, householdOnly) })
+            }
+            is DescribeReviewAction.RemoveTapped -> {
+                val row = review.rows.firstOrNull { it.key == action.key } ?: return
+                val dismissed = if (row.added) review.dismissed else review.dismissed + row.said
+                reviewed(action, review.copy(rows = review.rows - row, dismissed = dismissed))
+            }
+            is DescribeReviewAction.FindTapped -> {
+                findJob?.cancel()
+                // Swapping a line the catalog didn't know starts from its words.
+                val words = action.replacing?.let { key -> review.rows.firstOrNull { it.key == key }?.takeIf { it.food == null }?.name }.orEmpty()
+                action.choose { copy(review = review.copy(find = DescribeFind(replacing = action.replacing, query = words))) }
+                if (words.isNotBlank()) findFoods(words)
+            }
+            is DescribeReviewAction.FindTyped -> {
+                val find = review.find ?: return
+                action.choose { copy(review = review.copy(find = find.copy(query = action.text))) }
+                findFoods(action.text)
+            }
+            is DescribeReviewAction.FindResultsArrived -> {
+                val find = review.find?.takeIf { it.query.trim() == action.query } ?: return
+                action.choose { copy(review = review.copy(find = find.copy(answer = SwapAnswer(action.query, action.foods)))) }
+            }
+            is DescribeReviewAction.FindPicked -> {
+                val find = review.find ?: return
+                val food = find.answer?.foods?.firstOrNull { it.id == action.id } ?: return
+                findJob?.cancel()
+                val replacing = find.replacing
+                val next = if (replacing != null) {
+                    change(replacing) { DescribeRows.swapped(it, food, householdOnly) }
+                } else {
+                    val row = DescribeRows.added("describe:${review.nextKey}", find.query.trim(), food, householdOnly)
+                    review.copy(rows = review.rows + row, nextKey = review.nextKey + 1)
+                }
+                reviewed(action, next.copy(find = null))
+            }
+            DescribeReviewAction.FindClosed -> {
+                findJob?.cancel()
+                action.choose { copy(review = review.copy(find = null)) }
+            }
+        }
+    }
+
+    private fun findFoods(text: String) {
+        findJob?.cancel()
+        val query = text.trim()
+        if (query.isEmpty()) return
+        findJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE)
+            val foods = foodCatalog.search(query, FIND_LIMIT).getOrNull()?.foods.orEmpty()
+            takeAction(DescribeReviewAction.FindResultsArrived(query, foods))
+        }
     }
 
     private suspend fun back(action: LoggerAction) {
@@ -339,6 +414,7 @@ class LoggerViewModel(
             LoggerPane.Describe -> {
                 // Describe's lines are only picks while Describe is open.
                 describeJob?.cancel()
+                findJob?.cancel()
                 endVoice()
                 basketStore.removeWhere { it.source == PickSource.Describe }
                 action.choose {
@@ -346,6 +422,7 @@ class LoggerViewModel(
                         pane = LoggerPane.Search,
                         describeText = "",
                         describeStatus = DescribeStatus.Idle,
+                        review = DescribeReview(),
                         number = "",
                         focusNumber = false,
                         voice = VoiceCapture.Idle(),
@@ -372,6 +449,7 @@ class LoggerViewModel(
         }.trim().ifEmpty { return }
         pickNameOnly(name, model.inputs?.customFoods.orEmpty(), customFoods, basketStore)
         describeJob?.cancel()
+        findJob?.cancel()
         endVoice()
         basketStore.removeWhere { it.source == PickSource.Describe }
         searchJob?.cancel()
@@ -382,6 +460,7 @@ class LoggerViewModel(
                 search = null,
                 describeText = "",
                 describeStatus = DescribeStatus.Idle,
+                review = DescribeReview(),
                 voice = VoiceCapture.Idle(),
             )
         }
@@ -730,6 +809,9 @@ class LoggerViewModel(
         /** How long to wait for the recognizer to settle after the mic stops before keeping what was heard. */
         val TRANSCRIBE_TIMEOUT = 4.seconds
         const val SEARCH_LIMIT = 25
+
+        /** Describe's find-a-food search: a short list, it is looking for one food. */
+        const val FIND_LIMIT = 15
         const val USUAL_LIMIT = 3
         const val RECENT_LIMIT = 6
 

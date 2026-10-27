@@ -24,6 +24,8 @@ import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
 import com.opson.libraries.foods.SearchSource
 import com.opson.libraries.foods.toLogDraft
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.scanner.CameraPermission
 import kotlinx.datetime.DateTimeUnit
@@ -265,19 +267,30 @@ object LoggerFixtures {
     fun searchEmptyState(policy: VisibilityPolicy): LoggerState =
         loggerState(policy, query = MISSING_TERM, search = emptySearch())
 
+    // Describe's foods, with the measures and the alternatives the server sends with them.
+    val eggLarge = food("egg", "Egg, large", "1 large", 50.0, 78.0, 6.3, 0.6, 5.3, more = listOf(Portion("1 cup", 135.0)))
+    val eggScrambled = food("egg-scrambled", "Egg, scrambled", "1 large", 61.0, 91.0, 6.1, 1.0, 6.7)
+    val eggFried = food("egg-fried", "Egg, fried", "1 large", 46.0, 90.0, 6.3, 0.4, 6.8)
+    val toastWhite = food("toast", "Toast, white", "1 slice", 28.0, 80.0, 2.6, 15.0, 1.1, more = listOf(Portion("1 thick slice", 39.0)))
+    val toastWheat = food("toast-wheat", "Toast, whole wheat", "1 slice", 33.0, 90.0, 4.4, 15.0, 1.4)
+    val toastSourdough = food("toast-sourdough", "Toast, sourdough", "1 slice", 28.0, 76.0, 3.0, 14.0, 0.7)
+
     val parsed: List<ParsedItem> = listOf(
         ParsedItem(
             text = "2 eggs",
             name = "Egg, large",
             quantity = 2.0,
-            amountText = "2",
+            amountText = "2 large",
             confidence = Confidence.High,
             foodId = "egg",
+            portionLabel = "1 large",
             grams = 100.0,
             kcal = 156.0,
             protein = 12.6,
             carbs = 1.1,
             fat = 10.6,
+            food = eggLarge,
+            alternatives = listOf(eggScrambled, eggFried),
         ),
         ParsedItem(
             text = "toast",
@@ -286,26 +299,69 @@ object LoggerFixtures {
             amountText = "1 slice",
             confidence = Confidence.Medium,
             foodId = "toast",
+            portionLabel = "1 slice",
             grams = 28.0,
             kcal = 80.0,
             protein = 2.6,
             carbs = 15.0,
             fat = 1.1,
+            food = toastWhite,
+            alternatives = listOf(toastWheat, toastSourdough),
         ),
     )
 
+    /** A phrase the catalog had nothing for: no food, no amount controls, a tap finds it. */
+    val unmatched = ParsedItem(text = "grandma's kugel", name = "grandma's kugel", quantity = 1.0, amountText = "1", confidence = Confidence.Low)
+
+    /** "2 eggs and toast" read into lines, as [LoggerViewModel] reads it, under [policy]. */
+    fun describeReview(policy: VisibilityPolicy, items: List<ParsedItem> = parsed): DescribeReview =
+        DescribeRows.read(DescribeReview(), items, householdOnly = policy.level(Metric.Calories) == Visibility.Hide)
+
     /** Describe it for breakfast, "2 eggs and toast" read into two lines, as in 3.8. */
-    fun describeState(policy: VisibilityPolicy, parsedLines: Boolean = true): LoggerState = LoggerStateBuilder.build(
-        inputs = inputs(basket = if (parsedLines) parsed.mapIndexed { index, item -> item.toDescribedItem(index) } else emptyList()),
+    fun describeState(
+        policy: VisibilityPolicy,
+        parsedLines: Boolean = true,
+        review: DescribeReview = if (parsedLines) describeReview(policy) else DescribeReview(),
+        text: String = if (parsedLines) "2 eggs and toast" else "",
+    ): LoggerState = LoggerStateBuilder.build(
+        inputs = inputs(basket = review.rows.map { it.toBasketItem() }),
         policy = policy,
         choices = LoggerChoices(
             slot = MealSlot.Breakfast,
             pane = LoggerPane.Describe,
             height = SheetHeight.Full,
-            describeText = if (parsedLines) "2 eggs and toast" else "",
-            describeStatus = if (parsedLines) DescribeStatus.Parsed else DescribeStatus.Idle,
+            describeText = text,
+            describeStatus = if (review.rows.isNotEmpty()) DescribeStatus.Parsed else DescribeStatus.Idle,
+            review = review,
         ),
     )
+
+    /**
+     * After fixing the read: the eggs swapped to scrambled and stepped to three,
+     * toast taken out, a coffee added from search, and a line the catalog
+     * didn't know.
+     */
+    fun describeEditedState(policy: VisibilityPolicy): LoggerState {
+        val householdOnly = policy.level(Metric.Calories) == Visibility.Hide
+        val read = describeReview(policy, parsed + unmatched)
+        val eggs = read.rows.first()
+        val edited = read.copy(
+            rows = listOf(DescribeRows.more(DescribeRows.swapped(eggs, eggScrambled, householdOnly))) +
+                read.rows.drop(2) +
+                DescribeRows.added("describe:9", "coffee", coffee, householdOnly),
+            dismissed = setOf("toast"),
+        )
+        return describeState(policy, review = edited, text = "2 eggs and toast and grandma's kugel")
+    }
+
+    /** Looking for something the read missed: "coffee" typed, the catalog's answer under it. */
+    fun describeFindState(policy: VisibilityPolicy): LoggerState {
+        val review = describeReview(policy).copy(find = DescribeFind(replacing = null, query = "coffee", answer = SwapAnswer("coffee", listOf(coffee, latte))))
+        return describeState(policy, review = review)
+    }
+
+    val coffee = food("coffee", "Coffee, brewed", "1 cup (8 fl oz)", 240.0, 2.0, 0.3, 0.0, 0.0)
+    val latte = food("latte", "Coffee, latte", "1 medium", 480.0, 206.0, 13.0, 20.0, 8.0)
 
     fun savedState(policy: VisibilityPolicy): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(),

@@ -4,8 +4,6 @@ import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
-import com.opson.libraries.foods.ParsedItem
-import com.opson.libraries.foods.toLogDraft
 import com.opson.libraries.opson.UserScopedClearer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -75,17 +73,6 @@ data class BasketItem(
     /** When it was eaten, if the amount sheet's Time changed it; null logs it as now. */
     val loggedAt: Instant? = null,
 )
-
-/** A line Describe it read, as a pick. A line with no food behind it is keyed by its position. */
-fun ParsedItem.toDescribedItem(index: Int): BasketItem {
-    val ref = foodId?.let(FoodRef::Catalog)
-    return BasketItem(
-        key = ref?.key ?: "describe:$index",
-        ref = ref,
-        draft = toLogDraft().copy(method = PickSource.Describe.methodFor(ref)),
-        source = PickSource.Describe,
-    )
-}
 
 /**
  * The logger's picks, shared by the logger sheet (search, Describe it, Saved

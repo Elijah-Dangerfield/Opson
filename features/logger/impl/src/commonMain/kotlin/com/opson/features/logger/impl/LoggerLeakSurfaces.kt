@@ -37,6 +37,13 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-describe", label = "Describe a meal", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeState(policy), onAction = {})
         },
+        // Describe's lines after fixing them: amounts stepped, a swap, an added food, one not found, and the total.
+        LeakSurface(id = "logger-describe-edited", label = "Describe a meal, lines corrected", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.describeEditedState(policy), onAction = {})
+        },
+        LeakSurface(id = "logger-describe-find", label = "Describe a meal, finding a food", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.describeFindState(policy), onAction = {})
+        },
         // Voice log: words heard live over lines already read. The transcript is the person's; the lines are policy's.
         LeakSurface(id = "logger-describe-voice", label = "Describe a meal by voice", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = VoiceFixtures.listeningOverLines(policy), onAction = {})

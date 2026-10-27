@@ -8,7 +8,11 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
 import com.opson.libraries.diary.SearchDatabase
 import com.opson.libraries.diary.SearchSort
+import com.opson.libraries.diary.HouseholdAmount
 import com.opson.libraries.foods.Food
+import com.opson.libraries.foods.amountTextFor
+import com.opson.libraries.foods.chipLabel
+import com.opson.libraries.foods.nutrientsFor
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSearchFilter
@@ -45,6 +49,8 @@ data class LoggerChoices(
     val search: SearchOutcome? = null,
     val describeText: String = "",
     val describeStatus: DescribeStatus = DescribeStatus.Idle,
+    /** Describe's lines as the person has corrected them. */
+    val review: DescribeReview = DescribeReview(),
     val number: String = "",
     val focusSearch: Boolean = false,
     val focusNumber: Boolean = false,
@@ -112,15 +118,9 @@ object LoggerStateBuilder {
             describe = DescribeUi(
                 text = choices.describeText,
                 status = choices.describeStatus,
-                lines = inputs.basket.filter { it.source == PickSource.Describe }.map { item ->
-                    DescribedLine(
-                        key = item.key,
-                        ref = item.ref,
-                        name = item.draft.name,
-                        amount = item.draft.amountLabel,
-                        calories = policy.resolve(Metric.Calories, item.draft.kcal, Surface.Logger, bare),
-                    )
-                },
+                lines = describedLines(choices.review, policy, bare),
+                total = describeTotal(inputs, choices.review, policy, context),
+                find = choices.review.find?.let { describeFind(it, choices.review, policy, bare) },
                 canNumber = canNumber,
                 number = if (canNumber) choices.number else "",
                 focusNumber = choices.focusNumber && canNumber,
@@ -139,6 +139,56 @@ object LoggerStateBuilder {
             ),
             basket = if (choices.pane == LoggerPane.Search) basket(inputs, policy, slot, context) else null,
             options = if (choices.searchOptions) optionsBar(inputs, choices) else null,
+        )
+    }
+
+    private fun describedLines(review: DescribeReview, policy: VisibilityPolicy, bare: FormatContext): List<DescribedLine> {
+        // Calories hidden: amounts are counted in household measures, never weighed out.
+        val householdOnly = policy.level(Metric.Calories) == Visibility.Hide
+        return review.rows.map { row ->
+            val draft = row.draft()
+            val units = row.food?.let { DescribeRows.units(it, householdOnly) }.orEmpty()
+            DescribedLine(
+                key = row.key,
+                name = row.name,
+                amount = draft.amountLabel,
+                calories = policy.resolve(Metric.Calories, draft.kcal, Surface.Logger, bare),
+                matched = row.food != null,
+                canLess = DescribeRows.canLess(row),
+                units = units.map { it.chipLabel },
+                unitIndex = units.indexOf(row.unit),
+                alternatives = row.alternatives.map { it.name },
+            )
+        }
+    }
+
+    /** Add writes the whole basket, so the total counts what search picked too. */
+    private fun describeTotal(inputs: LoggerInputs, review: DescribeReview, policy: VisibilityPolicy, context: FormatContext): DescribeTotal? {
+        val drafts = review.rows.map { it.draft() } + inputs.basket.filterNot { it.source == PickSource.Describe }.map { it.draft }
+        if (review.rows.isEmpty()) return null
+        return DescribeTotal(count = drafts.size, calories = policy.resolve(Metric.Calories, drafts.totalKcal(), Surface.Logger, context))
+    }
+
+    private fun describeFind(find: DescribeFind, review: DescribeReview, policy: VisibilityPolicy, bare: FormatContext): DescribeFindUi {
+        val query = find.query.trim()
+        val answer = find.answer?.takeIf { it.query == query }
+        val serving = FoodAmount.Servings(1.0)
+        return DescribeFindUi(
+            replacing = find.replacing?.let { key -> review.rows.firstOrNull { it.key == key }?.name },
+            query = find.query,
+            results = when {
+                query.isEmpty() -> emptyList()
+                answer == null -> null
+                else -> answer.foods.map { food ->
+                    SwapResultUi(
+                        id = food.id,
+                        name = food.name,
+                        subtitle = food.brand,
+                        amount = HouseholdAmount.tidy(food.amountTextFor(serving)),
+                        calories = policy.resolve(Metric.Calories, food.nutrientsFor(serving).kcal, Surface.Logger, bare),
+                    )
+                }
+            },
         )
     }
 

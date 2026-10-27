@@ -142,6 +142,18 @@ private fun LoggerDescribeEmptyPreview() = Logger(LoggerFixtures.describeState(f
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
+private fun LoggerDescribeEditedPreview() = Logger(LoggerFixtures.describeEditedState(full))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerDescribeEditedBlindDarkPreview() = Logger(LoggerFixtures.describeEditedState(blind), dark = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerDescribeFindPreview() = Logger(LoggerFixtures.describeFindState(full))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
 private fun LoggerSavedPreview() = Logger(LoggerFixtures.savedState(full))
 
 @Preview(widthDp = 390, heightDp = 844)

@@ -13,7 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -64,9 +66,16 @@ import opson.libraries.resources.generated.resources.logger_saved_title
 import org.jetbrains.compose.resources.stringResource
 
 /** Describe it: free text, read into editable lines that are picks while this pane is open. */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun DescribePane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
     val describe = state.describe
+    // Back from the find-a-food search returns to the lines, not out of Describe.
+    BackHandler(enabled = describe.find != null) { onAction(DescribeReviewAction.FindClosed) }
+    describe.find?.let { find ->
+        DescribeFindPane(find, onAction)
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -86,19 +95,7 @@ internal fun DescribePane(state: LoggerState, onAction: (LoggerAction) -> Unit) 
             DescribeStatus.Offline -> Note(stringResource(Res.string.logger_describe_offline))
             DescribeStatus.Failed -> Note(stringResource(Res.string.logger_describe_failed))
         }
-        if (describe.lines.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-                SectionLabel(stringResource(Res.string.logger_read_as))
-                FoodRowsCard {
-                    describe.lines.forEachIndexed { index, line ->
-                        DescribedRow(line, onAction, showDivider = index < describe.lines.lastIndex)
-                    }
-                }
-            }
-            ButtonPrimary(onClick = { onAction(LoggerAction.AddToMealTapped) }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(Res.string.logger_add_to, stringResource(state.slot.sentenceName)))
-            }
-        }
+        if (describe.lines.isNotEmpty()) DescribedLines(describe, state.slot, onAction)
         if (describe.canNumber) NumberCard(describe, onAction)
         if (describe.text.isNotBlank()) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -146,47 +143,6 @@ private fun DescribeBox(describe: DescribeUi, onAction: (LoggerAction) -> Unit) 
         }
     }
     voice?.notice?.let { VoiceNoticeCard(it, onAction) }
-}
-
-@Composable
-private fun DescribedRow(line: DescribedLine, onAction: (LoggerAction) -> Unit, showDivider: Boolean) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.chip),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = line.name, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
-                Text(
-                    text = if (line.amount.isEmpty()) {
-                        stringResource(Res.string.logger_described_estimate)
-                    } else {
-                        stringResource(Res.string.logger_described_sub, line.amount)
-                    },
-                    typography = AppTheme.type.secondary,
-                    color = AppTheme.colors.muted,
-                )
-            }
-            NutrientText(
-                metric = Metric.Calories,
-                display = line.calories,
-                typography = AppTheme.type.secondary.Tabular,
-                color = AppTheme.colors.muted,
-                maxLines = 1,
-            )
-            if (line.ref != null) {
-                RoundIconButton(
-                    icon = AppIcons.EditOutline.described(stringResource(Res.string.logger_edit_line_cd, line.name)),
-                    onClick = { onAction(LoggerAction.DescribedLineEditTapped(line)) },
-                    size = AppTheme.spacing.touchTarget,
-                    containerColor = AppTheme.colors.surface,
-                    contentColor = AppTheme.colors.muted,
-                )
-            }
-        }
-        if (showDivider) HorizontalDivider(color = AppTheme.colors.line)
-    }
 }
 
 @Composable
