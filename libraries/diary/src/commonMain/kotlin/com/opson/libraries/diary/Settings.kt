@@ -123,6 +123,11 @@ data class Settings(
     val todaySummaryStats: List<String>? = null,
     /** Page 2, the macros page. */
     val todayMacrosPage: Boolean = true,
+    /**
+     * Close the day's check-in card (design sync 2, 4.1, `release.checkIn`), switched in Reminders.
+     * A top-level key, because the server merges settings one level deep.
+     */
+    val checkIn: Boolean = true,
 ) {
     fun isFavorite(foodKey: String): Boolean = foodKey in favoriteFoods
 
