@@ -52,6 +52,7 @@ import opson.libraries.resources.generated.resources.settings_today_follow_defic
 import opson.libraries.resources.generated.resources.settings_today_follow_exact
 import opson.libraries.resources.generated.resources.settings_today_follow_range
 import opson.libraries.resources.generated.resources.settings_today_follow_surplus
+import opson.libraries.resources.generated.resources.settings_today_in_header
 import opson.libraries.resources.generated.resources.settings_today_in_list
 import opson.libraries.resources.generated.resources.settings_today_main_balance
 import opson.libraries.resources.generated.resources.settings_today_main_eaten
@@ -128,7 +129,10 @@ fun TodayScreenSettingsScreen(
         SectionLabel(stringResource(Res.string.settings_today_in_list))
         SettingsCard {
             Switch(Res.string.settings_today_water, state.water, TodaySwitch.Water, onAction)
-            Switch(Res.string.settings_today_weight, state.weight, TodaySwitch.Weight, onAction)
+            Switch(Res.string.settings_today_weight, state.weight, TodaySwitch.Weight, onAction, last = true)
+        }
+        SectionLabel(stringResource(Res.string.settings_today_in_header))
+        SettingsCard {
             Switch(Res.string.settings_today_close_day, state.closeDay, TodaySwitch.CloseDay, onAction, last = true)
         }
     }

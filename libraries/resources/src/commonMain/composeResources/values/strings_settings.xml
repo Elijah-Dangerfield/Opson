@@ -443,6 +443,7 @@
     <string name="settings_today_in_list">In the list</string>
     <string name="settings_today_water">Water</string>
     <string name="settings_today_weight">Weight on days you weigh in</string>
+    <string name="settings_today_in_header">In the header</string>
     <string name="settings_today_close_day">Close the day</string>
     <string name="settings_today_card_from_mode">In this mode the card's layout comes from the mode.</string>
 </resources>
