@@ -17,7 +17,11 @@ import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.ExerciseActivities
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -164,6 +168,48 @@ class ExerciseSheetViewModelTest : CoroutineTest() {
         assertEquals("Canoe polo", saved.name)
         assertEquals(250, saved.kcal)
     }
+
+    /** Later's energy out is held back until the reveal, so there is no number field: Other could never be saved. */
+    @Test
+    fun withEnergyOutOnLater_otherIsNotOffered_andCannotBePicked() = runUnitTest {
+        policySource.policy.value = laterEnergyOut()
+        val vm = vm()
+        settle()
+        assertFalse(vm.state.canNumber)
+        assertFalse(vm.state.offersOther)
+
+        vm.takeAction(ExerciseSheetAction.ActivityPicked(ExerciseActivities.OTHER))
+        settle()
+
+        assertNull(vm.state.activity)
+        assertEquals(ExercisePane.Pick, vm.state.pane)
+    }
+
+    @Test
+    fun withEnergyOutOnLater_aListedActivityStillSavesItsEstimate() = runUnitTest {
+        policySource.policy.value = laterEnergyOut()
+        val vm = vm()
+        settle()
+        vm.takeAction(ExerciseSheetAction.ActivityPicked("walking"))
+        settle()
+        assertTrue(vm.state.canSave)
+
+        vm.takeAction(ExerciseSheetAction.SaveTapped)
+        settle()
+
+        assertFalse(repo.added.single().kcalTyped)
+    }
+
+    @Test
+    fun withEnergyOutShowing_otherIsOffered() = runUnitTest {
+        val vm = vm()
+        settle()
+
+        assertTrue(vm.state.offersOther)
+    }
+
+    private fun laterEnergyOut() =
+        VisibilityPolicy(NumbersSettings(overrides = mapOf(Metric.EnergyOut to Visibility.Delay)), Clock.fixed(NOON), TimeZone.UTC)
 
     @Test
     fun anEdit_keepsItsSavedNumber_untilTheActivityOrLengthChanges() = runUnitTest {

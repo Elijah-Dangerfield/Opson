@@ -96,7 +96,7 @@ class ExerciseSheetViewModel(
             }
             ExerciseSheetAction.ActivityTapped -> action.change { copy(pane = ExercisePane.Pick, query = "") }
             is ExerciseSheetAction.QueryTyped -> action.change { copy(query = action.text) }
-            is ExerciseSheetAction.ActivityPicked -> if (action.key == ExerciseActivities.OTHER || ExerciseActivities[action.key] != null) {
+            is ExerciseSheetAction.ActivityPicked -> if (offered(action.key)) {
                 action.change { copy(activity = action.key, pane = ExercisePane.Form, minutes = minutes.ifEmpty { DEFAULT_MINUTES }) }
             }
             ExerciseSheetAction.PickBackTapped -> if (form.activity == null) {
@@ -114,6 +114,12 @@ class ExerciseSheetViewModel(
             ExerciseSheetAction.DeleteTapped -> delete()
             ExerciseSheetAction.CloseTapped -> sendEvent(ExerciseSheetEvent.Dismiss)
         }
+    }
+
+    /** A listed activity, or Other where its number can be typed. */
+    private fun offered(key: String): Boolean = when (key) {
+        ExerciseActivities.OTHER -> inputs?.let { ExerciseSheetStateBuilder.canNumber(it, policy) } == true
+        else -> ExerciseActivities[key] != null
     }
 
     private suspend fun save() {

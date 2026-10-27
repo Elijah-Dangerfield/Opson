@@ -18,6 +18,7 @@
     <string name="exercise_search_placeholder">Search activities</string>
     <string name="exercise_search_clear_cd">Clear the search</string>
     <string name="exercise_search_none">Nothing by that name. Pick Other to add it yourself.</string>
+    <string name="exercise_search_none_no_other">Nothing by that name. Try another word.</string>
     <string name="exercise_other_name">What was it?</string>
     <string name="exercise_other_name_placeholder">Canoe polo, a long walk with the pram</string>
     <string name="exercise_duration">How long</string>
@@ -29,6 +30,7 @@
     <string name="exercise_time_cancel">Cancel</string>
     <string name="exercise_estimate_label">Burned</string>
     <string name="exercise_estimate_no_weight">Log a weight to get an estimate, or type the number below.</string>
+    <string name="exercise_estimate_no_weight_only">Log a weight to get an estimate.</string>
     <string name="exercise_typed_label">Your own number</string>
     <string name="exercise_typed_label_needed">Calories burned</string>
     <string name="exercise_typed_placeholder">From a machine or an app</string>
