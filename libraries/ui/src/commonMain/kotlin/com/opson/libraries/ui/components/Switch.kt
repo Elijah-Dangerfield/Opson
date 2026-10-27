@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -27,10 +28,11 @@ import com.opson.system.background
 import com.opson.system.thenIf
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.opson.libraries.ui.system.minTouchTarget
+import com.opson.libraries.ui.system.toggle
 
 /**
  * The handoff's switch: a 50 by 30 track with a 24dp white knob, accent when on and the track
- * color when off.
+ * color when off. A tap toggles with the on or off haptic.
  *
  * Both animations are kept as `State` and read in `drawBehind` / `offset { }`, so a toggle
  * redraws the switch without recomposing it.
@@ -47,6 +49,7 @@ fun AppSwitch(
     val trackOff = AppTheme.colors.track.color
     val trackColor = animateColorAsState(if (checked) trackOn else trackOff, label = "SwitchTrack")
     val knobTravel = animateDpAsState(if (checked) SwitchTravel else 0.dp, label = "SwitchKnob")
+    val haptics = LocalHapticFeedback.current
 
     Box(
         modifier = modifier
@@ -63,7 +66,10 @@ fun AppSwitch(
                     role = Role.Switch,
                     interactionSource = interactionSource,
                     indication = null,
-                    onValueChange = onCheckedChange!!,
+                    onValueChange = { on ->
+                        haptics.toggle(on)
+                        onCheckedChange?.invoke(on)
+                    },
                 )
             }
             .padding(SwitchPadding),
