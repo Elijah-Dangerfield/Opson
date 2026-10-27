@@ -3,7 +3,9 @@ package com.opson.libraries.nutrition
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Burned (design sync 4): resting energy for the whole day from the source picked, falling back
@@ -51,6 +53,38 @@ class BurnedTest {
         assertEquals(1610, burned.copy(activityCounted = false).totalKcal)
         assertEquals(1610, burned.copy(movementKcal = null, workoutKcal = null).totalKcal, "no health app is no activity")
         assertEquals(1610, burned.copy(movementKcal = -50, workoutKcal = 0).totalKcal, "a bad reading never takes away")
+    }
+
+    @Test
+    fun withoutAHealthApp_everydayMovementIsTheActivityLevelsEstimate() {
+        val resting = RestingEnergy(1610, RestingFrom.Calculated)
+        assertEquals(320, ActivityLevel.Sedentary.everydayKcal(1610), "1,610 × 0.2 = 322, rounded to 10")
+        assertEquals(600, ActivityLevel.Light.everydayKcal(1610))
+        assertEquals(890, ActivityLevel.Moderate.everydayKcal(1610))
+        assertEquals(1170, ActivityLevel.Active.everydayKcal(1610))
+        val estimated = Burned(resting, everydayKcal = 600)
+        assertTrue(estimated.movementEstimated)
+        assertEquals(2210, estimated.totalKcal)
+        assertEquals(2390, estimated.copy(workoutKcal = 180).totalKcal, "a workout still adds on top")
+        assertEquals(2210, estimated.copy(activityCounted = false).totalKcal, "the switch is for synced activity; the estimate is the day itself")
+    }
+
+    @Test
+    fun aHealthAppReading_replacesTheEstimate_evenAZeroOne() {
+        val burned = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 0, everydayKcal = 600)
+        assertFalse(burned.movementEstimated)
+        assertEquals(1610, burned.totalKcal)
+        assertEquals(1610, burned.copy(movementKcal = 390, activityCounted = false).totalKcal, "switched off counts nothing, not the estimate")
+    }
+
+    @Test
+    fun theEstimate_risesWithTheLevel_andNeverGoesNegative() {
+        listOf(0, 900, 1430, 1610, 2400, 5000).forEach { resting ->
+            val estimates = ActivityLevel.entries.map { it.everydayKcal(resting) }
+            assertEquals(estimates.sorted(), estimates, "at $resting")
+            assertTrue(estimates.all { it >= 0 && it % 10 == 0 })
+        }
+        assertEquals(0, ActivityLevel.Active.everydayKcal(-100))
     }
 
     @Test

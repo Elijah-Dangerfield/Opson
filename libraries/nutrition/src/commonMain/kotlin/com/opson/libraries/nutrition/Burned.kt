@@ -92,23 +92,68 @@ object RestingEnergies {
 }
 
 /**
+ * How active an ordinary day is, before any workout: the everyday movement Burned assumes when
+ * nothing reads it (no health app connected). [share] is the part of resting energy that movement
+ * adds, the standard Mifflin–St Jeor activity factors less one (sedentary is 1.2 × resting).
+ * Cronometer, MyFitnessPal and Lose It all ask for this; see docs/research/goals-ux.md. Workouts
+ * are not in it: they are logged or synced on their own.
+ */
+enum class ActivityLevel(val share: Double) {
+    /** Mostly sitting: a desk job, little walking. The default, so an estimate never runs high. */
+    Sedentary(0.2),
+
+    /** On your feet some of the day: errands, short walks. */
+    Light(0.375),
+
+    /** On your feet most of the day. */
+    Moderate(0.55),
+
+    /** Physical work, or moving nearly all day. */
+    Active(0.725),
+    ;
+
+    /** Everyday movement on top of [restingKcal], rounded to 10 and never negative. */
+    fun everydayKcal(restingKcal: Int): Int = ((restingKcal.coerceAtLeast(0) * share) / 10).roundToInt() * 10
+
+    companion object {
+        val Default = Sedentary
+    }
+}
+
+/**
  * What the person burns on a day (design sync 4): resting energy for the whole day, plus the
  * activity their health app has synced so far when they count it ([activityCounted]). A set
  * deficit or surplus is aimed at [totalKcal] ([Targets.rangeFor]'s `burnKcal`), so it moves
  * as activity syncs.
  *
  * [movementKcal] and [workoutKcal] are null when nothing reads them (no health app, or
- * `release.health` off), which is not the same as a synced zero.
+ * `release.health` off), which is not the same as a synced zero. While [movementKcal] is null,
+ * [everydayKcal] (the [ActivityLevel] estimate) stands in for it, so a deficit works without a
+ * health app and is measured against a whole day, not resting energy alone.
  */
 data class Burned(
     val resting: RestingEnergy,
     val movementKcal: Int? = null,
     val workoutKcal: Int? = null,
     val activityCounted: Boolean = true,
+    val everydayKcal: Int? = null,
 ) {
-    /** Movement and workouts as counted: zero when switched off or not read. */
+    /** Whether everyday movement is the [ActivityLevel] estimate rather than a reading. */
+    val movementEstimated: Boolean get() = movementKcal == null && everydayKcal != null
+
+    /**
+     * Movement and workouts as counted: a reading only when switched on, the estimate whenever
+     * nothing reads movement, zero otherwise.
+     */
     val activityKcal: Int
-        get() = if (activityCounted) (movementKcal ?: 0).coerceAtLeast(0) + (workoutKcal ?: 0).coerceAtLeast(0) else 0
+        get() {
+            val movement = when {
+                movementKcal != null -> if (activityCounted) movementKcal.coerceAtLeast(0) else 0
+                else -> (everydayKcal ?: 0).coerceAtLeast(0)
+            }
+            val workouts = if (activityCounted) (workoutKcal ?: 0).coerceAtLeast(0) else 0
+            return movement + workouts
+        }
 
     val totalKcal: Int get() = resting.kcal + activityKcal
 }
