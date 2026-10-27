@@ -80,7 +80,7 @@ pairs an app render with a design, so it has to be stable and readable.
 | `FeedbackScreen.kt`, `FeedbackScreenPreview()` | `feedback-screen__feedback-screen` |
 | `FeedbackScreen.kt`, `FeedbackScreenPreviewDisabled()` | `feedback-screen__feedback-screen-disabled` |
 | `Switch.kt`, `Checked()` | `switch__checked` |
-| `BarChart.kt`, `@Preview(name = "Dense") BarChartDensePreview()` | `bar-chart__bar-chart-dense--dense` |
+| `IntakeBarChart.kt`, `IntakeBarChartPreview()` | `intake-bar-chart__intake-bar-chart` |
 
 Renaming a preview function or its file changes its id, and the design for it
 stops pairing. The code is `ScreenIds.kt` in `:apps:screenshots`; change this

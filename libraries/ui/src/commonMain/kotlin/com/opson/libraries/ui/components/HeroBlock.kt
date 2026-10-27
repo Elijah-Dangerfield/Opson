@@ -46,11 +46,11 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.opson.libraries.ui.system.minTouchTarget
 
 /**
- * Today's colored top block: hero background, bottom corners of 24, the hero shadow, white
+ * The design v3 colored top block: hero background, bottom corners of 24, the hero shadow, white
  * content. It bleeds past the page padding like [EdgeCard] and, by default, paints behind the
  * status bar and pads its content below it.
  *
- * Sticking is the caller's job (a `stickyHeader` in the Today list); this is only the block.
+ * Today stopped using it in design sync 2; only the design system gallery shows it now.
  */
 @Composable
 fun HeroBlock(

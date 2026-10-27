@@ -14,14 +14,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.style.TextAlign
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import kotlinx.coroutines.delay
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.ds_loading_almost_there
+import opson.libraries.resources.generated.resources.ds_loading_getting_ready
+import opson.libraries.resources.generated.resources.ds_loading_your_data
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -33,7 +38,7 @@ import kotlin.time.Duration.Companion.seconds
  * message fades in and the carousel rotates every [interval]. Purely cosmetic —
  * it owns no loading state; the caller hides it when the work completes.
  *
- * Messages cycle in order and wrap; vary [messages] to taste.
+ * Messages cycle in order and wrap. A preview shows the first one, still.
  */
 @Composable
 fun CyclingLoadingMessage(
@@ -44,9 +49,11 @@ fun CyclingLoadingMessage(
 ) {
     if (messages.isEmpty()) return
 
-    var index by remember(messages) { mutableStateOf(-1) }
+    val inspecting = LocalInspectionMode.current
+    var index by remember(messages) { mutableStateOf(if (inspecting) 0 else -1) }
 
     LaunchedEffect(messages) {
+        if (inspecting) return@LaunchedEffect
         delay(startDelay)
         index = 0
         while (true) {
@@ -75,24 +82,18 @@ fun CyclingLoadingMessage(
     }
 }
 
-/**
- * Default phrases for a held app-bootstrap wait. Provided as a convenience so
- * callers don't reinvent copy; pass your own list to override.
- */
-val DefaultBootLoadingMessages: List<String> = listOf(
-    "Getting things ready",
-    "Loading your data",
-    "Almost there",
-)
+/** The phrases for a held app-bootstrap wait. */
+val DefaultBootLoadingMessages: List<String>
+    @Composable get() = listOf(
+        stringResource(Res.string.ds_loading_getting_ready),
+        stringResource(Res.string.ds_loading_your_data),
+        stringResource(Res.string.ds_loading_almost_there),
+    )
 
 @Preview
 @Composable
 private fun PreviewCyclingLoadingMessage() {
     PreviewContent {
-        // Zero delay so the preview shows the caption immediately.
-        CyclingLoadingMessage(
-            messages = DefaultBootLoadingMessages,
-            startDelay = 0.milliseconds,
-        )
+        CyclingLoadingMessage(messages = DefaultBootLoadingMessages)
     }
 }

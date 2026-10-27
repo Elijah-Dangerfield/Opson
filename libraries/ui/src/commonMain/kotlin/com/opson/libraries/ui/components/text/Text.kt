@@ -26,6 +26,10 @@ import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.system.color.ColorResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * Draws [text] exactly as given. It is not parsed for markup: food names, notes and search
+ * text come from people, and a `<` in them is just a character.
+ */
 @NonRestartableComposable
 @Composable
 fun Text(
@@ -48,7 +52,7 @@ fun Text(
     val style = typography.toStyle(color, textDecoration, textAlign, hyphens, lineBreak)
 
     BasicText(
-        text = text.processHtmlTags().let { if (allCaps == true) it.toUpperCase() else it },
+        text = if (allCaps == true) text.uppercase() else text,
         modifier = modifier,
         style = style,
         overflow = overflow,

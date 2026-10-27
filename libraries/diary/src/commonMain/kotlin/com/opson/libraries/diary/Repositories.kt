@@ -175,7 +175,7 @@ interface SettingsRepository {
      * the stored copy has been read at all. While false, the numbers settings
      * are the defaults, not the user's, so anything that shows a number should
      * treat the user as Blind. A fresh install that has never signed in is
-     * known as soon as its stored copy is read.
+     * known once its stored copy is read and auth says nobody is signed in.
      */
     val isKnown: StateFlow<Boolean>
 

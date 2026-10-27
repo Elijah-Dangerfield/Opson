@@ -14,7 +14,6 @@ import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.WorkspacePremium
-import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Watch
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.Call
@@ -34,7 +33,6 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material.icons.rounded.Support
-import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.outlined.Edit as OutlinedEdit
 import androidx.compose.material.icons.rounded.Add
@@ -44,18 +42,15 @@ import androidx.compose.material.icons.automirrored.rounded.EventNote
 import androidx.compose.material.icons.rounded.DashboardCustomize
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Lock as OutlinedLock
 import androidx.compose.material.icons.outlined.Visibility as OutlinedVisibility
 import androidx.compose.material.icons.outlined.VisibilityOff as OutlinedVisibilityOff
 import androidx.compose.material.icons.rounded.BlurOn
-import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.FileCopy
 import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material.icons.rounded.BakeryDining
@@ -71,7 +66,6 @@ import androidx.compose.material.icons.outlined.Info as OutlinedInfo
 import com.opson.libraries.ui.components.icon.icons.Fruit as FruitGlyph
 import androidx.compose.material.icons.rounded.BeachAccess
 import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -90,7 +84,6 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.HighlightOff
-import androidx.compose.material.icons.rounded.Hiking
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
@@ -100,7 +93,6 @@ import androidx.compose.material.icons.rounded.LockClock
 import androidx.compose.material.icons.rounded.LunchDining
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Stop
-import androidx.compose.material.icons.rounded.MonitorHeart
 import androidx.compose.material.icons.rounded.MonitorWeight
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.PhotoCamera
@@ -174,13 +166,10 @@ object AppIcons {
     val Remove get() = icon("remove", MaterialIcons.Rounded.Remove)
     val AddCircle get() = icon("add_circle", MaterialIcons.Rounded.AddCircle)
     val ContentCopy get() = icon("content_copy", MaterialIcons.Rounded.ContentCopy)
-    val FileCopy get() = icon("file_copy", MaterialIcons.Rounded.FileCopy)
     val Delete get() = icon("delete", MaterialIcons.Rounded.Delete)
     val Mood get() = icon("mood", MaterialIcons.Rounded.Mood)
     val ViewAgenda get() = icon("view_agenda", MaterialIcons.Rounded.ViewAgenda)
 
-    /** Symbols' `monitoring` (a line chart) has no Rounded twin; Insights is the same chart with sparkles. */
-    val Monitoring get() = icon("monitoring", MaterialIcons.Rounded.Insights)
     val WaterDrop get() = icon("water_drop", MaterialIcons.Rounded.WaterDrop)
     val LocalDrink get() = icon("local_drink", MaterialIcons.Rounded.LocalDrink)
 
@@ -246,8 +235,6 @@ object AppIcons {
     val Insights get() = icon("insights", MaterialIcons.Rounded.Insights)
     val VisibilityOff get() = icon("visibility_off", MaterialIcons.Rounded.VisibilityOff)
 
-    // Visibility levels, as onboarding's mode preview marks them
-    val Visibility get() = icon("visibility", MaterialIcons.Rounded.Visibility)
 
     /** The outlined eye and eye-off, as design sync 2 draws the mode preview's lines. */
     val VisibilityOutline get() = icon("visibility_outline", MaterialIcons.Outlined.OutlinedVisibility)
@@ -258,14 +245,11 @@ object AppIcons {
 
     // Account
     val Mail get() = icon("mail", MaterialIcons.Outlined.Email)
-    val Group get() = icon("group", MaterialIcons.Outlined.Group)
 
     /** The outlined lock, for a reassurance line rather than a locked control. */
     val LockOutlined get() = icon("lock_outlined", MaterialIcons.Outlined.OutlinedLock)
 
     // More and settings
-    /** The Material Symbols `target`; Rounded has only the ring and dot. */
-    val Target get() = icon("target", MaterialIcons.Rounded.Adjust)
     val Palette get() = icon("palette", MaterialIcons.Rounded.Palette)
     /** More's Reminders and celebrations row (v3: an outlined bell). */
     val Notifications get() = icon("notifications", MaterialIcons.Outlined.Notifications)
@@ -293,7 +277,6 @@ object AppIcons {
     /** An outlined "i", for a note that explains rather than warns. */
     val Info get() = icon("info", MaterialIcons.Outlined.OutlinedInfo)
     val Favorite get() = icon("favorite", MaterialIcons.Rounded.Favorite)
-    val Bolt get() = icon("bolt", MaterialIcons.Rounded.Bolt)
     val Science get() = icon("science", MaterialIcons.Rounded.Science)
     val FormatListBulleted get() = icon("format_list_bulleted", MaterialIcons.AutoMirrored.Rounded.FormatListBulleted)
 
@@ -305,9 +288,6 @@ object AppIcons {
 
     // Health
     val Bedtime get() = icon("bedtime", MaterialIcons.Rounded.Bedtime)
-    val DirectionsWalk get() = icon("directions_walk", MaterialIcons.AutoMirrored.Rounded.DirectionsWalk)
-    val Hiking get() = icon("hiking", MaterialIcons.Rounded.Hiking)
-    val MonitorHeart get() = icon("monitor_heart", MaterialIcons.Rounded.MonitorHeart)
 
     /** Watch and health apps (More) and Expended so far (Today). */
     val Watch get() = icon("watch", MaterialIcons.Rounded.Watch)
@@ -356,19 +336,19 @@ object AppIcons {
     /** Every entry, for the gallery. */
     internal val all: List<IconResource>
         get() = listOf(
-            BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant, LocalDining,
-            RiceBowl, Leaf, Fruit, Icecream, SetMeal, Egg, Bread, SoupKitchen, LocalCafe, StarOutline, Info,
-            Add, Remove, AddCircle, ContentCopy, FileCopy, Delete, Mood, ViewAgenda, Monitoring, CheckCircleOutline, MoreVert, EventNote, Lock, DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, PhotoLibrary, Mic, Stop, EditNote, PostAdd, Edit,
-            Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight, Schedule, LockClock, HourglassTop,
-            Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz, ChevronLeft, ChevronRight, SwapHoriz, Tune, Search,
-            SearchOff, Cancel, ArrowBack, ExpandMore, ExpandLess, DragIndicator, SelectAll, AutoAwesome,
-            Settings, CalendarToday, CalendarMonth, Insights, VisibilityOff,
-            Visibility, VisibilityOutline, VisibilityOffOutline, BlurOn, Mail, Group, LockOutlined,
-            OpenInNew, Target, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download, Straighten, TrendingDown, EventRepeat, EventAvailable,
-            Star, Favorite, Bolt, Science, FormatListBulleted, BeachAccess, Route,
-            Bedtime, DirectionsWalk, Hiking, MonitorHeart, Watch, Widgets,
-            Call, Sms, Public, SupportAgent, DeleteOutline, TrackChanges,
-            Compare, Cameraswitch, ArrowDropDown,
+            BakeryDining, LunchDining, DinnerDining, Nutrition, Restaurant, LocalDining, RiceBowl, Leaf,
+            Fruit, Icecream, SetMeal, Egg, Bread, SoupKitchen, LocalCafe, StarOutline, Info, Add, Remove,
+            AddCircle, ContentCopy, Delete, Mood, ViewAgenda, CheckCircleOutline, MoreVert, EventNote, Lock,
+            DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, PhotoLibrary, Mic, Stop,
+            EditNote, PostAdd, Edit, Bookmark, BookmarkAdd, EditOutline, History, Dialpad, MonitorWeight,
+            Schedule, LockClock, HourglassTop, Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz,
+            ChevronLeft, ChevronRight, SwapHoriz, Tune, Search, SearchOff, Cancel, ArrowBack, ExpandMore,
+            ExpandLess, DragIndicator, SelectAll, AutoAwesome, Settings, CalendarToday, CalendarMonth,
+            Insights, VisibilityOff, VisibilityOutline, VisibilityOffOutline, BlurOn, Mail, LockOutlined,
+            OpenInNew, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download,
+            Straighten, TrendingDown, EventRepeat, EventAvailable, Star, Favorite, Science,
+            FormatListBulleted, BeachAccess, Route, Bedtime, Watch, Widgets, Call, Sms, Public, SupportAgent,
+            DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

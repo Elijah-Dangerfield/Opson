@@ -48,6 +48,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  *
  * A page that is a task to finish or abandon (Create a meal, Add a food) passes
  * [PageHeaderNavigation.Close]: an X labelled "Close" in place of the arrow, as v3 draws them.
+ *
+ * [subtitle] is a muted line under the title (Nutrients' `Sunday, Oct 25`, Patterns'
+ * `Last 4 weeks`); the arrow centres on the two lines together.
  */
 @Composable
 fun PageHeader(
@@ -57,6 +60,7 @@ fun PageHeader(
     modifier: Modifier = Modifier,
     bleed: Dp = PageHeaderDefaults.Bleed,
     navigation: PageHeaderNavigation = PageHeaderNavigation.Back,
+    subtitle: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val destination = backLabel.removePrefix("‹").trim()
@@ -87,16 +91,18 @@ fun PageHeader(
         ) {
             Icon(icon = icon.described(description), size = 24.dp, color = AppTheme.colors.ink)
         }
-        Text(
-            text = title,
-            typography = AppTheme.type.dayLabel,
-            color = AppTheme.colors.ink,
-            maxLines = 2,
-            modifier = Modifier
-                .weight(1f)
-                .padding(vertical = 8.dp)
-                .semantics { heading() },
-        )
+        Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+            Text(
+                text = title,
+                typography = AppTheme.type.dayLabel,
+                color = AppTheme.colors.ink,
+                maxLines = 2,
+                modifier = Modifier.semantics { heading() },
+            )
+            if (subtitle != null) {
+                Text(text = subtitle, typography = AppTheme.type.secondarySmallStrong, color = AppTheme.colors.muted, maxLines = 1)
+            }
+        }
         Row(verticalAlignment = Alignment.CenterVertically, content = actions)
     }
 }

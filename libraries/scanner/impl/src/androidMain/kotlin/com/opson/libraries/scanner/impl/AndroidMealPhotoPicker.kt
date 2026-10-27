@@ -64,11 +64,16 @@ class AndroidMealPhotoPicker @Inject constructor(
                 return@rememberLauncherForActivityResult
             }
             scope.launch {
-                val photo = withContext(Dispatchers.Default) {
-                    Catching { shrink(context, Uri.fromFile(file)) }.logOnFailure("Couldn't read the camera's photo").getOrNull()
+                // Deleted however this ends: closing the sheet mid-shrink cancels the scope, and the
+                // photo must not wait in the cache for the next capture to overwrite it.
+                try {
+                    val photo = withContext(Dispatchers.Default) {
+                        Catching { shrink(context, Uri.fromFile(file)) }.logOnFailure("Couldn't read the camera's photo").getOrNull()
+                    }
+                    latestOnResult(photo?.let(PhotoPickResult::Picked) ?: PhotoPickResult.Failed)
+                } finally {
+                    file.delete()
                 }
-                file.delete()
-                latestOnResult(photo?.let(PhotoPickResult::Picked) ?: PhotoPickResult.Failed)
             }
         }
         return remember(launcher) {

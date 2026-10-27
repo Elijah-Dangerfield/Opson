@@ -59,8 +59,8 @@ enum class FlatButtonTone {
 }
 
 /**
- * The handoff's plain rectangular button: full width by default, 14dp corners, 48dp tall,
- * text left-aligned like a list link unless [centered].
+ * The handoff's plain rectangular button: 14dp corners, 48dp tall, text left-aligned like a
+ * list link unless [centered]. It wraps its text; pass `Modifier.fillMaxWidth()` for a full row.
  *
  * [enabled] false draws the track fill with muted text and ignores taps (the pause sheet's
  * "Show calories in 0:07"). [dimmed] is for a button that should look unavailable but still

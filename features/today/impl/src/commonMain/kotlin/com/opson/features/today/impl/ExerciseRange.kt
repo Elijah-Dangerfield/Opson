@@ -8,7 +8,8 @@ import kotlinx.datetime.LocalDate
 import kotlin.math.roundToInt
 
 /**
- * [day]'s energy range, the one question Today and Day close ask. Watch activity adds to it only
+ * [day]'s energy range, the one question Today and Day close ask. It starts from the day's own
+ * goal, so a "different by day" group (a training day) is the range that day. Watch activity adds to it only
  * on today, only with energy read ([expended] is null unless `release.health` is on and a store is
  * connected), and never on a day left out of the math (marked untracked). How much it adds is
  * [Settings.exerciseInRange], capped in `Targets.today`; it can only ever add.
@@ -19,6 +20,7 @@ fun todayRange(settings: Settings, day: Day, today: LocalDate, expended: EnergyE
         adjustment = settings.exerciseInRange,
         movementKcal = energy?.movementKcal.wholeKcal(),
         workoutKcal = energy?.workoutKcal.wholeKcal(),
+        goal = settings.targets.rangeFor(day.date, settings.numbers.preset),
     )
 }
 
