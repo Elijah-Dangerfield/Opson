@@ -82,7 +82,7 @@ pages, in the muted colour.
 | Crash reports | **Fixed.** The old text said reports "never include what you logged". They carry the account ID, and **a failed food search can carry its words in the request URL**. The policy now says so. **Open:** strip query strings in `AppTelemetry.kt`, then delete that sentence. |
 | Retention | **Added.** Account data until deleted (with tombstones until the account goes), backups 30 days, crash reports and logs 90 days, usage events 90 days. **Open (You):** set Sentry and Grafana retention, and confirm Supabase backups, to match. |
 | Deletion and export | **Fixed.** The export is a CSV of entries, weigh-ins and water only. The policy now says so and offers the rest by email. |
-| Phone backups | **Added.** The log on the phone is in iCloud and Google backups today. **Open:** exclude it (see Apple below). |
+| Phone backups | **Fixed** (follow-up). The log and settings on the phone are left out of iCloud, computer and Google backups and Android's phone-to-phone transfer. The policy says so, and that a backup made by an older version may still hold a copy. |
 | Children | **Done.** Under 13 not allowed, and the terms now say so. Age rating 12+. No age gate, which is fine for a general-audience app under COPPA's actual-knowledge standard. **Lawyer:** whether an ED-adjacent app should go 16+ in the EEA. |
 | Regional rights | **Added** rights for everyone, an appeal process, California, and EEA/UK legal bases and transfers. **Lawyer:** see below. |
 | Website and waitlist | **Fixed.** `site-privacy.md` named GitHub Pages; the site now publishes to Cloudflare Pages. The waitlist text matches the code: no IP is stored. |
@@ -133,10 +133,10 @@ California paragraph is there anyway because it costs nothing and is true.
 |---|---|
 | 1.4.1 (health apps, remind users to see a doctor) | **Fixed.** The disclaimer is in onboarding and Support. The listing makes no diagnosis, treatment or accuracy claims. |
 | 5.1.1(i) (privacy policy in the app) | **Fixed.** Support › About Opson links it. |
-| 5.1.1(v) (account deletion) | **Done:** More › Support and sharing › Delete everything. **Open:** Apple also asks apps with Sign in with Apple to revoke the Apple token on deletion. `DELETE /v1/me` doesn't. |
-| 5.1.2(vi), 5.1.3 (HealthKit) | **Done.** Read-only. Nothing is stored or synced, and no HealthKit entitlement is on `main`'s release build yet. **Open:** exclude `opson.db` from iCloud backup. The log isn't HealthKit data, but keeping health data out of iCloud is the safe reading of 5.1.3(ii). |
+| 5.1.1(v) (account deletion) | **Done:** More › Support and sharing › Delete everything. **Fixed** (follow-up): `DELETE /v1/me` now revokes the Sign in with Apple token, from the refresh token the server gets with the app's authorization code at sign-in. **Open (You):** the server needs a Sign in with Apple key (`APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`); until then it logs that it skipped revocation. |
+| 5.1.2(vi), 5.1.3 (HealthKit) | **Done.** Read-only. Nothing is stored or synced, and no HealthKit entitlement is on `main`'s release build yet. **Fixed** (follow-up): the database and settings are excluded from iCloud backup. The log isn't HealthKit data, but keeping health data out of iCloud is the safe reading of 5.1.3(ii). |
 | 2.5.1 (HealthKit for health purposes) | **Done.** The entitlement stays off `main` until the UI ships (checklist). |
-| Privacy manifest | **Open.** There is no `PrivacyInfo.xcprivacy`. Sentry ships its own; the app's own required-reason APIs need one. |
+| Privacy manifest | **Added** (follow-up). `apps/ios/iosApp/PrivacyInfo.xcprivacy`: no tracking, the required-reason APIs (UserDefaults, file timestamps, system boot time, disk space) and the App Privacy data types. Sentry ships its own. |
 | Listing wording | **Done.** "Food log with gentle numbers" makes no medical claim. **Fixed** the App Privacy notes: `TelemetryUserBinder` never sends email, and Customer support and Search history were missing. **Added** a line to the review notes pointing to the disclaimer and policy. |
 
 ## 5. Data and licence attribution
@@ -145,10 +145,10 @@ California paragraph is there anyway because it costs nothing and is true.
 |---|---|
 | USDA FoodData Central | **Added** USDA's suggested citation to `legal/credits.md`. It's public domain, so the credit is courtesy. |
 | Open Food Facts (ODbL) | **Done** in the app (Foods tab, Logger badge and line). **Added** on the website footer and on the credits page, in Open Food Facts' own wording with links to the ODbL and the Database Contents License. The app doesn't show their images. |
-| NEVO | **Not used yet**, so it isn't credited. Crediting a source that isn't in the catalog would be false. The exact citation and RIVM's conditions are on the checklist for when the importer lands. Those conditions: values unchanged, and NEVO data free to users even with Plus. |
+| NEVO | **Added** (follow-up). The importer landed, and RIVM's citation is now in the app's food credits, the logger's source line, the credits screen and `legal/credits.md`. RIVM's conditions still hold: values unchanged, and NEVO data free to users even with Plus. |
 | Atkinson Hyperlegible Next | **Done.** OFL 1.1, with the licence file next to the fonts in the app and on the site. **Added** to the credits page. |
-| **Lust Script font** | **Open, licence risk.** It's a commercial Positype font ("All rights reserved") that ships in the app binary, and only the typography catalog uses it. Remove it or buy the app licence. |
-| Open-source notices | **Added** `legal/credits.md`, linked from Support. It lists every library group in the Android release and iOS builds, with each licence checked on the project's repo or POM. **Open:** a generated in-app licence screen before Android ships. Apache 2.0 asks for the licence text to travel with the binary, and a web page is the weaker form of that. |
+| **Lust Script font** | **Fixed** (`260fb927`). It was a commercial Positype font ("All rights reserved") in the app binary. It's gone, and the wordmark uses Atkinson Hyperlegible. |
+| Open-source notices | **Added** `legal/credits.md`, linked from Support. It lists every library group in the Android release and iOS builds, with each licence checked on the project's repo or POM. **Added** (follow-up): Support › About Opson › Credits and licenses is now a screen in the app, generated from the build, with every licence's full text, so the Apache 2.0 text travels with the binary. |
 
 ## 6. Terms
 
@@ -195,3 +195,26 @@ California paragraph is there anyway because it costs nothing and is true.
   the new strings.
 - `docs/app-store/listing.md`, `docs/plans/0.2/release-checklist.md`,
   `docs/plans/screens/settings.md`, `docs/HANDOFF.md`: updated to match.
+
+## Follow-up: the code items
+
+Marked **(follow-up)** above. Each is its own commit with tests.
+
+- **Backups.** `libraries/storage/impl/.../NoBackupDirectory.kt` keeps the
+  database and settings in a folder excluded from backups on iOS, and moves
+  them out of `Documents` on an older install's first launch. Android turns
+  backups and phone-to-phone transfer off
+  (`apps/compose/.../res/xml/data_extraction_rules.xml`). Nothing had to stay
+  in a backup: the server holds the log. One cost: the guest-session mirror
+  is a settings file, so a guest (never signed in) restoring onto a new
+  Android phone no longer gets their account back that way. On iOS the
+  Keychain copy of the session still restores.
+- **Apple token revocation.** `POST /v1/me/apple-authorization` and
+  `DELETE /v1/me` in `apps/server/.../routes/MeRoutes.kt`,
+  `HttpAppleSignInClient.kt`, migration V21, and the client's
+  `SupabaseAuthRepositoryImpl`. Tested against a fake Apple endpoint, end to
+  end in `apps/integration/.../account/AppleRevocationTest.kt`.
+- **Privacy manifest.** `apps/ios/iosApp/PrivacyInfo.xcprivacy`.
+- **Credits screen.** `features/settings/impl/.../support/CreditsScreen.kt`,
+  fed by `libraries/resources/.../files/licenses.json`, which the AboutLibraries
+  plugin writes from the build.
