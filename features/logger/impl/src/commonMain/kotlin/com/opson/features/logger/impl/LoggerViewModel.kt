@@ -118,6 +118,9 @@ class LoggerViewModel(
      */
     private var written = false
 
+    /** Recent's + stays open, so a second tap is not [written]'s; this catches one before the ✓ shows. */
+    private val unshown = UnshownLogs()
+
     private data class Model(
         val choices: LoggerChoices,
         val policy: VisibilityPolicy,
@@ -138,8 +141,9 @@ class LoggerViewModel(
     @Suppress("CyclomaticComplexMethod")
     override suspend fun handleAction(action: LoggerAction) {
         when (action) {
-            is LoggerAction.InputsArrived -> action.rebuild {
-                copy(inputs = action.inputs, choices = choices.withPickedSlot(action.inputs).withSeen(action.inputs))
+            is LoggerAction.InputsArrived -> {
+                unshown.shown(action.inputs.day)
+                action.rebuild { copy(inputs = action.inputs, choices = choices.withPickedSlot(action.inputs).withSeen(action.inputs)) }
             }
             is LoggerAction.PolicyArrived -> action.rebuild { copy(policy = action.policy) }
             is LoggerAction.SlotPicked -> action.choose { copy(slot = action.slot, slotChosen = true) }
@@ -210,6 +214,7 @@ class LoggerViewModel(
     /** Recent's +: logged at its last amount, staying open. A ✓ takes what was added since the sheet opened back out. */
     private suspend fun recentAdd(row: FoodRowUi) {
         val inputs = model.inputs ?: return
+        if (row.key in unshown) return
         val slot = slot()
         val added = FoodPicks.addedSince(inputs.day, slot, model.choices.seen)[row.key]
         if (added != null) {
@@ -217,7 +222,7 @@ class LoggerViewModel(
             return
         }
         val pick = LoggerStateBuilder.recentPicks(inputs).firstOrNull { it.key == row.key } ?: return
-        logger.log(day, slot, listOf(pick.toLogPick()))
+        logger.log(day, slot, listOf(pick.toLogPick()))?.let { unshown.logged(row.key, it.itemIds) }
     }
 
     private suspend fun describeTyped(action: LoggerAction, typed: String, debounce: Duration = DESCRIBE_DEBOUNCE) {

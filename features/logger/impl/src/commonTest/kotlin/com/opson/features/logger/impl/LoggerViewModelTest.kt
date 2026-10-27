@@ -297,6 +297,26 @@ class LoggerViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aDoubleTapOnRecentsPlusLogsTheFoodOnce() = runUnitTest {
+        val vm = vm()
+        settle()
+        val rice = vm.state.recent.first()
+        diary.holdWrites = true
+
+        vm.takeAction(LoggerAction.RecentAddTapped(rice))
+        vm.takeAction(LoggerAction.RecentAddTapped(rice))
+        settle()
+        assertEquals(1, diary.added.size)
+
+        diary.showWrites()
+        settle()
+        assertTrue(vm.state.recent.first().added)
+        vm.takeAction(LoggerAction.RecentAddTapped(vm.state.recent.first()))
+        settle()
+        assertEquals(1, diary.removed.size, "once the day shows it, the ✓ takes it back out")
+    }
+
+    @Test
     fun aFoodsNameOpensItsDetail() = runUnitTest {
         val vm = vm()
         val events = events(vm)

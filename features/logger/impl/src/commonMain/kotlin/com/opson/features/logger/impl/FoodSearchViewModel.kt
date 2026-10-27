@@ -90,6 +90,8 @@ class FoodSearchViewModel(
     /** Create a meal's picks went back; a second tap queued behind the first would hand them back twice. */
     private var handedBack = false
 
+    private val unshown = UnshownLogs()
+
     private data class Model(
         val choices: SearchChoices,
         val policy: VisibilityPolicy,
@@ -115,6 +117,7 @@ class FoodSearchViewModel(
     override suspend fun handleAction(action: SearchAction) {
         when (action) {
             is SearchAction.InputsArrived -> {
+                unshown.shown(action.inputs.day)
                 action.rebuild { copy(inputs = action.inputs, choices = choices.withPickedSlot(action.inputs).withSeen(action.inputs)) }
                 // A sort or database picked in the options sheet arrives here, with the settings.
                 searchIfStale()
@@ -221,6 +224,7 @@ class FoodSearchViewModel(
      */
     private suspend fun add(row: FoodRowUi) {
         val inputs = model.inputs ?: return
+        if (row.key in unshown) return
         val slot = slot()
         val added = FoodPicks.addedSince(inputs.day, slot, model.choices.seen)[row.key]
         if (added != null) {
@@ -229,17 +233,19 @@ class FoodSearchViewModel(
         }
         val pick = FoodSearchStateBuilder.picks(inputs, model.choices).firstOrNull { it.key == row.key } ?: return
         val committed = logger.log(day, slot, listOf(pick.toLogPick())) ?: return
+        unshown.logged(row.key, committed.itemIds)
         committed.event?.let { sendEvent(SearchEvent.Added(row.shortName, it)) }
     }
 
     private suspend fun addSavedMeal(id: String) {
-        if (pickForMeal != null) return
+        if (pickForMeal != null || "meal:$id" in unshown) return
         val meal = model.inputs?.savedMeals?.firstOrNull { it.id == id } ?: return
         val picks = meal.items.mapIndexed { index, draft ->
             val ref = draft.foodRef()
             LogPick(key = ref?.key ?: "saved:$id:$index", ref = ref, draft = draft.copy(method = LogMethod.Saved), source = PickSource.Saved)
         }
         val committed = logger.log(day, slot(), picks) ?: return
+        unshown.logged("meal:$id", committed.itemIds)
         committed.event?.let { sendEvent(SearchEvent.Added(meal.name, it)) }
     }
 
