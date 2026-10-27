@@ -65,6 +65,7 @@ import com.opson.libraries.identity.impl.profile.ProfileCache
 import com.opson.libraries.identity.impl.profile.ProfileRepositoryImpl
 import com.opson.libraries.identity.impl.profile.UserScopedProfileCacheCleaner
 import com.opson.libraries.identity.profile.ProfileRepository
+import com.opson.libraries.networking.AccessDeniedBus
 import com.opson.libraries.networking.ClientHeaders
 import com.opson.libraries.networking.ClientHeadersProvider
 import com.opson.libraries.networking.InstallIdProvider
@@ -121,6 +122,12 @@ class TestClient(
      * an iPhone, or last month's build, is this.
      */
     device: (ClientHeaders) -> ClientHeaders = { it },
+    /**
+     * Runs on the Supabase stand-in before anything can use it, for a session that starts with
+     * an expired or foreign token, or whose refresh Supabase refuses. Later is too late: the
+     * network layer loads the token once and keeps it until a 401.
+     */
+    setUpSession: (StubSupabaseGateway) -> Unit = {},
 ) {
     // One app-lifetime scope per client. Every background collector lives here
     // so [close] can quiesce a client's work before the server stops.
@@ -130,8 +137,11 @@ class TestClient(
     val lifecycle = TestLifecycle()
 
     // ── Network ──────────────────────────────────────────────────────────────
-    val gateway = StubSupabaseGateway(signedInAs, newAccount)
+    val gateway = StubSupabaseGateway(signedInAs, newAccount).also(setUpSession)
     private val sessionRejectionBus = SessionRejectionBusImpl()
+
+    /** Where a ban's 403 lands; the app shell routes from it to the access-denied screen. */
+    val accessDenied: AccessDeniedBus = AccessDeniedBusImpl()
     private val tokenProvider = GatewayAuthTokenProvider(gateway, sessionRejectionBus)
     private val networkClient = NetworkClientImpl(
         config = object : NetworkConfig {
@@ -145,7 +155,7 @@ class TestClient(
             }
         },
         reachability = NetworkReachabilityImpl(appScope),
-        accessDeniedBus = AccessDeniedBusImpl(),
+        accessDeniedBus = accessDenied,
         sessionRejectionBus = sessionRejectionBus,
         authGate = { AlwaysReadyAuthGate },
     )

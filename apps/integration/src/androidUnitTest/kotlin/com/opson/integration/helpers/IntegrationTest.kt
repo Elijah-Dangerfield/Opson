@@ -78,6 +78,7 @@ class Harness(val server: InProcessServer) {
         requestTimeoutMillis: Long = 30_000,
         wrapSync: (DiarySyncApi) -> DiarySyncApi = { it },
         device: (ClientHeaders) -> ClientHeaders = { it },
+        setUpSession: (StubSupabaseGateway) -> Unit = {},
     ): TestClient {
         userId?.let { server.seedAuthUser(it) }
         return TestClient(
@@ -88,6 +89,7 @@ class Harness(val server: InProcessServer) {
             requestTimeoutMillis = requestTimeoutMillis,
             wrapSync = wrapSync,
             device = device,
+            setUpSession = setUpSession,
         ).also { closeables += AutoCloseable(it::close) }
     }
 
