@@ -30,6 +30,7 @@ on:
       - 'settings.gradle.kts'
       - 'build.gradle.kts'
       - '.github/workflows/server-deploy.yml'
+      - 'scripts/seed_dev_config.py'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -104,16 +105,21 @@ jobs:
 
       # Record this build's in-code config defaults so the admin tool can answer
       # "what did version X ship with". Runs after deploy so the manifest table
-      # exists; re-uploading the same version is idempotent (upsert). Skips
-      # (without failing the deploy) when the admin token secret is absent.
+      # exists; re-uploading the same version is idempotent (upsert).
+      #
+      # A missing ADMIN_API_TOKEN_DEV fails the run (after the deploy, which
+      # has already happened): the next step is what keeps dev's flags in step
+      # with the app, and a warning here went unread for every dev deploy.
+      # The secret must equal the ADMIN_API_TOKEN Fly secret on
+      # opson-server-dev, which is also what mounts the admin routes.
       - name: Upload config manifest
         if: ${{ !inputs.dry_run }}
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_API_TOKEN_DEV }}
         run: |
           if [ -z "$ADMIN_TOKEN" ]; then
-            echo "::warning::ADMIN_API_TOKEN_DEV not set — skipping manifest upload"
-            exit 0
+            echo "::error::ADMIN_API_TOKEN_DEV is not set, so dev gets no manifest and no new release flags. Set it, and ADMIN_API_TOKEN on opson-server-dev, to the same value: ./scripts/setup_fly.main.kts sets both."
+            exit 1
           fi
           ./gradlew :apps:admin:exportConfigManifest
           status=$(curl --silent --show-error --max-time 30 \
@@ -130,3 +136,13 @@ jobs:
             # ADMIN_API_TOKEN don't match — re-upload manually, or rotate both.
             echo "::warning::Config manifest upload failed (HTTP $status) — server deploy still succeeded."
           fi
+
+      # Dev runs every release flag on, so a feature merged behind a flag is
+      # testable on dev the moment it lands. Only flags dev has no row for
+      # are written; one set false on purpose stays false. The registry is
+      # under apps/admin/**, which triggers this workflow.
+      - name: Turn on new release flags on dev
+        if: ${{ !inputs.dry_run }}
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_API_TOKEN_DEV }}
+        run: python3 -I scripts/seed_dev_config.py https://opson-server-dev.fly.dev
