@@ -225,6 +225,15 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [ ] Try swipe to delete with TalkBack and VoiceOver (the row's Delete action)
       and Undo on a phone.
 
+## Today actions, design sync 4 (`release.todaySelect`, `release.foodActions`)
+
+- [ ] Drag foods between meals on a phone, with the list scrolling under the
+      finger near both edges, on iOS and Android. Previews hold one still frame.
+- [ ] Move picked foods with TalkBack and VoiceOver: the row's "Move to another
+      meal" action and Move on the bottom bar.
+- [ ] Edit a copy end to end on two devices: the copy shows in Your foods and
+      search on the second, and the entry points at it.
+
 ## Search quality
 
 - [ ] After the prod deploy (V15 adds partial indexes; a few seconds of held

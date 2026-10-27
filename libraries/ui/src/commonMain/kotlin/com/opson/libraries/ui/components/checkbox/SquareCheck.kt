@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.PreviewLightDark
@@ -29,8 +31,21 @@ fun SquareCheck(
     checked: Boolean,
     modifier: Modifier = Modifier,
     size: Dp = 28.dp,
-) {
-    val shape = RoundedCornerShape(8.dp)
+) = Check(checked, RoundedCornerShape(8.dp), modifier, size)
+
+/**
+ * The round tick of design sync 4's select mode (13.3b): the accent filled with a check when
+ * [checked], a ring when not. Drawing only, as [SquareCheck].
+ */
+@Composable
+fun RoundCheck(
+    checked: Boolean,
+    modifier: Modifier = Modifier,
+    size: Dp = 30.dp,
+) = Check(checked, CircleShape, modifier, size)
+
+@Composable
+private fun Check(checked: Boolean, shape: Shape, modifier: Modifier, size: Dp) {
     Box(
         modifier = modifier
             .size(size)
@@ -57,6 +72,8 @@ private fun SquareCheckPreview() {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             SquareCheck(checked = true)
             SquareCheck(checked = false)
+            RoundCheck(checked = true)
+            RoundCheck(checked = false)
         }
     }
 }

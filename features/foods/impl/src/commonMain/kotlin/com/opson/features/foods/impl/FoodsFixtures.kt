@@ -108,4 +108,39 @@ object FoodsFixtures {
     )
 
     fun addFoodState(policy: VisibilityPolicy): AddFoodState = AddFoodStateBuilder.build(foodForm(), policy)
+
+    /** The snack's peanut butter on Today, 2 tbsp weighed from the catalog: what 13.3e copies. */
+    val peanutButter = LogItem(
+        id = "pb-$today",
+        day = today,
+        slot = MealSlot.Snack,
+        loggedAt = Instant.parse("2026-10-25T15:31:00Z"),
+        name = "Peanut butter",
+        precision = Precision.Weighed,
+        method = LogMethod.Search,
+        foodId = "peanut-butter",
+        amountText = "2 tbsp",
+        quantity = 2.0,
+        unit = "tbsp",
+        grams = 32.0,
+        kcal = 190.0,
+        protein = 8.0,
+        carbs = 7.0,
+        fat = 16.0,
+        fiber = 2.0,
+    )
+
+    /** 13.3e: the copy named, its brand given, and calories and protein changed from 190 and 8 g. */
+    fun editCopyState(policy: VisibilityPolicy, changed: Boolean = true): EditCopyState {
+        val opened = EditCopyStateBuilder.form(peanutButter, brand = null, mine = "(mine)", policy = policy)
+        val form = if (changed) {
+            opened.copy(
+                brand = "Store brand",
+                nutrition = opened.nutrition + listOf(Metric.Calories to "180", Metric.Protein to "7").filter { it.first in opened.nutrition },
+            )
+        } else {
+            opened
+        }
+        return EditCopyStateBuilder.build(peanutButter, form, isToday = true, policy = policy)
+    }
 }

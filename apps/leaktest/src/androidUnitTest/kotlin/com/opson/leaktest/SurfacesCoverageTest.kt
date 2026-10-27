@@ -106,6 +106,7 @@ class SurfacesCoverageTest {
                 "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
                 "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
                 "today-cards-summary",
+                "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "food-actions-amount",
             ),
             "LoggerLeakSurfaces" to listOf(
                 "logger", "logger-picked", "logger-search", "logger-search-empty", "logger-describe",
@@ -116,7 +117,7 @@ class SurfacesCoverageTest {
                 "logger-uncategorized", "logger-amount-units",
                 "logger-scan-amount", "logger-scan-miss",
             ),
-            "FoodsLeakSurfaces" to listOf("foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind"),
+            "FoodsLeakSurfaces" to listOf("foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy"),
             "TrendsLeakSurfaces" to listOf(
                 "trends", "trends-blind", "trends-coast", "trends-settings", "nutrients", "nutrients-week",
                 "weight", "patterns", "patterns-blind", "progress-photos", "progress-photos-compare",
@@ -141,6 +142,7 @@ class SurfacesCoverageTest {
             "today-reminders", "today-expended", "today-exercise", "integrations",
             "today-summary", "today-macros", "today-sticky", "today-collapsed", "today-weight", "today-select",
             "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
+            "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "edit-a-copy",
             "logger-describe-voice", "logger-search-tabs", "logger-uncategorized", "logger-amount-units",
             "logger-scan-amount", "logger-amount-nutrients", "logger-describe-edited", "logger-describe-find",
             "widget", "widgets",

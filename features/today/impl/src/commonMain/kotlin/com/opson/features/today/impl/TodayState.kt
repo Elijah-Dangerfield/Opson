@@ -71,14 +71,18 @@ data class TodayState(
     val compact: CompactSummary? = null,
     /** The day's latest weigh-in, through the weight level. */
     val weight: WeightRow? = null,
-    /** `release.todaySelect`: long-press to select, swipe to delete. */
+    /** `release.todaySelect`: long-press to select, drag between meals, swipe to delete. */
     val selectTools: Boolean = false,
-    /** Foods being selected (2.12); null when not selecting. */
+    /** `release.foodActions`: each food row's ⋮, opening the food's actions (13.3d). */
+    val foodMenus: Boolean = false,
+    /** Foods being selected (13.3b); null when not selecting. */
     val selection: Selection? = null,
     /** Which food row is swiped open, and which has turned into its confirmation (2.13, 2.14). */
     val swipe: SwipeState = SwipeState(),
     /** "Removed banana" with Undo, for six seconds after a removal. */
     val removed: RemovedNotice? = null,
+    /** "Moved 2 foods to dinner" with Undo, for six seconds after a move or a drop (13.3c). */
+    val moved: MovedNotice? = null,
 )
 
 /** One piece of the eaten bar: a macro's share of the energy, or ([metric] null) the rest in one neutral piece. */
@@ -125,18 +129,20 @@ sealed interface CompactPart {
 data class WeightRow(val display: Display, val at: LocalTime, val morning: Boolean)
 
 /**
- * Foods picked in select mode: their [count] and totals through the policy (Blind keeps only the
- * count), and which [step] the panel is on.
+ * Foods picked in select mode (13.3b): their [count], the first one's name for the card a drag
+ * carries ("Apple + 1 more"), the meals they sit in, and which [step] the bottom bar is on. No
+ * totals: the design's select mode shows none.
  */
 data class Selection(
     val ids: Set<String>,
     val count: Int,
-    val calories: Display,
-    val macros: List<MacroTile>,
+    val lead: String?,
+    val slots: Set<MealSlot>,
     val step: SelectStep = SelectStep.Actions,
 )
 
 sealed interface SelectStep {
+    /** The bottom bar: Move, Copy to…, Delete. */
     data object Actions : SelectStep
     data class CopyTo(val day: CopyDay = CopyDay.Today, val slot: MealSlot? = null) : SelectStep
     data class MoveTo(val slot: MealSlot? = null) : SelectStep
@@ -153,6 +159,9 @@ data class SwipeState(val open: String? = null, val confirming: String? = null)
 
 /** What was just removed: one food by [name] in [slot], or [count] foods. Never an amount. */
 data class RemovedNotice(val count: Int, val name: String?, val slot: MealSlot?)
+
+/** [count] foods, or the one called [name], just moved to [slot]. Never an amount. */
+data class MovedNotice(val count: Int, val name: String?, val slot: MealSlot)
 
 /** [count] foods just went into [slot]. A count of foods, never an amount. */
 data class AddedNotice(val slot: MealSlot, val count: Int)
@@ -345,8 +354,8 @@ sealed interface TodayAction {
     data class PolicyArrived(val policy: VisibilityPolicy) : TodayAction
     data object PreviousDayTapped : TodayAction
     data object NextDayTapped : TodayAction
+    /** The day's title: the calendar drops from it. */
     data object DayLabelTapped : TodayAction
-    data object CalendarTapped : TodayAction
     data object NutrientsTapped : TodayAction
     data object RevealedTapped : TodayAction
     data class MealTileTapped(val slot: MealSlot) : TodayAction
@@ -354,6 +363,9 @@ sealed interface TodayAction {
     data class PlanItTapped(val slot: MealSlot) : TodayAction
     data class FeelPromptTapped(val slot: MealSlot) : TodayAction
     data class ItemTapped(val entryId: String) : TodayAction
+
+    /** A food row's ⋮ (`release.foodActions`). */
+    data class ItemMenuTapped(val entryId: String) : TodayAction
     data object WaterPlusTapped : TodayAction
     data class AlreadyAteTapped(val slot: MealSlot) : TodayAction
 
@@ -397,13 +409,25 @@ sealed interface TodayAction {
     data object SummaryLongPressed : TodayAction
     data object WeightTapped : TodayAction
 
-    // Select foods and swipe to delete (release.todaySelect)
+    // Select foods, drag them between meals, swipe to delete (release.todaySelect)
     data class FoodLongPressed(val entryId: String) : TodayAction
     data class FoodToggled(val entryId: String) : TodayAction
     data class MealHeaderToggled(val slot: MealSlot) : TodayAction
     data object SelectAllTapped : TodayAction
     data object SelectionClosed : TodayAction
-    data object SaveAsMealTapped : TodayAction
+
+    /** A row's handle was grabbed; a food not yet picked is picked, so it moves with the rest. */
+    data class DragStarted(val entryId: String) : TodayAction
+
+    /** The picked foods were let go over [slot]'s card. */
+    data class FoodsDropped(val slot: MealSlot) : TodayAction
+
+    /** A row's "Move to another meal" accessibility action: pick it and open Move. */
+    data class MoveRowRequested(val entryId: String) : TodayAction
+    data object MovedUndoTapped : TodayAction
+
+    /** The move's six seconds ran out; [token] tells this move from a later one. */
+    data class MovedUndoExpired(val token: Long) : TodayAction
     data object CopyToTapped : TodayAction
     data class CopyDayPicked(val day: CopyDay) : TodayAction
     data class CopySlotPicked(val slot: MealSlot) : TodayAction
@@ -439,8 +463,7 @@ sealed interface TodayEvent {
     data class OpenMealSheet(val day: LocalDate, val slot: MealSlot) : TodayEvent
     data class OpenMealFeel(val day: LocalDate, val slot: MealSlot) : TodayEvent
 
-    /** Create a meal filled with [entryIds] from [day]; [slot] when they all sit in that one meal. */
-    data class OpenCreateMeal(val day: LocalDate, val entryIds: List<String>, val slot: MealSlot?) : TodayEvent
+    /** The food's actions (13.3d), from its row or its ⋮. */
     data class OpenItemSheet(val day: LocalDate, val entryId: String) : TodayEvent
     data class OpenWaterSheet(val day: LocalDate) : TodayEvent
     data object OpenTodayCards : TodayEvent
@@ -469,6 +492,8 @@ data class TodayInputs(
     val summaryOn: Boolean = false,
     /** `release.todaySelect`. */
     val selectOn: Boolean = false,
+    /** `release.foodActions`. */
+    val foodActionsOn: Boolean = false,
     /** Recent weigh-ins, oldest first, for the Weight row and its trend word. Only read with [summaryOn]. */
     val weighIns: List<WeighIn> = emptyList(),
 )
