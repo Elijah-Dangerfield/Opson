@@ -142,8 +142,11 @@ data class CustomSizeUi(val name: String = "", val grams: String = "") {
 
 private const val SPLIT_MACROS = 3
 
-/** [typed] is the amount field as it reads; [hunger] is the optional check, null while the hunger questions are off. */
-data class NoNumbersAmount(val typed: String, val hunger: HungerCheck?)
+/**
+ * [typed] is the amount field as it reads; [quick] the sheet's quick amounts with their unit
+ * ("½ plate", "2 plates"); [hunger] the optional check, null while the hunger questions are off.
+ */
+data class NoNumbersAmount(val typed: String, val quick: List<QuickAmount>, val hunger: HungerCheck?)
 
 /** "How hungry were you?", with the answer picked so far, if any. */
 data class HungerCheck(val picked: Hunger?)
@@ -275,23 +278,27 @@ object AmountStateBuilder {
             units = units.map { UnitUi(it.chipLabel, it.gramsLabel) },
             unitIndex = units.indexOf(unit),
             canAddUnit = food.takesSizes,
-            quick = if (unit is AmountUnit.Grams) {
-                emptyList()
-            } else {
-                QUICK.map { (label, q) -> QuickAmount(label, q, selected = q == choice.quantity) }
-            },
+            quick = quick(unit, choice),
             portion = portion,
             day = day,
             nutrients = nutrients,
             source = sourceLine(food, unit),
             customSize = choice.customSize,
             noNumbers = if (noNumbers) {
-                NoNumbersAmount(typed = choice.typed ?: count, hunger = HungerCheck(choice.hunger).takeIf { inputs.settings.askTags })
+                NoNumbersAmount(
+                    typed = choice.typed ?: count,
+                    quick = quick(unit, choice).map { it.copy(label = HouseholdAmount.of(it.quantity, unit.chipLabel), selected = it.selected && choice.typed == null) },
+                    hunger = HungerCheck(choice.hunger).takeIf { inputs.settings.askTags },
+                )
             } else {
                 null
             },
         )
     }
+
+    /** ½, 1, 1½, 2 under the amount; none while counting grams. */
+    private fun quick(unit: AmountUnit, choice: AmountChoice): List<QuickAmount> =
+        if (unit is AmountUnit.Grams) emptyList() else QUICK.map { (label, q) -> QuickAmount(label, q, selected = q == choice.quantity) }
 
     private fun portion(draft: LogDraft, policy: VisibilityPolicy): PortionCard? {
         // Soften needs a goal and a portion has none, so a softened metric hides here.

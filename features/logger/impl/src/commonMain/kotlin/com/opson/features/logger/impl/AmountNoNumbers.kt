@@ -27,7 +27,6 @@ import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.logger_add_to
 import opson.libraries.resources.generated.resources.modes_amount_field
-import opson.libraries.resources.generated.resources.modes_amount_quick
 import opson.libraries.resources.generated.resources.modes_amount_title
 import opson.libraries.resources.generated.resources.modes_hunger_a_little
 import opson.libraries.resources.generated.resources.modes_hunger_hungry
@@ -59,13 +58,12 @@ internal fun NoNumbersAmount(state: AmountState, amount: NoNumbersAmount, onActi
             )
             UnitMenu(state, onAction, modifier = Modifier.weight(1f))
         }
-        val unit = state.unit?.label
-        if (state.quick.isNotEmpty() && unit != null) {
+        if (amount.quick.isNotEmpty()) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-                state.quick.forEach { quick ->
+                amount.quick.forEach { quick ->
                     PillChip(
-                        label = stringResource(Res.string.modes_amount_quick, quick.label, unit),
-                        selected = quick.selected && amount.typed == state.count,
+                        label = quick.label,
+                        selected = quick.selected,
                         onClick = { onAction(AmountAction.QuickAmountPicked(quick.quantity)) },
                     )
                 }

@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.FoodUnit
+import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
@@ -402,6 +403,76 @@ class AmountTest : CoroutineTest() {
         assertEquals(banana, item.food)
         assertTrue(diary.added.isEmpty(), "keep going logs nothing yet")
         assertEquals(listOf<AmountEvent>(AmountEvent.Dismiss), events)
+    }
+
+    // --- No numbers (design sync 4, 13.5e) ---
+
+    @Test
+    fun noNumbers_isTheTypedAmountAndTheHungerCheck_nothingElse() {
+        val state = build(policy(PresetId.NoNumbers), AmountChoice(slot = MealSlot.Snack, quantity = 2.0))
+
+        val amount = assertNotNull(state.noNumbers)
+        assertEquals("2", amount.typed)
+        assertEquals(listOf("½ plate", "1 plate", "1½ plates", "2 plates"), amount.quick.map { it.label })
+        assertEquals(listOf(false, false, false, true), amount.quick.map { it.selected })
+        assertEquals(HungerCheck(picked = null), amount.hunger)
+        assertNull(state.portion)
+        assertNull(state.day)
+        assertNull(build(policy(PresetId.Full)).noNumbers, "Full numbers keeps its own sheet")
+    }
+
+    @Test
+    fun noNumbers_hungerCheckFollowsTheHungerQuestionsSetting() {
+        assertNull(assertNotNull(build(policy(PresetId.NoNumbers), settings = Settings(askTags = false)).noNumbers).hunger)
+    }
+
+    @Test
+    fun noNumbers_aNumberTurnedBackOn_getsTheFullSheet() {
+        val caloriesShown = VisibilityPolicy(
+            NumbersSettings(PresetId.NoNumbers, overrides = mapOf(Metric.Calories to Visibility.Show)),
+            Clock.fixed(NOON),
+            TimeZone.UTC,
+        )
+        assertNull(build(caloriesShown).noNumbers)
+    }
+
+    @Test
+    fun typingAnAmount_countsIt_andAClearedFieldKeepsTheLastOne() = runUnitTest {
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        val vm = vm()
+
+        vm.takeAction(AmountAction.AmountTyped("2,5"))
+        assertEquals("2.5", assertNotNull(vm.state.noNumbers).typed)
+        vm.takeAction(AmountAction.AmountTyped(""))
+        assertEquals("", assertNotNull(vm.state.noNumbers).typed)
+        vm.takeAction(AmountAction.AddToMealTapped)
+
+        assertEquals(2.5, diary.added.single().items.single().quantity)
+    }
+
+    @Test
+    fun aHungerAnswer_isSavedToTheMeal_whenTheFoodIsAdded() = runUnitTest {
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        val vm = vm()
+
+        vm.takeAction(AmountAction.HungerPicked(Hunger.Hungry))
+        vm.takeAction(AmountAction.HungerPicked(Hunger.Peckish))
+        assertEquals(Hunger.Peckish, assertNotNull(vm.state.noNumbers?.hunger).picked)
+        vm.takeAction(AmountAction.AddToMealTapped)
+
+        val (_, slot, feeling) = diary.feelings.single()
+        assertEquals(MealSlot.Dinner, slot)
+        assertEquals(Hunger.Peckish, feeling?.hunger)
+    }
+
+    @Test
+    fun noHungerAnswer_savesNoFeeling() = runUnitTest {
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        val vm = vm()
+
+        vm.takeAction(AmountAction.AddToMealTapped)
+
+        assertTrue(diary.feelings.isEmpty())
     }
 
     @Test
