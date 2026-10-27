@@ -1,5 +1,10 @@
 # Onboarding plan
 
+**Superseded for the account flow by 908798dd:** there is no guest, no Skip all
+and no account step. Sign-in is required and comes straight after Welcome; see
+`docs/plans/onboarding-v2.md` for the flow as built. Guest creation
+(`GuestAccountCreator`) and `DisplayNameSuggester` below describe 0.1.
+
 Welcome with the plan, three skippable questions, an optional statement, a
 starting mode that lists what you'll see and what stays out of view, and an
 optional account step last. Built to design v3. Read `shared.md` first.
