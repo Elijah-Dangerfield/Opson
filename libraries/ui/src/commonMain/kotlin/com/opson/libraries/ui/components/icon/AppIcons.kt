@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons as MaterialIcons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.WorkspacePremium
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Straighten
+import androidx.compose.material.icons.rounded.Adjust
 import androidx.compose.material.icons.rounded.Support
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.outlined.Edit as OutlinedEdit
@@ -110,6 +112,7 @@ import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Compare
 import androidx.compose.material.icons.rounded.Cameraswitch
 import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.WaterDrop
@@ -263,6 +266,10 @@ object AppIcons {
     /** A range, drawn as a ruler. */
     val Straighten get() = icon("straighten", MaterialIcons.Rounded.Straighten)
     val TrendingDown get() = icon("trending_down", MaterialIcons.AutoMirrored.Rounded.TrendingDown)
+    val TrendingUp get() = icon("trending_up", MaterialIcons.AutoMirrored.Rounded.TrendingUp)
+
+    /** One number, drawn as a target. */
+    val Adjust get() = icon("adjust", MaterialIcons.Rounded.Adjust)
     val EventRepeat get() = icon("event_repeat", MaterialIcons.Rounded.EventRepeat)
 
     /** A calendar with a check: Coast's weekly check on Trends. */
@@ -324,6 +331,9 @@ object AppIcons {
     /** A filled down triangle: Compare's date pickers. */
     val ArrowDropDown get() = icon("arrow_drop_down", MaterialIcons.Rounded.ArrowDropDown)
 
+    /** Move foods to another meal: select mode's bar and a food's ⋮. */
+    val DriveFileMove get() = icon("drive_file_move", MaterialIcons.AutoMirrored.Outlined.DriveFileMove)
+
     /** The meal's tile icon. Uncategorized uses the list glyph. */
     fun meal(tone: MealTone): IconResource = when (tone) {
         MealTone.Breakfast -> BakeryDining
@@ -346,9 +356,9 @@ object AppIcons {
             ExpandLess, DragIndicator, SelectAll, AutoAwesome, Settings, CalendarToday, CalendarMonth,
             Insights, VisibilityOff, VisibilityOutline, VisibilityOffOutline, BlurOn, Mail, LockOutlined,
             OpenInNew, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download,
-            Straighten, TrendingDown, EventRepeat, EventAvailable, Star, Favorite, Science,
+            Straighten, TrendingDown, TrendingUp, Adjust, EventRepeat, EventAvailable, Star, Favorite, Science,
             FormatListBulleted, BeachAccess, Route, Bedtime, Watch, Widgets, Call, Sms, Public, SupportAgent,
-            DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown,
+            DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

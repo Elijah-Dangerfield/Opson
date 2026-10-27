@@ -1,14 +1,18 @@
 package com.opson.features.settings.impl.targets
 
+import com.opson.features.settings.impl.FakeBurnedRepository
 import com.opson.features.settings.impl.FakePolicySource
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
-import com.opson.features.settings.impl.integrations.FakeHealthRepository
-import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.goalsAndEnergyFlag
+import com.opson.features.settings.impl.integrations.FakeCalendar
+import com.opson.features.settings.impl.integrations.FakeHealthRepository
+import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -39,12 +43,12 @@ class TargetsTest : CoroutineTest() {
     private fun build(
         numbers: NumbersSettings = NumbersSettings(PresetId.Full),
         targets: Targets = SettingsFixtures.rangeTargets,
-        burn: Int? = null,
+        burned: Burned? = null,
         editingGroup: Int? = null,
     ) = TargetsStateBuilder.build(
         SettingsFixtures.settings(numbers, targets),
         SettingsFixtures.policy(numbers),
-        burnKcal = burn,
+        burned = burned,
         editingGroup = editingGroup,
     )
 
@@ -75,7 +79,7 @@ class TargetsTest : CoroutineTest() {
     fun softDelayedAndHiddenCaloriesGetTheBackgroundCardWithNoAmounts() {
         listOf(PresetId.Fuel, PresetId.Delayed, PresetId.Coast, PresetId.Blind, PresetId.Nutrient).forEach { preset ->
             listOf(SettingsFixtures.rangeTargets, SettingsFixtures.deficitTargets, SettingsFixtures.byDayTargets).forEach { targets ->
-                val state = build(NumbersSettings(preset), targets, burn = SettingsFixtures.BURN_KCAL, editingGroup = 1)
+                val state = build(NumbersSettings(preset), targets, burned = SettingsFixtures.burned, editingGroup = 1)
                 assertEquals(TargetsState(visible = false), state, "in $preset")
             }
         }
@@ -92,17 +96,16 @@ class TargetsTest : CoroutineTest() {
     }
 
     @Test
-    fun aDeficitShowsTheAmount_andTheGoalOnlyOnceTheBurnIsKnown() {
-        val known = assertNotNull(build(targets = SettingsFixtures.deficitTargets, burn = SettingsFixtures.BURN_KCAL).deficit)
+    fun aDeficitShowsTheAmount_andTodaysTargetOnlyOnceBurnedIsKnown() {
+        val known = assertNotNull(build(targets = SettingsFixtures.deficitTargets, burned = SettingsFixtures.burned).deficit)
         assertEquals(Display.Shown("300"), known.amount)
-        assertEquals(Display.Shown("2,172 kcal"), known.burn)
-        assertEquals(Display.Shown("1,870 kcal"), known.goal)
+        // 2,180 burned less 300.
+        assertEquals(Display.Shown("1,880 kcal"), known.target)
         assertEquals(StepState.Open, known.down)
         assertEquals(StepState.Locked, known.up, "the deficit can't grow past where it started")
 
         val unknown = assertNotNull(build(targets = SettingsFixtures.deficitTargets).deficit)
-        assertNull(unknown.burn)
-        assertNull(unknown.goal)
+        assertNull(unknown.target)
     }
 
     @Test
@@ -124,12 +127,13 @@ class TargetsTest : CoroutineTest() {
     }
 
     @Test
-    fun aHiddenWatchEnergyHidesTheBurnButNotTheGoal() {
+    fun aHiddenWatchEnergyHidesRestingEnergy_butNotTodaysTarget() {
         val numbers = NumbersSettings(PresetId.Full, overrides = mapOf(Metric.EnergyOut to Visibility.Hide))
-        val deficit = assertNotNull(build(numbers, SettingsFixtures.deficitTargets, burn = SettingsFixtures.BURN_KCAL).deficit)
+        val settings = SettingsFixtures.settings(numbers, SettingsFixtures.deficitTargets)
+        val state = TargetsStateBuilder.build(settings, SettingsFixtures.policy(numbers), burned = SettingsFixtures.burned, goalsAndEnergy = true)
 
-        assertEquals(Display.Hidden, deficit.burn)
-        assertEquals(Display.Shown("1,870 kcal"), deficit.goal)
+        assertEquals(Display.Hidden, state.burned?.resting)
+        assertEquals(Display.Shown("1,880 kcal"), state.deficit?.target)
     }
 
     @Test
@@ -137,7 +141,7 @@ class TargetsTest : CoroutineTest() {
         val state = build(targets = SettingsFixtures.byDayTargets)
 
         assertEquals(listOf(GroupLabel.OtherDays, GroupLabel.Numbered(2)), state.groups.map { it.label })
-        assertEquals(Display.Shown("2,300 to 2,700 kcal"), state.groups[1].range)
+        assertEquals(Display.Shown("2,300 to 2,700 kcal"), state.groups[1].summary)
         assertEquals(
             listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY),
             state.groups[1].days.filter { it.inGroup }.map { it.day },
@@ -166,7 +170,15 @@ class TargetsTest : CoroutineTest() {
     // --- view model ---
 
     private fun viewModel(repository: FakeSettingsRepository, preset: PresetId = PresetId.Full) =
-        TargetsViewModel(repository, FakePolicySource(SettingsFixtures.policy(preset)), FakeHealthRepository(), healthFlag(false))
+        TargetsViewModel(
+        repository,
+        FakePolicySource(SettingsFixtures.policy(preset)),
+        FakeHealthRepository(),
+        healthFlag(false),
+        goalsAndEnergyFlag(false),
+        FakeBurnedRepository(),
+        FakeCalendar(),
+    )
 
     private fun FakeSettingsRepository.targets(): Targets = state.value.targets
 
@@ -341,19 +353,23 @@ class TargetsTest : CoroutineTest() {
         val vm = viewModel(FakeSettingsRepository())
         val events = eventsOf(vm)
 
-        vm.takeAction(TargetsAction.GoalStyleTapped)
+        vm.takeAction(TargetsAction.RestingEnergyTapped)
+        vm.takeAction(TargetsAction.ActivityTapped)
         vm.takeAction(TargetsAction.ModesTapped)
         vm.takeAction(TargetsAction.BackTapped)
 
-        assertEquals(listOf(TargetsEvent.OpenGoalStyle, TargetsEvent.OpenModes, TargetsEvent.Close), events)
+        assertEquals(
+            listOf(TargetsEvent.OpenRestingEnergy, TargetsEvent.OpenIntegrations, TargetsEvent.OpenModes, TargetsEvent.Close),
+            events,
+        )
     }
 
-    // --- goal style sheet ---
+    // --- goal style list ---
 
     @Test
     fun aSetDeficitIsOfferedOnlyInFullNumbersAndSprint() {
         PresetId.entries.forEach { preset ->
-            val options = GoalStyleStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset))).options
+            val options = TargetsStateBuilder.offered(StyleKind.Range, preset, goalsAndEnergy = false)
             assertEquals(
                 preset == PresetId.Full || preset == PresetId.Sprint,
                 StyleKind.Deficit in options,
@@ -363,37 +379,44 @@ class TargetsTest : CoroutineTest() {
     }
 
     @Test
-    fun pickingAStyleWaitsForDone() = runUnitTest {
+    fun theListMarksTheSavedStyle_andTheRangeRowSaysItsRange() {
+        val styles = build(targets = SettingsFixtures.byDayTargets).styles
+
+        assertEquals(listOf(StyleKind.Range, StyleKind.Deficit, StyleKind.ByDay), styles.map { it.kind })
+        assertEquals(StyleKind.ByDay, styles.single { it.selected }.kind)
+        assertEquals(Display.Shown("1,900 to 2,300 kcal"), styles.first().range)
+    }
+
+    @Test
+    fun pickingAStyle_writesItAtOnce() = runUnitTest {
         val repository = FakeSettingsRepository()
-        val vm = GoalStyleViewModel(repository)
-        val events = eventsOf(vm)
+        val vm = viewModel(repository)
 
-        vm.takeAction(GoalStyleAction.StylePicked(StyleKind.ByDay))
-        assertEquals(TargetStyle.Range, repository.targets().style)
+        vm.takeAction(TargetsAction.StylePicked(StyleKind.ByDay))
 
-        vm.takeAction(GoalStyleAction.DoneTapped)
         assertTrue(repository.targets().style is TargetStyle.ByDay)
-        assertEquals(listOf<GoalStyleEvent>(GoalStyleEvent.Dismiss), events)
+        assertEquals(StyleKind.ByDay, vm.state.style)
     }
 
     @Test
     fun aDeficitCannotBePickedWhereItIsNotOffered() = runUnitTest {
-        val repository = FakeSettingsRepository(SettingsFixtures.settings(NumbersSettings(PresetId.Fuel)))
-        val vm = GoalStyleViewModel(repository)
+        val repository = FakeSettingsRepository(SettingsFixtures.settings(NumbersSettings(PresetId.Nutrient)))
+        val vm = viewModel(repository, PresetId.Nutrient)
+        val writes = repository.writes
 
-        vm.takeAction(GoalStyleAction.StylePicked(StyleKind.Deficit))
-        vm.takeAction(GoalStyleAction.DoneTapped)
+        vm.takeAction(TargetsAction.StylePicked(StyleKind.Deficit))
 
         assertEquals(TargetStyle.Range, repository.targets().style)
+        assertEquals(writes, repository.writes)
     }
 
     @Test
-    fun doneWithNoChangeWritesNothing() = runUnitTest {
+    fun pickingTheSavedStyle_writesNothing() = runUnitTest {
         val repository = FakeSettingsRepository(SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets))
-        val vm = GoalStyleViewModel(repository)
+        val vm = viewModel(repository)
         val writes = repository.writes
 
-        vm.takeAction(GoalStyleAction.DoneTapped)
+        vm.takeAction(TargetsAction.StylePicked(StyleKind.ByDay))
 
         assertEquals(writes, repository.writes)
         assertEquals(SettingsFixtures.byDayTargets, repository.targets())

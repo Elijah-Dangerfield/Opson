@@ -263,12 +263,75 @@ All of these go in as tier 1 (reference), each with its source and version on
 every row. They cover about 20,000 foods in total. This is the same shape of
 importer as the USDA one.
 
+## NEVO (Netherlands): imported
+
+`scripts/import_nevo_foods.py` loads NEVO-online 2025/9.0 (2,328 foods in
+the release) into `foods` as source `nevo`, tier 1, under RIVM's written
+permission (Replies, below). Not loaded on dev or prod yet; the release
+checklist has the step.
+
+- **Getting the file.** RIVM hands out the download link only after its
+  conditions of use are accepted on the
+  [request form](https://www.rivm.nl/en/dutch-food-composition-database/use-of-nevo-online/request-dataset),
+  so the importer never fetches it on its own. Download it there, then pass
+  the file (or the zip it comes in) with `--file`, or the link with `--url`.
+  Other projects that import it describe `NEVO2025_v9.0.csv`, pipe-separated
+  with decimal commas, which is what the importer reads; the real file
+  hasn't been through it yet.
+- **The command.** Counts only, then a load:
+
+  ```bash
+  python3 -I scripts/import_nevo_foods.py --file ~/Downloads/NEVO2025_v9.0.csv
+  CATALOG_DATABASE_URL=... python3 -I scripts/import_nevo_foods.py --file ~/Downloads/NEVO2025_v9.0.csv --psql
+  ```
+
+  It needs V20 on the database and checks for it first. Re-running changes
+  no row.
+- **Amounts unchanged.** Every value is copied as published; only decimal
+  commas become points. Each nutrient column is matched on its code and its
+  unit, and a unit other than ours stops the run.
+- **Left out:** the "Foods for special nutritional use" group (infant and
+  toddler formula, per 100 ml), and any other row not given per 100 g.
+- **Names:** the English name, with NEVO's `w`, `wo` and `av` written out
+  ("Apple with skin average"). `foods` has nowhere to keep an alias, so the
+  Dutch name isn't stored, and a Dutch query won't find these foods until
+  it does.
+- **Citation:** the search row's badge ("NEVO 2025/9.0, RIVM"), the amount
+  sheet's source line and the Foods tab's credit carry it. The importer
+  refuses any release other than the one the app cites. Search only returns
+  NEVO foods to an app that sends `credits=nevo`, so 0.1, which shows no
+  citation, never sees them, and Describe never picks them.
+
+| Our key | NEVO | Note |
+|---|---|---|
+| kcal | ENERCC (kcal) | |
+| protein | PROT (g) | |
+| carbs | CHO (g) | Available carbohydrate: fibre is not included, unlike USDA's |
+| fat | FAT (g) | |
+| fiber | FIBT (g) | |
+| sugars_g | SUGAR (g) | |
+| saturated_fat_g | FASAT (g) | |
+| trans_fat_g | FATRS (g) | |
+| cholesterol_mg | CHORL (mg) | |
+| sodium_mg, potassium_mg, calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, zinc_mg, copper_mg | NA, K, CA, FE, MG, P, ZN, CU (mg) | |
+| selenium_ug | SE (µg) | |
+| vitamin_a_rae_ug | VITA_RAE (µg) | |
+| vitamin_c_mg | VITC (mg) | |
+| vitamin_d_ug | VITD (µg) | |
+| vitamin_e_mg | TOCPHA (mg) | Alpha-tocopherol, as USDA; not VITE |
+| vitamin_k_ug | VITK1 (µg) | Phylloquinone, as USDA; not VITK (K1 + K2) |
+| thiamin_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg | THIA, RIBF, NIA, VITB6 (mg) | Niacin preformed, not NIAEQ |
+| vitamin_b12_ug | VITB12 (µg) | |
+| folate_dfe_ug | FOLFD (µg) | Only when FOLAC (folic acid) is 0, where DFE is the food folate exactly. Otherwise left out: DFE would have to be calculated |
+| added_sugars_g, manganese_mg, choline_mg | none | NEVO doesn't give them |
+
+NEVO has no household portions, so the app weighs these foods in grams.
+
 ## Hold
 
 | Source | Why |
 |---|---|
 | New Zealand FOODfiles | Its terms say "must not modify any part", and our normalisation is a modification. |
-| Dutch NEVO | Unchanged data only, and no charging users for NEVO data. |
 | Spain BEDCA, FAO regional tables, Italy CREA, China | No open licence found or not checked. FAO items are often CC BY-NC-SA, which rules out commercial use. |
 | India IFCT, Philippines PhilFCT | Copyrighted with no open licence. PhilFCT isn't downloadable, and FNRI declined a raw-data request. |
 
@@ -281,13 +344,38 @@ importer as the USDA one.
   NYC MenuStat (96 US chains, about 65,000 items) is open but stopped
   updating in 2019. The better answer is hand-curating the top chains from
   their published nutrition pages, later.
-- **Requested permission**, waiting on replies: NZ FOODfiles, India IFCT,
-  Philippines PhilFCT, Dutch NEVO, and the Open Food Facts share-alike
-  question.
+- **Requested permission** on 2026-10-26. Replies are below; NZ FOODfiles,
+  India IFCT and the Open Food Facts share-alike question haven't answered.
 - **Ask next:** Brazil TBCA (commercial use needs the coordinators' OK),
   for Latin America.
 - **Dropped:** Switzerland's Open Food Repo has shut down and redirects to
   Open Food Facts, which the dump already covers.
+
+## Replies to the permission requests (2026-10-27)
+
+- **Dutch NEVO: yes.** RIVM confirmed in writing that storing NEVO values
+  converted to our format is fine as long as the amounts don't change, and that
+  a free app with a later paid tier for unrelated features is fine if NEVO data
+  stays free. Their one caution: "foods for special nutritional use" (infant
+  and toddler formula) are per 100 ml with no density, so leave those out.
+  Cite "Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven".
+  Imported: see "NEVO (Netherlands): imported" above.
+- **Philippines PhilFCT: not now.** FNRI can't license it yet and has no
+  CSV, Excel or API; they're building a data platform (i.fnri) and will
+  announce access on their Facebook page. Only the printed book is for sale.
+  Stays on Hold; watch for i.fnri.
+- **NCCDB (University of Minnesota): paid licence, files in Excel, no API.**
+  Prices are usually for a 2-year term:
+  - All 178 nutrients: $8,620.
+  - The 38 standard nutrients: $3,420.
+  - À la carte: $2,045 plus $180 per nutrient.
+  - **Startup offer:** a 1-year Standard Nutrients licence at half price,
+    $1,710, for development, testing and launch.
+  - Add-ons include nutrients per common portion ($2,570 standard, $6,470
+    all), food group files ($4,390) and NCC-to-USDA code links ($660 to $790).
+  - Licensing takes at least 3 weeks. Contact: nccdb-licensing@umn.edu (Jenny).
+  - If it goes ahead, the startup Standard package plus the USDA links is the
+    natural first buy.
 
 ## Skip
 

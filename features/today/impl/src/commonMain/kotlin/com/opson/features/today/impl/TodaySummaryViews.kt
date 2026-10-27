@@ -78,6 +78,7 @@ import opson.libraries.resources.generated.resources.today_summary_eaten
 import opson.libraries.resources.generated.resources.today_summary_kcal
 import opson.libraries.resources.generated.resources.today_summary_nothing_yet
 import opson.libraries.resources.generated.resources.today_summary_nutrients
+import opson.libraries.resources.generated.resources.today_summary_goal
 import opson.libraries.resources.generated.resources.today_summary_range
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -178,7 +179,7 @@ private fun EnergyPageContent(summary: TodaySummary.Energy) {
         eatenLabel = stringResource(Res.string.today_summary_eaten),
         eaten = summary.eaten,
         unitLabel = stringResource(Res.string.today_summary_kcal),
-        rangeLabel = stringResource(Res.string.today_summary_range),
+        rangeLabel = stringResource(if (summary.singleGoal) Res.string.today_summary_goal else Res.string.today_summary_range),
         range = summary.range,
         rangeStart = summary.rangeStart,
         rangeEnd = summary.rangeEnd,
@@ -213,8 +214,8 @@ private fun MacrosPageContent(page: MacrosPage) {
 
 @Composable
 private fun StatTile.toCell(): StatCell = when (val value = value) {
-    is StatValue.Amount -> StatCell(stringResource(stat.label), value.metric, value.display)
-    is StatValue.Count -> StatCell(stringResource(stat.label), null, Display.Hidden, count = stringResource(Res.string.today_count_value, value.done, value.total))
+    is StatValue.Amount -> StatCell(stringResource(label), value.metric, value.display)
+    is StatValue.Count -> StatCell(stringResource(label), null, Display.Hidden, count = stringResource(Res.string.today_count_value, value.done, value.total))
 }
 
 /**

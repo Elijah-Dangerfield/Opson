@@ -37,6 +37,7 @@ import opson.libraries.resources.generated.resources.adding_add_cd
 import opson.libraries.resources.generated.resources.adding_added_cd
 import opson.libraries.resources.generated.resources.adding_your_usual
 import opson.libraries.resources.generated.resources.search_badge_branded
+import opson.libraries.resources.generated.resources.search_badge_nevo
 import opson.libraries.resources.generated.resources.search_badge_off
 import opson.libraries.resources.generated.resources.search_badge_usda
 import opson.libraries.resources.generated.resources.search_badge_verified_cd
@@ -176,6 +177,7 @@ internal val SourceBadge.label: StringResource
         SourceBadge.Usda -> Res.string.search_badge_usda
         SourceBadge.UsdaBranded -> Res.string.search_badge_branded
         SourceBadge.OpenFoodFacts -> Res.string.search_badge_off
+        SourceBadge.Nevo -> Res.string.search_badge_nevo
         SourceBadge.YourFood -> Res.string.search_badge_yours
     }
 

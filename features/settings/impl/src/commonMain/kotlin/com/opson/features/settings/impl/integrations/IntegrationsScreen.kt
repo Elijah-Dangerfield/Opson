@@ -308,7 +308,7 @@ private fun Note(text: String, modifier: Modifier = Modifier) {
     Text(text = text, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, modifier = modifier)
 }
 
-private val HealthSource.title: StringResource
+internal val HealthSource.title: StringResource
     get() = when (this) {
         HealthSource.AppleHealth -> Res.string.integrations_apple_health
         HealthSource.HealthConnect -> Res.string.integrations_health_connect

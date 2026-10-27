@@ -6,9 +6,12 @@ import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.HouseholdAmount
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.UsualMealSize
+import com.opson.libraries.diary.eatenUncertainty
 import com.opson.libraries.foods.AmountUnit
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
@@ -37,6 +40,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
 import kotlin.math.round
+import kotlin.time.Instant
 
 /**
  * A food's detail (design sync 4, 13.4d), a full screen. Opened from a row's name in search, a
@@ -117,12 +121,11 @@ data class EnergyCard(val energy: Display, val macros: List<MacroTile>, val toda
 data class MacroTile(val metric: Metric, val amount: Display)
 
 /**
- * "Today with this 1,435 ± 100 kcal". [uncertainty] is the ± from how each food was logged.
- *
- * TODO(design-sync-4): fill [uncertainty] from `eatenUncertainty` in `:libraries:nutrition` once
- * it lands (the Summary card area builds it). Until then it is null and the row shows the total.
+ * "Today with this 1,435 ± 100 kcal": [total] with its unit, or as [bare] beside [plusMinus], the
+ * day's ± from how each food was logged, this one at the how-sure picked (`eatenUncertainty`).
+ * [plusMinus] is hidden while nothing in the day is uncertain, or the policy hides it.
  */
-data class TodayWithThis(val total: Display, val uncertainty: Display? = null)
+data class TodayWithThis(val total: Display, val bare: Display = Display.Hidden, val plusMinus: Display = Display.Hidden)
 
 /** Vitamins, then minerals, each in the table's order; a group the food has nothing in is left out. */
 data class AllNutrients(val open: Boolean, val groups: List<NutrientGroup>)
@@ -135,7 +138,7 @@ data class NutrientRow(val micro: Micronutrient, val display: Display)
 /** "Per 350 g plate · Source: USDA FoodData Central". [per] is null for grams. */
 data class SourceLine(val per: String?, val source: FoodOrigin?)
 
-enum class FoodOrigin { Usda, OpenFoodFacts, Yours }
+enum class FoodOrigin { Usda, OpenFoodFacts, Nevo, Yours }
 
 /** What has been typed into the Custom size dialog. */
 data class CustomSizeUi(val name: String = "", val grams: String = "") {
@@ -242,6 +245,8 @@ data class DetailInputs(
     val today: LocalDate,
     /** The clock now, shown while the time is now. */
     val now: LocalTime,
+    /** The last 14 days, for the usual size of a meal eaten with no details in the ±. */
+    val history: List<Day> = emptyList(),
 )
 
 /** The food detail's state as a pure function, like [LoggerStateBuilder]. Surface [Surface.Logger]. */
@@ -324,9 +329,22 @@ object FoodDetailStateBuilder {
         val policy = inputs.policy
         val range = inputs.settings.targets.rangeFor(day.date, policy.settings.preset).maxKcal.toDouble()
         val context = day.formatContext(inputs.today, of = range)
-        val total = policy.resolve(Metric.Calories, (day.totals().kcal.value ?: 0.0) + added, Surface.Logger, context)
+        val sum = (day.totals().kcal.value ?: 0.0) + added
+        val total = policy.resolve(Metric.Calories, sum, Surface.Logger, context)
         if (total is Display.Hidden) return null
-        return TodayWithThis(total = total)
+        val withThis = day.copy(itemsBySlot = day.itemsBySlot + (MealSlot.Uncategorized to day.items(MealSlot.Uncategorized) + draft.asItem(day.date)))
+        val spread = withThis.eatenUncertainty(UsualMealSize.from(inputs.history, inputs.settings.targets.energyKcal)).plusMinusKcal
+        val bare = context.copy(bare = true)
+        return TodayWithThis(
+            total = total,
+            bare = policy.resolve(Metric.Calories, sum, Surface.Logger, bare),
+            // A softened day reads as a word, and a word has no ±.
+            plusMinus = if (spread > 0 && total is Display.Shown) {
+                policy.resolve(Metric.Calories, spread.toDouble(), Surface.Logger, bare.copy(of = null))
+            } else {
+                Display.Hidden
+            },
+        )
     }
 
     private fun nutrients(draft: LogDraft, policy: VisibilityPolicy, open: Boolean): AllNutrients? {
@@ -352,6 +370,7 @@ object FoodDetailStateBuilder {
             is AmountFood.Catalog -> when {
                 food.food.source.isUsda -> FoodOrigin.Usda
                 food.food.source == FoodSource.OpenFoodFacts -> FoodOrigin.OpenFoodFacts
+                food.food.source == FoodSource.Nevo -> FoodOrigin.Nevo
                 else -> null
             }
         }
@@ -362,3 +381,15 @@ object FoodDetailStateBuilder {
     private const val HUNDRED = 100.0
     private const val GRAMS_CHIP = 100.0
 }
+
+/** This draft as if it were logged, so the day's ± counts it at its how-sure. Never written. */
+private fun LogDraft.asItem(day: LocalDate): LogItem = LogItem(
+    id = "food-detail",
+    day = day,
+    slot = MealSlot.Uncategorized,
+    loggedAt = Instant.DISTANT_PAST,
+    name = name,
+    precision = precision,
+    method = method ?: LogMethod.Search,
+    kcal = kcal,
+)

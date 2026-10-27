@@ -1,19 +1,31 @@
 package com.opson.features.today.impl
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import com.opson.libraries.ui.components.SheetHandle
+import com.opson.libraries.ui.components.dialog.ModalDialogDefaults
+import com.opson.system.background
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.system.AppTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.opson.features.today.impl.calendar.CalendarSheetContent
+import com.opson.features.today.impl.calendar.CalendarDropdownContent
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.item.ItemSheetContent
+import com.opson.features.today.impl.item.ItemSheetStateBuilder
 import com.opson.features.today.impl.meal.MealFeelSheetContent
 import com.opson.features.today.impl.meal.MealNoteSheetContent
 import com.opson.features.today.impl.meal.MealSheetContent
@@ -81,7 +93,7 @@ object TodayLeakSurfaces {
             TodayCardsSheetContent(state = TodayFixtures.todayCardsState(policy), onAction = {})
         },
         LeakSurface(id = "calendar", label = "Calendar", showsCaloriesInFull = false) {
-            CalendarSheetContent(state = TodayFixtures.calendarState(), onAction = {})
+            CalendarDropdownContent(state = TodayFixtures.calendarState(), onAction = {})
         },
         LeakSurface(id = "meal-sheet", label = "Meal options", showsCaloriesInFull = false) {
             MealSheetContent(state = TodayFixtures.mealSheetState(), onAction = {})
@@ -146,6 +158,27 @@ object TodayLeakSurfaces {
         LeakSurface(id = "today-cards-summary", label = "Edit Today's cards, the summary card", showsCaloriesInFull = false) { policy ->
             TodayCardsSheetContent(state = TodayFixtures.todayCardsState(policy, TodayFixtures.changingWeight, summaryOn = true), onAction = {})
         },
+        // Design sync 4, Today actions: the calendar over Today needs no flag; select mode and the
+        // drag sit behind release.todaySelect, the food's ⋮ behind release.foodActions.
+        LeakSurface(id = "today-calendar", label = "Today, the calendar dropped from the title", showsCaloriesInFull = true) { policy ->
+            TodayWithCalendar(policy)
+        },
+        LeakSurface(id = "today-select-v4", label = "Today, select mode's bottom bar", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy, ui = TodayUi(selected = TodayFixtures.snackPicked)), onAction = {})
+        },
+        LeakSurface(id = "today-drag-move", label = "Today, foods dragged to dinner", showsCaloriesInFull = true) { policy ->
+            TodayDragging(policy)
+        },
+        LeakSurface(id = "today-moved", label = "Today, the Undo after a move", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy, ui = TodayUi(moved = MovedNotice(2, null, MealSlot.Dinner))), onAction = {})
+        },
+        LeakSurface(id = "food-actions", label = "A food's ⋮ over Today", showsCaloriesInFull = true) { policy ->
+            TodayWithFoodActions(policy)
+        },
+        LeakSurface(id = "food-actions-amount", label = "A food's ⋮, Change amount", showsCaloriesInFull = false) { policy ->
+            val item = TodayFixtures.day().allItems.first { it.id == TodayFixtures.peanutButter }
+            ItemSheetContent(state = TodayFixtures.foodActionsState(policy, ItemSheetStateBuilder.amountStep(item)), onAction = {})
+        },
         LeakSurface(id = "day-close-check-in", label = "Day close, the check-in", showsCaloriesInFull = true) { policy ->
             DayCloseScreen(
                 state = TodayFixtures.dayCloseState(policy, expended = TodayFixtures.expended, checkInOn = true, checkIn = TodayFixtures.checkIn),
@@ -154,7 +187,7 @@ object TodayLeakSurfaces {
         },
     )
 
-    /** Today as design sync 2 draws it: both flags on, the watch connected, a weigh-in this morning. */
+    /** Today as design sync 2 and 4 draw it: the flags on, the watch connected, a weigh-in this morning. */
     private fun designSync(policy: VisibilityPolicy, settings: Settings = Settings(), ui: TodayUi = TodayUi()): TodayState =
         TodayFixtures.todayState(
             policy,
@@ -165,6 +198,7 @@ object TodayLeakSurfaces {
             selectOn = true,
             weighIns = TodayFixtures.weighIns,
             ui = ui,
+            foodActionsOn = true,
         )
 }
 
@@ -184,3 +218,61 @@ internal fun TodayWithMenu(policy: VisibilityPolicy, clearArmed: Boolean = false
         }
     }
 }
+
+/** Today under a scrim with the month dropped from its title (13.3a), as the calendar dialog draws it. */
+@Composable
+internal fun TodayWithCalendar(policy: VisibilityPolicy) {
+    Box(Modifier.fillMaxSize()) {
+        TodayScreen(state = TodayFixtures.todayState(policy, summaryOn = true, selectOn = true, foodActionsOn = true), onAction = {})
+        Box(Modifier.fillMaxSize().background(ModalDialogDefaults.scrimColor()))
+        CalendarDropdownContent(state = TodayFixtures.calendarState(), onAction = {})
+    }
+}
+
+/**
+ * The apple and the peanut butter mid-drag over dinner (13.3c), held still: the list scrolled to
+ * lunch, the finger about where dinner's card sits.
+ */
+@Composable
+internal fun TodayDragging(policy: VisibilityPolicy) {
+    val y = with(LocalDensity.current) { DinnerUnderFinger.toPx() }
+    val drag = remember { FoodDrag().apply { showing(y, MealSlot.Dinner) } }
+    TodayScreen(
+        state = TodayFixtures.todayState(
+            policy,
+            summaryOn = true,
+            selectOn = true,
+            foodActionsOn = true,
+            ui = TodayUi(selected = TodayFixtures.snackPicked),
+        ),
+        onAction = {},
+        drag = drag,
+        listState = rememberLazyListState(initialFirstVisibleItemIndex = LUNCH_ROW_FLAGS_ON),
+    )
+}
+
+/** Today under a scrim with the peanut butter's actions in a sheet at the bottom (13.3d). */
+@Composable
+internal fun TodayWithFoodActions(policy: VisibilityPolicy) {
+    Box(Modifier.fillMaxSize()) {
+        TodayScreen(state = TodayFixtures.todayState(policy, summaryOn = true, selectOn = true, foodActionsOn = true), onAction = {})
+        Box(Modifier.fillMaxSize().background(ModalDialogDefaults.scrimColor()))
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .background(AppTheme.colors.surface),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            SheetHandle(Modifier.padding(vertical = 12.dp))
+            ItemSheetContent(state = TodayFixtures.foodActionsState(policy), onAction = {})
+        }
+    }
+}
+
+/** With the summary flag on: the card, water, weight, breakfast, then lunch. */
+private const val LUNCH_ROW_FLAGS_ON = 4
+
+/** Where dinner's card sits with the list scrolled to lunch. */
+private val DinnerUnderFinger = 500.dp

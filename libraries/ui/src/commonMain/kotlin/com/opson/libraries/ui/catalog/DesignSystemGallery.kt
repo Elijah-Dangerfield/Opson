@@ -70,37 +70,24 @@ import com.opson.libraries.ui.system.color.toHexString
 import com.opson.system.AppTheme
 import com.opson.system.background
 import com.opson.system.color.MealTone
-import com.opson.system.color.Palette
 import com.opson.system.typography.TypographyResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /*
- * Every token and component on one scrolling page, in four themes. Sample copy here is preview
+ * Every token and component on one scrolling page, in light and dark. Sample copy here is preview
  * only and never reaches a user, hence the VerifyStrings suppressions on the helpers below.
  */
 
-@Preview(name = "Pine, light", widthDp = 390, heightDp = 4200)
+@Preview(name = "Slate, light", widthDp = 390, heightDp = 4200)
 @Composable
-private fun GalleryPineLight() {
-    DesignSystemGallery(palette = Palette.Pine, dark = false)
+private fun GallerySlateLight() {
+    DesignSystemGallery(dark = false)
 }
 
-@Preview(name = "Pine, dark", widthDp = 390, heightDp = 4200)
+@Preview(name = "Slate, dark", widthDp = 390, heightDp = 4200)
 @Composable
-private fun GalleryPineDark() {
-    DesignSystemGallery(palette = Palette.Pine, dark = true)
-}
-
-@Preview(name = "Espresso, light", widthDp = 390, heightDp = 4200)
-@Composable
-private fun GalleryEspressoLight() {
-    DesignSystemGallery(palette = Palette.Espresso, dark = false)
-}
-
-@Preview(name = "Espresso, dark", widthDp = 390, heightDp = 4200)
-@Composable
-private fun GalleryEspressoDark() {
-    DesignSystemGallery(palette = Palette.Espresso, dark = true)
+private fun GallerySlateDark() {
+    DesignSystemGallery(dark = true)
 }
 
 @Preview(name = "Large text", widthDp = 390, heightDp = 1200)
@@ -112,8 +99,8 @@ private fun GalleryLargeText() {
 }
 
 @Composable
-internal fun DesignSystemGallery(palette: Palette, dark: Boolean) {
-    PreviewContent(palette = palette, darkTheme = dark) {
+internal fun DesignSystemGallery(dark: Boolean) {
+    PreviewContent(darkTheme = dark) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
@@ -239,15 +226,22 @@ private fun ColorSection() {
         Swatch("muted", c.muted)
         Swatch("line", c.line)
         Swatch("track", c.track)
-        Swatch("soft", c.soft)
+        Swatch("raised", c.soft)
+        Swatch("ink-soft", c.inkSoft)
         Swatch("on-accent", c.onAccent)
     }
-    SectionTitle("Brand, ${c.palette.name}")
+    SectionTitle("Accent and overlays")
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Swatch("hero", c.hero)
         Swatch("accent", c.accent)
         Swatch("tint", c.accentTint)
+        Swatch("hero", c.hero)
         Swatch("scrim", c.scrim)
+        Swatch("toast", c.ink)
+    }
+    SectionTitle("Energy out")
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Swatch("resting", c.restingEnergy)
+        Swatch("active", c.activeEnergy)
     }
     SectionTitle("Nutrients")
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

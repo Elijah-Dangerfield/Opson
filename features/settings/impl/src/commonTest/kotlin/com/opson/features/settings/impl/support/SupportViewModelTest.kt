@@ -54,7 +54,26 @@ class SupportViewModelTest : CoroutineTest() {
             listOf<SupportEvent>(SupportEvent.OpenLink(HELPLINE_URL), SupportEvent.OpenLink(PROVIDER_URL)),
             events,
         )
-        assertEquals("https://www.allianceforeatingdisorders.com", HELPLINE_URL)
+        assertEquals("https://www.allianceforeatingdisorders.com/find-treatment/", HELPLINE_URL)
+    }
+
+    @Test
+    fun theAboutRowsOpenThePublishedLegalPages() = runUnitTest {
+        val rig = Rig()
+        val events = eventsOf(rig.vm)
+
+        rig.vm.takeAction(SupportAction.PrivacyTapped)
+        rig.vm.takeAction(SupportAction.TermsTapped)
+        rig.vm.takeAction(SupportAction.CreditsTapped)
+
+        assertEquals(
+            listOf<SupportEvent>(
+                SupportEvent.OpenLink("https://nightjarlabs.llc/opson/privacy"),
+                SupportEvent.OpenLink("https://nightjarlabs.llc/opson/terms"),
+                SupportEvent.OpenLink("https://nightjarlabs.llc/opson/credits"),
+            ),
+            events,
+        )
     }
 
     @Test

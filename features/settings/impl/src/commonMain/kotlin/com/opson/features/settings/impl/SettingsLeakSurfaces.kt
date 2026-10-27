@@ -1,6 +1,11 @@
 package com.opson.features.settings.impl
 
 import androidx.compose.foundation.layout.Column
+import com.opson.features.settings.impl.energy.EnergyTodayFixtures
+import com.opson.features.settings.impl.energy.EnergyTodayScreen
+import com.opson.features.settings.impl.energy.EnergyTodayStateBuilder
+import com.opson.features.settings.impl.energy.RestingEnergyScreen
+import com.opson.features.settings.impl.energy.RestingEnergyStateBuilder
 import com.opson.features.settings.impl.fasting.FastingFixtures
 import com.opson.features.settings.impl.fasting.FastingScreen
 import com.opson.features.settings.impl.integrations.IntegrationsFixtures
@@ -25,14 +30,14 @@ import com.opson.features.settings.impl.support.SupportCountry
 import com.opson.features.settings.impl.support.SupportScreen
 import com.opson.features.settings.impl.support.SupportState
 import com.opson.features.settings.impl.support.SupportStateBuilder
-import com.opson.features.settings.impl.targets.GoalStyleSheetContent
-import com.opson.features.settings.impl.targets.GoalStyleStateBuilder
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsStateBuilder
 import com.opson.features.settings.impl.water.WaterSettingsScreen
 import com.opson.features.settings.impl.water.WaterSettingsStateBuilder
 import com.opson.features.settings.impl.widgets.WidgetsFixtureScreen
 import com.opson.libraries.diary.Tone
+import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 import com.opson.libraries.widgets.WidgetCard
@@ -62,12 +67,43 @@ object SettingsLeakSurfaces {
         LeakSurface(id = "targets", label = "Targets", showsCaloriesInFull = true) { policy ->
             TargetsScreen(TargetsStateBuilder.build(SettingsFixtures.settings(policy.settings), policy), onAction = {})
         },
-        LeakSurface(id = "targets-goal-style", label = "Goal style", showsCaloriesInFull = false) { policy ->
-            GoalStyleSheetContent(GoalStyleStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})
+        // Design sync 4: the goal style list with a set deficit picked, its target against Burned,
+        // and where Burned comes from.
+        LeakSurface(id = "targets-goal-style", label = "Goal style", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.deficitTargets)
+            TargetsScreen(
+                TargetsStateBuilder.build(settings, policy, burned = SettingsFixtures.burned, goalsAndEnergy = true, healthSource = HealthSource.HealthConnect),
+                onAction = {},
+            )
+        },
+        LeakSurface(id = "resting-energy", label = "Resting energy", showsCaloriesInFull = false) { policy ->
+            val choices = RestingChoices(1610, emptySet(), 1560, HealthSource.HealthConnect, 72.0)
+            val settings = SettingsFixtures.settings(policy.settings).copy(restingOwnKcal = 1600)
+            RestingEnergyScreen(RestingEnergyStateBuilder.build(settings, choices, policy, activitySource = HealthSource.HealthConnect), onAction = {})
+        },
+        LeakSurface(id = "energy-today", label = "Energy today", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings)
+            EnergyTodayScreen(EnergyTodayStateBuilder.build(EnergyTodayFixtures.inputs(settings), policy), onAction = {})
+        },
+        // release.goalsAndEnergy: one number, a set surplus, and a day group of each shape.
+        LeakSurface(id = "targets-exact", label = "Targets, one number", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.exactTargets)
+            TargetsScreen(TargetsStateBuilder.build(settings, policy), onAction = {})
+        },
+        LeakSurface(id = "targets-surplus", label = "Targets, set surplus", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.surplusTargets)
+            TargetsScreen(TargetsStateBuilder.build(settings, policy, burned = SettingsFixtures.burned), onAction = {})
+        },
+        LeakSurface(id = "targets-by-day-shapes", label = "Targets, day groups by shape", showsCaloriesInFull = true) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.shapedByDayTargets)
+            Column {
+                TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 1, goalsAndEnergy = true), onAction = {})
+                TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 2, goalsAndEnergy = true), onAction = {})
+            }
         },
         LeakSurface(id = "targets-deficit", label = "Targets, set deficit", showsCaloriesInFull = true) { policy ->
             val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.deficitTargets)
-            TargetsScreen(TargetsStateBuilder.build(settings, policy, burnKcal = SettingsFixtures.BURN_KCAL), onAction = {})
+            TargetsScreen(TargetsStateBuilder.build(settings, policy, burned = SettingsFixtures.burned), onAction = {})
         },
         LeakSurface(id = "targets-by-day", label = "Targets, different by day", showsCaloriesInFull = true) { policy ->
             val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.byDayTargets)

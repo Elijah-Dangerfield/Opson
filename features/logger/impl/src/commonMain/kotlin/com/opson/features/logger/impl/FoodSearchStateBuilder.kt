@@ -9,6 +9,7 @@ import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SearchDatabase
 import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
@@ -116,6 +117,7 @@ object FoodSearchStateBuilder {
                     rows = rows(listing.picks),
                     offline = listing.offline,
                     openFoodFacts = choices.searchOptions && listing.picks.any { it.food?.isOpenFoodFacts == true },
+                    nevo = listing.picks.any { it.food?.source == FoodSource.Nevo },
                 )
             }
             is Listing.Browse -> if (listing.usual.isEmpty() && listing.recent.isEmpty()) {

@@ -53,7 +53,7 @@ interface NutritionFormatter {
     /** `47 / 120 g`. */
     fun gramsSlash(grams: Double, of: Double): String
 
-    /** `1,900 to 2,300`, or `1,900 to 2,300 kcal` with the unit. */
+    /** `1,900 to 2,300`, or `1,900 to 2,300 kcal` with the unit. One number when the ends meet: `2,100`, never `2,100 to 2,100`. */
     fun energyRange(min: Double, max: Double, bare: Boolean): String
 
     /** `47 g protein`. [metric] is one of the four macros. */
@@ -139,8 +139,10 @@ object EnglishNutritionFormatter : NutritionFormatter {
 
     override fun gramsSlash(grams: Double, of: Double): String = "${wholeNumber(grams)} / ${wholeNumber(of)} g"
 
-    override fun energyRange(min: Double, max: Double, bare: Boolean): String =
-        if (bare) "${wholeNumber(min)} to ${wholeNumber(max)}" else "${wholeNumber(min)} to ${wholeNumber(max)} kcal"
+    override fun energyRange(min: Double, max: Double, bare: Boolean): String {
+        val amount = if (wholeNumber(min) == wholeNumber(max)) wholeNumber(min) else "${wholeNumber(min)} to ${wholeNumber(max)}"
+        return if (bare) amount else "$amount kcal"
+    }
 
     override fun macroLong(metric: Metric, grams: Double): String = "${wholeNumber(grams)} g ${macroWord(metric)}"
 

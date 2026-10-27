@@ -1,0 +1,114 @@
+package com.opson.libraries.nutrition
+
+import kotlin.math.roundToInt
+
+/**
+ * What the Mifflin–St Jeor equation is told about the body. The equation has one constant for
+ * each of two sexes; [Unsaid] takes the point halfway between them, so nobody has to answer to
+ * get a number.
+ */
+enum class BodySex { Female, Male, Unsaid }
+
+/** Where the person wants resting energy to come from (Resting energy, design sync 4, 13.2d). */
+enum class RestingSource {
+    /** Mifflin–St Jeor from age, height, the latest weigh-in and sex. The default. */
+    Calculate,
+
+    /** The phone's health store, falling back to [Calculate] when it has nothing. */
+    Health,
+
+    /** A number the person trusts, from a lab test or anywhere else. */
+    Own,
+}
+
+/** Where the resting energy in use came from, which can differ from the [RestingSource] picked. */
+enum class RestingFrom { Calculated, Health, Own }
+
+/** Resting energy for a whole day, in kcal, and where it came from. */
+data class RestingEnergy(val kcal: Int, val from: RestingFrom)
+
+/** What the calculation needs. Any of them can be missing; [RestingEnergies.calculate] then has no answer. */
+data class BodyProfile(
+    val weightKg: Double? = null,
+    val heightCm: Double? = null,
+    val ageYears: Int? = null,
+    val sex: BodySex? = null,
+) {
+    /** What is still needed before resting energy can be calculated. */
+    val missing: Set<BodyDetail>
+        get() = buildSet {
+            if (weightKg == null) add(BodyDetail.Weight)
+            if (heightCm == null) add(BodyDetail.Height)
+            if (ageYears == null) add(BodyDetail.Age)
+            if (sex == null) add(BodyDetail.Sex)
+        }
+}
+
+enum class BodyDetail { Weight, Height, Age, Sex }
+
+object RestingEnergies {
+    // Inputs outside these are a typo, not a body: they give no answer rather than a wild one.
+    private val WEIGHT_KG = 25.0..400.0
+    private val HEIGHT_CM = 100.0..250.0
+    private val AGE_YEARS = 13..120
+
+    private const val MALE = 5.0
+    private const val FEMALE = -161.0
+
+    /** The most anyone can enter as their own, a guard against a stray extra digit. */
+    const val OWN_MAX_KCAL = 5000
+    const val OWN_MIN_KCAL = 500
+
+    /**
+     * Mifflin–St Jeor: 10 × kg + 6.25 × cm − 5 × age + 5 (male) or − 161 (female), rounded to 10.
+     * Null while anything is missing or out of range.
+     */
+    fun calculate(profile: BodyProfile): Int? {
+        val kg = profile.weightKg?.takeIf { it in WEIGHT_KG } ?: return null
+        val cm = profile.heightCm?.takeIf { it in HEIGHT_CM } ?: return null
+        val age = profile.ageYears?.takeIf { it in AGE_YEARS } ?: return null
+        val constant = when (profile.sex ?: return null) {
+            BodySex.Male -> MALE
+            BodySex.Female -> FEMALE
+            BodySex.Unsaid -> (MALE + FEMALE) / 2
+        }
+        return roundTo10(10 * kg + 6.25 * cm - 5 * age + constant)
+    }
+
+    /**
+     * The resting energy to use. [Health][RestingSource.Health] falls back to the calculation, and
+     * so does [Own][RestingSource.Own] while nothing valid is entered; null when nothing can answer.
+     */
+    fun resolve(source: RestingSource, calculatedKcal: Int?, healthKcal: Int?, ownKcal: Int?): RestingEnergy? {
+        val calculated = calculatedKcal?.let { RestingEnergy(it, RestingFrom.Calculated) }
+        return when (source) {
+            RestingSource.Calculate -> calculated
+            RestingSource.Health -> healthKcal?.takeIf { it > 0 }?.let { RestingEnergy(roundTo10(it.toDouble()), RestingFrom.Health) } ?: calculated
+            RestingSource.Own -> ownKcal?.takeIf { it in OWN_MIN_KCAL..OWN_MAX_KCAL }?.let { RestingEnergy(it, RestingFrom.Own) } ?: calculated
+        }
+    }
+
+    private fun roundTo10(kcal: Double): Int = (kcal / 10).roundToInt() * 10
+}
+
+/**
+ * What the person burns on a day (design sync 4): resting energy for the whole day, plus the
+ * activity their health app has synced so far when they count it ([activityCounted]). A set
+ * deficit or surplus is aimed at [totalKcal] ([Targets.rangeFor]'s `burnKcal`), so it moves
+ * as activity syncs.
+ *
+ * [movementKcal] and [workoutKcal] are null when nothing reads them (no health app, or
+ * `release.health` off), which is not the same as a synced zero.
+ */
+data class Burned(
+    val resting: RestingEnergy,
+    val movementKcal: Int? = null,
+    val workoutKcal: Int? = null,
+    val activityCounted: Boolean = true,
+) {
+    /** Movement and workouts as counted: zero when switched off or not read. */
+    val activityKcal: Int
+        get() = if (activityCounted) (movementKcal ?: 0).coerceAtLeast(0) + (workoutKcal ?: 0).coerceAtLeast(0) else 0
+
+    val totalKcal: Int get() = resting.kcal + activityKcal
+}

@@ -1,6 +1,7 @@
 package com.opson.features.logger.impl
 
 import com.opson.libraries.core.fixed
+import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
@@ -116,7 +117,33 @@ class FoodDetailTest : CoroutineTest() {
         val today = assertNotNull(build(policy(PresetId.Full)).energy?.today)
 
         assertEquals("927 kcal", today.total.text())
-        assertNull(today.uncertainty, "the ± waits for eatenUncertainty")
+        assertEquals("927", today.bare.text())
+        // Four estimates at 25%: σ of 25, 26, 157 and 24 kcal, √Σσ² rounded to 10.
+        assertEquals("160", today.plusMinus.text())
+    }
+
+    @Test
+    fun theFoodsOwnHowSureMovesTheDaysPlusMinus() {
+        val food = AmountFood.Catalog(LoggerFixtures.peanutButter)
+        val inputs = LoggerFixtures.detailInputs(policy(PresetId.Full)).copy(day = Day.empty(LoggerFixtures.today))
+        fun plusMinus(precision: Precision) = FoodDetailStateBuilder.build(
+            food,
+            DetailChoice.initial(food, MealSlot.Dinner).copy(precision = precision),
+            inputs,
+            FoodRef.Catalog(food.food.id),
+            PickSource.Search,
+        ).energy?.today?.plusMinus
+
+        assertEquals("20", plusMinus(Precision.Estimate)?.text(), "95 kcal at 25%")
+        assertEquals("10", plusMinus(Precision.Label)?.text(), "at 10%")
+        assertEquals(Display.Hidden, plusMinus(Precision.Weighed), "at 5% it rounds to nothing, so no ±")
+    }
+
+    @Test
+    fun blindHasNoPlusMinusEither() {
+        assertNull(build(policy(PresetId.Blind)).energy)
+        val soft = build(withLevel(Metric.Calories, Visibility.Soften)).energy?.today
+        assertEquals(Display.Hidden, soft?.plusMinus)
     }
 
     @Test

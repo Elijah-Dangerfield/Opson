@@ -58,6 +58,6 @@
     <string name="adding_detail_all">All nutrients</string>
     <string name="adding_detail_all_cd">All nutrients, %1$s</string>
     <string name="adding_detail_today">Today with this</string>
-    <string name="adding_detail_today_plus_minus">%1$s ± %2$s</string>
+    <string name="adding_detail_today_plus_minus">%1$s ± %2$s kcal</string>
 
 </resources>

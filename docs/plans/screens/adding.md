@@ -109,9 +109,9 @@ Back, the name, ⋮ (Meal, Time, Save to favorites). Then:
 `Precision.Label` ("label") is new in `:libraries:diary` and on the server
 (V21 widens the check). A 0.1 client reads it as Estimate.
 
-The day's ± (`eatenUncertainty`) is another area's work in
-`:libraries:nutrition` and not on main yet. `TodayWithThis.uncertainty` is the
-seam: null until then, and the row draws no ±.
+"Today with this" carries the day's ± (`Day.eatenUncertainty`) with this food
+counted at the how-sure picked, so weighing it narrows the ±. A softened day
+shows its word and no ±; `loggedAs` reads From label as a label.
 
 ## Visibility (surface `Logger`)
 

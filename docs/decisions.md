@@ -6,6 +6,24 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: One colour scheme, Slate; the palette setting is dropped
+
+**Decision:** the four palettes (Pine, Espresso, Clay, Plum) are gone. Slate,
+in light and dark, is the only scheme (design sync 4, `colors-slate.png`).
+Appearance (System, Light, Dark) is the existing top-level `theme` key. The
+`palette` key is no longer read or written: the field left `Settings`, and
+decoding ignores it.
+
+**Why:** the owner chose one scheme. Dropping the key, rather than keeping it
+with one value, means no stored value can be wrong: a phone that had Espresso
+reads Slate like everyone else. The server merges settings one level deep, so a
+0.2 save leaves the key where it was, and a 0.1 phone on the same account keeps
+the palette it picked (`AppearanceAcrossVersionsTest`).
+
+**Alternatives:** map each palette to an appearance (Espresso to Dark, say).
+Rejected: every palette had a light and a dark set, so a palette says nothing
+about light or dark.
+
 ## 2026-10-27: Full numbers shows vitamins and minerals
 
 **Decision:** Full numbers (and Sprint, which is "same as full, plus a banner")

@@ -17,6 +17,19 @@ val GOAL_FLOOR_KCAL: Int? = null
 // While it is null, a deficit can never grow past the one it started at.
 val MAX_DEFICIT_KCAL: Int? = null
 
+// TODO(clinician): MAX_SURPLUS_KCAL caps "A set surplus" and must be set by a clinician before
+// launch, as MAX_DEFICIT_KCAL is (the owner's call, 2026-10-27). Do not invent a value. A surplus
+// can't put the goal under the floor, but gaining fast is not safe for everyone either. While it
+// is null, a surplus can never grow past the one it started at.
+val MAX_SURPLUS_KCAL: Int? = null
+
+// TODO(clinician): how far either side of one number (an exact goal, a deficit or a surplus) still
+// reads as on it. An engineer picked it, a quarter of the default range's width either side.
+// Without it a single bite past one number would read as above it, and fire the big-day card,
+// where a range has room built in. It only changes the words and the big-day card, never the goal
+// or how it is drawn: one number is still drawn as one line.
+const val ONE_NUMBER_LEEWAY_KCAL: Int = 100
+
 // TODO(clinician): the most watch activity may add to today's range, and the share "Some of it"
 // adds. An engineer picked both. The cap only stops one bad reading (a 5,000 kcal glitch) from
 // moving the range absurdly, and sits above an ordinary active day so normal movement is never
@@ -31,8 +44,9 @@ const val EXERCISE_SOME_SHARE: Double = 0.5
  * then. Each end of the range steps on its own ([step]); [energyKcal], the aim,
  * is the middle of the range and never drops below [floorKcal] either.
  *
- * [style] is how the goal is shaped (a range, a set deficit, different by
- * day). Ask [rangeFor] for any one day's goal rather than reading the fields.
+ * [style] is how the goal is shaped (a range, one number, a set deficit, a
+ * surplus, different by day). Ask [rangeFor] for any one day's goal rather than
+ * reading the fields.
  *
  * [ratioBasis] is bookkeeping for ratio mode, not something a screen reads:
  * the split the current grams were scaled from. Scaling each 50 kcal step from
@@ -66,34 +80,93 @@ data class Targets(
     val maxDeficitKcal: Int
         get() = MAX_DEFICIT_KCAL ?: (style as? TargetStyle.Deficit)?.startingKcal ?: 0
 
+    /** The most a surplus may be, the style's or day group [group]'s: the clinician's maximum once set, until then where it started. */
+    fun maxSurplusKcal(group: Int? = null): Int = MAX_SURPLUS_KCAL ?: surplusOf(group)?.startingKcal ?: 0
+
+    private fun surplusOf(group: Int?): SurplusAmount? = if (group == null) {
+        (style as? TargetStyle.Surplus)?.let { SurplusAmount(it.kcal, it.startingKcal) }
+    } else {
+        ((style as? TargetStyle.ByDay)?.groups?.getOrNull(group)?.shape as? GroupShape.Surplus)?.let { SurplusAmount(it.kcal, it.startingKcal) }
+    }
+
+    private data class SurplusAmount(val kcal: Int, val startingKcal: Int)
+
     /**
-     * The goal for [date]. A day group's range under [TargetStyle.ByDay]; under
-     * [TargetStyle.Deficit], "about" what the user burns ([burnKcal], a 7-day average) less the
-     * deficit, never below the floor. A deficit falls back to the range when the burn is not
-     * known yet or [preset] does not offer deficits, so a mode change can never leave a
-     * deficit running where the user can't see or change it.
+     * The goal for [date]. A day group's goal under [TargetStyle.ByDay]; the aim itself under
+     * [TargetStyle.Exact]; under [TargetStyle.Deficit], "about" what the user burns ([burnKcal],
+     * [Burned.totalKcal] for that day, so it moves as activity syncs) less the deficit, never
+     * below the floor; under [TargetStyle.Surplus], "about" the burn plus the surplus
+     * ([surplusGoal]). A deficit falls back to the range when the burn is not known or [preset]
+     * does not offer deficits, and a surplus when [preset] does not offer one, so a mode change
+     * can never leave either running where the user can't see or change it.
      */
     fun rangeFor(date: LocalDate, preset: PresetId, burnKcal: Int? = null): DayGoal {
-        val base = DayGoal.Range(minKcal, maxKcal, energyKcal)
-        return when (val s = style) {
-            TargetStyle.Range -> base
-            is TargetStyle.ByDay -> {
-                val index = s.groups.indexOfFirst { date.dayOfWeek in it.days }
-                if (index < 0) {
-                    base
-                } else {
-                    val group = s.groups[index]
-                    DayGoal.Range(group.minKcal, group.maxKcal, group.midKcal, groupIndex = index)
-                }
-            }
-            is TargetStyle.Deficit -> {
-                if (burnKcal == null || !TargetStyle.deficitAllowed(preset)) {
-                    base
-                } else {
-                    DayGoal.About(deficitGoal(burnKcal, s.kcal))
-                }
+        val byDay = style as? TargetStyle.ByDay ?: return everyDayGoal(preset, burnKcal)
+        val index = byDay.groups.indexOfFirst { date.dayOfWeek in it.days }
+        return if (index < 0) baseGoal else groupGoal(byDay.groups[index], index, burnKcal, preset)
+    }
+
+    /**
+     * The goal a chart draws across many days, where [rangeFor] answers for one. The same as any
+     * day's goal for every style but [TargetStyle.ByDay], where it runs from the lowest day
+     * group's goal to the highest, over the groups that hold a day; with one level it is that
+     * group's own goal.
+     */
+    fun spanGoal(preset: PresetId, burnKcal: Int? = null): DayGoal {
+        val byDay = style as? TargetStyle.ByDay ?: return everyDayGoal(preset, burnKcal)
+        val goals = byDay.groups.mapIndexedNotNull { index, group ->
+            if (group.days.isEmpty()) null else groupGoal(group, index, burnKcal, preset)
+        }
+        if (goals.isEmpty()) return baseGoal
+        if (goals.distinctBy { it.minKcal to it.maxKcal }.size == 1) return goals.first()
+        val min = goals.minOf { it.minKcal }
+        val max = goals.maxOf { it.maxKcal }
+        return DayGoal.Range(min, max, (min + max) / 2)
+    }
+
+    private val baseGoal: DayGoal get() = DayGoal.Range(minKcal, maxKcal, energyKcal)
+
+    /** The goal of every day, for each style but [TargetStyle.ByDay]. */
+    private fun everyDayGoal(preset: PresetId, burnKcal: Int?): DayGoal = when (val s = style) {
+        TargetStyle.Range, is TargetStyle.ByDay -> baseGoal
+        TargetStyle.Exact -> DayGoal.Exact(energyKcal)
+        is TargetStyle.Surplus -> if (TargetStyle.surplusAllowed(preset)) {
+            DayGoal.About(surplusGoal(energyKcal, burnKcal, s.kcal))
+        } else {
+            baseGoal
+        }
+        is TargetStyle.Deficit -> if (burnKcal == null || !TargetStyle.deficitAllowed(preset)) {
+            baseGoal
+        } else {
+            DayGoal.About(deficitGoal(burnKcal, s.kcal))
+        }
+    }
+
+    /** Day group [index]'s goal under [TargetStyle.ByDay], whichever days it holds; null outside it. */
+    fun groupGoal(index: Int, preset: PresetId, burnKcal: Int? = null): DayGoal? =
+        (style as? TargetStyle.ByDay)?.groups?.getOrNull(index)?.let { groupGoal(it, index, burnKcal, preset) }
+
+    private fun groupGoal(group: DayGroup, index: Int, burnKcal: Int?, preset: PresetId): DayGoal {
+        val range = DayGoal.Range(group.minKcal, group.maxKcal, group.midKcal, groupIndex = index)
+        return when (val shape = group.shape) {
+            GroupShape.Range -> range
+            GroupShape.Exact -> DayGoal.Exact(group.midKcal, groupIndex = index)
+            is GroupShape.Surplus -> if (TargetStyle.surplusAllowed(preset)) {
+                DayGoal.About(surplusGoal(group.midKcal, burnKcal, shape.kcal), groupIndex = index)
+            } else {
+                range
             }
         }
+    }
+
+    /**
+     * [surplus] over what the user burns, or over [baseKcal] (the aim, or a day group's middle)
+     * while the burn is not known, rounded to 10 and never under the floor.
+     */
+    fun surplusGoal(baseKcal: Int, burnKcal: Int?, surplus: Int): Int {
+        val rounded = (((burnKcal ?: baseKcal) + surplus) / 10.0).roundToInt() * 10
+        val floor = ((floorKcal + 9) / 10) * 10
+        return max(rounded, floor)
     }
 
     /** What the user burns less [deficit], rounded to 10 and never under the floor. */
@@ -132,8 +205,28 @@ data class Targets(
         return copy(style = byDay.copy(groups = groups))
     }
 
-    /** A plain range. Day groups and a deficit are dropped; the base range stays as it is. */
+    /** A plain range. Day groups, a deficit or a surplus are dropped; the base range stays as it is. */
     fun useRange(): Targets = copy(style = TargetStyle.Range)
+
+    /** One number: the aim as it is, so nothing the user eats against changes on the switch. */
+    fun useExact(): Targets = copy(style = TargetStyle.Exact)
+
+    /**
+     * A surplus, unless one is already set. It starts at what the aim already implies against
+     * [burnKcal] (floored to 50, never negative), and at 0 when the burn is unknown, so the goal
+     * is about the aim on the day it is picked. While [MAX_SURPLUS_KCAL] is unset that start is
+     * also its cap, as the deficit's is.
+     */
+    fun useSurplus(burnKcal: Int?): Targets {
+        if (style is TargetStyle.Surplus) return this
+        val start = impliedSurplus(energyKcal, burnKcal)
+        return copy(style = TargetStyle.Surplus(kcal = start, startingKcal = start))
+    }
+
+    private fun impliedSurplus(aimKcal: Int, burnKcal: Int?): Int {
+        val implied = burnKcal?.let { max(0, aimKcal - it) / STEP_KCAL * STEP_KCAL } ?: 0
+        return MAX_SURPLUS_KCAL?.let { minOf(implied, it) } ?: implied
+    }
 
     /**
      * A set deficit, unless one is already set. It starts at what the user's aim already implies
@@ -161,6 +254,59 @@ data class Targets(
         return copy(style = deficit.copy(kcal = next))
     }
 
+    /**
+     * One step more or less surplus, on [TargetStyle.Surplus] or day group [group]'s
+     * [GroupShape.Surplus]. `null` below 0 or past [maxSurplusKcal].
+     */
+    fun stepSurplus(up: Boolean, group: Int? = null): Targets? {
+        val current = surplusOf(group) ?: return null
+        val next = current.kcal + if (up) STEP_KCAL else -STEP_KCAL
+        if (next < 0 || next > maxSurplusKcal(group)) return null
+        if (group == null) return copy(style = TargetStyle.Surplus(next, current.startingKcal))
+        return withGroup(group) { it.copy(shape = GroupShape.Surplus(next, current.startingKcal)) }
+    }
+
+    /** Whether one number (the aim, or day group [group]'s middle) may step [up]: lower stops at the floor, as the range does. */
+    fun canStepNumber(up: Boolean, group: Int? = null): Boolean {
+        if (up) return true
+        val (min, max) = ends(group) ?: return false
+        return min - STEP_KCAL >= lowFloorKcal && (min + max) / 2 - STEP_KCAL >= floorKcal
+    }
+
+    /**
+     * Moves one number by 50 kcal: the aim under [TargetStyle.Exact] (the whole range moving
+     * with it, macros scaling in ratio mode as [raise] does), or day group [group]'s middle,
+     * both its ends with it. `null` where [canStepNumber] says no.
+     */
+    fun stepNumber(up: Boolean, group: Int? = null, scaleMacros: Boolean = false): Targets? {
+        if (!canStepNumber(up, group)) return null
+        val delta = if (up) STEP_KCAL else -STEP_KCAL
+        if (group == null) return shiftedBy(delta, scaleMacros)
+        return withGroup(group) { it.copy(minKcal = it.minKcal + delta, maxKcal = it.maxKcal + delta) }
+    }
+
+    /**
+     * Gives day group [group] its own [shape]. A surplus starts at what the group's middle
+     * already implies against [burnKcal], as [useSurplus] does, whatever [shape] carries. Picking
+     * the shape a group already has keeps it as it is.
+     */
+    fun shapeGroup(group: Int, shape: GroupShape, burnKcal: Int? = null): Targets? {
+        val current = (style as? TargetStyle.ByDay)?.groups?.getOrNull(group) ?: return null
+        if (current.shape::class == shape::class) return this
+        val start = if (shape is GroupShape.Surplus) {
+            impliedSurplus(current.midKcal, burnKcal).let { GroupShape.Surplus(it, it) }
+        } else {
+            shape
+        }
+        return withGroup(group) { it.copy(shape = start) }
+    }
+
+    private fun withGroup(group: Int, transform: (DayGroup) -> DayGroup): Targets? {
+        val byDay = style as? TargetStyle.ByDay ?: return null
+        if (group !in byDay.groups.indices) return null
+        return copy(style = byDay.copy(groups = byDay.groups.mapIndexed { index, it -> if (index == group) transform(it) else it }))
+    }
+
     /** Moves [day] into group [group]. A day is never removed, only moved, so it stays in exactly one group. */
     fun moveDay(day: DayOfWeek, group: Int): Targets {
         val byDay = style as? TargetStyle.ByDay ?: return this
@@ -171,7 +317,7 @@ data class Targets(
         return copy(style = byDay.copy(groups = groups))
     }
 
-    /** A new, empty group on the first group's range. `null` at [TargetStyle.MAX_GROUPS]. */
+    /** A new, empty group on the first group's range, as a plain range. `null` at [TargetStyle.MAX_GROUPS]. */
     fun addDayGroup(): Targets? {
         val byDay = style as? TargetStyle.ByDay ?: return null
         if (byDay.groups.size >= TargetStyle.MAX_GROUPS) return null
@@ -297,7 +443,23 @@ data class EnergyRange(
     val minKcal: Int,
     val maxKcal: Int,
     val activityKcal: Int,
-)
+) {
+    /** One number rather than a range (one number, a deficit, a surplus): drawn as a line, never a band. */
+    val single: Boolean get() = minKcal == maxKcal
+
+    /** Where [kcal] eaten sits against the goal. One number has [ONE_NUMBER_LEEWAY_KCAL] either side of it. */
+    fun position(kcal: Double): GoalPosition {
+        val leeway = if (single) ONE_NUMBER_LEEWAY_KCAL else 0
+        return when {
+            kcal > maxKcal + leeway -> GoalPosition.Above
+            kcal >= minKcal - leeway -> GoalPosition.On
+            else -> GoalPosition.Below
+        }
+    }
+}
+
+/** Under, on or over a day's goal: inside a range, or close to one number. */
+enum class GoalPosition { Below, On, Above }
 
 /** How much watch activity (everyday movement plus workouts) adds to today's target. */
 enum class ExerciseAdjustment {

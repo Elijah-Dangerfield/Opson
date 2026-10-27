@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -34,8 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.IntOffset
 import com.opson.libraries.diary.FastingStatus
+import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.FastingTodayCard
+import com.opson.libraries.diary.ui.FoodMenuButton
 import com.opson.libraries.diary.ui.FoodListCard
 import com.opson.libraries.diary.ui.FoodsLine
 import com.opson.libraries.diary.ui.JournalEntry
@@ -74,6 +79,7 @@ import com.opson.libraries.ui.components.MenuIconItem
 import com.opson.libraries.ui.components.MenuPopover
 import com.opson.libraries.ui.components.MenuPopoverDefaults
 import com.opson.libraries.ui.system.MinTouchTarget
+import com.opson.libraries.ui.system.confirm
 import com.opson.libraries.ui.components.PillAction
 import com.opson.libraries.ui.components.PopoverMenu
 import com.opson.libraries.ui.components.PromptAction
@@ -97,6 +103,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
+import kotlin.math.roundToInt
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.reminders_rhythm_change
 import opson.libraries.resources.generated.resources.reminders_rhythm_next
@@ -112,7 +119,6 @@ import opson.libraries.resources.generated.resources.today_bridge_body
 import opson.libraries.resources.generated.resources.today_bridge_not_today
 import opson.libraries.resources.generated.resources.today_bridge_title
 import opson.libraries.resources.generated.resources.today_bridge_tried
-import opson.libraries.resources.generated.resources.today_calendar_cd
 import opson.libraries.resources.generated.resources.today_close_body
 import opson.libraries.resources.generated.resources.today_close_title
 import opson.libraries.resources.generated.resources.today_closed_body
@@ -123,10 +129,12 @@ import opson.libraries.resources.generated.resources.today_counts_glasses_other
 import opson.libraries.resources.generated.resources.today_counts_meals_one
 import opson.libraries.resources.generated.resources.today_counts_meals_other
 import opson.libraries.resources.generated.resources.today_day_menu_cd
+import opson.libraries.resources.generated.resources.today_drop_to
 import opson.libraries.resources.generated.resources.today_explorer_safe
 import opson.libraries.resources.generated.resources.today_explorer_safe_empty
 import opson.libraries.resources.generated.resources.today_feel_pair
 import opson.libraries.resources.generated.resources.today_feel_prompt
+import opson.libraries.resources.generated.resources.today_food_menu_cd
 import opson.libraries.resources.generated.resources.today_item_sub
 import opson.libraries.resources.generated.resources.today_loading_cd
 import opson.libraries.resources.generated.resources.today_label_today
@@ -145,7 +153,10 @@ import opson.libraries.resources.generated.resources.today_menu_edit_cards
 import opson.libraries.resources.generated.resources.today_menu_nutrients
 import opson.libraries.resources.generated.resources.today_menu_tracked
 import opson.libraries.resources.generated.resources.today_menu_untracked
+import opson.libraries.resources.generated.resources.today_move_row
 import opson.libraries.resources.generated.resources.today_move_to
+import opson.libraries.resources.generated.resources.today_moved_one
+import opson.libraries.resources.generated.resources.today_moved_other
 import opson.libraries.resources.generated.resources.today_next_day_cd
 import opson.libraries.resources.generated.resources.today_not_planned
 import opson.libraries.resources.generated.resources.today_pick_day_cd
@@ -188,11 +199,21 @@ import org.jetbrains.compose.resources.stringResource
  * scrolls away its one-line form sticks under the header. Stateless; [TodayViewModel] owns what
  * it shows and the scroll is the only thing kept here.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TodayScreen(
     state: TodayState,
     onAction: (TodayAction) -> Unit,
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
+) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState)
+
+/** [TodayScreen] with the [drag] handed in, so a preview can hold foods mid-drag (13.3c). */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+internal fun TodayScreen(
+    state: TodayState,
+    onAction: (TodayAction) -> Unit,
+    drag: FoodDrag,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
 ) {
@@ -222,6 +243,9 @@ fun TodayScreen(
     }
     val selection = state.selection
     val compact = state.compact
+    val haptics = LocalHapticFeedback.current
+    val dropTargets = remember(rows) { dropTargets(rows) }
+    if (selection != null) FoodDragEffects(drag, listState, dropTargets, selection.slots)
     Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { insets ->
         Column(Modifier.fillMaxSize().padding(insets)) {
             if (selection != null) {
@@ -232,8 +256,14 @@ fun TodayScreen(
             if (state.collapsed && compact != null && selection == null) {
                 CollapsedSummary(compact, onAction, Modifier.padding(start = AppTheme.spacing.row, end = AppTheme.spacing.row, bottom = AppTheme.spacing.section))
             }
-            // Clipped so the sticky bar slides out from under the header rather than over it.
-            Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
+            // Clipped so the sticky bar slides out from under the header rather than over it. The box
+            // follows a drag once a row's handle starts one (13.3c).
+            Box(
+                Modifier.weight(1f).fillMaxWidth().clipToBounds().followsFoodDrag(drag) { slot ->
+                    haptics.confirm()
+                    onAction(TodayAction.FoodsDropped(slot))
+                },
+            ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     state = listState,
@@ -245,7 +275,15 @@ fun TodayScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
                 ) {
-                    items(rows, key = { it.key }) { row -> TodayListItem(row, state, onAction) }
+                    items(rows, key = { it.key }) { row -> TodayListItem(row, state, drag, onAction) }
+                }
+                if (selection != null && drag.active) {
+                    DragGhost(
+                        selection = selection,
+                        modifier = Modifier
+                            .padding(horizontal = AppTheme.spacing.row + GhostInset)
+                            .offset { IntOffset(0, (drag.y - GhostGrab.toPx()).roundToInt()) },
+                    )
                 }
                 StickyLayer(
                     compact = compact?.takeIf { !state.collapsed && selection == null },
@@ -285,7 +323,7 @@ private fun StickyLayer(compact: CompactSummary?, visible: Boolean, page: Int, o
     }
 }
 
-/** The Undo bars: after adding (3.9) and after a removal (2.14), six seconds each. */
+/** The Undo bars: after adding (3.9), after a removal (2.14) and after a move (13.3c), six seconds each. */
 @Composable
 private fun BottomBars(state: TodayState, onAction: (TodayAction) -> Unit) {
     val padding = Modifier.padding(AppTheme.spacing.row)
@@ -311,6 +349,19 @@ private fun BottomBars(state: TodayState, onAction: (TodayAction) -> Unit) {
             },
             actionLabel = stringResource(Res.string.today_added_undo),
             onAction = { onAction(TodayAction.RemovedUndoTapped) },
+            modifier = padding,
+        )
+    }
+    state.moved?.let { moved ->
+        val meal = stringResource(moved.slot.sentenceName)
+        UndoBar(
+            message = if (moved.name != null && moved.count == 1) {
+                stringResource(Res.string.today_moved_one, TodayStateBuilder.inSentence(moved.name), meal)
+            } else {
+                stringResource(Res.string.today_moved_other, moved.count, meal)
+            },
+            actionLabel = stringResource(Res.string.today_added_undo),
+            onAction = { onAction(TodayAction.MovedUndoTapped) },
             modifier = padding,
         )
     }
@@ -365,9 +416,15 @@ internal fun todayRows(state: TodayState): List<TodayRow> = buildList {
     state.closeDay?.let { add(TodayRow.Close(it)) }
 }
 
+/** The rows foods can be dropped on, by list key: a meal with foods, or an empty one drawn as a row. */
+private fun dropTargets(rows: List<TodayRow>): Map<Any, MealSlot> =
+    rows.filterIsInstance<TodayRow.Meal>()
+        .filter { it.entry is MealEntry.Full || it.entry is MealEntry.Collapsed }
+        .associate { it.key to it.entry.slot }
+
 @Suppress("CyclomaticComplexMethod", "LongMethod")
 @Composable
-private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayAction) -> Unit) {
+private fun TodayListItem(row: TodayRow, state: TodayState, drag: FoodDrag, onAction: (TodayAction) -> Unit) {
     when (row) {
         TodayRow.Loading -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.today_loading_cd))
         is TodayRow.Banner -> Banner(text = stringResource(row.banner.text, *row.banner.args.toTypedArray()))
@@ -444,7 +501,7 @@ private fun TodayListItem(row: TodayRow, state: TodayState, onAction: (TodayActi
             addIcon = AppIcons.Add.described(stringResource(Res.string.today_water_cd)),
         )
         is TodayRow.Weight -> WeightCard(row.weight, state.dayLabel, onAction)
-        is TodayRow.Meal -> Meal(row.entry, state, onAction)
+        is TodayRow.Meal -> Meal(row.entry, state, drag, onAction)
         is TodayRow.Had -> when (val had = row.had) {
             is WhatYouHad.PerMeal -> FoodListCard(rows = had.rows.map { (slot, foods) -> stringResource(slot.label) to foods })
             is WhatYouHad.Together -> FoodListCard(rows = listOf(null to had.text), title = stringResource(Res.string.today_what_you_had))
@@ -470,7 +527,6 @@ private fun Header(state: TodayState, onAction: (TodayAction) -> Unit) {
     val label = state.dayLabel.text()
     DayHeader(
         title = label,
-        subtitle = DateCopy.weekdayMonthDay(state.day),
         previousIcon = AppIcons.ChevronLeft.described(stringResource(Res.string.today_prev_day_cd)),
         nextIcon = AppIcons.ChevronRight.described(stringResource(Res.string.today_next_day_cd)),
         onPrevious = { onAction(TodayAction.PreviousDayTapped) },
@@ -479,10 +535,6 @@ private fun Header(state: TodayState, onAction: (TodayAction) -> Unit) {
         titleDescription = stringResource(Res.string.today_pick_day_cd) + ", " + label,
         nextEnabled = state.canGoForward,
     ) {
-        HeaderIconButton(
-            icon = AppIcons.CalendarMonth.described(stringResource(Res.string.today_calendar_cd)),
-            onClick = { onAction(TodayAction.CalendarTapped) },
-        )
         Box {
             HeaderIconButton(
                 icon = AppIcons.MoreVert.described(stringResource(Res.string.today_day_menu_cd)),
@@ -615,9 +667,10 @@ private fun Rhythm(card: RhythmCard, onAction: (TodayAction) -> Unit) {
 }
 
 @Composable
-private fun Meal(entry: MealEntry, state: TodayState, onAction: (TodayAction) -> Unit) {
+private fun Meal(entry: MealEntry, state: TodayState, drag: FoodDrag, onAction: (TodayAction) -> Unit) {
     val slot = entry.slot
     val sentence = stringResource(slot.sentenceName)
+    val dropLabel = if (drag.target == slot) stringResource(Res.string.today_drop_to, stringResource(slot.label)) else null
     val add: @Composable RowScope.() -> Unit = {
         if (state.selection == null) {
             RoundIconButton(
@@ -628,7 +681,7 @@ private fun Meal(entry: MealEntry, state: TodayState, onAction: (TodayAction) ->
         }
     }
     when (entry) {
-        is MealEntry.Full -> FullMeal(entry.card, state, onAction)
+        is MealEntry.Full -> FullMeal(entry.card, state, drag, dropLabel, onAction)
         is MealEntry.Collapsed -> MealRowCard(
             icon = slot.icon,
             tone = slot.tileColors(),
@@ -639,6 +692,7 @@ private fun Meal(entry: MealEntry, state: TodayState, onAction: (TodayAction) ->
                 null
             },
             trailing = add,
+            dropLabel = dropLabel,
         )
         is MealEntry.Compact -> MealRowCard(
             icon = slot.icon,
@@ -690,7 +744,7 @@ private fun feelChips(feel: FeelLine): List<String> {
 }
 
 @Composable
-private fun FullMeal(card: MealCard, state: TodayState, onAction: (TodayAction) -> Unit) {
+private fun FullMeal(card: MealCard, state: TodayState, drag: FoodDrag, dropLabel: String?, onAction: (TodayAction) -> Unit) {
     val sentence = stringResource(card.slot.sentenceName)
     val selection = state.selection
     TodayMealCard(
@@ -727,15 +781,27 @@ private fun FullMeal(card: MealCard, state: TodayState, onAction: (TodayAction) 
                 )
             }
         },
-        itemRow = { item -> FoodRow(item, sentence, state, onAction) },
+        dropLabel = dropLabel,
+        itemRow = { item -> FoodRow(item, sentence, state, drag, onAction) },
     )
 }
 
-/** One food on a meal card, as the moment calls for: tickable, its own confirmation, swipeable, or plain. */
+/**
+ * One food on a meal card, as the moment calls for: tickable with its handle, its own
+ * confirmation, swipeable, or plain. Outside select mode it carries its ⋮ (`release.foodActions`).
+ */
 @Composable
-private fun FoodRow(item: MealCardItem, meal: String, state: TodayState, onAction: (TodayAction) -> Unit) {
+private fun FoodRow(item: MealCardItem, meal: String, state: TodayState, drag: FoodDrag, onAction: (TodayAction) -> Unit) {
     val id = item.key
     val selection = state.selection
+    val menu: @Composable RowScope.() -> Unit = {
+        if (state.foodMenus) {
+            FoodMenuButton(
+                description = stringResource(Res.string.today_food_menu_cd, item.name),
+                onClick = { onAction(TodayAction.ItemMenuTapped(id)) },
+            )
+        }
+    }
     when {
         selection != null -> SelectableFoodRow(
             name = item.name,
@@ -743,6 +809,10 @@ private fun FoodRow(item: MealCardItem, meal: String, state: TodayState, onActio
             calories = item.calories,
             selected = id in selection.ids,
             onToggle = { onAction(TodayAction.FoodToggled(id)) },
+            dimmed = drag.active && id in selection.ids,
+            moveLabel = stringResource(Res.string.today_move_row),
+            onMove = { onAction(TodayAction.MoveRowRequested(id)) },
+            handle = { FoodDragHandle(drag, id, onAction) },
         )
         state.swipe.confirming == id -> RemoveConfirmRow(
             question = stringResource(Res.string.today_remove_one, TodayStateBuilder.inSentence(item.name), meal),
@@ -763,8 +833,9 @@ private fun FoodRow(item: MealCardItem, meal: String, state: TodayState, onActio
             onDelete = { onAction(TodayAction.DeleteRequested(id)) },
             onLongClick = { onAction(TodayAction.FoodLongPressed(id)) },
             longClickLabel = stringResource(Res.string.today_select_start),
+            trailing = menu,
         )
-        else -> MealCardRow(item) { onAction(TodayAction.ItemTapped(id)) }
+        else -> MealCardRow(item, onClick = { onAction(TodayAction.ItemTapped(id)) }, trailing = menu)
     }
 }
 
@@ -840,5 +911,11 @@ private const val HALF_DAY = 12
 /** The card is mostly out of view: past this share of its height, the sticky bar takes over. */
 private const val STICK_AT = 0.6f
 
-/** Room under the list for the select panel, so the last food can scroll above it. */
-private val SelectPanelRoom = 300.dp
+/** Room under the list for select mode's bottom bar, so the last food can scroll above it. */
+private val SelectPanelRoom = 140.dp
+
+/** The carried card sits a little inside the list's edges (13.3c). */
+private val GhostInset = 8.dp
+
+/** Where the finger holds the carried card, from its top: about its middle. */
+private val GhostGrab = 36.dp

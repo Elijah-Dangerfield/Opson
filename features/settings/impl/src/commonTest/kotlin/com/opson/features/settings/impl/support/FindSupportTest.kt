@@ -11,9 +11,9 @@ import kotlin.test.assertTrue
 
 /**
  * Find support: the country from the phone's region, changing it, what each tap opens, and what
- * a failed open says. The list itself is data with a `TODO(launch): verify`; these tests check
- * its shape (every country has a crisis line and at least one line, every entry has a source),
- * not that the numbers are right.
+ * a failed open says. The list itself is data, checked by hand against each source (see
+ * [SupportDirectory]); these tests check its shape (every country has a crisis line and at least
+ * one line, every entry has a source), not that the numbers are right.
  */
 class FindSupportTest : CoroutineTest() {
 
@@ -138,7 +138,21 @@ class FindSupportTest : CoroutineTest() {
 
         vm.takeAction(FindSupportAction.LineTapped(provider))
 
-        assertEquals(CouldNotOpen("allianceforeatingdisorders.com", isLink = true), vm.state.couldNotOpen)
+        assertEquals(CouldNotOpen("findedhelp.com", isLink = true), vm.state.couldNotOpen)
+    }
+
+    @Test
+    fun findAHelplineOpensForEveryOtherCountry_andSaysItsAddressWhenItCant() = runUnitTest {
+        val links = FakeLinks()
+        val vm = viewModel("FR", links)
+
+        vm.takeAction(FindSupportAction.DirectoryTapped)
+        assertEquals(listOf(FIND_A_HELPLINE_URL), links.opened)
+        assertNull(vm.state.couldNotOpen)
+
+        links.opens = false
+        vm.takeAction(FindSupportAction.DirectoryTapped)
+        assertEquals(CouldNotOpen("findahelpline.com", isLink = true), vm.state.couldNotOpen)
     }
 
     @Test

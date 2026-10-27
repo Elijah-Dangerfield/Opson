@@ -100,7 +100,7 @@ Surface mapping from the prototype's surface strings: `today` to `Today`;
 | `askTags` | `Boolean` | true | Hunger and fullness chips on the amount sheet. |
 | `tone` | `Tone { Plain, Warm }` | Plain | |
 | `bigDayEvent` | `EventLevel { Off, Subtle, Full }` | Full | No UI in 0.1 (Reminders is 0.2), so the default holds. |
-| `palette` / `theme` / `textSize` | `Palette` / `ThemeMode { System, Light, Dark }` / `TextSize` | Pine / System / Normal | |
+| `theme` / `textSize` | `ThemeMode { System, Light, Dark }` / `TextSize` | System / Normal | `theme` is Appearance. 0.1 also wrote `palette`; 0.2 no longer reads or writes it (design sync 4, Slate only). |
 | `onboarding` | `OnboardingAnswers(why, feel, notice, hard)` | empty | The setup answers as option keys, written with the preset when onboarding finishes. Never in telemetry. |
 | 0.2 | `fasting`, `fastToday`, `fastPlan`, `healthToday`, `healthRows`, `healthOpen`, `quiet`, `mealReminders`, `waterReminders`, other `events` | as prototype `DEFAULTS` | Declared now so the serializer default exists, no UI. |
 

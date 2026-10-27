@@ -13,6 +13,8 @@ kotlin {
             // FeedbackRoute (Support's "Send feedback") and OnboardingRoute (after deleting everything).
             implementation(projects.features.home)
             implementation(projects.features.onboarding)
+            // NutrientsRoute, which Energy today links to.
+            implementation(projects.features.trends)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)

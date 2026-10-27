@@ -63,8 +63,16 @@ sealed interface SearchBody {
 
     data object Searching : SearchBody
 
-    /** [openFoodFacts]: some rows are Open Food Facts', so the licence's credit goes under them. */
-    data class Results(val rows: List<FoodRowUi>, val offline: Boolean, val openFoodFacts: Boolean = false) : SearchBody
+    /**
+     * [openFoodFacts]: some rows are Open Food Facts', so the licence's credit goes under them.
+     * [nevo]: some are NEVO's, so RIVM's citation does, whatever the search options.
+     */
+    data class Results(
+        val rows: List<FoodRowUi>,
+        val offline: Boolean,
+        val openFoodFacts: Boolean = false,
+        val nevo: Boolean = false,
+    ) : SearchBody
 
     /** Your foods, or a Favorites or Custom tab, before typing: the list itself, no heading. */
     data class Listed(val rows: List<FoodRowUi>) : SearchBody

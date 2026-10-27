@@ -21,7 +21,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -51,6 +53,7 @@ import com.opson.libraries.ui.components.HeroCard
 import com.opson.libraries.ui.components.HeroWashButton
 import com.opson.libraries.ui.components.HeroWashPanel
 import com.opson.libraries.ui.components.HorizontalDivider
+import com.opson.libraries.ui.components.dashedBorder
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.SegmentedBar
 import com.opson.libraries.ui.components.chip.PillTag
@@ -358,6 +361,7 @@ private const val SUBTITLE_SEPARATOR = " · "
  * Uncategorized), each item drawn by [itemRow] (a plain row, a swipe row, a tickable row while
  * selecting, or its own confirmation), and the note.
  * [onHeaderClick] makes the header a target: while selecting it toggles the meal's foods.
+ * [dropLabel] marks the card as where dragged foods will land (13.3c): "Move to Dinner".
  */
 @Composable
 fun TodayMealCard(
@@ -374,11 +378,12 @@ fun TodayMealCard(
     highlighted: Boolean = false,
     onHeaderClick: (() -> Unit)? = null,
     headerTrailing: @Composable RowScope.() -> Unit = {},
+    dropLabel: String? = null,
     itemRow: @Composable (MealCardItem) -> Unit,
 ) {
     TodayCard(
         modifier = modifier.then(
-            if (highlighted) Modifier.border(2.dp, AppTheme.colors.accent.color, AppTheme.shapes.card) else Modifier,
+            if (highlighted || dropLabel != null) Modifier.border(2.dp, AppTheme.colors.accent.color, AppTheme.shapes.card) else Modifier,
         ),
         contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -407,12 +412,32 @@ fun TodayMealCard(
                 Text(text = note, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
             }
         }
+        if (dropLabel != null) DropZone(dropLabel)
     }
 }
 
-/** A plain food row on a [TodayMealCard]: opens the item sheet. */
+/** Where dragged foods will land (13.3c): a dashed accent box saying "Move to Dinner". */
 @Composable
-fun MealCardRow(item: MealCardItem, onClick: () -> Unit) {
+fun DropZone(label: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 64.dp)
+            .clip(AppTheme.shapes.inputLarge)
+            .background(AppTheme.colors.accentTint)
+            .dashedBorder(AppTheme.colors.accent.color, radius = DropZoneRadius)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = label, typography = AppTheme.type.bodyBold.ExtraBold, color = AppTheme.colors.accent)
+    }
+}
+
+private val DropZoneRadius = 16.dp
+
+/** A plain food row on a [TodayMealCard]: opens the food's sheet. [trailing] is its ⋮. */
+@Composable
+fun MealCardRow(item: MealCardItem, onClick: () -> Unit, trailing: @Composable RowScope.() -> Unit = {}) {
     DiaryItemRow(
         name = item.name,
         sub = item.sub,
@@ -421,10 +446,14 @@ fun MealCardRow(item: MealCardItem, onClick: () -> Unit) {
         showDivider = false,
         dividerAbove = true,
         contentPadding = PaddingValues(vertical = AppTheme.spacing.row),
+        trailing = trailing,
     )
 }
 
-/** A meal as one compact card: the [MealHeader] and anything [below] it (suggestions, the foods). */
+/**
+ * A meal as one compact card: the [MealHeader] and anything [below] it (suggestions, the foods).
+ * [dropLabel] marks it as where dragged foods will land, as on [TodayMealCard].
+ */
 @Composable
 fun MealRowCard(
     icon: IconResource,
@@ -434,15 +463,19 @@ fun MealRowCard(
     modifier: Modifier = Modifier,
     calories: Display = Display.Hidden,
     trailing: @Composable RowScope.() -> Unit = {},
+    dropLabel: String? = null,
     below: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     TodayCard(
-        modifier = modifier,
+        modifier = modifier.then(
+            if (dropLabel != null) Modifier.border(2.dp, AppTheme.colors.accent.color, AppTheme.shapes.card) else Modifier,
+        ),
         contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {
         MealHeader(icon, tone, title, subtitle, calories = calories, trailing = trailing)
         if (below != null) Column(Modifier.padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row), content = below)
+        if (dropLabel != null) DropZone(dropLabel)
     }
 }
 

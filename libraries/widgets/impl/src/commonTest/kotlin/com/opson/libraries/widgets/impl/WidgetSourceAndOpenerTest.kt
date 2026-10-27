@@ -2,7 +2,6 @@ package com.opson.libraries.widgets.impl
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.NumbersSettings
@@ -12,7 +11,6 @@ import com.opson.libraries.opson.AppEvents
 import com.opson.libraries.widgets.WidgetFixtures
 import com.opson.libraries.widgets.WidgetLinks
 import com.opson.libraries.widgets.WidgetLogOpen
-import com.opson.libraries.widgets.WidgetPalette
 import com.opson.libraries.widgets.WidgetSnapshot
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
@@ -91,7 +89,7 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
     }
 
     @Test
-    fun aLog_aModeChange_andAPaletteChange_eachRebuildIt() = test {
+    fun aLog_aModeChange_andAMealGroupsChange_eachRebuildIt() = test {
         val seen = collect()
         assertEquals("0", seen.last().days.first().energy?.amount)
 
@@ -102,8 +100,7 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         assertNull(seen.last().days.first().energy)
         assertEquals(4, seen.last().days.first().meals.size)
 
-        settings.update { it.copy(palette = PaletteChoice.Plum) }
-        assertEquals(WidgetPalette.colors(PaletteChoice.Plum), seen.last().colors)
+        settings.update { it.copy(mealGroups = false) }
         assertEquals(4, seen.size)
     }
 

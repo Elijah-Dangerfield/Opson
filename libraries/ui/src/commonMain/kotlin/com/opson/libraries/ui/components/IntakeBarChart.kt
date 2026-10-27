@@ -48,7 +48,8 @@ data class IntakeBar(val label: String, val fraction: Float?, val isCurrent: Boo
  * screen. Nothing here can print a number; heights and the band arrive as
  * fractions of a scale the builder chose.
  *
- * [band] is in the same fractions, `min..max`. Pass `null` for no band.
+ * [band] is in the same fractions, `min..max`. Pass `null` for no band. A band whose ends meet is
+ * one number, and draws as a thin line at it.
  */
 @Composable
 fun IntakeBarChart(
@@ -69,10 +70,13 @@ fun IntakeBarChart(
                     band ?: return@drawBehind
                     val low = band.start.coerceIn(0f, 1f)
                     val high = band.endInclusive.coerceIn(low, 1f)
+                    // One number has no height of its own: a thin line at it, centred, not a band.
+                    val height = (size.height * (high - low)).coerceAtLeast(GOAL_LINE.toPx())
+                    val top = size.height * (1f - (low + high) / 2) - height / 2
                     drawRoundRect(
                         color = bandColor.color,
-                        topLeft = Offset(0f, size.height * (1f - high)),
-                        size = Size(size.width, size.height * (high - low)),
+                        topLeft = Offset(0f, top),
+                        size = Size(size.width, height),
                         cornerRadius = CornerRadius(BAND_RADIUS.toPx()),
                     )
                 },
@@ -132,6 +136,7 @@ private val BAR_GAP = 8.dp
 private val MAX_BAR_WIDTH = 30.dp
 private val MIN_BAR_HEIGHT = 2.dp
 private val BAND_RADIUS = 4.dp
+private val GOAL_LINE = 4.dp
 private val STRIPE_STEP = 10.dp
 private val STRIPE_WIDTH = 4.dp
 private const val STRIPE_BASE_ALPHA = 0.3f
@@ -149,6 +154,18 @@ private fun IntakeBarChartPreview() {
                 IntakeBar(label, kcal?.div(3200f), isCurrent = index == week.lastIndex)
             },
             band = 1900f / 3200f..2300f / 3200f,
+        )
+    }
+}
+
+@Preview(widthDp = 390)
+@Composable
+private fun IntakeBarChartOneNumberPreview() {
+    val week = listOf("Mon" to 2050f, "Tue" to 1980f, "Wed" to 2240f, "Thu" to null, "Fri" to 2410f, "Sat" to 2160f, "Sun" to 1245f)
+    PreviewLightDark {
+        IntakeBarChart(
+            bars = week.mapIndexed { index, (label, kcal) -> IntakeBar(label, kcal?.div(3200f), isCurrent = index == week.lastIndex) },
+            band = 2100f / 3200f..2100f / 3200f,
         )
     }
 }

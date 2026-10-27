@@ -2,7 +2,6 @@ package com.opson.libraries.widgets
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.PaletteChoice
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -18,7 +17,6 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.toInstant
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -66,6 +64,18 @@ class WidgetSnapshotBuilderTest {
         // The bar runs to 3,240 (2,700 plus 20%).
         assertEquals(2300 / 3240f, energy.rangeStart, 0.001f)
         assertEquals(2700 / 3240f, energy.rangeEnd, 0.001f)
+    }
+
+    @Test
+    fun oneNumber_drawsAMarkAtIt_notABox() {
+        val base = WidgetFixtures.inputs(NumbersSettings(preset = PresetId.Full), WidgetFixtures.day, mealGroups = true)
+        val inputs = base.copy(settings = base.settings.copy(targets = base.settings.targets.useExact()))
+
+        val energy = assertNotNull(WidgetSnapshotBuilder.build(inputs, WidgetFixtures.policy(PresetId.Full), COPY).today.energy)
+
+        // The bar runs to 2,520 (2,100 plus 20%), and the goal's ends meet.
+        assertEquals(2100 / 2520f, energy.rangeStart, 0.001f)
+        assertEquals(energy.rangeStart, energy.rangeEnd)
     }
 
     @Test
@@ -189,14 +199,14 @@ class WidgetSnapshotBuilderTest {
     }
 
     @Test
-    fun colours_comeFromThePalette() {
-        val pine = WidgetPalette.colors(PaletteChoice.Pine)
-        assertEquals("#1D7A6B", pine.light.accent)
-        assertEquals("#F2F4F3", pine.light.background)
-        assertEquals("#16201E", pine.light.bar)
-        assertEquals("#E0892B", pine.light.meals.getValue("breakfast").content)
-        assertEquals("#5CC2AE", pine.dark.accent)
-        assertNotEquals(pine, WidgetPalette.colors(PaletteChoice.Plum))
+    fun colours_areSlate() {
+        val slate = build(PresetId.Full).colors
+        assertEquals("#0F766F", slate.light.accent)
+        assertEquals("#EEF1F6", slate.light.background)
+        assertEquals("#18202E", slate.light.bar)
+        assertEquals("#E0892B", slate.light.meals.getValue("breakfast").content)
+        assertEquals("#6CCBBF", slate.dark.accent)
+        assertEquals("#1B2130", slate.dark.background)
     }
 
     @Test

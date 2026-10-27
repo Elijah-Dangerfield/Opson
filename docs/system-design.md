@@ -192,17 +192,18 @@ cursor.
 ### Postgres (`public` schema, Flyway in `apps/server/src/main/resources/db/migration`)
 
 ```sql
--- Catalog, shared by everyone: USDA FoodData Central (generic + Branded), Open Food Facts, later paid sources
+-- Catalog, shared by everyone: USDA FoodData Central (generic + Branded), NEVO, Open Food Facts, later paid sources
 foods (
-  id uuid pk, source text check (source in ('usda_foundation','usda_sr','usda_fndds','usda_branded','nutritionix','off')),
+  id uuid pk, source text check (source in ('usda_foundation','usda_sr','usda_fndds','usda_branded','nutritionix','off','nevo')),
   source_id text, name text, brand text null, barcode text null unique,
   kcal_100g real, protein_100g real, carbs_100g real, fat_100g real, fiber_100g real,  -- nullable when unknown
   micros jsonb not null default '{}',          -- nutrient key -> amount per 100 g
   portions jsonb not null default '[]',        -- [{label:'1 cup', grams:240}]
   search tsvector generated always as (to_tsvector('simple', name || ' ' || coalesce(brand,''))) stored,
   popularity int not null default 0,
-  tier smallint not null,                      -- 1 reference (USDA generic), 2 label (USDA Branded), 3 licensed, 4 community (OFF)
+  tier smallint not null,                      -- 1 reference (USDA generic, NEVO), 2 label (USDA Branded), 3 licensed, 4 community (OFF)
   verified boolean not null,                   -- true for tiers 1-3
+  source_version text null,                    -- the release a row came from; NEVO's "2025/9.0"
   unique (source, source_id))
   -- GIN index on search, trigram index on lower(name) for prefix and typo tolerance.
   -- A trigger sets tier and verified from source (food_source_tier()), so loaders never write them.
@@ -366,7 +367,7 @@ errors in the `ProblemResponse` envelope.
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/v1/sync` | Push and pull, section 6 |
-| GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`), `sort` (`best`, `name`); without them the response is 0.1's. |
+| GET | `/v1/foods/search?q=&limit=25` | Full text plus trigram search over `foods`, ranked by match then popularity. Logs one `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`), `sort` (`best`, `name`); without them the response is 0.1's. NEVO foods only with `credits=nevo`, which an app that shows RIVM's citation sends. |
 | GET | `/v1/foods/search/options` | The `sources` and `categories` search takes here; `off` only with `FOOD_SEARCH_OFF_ENABLED`. |
 | GET | `/v1/foods/{id}` | Detail with portions and micros |
 | GET | `/v1/foods/barcode/{code}` | Catalog first, in any equivalent form of the code (UPC-A, EAN-13, GTIN-14, UPC-E), then each enabled outside source in tier order (Nutritionix when configured, Open Food Facts); cacheable answers are stored in `foods`. 404 `not_found` when nobody has it, 503 when no source could answer. |
@@ -508,16 +509,17 @@ theme.
 - **Type:** Atkinson Hyperlegible Next (OFL), weights 400 to 800, bundled in
   `:libraries:resources`. Tabular figures on every number. Base 16 sp, large
   text 19 sp as a setting.
-- **Colour:** light and dark base sets, palette Pine by default (the user's
-  last preview pick was Espresso, so palette is a setting with Pine, Espresso,
-  Clay and Plum). Nutrient colours tell nutrients apart and never mean over or
-  under. No red or green anywhere for amounts.
+- **Colour:** one scheme, Slate, in light and dark (design sync 4, 13.0).
+  Appearance (System, Light or Dark) is the only colour setting. Nutrient
+  colours tell nutrients apart and never mean over or under; energy out uses
+  cool colours (resting and active) so it never looks like food. No red or
+  green anywhere for amounts.
 - **Shape:** cards 22, sheets 28 top, sticky Today block 24 bottom, chips pill.
 - **Icons:** Material Symbols Rounded via the Compose Material icons extended
   Rounded set, reached only through `AppIcons` (named after the Symbols
   ligatures; `nutrition` and `barcode_scanner` have no Rounded twin and use
   the closest glyph).
-- **Access:** `AppTheme(palette, darkTheme, largeText)` at the root, fed from
+- **Access:** `AppTheme(darkTheme, largeText)` at the root, fed from
   the user's Look and feel settings by `UserAppTheme` in `apps/compose`; tokens
   through `AppTheme.colors`, `AppTheme.type` (the handoff scale; the older
   `AppTheme.typography` stays for template screens), `AppTheme.shapes`,
@@ -635,3 +637,4 @@ Dated, newest first. Add to it, never rewrite it.
   and a price without a purchase flow is an App Review rejection.
 - **2026-10-25: Pine is the default palette.** It is the handoff default. The
   user's last pick was Espresso, so palette is a setting and that is one tap.
+  Superseded 2026-10-27: Slate is the only scheme (`docs/decisions.md`).

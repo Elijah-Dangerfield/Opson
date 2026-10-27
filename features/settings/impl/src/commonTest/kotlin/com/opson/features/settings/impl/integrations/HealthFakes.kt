@@ -109,7 +109,7 @@ class FakeDiary(days: List<Day> = emptyList()) : DiaryRepository {
         days.value = days.value + (day to (days.value[day] ?: Day.empty(day)).copy(untracked = untracked))
     }
 
-    override fun observeDay(date: LocalDate): Flow<Day> = error("not read here")
+    override fun observeDay(date: LocalDate): Flow<Day> = days.map { it[date] ?: Day.empty(date) }
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = error("not read here")
     override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> = error("not written here")
     override suspend fun updateItem(item: LogItem) = error("not written here")

@@ -8,6 +8,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.draftFor
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.foods.initialQuantity
@@ -119,7 +120,10 @@ internal object FoodPicks {
             .groupBy({ it.first }, { it.second })
     }
 
-    /** [known] is null with the search options off, which draws no badges at all. */
+    /**
+     * [known] is null with the search options off, which draws no badges, except NEVO's: RIVM
+     * allows its foods only with its name beside them.
+     */
     fun FoodPick.toRow(policy: VisibilityPolicy, bare: FormatContext, added: Boolean, known: Map<String, Food>? = null): FoodRowUi {
         val catalogFood = if (known != null && ref is FoodRef.Catalog) food ?: known[ref.id] else null
         return FoodRowUi(
@@ -139,6 +143,7 @@ internal object FoodPicks {
             calories = policy.resolve(Metric.Calories, draft.kcal, Surface.Logger, bare),
             added = added,
             badge = when {
+                (food ?: catalogFood)?.source == FoodSource.Nevo -> SourceBadge.Nevo
                 known == null -> null
                 ref is FoodRef.Custom -> SourceBadge.YourFood
                 else -> catalogFood?.let { SourceBadge.of(it.source) }

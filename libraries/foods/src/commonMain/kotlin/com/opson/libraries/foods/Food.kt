@@ -5,7 +5,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** Where a catalog food came from. Open Food Facts data is ODbL, so the Foods screen credits it. */
+/**
+ * Where a catalog food came from. Open Food Facts data is ODbL, so the Foods screen credits it.
+ * NEVO (RIVM's Dutch table) is cited wherever its foods show: its badge, the amount sheet and
+ * the Foods credit.
+ */
 @Serializable
 enum class FoodSource(val wire: String) {
     @SerialName("usda_foundation")
@@ -25,6 +29,9 @@ enum class FoodSource(val wire: String) {
 
     @SerialName("off")
     OpenFoodFacts("off"),
+
+    @SerialName("nevo")
+    Nevo("nevo"),
 
     @SerialName("unknown")
     Unknown("unknown"),
@@ -149,7 +156,7 @@ data class FoodSearchResult(
 )
 
 /**
- * The food catalog: USDA FoodData Central (generic and branded) plus Open Food Facts, through the
+ * The food catalog: USDA FoodData Central (generic and branded), NEVO and Open Food Facts, through the
  * server. Foods the user has picked are kept on the device, so Favorites and
  * Recent work offline and search falls back to them when the server cannot be
  * reached.

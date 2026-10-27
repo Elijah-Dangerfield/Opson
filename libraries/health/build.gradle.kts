@@ -13,6 +13,8 @@ kotlin {
             api(projects.libraries.config)
             api(libs.kotlinx.datetime)
             api(libs.kotlinx.coroutines.core)
+            // Burned and resting energy, which BurnedRepository answers with.
+            api(projects.libraries.nutrition)
         }
     }
 }

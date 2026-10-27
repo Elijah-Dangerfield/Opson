@@ -22,7 +22,8 @@ screens below with none of the new behaviour.
 | Flag | Class | What it turns on |
 |---|---|---|
 | `release.todaySummary` | `TodaySummaryEnabled` | The macros page, the stats row, pager dots, the collapse chevron and collapsed line, the sticky bar, long-press to customise, the stats section of Edit Today's cards, and the Weight row. |
-| `release.todaySelect` | `TodaySelectEnabled` | Long-press to select foods and the select panel (totals, Copy to…, Move, Remove), swipe to delete with the inline confirmation, Undo after a removal, and "Move to…" on Uncategorized. |
+| `release.todaySelect` | `TodaySelectEnabled` | Long-press to select foods and the bottom bar (Move, Copy to…, Delete), dragging picked foods to another meal with Undo, swipe to delete with the inline confirmation, Undo after a removal, and "Move to…" on Uncategorized. Reworked for design sync 4: see `today-actions.md`. |
+| `release.foodActions` | `TodayFoodActionsEnabled` | A food row's ⋮ and the food's sheet with Change amount, Move, Copy to another day, Edit a copy and Add to favorites (design sync 4, `today-actions.md`). |
 | `release.checkIn` | `CheckInEnabled` | Day close's Check in card (hunger through the day, energy, sleep, moods) in every mode, in place of Blind's "How did today feel?". |
 
 `TodayInputs` gains `summaryOn` and `selectOn`, read per emission like
@@ -86,6 +87,9 @@ Settings keys, new and top level: `todaySummaryCollapsed: Boolean = false`,
 wire keys; unknown ones skipped), `todayMacrosPage: Boolean = true`.
 
 ### Select and swipe with `release.todaySelect`
+
+Design sync 4 replaced the panel below with a bottom bar and added dragging;
+`today-actions.md` is current where the two disagree.
 
 State gains `selection: Selection?` (ids, count, energy and macro totals as
 `Display`s, `step`: Actions, CopyTo(day, slot), MoveTo(slot), ConfirmRemove),

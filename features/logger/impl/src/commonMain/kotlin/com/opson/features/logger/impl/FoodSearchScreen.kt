@@ -84,6 +84,7 @@ import opson.libraries.resources.generated.resources.logger_offline_results
 import opson.libraries.resources.generated.resources.logger_recent
 import opson.libraries.resources.generated.resources.logger_saved_empty
 import opson.libraries.resources.generated.resources.logger_search_clear_cd
+import opson.libraries.resources.generated.resources.logger_source_nevo
 import opson.libraries.resources.generated.resources.logger_search_placeholder
 import opson.libraries.resources.generated.resources.logger_searching_cd
 import opson.libraries.resources.generated.resources.logger_usual_around
@@ -268,6 +269,8 @@ private fun LazyListScope.body(state: FoodSearchState, away: (SearchAction) -> U
             item(key = "not-finding") { NotFinding(state, away, onAction) }
             // Open Food Facts' licence asks for this wherever its foods appear; each of its rows names it too.
             if (body.openFoodFacts) item(key = "off-credit") { Caption(stringResource(Res.string.search_off_credit)) }
+            // RIVM's citation, word for word, wherever NEVO's foods show.
+            if (body.nevo) item(key = "nevo-credit") { Caption(stringResource(Res.string.logger_source_nevo)) }
         }
         is SearchBody.Listed -> item(key = "listed", contentType = "rows") { FoodRows(body.rows, away, onAction) }
         SearchBody.NoFoodsYet -> item(key = "no-foods") { Caption(stringResource(Res.string.adding_no_foods_yet)) }

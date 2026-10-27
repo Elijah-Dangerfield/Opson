@@ -37,6 +37,8 @@
     <string name="search_badge_usda">USDA</string>
     <string name="search_badge_branded">USDA branded</string>
     <string name="search_badge_off">Open Food Facts</string>
+    <!-- RIVM's NEVO table; the full citation is logger_source_nevo. Its version moves with CITED_VERSION in scripts/import_nevo_foods.py. -->
+    <string name="search_badge_nevo">NEVO 2025/9.0, RIVM</string>
     <string name="search_badge_yours">Your food</string>
     <string name="search_badge_verified_cd">Verified</string>
     <string name="search_off_credit">Contains data from Open Food Facts, available under the Open Database License.</string>

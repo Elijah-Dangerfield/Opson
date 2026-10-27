@@ -125,6 +125,7 @@ import opson.libraries.resources.generated.resources.logger_micros_vitamins
 import opson.libraries.resources.generated.resources.logger_precision_estimate
 import opson.libraries.resources.generated.resources.logger_precision_named
 import opson.libraries.resources.generated.resources.logger_precision_weighed
+import opson.libraries.resources.generated.resources.logger_source_nevo
 import opson.libraries.resources.generated.resources.logger_source_off
 import opson.libraries.resources.generated.resources.logger_source_usda
 import opson.libraries.resources.generated.resources.logger_source_yours
@@ -471,17 +472,17 @@ private fun EnergySection(energy: EnergyCard, nutrients: AllNutrients?, onAction
 
 @Composable
 private fun TodayTotal(today: TodayWithThis) {
-    val total = today.total
-    val uncertainty = today.uncertainty
-    if (total is Display.Shown && uncertainty is Display.Shown) {
+    val bare = today.bare
+    val plusMinus = today.plusMinus
+    if (bare is Display.Shown && plusMinus is Display.Shown) {
         Text(
-            text = stringResource(Res.string.adding_detail_today_plus_minus, total.text, uncertainty.text),
+            text = stringResource(Res.string.adding_detail_today_plus_minus, bare.text, plusMinus.text),
             typography = AppTheme.type.bodyBold.Tabular,
             color = AppTheme.colors.ink,
             modifier = Modifier.testTag(Metric.Calories.testTag()),
         )
     } else {
-        NutrientText(metric = Metric.Calories, display = total, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink, maxLines = 1)
+        NutrientText(metric = Metric.Calories, display = today.total, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink, maxLines = 1)
     }
 }
 
@@ -592,6 +593,7 @@ private val FoodOrigin.label: StringResource
     get() = when (this) {
         FoodOrigin.Usda -> Res.string.logger_source_usda
         FoodOrigin.OpenFoodFacts -> Res.string.logger_source_off
+        FoodOrigin.Nevo -> Res.string.logger_source_nevo
         FoodOrigin.Yours -> Res.string.logger_source_yours
     }
 

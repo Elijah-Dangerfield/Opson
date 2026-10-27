@@ -40,6 +40,7 @@ sealed interface FoodDetailAction {
     data class FoodArrived(val food: AmountFood, val last: LogItem?) : FoodDetailAction
     data object FoodMissing : FoodDetailAction
     data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy, val day: Day) : FoodDetailAction
+    data class HistoryArrived(val days: List<Day>) : FoodDetailAction
 
     /** The meal this person logs around now, for a detail opened with no meal. */
     data class SlotSuggested(val slot: MealSlot) : FoodDetailAction
@@ -114,6 +115,7 @@ class FoodDetailViewModel(
         val choice: DetailChoice,
         val food: AmountFood? = null,
         val day: Day? = null,
+        val history: List<Day> = emptyList(),
     )
 
     init {
@@ -131,10 +133,13 @@ class FoodDetailViewModel(
                 takeAction(FoodDetailAction.InputsArrived(settings, policy, today))
             }
         }
-        if (route.slot == null) {
-            viewModelScope.launch {
-                val today = calendar.today()
-                val days = diary.observeDays(today.minus(MealSlotPicker.HISTORY_DAYS, DateTimeUnit.DAY), today).first()
+        // The last two weeks, read once: the ± sizes a meal eaten with no details from them, and with no
+        // meal given the picker chooses from them.
+        viewModelScope.launch {
+            val today = calendar.today()
+            val days = diary.observeDays(today.minus(MealSlotPicker.HISTORY_DAYS, DateTimeUnit.DAY), today).first()
+            takeAction(FoodDetailAction.HistoryArrived(days))
+            if (route.slot == null) {
                 val now = clock.now().toLocalDateTime(calendar.timeZone())
                 takeAction(FoodDetailAction.SlotSuggested(MealSlotPicker.pick(days, now, calendar.timeZone(), settingsRepository.settings.value.mealGroups)))
             }
@@ -152,6 +157,7 @@ class FoodDetailViewModel(
             }
             FoodDetailAction.FoodMissing -> action.updateState { it.copy(loading = false, missing = true) }
             is FoodDetailAction.InputsArrived -> action.rebuild { copy(settings = action.settings, policy = action.policy, day = action.day) }
+            is FoodDetailAction.HistoryArrived -> action.rebuild { copy(history = action.days) }
             is FoodDetailAction.SlotSuggested -> action.choose { copy(slot = action.slot) }
             is FoodDetailAction.AmountTyped -> action.choose { typed(NumberInput.sanitize(action.text, allowDecimal = true)) }
             is FoodDetailAction.ServingPicked -> {
@@ -229,6 +235,7 @@ class FoodDetailViewModel(
             settings = current.settings,
             policy = current.policy,
             day = current.day,
+            history = current.history,
             today = calendar.today(),
             now = clock.now().toLocalDateTime(calendar.timeZone()).time,
         )

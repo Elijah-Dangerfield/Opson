@@ -175,6 +175,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-summary`, `today-macros`, `today-sticky`, `today-collapsed`, `today-weight` | today | design sync 2, `release.todaySummary`; the stats row, the macros page, the sticky bar for every page, the collapsed line, the weight row | yes |
 | new | | `today-select`, `today-select-remove`, `today-swipe-delete`, `today-delete-confirm` | today | design sync 2, `release.todaySelect`; the select panel's totals and its confirmation, a row swiped open and its confirmation | yes |
 | new | | `today-cards-summary` | today | design sync 2; Edit Today's cards with the summary section | no |
+| new | | `today-calendar`, `today-select-v4`, `today-drag-move`, `today-moved` | today | design sync 4, `today-actions.md`; the calendar over Today, select mode's bottom bar, foods mid-drag over dinner, the Undo after a move | yes |
+| new | | `food-actions`, `food-actions-amount` | today | design sync 4, `release.foodActions`; a food's ⋮ over Today (its energy through the policy), and Change amount | `food-actions` yes |
+| new | | `edit-a-copy` | foods | design sync 4, 13.3e; only numbers the mode shows in full, the Calories field and its "Was" tagged | yes |
 | new | | `day-close-check-in` | today | design sync 2, `release.checkIn`; the check-in and the watch's energy | yes |
 | new | | `integrations-leave-out` | settings | 0.2, `integrations.md`; the Leave out a day sheet, dates only | no |
 | new | | `logger-describe-voice` | logger | 0.2, `voice.md`; Describe it while listening, over lines already read | yes |
@@ -188,6 +191,11 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `widgets` | settings | 0.2, `widgets.md`; the Widgets page under More, which previews the person's own widget | yes |
 | new | | `logger-search-tabs` | logger | 0.2, `search-options.md`; tabs, the options button and source badges over results | yes |
 | new | | `logger-search-options` | logger | 0.2, `search-options.md`; the options sheet: sort, database, tabs | no |
+| new | | `targets-exact` | settings | 0.2, `release.goalsAndEnergy`; one number and its stepper | yes |
+| new | | `targets-surplus` | settings | 0.2, `release.goalsAndEnergy`; the surplus, the burn and the goal it comes to | yes |
+| new | | `targets-by-day-shapes` | settings | 0.2, `release.goalsAndEnergy`; a day group as one number, and as a surplus | yes |
+| new | | `resting-energy` | settings | design sync 4, `release.goalsAndEnergy`; resting energy from each source, energy out only | no |
+| new | | `energy-today` | settings | design sync 4, `release.goalsAndEnergy`; eaten with its ±, Burned and the deficit so far | yes |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and

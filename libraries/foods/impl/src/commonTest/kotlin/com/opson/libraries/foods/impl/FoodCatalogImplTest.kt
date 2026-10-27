@@ -132,15 +132,17 @@ class FoodCatalogImplTest : CoroutineTest() {
     @Test
     fun offlineSearchFiltersBySourceAndTierButHasNoCategories() = runUnitTest {
         val riceSoup = rice.copy(id = "rice-soup", name = "Rice soup, bowl", source = "off", tier = 4)
+        val riceNevo = rice.copy(id = "rice-nevo", name = "Rice white boiled", source = "nevo", tier = 1)
         catalog.markUsed(rice.toDomain())
         catalog.markUsed(riceSoup.toDomain())
+        catalog.markUsed(riceNevo.toDomain())
         api.searchResult = Result.failure(IllegalStateException("offline"))
         suspend fun ids(filter: FoodSearchFilter) = catalog.search("rice", filter = filter).getOrThrow().foods.map { it.id }.toSet()
 
-        assertEquals(setOf("rice", "rice-soup"), ids(FoodSearchFilter.None))
+        assertEquals(setOf("rice", "rice-soup", "rice-nevo"), ids(FoodSearchFilter.None))
         assertEquals(setOf("rice"), ids(FoodSearchFilter(source = SearchSource.Usda)))
         assertEquals(setOf("rice-soup"), ids(FoodSearchFilter(source = SearchSource.OpenFoodFacts)))
-        assertEquals(setOf("rice"), ids(FoodSearchFilter(category = SearchCategory.Common)))
+        assertEquals(setOf("rice", "rice-nevo"), ids(FoodSearchFilter(category = SearchCategory.Common)))
         assertEquals(emptySet(), ids(FoodSearchFilter(category = SearchCategory.Beverage)))
     }
 

@@ -74,7 +74,9 @@ Export the design as PNGs named by those ids and run
 - `ANTHROPIC_API_KEY` on dev and prod for photo estimates.
 - The `CATALOG_DATABASE_URL` repo secret (prod pooler URL) for the monthly
   USDA refresh.
-- Default palette: the icon is Espresso's accent; the app defaults to Pine.
+- The app icon is still Espresso's accent (#A4512D); the app is Slate, teal
+  accent, since design sync 4. The design does not cover the icon.
 - Before public launch: a dietitian sets `GOAL_FLOOR_KCAL` and the maximum
-  deficit; a clinician reviews everything marked `TODO(clinician)`; check the
-  helpline and provider links marked `TODO(launch)`.
+  deficit; a clinician reviews everything marked `TODO(clinician)`. The
+  helpline list was checked on 2026-10-27; recheck it each quarter. Legal
+  follow-ups are in `docs/legal-review-2026-10.md`.

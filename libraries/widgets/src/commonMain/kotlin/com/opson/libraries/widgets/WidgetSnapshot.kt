@@ -63,7 +63,7 @@ data class WidgetDay(
  * @property label the whole amount for a screen reader, "1,245 kcal".
  * @property fraction how far the bar fills, 0 to 1. The bar runs to 20% past the top of the range.
  * @property rangeStart where the range box starts on the bar, 0 to 1.
- * @property rangeEnd where it ends.
+ * @property rangeEnd where it ends. Equal to [rangeStart] when the goal is one number, drawn as a mark.
  */
 @Serializable
 data class WidgetEnergy(
@@ -89,7 +89,7 @@ data class WidgetMeal(
     val description: String,
 )
 
-/** The person's palette in both appearances. The widget follows the system's. */
+/** The app's colours in both appearances. The widget follows the system's. */
 @Serializable
 data class WidgetColors(
     val light: WidgetSwatch,
@@ -97,7 +97,7 @@ data class WidgetColors(
 )
 
 /**
- * The theme tokens a widget uses, as `#RRGGBB`. From the app's own palette, so the widget's colours
+ * The theme tokens a widget uses, as `#RRGGBB`. From the app's own theme, so the widget's colours
  * live in one place.
  *
  * @property bar the eaten bar's fill. v3 draws it in ink.
