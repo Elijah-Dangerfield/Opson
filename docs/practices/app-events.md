@@ -82,9 +82,10 @@ the exact fire site.
 ### Onboarding
 
 All from `OnboardingViewModel`, read by `ops/grafana/onboarding-funnel.json`. `step` is always the
-step's own name, never an index: `welcome`, `question_1` to `question_3`, `statement` (the
-optional "numbers have been hard" step, `question_4` before design v3), `recommendation`,
-`account`. **No event carries an answer to the setup questions or the statement**, not even as a
+step's own name, never an index: `welcome`, `question_1`, `question_2`, `statement` (the
+optional "numbers have been hard" step, `question_4` before design v3), `recommendation`, the
+setup steps `goal`, `resting_energy` and `meal_times` (`release.onboardingSetup`), and `account`.
+`question_3` ("What do you want to notice?") was cut in onboarding v2 (`docs/plans/onboarding-v2.md`). **No event carries an answer to the setup questions or the statement**, not even as a
 count: agreeing that "numbers or tracking have been hard for me before" is close to a clinical
 disclosure.
 

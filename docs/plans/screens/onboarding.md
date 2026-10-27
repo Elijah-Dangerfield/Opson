@@ -4,6 +4,12 @@ Welcome with the plan, three skippable questions, an optional statement, a
 starting mode that lists what you'll see and what stays out of view, and an
 optional account step last. Built to design v3. Read `shared.md` first.
 
+**Superseded in part by `docs/plans/onboarding-v2.md`** (2026-10-27): "What do
+you want to notice?" is cut, the starting point says why it was picked, a new
+Apple account runs setup, and the goal, resting energy and meal times steps
+follow the mode behind `release.onboardingSetup`. Where the two disagree, v2
+wins.
+
 ## Source
 - Design v3: `docs/design/v3/CHANGES.md` (global rules, the Onboarding row,
   "Pricing on Welcome"), `manifest.json` notes for `onboarding-welcome`,
@@ -198,8 +204,9 @@ the preset in `Settings.onboarding`, which syncs inside the user's own settings
 row like every other setting. They never reach telemetry.
 
 ## Telemetry
-- `onboarding.step_viewed` `step`: `welcome`, `question_1` to `question_3`,
-  `statement` (was `question_4`), `recommendation`, `account`.
+- `onboarding.step_viewed` `step`: `welcome`, `question_1`, `question_2`,
+  `statement` (was `question_4`), `recommendation`, `goal`, `resting_energy`,
+  `meal_times`, `account`. `question_3` went in onboarding v2.
 - `onboarding.auth_selected` (`guest`, false) for Get started and Skip all;
   (`guest`, true) for an adopted stranded guest. The Welcome OAuth and Apple
   entries are gone.

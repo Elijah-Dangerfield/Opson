@@ -430,6 +430,8 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 - [ ] Washington, Nevada and Connecticut: whether the onboarding flow needs a
       separate consent for collecting consumer health data, or whether
       "necessary to provide the service" covers everything Opson collects.
+      `docs/plans/onboarding-v2.md` ("Data and consent") has where a consent
+      step would go.
 - [ ] Terms: the US$50 liability cap, and whether to add an arbitration or
       indemnity clause. Left out on purpose; they need a lawyer's call.
 - [ ] The Open Food Facts share-alike question (already tracked in

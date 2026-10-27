@@ -198,6 +198,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `targets-by-day-shapes` | settings | 0.2, `release.goalsAndEnergy`; a day group as one number, and as a surplus | yes |
 | new | | `resting-energy` | settings | design sync 4, `release.goalsAndEnergy`; resting energy from each source, energy out only | no |
 | new | | `energy-today` | settings | design sync 4, `release.goalsAndEnergy`; eaten with its ±, Burned and the deficit so far | yes |
+| new | | `onboarding-goal` | onboarding | `onboarding-v2.md`, `release.onboardingSetup`; goal styles and the range on a stepper | yes |
+| new | | `onboarding-resting-energy` | onboarding | `onboarding-v2.md`; resting energy's details and the estimate they give, energy out | yes |
+| new | | `onboarding-meal-times` | onboarding | `onboarding-v2.md`; when meals usually happen, no amounts | no |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and
