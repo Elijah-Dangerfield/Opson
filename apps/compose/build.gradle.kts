@@ -1,3 +1,5 @@
+import com.opson.util.isStoreBuild
+
 plugins {
     id("opson.application")
     id("co.touchlab.skie") version "0.10.12"
@@ -159,6 +161,13 @@ kotlin {
             implementation(projects.features.trends.impl)
             implementation(projects.features.upgrade)
             implementation(projects.features.upgrade.impl)
+
+            // The QA menu, and with it More's Testing card, exists only off the store channel.
+            // Both Android variants and the iOS framework follow the channel, not the build type.
+            if (!isStoreBuild()) {
+                implementation(projects.features.qa)
+                implementation(projects.features.qa.impl)
+            }
 
             implementation(libs.atomicfu)
             implementation(libs.androidx.lifecycle.runtimeCompose)

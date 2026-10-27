@@ -58,15 +58,12 @@ import opson.libraries.resources.generated.resources.settings_more_modes
 import opson.libraries.resources.generated.resources.settings_more_modes_changed
 import opson.libraries.resources.generated.resources.settings_more_plan
 import opson.libraries.resources.generated.resources.settings_more_plan_free
-import opson.libraries.resources.generated.resources.settings_more_qa
-import opson.libraries.resources.generated.resources.settings_more_qa_sub
 import opson.libraries.resources.generated.resources.settings_more_signed_in
 import opson.libraries.resources.generated.resources.settings_more_signed_in_as
 import opson.libraries.resources.generated.resources.settings_more_support
 import opson.libraries.resources.generated.resources.settings_more_support_sub
 import opson.libraries.resources.generated.resources.settings_more_targets
 import opson.libraries.resources.generated.resources.settings_more_targets_sub
-import opson.libraries.resources.generated.resources.settings_more_testing
 import opson.libraries.resources.generated.resources.settings_more_title
 import opson.libraries.resources.generated.resources.settings_more_today
 import opson.libraries.resources.generated.resources.settings_more_today_sub
@@ -99,7 +96,7 @@ fun MoreScreen(
             modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp),
         )
         state.groups.forEach { group ->
-            group.section()?.let { SectionLabel(stringResource(it.label)) }
+            group.label()?.let { SectionLabel(stringResource(it)) }
             SettingsCard {
                 group.forEachIndexed { index, row ->
                     MoreRowItem(
@@ -125,12 +122,14 @@ fun MoreScreen(
     }
 }
 
-private val MoreSection.label: StringResource
-    get() = when (this) {
+private fun List<MoreRow>.label(): StringResource? = when (val first = firstOrNull()) {
+    is MoreRow.Contributed -> first.row.section
+    else -> when (section()) {
         MoreSection.About -> Res.string.settings_more_about
         MoreSection.Account -> Res.string.settings_more_account
-        MoreSection.Testing -> Res.string.settings_more_testing
+        null -> null
     }
+}
 
 @Composable
 private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit) {
@@ -253,11 +252,11 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             showDivider = showDivider,
             onClick = onClick,
         )
-        MoreRow.Qa -> SettingsRow(
-            title = stringResource(Res.string.settings_more_qa),
-            icon = AppIcons.Science,
+        is MoreRow.Contributed -> SettingsRow(
+            title = stringResource(row.row.title),
+            icon = row.row.icon,
             quietIcon = true,
-            subtitle = stringResource(Res.string.settings_more_qa_sub),
+            subtitle = row.row.subtitle?.let { stringResource(it) },
             chevron = true,
             showDivider = showDivider,
             onClick = onClick,
@@ -339,15 +338,15 @@ private fun MorePreview() {
     SettingsPreview { MoreScreen(state, onAction = {}) }
 }
 
-/** A beta build, signed in: About, Account and Testing under the design's cards. */
+/** A beta build, signed in: About and Account under the design's cards. */
 @Preview
 @Composable
 private fun MoreSignedInBetaPreview() {
-    val state = MoreStateBuilder.build(SettingsFixtures.settings(), remindersOn = true, account = previewAccount, qa = true)
+    val state = MoreStateBuilder.build(SettingsFixtures.settings(), remindersOn = true, account = previewAccount)
     SettingsPreview { MoreScreen(state, onAction = {}) }
 }
 
-/** An App Store build with a guest: no Testing card, and the version line without the commit. */
+/** An App Store build with a guest: the version line without the commit. */
 @Preview
 @Composable
 private fun MoreGuestStorePreview() {
@@ -358,7 +357,7 @@ private fun MoreGuestStorePreview() {
 @Preview
 @Composable
 private fun MoreLogOutPreview() {
-    val state = MoreStateBuilder.build(SettingsFixtures.settings(), account = previewAccount, qa = true)
+    val state = MoreStateBuilder.build(SettingsFixtures.settings(), account = previewAccount)
         .copy(logOut = LogOutStep.Confirming(guest = false))
     SettingsPreview { MoreScreen(state, onAction = {}) }
 }

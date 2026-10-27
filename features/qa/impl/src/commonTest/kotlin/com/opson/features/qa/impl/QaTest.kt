@@ -1,10 +1,5 @@
-package com.opson.features.settings.impl.qa
+package com.opson.features.qa.impl
 
-import com.opson.features.settings.impl.FakeAuthRepository
-import com.opson.features.settings.impl.FakeSettingsRepository
-import com.opson.features.settings.impl.SettingsFixtures
-import com.opson.features.settings.impl.eventsOf
-import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.libraries.config.AppConfigFlow
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.config.AppConfigRefresher
@@ -14,6 +9,7 @@ import com.opson.libraries.config.ConfigOverrideRepository
 import com.opson.libraries.config.QaConfigValue
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
@@ -114,7 +110,7 @@ class QaTest : CoroutineTest() {
 
     @Test
     fun theCheckIn_turnsOnWhatItNeeds_thenOpensTodaysDayClose() = runUnitTest {
-        val f = Fixture(settings = SettingsFixtures.settings().copy(checkIn = false))
+        val f = Fixture(settings = Settings(checkIn = false))
         val vm = f.vm()
         val events = eventsOf(vm)
 
@@ -158,7 +154,7 @@ class QaTest : CoroutineTest() {
     }
 
     /** A config whose values follow the overrides, as the real repository merges them. */
-    private class Fixture(settings: com.opson.libraries.diary.Settings = SettingsFixtures.settings()) {
+    private class Fixture(settings: Settings = Settings()) {
         val calendar = FakeCalendar()
         val settings = FakeSettingsRepository(settings)
         val overrides = FakeOverrides()

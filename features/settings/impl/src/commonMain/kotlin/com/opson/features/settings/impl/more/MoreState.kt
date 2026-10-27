@@ -1,6 +1,6 @@
 package com.opson.features.settings.impl.more
 
-import com.opson.features.settings.impl.qa.QaGate
+import com.opson.features.settings.MoreRowContribution
 import com.opson.libraries.diary.FastingAccess
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.FastingPlan
@@ -77,15 +77,15 @@ sealed interface MoreRow {
     /** "Signed in as …", or "Guest on this phone". Only while there is a session to end. */
     data class LogOut(val account: MoreAccount) : MoreRow
 
-    /** The QA menu, on debug and beta builds only (`QaAccess`). */
-    data object Qa : MoreRow
+    /** A row another module added ([MoreRowContribution]), in a card of its own after Account. */
+    data class Contributed(val row: MoreRowContribution) : MoreRow
 }
 
 object MoreStateBuilder {
 
     /**
-     * How the app treats you, optional extras, help and plan, about, the account, then the QA
-     * menu. Reminders shows only with [remindersOn]; [healthConnected] is null while
+     * How the app treats you, optional extras, help and plan, about, the account, then the rows
+     * other modules [contributed], a card per section. Reminders shows only with [remindersOn]; [healthConnected] is null while
      * `release.health` is off, and then there is no health row at all. [fastingReleased] is
      * `release.fasting`, [widgetsOn] `release.widgets`, [todayScreenOn] `release.goalsAndEnergy`.
      * [account] is null with no session, and then there is no Account card.
@@ -98,7 +98,7 @@ object MoreStateBuilder {
         widgetsOn: Boolean = false,
         todayScreenOn: Boolean = false,
         account: MoreAccount? = null,
-        qa: Boolean = false,
+        contributed: List<MoreRowContribution> = emptyList(),
     ): MoreState = MoreState(
         groups = listOfNotNull(
             listOfNotNull(
@@ -120,18 +120,19 @@ object MoreStateBuilder {
             listOf(MoreRow.Support, MoreRow.Plan),
             listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
             account?.let { listOf(MoreRow.LogOut(it)) },
-            listOf(MoreRow.Qa).takeIf { qa },
-        ),
+        ) + contributed.groupBy { it.section }.values.map { rows -> rows.map(MoreRow::Contributed) },
     )
 }
 
-/** The cards that get a label above them; the first three read as the design draws them, bare. */
-enum class MoreSection { About, Account, Testing }
+/**
+ * The cards that get a label above them; the first three read as the design draws them, bare.
+ * A contributed card is labelled with its own [MoreRowContribution.section].
+ */
+enum class MoreSection { About, Account }
 
 fun List<MoreRow>.section(): MoreSection? = when (firstOrNull()) {
     MoreRow.Privacy -> MoreSection.About
     is MoreRow.LogOut -> MoreSection.Account
-    MoreRow.Qa -> MoreSection.Testing
     else -> null
 }
 
@@ -142,8 +143,9 @@ fun List<MoreRow>.section(): MoreSection? = when (firstOrNull()) {
 object MoreVersion {
     fun line(versionName: String, buildNumber: Int, channel: String, commitSha: String): String {
         val base = "$versionName ($buildNumber)"
-        return if (channel == QaGate.STORE_CHANNEL) base else "$base · $channel · ${commitSha.take(SHORT_SHA)}"
+        return if (channel == STORE_CHANNEL) base else "$base · $channel · ${commitSha.take(SHORT_SHA)}"
     }
 
     private const val SHORT_SHA = 7
+    private const val STORE_CHANNEL = "store"
 }

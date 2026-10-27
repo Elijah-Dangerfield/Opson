@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The QA menu (More › QA menu), on debug and beta builds only. Testers read it, customers never
-  do, so it is plain and technical rather than in the app's voice.
+  The QA menu (More › Testing › QA menu), on debug and beta builds only. Testers read it,
+  customers never do, so it is plain and technical rather than in the app's voice. The code that
+  reads these is in :features:qa:impl, which store builds leave out.
   Same rules as strings.xml: no backslash escapes, positional format specifiers.
 -->
 <resources>
+    <!-- Its row on More -->
+    <string name="qa_more_section">Testing</string>
+    <string name="qa_more_row">QA menu</string>
+    <string name="qa_more_row_sub">Notifications, flags and resets. Never in App Store builds.</string>
+
     <string name="qa_title">QA menu</string>
     <string name="qa_copy_hint">Tap a row to copy it.</string>
     <string name="qa_copied">Copied %1$s.</string>

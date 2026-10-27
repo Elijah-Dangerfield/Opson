@@ -1,4 +1,4 @@
-package com.opson.features.settings.impl.qa
+package com.opson.features.qa.impl
 
 import com.opson.libraries.core.BuildInfo
 import me.tatarka.inject.annotations.Inject

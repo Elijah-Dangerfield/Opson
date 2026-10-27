@@ -1,4 +1,4 @@
-package com.opson.features.settings.impl.qa
+package com.opson.features.qa.impl
 
 /**
  * Whether this binary offers the QA menu: its More row and its route. Bound per platform, since
