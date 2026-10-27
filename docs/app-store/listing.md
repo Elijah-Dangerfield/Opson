@@ -58,10 +58,10 @@ Data used to track you: **No**.
 | Usage Data → Product interaction | Yes | Yes | Analytics |
 | Diagnostics → Crash data, Performance data | Yes | Yes | App functionality |
 | User Content → Customer support (feedback text, sent to Sentry) | Yes | Yes | App functionality |
-| Search History → Search history (food searches, stored without the account; 0.1 can put one in a crash report about a failed search) | Yes | Yes | App functionality, Analytics |
+| Search History → Search history (food searches, stored without the account; can appear in a crash report about a failed search) | Yes | Yes | App functionality, Analytics |
 | Contact info → Email | Only if the user signs in with Apple | Yes | App functionality |
 
-Diagnostics count as linked because `TelemetryUserBinder` attaches the anonymous account id to crash reports and feedback. It never sends the email. Usage events carry an install id rather than the account id, but server logs pair the two, so they are declared as linked too. Search history is declared as linked for the same conservative reason: 0.2 strips URL queries from crash reports, but 0.1 does not, so the label can change once 0.1 is off the store (docs/legal-review-2026-10.md).
+Diagnostics count as linked because `TelemetryUserBinder` attaches the anonymous account id to crash reports and feedback. It never sends the email. Usage events carry an install id rather than the account id, but server logs pair the two, so they are declared as linked too. Search history is declared as linked for the same conservative reason, until crash reports stop carrying failed search URLs (docs/legal-review-2026-10.md).
 
 ## App Review information
 

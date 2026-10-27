@@ -67,8 +67,10 @@ account, and we cannot see them.
   missing from the database. Typed meals are not stored.
 - **Crash reports** go to [Sentry](https://sentry.io/privacy/): what went
   wrong, your device model, OS version and app version, recent technical events
-  in the app, and your account's random ID. Reports are built to leave out your
-  food log, weights and notes.
+  in the app, and your account's random ID. If a network request failed, a
+  report can include the address the app was calling, which for a food search
+  contains the words searched. Reports are built to leave out your food log,
+  weights and notes.
 - **Feedback** you send from the app also goes to Sentry, with the app's recent
   technical log, so we can find the problem you describe.
 - **App usage events** go to our monitoring service,

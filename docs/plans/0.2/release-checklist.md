@@ -457,3 +457,5 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
       to `legal/credits.md` and the in-app food credit, wherever NEVO foods
       appear. NEVO data must stay free to users, including after Plus, and
       its values may not be changed.
+- [ ] When 0.2 is the store build (0.1 no longer sends search URLs to Sentry): re-apply `5a1cd02a` (`git revert` the revert), which drops the "failed search" sentence from `legal/privacy.md` and `legal/health-data.md` and the Search history label.
+- [ ] When 0.2 is the store build (0.1 no longer sends search URLs to Sentry): re-apply `5a1cd02a`, which drops the "failed search" sentence from `legal/privacy.md` and `legal/health-data.md` and the Search history label.

@@ -41,7 +41,8 @@ us, under contracts that let them use it only for that:
 - **Hosting and storage**: Fly.io and Supabase, which run our server and store
   your synced log.
 - **Photo analysis**: Anthropic, only for a photo estimate you ask for.
-- **Crash reporting**: Sentry. Crash reports are built to leave out your log.
+- **Crash reporting**: Sentry. Crash reports are built to leave out your log,
+  but a report about a failed food search can include the words searched.
 
 We have no affiliates that receive it. We don't sell consumer health data, and
 we don't share it with anyone for their own purposes. We don't use geofencing.
