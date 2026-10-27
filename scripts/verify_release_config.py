@@ -19,6 +19,10 @@ committed file.
     the build falls back to a placeholder host and every sign-in fails on the
     phone. Fix: commit supabase.properties.
 
+And it warns, without failing, when the Grafana credentials are missing.
+SETUP.md calls them optional, but without them app events never leave the
+phone and every client panel on the Grafana boards stays empty for that build.
+
 It can't tell whether the Supabase project is the one the prod server trusts;
 that needs the server to say which project it checks tokens against.
 """
@@ -72,11 +76,40 @@ def problems(root: Path, env: dict[str, str]) -> list[str]:
     return found
 
 
+GRAFANA = (
+    ("GRAFANA_OTLP_BASE_URL", "grafana.otlpBaseUrl"),
+    ("GRAFANA_OTLP_INSTANCE_ID", "grafana.otlpInstanceId"),
+    ("GRAFANA_LOGS_WRITE_TOKEN", "grafana.logsWriteToken"),
+)
+
+
+def warnings(root: Path, env: dict[str, str], home: Path) -> list[str]:
+    """Missing Grafana credentials, looked up where Versioning.kt looks."""
+    sources = [
+        read_properties(root / "local.properties"),
+        read_properties(root / "telemetry.properties"),
+        read_properties(root / "gradle.properties"),
+        read_properties(home / ".gradle" / "gradle.properties"),
+    ]
+    missing = [
+        env_name for env_name, key in GRAFANA
+        if not (env.get(env_name, "").strip() or any(source.get(key) for source in sources))
+    ]
+    if not missing:
+        return []
+    return [
+        f"No {', '.join(missing)}, so this build's app events stay on the phone and the Grafana "
+        "boards show nothing from it. Set the GRAFANA_* repo secrets (./scripts/setup_github_secrets.main.kts)."
+    ]
+
+
 def main() -> int:
+    on_ci = os.environ.get("GITHUB_ACTIONS") == "true"
+    for warning in warnings(ROOT, dict(os.environ), Path.home()):
+        print(("::warning::" if on_ci else "warning: ") + warning)
     found = problems(ROOT, dict(os.environ))
-    prefix = "::error::" if os.environ.get("GITHUB_ACTIONS") == "true" else "error: "
     for problem in found:
-        print(prefix + problem)
+        print(("::error::" if on_ci else "error: ") + problem)
     if found:
         return 1
     print("Release config: Sentry DSN and prod Supabase project are set.")

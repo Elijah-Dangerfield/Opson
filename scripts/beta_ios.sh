@@ -132,6 +132,21 @@ else
   warn "no Sentry token, so this build's crashes will arrive unsymbolicated"
 fi
 
+# ── Grafana ──────────────────────────────────────────────────────────────────
+# Account-wide app-event credentials (SETUP.md). The workflows pass them as
+# secrets; this script used to pass nothing, so a laptop build's app events
+# never left the phone. From the store when it has them; the release-config
+# check below warns about any still missing.
+for pair in GRAFANA_OTLP_BASE_URL:grafana.otlpBaseUrl \
+            GRAFANA_OTLP_INSTANCE_ID:grafana.otlpInstanceId \
+            GRAFANA_LOGS_WRITE_TOKEN:grafana.logsWriteToken; do
+  var="${pair%%:*}"
+  if [ -z "${!var:-}" ]; then
+    value="$(store_read "${pair#*:}")"
+    if [ -n "$value" ]; then export "$var=$value"; fi
+  fi
+done
+
 # ── Release config ───────────────────────────────────────────────────────────
 # The checks release.yml and beta.yml run before they build. 0.1.0 and the
 # first 0.2 TestFlight build came from this script, where none of them ran.

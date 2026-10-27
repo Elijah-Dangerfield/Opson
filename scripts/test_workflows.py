@@ -131,6 +131,26 @@ class VerifyReleaseConfigTest(unittest.TestCase):
         self.assertEqual(len(found), 1)
         self.assertIn("supabase.prod.projectId", found[0])
 
+    def test_missing_grafana_credentials_warn_and_name_each_one(self):
+        home = self.root / "home"
+        found = verify_release_config.warnings(self.root, {"GRAFANA_OTLP_BASE_URL": "https://otlp"}, home)
+        self.assertEqual(len(found), 1)
+        self.assertIn("GRAFANA_OTLP_INSTANCE_ID, GRAFANA_LOGS_WRITE_TOKEN", found[0])
+        self.assertNotIn("GRAFANA_OTLP_BASE_URL", found[0])
+
+    def test_grafana_credentials_in_local_properties_count(self):
+        self.write(
+            "local.properties",
+            "grafana.otlpBaseUrl=https://otlp\ngrafana.otlpInstanceId=1\ngrafana.logsWriteToken=glc_x\n",
+        )
+        self.assertEqual(verify_release_config.warnings(self.root, {}, self.root / "home"), [])
+
+    def test_the_guard_steps_are_handed_the_grafana_secrets(self):
+        for name in ("release.yml", "beta.yml"):
+            guard = workflow(name).split("run: python3 -I scripts/verify_release_config.py")[0].rsplit("- name:", 1)[1]
+            for secret in ("GRAFANA_OTLP_BASE_URL", "GRAFANA_OTLP_INSTANCE_ID", "GRAFANA_LOGS_WRITE_TOKEN"):
+                self.assertIn(f"secrets.{secret}", guard, name)
+
     def test_every_store_build_runs_it(self):
         for path in (WORKFLOWS / "release.yml", WORKFLOWS / "beta.yml", ROOT / "scripts" / "beta_ios.sh"):
             self.assertIn("scripts/verify_release_config.py", path.read_text(), path.name)
