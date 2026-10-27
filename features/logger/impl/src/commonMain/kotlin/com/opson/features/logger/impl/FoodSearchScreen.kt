@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -164,18 +167,13 @@ internal fun FoodSearchContent(state: FoodSearchState, onAction: (SearchAction) 
         }
         Chips(state, onAction, onOpenMenu = { focusManager.clearFocus() })
         state.options?.tabs?.let { tabs -> SearchTabs(tabs, state.options.tab, onAction) }
+        // No spacedBy: a list's rows sit flush in one card, so each block brings its own gap above it.
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(
-                start = AppTheme.spacing.page,
-                end = AppTheme.spacing.page,
-                top = AppTheme.spacing.row,
-                bottom = AppTheme.spacing.page,
-            ),
-            verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+            contentPadding = PaddingValues(start = AppTheme.spacing.page, end = AppTheme.spacing.page, bottom = AppTheme.spacing.page),
         ) {
             if (state.loading) {
-                item(key = "loading") { DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_loading_cd)) }
+                block(key = "loading") { DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_loading_cd)) }
             } else {
                 body(state, away, onAction)
             }
@@ -255,28 +253,28 @@ private fun MealChip(state: FoodSearchState, onAction: (SearchAction) -> Unit, o
 
 private fun LazyListScope.body(state: FoodSearchState, away: (SearchAction) -> Unit, onAction: (SearchAction) -> Unit) {
     when (val body = state.body) {
-        SearchBody.FirstRun -> item(key = "first-run") { Caption(stringResource(Res.string.logger_first_run)) }
-        SearchBody.Searching -> item(key = "searching") {
+        SearchBody.FirstRun -> block(key = "first-run") { Caption(stringResource(Res.string.logger_first_run)) }
+        SearchBody.Searching -> block(key = "searching") {
             DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_searching_cd))
         }
         is SearchBody.NoResults -> {
-            if (body.offline) item(key = "offline") { Caption(stringResource(Res.string.logger_offline_results)) }
-            item(key = "no-results") { NoResults(state, body.query, away, onAction) }
+            if (body.offline) block(key = "offline") { Caption(stringResource(Res.string.logger_offline_results)) }
+            block(key = "no-results") { NoResults(state, body.query, away, onAction) }
         }
         is SearchBody.Results -> {
-            if (body.offline) item(key = "offline") { Caption(stringResource(Res.string.logger_offline_results)) }
-            item(key = "results", contentType = "rows") { FoodRows(body.rows, away, onAction) }
-            item(key = "not-finding") { NotFinding(state, away, onAction) }
+            if (body.offline) block(key = "offline") { Caption(stringResource(Res.string.logger_offline_results)) }
+            foodRows("results", body.rows, away, onAction)
+            block(key = "not-finding") { NotFinding(state, away, onAction) }
             // Open Food Facts' licence asks for this wherever its foods appear; each of its rows names it too.
-            if (body.openFoodFacts) item(key = "off-credit") { Caption(stringResource(Res.string.search_off_credit)) }
+            if (body.openFoodFacts) block(key = "off-credit") { Caption(stringResource(Res.string.search_off_credit)) }
             // RIVM's citation, word for word, wherever NEVO's foods show.
-            if (body.nevo) item(key = "nevo-credit") { Caption(stringResource(Res.string.logger_source_nevo)) }
+            if (body.nevo) block(key = "nevo-credit") { Caption(stringResource(Res.string.logger_source_nevo)) }
         }
-        is SearchBody.Listed -> item(key = "listed", contentType = "rows") { FoodRows(body.rows, away, onAction) }
-        SearchBody.NoFoodsYet -> item(key = "no-foods") { Caption(stringResource(Res.string.adding_no_foods_yet)) }
-        is SearchBody.TabEmpty -> item(key = "tab-empty") { Caption(stringResource(body.tab.emptyCopy())) }
-        is SearchBody.TabHint -> item(key = "tab-hint") { Caption(stringResource(body.tab.hintCopy())) }
-        is SearchBody.SavedMeals -> item(key = "saved") {
+        is SearchBody.Listed -> foodRows("listed", body.rows, away, onAction)
+        SearchBody.NoFoodsYet -> block(key = "no-foods") { Caption(stringResource(Res.string.adding_no_foods_yet)) }
+        is SearchBody.TabEmpty -> block(key = "tab-empty") { Caption(stringResource(body.tab.emptyCopy())) }
+        is SearchBody.TabHint -> block(key = "tab-hint") { Caption(stringResource(body.tab.hintCopy())) }
+        is SearchBody.SavedMeals -> block(key = "saved") {
             when {
                 body.meals.isNotEmpty() -> FoodRowsCard {
                     body.meals.forEachIndexed { index, meal ->
@@ -289,7 +287,7 @@ private fun LazyListScope.body(state: FoodSearchState, away: (SearchAction) -> U
         }
         is SearchBody.Browse -> {
             if (body.usual.isNotEmpty()) {
-                item(key = "usual-label") {
+                block(key = "usual-label") {
                     val around = body.usualAround
                     SectionLabel(
                         if (around != null) {
@@ -299,28 +297,58 @@ private fun LazyListScope.body(state: FoodSearchState, away: (SearchAction) -> U
                         },
                     )
                 }
-                item(key = "usual", contentType = "rows") { FoodRows(body.usual, away, onAction) }
+                foodRows("usual", body.usual, away, onAction)
             }
             if (body.recent.isNotEmpty()) {
-                item(key = "recent-label") { SectionLabel(stringResource(Res.string.logger_recent)) }
-                item(key = "recent", contentType = "rows") { FoodRows(body.recent, away, onAction) }
+                block(key = "recent-label") { SectionLabel(stringResource(Res.string.logger_recent)) }
+                foodRows("recent", body.recent, away, onAction)
             }
         }
     }
 }
 
-@Composable
-private fun FoodRows(rows: List<FoodRowUi>, away: (SearchAction) -> Unit, onAction: (SearchAction) -> Unit) {
-    FoodRowsCard {
-        rows.forEachIndexed { index, row ->
-            AddFoodRow(
-                row = row,
-                onOpen = { away(SearchAction.FoodNameTapped(row)) },
-                onAdd = { onAction(SearchAction.AddTapped(row)) },
-                divider = index > 0,
-            )
-        }
+/** Anything in the list that is not a food row, with the gap above it that `spacedBy` would give. */
+private fun LazyListScope.block(key: String, content: @Composable () -> Unit) {
+    item(key = key, contentType = key) {
+        Box(modifier = Modifier.padding(top = AppTheme.spacing.row)) { content() }
     }
+}
+
+/**
+ * One lazy item per row, so a long Your foods composes only what is on screen, and together
+ * they draw as one card. [section] keeps the keys apart: a food can be under Usual and Recent.
+ */
+private fun LazyListScope.foodRows(section: String, rows: List<FoodRowUi>, away: (SearchAction) -> Unit, onAction: (SearchAction) -> Unit) {
+    itemsIndexed(rows, key = { _, row -> "$section:${row.key}" }, contentType = { _, _ -> "food" }) { index, row ->
+        AddFoodRow(
+            row = row,
+            onOpen = { away(SearchAction.FoodNameTapped(row)) },
+            onAdd = { onAction(SearchAction.AddTapped(row)) },
+            divider = index > 0,
+            modifier = Modifier.groupedListSlot(first = index == 0, last = index == rows.lastIndex),
+        )
+    }
+}
+
+/**
+ * A row's part of the card `FoodRowsCard` draws around a whole list: the gap above and the top
+ * corners on the first row, the bottom corners on the last, the inset on all of them.
+ */
+@Composable
+private fun Modifier.groupedListSlot(first: Boolean, last: Boolean): Modifier {
+    val card = AppTheme.shapes.groupedList
+    val shape = (card as? CornerBasedShape)?.let {
+        it.copy(
+            topStart = if (first) it.topStart else ZeroCornerSize,
+            topEnd = if (first) it.topEnd else ZeroCornerSize,
+            bottomStart = if (last) it.bottomStart else ZeroCornerSize,
+            bottomEnd = if (last) it.bottomEnd else ZeroCornerSize,
+        )
+    } ?: card
+    return padding(top = if (first) AppTheme.spacing.row else 0.dp)
+        .clip(shape)
+        .background(AppTheme.colors.surface)
+        .padding(start = CARD_INSET, end = CARD_INSET, top = if (first) CARD_EDGE else 0.dp, bottom = if (last) CARD_EDGE else 0.dp)
 }
 
 @Composable
@@ -501,3 +529,7 @@ private fun SearchTab.hintCopy(): StringResource = when (this) {
 /** A Favorites or Custom tab with nothing in it yet. */
 private fun SearchTab.emptyCopy(): StringResource =
     if (this == SearchTab.Favorites) Res.string.search_tab_empty_favorites else Res.string.search_tab_empty_custom
+
+/** `FoodRowsCard`'s side inset, and the edge it leaves above the first row and below the last. */
+private val CARD_INSET = 14.dp
+private val CARD_EDGE = 2.dp
