@@ -47,7 +47,6 @@ fun FeedbackScreen(
 ) {
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
-    val canSubmit = state.message.isNotBlank() && !state.isSubmitting
 
     Screen(
         modifier = Modifier.fillMaxSize(),
@@ -95,7 +94,7 @@ fun FeedbackScreen(
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
                     onSend = {
-                        if (canSubmit) {
+                        if (state.canSubmit) {
                             focusManager.clearFocus(force = true)
                             onAction(FeedbackAction.Submit)
                         }
@@ -138,10 +137,10 @@ fun FeedbackScreen(
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 size = ButtonSize.Large,
-                enabled = canSubmit,
+                enabled = state.canSubmit,
                 onClick = {
                     focusManager.clearFocus(force = true)
-                    if (canSubmit) {
+                    if (state.canSubmit) {
                         onAction(FeedbackAction.Submit)
                     }
                 }

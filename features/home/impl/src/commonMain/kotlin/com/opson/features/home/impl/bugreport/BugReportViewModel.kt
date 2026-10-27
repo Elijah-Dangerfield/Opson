@@ -33,10 +33,13 @@ class BugReportViewModel(
         }
     }
 
-    /** Only a sent report counts and closes the page; a failed one stays, with a line saying so. */
+    /**
+     * Only a sent report counts and closes the page; a failed one stays, with a line saying so.
+     * A second tap queued behind the first send is dropped by [BugReportState.isSent].
+     */
     private suspend fun BugReportAction.submitBugReport() {
         val current = state
-        if (current.isSubmitting) return
+        if (current.isSubmitting || current.isSent) return
         if (current.message.isBlank()) {
             updateState { it.copy(errorMessage = Res.string.feedback_empty) }
             return
@@ -53,7 +56,7 @@ class BugReportViewModel(
             return
         }
         appCache.update { it.copy(bugsReported = it.bugsReported + 1) }
-        updateState { it.copy(isSubmitting = false) }
+        updateState { it.copy(isSubmitting = false, isSent = true) }
         sendEvent(BugReportEvent.Sent)
     }
 }
@@ -65,7 +68,10 @@ data class BugReportState(
     val logId: String? = null,
     val errorCode: Int? = null,
     val contextMessage: String? = null,
+    val isSent: Boolean = false,
 ) {
+    val canSubmit: Boolean get() = message.isNotBlank() && !isSubmitting && !isSent
+
     val hasContext: Boolean
         get() = !contextMessage.isNullOrBlank() || !logId.isNullOrBlank() || errorCode != null
 }
