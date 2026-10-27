@@ -5,8 +5,8 @@ import com.opson.libraries.navigation.Route
 import kotlinx.serialization.Serializable
 
 /**
- * The meal note sheet (`today-sheets.md`), from the Meal sheet and the
- * logger's "Add a note" chip. A `bottomSheet<>` with a typeMap for [MealSlot];
+ * A meal's Note sheet (`today-sheets.md`), from the Meal sheet, the Notes list
+ * and the logger's Note. A `bottomSheet<>` with a typeMap for [MealSlot];
  * Today registers it.
  */
 @Serializable

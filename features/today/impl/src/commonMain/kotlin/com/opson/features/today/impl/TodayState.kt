@@ -84,8 +84,10 @@ data class TodayState(
 /** One piece of the eaten bar: a macro's share of the energy, or ([metric] null) the rest in one neutral piece. */
 data class BarPart(val metric: Metric?, val weight: Float)
 
-/** A stat on page 1 of the summary: its value is an amount through the policy, or a count. */
-/** [label] is the stat's own, but "To your goal" for [SummaryStat.ToRange] when the day's goal is one number. */
+/**
+ * A stat on page 1 of the summary: its value is an amount through the policy, or a count. [label] is
+ * the stat's own, but "To your goal" for [SummaryStat.ToRange] when the day's goal is one number.
+ */
 data class StatTile(val stat: SummaryStat, val value: StatValue, val label: StringResource = stat.label)
 
 sealed interface StatValue {
@@ -299,7 +301,7 @@ data class MealCard(
 
 /**
  * A meal's Note as Today shows it: the hunger level and the words, either one alone. Read from the
- * "How it felt" record the Note sheet writes; null when it holds neither.
+ * meal's MealFeeling, which the Note sheet writes; null when it holds neither.
  */
 @Immutable
 data class MealNoteUi(val hunger: StringResource?, val text: String?)
