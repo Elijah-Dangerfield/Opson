@@ -118,6 +118,22 @@ class SettingsNumbersChangerTest {
     }
 
     @Test
+    fun withThePauseOnShowingProgressPhotosNeedsThePause_hidingThemDoesNot() = runTest {
+        val fuel = NumbersSettings(preset = PresetId.Fuel, pauseBeforeMore = true)
+        val (changer, repository) = changer(fuel)
+
+        assertEquals(NumbersOutcome.NeedsPause, changer.request(NumbersChange.SetProgressPhotos(shown = true)))
+        assertEquals(fuel, repository.state.value.numbers)
+
+        changer.confirm(NumbersChange.SetProgressPhotos(shown = true))
+        assertEquals(true, repository.state.value.numbers.progressPhotos)
+        assertEquals(1, events.named("mode.changed").size)
+
+        assertEquals(NumbersOutcome.Applied(fewer = true), changer.request(NumbersChange.SetProgressPhotos(shown = false)))
+        assertFalse(repository.state.value.numbers.showsProgressPhotos)
+    }
+
+    @Test
     fun withThePauseOnAnEqualScoreChangeApplies() = runTest {
         // Full and Sprint show the same numbers.
         val (changer, repository) = changer(NumbersSettings(preset = PresetId.Full, pauseBeforeMore = true))

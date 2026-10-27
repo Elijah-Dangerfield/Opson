@@ -50,6 +50,8 @@ import opson.libraries.resources.generated.resources.settings_pause_reason_promp
 import opson.libraries.resources.generated.resources.settings_pause_reason_provider
 import opson.libraries.resources.generated.resources.settings_pause_talk
 import opson.libraries.resources.generated.resources.settings_pause_title_number
+import opson.libraries.resources.generated.resources.settings_modes_photos
+import opson.libraries.resources.generated.resources.settings_modes_photos_inline
 import opson.libraries.resources.generated.resources.settings_pause_title_pause
 import opson.libraries.resources.generated.resources.settings_pause_title_preset
 import opson.libraries.resources.generated.resources.settings_pause_title_reveal
@@ -152,19 +154,24 @@ private fun TalkToSomeone(onClick: () -> Unit) {
 private class PauseCopy(val title: String, val body: String, val button: String)
 
 @Composable
+private fun numberCopy(inlineLabel: StringResource, label: StringResource, countdown: String?): PauseCopy {
+    val inline = stringResource(inlineLabel)
+    return PauseCopy(
+        title = stringResource(Res.string.settings_pause_title_number, inline),
+        body = stringResource(Res.string.settings_pause_body_number, stringResource(label)),
+        button = if (countdown != null) {
+            stringResource(Res.string.settings_pause_wait_number, inline, countdown)
+        } else {
+            stringResource(Res.string.settings_pause_ready_number, inline)
+        },
+    )
+}
+
+@Composable
 private fun copyFor(subject: PauseSubject, countdown: String?): PauseCopy = when (subject) {
-    is PauseSubject.Number -> {
-        val inline = stringResource(subject.metric.inline)
-        PauseCopy(
-            title = stringResource(Res.string.settings_pause_title_number, inline),
-            body = stringResource(Res.string.settings_pause_body_number, stringResource(subject.metric.label)),
-            button = if (countdown != null) {
-                stringResource(Res.string.settings_pause_wait_number, inline, countdown)
-            } else {
-                stringResource(Res.string.settings_pause_ready_number, inline)
-            },
-        )
-    }
+    is PauseSubject.Number -> numberCopy(subject.metric.inline, subject.metric.label, countdown)
+    // Photos read like a number in the sheet: "Showing progress photos again".
+    PauseSubject.ProgressPhotos -> numberCopy(Res.string.settings_modes_photos_inline, Res.string.settings_modes_photos, countdown)
     is PauseSubject.Preset -> {
         val label = stringResource(subject.id.label)
         PauseCopy(
