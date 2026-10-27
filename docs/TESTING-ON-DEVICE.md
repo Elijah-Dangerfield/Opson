@@ -35,7 +35,8 @@ HealthKit, so Apple Health connects. Release builds don't, until 0.2.
 | Close the day check-in, and its switch in Reminders | Yes |
 | Progress photos row in Modes, Expended card in Trends (with a watch connected) | Yes |
 | Home screen widgets | The in-app Widgets page only; the native widget is held for 0.2 |
-| Shake the phone | Opens the QA menu: flags, config overrides, network log |
+| More › Testing › QA menu (debug and TestFlight only) | Fire each reminder in 5 s, open today's check-in, reset onboarding, clear caches, override config flags, copy the user id |
+| Shake the phone | The bug report dialog; on debug builds it also opens the network log |
 
 ## Set the photo key on dev (when you want photo estimates)
 
