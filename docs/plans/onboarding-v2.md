@@ -22,7 +22,7 @@ surplus, and meal times for No numbers or someone eating regularly.
 | 3 of 3: Does this sound like you? (optional) | everyone, skippable | `onboarding.hard` | |
 | Your starting point | everyone | `numbers` (the mode), unstamped | |
 | Your daily goal | the mode shows calories, so Full numbers | `targets` (style and range) | `release.onboardingSetup` |
-| What you burn at rest | a set deficit or surplus was picked | `birthYear`, `heightCm`, `bodySex`, `weightUnit`, and a first weigh-in | also `release.goalsAndEnergy` |
+| What you burn at rest | a set deficit or surplus was picked | `birthYear`, `heightCm`, `bodySex`, `weightUnit`, `activityLevel`, and a first weigh-in | also `release.goalsAndEnergy` |
 | When do you usually eat? | No numbers, or "Eating regularly" | `mealTimes` | `release.onboardingSetup` |
 | Save your setup | a phone that can sign in (iOS) | links the guest | |
 
@@ -138,8 +138,10 @@ person picked a goal that needs one. That is the right trade for this audience.
 - **No target below the floor.** The goal step starts at `Targets.Default` and
   moves through `Targets.raise` and `Targets.lower`, so with `GOAL_FLOOR_KCAL`
   unset nobody can start lower than the app's starting range. A deficit or
-  surplus starts at what the aim already implies against resting energy, as
-  Targets does, so it never asks for more than the person had. Tests hold both.
+  surplus starts at what the aim already implies against an ordinary day's
+  burn (resting energy plus the activity level asked on the same step, as
+  Burned works it out with no health app), as Targets does, so it never asks
+  for more than the person had. Tests hold both.
 - **A statement, not a diagnosis.** Optional, phrased as something to agree
   with. The body now says what a yes does, because "the answer is used for
   nothing else" was not true: it also keeps fasting and exercise adjustments

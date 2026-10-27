@@ -213,6 +213,13 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 
 ## Goals and energy (`release.goalsAndEnergy`)
 
+- [ ] TODO(dietitian): confirm the macro presets (`MacroPreset`: Balanced
+      20/50/30, Higher protein 30/40/30, Lower carb 30/25/45) and the activity
+      level factors Burned uses with no health app (`ActivityLevel`, the
+      standard Mifflin–St Jeor ones). An engineer picked both from other
+      trackers (`docs/research/goals-ux.md`).
+- [ ] TODO(dietitian): macros can be set to 0 g or 0%. Decide whether any
+      macro needs a minimum before launch.
 - [ ] TODO(clinician): set `MAX_SURPLUS_KCAL` (null today, so a surplus can't
       grow past where it started, as the deficit can't while
       `MAX_DEFICIT_KCAL` is null; the owner's call, 2026-10-27).
