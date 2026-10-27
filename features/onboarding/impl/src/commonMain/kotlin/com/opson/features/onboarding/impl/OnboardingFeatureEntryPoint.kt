@@ -65,6 +65,12 @@ class OnboardingFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     SignInEvent.NavigateToToday -> router.enterTab(TodayRoute())
+                    // A new account opens setup at the first question (the onboarding view model sees
+                    // a real, not-onboarded session). Clear the stack so Back can't return to sign-in.
+                    SignInEvent.NavigateToSetup -> router.navigate(
+                        OnboardingRoute(),
+                        NavigationOptions(launchSingleTop = true, clearBackStack = true),
+                    )
                     is SignInEvent.NavigateToVerifyEmail -> router.navigate(
                         VerifyEmailRoute(event.email),
                     )
