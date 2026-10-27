@@ -81,7 +81,7 @@ fun BugReportScreen(
                         Text(
                             text = it,
                             typography = AppTheme.typography.Body.B500,
-                            color = AppTheme.colors.danger
+                            color = AppTheme.colors.ink
                         )
                     }
 
@@ -145,7 +145,7 @@ fun BugReportScreen(
             ) {
                 val messageLength = state.message.length
                 val counterColor = if (messageLength >= BUG_REPORT_CHAR_LIMIT) {
-                    AppTheme.colors.danger
+                    AppTheme.colors.ink
                 } else {
                     AppTheme.colors.textSecondary
                 }
@@ -161,7 +161,7 @@ fun BugReportScreen(
                 VerticalSpacerD500()
                 Text(
                     text = stringResource(it),
-                    color = AppTheme.colors.danger,
+                    color = AppTheme.colors.ink,
                     textAlign = TextAlign.Start
                 )
             }
