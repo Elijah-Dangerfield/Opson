@@ -226,7 +226,7 @@
     <string name="settings_targets_group_range">Range</string>
     <string name="settings_targets_group_goal">Goal</string>
     <string name="settings_targets_group_shape_range">Range</string>
-    <string name="settings_targets_group_shape_exact">One number</string>
+    <string name="settings_targets_group_shape_exact">Number</string>
     <string name="settings_targets_group_shape_surplus">Surplus</string>
     <string name="settings_targets_group_shape_deficit">Deficit</string>
     <string name="settings_targets_group_waiting">This day uses its range until Opson can estimate what you burn. Add your details under Burned comes from.</string>
