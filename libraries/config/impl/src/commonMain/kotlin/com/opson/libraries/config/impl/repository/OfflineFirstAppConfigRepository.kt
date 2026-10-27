@@ -3,6 +3,7 @@ package com.opson.libraries.config.impl.repository
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEvents
 import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.config.AppConfigRefresher
 import com.opson.libraries.config.AppConfigRepository
 import com.opson.libraries.config.ConfigOverrideRepository
 import com.opson.libraries.config.impl.ConfigRefreshThrottleMs
@@ -69,6 +70,7 @@ private val ConfigRefreshTimeout = 5.seconds
  * again.
  */
 @ContributesBinding(AppScope::class, boundType = AppConfigRepository::class)
+@ContributesBinding(AppScope::class, boundType = AppConfigRefresher::class)
 @ContributesBinding(AppScope::class, boundType = AutoInit::class, multibinding = true)
 @SingleIn(AppScope::class)
 class OfflineFirstAppConfigRepository @Inject constructor(
@@ -81,7 +83,7 @@ class OfflineFirstAppConfigRepository @Inject constructor(
     private val appEvents: AppEvents,
     private val clock: Clock,
     private val appScope: AppCoroutineScope,
-) : AppConfigRepository, AutoInit {
+) : AppConfigRepository, AppConfigRefresher, AutoInit {
 
     private val logger = KLog.withTag("AppConfigRepository")
     private var refreshJob: Job? = null
@@ -137,6 +139,15 @@ class OfflineFirstAppConfigRepository @Inject constructor(
     override fun config(): AppConfigMap = LazyAppConfigMap()
 
     override fun configStream(): Flow<AppConfigMap> = configStream
+
+    /**
+     * Fetches now whatever the throttle says. Stamps the attempt like a foreground refresh does,
+     * so a foreground right after it does not fetch a second time.
+     */
+    override suspend fun refresh() {
+        lastFetchAtMs = clock.now().toEpochMilliseconds()
+        refreshConfig().join()
+    }
 
     private fun observeForegroundForRefresh() {
         appEvents
