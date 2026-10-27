@@ -168,6 +168,7 @@ object LoggerStateBuilder {
                     )
                 }
             },
+            offline = answer?.offline == true,
         )
     }
 }

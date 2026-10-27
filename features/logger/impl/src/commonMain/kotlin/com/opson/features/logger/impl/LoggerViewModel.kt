@@ -291,7 +291,7 @@ class LoggerViewModel(
             }
             is DescribeReviewAction.FindResultsArrived -> {
                 val find = review.find?.takeIf { it.query.trim() == action.query } ?: return
-                action.choose { copy(review = review.copy(find = find.copy(answer = SwapAnswer(action.query, action.foods)))) }
+                action.choose { copy(review = review.copy(find = find.copy(answer = SwapAnswer(action.query, action.foods, action.offline)))) }
             }
             is DescribeReviewAction.FindPicked -> {
                 val find = review.find ?: return
@@ -319,8 +319,8 @@ class LoggerViewModel(
         if (query.isEmpty()) return
         findJob = viewModelScope.launch {
             delay(SEARCH_DEBOUNCE)
-            val foods = foodCatalog.search(query, FIND_LIMIT).getOrNull()?.foods.orEmpty()
-            takeAction(DescribeReviewAction.FindResultsArrived(query, foods))
+            val found = foodCatalog.search(query, FIND_LIMIT).getOrNull()
+            takeAction(DescribeReviewAction.FindResultsArrived(query, found?.foods.orEmpty(), offline = found?.fromCache ?: true))
         }
     }
 

@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -193,6 +194,32 @@ class DescribeReviewViewModelTest : CoroutineTest() {
         assertEquals(listOf("Egg, large", "Toast, white", "grandma's kugel"), vm.lines.map { it.name })
         assertEquals("3 large", vm.lines.first().amount)
         assertEquals(3, logged(vm).size)
+    }
+
+    /** "Nothing by that name" offline would tell someone the food does not exist. */
+    @Test
+    fun findOfflineWithNothingCachedSaysItNeedsAConnection() = runUnitTest {
+        val vm = described()
+        catalog.online = false
+
+        vm.takeAction(DescribeReviewAction.FindTapped())
+        vm.takeAction(DescribeReviewAction.FindTyped("kugel"))
+        settle()
+
+        assertEquals(emptyList(), vm.state.describe.find?.results)
+        assertTrue(vm.state.describe.find?.offline == true)
+    }
+
+    @Test
+    fun findOnlineWithNothingFoundIsAMiss() = runUnitTest {
+        val vm = described()
+
+        vm.takeAction(DescribeReviewAction.FindTapped())
+        vm.takeAction(DescribeReviewAction.FindTyped("kugel"))
+        settle()
+
+        assertEquals(emptyList(), vm.state.describe.find?.results)
+        assertFalse(vm.state.describe.find?.offline == true)
     }
 
     @Test

@@ -86,7 +86,7 @@ sealed interface DescribeReviewAction : LoggerAction {
     /** "Add something it missed" with no key; "Search for something else" on a line with its key. */
     data class FindTapped(val replacing: String? = null) : DescribeReviewAction
     data class FindTyped(val text: String) : DescribeReviewAction
-    data class FindResultsArrived(val query: String, val foods: List<Food>) : DescribeReviewAction
+    data class FindResultsArrived(val query: String, val foods: List<Food>, val offline: Boolean = false) : DescribeReviewAction
     data class FindPicked(val id: String) : DescribeReviewAction
     data object FindClosed : DescribeReviewAction
 }

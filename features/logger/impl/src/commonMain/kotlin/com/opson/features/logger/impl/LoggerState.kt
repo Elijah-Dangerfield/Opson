@@ -116,8 +116,11 @@ data class DescribedLine(
 /** [count] lines and the energy of all of them, policy-resolved. */
 data class DescribeTotal(val count: Int, val calories: Display)
 
-/** The find-a-food search: [replacing] is the line's name when swapping one; [results] null until the catalog answers. */
-data class DescribeFindUi(val replacing: String?, val query: String, val results: List<SwapResultUi>?)
+/**
+ * The find-a-food search: [replacing] is the line's name when swapping one; [results] null until
+ * the catalog answers; [offline] when it could not be reached, so no results is not a miss.
+ */
+data class DescribeFindUi(val replacing: String?, val query: String, val results: List<SwapResultUi>?, val offline: Boolean = false)
 
 data class SavedUi(val meals: List<SavedMealUi> = emptyList())
 

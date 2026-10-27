@@ -67,6 +67,8 @@ sealed interface PhotoStage {
         val query: String,
         /** Null while the catalog has not answered [query]. */
         val results: List<SwapResultUi>?,
+        /** The catalog could not be reached: no results says so rather than "nothing by that name". */
+        val offline: Boolean = false,
     ) : PhotoStage
 
     data object NothingFound : PhotoStage
@@ -126,7 +128,7 @@ sealed interface PhotoEstimateAction {
     data class RowNameTapped(val key: String) : PhotoEstimateAction
     data object AddMissedTapped : PhotoEstimateAction
     data class SwapTyped(val text: String) : PhotoEstimateAction
-    data class SwapResultsArrived(val query: String, val foods: List<Food>) : PhotoEstimateAction
+    data class SwapResultsArrived(val query: String, val foods: List<Food>, val offline: Boolean = false) : PhotoEstimateAction
     data class SwapPicked(val id: String) : PhotoEstimateAction
     data object TryAgainTapped : PhotoEstimateAction
     data object AnotherPhotoTapped : PhotoEstimateAction
@@ -166,7 +168,8 @@ sealed interface PhotoStep {
 /** The swap search: [replacing] is the line being swapped, or null when adding one. */
 data class PhotoSwap(val replacing: String?, val query: String = "", val results: SwapAnswer? = null)
 
-data class SwapAnswer(val query: String, val foods: List<Food>)
+/** The catalog's answer for [query]. [offline]: it could not be reached, so an empty answer is not a miss. */
+data class SwapAnswer(val query: String, val foods: List<Food>, val offline: Boolean = false)
 
 /** Everything the photo sheet holds; [PhotoEstimateStateBuilder] draws it. */
 data class PhotoModel(

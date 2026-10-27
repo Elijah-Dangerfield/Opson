@@ -136,7 +136,7 @@ class PhotoEstimateViewModel(
             }
             is PhotoEstimateAction.SwapResultsArrived -> {
                 val swap = model.swap ?: return
-                if (action.query == swap.query.trim()) action.change { copy(swap = swap.copy(results = SwapAnswer(action.query, action.foods))) }
+                if (action.query == swap.query.trim()) action.change { copy(swap = swap.copy(results = SwapAnswer(action.query, action.foods, action.offline))) }
             }
             is PhotoEstimateAction.SwapPicked -> action.swapPicked(action.id)
             PhotoEstimateAction.TryAgainTapped -> model.photo?.let { action.estimate(it) } ?: action.change { copy(step = PhotoStep.Start) }
@@ -244,8 +244,8 @@ class PhotoEstimateViewModel(
         if (query.isEmpty()) return
         searchJob = viewModelScope.launch {
             delay(SEARCH_DEBOUNCE)
-            val foods = foodCatalog.search(query, SEARCH_LIMIT).getOrNull()?.foods.orEmpty()
-            takeAction(PhotoEstimateAction.SwapResultsArrived(query, foods))
+            val found = foodCatalog.search(query, SEARCH_LIMIT).getOrNull()
+            takeAction(PhotoEstimateAction.SwapResultsArrived(query, found?.foods.orEmpty(), offline = found?.fromCache ?: true))
         }
     }
 
