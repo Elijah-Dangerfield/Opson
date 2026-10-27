@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.settings.impl.support
 
 import androidx.lifecycle.viewModelScope
@@ -10,6 +12,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import me.tatarka.inject.annotations.Inject
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import opson.libraries.resources.generated.resources.Res
 
 /**
@@ -17,14 +21,13 @@ import opson.libraries.resources.generated.resources.Res
  * shipped builds' dependencies and committed, and the typeface's licence, which sits beside the
  * font files.
  */
-const val LICENSES_FILE = "files/licenses.json"
-const val FONT_LICENSE_FILE = "font/atkinson_hyperlegible_next_OFL.txt"
+internal const val LICENSES_FILE = "files/licenses.json"
+internal const val FONT_LICENSE_FILE = "font/atkinson_hyperlegible_next_OFL.txt"
 
-const val USDA_URL = "https://fdc.nal.usda.gov/"
-const val OPEN_FOOD_FACTS_URL = "https://world.openfoodfacts.org/"
-const val NEVO_URL = "https://www.rivm.nl/en/dutch-food-composition-database"
-const val ODBL_URL = "https://opendatacommons.org/licenses/odbl/1-0/"
-const val OFL_URL = "https://openfontlicense.org/"
+internal const val USDA_URL = "https://fdc.nal.usda.gov/"
+internal const val NEVO_URL = "https://www.rivm.nl/en/dutch-food-composition-database"
+internal const val ODBL_URL = "https://opendatacommons.org/licenses/odbl/1-0/"
+internal const val OFL_URL = "https://openfontlicense.org/"
 
 /**
  * Credits and licenses: the food data and the typeface, then every open-source library with
@@ -35,18 +38,27 @@ const val OFL_URL = "https://openfontlicense.org/"
  * @property licenses each licence once, the typeface's first. One without [CreditedLicense.text]
  *   opens its [CreditedLicense.url] instead.
  * @property openLicense the licence whose text is showing.
+ *
+ * These types are hidden from the iOS framework's header (`@HiddenFromObjC`), as Swift never
+ * uses them. Exported, they broke the Xcode build on an unrelated line: `'swift_name' and
+ * 'swift_name' attributes are not compatible` on `ImplHealthKitReader.hasAccess`, where SKIE's
+ * API notes rename the method. Why these new declarations set that off wasn't pinned down: the
+ * header and API notes for that class were identical either way.
  */
+@HiddenFromObjC
 data class CreditsState(
     val libraries: List<CreditedLibrary> = emptyList(),
     val licenses: List<CreditedLicense> = emptyList(),
     val openLicense: String? = null,
 )
 
+@HiddenFromObjC
 data class CreditedLibrary(val id: String, val name: String, val version: String?, val licenses: List<String>)
 
+@HiddenFromObjC
 data class CreditedLicense(val id: String, val name: String, val text: String?, val url: String?)
 
-object CreditsStateBuilder {
+internal object CreditsStateBuilder {
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -90,6 +102,7 @@ object CreditsStateBuilder {
 }
 
 @Inject
+@HiddenFromObjC
 class CreditsViewModel : SEAViewModel<CreditsState, CreditsEvent, CreditsAction>(initialStateArg = CreditsState()) {
 
     init {
@@ -123,11 +136,13 @@ class CreditsViewModel : SEAViewModel<CreditsState, CreditsEvent, CreditsAction>
     }
 }
 
+@HiddenFromObjC
 sealed interface CreditsEvent {
     data class OpenLink(val url: String) : CreditsEvent
     data object Close : CreditsEvent
 }
 
+@HiddenFromObjC
 sealed interface CreditsAction {
     data class Loaded(val credits: CreditsState) : CreditsAction
     data class LicenseTapped(val id: String) : CreditsAction

@@ -62,7 +62,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * runs to hundreds of rows.
  */
 @Composable
-fun CreditsScreen(
+internal fun CreditsScreen(
     state: CreditsState,
     onAction: (CreditsAction) -> Unit,
     modifier: Modifier = Modifier,
