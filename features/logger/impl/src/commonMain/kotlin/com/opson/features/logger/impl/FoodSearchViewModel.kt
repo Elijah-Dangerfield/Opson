@@ -321,7 +321,7 @@ class FoodSearchViewModel(
         val recentDays = diary.observeDays(today.minus(MealSlotPicker.HISTORY_DAYS, DateTimeUnit.DAY), today)
         val logged = combine(diary.recentFoods(limit = RECENT_LIMIT), diary.recentFoods(limit = HISTORY_LIMIT), diary.frequentFoods(limit = FREQUENT_LIMIT), ::Triple)
         val mine = combine(customFoods.observeAll(), savedMeals.observeAll(), ::Pair)
-        val base = combine(diary.observeDay(day), settingsRepository.settings, usualBySlot, logged, combine(mine, recentDays, ::Pair)) {
+        val read = combine(diary.observeDay(day), settingsRepository.settings, usualBySlot, logged, combine(mine, recentDays, ::Pair)) {
                 d, settings, usual, (recent, history, frequent), (own, days) ->
             val zone = calendar.timeZone()
             SearchInputs(
@@ -339,8 +339,8 @@ class FoodSearchViewModel(
                 timeZone = zone,
             )
         }
-            // The person's foods waiting for review read "Unverified".
-            .combine(submittedFoods.reviews) { inputs, reviews -> inputs.copy(reviews = reviews) }
+        // The person's foods waiting for review read "Unverified".
+        val base = combine(read, submittedFoods.reviews) { inputs, reviews -> inputs.copy(reviews = reviews) }
         // Source badges need the catalog foods the device knows; with the options off nothing more is collected.
         if (!model.choices.searchOptions) return base
         return combine(base, foodCatalog.observeRecent(limit = KNOWN_LIMIT)) { inputs, known ->
