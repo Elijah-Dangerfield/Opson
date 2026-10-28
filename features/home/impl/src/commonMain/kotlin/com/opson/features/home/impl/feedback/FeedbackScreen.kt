@@ -34,8 +34,6 @@ import com.opson.libraries.ui.screenContentPadding
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.common_message_label
 import opson.libraries.resources.generated.resources.common_message_placeholder
-import opson.libraries.resources.generated.resources.common_send
-import opson.libraries.resources.generated.resources.common_sending
 import opson.libraries.resources.generated.resources.feedback_prompt
 import opson.libraries.resources.generated.resources.feedback_title
 import org.jetbrains.compose.resources.stringResource
@@ -150,13 +148,7 @@ fun FeedbackScreen(
                     }
                 }
             ) {
-                Text(
-                    if (state.isSubmitting) {
-                        stringResource(Res.string.common_sending)
-                    } else {
-                        stringResource(Res.string.common_send)
-                    },
-                )
+                Text(stringResource(state.sendLabel))
             }
 
             VerticalSpacerD500()

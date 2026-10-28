@@ -4,6 +4,9 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.opson.AppCache
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.common_send
+import opson.libraries.resources.generated.resources.common_sending
+import opson.libraries.resources.generated.resources.common_sent
 import opson.libraries.resources.generated.resources.feedback_empty
 import opson.libraries.resources.generated.resources.feedback_failed
 import org.jetbrains.compose.resources.StringResource
@@ -55,6 +58,17 @@ data class FeedbackState(
     val isSent: Boolean = false,
 ) {
     val canSubmit: Boolean get() = message.isNotBlank() && !isSubmitting && !isSent
+
+    /**
+     * Sent stays on the button: if the page outlives its close (its Sent event expired while the
+     * app was in the background), Send is greyed out for good, and this says why.
+     */
+    val sendLabel: StringResource
+        get() = when {
+            isSent -> Res.string.common_sent
+            isSubmitting -> Res.string.common_sending
+            else -> Res.string.common_send
+        }
 }
 
 sealed interface FeedbackEvent {

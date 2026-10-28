@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.common_sent
 import opson.libraries.resources.generated.resources.feedback_empty
 import opson.libraries.resources.generated.resources.feedback_failed
 import kotlin.test.Test
@@ -59,6 +60,21 @@ class FeedbackViewModelTest : CoroutineTest() {
         assertEquals(listOf("Love the water card"), repository.sent)
         assertEquals(1, cache.get().feedbacksGiven)
         assertEquals(listOf<FeedbackEvent>(FeedbackEvent.Sent), events)
+    }
+
+    /**
+     * A page whose Sent event expired (the app was in the background when the send finished)
+     * stays open with Send disabled. The button says it went, so nobody retypes it.
+     */
+    @Test
+    fun aSentPage_saysSentOnItsDisabledButton() = runUnitTest {
+        val vm = FeedbackViewModel(FakeFeedbackRepository(), FakeAppCache())
+
+        vm.takeAction(FeedbackAction.MessageChanged("Love the water card"))
+        vm.takeAction(FeedbackAction.Submit)
+
+        assertFalse(vm.state.canSubmit)
+        assertEquals(Res.string.common_sent, vm.state.sendLabel)
     }
 
     @Test
@@ -136,6 +152,17 @@ class FeedbackViewModelTest : CoroutineTest() {
         assertEquals(listOf("The sheet would not open"), repository.sent)
         assertEquals(1, cache.get().bugsReported)
         assertEquals(listOf<BugReportEvent>(BugReportEvent.Sent), events)
+    }
+
+    @Test
+    fun aSentBugReport_saysSentOnItsDisabledButton() = runUnitTest {
+        val vm = BugReportViewModel(FakeFeedbackRepository(), FakeAppCache())
+
+        vm.takeAction(BugReportAction.MessageChanged("The sheet would not open"))
+        vm.takeAction(BugReportAction.Submit)
+
+        assertFalse(vm.state.canSubmit)
+        assertEquals(Res.string.common_sent, vm.state.sendLabel)
     }
 
     @Test

@@ -41,8 +41,6 @@ import opson.libraries.resources.generated.resources.bug_report_prompt
 import opson.libraries.resources.generated.resources.bug_report_title
 import opson.libraries.resources.generated.resources.common_message_label
 import opson.libraries.resources.generated.resources.common_message_placeholder
-import opson.libraries.resources.generated.resources.common_send
-import opson.libraries.resources.generated.resources.common_sending
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -183,13 +181,7 @@ fun BugReportScreen(
                     }
                 }
             ) {
-                Text(
-                    if (state.isSubmitting) {
-                        stringResource(Res.string.common_sending)
-                    } else {
-                        stringResource(Res.string.common_send)
-                    },
-                )
+                Text(stringResource(state.sendLabel))
             }
 
             VerticalSpacerD500()
