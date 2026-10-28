@@ -24,6 +24,9 @@ import com.opson.libraries.diary.impl.wire.WireJson
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.opson.UserScopedSyncer
 import com.opson.libraries.opson.UserScopedWorkStopper
+import com.opson.libraries.storage.Cache
+import com.opson.libraries.storage.CacheFactory
+import com.opson.libraries.storage.versionedJsonSerializer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.FlowPreview
@@ -47,6 +50,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonObject
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -72,6 +76,15 @@ internal val SYNC_DEBOUNCE: Duration = 2.seconds
 
 /** The server refuses a row dated more than this many days past today, in UTC. */
 internal const val SERVER_MAX_DAYS_AHEAD = 8
+
+/**
+ * The `accepts` the stored cursor was pulled with. `sync_seq` is one sequence
+ * across every table, so a pull that did not ask for an entity still moved the
+ * cursor past its rows. Empty, the default, is a cursor from a build before
+ * this was kept.
+ */
+@Serializable
+internal data class PulledWith(val accepts: List<String> = emptyList())
 
 /** Why a sync stopped. Anything but [Drained] left rows queued. */
 internal enum class DrainOutcome {
@@ -117,6 +130,10 @@ internal enum class DrainOutcome {
  * waiting, in which case the local one wins and goes up next time. All of it,
  * and the cursor, commit in one transaction.
  *
+ * **New entities.** A cursor pulled without one of [SYNC_ACCEPTS] has already
+ * passed that entity's rows, so the drain starts again from 0. The merge is
+ * idempotent and keeps rows with a change waiting, so the re-pull is safe.
+ *
  * Logs carry counts and ids only. Rows are health data.
  */
 @OptIn(FlowPreview::class)
@@ -133,9 +150,15 @@ class DiarySyncer(
     private val activeUser: ActiveUserSource,
     private val appScope: AppCoroutineScope,
     private val clock: Clock,
+    cacheFactory: CacheFactory,
 ) : UserScopedSyncer, UserScopedWorkStopper, DiarySync, DiarySyncScheduler {
 
     private val logger = KLog.withTag("DiarySync")
+
+    private val pulledWith: Cache<PulledWith> = cacheFactory.persistent(
+        name = "diary_sync_pulled_with",
+        serializer = versionedJsonSerializer(defaultValue = { PulledWith() }),
+    )
 
     /** Guards [next] and [running]. */
     private val syncMutex = Mutex()
@@ -219,7 +242,7 @@ class DiarySyncer(
     }
 
     private suspend fun drain() {
-        var cursor = tables.syncState.get()?.cursor ?: 0L
+        var cursor = startCursor()
         var previousKeys: List<String>? = null
         var outcome = DrainOutcome.BudgetSpent
         var pullComplete = false
@@ -259,6 +282,15 @@ class DiarySyncer(
             requestSync()
         }
         warnIfIncomplete(outcome)
+    }
+
+    /** The stored cursor, or 0 when it was pulled without an entity this build reads. */
+    private suspend fun startCursor(): Long {
+        val cursor = tables.syncState.get()?.cursor ?: return 0L
+        val missing = SYNC_ACCEPTS - pulledWith.get().accepts.toSet()
+        if (missing.isEmpty()) return cursor
+        logger.i { "Diary pull starts again from 0: the stored cursor was pulled without $missing" }
+        return 0L
     }
 
     private suspend fun warnIfIncomplete(outcome: DrainOutcome) {
@@ -314,6 +346,9 @@ class DiarySyncer(
                 SyncStateEntity(cursor = response.cursor, lastSuccessAtEpochMs = clock.now().toEpochMilliseconds()),
             )
         }
+        // After the cursor commits, never before: a crash in between then costs
+        // one re-pull, where the other order would skip rows for good.
+        if (pulledWith.get().accepts != SYNC_ACCEPTS) pulledWith.set(PulledWith(SYNC_ACCEPTS))
         settingsReverts.forEach { settingsStore.revert(it) }
         response.changes.settings?.let { settingsStore.applyPulled(it) }
         if (rejected.isNotEmpty()) {

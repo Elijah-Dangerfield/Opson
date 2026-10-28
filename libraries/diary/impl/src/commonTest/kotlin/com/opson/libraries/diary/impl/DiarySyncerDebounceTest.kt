@@ -37,6 +37,7 @@ class DiarySyncerDebounceTest : CoroutineTest() {
             user,
             appScope,
             clock,
+            FakeCacheFactory(),
         )
     }
 
