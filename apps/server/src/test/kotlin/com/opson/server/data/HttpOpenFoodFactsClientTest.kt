@@ -61,6 +61,17 @@ class HttpOpenFoodFactsClientTest {
         assertEquals(375.0, HttpOpenFoodFactsClient.map(code, body)?.per100g?.kcal)
     }
 
+    /** A nutrient the label gives as 0 is 0; one it leaves out is not there at all, never 0. */
+    @Test
+    fun aListedZeroStaysZero_andAMissingNutrientIsAbsent() {
+        val body = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"status":1,"product":{"product_name":"Water","nutriments":{"sodium_100g":0,"energy-kcal_100g":0}}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        val micros = HttpOpenFoodFactsClient.map(code, body)?.micros.orEmpty()
+        assertEquals(0.0, micros["sodium_mg"])
+        assertEquals(false, "vitamin_d_ug" in micros)
+    }
+
     @Test
     fun productWithoutANameIsNotUsable() {
         val body = kotlinx.serialization.json.Json.parseToJsonElement(
