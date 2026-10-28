@@ -6,6 +6,7 @@ import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.opson.AppData
 import com.opson.libraries.widgets.WidgetCopy
 import com.opson.libraries.widgets.WidgetFixtures
 import com.opson.libraries.widgets.WidgetSnapshot
@@ -23,6 +24,7 @@ class WidgetRefresherTest : CoroutineTest() {
     private val publisher = FakePublisher()
     private val settings = FakeSettingsRepository(Settings())
     private val auth = FakeAuth()
+    private val appCache = FakeAppCache(AppData(hasUserOnboarded = true))
     private lateinit var appScope: AppCoroutineScope
 
     private fun refresher(): WidgetRefresher {
@@ -31,6 +33,7 @@ class WidgetRefresherTest : CoroutineTest() {
             settingsRepository = settings,
             source = source,
             publisher = publisher,
+            appCache = appCache,
             authRepositoryProvider = { auth },
             appScope = appScope,
         )
@@ -123,8 +126,9 @@ class WidgetRefresherTest : CoroutineTest() {
     }
 
     @Test
-    fun noSessionAtLaunch_leavesTheWidgetAsItIs() = test {
-        // No session, or one that can't refresh offline: the stored day is still the last user's own.
+    fun noSessionAndNotOnboarded_leavesTheWidgetAsItIs() = test {
+        // A fresh install, or a relaunch after a sign-out: the settings are only the defaults.
+        appCache.state.value = AppData(hasUserOnboarded = false)
         auth.state.value = AuthState.Unauthenticated()
         refresher()
         source.snapshots.emit(snapshot(PresetId.Full))
@@ -142,6 +146,17 @@ class WidgetRefresherTest : CoroutineTest() {
         assertTrue(publisher.published.isEmpty())
 
         auth.state.value = AuthState.Authenticated(userId = "u2", isAnonymous = false, email = null)
+
+        assertEquals(listOf(blind), publisher.published)
+    }
+
+    /** An hour-old token can't refresh offline. The stored settings are still this person's, and so is the day. */
+    @Test
+    fun aSessionThatCannotRefreshOffline_stillPublishesForSomeoneOnboarded() = test {
+        auth.state.value = AuthState.Unauthenticated()
+        refresher()
+        val blind = snapshot(PresetId.NoNumbers)
+        source.snapshots.emit(blind)
 
         assertEquals(listOf(blind), publisher.published)
     }

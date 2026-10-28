@@ -24,6 +24,8 @@ import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.opson.AppCache
+import com.opson.libraries.opson.AppData
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEventBus
 import com.opson.libraries.widgets.WidgetPublisher
@@ -95,6 +97,24 @@ class FakeAuth(initial: AuthState = AuthState.Authenticated(userId = "u1", isAno
     override suspend fun linkEmailIdentity(email: String, password: String): LinkEmailIdentityOutcome = unused()
 
     private fun unused(): Nothing = error("Widgets only observe auth")
+}
+
+/** The app's own record; only whether someone finished onboarding matters here. */
+class FakeAppCache(initial: AppData = AppData()) : AppCache {
+    val state = MutableStateFlow(initial)
+    override val updates: Flow<AppData> = state
+
+    override suspend fun get(): AppData = state.value
+
+    override suspend fun set(value: AppData) {
+        state.value = value
+    }
+
+    override suspend fun clear() {
+        state.value = AppData()
+    }
+
+    override suspend fun update(transform: (AppData) -> AppData): AppData = transform(state.value).also { state.value = it }
 }
 
 class FakePolicySource(initial: VisibilityPolicy) : VisibilityPolicySource {
