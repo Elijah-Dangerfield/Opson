@@ -180,6 +180,20 @@ class ItemSheetTest : CoroutineTest() {
         assertEquals(listOf("f:peanut-butter"), settings.settings.value.favoriteFoods)
     }
 
+    /** A second Delete before the sheet is gone would toast twice and pop one screen too many. */
+    @Test
+    fun aSecondDeleteWhileTheSheetCloses_removesAndDismissesOnce() = runUnitTest {
+        val vm = sheet()
+        val events = events(vm)
+
+        vm.takeAction(ItemSheetAction.DeleteTapped)
+        vm.takeAction(ItemSheetAction.DeleteTapped)
+
+        assertEquals(listOf(peanutButter), diary.removed)
+        assertEquals(1, events.count { it == ItemSheetEvent.Dismiss })
+        assertEquals(1, events.count { it is ItemSheetEvent.ShowToast })
+    }
+
     @Test
     fun back_returnsToTheActions() = runUnitTest {
         val vm = sheet()
