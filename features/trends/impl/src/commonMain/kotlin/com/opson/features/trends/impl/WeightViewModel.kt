@@ -72,7 +72,8 @@ class WeightViewModel(
             is WeightAction.WeightTyped -> {
                 val input = NumberInput.sanitize(action.text, allowDecimal = true)
                 action.updateState {
-                    rebuild(it.ui().copy(input = input, saved = false, failed = false)) ?: it.copy(input = input, saved = null, saveFailed = false)
+                    rebuild(it.ui().copy(input = input, saved = false, failed = false, notAWeight = false))
+                        ?: it.copy(input = input, saved = null, saveFailed = false, notAWeight = false)
                 }
             }
             WeightAction.SaveTapped -> save(action)
@@ -81,14 +82,19 @@ class WeightViewModel(
         }
     }
 
-    /** Ignores anything that is not a weight: empty, zero, or more than anyone weighs. */
+    /** An empty field does nothing; zero, or more than anyone weighs, is refused with a line saying so. */
     private suspend fun save(action: WeightAction) {
-        val amount = state.input.toDoubleOrNull() ?: return
-        val kg = when (state.unit) {
-            WeightUnit.Kg -> amount
-            WeightUnit.Lb -> Units.lbToKg(amount)
+        if (state.input.isEmpty()) return
+        val kg = state.input.toDoubleOrNull()?.let { amount ->
+            when (state.unit) {
+                WeightUnit.Kg -> amount
+                WeightUnit.Lb -> Units.lbToKg(amount)
+            }
         }
-        if (kg <= 0.0 || kg > MAX_KG) return
+        if (kg == null || kg <= 0.0 || kg > MAX_KG) {
+            action.updateState { rebuild(it.ui().copy(saved = false, notAWeight = true)) ?: it.copy(saved = null, notAWeight = true) }
+            return
+        }
         // The amount is health data: it never goes in a log line, only the failure does.
         val written = Catching { weights.addWeighIn(kg) }.logOnFailure("Couldn't save a weigh-in").isSuccess
         if (!written) {
@@ -101,7 +107,7 @@ class WeightViewModel(
     private fun rebuild(ui: WeightUi): WeightState? =
         latest?.let { WeightStateBuilder.build(it.inputs, ui, it.policy) }
 
-    private fun WeightState.ui() = WeightUi(range = range, input = input, saved = saved != null, failed = saveFailed)
+    private fun WeightState.ui() = WeightUi(range = range, input = input, saved = saved != null, failed = saveFailed, notAWeight = notAWeight)
 
     private companion object {
         /** Seeds the EMA before the 3-month window, and covers it. */

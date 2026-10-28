@@ -31,6 +31,8 @@ kotlin {
             implementation(projects.libraries.widgets)
             // ProgressPhotosEnabled: Modes' Progress photos row.
             implementation(projects.libraries.progressphotos)
+            // PdfWriter, for the provider summary.
+            implementation(projects.libraries.pdf)
 
             implementation(libs.kotlinx.datetime)
 
@@ -57,6 +59,8 @@ kotlin {
             implementation(projects.libraries.health)
             implementation(projects.libraries.widgets)
             implementation(projects.libraries.progressphotos)
+            // PdfWriter, for the provider summary.
+            implementation(projects.libraries.pdf)
             implementation(libs.kotlinx.datetime)
             implementation(projects.libraries.resources)
             // AppIcons, for the fake contributed More row.

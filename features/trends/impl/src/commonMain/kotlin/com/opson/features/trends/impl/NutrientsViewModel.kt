@@ -68,13 +68,17 @@ class NutrientsViewModel(
         }
     }
 
-    /** Day follows the one day; Week average follows the Trends week, which moves if the week start changes. */
+    /**
+     * Day follows the one day; Week average follows the Trends week, which moves if the week start
+     * changes, or at the midnight that starts a new one (the policy source re-emits then).
+     */
     private fun subscribe(range: NutrientsRange) {
         subscription?.cancel()
         val days: Flow<List<Day>> = when (range) {
             NutrientsRange.Day -> diary.observeDay(day).map { listOf(it) }
-            NutrientsRange.WeekAverage -> settingsRepository.settings
-                .map { TrendsCalendar.weekWindow(today, it.weekStart) }
+            NutrientsRange.WeekAverage -> combine(settingsRepository.settings, policySource.policy) { settings, _ ->
+                TrendsCalendar.weekWindow(today, settings.weekStart)
+            }
                 .distinctUntilChanged()
                 .flatMapLatest { window -> diary.observeDays(window.start, window.end) }
         }

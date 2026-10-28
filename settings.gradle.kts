@@ -117,6 +117,8 @@ if (!serverOnly) {
     include(":libraries:networking:impl")
     include(":libraries:nutrition")
     include(":libraries:nutrition:ui")
+    include(":libraries:pdf")
+    include(":libraries:pdf:impl")
     include(":libraries:progressphotos")
     include(":libraries:progressphotos:impl")
     include(":libraries:identity")

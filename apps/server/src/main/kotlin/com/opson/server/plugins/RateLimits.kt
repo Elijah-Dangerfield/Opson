@@ -110,8 +110,8 @@ fun Application.installRateLimits() {
         }
 
         register(RateLimitName(EXPORT_LIMIT)) {
-            // An export streams someone's whole history and holds a pooled
-            // connection while it does. People export now and then, not in a loop.
+            // An export reads someone's whole history, a page at a time.
+            // People export now and then, not in a loop.
             rateLimiter(limit = 10, refillPeriod = 1.hours)
             requestKey { call -> call.clientIp() }
         }

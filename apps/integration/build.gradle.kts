@@ -67,7 +67,8 @@ kotlin {
             implementation(projects.features.onboarding.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.widgets)
-            // FindSupportEnabled (release.findSupport), for ConfigManifestRegistryDriftTest.
+            // FindSupportEnabled (release.findSupport) and ProviderSummaryEnabled (release.providerSummary),
+            // for ConfigManifestRegistryDriftTest.
             implementation(projects.features.settings)
             // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.progressphotos)

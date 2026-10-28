@@ -1,6 +1,7 @@
 package com.opson.features.trends.impl.photos
 
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.test.Test
@@ -34,6 +35,22 @@ class CompareViewModelTest : CoroutineTest() {
         assertNotNull(vm.state.left?.image)
         assertEquals(6, vm.state.choices.size)
         assertEquals("Lifting three times a week since September", vm.state.note)
+    }
+
+    @Test
+    fun whileThePhotosAreRead_thePageIsUnlocked_withThePairsDates_neverTheLockPanel() = runUnitTest {
+        val disk = CompletableDeferred<Unit>()
+        photos.imagesWaitFor = disk
+        val vm = vm()
+
+        assertEquals(PhotoLockState.Unlocked, vm.state.lock, "already unlocked by the grid, so it never says locked")
+        assertEquals("oct25-front", vm.state.right?.id)
+        assertNull(vm.state.right?.image)
+
+        disk.complete(Unit)
+
+        assertNotNull(vm.state.right?.image)
+        assertNotNull(vm.state.left?.image)
     }
 
     @Test
@@ -123,6 +140,41 @@ class CompareViewModelTest : CoroutineTest() {
 
         assertEquals("Back to running", vm.state.note)
         assertEquals("Back to running", photos.notes["oct25-front"])
+    }
+
+    @Test
+    fun aNotePastTheLimit_showsOnlyWhatIsKept() = runUnitTest {
+        val vm = vm()
+
+        vm.takeAction(CompareAction.NoteTyped("a".repeat(300)))
+
+        assertEquals(280, vm.state.note.length, "the field never shows more than is saved")
+        assertEquals(vm.state.note, photos.notes["oct25-front"])
+    }
+
+    @Test
+    fun anEmojiAcrossTheLimit_isLeftOutWhole_neverCutInHalf() = runUnitTest {
+        val vm = vm()
+
+        // 279 letters, then an emoji whose two UTF-16 halves straddle the 280th character.
+        vm.takeAction(CompareAction.NoteTyped("a".repeat(279) + "💪"))
+
+        assertEquals("a".repeat(279), vm.state.note, "half an emoji draws as a broken glyph and saves as one")
+        assertEquals(vm.state.note, photos.notes["oct25-front"])
+    }
+
+    @Test
+    fun aWriteThatFails_leavesThePageWorking() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        photos.failWrites = true
+
+        vm.takeAction(CompareAction.NoteTyped("Back to running"))
+        vm.takeAction(CompareAction.SaveComparisonTapped)
+        vm.takeAction(CompareAction.BackTapped)
+
+        assertNull(vm.state.savedId, "nothing was saved")
+        assertEquals(listOf<CompareEvent>(CompareEvent.Close), events, "the page still answers")
     }
 
     @Test

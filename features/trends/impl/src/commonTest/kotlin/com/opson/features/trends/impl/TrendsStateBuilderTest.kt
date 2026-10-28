@@ -36,7 +36,7 @@ import kotlin.test.assertTrue
 /**
  * The Trends mapping for every visibility branch in the plan's surface table,
  * over the fixture week (Oct 19 to 25 seen on Sunday the 25th at noon,
- * Thursday untracked). The window rules themselves are `TrendsCalendarTest`;
+ * nothing logged on Thursday). The window rules themselves are `TrendsCalendarTest`;
  * that nothing hidden reaches the screen is `BlindModeLeakTest`.
  */
 class TrendsStateBuilderTest {
@@ -115,7 +115,7 @@ class TrendsStateBuilderTest {
     fun full_week_everyBarTheSameKind_todayStriped_thursdayAGap() {
         val intake = assertNotNull(build().intake)
         assertEquals(listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"), intake.bars.map { it.label })
-        assertNull(intake.bars[3].fraction, "an untracked day is a gap, not a zero")
+        assertNull(intake.bars[3].fraction, "a day with nothing logged is a gap, not a zero")
         assertEquals(1920f / 2800f, intake.bars[0].fraction)
         assertEquals(listOf(false, false, false, false, false, false, true), intake.bars.map { it.isCurrent })
         assertEquals(1900f / 2800f..2300f / 2800f, intake.band)
@@ -123,8 +123,8 @@ class TrendsStateBuilderTest {
     }
 
     @Test
-    fun full_week_averageLeavesOutTodayAndUntrackedDays() {
-        // (1920 + 1690 + 1680 + 2015 + 1785) / 5: Thursday untracked, Sunday still in progress.
+    fun full_week_averageLeavesOutTodayAndEmptyDays() {
+        // (1920 + 1690 + 1680 + 2015 + 1785) / 5: nothing on Thursday, Sunday still in progress.
         assertEquals("1,818 kcal", assertIs<Display.Shown>(build().intake?.average).text)
     }
 
