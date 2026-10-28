@@ -45,6 +45,17 @@ class RecentLogEventsTest : CoroutineTest() {
     }
 
     @Test
+    fun undoRemovesTheWholeBasketInOneWrite() = runUnitTest {
+        val added = repo.addItems(today, MealSlot.Dinner, listOf(draft("Rice"), draft("Salad"), draft("Tea")), LogMethod.Search)
+        val before = db.transactionsCommitted
+
+        events.undo(LoggedToMeal(today, MealSlot.Dinner, added.map { it.id }, at))
+
+        assertEquals(1, db.transactionsCommitted - before)
+        assertTrue(repo.observeDay(today).first().allItems.isEmpty())
+    }
+
+    @Test
     fun consumingAnOlderEventLeavesANewerOneInPlace() {
         val first = LoggedToMeal(today, MealSlot.Lunch, listOf("a"), at)
         val second = first.copy(itemIds = listOf("b"), at = at + 1.seconds)
