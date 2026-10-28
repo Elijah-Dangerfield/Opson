@@ -14,6 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import com.opson.system.AppTheme
@@ -38,8 +41,6 @@ import opson.libraries.resources.generated.resources.bug_report_prompt
 import opson.libraries.resources.generated.resources.bug_report_title
 import opson.libraries.resources.generated.resources.common_message_label
 import opson.libraries.resources.generated.resources.common_message_placeholder
-import opson.libraries.resources.generated.resources.common_send
-import opson.libraries.resources.generated.resources.common_sending
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -52,7 +53,6 @@ fun BugReportScreen(
 ) {
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
-    val canSubmit = state.message.isNotBlank() && !state.isSubmitting
 
     Screen(
         modifier = Modifier.fillMaxSize(),
@@ -128,7 +128,7 @@ fun BugReportScreen(
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
                     onSend = {
-                        if (canSubmit) {
+                        if (state.canSubmit) {
                             focusManager.clearFocus(force = true)
                             onAction(BugReportAction.Submit)
                         }
@@ -161,6 +161,8 @@ fun BugReportScreen(
                 VerticalSpacerD500()
                 Text(
                     text = stringResource(it),
+                    // Arrives after a failed send, away from where focus is; say it out loud.
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     color = AppTheme.colors.ink,
                     textAlign = TextAlign.Start
                 )
@@ -171,21 +173,15 @@ fun BugReportScreen(
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 size = ButtonSize.Large,
-                enabled = canSubmit,
+                enabled = state.canSubmit,
                 onClick = {
                     focusManager.clearFocus(force = true)
-                    if (canSubmit) {
+                    if (state.canSubmit) {
                         onAction(BugReportAction.Submit)
                     }
                 }
             ) {
-                Text(
-                    if (state.isSubmitting) {
-                        stringResource(Res.string.common_sending)
-                    } else {
-                        stringResource(Res.string.common_send)
-                    },
-                )
+                Text(stringResource(state.sendLabel))
             }
 
             VerticalSpacerD500()

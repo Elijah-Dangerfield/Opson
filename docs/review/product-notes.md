@@ -103,5 +103,7 @@ counts quick numbers.
 - A new Apple account that quits mid-setup and signs in again lands on Today;
   a small "setup done" setting would fix it.
 - Units could default from the phone's region, so a US user isn't in kg.
+  *Done for height everywhere and for weight on the resting energy step;
+  weight and water elsewhere still start metric.*
 - A clinician should review the statement copy and the recommendation's
   reason lines.

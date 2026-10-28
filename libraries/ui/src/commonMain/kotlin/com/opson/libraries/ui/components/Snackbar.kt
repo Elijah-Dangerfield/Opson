@@ -35,7 +35,6 @@ import kotlin.random.Random
 import opson.libraries.resources.generated.resources.Res as SharedRes
 import opson.libraries.resources.generated.resources.ds_close
 import org.jetbrains.compose.resources.stringResource
-import androidx.compose.material3.SnackbarDuration as MaterialSnackbarDuration
 @Composable
 fun Snackbar(
     data: AppSnackbarData,
@@ -148,7 +147,7 @@ fun snackBarData(
         message = message,
         actionLabel = actionLabel,
         withDismissAction = withDismissAction,
-        duration = duration.fromMaterial()
+        duration = duration.toMaterial()
     )
 
     override fun performAction() {
@@ -296,14 +295,6 @@ enum class SnackbarDuration {
             Short -> androidx.compose.material3.SnackbarDuration.Short
             Long -> androidx.compose.material3.SnackbarDuration.Long
             Indefinite -> androidx.compose.material3.SnackbarDuration.Indefinite
-        }
-    }
-
-    fun fromMaterial(): MaterialSnackbarDuration {
-        return when (this) {
-            Short -> MaterialSnackbarDuration.Short
-            Long -> MaterialSnackbarDuration.Long
-            Indefinite -> MaterialSnackbarDuration.Indefinite
         }
     }
 }

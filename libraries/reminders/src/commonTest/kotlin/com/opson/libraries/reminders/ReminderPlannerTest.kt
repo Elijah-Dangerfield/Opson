@@ -88,6 +88,18 @@ class ReminderPlannerTest {
     }
 
     @Test
+    fun aClosedDayGetsNoMoreNudges_andItsDeliveredOnesCanGo_butTomorrowsStay() {
+        val closed = Day.empty(today).copy(closedAt = noon)
+        val settings = chosen.copy(waterReminders = true)
+
+        val keys = plan(inputs(settings = settings, day = closed)).map { it.key }
+
+        assertTrue(keys.none { it.date == today }, "no meal or water nudge for a day that is done")
+        assertTrue(meal(today.plusDays(1), MealSlot.Dinner) in keys)
+        assertEquals(MealSlot.meals.map { meal(today, it) }, ReminderPlanner.doneToday(inputs(day = closed)))
+    }
+
+    @Test
     fun alreadyAteCountsAsLogged() {
         val day = Day.empty(today).copy(ateNoDetails = setOf(MealSlot.Lunch))
         assertTrue(meal(today, MealSlot.Lunch) !in plan(inputs(day = day)).map { it.key })

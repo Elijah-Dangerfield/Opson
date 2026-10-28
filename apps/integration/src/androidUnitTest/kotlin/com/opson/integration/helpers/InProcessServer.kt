@@ -11,6 +11,7 @@ import com.opson.server.db.Database
 import com.opson.server.di.ServerComponent
 import com.opson.server.di.create
 import com.opson.server.installApp
+import com.opson.server.plugins.BanGate
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -56,28 +57,32 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
 
     val upstreams = FakeUpstreams(deleteAuthUser = { id -> sql("DELETE FROM auth.users WHERE id = ?::uuid", id) })
 
+    private val component: ServerComponent = ServerComponent::class.create(
+        sharedDatabase(),
+        SupabaseConfig(
+            projectUrl = upstreams.baseUrl,
+            serviceRoleKey = "integration-service-role",
+            appleSignIn = AppleSignInConfig(
+                teamId = "INTEGRATN1",
+                keyId = "INTEGRATN2",
+                privateKeyPem = throwawayEcKeyPem(),
+                baseUrl = upstreams.baseUrl,
+            ),
+        ),
+        FoodSourcesConfig(
+            anthropic = if (photoEstimates) AnthropicConfig(apiKey = "integration", baseUrl = upstreams.baseUrl) else null,
+            openFoodFactsUrl = upstreams.baseUrl,
+        ),
+        clock,
+    )
+
     private val engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =
         embeddedServer(Netty, port = 0, host = "127.0.0.1") {
             installApp(
-                component = ServerComponent::class.create(
-                    sharedDatabase(),
-                    SupabaseConfig(
-                        projectUrl = upstreams.baseUrl,
-                        serviceRoleKey = "integration-service-role",
-                        appleSignIn = AppleSignInConfig(
-                            teamId = "INTEGRATN1",
-                            keyId = "INTEGRATN2",
-                            privateKeyPem = throwawayEcKeyPem(),
-                            baseUrl = upstreams.baseUrl,
-                        ),
-                    ),
-                    FoodSourcesConfig(
-                        anthropic = if (photoEstimates) AnthropicConfig(apiKey = "integration", baseUrl = upstreams.baseUrl) else null,
-                        openFoodFactsUrl = upstreams.baseUrl,
-                    ),
-                    clock,
-                ),
+                component = component,
                 verification = IntegrationAuth.verification,
+                // As production's `module` builds it, so a banned user meets the same 403.
+                banGate = BanGate(component.moderationRepository, appealUrl = APPEAL_URL, clock = clock),
                 adminConfig = AdminConfig(apiToken = ADMIN_TOKEN),
                 waitlistConfig = WaitlistConfig(allowedOrigins = setOf(SITE_ORIGIN)),
             )
@@ -110,14 +115,15 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
         barcode: String? = null,
         portionsJson: String = "[]",
         source: String = "usda_sr",
+        category: String? = null,
     ): String {
         val id = UUID.randomUUID().toString()
         sql(
             """
-            INSERT INTO foods (id, source, source_id, name, barcode, kcal_100g, protein_100g, micros, portions)
-            VALUES (?::uuid, ?, ?, ?, ?, ?, 1, '{}'::jsonb, ?::jsonb)
+            INSERT INTO foods (id, source, source_id, name, barcode, kcal_100g, protein_100g, micros, portions, category)
+            VALUES (?::uuid, ?, ?, ?, ?, ?, 1, '{}'::jsonb, ?::jsonb, ?)
             """.trimIndent(),
-            id, source, id, name, barcode, kcalPer100g, portionsJson,
+            id, source, id, name, barcode, kcalPer100g, portionsJson, category,
         )
         return id
     }
@@ -145,6 +151,20 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
         }
     }
 
+    /**
+     * Every table with a `user_id` column, read from the migrated schema rather than listed, so a
+     * table a new migration adds is in every check that walks them the day it lands.
+     */
+    fun userTables(): List<String> = query(
+        """
+        SELECT c.table_name AS name
+        FROM information_schema.columns c
+        JOIN information_schema.tables t ON t.table_schema = c.table_schema AND t.table_name = c.table_name
+        WHERE c.table_schema = 'public' AND c.column_name = 'user_id' AND t.table_type = 'BASE TABLE'
+        ORDER BY 1
+        """.trimIndent(),
+    ).map { it.getValue("name").toString() }
+
     /** How many rows [table] holds for [userId], tombstones included. */
     fun countFor(table: String, userId: String): Long =
         query("SELECT count(*) AS n FROM $table WHERE user_id = ?::uuid", userId).single()["n"] as Long
@@ -163,11 +183,8 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
         /** The one origin the waitlist form accepts here, standing in for the marketing site. */
         const val SITE_ORIGIN = "https://site.integration.test"
 
-        /** Every table that holds a user's diary or account, keyed by `user_id`. */
-        val USER_TABLES = listOf(
-            "profiles", "log_entries", "day_records", "meal_feelings", "weigh_ins",
-            "custom_foods", "saved_meals", "user_settings", "fasts",
-        )
+        /** Where a banned user is sent to appeal, as `ACCESS_APPEAL_URL` sets it. */
+        const val APPEAL_URL = "https://site.integration.test/appeal"
 
         private val shared by lazy {
             val container = PostgreSQLContainer(POSTGRES_IMAGE)
@@ -202,18 +219,20 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
         /**
          * Skip (JUnit `Assume`) rather than fail when Docker isn't reachable,
          * so contributors without Docker still get a green build — mirrors the
-         * server's `DatabaseTest`.
+         * server's `DatabaseTest`. Not on CI: there a skip is every journey
+         * passing without running, so a runner without Docker fails instead.
          */
         fun assumeDockerAvailable() {
-            Assume.assumeTrue(
-                "Docker is not available; skipping integration tests",
-                try {
-                    DockerClientFactory.instance().client().pingCmd().exec()
-                    true
-                } catch (_: Throwable) {
-                    false
-                },
-            )
+            val available = try {
+                DockerClientFactory.instance().client().pingCmd().exec()
+                true
+            } catch (_: Throwable) {
+                false
+            }
+            check(available || System.getenv("CI") != "true") {
+                "Docker is not available on CI, so every integration journey would skip and the job pass"
+            }
+            Assume.assumeTrue("Docker is not available; skipping integration tests", available)
         }
 
         /** A P-256 key in the `.p8` format Apple hands out, so the server signs real client secrets. */

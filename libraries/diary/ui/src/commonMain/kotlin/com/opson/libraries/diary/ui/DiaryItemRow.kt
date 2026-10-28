@@ -38,7 +38,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  *
  * A list of rows draws a line under each ([showDivider]). Today's meal card
  * draws the line above each row instead, after its header, so it passes
- * [dividerAbove] and [DiaryItemRowDefaults.CardPadding]. [trailing] follows the energy: a food's ⋮.
+ * [dividerAbove] and its own padding. [trailing] follows the energy: a food's ⋮.
  */
 @Composable
 fun DiaryItemRow(
@@ -91,9 +91,6 @@ fun DiaryItemRow(
 object DiaryItemRowDefaults {
     /** Rows in a list: 10 above and below, a line under each. */
     val ListPadding = PaddingValues(vertical = 10.dp)
-
-    /** Rows on a Today meal card: a line above, 10 under it, and the card's own gap after. */
-    val CardPadding = PaddingValues(top = 10.dp)
 }
 
 @Preview(widthDp = 390)

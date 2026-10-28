@@ -416,5 +416,7 @@ class TodayStateBuilderTest {
         assertEquals(quiet.meals, busy.meals)
         assertEquals(FoodRowContext.of(quiet), FoodRowContext.of(busy))
         assertNotEquals(FoodRowContext.of(quiet), FoodRowContext.of(quiet.copy(highlight = MealSlot.Lunch)))
+        // Closing the day takes every meal's +, so a card must not skip it.
+        assertNotEquals(FoodRowContext.of(quiet), FoodRowContext.of(quiet.copy(closed = true)))
     }
 }

@@ -1,11 +1,12 @@
 package com.opson.integration.account
 
-import com.opson.integration.helpers.InProcessServer
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.TestClient
 import com.opson.integration.helpers.awaitState
+import com.opson.integration.helpers.awaitUntil
 import com.opson.integration.helpers.randomUserId
 import com.opson.libraries.diary.CustomFoodDraft
+import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.MealFeeling
@@ -40,6 +41,7 @@ class DeleteEverythingTest : IntegrationTest() {
         weights.addWeighIn(80.0)
         customFoods.create(CustomFoodDraft(name = "Protein shake", servingAmount = 1.0, servingUnit = "scoop", kcal = 120.0))
         savedMeals.create("Lunch box", MealSlot.Lunch, listOf(LogDraft("Sandwich", Precision.Estimate, kcal = 400.0)))
+        exercise.add(ExerciseDraft(day, clock.now(), "yoga", minutes = 20, kcal = 60))
     }
 
     @Test
@@ -51,13 +53,20 @@ class DeleteEverythingTest : IntegrationTest() {
         phone.settings.isKnown.awaitState { it }
         phone.fillEveryTable()
         phone.syncNow().getOrThrow()
-        val before = InProcessServer.USER_TABLES.associateWith { server.countFor(it, user) }
-        assertTrue(before.filterKeys { it != "fasts" }.values.all { it > 0 }, "every table holds something first: $before")
+        val tables = server.userTables()
+        // The build is recorded after the response, off the request.
+        awaitUntil { server.countFor("user_installs", user) > 0 }
+        val before = tables.associateWith { server.countFor(it, user) }
+        assertEquals(
+            emptySet(),
+            before.filterValues { it == 0L }.keys - NOT_FILLED_HERE,
+            "every table with a user_id holds something first, so the delete is seen to empty it: $before",
+        )
 
         assertEquals(DeleteAccountOutcome.Success, phone.auth.deleteAccount())
 
-        val after = InProcessServer.USER_TABLES.associateWith { server.countFor(it, user) }
-        assertEquals(InProcessServer.USER_TABLES.associateWith { 0L }, after)
+        val after = tables.associateWith { server.countFor(it, user) }
+        assertEquals(tables.associateWith { 0L }, after)
         assertEquals(emptyList(), server.query("SELECT id FROM auth.users WHERE id = ?::uuid", user))
         assertEquals(setOf(user), server.upstreams.deletedUsers)
 
@@ -70,7 +79,16 @@ class DeleteEverythingTest : IntegrationTest() {
         assertEquals(emptyList(), phone.weights.observeWeighIns().first())
         assertEquals(emptyList(), phone.customFoods.observeAll().first())
         assertEquals(emptyList(), phone.savedMeals.observeAll().first())
+        assertTrue(phone.exercise.observeDay(phone.today()).first().isEmpty())
         // The settings flow trails the cleared store by a moment, as it does for a screen.
-        phone.settings.settings.awaitState { it == Settings() } // Blind is gone with the account
+        phone.settings.settings.awaitState { it == Settings() } // No numbers is gone with the account
+    }
+
+    private companion object {
+        /**
+         * Tables this journey has no way to fill: a fast needs `release.fasting` and an evening,
+         * an Apple token a Sign in with Apple ([AppleRevocationTest] deletes one).
+         */
+        val NOT_FILLED_HERE = setOf("fasts", "apple_refresh_tokens")
     }
 }

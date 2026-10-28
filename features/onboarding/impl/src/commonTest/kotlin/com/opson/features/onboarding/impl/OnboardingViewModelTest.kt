@@ -814,6 +814,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         calendar = FixedCalendar,
         setupEnabled = onboardingSetupFlag(setupSteps),
         goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergy),
+        region = { "GB" },
         route = route,
         appleSignIn = appleSignIn,
     )

@@ -52,3 +52,19 @@ fun VisibilityPolicy.energyShare(
     if (effectiveLevel(Metric.Calories, surface, context) != Visibility.Show || !percent.isFinite()) return Display.Hidden
     return Display.Shown(formatter.percent(percent))
 }
+
+/**
+ * What one portion is of a day's target, `12%`, for the food detail's Today with this.
+ *
+ * Shown only when [metric] is effectively [Visibility.Show]: a share of a target is an amount in
+ * disguise, so a mode that softens or hides the metric hides it too.
+ */
+fun VisibilityPolicy.targetShare(
+    metric: Metric,
+    percent: Double,
+    surface: Surface,
+    context: FormatContext = FormatContext(),
+): Display {
+    if (effectiveLevel(metric, surface, context) != Visibility.Show || !percent.isFinite()) return Display.Hidden
+    return Display.Shown(formatter.percent(percent))
+}

@@ -46,6 +46,11 @@ breaks, and its fate.
   `SheetsTest.aMealNoteSavedBeforeTheDayIsReadWritesNothing`,
   `aDayNoteSavedBeforeTheDayIsReadWritesNothing` (all four fail without it). A held diary,
   `FakeDiaryRepository.heldUntil`, makes the slow read.
+- **Since closed days:** main's closed-day work moved the note into `closeDay(day, DayReflection)`,
+  one write, and put Reopen beside Save on a closed day. The guard still sits ahead of that write,
+  and the same once-only flag now covers Reopen, so Save tapped while Reopen leaves cannot close
+  the day again. `DayCloseTest.onAClosedDay_aTapWhileLeavingAfterReopenNeitherClosesItAgainNorLeavesTwice`
+  fails without it. Main's Save-then-Reopen test now opens Day close twice, as a person would.
 
 ## 3. A second tap while a food's sheet closed copied it twice, or starred and unstarred it: fixed
 
@@ -55,7 +60,9 @@ breaks, and its fate.
   sheet slid away, wrote two copies; Add to favorites tapped twice toggled the star on and off and
   said "Added to favorites"; each tap sent its own toast and `Dismiss`.
 - **Fix:** "fix(today): a second tap while a food's sheet closes copies or stars once".
-  `ItemSheetTest.aSecondTapWhileTheSheetCloses_copiesOnce_andLeavesTheStarOn`.
+  `ItemSheetTest.aSecondTapWhileTheSheetCloses_copiesOnce_andLeavesTheStarOn` and
+  `aSecondDeleteWhileTheSheetCloses_removesAndDismissesOnce`. Since closed days, `done()` takes
+  the write's `DayWrite` and a refused one opens the closed sheet; the guard runs before either.
 
 ## 4. Every Today state recomposed every visible meal card and food row: fixed (config deferred)
 
@@ -67,11 +74,12 @@ breaks, and its fate.
   ones on every action. So each select tick, swipe, ⋮ open, Undo bar, highlight fade and fasting
   minute re-ran every card and its `card.items.map { MealCardItem(...) }`.
 - **Fix:** "perf(today): meal cards skip when nothing they draw changed". The rows take a small
-  `@Immutable FoodRowContext` (picked ids, swipe, the two flags, the outline) instead of the
+  `@Immutable FoodRowContext` (picked ids, swipe, the two flags, the outline, and since closed
+  days whether the day is closed, which takes every meal's +) instead of the
   state; `MealEntry`, `MealCard`, `ItemRowUi` and `MealNoteUi` are `@Immutable`, so equal cards
   skip by equality. The report now lists `Meal`, `FullMeal` and `FoodRow` with stable parameters
   only. `TodayStateBuilderTest.theMenuOrAnUndoBarLeavesTheMealsAndWhatTheirRowsReadEqual` pins
-  the equality the skip depends on. No composition harness in this module to count recompositions.
+  the equality the skip depends on, and that closing the day breaks it. No composition harness in this module to count recompositions.
 - **Left as is:** the `MealCardItem` mapping stays in `FullMeal`; it needs `stringResource` for
   the precision label, and it now runs only when that card or the row context changes.
 - **Deferred (cross-slice):** the repo-wide stability config, below. With it, `WeightCard`'s

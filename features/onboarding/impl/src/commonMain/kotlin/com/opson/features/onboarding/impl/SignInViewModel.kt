@@ -81,9 +81,9 @@ class SignInViewModel(
             is SignInAction.SignInWithOAuth -> action.run {
                 logger.i { "SignInWithOAuth(${action.provider}): starting" }
                 updateState { it.copy(isSubmitting = true, error = null) }
-                // Success here only means the browser opened; the session comes later, through
-                // the redirect, so there is no account yet to ask about.
-                handleSignInOutcome(authRepository.signInWithOAuth(action.provider), sessionEstablished = false)
+                // Returns once the browser has redirected back with a session, so a new Google
+                // account is told apart from a returning one like any other.
+                handleSignInOutcome(authRepository.signInWithOAuth(action.provider))
             }
 
             is SignInAction.SignInWithApple -> action.run {
@@ -111,14 +111,14 @@ class SignInViewModel(
     }
 
     /** Receiver is required so [updateState] (defined on `A`) resolves. */
-    private suspend fun SignInAction.handleSignInOutcome(outcome: SignInOutcome, sessionEstablished: Boolean = true) {
+    private suspend fun SignInAction.handleSignInOutcome(outcome: SignInOutcome) {
         logger.i { "Received SignInOutcome=${outcome::class.simpleName}" }
         when (outcome) {
             is SignInOutcome.Success -> {
-                // Sign in with Apple on a fresh install makes a new account when the Apple ID has
-                // none, so "Sign in" is not always "I have an account". A new account has nothing
-                // to restore: it goes through setup rather than landing on Today in Full numbers.
-                val isNew = sessionEstablished && authOutcomeClassifier.classify() == AuthOutcome.SignedUp
+                // Apple and Google make a new account when the ID has none, so "Sign in" is not
+                // always "I have an account". A new account has nothing to restore: it goes
+                // through setup rather than landing on Today in Full numbers.
+                val isNew = authOutcomeClassifier.classify() == AuthOutcome.SignedUp
                 updateState { it.copy(isSubmitting = false) }
                 if (isNew) {
                     logger.i { "Success, new account → NavigateToSetup" }

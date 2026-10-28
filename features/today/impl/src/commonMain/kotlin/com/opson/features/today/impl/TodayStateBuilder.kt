@@ -94,6 +94,7 @@ object TodayStateBuilder {
         ui: TodayUi = TodayUi(),
     ): TodayState {
         val day = inputs.day
+        val closed = day.closedByUser
         val date = day.date
         val today = inputs.today
         val layout = policy.preset.today
@@ -107,7 +108,7 @@ object TodayStateBuilder {
         val summaryOn = inputs.summaryOn
         val compact = if (summaryOn && !future && !untracked) compact(summary, inputs, policy, context) else null
         val pageCount = (summary as? TodaySummary.Energy)?.pages?.size ?: 1
-        val selecting = ui.selected?.takeIf { inputs.selectOn }
+        val selecting = ui.selected?.takeIf { inputs.selectTools }
 
         return TodayState(
             loading = false,
@@ -125,7 +126,8 @@ object TodayStateBuilder {
             water = if (future || !listRow(inputs) { it.todayWater }) null else water(day, inputs.settings, policy, context),
             meals = if (future) planned(inputs, policy, context, groupsOn) else meals(inputs, policy, context, layout, groupsOn),
             // Nothing logged, nothing to close yet (design sync 2, 2.2); the ⋮ menu still offers it.
-            closeDay = if (future || untracked || !day.hasLogged || !listRow(inputs) { it.todayCloseDay }) null else CloseDayButton(closed = day.isClosed(today)),
+            closeDay = if (future || untracked || !day.hasLogged || !listRow(inputs) { it.todayCloseDay }) null else CloseDayButton(closed = closed),
+            closed = closed,
             highlight = highlight,
             added = added?.takeIf { it.day == date }?.let { AddedNotice(it.slot, it.itemIds.size) },
             untracked = untracked,
@@ -136,14 +138,20 @@ object TodayStateBuilder {
             collapsed = compact != null && (inputs.cardView.collapsed ?: settings.todaySummaryCollapsed),
             compact = compact,
             weight = if (summaryOn && !future && listRow(inputs) { it.todayWeight }) weightRow(inputs, policy, context) else null,
-            selectTools = inputs.selectOn,
+            selectTools = inputs.selectTools,
             foodMenus = inputs.foodActionsOn,
             selection = selecting?.let { selection(it, day, ui.step) },
-            swipe = if (inputs.selectOn && selecting == null) ui.swipe else SwipeState(),
-            removed = ui.removed?.takeIf { inputs.selectOn },
-            moved = ui.moved?.takeIf { inputs.selectOn },
+            swipe = if (inputs.selectTools && selecting == null) ui.swipe else SwipeState(),
+            removed = ui.removed?.takeIf { inputs.selectTools },
+            moved = ui.moved?.takeIf { inputs.selectTools },
         )
     }
+
+    /**
+     * Select, drag, swipe to delete and "Move to…" (`release.todaySelect`). Each of them changes the
+     * day, so a day closed with Close the day has none of them.
+     */
+    private val TodayInputs.selectTools: Boolean get() = selectOn && !day.closedByUser
 
     /** A list row More › Today screen can turn off on Today alone (design sync 4, 13.6a). */
     private fun listRow(inputs: TodayInputs, on: (Settings) -> Boolean): Boolean = !inputs.goalsAndEnergyOn || on(inputs.settings)
@@ -576,26 +584,34 @@ object TodayStateBuilder {
             },
             ateNoDetails = items.isEmpty() && slot in day.ateNoDetails,
             note = noteOf(day, slot),
-            fileable = inputs.selectOn && slot == MealSlot.Uncategorized && items.isNotEmpty() && groupsOn(inputs),
+            fileable = inputs.selectTools && slot == MealSlot.Uncategorized && items.isNotEmpty() && groupsOn(inputs),
         )
     }
 
     private fun groupsOn(inputs: TodayInputs): Boolean = inputs.day.mealGroupsOn(inputs.settings)
 
+    /** On a closed day Reopen takes Close the day's place, and what would add to or clear the day goes. */
     private fun menu(inputs: TodayInputs, clearArmed: Boolean): DayMenu {
         val date = inputs.day.date
         val today = inputs.today
         val past = date <= today
         val untracked = inputs.day.untracked
+        val closed = inputs.day.closedByUser
+        val isToday = date == today
+        val close = when {
+            closed -> DayMenuItem.Reopen(isToday)
+            past && !untracked -> DayMenuItem.CloseDay(isToday)
+            else -> null
+        }
         val groups = listOf(
-            listOfNotNull(if (past && !untracked) DayMenuItem.CloseDay(isToday = date == today) else null, DayMenuItem.Nutrients, DayMenuItem.Notes),
+            listOfNotNull(close, DayMenuItem.Nutrients, DayMenuItem.Notes),
             listOfNotNull(
-                DayMenuItem.CopyYesterday,
+                DayMenuItem.CopyYesterday.takeUnless { closed },
                 if (past) DayMenuItem.CopyToTomorrow else null,
-                DayMenuItem.AddNote,
+                DayMenuItem.AddNote.takeUnless { closed },
                 DayMenuItem.Untracked(marked = untracked),
             ),
-            listOf(DayMenuItem.EditCards, DayMenuItem.ClearDay),
+            listOfNotNull(DayMenuItem.EditCards, DayMenuItem.ClearDay.takeUnless { closed }),
         )
         return DayMenu(groups = groups, clearArmed = clearArmed)
     }

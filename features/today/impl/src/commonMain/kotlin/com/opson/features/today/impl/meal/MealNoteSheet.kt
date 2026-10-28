@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.viewModelScope
 import com.opson.features.today.impl.Toast
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.MealFeeling
@@ -64,6 +65,9 @@ sealed interface MealNoteAction {
 
 sealed interface MealNoteEvent {
     data class ShowToast(val toast: Toast) : MealNoteEvent
+
+    /** The day is closed (Close the day, maybe on another phone): the note was not saved. */
+    data class DayClosed(val day: LocalDate) : MealNoteEvent
     data object Dismiss : MealNoteEvent
 }
 
@@ -102,7 +106,11 @@ class MealNoteViewModel(
                 if (!state.loaded) return
                 val current = state
                 val note = current.draft.trim()
-                diary.setFeeling(day, slot, (feeling ?: MealFeeling()).copy(hunger = current.hunger, note = note.ifEmpty { null }))
+                val write = diary.setFeeling(day, slot, (feeling ?: MealFeeling()).copy(hunger = current.hunger, note = note.ifEmpty { null }))
+                if (write is DayWrite.DayClosed) {
+                    sendEvent(MealNoteEvent.DayClosed(day))
+                    return
+                }
                 if (note.isNotEmpty() || current.hunger != null) {
                     sendEvent(MealNoteEvent.ShowToast(Toast(Res.string.today_toast_note_saved, listOf(slot.sentenceName))))
                 }

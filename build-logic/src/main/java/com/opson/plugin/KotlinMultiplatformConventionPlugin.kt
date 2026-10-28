@@ -12,6 +12,7 @@ import com.opson.util.loadTelemetryMetadata
 import com.opson.util.loadVersionMetadata
 import com.opson.util.optInKotlinMarkers
 import com.opson.util.VersionMetadata
+import com.opson.util.warnIfDevSupabaseMissing
 import com.opson.util.writeCommonMetadata
 import com.opson.util.writeSupabaseMetadata
 import com.opson.util.writeTelemetryMetadata
@@ -62,6 +63,7 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
 
     private fun Project.configureSharedBuildConfig(metadata: VersionMetadata) {
         val supabaseMetadata = loadSupabaseMetadata()
+        warnIfDevSupabaseMissing(supabaseMetadata)
         extensions.configure(BuildConfigExtension::class.java) {
             packageName("com.opson.buildinfo")
             className("OpsonBuildConfig")

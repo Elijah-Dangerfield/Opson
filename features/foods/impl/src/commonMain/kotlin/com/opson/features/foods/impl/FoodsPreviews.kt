@@ -12,6 +12,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 private val full = previewVisibilityPolicy(PresetId.Full)
 private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
 private val nutrient = previewVisibilityPolicy(PresetId.MacrosOnly)
+private val macrosWithGrams = previewVisibilityPolicy(PresetId.MacrosWithGrams)
 
 @Composable
 private fun Foods(state: FoodsState, dark: Boolean = false) = FoodsPreviewFrame(dark) { FoodsScreen(state, onAction = {}) }
@@ -93,7 +94,48 @@ private fun EditACopyLightPreview() = EditCopy(FoodsFixtures.editCopyState(full)
 @Composable
 private fun EditACopyUnchangedPreview() = EditCopy(FoodsFixtures.editCopyState(full, changed = false), dark = true)
 
-/** Blind: the name, brand and serving, and no numbers at all. */
+/** No numbers: the name, brand and serving sizes, and no numbers at all. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun EditACopyBlindPreview() = EditCopy(FoodsFixtures.editCopyState(blind), dark = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyBlindLightPreview() = EditCopy(FoodsFixtures.editCopyState(blind))
+
+/** Macros with grams: every number but energy, the vitamins and minerals with their share of a day. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyMacrosWithGramsPreview() = EditCopy(FoodsFixtures.catalogCopyState(macrosWithGrams))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyMacrosWithGramsDarkPreview() = EditCopy(FoodsFixtures.catalogCopyState(macrosWithGrams), dark = true)
+
+/** Macros only: the serving sizes and nothing to type, since the macros are words. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyMacrosOnlyPreview() = EditCopy(FoodsFixtures.creamerCopyState(nutrient))
+
+/** A catalog food per 100 g: the whole label, and energy that disagrees with the macros, with Use to fix it. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyFullLabelPreview() = EditCopy(FoodsFixtures.catalogCopyState(full))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyFullLabelDarkPreview() = EditCopy(FoodsFixtures.catalogCopyState(full), dark = true)
+
+/** The creamer as it opens from its detail: a tablespoon nobody has weighed, and what to do about it. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyUnweighedPreview() = EditCopy(FoodsFixtures.creamerCopyState(full, weighed = false))
+
+/** The creamer weighed: a tablespoon is 15 g and a cup 240 g, so it logs by weight from now on. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyWeighedPreview() = EditCopy(FoodsFixtures.creamerCopyState(full))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EditACopyWeighedDarkPreview() = EditCopy(FoodsFixtures.creamerCopyState(full), dark = true)

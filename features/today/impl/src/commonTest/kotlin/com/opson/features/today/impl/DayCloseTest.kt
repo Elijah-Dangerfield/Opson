@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.DayHunger
@@ -210,7 +211,6 @@ class DayCloseTest : CoroutineTest() {
         calendar = FakeCalendar(),
         health = FakeHealthRepository(),
         healthFlag = healthFlag(false),
-        checkIns = diary,
         checkInEnabled = checkInFlag(checkInOn),
         goalsAndEnergy = goalsAndEnergyFlag(),
         burnedRepository = FakeBurnedRepository(),
@@ -247,8 +247,8 @@ class DayCloseTest : CoroutineTest() {
         vm.takeAction(DayCloseAction.NoteTyped("  Lola's birthday  "))
         vm.takeAction(DayCloseAction.DoneTapped)
 
-        assertEquals(listOf<Pair<kotlinx.datetime.LocalDate, String?>>(TodayFixtures.today to "Lola's birthday"), diary.notes)
-        assertEquals(listOf(TodayFixtures.today), diary.closed)
+        assertEquals(listOf(TodayFixtures.today to DayReflection(note = "Lola's birthday")), diary.closed, "the note goes with the close, in one write")
+        assertTrue(diary.notes.isEmpty())
         assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
     }
 
@@ -267,7 +267,6 @@ class DayCloseTest : CoroutineTest() {
             calendar = FakeCalendar(),
             health = FakeHealthRepository(),
             healthFlag = healthFlag(false),
-            checkIns = diary,
             checkInEnabled = checkInFlag(false),
             goalsAndEnergy = goalsAndEnergyFlag(),
             burnedRepository = FakeBurnedRepository(),
@@ -292,8 +291,50 @@ class DayCloseTest : CoroutineTest() {
         vm.takeAction(DayCloseAction.DoneTapped)
         vm.takeAction(DayCloseAction.DoneTapped)
 
-        assertEquals(listOf(TodayFixtures.today), diary.closed)
+        assertEquals(listOf(TodayFixtures.today), diary.closed.map { it.first })
         assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
+    }
+
+    /** Reopen and Save sit side by side on a closed day; a tap on either while leaving undoes nothing. */
+    @Test
+    fun onAClosedDay_aTapWhileLeavingAfterReopenNeitherClosesItAgainNorLeavesTwice() = runUnitTest {
+        diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(closedAt = TodayFixtures.noon))
+        val vm = vm()
+        val events = mutableListOf<DayCloseEvent>()
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+
+        vm.takeAction(DayCloseAction.ReopenTapped)
+        vm.takeAction(DayCloseAction.DoneTapped)
+        vm.takeAction(DayCloseAction.ReopenTapped)
+
+        assertEquals(listOf(TodayFixtures.today), diary.reopened)
+        assertTrue(diary.closed.isEmpty())
+        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
+    }
+
+    @Test
+    fun onAClosedDay_saveKeepsItClosed_andReopenOpensItAndLeaves() = runUnitTest {
+        diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(closedAt = TodayFixtures.noon, note = "Lola's"))
+        val vm = vm()
+        val events = mutableListOf<DayCloseEvent>()
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+        assertTrue(vm.state.closed)
+
+        vm.takeAction(DayCloseAction.NoteTyped("Lola's birthday"))
+        vm.takeAction(DayCloseAction.DoneTapped)
+        assertEquals(listOf(TodayFixtures.today to DayReflection(note = "Lola's birthday")), diary.closed)
+        assertTrue(diary.reopened.isEmpty())
+        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
+
+        // Opened again; Save left the first one.
+        val again = vm()
+        val againEvents = mutableListOf<DayCloseEvent>()
+        backgroundScope.launch { again.eventFlow.toList(againEvents) }
+        assertTrue(again.state.closed)
+        again.takeAction(DayCloseAction.ReopenTapped)
+        assertEquals(listOf(TodayFixtures.today), diary.reopened)
+        assertEquals(false, again.state.closed)
+        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), againEvents)
     }
 
     @Test
@@ -340,21 +381,21 @@ class DayCloseTest : CoroutineTest() {
 
         vm.takeAction(DayCloseAction.FeelingTapped(DayFeeling.Hard))
         vm.takeAction(DayCloseAction.BackTapped)
-        assertTrue(diary.dayFeelings.isEmpty())
+        assertTrue(diary.closed.isEmpty())
 
         vm.takeAction(DayCloseAction.DoneTapped)
-        assertEquals(listOf<Pair<kotlinx.datetime.LocalDate, DayFeeling?>>(TodayFixtures.today to DayFeeling.Hard), diary.dayFeelings)
+        assertEquals(DayFeeling.Hard, diary.closed.single().second.feeling)
     }
 
     @Test
-    fun anUnchangedFeelingIsNotWrittenAgain() = runUnitTest {
+    fun aFeelingNotAskedHereIsKeptAsItWas() = runUnitTest {
         diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(feeling = DayFeeling.Good))
-        policySourceForFeeling.policy.value = policy(PresetId.NoNumbers)
-        val vm = vm(policySource = policySourceForFeeling)
+        val vm = vm(policySource = FakePolicySource())
+        assertNull(vm.state.feeling, "full totals on show: the feeling is not asked")
 
         vm.takeAction(DayCloseAction.DoneTapped)
 
-        assertTrue(diary.dayFeelings.isEmpty())
+        assertEquals(DayFeeling.Good, diary.closed.single().second.feeling)
     }
 
     private val policySourceForFeeling = FakePolicySource()
@@ -411,7 +452,7 @@ class DayCloseTest : CoroutineTest() {
         vm.takeAction(DayCloseAction.DoneTapped)
 
         val expected = CheckIn(hunger = DayHunger.Steady, energy = Energy.Good, moods = setOf(CheckInMood.Calm, CheckInMood.Social))
-        assertEquals(listOf<Pair<LocalDate, CheckIn?>>(TodayFixtures.today to expected), diary.checkIns.toList(), "sleep tapped twice is left blank")
+        assertEquals(expected, diary.closed.single().second.checkIn, "sleep tapped twice is left blank")
     }
 
     @Test
@@ -419,12 +460,12 @@ class DayCloseTest : CoroutineTest() {
         val on = vm(checkInOn = true)
         on.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
         on.takeAction(DayCloseAction.BackTapped)
-        assertTrue(diary.checkIns.isEmpty())
+        assertTrue(diary.closed.isEmpty())
 
         val off = vm(checkInOn = false)
         off.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
         off.takeAction(DayCloseAction.DoneTapped)
-        assertTrue(diary.checkIns.isEmpty())
+        assertNull(diary.closed.single().second.checkIn)
     }
 
     @Test
@@ -435,7 +476,7 @@ class DayCloseTest : CoroutineTest() {
         assertNull(off.state.checkIn)
         off.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
         off.takeAction(DayCloseAction.DoneTapped)
-        assertTrue(diary.checkIns.isEmpty())
+        assertNull(diary.closed.single().second.checkIn)
     }
 
     @Test

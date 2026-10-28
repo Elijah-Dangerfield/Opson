@@ -1,0 +1,18 @@
+{
+  "id": "msg_fixture",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-fable-5-1",
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"label_found\": true, \"name\": {\"value\": \"Roasted almonds\", \"confidence\": 0.95}, \"brand\": {\"value\": null, \"confidence\": 0}, \"barcode\": {\"value\": \"012345678906\", \"confidence\": 0.9}, \"serving\": {\"amount\": 1, \"unit\": \"oz\", \"household\": \"about 23 almonds\", \"confidence\": 0.9}, \"servings_per_container\": {\"value\": 16, \"confidence\": 0.95}, \"basis\": \"us\", \"nutrients\": [{\"nutrient\": \"energy\", \"per_serving\": 170, \"per_100\": null, \"unit\": \"kcal\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"fat\", \"per_serving\": 15, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"saturated_fat\", \"per_serving\": 1, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"carbohydrate\", \"per_serving\": 6, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"fiber\", \"per_serving\": 3, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"sugars\", \"per_serving\": 1, \"per_100\": null, \"unit\": \"g\", \"less_than\": true, \"confidence\": 0.95}, {\"nutrient\": \"protein\", \"per_serving\": 6, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"sodium\", \"per_serving\": 0, \"per_100\": null, \"unit\": \"mg\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"vitamin_d\", \"per_serving\": 40, \"per_100\": null, \"unit\": \"iu\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"vitamin_e\", \"per_serving\": 50, \"per_100\": null, \"unit\": \"percent_dv\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"iron\", \"per_serving\": 6, \"per_100\": null, \"unit\": \"percent_dv\", \"less_than\": false, \"confidence\": 0.95}]}"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 5200,
+    "output_tokens": 900
+  }
+}

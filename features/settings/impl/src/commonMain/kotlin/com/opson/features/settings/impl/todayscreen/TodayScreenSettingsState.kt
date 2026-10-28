@@ -13,7 +13,7 @@ import com.opson.libraries.nutrition.Visibility
 /**
  * More › Today screen (design sync 4, 13.6a). Arranges Today, never shows more: no amount
  * appears here, and outside All numbers ([cardArranged] false) the card's layout comes from the
- * mode, so only the list's rows can be changed.
+ * mode, so only the list's rows and the header's Close the day can be changed.
  */
 data class TodayScreenSettingsState(
     val loaded: Boolean = false,
@@ -29,6 +29,7 @@ data class TodayScreenSettingsState(
     val nutrientsLink: Boolean = true,
     val water: Boolean = true,
     val weight: Boolean = true,
+    /** Close the day's button in Today's header, not a row in the list. */
     val closeDay: Boolean = true,
 )
 

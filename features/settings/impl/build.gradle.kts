@@ -47,6 +47,8 @@ kotlin {
             implementation(projects.features.settings)
             implementation(projects.libraries.navigation)
             implementation(projects.libraries.flowroutines.testing)
+            // DeviceRegion, for Find support and the height unit.
+            implementation(projects.libraries.core)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.identity)

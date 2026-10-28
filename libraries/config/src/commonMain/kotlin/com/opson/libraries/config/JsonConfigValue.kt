@@ -13,36 +13,15 @@ import kotlinx.serialization.json.JsonPrimitive
 /**
  * A [ConfiguredValue] whose payload is **structured** rather than a flat scalar.
  * The scalar bases ([FlagConfigValue], [IntConfigValue], …) resolve one dotted
- * path to a `Boolean` / `Int` / `String`; variable-length data — a level ladder,
- * a reward table, a loot table — can't be flattened into fixed scalar paths.
+ * path to a `Boolean` / `Int` / `String`; variable-length data, such as a list
+ * of reminder times, can't be flattened into fixed scalar paths.
  *
  * [JsonConfigValue] resolves **one** path to whatever JSON subtree lives there
  * (an object or array, already parsed into nested `Map` / `List` by the config
  * pipeline) and deserializes it into a `@Serializable` Kotlin model [T] via the
  * supplied [serializer]. A decode failure — malformed server value, schema drift —
  * falls back to the bundled [default], so a bad remote value can never brick the
- * client.
- *
- * Use it alongside the grouped-interface convention: a `ProgressionConfig`
- * interface whose impl reads scalar knobs through the scalar bases and the
- * structured ladder through this one.
- *
- * ```kotlin
- * @Serializable
- * data class LevelLadder(val xpPerLevel: List<Int>)
- *
- * @Inject
- * @SingleIn(AppScope::class)
- * @ContributesBinding(AppScope::class, ConfiguredValue::class, multibinding = true)
- * class LevelLadderConfig(appConfigMap: AppConfigMap) : JsonConfigValue<LevelLadder>(
- *     appConfigMap = appConfigMap,
- *     serializer = LevelLadder.serializer(),
- * ) {
- *     override val name = "Level ladder"
- *     override val path = "progression.levelLadder"
- *     override val default = LevelLadder(xpPerLevel = DEFAULT_LADDER)
- * }
- * ```
+ * client. Nothing in the app uses one yet; `JsonConfigValueTest` shows the shape.
  *
  * A JSON blob doesn't round-trip through the per-key QA dashboard toggles, so
  * these values hide from QA by default ([showInQADashboard] = false). Structured

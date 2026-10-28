@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.ui.DayClosedNotice
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.ui.bounceClick
@@ -50,6 +51,7 @@ import com.opson.libraries.ui.components.icon.IconSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.time.RelativeDay
 import com.opson.system.AppTheme
 import com.opson.system.background
 import com.opson.system.color.ToneColors
@@ -115,6 +117,11 @@ private fun ActionsPane(state: LoggerState, onAction: (LoggerAction) -> Unit) {
                         DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_loading_cd))
                     }
                     return@LazyColumn
+                }
+                if (state.closed) {
+                    item(key = "closed", contentType = "closed") {
+                        DayClosedNotice(isToday = state.day == RelativeDay.Today, onReopen = { onAction(LoggerAction.ReopenTapped) })
+                    }
                 }
                 state.actions.chunked(GRID_COLUMNS).forEachIndexed { index, row ->
                     item(key = "grid-$index", contentType = "grid") { GridRow(row, onAction) }

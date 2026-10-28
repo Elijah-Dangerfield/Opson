@@ -58,10 +58,6 @@
 
     <!-- Food detail in No numbers (13.5e) -->
     <string name="modes_hunger_question">How hungry were you? Optional</string>
-    <string name="modes_hunger_not_really">Not really</string>
-    <string name="modes_hunger_a_little">A little</string>
-    <string name="modes_hunger_hungry">Hungry</string>
-    <string name="modes_hunger_very">Very</string>
 
     <!-- Today, when End after a set time runs out -->
     <string name="modes_timer_ended">Your time on %1$s is up. You're on %2$s now.</string>

@@ -14,6 +14,7 @@ import com.opson.libraries.diary.PickedForMeal
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchFilter
@@ -58,7 +59,7 @@ class FoodSearchViewModel(
     clock: Clock,
     private val mealPicks: MealPicks,
     scanEnabled: BarcodeScanEnabled,
-    photoEnabled: PhotoEstimateEnabled,
+    submitFoodEnabled: SubmitFoodEnabled,
     searchOptionsEnabled: SearchOptionsEnabled,
     private val optionsTelemetry: SearchOptionsTelemetry,
 ) : SEAViewModel<FoodSearchState, SearchEvent, SearchAction>(
@@ -75,7 +76,7 @@ class FoodSearchViewModel(
             ),
             slotChosen = route.slot != null,
             scanAvailable = scanEnabled(),
-            photoAvailable = photoEnabled(),
+            addFoodAvailable = submitFoodEnabled(),
             searchOptions = searchOptionsEnabled(),
             pickingForMeal = pickForMeal != null,
         ),
@@ -141,10 +142,11 @@ class FoodSearchViewModel(
             is SearchAction.AddTapped -> if (pickForMeal != null) pick(action, action.row) else add(action.row)
             is SearchAction.SavedMealAddTapped -> addSavedMeal(action.id)
             SearchAction.BarcodeTapped -> if (model.choices.scanAvailable && pickForMeal == null) sendEvent(SearchEvent.OpenScanner(day, slot()))
-            SearchAction.PhotographTapped -> if (model.choices.photoAvailable && pickForMeal == null) sendEvent(SearchEvent.OpenPhoto(day, slot()))
+            SearchAction.AddFoodTapped -> if (model.choices.addFoodAvailable && pickForMeal == null) sendEvent(SearchEvent.OpenSubmitFood(day, slot()))
             SearchAction.DescribeTapped -> if (pickForMeal == null) sendEvent(SearchEvent.OpenDescribe(day, slot(), model.choices.query.trim()))
             SearchAction.SaveNameTapped -> saveName(action)
             SearchAction.AddPicksTapped -> pickForMeal?.let(::handBack)
+            SearchAction.ReopenTapped -> diary.reopenDay(day)
             SearchAction.BackTapped -> sendEvent(SearchEvent.Close)
             SearchAction.SearchOptionsTapped -> if (model.choices.searchOptions) {
                 sendEvent(SearchEvent.OpenSearchOptions(model.choices.openFoodFacts))
@@ -228,7 +230,8 @@ class FoodSearchViewModel(
             return
         }
         val pick = FoodSearchStateBuilder.picks(inputs, model.choices).firstOrNull { it.key == row.key } ?: return
-        val committed = logger.log(day, slot, listOf(pick.toLogPick())) ?: return
+        // A closed day refuses it, and the day it reads says so in place of the lists.
+        val committed = logger.log(day, slot, listOf(pick.toLogPick()))?.valueOrNull() ?: return
         committed.event?.let { sendEvent(SearchEvent.Added(row.shortName, it)) }
     }
 
@@ -239,7 +242,7 @@ class FoodSearchViewModel(
             val ref = draft.foodRef()
             LogPick(key = ref?.key ?: "saved:$id:$index", ref = ref, draft = draft.copy(method = LogMethod.Saved), source = PickSource.Saved)
         }
-        val committed = logger.log(day, slot(), picks) ?: return
+        val committed = logger.log(day, slot(), picks)?.valueOrNull() ?: return
         committed.event?.let { sendEvent(SearchEvent.Added(meal.name, it)) }
     }
 
@@ -268,7 +271,7 @@ class FoodSearchViewModel(
             return
         }
         action.choose { copy(query = "", search = null) }
-        val committed = logger.log(day, slot(), listOf(pick)) ?: return
+        val committed = logger.log(day, slot(), listOf(pick))?.valueOrNull() ?: return
         committed.event?.let { sendEvent(SearchEvent.Added(name, it)) }
     }
 

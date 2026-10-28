@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl.support
 
+import com.opson.libraries.core.DeviceRegion
 import java.util.Locale
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope

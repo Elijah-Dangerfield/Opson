@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.ui.DayClosedNotice
 import com.opson.libraries.diary.ui.FastingTodayCard
 import com.opson.libraries.diary.ui.FoodMenuButton
 import com.opson.libraries.diary.ui.FoodsLine
@@ -120,6 +121,8 @@ import opson.libraries.resources.generated.resources.today_menu_copy_yesterday
 import opson.libraries.resources.generated.resources.today_menu_edit_cards
 import opson.libraries.resources.generated.resources.today_menu_notes
 import opson.libraries.resources.generated.resources.today_menu_nutrients
+import opson.libraries.resources.generated.resources.today_menu_reopen_day
+import opson.libraries.resources.generated.resources.today_menu_reopen_this_day
 import opson.libraries.resources.generated.resources.today_menu_tracked
 import opson.libraries.resources.generated.resources.today_menu_untracked
 import opson.libraries.resources.generated.resources.today_move_row
@@ -346,6 +349,9 @@ internal sealed interface TodayRow {
     data object Planning : TodayRow { override val key = "planning" }
     data class Summary(val summary: TodaySummary) : TodayRow { override val key = "summary" }
     data object Untracked : TodayRow { override val key = "untracked" }
+
+    /** "Today is closed. Reopen it to add more.", standing in for every + the closed day has lost. */
+    data object Closed : TodayRow { override val key = "closed" }
     data class Tiles(val tiles: List<MealTile>) : TodayRow { override val key = "tiles" }
     data class Fasting(val status: FastingStatus) : TodayRow { override val key = "fasting" }
     data class Water(val water: WaterRow) : TodayRow { override val key = "water" }
@@ -364,6 +370,7 @@ internal fun todayRows(state: TodayState, burned: Boolean = false): List<TodayRo
     // Collapsed, the card is the pinned line above the list instead.
     state.summary?.takeUnless { state.collapsed }?.let { add(TodayRow.Summary(it)) }
     if (state.untracked) add(TodayRow.Untracked)
+    if (state.closed) add(TodayRow.Closed)
     state.mealTiles?.let { add(TodayRow.Tiles(it)) }
     state.fasting?.let { add(TodayRow.Fasting(it)) }
     state.water?.let { add(TodayRow.Water(it)) }
@@ -402,6 +409,7 @@ private fun TodayListItem(row: TodayRow, state: TodayState, context: FoodRowCont
                 modifier = Modifier.weight(1f),
             )
         }
+        TodayRow.Closed -> DayClosedNotice(isToday = state.dayLabel == RelativeDay.Today, onReopen = { onAction(TodayAction.ReopenTapped) })
         is TodayRow.Tiles -> MealTimelineCard(row.tiles, onAction)
         is TodayRow.Fasting -> FastingTodayCard(
             status = row.status,
@@ -414,7 +422,7 @@ private fun TodayListItem(row: TodayRow, state: TodayState, context: FoodRowCont
             filled = row.water.filled,
             total = row.water.total,
             showSegments = row.water.showSegments,
-            onAdd = { onAction(TodayAction.WaterPlusTapped) },
+            onAdd = if (state.closed) null else ({ onAction(TodayAction.WaterPlusTapped) }),
             addIcon = AppIcons.Add.described(stringResource(Res.string.today_water_cd)),
         )
         is TodayRow.Weight -> WeightCard(row.weight, state.dayLabel, onAction)
@@ -481,8 +489,8 @@ private fun WeightCard(weight: WeightRow, dayLabel: RelativeDay, onAction: (Toda
 
 /**
  * What a meal card and its food rows read from [TodayState], and nothing else. Equal from one state
- * to the next unless selecting, a swipe, the ⋮ flag or the outline changed, so an unchanged card
- * skips when the rest of Today moves (the fasting minute, an Undo bar, the sticky bar).
+ * to the next unless selecting, a swipe, the ⋮ flag, the outline or the day's closing changed, so an
+ * unchanged card skips when the rest of Today moves (the fasting minute, an Undo bar, the sticky bar).
  */
 @Immutable
 internal data class FoodRowContext(
@@ -492,11 +500,13 @@ internal data class FoodRowContext(
     val selectTools: Boolean,
     val foodMenus: Boolean,
     val highlight: MealSlot?,
+    /** Closed with Close the day: no + on any meal. */
+    val closed: Boolean,
 ) {
     val selecting: Boolean get() = selected != null
 
     companion object {
-        fun of(state: TodayState) = FoodRowContext(state.selection?.ids, state.swipe, state.selectTools, state.foodMenus, state.highlight)
+        fun of(state: TodayState) = FoodRowContext(state.selection?.ids, state.swipe, state.selectTools, state.foodMenus, state.highlight, state.closed)
     }
 }
 
@@ -506,7 +516,7 @@ private fun Meal(entry: MealEntry, context: FoodRowContext, drag: FoodDrag, onAc
     val sentence = stringResource(slot.sentenceName)
     val dropLabel = if (drag.target == slot) stringResource(Res.string.today_drop_to, stringResource(slot.label)) else null
     val add: @Composable RowScope.() -> Unit = {
-        if (!context.selecting) {
+        if (!context.selecting && !context.closed) {
             RoundIconButton(
                 icon = AppIcons.Add.described(stringResource(Res.string.today_add_to_cd, sentence)),
                 onClick = { onAction(TodayAction.MealPlusTapped(slot)) },
@@ -578,7 +588,7 @@ private fun FullMeal(card: MealCard, context: FoodRowContext, drag: FoodDrag, dr
         onHeaderClick = if (selecting) ({ onAction(TodayAction.MealHeaderToggled(card.slot)) }) else null,
         headerTrailing = {
             when {
-                selecting -> Unit
+                selecting || context.closed -> Unit
                 card.fileable -> PillAction(
                     label = stringResource(Res.string.today_move_to),
                     onClick = { onAction(TodayAction.MoveUncategorizedTapped(card.items.map { it.entryId })) },
@@ -665,6 +675,11 @@ fun ColumnScope.DayMenuItems(menu: DayMenu, onAction: (TodayAction) -> Unit) {
                     if (item.isToday) Res.string.today_menu_close_day else Res.string.today_menu_close_this_day,
                     AppIcons.CheckCircleOutline,
                     TodayAction.DayCloseMenuTapped,
+                )
+                is DayMenuItem.Reopen -> Triple(
+                    if (item.isToday) Res.string.today_menu_reopen_day else Res.string.today_menu_reopen_this_day,
+                    AppIcons.CheckCircle,
+                    TodayAction.ReopenTapped,
                 )
                 DayMenuItem.Nutrients -> Triple(Res.string.today_menu_nutrients, AppIcons.Science, TodayAction.DayNutrientsTapped)
                 DayMenuItem.Notes -> Triple(Res.string.today_menu_notes, AppIcons.EventNote, TodayAction.NotesMenuTapped)

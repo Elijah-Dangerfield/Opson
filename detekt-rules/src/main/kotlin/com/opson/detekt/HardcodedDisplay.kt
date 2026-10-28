@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.psi.KtFile
  *
  * Those four are what `VisibilityPolicy` returns once it has decided whether a number may be
  * seen. Constructing one anywhere else skips that decision. In a screen it is a number shown to
- * someone who chose Blind. In a leak-test fixture it is worse, because it fails the test for the
+ * someone who chose not to see it. In a leak-test fixture it is worse, because it fails the test for the
  * wrong reason or, with a hand-built `Display.Hidden`, passes it for the wrong one: either way
  * `BlindModeLeakTest` stops testing the real builder (`docs/plans/screens/blind-leak-test.md`).
  * `Display.Hidden` is an object, never "constructed", and is not reported.

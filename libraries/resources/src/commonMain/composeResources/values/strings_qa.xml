@@ -46,7 +46,7 @@
     <string name="qa_check_in">Open today's check-in</string>
     <string name="qa_check_in_sub">Close the day for today with the check-in showing. Turns on release.checkIn and the Reminders switch if they're off.</string>
     <string name="qa_reset_onboarding">Reset onboarding</string>
-    <string name="qa_reset_onboarding_sub">Shows on next launch. A live guest session skips back to Today, so log out to see Welcome.</string>
+    <string name="qa_reset_onboarding_sub">Shows on next launch. Signed in, it opens at the questions; log out to start from Welcome.</string>
     <string name="qa_reset_onboarding_done">Onboarding shows on next launch.</string>
     <string name="qa_clear_caches">Clear caches</string>
     <string name="qa_clear_caches_sub">Refetches remote config and empties the food cache (Recent and offline search). Favorites, your log and settings stay.</string>

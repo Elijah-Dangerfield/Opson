@@ -133,9 +133,6 @@ class TypeScale internal constructor(
     /** The big figure on Today and Weight ("1,245", "73.4"). 2.25em (36), 700, tabular, tight. */
     val figureDisplay = style("figure-display", 2.25f, FontWeight.Bold, 1f, TIGHT_TRACKING, tabular = true)
 
-    /** The word or count on Today's soft card ("Partway through", "2 of 4"). 1.375em, 800, tabular. */
-    val figureHero = style("figure-hero", 1.375f, FontWeight.ExtraBold, tabular = true)
-
     /** The locked card's title ("Open at 9:00 pm"). 1.1875em, 800. */
     val heroTitle = style("hero-title", 1.1875f, FontWeight.ExtraBold)
 

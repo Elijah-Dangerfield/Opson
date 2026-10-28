@@ -1,20 +1,36 @@
 package com.opson.server.plugins
 
+import com.auth0.jwk.JwkException
+import com.auth0.jwk.JwkProvider
 import com.auth0.jwk.JwkProviderBuilder
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.exceptions.JWTDecodeException
+import com.auth0.jwt.exceptions.JWTVerificationException
+import com.auth0.jwt.interfaces.DecodedJWT
 import com.auth0.jwt.interfaces.JWTVerifier
 import com.opson.server.domain.UserId
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.auth.HttpAuthHeader
+import io.ktor.http.auth.parseAuthorizationHeader
+import io.ktor.http.parsing.ParseException
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTAuthenticationProvider
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
 import io.ktor.util.AttributeKey
 import java.net.URI
+import java.security.interfaces.ECPublicKey
+import java.security.interfaces.RSAPublicKey
 import java.util.concurrent.TimeUnit
 
 /** Authentication-realm name; used by `authenticate(SUPABASE_JWT_AUTH)` in routes. */
@@ -50,24 +66,111 @@ sealed interface JwtVerification {
  * short-circuits the routing pipeline, so a banned caller never reaches a
  * route handler.
  */
-fun Application.installAuthentication(verification: JwtVerification, banGate: BanGate? = null) {
+fun Application.installAuthentication(verification: JwtVerification, banGate: BanGate? = null) =
+    installAuthentication(BearerVerifier(verification), banGate)
+
+/** As above, sharing [bearer] (and its cached signing keys) with [identifyCallerIfSignedIn]. */
+fun Application.installAuthentication(bearer: BearerVerifier, banGate: BanGate? = null) {
     install(Authentication) {
         jwt(SUPABASE_JWT_AUTH) {
-            when (verification) {
-                is JwtVerification.Jwks -> {
-                    val jwkProvider = JwkProviderBuilder(URI(verification.jwksUrl).toURL())
-                        .cached(10, 24, TimeUnit.HOURS)
-                        .rateLimited(10, 1, TimeUnit.MINUTES)
-                        .build()
-                    verifier(jwkProvider, verification.issuer) {
-                        withAudience("authenticated")
-                    }
-                }
-
-                is JwtVerification.Static -> verifier(verification.verifier)
-            }
+            verifier { header -> header.bearerToken()?.let(bearer::verifierFor) }
             validateAndChallengeForUserId(banGate)
         }
+    }
+}
+
+/**
+ * Checks a bearer token the way [SUPABASE_JWT_AUTH] does: signature against
+ * the project's keys, issuer, audience `authenticated`, expiry. Shared by the
+ * auth provider and by [identifyCallerIfSignedIn], so a route that serves
+ * everyone resolves exactly the users a protected route would.
+ */
+class BearerVerifier(verification: JwtVerification) {
+    private val forToken: (String) -> JWTVerifier? = when (verification) {
+        is JwtVerification.Static -> { _ -> verification.verifier }
+        is JwtVerification.Jwks -> {
+            val jwkProvider = JwkProviderBuilder(URI(verification.jwksUrl).toURL())
+                .cached(10, 24, TimeUnit.HOURS)
+                .rateLimited(10, 1, TimeUnit.MINUTES)
+                .build()
+            ({ token -> jwksVerifier(jwkProvider, verification.issuer, token) })
+        }
+    }
+
+    /** The verifier for [token], or null when its signing key can't be found. */
+    fun verifierFor(token: String): JWTVerifier? = forToken(token)
+
+    /** [token] decoded, or null when it is malformed, expired, or not signed by this project. */
+    fun verify(token: String): DecodedJWT? = try {
+        verifierFor(token)?.verify(token)
+    } catch (_: JWTVerificationException) {
+        null
+    }
+}
+
+/**
+ * The verifier for the key [token] names, or null when the key is unknown, the
+ * JWKS can't be fetched, or its entry doesn't hold the key type its `alg` says.
+ * Never throws: app config must answer even when the keys are unreachable.
+ */
+private fun jwksVerifier(jwkProvider: JwkProvider, issuer: String, token: String): JWTVerifier? {
+    val algorithm = try {
+        val jwk = jwkProvider.get(JWT.decode(token).keyId)
+        val publicKey = jwk.publicKey
+        when (jwk.algorithm) {
+            "ES256" -> Algorithm.ECDSA256(publicKey as ECPublicKey, null)
+            "ES384" -> Algorithm.ECDSA384(publicKey as ECPublicKey, null)
+            "ES512" -> Algorithm.ECDSA512(publicKey as ECPublicKey, null)
+            "RS384" -> Algorithm.RSA384(publicKey as RSAPublicKey, null)
+            "RS512" -> Algorithm.RSA512(publicKey as RSAPublicKey, null)
+            "RS256", null -> Algorithm.RSA256(publicKey as RSAPublicKey, null)
+            else -> return null
+        }
+    } catch (_: JWTDecodeException) {
+        return null
+    } catch (_: JwkException) {
+        return null
+    } catch (_: ClassCastException) {
+        return null
+    }
+    return JWT.require(algorithm).withIssuer(issuer).withAudience("authenticated").build()
+}
+
+private fun HttpAuthHeader.bearerToken(): String? =
+    (this as? HttpAuthHeader.Single)?.takeIf { it.authScheme.equals("Bearer", ignoreCase = true) }?.blob
+
+/**
+ * For a route that answers everyone: when the request carries a token that
+ * verifies, its user becomes the call's principal ([userId] works); when the
+ * token is missing, expired, from another Supabase project or malformed, the
+ * call goes on anonymously. `authenticate(optional = true)` can't do this:
+ * Ktor lets only a request with no credentials through, and answers 401 to
+ * one with bad credentials. Bans are not checked here; banned users are
+ * stopped on the routes that touch their data.
+ */
+fun Route.identifyCallerIfSignedIn(bearer: BearerVerifier) {
+    install(
+        createRouteScopedPlugin("IdentifyCallerIfSignedIn") {
+            onCall { call ->
+                val token = authorizationHeaderOrNull(call)?.bearerToken() ?: return@onCall
+                val decoded = bearer.verify(token) ?: return@onCall
+                if (decoded.subject?.let(UserId::parse) != null) call.authentication.principal(JWTPrincipal(decoded))
+            }
+        },
+    )
+}
+
+/**
+ * The parsed `Authorization` header, or null when there is none or it doesn't
+ * parse (`Bearer a b`, `Bearer a,b`). Not `request.parseAuthorizationHeader()`:
+ * that throws `BadRequestException`, a 400 on a route that must answer everyone.
+ */
+private fun authorizationHeaderOrNull(call: ApplicationCall): HttpAuthHeader? {
+    val raw = call.request.headers[HttpHeaders.Authorization] ?: return null
+    return try {
+        parseAuthorizationHeader(raw)
+    } catch (_: ParseException) {
+        null
     }
 }
 
@@ -122,7 +225,8 @@ private suspend fun ApplicationCall.rejectIfBanned(banGate: BanGate, userId: Use
 
 /**
  * The caller's `auth.users.id` from the validated JWT. Only meaningful inside an
- * `authenticate(SUPABASE_JWT_AUTH) { … }` block — null outside it.
+ * `authenticate(SUPABASE_JWT_AUTH) { … }` block or under [identifyCallerIfSignedIn];
+ * null elsewhere.
  */
 fun ApplicationCall.userId(): UserId? {
     val principal = principal<JWTPrincipal>() ?: return null

@@ -18,6 +18,13 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "add-sheet-expanded", label = "Add sheet, Recent", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.sheetState(policy, height = SheetHeight.Full, added = true), onAction = {})
         },
+        // On a closed day: the closed line, a weigh-in and the fasting timer. No number in any mode.
+        LeakSurface(id = "add-sheet-closed", label = "Add sheet, day closed", showsCaloriesInFull = false) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.sheetState(policy, closed = true), onAction = {})
+        },
+        LeakSurface(id = "search-closed", label = "Food search, day closed", showsCaloriesInFull = false) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchState(policy, query = "", added = false, closed = true), onAction = {})
+        },
         // The nav + at a time with no usual meal: Uncategorized.
         LeakSurface(id = "add-sheet-uncategorized", label = "Add sheet, no usual meal", showsCaloriesInFull = false) { policy ->
             LoggerSheetContent(state = LoggerFixtures.uncategorizedState(policy), onAction = {})
@@ -52,6 +59,10 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-describe-edited", label = "Describe a meal, lines corrected", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeEditedState(policy), onAction = {})
         },
+        // Quick add with a label typed in: the fields each mode offers, and the energy check where calories show.
+        LeakSurface(id = "logger-describe-quick-add", label = "Describe a meal, just the numbers", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.quickAddState(policy), onAction = {})
+        },
         LeakSurface(id = "logger-describe-find", label = "Describe a meal, finding a food", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeFindState(policy), onAction = {})
         },
@@ -62,9 +73,23 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-saved", label = "Saved meals", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.savedState(policy), onAction = {})
         },
-        // kcal, the macro tiles and Today with this: Blind removes the card.
+        // kcal, each macro's share of it, and Today with this against the targets.
         LeakSurface(id = "food-detail", label = "Food detail", showsCaloriesInFull = true) { policy ->
             FoodDetailContent(state = LoggerFixtures.detailState(policy), onAction = {})
+        },
+        // The ⋮ menu drawn in place: words only, over the same detail.
+        LeakSurface(id = "food-detail-more", label = "Food detail, more menu", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.detailState(policy), onAction = {}, menuShown = DetailMenu.More)
+        },
+        // ml typed, so "That is 258 g" under it: an amount of food, never a nutrient.
+        LeakSurface(id = "food-detail-liquid", label = "Food detail, a liquid in ml", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.liquidDetailState(policy), onAction = {})
+        },
+        LeakSurface(id = "food-detail-creamer", label = "Food detail, own food in tablespoons", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.creamerDetailState(policy), onAction = {})
+        },
+        LeakSurface(id = "food-detail-pounds", label = "Food detail, ounces first", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.detailPoundsState(policy), onAction = {}, menuShown = DetailMenu.Units)
         },
         // All nutrients open: every vitamin and mineral the food carries, as a percent of a day.
         LeakSurface(id = "food-detail-nutrients", label = "Food detail, all nutrients", showsCaloriesInFull = true) { policy ->
@@ -72,7 +97,7 @@ object LoggerLeakSurfaces {
         },
         // The unit menu's weights are amounts of food, not nutrients; the detail under it still follows the policy.
         LeakSurface(id = "food-detail-units", label = "Food detail, unit menu", showsCaloriesInFull = true) { policy ->
-            FoodDetailContent(state = LoggerFixtures.detailUnitsState(policy), onAction = {}, unitMenuShown = true)
+            FoodDetailContent(state = LoggerFixtures.detailUnitsState(policy), onAction = {}, menuShown = DetailMenu.Units)
         },
         // 13.5e: No numbers' own detail, the amount in measures and the hunger check.
         LeakSurface(id = "food-detail-no-numbers", label = "Food detail in No numbers", showsCaloriesInFull = false) { policy ->
@@ -83,7 +108,18 @@ object LoggerLeakSurfaces {
         },
         // The scanner draws no food data in any stage; the miss is its fullest screen.
         LeakSurface(id = "logger-scan-miss", label = "Barcode not found", showsCaloriesInFull = false) { _ ->
-            BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed), onAction = {}, viewfinder = { _, _ -> })
+            BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed.copy(canAddFood = true)), onAction = {}, viewfinder = { _, _ -> })
+        },
+        // Add this food (release.submitFood): the photos name no number in any mode.
+        LeakSurface(id = "submit-food-photos", label = "Add this food, photos", showsCaloriesInFull = false) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.photosState(policy, photos = 2), onAction = {})
+        },
+        // The label as read: energy and the check that names its difference in Full; words only elsewhere.
+        LeakSurface(id = "submit-food-review", label = "Add this food, check what we read", showsCaloriesInFull = true) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.reviewState(policy), onAction = {})
+        },
+        LeakSurface(id = "submit-food-by-hand", label = "Add this food, typed in", showsCaloriesInFull = false) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.byHandState(policy), onAction = {})
         },
         LeakSurface(id = "logger-photo", label = "Photo estimate", showsCaloriesInFull = true) { policy ->
             PhotoEstimateSheetContent(state = PhotoFixtures.reviewState(policy, editing = true), onAction = {})
