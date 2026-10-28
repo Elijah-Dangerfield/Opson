@@ -20,6 +20,7 @@ class OpsonRuleSetProvider : RuleSetProvider {
             ::ClassNameInTelemetryAttribute,
             ::ScrollInsideBottomSheet,
             ::HardcodedDisplay,
+            ::RawBasicTextField,
         ),
     )
 }

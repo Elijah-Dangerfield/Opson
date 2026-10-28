@@ -27,3 +27,7 @@ opson:
       - '**/libraries/nutrition/src/**'
       - '**/src/*Test/**'
       - '**/src/test/**'
+  RawBasicTextField:
+    active: true
+    # The design system is where the buffered field is built, so it may use the raw one.
+    excludes: ['**/libraries/ui/**']
