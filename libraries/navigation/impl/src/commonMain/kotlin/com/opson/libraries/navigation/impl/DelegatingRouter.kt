@@ -271,6 +271,10 @@ class DelegatingRouter(
         return true
     }
 
+    // TODO(review): nothing navigates to BlockingErrorRoute, so this gate never closes, while the
+    // screens that are meant to block (SessionExpiredRoute, AccessDeniedRoute) do not close it:
+    // a reminder tap still pushes the Logger over either. Covering them needs OnboardingRoute,
+    // SessionExpired's own way out, let through (docs/review/findings/core-libraries.md).
     private fun NavHostController.isBlockingErrorActive(): Boolean {
         val destination = currentBackStackEntry?.destination ?: return false
         return destination.hasRoute<BlockingErrorRoute>()
