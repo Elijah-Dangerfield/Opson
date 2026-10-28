@@ -207,7 +207,7 @@ from four tiers of source, best first (`foods.tier`, V10):
 | 1 reference | `usda_foundation`, `usda_sr`, `usda_fndds`, `nevo` | committed seed, `import_usda_foods.py`; NEVO by `import_nevo_foods.py` | true |
 | 2 label | `usda_branded` | `import_usda_foods.py --branded`, monthly workflow | true |
 | 3 licensed | `nutritionix` (later NCCDB) | barcode miss, only with keys and caching on | true |
-| 4 community | `off` (later user submissions) | barcode miss, cached; the full export goes in its own table, `off_foods` | false |
+| 4 community | `off`, `user_submitted` | barcode miss, cached; the full export goes in its own table, `off_foods`. People's foods from pack photos, pending until reviewed (V25) | false; true once a reviewer approves |
 
 A trigger fills `tier` and `verified` from `source`, so loaders never write
 them; `food_source_tier()` is the one mapping, and `DatabaseSchemaTest`
