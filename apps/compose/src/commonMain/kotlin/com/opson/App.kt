@@ -64,6 +64,7 @@ import com.opson.libraries.ui.snackbar.showDebugSnackBar
 import com.opson.libraries.ui.system.LocalAppState
 import com.opson.libraries.ui.system.LocalBuildInfo
 import com.opson.libraries.ui.system.LocalClock
+import com.opson.libraries.ui.system.clearFocusOnTapOutside
 import com.opson.system.AppTheme
 import kotlinx.coroutines.launch
 import kotlin.reflect.typeOf
@@ -187,6 +188,9 @@ fun App(appComponent: AppComponent) {
                         // NavigationQueueWatchdog for why a touch is the one signal
                         // that a host below STARTED is lying about its visibility.
                         .navigationQueueWatchdog(onWedgeDetected = router::drainQueuedNavigation)
+                        // Tapping empty space closes the keyboard on every screen and hosted
+                        // dialog. Bottom sheets are their own window and do the same themselves.
+                        .clearFocusOnTapOutside()
                 ) {
                     // Maintenance, the version floor and the update offer cover or sit above
                     // everything below. The guard collects its own state, so a change there
