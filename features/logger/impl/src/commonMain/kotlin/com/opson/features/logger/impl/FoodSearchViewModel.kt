@@ -58,7 +58,7 @@ class FoodSearchViewModel(
     clock: Clock,
     private val mealPicks: MealPicks,
     scanEnabled: BarcodeScanEnabled,
-    photoEnabled: PhotoEstimateEnabled,
+    submitFoodEnabled: SubmitFoodEnabled,
     searchOptionsEnabled: SearchOptionsEnabled,
     private val optionsTelemetry: SearchOptionsTelemetry,
 ) : SEAViewModel<FoodSearchState, SearchEvent, SearchAction>(
@@ -75,7 +75,7 @@ class FoodSearchViewModel(
             ),
             slotChosen = route.slot != null,
             scanAvailable = scanEnabled(),
-            photoAvailable = photoEnabled(),
+            addFoodAvailable = submitFoodEnabled(),
             searchOptions = searchOptionsEnabled(),
             pickingForMeal = pickForMeal != null,
         ),
@@ -141,7 +141,7 @@ class FoodSearchViewModel(
             is SearchAction.AddTapped -> if (pickForMeal != null) pick(action, action.row) else add(action.row)
             is SearchAction.SavedMealAddTapped -> addSavedMeal(action.id)
             SearchAction.BarcodeTapped -> if (model.choices.scanAvailable && pickForMeal == null) sendEvent(SearchEvent.OpenScanner(day, slot()))
-            SearchAction.PhotographTapped -> if (model.choices.photoAvailable && pickForMeal == null) sendEvent(SearchEvent.OpenPhoto(day, slot()))
+            SearchAction.AddFoodTapped -> if (model.choices.addFoodAvailable && pickForMeal == null) sendEvent(SearchEvent.OpenSubmitFood(day, slot()))
             SearchAction.DescribeTapped -> if (pickForMeal == null) sendEvent(SearchEvent.OpenDescribe(day, slot(), model.choices.query.trim()))
             SearchAction.SaveNameTapped -> saveName(action)
             SearchAction.AddPicksTapped -> pickForMeal?.let(::handBack)

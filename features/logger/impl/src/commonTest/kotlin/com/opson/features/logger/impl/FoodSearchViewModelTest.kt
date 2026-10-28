@@ -65,7 +65,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
         clock = Clock.fixed(NOON),
         mealPicks = mealPicks,
         scanEnabled = scanFlag(scanOn),
-        photoEnabled = photoFlag(photoOn),
+        submitFoodEnabled = submitFoodFlag(photoOn),
         searchOptionsEnabled = searchOptionsFlag(optionsOn),
         optionsTelemetry = optionsTelemetry,
     )
@@ -266,7 +266,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun notFindingItOffersTheTermToDescribeAndThePhotoForThisMeal() = runUnitTest {
+    fun noResultsOffersTheTermToDescribeAndAddingTheFoodForThisMeal() = runUnitTest {
         val vm = vm(photoOn = true)
         val events = events(vm)
         settle()
@@ -275,25 +275,25 @@ class FoodSearchViewModelTest : CoroutineTest() {
         assertEquals(SearchBody.NoResults("kare-kare", offline = false), vm.state.body)
 
         vm.takeAction(SearchAction.DescribeTapped)
-        vm.takeAction(SearchAction.PhotographTapped)
+        vm.takeAction(SearchAction.AddFoodTapped)
         settle()
 
         assertEquals(
             listOf(
                 SearchEvent.OpenDescribe(LoggerFixtures.today, MealSlot.Dinner, "kare-kare"),
-                SearchEvent.OpenPhoto(LoggerFixtures.today, MealSlot.Dinner),
+                SearchEvent.OpenSubmitFood(LoggerFixtures.today, MealSlot.Dinner),
             ),
             events,
         )
     }
 
     @Test
-    fun withThePhotoAndBarcodeFlagsOffTheirTapsDoNothing() = runUnitTest {
+    fun withTheAddFoodAndBarcodeFlagsOffTheirTapsDoNothing() = runUnitTest {
         val vm = vm()
         val events = events(vm)
         settle()
 
-        vm.takeAction(SearchAction.PhotographTapped)
+        vm.takeAction(SearchAction.AddFoodTapped)
         vm.takeAction(SearchAction.BarcodeTapped)
         settle()
 
@@ -467,7 +467,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
             clock = Clock.fixed(NOON),
             mealPicks = mealPicks,
             scanEnabled = scanFlag(false),
-            photoEnabled = photoFlag(false),
+            submitFoodEnabled = submitFoodFlag(false),
             searchOptionsEnabled = searchOptionsFlag(false),
             optionsTelemetry = optionsTelemetry,
         )

@@ -21,8 +21,9 @@ data class Committed(val slot: MealSlot, val itemIds: List<String>, val event: L
  * The one place picks become diary items: search's +, the sheet's Recent, Describe, a saved
  * meal, the photo estimate and the food detail all log through it. One `addItems` write, then
  * the time of any item the food detail gave one; catalog foods cached for the next offline
- * search; one telemetry event per source; and [RecentLogEvents] told, so Today can scroll,
- * outline and offer Undo.
+ * search; one telemetry event per source; [RecentLogEvents] told, so Today can scroll,
+ * outline and offer Undo; and [pairing] told, so a food found by search just after a barcode
+ * missed is suggested as that barcode's food.
  */
 @Inject
 class FoodLogger(
@@ -31,6 +32,7 @@ class FoodLogger(
     private val recentLogEvents: RecentLogEvents,
     private val telemetry: LoggerTelemetry,
     private val clock: Clock,
+    private val pairing: MissedBarcodePairing = MissedBarcodePairing.Off,
 ) {
     /** Null when [picks] is empty. */
     suspend fun log(day: LocalDate, slot: MealSlot, picks: List<LogPick>): Committed? {
@@ -46,6 +48,7 @@ class FoodLogger(
         picks.mapNotNull { it.food }.forEach { foodCatalog.markUsed(it) }
 
         picks.groupingBy { it.source }.eachCount().forEach { (source, count) -> telemetry.methodPicked(LogVia.of(source), count) }
+        pairing.logged(picks)
         return announce(day, slot, items)
     }
 
