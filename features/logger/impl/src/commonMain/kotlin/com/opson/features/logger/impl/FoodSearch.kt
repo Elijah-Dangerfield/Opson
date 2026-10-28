@@ -91,6 +91,12 @@ sealed interface SearchBody {
 
     /** The Saved meals chip: the meals whose name or foods match, each logged whole by its +. */
     data class SavedMeals(val meals: List<SavedMealRowUi>) : SearchBody
+
+    /**
+     * The day was closed with Close the day, so nothing here could log: "Today is closed. Reopen
+     * it to add more." in place of every list. Never while picking for a meal, which logs nothing.
+     */
+    data class DayClosed(val isToday: Boolean) : SearchBody
 }
 
 /** A saved meal with its +: "Rice plate", "Arroz con pollo, Side salad", "585". */
@@ -183,6 +189,9 @@ sealed interface SearchAction {
 
     /** Create a meal's "Add to meal": the picks go back. */
     data object AddPicksTapped : SearchAction
+
+    /** Reopen on the closed line: the day takes food again. */
+    data object ReopenTapped : SearchAction
     data object BackTapped : SearchAction
 
     // release.searchOptions

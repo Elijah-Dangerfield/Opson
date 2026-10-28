@@ -719,4 +719,19 @@ class FoodDetailTest : CoroutineTest() {
         assertTrue(diary.added.isEmpty())
         assertEquals(listOf<FoodDetailEvent>(FoodDetailEvent.Dismiss), events)
     }
+
+    @Test
+    fun addOnADayClosedASecondAgo_logsNothing_andSaysSo_andCanBeTriedAgainAfterReopen() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        diary.close(LoggerFixtures.today)
+
+        vm.takeAction(FoodDetailAction.AddToMealTapped)
+        assertTrue(diary.added.isEmpty())
+        assertEquals(listOf<FoodDetailEvent>(FoodDetailEvent.DayClosed(LoggerFixtures.today)), events)
+
+        diary.reopenDay(LoggerFixtures.today)
+        vm.takeAction(FoodDetailAction.AddToMealTapped)
+        assertEquals(1, diary.added.size, "the detail stays put under the closed sheet, so Add works once the day is open")
+    }
 }

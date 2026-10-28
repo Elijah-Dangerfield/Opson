@@ -87,6 +87,7 @@ internal sealed interface Reveal {
 
 private val dayCloseOpens = Reveal.WholeSurface("Day close is where Later opens: Surface.DayClose is always revealed.")
 private val pastDayOpens = Reveal.WholeSurface("A past day has had its reveal.")
+private val closedDayOpens = Reveal.WholeSurface("Closing the day opens Later's numbers for it, as Day close does.")
 private val weekOpens = Reveal.WholeSurface(
     "Later opens the week view all day (Surface.Week). Today is left out of every average on it.",
 )
@@ -98,6 +99,11 @@ private val typedLabel = Reveal.Only(
     "Add a food asks for a field unless the mode hides it outright, so Later and soft modes fill the label in. " +
         "120 is what the person typed, not a number the app worked out.",
 )
+private val typedQuickAdd = Reveal.Only(
+    setOf("400 kcal"),
+    "Quick add offers a field for a number held for Later, as Add a food does. 400 is what the person typed; " +
+        "the energy their macros come to stays hidden until the reveal.",
+)
 
 /**
  * The surfaces a delayed or softened preset shows a calorie amount on by design. Every entry is a
@@ -106,8 +112,9 @@ private val typedLabel = Reveal.Only(
  * that no longer exists.
  */
 internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
-    listOf("day-close", "day-close-big-day", "day-close-check-in").forEach { put("later" to it, dayCloseOpens) }
+    listOf("day-close", "day-close-big-day", "day-close-check-in", "day-close-closed").forEach { put("later" to it, dayCloseOpens) }
     put("later" to "today-past", pastDayOpens)
+    listOf("today-closed", "food-actions-closed").forEach { put("later" to it, closedDayOpens) }
     listOf("trends", "trends-blind", "trends-coast", "nutrients-week", "patterns", "patterns-blind")
         .forEach { put("later" to it, weekOpens) }
 
@@ -115,5 +122,6 @@ internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
 
     listOf("later", "later-weekly").forEach { mode ->
         listOf("foods-add-food", "foods-add-food-blind").forEach { put(mode to it, typedLabel) }
+        put(mode to "logger-describe-quick-add", typedQuickAdd)
     }
 }

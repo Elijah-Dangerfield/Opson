@@ -33,6 +33,11 @@ data class LoggerState(
     val recent: List<FoodRowUi> = emptyList(),
     val describe: DescribeUi = DescribeUi(),
     val saved: SavedUi = SavedUi(),
+    /**
+     * The day was closed with Close the day: "Today is closed. Reopen it to add more." over the
+     * grid, which keeps only what is not part of the day (a weigh-in, the fasting timer).
+     */
+    val closed: Boolean = false,
 )
 
 /** How tall the add sheet is. It opens [Partial] from a + and only ever grows. */
@@ -79,9 +84,8 @@ data class DescribeUi(
     val total: DescribeTotal? = null,
     /** The search for a missed food or a line's replacement, drawn in place of the lines; null when closed. */
     val find: DescribeFindUi? = null,
-    /** "Or just a number" is a calorie entry, so it is not offered when calories are hidden. */
-    val canNumber: Boolean = false,
-    val number: String = "",
+    /** "Or just the numbers"; null in a mode that shows none of them as numbers. */
+    val quickAdd: QuickAddUi? = null,
     /** The mic and what it is doing; null with `release.voice` off. */
     val voice: VoiceUi? = null,
 )
@@ -159,11 +163,12 @@ sealed interface LoggerAction {
 
     /** Describe's "Just save the name". */
     data object SaveNameTapped : LoggerAction
-    data class NumberTyped(val text: String) : LoggerAction
-    data object AddNumberTapped : LoggerAction
 
     /** Describe's Add: logs its lines. */
     data object AddToMealTapped : LoggerAction
+
+    /** Reopen on the closed line: the day takes food again and the grid comes back. */
+    data object ReopenTapped : LoggerAction
 
     data object BackTapped : LoggerAction
     data object CloseTapped : LoggerAction

@@ -478,4 +478,46 @@ class FoodSearchViewModelTest : CoroutineTest() {
 
         assertEquals(yesterday, diary.added.single().day)
     }
+
+    // A day closed with Close the day (docs/decisions.md, 2026-10-27)
+
+    @Test
+    fun onAClosedDay_theListsGiveWayToTheClosedLine_andReopenBringsThemBack() = runUnitTest {
+        diary.close(LoggerFixtures.today)
+        val vm = vm(scanOn = true, photoOn = true)
+        settle()
+
+        assertEquals(SearchBody.DayClosed(isToday = true), vm.state.body)
+        assertFalse(vm.state.canScan || vm.state.canPhotograph || vm.state.canDescribe)
+
+        vm.takeAction(SearchAction.ReopenTapped)
+        settle()
+
+        assertEquals(listOf(LoggerFixtures.today), diary.reopened)
+        assertIs<SearchBody.Browse>(vm.state.body)
+    }
+
+    @Test
+    fun aPlusOnADayClosedASecondAgo_logsNothing_andOffersNoUndo() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        val rice = searched(vm).first { it.key == "f:rice" }
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(SearchAction.AddTapped(rice))
+        settle()
+
+        assertTrue(diary.added.isEmpty())
+        assertTrue(events.none { it is SearchEvent.Added })
+        assertEquals(SearchBody.DayClosed(isToday = true), vm.state.body)
+    }
+
+    @Test
+    fun pickingForAMeal_isNotStoppedByAClosedDay() = runUnitTest {
+        diary.close(LoggerFixtures.today)
+        val vm = vm(route = FoodSearchRoute(slot = MealSlot.Dinner, pickForMeal = "request"))
+        settle()
+
+        assertTrue(vm.state.body !is SearchBody.DayClosed, "a meal being put together writes nothing to the day")
+    }
 }

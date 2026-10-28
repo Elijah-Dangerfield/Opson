@@ -3,6 +3,7 @@ package com.opson.features.logger.impl
 import androidx.lifecycle.viewModelScope
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.Hunger
@@ -80,6 +81,9 @@ sealed interface FoodDetailEvent {
 
     /** Logged: the detail closes. Search draws ✓, Today takes it from `RecentLogEvents`. */
     data class Logged(val committed: Committed) : FoodDetailEvent
+
+    /** The day is closed (Close the day, maybe on another phone): nothing was logged. */
+    data class DayClosed(val day: LocalDate) : FoodDetailEvent
 
     /** Report a problem with this food. [context] names it by id only, never by its name or numbers. */
     data class OpenReport(val context: String) : FoodDetailEvent
@@ -273,7 +277,14 @@ class FoodDetailViewModel(
             food = (food as? AmountFood.Catalog)?.food,
             loggedAt = choice.time?.let { LocalDateTime(day, it).toInstant(calendar.timeZone()) },
         )
-        val committed = logger.log(day, slot, listOf(pick)) ?: return
+        val committed = when (val result = logger.log(day, slot, listOf(pick)) ?: return) {
+            is DayWrite.Written -> result.value
+            is DayWrite.DayClosed -> {
+                done = false
+                sendEvent(FoodDetailEvent.DayClosed(result.day))
+                return
+            }
+        }
         // No numbers' hunger answer goes to the meal, beside whatever else the meal's feeling holds.
         choice.hunger?.let { hunger ->
             val feeling = model.day?.feelings?.get(slot) ?: MealFeeling()

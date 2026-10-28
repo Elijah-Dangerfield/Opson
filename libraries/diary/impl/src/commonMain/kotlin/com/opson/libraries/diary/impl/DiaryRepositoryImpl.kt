@@ -2,10 +2,10 @@ package com.opson.libraries.diary.impl
 
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logging.KLog
-import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.DayReflection
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
@@ -42,7 +42,6 @@ import kotlin.time.Instant
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = DiaryRepository::class)
 @ContributesBinding(AppScope::class, boundType = DiaryItemEditor::class)
-@ContributesBinding(AppScope::class, boundType = DayCheckIns::class)
 @Inject
 class DiaryRepositoryImpl(
     private val tables: DiaryTables,
@@ -50,7 +49,7 @@ class DiaryRepositoryImpl(
     private val settingsRepository: SettingsRepository,
     private val calendar: LocalCalendar,
     private val fastEnder: FastEnder,
-) : DiaryRepository, DiaryItemEditor, DayCheckIns {
+) : DiaryRepository, DiaryItemEditor {
 
     private val logger = KLog.withTag("Diary")
 
@@ -102,122 +101,144 @@ class DiaryRepositoryImpl(
         slot: MealSlot,
         items: List<LogDraft>,
         method: LogMethod,
-    ): List<LogItem> {
-        if (items.isEmpty()) return emptyList()
-        foodLoggedOn(day)
-        return writer.write { insertDrafts(day, items.map { slot to it }, method) }
+    ): DayWrite<List<LogItem>> {
+        if (items.isEmpty()) return DayWrite.Written(emptyList())
+        return logFood(day) { insertDrafts(day, items.map { slot to it }, method) }
     }
 
-    override suspend fun updateItem(item: LogItem) = writer.write {
-        val existing = tables.entries.get(item.id)?.takeUnless { it.deleted } ?: return@write
+    override suspend fun updateItem(item: LogItem): DayWrite<Unit> = writer.write {
+        val existing = tables.entries.get(item.id)?.takeUnless { it.deleted } ?: return@write written
+        closedAmong(listOf(existing.day, item.day.toString()))?.let { return@write it }
         val next = item.sanitized().toEntity(stamp(existing.clientUpdatedAtEpochMs))
-        if (next.copy(clientUpdatedAtEpochMs = existing.clientUpdatedAtEpochMs) == existing) return@write
-        putEntry(next, base = existing)
+        if (next.copy(clientUpdatedAtEpochMs = existing.clientUpdatedAtEpochMs) != existing) putEntry(next, base = existing)
+        written
     }
 
-    override suspend fun removeItem(id: String) = writer.write {
-        val existing = tables.entries.get(id)?.takeUnless { it.deleted } ?: return@write
-        putEntry(existing.copy(deleted = true, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
-    }
+    override suspend fun removeItem(id: String): DayWrite<Unit> = removeItems(listOf(id))
 
-    override suspend fun moveItem(id: String, slot: MealSlot) = writer.write {
-        val existing = tables.entries.get(id)?.takeUnless { it.deleted } ?: return@write
-        if (existing.slot == slot.wire) return@write
-        putEntry(existing.copy(slot = slot.wire, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
-    }
+    override suspend fun moveItem(id: String, slot: MealSlot): DayWrite<Unit> = moveItems(listOf(id), slot)
 
-    override suspend fun removeItems(ids: List<String>) = writer.write {
-        ids.forEach { id ->
-            val existing = tables.entries.get(id)?.takeUnless { it.deleted } ?: return@forEach
+    override suspend fun removeItems(ids: List<String>): DayWrite<Unit> = writer.write {
+        val live = ids.mapNotNull { id -> tables.entries.get(id)?.takeUnless { it.deleted } }
+        closedAmong(live.map { it.day })?.let { return@write it }
+        live.forEach { existing ->
             putEntry(existing.copy(deleted = true, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
         }
+        written
     }
 
-    override suspend fun restoreItems(ids: List<String>) = writer.write {
-        ids.forEach { id ->
-            val existing = tables.entries.get(id)?.takeIf { it.deleted } ?: return@forEach
+    override suspend fun restoreItems(ids: List<String>): DayWrite<Unit> = writer.write {
+        val removed = ids.mapNotNull { id -> tables.entries.get(id)?.takeIf { it.deleted } }
+        closedAmong(removed.map { it.day })?.let { return@write it }
+        removed.forEach { existing ->
             putEntry(existing.copy(deleted = false, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
         }
+        written
     }
 
-    override suspend fun moveItems(ids: List<String>, slot: MealSlot) = writer.write {
-        ids.forEach { id ->
-            val existing = tables.entries.get(id)?.takeUnless { it.deleted } ?: return@forEach
-            if (existing.slot == slot.wire) return@forEach
+    override suspend fun moveItems(ids: List<String>, slot: MealSlot): DayWrite<Unit> = writer.write {
+        val moving = ids.mapNotNull { id -> tables.entries.get(id)?.takeUnless { it.deleted } }.filter { it.slot != slot.wire }
+        closedAmong(moving.map { it.day })?.let { return@write it }
+        moving.forEach { existing ->
             putEntry(existing.copy(slot = slot.wire, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
         }
+        written
     }
 
-    override suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem> {
+    override suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> {
         val source = ids.mapNotNull { id -> tables.entries.get(id)?.takeUnless { it.deleted }?.toDomain() }
-        if (source.isNotEmpty()) foodLoggedOn(toDay)
-        return writer.write { insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy) }
+        return logFood(toDay, ate = source.isNotEmpty()) { insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy) }
     }
 
-    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> {
+    override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> {
         val source = tables.entries.getDay(from.toString()).mapNotNull { it.toDomain() }
-        if (source.isNotEmpty()) foodLoggedOn(to)
-        return writer.write { insertDrafts(to, source.map { it.slot to it.toDraft() }, LogMethod.Copy) }
+        return logFood(to, ate = source.isNotEmpty()) { insertDrafts(to, source.map { it.slot to it.toDraft() }, LogMethod.Copy) }
     }
 
-    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> {
+    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> {
         val source = tables.entries.getDay(fromDay.toString()).mapNotNull { it.toDomain() }.filter { it.slot == slot }
-        if (source.isNotEmpty()) foodLoggedOn(toDay)
-        return writer.write { insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy) }
+        return logFood(toDay, ate = source.isNotEmpty()) { insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy) }
     }
 
-    override suspend fun clearDay(day: LocalDate) = writer.write {
+    override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = writer.write {
+        closedDay(day)?.let { return@write it }
         tables.entries.getDay(day.toString()).forEach { existing ->
             putEntry(existing.copy(deleted = true, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
         }
         changeDay(day) { it.copy(ateNoDetailsJson = emptySet<MealSlot>().toAteJson()) }
+        written
     }
 
-    override suspend fun addWater(day: LocalDate, ml: Int) = writer.write {
-        changeDay(day) { it.copy(waterMl = clampWater((it.waterMl ?: 0) + ml.coerceAtLeast(0))) }
+    override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> = changeOpenDay(day) {
+        it.copy(waterMl = clampWater((it.waterMl ?: 0) + ml.coerceAtLeast(0)))
     }
 
-    override suspend fun removeWater(day: LocalDate, ml: Int) = writer.write {
-        changeDay(day) { it.copy(waterMl = clampWater((it.waterMl ?: 0) - ml.coerceAtLeast(0))) }
+    override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = changeOpenDay(day) {
+        it.copy(waterMl = clampWater((it.waterMl ?: 0) - ml.coerceAtLeast(0)))
     }
 
-    override suspend fun setWater(day: LocalDate, ml: Int) = writer.write {
-        changeDay(day) { it.copy(waterMl = clampWater(ml)) }
-    }
+    override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = changeOpenDay(day) { it.copy(waterMl = clampWater(ml)) }
 
-    override suspend fun closeDay(day: LocalDate) = writer.write {
-        changeDay(day) { if (it.closedAtEpochMs != null) it else it.copy(closedAtEpochMs = nowEpochMs) }
+    override suspend fun closeDay(day: LocalDate, reflection: DayReflection) = writer.write {
+        changeDay(day) {
+            it.copy(
+                closedAtEpochMs = it.closedAtEpochMs ?: nowEpochMs,
+                note = reflection.note.cleanNote(),
+                feeling = reflection.feeling?.wire,
+                checkIn = reflection.checkIn.toCheckInJson(),
+            )
+        }
     }
 
     override suspend fun reopenDay(day: LocalDate) = writer.write {
         changeDay(day) { it.copy(closedAtEpochMs = null) }
     }
 
-    override suspend fun setDayNote(day: LocalDate, note: String?) = writer.write {
-        changeDay(day) { it.copy(note = note?.trim()?.takeIf(String::isNotEmpty)?.take(MAX_NOTE)) }
-    }
+    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = changeOpenDay(day) { it.copy(note = note.cleanNote()) }
 
     override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = writer.write {
         changeDay(day) { it.copy(untracked = untracked) }
     }
 
-    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) = writer.write {
-        changeDay(day) { it.copy(feeling = feeling?.wire) }
-    }
-
-    override suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?) = writer.write {
-        changeDay(day) { it.copy(checkIn = checkIn.toCheckInJson()) }
-    }
-
-    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) {
-        writer.write {
-            changeDay(day) { record ->
-                val slots = record.ateNoDetailsSlots()
-                record.copy(ateNoDetailsJson = (if (ate) slots + slot else slots - slot).toAteJson())
-            }
+    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean): DayWrite<Unit> {
+        val mark: DiaryWriter.WriteScope.(DayRecordEntity) -> DayRecordEntity = { record ->
+            val slots = record.ateNoDetailsSlots()
+            record.copy(ateNoDetailsJson = (if (ate) slots + slot else slots - slot).toAteJson())
         }
-        if (ate) foodLoggedOn(day)
+        return if (ate) logFood(day) { changeDay(day, mark) } else changeOpenDay(day, mark)
     }
+
+    /**
+     * Writes food to [day] through [block] and ends a running fast when [ate], unless the day is
+     * closed. Checked before the fast is ended, so food a closed day refuses ends nothing, and
+     * again inside the write, where the answer cannot change before the rows land.
+     */
+    private suspend fun <T> logFood(
+        day: LocalDate,
+        ate: Boolean = true,
+        block: suspend DiaryWriter.WriteScope.() -> T,
+    ): DayWrite<T> {
+        closedDay(day)?.let { return it }
+        if (ate) foodLoggedOn(day)
+        return writer.write { closedDay(day) ?: DayWrite.Written(block()) }
+    }
+
+    /** Changes [day]'s record unless the day is closed. */
+    private suspend fun changeOpenDay(
+        day: LocalDate,
+        change: DiaryWriter.WriteScope.(DayRecordEntity) -> DayRecordEntity,
+    ): DayWrite<Unit> = writer.write {
+        closedDay(day) ?: run {
+            changeDay(day, change)
+            written
+        }
+    }
+
+    private suspend fun closedDay(day: LocalDate): DayWrite.DayClosed? = tables.closedDay(day.toString())
+
+    /** The first closed day among [days] (ISO dates), so a batch that touches one writes nothing. */
+    private suspend fun closedAmong(days: Collection<String>): DayWrite.DayClosed? =
+        days.toSet().firstNotNullOfOrNull { tables.closedDay(it) }
 
     /**
      * Logging food ends a fast. Only on today or earlier: planning tomorrow's meals is not eating
@@ -232,17 +253,18 @@ class DiaryRepositoryImpl(
         Catching { fastEnder.foodLogged() }.onFailure { logger.w(it) { "Could not end a fast on logging food" } }
     }
 
-    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?) = writer.write {
+    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?): DayWrite<Unit> = writer.write {
+        closedDay(day)?.let { return@write it }
         val key = day.toString()
         val existing = tables.feelings.get(key, slot.wire)
         val next: MealFeelingEntity = if (feeling == null || feeling.isEmpty) {
-            if (existing == null || existing.deleted) return@write
+            if (existing == null || existing.deleted) return@write written
             existing.copy(deleted = true, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs))
         } else {
             val candidate = feeling.copy(note = feeling.note?.take(MAX_NOTE))
                 .toEntity(key, slot, stamp(existing?.clientUpdatedAtEpochMs))
             if (existing != null && candidate.copy(clientUpdatedAtEpochMs = existing.clientUpdatedAtEpochMs) == existing) {
-                return@write
+                return@write written
             }
             candidate
         }
@@ -254,6 +276,7 @@ class DiaryRepositoryImpl(
             existing?.let { WireJson.encodeToString(MealFeelingRowDto.serializer(), it.toRow()) },
             day = key,
         )
+        written
     }
 
     override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = writer.write {
@@ -379,7 +402,11 @@ class DiaryRepositoryImpl(
         const val MAX_NOTE = 2_000
         const val MAX_WATER_ML = 20_000
 
+        val written: DayWrite<Unit> = DayWrite.Written(Unit)
+
         fun clampWater(ml: Int): Int = ml.coerceIn(0, MAX_WATER_ML)
+
+        fun String?.cleanNote(): String? = this?.trim()?.takeIf(String::isNotEmpty)?.take(MAX_NOTE)
     }
 }
 

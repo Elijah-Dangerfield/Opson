@@ -11,11 +11,12 @@ import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.SearchOptions
 import kotlinx.coroutines.flow.StateFlow
 import com.opson.libraries.core.fixed
+import com.opson.libraries.diary.DayWrite
+import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
@@ -69,42 +70,42 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
 
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = flowOf(emptySet())
 
-    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> =
+    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> =
         error("Foods never logs")
 
-    override suspend fun updateItem(item: LogItem) {
+    override suspend fun updateItem(item: LogItem): DayWrite<Unit> {
         updated += item
+        return DayWrite.Written(Unit)
     }
 
-    override suspend fun removeItem(id: String) = Unit
+    override suspend fun removeItem(id: String): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun moveItem(id: String, slot: MealSlot) = Unit
+    override suspend fun moveItem(id: String, slot: MealSlot): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> = emptyList()
+    override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> = DayWrite.Written(emptyList())
 
-    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> = emptyList()
+    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> = DayWrite.Written(emptyList())
 
-    override suspend fun clearDay(day: LocalDate) = Unit
+    override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun addWater(day: LocalDate, ml: Int) = Unit
+    override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun removeWater(day: LocalDate, ml: Int) = Unit
+    override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun setWater(day: LocalDate, ml: Int) = Unit
+    override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun closeDay(day: LocalDate) = Unit
+    override suspend fun closeDay(day: LocalDate, reflection: DayReflection) = Unit
 
     override suspend fun reopenDay(day: LocalDate) = Unit
 
-    override suspend fun setDayNote(day: LocalDate, note: String?) = Unit
+    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = DayWrite.Written(Unit)
 
     override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = Unit
 
-    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) = Unit
 
-    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) = Unit
+    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?) = Unit
+    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?): DayWrite<Unit> = DayWrite.Written(Unit)
 
     override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = Unit
 
