@@ -76,6 +76,7 @@ class SupabaseAuthRepositoryImpl(
     private val userScopedDataReset: UserScopedDataReset,
     private val tokenInvalidator: AuthTokenInvalidator,
     private val sessionRejectionBus: SessionRejectionBus,
+    private val expiredAccounts: ExpiredAccountStore,
     private val appScope: AppCoroutineScope,
 ) : AuthRepository {
 
@@ -354,17 +355,39 @@ class SupabaseAuthRepositoryImpl(
      * dump, no announcement — the guest keeps their progress. The state still
      * emits so the profile re-resolves to the now-claimed account and the
      * `isAnonymous` flip refires the level-keyed sync loops (`SyncTriggers`).
+     *
+     * A **session expiry** defers the dump. The person is sent to sign in again,
+     * and meals logged offline are still in the outbox, so the departing account
+     * is held in [expiredAccounts] instead. When that account signs back in the
+     * hold is released and the outbox drains; anyone else signing in, or a log
+     * out, wipes the held data first.
      */
     private suspend fun emitLocked(next: AuthState) {
         val previous = lastEmittedOrNull()
         val previousUserId = (previous as? AuthState.Authenticated)?.userId
         val nextUserId = (next as? AuthState.Authenticated)?.userId
         val userChanged = previousUserId != nextUserId
+        val expiry = (next as? AuthState.Unauthenticated)
+            ?.takeIf { it.reason == AuthState.Unauthenticated.Reason.SessionExpired }
 
+        var dumped = false
         if (userChanged && previousUserId != null) {
-            logger.i { "User changed $previousUserId → ${nextUserId ?: "none"} — dumping prior user's local data before emit" }
-            Catching { userScopedDataReset.clearFor(previousUserId) }
-                .logOnFailure { "User-scoped data dump for $previousUserId failed; continuing with transition" }
+            if (expiry != null) {
+                logger.i { "Session for $previousUserId expired — keeping its local data until the next sign-in" }
+                Catching { expiredAccounts.hold(ExpiredAccount(previousUserId, expiry.wasAnonymous)) }
+                    .logOnFailure { "Holding $previousUserId's data after expiry failed; dumping it instead" }
+                    .onFailure {
+                        dumpLocked(previousUserId)
+                        dumped = true
+                    }
+            } else {
+                logger.i { "User changed $previousUserId → ${nextUserId ?: "none"} — dumping prior user's local data before emit" }
+                dumpLocked(previousUserId)
+                dumped = true
+            }
+        }
+        if (expiry == null && (userChanged || next.isLogOut())) {
+            settleExpiredAccountLocked(next, alreadyDumped = dumped)
         }
 
         state.emit(next)
@@ -372,6 +395,37 @@ class SupabaseAuthRepositoryImpl(
         if (userChanged) {
             appEventBus.dispatch(AppEvent.UserChanged(previous = previousUserId, current = nextUserId))
         }
+    }
+
+    /**
+     * Release or wipe the account held since a session expiry, once the person
+     * decides: the same account back keeps its data, a different one or a log
+     * out wipes it. Any other state (still no session) keeps waiting.
+     */
+    private suspend fun settleExpiredAccountLocked(next: AuthState, alreadyDumped: Boolean) {
+        val held = Catching { expiredAccounts.read() }
+            .logOnFailure { "Reading the expired-session account failed" }
+            .getOrNull() ?: return
+        when {
+            next is AuthState.Authenticated && next.userId == held.userId ->
+                logger.i { "${held.userId} signed back in after its session expired — keeping its local data" }
+            next is AuthState.Authenticated || next.isLogOut() -> {
+                logger.i { "Expired-session account ${held.userId} replaced — dumping its local data before emit" }
+                if (!alreadyDumped) dumpLocked(held.userId)
+            }
+            else -> return
+        }
+        Catching { expiredAccounts.release() }
+            .logOnFailure { "Releasing the expired-session account failed" }
+    }
+
+    private fun AuthState.isLogOut(): Boolean =
+        this is AuthState.Unauthenticated && reason == AuthState.Unauthenticated.Reason.SignedOut
+
+    /** A failed dump is logged and the transition carries on. */
+    private suspend fun dumpLocked(userId: String) {
+        Catching { userScopedDataReset.clearFor(userId) }
+            .logOnFailure { "User-scoped data dump for $userId failed; continuing with transition" }
     }
 
     private fun lastEmittedOrNull(): AuthState? = state.replayCache.firstOrNull()

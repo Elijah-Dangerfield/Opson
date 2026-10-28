@@ -46,6 +46,7 @@ class SessionHealer(
     // deferred too. Mirrors InAppMessageManagerImpl.
     authRepositoryProvider: () -> AuthRepository,
     profileRepositoryProvider: () -> ProfileRepository,
+    private val expiredAccounts: ExpiredAccountStore,
     private val appCache: AppCache,
     private val appState: AppState,
     private val appScope: AppCoroutineScope,
@@ -127,10 +128,14 @@ class SessionHealer(
             unauth.reason == AuthState.Unauthenticated.Reason.SignedOut -> log(source, HealAction.SKIP_SIGNED_OUT)
             else -> {
                 val stranded = cachedServerProfile()
+                val held = expiredAccount()
                 when {
                     // A server account demonstrably exists on this device but
                     // its session is gone and retry couldn't revive it (AUTH-19).
                     stranded != null -> stopForRecovery(source, wasAnonymous = stranded.isAnonymous, id = stranded.id)
+                    // A relaunch after a session expiry: the account's data is
+                    // still here, waiting for it to sign back in.
+                    held != null -> stopForRecovery(source, wasAnonymous = held.wasAnonymous, id = held.userId)
                     !hasUserOnboarded() -> {
                         // Pre-onboarding: onboarding's sign-in step is where a
                         // session comes from.
@@ -152,18 +157,22 @@ class SessionHealer(
     /**
      * The cached server-backed profile, if one survives locally while we're
      * session-less — proof this device had a real account whose session storage
-     * failed us. Never true for the legit heal cases: an offline onboarding
-     * surfaces [Profile.Fallback], and a fresh install has no cache at all.
+     * failed us. A fresh install has no cache at all.
      */
     private suspend fun cachedServerProfile(): Profile.Authenticated? =
         Catching { profileRepository.current() }
             .logOnFailure { "Reading profile for heal decision failed; assuming none cached" }
             .getOrNull() as? Profile.Authenticated
 
+    private suspend fun expiredAccount(): ExpiredAccount? =
+        Catching { expiredAccounts.read() }
+            .logOnFailure { "Reading the expired-session account for heal failed; assuming none" }
+            .getOrNull()
+
     private suspend fun stopForRecovery(source: String, wasAnonymous: Boolean, id: String?) {
         log(source, HealAction.STOP_FOR_RECOVERY)
         logger.w {
-            "Session unrecoverable: ${id?.let { "cached profile $it" } ?: "no cached profile"} " +
+            "Session unrecoverable: ${id?.let { "account $it" } ?: "no account on this device"} " +
                 "(isAnonymous=$wasAnonymous) has no session and retry could not revive it; routing to sign-in"
         }
         Catching { authRepository.markSessionUnrecoverable(wasAnonymous = wasAnonymous) }

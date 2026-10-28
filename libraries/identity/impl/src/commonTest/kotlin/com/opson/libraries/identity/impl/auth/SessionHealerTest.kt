@@ -215,14 +215,31 @@ class SessionHealerTest : CoroutineTest() {
         )
     }
 
+    @Test
+    fun aRelaunchAfterASessionExpiry_sendsTheHeldAccountToSignIn_withItsGuestCopy() = runUnitTest {
+        // The profile cache is gone (cleared on expiry) but the account's meals
+        // are still on the device, held for it to sign back in.
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        expiredAccounts.hold(ExpiredAccount(userId = "guest-1", wasAnonymous = true))
+        val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())
+        val healer = build(auth, onboarded = true, offline = true, expiredAccounts = expiredAccounts)
+
+        healer.onColdBoot(AppEvent.ColdBoot)
+        advanceUntilIdle()
+
+        assertEquals(listOf(true), auth.markedUnrecoverable, "routed to sign in, even offline, with the guest copy")
+    }
+
     private fun build(
         auth: AuthRepository,
         onboarded: Boolean = true,
         offline: Boolean = false,
         profile: Profile = Profile.Fallback(id = "local"),
+        expiredAccounts: ExpiredAccountStore = ExpiredAccountStore(TestCacheFactory()),
     ) = SessionHealer(
         authRepositoryProvider = { auth },
         profileRepositoryProvider = { FakeProfile(profile) },
+        expiredAccounts = expiredAccounts,
         appCache = FakeAppCache(onboarded),
         appState = FakeAppState(MutableStateFlow(offline)),
         appScope = AppCoroutineScope(dispatchers),

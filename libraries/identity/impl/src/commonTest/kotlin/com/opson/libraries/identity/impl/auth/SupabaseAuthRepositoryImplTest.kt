@@ -123,6 +123,102 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
     }
 
     @Test
+    fun aSessionExpiry_keepsTheAccountsLocalData_andTheSameAccountSigningBackInKeepsIt() = runUnitTest {
+        // Meals logged offline sit in the outbox. The session is then rejected
+        // and the screen says "sign in again to pick up where you left off".
+        val gateway = appleGateway().apply { advanceToAuthenticated(claimedSession()) }
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        val repo = build(
+            gateway = gateway,
+            sessionRejectionBus = bus,
+            userScopedDataReset = reset,
+            expiredAccounts = expiredAccounts,
+        )
+        advanceUntilIdle()
+
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+        assertEquals(emptyList(), reset.clearedFor, "an expiry is not a change of user")
+
+        assertEquals(SignInOutcome.Success, repo.signInWithApple(appleCredential(authorizationCode = null)))
+
+        assertEquals(emptyList(), reset.clearedFor, "the same account came back: its outbox drains")
+        assertNull(expiredAccounts.read())
+    }
+
+    @Test
+    fun aSessionExpiry_thenADifferentAccount_wipesTheHeldDataBeforeItsFirstEmission() = runUnitTest {
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.Authenticated,
+            session = claimedSession(userId = "user-1"),
+            onSignInWithAppleIdToken = { _, _ -> advanceToAuthenticated(claimedSession(userId = "user-2")) },
+        )
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(gateway = gateway, sessionRejectionBus = bus, userScopedDataReset = reset)
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+
+        repo.signInWithApple(appleCredential(authorizationCode = null))
+
+        assertEquals(listOf("user-1"), reset.clearedFor)
+        assertEquals("user-2", assertIs<AuthState.Authenticated>(repo.current()).userId)
+    }
+
+    @Test
+    fun aSessionExpiry_thenALogOut_wipesTheHeldData() = runUnitTest {
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.Authenticated,
+            session = claimedSession(),
+        )
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(gateway = gateway, sessionRejectionBus = bus, userScopedDataReset = reset)
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+
+        repo.signOut()
+
+        assertEquals(listOf("user-1"), reset.clearedFor)
+    }
+
+    @Test
+    fun theHeldAccount_survivesARelaunch() = runUnitTest {
+        val cacheFactory = TestCacheFactory()
+        val bus = FakeSessionRejectionBus()
+        build(
+            gateway = FakeSupabaseAuthGateway(AuthGatewayStatus.Authenticated, session = claimedSession()),
+            sessionRejectionBus = bus,
+            expiredAccounts = ExpiredAccountStore(cacheFactory),
+        )
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+
+        // Next launch: no session, and someone else signs in.
+        val reset = RecordingUserScopedDataReset()
+        val relaunched = build(
+            gateway = FakeSupabaseAuthGateway(
+                initialStatus = AuthGatewayStatus.NotAuthenticated,
+                session = null,
+                onSignInWithAppleIdToken = { _, _ -> advanceToAuthenticated(claimedSession(userId = "user-2")) },
+            ),
+            userScopedDataReset = reset,
+            expiredAccounts = ExpiredAccountStore(cacheFactory),
+        )
+        advanceUntilIdle()
+        assertEquals(emptyList(), reset.clearedFor, "still waiting for the person to sign in")
+
+        relaunched.signInWithApple(appleCredential(authorizationCode = null))
+
+        assertEquals(listOf("user-1"), reset.clearedFor)
+    }
+
+    @Test
     fun markSessionUnrecoverable_tearsDown_toSessionExpired() = runUnitTest {
         // AUTH-19: the healer found a cached account but no revivable session —
         // the client-declared twin of a server rejection, same teardown.
@@ -1012,6 +1108,7 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         sessionRejectionBus: com.opson.libraries.networking.SessionRejectionBus =
             FakeSessionRejectionBus(),
         profileApi: ProfileApi = UnusedProfileApi,
+        expiredAccounts: ExpiredAccountStore = ExpiredAccountStore(TestCacheFactory()),
     ): SupabaseAuthRepositoryImpl = SupabaseAuthRepositoryImpl(
         gateway = gateway,
         profileApi = profileApi,
@@ -1019,6 +1116,7 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         userScopedDataReset = userScopedDataReset,
         tokenInvalidator = NoOpTokenInvalidator,
         sessionRejectionBus = sessionRejectionBus,
+        expiredAccounts = expiredAccounts,
         appScope = AppCoroutineScope(dispatchers),
     )
 
