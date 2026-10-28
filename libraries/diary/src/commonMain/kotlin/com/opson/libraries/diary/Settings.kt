@@ -142,11 +142,13 @@ data class Settings(
      */
     val hiddenRecentFoods: Map<String, Long> = emptyMap(),
 
-    // Today's summary card (design sync 2, `release.todaySummary`). Top-level keys on purpose:
-    // the server merges settings one level deep.
-    /** The card shrunk to one line by choice, kept across days and restarts. */
+    // Today's summary card (design sync 2, `release.todaySummary`). Legacy, no longer written:
+    // the card's page and collapse live on each phone in `TodayCardViewStore`, so a swipe on one
+    // phone can't race a mode change on another. Read only as Today's fallback until this
+    // phone's store holds a value; kept while 0.1 clients still sync them.
+    /** Legacy: whether the card was shrunk to one line. See above. */
     val todaySummaryCollapsed: Boolean = false,
-    /** The page last left open: 0 energy, 1 macros. */
+    /** Legacy: the page last left open, 0 energy, 1 macros. See above. */
     val todaySummaryPage: Int = 0,
     /** Page 1's stats as `SummaryStat` wire keys, in order; null follows the onboarding goals. */
     val todaySummaryStats: List<String>? = null,
