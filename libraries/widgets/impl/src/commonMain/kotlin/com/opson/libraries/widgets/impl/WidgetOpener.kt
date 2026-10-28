@@ -8,6 +8,7 @@ import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.identity.auth.AuthRepository
+import com.opson.libraries.identity.auth.isSomeones
 import com.opson.libraries.opson.AppCache
 import com.opson.libraries.widgets.NextMeal
 import com.opson.libraries.widgets.WidgetEvents

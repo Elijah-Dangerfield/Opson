@@ -2,7 +2,6 @@ package com.opson
 
 import com.opson.features.upgrade.AppGuard
 import com.opson.libraries.config.ConfigOverrideRepository
-import com.opson.libraries.core.AppState
 import com.opson.libraries.core.AutoInit
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.identity.auth.AuthRepository
@@ -11,6 +10,7 @@ import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.navigation.impl.DelegatingRouter
 import com.opson.libraries.telemetry.impl.JankMonitor
 import com.opson.libraries.telemetry.impl.StartupReporter
+import com.opson.libraries.opson.AppCache
 import com.opson.libraries.opson.Telemetry
 import com.opson.libraries.reminders.ReminderActions
 import com.opson.libraries.reminders.ReminderOpens
@@ -49,13 +49,6 @@ interface AppComponent {
     val shakeHandler: ShakeHandler
     val deepLinkBridge: DeepLinkBridge
 
-    /**
-     * Production app-wide state (offline banner etc.). Backed by
-     * AppStateImpl — platform connectivity combined with witnessed
-     * request reachability.
-     */
-    val appState: AppState
-
     /** Auth surface for App.kt's deep-link OAuth completion + routing collectors. */
     val authRepository: AuthRepository
 
@@ -67,6 +60,9 @@ interface AppComponent {
 
     /** Tapped reminders asking for the Logger, which App.kt routes. */
     val reminderOpens: ReminderOpens
+
+    /** Whether this device finished onboarding, which App.kt reads before routing a reminder tap. */
+    val appCache: AppCache
 
     /** What a notification's buttons and taps report: Android's activity and receivers reach it here. */
     val reminderActions: ReminderActions

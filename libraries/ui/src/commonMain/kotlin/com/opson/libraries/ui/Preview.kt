@@ -13,21 +13,11 @@ import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.components.dialog.DialogHost
 import com.opson.libraries.ui.components.dialog.LocalDialogHostState
 import com.opson.libraries.ui.components.dialog.rememberDialogHostState
-import com.opson.libraries.ui.system.LocalAppState
-import com.opson.libraries.ui.system.LocalBuildInfo
-import com.opson.libraries.ui.system.LocalClock
 import com.opson.libraries.ui.system.color.ColorResource
-import com.opson.libraries.core.AppState
-import com.opson.libraries.core.BuildInfo
-import com.opson.libraries.core.fixed
 import com.opson.system.AppTheme
 import com.opson.system.background
 import androidx.compose.ui.graphics.Color
 import com.opson.system.thenIf
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlin.time.Clock
-import kotlin.time.Instant
 
 /**
  * A composable that is suitable as the root for any composable preview
@@ -37,7 +27,6 @@ import kotlin.time.Instant
 @Composable
 fun PreviewContent(
     modifier: Modifier = Modifier,
-    appState: AppState = PreviewAppState,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     backgroundColor: ColorResource? = ThemeBackground,
     darkTheme: Boolean = false,
@@ -45,12 +34,7 @@ fun PreviewContent(
     content: @Composable () -> Unit,
 ) {
     val dialogHostState = rememberDialogHostState()
-    CompositionLocalProvider(
-        LocalAppState provides appState,
-        LocalClock provides Clock.fixed(Instant.parse("2023-01-01T00:00:00Z")),
-        LocalBuildInfo provides BuildInfo,
-        LocalDialogHostState provides dialogHostState
-    ) {
+    CompositionLocalProvider(LocalDialogHostState provides dialogHostState) {
         AppTheme(darkTheme = darkTheme, largeText = largeText) {
             val resolvedBackground = if (backgroundColor === ThemeBackground) AppTheme.colors.bg else backgroundColor
             Box(
@@ -80,22 +64,16 @@ fun PreviewLightDark(
     contentPadding: PaddingValues = PaddingValues(20.dp),
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(
-        LocalAppState provides PreviewAppState,
-        LocalClock provides Clock.fixed(Instant.parse("2023-01-01T00:00:00Z")),
-        LocalBuildInfo provides BuildInfo,
-    ) {
-        Column {
-            listOf(false, true).forEach { dark ->
-                AppTheme(darkTheme = dark, largeText = largeText) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(AppTheme.colors.bg)
-                            .padding(contentPadding)
-                    ) {
-                        content()
-                    }
+    Column {
+        listOf(false, true).forEach { dark ->
+            AppTheme(darkTheme = dark, largeText = largeText) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(AppTheme.colors.bg)
+                        .padding(contentPadding)
+                ) {
+                    content()
                 }
             }
         }
@@ -104,8 +82,3 @@ fun PreviewLightDark(
 
 /** Sentinel for "use the theme's `bg`", resolved inside the theme so dark previews get a dark page. */
 private val ThemeBackground = ColorResource.FromColor(Color.Unspecified, "preview-theme-background")
-
-val PreviewAppState = object : AppState {
-    override val isOffline: StateFlow<Boolean> = MutableStateFlow(false)
-
-}

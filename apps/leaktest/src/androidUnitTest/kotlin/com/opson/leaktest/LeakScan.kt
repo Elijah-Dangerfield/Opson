@@ -12,22 +12,15 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
-import com.opson.libraries.core.BuildInfo
-import com.opson.libraries.core.fixed
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.ui.LocalVisibilityPolicy
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 import com.opson.libraries.nutrition.ui.testTag
-import com.opson.libraries.ui.PreviewAppState
-import com.opson.libraries.ui.system.LocalAppState
-import com.opson.libraries.ui.system.LocalBuildInfo
-import com.opson.libraries.ui.system.LocalClock
 import com.opson.system.AppTheme
 import com.opson.system.background
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.PreviewContextConfigurationEffect
-import kotlin.time.Clock
 
 /**
  * The handoff's `LEAK`: a number followed by a calorie unit, or a number followed by "left". The
@@ -54,9 +47,6 @@ internal fun ComposeContentTestRule.render(surface: LeakSurface, policy: Visibil
     setContent {
         CompositionLocalProvider(
             LocalInspectionMode provides true,
-            LocalAppState provides PreviewAppState,
-            LocalBuildInfo provides BuildInfo,
-            LocalClock provides Clock.fixed(NOW),
             LocalVisibilityPolicy provides policy,
         ) {
             PreviewContextConfigurationEffect()

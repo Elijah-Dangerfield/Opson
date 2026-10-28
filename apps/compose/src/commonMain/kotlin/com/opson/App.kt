@@ -44,6 +44,7 @@ import com.opson.libraries.navigation.SessionExpiredRoute
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowHost
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowNavigator
 import com.opson.libraries.navigation.TabBar
+import com.opson.libraries.identity.auth.isSomeones
 import com.opson.libraries.navigation.impl.DelegatingRouter
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toEnterTransition
@@ -61,9 +62,6 @@ import com.opson.libraries.ui.components.dialog.rememberDialogHostState
 import com.opson.libraries.ui.debug.RecompositionCounter
 import com.opson.libraries.ui.snackbar.PresenterSnackbarHost
 import com.opson.libraries.ui.snackbar.showDebugSnackBar
-import com.opson.libraries.ui.system.LocalAppState
-import com.opson.libraries.ui.system.LocalBuildInfo
-import com.opson.libraries.ui.system.LocalClock
 import com.opson.libraries.ui.system.clearFocusOnTapOutside
 import com.opson.system.AppTheme
 import kotlinx.coroutines.launch
@@ -130,10 +128,15 @@ fun App(appComponent: AppComponent) {
 
     // A tapped reminder (or its Log it button) opens the Logger on that meal and day. Through the
     // router rather than a URL: DelegatingRouter holds the command until the NavHost is bound, so
-    // a tap that cold-starts the app still lands, and the meal travels as a typed argument.
+    // a tap that cold-starts the app still lands, and the meal travels as a typed argument. Only
+    // while the app is someone's, as for a widget's +: a reminder delivered before an expiry the
+    // app has not seen yet, tapped on a cold start, would otherwise open the Logger over sign-in.
     LaunchedEffect(router) {
         appComponent.reminderOpens.requests.collect { open ->
-            router.navigate(LoggerRoute(slot = open.slot, dayIso = open.date.toString()))
+            val onboarded = Catching { appComponent.appCache.get().hasUserOnboarded }.getOrNull() == true
+            if (authRepository.current().isSomeones(onboarded)) {
+                router.navigate(LoggerRoute(slot = open.slot, dayIso = open.date.toString()))
+            }
         }
     }
 
@@ -171,14 +174,7 @@ fun App(appComponent: AppComponent) {
         }
     )
 
-    val appState = remember { appComponent.appState }
-
-    CompositionLocalProvider(
-        LocalAppState provides appState,
-        LocalClock provides appComponent.provideClock(),
-        LocalBuildInfo provides BuildInfo,
-        LocalDialogHostState provides dialogHostState
-    ) {
+    CompositionLocalProvider(LocalDialogHostState provides dialogHostState) {
         UserAppTheme(appComponent.settingsRepository) {
             ProvideVisibilityPolicy(appComponent.visibilityPolicySource) {
                 Box(
