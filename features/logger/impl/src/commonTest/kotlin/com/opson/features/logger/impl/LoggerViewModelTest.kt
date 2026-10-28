@@ -320,6 +320,25 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(1, diary.removed.size, "once the day shows it, the ✓ takes it back out")
     }
 
+    /** A refused + wrote nothing, so nothing is waiting to show and the same + works after Reopen. */
+    @Test
+    fun aRecentPlusRefusedByAClosedDay_logsOnceTheDayIsReopened() = runUnitTest {
+        val vm = vm()
+        settle()
+        val rice = vm.state.recent.first()
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(LoggerAction.RecentAddTapped(rice))
+        settle()
+        assertTrue(diary.added.isEmpty())
+        vm.takeAction(LoggerAction.ReopenTapped)
+        settle()
+        vm.takeAction(LoggerAction.RecentAddTapped(vm.state.recent.first { it.key == rice.key }))
+        settle()
+
+        assertEquals(1, diary.added.size)
+    }
+
     @Test
     fun aFoodsNameOpensItsDetail() = runUnitTest {
         val vm = vm()

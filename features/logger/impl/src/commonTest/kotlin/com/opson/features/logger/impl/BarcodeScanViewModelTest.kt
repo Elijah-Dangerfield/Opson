@@ -421,6 +421,26 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.Close), events)
     }
 
+    /** The scanner stays open under the closed-day notice, so Save after Reopen is a real second try. */
+    @Test
+    fun saveNameOnAClosedDay_logsNothingAndSaysSo_andSavesOnceTheDayIsReopened() = runUnitTest {
+        val vm = missedVm()
+        val events = events(vm)
+        vm.takeAction(BarcodeScanAction.MissNameTyped("Rye crispbread"))
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(BarcodeScanAction.SaveNameTapped)
+        settle()
+        assertTrue(diary.added.isEmpty())
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.DayClosed(LoggerFixtures.today)), events)
+
+        diary.reopenDay(LoggerFixtures.today)
+        vm.takeAction(BarcodeScanAction.SaveNameTapped)
+        settle()
+        assertEquals("Rye crispbread", diary.added.single().items.single().name)
+        assertEquals(listOf(BarcodeScanEvent.DayClosed(LoggerFixtures.today), BarcodeScanEvent.Close), events)
+    }
+
     @Test
     fun saveNameTappedWithoutANameDoesNothing() = runUnitTest {
         val vm = missedVm()
