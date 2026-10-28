@@ -622,109 +622,109 @@ Added in round two (reviewed as written):
 
 ## settings (103 files)
 
-- [ ] `features/qa/build.gradle.kts`
-- [ ] `features/qa/impl/build.gradle.kts`
-- [ ] `features/qa/impl/src/androidMain/kotlin/com/opson/features/qa/impl/AndroidQaAccess.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaAccess.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaFeatureEntryPoint.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaPage.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaScreen.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaState.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaViewModel.kt`
-- [ ] `features/qa/impl/src/commonTest/kotlin/com/opson/features/qa/impl/QaFakes.kt`
-- [ ] `features/qa/impl/src/commonTest/kotlin/com/opson/features/qa/impl/QaTest.kt`
-- [ ] `features/qa/impl/src/iosMain/kotlin/com/opson/features/qa/impl/IosQaAccess.kt`
-- [ ] `features/qa/src/commonMain/kotlin/com/opson/features/qa/QaMenuRoute.kt`
-- [ ] `features/settings/build.gradle.kts`
-- [ ] `features/settings/impl/build.gradle.kts`
-- [ ] `features/settings/impl/src/androidMain/kotlin/com/opson/features/settings/impl/support/AndroidDeviceRegion.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsCopy.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFeatureEntryPoint.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFixtures.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsLeakSurfaces.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsPage.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsFixtures.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/LeaveOutDay.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseSheetContent.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/ReminderNotification.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/CreditsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/CreditsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/DeviceRegion.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportDirectory.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseRow.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/Widgets.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModel.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/SettingsFakes.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/energy/EnergyTodayTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/energy/RestingEnergyTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/fasting/FastingTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/ExerciseAndLeftOutStateTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/HealthFakes.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsStateBuilderTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/LeaveOutViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/modes/ModesTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/more/MoreTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/pause/PauseViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/reminders/RemindersTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/CreditsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/FindSupportTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/SupportViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsBurnAndDaysTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsGoalStylesTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsMacroEditorTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/water/WaterSettingsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModelTest.kt`
-- [ ] `features/settings/impl/src/iosMain/kotlin/com/opson/features/settings/impl/support/IosDeviceRegion.kt`
-- [ ] `features/settings/impl/src/iosTest/kotlin/com/opson/features/settings/impl/support/ShippedCreditsTest.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/FindSupportEnabled.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRoute.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRowContribution.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/PauseBeforeMoreRoute.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/SettingsRoutes.kt`
-- [ ] `features/settings/src/commonTest/kotlin/com/opson/features/settings/PauseBeforeMoreRouteTest.kt`
+- [x] `features/qa/build.gradle.kts`
+- [x] `features/qa/impl/build.gradle.kts`
+- [x] `features/qa/impl/src/androidMain/kotlin/com/opson/features/qa/impl/AndroidQaAccess.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaAccess.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaFeatureEntryPoint.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaPage.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaScreen.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaState.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaViewModel.kt`
+- [x] `features/qa/impl/src/commonTest/kotlin/com/opson/features/qa/impl/QaFakes.kt`
+- [x] `features/qa/impl/src/commonTest/kotlin/com/opson/features/qa/impl/QaTest.kt`
+- [x] `features/qa/impl/src/iosMain/kotlin/com/opson/features/qa/impl/IosQaAccess.kt`
+- [x] `features/qa/src/commonMain/kotlin/com/opson/features/qa/QaMenuRoute.kt`
+- [x] `features/settings/build.gradle.kts`
+- [x] `features/settings/impl/build.gradle.kts`
+- [x] `features/settings/impl/src/androidMain/kotlin/com/opson/features/settings/impl/support/AndroidDeviceRegion.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsCopy.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFeatureEntryPoint.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFixtures.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsLeakSurfaces.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsPage.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsFixtures.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/LeaveOutDay.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseSheetContent.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/ReminderNotification.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/CreditsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/CreditsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/DeviceRegion.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportDirectory.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseRow.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/Widgets.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModel.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/SettingsFakes.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/energy/EnergyTodayTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/energy/RestingEnergyTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/fasting/FastingTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/ExerciseAndLeftOutStateTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/HealthFakes.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsStateBuilderTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/LeaveOutViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/modes/ModesTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/more/MoreTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/pause/PauseViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/reminders/RemindersTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/CreditsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/FindSupportTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/SupportViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsBurnAndDaysTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsGoalStylesTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsMacroEditorTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/water/WaterSettingsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModelTest.kt`
+- [x] `features/settings/impl/src/iosMain/kotlin/com/opson/features/settings/impl/support/IosDeviceRegion.kt`
+- [x] `features/settings/impl/src/iosTest/kotlin/com/opson/features/settings/impl/support/ShippedCreditsTest.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/FindSupportEnabled.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRoute.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRowContribution.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/PauseBeforeMoreRoute.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/SettingsRoutes.kt`
+- [x] `features/settings/src/commonTest/kotlin/com/opson/features/settings/PauseBeforeMoreRouteTest.kt`
 
 ## today (58 files)
 

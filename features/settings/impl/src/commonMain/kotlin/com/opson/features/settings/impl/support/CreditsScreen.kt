@@ -57,7 +57,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * Credits and licenses, from Support's About card: food data, the typeface, every open-source
+ * Credits and licenses, from More and Support's About card: food data, the typeface, every open-source
  * library, then each licence's full text behind Show. A lazy list, because the library list
  * runs to hundreds of rows.
  */
