@@ -33,7 +33,10 @@ import platform.UIKit.UIImagePickerControllerOriginalImage
 import platform.UIKit.UIImagePickerControllerSourceType
 import platform.UIKit.UIModalPresentationOverFullScreen
 import platform.UIKit.UINavigationControllerDelegateProtocol
+import platform.UIKit.UISceneActivationStateForegroundActive
 import platform.UIKit.UIViewController
+import platform.UIKit.UIWindow
+import platform.UIKit.UIWindowScene
 import platform.darwin.DISPATCH_QUEUE_PRIORITY_DEFAULT
 import platform.darwin.NSObject
 import platform.darwin.dispatch_async
@@ -188,9 +191,21 @@ private fun NSData.toByteArray(): ByteArray {
     return bytes
 }
 
-/** The controller on top, so a picker opened over a sheet appears over it. */
+/**
+ * The controller on top, so a picker opened over a sheet appears over it. `keyWindow` is nil in a
+ * scene-based app while a scene is still becoming key, so the foreground scene's key window, and
+ * then any of its windows, stand in: without one the picker could not be shown at all.
+ */
 private fun topViewController(): UIViewController? {
-    var top = UIApplication.sharedApplication.keyWindow?.rootViewController
+    val window = UIApplication.sharedApplication.keyWindow ?: sceneWindow()
+    var top = window?.rootViewController
     while (top?.presentedViewController != null) top = top.presentedViewController
     return top
+}
+
+private fun sceneWindow(): UIWindow? {
+    val scenes = UIApplication.sharedApplication.connectedScenes.mapNotNull { it as? UIWindowScene }
+    val active = scenes.firstOrNull { it.activationState == UISceneActivationStateForegroundActive } ?: scenes.firstOrNull()
+    val windows = active?.windows?.mapNotNull { it as? UIWindow }.orEmpty()
+    return windows.firstOrNull { it.isKeyWindow() } ?: windows.firstOrNull()
 }
