@@ -101,6 +101,48 @@ Round one's fix (the honeypot sent as `company` from an input named
 - **Legal pages.** They render `legal/*.md`, the same files `legal-sync.yml`
   publishes to nightjarlabs.llc, so the two copies can't drift.
 
+## Second review
+
+A second reviewer read the branch's four commits against the merge base,
+looking only for regressions they introduced, and flagged five things. Fates:
+
+1. **A build with the repo variables might no longer target what they say
+   (f6efd85a): not a regression.** Built four ways with `npx astro build`:
+   no variables, prod (`https://www.opsontracker.com`, `/`), a preview host at
+   `/Opson`, and at `/Opson/`. The first two give a canonical and `og:url` of
+   `https://www.opsontracker.com/`, CSS, fonts and images under `/_astro/`,
+   and no `github.io` anywhere. Both sub-path builds put every internal link,
+   stylesheet, font `url()` and image under `/Opson/`, with the canonical,
+   `og:image` and `og:url` on the preview host, and the nav still marks the
+   current page. `astro.config.mjs` importing `src/lib/site.ts` loads in the
+   build. The deploy workflow only builds for `main`, so there is no other
+   target to check.
+2. **`site.ts`'s header comment overstated the fallback (f6efd85a): real,
+   fixed.** "Either way the build targets the live site" read as every build,
+   but a set `SITE_URL` or `SITE_BASE` wins, which `site.test.ts` checks.
+   Fixed in "docs(website): the site config comment says set variables win".
+   No test: comment only.
+3. **The new copy might not match the app or the privacy page (de52ecb3):
+   not a regression.** The closing block no longer promises a single email,
+   so it agrees with the hero's "maybe a few updates before" and with
+   `site-privacy.md`. The contact page's path matches the app: the tab is
+   "More" (`shell_tab_more`), the row "Support and sharing"
+   (`settings_more_support`), and "Delete everything"
+   (`settings_support_delete`) sits on `SupportScreen`. The built pages show
+   both lines.
+4. **The rewritten comments (3a73ba96, f6efd85a) might be wrong in turn: not
+   a regression.** `index.astro` now points at `website/README.md`, which does
+   describe the Roborazzi renders and their strips. The `fs.allow` comment
+   names privacy, terms, health data and credits, and those are the four pages
+   that import `../../../legal/*.md`; nothing else reads outside `website/`.
+   `paths.ts` matches `paths.test.ts`.
+5. **`docs/review/LEDGER.md` edited (78741741): not a regression.** Only the
+   website section changed: two new files and the ticks. Running
+   `python3 scripts/review_ledger.py` leaves the file unchanged, so the list
+   matches what the generator produces.
+
+After the fix: `npm test` 20 of 20, `npm run build` green.
+
 ## Product notes
 
 - **The waitlist reads as iPhone-only.** "Want to know when it's out?" and
