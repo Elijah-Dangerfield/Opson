@@ -88,6 +88,7 @@ class MoreViewModel(
                 if (it.logOut is LogOutStep.Working) it else it.copy(logOut = LogOutStep.Idle)
             }
             MoreAction.LogOutConfirmed -> logOut(action)
+            is MoreAction.LogOutSyncFinished -> logOutSynced(action)
         }
     }
 
@@ -124,15 +125,33 @@ class MoreViewModel(
             is LogOutStep.Confirming -> {
                 action.updateState { it.copy(logOut = LogOutStep.Working(guest = step.guest)) }
                 // A guest's log can't be reached again once they leave, so there is nothing to send it for.
-                if (!step.guest && !reachedAccount()) {
-                    action.updateState { it.copy(logOut = LogOutStep.Unsynced) }
-                    return
+                if (step.guest) {
+                    signOut(action)
+                } else {
+                    // Off the action queue, so a dismiss sent meanwhile meets Working and is ignored
+                    // instead of waiting its turn and closing the warning before it is read.
+                    viewModelScope.launch { takeAction(MoreAction.LogOutSyncFinished(reachedAccount())) }
                 }
             }
             // "Log out anyway", having been told what stays behind.
-            LogOutStep.Unsynced -> action.updateState { it.copy(logOut = LogOutStep.Working(guest = false)) }
-            LogOutStep.Idle, is LogOutStep.Working -> return
+            LogOutStep.Unsynced -> {
+                action.updateState { it.copy(logOut = LogOutStep.Working(guest = false)) }
+                signOut(action)
+            }
+            LogOutStep.Idle, is LogOutStep.Working -> Unit
         }
+    }
+
+    private suspend fun logOutSynced(action: MoreAction.LogOutSyncFinished) {
+        if (state.logOut !is LogOutStep.Working) return
+        if (action.reachedAccount) {
+            signOut(action)
+        } else {
+            action.updateState { it.copy(logOut = LogOutStep.Unsynced) }
+        }
+    }
+
+    private suspend fun signOut(action: MoreAction) {
         auth.signOut()
         action.updateState { it.copy(logOut = LogOutStep.Idle) }
         sendEvent(MoreEvent.GoToOnboarding)
@@ -186,4 +205,7 @@ sealed interface MoreAction {
     data class RowTapped(val row: MoreRow) : MoreAction
     data object LogOutConfirmed : MoreAction
     data object LogOutCancelled : MoreAction
+
+    /** The sync before a signed-in log out came back, or ran out of time. */
+    data class LogOutSyncFinished(val reachedAccount: Boolean) : MoreAction
 }

@@ -205,6 +205,20 @@ class MoreTest : CoroutineTest() {
     }
 
     @Test
+    fun logOut_backPressedWhileItSends_stillShowsTheWarning() = runUnitTest {
+        val auth = signedIn()
+        val vm = moreVm(auth = auth, sync = FakeDiarySync(hangs = true))
+
+        vm.confirmLogOut()
+        // The dialog's own dismiss (back, or a tap outside) while the buttons are off.
+        vm.takeAction(MoreAction.LogOutCancelled)
+        advanceTimeBy(11.seconds)
+
+        assertEquals(LogOutStep.Unsynced, vm.state.logOut, "the warning is read, not swallowed by a queued cancel")
+        assertEquals(0, auth.signOuts)
+    }
+
+    @Test
     fun logOut_asAGuest_sendsNothing_sinceNoAccountCanBeReachedAgain() = runUnitTest {
         val auth = FakeAuthRepository(initial = AuthState.Authenticated(userId = "u1", isAnonymous = true, email = null))
         val sync = FakeDiarySync(Result.failure(IllegalStateException("offline")))

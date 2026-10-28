@@ -302,7 +302,7 @@ private enum class LogOutCopy(val title: StringResource, val body: StringResourc
 /** Like Support's delete: a modal, the safe choice in the accent, and nothing closes it mid-way. */
 @Composable
 private fun LogOutDialog(copy: LogOutCopy, working: Boolean, onAction: (MoreAction) -> Unit) {
-    Dialog(onDismissRequest = { onAction(MoreAction.LogOutCancelled) }) {
+    Dialog(onDismissRequest = { if (!working) onAction(MoreAction.LogOutCancelled) }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
