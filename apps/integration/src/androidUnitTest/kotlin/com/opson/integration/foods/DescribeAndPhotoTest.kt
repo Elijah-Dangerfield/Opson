@@ -1,13 +1,17 @@
 package com.opson.integration.foods
 
+import com.opson.features.logger.impl.LoggerViewModel
 import com.opson.integration.helpers.FakeUpstreams.PhotoFood
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.PhotoEstimate
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.http.HttpStatusCode
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /**
  * **"Describe it" and photo estimates.** Typed text comes back as lines; a
@@ -31,6 +35,19 @@ class DescribeAndPhotoTest : IntegrationTest() {
 
         assertEquals(2, items.size, "one line per food: $items")
         assertEquals(2.0, items.first().quantity)
+    }
+
+    /** The logger cuts typed text to what the server reads; the two limits must not drift apart. */
+    @Test
+    fun describe_readsExactlyAsMuchAsTheLoggerSends() = integration {
+        val phone = client()
+        val atTheLimit = "1 egg ".repeat(LoggerViewModel.DESCRIBE_LIMIT).take(LoggerViewModel.DESCRIBE_LIMIT)
+
+        assertTrue(phone.foods.describe(atTheLimit).isSuccess, "the longest text the logger sends is read")
+
+        val refused = phone.foods.describe("$atTheLimit.").exceptionOrNull()
+        val status = assertIs<ClientRequestException>(refused, "one character more is refused, not $refused").response.status
+        assertEquals(HttpStatusCode.BadRequest, status)
     }
 
     @Test
