@@ -46,6 +46,8 @@ data class FoodResponse(
     /** 1 reference, 2 label, 3 licensed, 4 community. Absent from servers older than V10. */
     val tier: Int? = null,
     val verified: Boolean = false,
+    /** `pending` or `rejected` on a food the person added that no reviewer approved yet; absent otherwise. */
+    val reviewStatus: String? = null,
 )
 
 @Serializable

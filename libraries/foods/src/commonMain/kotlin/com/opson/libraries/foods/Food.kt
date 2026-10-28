@@ -33,6 +33,10 @@ enum class FoodSource(val wire: String) {
     @SerialName("nevo")
     Nevo("nevo"),
 
+    /** Opson's own: a food someone added from photos of its pack, checked by a reviewer before anyone else sees it. */
+    @SerialName("user_submitted")
+    UserSubmitted("user_submitted"),
+
     @SerialName("unknown")
     Unknown("unknown"),
     ;
@@ -72,6 +76,28 @@ enum class FoodTier(val wire: Int) {
     }
 }
 
+/**
+ * Where review stands for a food someone added to Opson's food database from its pack. Every other
+ * food is [Approved]; the server only ever hands its submitter a [Pending] or [Rejected] one.
+ */
+@Serializable
+enum class ReviewStatus(val wire: String) {
+    @SerialName("pending")
+    Pending("pending"),
+
+    @SerialName("approved")
+    Approved("approved"),
+
+    @SerialName("rejected")
+    Rejected("rejected"),
+    ;
+
+    companion object {
+        /** Absent is approved: the server leaves the field out for every food nobody has to check. */
+        fun fromWire(value: String?): ReviewStatus = entries.firstOrNull { it.wire == value } ?: Approved
+    }
+}
+
 /** Energy and macros per 100 g. Any of them can be unknown, which is never the same as zero. */
 @Serializable
 data class NutrientProfile(
@@ -89,8 +115,9 @@ data class Portion(val label: String, val grams: Double)
 /**
  * A catalog food. [micros] is per 100 g, keyed with the unit in the key
  * (`sodium_mg`). [verified] means someone accountable stands behind the
- * numbers (tiers [FoodTier.Reference] to [FoodTier.Licensed]); it is for a
- * mark on the row, not for ranking, which the server already did.
+ * numbers (tiers [FoodTier.Reference] to [FoodTier.Licensed], and a food someone
+ * added once a reviewer approved it); it is for a mark on the row, not for
+ * ranking, which the server already did. [reviewStatus] is that review.
  */
 @Serializable
 data class Food(
@@ -104,8 +131,12 @@ data class Food(
     val portions: List<Portion> = emptyList(),
     val tier: FoodTier = FoodTier.Unknown,
     val verified: Boolean = false,
+    val reviewStatus: ReviewStatus = ReviewStatus.Approved,
 ) {
     val isOpenFoodFacts: Boolean get() = source == FoodSource.OpenFoodFacts
+
+    /** Added to Opson's food database by its submitter and not checked yet: only they can see it. */
+    val unverified: Boolean get() = reviewStatus != ReviewStatus.Approved
 }
 
 enum class Confidence(val wire: String) {

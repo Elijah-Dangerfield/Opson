@@ -55,6 +55,8 @@ class FoodSubmission(
     val label: ByteArray,
     val facts: LabelFacts,
     val acknowledged: List<LabelCheckCode>,
+    /** The person's own copy, saved to their foods first, so it can be marked while review runs. */
+    val customFoodId: String? = null,
 )
 
 sealed interface SubmitResult {

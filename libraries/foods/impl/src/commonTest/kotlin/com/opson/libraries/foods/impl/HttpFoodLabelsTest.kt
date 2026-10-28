@@ -113,12 +113,14 @@ class HttpFoodLabelsTest : CoroutineTest() {
                 label = label,
                 facts = facts,
                 acknowledged = listOf(LabelCheckCode.EnergyMacrosMismatch),
+                customFoodId = "c1",
             ),
         )
 
         assertEquals(SubmitResult.Submitted("s1", "f1"), result)
         val sent = json.decodeFromString(FoodSubmissionRequest.serializer(), seen[1])
         assertEquals("search", sent.origin)
+        assertEquals("c1", sent.customFoodId, "the person's own copy, so it can be marked unverified")
         assertEquals("p1", sent.parseId)
         assertEquals(listOf("energy_macros_mismatch"), sent.food.acknowledged)
         assertEquals(mapOf("energy_kcal" to 270.0), sent.food.perServing)

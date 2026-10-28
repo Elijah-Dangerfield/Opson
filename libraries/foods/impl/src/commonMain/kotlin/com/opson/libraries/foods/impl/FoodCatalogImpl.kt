@@ -12,6 +12,7 @@ import com.opson.libraries.foods.Gtin
 import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.SearchOptions
 import com.opson.libraries.foods.SearchOrder
 import com.opson.libraries.foods.SearchSource
@@ -162,6 +163,7 @@ internal fun FoodResponse.toDomain(): Food = Food(
     portions = portions.mapNotNull { p -> p.grams?.let { Portion(p.label, it) } },
     tier = FoodTier.fromWire(tier),
     verified = verified,
+    reviewStatus = ReviewStatus.fromWire(reviewStatus),
 )
 
 internal fun DescribedItemDto.toDomain(): ParsedItem = ParsedItem(

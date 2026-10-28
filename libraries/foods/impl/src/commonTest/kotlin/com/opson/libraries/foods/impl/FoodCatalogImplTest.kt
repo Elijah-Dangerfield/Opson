@@ -5,6 +5,7 @@ import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.FoodTier
 import com.opson.libraries.foods.Portion
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.SearchCategory
 import com.opson.libraries.foods.SearchOptions
 import com.opson.libraries.foods.SearchOrder
@@ -240,6 +241,26 @@ class FoodCatalogImplTest : CoroutineTest() {
         val fromAnOlderServer = rice.toDomain()
         assertEquals(FoodTier.Unknown, fromAnOlderServer.tier)
         assertEquals(false, fromAnOlderServer.verified)
+        assertEquals(ReviewStatus.Approved, fromAnOlderServer.reviewStatus, "no field is a food nobody has to check")
+    }
+
+    @Test
+    fun aFoodThePersonAddedArrivesAsOpsonsAndUnverifiedUntilApproved() {
+        val bar = FoodResponse(
+            id = "bar",
+            source = "user_submitted",
+            name = "Oat bar",
+            per100g = NutrientsDto(kcal = 450.0),
+            tier = 4,
+            verified = false,
+            reviewStatus = "pending",
+        ).toDomain()
+        assertEquals(FoodSource.UserSubmitted, bar.source)
+        assertEquals(ReviewStatus.Pending, bar.reviewStatus)
+        assertTrue(bar.unverified)
+
+        val approved = bar.copy(reviewStatus = ReviewStatus.Approved, verified = true)
+        assertEquals(false, approved.unverified)
     }
 
     private val rice = FoodResponse(

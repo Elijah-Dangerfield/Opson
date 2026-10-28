@@ -15,6 +15,8 @@ kotlin {
             implementation(projects.libraries.flowroutines)
             implementation(projects.libraries.networking)
             implementation(projects.libraries.opson.storage)
+            // UserScopedSyncer and UserScopedClearer, for the foods this person sent for review.
+            implementation(projects.libraries.opson)
 
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)
@@ -26,6 +28,7 @@ kotlin {
             implementation(projects.libraries.flowroutines.testing)
             implementation(projects.libraries.networking)
             implementation(projects.libraries.opson.storage)
+            implementation(projects.libraries.opson)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.mock)
             implementation(libs.ktor.client.contentNegotiation)

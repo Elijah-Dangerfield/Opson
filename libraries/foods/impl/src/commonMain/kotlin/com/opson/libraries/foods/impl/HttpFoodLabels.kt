@@ -107,6 +107,7 @@ data class FoodSubmissionRequest(
     val front: String,
     val label: String,
     val food: LabelFactsDto,
+    val customFoodId: String? = null,
 )
 
 /** Every field the server sends: debug builds decode strictly, so a field left out here fails the call. */
@@ -174,6 +175,7 @@ class HttpFoodLabels(private val networkClient: NetworkClient) : FoodLabels {
             front = Base64.encode(submission.front),
             label = Base64.encode(submission.label),
             food = LabelFactsDto.of(submission.facts, submission.acknowledged),
+            customFoodId = submission.customFoodId,
         )
         return networkClient.authedCall("foods.submission") { client ->
             val response = client.post(SUBMIT_PATH) {
