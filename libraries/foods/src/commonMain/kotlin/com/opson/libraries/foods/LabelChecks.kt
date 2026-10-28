@@ -1,5 +1,7 @@
 package com.opson.libraries.foods
 
+import com.opson.libraries.nutrition.MacroEnergyCheck
+import com.opson.libraries.nutrition.Metric
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -126,43 +128,41 @@ data class LabelCheck(
 /**
  * The label checks, run live as the person edits. The server runs the same
  * rules (`LabelChecks` in `:apps:server`) on what the model read and on what
- * is submitted; `LabelChecksTest` on each side holds the same cases, so read
- * the server's KDoc for why each tolerance is what it is. In short: energy
- * within 15 kcal or 12% of the nearest Atwater method; per serving within
- * 10% (or the label's rounding) of per 100; sodium never a thousand times off.
+ * is submitted; `LabelChecksTest` on each side holds the cases, so read the
+ * server's KDoc for why each tolerance is what it is. In short: energy within
+ * 15 kcal or 12% of its macros; per serving within 10% (or the label's
+ * rounding) of per 100; sodium never a thousand times off.
+ *
+ * Energy against the macros is the app's one rule for that,
+ * [MacroEnergyCheck], which quick add uses too, so a label and a typed number
+ * are judged alike. Sugar alcohols, which it does not know, are folded into
+ * carbs at their 2.4 kcal a gram before it sees them.
  */
 object LabelChecks {
 
-    const val ENERGY_ABS_TOLERANCE = 15.0
-    const val ENERGY_REL_TOLERANCE = 0.12
     const val KJ_PER_KCAL = 4.184
 
     private const val SERVING_REL_TOLERANCE = 0.10
     private const val MAX_SODIUM_SHARE = 0.393
     private const val ML_DENSITY_ALLOWANCE = 1.5
     private const val KJ_MIN_KCAL = 40.0
+    private const val POLYOL_KCAL_PER_G = 2.4
+    private const val CARB_KCAL_PER_G = 4.0
 
-    fun energyTolerance(declared: Double): Double = max(ENERGY_ABS_TOLERANCE, ENERGY_REL_TOLERANCE * declared)
+    fun energyTolerance(declared: Double): Double = MacroEnergyCheck.tolerance(declared)
 
-    fun atwaterCandidates(values: Map<LabelNutrient, Double>, basis: CarbBasis): List<Double>? {
-        val protein = values[LabelNutrient.Protein] ?: return null
-        val carbs = values[LabelNutrient.Carbs] ?: return null
-        val fat = values[LabelNutrient.Fat] ?: return null
-        val fiber = values[LabelNutrient.Fiber] ?: 0.0
+    /**
+     * The grams [MacroEnergyCheck] reads. Carbs on a label, US or EU, include
+     * sugar alcohols, which carry 2.4 kcal a gram rather than 4, so carbs are
+     * lowered by the difference.
+     */
+    private fun grams(values: Map<LabelNutrient, Double>): Map<Metric, Double> = buildMap {
         val polyols = values[LabelNutrient.SugarAlcohols] ?: 0.0
-        val base = 4 * protein + 9 * fat
-        val general = base + 4 * carbs
-        val usTotal = base + 4 * max(0.0, carbs - fiber - polyols) + 2 * fiber + 2.4 * polyols
-        val euExclusive = base + 4 * carbs + 2 * fiber + 2.4 * polyols
-        return when (basis) {
-            CarbBasis.Us -> listOf(general, usTotal)
-            CarbBasis.Eu -> listOf(euExclusive, general)
-            CarbBasis.Unknown -> listOf(general, usTotal, euExclusive)
-        }
+        values[LabelNutrient.Protein]?.let { put(Metric.Protein, it) }
+        values[LabelNutrient.Carbs]?.let { put(Metric.Carbs, max(0.0, it - polyols * (1 - POLYOL_KCAL_PER_G / CARB_KCAL_PER_G))) }
+        values[LabelNutrient.Fat]?.let { put(Metric.Fat, it) }
+        values[LabelNutrient.Fiber]?.let { put(Metric.Fiber, it) }
     }
-
-    fun atwater(values: Map<LabelNutrient, Double>, basis: CarbBasis, declared: Double): Double? =
-        atwaterCandidates(values, basis)?.minBy { abs(it - declared) }
 
     fun check(facts: LabelFacts): List<LabelCheck> = buildList {
         missing(facts)?.let(::add)
@@ -223,20 +223,25 @@ object LabelChecks {
         return if (found.isEmpty()) emptyList() else listOf(LabelCheck(LabelCheckCode.ImpossibleValue, found.toList()))
     }
 
+    /**
+     * Energy against the macros, per serving when the label has a whole
+     * serving to check, else per 100. A kcal figure that agrees with the
+     * macros once read as kJ says the kJ line was read; that is its own check,
+     * with the fix.
+     */
     private fun energy(facts: LabelFacts): LabelCheck? {
         val values = listOf(facts.perServing, facts.per100).firstOrNull { column ->
             LabelNutrient.Energy in column && LabelNutrient.REQUIRED.all { it in column }
         } ?: return null
         val declared = values.getValue(LabelNutrient.Energy)
-        val expected = atwater(values, facts.basis, declared) ?: return null
-        if (abs(declared - expected) <= energyTolerance(declared)) return null
+        val grams = grams(values)
+        val mismatch = MacroEnergyCheck.mismatch(declared, grams) ?: return null
         val asKcal = declared / KJ_PER_KCAL
-        val fromKj = atwater(values, facts.basis, asKcal)
-        if (fromKj != null && fromKj >= KJ_MIN_KCAL && abs(asKcal - fromKj) <= energyTolerance(asKcal)) {
+        if (mismatch.macroKcal >= KJ_MIN_KCAL && MacroEnergyCheck.mismatch(asKcal, grams) == null) {
             return LabelCheck(LabelCheckCode.EnergyLooksLikeKj, listOf(LabelNutrient.Energy.wire), expected = asKcal, actual = declared)
         }
         val fields = listOf(LabelNutrient.Energy.wire, LabelNutrient.Protein.wire, LabelNutrient.Carbs.wire, LabelNutrient.Fat.wire)
-        return LabelCheck(LabelCheckCode.EnergyMacrosMismatch, fields, expected = expected, actual = declared)
+        return LabelCheck(LabelCheckCode.EnergyMacrosMismatch, fields, expected = mismatch.macroKcal, actual = declared)
     }
 
     private fun servingTolerance(key: LabelNutrient): Double = when (key.unit) {

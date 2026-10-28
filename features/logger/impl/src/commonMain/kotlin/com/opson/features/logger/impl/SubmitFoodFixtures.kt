@@ -11,7 +11,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.scanner.MealPhoto
 
 /**
- * "Add this food" for a granola bar whose label reads 270 kcal on macros that
+ * "Add this food" for a granola bar whose label reads 280 kcal on macros that
  * make 234 (4 x 10 + 4 x 35 + 9 x 6), with a protein figure the model was unsure of. For previews,
  * tests and `BlindModeLeakTest`; every state is the real builder over the
  * real form rules.
@@ -32,7 +32,7 @@ object SubmitFoodFixtures {
         servingsPerContainer = 6.0,
         basis = CarbBasis.Us,
         perServing = mapOf(
-            LabelNutrient.Energy to 270.0,
+            LabelNutrient.Energy to 280.0,
             LabelNutrient.Protein to 10.0,
             LabelNutrient.Carbs to 35.0,
             LabelNutrient.Sugars to 12.0,

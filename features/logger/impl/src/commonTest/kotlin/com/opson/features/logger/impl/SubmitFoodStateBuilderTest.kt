@@ -34,7 +34,7 @@ class SubmitFoodStateBuilderTest {
         assertTrue(form.barcodeLocked)
         assertEquals("60", form.servingSize.text)
         assertEquals("1 bar", form.servingLabel)
-        assertEquals("270", form.nutrient(LabelNutrient.Energy).text)
+        assertEquals("280", form.nutrient(LabelNutrient.Energy).text)
         assertEquals("1.1", form.nutrient(LabelNutrient.Iron).text)
         assertEquals(listOf(LabelNutrient.Calcium, LabelNutrient.Iron), form.numbers!!.more.map { it.nutrient })
     }
@@ -55,9 +55,9 @@ class SubmitFoodStateBuilderTest {
 
         val row = form.checks.single()
         assertEquals(LabelCheckCode.EnergyMacrosMismatch, row.code)
-        assertEquals("36 kcal", row.difference)
+        assertEquals("46 kcal", row.difference)
         assertEquals("234 kcal", row.fix)
-        assertEquals("270 kcal", row.keep)
+        assertEquals("280 kcal", row.keep)
         assertTrue(form.nutrient(LabelNutrient.Energy).flagged)
         assertTrue(form.canSubmit, "a mismatch is the person's call, not a block")
     }

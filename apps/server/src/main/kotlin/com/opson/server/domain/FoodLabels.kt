@@ -183,13 +183,15 @@ data class LabelCheck(
  *  - general factors: 4 protein + 9 fat + 4 carbohydrate;
  *  - US total carbohydrate (fiber and sugar alcohols inside it): fiber at
  *    2 kcal/g and sugar alcohols at 2.4 kcal/g instead of 4;
- *  - EU carbohydrate (fiber outside it): plus 2 kcal/g of fiber and 2.4 of
- *    polyols.
+ *  - EU carbohydrate (sugar alcohols inside it, fiber outside): polyols at
+ *    2.4 kcal/g, plus 2 kcal/g of fiber.
  *
  * The check fails when even the nearest is more than [energyTolerance] away:
  * 15 kcal or 12% of the declared energy, whichever is larger. 15 kcal covers
  * a label's rounding (energy to 5 or 10 kcal, each macro to the gram); 12%
- * covers the specific factors some foods use (nuts, wholegrains).
+ * covers the specific factors some foods use (nuts, wholegrains). These are
+ * the app's `MacroEnergyCheck` constants (`:libraries:nutrition`), which quick
+ * add and the app's label form use; keep them equal.
  */
 object LabelChecks {
 
@@ -229,7 +231,7 @@ object LabelChecks {
         val base = 4 * protein + 9 * fat
         val general = base + 4 * carbs
         val usTotal = base + 4 * max(0.0, carbs - fiber - polyols) + 2 * fiber + 2.4 * polyols
-        val euExclusive = base + 4 * carbs + 2 * fiber + 2.4 * polyols
+        val euExclusive = base + 4 * max(0.0, carbs - polyols) + 2.4 * polyols + 2 * fiber
         return when (basis) {
             CarbBasis.Us -> listOf(general, usTotal)
             CarbBasis.Eu -> listOf(euExclusive, general)

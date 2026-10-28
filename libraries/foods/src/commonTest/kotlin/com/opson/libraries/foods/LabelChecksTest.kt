@@ -8,9 +8,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * The app's copy of the label checks, held to the same cases as the server's
- * `LabelChecksTest` in `:apps:server`, so the two copies of the rules cannot
- * drift apart without one of them going red. Keep the two files in step.
+ * The app's label checks, held to the same cases as the server's
+ * `LabelChecksTest` in `:apps:server`, so the two sides cannot drift apart
+ * without one of them going red. Keep the two files in step. The one case that
+ * differs on purpose is fiber on an EU panel: the energy rule here is the app's
+ * shared [com.opson.libraries.nutrition.MacroEnergyCheck], which does not know
+ * the panel.
  */
 class LabelChecksTest {
 
@@ -66,11 +69,11 @@ class LabelChecksTest {
     }
 
     @Test
-    fun fiberCountsAtTwoKcalOnAUsPanelWhereCarbsIncludeIt() {
+    fun fiberCountsAtTwoKcalWhicheverWayTheLabelCountsIt() {
+        // The app's rule is MacroEnergyCheck's, which tries fiber inside and outside carbs whatever the
+        // panel; the server also knows the basis, so on an EU panel it is stricter than this.
         val label = macros(120.0, 5.0, 30.0, 2.0, LabelNutrient.Fiber to 20.0)
         assertEquals(emptyList(), codes(facts(perServing = label, basis = CarbBasis.Us)))
-        // On an EU panel the same carbs exclude the fiber, so the label cannot be right.
-        assertEquals(listOf(LabelCheckCode.EnergyMacrosMismatch), codes(facts(perServing = label, basis = CarbBasis.Eu)))
         assertEquals(emptyList(), codes(facts(perServing = label, basis = CarbBasis.Unknown)))
     }
 

@@ -221,7 +221,7 @@ class SubmitFoodViewModelTest : CoroutineTest() {
         assertEquals("Oats & honey granola bar", custom.name)
         assertEquals(60.0, custom.servingAmount)
         assertEquals("g", custom.servingUnit)
-        assertEquals(270.0, custom.kcal)
+        assertEquals(280.0, custom.kcal)
         val logged = diary.added.single()
         assertEquals(MealSlot.Breakfast, logged.slot)
         assertEquals(custom.id, logged.items.single().customFoodId)
@@ -231,7 +231,7 @@ class SubmitFoodViewModelTest : CoroutineTest() {
         assertEquals(SubmissionOrigin.Barcode, sent.origin)
         assertEquals(SubmitFoodFixtures.BARCODE, sent.barcode)
         assertEquals(listOf(LabelCheckCode.EnergyMacrosMismatch), sent.acknowledged)
-        assertEquals(270.0, sent.facts.perServing[LabelNutrient.Energy])
+        assertEquals(280.0, sent.facts.perServing[LabelNutrient.Energy])
         assertContentEquals(label.jpeg, sent.label)
 
         assertEquals(listOf<SubmitFoodEvent>(SubmitFoodEvent.Finished("Oats & honey granola bar", MealSlot.Breakfast, sent = true)), events)
@@ -306,5 +306,20 @@ class SubmitFoodViewModelTest : CoroutineTest() {
         vm.takeAction(SubmitFoodAction.BackTapped)
         settle()
         assertEquals(listOf<SubmitFoodEvent>(SubmitFoodEvent.Close), events)
+    }
+
+    @Test
+    fun aClosedDayKeepsTheFoodSendsItForReviewAndOpensTheClosedDaySheet() = runUnitTest {
+        diary.close(LoggerFixtures.today)
+        val vm = reviewing()
+        val events = events(vm)
+        vm.takeAction(SubmitFoodAction.SubmitTapped)
+        settle()
+
+        assertEquals(1, customFoods.foods.value.size, "in their foods, to log once the day reopens")
+        assertTrue(diary.added.isEmpty(), "the closed day took nothing")
+        assertEquals(1, labels.submitted.size)
+        assertEquals(listOf<SubmitFoodEvent>(SubmitFoodEvent.DayClosed(LoggerFixtures.today, sent = true)), events)
+        assertTrue(telemetry.events.last().endsWith("sent=true"))
     }
 }

@@ -32,7 +32,7 @@ the + sheet's Photo tile alone (docs/decisions.md, 2026-10-27).
    (text, digits, decimal). A field the model was unsure of (under 0.7) says
    "Check this" until it is typed. The checks run live as the person types
    (`LabelChecks`, the same rules the server runs): "Calories don't match the
-   macros by 36 kcal" with Use 234 kcal and Keep 270 kcal; kJ read as kcal;
+   macros by 46 kcal" with Use 234 kcal and Keep 280 kcal; kJ read as kcal;
    per serving against per 100 (Use 45 g when the serving size is what is
    off); sodium a thousand times off; amounts no food can hold, which have
    to be changed.
@@ -43,6 +43,12 @@ the + sheet's Photo tile alone (docs/decisions.md, 2026-10-27).
    (`POST /v1/foods/submissions`, with both photos and the server's own
    reading by `parseId`). The screen closes: "{food} added to {meal}. We'll
    check it for everyone."
+
+A closed day (Close the day, maybe on another phone) refuses the log, as it
+refuses every write (`DayWrite.DayClosed`). The food is still saved to the
+person's foods and still sent for review, then the closed-day sheet takes this
+screen's place; once the day is reopened the food is one search away. Search
+and the scanner offer no Add this food on a closed day in the first place.
 
 Calm ends: no label in the second photo (Retake the label, Type it in), too
 many reads (Type it in, Try again), read failed or offline (Try again, Type it
@@ -82,8 +88,6 @@ users. `legal/privacy.md` says the same.
 - A "my submissions" screen. The person's own copy is a custom food; whether
   review approved it changes nothing for them.
 - Editing a submission after it is sent.
-- A closed day blocking the add: another change makes a closed day block all
-  adding, this screen included.
 
 ## Tests
 `SubmitFoodStateBuilderTest`, `SubmitFoodViewModelTest`, `LabelChecksTest`
