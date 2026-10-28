@@ -21,12 +21,10 @@ private val networkCallLogger = KLog.withTag("NetworkCall")
  * Authenticated HTTP call wrapper.
  *
  * Consults [NetworkClient.authVerdict] first: a Blocked verdict (no session,
- * offline, guest where a claimed account is needed, …) short-circuits to a
- * typed [AuthUnready] failure without touching the wire — no phantom 401s.
- * Callers surface it with `mapAuthFailure { reason -> ... }`, ignore it with
- * `getOrNull()`, or route on it with `onAuthFailure { ... }`; a call that does
- * nothing special is already correct by default. [requirement] defaults to
- * [AuthRequirement.Account]; only the rare claimed-account call passes one.
+ * offline, an expired session) short-circuits to a typed [AuthUnready] failure
+ * without touching the wire — no phantom 401s. Callers ignore it with
+ * `getOrNull()`; a call that does nothing special is already correct.
+ * [requirement] defaults to [AuthRequirement.Account].
  *
  * A Ready verdict awaits [NetworkClient.awaitAuthReady], hands the
  * authenticated [HttpClient] to [block], wraps each attempt in [Catching], and

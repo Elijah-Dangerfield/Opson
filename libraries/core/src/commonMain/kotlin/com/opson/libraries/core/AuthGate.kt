@@ -16,11 +16,6 @@ enum class AuthRequirement {
      *  search, photo estimates, anything that hits the user's server-side
      *  account. */
     Account,
-
-    // TODO(review): no call passes this, since accounts are required. Delete it with
-    // NeedClaimedAccount and AuthGateImpl's branch (docs/review/findings/core-libraries.md).
-    /** A non-anonymous account. Blocks a legacy guest session too. */
-    ClaimedAccount,
 }
 
 /**
@@ -35,9 +30,6 @@ enum class AuthReason {
 
     /** No account at all: offer sign-in. */
     NeedAccount,
-
-    /** A legacy guest session where a non-anonymous account is needed. */
-    NeedClaimedAccount,
 
     /**
      * The session couldn't be confirmed because the device is offline, not

@@ -64,15 +64,10 @@ class AuthGateImpl(
     override fun verdict(requirement: AuthRequirement): AuthVerdict {
         if (requirement == AuthRequirement.None) return AuthVerdict.Ready
         return when (val auth = authState.value) {
-            is AuthState.Authenticated ->
-                if (requirement == AuthRequirement.ClaimedAccount && auth.isAnonymous) {
-                    AuthVerdict.Blocked(AuthReason.NeedClaimedAccount)
-                } else {
-                    // Even offline: we hold a (possibly stale) session, so the
-                    // request proceeds and fails at transport like any ordinary
-                    // network error — never through the gate.
-                    AuthVerdict.Ready
-                }
+            // Even offline: we hold a (possibly stale) session, so the
+            // request proceeds and fails at transport like any ordinary
+            // network error — never through the gate.
+            is AuthState.Authenticated -> AuthVerdict.Ready
             else -> AuthVerdict.Blocked(blockedReason(auth as? AuthState.Unauthenticated))
         }
     }

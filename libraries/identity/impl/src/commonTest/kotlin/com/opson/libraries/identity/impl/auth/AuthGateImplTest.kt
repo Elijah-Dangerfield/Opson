@@ -148,24 +148,6 @@ class AuthGateImplTest : CoroutineTest() {
     }
 
     @Test
-    fun claimedAccount_whenAnonymousGuest_blocksWithNeedClaimed() = runUnitTest {
-        val h = build()
-        h.auth.emit(authed(isAnonymous = true))
-        advanceUntilIdle()
-
-        assertEquals(blocked(AuthReason.NeedClaimedAccount), h.gate.verdict(AuthRequirement.ClaimedAccount))
-    }
-
-    @Test
-    fun claimedAccount_whenClaimed_isReady() = runUnitTest {
-        val h = build()
-        h.auth.emit(authed(isAnonymous = false, email = "a@b.com"))
-        advanceUntilIdle()
-
-        assertSame(AuthVerdict.Ready, h.gate.verdict(AuthRequirement.ClaimedAccount))
-    }
-
-    @Test
     fun awaitVerdict_waitsForAuthToResolve() = runUnitTest {
         val h = build()
         val pending = async { h.gate.awaitVerdict(AuthRequirement.Account) }
