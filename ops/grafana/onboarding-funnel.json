@@ -611,7 +611,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "`duration_sec` off `onboarding.completed`, measured from the view model's first composition. A p90 that climbs while p50 holds is the guest-creation wait at the finish line, not the screens.",
+      "description": "`duration_sec` off `onboarding.completed`, measured from the view model's first composition. A p90 that climbs while p50 holds is usually the sign-in step (Google's browser round trip).",
       "fieldConfig": {
         "defaults": {
           "color": {

@@ -125,13 +125,12 @@ stub (`docker/init-auth.sql` for compose, `src/test/resources/init-auth.sql` for
 Testcontainers). Tests seed a row via `DatabaseTest.seedAuthUser()` before
 creating dependent rows.
 
-> The **client** half lives in `:libraries:identity(:impl)`. It signs in via
-> supabase-kt (`AuthRepository.signInAnonymously()`) and binds a
-> `SupabaseAuthTokenProvider` that supplies the bearer token to the network
-> client, replacing the default `NoOpAuthTokenProvider`. Point it at your
-> Supabase project by setting `supabase.projectId` / `supabase.anonKey` in
-> `local.properties` (read via `:libraries:core` `SupabaseInfo`); until then it
-> returns no token and requests go out unauthenticated.
+> The **client** half lives in `:libraries:identity(:impl)`. It signs in with
+> Apple, Google or email (accounts are required) through supabase-kt, and
+> `GatewayAuthTokenProvider` supplies the bearer token to the network client,
+> replacing the default `NoOpAuthTokenProvider`. The Supabase project comes
+> from `SupabaseInfo`: the dev project from `local.properties` in debug
+> builds, prod from the committed `supabase.properties` in release.
 
 ## Testing
 

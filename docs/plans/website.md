@@ -2,18 +2,17 @@
 
 Built like Downcard's site (`/Users/elijahdangerfield/Workspace/Cards/website`,
 read-only reference): Astro, one file per route, a shared layout with nav and
-footer, a theme in `global.css`, published to GitHub Pages by a workflow.
+footer, a theme in `global.css`, published to Cloudflare Pages by a workflow.
 
 ## Decisions
 
 - **Where:** `website/` in this repo, Astro, deployed by
-  `.github/workflows/pages.yml` to GitHub Pages.
-- **No domain yet.** `astro.config.mjs` reads `SITE_URL` and `SITE_BASE` from
-  the environment; the workflow passes the repo variables `SITE_URL` and
-  `SITE_BASE`. Today that's `https://elijah-dangerfield.github.io` and
-  `/Opson`. With a domain: set `SITE_URL=https://<domain>`, `SITE_BASE=/`, add
-  the domain in Pages settings. No code change. Every internal link and asset
-  goes through `import.meta.env.BASE_URL`.
+  `.github/workflows/pages.yml` to Cloudflare Pages (`wrangler pages deploy`).
+- **Live at `https://www.opsontracker.com`, base `/`.** `astro.config.mjs`
+  reads `SITE_URL` and `SITE_BASE` from the environment; the workflow passes
+  the repo variables, and unset they fall back to the live site
+  (`src/lib/site.ts`). Every internal link and asset goes through
+  `import.meta.env.BASE_URL`, so a base path change needs no code.
 - **Not live until the owner says.** The deploy job runs only when the repo
   variable `SITE_ENABLED` is `true`, so pushes don't fail before Pages is
   switched on.

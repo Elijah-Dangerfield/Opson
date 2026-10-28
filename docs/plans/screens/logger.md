@@ -217,7 +217,6 @@ is no longer used (Weigh-in chip removed), so logger impl drops its
 | `ChoiceChip` (rounded, soft accent with a check when selected, 48 dp touch) | `:libraries:ui` | v3 unit, hunger, fullness and mood chips. `PillChip` keeps its look for the screens that use it. |
 | `RoundIconButton(touchTarget)` | `:libraries:ui` | The 40 dp + keeps a 48 dp touch area. |
 | `AppIcons.ArrowBack`, `ExpandMore`, `Cancel`, `SearchOff`, `ContentCopy` | `:libraries:ui` | |
-| `FoodPickRow(subtitle)` | `:libraries:diary:ui` | The brand line before the amount, energy bare. |
 
 ## Basket
 

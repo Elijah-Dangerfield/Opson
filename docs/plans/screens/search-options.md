@@ -188,8 +188,6 @@ stamp). Layout: `SheetHeader("Search options", onClose)`, "Sort by" with three
 ### Components
 - `SearchField(action = …)`: a trailing slot that stays while typing, for the
   filter button (`:libraries:ui`).
-- `FoodPickRow(source, sourceAccent, verified)`: the badge right-aligned under
-  the energy, with a small check for verified (`:libraries:diary:ui`).
 - Tabs: a horizontally scrolling row of compact `PillChip`s, role Tab.
 - `AppIcons.Tune` for the filter button, if it isn't there.
 

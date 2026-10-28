@@ -370,8 +370,9 @@ with encrypted session storage and the `/v1/me` profile.
 ./scripts/setup_supabase.main.kts
 ```
 
-does steps 1 to 4 below, creates the project, turns on anonymous sign-ins,
-sets the redirect URLs, authorizes your bundle ID for Apple, and writes
+does steps 1 to 4 below, creates the project, turns on manual linking
+(anonymous sign-ins go off on a project it creates and stay as they are on
+one it adopts), sets the redirect URLs, authorizes your bundle ID for Apple, and writes
 `local.properties`. It needs a Supabase personal access token (`sbp_…`) from
 <https://supabase.com/dashboard/account/tokens>, which the credential store
 keeps for next time. It prints the generated database password **once**, save

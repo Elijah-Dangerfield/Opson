@@ -312,15 +312,11 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 ## Exercise (`release.exercise`, needs `release.goalsAndEnergy`)
 
 - [ ] Deploy V24 (`exercises`) before flipping the flag. A server without it
-      refuses every exercise as `unknown_entity` and the phone rolls it back.
+      cannot store exercise, so entries stay queued on the phone until it can.
 - [ ] TODO(clinician): confirm exercise is never offered to someone who said
       numbers have been hard. Everyday activity (Mostly sitting, resting ×
       0.2, by default) is under goals and energy now, not this flag. Rule and
       sources in `docs/research/energy-expenditure.md`.
-- [ ] A phone that synced on a build without exercise has its cursor past
-      exercises logged meanwhile on another phone, and does not pull those
-      after updating. Flip the flag only once both phones are likely on the new
-      build, or accept that gap.
 - [ ] Log, edit and delete an entry on two phones, with and without a health
       app connected, and check Burned on Today and Energy today.
 

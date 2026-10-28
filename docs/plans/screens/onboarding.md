@@ -251,7 +251,6 @@ Verbatim from the v3 images except where noted. `strings_onboarding.xml`.
 | `onboarding_welcome_subtitle` | Write down what you eat. See as many numbers as you want, or none. |
 | `onboarding_welcome_body` | You can show, soften, save for later or hide every number, and change it whenever you like. |
 | `onboarding_plan_free` / `_free_includes` | Free / Logging, saved meals and every mode (design: "barcode scan, recipes"; barcode is hidden in 0.1) |
-| `onboarding_plan_plus` / `_plus_later` / `_plus_includes` | Plus / Coming later / Photo estimates and watch quick-log (no price, see CHANGES.md) |
 | `onboarding_get_started` | Get started |
 | `onboarding_skip_all` | Skip and start logging |
 | `onboarding_have_account` / `onboarding_sign_in` | Have an account? / Sign in |

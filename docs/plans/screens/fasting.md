@@ -204,8 +204,8 @@ meal reminders help with that instead.`; More `Off` / `On, %1$s`; Edit cards
   and ends it in the same breath, so the record reads 7:00 PM to 8:10 PM.
 - Mode changed to one without fasting while a fast runs: nothing is written;
   the card and row disappear, and `endsBy` closes the fast on time.
-- Older server without `fast`: it answers `unknown_entity`, the device rolls
-  the fast back. The flag stays off until the server ships.
+- Older server without `fast`: it answers `unknown_entity` and the fast stays
+  queued on the device until the server ships. The flag stays off until then.
 - Time zone change: the window follows the device's zone at the time.
 
 ## Tests
