@@ -18,6 +18,13 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "add-sheet-expanded", label = "Add sheet, Recent", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.sheetState(policy, height = SheetHeight.Full, added = true), onAction = {})
         },
+        // On a closed day: the closed line, a weigh-in and the fasting timer. No number in any mode.
+        LeakSurface(id = "add-sheet-closed", label = "Add sheet, day closed", showsCaloriesInFull = false) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.sheetState(policy, closed = true), onAction = {})
+        },
+        LeakSurface(id = "search-closed", label = "Food search, day closed", showsCaloriesInFull = false) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchState(policy, query = "", added = false, closed = true), onAction = {})
+        },
         // The nav + at a time with no usual meal: Uncategorized.
         LeakSurface(id = "add-sheet-uncategorized", label = "Add sheet, no usual meal", showsCaloriesInFull = false) { policy ->
             LoggerSheetContent(state = LoggerFixtures.uncategorizedState(policy), onAction = {})

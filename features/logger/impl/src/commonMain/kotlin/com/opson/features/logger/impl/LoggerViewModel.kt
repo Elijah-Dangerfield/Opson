@@ -5,6 +5,7 @@ import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
 import com.opson.libraries.core.AppState
 import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.health.ExerciseRelease
@@ -18,6 +19,7 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.FoodCatalog
@@ -183,6 +185,7 @@ class LoggerViewModel(
             is LoggerAction.NumberTyped -> action.choose { copy(number = NumberInput.sanitize(action.text, allowDecimal = false)) }
             LoggerAction.AddNumberTapped -> addNumber()
             LoggerAction.AddToMealTapped -> logDescribed()
+            LoggerAction.ReopenTapped -> diary.reopenDay(day)
             LoggerAction.BackTapped -> back(action)
             LoggerAction.CloseTapped -> sendEvent(LoggerEvent.Dismiss)
             is VoiceAction -> voiceAction(action)
@@ -343,8 +346,7 @@ class LoggerViewModel(
     private suspend fun logDescribed() {
         if (model.inputs == null || written) return
         val picks = model.choices.review.rows.map { it.toLogPick() }
-        logger.log(day, slot(), picks) ?: return
-        finish()
+        finishIfWritten(logger.log(day, slot(), picks) ?: return)
     }
 
     /** Describe's "Just save the name": a name-only food made (or reused) and logged. */
@@ -355,8 +357,7 @@ class LoggerViewModel(
         endVoice()
         describeJob?.cancel()
         findJob?.cancel()
-        logger.log(day, slot(), listOf(pick))
-        finish()
+        finishIfWritten(logger.log(day, slot(), listOf(pick)) ?: return)
     }
 
     private suspend fun logSavedMeal(id: String) {
@@ -366,14 +367,13 @@ class LoggerViewModel(
             val ref = draft.foodRef()
             LogPick(key = ref?.key ?: "saved:$id:$index", ref = ref, draft = draft.copy(method = LogMethod.Saved), source = PickSource.Saved)
         }
-        logger.log(day, slot(), picks) ?: return
-        finish()
+        finishIfWritten(logger.log(day, slot(), picks) ?: return)
     }
 
     private suspend fun copyYesterday() {
         if (model.inputs == null || written) return
         val slot = slot()
-        val copied = diary.copySlot(day.minus(1, DateTimeUnit.DAY), day, slot)
+        val copied = diary.copySlot(day.minus(1, DateTimeUnit.DAY), day, slot).valueOrNull() ?: return
         telemetry.methodPicked(LogVia.Yesterday, copied.size)
         logger.announce(day, slot, copied)
         finish()
@@ -381,9 +381,9 @@ class LoggerViewModel(
 
     private suspend fun addWater() {
         if (written) return
-        written = true
         val ml = settingsRepository.settings.value.glassMl
-        diary.addWater(day, ml)
+        if (diary.addWater(day, ml) is DayWrite.DayClosed) return
+        written = true
         sendEvent(LoggerEvent.WaterAdded(day, ml))
         sendEvent(LoggerEvent.Dismiss)
     }
@@ -395,10 +395,18 @@ class LoggerViewModel(
         val kcal = model.choices.number.toIntOrNull()?.takeIf { it > 0 } ?: return
         val slot = slot()
         val draft = LogDraft(name = QUICK_ADD_NAME, precision = Precision.Named, kcal = kcal.toDouble(), method = LogMethod.QuickNumber)
-        val items: List<LogItem> = diary.addItems(day, slot, listOf(draft), LogMethod.QuickNumber)
+        val items: List<LogItem> = diary.addItems(day, slot, listOf(draft), LogMethod.QuickNumber).valueOrNull() ?: return
         telemetry.methodPicked(LogVia.QuickNumber, items.size)
         logger.announce(day, slot, items)
         finish()
+    }
+
+    /**
+     * Closes the sheet once something was logged. A closed day refused it, and the sheet stays
+     * open on "Today is closed" (the day it reads is closed too) with Reopen.
+     */
+    private fun finishIfWritten(result: DayWrite<Committed>) {
+        if (result is DayWrite.Written) finish()
     }
 
     /** Logged: the sheet closes and Today takes it from `RecentLogEvents`. */
