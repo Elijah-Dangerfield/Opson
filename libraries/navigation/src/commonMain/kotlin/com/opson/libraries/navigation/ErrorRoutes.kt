@@ -18,9 +18,9 @@ data class BlockingErrorRoute(
 /**
  * Blocking screen shown when the auth server rejected the device's session
  * mid-run (token refresh failed, or the client declared the session
- * unrecoverable). Kept on top of the stack — the screen owns the exit paths:
- * "sign in again" for a claimed account, "start fresh" (mint a new guest
- * session) for an anonymous one. [wasAnonymous] picks between those copies.
+ * unrecoverable). Pushed on top of the stack, and its one way on is signing
+ * in. [wasAnonymous] picks the copy: a claimed account is asked to sign in
+ * again, a legacy guest is told their log can't be recovered.
  */
 @Serializable
 data class SessionExpiredRoute(
