@@ -75,6 +75,10 @@ data class GoalAnswer(
  * Resting energy's details, as typed, and how active an ordinary day is. Text, so a half-typed
  * year is not lost. Weight is the first weigh-in rather than a setting, as everywhere else in the
  * app.
+ *
+ * [height] and [weight] are what the fields show. After a unit switch they are a rounded
+ * conversion, and [heightAsTyped] and [weightAsTyped] keep what the person typed and its unit, so
+ * switching back gives it back unchanged and what is saved is what they typed.
  */
 data class BodyAnswer(
     val birthYear: String = "",
@@ -83,39 +87,56 @@ data class BodyAnswer(
     val sex: BodySex? = null,
     val unit: WeightUnit = WeightUnit.Kg,
     val activity: EverydayActivity = EverydayActivity.Default,
+    val heightAsTyped: AsTyped? = null,
+    val weightAsTyped: AsTyped? = null,
 ) {
+    /** A field's text in the unit it was typed in. */
+    data class AsTyped(val text: String, val unit: WeightUnit)
+
     fun withBirthYear(text: String) = copy(birthYear = NumberInput.sanitize(text, allowDecimal = false).take(YEAR_DIGITS))
 
-    fun withHeight(text: String) = copy(height = NumberInput.sanitize(text, allowDecimal = true))
+    fun withHeight(text: String) = copy(height = NumberInput.sanitize(text, allowDecimal = true), heightAsTyped = null)
 
-    fun withWeight(text: String) = copy(weight = NumberInput.sanitize(text, allowDecimal = true))
+    fun withWeight(text: String) = copy(weight = NumberInput.sanitize(text, allowDecimal = true), weightAsTyped = null)
 
     /**
      * Switches to [next], converting what is typed so it still means the same height and weight:
-     * 175 cm becomes 68.9 in, never 175 in. A field that is not a number yet is left as it is.
+     * 175 cm becomes 68.9 in, never 175 in. Each conversion starts from what was typed, and
+     * switching back to its unit restores it exactly. A field that is not a number yet is left as
+     * it is.
      */
     fun withUnit(next: WeightUnit): BodyAnswer {
         if (next == unit) return this
-        val toImperial = next == WeightUnit.Lb
-        fun converted(text: String, convert: (Double) -> Double) = text.toDoubleOrNull()?.let { typed(convert(it)) } ?: text
+        val heightTyped = typedHeight()
+        val weightTyped = typedWeight()
         return copy(
             unit = next,
-            height = converted(height) { if (toImperial) it / CM_PER_INCH else it * CM_PER_INCH },
-            weight = converted(weight) { if (toImperial) Units.kgToLb(it) else Units.lbToKg(it) },
+            height = heightTyped.shownIn(next) { if (next == WeightUnit.Lb) it / CM_PER_INCH else it * CM_PER_INCH },
+            weight = weightTyped.shownIn(next) { if (next == WeightUnit.Lb) Units.kgToLb(it) else Units.lbToKg(it) },
+            heightAsTyped = heightTyped.takeIf { it.unit != next },
+            weightAsTyped = weightTyped.takeIf { it.unit != next },
         )
     }
+
+    private fun typedHeight() = heightAsTyped ?: AsTyped(height, unit)
+
+    private fun typedWeight() = weightAsTyped ?: AsTyped(weight, unit)
 
     /** The year, when [currentYear] makes it someone 13 to 120. */
     fun birthYearOrNull(currentYear: Int): Int? =
         birthYear.toIntOrNull()?.takeIf { it in (currentYear - MAX_AGE)..(currentYear - MIN_AGE) }
 
-    fun heightCmOrNull(): Double? = height.toDoubleOrNull()
-        ?.let { if (unit == WeightUnit.Lb) it * CM_PER_INCH else it }
-        ?.takeIf { it in HEIGHT_CM }
+    fun heightCmOrNull(): Double? = typedHeight().let { typed ->
+        typed.text.toDoubleOrNull()
+            ?.let { if (typed.unit == WeightUnit.Lb) it * CM_PER_INCH else it }
+            ?.takeIf { it in HEIGHT_CM }
+    }
 
-    fun weightKgOrNull(): Double? = weight.toDoubleOrNull()
-        ?.let { if (unit == WeightUnit.Lb) Units.lbToKg(it) else it }
-        ?.takeIf { it in WEIGHT_KG }
+    fun weightKgOrNull(): Double? = typedWeight().let { typed ->
+        typed.text.toDoubleOrNull()
+            ?.let { if (typed.unit == WeightUnit.Lb) Units.lbToKg(it) else it }
+            ?.takeIf { it in WEIGHT_KG }
+    }
 
     /** Something is typed in the year field, but not a year that makes someone 13 to 120. */
     fun birthYearInvalid(currentYear: Int): Boolean = birthYear.isNotEmpty() && birthYearOrNull(currentYear) == null
@@ -142,6 +163,10 @@ data class BodyAnswer(
     fun burnKcal(currentYear: Int): Int? = restingKcal(currentYear)?.let { it + activity.kcalFor(it) }
 
     private companion object {
+        /** The text as it shows in [unit]: as typed in its own unit, else converted and rounded. */
+        fun AsTyped.shownIn(unit: WeightUnit, convert: (Double) -> Double): String =
+            if (unit == this.unit) text else text.toDoubleOrNull()?.let { typed(convert(it)) } ?: text
+
         /** A number as it would be typed, to one decimal: "68.9", "70". */
         fun typed(value: Double): String {
             val tenths = (value * TENTHS).roundToInt()

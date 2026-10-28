@@ -313,6 +313,46 @@ class OnboardingSetupStepsTest : CoroutineTest() {
     }
 
     @Test
+    fun switchingUnitsAndBack_givesBackExactlyWhatWasTyped_andSavesIt() = runUnitTest {
+        val settings = FakeSettingsRepository()
+        val weights = FakeWeightRepository()
+        val vm = atGoal(listOf(NumbersFeel.LoveThem), goalsAndEnergy = true, settings = settings, weights = weights)
+        vm.takeAction(OnboardingAction.GoalStyleTapped(GoalChoice.Surplus))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        vm.takeAction(OnboardingAction.HeightTyped("171"))
+        vm.takeAction(OnboardingAction.WeightTyped("72.5"))
+
+        vm.takeAction(OnboardingAction.UnitPicked(WeightUnit.Lb))
+        runCurrent()
+        assertEquals("67.3", vm.state.body.height)
+        vm.takeAction(OnboardingAction.UnitPicked(WeightUnit.Kg))
+        runCurrent()
+        assertEquals("171", vm.state.body.height, "a mis-tap on lb and back is not 170.9")
+        assertEquals("72.5", vm.state.body.weight)
+
+        vm.takeAction(OnboardingAction.UnitPicked(WeightUnit.Lb))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+        assertEquals(171.0, settings.settings.value.heightCm!!, 1e-9, "the 171 typed, not 67.3 in")
+        assertEquals(72.5, weights.added.single(), 1e-9)
+    }
+
+    @Test
+    fun editingAConvertedField_isWhatCountsFromThen() = runUnitTest {
+        val settings = FakeSettingsRepository()
+        val vm = atGoal(listOf(NumbersFeel.LoveThem), goalsAndEnergy = true, settings = settings)
+        vm.takeAction(OnboardingAction.GoalStyleTapped(GoalChoice.Surplus))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        vm.takeAction(OnboardingAction.HeightTyped("171"))
+        vm.takeAction(OnboardingAction.UnitPicked(WeightUnit.Lb))
+        vm.takeAction(OnboardingAction.HeightTyped("66"))
+        vm.takeAction(OnboardingAction.UnitPicked(WeightUnit.Kg))
+        runCurrent()
+
+        assertEquals("167.6", vm.state.body.height, "the 66 in typed over the conversion, not the 171 before it")
+    }
+
+    @Test
     fun feetAndInchesTypedAsADecimal_saysHeightIsInInches() = runUnitTest {
         val vm = atGoal(listOf(NumbersFeel.LoveThem), goalsAndEnergy = true)
         vm.takeAction(OnboardingAction.GoalStyleTapped(GoalChoice.Deficit))
