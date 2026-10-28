@@ -157,3 +157,25 @@ on Apple. Its finding 9 (Recent showing fewer than six) is now fixed upstream:
   With the step skipped or incomplete, `useDeficit(null)` starts at 0 kcal under.
   A line on the goal step or Targets saying "add your details to work this out"
   would explain it. Moderately sure.
+
+## Second review
+
+### R1. Switching to lb/in and back changed what was typed (fixed)
+
+- **Where:** `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupSteps.kt`,
+  `BodyAnswer.withUnit`, from finding 1 (commit 24c07ec4).
+- **Rule:** 7, every bug fixed gets the test that would have caught it; tests
+  assert behaviour.
+- **Failure:** confirmed. Each switch converted the field's current text and
+  rounded it to one decimal, so a mis-tap on lb and back turned 171 cm into
+  67.3 in and then 170.9 cm. What was saved also came from the rounded text
+  (67.3 in is 170.94 cm). Finding 1's test used 175 cm and 70 kg, which happen
+  to round-trip, so it missed this. The effect on resting energy was under
+  1 kcal, but the field no longer held what the person typed.
+- **Fate:** fixed in `fix(onboarding): switching units and back gives back
+  exactly what was typed`. `BodyAnswer` keeps the text each field was typed in
+  and its unit while a switch shows it converted. Switching back restores it,
+  every conversion starts from it, and the saved height and first weigh-in come
+  from it. Typing into a converted field makes the new text the typed value.
+  `switchingUnitsAndBack_givesBackExactlyWhatWasTyped_andSavesIt` (171 cm,
+  72.5 kg) failed before the fix with `170.9`.
