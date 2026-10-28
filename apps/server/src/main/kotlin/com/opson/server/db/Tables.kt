@@ -280,6 +280,7 @@ object CustomFoodsTable : SyncedTable("custom_foods") {
     val servingGrams = float("serving_grams").nullable()
     val sizes = jsonb("sizes").nullable()
     val micros = jsonb("micros").nullable()
+    val detailColumns get() = listOf(servingGrams, sizes, micros)
     override val primaryKey = PrimaryKey(id)
 }
 

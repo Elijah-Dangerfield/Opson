@@ -256,6 +256,8 @@ class PostgresSyncRepository(
 
             is CustomFood -> CustomFoodsTable.upsert(
                 CustomFoodsTable.id,
+                // A 0.1 row carries no details. Exposed would still update the columns to null, so they are left out of the update.
+                onUpdateExclude = if (row.details == null) CustomFoodsTable.detailColumns else null,
                 where = { CustomFoodsTable.newerThanStored(userId, row) },
             ) {
                 it[id] = row.id
@@ -269,7 +271,6 @@ class PostgresSyncRepository(
                 it[carbs] = row.nutrients.carbs?.toFloat()
                 it[fat] = row.nutrients.fat?.toFloat()
                 it[fiber] = row.nutrients.fiber?.toFloat()
-                // A 0.1 row carries no details: leaving the columns out of the update keeps what a newer build stored.
                 row.details?.let { details ->
                     it[servingGrams] = details.servingGrams?.toFloat()
                     it[sizes] = JSON.encodeToString(SIZES_SERIALIZER, details.sizes.map { size -> SizeJson(size.label, size.grams) })
