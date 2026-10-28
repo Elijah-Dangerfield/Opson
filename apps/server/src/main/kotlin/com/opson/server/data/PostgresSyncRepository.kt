@@ -173,6 +173,9 @@ class PostgresSyncRepository(
                 (clientUpdatedAt less row.clientUpdatedAt.toJavaInstant())
         }
 
+    // TODO(review): a 0.1 edit sends `estimate` for a `label` entry (it reads label as estimate),
+    // so the 0.2 phone loses "From label". Keep the stored label for requests without `accepts`;
+    // docs/review/findings/server-data.md finding 2.
     private fun upsertEntry(userId: UserId, row: LogEntry): Boolean =
         LogEntriesTable.upsert(
             LogEntriesTable.id,
