@@ -253,3 +253,14 @@ held up against the code; each fate is below.
    The `Application.kt` KDoc and boot warning left out barcode misses, and
    `.env.example` left out photo and barcode misses. `docs(server): name every
    route that SUPABASE_URL gates`.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+1. Applied in 8b3d886a.
+2. Still open, waiting on the owner: prod lacks the Apple keys and
+   `SENTRY_DSN` (item 4), so the preflight would fail every release today.
+   Land it after item 4.
+3. Applied in 01e79d21.
+4. Still open, the owner's to do on Fly.

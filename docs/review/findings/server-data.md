@@ -196,3 +196,15 @@ conflict and the default display name collision (22).
   is out a few weeks would close the class. Fairly sure it is worth doing.
 - **The export still leaves out most of what people write** (round one's
   note): check-ins, feelings, notes, fasts, exercises, custom foods. Sure.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+1. Applied in 7e3358f7. `DayRecordAcrossVersionsTest` was on main, ignored and
+   on a wire that kept `accepts`; it now drops `accepts` and `checkIn` as 0.1
+   does, closes and reopens the day to save the check-in (`setCheckIn` is
+   gone), and checks the stored row and the new phone.
+2. Already done on main.
+3. Applied in 17d6ee5e.
+4. Already done on main.

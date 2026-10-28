@@ -327,3 +327,17 @@ A second reviewer flagged three regressions on this branch.
 +        assertEquals(1L, this.server.countFor("exercises", user))
 +    }
 ```
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+1. Applied in 7e3358f7.
+2. Applied in 7e3358f7. Both tests were already on main, ignored; they run
+   now. The exercise one was rewritten to the appendix's shape (a cursor pulled
+   with fasts only and no record of it), because main's version faked the
+   update on the wire, which is not what the fix keys on.
+3. Applied in 2f254417.
+4. Applied in 2f254417. `system-design.md`, `BUILDER-BRIEF.md` and
+   `review-checklist.md` were already clean on main. `FoodPickRow`, the one
+   preview-only component left, went in bf65076c.

@@ -192,3 +192,11 @@ on Apple. Its finding 9 (Recent showing fewer than six) is now fixed upstream:
   (`editingAConvertedField_isWhatCountsFromThen`).
   `switchingUnitsAndBack_givesBackExactlyWhatWasTyped_andSavesIt` (172 cm, 160 lb)
   fails on main's rework alone with `171`.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 3: already done on main. The onboarding plan opens with a
+  "Superseded" note that names `DisplayNameSuggester`.
+- Finding 5: applied in ce067efe.

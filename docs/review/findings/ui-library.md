@@ -233,3 +233,11 @@ deleted code in detekt rules and docs) were done by their owners.
   Trends, the big-day reset on Day close, the fasting card on Today and Find
   support. Fix: `docs(ui): HeroParts puts the big-day reset on Day close, and
   names Your week`. Comment only, so no test can fail without it.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 2: applied in 2f254417.
+- Finding 11: applied in 0aca9dfb.
+- Finding 12: applied in 9561a4d9.

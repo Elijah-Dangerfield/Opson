@@ -268,3 +268,12 @@ finding 5's commit. Both were real.
 - **Shake-to-report greets people by name.** The name rarely matters and the
   greeting is the one thing that needs the network. Low certainty anyone would
   miss it if it went.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 4 (the funnel dashboard sentence): applied in 2f254417.
+- Finding 10: still open. The scheme has to change in five code sites and in
+  the dev Supabase project's redirect allow list (outside the repo) in one go,
+  or debug sign-in breaks; iOS waits on finding 9.

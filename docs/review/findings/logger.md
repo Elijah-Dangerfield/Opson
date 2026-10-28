@@ -234,3 +234,13 @@ A second reviewer checked this branch for regressions and flagged two. Both were
 - **Long descriptions are cut silently.** Past 1,000 characters Describe stops taking text.
   A count near the limit ("980 of 1,000") would explain it, though few will reach it. Unsure
   it is worth the clutter.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 1: applied in 55b22797 as the custom rule `RawBasicTextField`.
+  detekt's own rule sets are off in this repo, so `ForbiddenImport` isn't
+  available.
+- Finding 4: applied in ca1b3a8b.
+- Finding 11: applied in df31bf11.

@@ -415,3 +415,22 @@ offline sign-out test from f54d22fd fail with their fixes disabled.
   their own phone, but if the session was revoked on purpose (a lost phone),
   showing it at all is the wrong call. A blocking state at boot while an
   account is held would avoid both the flash and the leak. Medium sure.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+1. Applied in 7e3358f7, with the rest of what `:apps:integration` needed to
+   compile.
+2. Already done on main: `SessionExpiredRoute`'s KDoc says a guest is told
+   their log can't be recovered.
+3. Applied in ce067efe.
+4. Already done on main: `resetAccountScoped` says a sign-out is a fresh start.
+5. Applied in ce067efe.
+6. Applied in 2f254417.
+7. Applied in 2f254417.
+8. Applied in def6dc41. Only `androidx-datastore-preferences` was left; the
+   `-core` alias was already gone.
+9. Still open, needs a decision (finding 13, P1): whether a name editor is
+   coming. Delete the pipeline, or make `PendingProfileEditStore` a
+   `UserScopedClearer` first.

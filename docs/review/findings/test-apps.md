@@ -282,3 +282,20 @@ A skeptical second reviewer flagged two regressions on this branch.
 - **When barcode lookup is down, say "couldn't check right now" and offer search,** not a
   spinner and then the not-found sheet. The client already tells the two apart (finding 10);
   check the logger's wording follows. Moderately sure the copy is generic today.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 3: fixed on main by domain-diary-nutrition finding 1; the journey
+  runs again, reshaped, in 7e3358f7.
+- Finding 4: fixed on main by server-data finding 1; the journey runs again in
+  7e3358f7.
+- Finding 5: fixed on main by domain-diary-nutrition finding 2; the journey
+  runs again in 7e3358f7.
+- Finding 7: fixed on main by server finding 1; the journey runs again in
+  7e3358f7.
+- Finding 11: already done on main (`WAITED_ON_RETRY`, one quick retry).
+- Finding 16: applied in 763497ff. Preview and surface ids with `blind` stay
+  until the design is re-exported. `Presets.kt` and `LegacyPreset` keep
+  "Blind" where they name history or the legacy enum.

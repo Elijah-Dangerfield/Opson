@@ -316,3 +316,21 @@ against the code.
 - **Google sign-in stores a name and picture we never use.** Supabase keeps them in the
   auth record. Dropping them (or saying nothing more about them) is a privacy choice worth
   making on purpose. Moderately sure Supabase stores them by default.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 1, the live check: applied in e0166bf6. `/_health` reports the
+  project ref, and beta.yml and release.yml compare it before building. A prod
+  server deployed before this reports none, which is a warning, not a pass.
+- Finding 1, one function for the switch: applied in fb618517
+  (`BackendEnvironment`).
+- Finding 2 (log once when Grafana is off): already done on main.
+- Finding 4: still open, waiting on the owner: a confirmed dev account and the
+  GitHub secrets. The code steps do nothing without them.
+- Finding 8: applied in def6dc41.
+- Finding 11: four of the five were deleted on main; `FoodPickRow` went in
+  bf65076c.
+- Second review, the legal rewrite: the checklist line landed in 39ce95a7.
+  The cherry-pick itself is the owner's, with 0.2.

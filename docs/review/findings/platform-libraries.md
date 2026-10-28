@@ -311,3 +311,14 @@ the same flow as the `filter` and `!!` it replaced.
 - **The widget's tomorrow uses today's Burned.** The snapshot's second day,
   shown after midnight with the app closed, aims a set deficit at today's
   burn. Small and self-correcting on the next open. Low stakes.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+1. Applied in 36229082. `WidgetRefresherTest.aSignInBeforeIsKnownCatchesUp_publishesNothing`
+   fails on the old rule.
+- Finding 4: applied in 9561a4d9. `isSomeones` moved to `:libraries:identity`
+  so the widget and the reminder tap share it, with its own test.
+- Finding 5: still open, optional by its own wording. The behaviour is pinned by
+  `WidgetRefresherTest`; a leak-test copy is the orchestrator's call.

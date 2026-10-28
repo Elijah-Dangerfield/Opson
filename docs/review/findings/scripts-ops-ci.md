@@ -337,3 +337,14 @@ comment fixed.
   release-please PR body now says so, but the owner may want the first one dispatched
   with `skip_app_store` to watch the pipeline end to end before a review submission.
   Medium.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 5, the Gradle half: already done on main (`verifyReleaseEnvironment`,
+  build-config finding 1).
+- Finding 6: applied in a1418f75.
+- Finding 8: the `Versioning.kt` half was already done on main by build-config
+  finding 1; `SETUP.md` applied in 2f254417.
+- Finding 10: still open, same as build-config finding 4.

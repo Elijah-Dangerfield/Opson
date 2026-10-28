@@ -241,3 +241,19 @@ A second reviewer checked this branch's commits and flagged five possible regres
 - **Burned on a planned day.** Today's Burned section (`release.exercise`) shows on tomorrow too,
   with a resting estimate for a day that has not happened. Unsure whether that helps planning or
   reads as a number nobody asked for.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+1. Applied in 04592d5b. Two departures: `preset` travels with `numbers`
+   instead of always (always would let a stale phone put its stale preset back
+   at the top level), and a key that went away goes up as null.
+2. Applied in 04592d5b. It fails with whole-object pushes.
+3. Applied in def6dc41. Today's report now lists its `List` parameters as
+   stable. `RelativeDay` is a `libraries/ui` type outside the listed packages
+   and still reads unstable.
+4. Still open, needs a product decision: whether Save as meal comes back.
+5. Still open, waiting on time: drop the fallback once 0.2 has been out long
+   enough.
+6. Applied in f46c4711.

@@ -156,3 +156,9 @@ After the fix: `npm test` 20 of 20, `npm run build` green.
   forward, so the canonical (`www`) and the redirect agree. A 301 would let
   search engines carry the bare domain's links over. Fairly sure it's worth
   the switch.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 4: applied in 2f254417.

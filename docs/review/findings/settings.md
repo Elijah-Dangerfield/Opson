@@ -188,3 +188,12 @@ A second reviewer read finding 1's fix and flagged two regressions in it. Both w
   card is the only link here and probably isn't drawn in those modes, so it may never be
   reached; if it can be, a line saying the mode keeps these numbers out of sight would beat
   an empty page. Not sure it's reachable.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 1, the pending count: applied in 52554b2c, with `MoreTest` and the
+  journey (`LogOutJourneyTest`). The "N changes" wording was not added; that
+  is a copy call.
+- Finding 2: applied in 39ce95a7 (`shownOnToday`).

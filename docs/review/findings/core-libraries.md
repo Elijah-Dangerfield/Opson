@@ -341,3 +341,19 @@ against the code.
   friends now", "Is this love?"). For an eating disorder recovery app the jokey
   register around an accidental jostle may land badly. Low confidence; a design
   call.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+1. Applied in 7a00e4f9.
+2. Still open, needs a decision: `Telemetry.setContext` is the extension point
+   `docs/practices/observability.md` tells people to use for triage context.
+   Deleting it changes what the template offers, which is the owner's call.
+3. Applied in 25d63d69.
+4. Applied in 25d63d69. `AppDataReadTest` asserts `installId` only, and
+   AGENTS.md's AppData example names fields that exist.
+5. Applied in b96767d4.
+6. Applied in 0aca9dfb.
+7. Superseded by item 1, whose wording landed in 7a00e4f9.
+8. Applied in 0aca9dfb.

@@ -151,3 +151,9 @@ fix locally to check its test, and flagged six things. Fates:
   beats a sentence. Moderately sure it's worth it.
 - **The two caps differ for no stated reason** (200 for feedback, 180 for bug reports). Pick one;
   round one's note that both are short still stands. Not sure what 180 was protecting.
+
+## Deferred cross-slice items: fates (2026-10-28)
+
+Applied on branch `worktree-agent-a89d6bb1fb957d17a` once every slice was on main.
+
+- Finding 6: applied in b96767d4.
