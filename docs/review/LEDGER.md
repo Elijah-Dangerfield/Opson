@@ -71,68 +71,68 @@ keeps existing ticks.
 
 ## apps-shells (62 files)
 
-- [ ] `apps/admin/build.gradle.kts`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminApi.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminEnv.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/AuditView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Catching.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/ConfirmModal.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/DiffView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/FlagsView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/KillSwitchPanel.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Main.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Revert.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/RuleEditor.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Support.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/TargetBar.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/TokenStore.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/TypedValueEditor.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/UsersView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Validation.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/VersionsView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/WaitlistView.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/DiffRowsTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/FlagRowsTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/KillSwitchWordingTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/RevertTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/UsersViewTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/ValidationTest.kt`
-- [ ] `apps/compose/build.gradle.kts`
-- [ ] `apps/compose/proguard-rules.pro`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/AndroidActivityProvider.kt`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/AndroidAppComponent.kt`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/MainActivity.kt`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/OpsonApplication.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/App.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/AppComponent.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/AppShell.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/AppViewModel.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/BootLoadingScreen.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/NavigationQueueWatchdog.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/OpsonNetworkConfig.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/ShakeDialogEntryPoint.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/ShakeHandler.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/SplashScreen.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/UserTheme.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/AppViewModelTest.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/DeepLinkLogTest.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/OpsonNetworkConfigTest.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/UserThemeTest.kt`
-- [ ] `apps/compose/src/iosMain/kotlin/com/opson/IosAppComponent.kt`
-- [ ] `apps/compose/src/iosMain/kotlin/com/opson/MainViewController.kt`
-- [ ] `apps/compose/src/iosMain/kotlin/com/opson/SwiftUsageBridge.kt`
-- [ ] `apps/ios/Configuration/Config.xcconfig`
-- [ ] `apps/ios/OpsonWidgets/TodayWidget.swift`
-- [ ] `apps/ios/OpsonWidgets/TodayWidgetView.swift`
-- [ ] `apps/ios/OpsonWidgets/WidgetSnapshot.swift`
-- [ ] `apps/ios/iosApp/Platform/FileSharePresenter.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSAppleSignInCoordinator.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSNativeViewFactory.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSSecureSessionStorage.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSWidgetBridge.swift`
-- [ ] `apps/ios/iosApp/Platform/Logger+MessageScope.swift`
-- [ ] `apps/ios/iosApp/Platform/ReviewLauncher.swift`
-- [ ] `apps/ios/iosApp/iOSApp.swift`
+- [x] `apps/admin/build.gradle.kts`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminApi.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminEnv.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AuditView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Catching.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/ConfirmModal.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/DiffView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/FlagsView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/KillSwitchPanel.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Main.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Revert.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/RuleEditor.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Support.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/TargetBar.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/TokenStore.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/TypedValueEditor.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/UsersView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Validation.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/VersionsView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/WaitlistView.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/DiffRowsTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/FlagRowsTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/KillSwitchWordingTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/RevertTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/UsersViewTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/ValidationTest.kt`
+- [x] `apps/compose/build.gradle.kts`
+- [x] `apps/compose/proguard-rules.pro`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidActivityProvider.kt`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidAppComponent.kt`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/MainActivity.kt`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/OpsonApplication.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/App.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/AppComponent.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/AppShell.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/AppViewModel.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/BootLoadingScreen.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/NavigationQueueWatchdog.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/OpsonNetworkConfig.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/ShakeDialogEntryPoint.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/ShakeHandler.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/SplashScreen.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/UserTheme.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/AppViewModelTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/DeepLinkLogTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/OpsonNetworkConfigTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/UserThemeTest.kt`
+- [x] `apps/compose/src/iosMain/kotlin/com/opson/IosAppComponent.kt`
+- [x] `apps/compose/src/iosMain/kotlin/com/opson/MainViewController.kt`
+- [x] `apps/compose/src/iosMain/kotlin/com/opson/SwiftUsageBridge.kt`
+- [x] `apps/ios/Configuration/Config.xcconfig`
+- [x] `apps/ios/OpsonWidgets/TodayWidget.swift`
+- [x] `apps/ios/OpsonWidgets/TodayWidgetView.swift`
+- [x] `apps/ios/OpsonWidgets/WidgetSnapshot.swift`
+- [x] `apps/ios/iosApp/Platform/FileSharePresenter.swift`
+- [x] `apps/ios/iosApp/Platform/IOSAppleSignInCoordinator.swift`
+- [x] `apps/ios/iosApp/Platform/IOSNativeViewFactory.swift`
+- [x] `apps/ios/iosApp/Platform/IOSSecureSessionStorage.swift`
+- [x] `apps/ios/iosApp/Platform/IOSWidgetBridge.swift`
+- [x] `apps/ios/iosApp/Platform/Logger+MessageScope.swift`
+- [x] `apps/ios/iosApp/Platform/ReviewLauncher.swift`
+- [x] `apps/ios/iosApp/iOSApp.swift`
 
 ## build-config (47 files)
 
