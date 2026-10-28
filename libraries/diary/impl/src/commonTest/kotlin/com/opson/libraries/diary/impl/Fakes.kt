@@ -114,7 +114,7 @@ class FakeDiaryDb {
     private fun snapshot() = listOf(
         entries.state.value, days.state.value, feelings.state.value, weighIns.state.value,
         customFoods.state.value, savedMeals.state.value, outbox.state.value, syncState.state.value,
-        fasts.state.value,
+        fasts.state.value, exercises.state.value,
     )
 
     @Suppress("UNCHECKED_CAST")
@@ -128,6 +128,7 @@ class FakeDiaryDb {
         outbox.state.value = s[6] as Map<String, OutboxEntity>
         syncState.state.value = s[7] as Map<Int, SyncStateEntity>
         fasts.state.value = s[8] as Map<String, FastEntity>
+        exercises.state.value = s[9] as Map<String, ExerciseEntity>
     }
 
     val entryDao = object : LogEntryDao {
