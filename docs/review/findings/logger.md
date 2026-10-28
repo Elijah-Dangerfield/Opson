@@ -180,6 +180,36 @@ to 4 came in from the cross-cutting audits; the rest are this pass's own.
   "narrating comment" hits are the feature name "Create a meal"; 273 "verbose identifier" hits
   are framework and DI names (`collectAsStateWithLifecycle`, `photoEstimateViewModelFactory`).
 
+## Second review
+
+A second reviewer checked this branch for regressions and flagged two. Both were real.
+
+### R1. `AmountField`'s KDoc said a stray character never shows: fixed
+
+- **Where:** `FoodDetailContent.kt`, the KDoc over `AmountField` (from finding 1).
+- **Rule:** §1 stale comments are bugs.
+- **Failure:** the KDoc said the amount "comes back sanitized, so a stray character never
+  shows". With the library field, a character the view model drops ("15" plus "a" sanitizes to
+  "15") changes nothing in the state, so nothing comes back, and the field shows "15a" until
+  `TypedText.settle` runs 300 ms after typing pauses. No number leaks; the comment was wrong.
+- **Fix:** "docs(logger): the amount field's KDoc says a dropped character shows until typing
+  pauses". Comment only, so there is no test to add.
+
+### R2. Editing an Other entry on Later lost Other from the activity list: fixed
+
+- **Where:** `ExerciseSheetState.kt` `build` (`offersOther = canNumber`) and
+  `ExerciseSheetViewModel.kt` `offered`, from finding 3.
+- **Rule:** §10 every flow keeps its state legible; §7 every bug fixed gets its test.
+- **Failure:** an Other entry logged while energy out showed, then edited after it moved to
+  Later. The sheet opens on the form and Save works through the entry's typed number, but
+  opening the picker drew no Other row, so the selected activity was missing, and tapping it
+  could not pick it back.
+- **Fix:** "fix(logger): editing an Other entry on Later keeps Other in the activity list".
+  `ExerciseSheetStateBuilder.offersOther` offers Other where the number can be typed, where the
+  form is already on Other, or where the entry being edited is Other; the view model's pick
+  check uses the same rule. `ExerciseSheetViewModelTest.withEnergyOutOnLater_anOtherEntryBeingEdited_keepsOtherInTheList`
+  failed before the fix.
+
 ## Product notes
 
 - **The + sheet never says it logs to a past day.** With Today on yesterday, the sheet reads
