@@ -1,6 +1,7 @@
 package com.opson.libraries.health.impl
 
 import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
@@ -197,9 +198,9 @@ class RealBurnedRepositoryTest {
     private class FakeExercise(private val entries: List<ExerciseEntry>) : ExerciseRepository {
         override fun observeDay(day: LocalDate): Flow<List<ExerciseEntry>> = flowOf(entries.filter { it.day == day })
         override suspend fun get(id: String): ExerciseEntry? = entries.firstOrNull { it.id == id }
-        override suspend fun add(draft: ExerciseDraft): ExerciseEntry = error("not used")
-        override suspend fun update(id: String, draft: ExerciseDraft) = Unit
-        override suspend fun delete(id: String) = Unit
+        override suspend fun add(draft: ExerciseDraft): DayWrite<ExerciseEntry> = error("not used")
+        override suspend fun update(id: String, draft: ExerciseDraft): DayWrite<Unit> = error("not used")
+        override suspend fun delete(id: String): DayWrite<Unit> = error("not used")
     }
 
     private class FixedCalendar(private val today: LocalDate) : LocalCalendar {

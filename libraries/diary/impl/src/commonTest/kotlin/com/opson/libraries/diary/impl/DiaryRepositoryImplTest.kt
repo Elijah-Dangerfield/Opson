@@ -5,6 +5,9 @@ import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.DayReflection
+import com.opson.libraries.diary.DayWrite
+import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
@@ -56,7 +59,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
             MealSlot.Lunch,
             listOf(draft("Jasmine rice", kcal = 206.0), draft("Apple", kcal = null)),
             LogMethod.Search,
-        )
+        ).written()
 
         assertEquals(2, db.entries.rows.size)
         assertEquals(2, db.outbox.rows.size)
@@ -77,7 +80,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
     fun aFailedOutboxWriteRollsTheRowBack() = runUnitTest {
         db.failNextOutboxInsert = true
 
-        val result = runCatching { repo.addItems(today, MealSlot.Dinner, listOf(draft("Soup")), LogMethod.Search) }
+        val result = runCatching { repo.addItems(today, MealSlot.Dinner, listOf(draft("Soup")), LogMethod.Search).written() }
 
         assertTrue(result.isFailure)
         assertTrue(db.entries.rows.isEmpty(), "the row must not outlive its mutation")
@@ -87,7 +90,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun aSecondChangeToARowReplacesItsWaitingMutationUnderANewId() = runUnitTest {
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).written().single()
         val first = db.outbox.rows.single()
 
         repo.moveItem(item.id, MealSlot.Breakfast)
@@ -100,7 +103,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun editsInTheSameMillisecondStillMoveTheTimestampForward() = runUnitTest {
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).written().single()
         val before = db.entries.state.value.getValue(item.id).clientUpdatedAtEpochMs
 
         repo.moveItem(item.id, MealSlot.Snack)
@@ -111,7 +114,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun removingAnItemWritesATombstoneThatSyncs() = runUnitTest {
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).written().single()
 
         repo.removeItem(item.id)
 
@@ -123,21 +126,21 @@ class DiaryRepositoryImplTest : CoroutineTest() {
     @Test
     fun withMealGroupsOffItemsLandInUncategorized() = runUnitTest {
         repo.setMealGroups(today, false)
-        val forDay = repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).single()
+        val forDay = repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).written().single()
         assertEquals(MealSlot.Uncategorized, forDay.slot)
 
         settings.state.value = Settings(mealGroups = false)
-        val fromSettings = repo.addItems(yesterday, MealSlot.Dinner, listOf(draft("Soup")), LogMethod.Search).single()
+        val fromSettings = repo.addItems(yesterday, MealSlot.Dinner, listOf(draft("Soup")), LogMethod.Search).written().single()
         assertEquals(MealSlot.Uncategorized, fromSettings.slot)
     }
 
     @Test
     fun copyDayAppendsCopiesWithNewIdsAndLeavesTheSourceAlone() = runUnitTest {
-        val source = repo.addItems(yesterday, MealSlot.Breakfast, listOf(draft("Oats", kcal = 300.0)), LogMethod.Search) +
-            repo.addItems(yesterday, MealSlot.Dinner, listOf(draft("Adobo", kcal = 310.0)), LogMethod.Search)
-        repo.addItems(today, MealSlot.Lunch, listOf(draft("Salad")), LogMethod.Search)
+        val source = repo.addItems(yesterday, MealSlot.Breakfast, listOf(draft("Oats", kcal = 300.0)), LogMethod.Search).written() +
+            repo.addItems(yesterday, MealSlot.Dinner, listOf(draft("Adobo", kcal = 310.0)), LogMethod.Search).written()
+        repo.addItems(today, MealSlot.Lunch, listOf(draft("Salad")), LogMethod.Search).written()
 
-        val copies = repo.copyDay(yesterday, today)
+        val copies = repo.copyDay(yesterday, today).written()
 
         val day = repo.observeDay(today).first()
         assertEquals(3, day.allItems.size, "copies are appended to what the day already has")
@@ -150,10 +153,10 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun copySlotCopiesOnlyThatMeal() = runUnitTest {
-        repo.addItems(yesterday, MealSlot.Breakfast, listOf(draft("Oats")), LogMethod.Search)
-        repo.addItems(yesterday, MealSlot.Dinner, listOf(draft("Adobo"), draft("Rice")), LogMethod.Search)
+        repo.addItems(yesterday, MealSlot.Breakfast, listOf(draft("Oats")), LogMethod.Search).written()
+        repo.addItems(yesterday, MealSlot.Dinner, listOf(draft("Adobo"), draft("Rice")), LogMethod.Search).written()
 
-        repo.copySlot(yesterday, today, MealSlot.Dinner)
+        repo.copySlot(yesterday, today, MealSlot.Dinner).written()
 
         val day = repo.observeDay(today).first()
         assertEquals(listOf("Adobo", "Rice"), day.items(MealSlot.Dinner).map { it.name })
@@ -162,7 +165,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun clearDayRemovesItemsAndAteMarksButKeepsWaterAndTheNote() = runUnitTest {
-        repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search)
+        repo.addItems(today, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).written()
         repo.setAteNoDetails(today, MealSlot.Snack, true)
         repo.addWater(today, 500)
         repo.setDayNote(today, "Busy day")
@@ -200,10 +203,10 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun calendarDotsMarkDaysWithItemsOrAteNoDetails() = runUnitTest {
-        repo.addItems(LocalDate(2026, 10, 3), MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search)
+        repo.addItems(LocalDate(2026, 10, 3), MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).written()
         repo.setAteNoDetails(LocalDate(2026, 10, 9), MealSlot.Dinner, true)
         repo.addWater(LocalDate(2026, 10, 12), 250)
-        repo.addItems(LocalDate(2026, 11, 1), MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search)
+        repo.addItems(LocalDate(2026, 11, 1), MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).written()
 
         val dots = repo.observeLoggedDates(2026, 10).first()
 
@@ -213,11 +216,11 @@ class DiaryRepositoryImplTest : CoroutineTest() {
     @Test
     fun usualAtRanksFoodsByHowOftenTheyWereLoggedInThatSlot() = runUnitTest {
         repeat(3) { i ->
-            repo.addItems(LocalDate(2026, 10, 20 + i), MealSlot.Breakfast, listOf(draft("Oats")), LogMethod.Search)
+            repo.addItems(LocalDate(2026, 10, 20 + i), MealSlot.Breakfast, listOf(draft("Oats")), LogMethod.Search).written()
         }
-        repo.addItems(LocalDate(2026, 10, 24), MealSlot.Breakfast, listOf(draft("Eggs")), LogMethod.Search)
-        repo.addItems(LocalDate(2026, 10, 24), MealSlot.Dinner, listOf(draft("Adobo")), LogMethod.Search)
-        repo.addItems(LocalDate(2026, 8, 1), MealSlot.Breakfast, listOf(draft("Pancakes")), LogMethod.Search)
+        repo.addItems(LocalDate(2026, 10, 24), MealSlot.Breakfast, listOf(draft("Eggs")), LogMethod.Search).written()
+        repo.addItems(LocalDate(2026, 10, 24), MealSlot.Dinner, listOf(draft("Adobo")), LogMethod.Search).written()
+        repo.addItems(LocalDate(2026, 8, 1), MealSlot.Breakfast, listOf(draft("Pancakes")), LogMethod.Search).written()
 
         val usual = repo.usualAt(MealSlot.Breakfast).first()
 
@@ -229,11 +232,11 @@ class DiaryRepositoryImplTest : CoroutineTest() {
     fun recentFoodsSkipsQuickNumbersAndNameOnlyLines() = runUnitTest {
         val foods = listOf("Oats", "Eggs", "Rice", "Adobo", "Banana", "Yogurt")
         foods.forEach { name ->
-            repo.addItems(today, MealSlot.Lunch, listOf(draft(name).copy(foodId = "f-$name")), LogMethod.Search)
+            repo.addItems(today, MealSlot.Lunch, listOf(draft(name).copy(foodId = "f-$name")), LogMethod.Search).written()
             clock.now += 1.minutes
-            repo.addItems(today, MealSlot.Lunch, listOf(draft("Quick number", kcal = 300.0)), LogMethod.QuickNumber)
+            repo.addItems(today, MealSlot.Lunch, listOf(draft("Quick number", kcal = 300.0)), LogMethod.QuickNumber).written()
             clock.now += 1.minutes
-            repo.addItems(today, MealSlot.Lunch, listOf(draft("Something at the market")), LogMethod.Search)
+            repo.addItems(today, MealSlot.Lunch, listOf(draft("Something at the market")), LogMethod.Search).written()
             clock.now += 1.minutes
         }
 
@@ -244,12 +247,12 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun frequentFoodsRanksAcrossEverySlotWithinTheWindow() = runUnitTest {
-        repo.addItems(LocalDate(2026, 10, 20), MealSlot.Breakfast, listOf(draft("Banana")), LogMethod.Search)
-        repo.addItems(LocalDate(2026, 10, 21), MealSlot.Snack, listOf(draft("Banana")), LogMethod.Search)
-        repo.addItems(LocalDate(2026, 10, 22), MealSlot.Dinner, listOf(draft("Banana")), LogMethod.Search)
-        repo.addItems(LocalDate(2026, 10, 23), MealSlot.Lunch, listOf(draft("Rice"), draft("Rice")), LogMethod.Search)
-        repo.addItems(LocalDate(2026, 10, 24), MealSlot.Lunch, listOf(draft("Adobo")), LogMethod.Search)
-        repo.addItems(LocalDate(2026, 8, 1), MealSlot.Lunch, List(4) { draft("Old soup") }, LogMethod.Search)
+        repo.addItems(LocalDate(2026, 10, 20), MealSlot.Breakfast, listOf(draft("Banana")), LogMethod.Search).written()
+        repo.addItems(LocalDate(2026, 10, 21), MealSlot.Snack, listOf(draft("Banana")), LogMethod.Search).written()
+        repo.addItems(LocalDate(2026, 10, 22), MealSlot.Dinner, listOf(draft("Banana")), LogMethod.Search).written()
+        repo.addItems(LocalDate(2026, 10, 23), MealSlot.Lunch, listOf(draft("Rice"), draft("Rice")), LogMethod.Search).written()
+        repo.addItems(LocalDate(2026, 10, 24), MealSlot.Lunch, listOf(draft("Adobo")), LogMethod.Search).written()
+        repo.addItems(LocalDate(2026, 8, 1), MealSlot.Lunch, List(4) { draft("Old soup") }, LogMethod.Search).written()
 
         val favorites = repo.frequentFoods(limit = 3).first()
 
@@ -258,7 +261,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun observeDaysIncludesEveryDateInTheRange() = runUnitTest {
-        repo.addItems(LocalDate(2026, 10, 23), MealSlot.Lunch, listOf(draft("Toast", kcal = 100.0)), LogMethod.Search)
+        repo.addItems(LocalDate(2026, 10, 23), MealSlot.Lunch, listOf(draft("Toast", kcal = 100.0)), LogMethod.Search).written()
 
         val days = repo.observeDays(LocalDate(2026, 10, 22), LocalDate(2026, 10, 24)).first()
 
@@ -270,7 +273,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
     @Test
     fun untrackedAndTheDayFeelingSyncOnTheDayRecord() = runUnitTest {
         repo.setUntracked(today, true)
-        repo.setDayFeeling(today, DayFeeling.Steady)
+        repo.closeDay(today, DayReflection(feeling = DayFeeling.Steady))
 
         val day = repo.observeDay(today).first()
         assertTrue(day.untracked)
@@ -280,7 +283,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
         assertEquals("steady", row.feeling)
 
         repo.setUntracked(today, false)
-        repo.setDayFeeling(today, null)
+        repo.closeDay(today, DayReflection(feeling = null))
         val cleared = repo.observeDay(today).first()
         assertEquals(false, cleared.untracked)
         assertNull(cleared.feeling)
@@ -288,7 +291,7 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun removedItemsComeBackOnRestore_andBothSync() = runUnitTest {
-        val items = repo.addItems(today, MealSlot.Breakfast, listOf(draft("Oats"), draft("Banana"), draft("Coffee")), LogMethod.Search)
+        val items = repo.addItems(today, MealSlot.Breakfast, listOf(draft("Oats"), draft("Banana"), draft("Coffee")), LogMethod.Search).written()
         val picked = items.take(2).map { it.id }
 
         repo.removeItems(picked)
@@ -301,12 +304,12 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun movingAndCopyingSeveralItems() = runUnitTest {
-        val items = repo.addItems(today, MealSlot.Uncategorized, listOf(draft("Granola"), draft("Sparkling water")), LogMethod.Search)
+        val items = repo.addItems(today, MealSlot.Uncategorized, listOf(draft("Granola"), draft("Sparkling water")), LogMethod.Search).written()
 
         repo.moveItems(items.map { it.id }, MealSlot.Snack)
         assertEquals(listOf("Granola", "Sparkling water"), repo.observeDay(today).first().items(MealSlot.Snack).map { it.name })
 
-        val copies = repo.copyItems(items.map { it.id }, yesterday, MealSlot.Dinner)
+        val copies = repo.copyItems(items.map { it.id }, yesterday, MealSlot.Dinner).written()
         assertEquals(listOf("Granola", "Sparkling water"), repo.observeDay(yesterday).first().items(MealSlot.Dinner).map { it.name })
         assertTrue(copies.all { it.method == LogMethod.Copy })
     }
@@ -315,14 +318,98 @@ class DiaryRepositoryImplTest : CoroutineTest() {
     fun theCheckInSyncsOnTheDayRecord_andEmptyClearsIt() = runUnitTest {
         val checkIn = CheckIn(hunger = DayHunger.Steady, sleep = Sleep.Ok, moods = setOf(CheckInMood.Social, CheckInMood.Calm))
 
-        repo.setCheckIn(today, checkIn)
+        repo.closeDay(today, DayReflection(checkIn = checkIn))
 
         assertEquals(checkIn, repo.observeDay(today).first().checkIn)
         val row = WireJson.decodeFromString(DayRecordRowDto.serializer(), db.outbox.rows.single().payload)
         assertEquals("""{"hunger":"steady","sleep":"ok","moods":["calm","social"]}""", row.checkIn)
 
-        repo.setCheckIn(today, CheckIn())
+        repo.closeDay(today, DayReflection(checkIn = CheckIn()))
         assertNull(repo.observeDay(today).first().checkIn)
+    }
+
+    @Test
+    fun closingSavesTheReflectionWithTheClose_inOneMutation_andKeepsTheFirstCloseTime() = runUnitTest {
+        repo.closeDay(today, DayReflection(note = "  Dinner at Lola's  ", feeling = DayFeeling.Good))
+        val firstClose = repo.observeDay(today).first().closedAt
+        clock.now += 1.minutes
+
+        repo.closeDay(today, DayReflection(note = "Dinner at Lola's, a lazy Sunday", feeling = DayFeeling.Good))
+
+        val day = repo.observeDay(today).first()
+        assertEquals("Dinner at Lola's, a lazy Sunday", day.note)
+        assertEquals(firstClose, day.closedAt, "closing again updates the note, not when the day was closed")
+        assertEquals(1, db.outbox.rows.size, "one day record waiting, carrying the close and the note together")
+    }
+
+    @Test
+    fun aClosedDayRefusesEveryWriteToItsLog_andWritesNothing() = runUnitTest {
+        val oats = repo.addItems(today, MealSlot.Breakfast, listOf(draft("Oats")), LogMethod.Search).written().single()
+        repo.addItems(yesterday, MealSlot.Dinner, listOf(draft("Adobo")), LogMethod.Search).written()
+        repo.closeDay(today, DayReflection())
+        val outboxBefore = db.outbox.rows.toList()
+        val dayBefore = repo.observeDay(today).first()
+        val fastsEndedBefore = fastEnder.foodLogged
+        val closed = DayWrite.DayClosed(today)
+
+        assertEquals(closed, repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search))
+        assertEquals(closed, repo.copyDay(from = yesterday, to = today))
+        assertEquals(closed, repo.copySlot(fromDay = yesterday, toDay = today, slot = MealSlot.Dinner))
+        assertEquals(closed, repo.addWater(today, 250))
+        assertEquals(closed, repo.removeWater(today, 250))
+        assertEquals(closed, repo.setWater(today, 1_000))
+        assertEquals(closed, repo.setDayNote(today, "A note"))
+        assertEquals(closed, repo.setAteNoDetails(today, MealSlot.Lunch, ate = true))
+        assertEquals(closed, repo.setFeeling(today, MealSlot.Breakfast, MealFeeling(note = "Quick one")))
+        assertEquals(closed, repo.updateItem(oats.copy(name = "Overnight oats")))
+        assertEquals(closed, repo.removeItem(oats.id))
+        assertEquals(closed, repo.moveItem(oats.id, MealSlot.Snack))
+        assertEquals(closed, repo.clearDay(today))
+
+        assertEquals(outboxBefore, db.outbox.rows.toList(), "nothing queued")
+        assertEquals(dayBefore, repo.observeDay(today).first(), "nothing changed")
+        assertEquals(fastsEndedBefore, fastEnder.foodLogged, "food a closed day refused ends no fast")
+    }
+
+    @Test
+    fun aBatchThatTouchesAClosedDayWritesNothing_evenForItsOpenDays() = runUnitTest {
+        val open = repo.addItems(yesterday, MealSlot.Lunch, listOf(draft("Toast")), LogMethod.Search).written().single()
+        val shut = repo.addItems(today, MealSlot.Lunch, listOf(draft("Soup")), LogMethod.Search).written().single()
+        repo.closeDay(today, DayReflection())
+        val outboxBefore = db.outbox.rows.toList()
+        val closed = DayWrite.DayClosed(today)
+
+        assertEquals(closed, repo.removeItems(listOf(open.id, shut.id)))
+        assertEquals(closed, repo.moveItems(listOf(open.id, shut.id), MealSlot.Dinner))
+        assertEquals(closed, repo.copyItems(listOf(open.id), toDay = today, slot = MealSlot.Dinner))
+
+        assertEquals(outboxBefore, db.outbox.rows.toList())
+        assertEquals(listOf("Toast"), repo.observeDay(yesterday).first().items(MealSlot.Lunch).map { it.name })
+    }
+
+    @Test
+    fun aClosedDayStillCopiesOut_marksUntracked_andReopens() = runUnitTest {
+        val soup = repo.addItems(today, MealSlot.Lunch, listOf(draft("Soup")), LogMethod.Search).written().single()
+        repo.closeDay(today, DayReflection())
+
+        val copied = repo.copyItems(listOf(soup.id), toDay = yesterday, slot = MealSlot.Dinner)
+        repo.setUntracked(today, true)
+
+        assertEquals(listOf("Soup"), copied.written().map { it.name }, "copying from a closed day to an open one is fine")
+        assertTrue(repo.observeDay(today).first().untracked)
+
+        repo.reopenDay(today)
+
+        assertTrue(repo.addWater(today, 250) is DayWrite.Written)
+        assertEquals(250, repo.observeDay(today).first().waterMl)
+        assertEquals(false, repo.observeDay(today).first().closedByUser)
+    }
+
+    @Test
+    fun aPastDayNobodyClosedStaysOpenToLogging() = runUnitTest {
+        val logged = repo.addItems(LocalDate(2026, 10, 1), MealSlot.Dinner, listOf(draft("Pancit")), LogMethod.Search)
+
+        assertTrue(logged is DayWrite.Written)
     }
 
     private fun payloadFor(id: String): LogEntryRowDto = decode(db.outbox.rows.single { it.entityId == id }.payload)

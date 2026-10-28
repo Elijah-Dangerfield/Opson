@@ -39,6 +39,7 @@ data class PlanInputs(
  * - A snoozed nudge stays while it is in the future and still wanted.
  * - Water nudges come mid-morning and mid-afternoon while water reminders are on, and stop for
  *   the day once the water goal is reached.
+ * - A day closed with Close the day gets no more nudges: it takes nothing until it is reopened.
  */
 object ReminderPlanner {
     /** Four meals and two waters a day stay well under iOS's 64 pending requests. */
@@ -72,6 +73,7 @@ object ReminderPlanner {
         if (!inputs.enabled) return false
         val settings = inputs.settings
         val isToday = key.date == inputs.today.date
+        if (isToday && inputs.today.closedByUser) return false
         return when (key) {
             is ReminderKey.Meal -> settings.mealReminderLevel != EventLevel.Off &&
                 settings.mealReminders.isOn(key.slot) &&
@@ -82,9 +84,9 @@ object ReminderPlanner {
         }
     }
 
-    /** Today's meals that are done, whose delivered nudges can go. */
+    /** Today's meals that are done, or all of them once the day is closed, whose delivered nudges can go. */
     fun doneToday(inputs: PlanInputs): List<ReminderKey.Meal> =
-        MealSlot.meals.filter { isMealDone(inputs.today, it, inputs) }.map { ReminderKey.Meal(inputs.today.date, it) }
+        MealSlot.meals.filter { inputs.today.closedByUser || isMealDone(inputs.today, it, inputs) }.map { ReminderKey.Meal(inputs.today.date, it) }
 
     private fun isMealDone(day: Day, slot: MealSlot, inputs: PlanInputs): Boolean {
         if (day.mealGroupsOn(inputs.settings)) return day.isMealDone(slot)
