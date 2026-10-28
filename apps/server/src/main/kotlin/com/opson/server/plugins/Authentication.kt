@@ -10,8 +10,11 @@ import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.auth0.jwt.interfaces.JWTVerifier
 import com.opson.server.domain.UserId
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.HttpAuthHeader
+import io.ktor.http.auth.parseAuthorizationHeader
+import io.ktor.http.parsing.ParseException
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createRouteScopedPlugin
@@ -21,7 +24,6 @@ import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTAuthenticationProvider
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
-import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -150,12 +152,26 @@ fun Route.identifyCallerIfSignedIn(bearer: BearerVerifier) {
     install(
         createRouteScopedPlugin("IdentifyCallerIfSignedIn") {
             onCall { call ->
-                val token = call.request.parseAuthorizationHeader()?.bearerToken() ?: return@onCall
+                val token = authorizationHeaderOrNull(call)?.bearerToken() ?: return@onCall
                 val decoded = bearer.verify(token) ?: return@onCall
                 if (decoded.subject?.let(UserId::parse) != null) call.authentication.principal(JWTPrincipal(decoded))
             }
         },
     )
+}
+
+/**
+ * The parsed `Authorization` header, or null when there is none or it doesn't
+ * parse (`Bearer a b`, `Bearer a,b`). Not `request.parseAuthorizationHeader()`:
+ * that throws `BadRequestException`, a 400 on a route that must answer everyone.
+ */
+private fun authorizationHeaderOrNull(call: ApplicationCall): HttpAuthHeader? {
+    val raw = call.request.headers[HttpHeaders.Authorization] ?: return null
+    return try {
+        parseAuthorizationHeader(raw)
+    } catch (_: ParseException) {
+        null
+    }
 }
 
 /**

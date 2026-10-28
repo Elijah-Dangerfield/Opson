@@ -9,6 +9,7 @@ import com.opson.server.plugins.JwtVerification
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.installAuthentication
 import com.opson.server.plugins.installSerialization
+import com.opson.server.plugins.installStatusPages
 import com.opson.server.plugins.userId
 import com.opson.server.testing.TestJwt
 import io.ktor.client.request.get
@@ -74,6 +75,10 @@ class AppConfigRoutesTest {
     fun aMalformedHeader_isServedTheAnonymousTree() = app(TestJwt.verification) {
         assertServed("anonymous", client.get("/v1/app-config") { header(HttpHeaders.Authorization, "Bearer not-a-jwt") })
         assertServed("anonymous", client.get("/v1/app-config") { header(HttpHeaders.Authorization, "Basic dXNlcjpwYXNz") })
+        // Headers Ktor's parser rejects outright; a 400 here would hide the kill switch as surely as a 401.
+        for (unparseable in listOf("Bearer abc def", "Bearer a,b", "Bearer \"x", "Bearer =x")) {
+            assertServed("anonymous", client.get("/v1/app-config") { header(HttpHeaders.Authorization, unparseable) })
+        }
     }
 
     @Test
@@ -143,6 +148,7 @@ class AppConfigRoutesTest {
     private fun app(verification: JwtVerification, block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
         application {
             installSerialization()
+            installStatusPages()
             installAuthentication(verification)
             routing {
                 appConfigRoutes(source, BearerVerifier(verification))
