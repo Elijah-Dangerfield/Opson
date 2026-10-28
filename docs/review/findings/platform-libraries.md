@@ -239,6 +239,63 @@ first forward is `app.launched` from the foreground callback, on main, and it
 builds the SDK (install facts' binder calls and file stats, the buffer
 directory). Left until a StrictMode run says it is worth moving.
 
+## Second review
+
+A second reviewer read this branch's commits for regressions they introduced, and proved each
+fix's test by breaking the fix locally (barcode and describe back on the idempotent policy, the
+refresher ignoring auth, `isSomeones` without its offline or onboarding half, the opener without
+its gate, the lock screen answer without `finally`): every one failed as it should, then passed
+again once restored. Four items were flagged. Fates:
+
+1. **The lock screen answer still had a path with no completion handler (d70d9c17): real,
+   fixed.** The commit says the handler is always called, and it was after work that finished,
+   failed or was cancelled, but not after work that never returned: a snooze waits on the
+   coordinator's lock behind a replan, and Already ate ends in a refresh. Android's receivers cap
+   the same work at 8 s; iOS had no cap. Fixed in
+   "fix(reminders): an iOS lock screen answer gives up after eight seconds": the work runs under
+   `ANSWER_BUDGET` (8 s) and the handler is called when it runs out.
+   `BackgroundAnswerTest.whenTheWorkNeverReturns` fails without it (handler never called).
+2. **`isSomeones` described less than it does (753d661f): real, fixed.** Its KDoc named only a
+   session that can't refresh offline, but the check is any no-reason `Unauthenticated` for
+   someone onboarded, which also covers a device whose session is gone and still opens on Today.
+   Counting that one is right (it is the same person, logging to the same day), so the comment
+   moved, not the code. Fixed in "docs(widgets): say which unauthenticated states count as
+   someone's". Finding 2's "an unconfirmed offline session" should be read the same way.
+3. **A sign-in right after a sign-out can see a stale `isKnown` (1ff6f4b7): not a regression,
+   deferred (cross-slice).** The refresher hears auth directly, but `SettingsRepository.isKnown`
+   is two collectors downstream of the same auth change, so for a moment it sees
+   `Authenticated(u2)` with the signed-out answer, `true`, and starts collecting the source over
+   the default settings. Before this branch the widget showed those defaults for the whole
+   signed-out stretch, so this is a much smaller window, not a new one. In practice it closes
+   before anything is drawn: the source's first snapshot waits on a Room read, and `isKnown`
+   turns `false` first, which cancels it. Closing it for certain needs a settings call that
+   answers for a given user, item 1 below.
+4. **`strings_widgets.xml` edited outside the ledger (e5012cfe): not a regression.** It is the
+   widget's own copy file in `libraries/resources`, which the brief lets a slice edit, and the
+   change is the header comment only.
+
+Also checked and fine: auth's `retry()` is a no-op while signed in, so a token that expires
+offline mid-run never emits `Unauthenticated` or runs the dump, and the no-reason offline state
+the widget now accepts only arises at a cold start; the still camera's output is configured on
+`captureQueue` before `usable` is set on main, so a capture never races configuration, and a flip
+stays ordered because the old session's stop and the new one's start share that serial queue;
+the barcode camera reads `stopped` on main, where the delegate already hops; `filterNotNull` is
+the same flow as the `filter` and `!!` it replaced.
+
+## Deferred cross-slice changes
+
+1. **domain-diary-nutrition, then this slice (second review, item 3):** in
+   `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Repositories.kt`, add to
+   `SettingsRepository` `suspend fun isKnownFor(userId: String?): Boolean = isKnown.value`
+   (null: nobody signed in; the default keeps every fake compiling). In
+   `libraries/diary/impl/.../SettingsStore.kt` add
+   `suspend fun isKnownFor(userId: String?): Boolean = cache.get().isKnownFor(userId?.let(ActiveUser::SignedIn) ?: ActiveUser.SignedOut)`,
+   reading the record itself so it can't lag an auth change, and override the repository's
+   method to call it. Then in `WidgetRefresher` keep `isKnown` in the `combine` only as a tick and
+   decide with `settingsRepository.isKnownFor((auth as? AuthState.Authenticated)?.userId)`. Test:
+   a fake whose `isKnown` stays `true` while `isKnownFor("u2")` is false; flip auth from
+   `SignedOut` to `Authenticated(u2)`; assert nothing is published.
+
 ## Product notes
 
 - **Signing out deletes progress photos for good.** They exist only on the
