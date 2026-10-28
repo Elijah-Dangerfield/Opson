@@ -84,9 +84,10 @@ sentry {
     includeProguardMapping.set(true)
 
     // Only upload when a token exists, so a contributor can still build a
-    // release locally without one.
+    // release locally without one. Blank counts as missing: a workflow that
+    // passes an unset secret exports it as an empty string.
     autoUploadProguardMapping.set(
-        providers.environmentVariable("SENTRY_AUTH_TOKEN").isPresent,
+        providers.environmentVariable("SENTRY_AUTH_TOKEN").map { it.isNotBlank() }.orElse(false),
     )
 
     // No build-time telemetry to Sentry about our Gradle builds.
