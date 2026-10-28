@@ -1,5 +1,6 @@
-// Every internal link and asset goes through here, so the site works at
-// /Opson/ on GitHub Pages today and at / on a custom domain later.
+// Every internal link and asset goes through here, so the site works at any
+// base: / on www.opsontracker.com, or a sub-path such as /Opson/ if it is ever
+// served from one.
 
 /** Joins the site base ('/', '/Opson' or '/Opson/') and a path inside the site. */
 export function joinBase(base: string, path: string): string {

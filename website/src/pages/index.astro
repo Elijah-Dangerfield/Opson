@@ -4,8 +4,9 @@ import WaitlistForm from '../components/WaitlistForm.astro';
 import Screenshot from '../components/Screenshot.astro';
 import { href } from '../consts';
 
-// Rendered from the app's own previews by scripts/design_sync.main.kts, so
-// they show the app as it is. Astro resizes them at build.
+// Copies of the app's Compose preview renders, so they go stale when the app
+// changes. website/README.md says how to remake them. Astro resizes them at
+// build.
 import todayFull from '../assets/screens/today-full.png';
 import todayBlind from '../assets/screens/today-blind.png';
 import search from '../assets/screens/search.png';
