@@ -122,7 +122,9 @@ conflict and the default display name collision (22).
   is open in the sink (it fails on the old code). `QueryPlanTest` covers a
   later page's plan. The file is no longer one snapshot; the KDoc says so.
 - **Deferred (cross-slice), server:** the comment above `EXPORT_LIMIT` in
-  `plugins/RateLimits.kt:95` now overstates the cost. See the list at the end.
+  `plugins/RateLimits.kt:95` now overstates the cost, and the
+  `ExportRepository` KDoc in `domain/Export.kt:26-28` still promises one read
+  transaction around every sink call. See the list at the end.
 
 ## 7. Comments that no longer matched the code: fixed where they can be
 
@@ -169,6 +171,22 @@ conflict and the default display name collision (22).
    parameter on `SyncRepository.sync` (`domain/Diary.kt:238`), passed from
    `SyncRoutes.kt` as `request.accepts.isNotEmpty()`, replacing
    `pullFasts || pullExercises` in `PostgresSyncRepository.sync`.
+4. **server**, `apps/server/src/main/kotlin/com/opson/server/domain/Export.kt:26-28`:
+   replace "[sink] is called once per row inside one read transaction, so the
+   export never holds the whole history in memory." with "Rows are read a page
+   at a time and [sink] runs between pages, outside any transaction, so the
+   export never holds the whole history in memory or a connection while it
+   writes." Stale since 6.
+
+## Second review
+
+1. **The `ExportRepository` KDoc still describes one read transaction
+   (5705659a): real, recorded.** `domain/Export.kt:26-28` says the sink is
+   called "inside one read transaction". After 6 the sink runs between pages,
+   outside any transaction, and the export is no longer one snapshot.
+   `domain/Export.kt` is in the server slice, so it isn't edited here. Added
+   as item 4 under "Deferred cross-slice changes" and named under 6. No test:
+   it is a comment.
 
 ## Product notes
 
