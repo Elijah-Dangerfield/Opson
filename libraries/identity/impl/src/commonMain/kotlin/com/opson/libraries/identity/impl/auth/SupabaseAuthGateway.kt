@@ -55,7 +55,10 @@ interface SupabaseAuthGateway {
     /** Trigger Supabase's password-reset email. Throws on failure. */
     suspend fun resetPasswordForEmail(email: String)
 
-    /** Tear down the current session. Throws on failure. */
+    /**
+     * Tear down the current session. The local copy is always cleared; a
+     * failure to tell the auth server (offline) still throws afterwards.
+     */
     suspend fun signOut()
 
     /**

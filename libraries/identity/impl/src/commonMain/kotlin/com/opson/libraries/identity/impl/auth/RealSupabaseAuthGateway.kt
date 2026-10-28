@@ -100,7 +100,15 @@ class RealSupabaseAuthGateway(
     }
 
     override suspend fun signOut() {
-        supabase.auth.signOut()
+        try {
+            supabase.auth.signOut()
+        } finally {
+            // supabase-kt only clears the session after the logout request
+            // succeeds, and catches nothing but RestException. Offline, the
+            // request throws first, the session stays in memory and in the
+            // Keychain, and the next retry() signs the person straight back in.
+            supabase.auth.clearSession()
+        }
     }
 
     override suspend fun linkOAuthIdentity(provider: OAuthProvider) {
