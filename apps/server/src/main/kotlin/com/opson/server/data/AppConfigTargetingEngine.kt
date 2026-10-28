@@ -50,7 +50,7 @@ class AppConfigTargetingEngine {
         flagPath: String,
     ): Boolean {
         conditions.platforms?.let { allowed ->
-            if (context.platform.wireName() !in allowed) return false
+            if (context.platform.wire !in allowed) return false
         }
         conditions.minVersionCode?.let { min ->
             val build = context.buildNumber ?: return false
@@ -106,12 +106,6 @@ class AppConfigTargetingEngine {
         (fnv1a32("$key:$flagPath").toLong() and 0xFFFFFFFFL).mod(100L).toInt()
 
     private fun String.primarySubtag(): String = substringBefore('-').lowercase()
-
-    private fun ClientContext.Platform.wireName(): String = when (this) {
-        ClientContext.Platform.Android -> "android"
-        ClientContext.Platform.iOS -> "ios"
-        ClientContext.Platform.Other -> "other"
-    }
 
     /**
      * 32-bit FNV-1a. Cheap, stable, and platform-independent — we need a hash
