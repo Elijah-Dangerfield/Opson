@@ -41,6 +41,8 @@ kotlin {
             implementation(projects.features.trends)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.nutrition)
+            // A chart point's reading carries its metric's test tag.
+            implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.ui)
             implementation(projects.libraries.resources)
             implementation(projects.libraries.progressphotos)

@@ -44,6 +44,58 @@ as a keyed map, and a column per nutrient is a migration per nutrient);
 overwriting the new columns from an old build's save (rejected: an old phone
 editing a food's name would erase what a new one weighed). Research in
 `docs/research/food-detail.md`.
+## 2026-10-27: Onboarding offers goal numbers only to someone comfortable with them
+
+**Decision:** behind `release.onboardingSetup`, the goal step is shown when the
+starting mode shows calorie amounts (Full numbers) and the person did not agree
+that numbers have been hard. Full numbers is never offered after that
+statement, so the second condition is a guard rather than a second rule, and it
+is spelled out in `OnboardingState.showsGoal` so a future mode cannot slip past
+it. Everyone else gets no goal number in onboarding at all: Macros with grams,
+Macros only and No numbers go straight to the meal times step where it applies,
+or to Today, and their goal stays the app's starting range in the background.
+Someone who said "I'd rather not see them" and then picked Full numbers from
+All modes does get the goal: they chose every number.
+
+With `release.goalsAndEnergy` on as well, the resting energy step comes first
+and the goal starts from the ordinary day it gives (resting energy plus
+everyday activity, as Burned works it out with no health app), rounded to the
+nearest 50 kcal, with "Based on about 2,450 burned on an ordinary day" under the
+stepper. `GoalAnswer.startingFrom` goes through `Targets.withEnergy`, so the
+start never goes under the floor: while `GOAL_FLOOR_KCAL` is unset, an estimate
+below the app's starting range (2,100) starts there and says nothing about the
+burn, and the floor stays where Targets puts it. Macros scale with it, as ratio
+mode does. Once the person moves the amount, a changed estimate no longer moves
+it. A deficit or surplus picked straight away starts at zero, because the aim
+already is the burn; that is the existing rule ("A deficit can be chosen without a
+health app", below), not a new one.
+
+Both goal steps trade Skip for "Set this later", which goes past both and
+writes neither. Start on the recommendation offers them again.
+
+With `release.goalsAndEnergy` off the goal step is the range alone, from the
+app's starting range, as before. With `release.onboardingSetup` off there are
+no setup steps and nothing changes.
+
+**Alternatives:** asking for the goal from everyone and hiding the amount
+(rejected: a goal without a number is still a goal to hit, which is what the
+numbers answer asked us not to set up); a "macros only" goal step that picks a
+split such as Higher protein or Lower carb (rejected for now: the named splits
+are engineer-picked, `TODO(dietitian)`, and "Lower carb" is diet language this
+audience does not need on day one); starting from the raw burn with no floor
+(rejected: a typo or a small person's estimate would set a low floor that only a
+dietitian should set); keeping the goal before resting energy (rejected: the
+goal could not start from the estimate the person had just given).
+
+**Units.** Height is typed in centimetres or feet and inches wherever it is
+entered (onboarding and Resting energy, through the shared `HeightField`) and
+stored in centimetres. Weight in onboarding has its own kilograms or pounds
+switch instead of one switch for both. Both start in the phone region's units
+(`RegionUnits`: the US, Liberia and Myanmar get feet and pounds), read through
+`DeviceRegion`, which moved to `:libraries:core` for it. The height unit is a
+new top-level `heightUnit` key; until it is picked, someone in pounds keeps
+inches, as height followed weight before.
+
 ## 2026-10-27: A closed day takes nothing until it is reopened
 
 **Decision:** once a day is closed with Close the day (`Day.closedByUser`,

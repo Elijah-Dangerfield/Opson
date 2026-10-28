@@ -6,7 +6,10 @@ import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.HeightInput
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.RegionUnits
 import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.TargetStyle
@@ -17,6 +20,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.ui.components.text.NumberInput
+import kotlin.math.roundToInt
 
 /**
  * The goal styles the goal step offers. Different by day is left to Targets: it means building
@@ -44,17 +48,36 @@ enum class GoalChoice {
 
 /**
  * The goal as the person leaves the step. [targets] starts at [Targets.Default], where the floor
- * is while no dietitian has set one ([Targets.floorKcal]): the steps raise and lower it through
- * [Targets.raise] and [Targets.lower], so onboarding can never start anyone below it.
+ * is while no dietitian has set one ([Targets.floorKcal]), or at an ordinary day's burn above it
+ * ([startingFrom]). The steps raise and lower it through [Targets.raise] and [Targets.lower], so
+ * onboarding can never start anyone below the floor. Macros follow the energy, as ratio mode
+ * (the default) does in Targets.
  */
 data class GoalAnswer(
     val style: GoalChoice = GoalChoice.Range,
     val targets: Targets = Targets.Default,
+    /** The person moved the amount themselves, so a new estimate no longer moves it for them. */
+    val edited: Boolean = false,
+    /** The burn [targets] was started from, when it was. Null at the app's starting range. */
+    val basedOnKcal: Int? = null,
 ) {
     fun stepped(up: Boolean): GoalAnswer = when {
         style.needsBurn -> this
-        up -> copy(targets = targets.raise())
-        else -> targets.lower()?.let { copy(targets = it) } ?: this
+        up -> copy(targets = targets.raise(scaleMacros = true), edited = true)
+        else -> targets.lower(scaleMacros = true)?.let { copy(targets = it, edited = true) } ?: this
+    }
+
+    /**
+     * The starting goal from an ordinary day's burn, [burnKcal]: the range around it, to the
+     * nearest step. Never under the floor: [Targets.withEnergy] holds it there, so a low estimate
+     * (or a typo) leaves the app's starting range. Once the person has moved the amount, or with
+     * no burn to start from, the goal is left as it is.
+     */
+    fun startingFrom(burnKcal: Int?): GoalAnswer {
+        if (edited) return this
+        val aim = burnKcal?.let { (it.toDouble() / Targets.STEP_KCAL).roundToInt() * Targets.STEP_KCAL }
+        val start = aim?.let { Targets.Default.withEnergy(it, scaleMacros = true) } ?: Targets.Default
+        return copy(targets = start, basedOnKcal = burnKcal?.takeIf { start.energyKcal == aim })
     }
 
     /**
@@ -72,33 +95,47 @@ data class GoalAnswer(
 
 /**
  * Resting energy's details, as typed, and how active an ordinary day is. Text, so a half-typed
- * year is not lost. Weight is the first weigh-in rather than a setting, as everywhere else in the
- * app.
+ * year is not lost. Height is in centimetres or feet and inches, weight in kilograms or pounds,
+ * each with its own switch and both starting in the phone region's units. Weight is the first
+ * weigh-in rather than a setting, as everywhere else in the app.
  */
 data class BodyAnswer(
     val birthYear: String = "",
-    val height: String = "",
+    val height: HeightInput = HeightInput(HeightUnit.Cm),
     val weight: String = "",
     val sex: BodySex? = null,
-    val unit: WeightUnit = WeightUnit.Kg,
+    val weightUnit: WeightUnit = WeightUnit.Kg,
     val activity: EverydayActivity = EverydayActivity.Default,
 ) {
     fun withBirthYear(text: String) = copy(birthYear = NumberInput.sanitize(text, allowDecimal = false).take(YEAR_DIGITS))
 
-    fun withHeight(text: String) = copy(height = NumberInput.sanitize(text, allowDecimal = true))
+    fun withHeightCm(text: String) = copy(height = height.copy(cm = NumberInput.sanitize(text, allowDecimal = true)))
+
+    fun withHeightFeet(text: String) = copy(height = height.copy(feet = NumberInput.sanitize(text, allowDecimal = false)))
+
+    fun withHeightInches(text: String) = copy(height = height.copy(inches = NumberInput.sanitize(text, allowDecimal = true)))
+
+    /** Height in [unit], carrying over a height already typed. */
+    fun withHeightUnit(unit: HeightUnit) = copy(height = height.inUnit(unit))
 
     fun withWeight(text: String) = copy(weight = NumberInput.sanitize(text, allowDecimal = true))
+
+    /** Weight in [unit]. A weight already typed is converted, to a tenth, so switching never loses it. */
+    fun withWeightUnit(unit: WeightUnit): BodyAnswer {
+        if (unit == weightUnit) return this
+        val kg = weightKgOrNull() ?: return copy(weightUnit = unit)
+        val shown = if (unit == WeightUnit.Lb) Units.kgToLb(kg) else kg
+        return copy(weightUnit = unit, weight = tenths(shown))
+    }
 
     /** The year, when [currentYear] makes it someone 13 to 120. */
     fun birthYearOrNull(currentYear: Int): Int? =
         birthYear.toIntOrNull()?.takeIf { it in (currentYear - MAX_AGE)..(currentYear - MIN_AGE) }
 
-    fun heightCmOrNull(): Double? = height.toDoubleOrNull()
-        ?.let { if (unit == WeightUnit.Lb) it * CM_PER_INCH else it }
-        ?.takeIf { it in HEIGHT_CM }
+    fun heightCmOrNull(): Double? = height.cmOrNull()
 
     fun weightKgOrNull(): Double? = weight.toDoubleOrNull()
-        ?.let { if (unit == WeightUnit.Lb) Units.lbToKg(it) else it }
+        ?.let { if (weightUnit == WeightUnit.Lb) Units.lbToKg(it) else it }
         ?.takeIf { it in WEIGHT_KG }
 
     fun profile(currentYear: Int): BodyProfile = BodyProfile(
@@ -117,13 +154,23 @@ data class BodyAnswer(
      */
     fun burnKcal(currentYear: Int): Int? = restingKcal(currentYear)?.let { it + activity.kcalFor(it) }
 
-    private companion object {
-        const val YEAR_DIGITS = 4
-        const val MIN_AGE = 13
-        const val MAX_AGE = 120
-        const val CM_PER_INCH = 2.54
-        val HEIGHT_CM = 100.0..250.0
-        val WEIGHT_KG = 25.0..400.0
+    companion object {
+        private const val YEAR_DIGITS = 4
+        private const val MIN_AGE = 13
+        private const val MAX_AGE = 120
+
+        /** Weights the equation is given, 25 to 400 kg: about 55 to 882 lb. */
+        private val WEIGHT_KG = 25.0..400.0
+
+        /** Empty fields in the phone region's units ([RegionUnits]). */
+        fun inRegion(countryCode: String?): BodyAnswer =
+            BodyAnswer(height = HeightInput(RegionUnits.height(countryCode)), weightUnit = RegionUnits.weight(countryCode))
+
+        /** 141.1 as "141.1", 64.0 as "64". */
+        private fun tenths(value: Double): String {
+            val tenths = (value * 10).roundToInt()
+            return if (tenths % 10 == 0) (tenths / 10).toString() else "${tenths / 10}.${tenths % 10}"
+        }
     }
 }
 
@@ -138,6 +185,12 @@ data class GoalView(
      */
     val amount: Display,
     val canLower: Boolean,
+    /**
+     * The ordinary day's burn the amount started from, energy out, for "Based on about 2,350
+     * burned on an ordinary day". Hidden at the app's starting range, for a deficit or surplus
+     * (which say they follow the burn), and where energy out is not shown.
+     */
+    val basedOn: Display = Display.Hidden,
 )
 
 /**
@@ -159,6 +212,7 @@ data class StartingSetup(
     val heightCm: Double? = null,
     val sex: BodySex? = null,
     val weightUnit: WeightUnit? = null,
+    val heightUnit: HeightUnit? = null,
     val mealTimes: MealTimes? = null,
     val everydayActivity: EverydayActivity? = null,
 )
@@ -173,11 +227,16 @@ object SetupViews {
             GoalChoice.OneNumber -> policy.resolve(Metric.Calories, targets.energyKcal.toDouble(), Surface.Settings)
             GoalChoice.Deficit, GoalChoice.Surplus -> Display.Hidden
         }
+        val basedOn = answer.basedOnKcal
+            ?.takeIf { amount is Display.Shown }
+            ?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Settings, FormatContext()) }
+            ?: Display.Hidden
         return GoalView(
             styles = styles.filter { !it.needsBurn || TargetStyle.deficitAllowed(policy.preset.id) },
             style = answer.style,
             amount = amount,
             canLower = targets.canLower,
+            basedOn = basedOn,
         )
     }
 

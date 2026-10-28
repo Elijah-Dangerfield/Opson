@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.energy
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.core.DeviceRegion
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -13,6 +14,9 @@ import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.HeightInput
+import com.opson.libraries.nutrition.HeightUnit
+import com.opson.libraries.nutrition.RegionUnits
 import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -38,6 +42,7 @@ class RestingEnergyViewModel(
     health: HealthRepository,
     healthFlag: HealthReleaseFlag,
     private val calendar: LocalCalendar,
+    private val region: DeviceRegion,
 ) : SEAViewModel<RestingEnergyState, RestingEnergyEvent, RestingEnergyAction>(initialStateArg = RestingEnergyState()) {
 
     private var inputs: RestingEnergyAction.InputsArrived? = null
@@ -76,14 +81,14 @@ class RestingEnergyViewModel(
                 val year = text.toIntOrNull()?.takeIf { it in birthYears() }
                 if (year != null) settingsRepository.update { it.copy(birthYear = year) }
             }
-            is RestingEnergyAction.HeightTyped -> {
-                val text = NumberInput.sanitize(action.text, allowDecimal = true)
-                drafts = drafts.copy(height = text)
+            is RestingEnergyAction.HeightUnitPicked -> {
+                drafts = drafts.copy(height = height().inUnit(action.unit))
+                settingsRepository.update { it.copy(heightUnit = action.unit) }
                 rebuild(action)
-                val unit = state.details?.heightUnit ?: HeightUnit.Cm
-                val cm = RestingEnergyStateBuilder.heightCm(text, unit)?.takeIf { it in HEIGHT_CM }
-                if (cm != null) settingsRepository.update { it.copy(heightCm = cm) }
             }
+            is RestingEnergyAction.HeightCmTyped -> heightTyped(action) { it.copy(cm = NumberInput.sanitize(action.text, allowDecimal = true)) }
+            is RestingEnergyAction.HeightFeetTyped -> heightTyped(action) { it.copy(feet = NumberInput.sanitize(action.text, allowDecimal = false)) }
+            is RestingEnergyAction.HeightInchesTyped -> heightTyped(action) { it.copy(inches = NumberInput.sanitize(action.text, allowDecimal = true)) }
             is RestingEnergyAction.SexPicked -> settingsRepository.update { it.copy(bodySex = action.sex) }
             is RestingEnergyAction.ActivityInBurnedToggled -> settingsRepository.update { it.copy(activityInBurned = action.on) }
             is RestingEnergyAction.EverydayPicked -> settingsRepository.update { it.copy(everydayActivity = action.activity) }
@@ -92,21 +97,36 @@ class RestingEnergyViewModel(
         }
     }
 
+    /** The height fields as they stand: a draft, or else the stored height. */
+    private fun height(): HeightInput =
+        RestingEnergyStateBuilder.height(inputs?.settings ?: Settings(), drafts, region.height())
+
+    /** A height field typed: kept as typed, and saved in centimetres once it is a height in range. */
+    private suspend fun heightTyped(action: RestingEnergyAction, edit: (HeightInput) -> HeightInput) {
+        val typed = edit(height())
+        drafts = drafts.copy(height = typed)
+        rebuild(action)
+        val cm = typed.cmOrNull()
+        if (cm != null) settingsRepository.update { it.copy(heightCm = cm) }
+    }
+
     /** Someone at least 13, since the equation is for adults and teenagers, and no older than 120. */
     private fun birthYears(): IntRange = calendar.today().year.let { (it - MAX_AGE)..(it - MIN_AGE) }
 
     private suspend fun rebuild(action: RestingEnergyAction) {
         val (settings, choices, policy, activity) = inputs ?: return
-        action.updateState { RestingEnergyStateBuilder.build(settings, choices, policy, drafts, activity) }
+        action.updateState { RestingEnergyStateBuilder.build(settings, choices, policy, drafts, activity, region.height()) }
     }
 
     private companion object {
         const val YEAR_DIGITS = 4
         const val MIN_AGE = 13
         const val MAX_AGE = 120
-        val HEIGHT_CM = 100.0..250.0
     }
 }
+
+/** The region's height unit, shown until the person picks one. */
+private fun DeviceRegion.height(): HeightUnit = RegionUnits.height(countryCode())
 
 sealed interface RestingEnergyEvent {
     data object OpenIntegrations : RestingEnergyEvent
@@ -126,7 +146,11 @@ sealed interface RestingEnergyAction {
     /** Typing in "Enter my own" picks it, once the number is sensible. */
     data class OwnTyped(val text: String) : RestingEnergyAction
     data class BirthYearTyped(val text: String) : RestingEnergyAction
-    data class HeightTyped(val text: String) : RestingEnergyAction
+    /** Centimetres, or feet and inches. Saved, so the screen opens in it next time. */
+    data class HeightUnitPicked(val unit: HeightUnit) : RestingEnergyAction
+    data class HeightCmTyped(val text: String) : RestingEnergyAction
+    data class HeightFeetTyped(val text: String) : RestingEnergyAction
+    data class HeightInchesTyped(val text: String) : RestingEnergyAction
     data class SexPicked(val sex: BodySex) : RestingEnergyAction
     data class ActivityInBurnedToggled(val on: Boolean) : RestingEnergyAction
     data class EverydayPicked(val activity: EverydayActivity) : RestingEnergyAction
