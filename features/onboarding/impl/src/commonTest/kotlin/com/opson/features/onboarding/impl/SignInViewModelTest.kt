@@ -307,18 +307,22 @@ class SignInViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun signInWithOAuth_success_onlyOpenedTheBrowser_soItNeverAsksWhetherTheAccountIsNew() = runUnitTest {
-        // The browser round trip has no session yet; the new-account latch would be meaningless.
+    fun signInWithOAuth_forANewGoogleAccount_goesToSetup_notToday() = runUnitTest {
+        // signInWithOAuth returns once the redirect brought a session back, so the account can be
+        // asked about. A Google account with no Opson account yet has never seen setup.
+        val cache = FakeAppCache()
         val vm = buildVm(
             identity = FakeAuthRepository(oauthSignInOutcome = SignInOutcome.Success),
+            appCache = cache,
             profile = FakeProfileRepository().apply { isNewAccount = true },
         )
         vm.takeAction(SignInAction.SignInWithOAuth(OAuthProvider.Google))
 
         vm.eventFlow.test {
-            assertIs<SignInEvent.NavigateToToday>(awaitItem())
+            assertIs<SignInEvent.NavigateToSetup>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+        assertEquals(false, cache.get().hasUserOnboarded, "setup still has to run")
     }
 
     @Test

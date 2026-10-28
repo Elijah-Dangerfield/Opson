@@ -15,10 +15,11 @@ package com.opson.libraries.core
  * (e.g. registering as an [com.opson.libraries.opson.AppEventListener])
  * never run until something else triggers it.
  *
- * Implementing [AutoInit] hands the singleton to the boot-time iterator
- * in `App.kt`, which resolves the full `Set<AutoInit>` once on first
- * composition. The mere act of resolving the set forces every
- * contributor to construct, so their `init {}` blocks run.
+ * Implementing [AutoInit] adds the singleton to the `Set<AutoInit>` the
+ * app resolves at start: `OpsonApplication.onCreate` on Android,
+ * `iOSApp.init` on iOS, and `App.kt` on first composition. Resolving the
+ * set forces every contributor to construct, so their `init {}` blocks
+ * run.
  *
  * ## How
  *
@@ -27,14 +28,14 @@ package com.opson.libraries.core
  *
  * ```kotlin
  * @SingleIn(AppScope::class)
- * @ContributesBinding(AppScope::class, boundType = ProductsRepository::class)
+ * @ContributesBinding(AppScope::class, boundType = MyRepository::class)
  * @ContributesBinding(AppScope::class, boundType = AutoInit::class, multibinding = true)
  * @Inject
- * class ProductsRepositoryImpl(...) : ProductsRepository, AutoInit
+ * class MyRepositoryImpl(...) : MyRepository, AutoInit
  * ```
  *
  * The class still resolves normally when someone injects
- * `ProductsRepository`; the second binding just adds it to the
+ * `MyRepository`; the second binding just adds it to the
  * boot-warm set so it ALSO constructs at app start.
  *
  * ## When to use it
@@ -46,7 +47,7 @@ package com.opson.libraries.core
  *    ([com.opson.libraries.opson.AppEventListener] etc.) —
  *    they have to exist before their first event fires.
  *  - Anything whose first-touch latency the user actually notices
- *    (catalog grids, avatar pickers, profile state).
+ *    (the day's diary, settings, profile state).
  *
  * **No:**
  *  - Low-frequency / debug-only singletons (`ConfigOverrideRepository`,

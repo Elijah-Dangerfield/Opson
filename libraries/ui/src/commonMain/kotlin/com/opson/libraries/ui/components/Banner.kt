@@ -21,8 +21,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * A quiet line of context on the soft fill, like the mode banners on Today
- * ("Your weekly check is on Sunday evening."). Information only: no icon, no
- * colour that reads as a warning, nothing to dismiss.
+ * ("Your time on Later is up. You're on Full numbers now."). Information only:
+ * no icon, no colour that reads as a warning, nothing to dismiss.
  */
 @Composable
 fun Banner(

@@ -19,7 +19,7 @@ import kotlinx.datetime.TimeZone
 /** What the add sheet draws. Built by [LoggerStateBuilder]; every number in it is policy-resolved. */
 data class LoggerState(
     val loading: Boolean = true,
-    /** The day it logs to, for the a11y of the title when it is not today. */
+    /** The day it logs to: the closed notice says Today when it is today. */
     val day: RelativeDay = RelativeDay.Today,
     val slot: MealSlot = MealSlot.Dinner,
     /** The title's dropdown. One entry, and no chevron, with meal groups off. */
@@ -33,6 +33,11 @@ data class LoggerState(
     val recent: List<FoodRowUi> = emptyList(),
     val describe: DescribeUi = DescribeUi(),
     val saved: SavedUi = SavedUi(),
+    /**
+     * The day was closed with Close the day: "Today is closed. Reopen it to add more." over the
+     * grid, which keeps only what is not part of the day (a weigh-in, the fasting timer).
+     */
+    val closed: Boolean = false,
 )
 
 /** How tall the add sheet is. It opens [Partial] from a + and only ever grows. */
@@ -79,9 +84,8 @@ data class DescribeUi(
     val total: DescribeTotal? = null,
     /** The search for a missed food or a line's replacement, drawn in place of the lines; null when closed. */
     val find: DescribeFindUi? = null,
-    /** "Or just a number" is a calorie entry, so it is not offered when calories are hidden. */
-    val canNumber: Boolean = false,
-    val number: String = "",
+    /** "Or just the numbers"; null in a mode that shows none of them as numbers. */
+    val quickAdd: QuickAddUi? = null,
     /** The mic and what it is doing; null with `release.voice` off. */
     val voice: VoiceUi? = null,
 )
@@ -116,8 +120,11 @@ data class DescribedLine(
 /** [count] lines and the energy of all of them, policy-resolved. */
 data class DescribeTotal(val count: Int, val calories: Display)
 
-/** The find-a-food search: [replacing] is the line's name when swapping one; [results] null until the catalog answers. */
-data class DescribeFindUi(val replacing: String?, val query: String, val results: List<SwapResultUi>?)
+/**
+ * The find-a-food search: [replacing] is the line's name when swapping one; [results] null until
+ * the catalog answers; [offline] when it could not be reached, so no results is not a miss.
+ */
+data class DescribeFindUi(val replacing: String?, val query: String, val results: List<SwapResultUi>?, val offline: Boolean = false)
 
 data class SavedUi(val meals: List<SavedMealUi> = emptyList())
 
@@ -159,19 +166,20 @@ sealed interface LoggerAction {
 
     /** Describe's "Just save the name". */
     data object SaveNameTapped : LoggerAction
-    data class NumberTyped(val text: String) : LoggerAction
-    data object AddNumberTapped : LoggerAction
 
     /** Describe's Add: logs its lines. */
     data object AddToMealTapped : LoggerAction
+
+    /** Reopen on the closed line: the day takes food again and the grid comes back. */
+    data object ReopenTapped : LoggerAction
 
     data object BackTapped : LoggerAction
     data object CloseTapped : LoggerAction
 }
 
 /**
- * Everything but [ShowToast], [WaterAdded] and [Dismiss] opens something in place of the sheet,
- * so Back from there lands where the sheet was opened.
+ * Everything but [WaterAdded] and [Dismiss] opens something in place of the sheet, so Back from
+ * there lands where the sheet was opened.
  */
 sealed interface LoggerEvent {
     data class OpenSearch(val day: LocalDate, val slot: MealSlot) : LoggerEvent
@@ -185,7 +193,6 @@ sealed interface LoggerEvent {
 
     /** A glass went in, [ml] of it, on [day]: the snackbar's Undo takes it off again. */
     data class WaterAdded(val day: LocalDate, val ml: Int) : LoggerEvent
-    data class ShowToast(val toast: Toast) : LoggerEvent
     data object Dismiss : LoggerEvent
 }
 

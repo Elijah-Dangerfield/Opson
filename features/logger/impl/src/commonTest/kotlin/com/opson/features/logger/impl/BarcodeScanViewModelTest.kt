@@ -30,7 +30,9 @@ class BarcodeScanViewModelTest : CoroutineTest() {
     private val diary = FakeDiaryRepository()
     private val telemetry = RecordingBarcodeTelemetry()
 
-    private fun vm(overSearch: Boolean = false) = BarcodeScanViewModel(
+    private val pairing = RecordingPairing()
+
+    private fun vm(overSearch: Boolean = false, addFood: Boolean = false) = BarcodeScanViewModel(
         route = BarcodeScanRoute(dayIso = LoggerFixtures.today.toString(), slot = MealSlot.Dinner, overSearch = overSearch),
         foodCatalog = catalog,
         missReporter = misses,
@@ -38,6 +40,8 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         customFoods = customFoods,
         logger = FoodLogger(diary, catalog, FakeRecentLogEvents(), RecordingTelemetry(), Clock.fixed(NOON)),
         telemetry = telemetry,
+        pairing = pairing,
+        submitFood = submitFoodFlag(addFood),
     )
 
     private fun TestScope.events(vm: BarcodeScanViewModel): List<BarcodeScanEvent> {
@@ -54,7 +58,7 @@ class BarcodeScanViewModelTest : CoroutineTest() {
 
     private fun ean13(code: String = LoggerFixtures.MISSED_CODE) = BarcodeScanAction.CodeRead(ScannedCode(code, BarcodeFormat.Ean13))
 
-    private fun TestScope.missedVm(): BarcodeScanViewModel = vm().also {
+    private fun TestScope.missedVm(addFood: Boolean = false): BarcodeScanViewModel = vm(addFood = addFood).also {
         settle()
         // Takes the read's haptic, so a test of what the miss offers sees only its own events.
         backgroundScope.launch { assertEquals(BarcodeScanEvent.Scanned, it.eventFlow.first()) }
@@ -402,6 +406,41 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         assertEquals("granola", diary.added.single().items.single().customFoodId)
     }
 
+    /** The screen takes a moment to close after the write; a second tap in that time is queued behind the first. */
+    @Test
+    fun aSecondSaveWhileTheScannerClosesLogsNothingMore() = runUnitTest {
+        val vm = missedVm()
+        val events = events(vm)
+
+        vm.takeAction(BarcodeScanAction.MissNameTyped("Rye crispbread"))
+        vm.takeAction(BarcodeScanAction.SaveNameTapped)
+        vm.takeAction(BarcodeScanAction.SaveNameTapped)
+        settle()
+
+        assertEquals(1, diary.added.size)
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.Close), events)
+    }
+
+    /** The scanner stays open under the closed-day notice, so Save after Reopen is a real second try. */
+    @Test
+    fun saveNameOnAClosedDay_logsNothingAndSaysSo_andSavesOnceTheDayIsReopened() = runUnitTest {
+        val vm = missedVm()
+        val events = events(vm)
+        vm.takeAction(BarcodeScanAction.MissNameTyped("Rye crispbread"))
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(BarcodeScanAction.SaveNameTapped)
+        settle()
+        assertTrue(diary.added.isEmpty())
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.DayClosed(LoggerFixtures.today)), events)
+
+        diary.reopenDay(LoggerFixtures.today)
+        vm.takeAction(BarcodeScanAction.SaveNameTapped)
+        settle()
+        assertEquals("Rye crispbread", diary.added.single().items.single().name)
+        assertEquals(listOf(BarcodeScanEvent.DayClosed(LoggerFixtures.today), BarcodeScanEvent.Close), events)
+    }
+
     @Test
     fun saveNameTappedWithoutANameDoesNothing() = runUnitTest {
         val vm = missedVm()
@@ -662,5 +701,29 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         settle()
 
         assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.Close), events)
+    }
+
+    @Test
+    fun aMissIsHeldForPairingAndOffersAddingTheFoodWithTheFlagOn() = runUnitTest {
+        val vm = missedVm(addFood = true)
+        val events = events(vm)
+
+        assertEquals(listOf(LoggerFixtures.MISSED_CODE), pairing.misses)
+        assertEquals(true, (vm.state.stage as ScanStage.Miss).canAddFood)
+
+        vm.takeAction(BarcodeScanAction.AddFoodTapped)
+        settle()
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.OpenSubmitFood(LoggerFixtures.today, MealSlot.Dinner, LoggerFixtures.MISSED_CODE)), events)
+    }
+
+    @Test
+    fun withTheFlagOffAMissOffersNoPhotosOfThePack() = runUnitTest {
+        val vm = missedVm()
+        val events = events(vm)
+
+        assertEquals(false, (vm.state.stage as ScanStage.Miss).canAddFood)
+        vm.takeAction(BarcodeScanAction.AddFoodTapped)
+        settle()
+        assertTrue(events.isEmpty())
     }
 }

@@ -65,7 +65,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
         clock = Clock.fixed(NOON),
         mealPicks = mealPicks,
         scanEnabled = scanFlag(scanOn),
-        photoEnabled = photoFlag(photoOn),
+        submitFoodEnabled = submitFoodFlag(photoOn),
         searchOptionsEnabled = searchOptionsFlag(optionsOn),
         optionsTelemetry = optionsTelemetry,
     )
@@ -187,6 +187,27 @@ class FoodSearchViewModelTest : CoroutineTest() {
         assertEquals(Precision.Estimate, item.precision, "an amount again is an estimate")
     }
 
+    /** The second tap is queued before the day is read again, so the row has no ✓ yet to take it out. */
+    @Test
+    fun aDoubleTapOnPlusLogsTheFoodOnce() = runUnitTest {
+        val vm = vm()
+        val rice = searched(vm).first { it.key == "f:rice" }
+        diary.holdWrites = true
+
+        vm.takeAction(SearchAction.AddTapped(rice))
+        vm.takeAction(SearchAction.AddTapped(rice))
+        settle()
+        assertEquals(1, diary.added.size)
+
+        diary.showWrites()
+        settle()
+        val shown = assertIs<SearchBody.Results>(vm.state.body).rows.first { it.key == "f:rice" }
+        assertTrue(shown.added)
+        vm.takeAction(SearchAction.AddTapped(shown))
+        settle()
+        assertEquals(1, diary.removed.size, "once the day shows it, the ✓ takes it back out")
+    }
+
     @Test
     fun theCheckTakesWhatItAddedBackOut() = runUnitTest {
         val vm = vm()
@@ -266,7 +287,26 @@ class FoodSearchViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun notFindingItOffersTheTermToDescribeAndThePhotoForThisMeal() = runUnitTest {
+    fun aDoubleTapOnASavedMealsPlusLogsItOnce() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(SearchAction.ScopePicked(SearchScope.SavedMeals))
+        diary.holdWrites = true
+
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        settle()
+        assertEquals(1, diary.added.size)
+
+        diary.showWrites()
+        settle()
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        settle()
+        assertEquals(2, diary.added.size, "once the day shows it, the meal can be logged again on purpose")
+    }
+
+    @Test
+    fun noResultsOffersTheTermToDescribeAndAddingTheFoodForThisMeal() = runUnitTest {
         val vm = vm(photoOn = true)
         val events = events(vm)
         settle()
@@ -275,25 +315,25 @@ class FoodSearchViewModelTest : CoroutineTest() {
         assertEquals(SearchBody.NoResults("kare-kare", offline = false), vm.state.body)
 
         vm.takeAction(SearchAction.DescribeTapped)
-        vm.takeAction(SearchAction.PhotographTapped)
+        vm.takeAction(SearchAction.AddFoodTapped)
         settle()
 
         assertEquals(
             listOf(
                 SearchEvent.OpenDescribe(LoggerFixtures.today, MealSlot.Dinner, "kare-kare"),
-                SearchEvent.OpenPhoto(LoggerFixtures.today, MealSlot.Dinner),
+                SearchEvent.OpenSubmitFood(LoggerFixtures.today, MealSlot.Dinner),
             ),
             events,
         )
     }
 
     @Test
-    fun withThePhotoAndBarcodeFlagsOffTheirTapsDoNothing() = runUnitTest {
+    fun withTheAddFoodAndBarcodeFlagsOffTheirTapsDoNothing() = runUnitTest {
         val vm = vm()
         val events = events(vm)
         settle()
 
-        vm.takeAction(SearchAction.PhotographTapped)
+        vm.takeAction(SearchAction.AddFoodTapped)
         vm.takeAction(SearchAction.BarcodeTapped)
         settle()
 
@@ -467,7 +507,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
             clock = Clock.fixed(NOON),
             mealPicks = mealPicks,
             scanEnabled = scanFlag(false),
-            photoEnabled = photoFlag(false),
+            submitFoodEnabled = submitFoodFlag(false),
             searchOptionsEnabled = searchOptionsFlag(false),
             optionsTelemetry = optionsTelemetry,
         )
@@ -477,5 +517,81 @@ class FoodSearchViewModelTest : CoroutineTest() {
         settle()
 
         assertEquals(yesterday, diary.added.single().day)
+    }
+
+    // A day closed with Close the day (docs/decisions.md, 2026-10-27)
+
+    @Test
+    fun onAClosedDay_theListsGiveWayToTheClosedLine_andReopenBringsThemBack() = runUnitTest {
+        diary.close(LoggerFixtures.today)
+        val vm = vm(scanOn = true, photoOn = true)
+        settle()
+
+        assertEquals(SearchBody.DayClosed(isToday = true), vm.state.body)
+        assertFalse(vm.state.canScan || vm.state.canAddFood || vm.state.canDescribe)
+
+        vm.takeAction(SearchAction.ReopenTapped)
+        settle()
+
+        assertEquals(listOf(LoggerFixtures.today), diary.reopened)
+        assertIs<SearchBody.Browse>(vm.state.body)
+    }
+
+    @Test
+    fun aPlusOnADayClosedASecondAgo_logsNothing_andOffersNoUndo() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        val rice = searched(vm).first { it.key == "f:rice" }
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(SearchAction.AddTapped(rice))
+        settle()
+
+        assertTrue(diary.added.isEmpty())
+        assertTrue(events.none { it is SearchEvent.Added })
+        assertEquals(SearchBody.DayClosed(isToday = true), vm.state.body)
+    }
+
+    /** A refused + wrote nothing, so nothing is waiting to show and the same + works after Reopen. */
+    @Test
+    fun aPlusRefusedByAClosedDay_logsOnceTheDayIsReopened() = runUnitTest {
+        val vm = vm()
+        val rice = searched(vm).first { it.key == "f:rice" }
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(SearchAction.AddTapped(rice))
+        settle()
+        vm.takeAction(SearchAction.ReopenTapped)
+        settle()
+        vm.takeAction(SearchAction.AddTapped(rice))
+        settle()
+
+        assertEquals(1, diary.added.single().items.size)
+    }
+
+    @Test
+    fun aSavedMealRefusedByAClosedDay_logsOnceTheDayIsReopened() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(SearchAction.ScopePicked(SearchScope.SavedMeals))
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        settle()
+        vm.takeAction(SearchAction.ReopenTapped)
+        settle()
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        settle()
+
+        assertEquals(listOf("Arroz con pollo", "Side salad"), diary.added.single().items.map { it.name })
+    }
+
+    @Test
+    fun pickingForAMeal_isNotStoppedByAClosedDay() = runUnitTest {
+        diary.close(LoggerFixtures.today)
+        val vm = vm(route = FoodSearchRoute(slot = MealSlot.Dinner, pickForMeal = "request"))
+        settle()
+
+        assertTrue(vm.state.body !is SearchBody.DayClosed, "a meal being put together writes nothing to the day")
     }
 }

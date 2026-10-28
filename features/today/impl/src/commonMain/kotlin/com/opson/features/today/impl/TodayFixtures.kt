@@ -189,6 +189,9 @@ object TodayFixtures {
     /** The usual day, marked untracked (a holiday): logged, but a gap in Trends. */
     fun untrackedDay(): Day = day().copy(untracked = true)
 
+    /** Today with dinner in, closed with Close the day at 9:30 pm: it takes nothing until reopened. */
+    fun closedDay(): Day = day(dinner = true).copy(closedAt = evening)
+
     /** Two days back, closed, with yesterday's kind of meals. */
     fun pastDay(): Day = day(today.minus(DatePeriod(days = 2))).copy(closedAt = noon)
 
@@ -332,10 +335,11 @@ object TodayFixtures {
         checkInOn: Boolean = false,
         checkIn: CheckIn? = null,
         burned: Burned? = null,
+        closed: Boolean = false,
     ): DayCloseState = DayCloseStateBuilder.build(
         DayCloseInputs(
             today = today,
-            day = day(date, bigDay = bigDay, dinner = !bigDay),
+            day = day(date, bigDay = bigDay, dinner = !bigDay).let { if (closed) it.copy(closedAt = evening) else it },
             settings = settings,
             expended = expended,
             checkInOn = checkInOn,
@@ -387,9 +391,11 @@ object TodayFixtures {
     fun itemSheetState(policy: VisibilityPolicy): ItemSheetState =
         requireNotNull(ItemSheetStateBuilder.build("adobo-$today", day(), today, policy)) { "The fixture day has the adobo" }
 
-    /** The peanut butter's ⋮ with `release.foodActions` on (13.3d), on [step]. */
-    fun foodActionsState(policy: VisibilityPolicy, step: ItemStep = ItemStep.Actions): ItemSheetState =
-        requireNotNull(ItemSheetStateBuilder.build(peanutButter, day(), today, policy, actionsOn = true, step = step)) { "The fixture day has the peanut butter" }
+    /** The peanut butter's ⋮ with `release.foodActions` on (13.3d), on [step]; on [closedDay] when [closed]. */
+    fun foodActionsState(policy: VisibilityPolicy, step: ItemStep = ItemStep.Actions, closed: Boolean = false): ItemSheetState =
+        requireNotNull(ItemSheetStateBuilder.build(peanutButter, if (closed) closedDay() else day(), today, policy, actionsOn = true, step = step)) {
+            "The fixture day has the peanut butter"
+        }
 
     fun dayNoteState(): DayNoteState = DayNoteState(draft = "Dinner at Lola's, a lazy Sunday", isToday = true, loaded = true)
 

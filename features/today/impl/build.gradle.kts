@@ -30,6 +30,10 @@ kotlin {
             implementation(projects.libraries.health)
             // The design sync 2 release flags (release.todaySummary, todaySelect, checkIn).
             implementation(projects.libraries.config)
+            // The summary card's page and collapse, kept on the device (TodayCardViewStore).
+            implementation(projects.libraries.storage)
+            // UserScopedClearer, so a user change wipes the card's view with the rest.
+            implementation(projects.libraries.opson)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -54,6 +58,8 @@ kotlin {
             implementation(projects.libraries.ui)
             implementation(projects.libraries.reminders)
             implementation(projects.libraries.config)
+            implementation(projects.libraries.storage)
+            implementation(projects.libraries.opson)
         }
     }
 }

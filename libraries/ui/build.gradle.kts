@@ -20,8 +20,9 @@ kotlin {
 
         commonMain.dependencies {
             implementation(projects.libraries.core)
-            // User-facing copy in the few DS components that carry their own
-            // (ShakeDialog), so `VerifyStrings` has a resource to point at.
+            // The copy, fonts and brand mark the components draw themselves (spoken labels,
+            // the shake dialog, the wordmark and the bowl), so `VerifyStrings` has a resource
+            // to point at.
             implementation(projects.libraries.resources)
             // `RelativeDay` and `MonthGrid` take `LocalDate`, so it is part of this module's API.
             api(libs.kotlinx.datetime)

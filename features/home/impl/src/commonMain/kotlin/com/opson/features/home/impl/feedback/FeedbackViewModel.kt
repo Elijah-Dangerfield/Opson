@@ -4,6 +4,9 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.opson.AppCache
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.common_send
+import opson.libraries.resources.generated.resources.common_sending
+import opson.libraries.resources.generated.resources.common_sent
 import opson.libraries.resources.generated.resources.feedback_empty
 import opson.libraries.resources.generated.resources.feedback_failed
 import org.jetbrains.compose.resources.StringResource
@@ -24,10 +27,14 @@ class FeedbackViewModel(
         }
     }
 
-    /** Only a sent message counts and closes the page; a failed one stays, with a line saying so. */
+    /**
+     * Only a sent message counts and closes the page; a failed one stays, with a line saying so.
+     * Actions run one at a time, so a second tap that landed before the button redrew arrives
+     * after the first send has finished: [FeedbackState.isSent] is what stops it sending again.
+     */
     private suspend fun FeedbackAction.submitFeedback() {
         val current = state
-        if (current.isSubmitting) return
+        if (current.isSubmitting || current.isSent) return
         if (current.message.isBlank()) {
             updateState { it.copy(errorMessage = Res.string.feedback_empty) }
             return
@@ -39,7 +46,7 @@ class FeedbackViewModel(
             return
         }
         appCache.update { it.copy(feedbacksGiven = it.feedbacksGiven + 1) }
-        updateState { it.copy(isSubmitting = false) }
+        updateState { it.copy(isSubmitting = false, isSent = true) }
         sendEvent(FeedbackEvent.Sent)
     }
 }
@@ -48,7 +55,21 @@ data class FeedbackState(
     val message: String = "",
     val isSubmitting: Boolean = false,
     val errorMessage: StringResource? = null,
-)
+    val isSent: Boolean = false,
+) {
+    val canSubmit: Boolean get() = message.isNotBlank() && !isSubmitting && !isSent
+
+    /**
+     * Sent stays on the button: if the page outlives its close (its Sent event expired while the
+     * app was in the background), Send is greyed out for good, and this says why.
+     */
+    val sendLabel: StringResource
+        get() = when {
+            isSent -> Res.string.common_sent
+            isSubmitting -> Res.string.common_sending
+            else -> Res.string.common_send
+        }
+}
 
 sealed interface FeedbackEvent {
     /** Thank them and close. */

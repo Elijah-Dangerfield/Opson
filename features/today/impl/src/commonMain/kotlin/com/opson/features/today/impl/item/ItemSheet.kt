@@ -24,6 +24,7 @@ import com.opson.features.today.impl.TodayFoodActionsEnabled
 import com.opson.features.today.impl.Toast
 import com.opson.features.today.impl.label
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.HouseholdAmount
@@ -33,6 +34,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.ui.DayClosedNotice
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.diary.ui.rowLabel
 import com.opson.libraries.diary.ui.sentenceName
@@ -96,7 +98,9 @@ import org.jetbrains.compose.resources.stringResource
  * A food's actions (design sync 4, 13.3d), from its row or its ⋮ on Today: the food with its
  * amount, how it was logged, its meal and its energy through the policy, then what can be done
  * with it. With `release.foodActions` off only Delete is offered, as the item sheet always did.
- * Deleting is a tombstone, so it syncs.
+ * Deleting is a tombstone, so it syncs. On a day closed with Close the day only what leaves the
+ * day as it is stays (copying it to another day, starring the food), with the closed line and
+ * Reopen under them.
  */
 data class ItemSheetState(
     val loading: Boolean = true,
@@ -109,6 +113,9 @@ data class ItemSheetState(
     /** The rows offered, in the design's order. */
     val actions: List<FoodAction> = emptyList(),
     val step: ItemStep = ItemStep.Actions,
+    /** The day was closed with Close the day; [isToday] picks how the closed line names it. */
+    val closed: Boolean = false,
+    val isToday: Boolean = true,
 )
 
 enum class FoodAction { ChangeAmount, Move, CopyToDay, EditCopy, Favorite, Unfavorite, Delete }
@@ -139,6 +146,7 @@ sealed interface ItemSheetAction {
     data object EditCopyTapped : ItemSheetAction
     data object FavoriteTapped : ItemSheetAction
     data object DeleteTapped : ItemSheetAction
+    data object ReopenTapped : ItemSheetAction
     data object BackTapped : ItemSheetAction
     data object CloseTapped : ItemSheetAction
 }
@@ -148,6 +156,9 @@ sealed interface ItemSheetEvent {
 
     /** Edit a copy of the entry; the sheet gives way to it. */
     data class OpenEditCopy(val day: LocalDate, val entryId: String) : ItemSheetEvent
+
+    /** A change the closed day refused, closed since the sheet opened (maybe on another phone). */
+    data class DayClosed(val day: LocalDate) : ItemSheetEvent
     data object Dismiss : ItemSheetEvent
 }
 
@@ -164,6 +175,8 @@ object ItemSheetStateBuilder {
         step: ItemStep = ItemStep.Actions,
     ): ItemSheetState? {
         val item = day.allItems.firstOrNull { it.id == entryId } ?: return null
+        val closed = day.closedByUser
+        val offered = if (actionsOn) actions(item, settings) else listOf(FoodAction.Delete)
         return ItemSheetState(
             loading = false,
             name = item.name,
@@ -171,8 +184,10 @@ object ItemSheetStateBuilder {
             precision = item.precision,
             calories = policy.resolve(Metric.Calories, item.kcal, Surface.Today, day.formatContext(today)),
             slot = item.slot,
-            actions = if (actionsOn) actions(item, settings) else listOf(FoodAction.Delete),
+            actions = if (closed) offered.filter { it in LEAVE_THE_DAY_AS_IT_IS } else offered,
             step = step,
+            closed = closed,
+            isToday = day.date == today,
         )
     }
 
@@ -198,6 +213,9 @@ object ItemSheetStateBuilder {
     }
 
     private const val TIMES = "×"
+
+    /** What a closed day still offers: copying out and starring change nothing on it. */
+    private val LEAVE_THE_DAY_AS_IT_IS = setOf(FoodAction.CopyToDay, FoodAction.Favorite, FoodAction.Unfavorite)
 }
 
 @Inject
@@ -231,13 +249,10 @@ class ItemSheetViewModel(
                 arrived = action
                 action.rebuild()
             }
-            ItemSheetAction.DeleteTapped -> {
-                val slot = state.slot
-                dismissed = true
+            ItemSheetAction.DeleteTapped -> done(Toast(Res.string.today_toast_removed, listOf(state.slot.sentenceName))) {
                 diary.removeItem(entryId)
-                sendEvent(ItemSheetEvent.ShowToast(Toast(Res.string.today_toast_removed, listOf(slot.sentenceName))))
-                sendEvent(ItemSheetEvent.Dismiss)
             }
+            ItemSheetAction.ReopenTapped -> diary.reopenDay(day)
             ItemSheetAction.CloseTapped -> dismissOnce()
             ItemSheetAction.BackTapped -> action.go(ItemStep.Actions)
             else -> if (foodActions()) foodAction(action)
@@ -275,25 +290,36 @@ class ItemSheetViewModel(
                 val to = calendar.today().plus(DatePeriod(days = copy.day.offset))
                 done(Toast(Res.string.today_toast_copied_foods_one)) { editor.copyItems(listOf(entryId), to, slot) }
             }
-            ItemSheetAction.EditCopyTapped -> {
+            ItemSheetAction.EditCopyTapped -> if (!dismissed) {
                 dismissed = true
                 sendEvent(ItemSheetEvent.OpenEditCopy(day, entryId))
             }
             ItemSheetAction.FavoriteTapped -> {
                 val key = item.foodRef()?.key ?: return
+                if (dismissed) return
                 val starred = settingsRepository.update { it.toggleFavorite(key) }.isFavorite(key)
-                done(Toast(if (starred) Res.string.today_toast_favorited else Res.string.today_toast_unfavorited)) {}
+                done(Toast(if (starred) Res.string.today_toast_favorited else Res.string.today_toast_unfavorited)) { DayWrite.Written(Unit) }
             }
             else -> Unit
         }
     }
 
-    /** Writes, says so, and closes; the entry changing under the sheet must not close it twice. */
-    private suspend fun done(toast: Toast, write: suspend () -> Unit) {
+    /**
+     * Writes, says so, and closes; the entry changing under the sheet must not close it twice. The
+     * sheet takes a moment to slide away, and a second tap in that time does nothing: it would copy
+     * the food again, or star it and unstar it. A write the day refused, closed since the sheet
+     * opened, gives way to the closed sheet.
+     */
+    private suspend fun done(toast: Toast, write: suspend () -> DayWrite<*>) {
+        if (dismissed) return
         dismissed = true
-        write()
-        sendEvent(ItemSheetEvent.ShowToast(toast))
-        sendEvent(ItemSheetEvent.Dismiss)
+        when (val result = write()) {
+            is DayWrite.Written -> {
+                sendEvent(ItemSheetEvent.ShowToast(toast))
+                sendEvent(ItemSheetEvent.Dismiss)
+            }
+            is DayWrite.DayClosed -> sendEvent(ItemSheetEvent.DayClosed(result.day))
+        }
     }
 
     private fun item(): LogItem? = arrived?.day?.allItems?.firstOrNull { it.id == entryId }
@@ -357,6 +383,7 @@ private fun Actions(state: ItemSheetState, onAction: (ItemSheetAction) -> Unit) 
             }
         }
     }
+    if (state.closed) DayClosedNotice(isToday = state.isToday, onReopen = { onAction(ItemSheetAction.ReopenTapped) })
 }
 
 /** "Peanut butter" over "2 tbsp · Weighed · Snack · 190 kcal". The energy goes through the policy. */

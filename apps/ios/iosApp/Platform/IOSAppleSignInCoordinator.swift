@@ -33,9 +33,13 @@ class IOSAppleSignInCoordinator: NSObject, IdentityAppleSignInCoordinator {
         let controller = ASAuthorizationController(authorizationRequests: [request])
         let delegate = AppleSignInDelegate(
             rawNonce: rawNonce, // raw nonce travels back for Supabase
-            onComplete: onComplete,
-            onFinish: { [weak self] in self?.delegate = nil }
+            onComplete: onComplete
         )
+        // Release only this flow's delegate. If a second request starts before the first ends,
+        // the first ending must not drop the second's delegate, whose callback would never fire.
+        delegate.onFinish = { [weak self, weak delegate] in
+            if let self, self.delegate === delegate { self.delegate = nil }
+        }
 
         controller.delegate = delegate
         controller.presentationContextProvider = delegate
@@ -86,16 +90,14 @@ private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDele
     var controller: ASAuthorizationController?
     private let rawNonce: String
     private var onComplete: ((IdentityAppleSignInCredential?, String?) -> Void)?
-    private let onFinish: () -> Void
+    var onFinish: (() -> Void)?
 
     init(
         rawNonce: String,
-        onComplete: @escaping (IdentityAppleSignInCredential?, String?) -> Void,
-        onFinish: @escaping () -> Void
+        onComplete: @escaping (IdentityAppleSignInCredential?, String?) -> Void
     ) {
         self.rawNonce = rawNonce
         self.onComplete = onComplete
-        self.onFinish = onFinish
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
@@ -156,6 +158,7 @@ private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDele
     private func cleanup() {
         onComplete = nil
         controller = nil
-        onFinish()
+        onFinish?()
+        onFinish = nil
     }
 }

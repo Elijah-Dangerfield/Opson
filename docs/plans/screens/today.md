@@ -115,7 +115,7 @@ State gains `selection: Selection?` (ids, count, energy and macro totals as
 Good; sleep Poor, OK, Good; moods Calm, Social, Stressed, Tired, Low, Happy),
 stored as JSON on the day record (Room 9 `day_records.checkIn`, server V18
 `day_records.check_in`, both additive; the server checks length only), written
-by `DayCheckIns.setCheckIn(day, checkIn)` on Close the day, never on Back. Shown in every mode; Blind's "How did today
+with the close, `closeDay(day, DayReflection(checkIn = ...))`, on Close the day, never on Back. Shown in every mode; Blind's "How did today
 feel?" steps aside while the flag is on. A row left blank stays blank. Feeding
 Patterns is Trends' work and the Reminders switch for the card is Settings'
 (TODOs there).
@@ -216,7 +216,7 @@ Previews (`TodayPreviews.kt`): `today-summary-in-out`, `-in-out-light`,
 | Was | Now |
 |---|---|
 | Sticky hero with header, 3-page pager, rings, ring-mode toggle, scores page | A plain header on the page colour, then **one** hero card chosen by layout and calorie level. No pager, no rings, no Remaining/Balance, no scores (cut in v3), no "Turn on". |
-| Header check button and + (Add menu) | Neither. Close the day is a labelled card after the meals and a ⋮ item. Adding is the nav + or a meal's +. |
+| Header check button and + (Add menu) | Neither. Close the day is a labelled card after the meals and a ⋮ item. Adding is the nav + or a meal's +. (2026-10-27: Close the day is a check button in the header again, filled once the day is closed, and the Nutrients link is the summary card's last page.) |
 | Meal cards with "Nothing logged" | Empty meals collapse to one row; the next one offers yesterday's version (Copy) or Saved meals. |
 | Mindful and Coast banners | Gone (Coast's moved to Trends). Sprint's stays. |
 | Up to six days ahead | One day ahead: "Plan, then hide". |
@@ -333,7 +333,8 @@ Layout is `policy.preset.today`: Full, Meals, Rhythm, Explorer, and **Journal**
 | `water` | layout Full, water display `Shown`, not locked. |
 | `meals` | Full: each meal with items or ate-no-details is `Full` (compact macro line when all three macros Show, else the long form of the ones that do; items bare numbers), empty ones `Collapsed`; Uncategorized `Full` when it has items; groups off is one "All food" card. Meals and Rhythm: none. Explorer and Journal: logged meals `Compact` (Journal carries how it felt, or asks), empty ones `Collapsed`. A day ahead: `Planned` / `NotPlanned`. |
 | `Collapsed.usual` | the first meal not done; it alone gets yesterday's version (`dayBefore.items(slot)`, energy policy-resolved) or, with no yesterday, Saved meals. |
-| `closeDay` | every day but a planned one; `closed` from `Day.isClosed(today)`. |
+| `closeDay` | every day but a planned one; `closed` from `Day.closedByUser` (a past day nobody closed is open). |
+| `closed` | `Day.closedByUser`: no + anywhere, no select tools, the closed line with Reopen (`ReopenTapped`). A tap that would add sends `OpenDayClosed(day)`. See `docs/decisions.md`, 2026-10-27. |
 | `menu` | see `today-sheets.md`. |
 
 ## Actions

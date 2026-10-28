@@ -16,6 +16,7 @@ import com.opson.server.domain.RuleConditions
 import com.opson.server.domain.TargetingRule
 import com.opson.server.domain.UserId
 import com.opson.server.http.ClientContext
+import com.opson.server.plugins.problem
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.plugins.BadRequestException
@@ -213,7 +214,7 @@ private suspend fun resolveFlags(
     engine: AppConfigTargetingEngine,
 ): ResolveResponse {
     val context = ClientContext(
-        platform = parsePlatform(request.platform),
+        platform = ClientContext.Platform.fromWire(request.platform),
         appVersion = request.appVersion?.takeUnless { it.isBlank() },
         buildNumber = request.buildNumber,
         // An empty locale list means "no locale preference", so locale-scoped
@@ -245,12 +246,6 @@ private suspend fun resolveFlags(
         )
     }
     return ResolveResponse(flags)
-}
-
-private fun parsePlatform(raw: String?): ClientContext.Platform = when (raw?.lowercase()) {
-    "ios" -> ClientContext.Platform.iOS
-    "android" -> ClientContext.Platform.Android
-    else -> ClientContext.Platform.Other
 }
 
 /**
@@ -287,10 +282,7 @@ private fun String.toUuidOrNull(): UUID? = try {
 }
 
 private suspend fun ApplicationCall.respondProblem(status: HttpStatusCode, code: String, message: String) =
-    respond(status, problemEnvelope(code, message))
-
-private fun problemEnvelope(code: String, message: String): Map<String, Map<String, String>> =
-    mapOf("error" to mapOf("code" to code, "message" to message))
+    respond(status, problem(code, message))
 
 private suspend inline fun <reified T : Any> ApplicationCall.receiveOrNull(): T? = try {
     receive<T>()

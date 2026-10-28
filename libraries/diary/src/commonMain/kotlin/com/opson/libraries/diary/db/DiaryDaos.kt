@@ -217,6 +217,13 @@ interface OutboxDao : ClearableDao {
     @Query("SELECT * FROM outbox WHERE day IS NULL OR day <= :maxDay ORDER BY createdAtEpochMs, id LIMIT :limit")
     suspend fun page(limit: Int, maxDay: String): List<OutboxEntity>
 
+    /** [page] without the [entities] the server said it does not know yet. */
+    @Query(
+        "SELECT * FROM outbox WHERE (day IS NULL OR day <= :maxDay) AND entity NOT IN (:entities) " +
+            "ORDER BY createdAtEpochMs, id LIMIT :limit",
+    )
+    suspend fun pageExcept(limit: Int, maxDay: String, entities: List<String>): List<OutboxEntity>
+
     @Query("SELECT * FROM outbox WHERE id IN (:ids)")
     suspend fun getByIds(ids: List<String>): List<OutboxEntity>
 

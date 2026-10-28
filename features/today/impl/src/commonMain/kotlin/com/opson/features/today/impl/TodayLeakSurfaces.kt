@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.opson.features.today.impl.dayclose.DayClosedSheetContent
+import com.opson.features.today.impl.dayclose.DayClosedState
 import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.ui.components.SheetHandle
@@ -108,6 +110,19 @@ object TodayLeakSurfaces {
         },
         LeakSurface(id = "today-past", label = "Today, a past day", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.pastDay()), onAction = {})
+        },
+        // Closed with Close the day: no +, the closed line with Reopen. The line names no number.
+        LeakSurface(id = "today-closed", label = "Today, closed", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.closedDay(), selectOn = true, foodActionsOn = true), onAction = {})
+        },
+        LeakSurface(id = "day-closed-sheet", label = "This day is closed", showsCaloriesInFull = false) { _ ->
+            DayClosedSheetContent(state = DayClosedState(isToday = true), onAction = {})
+        },
+        LeakSurface(id = "day-close-closed", label = "Day close, already closed", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(state = TodayFixtures.dayCloseState(policy, closed = true), onAction = {})
+        },
+        LeakSurface(id = "food-actions-closed", label = "A food's ⋮ on a closed day", showsCaloriesInFull = true) { policy ->
+            ItemSheetContent(state = TodayFixtures.foodActionsState(policy, closed = true), onAction = {})
         },
         LeakSurface(id = "today-future", label = "Today, planning tomorrow", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.plannedDay()), onAction = {})

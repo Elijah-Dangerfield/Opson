@@ -6,6 +6,9 @@ import com.opson.libraries.opson.AppCache
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.common_send
+import opson.libraries.resources.generated.resources.common_sending
+import opson.libraries.resources.generated.resources.common_sent
 import opson.libraries.resources.generated.resources.feedback_empty
 import opson.libraries.resources.generated.resources.feedback_failed
 import org.jetbrains.compose.resources.StringResource
@@ -33,10 +36,13 @@ class BugReportViewModel(
         }
     }
 
-    /** Only a sent report counts and closes the page; a failed one stays, with a line saying so. */
+    /**
+     * Only a sent report counts and closes the page; a failed one stays, with a line saying so.
+     * A second tap queued behind the first send is dropped by [BugReportState.isSent].
+     */
     private suspend fun BugReportAction.submitBugReport() {
         val current = state
-        if (current.isSubmitting) return
+        if (current.isSubmitting || current.isSent) return
         if (current.message.isBlank()) {
             updateState { it.copy(errorMessage = Res.string.feedback_empty) }
             return
@@ -46,14 +52,15 @@ class BugReportViewModel(
             message = current.message.trim(),
             isBugReport = true,
             logId = current.logId,
-            errorCode = current.errorCode
+            errorCode = current.errorCode,
+            contextMessage = current.contextMessage,
         ).isSuccess
         if (!sent) {
             updateState { it.copy(isSubmitting = false, errorMessage = Res.string.feedback_failed) }
             return
         }
         appCache.update { it.copy(bugsReported = it.bugsReported + 1) }
-        updateState { it.copy(isSubmitting = false) }
+        updateState { it.copy(isSubmitting = false, isSent = true) }
         sendEvent(BugReportEvent.Sent)
     }
 }
@@ -65,7 +72,21 @@ data class BugReportState(
     val logId: String? = null,
     val errorCode: Int? = null,
     val contextMessage: String? = null,
+    val isSent: Boolean = false,
 ) {
+    val canSubmit: Boolean get() = message.isNotBlank() && !isSubmitting && !isSent
+
+    /**
+     * Sent stays on the button: if the page outlives its close (its Sent event expired while the
+     * app was in the background), Send is greyed out for good, and this says why.
+     */
+    val sendLabel: StringResource
+        get() = when {
+            isSent -> Res.string.common_sent
+            isSubmitting -> Res.string.common_sending
+            else -> Res.string.common_send
+        }
+
     val hasContext: Boolean
         get() = !contextMessage.isNullOrBlank() || !logId.isNullOrBlank() || errorCode != null
 }

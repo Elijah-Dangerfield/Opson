@@ -76,6 +76,28 @@ data class LoggedBefore(val last: Map<String, LogItem> = emptyMap(), val habits:
     }
 }
 
+/**
+ * What a one-tap + has logged that the day has not shown back yet. A second tap queued behind
+ * the first runs before the day is read again, so the row has no ✓ to take it back out yet and
+ * would log the food twice; while its key is here a tap is ignored. Once the day shows the
+ * items, [addedSince][FoodPicks.addedSince] has them and the ✓ takes over.
+ */
+internal class UnshownLogs {
+    private val byKey = mutableMapOf<String, List<String>>()
+
+    operator fun contains(key: String): Boolean = key in byKey
+
+    fun logged(key: String, itemIds: List<String>) {
+        if (itemIds.isNotEmpty()) byKey[key] = itemIds
+    }
+
+    /** The day was read again: whatever it shows is no longer waiting. */
+    fun shown(day: Day) {
+        val there = day.allItems.mapTo(HashSet()) { it.id }
+        byKey.values.removeAll { ids -> ids.any { it in there } }
+    }
+}
+
 internal object FoodPicks {
 
     /** A food from the diary, at the amount it was logged: what Usual and Recent list. */

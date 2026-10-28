@@ -4,6 +4,7 @@ import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.TestClient
 import com.opson.integration.helpers.randomUserId
 import com.opson.libraries.diary.CustomFoodDraft
+import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
@@ -11,6 +12,8 @@ import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.foods.AmountUnit
+import com.opson.libraries.foods.draftFor
 import kotlinx.coroutines.flow.first
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -147,5 +150,40 @@ class TwoDeviceSyncTest : IntegrationTest() {
         assertEquals(Precision.Label, b.itemsToday().single().precision)
         val id = a.itemsToday().single().id
         assertEquals("label", server.query("SELECT precision FROM log_entries WHERE id = ?::uuid", id).single()["precision"])
+    }
+
+    /**
+     * Edit a copy's creamer: a tablespoon weighed at 15 g, a cup at 240 g and the rest of the label.
+     * The other phone gets all of it, so it can log the creamer by the gram too.
+     */
+    @Test
+    fun aWeighedCopyWithSizesAndItsLabel_syncs_andLogsByTheGramOnTheOtherDevice() = integration {
+        val user = randomUserId()
+        val a = client(user)
+        val b = client(user)
+        val creamer = a.customFoods.create(
+            CustomFoodDraft(
+                name = "Hazelnut creamer (mine)",
+                servingAmount = 1.0,
+                servingUnit = "tbsp",
+                kcal = 35.0,
+                carbs = 5.0,
+                fat = 1.5,
+                servingGrams = 15.0,
+                sizes = listOf(FoodUnit("cup", 240.0)),
+                micros = mapOf("sugars_g" to 5.0, "saturated_fat_g" to 1.0),
+            ),
+        )
+        a.syncNow().getOrThrow()
+        b.syncNow().getOrThrow()
+
+        val onB = b.customFoods.observeAll().first().single()
+        assertEquals(creamer, onB)
+        val grams = onB.draftFor(AmountUnit.Grams, 30.0)
+        assertEquals(70.0, grams.kcal!!, 0.001)
+        assertEquals(10.0, grams.micros?.get("sugars_g")!!, 0.001)
+        val row = server.query("SELECT serving_grams, sizes::text AS sizes FROM custom_foods WHERE id = ?::uuid", creamer.id).single()
+        assertEquals(15.0, (row["serving_grams"] as Number).toDouble())
+        assertTrue(row["sizes"].toString().contains("cup"))
     }
 }

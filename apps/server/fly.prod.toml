@@ -11,10 +11,19 @@
 #   - Console:   fly ssh console -a opson-server-prod
 #   - Status:    fly status -a opson-server-prod
 #
-# Required secrets (set separately, see apps/server/DEPLOY.md):
-#   DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and optionally
-#   SENTRY_DSN. The `-prod` suffix on the app name is load-bearing: the server
-#   derives environment=prod from FLY_APP_NAME (see ServerConfig).
+# Secrets (set separately, see apps/server/DEPLOY.md and the README's
+# environment table):
+#   - required: DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY;
+#   - required for App Review: APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY
+#     (deletion revokes the Sign in with Apple token);
+#   - before release.photo is on: ANTHROPIC_API_KEY;
+#   - for the admin console and the site's form: ADMIN_API_TOKEN,
+#     WAITLIST_ALLOWED_ORIGINS;
+#   - to see errors and traces anywhere but `fly logs`: SENTRY_DSN,
+#     OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS.
+# The boot log's "Features" line says which of these are on. The `-prod`
+# suffix on the app name is load-bearing: the server derives environment=prod
+# from FLY_APP_NAME (see ServerConfig).
 #
 # Rename `app` to your own Fly app before the first deploy.
 
@@ -32,7 +41,7 @@ primary_region = 'iad'   # pick the region closest to your database
   # 512m heap + 96m metaspace cap leaves ~400MB for the ~150-200MB off-heap
   # floor (Netty direct buffers, thread stacks, JIT) + OS headroom. Keep
   # SerialGC for now (single small machine); revisit (G1) if pause times bite.
-  JAVA_OPTS = '-Xms128m -Xmx512m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC -XX:+UnlockExperimentalVMOptions'
+  JAVA_OPTS = '-Xms128m -Xmx512m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC'
 
 [http_service]
   internal_port = 8080

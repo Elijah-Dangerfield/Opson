@@ -317,10 +317,10 @@ def build_and_upload(distribute_external:)
 
   # Rescue TestFlight upload/distribute so a fastlane↔ASC API hiccup at the
   # last step — e.g. the "Cannot add internal group to a build" regression in
-  # fastlane#22051 — doesn't skip the App Store submission below. The binary
-  # reaches ASC before any group-assignment call, so if that's where it
-  # fails, the upload is already durable and `deliver` below can still submit
-  # the build for App Store review.
+  # fastlane#22051 — doesn't fail the job and skip the `submit` job that
+  # follows it. The binary reaches ASC before any group-assignment call, so if
+  # that's where it fails, the upload is already durable and :submit can still
+  # address it by number.
   external_group = ENV["TESTFLIGHT_EXTERNAL_GROUP"] || "External Testers"
   begin
     upload_to_testflight(
@@ -335,15 +335,12 @@ def build_and_upload(distribute_external:)
     )
   rescue => e
     UI.important("upload_to_testflight raised (non-fatal): #{e.message}")
-    UI.important("If the log above shows the binary reached ASC, distribute manually via TestFlight → External Testing → '#{external_group}'. Continuing to App Store submission.")
+    UI.important("If the log above shows the binary reached ASC, distribute manually via TestFlight → External Testing → '#{external_group}'.")
   end
 
-  upload_sentry_release(marketing_version, build_number)
+  upload_sentry_release
 ensure
   File.delete(asc_key_path) if defined?(asc_key_path) && asc_key_path && File.exist?(asc_key_path)
-  if defined?(metadata_path) && metadata_path && File.directory?(metadata_path)
-    FileUtils.rm_rf(metadata_path)
-  end
   if defined?(keychain_created) && keychain_created
     begin
       delete_keychain(name: CI_KEYCHAIN_NAME)
@@ -391,14 +388,24 @@ def build_changelog(build_number, marketing_version)
   ].compact.join("\n")
 end
 
-def upload_sentry_release(marketing_version, build_number)
-  return unless ENV["SENTRY_AUTH_TOKEN"] && !ENV["SENTRY_AUTH_TOKEN"].empty?
+# The release the app reports its events under: "opson@<versionName>+<buildNumber>"
+# from BuildInfo (SentryRuntimeConfig.forApp in AppTelemetry.kt), which
+# build_and_upload bakes from VERSION_NAME_OVERRIDE and BUILD_NUMBER_OVERRIDE.
+# Not the CFBundleVersion timestamp: a release under that name got the commits
+# while every event landed on another one, so suspect commits and release
+# health never worked on iOS.
+def sentry_release_name
+  "opson@#{ENV.fetch("VERSION_NAME_OVERRIDE")}+#{ENV.fetch("BUILD_NUMBER_OVERRIDE")}"
+end
+
+def upload_sentry_release
+  if ENV["SENTRY_AUTH_TOKEN"].to_s.empty?
+    UI.important("SENTRY_AUTH_TOKEN not set: no dSYMs uploaded, so this build's crashes arrive unsymbolicated.")
+    return
+  end
   org = ENV.fetch("SENTRY_ORG")
   project = ENV.fetch("SENTRY_PROJECT")
-  # Must match the client's Sentry release name exactly (AppTelemetry.kt,
-  # SentryRuntimeConfig.forApp: "opson@<version>+<build>") or events
-  # won't attach to the release created here.
-  release = "opson@#{marketing_version}+#{build_number}"
+  release = sentry_release_name
 
   # OUTPUT_DIR is where gym drops its dSYM *zip*, and pointing sentry-cli at
   # that directory uploads nothing at all. It logs "Found 0 debug information

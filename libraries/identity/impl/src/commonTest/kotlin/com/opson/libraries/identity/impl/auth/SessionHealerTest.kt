@@ -101,6 +101,21 @@ class SessionHealerTest : CoroutineTest() {
     }
 
     @Test
+    fun skip_withoutRetrying_whenTheLastStateIsASignOut() = runUnitTest {
+        // A sign-out that couldn't reach the auth server used to leave the
+        // session behind, and retry() revived it: the person was signed back in.
+        val signedOut = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
+        val auth = FakeAuth(current = signedOut, retryResult = authed())
+        val healer = build(auth, onboarded = true)
+
+        healer.onConnectivityRegained(AppEvent.ConnectivityRegained)
+        advanceUntilIdle()
+
+        assertEquals(0, auth.retries, "a deliberate sign-out is never re-resolved")
+        assertEquals(emptyList(), auth.markedUnrecoverable)
+    }
+
+    @Test
     fun skip_whenNotOnboarded() = runUnitTest {
         val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())
         val healer = build(auth, onboarded = false)
@@ -200,14 +215,61 @@ class SessionHealerTest : CoroutineTest() {
         )
     }
 
+    @Test
+    fun aStrandedAccount_isHeldForWhoeverSignsInNext() = runUnitTest {
+        // Its session died before this run saw it signed in, so the auth layer
+        // never held it. Without the hold, whoever signs in next keeps its rows.
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())
+        val healer = build(auth, profile = cachedAccount(isAnonymous = false), expiredAccounts = expiredAccounts)
+
+        healer.onColdBoot(AppEvent.ColdBoot)
+        advanceUntilIdle()
+
+        assertEquals(listOf(false), auth.markedUnrecoverable)
+        assertEquals(ExpiredAccount(userId = "u1", wasAnonymous = false), expiredAccounts.read())
+    }
+
+    @Test
+    fun aRelaunchAfterASessionExpiry_sendsTheHeldAccountToSignIn_withItsGuestCopy() = runUnitTest {
+        // The profile cache is gone (cleared on expiry) but the account's meals
+        // are still on the device, held for it to sign back in.
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        expiredAccounts.hold(ExpiredAccount(userId = "guest-1", wasAnonymous = true))
+        val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())
+        val healer = build(auth, onboarded = true, offline = true, expiredAccounts = expiredAccounts)
+
+        healer.onColdBoot(AppEvent.ColdBoot)
+        advanceUntilIdle()
+
+        assertEquals(listOf(true), auth.markedUnrecoverable, "routed to sign in, even offline, with the guest copy")
+    }
+
+    @Test
+    fun aRelaunchAfterTheSignInAgainTap_staysOnSignIn_withoutTheExpiredScreenAgain() = runUnitTest {
+        // The tap resets onboarding and keeps the hold; a relaunch before the
+        // person finishes signing in belongs on onboarding's sign-in step.
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        expiredAccounts.hold(ExpiredAccount(userId = "user-1", wasAnonymous = false))
+        val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())
+        val healer = build(auth, onboarded = false, expiredAccounts = expiredAccounts)
+
+        healer.onColdBoot(AppEvent.ColdBoot)
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), auth.markedUnrecoverable)
+    }
+
     private fun build(
         auth: AuthRepository,
         onboarded: Boolean = true,
         offline: Boolean = false,
         profile: Profile = Profile.Fallback(id = "local"),
+        expiredAccounts: ExpiredAccountStore = ExpiredAccountStore(TestCacheFactory()),
     ) = SessionHealer(
         authRepositoryProvider = { auth },
         profileRepositoryProvider = { FakeProfile(profile) },
+        expiredAccounts = expiredAccounts,
         appCache = FakeAppCache(onboarded),
         appState = FakeAppState(MutableStateFlow(offline)),
         appScope = AppCoroutineScope(dispatchers),
@@ -249,8 +311,13 @@ class SessionHealerTest : CoroutineTest() {
         private val gate: CompletableDeferred<Unit>? = null,
     ) : AuthRepository {
         val markedUnrecoverable = mutableListOf<Boolean>()
+        var retries = 0
+            private set
         override suspend fun current(): AuthState = current
-        override suspend fun retry(): AuthState = retryResult
+        override suspend fun retry(): AuthState {
+            retries++
+            return retryResult
+        }
         override suspend fun markSessionUnrecoverable(wasAnonymous: Boolean) {
             markedUnrecoverable += wasAnonymous
             gate?.await()

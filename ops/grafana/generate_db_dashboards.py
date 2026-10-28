@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes the generated dashboards in this folder: the Postgres-backed product
-boards, Pulse, and the Users and User detail boards.
+boards (Food review among them), Pulse, and the Users and User detail boards.
 
 The dashboards are generated rather than hand-edited so that every panel uses
 the same datasource, environment toggle, time handling and thresholds, and so a
@@ -637,6 +637,76 @@ b.loki_series("Scanner", [
     loki("D", f'sum(count_over_time({CLIENT} | event_name="barcode.permission_denied" [$__interval]))', "camera denied"),
     loki("E", f'sum(count_over_time({CLIENT} | event_name="barcode.camera_unavailable" [$__interval]))', "camera unavailable"),
 ], "Client events. Camera denied and unavailable count people who could not use the camera; they can still type the code.")
+b.write()
+
+# ── Food review ────────────────────────────────────────────────────────────
+# Foods people add from photos of a pack (V25, release.submitFood). The views carry ids, counts and
+# ages only: no name, barcode or number from a label, and no account. A pending row links into the
+# admin console, which fetches the photos with its token; Grafana never sees them.
+ADMIN_REVIEW = "https://opson-server-${env:text}.fly.dev/admin/#review/${__value.raw}"
+FOODS_LINK = link("Food catalog", "/d/opson-foods/opson-food-catalog?var-env=${env}")
+b = Board("opson-food-review", "Opson · Food review",
+          "Foods people added from photos of a pack, waiting for review. A reviewer approves them in the admin "
+          "console's Review tab; each pending row here links there. Approved foods join search and barcode lookup "
+          "for everyone.\n\nThe app half of the funnel (a miss, Add this food, the photos, the read, the submission) "
+          "is Loki and cannot see past 31 days; the review half is Postgres.",
+          links=[FOODS_LINK])
+b.row("The queue")
+b.sql_stat("Waiting for review", "SELECT count(*) FROM analytics.food_submission_queue",
+           "Submissions nobody has approved or rejected yet.", thresholds=steps(("green", None), ("orange", 20), ("red", 100)))
+b.sql_stat("Oldest waiting", "SELECT coalesce(max(age_hours), 0) FROM analytics.food_submission_queue",
+           "Hours since the oldest pending submission was sent. Its submitter has it already; everyone else waits.",
+           unit="h", decimals=1, thresholds=steps(("green", None), ("orange", 48), ("red", 168)))
+b.sql_stat("Median wait",
+           "SELECT coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY age_hours), 0) FROM analytics.food_submission_queue",
+           "The middle pending submission's age.", unit="h", decimals=1)
+b.sql_stat("Suggested barcodes waiting", "SELECT coalesce(max(suggestions), 0) FROM analytics.barcode_link_queue",
+           "Barcodes someone missed and then found by searching, waiting to be attached or dismissed.")
+b.row("Submitted and decided")
+b.series("Submissions per day", [sql("A",
+         "SELECT day::timestamp AS time, submitted AS \"submitted\" FROM analytics.food_submissions_daily "
+         "WHERE $__timeFilter(day::timestamp) ORDER BY 1")],
+         "Foods people sent for review, by the day they sent them.", bars=True)
+b.series("Decisions per day", [sql("A",
+         "SELECT day::timestamp AS time, approved AS \"approved\", rejected AS \"rejected\" FROM analytics.food_submissions_daily "
+         "WHERE $__timeFilter(day::timestamp) ORDER BY 1")],
+         "Approvals and rejections, by the day of the decision.", bars=True, stacked=True)
+b.sql_stat("Approval rate",
+           "SELECT coalesce(sum(approved)::float / nullif(sum(approved) + sum(rejected), 0), 0) "
+           "FROM analytics.food_submissions_daily WHERE $__timeFilter(day::timestamp)",
+           "Of the decisions in the range, the share approved. Low means the reading or the form needs work.",
+           unit="percentunit", decimals=1, w=8)
+b.sql_stat("Decided in range",
+           "SELECT coalesce(sum(approved) + sum(rejected), 0) FROM analytics.food_submissions_daily "
+           "WHERE $__timeFilter(day::timestamp)", "Approvals and rejections in the range.", w=8)
+b.sql_stat("Failing a check, pending",
+           "SELECT count(*) FILTER (WHERE failed_checks > 0) FROM analytics.food_submission_queue",
+           "Pending submissions the label checks flag: energy against the macros, per serving against per 100, "
+           "sodium, missing or impossible amounts. Review these first.", w=8)
+b.row("Pending")
+b.sql_table("Pending submissions",
+            "SELECT submission_id, submitted_at, age_hours, origin, has_barcode, failed_checks "
+            "FROM analytics.food_submission_queue",
+            "Oldest first. The id opens the submission in this environment's admin console, which needs the admin "
+            "token and shows the photos; nothing here does.", w=24, h=10, no_value="Nothing waiting",
+            overrides=[{"matcher": {"id": "byName", "options": "submission_id"}, "properties": [
+                {"id": "links", "value": [{"title": "Review in the admin console", "url": ADMIN_REVIEW, "targetBlank": True}]},
+            ]}])
+b.row("The app's funnel")
+b.loki_series("Add this food, step by step", [
+    loki("A", f'sum(count_over_time({CLIENT} | event_name="barcode.miss" [$__interval]))', "barcode missed"),
+    loki("B", f'sum(count_over_time({CLIENT} | event_name="food_add.started" [$__interval]))', "add started"),
+    loki("C", f'sum(count_over_time({CLIENT} | event_name="food_add.photo_taken" | side="label" [$__interval]))', "label photo taken"),
+    loki("D", f'sum(count_over_time({CLIENT} | event_name="food_add.read" | outcome="read" [$__interval]))', "label read"),
+    loki("E", f'sum(count_over_time({CLIENT} | event_name="food_add.submitted" | sent="true" [$__interval]))', "sent for review"),
+], "Client events, no barcode or food in any of them. Approval is the Postgres half above.", w=24)
+b.loki_table("Where people stop",
+             f'sum by (stage) (count_over_time({CLIENT} | event_name="food_add.abandoned" [$__range]))',
+             "Add this food left before anything was logged, by the step it was left at.")
+b.loki_table("How reads end",
+             f'sum by (outcome) (count_over_time({CLIENT} | event_name="food_add.read" [$__range]))',
+             "Read: the form filled in. no_label: the second photo had no panel. unavailable: no model key on the "
+             "server, so the form opened empty.")
 b.write()
 
 # ── Retention ──────────────────────────────────────────────────────────────

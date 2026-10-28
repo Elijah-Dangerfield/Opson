@@ -46,6 +46,7 @@ import opson.libraries.resources.generated.resources.exercise_delete
 import opson.libraries.resources.generated.resources.exercise_duration
 import opson.libraries.resources.generated.resources.exercise_estimate_label
 import opson.libraries.resources.generated.resources.exercise_estimate_no_weight
+import opson.libraries.resources.generated.resources.exercise_estimate_no_weight_only
 import opson.libraries.resources.generated.resources.exercise_kcal_unit
 import opson.libraries.resources.generated.resources.exercise_minutes_chip
 import opson.libraries.resources.generated.resources.exercise_minutes_unit
@@ -56,6 +57,7 @@ import opson.libraries.resources.generated.resources.exercise_other_name_placeho
 import opson.libraries.resources.generated.resources.exercise_save
 import opson.libraries.resources.generated.resources.exercise_search_clear_cd
 import opson.libraries.resources.generated.resources.exercise_search_none
+import opson.libraries.resources.generated.resources.exercise_search_none_no_other
 import opson.libraries.resources.generated.resources.exercise_search_placeholder
 import opson.libraries.resources.generated.resources.exercise_time
 import opson.libraries.resources.generated.resources.exercise_time_cancel
@@ -225,7 +227,9 @@ private fun Burned(state: ExerciseSheetState) {
         }
     }
     if (state.noWeight) {
-        Text(text = stringResource(Res.string.exercise_estimate_no_weight), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        // "or type the number below" only where there is a field below.
+        val why = if (state.canNumber) Res.string.exercise_estimate_no_weight else Res.string.exercise_estimate_no_weight_only
+        Text(text = stringResource(why), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
     }
 }
 
@@ -251,14 +255,19 @@ private fun ActivityPicker(state: ExerciseSheetState, onAction: (ExerciseSheetAc
     }
     Column {
         if (matches.isEmpty()) {
-            Text(text = stringResource(Res.string.exercise_search_none), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            val none = if (state.offersOther) Res.string.exercise_search_none else Res.string.exercise_search_none_no_other
+            Text(text = stringResource(none), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
         }
-        matches.forEach { (key, label) ->
-            ActivityRow(label, selected = key == state.activity) { onAction(ExerciseSheetAction.ActivityPicked(key)) }
+        matches.forEachIndexed { index, (key, label) ->
+            ActivityRow(label, selected = key == state.activity, divider = state.offersOther || index < matches.lastIndex) {
+                onAction(ExerciseSheetAction.ActivityPicked(key))
+            }
         }
-        val other = stringResource(checkNotNull(exerciseActivityLabel(ExerciseActivities.OTHER)))
-        ActivityRow(other, selected = state.activity == ExerciseActivities.OTHER, divider = false) {
-            onAction(ExerciseSheetAction.ActivityPicked(ExerciseActivities.OTHER))
+        if (state.offersOther) {
+            val other = stringResource(checkNotNull(exerciseActivityLabel(ExerciseActivities.OTHER)))
+            ActivityRow(other, selected = state.activity == ExerciseActivities.OTHER, divider = false) {
+                onAction(ExerciseSheetAction.ActivityPicked(ExerciseActivities.OTHER))
+            }
         }
     }
 }

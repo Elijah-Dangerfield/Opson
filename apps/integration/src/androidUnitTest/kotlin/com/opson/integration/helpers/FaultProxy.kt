@@ -19,6 +19,7 @@ import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.request.uri
+import io.ktor.server.response.header
 import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
@@ -54,8 +55,12 @@ import kotlin.concurrent.thread
 class FaultProxy(private val upstream: String) : AutoCloseable {
 
     sealed interface Fault {
-        /** Answer [status] without forwarding. */
-        data class Status(val status: HttpStatusCode, val body: String = """{"code":"injected","message":"fault"}""") : Fault
+        /** Answer [status], with [headers], without forwarding. */
+        data class Status(
+            val status: HttpStatusCode,
+            val body: String = """{"code":"injected","message":"fault"}""",
+            val headers: Map<String, String> = emptyMap(),
+        ) : Fault
 
         /** Never answer; the client's request timeout ends it. Not forwarded. */
         data object Hang : Fault
@@ -125,7 +130,10 @@ class FaultProxy(private val upstream: String) : AutoCloseable {
         requests += path
         val body = call.receiveChannel().readRemaining().readByteArray()
         when (val fault = takeFault(path)) {
-            is Fault.Status -> call.respondBytes(fault.body.toByteArray(), ContentType.Application.Json, fault.status)
+            is Fault.Status -> {
+                fault.headers.forEach { (name, value) -> call.response.header(name, value) }
+                call.respondBytes(fault.body.toByteArray(), ContentType.Application.Json, fault.status)
+            }
             Fault.Hang -> awaitCancellation()
             Fault.Malformed -> call.respondBytes("""{"applied": "this is not a list", """.toByteArray(), ContentType.Application.Json, HttpStatusCode.OK)
             Fault.LoseResponse -> {

@@ -54,25 +54,25 @@ Data used to track you: **No**.
 | Data type | Collected | Linked to the user | Purpose |
 |---|---|---|---|
 | Health & Fitness → Health (food log, weight, how meals felt) | Yes | Yes | App functionality |
-| Identifiers → User ID (anonymous account id) | Yes | Yes | App functionality |
+| Identifiers → User ID (account id) | Yes | Yes | App functionality |
 | Usage Data → Product interaction | Yes | Yes | Analytics |
 | Diagnostics → Crash data, Performance data | Yes | Yes | App functionality |
 | User Content → Customer support (feedback text, sent to Sentry) | Yes | Yes | App functionality |
 | Search History → Search history (food searches, stored without the account; can appear in a crash report about a failed search) | Yes | Yes | App functionality, Analytics |
-| Contact info → Email | Only if the user signs in with Apple | Yes | App functionality |
+| Contact info → Email (from Sign in with Apple or Google, used only to sign in) | Yes | Yes | App functionality |
 
 The app's privacy manifest, `apps/ios/iosApp/PrivacyInfo.xcprivacy`, declares the same types. Change it with this table.
 
-Diagnostics count as linked because `TelemetryUserBinder` attaches the anonymous account id to crash reports and feedback. It never sends the email. Usage events carry an install id rather than the account id, but server logs pair the two, so they are declared as linked too. Search history is declared as linked for the same conservative reason, until crash reports stop carrying failed search URLs (docs/legal-review-2026-10.md).
+Diagnostics count as linked because `TelemetryUserBinder` attaches the account id to crash reports and feedback. It never sends the email. Usage events carry an install id rather than the account id, but server logs pair the two, so they are declared as linked too. Search history is declared as linked for the same conservative reason, until crash reports stop carrying failed search URLs (docs/legal-review-2026-10.md).
 
 ## App Review information
 
-**Sign-in required**: No. The app creates an anonymous account on first launch.
+**Sign-in required**: Yes. Sign in with Apple creates an account on the spot, so no demo account is needed.
 
 **Notes for the reviewer**:
-> No sign-in is needed. On first launch, answer or skip the four questions, then log food from the + button in the middle of the tab bar.
+> On first launch, tap Get started and sign in with Apple, then answer or skip two questions and a statement, and pick a starting mode. Log food from the + button in the middle of the tab bar.
 >
-> The app's core feature is a visibility setting that hides or softens nutrition numbers for people who find them hard. To see full numbers, go to More → Modes and numbers and pick "Full numbers".
+> The app's core feature is a visibility setting that hides or softens nutrition numbers for people who find them hard. To see full numbers, go to More → Modes and numbers and pick "All numbers".
 >
 > Account deletion: More → Support and sharing → Delete everything.
 >
@@ -84,9 +84,9 @@ Diagnostics count as linked because `TelemetryUserBinder` attaches the anonymous
 
 6.9" display (iPhone 16 Pro Max / 17 Pro Max simulator, 1320 × 2868) is required; Apple scales it for smaller phones. Five shots, in this order:
 
-1. Today in Full numbers with a few meals logged.
+1. Today in All numbers with a few meals logged.
 2. The logger with two foods picked.
-3. Today in Blind mode (meal tiles, no numbers).
+3. Today in No numbers (meal tiles, no numbers).
 4. Modes and numbers.
 5. Trends, week view.
 
