@@ -12,16 +12,15 @@ import com.opson.libraries.foods.nutrientsFor
 import com.opson.libraries.foods.withoutPrintedWeight
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.MacroEnergyCheck
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.MicroUnit
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
-import com.opson.libraries.nutrition.kcalPerGram
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.wireKey
-import kotlin.math.abs
 import kotlin.math.round
 import kotlin.math.roundToInt
 
@@ -371,22 +370,22 @@ object EditCopyStateBuilder {
     private fun isGrams(name: String): Boolean = HouseholdAmount.unitOf(name).equals(GRAMS, ignoreCase = true)
 
     /**
-     * The 4/4/9 check: protein and carbs are 4 kcal a gram and fat 9. A label rounds every number,
-     * so only a gap of more than [CHECK_SHARE] and [CHECK_KCAL] is worth a word. Only where energy
-     * and all three macros show.
+     * The 4/4/9 check, [MacroEnergyCheck]'s, so a label's rounding and the ways it counts fiber
+     * are not a typo. Only where energy and all three macros show.
      */
     private fun energyCheck(form: CopyForm, policy: VisibilityPolicy): EnergyCheck? {
         val needs = listOf(Metric.Calories, Metric.Protein, Metric.Carbs, Metric.Fat)
         if (needs.any { policy.effectiveLevel(it, Surface.Foods) != Visibility.Show }) return null
         val kcal = form.values[CopyNutrient.KCAL]?.toDoubleOrNull() ?: return null
-        val grams = listOf(CopyNutrient.PROTEIN, CopyNutrient.CARBS, CopyNutrient.FAT).map { form.values[it]?.toDoubleOrNull() }
-        if (grams.all { it == null }) return null
-        val (protein, carbs, fat) = grams.map { it ?: 0.0 }
-        val computed = protein * Metric.Protein.kcalPerGram + carbs * Metric.Carbs.kcalPerGram + fat * Metric.Fat.kcalPerGram
-        val gap = abs(kcal - computed)
-        if (gap <= CHECK_KCAL || gap <= computed * CHECK_SHARE) return null
-        val shown = policy.resolve(Metric.Calories, computed, Surface.Foods, FormatContext(bare = true)).takeIf { it is Display.Shown } ?: return null
-        return EnergyCheck(computed = shown, fix = computed.roundToInt().toString())
+        val grams = listOf(
+            Metric.Protein to CopyNutrient.PROTEIN,
+            Metric.Carbs to CopyNutrient.CARBS,
+            Metric.Fat to CopyNutrient.FAT,
+            Metric.Fiber to CopyNutrient.FIBER,
+        ).mapNotNull { (metric, key) -> form.values[key]?.toDoubleOrNull()?.let { metric to it } }.toMap()
+        val mismatch = MacroEnergyCheck.mismatch(kcal, grams) ?: return null
+        val shown = policy.resolve(Metric.Calories, mismatch.macroKcal, Surface.Foods, FormatContext(bare = true)).takeIf { it is Display.Shown } ?: return null
+        return EnergyCheck(computed = shown, fix = mismatch.macroKcal.roundToInt().toString())
     }
 
     // ── Saving ──────────────────────────────────────────────────────────────
@@ -469,6 +468,4 @@ object EditCopyStateBuilder {
     private const val GRAMS = "g"
     private const val HUNDRED = 100.0
     private const val PERCENT = 100.0
-    private const val CHECK_KCAL = 15.0
-    private const val CHECK_SHARE = 0.15
 }
