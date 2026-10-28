@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
@@ -112,7 +113,16 @@ class SettingsStore(
             // pull brings the change back; a crash after the cache write alone
             // would leave a change that never syncs.
             transactor.inTransaction {
-                outbox.enqueue(SyncEntity.Settings, SETTINGS_ENTITY_ID, settingsPayload(next, updatedAt), base, nowMs)
+                // Settings that never synced go up whole. After that only the keys this phone
+                // changed go up, so the server's shallow merge keeps what another phone set in
+                // the rest (No numbers picked there while this phone swaps its main number).
+                val payload = if (base == null) {
+                    settingsPayload(next, updatedAt)
+                } else {
+                    val waiting = outbox.pendingFor(SyncEntity.Settings.wire, SETTINGS_ENTITY_ID)?.payload
+                    settingsPatchPayload(before, next, updatedAt, waiting)
+                }
+                outbox.enqueue(SyncEntity.Settings, SETTINGS_ENTITY_ID, payload, base, nowMs)
             }
             cache.set(record.copy(settings = next, dirtyWhileUnknown = false, clientUpdatedAtEpochMs = updatedAt))
             UpdateResult(next, queued = true)
@@ -207,7 +217,7 @@ internal fun Settings.stampedAgainst(before: Settings, nowEpochMs: Long): Settin
  */
 internal fun settingsPayload(settings: Settings, updatedAtEpochMs: Long): String {
     val encoded = SettingsJson.encodeToJsonElement(Settings.serializer(), settings).jsonObject
-    val wire = JsonObject(encoded + ("preset" to JsonPrimitive(settings.numbers.preset.key)))
+    val wire = JsonObject(encoded + (PRESET_KEY to JsonPrimitive(settings.numbers.preset.key)))
     return WireJson.encodeToString(
         SettingsRowDto.serializer(),
         SettingsRowDto(
@@ -217,6 +227,36 @@ internal fun settingsPayload(settings: Settings, updatedAtEpochMs: Long): String
         ),
     )
 }
+
+/**
+ * A settings row holding only the top-level keys that differ between [before] and [next], on top
+ * of the keys a change still [waiting] in the outbox carries, since a newer change replaces that
+ * row there. A key [next] no longer has goes up as null; leaving it out would keep the server's
+ * value. `preset` travels with `numbers`, which it mirrors: sent alone, a phone that never saw
+ * the other phone's pick would put its stale preset back at the top level.
+ */
+internal fun settingsPatchPayload(before: Settings, next: Settings, updatedAtEpochMs: Long, waiting: String?): String {
+    val old = SettingsJson.encodeToJsonElement(Settings.serializer(), before).jsonObject
+    val new = SettingsJson.encodeToJsonElement(Settings.serializer(), next).jsonObject
+    val changed = new.filter { (key, value) -> old[key] != value } + (old.keys - new.keys).associateWith { JsonNull }
+    val pending = waiting
+        ?.let { Catching { WireJson.decodeFromString(SettingsRowDto.serializer(), it) }.getOrNull() }
+        ?.settings
+        .orEmpty()
+    val patch = pending + changed
+    val withPreset = if (NUMBERS_KEY in patch) patch + (PRESET_KEY to JsonPrimitive(next.numbers.preset.key)) else patch
+    return WireJson.encodeToString(
+        SettingsRowDto.serializer(),
+        SettingsRowDto(
+            settings = JsonObject(withPreset),
+            changedAtEpochMs = next.numbers.changedAt?.toEpochMilliseconds(),
+            clientUpdatedAtEpochMs = updatedAtEpochMs,
+        ),
+    )
+}
+
+private const val NUMBERS_KEY = "numbers"
+private const val PRESET_KEY = "preset"
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = SettingsRepository::class)

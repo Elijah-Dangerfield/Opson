@@ -2,6 +2,7 @@ package com.opson.integration.sync
 
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.TestClient
+import com.opson.integration.helpers.awaitState
 import com.opson.integration.helpers.randomUserId
 import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.FoodUnit
@@ -9,11 +10,13 @@ import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.foods.AmountUnit
 import com.opson.libraries.foods.draftFor
+import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.flow.first
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -56,6 +59,38 @@ class TwoDeviceSyncTest : IntegrationTest() {
         val row = server.query("SELECT deleted, name FROM log_entries WHERE id = ?::uuid", oats.id).single()
         assertEquals(true, row["deleted"], "the server keeps the tombstone, so a third device learns of the delete")
         assertEquals(0, a.pendingChanges() + b.pendingChanges())
+    }
+
+    /**
+     * A picks No numbers. B, before its pull brings that, changes something unrelated. B's
+     * change is newer, so it wins, but only for what it changed: B's stale numbers must not go up
+     * with it, or both phones would show calories again.
+     */
+    @Test
+    fun noNumbersOnA_survivesAnUnrelatedSettingsChangeOnB() = integration {
+        val user = randomUserId()
+        val a = client(user)
+        val b = client(user)
+        a.syncNow().getOrThrow()
+        a.settings.isKnown.awaitState { it }
+        a.settings.update { it.copy(waterGlasses = 9) }
+        a.syncNow().getOrThrow()
+        b.syncNow().getOrThrow()
+        b.settings.settings.awaitState { it.waterGlasses == 9 } // both phones hold the account's settings
+
+        a.settings.update { it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, a.clock.now())) }
+        a.syncNow().getOrThrow()
+        b.clock.advance(1.minutes)
+        b.settings.update { it.copy(todayMainNumber = MainNumberChoice.Balance) }
+        b.syncNow().getOrThrow()
+        a.syncNow().getOrThrow()
+        b.syncNow().getOrThrow()
+
+        for (phone in listOf(a, b)) {
+            val settings = phone.settings.settings.value
+            assertEquals(PresetId.NoNumbers, settings.numbers.preset, "No numbers stays on")
+            assertEquals(MainNumberChoice.Balance, settings.todayMainNumber, "and B's change landed too")
+        }
     }
 
     @Test

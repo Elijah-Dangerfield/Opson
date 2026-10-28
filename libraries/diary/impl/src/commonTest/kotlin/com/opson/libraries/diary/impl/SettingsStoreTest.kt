@@ -1,5 +1,7 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.MainNumberChoice
+import com.opson.libraries.diary.ModeTimerEnded
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsJson
 import com.opson.libraries.diary.SyncEntity
@@ -12,6 +14,8 @@ import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.cancel
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlin.test.AfterTest
@@ -171,6 +175,56 @@ class SettingsStoreTest : CoroutineTest() {
 
         assertEquals(ThemeMode.Light, store.settings.value.theme)
     }
+
+    /**
+     * Another phone picks No numbers; this one, before its pull lands, swaps its main number.
+     * Sending the whole object would put this phone's stale numbers over the pick (the server
+     * merges one level deep), so only the keys this phone changed go up.
+     */
+    @Test
+    fun aChangeAfterAPullGoesUpAsOnlyTheKeysItChanged() = runUnitTest {
+        store.applyPulled(row(Settings(), updatedAt = 5))
+
+        store.update(stampNumbersChange = true) { it.copy(todayMainNumber = MainNumberChoice.Balance) }
+
+        val sent = queuedSettings()
+        assertEquals(setOf("todayMainNumber"), sent.keys, "not numbers, mode or the preset")
+    }
+
+    @Test
+    fun aNumbersChangeCarriesThePresetWithIt() = runUnitTest {
+        store.applyPulled(row(Settings(), updatedAt = 5))
+
+        store.update(stampNumbersChange = true) { it.withNumbers(it.numbers.pickPreset(PresetId.NoNumbers, clock.now)) }
+
+        val sent = queuedSettings()
+        assertEquals(JsonPrimitive("no_numbers"), sent["preset"])
+        assertTrue("numbers" in sent)
+        assertFalse("theme" in sent)
+    }
+
+    @Test
+    fun twoChangesBeforeASyncGoUpTogether() = runUnitTest {
+        store.applyPulled(row(Settings(), updatedAt = 5))
+
+        store.update(stampNumbersChange = true) { it.copy(theme = ThemeMode.Dark) }
+        store.update(stampNumbersChange = true) { it.copy(tone = Tone.Warm) }
+
+        assertEquals(setOf("theme", "tone"), queuedSettings().keys, "the second change does not drop the first")
+    }
+
+    @Test
+    fun aClearedKeyGoesUpAsNull() = runUnitTest {
+        val ended = Settings(modeTimerEnded = ModeTimerEnded(on = LocalDate(2026, 10, 24), from = PresetId.Full))
+        store.applyPulled(row(ended, updatedAt = 5))
+
+        store.update(stampNumbersChange = true) { it.copy(modeTimerEnded = null) }
+
+        assertEquals(JsonNull, queuedSettings()["modeTimerEnded"], "left out, the server would keep the old value")
+    }
+
+    private fun queuedSettings() =
+        WireJson.decodeFromString(SettingsRowDto.serializer(), db.outbox.rows.single().payload).settings
 
     private fun row(settings: Settings, updatedAt: Long = 1) = SettingsRowDto(
         settings = SettingsJson.encodeToJsonElement(Settings.serializer(), settings).jsonObject,
