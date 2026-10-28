@@ -5,69 +5,75 @@ Each reviewer ticks the files in its slice as it reviews them. Findings go in
 keeps existing ticks.
 
 
-## scripts-ops-ci (61 files)
+## scripts-ops-ci (67 files)
 
-- [ ] `.githooks/commit-msg`
-- [ ] `.githooks/post-commit`
-- [ ] `.githooks/pre-push`
-- [ ] `.github/workflows/auto-merge.yml`
-- [ ] `.github/workflows/baseline-profile.yml`
-- [ ] `.github/workflows/beta.yml`
-- [ ] `.github/workflows/ci.yml`
-- [ ] `.github/workflows/commitlint.yml`
-- [ ] `.github/workflows/food-catalog-refresh.yml`
-- [ ] `.github/workflows/legal-sync.yml`
-- [ ] `.github/workflows/pages.yml`
-- [ ] `.github/workflows/release-please.yml`
-- [ ] `.github/workflows/release.yml`
-- [ ] `.github/workflows/retag-release.yml`
-- [ ] `.github/workflows/server-deploy-prod.yml`
-- [ ] `.github/workflows/server-deploy.yml`
-- [ ] `apps/ios/fastlane/Appfile`
-- [ ] `apps/ios/fastlane/Fastfile`
-- [ ] `ops/grafana/app-health.json`
-- [ ] `ops/grafana/connectivity.json`
-- [ ] `ops/grafana/foods.json`
-- [ ] `ops/grafana/generate_db_dashboards.py`
-- [ ] `ops/grafana/logging.json`
-- [ ] `ops/grafana/modes.json`
-- [ ] `ops/grafana/onboarding-funnel.json`
-- [ ] `ops/grafana/pulse.json`
-- [ ] `ops/grafana/retention.json`
-- [ ] `ops/grafana/user.json`
-- [ ] `ops/grafana/users.json`
-- [ ] `scripts/backfill_default_portions.py`
-- [ ] `scripts/backfill_food_categories.py`
-- [ ] `scripts/bench_off_search.py`
-- [ ] `scripts/beta_ios.sh`
-- [ ] `scripts/cleanup.sh`
-- [ ] `scripts/create_module.main.kts`
-- [ ] `scripts/design_sync.main.kts`
-- [ ] `scripts/dev/drive.py`
-- [ ] `scripts/import_nevo_foods.py`
-- [ ] `scripts/import_off_foods.py`
-- [ ] `scripts/import_usda_foods.py`
-- [ ] `scripts/install_hooks.sh`
-- [ ] `scripts/ios_launch_smoke.sh`
-- [ ] `scripts/lib/setup_store.main.kts`
-- [ ] `scripts/load_off_watched.sh`
-- [ ] `scripts/review_ledger.py`
-- [ ] `scripts/search_relevance_fixture.py`
-- [ ] `scripts/setup.main.kts`
-- [ ] `scripts/setup_cloudflare_site.sh`
-- [ ] `scripts/setup_credentials.main.kts`
-- [ ] `scripts/setup_fly.main.kts`
-- [ ] `scripts/setup_github_secrets.main.kts`
-- [ ] `scripts/setup_legal_sync.sh`
-- [ ] `scripts/setup_sentry.main.kts`
-- [ ] `scripts/setup_sentry_ci.sh`
-- [ ] `scripts/setup_supabase.main.kts`
-- [ ] `scripts/test_backfill_default_portions.py`
-- [ ] `scripts/test_backfill_food_categories.py`
-- [ ] `scripts/test_import_nevo_foods.py`
-- [ ] `scripts/test_import_off_foods.py`
-- [ ] `scripts/test_import_usda_foods.py`
-- [ ] `scripts/test_review_ledger.py`
+- [x] `.githooks/commit-msg`
+- [x] `.githooks/post-commit`
+- [x] `.githooks/pre-push`
+- [x] `.github/workflows/auto-merge.yml`
+- [x] `.github/workflows/baseline-profile.yml`
+- [x] `.github/workflows/beta.yml`
+- [x] `.github/workflows/ci.yml`
+- [x] `.github/workflows/commitlint.yml`
+- [x] `.github/workflows/food-catalog-refresh.yml`
+- [x] `.github/workflows/legal-sync.yml`
+- [x] `.github/workflows/pages.yml`
+- [x] `.github/workflows/release-please.yml`
+- [x] `.github/workflows/release.yml`
+- [x] `.github/workflows/retag-release.yml`
+- [x] `.github/workflows/server-deploy-prod.yml`
+- [x] `.github/workflows/server-deploy.yml`
+- [x] `apps/ios/fastlane/Appfile`
+- [x] `apps/ios/fastlane/Fastfile`
+- [x] `ops/grafana/app-health.json`
+- [x] `ops/grafana/connectivity.json`
+- [x] `ops/grafana/foods.json`
+- [x] `ops/grafana/generate_db_dashboards.py`
+- [x] `ops/grafana/logging.json`
+- [x] `ops/grafana/modes.json`
+- [x] `ops/grafana/onboarding-funnel.json`
+- [x] `ops/grafana/pulse.json`
+- [x] `ops/grafana/retention.json`
+- [x] `ops/grafana/user.json`
+- [x] `ops/grafana/users.json`
+- [x] `scripts/backfill_default_portions.py`
+- [x] `scripts/backfill_food_categories.py`
+- [x] `scripts/bench_off_search.py`
+- [x] `scripts/beta_ios.sh`
+- [x] `scripts/cleanup.sh`
+- [x] `scripts/create_module.main.kts`
+- [x] `scripts/design_sync.main.kts`
+- [x] `scripts/dev/drive.py`
+- [x] `scripts/import_nevo_foods.py`
+- [x] `scripts/import_off_foods.py`
+- [x] `scripts/import_usda_foods.py`
+- [x] `scripts/install_hooks.sh`
+- [x] `scripts/ios_launch_smoke.sh`
+- [x] `scripts/lib/setup_store.main.kts`
+- [x] `scripts/load_off_watched.sh`
+- [x] `scripts/review_ledger.py`
+- [x] `scripts/search_relevance_fixture.py`
+- [x] `scripts/seed_dev_config.py`
+- [x] `scripts/setup.main.kts`
+- [x] `scripts/setup_cloudflare_site.sh`
+- [x] `scripts/setup_credentials.main.kts`
+- [x] `scripts/setup_fly.main.kts`
+- [x] `scripts/setup_github_secrets.main.kts`
+- [x] `scripts/setup_legal_sync.sh`
+- [x] `scripts/setup_sentry.main.kts`
+- [x] `scripts/setup_sentry_ci.sh`
+- [x] `scripts/setup_supabase.main.kts`
+- [x] `scripts/store_release_notes.py`
+- [x] `scripts/test_backfill_default_portions.py`
+- [x] `scripts/test_backfill_food_categories.py`
+- [x] `scripts/test_import_nevo_foods.py`
+- [x] `scripts/test_import_off_foods.py`
+- [x] `scripts/test_import_usda_foods.py`
+- [x] `scripts/test_review_ledger.py`
+- [x] `scripts/test_seed_dev_config.py`
+- [x] `scripts/test_setup_sentry_ci.py`
+- [x] `scripts/test_workflows.py`
+- [x] `scripts/verify_release_config.py`
 
 ## apps-shells (62 files)
 

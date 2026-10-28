@@ -85,10 +85,13 @@ store_write() {
 # 200 means sentry-cli can upload. Anything else means it cannot, and the
 # distinction between 401 and 403 is worth printing because they have different
 # fixes: a bad or revoked token versus a token without org:ci.
+#
+# The token reaches curl on stdin as a config line, never on its command line,
+# where `ps` shows it to every process on the machine.
 token_status() {
-  curl -s -o /dev/null -w "%{http_code}" \
-    -H "Authorization: Bearer $1" \
-    "https://sentry.io/api/0/organizations/$2/chunk-upload/" 2>/dev/null || echo "000"
+  printf 'header = "Authorization: Bearer %s"\n' "$1" |
+    curl -s -K - -o /dev/null -w "%{http_code}" \
+      "https://sentry.io/api/0/organizations/$2/chunk-upload/" 2>/dev/null || echo "000"
 }
 
 explain_status() {
