@@ -625,6 +625,21 @@ class TodayViewModelTest : CoroutineTest() {
         assertFalse(vm.state.collapsed)
     }
 
+    /** The card's view is the signed-in person's. After a user change the next account opens on its own choice. */
+    @Test
+    fun aUserChange_dropsTheCardViewLeftByThePreviousAccount() = runUnitTest {
+        val vm = vm(summaryOn = true)
+        vm.takeAction(TodayAction.SummaryPageShown(1))
+        vm.takeAction(TodayAction.CollapseTapped)
+
+        cardView.clear(previousUserId = "previous")
+        settings.state.value = Settings(todaySummaryPage = 0, todaySummaryCollapsed = false)
+
+        assertEquals(0, vm.state.summaryPage)
+        assertFalse(vm.state.collapsed)
+        assertEquals(0, vm(summaryOn = true).state.summaryPage, "a fresh Today opens on the new account's page")
+    }
+
     @Test
     fun aLongPressOnTheCardOpensTheCardsSheet_onlyWithTheFlag() = runUnitTest {
         val off = vm(summaryOn = false)

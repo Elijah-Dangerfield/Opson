@@ -367,8 +367,9 @@ class FakeCacheFactory : CacheFactory {
             this.value.value = value
         }
 
+        /** Writes the default back, as the persistent cache does, so a collector sees the reset. */
         override suspend fun clear() {
-            value.value = null
+            value.value = default()
         }
 
         override suspend fun update(transform: (T) -> T): T = transform(get()).also { set(it) }
