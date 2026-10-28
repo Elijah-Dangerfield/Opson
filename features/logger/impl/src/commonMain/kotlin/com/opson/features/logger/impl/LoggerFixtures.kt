@@ -319,7 +319,7 @@ object LoggerFixtures {
             search = search,
             scope = scope,
             scanAvailable = flags,
-            photoAvailable = flags,
+            addFoodAvailable = flags,
             pickingForMeal = pickingForMeal,
             seen = inputs.day.allItems.mapTo(HashSet()) { it.id },
         )
@@ -577,6 +577,9 @@ object LoggerFixtures {
     val lookingUpSlow: ScanModel = scanning.copy(lookup = Lookup.Running(MISSED_CODE, slow = true))
     val missed: ScanModel = scanning.copy(lookup = Lookup.Missed(MISSED_CODE))
     val missedNamed: ScanModel = missed.copy(name = "Rye crispbread")
+
+    /** With `release.submitFood`: Add this food comes first. */
+    val missedAddFood: ScanModel = missed.copy(canAddFood = true)
     val unavailable: ScanModel = scanning.copy(lookup = Lookup.Failed(MISSED_CODE))
     val cameraOff: ScanModel = ScanModel(permission = CameraPermission.Denied(canAskAgain = false))
     val cameraAskAgain: ScanModel = ScanModel(permission = CameraPermission.Denied(canAskAgain = true))

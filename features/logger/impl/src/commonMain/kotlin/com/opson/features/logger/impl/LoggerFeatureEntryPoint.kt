@@ -136,7 +136,7 @@ class LoggerFeatureEntryPoint(
             BarcodeScanner(backStackEntry.toRoute<BarcodeScanRoute>(), router)
         }
 
-        // Only Photo on the + sheet and search's "Photograph it" open it, both behind release.photo.
+        // Only Photo on the + sheet opens it, behind release.photo. Packaged foods go through "Add this food" instead.
         bottomSheet<PhotoEstimateRoute>(
             typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
         ) { backStackEntry, sheetState ->
@@ -304,7 +304,7 @@ class LoggerFeatureEntryPoint(
                 )
                 // Over search, so Back from these lands here.
                 is SearchEvent.OpenScanner -> router.navigate(BarcodeScanRoute(event.day.toString(), event.slot, overSearch = true))
-                is SearchEvent.OpenPhoto -> router.navigate(PhotoEstimateRoute(event.day.toString(), event.slot))
+                is SearchEvent.OpenSubmitFood -> router.navigate(SubmitFoodRoute(event.day.toString(), event.slot, fromSearch = true))
                 is SearchEvent.OpenDescribe -> router.navigate(
                     LoggerRoute(slot = event.slot, dayIso = event.day.toString(), start = LoggerStart.Describe, describeText = event.text),
                 )
@@ -422,6 +422,11 @@ class LoggerFeatureEntryPoint(
                 is BarcodeScanEvent.OpenFoodDetail -> router.batch {
                     goBack()
                     navigate(FoodDetailRoute(event.foodId, isCustom = false, source = PickSource.Barcode, dayIso = event.day.toString(), slot = event.slot))
+                }
+                // The pack's photos take the scanner's place, for the code that missed.
+                is BarcodeScanEvent.OpenSubmitFood -> router.batch {
+                    goBack()
+                    navigate(SubmitFoodRoute(event.day.toString(), event.slot, barcode = event.code))
                 }
                 is BarcodeScanEvent.OpenSearch -> router.batch {
                     goBack()

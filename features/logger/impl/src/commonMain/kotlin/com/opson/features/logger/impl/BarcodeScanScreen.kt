@@ -91,6 +91,8 @@ import opson.libraries.resources.generated.resources.barcode_type_code
 import opson.libraries.resources.generated.resources.barcode_type_misread
 import opson.libraries.resources.generated.resources.barcode_type_placeholder
 import opson.libraries.resources.generated.resources.barcode_unavailable
+import opson.libraries.resources.generated.resources.submit_add_this_food
+import opson.libraries.resources.generated.resources.submit_add_this_food_body
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
@@ -299,7 +301,11 @@ private fun StageContent(stage: ScanStage, onAction: (BarcodeScanAction) -> Unit
     }
 }
 
-/** Not found: the name first, because logging by name is the recovery path, then search, then another try. */
+/**
+ * Not found. With `release.submitFood`, photographing the pack comes first: it is the way the
+ * product gets into the catalog for everyone. Then the name, because logging by name is the
+ * quick recovery path, then search, then another try.
+ */
 @Composable
 private fun Miss(stage: ScanStage.Miss, onAction: (BarcodeScanAction) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
@@ -311,6 +317,20 @@ private fun Miss(stage: ScanStage.Miss, onAction: (BarcodeScanAction) -> Unit) {
             )
             Text(
                 text = stringResource(Res.string.barcode_code, stage.code),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
+        }
+        if (stage.canAddFood) {
+            ButtonPrimary(
+                onClick = { onAction(BarcodeScanAction.AddFoodTapped) },
+                icon = AppIcons.PhotoCamera,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(Res.string.submit_add_this_food))
+            }
+            Text(
+                text = stringResource(Res.string.submit_add_this_food_body),
                 typography = AppTheme.type.secondary,
                 color = AppTheme.colors.muted,
             )
@@ -330,6 +350,7 @@ private fun Miss(stage: ScanStage.Miss, onAction: (BarcodeScanAction) -> Unit) {
         ButtonPrimary(
             onClick = { onAction(BarcodeScanAction.SaveNameTapped) },
             enabled = stage.canSave,
+            style = if (stage.canAddFood) ButtonStyle.Tonal else ButtonStyle.Filled,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(Res.string.barcode_save_name))

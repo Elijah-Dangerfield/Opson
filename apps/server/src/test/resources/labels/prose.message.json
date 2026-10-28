@@ -1,0 +1,18 @@
+{
+  "id": "msg_fixture",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-fable-5-1",
+  "content": [
+    {
+      "type": "text",
+      "text": "This is a granola bar with 190 calories."
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 5200,
+    "output_tokens": 20
+  }
+}

@@ -37,9 +37,9 @@ object FoodSearchStateBuilder {
             scope = choices.scope,
             // A meal being put together is made of foods, not of other meals.
             scopes = if (picking) listOf(SearchScope.All, SearchScope.YourFoods) else SearchScope.entries,
-            // A scan, a photo and Describe all log into this meal, so a meal being put together has none.
+            // A scan, an added food and Describe all log into this meal, so a meal being put together has none.
             canScan = choices.scanAvailable && !picking && !closed,
-            canPhotograph = choices.photoAvailable && !picking && !closed,
+            canAddFood = choices.addFoodAvailable && !picking && !closed,
             canDescribe = !picking && !closed,
             body = if (closed) SearchBody.DayClosed(isToday = inputs.day.date == inputs.today) else body(inputs, policy, slot, choices),
             pickingForMeal = picking,

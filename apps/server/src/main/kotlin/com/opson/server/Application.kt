@@ -29,6 +29,8 @@ import com.opson.server.routes.barcodeMissRoutes
 import com.opson.server.routes.configAdminRoutes
 import com.opson.server.routes.exampleRoutes
 import com.opson.server.routes.exportRoutes
+import com.opson.server.routes.foodLabelRoutes
+import com.opson.server.routes.foodReviewAdminRoutes
 import com.opson.server.routes.foodRoutes
 import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
@@ -93,9 +95,9 @@ fun Application.module(config: ServerConfig) {
     }
     val anthropic = config.foodSources.anthropic
     if (anthropic != null) {
-        logger.info("Photo estimates on, model ${anthropic.photoModel}")
+        logger.info("Photo estimates on, model ${anthropic.photoModel}; label reading on, model ${anthropic.labelModel}")
     } else {
-        logger.info("ANTHROPIC_API_KEY not set — photo estimates answer 503 unavailable.")
+        logger.info("ANTHROPIC_API_KEY not set — photo estimates and label reading answer 503 unavailable.")
     }
     val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources, Clock.System) }
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
@@ -175,6 +177,7 @@ fun Application.installApp(
                 )
                 waitlistAdminRoutes(adminConfig, component.waitlistRepository)
                 userAdminRoutes(adminConfig, component.userLookupRepository)
+                foodReviewAdminRoutes(adminConfig, component.foodSubmissionRepository, component.barcodeLinkRepository, component.clock)
             }
             // The website's form: public, its own CORS and rate limits.
             waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
@@ -187,7 +190,15 @@ fun Application.installApp(
                 component.appleSignInClient,
             )
             syncRoutes(component.syncRepository, component.clock)
-            foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber)
+            foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber, component.foodSubmissionRepository)
+            foodLabelRoutes(
+                component.labelParser,
+                component.foodSubmissionRepository,
+                component.barcodeLinkRepository,
+                component.labelParseCache,
+                component.foodLabelLimiter,
+                component.clock,
+            )
             photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.clock)
             barcodeMissRoutes(component.barcodeMissRepository)
             exportRoutes(component.exportRepository)

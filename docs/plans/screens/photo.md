@@ -24,6 +24,10 @@ and says so. Behind `release.photo`, default off.
   marked `// Plus gate` in code.
 - Photo from the Add menu or the meal sheet (`shared.md` 0.1 scope gates). The
   logger chip is the only entry point drawn in v3.
+- Photo from search, a barcode miss or Describe. Search's "Photograph it" was
+  removed on 2026-10-27: packaged foods go through Add this food (photos of
+  the label, `submit-food.md`), which is far more accurate, and the meal
+  estimate stays on the + sheet's Photo tile alone (docs/decisions.md).
 
 ## Flow
 1. Logger, Photo chip (flag on, not picking for Create a meal) opens
@@ -49,7 +53,7 @@ and says so. Behind `release.photo`, default off.
 
 Calm ends, never dead ends:
 - **Unavailable** (server has no key, 503): "Photo estimates aren't available
-  right now", with Describe it instead and Back to search.
+  right now", with Describe it instead and Go back.
 - **Failed** (offline, timeout, provider error): Try again (same photo, kept in
   memory), Describe it instead.
 - **Too many** (429, the per-user limit): try later, or describe it.
@@ -264,7 +268,7 @@ No mode check: Blind is the calories level at Hide.
 | `photo_too_many_title` / `_body` | That's a lot of photos for now / Try again in a little while, or describe this one in your own words. |
 | `photo_camera_title` / `_body` | The camera is off for Opson / You can turn it on in Settings, or choose a photo from your library. |
 | `photo_camera_body_ask` | Opson uses the camera only when you take a meal photo. You can also choose one from your library. |
-| `photo_try_again`, `photo_another`, `photo_describe_instead`, `photo_back_to_search`, `photo_open_settings`, `photo_allow_camera` | Try again / Try another photo / Describe it instead / Back to search / Open Settings / Allow camera |
+| `photo_try_again`, `photo_another`, `photo_describe_instead`, `photo_back_to_search`, `photo_open_settings`, `photo_allow_camera` | Try again / Try another photo / Describe it instead / Go back / Open Settings / Allow camera |
 | `photo_list_empty` | Nothing left on the list. Add what you ate, or go back. |
 | `photo_swap_searching` / `photo_swap_none` | Searching / Nothing by that name. Try another word. |
 | `photo_thumbnail_cd`, `photo_food_cd`, `photo_amount_cd` | Your meal photo / Swap %1$s / Change the amount of %1$s |
@@ -316,7 +320,7 @@ training by default; retention is set per org).
   under 1568 px, so the server only ever sees a small JPEG.
 - **Picking for Create a meal**: no Photo chip (that mode logs nothing).
 - **Offline**: Failed(offline) with Describe it instead (which is also online)
-  and Back to search.
+  and Go back.
 - **Large text**: rows wrap; the footer stays pinned.
 
 ## Tests

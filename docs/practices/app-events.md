@@ -115,7 +115,7 @@ sheet's "What's prompting this?" answer.
 
 | Event | Attributes | Fires |
 |---|---|---|
-| `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details (before 0.2), quick_number, name_only, barcode, photo, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
+| `logger.method_picked` | `method` (search, favorite, usual, recent, saved, foods, describe, yesterday, ate_no_details (before 0.2), quick_number, name_only, barcode, photo, label, water, weigh_in, note), `items` (count) | When the logger or the Log screen writes something (`LoggerViewModel`, `LogViewModel`): once per pick source on a basket commit, once for each other way of logging. Weigh-in and Add a note fire with `items` 0 when their chip opens the screen that does the writing. Never a food name, an amount or typed text; `LoggerTelemetry` takes only the `LogVia` enum and a count. |
 
 ### Search options
 
@@ -146,7 +146,27 @@ miss are counted server-side instead, in `barcode_misses` with no account attach
 | `barcode.permission_denied` | `can_ask_again` | The camera prompt was answered no, or the scanner opened with the camera already off. Counts people who could not scan at all |
 
 A pick from a scan logs with `logger.method_picked` `method=barcode`; "Save the name only" after a
-miss logs as `name_only`.
+miss logs as `name_only`; a food added from its pack's photos as `label`.
+
+### Add this food (`release.submitFood`)
+
+All from `SubmitFoodViewModel` through `SubmitFoodTelemetry` (`:features:logger:impl`). The funnel
+is a barcode miss (`barcode.miss`) or a search with no results, then these. **No event carries the
+barcode, the food's name, a photo or any number from the label**: what someone buys is what they
+eat. The last step, approval, is not an app event: it is in the review ledger,
+`analytics.food_submissions_daily`, on `ops/grafana/food-review.json`.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `food_add.started` | `origin` (`barcode`, `search`) | The Add this food screen opened |
+| `food_add.photo_taken` | `side` (`front`, `label`), `source` (`camera`, `library`) | A photo came back for one side. Backing out fires nothing; a retake fires again |
+| `food_add.read` | `outcome` (`read`, `no_label`, `unavailable`, `too_many`, `offline`, `error`), `checks` (count failed), `unsure` (count of fields the model was unsure of) | The server answered Read the label |
+| `food_add.submitted` | `origin`, `edited` (the person changed what was read), `kept` (checks they kept the label's figure through), `numbers_shown` (the mode showed the numbers), `sent` (the copy for review reached the server; false when only the person's own food was saved) | Once per food, when it was logged: on the server's answer, on Done after a failed send, or on leaving with it unsent |
+| `food_add.abandoned` | `stage` (`photos_none`, `photos_some`, `reading`, `review`, `no_label`, `too_many`, `read_failed`, `camera_off`) | Left before anything was logged |
+
+A barcode missed and then found by searching is reported to the server as a pairing
+(`POST /v1/foods/barcode-links`), not as an app event: it carries the barcode, so it belongs in the
+review queue, counted with no account.
 
 ### Photo estimate
 

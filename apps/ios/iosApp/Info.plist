@@ -104,13 +104,18 @@
 	  for the estimate and dropped, so "never saved" stays true. The library
 	  side uses PHPicker, which needs no NSPhotoLibraryUsageDescription.
 
+	  Add this food (release.submitFood) takes two photos of a pack with the
+	  same system camera, the front and the nutrition label. Those are kept:
+	  sent with the food for review and deleted 30 days after it, so the
+	  string names them apart from meal photos.
+
 	  Progress photos (release.progressPhotos) take photos with an in-app
 	  camera and keep them, but only in the app's own storage on this phone:
 	  never the photo library, never uploaded, left out of backups. So the
 	  string no longer says photos are never saved.
 	-->
 	<key>NSCameraUsageDescription</key>
-	<string>Opson uses the camera to read barcodes on food packs, to photograph a meal when you ask for an estimate, and to take progress photos if you choose to. Meal photos are never saved. Progress photos stay on this iPhone.</string>
+	<string>Opson uses the camera to read barcodes on food packs, to photograph a pack's label when you add a food, to photograph a meal when you ask for an estimate, and to take progress photos if you choose to. Meal photos are never saved. Progress photos stay on this iPhone.</string>
 	<!--
 	  Progress photos (:libraries:progressphotos:impl, LocalAuthentication from
 	  Kotlin) unlock with Face ID, Touch ID or the passcode each time they open.

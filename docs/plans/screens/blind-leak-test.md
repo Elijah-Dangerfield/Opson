@@ -192,6 +192,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `logger-amount-nutrients` | logger | the amount sheet with All nutrients open, vitamins and minerals as a percent of a day | yes |
 | new | | `logger-scan-miss` | logger | 0.2, barcode; a scan the catalog doesn't know | yes |
 | new | | `logger-photo-start` | logger | 0.2, `photo.md`; the note and the two ways to a photo | no |
+| new | | `submit-food-photos`, `submit-food-by-hand` | logger | 0.2, `release.submitFood`; Add this food's two photos, and the form typed in when the label could not be read | no |
+| new | | `submit-food-review` | logger | 0.2, `release.submitFood`; the label as read, editable, with the energy check. Numbers and checks only where the mode shows calories; elsewhere a sentence says whether they add up | yes |
 | new | | `exercise-sheet` | logger | `release.exercise`; the estimate is energy out | yes |
 | new | | `exercise-sheet-other` | logger | `release.exercise`; Other's typed number, only where energy out shows | yes |
 | new | | `exercise-sheet-pick` | logger | `release.exercise`; the activity list, no numbers | no |

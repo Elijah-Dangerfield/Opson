@@ -30,6 +30,9 @@ enum class PickSource {
 
     /** A line Photo estimate read from a meal photo, as the person corrected it. */
     Photo,
+
+    /** A food the person just added from photos of its pack: their own custom food. */
+    Label,
     ;
 
     /**
