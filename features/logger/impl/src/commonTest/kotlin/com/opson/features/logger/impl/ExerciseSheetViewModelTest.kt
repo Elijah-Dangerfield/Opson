@@ -3,6 +3,7 @@ package com.opson.features.logger.impl
 import com.opson.features.logger.ExerciseRoute
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.core.fixed
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
@@ -249,26 +250,52 @@ class ExerciseSheetViewModelTest : CoroutineTest() {
         assertEquals(listOf<ExerciseSheetEvent>(ExerciseSheetEvent.Dismiss), events)
     }
 
+    @Test
+    fun saveOnAClosedDay_writesNothing_andSaysSo() = runUnitTest {
+        repo.closedDay = LocalDate(2026, 10, 25)
+        val vm = vm()
+        val events = events(vm)
+        settle()
+        vm.takeAction(ExerciseSheetAction.ActivityPicked("walking_brisk"))
+        vm.takeAction(ExerciseSheetAction.SaveTapped)
+        settle()
+
+        assertTrue(repo.added.isEmpty())
+        assertEquals(listOf<ExerciseSheetEvent>(ExerciseSheetEvent.DayClosed(LocalDate(2026, 10, 25))), events)
+    }
+
     private class FakeExercise : ExerciseRepository {
         val entries = mutableListOf<ExerciseEntry>()
         val added = mutableListOf<ExerciseDraft>()
         val updated = mutableListOf<Pair<String, ExerciseDraft>>()
         val deleted = mutableListOf<String>()
 
+        /** A day closed with Close the day: every write to it is refused and recorded nowhere. */
+        var closedDay: LocalDate? = null
+
         override fun observeDay(day: LocalDate): Flow<List<ExerciseEntry>> = flowOf(entries.filter { it.day == day })
         override suspend fun get(id: String): ExerciseEntry? = entries.firstOrNull { it.id == id }
-        override suspend fun add(draft: ExerciseDraft): ExerciseEntry {
+        override suspend fun add(draft: ExerciseDraft): DayWrite<ExerciseEntry> {
+            closed(draft.day)?.let { return it }
             added += draft
-            return ExerciseEntry("new", draft.day, draft.startedAt, draft.activity, draft.name, draft.minutes, draft.kcal, draft.kcalTyped, draft.notOnWatch)
+            return DayWrite.Written(
+                ExerciseEntry("new", draft.day, draft.startedAt, draft.activity, draft.name, draft.minutes, draft.kcal, draft.kcalTyped, draft.notOnWatch),
+            )
         }
 
-        override suspend fun update(id: String, draft: ExerciseDraft) {
+        override suspend fun update(id: String, draft: ExerciseDraft): DayWrite<Unit> {
+            closed(draft.day)?.let { return it }
             updated += id to draft
+            return DayWrite.Written(Unit)
         }
 
-        override suspend fun delete(id: String) {
+        override suspend fun delete(id: String): DayWrite<Unit> {
+            entries.firstOrNull { it.id == id }?.let { entry -> closed(entry.day)?.let { return it } }
             deleted += id
+            return DayWrite.Written(Unit)
         }
+
+        private fun closed(day: LocalDate): DayWrite.DayClosed? = if (day == closedDay) DayWrite.DayClosed(day) else null
     }
 
     private class FakeWeights(kg: Double?) : WeightRepository {

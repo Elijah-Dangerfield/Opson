@@ -73,6 +73,9 @@ sealed interface ExerciseSheetAction {
 
 sealed interface ExerciseSheetEvent {
     data class ShowToast(val toast: Toast) : ExerciseSheetEvent
+
+    /** The day is closed with Close the day: nothing was saved or deleted. */
+    data class DayClosed(val day: LocalDate) : ExerciseSheetEvent
     data object Dismiss : ExerciseSheetEvent
 }
 

@@ -10,3 +10,11 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class DayCloseRoute(val dayIso: String) : Route()
+
+/**
+ * "Today is closed. Reopen it to add more." for [dayIso], with Reopen and Not now: where an add or
+ * change that a closed day refused lands, from Today's sheets and the logger alike. A
+ * `bottomSheet<>`; Today registers it.
+ */
+@Serializable
+data class DayClosedRoute(val dayIso: String) : Route()

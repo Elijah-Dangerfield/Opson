@@ -18,6 +18,7 @@ import com.opson.libraries.core.AuthGate
 import com.opson.libraries.core.AuthRequirement
 import com.opson.libraries.core.AuthVerdict
 import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.FastingReleaseFlag
@@ -310,7 +311,7 @@ class TestClient(
         slot = slot,
         items = listOf(LogDraft(name = name, precision = Precision.Estimate, foodId = foodId, amountText = "1 bowl", grams = 300.0, kcal = kcal)),
         method = method,
-    ).single()
+    ).written().single()
 
     /** Changes waiting in the outbox. */
     suspend fun pendingChanges(): Int = tables.outbox.count()
@@ -343,4 +344,10 @@ internal fun randomUserId(): String = UUID.randomUUID().toString()
 internal object AlwaysReadyAuthGate : AuthGate {
     override fun verdict(requirement: AuthRequirement): AuthVerdict = AuthVerdict.Ready
     override suspend fun awaitVerdict(requirement: AuthRequirement): AuthVerdict = AuthVerdict.Ready
+}
+
+/** What a write to an open day wrote. A closed day here is a test that went wrong. */
+fun <T> DayWrite<T>.written(): T = when (this) {
+    is DayWrite.Written -> value
+    is DayWrite.DayClosed -> error("$day is closed")
 }
