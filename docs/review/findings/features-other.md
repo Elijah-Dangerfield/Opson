@@ -22,7 +22,8 @@ the unslop-code scanner run over the slice. Each finding names the place, the ru
   once and closes one screen`, with `aDoubleTapOnSend_sendsOnceAndClosesOnce` and its bug report
   twin (both failed before the fix), plus a test for the blank-message line.
 - **Left as is:** if the person backgrounds the app mid-send for over five seconds, the `Sent`
-  event expires and the page stays open with Send disabled. Back still works.
+  event expires and the page stays open. Its button reads Sent (second review, item 1), and Back
+  still works.
 
 ## 2. "Captured details" showed context the report never carried: fixed
 
@@ -99,6 +100,45 @@ the unslop-code scanner run over the slice. Each finding names the place, the ru
 - **Per-file `@OptIn(ExperimentalTime::class)` in the test harness.** The convention plugin opts
   in module-wide, so these are redundant, but about a hundred files across the repo do the same.
 - **Scanner hits.** All ten are low: `collectAsStateWithLifecycle`, the factory name, test names.
+
+## Second review
+
+A second reviewer read every commit on this branch for regressions it introduced, reverting each
+fix locally to check its test, and flagged six things. Fates:
+
+1. **A sent page could be left with a dead Send button (8463bfc2): real, fixed.** The double-tap
+   guard greys Send out once a report is sent. If the `Sent` event expires while the app is in the
+   background (the five seconds of `SEAViewModel`), the page stays open showing the person's text
+   and a disabled Send with no reason, which reads as a failure and invites retyping the report.
+   Before the branch the button came back and a second tap sent a duplicate, so this is a trade
+   rather than a straight loss, but the dead button was new. Fixed in "fix(home): a sent page says
+   Sent instead of a dead Send button": both states expose `sendLabel` (Sent, Sending, Send) and the
+   screens show it. `aSentPage_saysSentOnItsDisabledButton` and
+   `aSentBugReport_saysSentOnItsDisabledButton` fail when a sent page falls back to Send. The
+   commit's own tests hold: with `|| current.isSent` removed, both double-tap tests fail.
+2. **The context line in the report body (c2044adc): not a problem.** With the context dropped,
+   `aBugReport_carriesTheContextThePageShowed` and the view model's context assertion fail. The
+   context is the error screen's subtitle or the shake line, never typed data, and the `Context:`
+   label only reaches Sentry, so it needs no translation. `AppTelemetry` now sees context plus
+   message as its payload, which changes its `payload_length` log extra and its blank check, but
+   nothing reads that extra and both view models refuse a blank message first.
+3. **Capturing feedback on `dispatchers.io` (3545ff83): not a problem.** Without `withContext`,
+   `theReportIsCapturedOnTheIoDispatcher` fails. The log snapshot is taken under
+   `LogRingBuffer`'s lock, the Sentry SDK is thread-safe, cancellation still propagates from
+   `withContext`, and `DefaultDispatcherProvider` is bound in `AppScope`. Nothing else constructs
+   `FeedbackRepositoryImpl`.
+4. **The failure line's live region (c3ed0333): not a regression, untested.** The modifier matches
+   the error lines in `AuthScreens`, `WeightScreen` and `DescribeVoiceViews`. Nobody checked on a
+   device that TalkBack and VoiceOver announce a line that appears rather than one whose text
+   changes, so if they don't, those screens share the problem. There is still no test, for the
+   reason finding 4 gives.
+5. **Dropping Material 3 (de8a1333): not a problem.** Nothing under `features/home` imports it, and
+   the module compiles and its tests pass without it.
+6. **The docs commit (f3da4327): not a problem.** `LEDGER.md` changes only the features-other
+   section, and the findings' claims hold against the code (the 500-line, 1,000-character buffer,
+   the neighbouring live regions, the five-second event expiry). Finding 1's "Left as is" note is
+   updated for item 1. No commit edits a file outside the slice except the new `common_sent`
+   string, which the brief allows.
 
 ## Product notes
 
