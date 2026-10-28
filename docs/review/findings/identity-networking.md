@@ -260,6 +260,92 @@ fixed findings that live in other slices; the first one is needed for
   are test data and the code-point table in `DisplayNameRules`, and the long
   names are Ktor and Network framework APIs.
 
+## Second review
+
+A second reviewer read this branch's commits for regressions. Its first list
+was lost before the fates were written, so the four fixes it led to were
+re-checked here (items 1 to 4), and a second pass found four more (items 5 to
+8). Every test named below was run with its fix reverted and failed.
+
+1. **The expired screen's "sign in again" tap wiped the held meals (b71a2c2b):
+   real, fixed.** That screen signs out before routing to sign-in, and the
+   sign-out counted as a log out of the held account, so the outbox the copy
+   promised to keep went on the tap. Fixed in "fix(identity): the \"sign in
+   again\" tap keeps the expired account's meals": only a user change settles
+   the hold. `aSessionExpiry_thenTheSignInAgainTap_thenTheSameAccount_keepsItsLocalData`
+   fails with the old condition back (cleared `[user-1]`);
+   `…thenTheSignInAgainTap_thenADifferentAccount_wipesTheHeldData` pins the wipe.
+2. **An unreadable hold let the next account inherit the held data (b71a2c2b):
+   real, fixed.** A failed read was treated as no hold, so a different account
+   signing in kept the previous one's rows and drained its outbox. Fixed in
+   "fix(identity): an unreadable expiry hold wipes before a sign-in".
+   `aSessionExpiry_thenASignInWhileTheHoldCantBeRead_wipesTheHeldData` fails
+   with the wipe disabled, and `aLaunchWithALiveSession_whileTheHoldCantBeRead_keepsItsData`
+   fails if the guard on the previous state is dropped. Two corners are left,
+   both needing a disk read to fail: a corrupt file is replaced by DataStore's
+   corruption handler with an empty record, which reads as no hold, and an
+   offline launch that reconnects while the read fails wipes its own outbox.
+3. **A sign-out cancelled while the logout request hung kept the Keychain copy
+   (f54d22fd): real, fixed.** `clearSession()` ran in the `finally`, but the
+   production `SecureSessionManager` hops to the IO dispatcher, which throws
+   in a cancelled coroutine. Fixed in "fix(identity): a cancelled sign-out
+   still clears the stored session" (`NonCancellable`).
+   `RealSupabaseAuthGatewayTest.signOut_cancelledWhileTheRequestHangs_stillClearsTheStoredSession`
+   fails without it. The same commit imports the test session after the
+   client initialises, which stopped a hang about one run in forty.
+4. **The impl's latch KDoc said reading it resets it (left stale beside
+   12272ba5): real, fixed** in "docs(identity): the new-account latch resets
+   on sign-out, not on read". Comment only. Checked against the code:
+   `resolveIsNewAccount` never resets it; any unauthenticated resolve (a
+   sign-out among them) and a change of account id do.
+5. **A cancelled sign-out or delete now left the app signed in with no session
+   (f54d22fd, ac0c2083): real, fixed.** The gateway clears the session even
+   when cancelled, but the repository's `Catching` rethrew the cancellation
+   before `emitUnauthenticatedLocked`. Leaving the More screen while the logout
+   spun kept `Authenticated`, the cached bearer and the account's data, with
+   nothing behind them; before this branch the same cancel simply left the
+   person signed in. Fixed in "fix(identity): a sign-out cancelled mid-request
+   still signs out": the emit runs in a `NonCancellable` `finally`.
+   `signOut_cancelledWhileTheLogoutRequestHangs_stillSignsOut` and
+   `deleteAccount_cancelledWhileSigningOut_stillSignsOut` fail without it
+   (the state stays `Authenticated`).
+6. **A relaunch after the "sign in again" tap showed the expired screen again
+   (040124e9 with b71a2c2b's healer branch): real, fixed.** The tap now keeps
+   the hold and resets onboarding, and self-heal checked the hold before
+   onboarding, so a relaunch mid-sign-in pushed the expired screen over
+   onboarding and the person had to tap it twice. Fixed in "fix(identity): a
+   relaunch after \"sign in again\" stays on sign-in".
+   `aRelaunchAfterTheSignInAgainTap_staysOnSignIn_withoutTheExpiredScreenAgain`
+   fails without it (marked unrecoverable once).
+7. **Two KDocs that the branch made false (040124e9, 9393d613): real, fixed**
+   in "docs(identity): the expiry hold survives the expired screen's sign-out".
+   `ExpiredAccountStore` still said a log out wipes the held data, and
+   `FallbackDisplayNameStore.set` promised to save the name once a session
+   exists. No test. Finding 3's "or a log out" above describes the first
+   version of that fix; cross-slice item 7 below is corrected to match.
+8. **A stranded account's data went to whoever signed in next: real, fixed.
+   Not a regression of this branch; it was there before.** When the session
+   died before the run saw it signed in (revoked while the app was closed, or
+   lost from storage, AUTH-19), `emitLocked` had no previous user to hold or
+   dump. After "sign in again", a different account kept the stranded
+   account's diary rows and its outbox drained into the new account. Fixed in
+   "fix(identity): a stranded account's data is held for the next sign-in":
+   self-heal holds the account it found before routing to sign-in, so the hold
+   from finding 3 settles it. `aStrandedAccount_isHeldForWhoeverSignsInNext`
+   fails without it (no hold).
+
+Checked and not a problem: 36d7699e (its two tests fail with the fix removed;
+any sign-in clears the sticky `SignedOut`); 4c469f1d (404 is no longer a
+success, but the server answers an already deleted account with 204, and a 401
+the network layer remaps to `AuthUnready` still reads as `NetworkError`, as
+before; the `delete_failed` test fails with the old 503 mapping); 9393d613 (the
+cache file keeps its name); the claims in 12272ba5 and 753e9821 (`SupabaseInfo`
+keys on `BuildInfo.isDebug`, `isEmailConfirmed` comes from `emailConfirmedAt`,
+`SETUP.md` has a Networking section); 3914451a (nothing in the repo uses
+Preferences DataStore); 7efc5f24 (test import only); 2bb829f1 (the ledger edit
+stays inside this slice's section). The hold tests from b71a2c2b and the
+offline sign-out test from f54d22fd fail with their fixes disabled.
+
 ## Deferred cross-slice changes
 
 1. **`apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/TestClient.kt`**
@@ -300,8 +386,8 @@ fixed findings that live in other slices; the first one is needed for
    `SupabaseAuthTokenProvider`, neither of which exists.)
 7. **`AGENTS.md`, "Auth model", the "User-change choke point" bullet**: add
    "A session expiry is the exception: the departing account is held
-   (`ExpiredAccountStore`) and dumped only when a different account signs in or
-   the person logs out, so signing back in keeps unsynced meals."
+   (`ExpiredAccountStore`) and dumped only when a different account signs in,
+   so signing back in keeps unsynced meals."
 8. **`gradle/libs.versions.toml:248-249`** (build-config): delete the
    `androidx-datastore-preferences` and `androidx-datastore-preferences-core`
    aliases; nothing references them after finding 15.
