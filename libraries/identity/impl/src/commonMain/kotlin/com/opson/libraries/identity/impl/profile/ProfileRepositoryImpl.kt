@@ -80,7 +80,8 @@ class ProfileRepositoryImpl(
      * Latch for the server's one-shot `isNewAccount` flag (see
      * [resolveIsNewAccount]). Set true when a `/v1/me` hydrate reports a
      * brand-new account, keyed to [newAccountLatchUserId] so it can't leak
-     * across an account switch. Consumed (reset) by [resolveIsNewAccount].
+     * across an account switch. Reads don't reset it; a sign-out or an account
+     * switch does.
      */
     private val _accountJustCreated = MutableStateFlow(false)
     private var newAccountLatchUserId: String? = null
