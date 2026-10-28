@@ -1624,25 +1624,27 @@ keeps existing ticks.
 - [ ] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewLauncher.kt`
 - [ ] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewPromptCoordinator.kt`
 
-## website (20 files)
+## website (22 files)
 
-- [ ] `website/astro.config.mjs`
-- [ ] `website/src/components/Footer.astro`
-- [ ] `website/src/components/Nav.astro`
-- [ ] `website/src/components/Screenshot.astro`
-- [ ] `website/src/components/WaitlistForm.astro`
-- [ ] `website/src/consts.ts`
-- [ ] `website/src/layouts/Layout.astro`
-- [ ] `website/src/lib/dates.test.ts`
-- [ ] `website/src/lib/dates.ts`
-- [ ] `website/src/lib/paths.test.ts`
-- [ ] `website/src/lib/paths.ts`
-- [ ] `website/src/lib/waitlist.test.ts`
-- [ ] `website/src/lib/waitlist.ts`
-- [ ] `website/src/pages/404.astro`
-- [ ] `website/src/pages/contact.astro`
-- [ ] `website/src/pages/credits.astro`
-- [ ] `website/src/pages/health-data.astro`
-- [ ] `website/src/pages/index.astro`
-- [ ] `website/src/pages/privacy.astro`
-- [ ] `website/src/pages/terms.astro`
+- [x] `website/astro.config.mjs`
+- [x] `website/src/components/Footer.astro`
+- [x] `website/src/components/Nav.astro`
+- [x] `website/src/components/Screenshot.astro`
+- [x] `website/src/components/WaitlistForm.astro`
+- [x] `website/src/consts.ts`
+- [x] `website/src/layouts/Layout.astro`
+- [x] `website/src/lib/dates.test.ts`
+- [x] `website/src/lib/dates.ts`
+- [x] `website/src/lib/paths.test.ts`
+- [x] `website/src/lib/paths.ts`
+- [x] `website/src/lib/site.test.ts`
+- [x] `website/src/lib/site.ts`
+- [x] `website/src/lib/waitlist.test.ts`
+- [x] `website/src/lib/waitlist.ts`
+- [x] `website/src/pages/404.astro`
+- [x] `website/src/pages/contact.astro`
+- [x] `website/src/pages/credits.astro`
+- [x] `website/src/pages/health-data.astro`
+- [x] `website/src/pages/index.astro`
+- [x] `website/src/pages/privacy.astro`
+- [x] `website/src/pages/terms.astro`
