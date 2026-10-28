@@ -4,6 +4,7 @@ import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.opson.AppEvent
@@ -16,6 +17,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -56,7 +58,9 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         goalsAndEnergy = goalsAndEnergyFlag(),
     )
 
-    private fun opener(): WidgetOpener = WidgetOpener(diary, settings, calendar, clock, appScope)
+    private val auth = FakeAuth()
+
+    private fun opener(): WidgetOpener = WidgetOpener(diary, settings, calendar, clock, { auth }, appScope)
 
     private fun test(block: suspend TestScope.() -> Unit) = runUnitTest {
         appScope = AppCoroutineScope(dispatchers)
@@ -168,5 +172,19 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         opener.opened(WidgetLinks.LOG)
 
         assertEquals(WidgetLogOpen(null, today), opener.requests.first())
+    }
+
+    /** The + is on the "Open Opson" card too. Signed out, it opens the app, never a Logger nobody owns. */
+    @Test
+    fun theLogLink_signedOut_opensNothing() = test {
+        auth.state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
+        val opener = opener()
+        val asked = mutableListOf<WidgetLogOpen>()
+        appScope.launch { opener.requests.collect { asked += it } }
+
+        assertTrue(opener.opened(WidgetLinks.LOG), "still the widget's link, so it goes no further")
+        runCurrent()
+
+        assertTrue(asked.isEmpty())
     }
 }
