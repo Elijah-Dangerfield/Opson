@@ -3,7 +3,12 @@ package com.opson.server.routes
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.opson.server.domain.AppConfigSource
+import com.opson.server.domain.BanReason
+import com.opson.server.domain.BanStatus
+import com.opson.server.domain.ModerationRepository
 import com.opson.server.domain.UserId
+import com.opson.server.plugins.AccessDeniedResponse
+import com.opson.server.plugins.BanGate
 import com.opson.server.plugins.BearerVerifier
 import com.opson.server.plugins.JwtVerification
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
@@ -23,6 +28,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.File
@@ -36,6 +42,7 @@ import java.util.Date
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.ExperimentalTime
 
 /**
  * `GET /v1/app-config` carries the kill switch and the version floor, so it must answer every
@@ -78,6 +85,31 @@ class AppConfigRoutesTest {
         // Headers Ktor's parser rejects outright; a 400 here would hide the kill switch as surely as a 401.
         for (unparseable in listOf("Bearer abc def", "Bearer a,b", "Bearer \"x", "Bearer =x")) {
             assertServed("anonymous", client.get("/v1/app-config") { header(HttpHeaders.Authorization, unparseable) })
+        }
+    }
+
+    /**
+     * A ban stops the routes that touch the user's data, not app config: the kill switch and the
+     * version floor have to reach a banned user too, and the block screen comes from the first
+     * data call's 403.
+     */
+    @OptIn(ExperimentalTime::class)
+    @Test
+    fun aBannedUser_getsTheirOwnTree_whileProtectedRoutesAnswer403() {
+        val banned = BanStatus(BanReason.Banned, until = null)
+        val everyoneBanned = object : ModerationRepository {
+            override suspend fun banStatusFor(userId: UserId) = banned
+        }
+        val banGate = BanGate(everyoneBanned, appealUrl = "https://example.com/appeal")
+        app(TestJwt.verification, banGate) {
+            assertServed(user.toString(), client.get("/v1/app-config") { header(HttpHeaders.Authorization, TestJwt.bearer(user)) })
+
+            val protected = client.get("/protected") { header(HttpHeaders.Authorization, TestJwt.bearer(user)) }
+            assertEquals(HttpStatusCode.Forbidden, protected.status)
+            assertEquals(
+                AccessDeniedResponse(reason = "banned", until = null, appealUrl = "https://example.com/appeal"),
+                Json.decodeFromString<AccessDeniedResponse>(protected.bodyAsText()),
+            )
         }
     }
 
@@ -145,13 +177,19 @@ class AppConfigRoutesTest {
         }
     }
 
-    private fun app(verification: JwtVerification, block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
+    private fun app(
+        verification: JwtVerification,
+        banGate: BanGate? = null,
+        block: suspend ApplicationTestBuilder.() -> Unit,
+    ) = testApplication {
         application {
             installSerialization()
             installStatusPages()
-            installAuthentication(verification)
+            // One verifier for both, as in production's installApp.
+            val bearer = BearerVerifier(verification)
+            installAuthentication(bearer, banGate)
             routing {
-                appConfigRoutes(source, BearerVerifier(verification))
+                appConfigRoutes(source, bearer)
                 authenticate(SUPABASE_JWT_AUTH) {
                     get("/protected") { call.respondText(call.userId().toString()) }
                 }
