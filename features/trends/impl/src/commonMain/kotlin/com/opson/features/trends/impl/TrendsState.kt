@@ -16,6 +16,8 @@ import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.nutrition.ui.chartReading
+import com.opson.libraries.ui.components.ChartReadout
 import com.opson.libraries.ui.components.IntakeBar
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.time.RelativeDay
@@ -27,6 +29,8 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.trends_chart_daily_average
 import org.jetbrains.compose.resources.StringResource
 import kotlin.math.ceil
 
@@ -90,6 +94,8 @@ data class IntakeCard(
     val caption: IntakeCaption,
     /** The goal is one number (one number, a deficit or a surplus): the caption calls it a line, not a band. */
     val singleGoal: Boolean = false,
+    /** What each bar says when inspected, `null` for a gap: its day or week, and the amount. */
+    val readouts: List<ChartReadout?> = emptyList(),
 ) {
     /** Nothing logged in the span, today included: the card says what will show up instead of an empty chart. */
     val empty: Boolean get() = bars.all { it.fraction == null }
@@ -127,6 +133,8 @@ data class ExpendedCard(
     val average: Display,
     /** One height per day with a reading, oldest first, in `0..1`; empty under two. */
     val trend: List<Float>,
+    /** One per point of [trend]: the day and what the watch read. */
+    val readouts: List<ChartReadout?> = emptyList(),
 )
 
 data class WeightCard(
@@ -135,6 +143,8 @@ data class WeightCard(
     val value: Display?,
     /** The smoothed line over the span; empty under two readings. */
     val trend: List<Float>,
+    /** One per point of [trend]: the weigh-in's day, and the trend there at Show. */
+    val readouts: List<ChartReadout?> = emptyList(),
 )
 
 enum class WeightSubtitle { Trend, NoWeighIns }
@@ -238,39 +248,43 @@ object TrendsStateBuilder {
         val scale = chartScale(goal)
         val tracked = mutableListOf<Double>()
         var inProgress = IntakeCaption.Plain
-        val bars = when (span.range) {
+        fun readout(title: String, kcal: Double?, label: StringResource? = null): ChartReadout? = kcal?.let {
+            ChartReadout(title, listOfNotNull(policy.resolve(Metric.Calories, it, Surface.Week, context).chartReading(Metric.Calories, label)))
+        }
+        val points: List<Pair<IntakeBar, ChartReadout?>> = when (span.range) {
             TrendsRange.Week -> span.days.map { date ->
                 val current = date == inputs.today
                 val day = dayAt(date)
                 val kcal = day.intakeKcal()?.takeIf { opens(Metric.Calories, day, inputs, policy) }
                 if (current) inProgress = IntakeCaption.TodayInProgress else kcal?.let(tracked::add)
-                IntakeBar(TrendsCalendar.weekdayLabel(date), kcal?.let { (it / scale).toFloat() }, isCurrent = current)
+                IntakeBar(TrendsCalendar.weekdayLabel(date), kcal?.let { (it / scale).toFloat() }, isCurrent = current) to
+                    readout(TrendsReadouts.day(date, inputs.today), kcal)
             }
             TrendsRange.FourWeeks, TrendsRange.ThreeMonths -> {
                 val count = TrendsCalendar.barCount(span.range)
                 val starts = TrendsCalendar.weekStarts(inputs.today, inputs.settings.weekStart, count)
                 starts.mapIndexed { index, start ->
                     val current = index == starts.lastIndex
-                    val week = (0 until TrendsCalendar.DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }
-                        .filter { it <= inputs.today }
-                        .map(dayAt)
-                        .filter { opens(Metric.Calories, it, inputs, policy) }
+                    val dates = (0 until TrendsCalendar.DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }.filter { it <= inputs.today }
+                    val week = dates.map(dayAt).filter { opens(Metric.Calories, it, inputs, policy) }
                     val days = week.mapNotNull { it.intakeKcal() }
                     if (current) inProgress = IntakeCaption.WeekInProgress else tracked.addAll(days)
+                    val average = days.averageOrNull()
                     IntakeBar(
                         label = weekBarLabel(starts, index, span.range),
-                        fraction = days.averageOrNull()?.let { (it / scale).toFloat() },
+                        fraction = average?.let { (it / scale).toFloat() },
                         isCurrent = current,
-                    )
+                    ) to readout(TrendsReadouts.week(start, dates.last()), average, Res.string.trends_chart_daily_average)
                 }
             }
         }
         return IntakeCard(
             average = policy.resolve(Metric.Calories, tracked.averageOrNull(), Surface.Week, context),
-            bars = bars,
+            bars = points.map { it.first },
             band = (goal.minKcal / scale).toFloat()..(goal.maxKcal / scale).toFloat(),
             caption = inProgress,
             singleGoal = goal.minKcal == goal.maxKcal,
+            readouts = points.map { it.second },
         )
     }
 
@@ -359,12 +373,27 @@ object TrendsStateBuilder {
     ): ExpendedCard? {
         val energy = inputs.expended ?: return null
         if (!showsExpended(policy, context)) return null
-        val totals = span.days
+        val days = span.days
             .filter { it < inputs.today && opens(Metric.EnergyOut, dayAt(it), inputs, policy) }
-            .mapNotNull { energy[it]?.totalKcal }
+            .mapNotNull { date -> energy[date]?.totalKcal?.let { date to it } }
+        val totals = days.map { it.second }
         val average = policy.resolve(Metric.EnergyOut, totals.averageOrNull(), Surface.Week, context)
         if (average is Display.Hidden) return null
-        return ExpendedCard(average, trend = heights(totals))
+        val trend = heights(totals)
+        return ExpendedCard(
+            average = average,
+            trend = trend,
+            readouts = if (trend.isEmpty()) {
+                emptyList()
+            } else {
+                days.map { (date, kcal) ->
+                    ChartReadout(
+                        title = TrendsReadouts.day(date, inputs.today),
+                        readings = listOfNotNull(policy.resolve(Metric.EnergyOut, kcal, Surface.Week, context).chartReading(Metric.EnergyOut)),
+                    )
+                }
+            },
+        )
     }
 
     /** Each value's height between the lowest and highest, with a little room, so the line has no scale. */
@@ -390,6 +419,11 @@ object TrendsStateBuilder {
                 ).takeUnless { display -> display is Display.Hidden }
             },
             trend = curve.trend,
+            readouts = if (curve.trend.isEmpty()) {
+                emptyList()
+            } else {
+                TrendsReadouts.weight(curve, inputs.today, inputs.settings.weightUnit, policy, weighIns = false)
+            },
         )
     }
 

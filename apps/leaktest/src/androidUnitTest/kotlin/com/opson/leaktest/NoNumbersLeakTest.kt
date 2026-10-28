@@ -36,7 +36,12 @@ class NoNumbersLeakTest(private val surface: LeakSurface) {
         compose.render(surface, policyFor(PresetId.NoNumbers))
         val leaks = Metric.entries.flatMap { metric ->
             compose.onAllNodes(hasTestTag(metric.testTag()), useUnmergedTree = true).fetchSemanticsNodes()
-                .map { node -> node.config.getOrNull(SemanticsProperties.Text).orEmpty().joinToString(" ") { it.text } }
+                // The spoken words too: a chart point is a node that only speaks, and a screen
+                // reader must hear no more than the screen shows.
+                .map { node ->
+                    (node.config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text } +
+                        node.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty()).joinToString(" ")
+                }
                 .filter { text -> text.any(Char::isDigit) }
                 .map { "${metric.testTag()} showing \"$it\"" }
         }

@@ -1,11 +1,13 @@
 package com.opson.features.trends.impl
 
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.MealPatternFacts
 import com.opson.libraries.diary.MealPatterns
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.NewFoods
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.GoalStyle
@@ -14,6 +16,9 @@ import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.energyShare
+import com.opson.libraries.ui.components.ChartReading
+import com.opson.libraries.ui.components.ChartReadout
+import com.opson.libraries.ui.time.DateCopy
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -21,6 +26,9 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.trends_chart_hunger
+import kotlin.math.roundToInt
 
 /** What Patterns is built from: the last four weeks of days, oldest first, with the lookback before them for new foods. */
 data class PatternsInputs(
@@ -90,7 +98,13 @@ enum class HungerSource {
  * A bar per weekday, Monday first, and the skipped-breakfast fact when the
  * answers say so: the weekdays it happened on, most often first.
  */
-data class HungerCard(val days: List<HungerDay>, val skippedBreakfast: List<DayOfWeek>?, val source: HungerSource)
+data class HungerCard(
+    val days: List<HungerDay>,
+    val skippedBreakfast: List<DayOfWeek>?,
+    val source: HungerSource,
+    /** Each weekday's bar inspected, `null` with no answer: the weekday and the nearest answer to its average. */
+    val readouts: List<ChartReadout?> = emptyList(),
+)
 
 /**
  * Builds [PatternsState] from [MealPatterns], which owns the arithmetic.
@@ -169,6 +183,12 @@ object PatternsStateBuilder {
             days = DayOfWeek.entries.map { day -> HungerDay(day, facts.checkInHungerByWeekday[day]?.toFloat()) },
             skippedBreakfast = facts.checkInHungrierWithoutBreakfast,
             source = HungerSource.CheckIns,
+            readouts = DayOfWeek.entries.map { day ->
+                facts.checkInHungerByWeekday[day]?.let { share ->
+                    val answer = DayHunger.entries[(share * DayHunger.entries.lastIndex).roundToInt()]
+                    ChartReadout(DateCopy.longWeekday(day), listOf(ChartReading(word = answer.label, label = Res.string.trends_chart_hunger)))
+                }
+            },
         )
         inputs.settings.askTags && facts.taggedMeals > 0 -> HungerCard(
             days = DayOfWeek.entries.map { day ->
@@ -176,6 +196,11 @@ object PatternsStateBuilder {
             },
             skippedBreakfast = facts.hungrierWithoutBreakfast,
             source = HungerSource.MealTags,
+            readouts = DayOfWeek.entries.map { day ->
+                facts.hungerByWeekday[day]?.let {
+                    ChartReadout(DateCopy.longWeekday(day), listOf(ChartReading(word = TrendsReadouts.hungerWord(it).label)))
+                }
+            },
         )
         else -> null
     }

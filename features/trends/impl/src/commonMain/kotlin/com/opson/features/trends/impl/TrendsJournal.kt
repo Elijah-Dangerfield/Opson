@@ -8,6 +8,9 @@ import com.opson.libraries.diary.MealPatterns
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.TrendsRange
+import com.opson.libraries.diary.ui.label
+import com.opson.libraries.ui.components.ChartReading
+import com.opson.libraries.ui.components.ChartReadout
 import com.opson.libraries.ui.components.IntakeBar
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
@@ -33,6 +36,8 @@ sealed interface HungerTrend {
         val perWeek: Boolean,
         /** The four meals in order, for those with any hunger. */
         val meals: List<MealHunger>,
+        /** Each bar inspected, `null` where nothing was noted: its day or week, and the nearest answer to its average. */
+        val readouts: List<ChartReadout?> = emptyList(),
     ) : HungerTrend
 }
 
@@ -72,21 +77,26 @@ internal object TrendsJournal {
 
     fun hunger(inputs: TrendsInputs, span: TrendsSpan, facts: JournalFacts): HungerTrend {
         if (facts.hungerMeals == 0) return HungerTrend.Empty
-        val bars = when (span.range) {
+        val points: List<Pair<IntakeBar, ChartReadout?>> = when (span.range) {
             TrendsRange.Week -> span.days.map { date ->
-                IntakeBar(TrendsCalendar.weekdayLabel(date), barHeight(facts.hungerByDay[date]), isCurrent = date == inputs.today)
+                val levels = facts.hungerByDay[date]
+                IntakeBar(TrendsCalendar.weekdayLabel(date), barHeight(levels), isCurrent = date == inputs.today) to
+                    readout(TrendsReadouts.day(date, inputs.today), levels)
             }
             TrendsRange.FourWeeks, TrendsRange.ThreeMonths -> {
                 val starts = TrendsCalendar.weekStarts(inputs.today, inputs.settings.weekStart, TrendsCalendar.barCount(span.range))
                 starts.mapIndexed { index, start ->
-                    val levels = (0 until TrendsCalendar.DAYS_IN_WEEK).flatMap { facts.hungerByDay[start.plus(it, DateTimeUnit.DAY)].orEmpty() }
-                    IntakeBar(TrendsStateBuilder.weekBarLabel(starts, index, span.range), barHeight(levels), isCurrent = index == starts.lastIndex)
+                    val dates = (0 until TrendsCalendar.DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }.filter { it <= inputs.today }
+                    val levels = dates.flatMap { facts.hungerByDay[it].orEmpty() }
+                    IntakeBar(TrendsStateBuilder.weekBarLabel(starts, index, span.range), barHeight(levels), isCurrent = index == starts.lastIndex) to
+                        readout(TrendsReadouts.week(start, dates.last()), levels)
                 }
             }
         }
         return HungerTrend.Chart(
             answers = facts.hungerMeals,
-            bars = bars,
+            bars = points.map { it.first },
+            readouts = points.map { it.second },
             perWeek = span.range != TrendsRange.Week,
             meals = MealSlot.meals.mapNotNull { slot ->
                 facts.hungerBySlot[slot]?.let {
@@ -109,6 +119,10 @@ internal object TrendsJournal {
             linksToNotes = linksToNotes,
         )
     }
+
+    /** A bar's point: nothing where nothing was noted, the same rule as [barHeight]'s gap. */
+    private fun readout(title: String, levels: List<Int>?): ChartReadout? =
+        levels?.takeIf { it.isNotEmpty() }?.let { ChartReadout(title, listOf(ChartReading(word = TrendsReadouts.hungerWord(it).label))) }
 
     private fun barHeight(levels: List<Int>?): Float? =
         levels?.takeIf { it.isNotEmpty() }?.let { ((it.average() + 1) / BAR_STEPS).toFloat() }
