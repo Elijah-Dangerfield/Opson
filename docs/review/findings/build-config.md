@@ -186,7 +186,9 @@ Routed from audit truth. Each verified against the code before editing.
   list Google sign-in, and told people we might not find their account from an email.
   Confirmed: sign-in is required, `DisplayNameSuggester` is only referenced by itself, the
   server default is `user-` plus eight characters of the id. Fixed in
-  `docs(legal): accounts are required, carry an email, and can come from Google`. One
+  `docs(legal): accounts are required, carry an email, and can come from Google`, then
+  taken back out in `docs(legal): keep the 0.1 policy until 0.2 ships` (see the second
+  review, item 1): the text is right for 0.2 and wrong for the 0.1 build in the store. One
   departure from the audit's wording: Supabase keeps the name and picture Google shares in
   the sign-in record, so the policy says so rather than only "we don't use the name". The
   dates were already 2026-10-27, and legal-sync runs on its own when this reaches main.
@@ -238,6 +240,69 @@ Routed from audit truth. Each verified against the code before editing.
 - `gradle.properties`, the wrapper, `versions.properties` (block markers in place),
   `telemetry.properties` (the DSN only) and `supabase.properties` (a publishable key, which
   is not a secret) are as their comments say.
+
+## Second review
+
+A second reviewer flagged five possible regressions in this branch. Each was checked
+against the code.
+
+1. **The legal pages described 0.2 while 0.1 is in the store: real, reverted.**
+   `legal-sync.yml` publishes `legal/**` as soon as it reaches main, and the site repo
+   merges it on its own. `.release-please-manifest.json` is at 0.1.0, which makes an
+   anonymous account with no email, so the new "You sign in to use Opson" and "Tell us the
+   email you sign in with" would have been wrong about the live app. The rewrite also
+   dropped the guidance for no-email accounts from the rights section and from
+   `health-data.md`, and added a public statement about Google's name and picture the owner
+   had not read. Fixed in `docs(legal): keep the 0.1 policy until 0.2 ships`, which reverts
+   02c9e84f, so this branch no longer changes `legal/` at all. No test: it is prose.
+   **Deferred (cross-slice, owner):** with the 0.2 release, after the owner reads the
+   "Your account" paragraph, `git cherry-pick 02c9e84f`. Add a line under "Before merging
+   the legal changes to main" in `docs/plans/0.2/release-checklist.md`: "Re-apply 02c9e84f
+   (accounts are required, carry an email, can come from Google); keep a sentence for
+   pre-0.2 accounts with no email in the rights section and in health-data.md, pointing them
+   to the in-app export and delete buttons."
+
+2. **The doc edits outside build-config: not a regression.** `AGENTS.md`, `README.md`,
+   `SETUP.md`, `docs/system-design.md`, `docs/app-store/listing.md`,
+   `docs/plans/0.2/release-checklist.md`, `docs/plans/onboarding-v2.md`,
+   `docs/plans/screens/*.md`, `docs/practices/review-checklist.md` and
+   `docs/TESTING-ON-DEVICE.md` belong to no slice: `LEDGER.md` lists only code and config,
+   and none of these files is in any section. The orchestrator's routing record
+   (`routedCounts` in the round-two run) sends 13 audit findings to build-config, and the
+   doc edits are recorded as routed from the truth audit (finding 10). The reviewer found no false
+   statement in these edits. The App Store review notes in `listing.md` describe 0.2, which
+   is safe because the 0.2 checklist gates pasting them. The orchestrator should still
+   confirm the routing when it merges.
+
+3. **Nothing checked that a release build runs `verifyReleaseEnvironment`: real, fixed.**
+   `ReleaseEnvironmentTest` covers what the check refuses, but not the wiring in
+   `ApplicationConventionPlugin.verifyReleaseEnvironment()`. Dropping the `dependsOn`, or AGP
+   renaming `preReleaseBuild`, would leave every test green while release builds ship
+   unchecked. Fixed in `build: check fails when a release build would skip the release
+   environment check`: the root task `verifyReleaseEnvironmentWired`, on `check`, fails when
+   `:apps:compose:preReleaseBuild` or `:apps:compose:linkReleaseFrameworkIosArm64` is missing
+   or doesn't depend on `:apps:compose:verifyReleaseEnvironment`. It passes on this branch and
+   fails with the Android `dependsOn` removed. CI's `./gradlew :check` runs on macOS, so both
+   tasks exist there.
+
+4. **The R8 smoke test's wait for Today dropped from 30 s to 20 s, with sign-in inside it:
+   real, fixed.** Before ac32761e `MinifiedReleaseSmokeTest` waited `LAUNCH_TIMEOUT_MS` (30 s)
+   for Today; through `reachToday` it waited `FIRST_SCREEN_TIMEOUT_MS` (20 s), and the wait
+   after Sign in now includes a Supabase and server round trip on a cold minified start.
+   Fixed in `test(baselineprofile): the smoke test waits as long for Today as it did before
+   sign-in`: `reachToday(todayTimeoutMs)` with the smoke test passing 30 s, and
+   `SIGN_IN_TIMEOUT_MS` (30 s) for the wait after Sign in. No failing test: this is emulator
+   code that can't run until the benchmark account and variant exist (finding 4); the module
+   compiles.
+
+5. **`ReleaseSigningTest` failed on a machine exporting `ANDROID_KEY_ALIAS`: real, fixed.**
+   The environment wins over `local.properties`, and the `assumeTrue` guard skipped only for
+   the two keystore variables, so `askedForWithAKeyInLocalProperties_usesIt` read the
+   machine's alias. Fixed in `test(build-logic): the release signing tests ignore the
+   machine's ANDROID_KEY* variables`: `releaseCredentials` takes the environment as a
+   parameter (`System::getenv` by default) and the tests pass an empty one, so nothing skips.
+   With `ANDROID_KEY_ALIAS=ci-alias` exported the old test fails (1 of 3) and the new one
+   passes 3 of 3, with no skips, even with `ANDROID_KEYSTORE_PATH` set too.
 
 ## Product notes
 
