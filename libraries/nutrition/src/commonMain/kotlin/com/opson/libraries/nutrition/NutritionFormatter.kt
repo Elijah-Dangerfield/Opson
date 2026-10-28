@@ -62,6 +62,18 @@ interface NutritionFormatter {
     /** `47P`. [metric] is one of the four macros. */
     fun macroCompact(metric: Metric, grams: Double): String
 
+    /** A ring's energy label: `1,245` over `kcal`. */
+    fun ringEnergy(kcal: Double): RingValue
+
+    /** A ring's macro label: `47` over `g`. */
+    fun ringGrams(grams: Double): RingValue
+
+    /** The remaining ring inside the range: `On` over `target`. */
+    fun ringOnTarget(): RingValue
+
+    /** The remaining ring above the range: `Past` over `range`. */
+    fun ringAboveRange(): RingValue
+
     /** A glass or a daily goal, not an amount drunk: `250 ml`, `2,000 ml`, `8 fl oz`. */
     fun glassSize(amount: Double, unit: WaterUnit): String
 
@@ -132,6 +144,14 @@ object EnglishNutritionFormatter : NutritionFormatter {
     override fun macroLong(metric: Metric, grams: Double): String = "${wholeNumber(grams)} g ${macroWord(metric)}"
 
     override fun macroCompact(metric: Metric, grams: Double): String = "${wholeNumber(grams)}${macroLetter(metric)}"
+
+    override fun ringEnergy(kcal: Double): RingValue = RingValue(wholeNumber(kcal), "kcal")
+
+    override fun ringGrams(grams: Double): RingValue = RingValue(wholeNumber(grams), "g")
+
+    override fun ringOnTarget(): RingValue = RingValue("On", "target")
+
+    override fun ringAboveRange(): RingValue = RingValue("Past", "range")
 
     override fun glassSize(amount: Double, unit: WaterUnit): String = when (unit) {
         WaterUnit.Ml -> "${wholeNumber(amount)} ml"
