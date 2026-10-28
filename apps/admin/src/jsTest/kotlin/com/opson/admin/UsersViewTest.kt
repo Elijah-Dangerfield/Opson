@@ -41,6 +41,11 @@ class UsersViewTest {
     }
 
     @Test
+    fun aSearchThatFailsAfterAnEmptyOneSaysItFailedNotThatNothingMatched() {
+        assertEquals("Couldn't load accounts. Search to try again.", userListNote(results = emptyList(), searchFailed = true))
+    }
+
+    @Test
     fun anAccountThatFailsToLoadSaysHowToRetry() {
         assertEquals("Loading the account…", userDetailNote(detailFailed = false))
         assertEquals("Couldn't load that account. Pick it again to retry.", userDetailNote(detailFailed = true))

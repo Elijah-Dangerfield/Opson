@@ -105,10 +105,14 @@ internal fun UsersView(ctx: AdminCtx) {
     }
 }
 
-/** What the list says when it has no rows to show: still loading, failed, or nothing matched. */
+/**
+ * What the list says when it has no rows to show: failed, still loading, or nothing matched. A
+ * failure wins over an earlier empty result, which belongs to a query that is no longer the one
+ * in the box.
+ */
 internal fun userListNote(results: List<UserSummaryDto>?, searchFailed: Boolean): String = when {
-    results != null -> "No account matches."
     searchFailed -> "Couldn't load accounts. Search to try again."
+    results != null -> "No account matches."
     else -> "Loading…"
 }
 
