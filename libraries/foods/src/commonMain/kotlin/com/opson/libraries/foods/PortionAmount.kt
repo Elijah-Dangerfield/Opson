@@ -213,7 +213,13 @@ fun Food.amountUnits(saved: List<FoodUnit> = emptyList()): List<AmountUnit> =
 
 /** The food detail's units: [amountUnits] with every weight, and volumes where a portion states one. */
 fun Food.detailUnits(saved: List<FoodUnit> = emptyList(), prefersOunces: Boolean = false): List<AmountUnit> =
-    portions.map(AmountUnit::OfPortion) + saved.map(AmountUnit::Saved) + measureUnits(gramsPerMl, prefersOunces)
+    (portions.map(AmountUnit::OfPortion) + saved.map(AmountUnit::Saved)).withMeasures(measureUnits(gramsPerMl, prefersOunces))
+
+/** A size someone named "oz" already says it; the menu has one of each name. */
+private fun List<AmountUnit>.withMeasures(measures: List<AmountUnit>): List<AmountUnit> {
+    val named = map { it.chipLabel.lowercase() }.toSet()
+    return this + measures.filter { it == AmountUnit.Grams || it.chipLabel.lowercase() !in named }
+}
 
 /**
  * A custom food offers its serving unit, then its own sizes and the person's [saved] ones, then
@@ -230,8 +236,7 @@ fun CustomFood.amountUnits(saved: List<FoodUnit> = emptyList()): List<AmountUnit
 fun CustomFood.detailUnits(saved: List<FoodUnit> = emptyList(), prefersOunces: Boolean = false): List<AmountUnit> {
     val units = amountUnits(saved)
     if (!isByWeight) return units
-    val density = gramsPerMl
-    return units.filterNot { it == AmountUnit.Grams } + measureUnits(density, prefersOunces)
+    return units.filterNot { it == AmountUnit.Grams }.withMeasures(measureUnits(gramsPerMl, prefersOunces))
 }
 
 /** Its serving is in grams. */

@@ -114,10 +114,13 @@ class SurfacesCoverageTest {
                 "search-empty",
                 "logger-describe", "logger-describe-voice", "logger-describe-edited", "logger-describe-find", "logger-saved",
                 "food-detail", "food-detail-nutrients", "food-detail-units", "food-detail-scan", "food-detail-no-numbers",
+                "food-detail-more", "food-detail-liquid", "food-detail-creamer", "food-detail-pounds",
                 "logger-photo", "logger-photo-swap", "logger-photo-start", "logger-scan-miss",
                 "exercise-sheet", "exercise-sheet-other", "exercise-sheet-pick",
             ),
-            "FoodsLeakSurfaces" to listOf("foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy"),
+            "FoodsLeakSurfaces" to listOf(
+                "foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy", "edit-a-copy-label", "edit-a-copy-sizes",
+            ),
             "TrendsLeakSurfaces" to listOf(
                 "trends", "trends-blind", "trends-coast", "trends-settings", "nutrients", "nutrients-week",
                 "weight", "patterns", "patterns-blind", "progress-photos", "progress-photos-compare",
@@ -151,7 +154,8 @@ class SurfacesCoverageTest {
             "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "edit-a-copy",
             "logger-describe-voice", "search-tabs", "food-detail-units",
             "food-detail-scan", "food-detail-nutrients", "logger-describe-edited", "logger-describe-find",
-            "widget", "widgets",
+            "widget", "widgets", "food-detail-more", "food-detail-liquid", "food-detail-creamer", "food-detail-pounds",
+            "edit-a-copy-label", "edit-a-copy-sizes",
             "today-burned", "today-burned-health", "exercise-sheet", "exercise-sheet-other",
         )
     }

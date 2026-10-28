@@ -74,8 +74,6 @@
     <string name="logger_amount_kcal">kcal</string>
     <string name="logger_amount_open">open</string>
     <string name="logger_amount_closed">closed</string>
-    <string name="logger_amount_per_source">Per %1$s · Source: %2$s</string>
-    <string name="logger_amount_per_only_source">Source: %1$s</string>
     <string name="logger_amount_custom">Custom size…</string>
     <string name="logger_amount_custom_title">A size of your own</string>
     <string name="logger_amount_custom_body">Name it the way you would say it, and give its weight once. It stays with this food.</string>
@@ -86,11 +84,8 @@
     <string name="logger_amount_custom_save">Save size</string>
     <string name="logger_amount_favorite_cd">Save to favorites</string>
     <string name="logger_amount_unfavorite_cd">Remove from favorites</string>
-    <string name="logger_source_usda">USDA FoodData Central</string>
-    <string name="logger_source_off">Open Food Facts</string>
     <!-- RIVM's required citation, word for word. The version moves with CITED_VERSION in scripts/import_nevo_foods.py. -->
     <string name="logger_source_nevo">Based on data from NEVO online version 2025/9.0, RIVM, Bilthoven</string>
-    <string name="logger_source_yours">your own food</string>
     <string name="logger_micros_vitamins">Vitamins</string>
     <string name="logger_micros_minerals">Minerals</string>
     <string name="logger_micro_vitamin_a">Vitamin A</string>

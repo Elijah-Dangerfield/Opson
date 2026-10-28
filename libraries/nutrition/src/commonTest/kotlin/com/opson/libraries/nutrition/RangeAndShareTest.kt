@@ -72,6 +72,15 @@ class RangeAndShareTest {
     }
 
     @Test
+    fun targetShare_onlyWhereTheMetricShows() {
+        assertEquals(Display.Shown("12%"), policy(PresetId.Full).targetShare(Metric.Calories, 12.4, Surface.Logger))
+        assertEquals(Display.Hidden, policy(PresetId.MacrosWithGrams).targetShare(Metric.Calories, 12.4, Surface.Logger))
+        assertEquals(Display.Shown("7%"), policy(PresetId.MacrosWithGrams).targetShare(Metric.Protein, 6.7, Surface.Logger))
+        assertEquals(Display.Hidden, policy(PresetId.MacrosOnly).targetShare(Metric.Protein, 6.7, Surface.Logger))
+        assertEquals(Display.Hidden, policy(PresetId.NoNumbers).targetShare(Metric.Protein, 6.7, Surface.Logger))
+    }
+
+    @Test
     fun energyShare_onlyWhenCaloriesShow() {
         assertEquals(Display.Shown("21%"), policy(PresetId.Full).energyShare(21.2, Surface.Week))
         assertEquals(Display.Hidden, policy(PresetId.NoNumbers).energyShare(21.2, Surface.Week))
