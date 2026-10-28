@@ -72,12 +72,18 @@ class ParsedPostgresUrlTest {
             "u:hunter2@host:5432/db",
             "u:hunter2://@host/db",
             "jdbc:postgresql://u:hunter2@host/db",
-            "postgresql://u:hunter2%zz@host/db",
         )
         for (raw in rejected) {
             val message = assertFailsWith<IllegalArgumentException> { ParsedPostgresUrl.parse(raw) }.message.orEmpty()
             assertFalse("hunter2" in message, message)
         }
+    }
+
+    @Test
+    fun aMalformedEscapeIsNotQuoted() {
+        // URLDecoder's own message quotes the two characters after the %, here the password's "hu".
+        val message = assertFailsWith<IllegalArgumentException> { ParsedPostgresUrl.parse("postgresql://u:%hunter2@host/db") }.message
+        assertEquals("DATABASE_URL credentials have a malformed %-escape", message)
     }
 
     @Test
