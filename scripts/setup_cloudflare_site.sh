@@ -10,9 +10,10 @@
 #   5. sets SITE_URL, SITE_BASE=/ and SITE_ENABLED=true as repo variables,
 #   6. allows the site's origin on opson-server-prod (WAITLIST_ALLOWED_ORIGINS),
 #   7. runs the "Deploy website" workflow.
-# Safe to re-run: the Cloudflare steps check before they write. Step 6 always
-# writes, and replaces WAITLIST_ALLOWED_ORIGINS outright, so an origin added to
-# prod by hand is dropped.
+# Safe to re-run: steps 2 and 3 check before they write. The rest write every
+# time: 4 and 5 rewrite the same secrets and variables, 6 replaces
+# WAITLIST_ALLOWED_ORIGINS outright (an origin added to prod by hand is dropped)
+# and restarts opson-server-prod, and 7 redeploys the site.
 #
 # Usage: scripts/setup_cloudflare_site.sh
 set -euo pipefail

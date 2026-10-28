@@ -19,7 +19,7 @@ None of these were done here: each touches a live service.
    `./scripts/setup_fly.main.kts`, which now sets both, or:
 
    ```bash
-   T=$(openssl rand -hex 32); [ -n "$T" ] && fly secrets set ADMIN_API_TOKEN="$T" -a opson-server-dev && printf '%s' "$T" | gh secret set ADMIN_API_TOKEN_DEV; unset T
+   T=$(openssl rand -hex 32); [ -n "$T" ] && printf 'ADMIN_API_TOKEN=%s\n' "$T" | fly secrets import -a opson-server-dev && printf '%s' "$T" | gh secret set ADMIN_API_TOKEN_DEV; unset T
    ```
 
 2. **Grafana client credentials** (finding 9). Create a Grafana Cloud
@@ -129,6 +129,8 @@ None of these were done here: each touches a live service.
   workflow passing an unset secret sets it to an empty string, which is present. A
   missing secret then makes the Gradle plugin try an upload with no token. Change it
   to `providers.environmentVariable("SENTRY_AUTH_TOKEN").map { it.isNotBlank() }.orElse(false)`.
+  The workflows now unset an empty token before Gradle runs (second review, item 4),
+  so this is only for a shell that exports it empty.
 
 ## 7. Legal Sync was a red X on main, fixed (secret deferred)
 
@@ -288,6 +290,38 @@ None of these were done here: each touches a live service.
 ## Still deferred from round one
 
 - **The importers' downloads have no retry** (round one 17). Unchanged.
+
+## Second review
+
+A second reviewer flagged five possible regressions in this branch. Four were
+real and are fixed; the fifth is the expected owner action, with its stale
+comment fixed.
+
+1. **Dev deploys go red until the dev admin token exists.** Real, and expected:
+   it is owner action 1, and the red run is the point (the old warning went unread
+   for every deploy). Not done here, because it writes Fly and GitHub secrets. The
+   manifest step's "don't fail an otherwise-healthy deploy" comment was stale once
+   the seed step fails on the same 401; it now says so. Fixed in
+   `docs(review): second-review fixes for scripts-ops-ci comments and docs`.
+2. **Owner action 1's one-liner put the token on argv** with `fly secrets set`,
+   the leak finding 12 fixes. Real. It now pipes `ADMIN_API_TOKEN=...` into
+   `fly secrets import`. Same commit.
+3. **scripts/README.md said release builds read `supabase.properties` and nothing
+   else.** Real: `Versioning.kt` and `verify_release_config.py` take
+   `SUPABASE_PROD_PROJECT_ID` / `SUPABASE_PROD_ANON_KEY` from the environment first.
+   The text now says that, and that `local.properties` is never read. Same commit.
+4. **With no Sentry token, the release build fails before "Warn on missing Sentry
+   token" can run.** Real. The job env turns an unset secret into an empty
+   `SENTRY_AUTH_TOKEN`, which Gradle's `isPresent` counts as set, so the Sentry
+   plugin tries the mapping upload with no token. The Gradle release steps in
+   release.yml and beta.yml now unset an empty token first, and beta warns, since
+   it had no warning of its own. Fixed in
+   `ci(release): a store build with no Sentry token skips the mapping upload instead of failing`.
+   `SentryTokenReachesGradleTest` runs each step's script against a fake `gradlew`
+   and fails without the fix. The Gradle-side change in finding 6 stays deferred.
+5. **setup_cloudflare_site's re-run note undersold what re-runs write.** Real:
+   steps 4, 5 and 7 also act every run, and step 6 restarts prod. The header now
+   lists all of it. Same commit as item 1.
 
 ## Product notes
 

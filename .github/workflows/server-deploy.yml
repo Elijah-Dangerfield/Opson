@@ -131,9 +131,10 @@ jobs:
           echo "Manifest upload → HTTP $status"
           cat /tmp/manifest-response.json; echo
           if [ "$status" != "200" ]; then
-            # Don't fail an otherwise-healthy server deploy over the manifest (a
-            # secondary record). Most likely the GH secret and the server's
-            # ADMIN_API_TOKEN don't match — re-upload manually, or rotate both.
+            # The manifest is a secondary record, so a failed upload only warns.
+            # Most likely the GH secret and the server's ADMIN_API_TOKEN don't
+            # match; then the next step fails the run on the same 401, because
+            # dev's flags matter more. Rotate both with setup_fly.main.kts.
             echo "::warning::Config manifest upload failed (HTTP $status) — server deploy still succeeded."
           fi
 

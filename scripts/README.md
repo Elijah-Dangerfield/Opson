@@ -215,9 +215,11 @@ guests any more, so there they would only let anyone with the publishable key
 mint accounts. An adopted project keeps its setting, because 0.1 builds still
 make a guest on first launch. `--allow-anonymous` turns them on.
 
-`local.properties` is what debug builds sign in with. Release builds read the
-prod project from the committed `supabase.properties` and nothing else; if
-this run set up prod, copy the id and key there and commit it.
+`local.properties` is what debug builds sign in with. Release builds never read
+it: they take the prod project from `SUPABASE_PROD_PROJECT_ID` and
+`SUPABASE_PROD_ANON_KEY` when those are set in the environment, and otherwise
+from the committed `supabase.properties`. If this run set up prod, copy the id
+and key there and commit it.
 
 It prints the generated database password exactly once. That value is per
 project, so it is deliberately not stored, and the Management API will not hand
