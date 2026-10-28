@@ -214,3 +214,42 @@ slice): see the list.
   Rules targeted by build number or app version now reach it for the first
   time; check that no rule meant for 0.2 matches 0.1 by accident before
   deploying. Fairly sure this is worth a look.
+
+## Second review
+
+A second reviewer flagged four possible regressions in this branch. All four
+held up against the code; each fate is below.
+
+1. **App config answered an unparseable `Authorization` header with a 400
+   (fixed).** `identifyCallerIfSignedIn` called
+   `request.parseAuthorizationHeader()`, which turns a Ktor `ParseException`
+   into `BadRequestException`, so `Bearer a b`, `Bearer a,b`, `Bearer "x`
+   and `Bearer =x` got a 400 from `/v1/app-config` (with or without
+   StatusPages). On main the JWT provider used the non-throwing parser and
+   those requests got the anonymous tree. The reviewer's suggested fix
+   (catching `IllegalArgumentException`) would not have worked, since
+   `BadRequestException` is not one; the route now reads the raw header and
+   parses it with `ktor-http`'s parser, treating a `ParseException` as no
+   token. `fix(server): app config serves an unparseable Authorization header
+   anonymously, not a 400`; `AppConfigRoutesTest.aMalformedHeader_…` now
+   covers the four headers and runs with StatusPages installed, and failed
+   with a 400 before the fix.
+2. **The banned-user change on app config had no test (fixed).** Finding 1
+   moved a banned user from a 403 to their own tree, deliberately, but nothing
+   pinned it. `test(server): pin that a banned user gets app config while data
+   routes answer 403` installs auth with a `BanGate` that bans everyone and
+   one shared `BearerVerifier`, as `installApp` does, and checks app config
+   answers 200 with the user's tree while a protected route answers 403 with
+   the access-denied body. It fails (403) with main's
+   `authenticate(optional = true)` wiring.
+3. **The bad-escape row in `aRejectedUrlIsNeverQuoted` proved nothing
+   (fixed).** `URLDecoder` quotes only the two characters after the `%`, so
+   `hunter2%zz` passed without the fix. `test(server): the bad-escape case
+   actually catches a quoted password` replaces the row with
+   `aMalformedEscapeIsNotQuoted`, which puts the password in the escape
+   (`%hunter2`) and checks the exact message; without the catch it fails on
+   `Error at index 0 in: "hu"`.
+4. **The route lists for a missing `SUPABASE_URL` were incomplete (fixed).**
+   The `Application.kt` KDoc and boot warning left out barcode misses, and
+   `.env.example` left out photo and barcode misses. `docs(server): name every
+   route that SUPABASE_URL gates`.
