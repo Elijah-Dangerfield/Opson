@@ -68,7 +68,10 @@ import kotlin.time.Duration.Companion.seconds
  */
 internal const val OUTBOX_PAGE_SIZE = 200
 
-/** Requests one sync makes before yielding. Whatever is left goes on the next trigger. */
+/**
+ * Requests one sync makes before yielding. Queued changes left over go on the
+ * next trigger; a pull left unfinished asks for that trigger itself.
+ */
 internal const val MAX_REQUESTS_PER_SYNC = 10
 
 /** How long after a local write the sync waits, so a burst of edits goes up as one request. */
@@ -249,6 +252,7 @@ class DiarySyncer(
 
     private suspend fun drain() {
         var cursor = startCursor()
+        val startedAt = cursor
         var previousKeys: List<String>? = null
         var outcome = DrainOutcome.BudgetSpent
         var pullComplete = false
@@ -288,6 +292,10 @@ class DiarySyncer(
         if (pullComplete && user is ActiveUser.SignedIn && settingsStore.markPulled(user.userId, pulledSettings)) {
             requestSync()
         }
+        // A first pull on a new phone can need more pages than one sync sends,
+        // and until it lands the settings are unknown and Today shows no
+        // numbers. So it carries on now, not at the next foreground.
+        if (outcome == DrainOutcome.BudgetSpent && !pullComplete && cursor != startedAt) requestSync()
         warnIfIncomplete(outcome, held)
     }
 

@@ -59,4 +59,24 @@ class DiarySyncerDebounceTest : CoroutineTest() {
         runCurrent()
         assertEquals(1, api.requests.size)
     }
+
+    @Test
+    fun aPullLongerThanOneSyncCarriesOnWithoutANewTrigger() = runUnitTest {
+        // A long history on a new phone: more pages than one sync may send.
+        val pages = MAX_REQUESTS_PER_SYNC + 5
+        api.respond = { request ->
+            SyncResponseDto(emptyList(), emptyList(), SyncChangesDto(), request.cursor + 1, hasMore = request.cursor + 1 < pages)
+        }
+
+        syncer.sync()
+        assertEquals(MAX_REQUESTS_PER_SYNC, api.requests.size)
+
+        advanceTimeBy(SYNC_DEBOUNCE + 100.milliseconds)
+        runCurrent()
+        assertEquals(pages, api.requests.size, "the rest of the pull follows on its own")
+
+        advanceTimeBy(SYNC_DEBOUNCE * 3)
+        runCurrent()
+        assertEquals(pages, api.requests.size, "and stops once it has caught up")
+    }
 }
