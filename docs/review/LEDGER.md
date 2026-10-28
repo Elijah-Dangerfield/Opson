@@ -840,161 +840,161 @@ keeps existing ticks.
 
 ## domain-diary-nutrition (155 files)
 
-- [ ] `libraries/diary/build.gradle.kts`
-- [ ] `libraries/diary/impl/build.gradle.kts`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ActiveUser.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryStore.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncApi.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncer.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/HttpDataExport.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/Mappers.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/MealPicksImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecentLogEventsImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecordRepositories.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SelectedDayImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChanger.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsStore.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySource.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/wire/SyncWire.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImplTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerDebounceTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImplTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/Fakes.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImplTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/RecentLogEventsTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChangerTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsStoreTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySourceTest.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/CheckInEnabled.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/DataExport.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Day.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/EatenUncertaintyOfDay.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Exercise.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FastingReleaseFlag.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Fasts.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FoodKind.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/HouseholdAmount.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LocalCalendar.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LogItem.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealJournal.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPatterns.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPicks.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlot.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlotPicker.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/NumbersChanger.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/RecentLogEvents.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Records.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Repositories.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SelectedDay.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Settings.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SettingsSerializers.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/TodayCardSettings.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryDaos.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryEntities.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/CheckInSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/DayTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/EatenUncertaintyOfDayTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ExerciseRangeSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FastsTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodKindTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodPrefsSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HouseholdAmountTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HungerTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/LogItemQuantityTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealJournalTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealPatternsTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealSlotPickerTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ModeSettingWireTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ProgressPhotosSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SearchOptionsSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SettingsTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/TodayCardSettingsTest.kt`
-- [ ] `libraries/diary/ui/build.gradle.kts`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DayTotals.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DiaryItemRow.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/ExerciseLabels.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FastingCards.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FavoriteFoodTile.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodIcon.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodPickRow.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowActions.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowsCard.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/Labels.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/MealSlotStyle.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/NutrientTile.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/SummaryCard.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/TodayCards.kt`
-- [ ] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/ExerciseLabelsTest.kt`
-- [ ] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/FoodTintTest.kt`
-- [ ] `libraries/nutrition/build.gradle.kts`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Burned.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Display.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/EatenUncertainty.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Exercise.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Fasting.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/LegacyPreset.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroGoals.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroLine.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroShares.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Metric.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MicroWireKeys.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Micronutrient.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/ModeTiming.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersChange.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersSettings.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutrientAmounts.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutritionFormatter.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Presets.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RangeAndShare.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RingValue.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/TargetStyle.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Targets.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Units.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicy.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicySource.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WaterProgress.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WeightTrend.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/BurnedTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/EatenUncertaintyTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExactAndSurplusTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseRangeTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/Fixtures.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/FormatTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/GoalStyleTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/LegacyPresetTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroGoalsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroLineTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroSharesTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MathTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroPercentsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroWireKeysTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ModeTimingTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersChangeTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersSettingsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NutrientAmountsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PerDayGoalsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PresetsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RangeAndShareTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RingValueTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetStyleTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyResolveTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyRevealTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/WaterProgressTest.kt`
-- [ ] `libraries/nutrition/ui/build.gradle.kts`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/LocalVisibilityPolicy.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/MacroLine.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFigure.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFillBar.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientPhrase.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientRingLabel.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientValue.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/leak/LeakSurface.kt`
+- [x] `libraries/diary/build.gradle.kts`
+- [x] `libraries/diary/impl/build.gradle.kts`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ActiveUser.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryStore.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncApi.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncer.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/HttpDataExport.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/Mappers.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/MealPicksImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecentLogEventsImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecordRepositories.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SelectedDayImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChanger.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsStore.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySource.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/wire/SyncWire.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImplTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerDebounceTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImplTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/Fakes.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImplTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/RecentLogEventsTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChangerTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsStoreTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySourceTest.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/CheckInEnabled.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/DataExport.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Day.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/EatenUncertaintyOfDay.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Exercise.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FastingReleaseFlag.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Fasts.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FoodKind.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/HouseholdAmount.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LocalCalendar.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LogItem.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealJournal.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPatterns.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPicks.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlot.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlotPicker.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/NumbersChanger.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/RecentLogEvents.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Records.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Repositories.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SelectedDay.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Settings.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SettingsSerializers.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/TodayCardSettings.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryDaos.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryEntities.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/CheckInSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/DayTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/EatenUncertaintyOfDayTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ExerciseRangeSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FastsTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodKindTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodPrefsSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HouseholdAmountTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HungerTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/LogItemQuantityTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealJournalTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealPatternsTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealSlotPickerTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ModeSettingWireTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ProgressPhotosSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SearchOptionsSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SettingsTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/TodayCardSettingsTest.kt`
+- [x] `libraries/diary/ui/build.gradle.kts`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DayTotals.kt` (deleted: dead code, finding 5)
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DiaryItemRow.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/ExerciseLabels.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FastingCards.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FavoriteFoodTile.kt` (deleted: dead code, finding 5)
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodIcon.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodPickRow.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowActions.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowsCard.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/Labels.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/MealSlotStyle.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/NutrientTile.kt` (deleted: dead code, finding 5)
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/SummaryCard.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/TodayCards.kt`
+- [x] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/ExerciseLabelsTest.kt`
+- [x] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/FoodTintTest.kt`
+- [x] `libraries/nutrition/build.gradle.kts`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Burned.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Display.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/EatenUncertainty.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Exercise.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Fasting.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/LegacyPreset.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroGoals.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroLine.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroShares.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Metric.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MicroWireKeys.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Micronutrient.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/ModeTiming.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersChange.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersSettings.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutrientAmounts.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutritionFormatter.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Presets.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RangeAndShare.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RingValue.kt` (deleted: dead code, finding 5)
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/TargetStyle.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Targets.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Units.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicy.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicySource.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WaterProgress.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WeightTrend.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/BurnedTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/EatenUncertaintyTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExactAndSurplusTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseRangeTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/Fixtures.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/FormatTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/GoalStyleTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/LegacyPresetTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroGoalsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroLineTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroSharesTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MathTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroPercentsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroWireKeysTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ModeTimingTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersChangeTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersSettingsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NutrientAmountsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PerDayGoalsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PresetsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RangeAndShareTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RingValueTest.kt` (deleted: dead code, finding 5)
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetStyleTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyResolveTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyRevealTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/WaterProgressTest.kt`
+- [x] `libraries/nutrition/ui/build.gradle.kts`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/LocalVisibilityPolicy.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/MacroLine.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFigure.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFillBar.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientPhrase.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientRingLabel.kt` (deleted: dead code, finding 5)
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientValue.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/leak/LeakSurface.kt`
 
 ## platform-libraries (166 files)
 
