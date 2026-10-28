@@ -6,6 +6,67 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: A closed day takes nothing until it is reopened
+
+**Decision:** once a day is closed with Close the day (`Day.closedByUser`,
+`closed_at` set), nothing can be added to it or changed on it until it is
+reopened. The diary enforces it, not the screens: every write that would add
+food, water, exercise, a meal's note or the day's note, or change or remove
+what is there, answers `DayWrite.DayClosed(day)` and writes nothing, checked
+inside the same transaction as the write. That covers `addItems`, the copies
+into the day (`copyDay`, `copySlot`, `copyItems`), `updateItem`,
+`removeItem(s)`, `restoreItems`, `moveItem(s)`, `clearDay`, the three water
+writes, `setDayNote`, `setAteNoDetails`, `setFeeling` and
+`ExerciseRepository.add/update/delete`. A batch that touches a closed day
+writes none of it. Food a closed day refuses does not end a running fast.
+
+Edits and deletes are blocked too, not only adds. Closing says the day is done,
+and a day whose food can still change under its close is not done. Reopening is
+one tap from wherever the block shows, so nothing is lost by asking for it.
+
+Still allowed on a closed day: closing it again (Day close's Save updates the
+note, the feeling and the check-in in the same write as the close, which is why
+`closeDay` takes them as a `DayReflection` and `setDayFeeling` and
+`DayCheckIns.setCheckIn` are gone), reopening it, marking it untracked, its
+meal groups, copying its food out to an open day, and starring a food.
+
+A past day nobody closed stays open, as before: "closed" here means Close the
+day, not the date. `Day.isClosed(today)`, which reveals delayed numbers for
+past days too, is unchanged; the header check is filled only for a day the
+person closed.
+
+Where it shows: on a closed day Today has no + on meals, water or Burned, no
+select, drag or swipe, and its menu drops Copy yesterday, Add a note and Clear
+this day, with Reopen in Close the day's place. A line under the card says
+"Today is closed. Reopen it to add more." with Reopen. The + sheet and search
+show the same line in place of what would log (a weigh-in and the fasting timer
+stay, since they are not part of the day). A food's sheet offers only Copy and
+the star, with the line under them. A write refused anyway (the day closed on
+another phone a moment ago, or from a sheet already open) lands on the
+`DayClosedRoute` sheet with Reopen and Not now. Day close on a closed day says
+Save and Reopen this day, and its caption no longer promises the day can be
+edited after closing. Reminders stop for a closed day and its delivered ones
+are cleared.
+
+**Sync:** `closed_at` already travels on the day record, so a second phone
+holds the block once it has pulled the close
+(`apps/integration/.../ClosedDaySyncTest`). The server does not check it: a
+phone that wrote offline before it saw the close still lands its write, which
+was made while the day was open on that phone. Refusing it would roll the
+person's food back with no way to tell them why.
+
+**Left open:** starting a fast at the window's close (fasts are not part of a
+day's log, and closing the evening is when one usually starts); a weigh-in,
+which belongs to no day; Edit a copy's "use it for this entry" when the day
+closes while that screen is open, where the copy is saved and the entry keeps
+its food.
+
+**Alternatives:** blocking only adds and leaving edits and deletes open.
+Rejected for the reason above. Enforcing it in the screens only. Rejected: the
+widget, a reminder's Already ate and a second phone all reach the diary without
+Today's screens. A thrown exception instead of a typed result. Rejected: an
+expected outcome is a value here (`docs/review/PRACTICES.md`, Errors at the
+edges).
 ## 2026-10-27: Packaged foods come in through their label; the meal photo estimate is quick actions only
 
 **Decision:** a barcode miss and a search with no results offer Add this food

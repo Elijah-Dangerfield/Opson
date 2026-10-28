@@ -4,6 +4,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,7 @@ import com.opson.libraries.ui.StandardBorderWidth
 import com.opson.libraries.diary.ui.FoodRowsCard
 import com.opson.libraries.diary.ui.FoodRowsNote
 import com.opson.libraries.diary.ui.SectionLabel
+import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
@@ -32,9 +34,12 @@ import com.opson.libraries.ui.components.ListRow
 import com.opson.libraries.ui.components.SheetHeader
 import com.opson.libraries.ui.components.button.ButtonSecondary
 import com.opson.libraries.ui.components.button.ButtonSize
+import com.opson.libraries.ui.components.button.FlatButton
+import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextArea
+import com.opson.libraries.ui.components.text.TextInput
 import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
@@ -44,14 +49,24 @@ import opson.libraries.resources.generated.resources.logger_describe_placeholder
 import opson.libraries.resources.generated.resources.logger_describe_reading
 import opson.libraries.resources.generated.resources.logger_describe_title
 import opson.libraries.resources.generated.resources.logger_name_only
-import opson.libraries.resources.generated.resources.logger_number_add
-import opson.libraries.resources.generated.resources.logger_number_caption
-import opson.libraries.resources.generated.resources.logger_number_placeholder
-import opson.libraries.resources.generated.resources.logger_or_number
+import opson.libraries.resources.generated.resources.logger_quick_add
+import opson.libraries.resources.generated.resources.logger_quick_calories
+import opson.libraries.resources.generated.resources.logger_quick_carbs
+import opson.libraries.resources.generated.resources.logger_quick_fat
+import opson.libraries.resources.generated.resources.logger_quick_fiber
+import opson.libraries.resources.generated.resources.logger_quick_fit_macros
+import opson.libraries.resources.generated.resources.logger_quick_mismatch
+import opson.libraries.resources.generated.resources.logger_quick_name
+import opson.libraries.resources.generated.resources.logger_quick_protein
+import opson.libraries.resources.generated.resources.logger_quick_title
+import opson.libraries.resources.generated.resources.logger_quick_unit_g
+import opson.libraries.resources.generated.resources.logger_quick_unit_kcal
+import opson.libraries.resources.generated.resources.logger_quick_use_macros
 import opson.libraries.resources.generated.resources.logger_saved_add
 import opson.libraries.resources.generated.resources.logger_saved_empty
 import opson.libraries.resources.generated.resources.logger_saved_loading_cd
 import opson.libraries.resources.generated.resources.logger_saved_title
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Describe it: free text, read into lines the person fixes before Add logs them. */
@@ -85,7 +100,7 @@ internal fun DescribePane(state: LoggerState, onAction: (LoggerAction) -> Unit) 
             DescribeStatus.Failed -> Note(stringResource(Res.string.logger_describe_failed))
         }
         if (describe.lines.isNotEmpty()) DescribedLines(describe, state.slot, onAction)
-        if (describe.canNumber) NumberCard(describe, onAction)
+        describe.quickAdd?.let { QuickAddCard(it, onAction) }
         if (describe.text.isNotBlank()) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 InlineLink(stringResource(Res.string.logger_name_only)) { onAction(LoggerAction.SaveNameTapped) }
@@ -134,30 +149,87 @@ private fun DescribeBox(describe: DescribeUi, onAction: (LoggerAction) -> Unit) 
     voice?.notice?.let { VoiceNoticeCard(it, onAction) }
 }
 
+/**
+ * "Or just the numbers": an optional name and the fields this mode shows as numbers, two to a row.
+ * When the energy and the macros disagree, the gap is spelled out with a fix either way.
+ */
 @Composable
-private fun NumberCard(describe: DescribeUi, onAction: (LoggerAction) -> Unit) {
+private fun QuickAddCard(quick: QuickAddUi, onAction: (LoggerAction) -> Unit) {
     FoodRowsCard {
         Column(
             modifier = Modifier.padding(vertical = AppTheme.spacing.section),
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
-            SectionLabel(stringResource(Res.string.logger_or_number))
-            Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row), verticalAlignment = Alignment.CenterVertically) {
-                NumberField(
-                    value = describe.number,
-                    onValueChange = { onAction(LoggerAction.NumberTyped(it)) },
-                    placeholder = stringResource(Res.string.logger_number_placeholder),
-                    allowDecimal = false,
-                    modifier = Modifier.weight(1f),
-                )
-                ButtonSecondary(onClick = { onAction(LoggerAction.AddNumberTapped) }, size = ButtonSize.Medium) {
-                    Text(stringResource(Res.string.logger_number_add))
+            SectionLabel(stringResource(Res.string.logger_quick_title))
+            TextInput(
+                value = quick.name,
+                onValueChange = { onAction(QuickAddAction.NameTyped(it)) },
+                placeholder = stringResource(Res.string.logger_quick_name),
+            )
+            quick.fields.chunked(2).forEach { pair ->
+                Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                    pair.forEach { field ->
+                        NumberField(
+                            value = field.text,
+                            onValueChange = { onAction(QuickAddAction.NumberTyped(field.metric, it)) },
+                            label = stringResource(field.metric.quickLabel),
+                            unit = stringResource(if (field.metric == Metric.Calories) Res.string.logger_quick_unit_kcal else Res.string.logger_quick_unit_g),
+                            allowDecimal = field.metric != Metric.Calories,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
-            Text(text = stringResource(Res.string.logger_number_caption), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            quick.mismatch?.let { QuickAddMismatchView(it, onAction) }
+            ButtonSecondary(
+                onClick = { onAction(QuickAddAction.AddTapped) },
+                enabled = quick.canAdd,
+                size = ButtonSize.Medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(Res.string.logger_quick_add))
+            }
         }
     }
 }
+
+/** "These macros come to 500 kcal, not 400 kcal." and the two ways to agree, as Targets offers them. */
+@Composable
+private fun QuickAddMismatchView(mismatch: QuickAddMismatch, onAction: (LoggerAction) -> Unit) {
+    val macroKcal = mismatch.macroKcal.words ?: return
+    val kcal = mismatch.kcal.words ?: return
+    Text(
+        text = stringResource(Res.string.logger_quick_mismatch, macroKcal, kcal),
+        typography = AppTheme.type.secondary.Tabular,
+        color = AppTheme.colors.ink,
+    )
+    FlatButton(
+        text = stringResource(Res.string.logger_quick_use_macros, macroKcal),
+        onClick = { onAction(QuickAddAction.UseMacroEnergyTapped) },
+        centered = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    FlatButton(
+        text = stringResource(Res.string.logger_quick_fit_macros, kcal),
+        onClick = { onAction(QuickAddAction.FitMacrosTapped) },
+        tone = FlatButtonTone.Outlined,
+        centered = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+private val Display.words: String?
+    get() = (this as? Display.Shown)?.text
+
+private val Metric.quickLabel: StringResource
+    get() = when (this) {
+        Metric.Protein -> Res.string.logger_quick_protein
+        Metric.Carbs -> Res.string.logger_quick_carbs
+        Metric.Fat -> Res.string.logger_quick_fat
+        Metric.Fiber -> Res.string.logger_quick_fiber
+        else -> Res.string.logger_quick_calories
+    }
 
 /** Saved meals: Add logs the whole meal at once and the sheet closes. */
 @Composable

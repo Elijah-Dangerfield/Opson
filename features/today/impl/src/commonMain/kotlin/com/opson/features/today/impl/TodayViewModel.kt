@@ -1,6 +1,7 @@
 package com.opson.features.today.impl
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FastingRelease
@@ -15,6 +16,7 @@ import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
+import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.diary.rememberMainNumber
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
@@ -161,16 +163,17 @@ class TodayViewModel(
                 settingsRepository.update { it.rememberMainNumber(next) }
             }
             TodayAction.CloseDayButtonTapped -> if (!isFuture()) sendEvent(TodayEvent.OpenDayClose(day()))
-            is TodayAction.MealTileTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
-            is TodayAction.PlanItTapped -> sendEvent(TodayEvent.OpenLogger(day(), action.slot))
-            is TodayAction.MealPlusTapped -> sendEvent(TodayEvent.OpenMealSheet(day(), action.slot))
+            TodayAction.ReopenTapped -> action.closeMenuThen { diary.reopenDay(day()) }
+            is TodayAction.MealTileTapped -> ifOpen { sendEvent(TodayEvent.OpenLogger(day(), action.slot)) }
+            is TodayAction.PlanItTapped -> ifOpen { sendEvent(TodayEvent.OpenLogger(day(), action.slot)) }
+            is TodayAction.MealPlusTapped -> ifOpen { sendEvent(TodayEvent.OpenMealSheet(day(), action.slot)) }
             is TodayAction.ItemTapped -> if (model.swipe.open != null) {
                 action.rebuild { copy(swipe = SwipeState()) }
             } else {
                 sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
             }
             is TodayAction.ItemMenuTapped -> if (state.foodMenus) sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
-            TodayAction.WaterPlusTapped -> sendEvent(TodayEvent.OpenWaterSheet(day()))
+            TodayAction.WaterPlusTapped -> ifOpen { sendEvent(TodayEvent.OpenWaterSheet(day())) }
             TodayAction.HighlightFaded -> action.rebuild { copy(highlight = null) }
             is TodayAction.LoggedArrived -> loggedArrived(action)
             TodayAction.UndoTapped -> model.added?.let { event ->
@@ -196,16 +199,18 @@ class TodayViewModel(
             TodayAction.DayNutrientsTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenNutrients(day())) }
             TodayAction.NotesMenuTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenNotes) }
             TodayAction.CopyYesterdayTapped -> action.closeMenuThen {
-                diary.copyDay(from = day().minus(DatePeriod(days = 1)), to = day())
-                sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_copied_previous)))
+                if (written(diary.copyDay(from = day().minus(DatePeriod(days = 1)), to = day()))) {
+                    sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_copied_previous)))
+                }
             }
             TodayAction.CopyToTomorrowTapped -> action.closeMenuThen {
                 if (!isFuture()) {
-                    diary.copyDay(from = day(), to = day().plus(DatePeriod(days = 1)))
-                    sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_copied_tomorrow)))
+                    if (written(diary.copyDay(from = day(), to = day().plus(DatePeriod(days = 1))))) {
+                        sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_copied_tomorrow)))
+                    }
                 }
             }
-            TodayAction.DayNoteTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenDayNote(day())) }
+            TodayAction.DayNoteTapped -> action.closeMenuThen { ifOpen { sendEvent(TodayEvent.OpenDayNote(day())) } }
             TodayAction.UntrackedMenuTapped -> action.closeMenuThen {
                 diary.setUntracked(day(), untracked = model.inputs?.day?.untracked != true)
             }
@@ -271,14 +276,14 @@ class TodayViewModel(
             TodayAction.RemovedUndoTapped -> model.removed?.let { removal ->
                 removedJob?.cancel()
                 action.rebuild { copy(removed = null) }
-                editor.restoreItems(removal.ids)
+                written(editor.restoreItems(removal.ids))
             }
             is TodayAction.RemovedUndoExpired -> if (model.removed?.token == action.token) action.rebuild { copy(removed = null) }
             TodayAction.MovedUndoTapped -> model.moved?.let { moved ->
                 movedJob?.cancel()
                 action.rebuild { copy(moved = null) }
                 // Each food goes back to the meal it came from, however many meals that was.
-                moved.from.entries.groupBy({ it.value }, { it.key }).forEach { (slot, ids) -> editor.moveItems(ids, slot) }
+                moved.from.entries.groupBy({ it.value }, { it.key }).forEach { (slot, ids) -> written(editor.moveItems(ids, slot)) }
             }
             is TodayAction.MovedUndoExpired -> if (model.moved?.token == action.token) action.rebuild { copy(moved = null) }
             else -> Unit
@@ -296,8 +301,8 @@ class TodayViewModel(
         val items = model.inputs?.day?.allItems.orEmpty().filter { it.id in picked && it.slot != slot }
         if (items.isEmpty()) return
         val ids = items.map { it.id }
+        if (!written(editor.moveItems(ids, slot))) return
         val token = ++moves
-        editor.moveItems(ids, slot)
         val notice = MovedNotice(ids.size, items.singleOrNull()?.name, slot)
         action.rebuild {
             copy(selected = null, step = SelectStep.Actions, moved = Move(items.associate { it.id to it.slot }, notice, token))
@@ -317,8 +322,8 @@ class TodayViewModel(
         if (ids.isEmpty()) return
         val items = model.inputs?.day?.allItems.orEmpty().filter { it.id in ids }
         val one = items.singleOrNull()
+        if (!written(editor.removeItems(ids))) return
         val token = ++removals
-        editor.removeItems(ids)
         action.rebuild { copy(removed = Removal(ids, RemovedNotice(ids.size, one?.name, one?.slot), token)) }
         removedJob?.cancel()
         removedJob = viewModelScope.launch {
@@ -332,7 +337,9 @@ class TodayViewModel(
         val slot = step.slot ?: return
         val ids = state.selection?.ids.orEmpty().toList()
         val to = calendar.today().plus(DatePeriod(days = step.day.offset))
-        val copied = editor.copyItems(ids, to, slot)
+        val result = editor.copyItems(ids, to, slot)
+        if (!written(result)) return
+        val copied = result.valueOrNull().orEmpty()
         action.rebuild { copy(selected = null, step = SelectStep.Actions) }
         sendEvent(
             TodayEvent.ShowToast(
@@ -357,8 +364,7 @@ class TodayViewModel(
     private suspend fun clearDay(action: TodayAction) {
         if (model.clearArmed) {
             action.closeMenuThen {
-                diary.clearDay(day())
-                sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_cleared)))
+                if (written(diary.clearDay(day()))) sendEvent(TodayEvent.ShowToast(Toast(Res.string.today_toast_cleared)))
             }
         } else {
             action.rebuild { copy(clearArmed = true) }
@@ -420,6 +426,23 @@ class TodayViewModel(
     }
 
     private fun day(): LocalDate = model.inputs?.day?.date ?: state.day
+
+    /** Runs [block] unless the day on show is closed, in which case it says so instead. */
+    private suspend fun ifOpen(block: suspend () -> Unit) {
+        if (model.inputs?.day?.closedByUser == true) sendEvent(TodayEvent.OpenDayClosed(day())) else block()
+    }
+
+    /**
+     * Whether [write] went through. When the day turned out closed (another phone closed it a
+     * moment ago, past what Today had read) it says so instead.
+     */
+    private suspend fun written(write: DayWrite<*>): Boolean = when (write) {
+        is DayWrite.Written -> true
+        is DayWrite.DayClosed -> {
+            sendEvent(TodayEvent.OpenDayClosed(write.day))
+            false
+        }
+    }
 
     private fun isFuture(): Boolean = model.inputs?.let { it.day.date > it.today } ?: false
 

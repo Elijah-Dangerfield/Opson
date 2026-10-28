@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import androidx.lifecycle.viewModelScope
 import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.BarcodeMissReporter
@@ -191,8 +192,8 @@ class BarcodeScanViewModel(
     private suspend fun saveName() {
         val name = model.name.trim()
         if (model.lookup !is Lookup.Missed || name.isEmpty()) return
-        logger.log(day, slot, listOf(nameOnlyPick(name, customFoods.observeAll().first(), customFoods)))
-        sendEvent(BarcodeScanEvent.Close)
+        val logged = logger.log(day, slot, listOf(nameOnlyPick(name, customFoods.observeAll().first(), customFoods)))
+        sendEvent(if (logged is DayWrite.DayClosed) BarcodeScanEvent.DayClosed(logged.day) else BarcodeScanEvent.Close)
     }
 
     private fun isRunning(code: String): Boolean = (model.lookup as? Lookup.Running)?.code == code

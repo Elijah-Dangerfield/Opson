@@ -1,5 +1,6 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.core.logging.LogEntry
 import com.opson.libraries.core.logging.LogId
@@ -50,6 +51,12 @@ import kotlin.time.Instant
  * per DAO, a transactor that rolls every table back when its block throws, and
  * a record of any write made outside a transaction.
  */
+
+/** What a write to an open day wrote. A closed day here is a test that went wrong. */
+fun <T> DayWrite<T>.written(): T = when (this) {
+    is DayWrite.Written -> value
+    is DayWrite.DayClosed -> error("$day is closed")
+}
 
 class FakeTable<K, V> {
     val state = MutableStateFlow<Map<K, V>>(emptyMap())

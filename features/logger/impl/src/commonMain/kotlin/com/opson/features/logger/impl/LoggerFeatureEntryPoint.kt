@@ -23,6 +23,7 @@ import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
 import com.opson.features.settings.FastingRoute
+import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
 import com.opson.features.trends.WeightRoute
 import com.opson.libraries.diary.DiaryRepository
@@ -149,6 +150,11 @@ class LoggerFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is ExerciseSheetEvent.ShowToast -> showToast(event.toast)
+                    // The sheet gives way to the closed one, so Back lands where it was opened.
+                    is ExerciseSheetEvent.DayClosed -> router.batch {
+                        goBack()
+                        navigate(DayClosedRoute(event.day.toString()))
+                    }
                     ExerciseSheetEvent.Dismiss -> sheetState.dismiss()
                 }
             }
@@ -320,6 +326,8 @@ class LoggerFeatureEntryPoint(
         viewModel.ObserveEvents { event ->
             when (event) {
                 FoodDetailEvent.Dismiss -> router.goBack()
+                // Over the detail, so after Reopen the food is still there to add.
+                is FoodDetailEvent.DayClosed -> router.navigate(DayClosedRoute(event.day.toString()))
                 // Back to where it was opened: search draws ✓, Today takes it from RecentLogEvents.
                 is FoodDetailEvent.Logged -> {
                     haptics.confirm()
@@ -359,6 +367,10 @@ class LoggerFeatureEntryPoint(
                 is PhotoEstimateEvent.Logged -> {
                     haptics.confirm()
                     router.goBack()
+                }
+                is PhotoEstimateEvent.DayClosed -> router.batch {
+                    goBack()
+                    navigate(DayClosedRoute(event.day.toString()))
                 }
                 PhotoEstimateEvent.Dismiss -> sheetState.dismiss()
             }
@@ -409,6 +421,7 @@ class LoggerFeatureEntryPoint(
                     navigate(FoodSearchRoute(slot = event.slot, dayIso = event.day.toString()))
                 }
                 BarcodeScanEvent.Close -> router.goBack()
+                is BarcodeScanEvent.DayClosed -> router.navigate(DayClosedRoute(event.day.toString()))
             }
         }
 

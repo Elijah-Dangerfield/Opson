@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -23,7 +24,8 @@ data class Committed(val slot: MealSlot, val itemIds: List<String>, val event: L
  * the time of any item the food detail gave one; catalog foods cached for the next offline
  * search; one telemetry event per source; [RecentLogEvents] told, so Today can scroll,
  * outline and offer Undo; and [pairing] told, so a food found by search just after a barcode
- * missed is suggested as that barcode's food.
+ * missed is suggested as that barcode's food. A day closed with Close the day takes none of it
+ * ([DayWrite.DayClosed]), and then nothing else happens either.
  */
 @Inject
 class FoodLogger(
@@ -35,9 +37,12 @@ class FoodLogger(
     private val pairing: MissedBarcodePairing = MissedBarcodePairing.Off,
 ) {
     /** Null when [picks] is empty. */
-    suspend fun log(day: LocalDate, slot: MealSlot, picks: List<LogPick>): Committed? {
+    suspend fun log(day: LocalDate, slot: MealSlot, picks: List<LogPick>): DayWrite<Committed>? {
         if (picks.isEmpty()) return null
-        val written = diary.addItems(day, slot, picks.map { it.draft }, LogMethod.Search)
+        val written = when (val result = diary.addItems(day, slot, picks.map { it.draft }, LogMethod.Search)) {
+            is DayWrite.Written -> result.value
+            is DayWrite.DayClosed -> return result
+        }
         // A time picked on the food detail: the item is written now, then given that time.
         val items = written.zip(picks) { item, pick ->
             val at = pick.loggedAt ?: return@zip item
@@ -49,7 +54,7 @@ class FoodLogger(
 
         picks.groupingBy { it.source }.eachCount().forEach { (source, count) -> telemetry.methodPicked(LogVia.of(source), count) }
         pairing.logged(picks)
-        return announce(day, slot, items)
+        return DayWrite.Written(announce(day, slot, items))
     }
 
     /** Tells Today about items written some other way (yesterday's copy, a quick number). */

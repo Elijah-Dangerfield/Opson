@@ -2,11 +2,10 @@ package com.opson.features.today.impl
 
 import com.opson.libraries.core.fixed
 import com.opson.libraries.config.AppConfigMap
-import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.DayCheckIns
-import com.opson.libraries.diary.DayFeeling
+import com.opson.libraries.diary.DayReflection
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.Fast
@@ -75,9 +74,11 @@ fun Display.text(): String? = when (this) {
 
 /**
  * An in-memory diary that remembers every write. Only what Today and its
- * sheets read and write does anything; the rest is inert.
+ * sheets read and write does anything; the rest is inert. A day in [days] with
+ * [Day.closedAt] set refuses writes to it, as the real diary does, and records
+ * nothing for them.
  */
-class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, DiaryItemEditor, DayCheckIns {
+class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, DiaryItemEditor {
     val days = MutableStateFlow(days.associateBy { it.date })
     val loggedDates = MutableStateFlow<Map<Pair<Int, Int>, Set<LocalDate>>>(emptyMap())
     val frequent = MutableStateFlow<List<LogItem>>(emptyList())
@@ -91,20 +92,19 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
     val feelings = mutableListOf<Triple<LocalDate, MealSlot, MealFeeling?>>()
     val notes = mutableListOf<Pair<LocalDate, String?>>()
     val untracked = mutableListOf<Pair<LocalDate, Boolean>>()
-    val dayFeelings = mutableListOf<Pair<LocalDate, DayFeeling?>>()
-    val closed = mutableListOf<LocalDate>()
+    val closed = mutableListOf<Pair<LocalDate, DayReflection>>()
+    val reopened = mutableListOf<LocalDate>()
     val removed = mutableListOf<String>()
     val restored = mutableListOf<List<String>>()
     val moved = mutableListOf<Pair<List<String>, MealSlot>>()
     val copiedItems = mutableListOf<Triple<List<String>, LocalDate, MealSlot>>()
-    val checkIns = mutableListOf<Pair<LocalDate, CheckIn?>>()
     val updated = mutableListOf<LogItem>()
 
     /** Every write, in order, for tests that assert nothing was written. */
     val writes: Int
         get() = water.size + removedWater.size + copiedDays.size + copiedSlots.size + cleared.size + ateNoDetails.size +
-            feelings.size + notes.size + closed.size + removed.size + untracked.size + dayFeelings.size +
-            restored.size + moved.size + copiedItems.size + checkIns.size + updated.size
+            feelings.size + notes.size + closed.size + reopened.size + removed.size + untracked.size +
+            restored.size + moved.size + copiedItems.size + updated.size
 
     override fun observeDay(date: LocalDate): Flow<Day> = days.map { it[date] ?: Day.empty(date) }
 
@@ -113,67 +113,55 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
 
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = loggedDates.map { it[year to month].orEmpty() }
 
-    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> = emptyList()
+    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> =
+        open(day) { emptyList() }
 
-    override suspend fun updateItem(item: LogItem) {
-        updated += item
-    }
+    override suspend fun updateItem(item: LogItem): DayWrite<Unit> = openFor(listOf(item.id)) { updated += item }
 
-    override suspend fun removeItem(id: String) {
-        removed += id
-    }
+    override suspend fun removeItem(id: String): DayWrite<Unit> = openFor(listOf(id)) { removed += id }
 
-    override suspend fun moveItem(id: String, slot: MealSlot) = Unit
+    override suspend fun moveItem(id: String, slot: MealSlot): DayWrite<Unit> = openFor(listOf(id)) { }
 
-    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> {
+    override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> = open(to) {
         copiedDays += from to to
-        return emptyList()
+        emptyList()
     }
 
-    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> {
+    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> = open(toDay) {
         copiedSlots += Triple(fromDay, toDay, slot)
-        return emptyList()
+        emptyList()
     }
 
-    override suspend fun clearDay(day: LocalDate) {
-        cleared += day
+    override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = open(day) { cleared += day }
+
+    override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> = open(day) { water += day to ml }
+
+    override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = open(day) { removedWater += day to ml }
+
+    override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = open(day) { }
+
+    /** Records the close and marks the day closed, so what reads it sees the change. */
+    override suspend fun closeDay(day: LocalDate, reflection: DayReflection) {
+        closed += day to reflection
+        days.value += day to (days.value[day] ?: Day.empty(day)).let { it.copy(closedAt = it.closedAt ?: CLOSED_AT) }
     }
 
-    override suspend fun addWater(day: LocalDate, ml: Int) {
-        water += day to ml
+    override suspend fun reopenDay(day: LocalDate) {
+        reopened += day
+        days.value[day]?.let { days.value += day to it.copy(closedAt = null) }
     }
 
-    override suspend fun removeWater(day: LocalDate, ml: Int) {
-        removedWater += day to ml
-    }
-
-    override suspend fun setWater(day: LocalDate, ml: Int) = Unit
-
-    override suspend fun closeDay(day: LocalDate) {
-        closed += day
-    }
-
-    override suspend fun reopenDay(day: LocalDate) = Unit
-
-    override suspend fun setDayNote(day: LocalDate, note: String?) {
-        notes += day to note
-    }
+    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = open(day) { notes += day to note }
 
     override suspend fun setUntracked(day: LocalDate, untracked: Boolean) {
         this.untracked += day to untracked
     }
 
-    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) {
-        dayFeelings += day to feeling
-    }
+    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean): DayWrite<Unit> =
+        open(day) { if (ate) ateNoDetails += day to slot }
 
-    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) {
-        if (ate) ateNoDetails += day to slot
-    }
-
-    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?) {
-        feelings += Triple(day, slot, feeling)
-    }
+    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?): DayWrite<Unit> =
+        open(day) { feelings += Triple(day, slot, feeling) }
 
     override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = Unit
 
@@ -183,28 +171,32 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
 
     override fun frequentFoods(limit: Int, days: Int): Flow<List<LogItem>> = frequent
 
-    override suspend fun removeItems(ids: List<String>) {
-        removed += ids
-    }
+    override suspend fun removeItems(ids: List<String>): DayWrite<Unit> = openFor(ids) { removed += ids }
 
-    override suspend fun restoreItems(ids: List<String>) {
-        restored += ids
-    }
+    override suspend fun restoreItems(ids: List<String>): DayWrite<Unit> = openFor(ids) { restored += ids }
 
-    override suspend fun moveItems(ids: List<String>, slot: MealSlot) {
-        moved += ids to slot
-    }
+    override suspend fun moveItems(ids: List<String>, slot: MealSlot): DayWrite<Unit> = openFor(ids) { moved += ids to slot }
 
     /** Copies nothing, but answers with one item per id so counts read true. */
-    override suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem> {
+    override suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> = open(toDay) {
         copiedItems += Triple(ids, toDay, slot)
-        return days.value.values.flatMap { it.allItems }.filter { it.id in ids }
+        days.value.values.flatMap { it.allItems }.filter { it.id in ids }
     }
 
-    override suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?) {
-        checkIns += day to checkIn
+    private fun <T> open(day: LocalDate, write: () -> T): DayWrite<T> =
+        if (days.value[day]?.closedByUser == true) DayWrite.DayClosed(day) else DayWrite.Written(write())
+
+    /** Refused when any of [ids] sits on a closed day. */
+    private fun openFor(ids: List<String>, write: () -> Unit): DayWrite<Unit> {
+        val closedDay = days.value.values.firstOrNull { day -> day.closedByUser && day.allItems.any { it.id in ids } }
+        return if (closedDay != null) DayWrite.DayClosed(closedDay.date) else DayWrite.Written(write())
+    }
+
+    private companion object {
+        val CLOSED_AT: Instant = Instant.parse("2026-10-25T21:00:00Z")
     }
 }
+
 
 class FakeWeightRepository(weighIns: List<WeighIn> = emptyList()) : WeightRepository {
     val weighIns = MutableStateFlow(weighIns)

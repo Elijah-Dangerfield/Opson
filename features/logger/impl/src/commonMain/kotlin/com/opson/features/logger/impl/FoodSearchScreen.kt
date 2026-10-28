@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.ui.DayClosedNotice
 import com.opson.libraries.diary.ui.FoodRowsCard
 import com.opson.libraries.diary.ui.SectionLabel
 import com.opson.libraries.diary.ui.label
@@ -256,6 +257,7 @@ private fun MealChip(state: FoodSearchState, onAction: (SearchAction) -> Unit, o
 private fun LazyListScope.body(state: FoodSearchState, away: (SearchAction) -> Unit, onAction: (SearchAction) -> Unit) {
     when (val body = state.body) {
         SearchBody.FirstRun -> item(key = "first-run") { Caption(stringResource(Res.string.logger_first_run)) }
+        is SearchBody.DayClosed -> item(key = "closed") { DayClosedNotice(isToday = body.isToday, onReopen = { onAction(SearchAction.ReopenTapped) }) }
         SearchBody.Searching -> item(key = "searching") {
             DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_searching_cd))
         }

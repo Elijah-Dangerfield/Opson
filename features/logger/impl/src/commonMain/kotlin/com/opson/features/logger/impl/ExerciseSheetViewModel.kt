@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import androidx.lifecycle.viewModelScope
 import com.opson.features.logger.ExerciseRoute
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.ExerciseRules
 import com.opson.libraries.diary.LocalCalendar
@@ -122,21 +123,24 @@ class ExerciseSheetViewModel(
         val draft = ExerciseSheetStateBuilder.draft(form, current) ?: return
         written = true
         val id = current.entry?.id
-        if (id == null) exercise.add(draft) else exercise.update(id, draft)
-        finish(Toast(Res.string.exercise_toast_saved))
+        finish(if (id == null) exercise.add(draft) else exercise.update(id, draft), Toast(Res.string.exercise_toast_saved))
     }
 
     private suspend fun delete() {
         if (written) return
         val id = inputs?.entry?.id ?: return
         written = true
-        exercise.delete(id)
-        finish(Toast(Res.string.exercise_toast_deleted))
+        finish(exercise.delete(id), Toast(Res.string.exercise_toast_deleted))
     }
 
-    private fun finish(toast: Toast) {
-        sendEvent(ExerciseSheetEvent.ShowToast(toast))
-        sendEvent(ExerciseSheetEvent.Dismiss)
+    private fun finish(write: DayWrite<*>, toast: Toast) {
+        when (write) {
+            is DayWrite.Written -> {
+                sendEvent(ExerciseSheetEvent.ShowToast(toast))
+                sendEvent(ExerciseSheetEvent.Dismiss)
+            }
+            is DayWrite.DayClosed -> sendEvent(ExerciseSheetEvent.DayClosed(write.day))
+        }
     }
 
     private suspend fun ExerciseSheetAction.change(edit: ExerciseForm.() -> ExerciseForm) {

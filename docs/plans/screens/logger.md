@@ -28,7 +28,7 @@ Spec: the `logger-previews__*` screens in
 | Food tiles | A glyph for the kind of food (rice bowl, salad leaf, fruit, dessert, fish, meat plate, drink, egg, bread, soup, default plate) from `FoodKind.of(name)` in `:libraries:foods`, tinted per kind. The catalog has no category per food yet, so the name decides. |
 | Search empty | Body: "Describe it, or save just the name." Two actions carry the term: Describe "{term}" and Save the name only. "Photograph the package" is dropped (package scan is out of scope). |
 | How it felt | No longer follows an add (design 3.10 note). The logger's sheet and `HowItFeltRoute` are gone; Today's meal card opens its own (`MealFeelRoute`). `Committed.askHowItFelt` and `Settings.asksHowItFelt()` go. |
-| Describe | The mic sits inside the text box (`release.voice`). "Or just a number" is not built whenever calories are hidden (unchanged rule, now tested by name). |
+| Describe | The mic sits inside the text box (`release.voice`). "Or just the numbers" (quick add, below) offers a field only for a number the mode shows as a number. |
 | Photo estimate | Photo and note compact up top, lines are the focus; the hint gets an info icon on a warm tint. No Plus badge (no pricing in 0.1). Blind drops the kcal column and the total (unchanged). Preview `LoggerPhotoPreview` moves into `LoggerPreviews.kt` so it pairs with `logger-previews__logger-photo`. |
 | Amount sheet | Rebuilt as 3.3: see "Amount sheet (design sync 2)" below. |
 
@@ -325,7 +325,9 @@ dayBefore, settings, basket, usualBySlot, recent, customFoods, savedMeals)`.
 | `DescribeTyped(text)` | Debounced 700 ms `FoodCatalog.describe(text)`; stale answers dropped. |
 | `DescribeArrived(text, items)` / `DescribeFailed(text)` | Replaces the read lines, keeping lines the person changed or added (describe.md); empty or failed is `Failed`, offline is `Offline`. |
 | `DescribeReviewAction` | Per-line amount, unit, swap, remove and find (describe.md). |
-| `NumberTyped(text)` / `AddNumberTapped` | Digits only; n > 0 and calories not Hide logs "Quick add" (`QuickNumber`) on its own, `LoggedToMeal`, `Dismiss`. |
+| `QuickAddAction.NameTyped` / `NumberTyped(metric, text)` | The optional name and the five numbers (`QuickAdd`). Energy takes digits, grams a decimal. |
+| `QuickAddAction.UseMacroEnergyTapped` / `FitMacrosTapped` | The energy and macros disagree beyond 15 kcal or 12% (`MacroEnergyCheck`): set the energy to their 4/4/9, or scale protein, carbs and fat to the energy. |
+| `QuickAddAction.AddTapped` | Some offered number above 0 logs one item, named "Quick add" unless named (`QuickNumber`), `LoggedToMeal`, `Dismiss`. With no energy typed, or calories hidden, it stores the macros' 4/4/9. |
 | `BackTapped` | Describe / Saved back to Search; leaving Describe drops its lines. System back does the same. |
 | `AddToMealTapped` | `BasketCommitter.commit`, then `OpenHowItFelt(day, slot)` or `Dismiss`. |
 | `CloseTapped` | `Dismiss`. |
@@ -354,7 +356,9 @@ foods, describe, yesterday, ate_no_details, quick_number, name_only, note;
 | Row macros | protein, carbs, fat | `32P 60C 18F` | omitted | omitted | omitted |
 | Footer energy | calories | `813 kcal` | Hidden | Hidden | Hidden |
 | Saved meal energy | calories | `205 kcal` | Hidden | Hidden | Hidden |
-| Just a number chip, "Or just a number" | calories | shown | shown | shown | chip becomes Add a note, card not built |
+| Just a number chip | calories | shown | shown | shown | chip becomes Add a note |
+| "Or just the numbers" fields | each of calories, protein, carbs, fat, fiber | a field | no field | a field (it is the person's own number) | no field; with none, the card is not built and "Just save the name" remains |
+| Quick add mismatch | calories | `500 kcal`, `400 kcal` | not built | not built before the reveal | not built |
 
 ### Copy (v3 where it has the line)
 
@@ -380,7 +384,8 @@ foods, describe, yesterday, ate_no_details, quick_number, name_only, note;
 | `logger_describe_prompt` | Say it the way you'd say it |
 | `logger_read_as` | We read that as |
 | `logger_described_sub` | %1$s · Estimate |
-| `logger_or_number` / `logger_number_caption` | Or just a number / Only in modes that show calories. |
+| `logger_quick_title` / `logger_quick_name` | Or just the numbers / Name (optional) |
+| `logger_quick_mismatch` / `_use_macros` / `_fit_macros` | These macros come to %1$s, not %2$s. / Use %1$s / Fit macros to %1$s |
 | `logger_name_only` | Just save the name |
 | `logger_saved_title` | Saved meals |
 

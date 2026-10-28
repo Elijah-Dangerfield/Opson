@@ -8,6 +8,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
+import com.opson.features.today.DayClosedRoute
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.flowroutines.ObserveEvents
@@ -79,6 +80,11 @@ class SubmitFoodEntryPoint(
                     router.goBack()
                 }
                 SubmitFoodEvent.Close -> router.goBack()
+                // The closed-day sheet takes this screen's place; the food is in their foods to log once it reopens.
+                is SubmitFoodEvent.DayClosed -> router.batch {
+                    goBack()
+                    navigate(DayClosedRoute(event.day.toString()))
+                }
             }
         }
 

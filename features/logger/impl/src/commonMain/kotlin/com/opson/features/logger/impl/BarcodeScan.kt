@@ -118,6 +118,9 @@ sealed interface BarcodeScanEvent {
 
     /** "Add this food": the pack's photos, in this screen's place, for the code that missed. */
     data class OpenSubmitFood(val day: LocalDate, val slot: MealSlot, val code: String) : BarcodeScanEvent
+
+    /** The day is closed (Close the day, maybe on another phone): the name saved on a miss was not logged. */
+    data class DayClosed(val day: LocalDate) : BarcodeScanEvent
 }
 
 /** Where a scan stands, as the view model tracks it. */

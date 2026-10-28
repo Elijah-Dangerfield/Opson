@@ -12,6 +12,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.MealPhoto
 import com.opson.libraries.scanner.PhotoPickResult
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 /**
@@ -111,7 +112,7 @@ data class HiddenNumbers(val addsUp: Boolean, val incomplete: Boolean)
 /**
  * A failing check as a line with its fixes. [fields] are the form keys it
  * names; [difference] is "40 kcal" for the energy check; [fix] is the figure
- * "Use 234 kcal" writes and [keep] the one "Keep 270" leaves, both formatted
+ * "Use 234 kcal" writes and [keep] the one "Keep 280 kcal" leaves, both formatted
  * with their unit. An impossible amount has neither: it has to be changed.
  */
 data class CheckRow(
@@ -152,7 +153,7 @@ sealed interface SubmitFoodAction {
     /** "Use 234 kcal": the figure the numbers point to. */
     data class FixTapped(val code: LabelCheckCode, val field: String) : SubmitFoodAction
 
-    /** "Keep 270": the label says so. */
+    /** "Keep 280 kcal": the label says so. */
     data class KeepTapped(val code: LabelCheckCode, val field: String) : SubmitFoodAction
     data object SubmitTapped : SubmitFoodAction
     data class SubmitArrived(val result: SubmitResult) : SubmitFoodAction
@@ -168,6 +169,13 @@ sealed interface SubmitFoodEvent {
     /** [name] is logged to [slot]; [sent] when the copy for review went too. The screen closes with a word about which. */
     data class Finished(val name: String, val slot: MealSlot, val sent: Boolean) : SubmitFoodEvent
     data object Close : SubmitFoodEvent
+
+    /**
+     * The day was closed (Close the day, maybe on another phone), so the food is in the person's
+     * foods but not logged. The review copy was sent ([sent]) all the same; the closed-day sheet
+     * takes this screen's place.
+     */
+    data class DayClosed(val day: LocalDate, val sent: Boolean) : SubmitFoodEvent
 }
 
 /** Where the flow stands, as the view model keeps it. */

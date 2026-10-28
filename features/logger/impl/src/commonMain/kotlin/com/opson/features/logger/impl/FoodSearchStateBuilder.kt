@@ -26,6 +26,8 @@ object FoodSearchStateBuilder {
         val groupsOn = inputs.day.mealGroupsOn(inputs.settings)
         val slot = effectiveSlot(inputs, choices.slot)
         val picking = choices.pickingForMeal
+        // A closed day takes nothing; picking for a meal writes nothing to it, so it goes on.
+        val closed = inputs.day.closedByUser && !picking
         return FoodSearchState(
             loading = false,
             slot = slot,
@@ -36,10 +38,10 @@ object FoodSearchStateBuilder {
             // A meal being put together is made of foods, not of other meals.
             scopes = if (picking) listOf(SearchScope.All, SearchScope.YourFoods) else SearchScope.entries,
             // A scan, an added food and Describe all log into this meal, so a meal being put together has none.
-            canScan = choices.scanAvailable && !picking,
-            canAddFood = choices.addFoodAvailable && !picking,
-            canDescribe = !picking,
-            body = body(inputs, policy, slot, choices),
+            canScan = choices.scanAvailable && !picking && !closed,
+            canAddFood = choices.addFoodAvailable && !picking && !closed,
+            canDescribe = !picking && !closed,
+            body = if (closed) SearchBody.DayClosed(isToday = inputs.day.date == inputs.today) else body(inputs, policy, slot, choices),
             pickingForMeal = picking,
             picks = if (picking && choices.picked.isNotEmpty()) {
                 PicksFooter(count = choices.picked.size, names = choices.picked.joinToString(", ") { shortName(it.draft.name) })

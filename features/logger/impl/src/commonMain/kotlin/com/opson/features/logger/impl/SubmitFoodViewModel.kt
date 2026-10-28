@@ -3,6 +3,7 @@ package com.opson.features.logger.impl
 import androidx.lifecycle.viewModelScope
 import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.FoodLabels
@@ -63,8 +64,12 @@ class SubmitFoodViewModel(
     private var pendingSide: PackSide = PackSide.Front
     private var readJob: Job? = null
 
-    /** Logged once, whatever happens to the review copy after. */
+    /** Saved to their foods and logged once, whatever happens to the review copy after. */
+    private var saved = false
     private var committed: Committed? = null
+
+    /** The day refused the log: closed with Close the day. */
+    private var closedDay: LocalDate? = null
     private var finished = false
 
     init {
@@ -182,12 +187,19 @@ class SubmitFoodViewModel(
     private suspend fun submit(action: SubmitFoodAction) {
         if (model.step != SubmitStep.Review || !SubmitFoodStateBuilder.canSubmit(model, policy)) return
         action.change { copy(step = SubmitStep.Saving) }
-        if (committed == null) committed = logAsCustomFood()
+        if (!saved) {
+            saved = true
+            when (val logged = logAsCustomFood()) {
+                is DayWrite.Written -> committed = logged.value
+                is DayWrite.DayClosed -> closedDay = logged.day
+                null -> Unit
+            }
+        }
         send(action)
     }
 
-    /** The person's own food, logged now: the review is for everyone else. */
-    private suspend fun logAsCustomFood(): Committed? {
+    /** The person's own food, logged now: the review is for everyone else. A closed day keeps the food and refuses the log. */
+    private suspend fun logAsCustomFood(): DayWrite<Committed>? {
         val facts = SubmitFoodForm.facts(model)
         val custom = customFoods.create(
             CustomFoodDraft(
@@ -232,6 +244,15 @@ class SubmitFoodViewModel(
 
     private suspend fun submitArrived(action: SubmitFoodAction.SubmitArrived) {
         if (model.step != SubmitStep.Saving) return
+        closedDay?.let { day ->
+            // Nothing was logged, so there is no "Added" to show and no send to retry from here.
+            if (!finished) {
+                finished = true
+                reportSubmitted(sent = action.result is SubmitResult.Submitted)
+                sendEvent(SubmitFoodEvent.DayClosed(day, sent = action.result is SubmitResult.Submitted))
+            }
+            return
+        }
         when (val result = action.result) {
             is SubmitResult.Submitted -> finish(sent = true)
             SubmitResult.TooMany -> action.change { copy(step = SubmitStep.SendFailed(offline = false, tooMany = true)) }
@@ -271,7 +292,7 @@ class SubmitFoodViewModel(
         // Swiped away after logging, with the review copy unsent, still counts as submitted.
         when {
             finished -> Unit
-            committed != null -> reportSubmitted(sent = false)
+            saved -> reportSubmitted(sent = false)
             else -> telemetry.abandoned(stageName(model.step))
         }
         super.onCleared()

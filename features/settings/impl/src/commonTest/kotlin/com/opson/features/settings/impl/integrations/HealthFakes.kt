@@ -1,8 +1,9 @@
 package com.opson.features.settings.impl.integrations
 
 import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.diary.DayWrite
+import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
@@ -111,22 +112,21 @@ class FakeDiary(days: List<Day> = emptyList()) : DiaryRepository {
 
     override fun observeDay(date: LocalDate): Flow<Day> = days.map { it[date] ?: Day.empty(date) }
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = error("not read here")
-    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> = error("not written here")
-    override suspend fun updateItem(item: LogItem) = error("not written here")
-    override suspend fun removeItem(id: String) = error("not written here")
-    override suspend fun moveItem(id: String, slot: MealSlot) = error("not written here")
-    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> = error("not written here")
-    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> = error("not written here")
-    override suspend fun clearDay(day: LocalDate) = error("not written here")
-    override suspend fun addWater(day: LocalDate, ml: Int) = error("not written here")
-    override suspend fun removeWater(day: LocalDate, ml: Int) = error("not written here")
-    override suspend fun setWater(day: LocalDate, ml: Int) = error("not written here")
-    override suspend fun closeDay(day: LocalDate) = error("not written here")
+    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> = error("not written here")
+    override suspend fun updateItem(item: LogItem): DayWrite<Unit> = error("not written here")
+    override suspend fun removeItem(id: String): DayWrite<Unit> = error("not written here")
+    override suspend fun moveItem(id: String, slot: MealSlot): DayWrite<Unit> = error("not written here")
+    override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> = error("not written here")
+    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> = error("not written here")
+    override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = error("not written here")
+    override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> = error("not written here")
+    override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = error("not written here")
+    override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = error("not written here")
+    override suspend fun closeDay(day: LocalDate, reflection: DayReflection) = error("not written here")
     override suspend fun reopenDay(day: LocalDate) = error("not written here")
-    override suspend fun setDayNote(day: LocalDate, note: String?) = error("not written here")
-    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) = error("not written here")
-    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) = error("not written here")
-    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?) = error("not written here")
+    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = error("not written here")
+    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean): DayWrite<Unit> = error("not written here")
+    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?): DayWrite<Unit> = error("not written here")
     override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = error("not written here")
     override fun recentFoods(limit: Int): Flow<List<LogItem>> = error("not read here")
     override fun usualAt(slot: MealSlot, limit: Int, days: Int): Flow<List<LogItem>> = error("not read here")
