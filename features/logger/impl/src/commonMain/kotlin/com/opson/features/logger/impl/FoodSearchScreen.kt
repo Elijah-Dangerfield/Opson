@@ -59,6 +59,7 @@ import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.SearchField
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.clearFocusOnScroll
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.background
@@ -170,7 +171,8 @@ internal fun FoodSearchContent(state: FoodSearchState, onAction: (SearchAction) 
         state.options?.tabs?.let { tabs -> SearchTabs(tabs, state.options.tab, onAction) }
         // No spacedBy: a list's rows sit flush in one card, so each block brings its own gap above it.
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            // Dragging the results puts the keyboard away, as an iOS search list does.
+            modifier = Modifier.weight(1f).fillMaxWidth().clearFocusOnScroll(),
             contentPadding = PaddingValues(start = AppTheme.spacing.page, end = AppTheme.spacing.page, bottom = AppTheme.spacing.page),
         ) {
             if (state.loading) {

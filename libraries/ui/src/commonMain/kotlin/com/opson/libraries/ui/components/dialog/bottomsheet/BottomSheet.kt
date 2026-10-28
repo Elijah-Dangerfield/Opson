@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
 import com.opson.libraries.ui.system.LocalContentColor
+import com.opson.libraries.ui.system.clearFocusOnTapOutside
 import com.opson.system.color.ProvideContentColor
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.system.color.ColorResource
@@ -121,6 +122,8 @@ fun BottomSheet(
             }
             Column(
                 modifier = height
+                    // The sheet is a window of its own, out of reach of the app root's.
+                    .clearFocusOnTapOutside()
                     .then(if (scrollableContent) Modifier.verticalScroll(scrollState) else Modifier)
                     .then(modifier),
                 horizontalAlignment = contentAlignment,

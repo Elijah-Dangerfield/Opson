@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -1119,13 +1120,16 @@ private fun MacroEditorView(editor: MacroEditor, onAction: (TargetsAction) -> Un
             }
         }
     }
-    editor.rows.forEach { row -> MacroEditRowView(row, editor.inPercent, onAction) }
+    editor.rows.forEachIndexed { index, row ->
+        // Next walks the macros in order; the last one's key closes the keyboard.
+        MacroEditRowView(row, editor.inPercent, if (index < editor.rows.lastIndex) ImeAction.Next else ImeAction.Done, onAction)
+    }
     editor.fit?.let { MacroFitView(it, onAction) }
 }
 
 /** Protein: − [field] + with the other unit beside it ("131 g" in percent mode, "25%" in grams). */
 @Composable
-private fun MacroEditRowView(row: MacroEditRow, inPercent: Boolean, onAction: (TargetsAction) -> Unit) {
+private fun MacroEditRowView(row: MacroEditRow, inPercent: Boolean, imeAction: ImeAction, onAction: (TargetsAction) -> Unit) {
     val name = stringResource(row.metric.nameLabel)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1150,6 +1154,7 @@ private fun MacroEditRowView(row: MacroEditRow, inPercent: Boolean, onAction: (T
                 unit = stringResource(if (inPercent) Res.string.settings_targets_unit_percent else Res.string.settings_targets_unit_g),
                 allowDecimal = false,
                 textAlign = TextAlign.Center,
+                imeAction = imeAction,
                 modifier = Modifier.weight(1f),
             )
             StepButton(

@@ -28,13 +28,13 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -76,18 +76,17 @@ fun SearchField(
         if (focusOnOpen && !inPreview) Catching { focusRequester.requestFocus() }
     }
     val typed = rememberTypedText(value, onValueChange)
-    val focusManager = LocalFocusManager.current
+    // Results update as you type, so Search only has to get the keyboard out of the way.
+    val ime = rememberFieldIme(KeyboardActions.Default, KeyboardType.Text, singleLine = true)
     val ink = AppTheme.colors.ink
     BasicTextField(
         value = typed.text,
         onValueChange = typed::onType,
-        modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
+        modifier = modifier.fillMaxWidth().focusRequester(focusRequester).then(ime.modifier),
         textStyle = AppTheme.type.lead.style(ink.color),
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Search),
-        // Results update as you type, so Search only has to get the keyboard out of the way.
-        // Dropping focus does that on iOS too, where hiding the keyboard controller does not.
-        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+        keyboardActions = ime.actions,
         cursorBrush = SolidColor(AppTheme.colors.accent.color),
         decorationBox = { innerTextField ->
             val typing = typed.text.isNotEmpty()
