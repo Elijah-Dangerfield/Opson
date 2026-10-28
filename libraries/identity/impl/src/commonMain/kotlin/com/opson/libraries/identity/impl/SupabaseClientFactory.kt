@@ -19,10 +19,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesTo
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
- * Provides the singleton [SupabaseClient]. Configured with the Auth
- * plugin installed — that's enough for V1 (anonymous sign-in + JWT
- * lifecycle). Add `Postgrest`, `Storage`, etc. installs here when we
- * actually need them.
+ * Provides the singleton [SupabaseClient]. Only the Auth plugin is installed:
+ * sign-in and the JWT lifecycle are all the app uses Supabase for.
  *
  * Session persistence rides a custom [SecureSessionManager] — OS-encrypted
  * storage (Keychain / EncryptedSharedPreferences) instead of supabase-kt's
@@ -33,8 +31,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * (`OkHttp` on Android, `Darwin` on iOS) rather than left to supabase-kt's
  * runtime auto-resolution. On iOS auto-resolution could pick the TLS-incapable
  * native CIO engine, aborting every `POST /auth/v1/signup` with
- * "TLS sessions are not supported on Native platform" so no guest account ever
- * mints (ENG-30). ENG-28 bound the first-party clients the same way; this
+ * "TLS sessions are not supported on Native platform", so no account could be
+ * created (ENG-30). ENG-28 bound the first-party clients the same way; this
  * closes the same gap on the Supabase client.
  */
 @ContributesTo(AppScope::class)

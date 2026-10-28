@@ -4,10 +4,9 @@ import com.opson.libraries.identity.auth.OAuthProvider
 
 /**
  * Thin abstraction over supabase-kt's `Auth` plugin. Exists so
- * [SupabaseAuthRepositoryImpl] can be unit-tested without booting a real
- * `SupabaseClient` — there are no first-class testing utilities for the
- * supabase-kt 3.x auth plugin (no in-memory client, no HTTP engine slot),
- * so the wrapper is our seam.
+ * [SupabaseAuthRepositoryImpl] can be unit-tested with a fake instead of a
+ * real `SupabaseClient`. Where the behaviour belongs to supabase-kt itself,
+ * `RealSupabaseAuthGatewayTest` runs the real gateway over a MockEngine.
  *
  * Contract:
  *  - Read-only methods ([currentStatus], [currentSession]) are non-suspending
@@ -161,7 +160,7 @@ sealed interface AuthGatewayStatus {
     /** Supabase-kt is still hydrating the persisted session. */
     data object Initializing : AuthGatewayStatus
 
-    /** No session — caller should sign in (anonymous, or otherwise). */
+    /** No session; the person signs in. */
     data object NotAuthenticated : AuthGatewayStatus
 
     /** A live session exists. The actual session lives on [GatewaySession]. */
@@ -187,8 +186,8 @@ data class GatewaySession(
     val isAnonymous: Boolean,
     /**
      * Whether the user has confirmed their email via the verification
-     * link. Always true for anonymous accounts (no email to confirm) and
-     * false for sign-up flows pending verification.
+     * link. False for anonymous accounts (no email) and for sign-ups pending
+     * verification.
      */
     val isEmailConfirmed: Boolean,
 )
