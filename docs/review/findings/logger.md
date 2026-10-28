@@ -18,7 +18,9 @@ to 4 came in from the cross-cutting audits; the rest are this pass's own.
 - **Fix:** "fix(logger): the food detail's amount field keeps fast keystrokes". It uses the
   `libraries/ui` `BasicTextField`, which buffers through `rememberTypedText`; a sanitized
   refusal still snaps back when the buffer settles. There is no composition harness in this
-  module; `TypedText` carries its own tests in `libraries/ui`.
+  module; `TypedText` carries its own tests in `libraries/ui`. Main's calmer food detail right
+  aligns the amount, so at the merge the library field gained a `textAlign` parameter rather
+  than the raw field coming back.
 - **Deferred (cross-slice):** a guard so this cannot come back. Add a detekt rule (or a
   `ForbiddenImport` entry in the detekt config) that bans
   `androidx.compose.foundation.text.BasicTextField` outside
@@ -82,9 +84,15 @@ to 4 came in from the cross-cutting audits; the rest are this pass's own.
 - **Fix:** "fix(logger): a double tap on a food's + logs it once". `UnshownLogs` (in
   `FoodPicks.kt`) holds what a + logged until the day shows it; a tap on such a row is ignored,
   and from then on the ✓ works as before. `FakeDiaryRepository.holdWrites` lets a test hold a
-  write back as Room's next read would. `FoodSearchViewModelTest.aDoubleTapOnPlusLogsTheFoodOnce`
-  and `LoggerViewModelTest.aDoubleTapOnRecentsPlusLogsTheFoodOnce`, both proved failing without
-  the fix.
+  write back as Room's next read would. `FoodSearchViewModelTest.aDoubleTapOnPlusLogsTheFoodOnce`,
+  `aDoubleTapOnASavedMealsPlusLogsItOnce` and `LoggerViewModelTest.aDoubleTapOnRecentsPlusLogsTheFoodOnce`,
+  each proved failing without its guard.
+- **With closed days:** a + on a closed day gets `DayWrite.DayClosed` back and writes nothing, so
+  only a real write goes into `UnshownLogs`; otherwise the refused row would stay ignored after
+  Reopen. `FoodSearchViewModelTest.aPlusRefusedByAClosedDay_logsOnceTheDayIsReopened`,
+  `aSavedMealRefusedByAClosedDay_logsOnceTheDayIsReopened` and
+  `LoggerViewModelTest.aRecentPlusRefusedByAClosedDay_logsOnceTheDayIsReopened`, each proved
+  failing with a refusal recorded.
 
 ## 6. A second Save on a barcode miss logged the name twice: fixed
 
@@ -93,6 +101,10 @@ to 4 came in from the cross-cutting audits; the rest are this pass's own.
 - **Failure:** Save, then a second tap while the scanner closes: two name-only items.
 - **Fix:** "fix(logger): a second Save on a barcode miss logs the name once".
   `BarcodeScanViewModelTest.aSecondSaveWhileTheScannerClosesLogsNothingMore`, proved failing first.
+- **With closed days:** a Save on a closed day logs nothing and the scanner stays open under the
+  closed-day notice, so `BarcodeScanEvent.DayClosed` clears the guard and Save works after
+  Reopen. `saveNameOnAClosedDay_logsNothingAndSaysSo_andSavesOnceTheDayIsReopened` fails if the
+  guard stays set.
 
 ## 7. Describe's find and the photo swap read offline as "nothing by that name": fixed
 
@@ -124,7 +136,8 @@ to 4 came in from the cross-cutting audits; the rest are this pass's own.
 - `LoggerCommon.kt` `LogDraft.nameOnly()` and `AMOUNT_HEIGHT_FRACTION` (the amount sheet is gone).
 - `LoggerEvent.ShowToast`: the view model never sends it; its branch in the entry point went too.
 - `LoggerState.day`: built and tested, never drawn. Its KDoc promised "the a11y of the title
-  when it is not today"; nothing reads it (see the product notes).
+  when it is not today"; nothing read it. Closed days, merged later, draw it (the notice says
+  Today on today), so it is back with a KDoc that says so.
 - **Rule:** §1 no dead code; stale comments are bugs.
 - **Fix:** "refactor(logger): drop dead code and fix KDocs the amount sheet left behind".
 
@@ -213,8 +226,8 @@ A second reviewer checked this branch for regressions and flagged two. Both were
 ## Product notes
 
 - **The + sheet never says it logs to a past day.** With Today on yesterday, the sheet reads
-  "Add to dinner" and logs to yesterday. A "yesterday" under the title (the dead `day` field was
-  meant for this) would stop a log landing on the wrong day. Fairly sure it surprises people.
+  "Add to dinner" and logs to yesterday. A "yesterday" under the title (`LoggerState.day` already
+  carries it) would stop a log landing on the wrong day. Fairly sure it surprises people.
 - **A saved meal's ✓ adds it again.** In search, a food's ✓ takes it back out, but a saved
   meal's ✓ logs the whole meal a second time (without the haptic). Either make it take the
   meal back out, as foods do, or keep the + after adding. Fairly sure it is unintended.
