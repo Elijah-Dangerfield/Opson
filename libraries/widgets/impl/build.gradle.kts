@@ -22,6 +22,8 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
+            // Signed out, the widget is cleared rather than drawn from the default settings.
+            implementation(projects.libraries.identity)
             implementation(projects.libraries.opson)
             implementation(projects.libraries.resources)
             implementation(compose.runtime)
@@ -37,6 +39,7 @@ kotlin {
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
             implementation(projects.libraries.flowroutines.testing)
+            implementation(projects.libraries.identity)
             implementation(projects.libraries.opson)
             implementation(projects.libraries.resources)
             implementation(compose.components.resources)
