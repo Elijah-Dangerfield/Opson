@@ -6,6 +6,7 @@ import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.GroupShape
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.LegacyPreset
 import com.opson.libraries.nutrition.MAX_DEFICIT_KCAL
 import com.opson.libraries.nutrition.MAX_SURPLUS_KCAL
@@ -140,6 +141,9 @@ internal object WaterUnitSerializer : KeyedEnumSerializer<WaterUnit>(
     { if (it == WaterUnit.Ml) "ml" else "oz" },
     WaterUnit.Ml,
 )
+
+internal object HeightUnitSerializer :
+    KeyedEnumSerializer<HeightUnit>("opson.HeightUnit", HeightUnit.entries, { if (it == HeightUnit.Cm) "cm" else "ft_in" }, HeightUnit.Cm)
 
 internal object WeightUnitSerializer :
     KeyedEnumSerializer<WeightUnit>("opson.WeightUnit", WeightUnit.entries, { it.name.lowercase() }, WeightUnit.Kg)

@@ -6,6 +6,7 @@ import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.GroupShape
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -228,6 +229,20 @@ class SettingsTest {
         assertEquals(BodySex.Unsaid, future.bodySex)
         assertEquals(RestingSource.Calculate, Settings().restingSource)
         assertTrue(Settings().activityInBurned)
+    }
+
+    @Test
+    fun heightUnit_travelsAsATopLevelKey_andUntilPickedFollowsPoundsThenTheRegion() {
+        val s = Settings(heightCm = 181.61, heightUnit = HeightUnit.FtIn)
+        val json = SettingsJson.encodeToJsonElement(Settings.serializer(), s).jsonObject
+        assertEquals("ft_in", json.getValue("heightUnit").jsonPrimitive.content)
+        assertEquals(s, SettingsJson.decodeFromJsonElement(Settings.serializer(), json))
+        assertNull(SettingsJson.decodeFromString(Settings.serializer(), "{}").heightUnit)
+
+        assertEquals(HeightUnit.Cm, Settings().heightUnitOr(HeightUnit.Cm))
+        assertEquals(HeightUnit.FtIn, Settings().heightUnitOr(HeightUnit.FtIn), "the region, before anything is picked")
+        assertEquals(HeightUnit.FtIn, Settings(weightUnit = WeightUnit.Lb).heightUnitOr(HeightUnit.Cm), "pounds kept inches")
+        assertEquals(HeightUnit.Cm, Settings(weightUnit = WeightUnit.Lb, heightUnit = HeightUnit.Cm).heightUnitOr(HeightUnit.FtIn))
     }
 
     @Test
