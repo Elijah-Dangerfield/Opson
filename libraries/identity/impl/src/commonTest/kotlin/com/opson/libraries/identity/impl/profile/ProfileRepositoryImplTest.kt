@@ -29,7 +29,6 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.get
-import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -597,7 +596,7 @@ class ProfileRepositoryImplTest : CoroutineTest() {
             return patchResult.getOrThrow()
         }
 
-        override suspend fun deleteMe(): HttpResponse = error("deleteMe not used by ProfileRepository")
+        override suspend fun deleteMe() = error("deleteMe not used by ProfileRepository")
 
         override suspend fun sendAppleAuthorization(authorizationCode: String) =
             error("sendAppleAuthorization not used by ProfileRepository")

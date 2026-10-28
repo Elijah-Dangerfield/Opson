@@ -20,11 +20,14 @@ import com.opson.libraries.identity.auth.SendResetOutcome
 import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.identity.impl.ProfileApi
+import com.opson.libraries.identity.impl.problemCode
 import com.opson.libraries.networking.AuthTokenInvalidator
 import com.opson.libraries.networking.SessionRejectionBus
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.exceptions.RestException
 import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.plugins.ResponseException
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
@@ -550,28 +553,8 @@ class SupabaseAuthRepositoryImpl(
         // diary, settings) is a real server-side account and a user has the
         // right to erase it. The admin delete handles anon users fine.
         val outcome = Catching { profileApi.deleteMe() }.fold(
-            onSuccess = { response ->
-                when (response.status.value) {
-                    204, 200, 404 -> DeleteAccountOutcome.Success
-                    401 -> DeleteAccountOutcome.NotSignedIn
-                    503 -> DeleteAccountOutcome.NotConfigured
-                    else -> DeleteAccountOutcome.Unknown(
-                        IllegalStateException("Unexpected status ${response.status.value}"),
-                    )
-                }
-            },
-            onFailure = { e ->
-                when (e) {
-                    is io.ktor.client.plugins.ClientRequestException -> when (e.response.status.value) {
-                        401 -> DeleteAccountOutcome.NotSignedIn
-                        else -> DeleteAccountOutcome.Unknown(e)
-                    }
-                    is io.ktor.client.plugins.ServerResponseException ->
-                        if (e.response.status.value == 503) DeleteAccountOutcome.NotConfigured
-                        else DeleteAccountOutcome.Unknown(e)
-                    else -> DeleteAccountOutcome.NetworkError(e)
-                }
-            },
+            onSuccess = { DeleteAccountOutcome.Success },
+            onFailure = { e -> mapDeleteFailure(e) },
         )
 
         if (outcome is DeleteAccountOutcome.Success) {
@@ -964,6 +947,20 @@ class SupabaseAuthRepositoryImpl(
     }
 
     // ---------- Mappers ----------
+
+    /**
+     * Both of the server's 503s share a status, so the problem code tells them
+     * apart: `delete_not_configured` is a deploy without the service-role key,
+     * `delete_failed` a Supabase admin call that failed and is worth retrying.
+     */
+    private suspend fun mapDeleteFailure(e: Throwable): DeleteAccountOutcome = when {
+        e is ResponseException && e.response.status == HttpStatusCode.Unauthorized ->
+            DeleteAccountOutcome.NotSignedIn
+        e is ResponseException && e.problemCode() == "delete_not_configured" ->
+            DeleteAccountOutcome.NotConfigured
+        e is ResponseException -> DeleteAccountOutcome.Unknown(e)
+        else -> DeleteAccountOutcome.NetworkError(e)
+    }
 
     private fun mapSignInRestException(e: RestException, email: String): SignInOutcome {
         val msg = (e.message ?: "").lowercase()

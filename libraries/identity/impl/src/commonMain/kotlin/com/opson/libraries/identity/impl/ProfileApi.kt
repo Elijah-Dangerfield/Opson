@@ -1,18 +1,21 @@
 package com.opson.libraries.identity.impl
 
+import com.opson.libraries.core.Catching
 import com.opson.libraries.networking.NetworkClient
 import com.opson.libraries.networking.authedCall
 import com.opson.libraries.networking.retry.RetryPolicy
 import io.ktor.client.call.body
+import io.ktor.client.plugins.ResponseException
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -39,11 +42,12 @@ interface ProfileApi {
     suspend fun patchMe(request: PatchMeRequest): MeDto
 
     /**
-     * `DELETE /v1/me` — permanent account deletion. Returns the raw
-     * response so the repository can branch on 204 (success), 503
-     * (delete_not_configured), 401 (session gone), etc.
+     * `DELETE /v1/me` — permanent account deletion. Returns on 204; throws
+     * `ResponseException` otherwise (401 session gone, 503 with
+     * `delete_not_configured` or `delete_failed`), whose [problemCode] the
+     * repository maps to an outcome.
      */
-    suspend fun deleteMe(): HttpResponse
+    suspend fun deleteMe()
 
     /**
      * `POST /v1/me/apple-authorization`: the one-use code from a native Sign in with
@@ -62,6 +66,22 @@ data class PatchMeRequest(
 data class AppleAuthorizationRequest(
     val authorizationCode: String,
 )
+
+/**
+ * The stable `error.code` of the server's problem envelope
+ * (`{ "error": { "code": "…", "message": "…" } }`), or null when the body is
+ * something else (a proxy's error page, an empty body).
+ */
+internal suspend fun ResponseException.problemCode(): String? =
+    Catching { problemJson.decodeFromString<ProblemEnvelope>(response.bodyAsText()).error.code }.getOrNull()
+
+private val problemJson = Json { ignoreUnknownKeys = true }
+
+@Serializable
+private data class ProblemEnvelope(val error: Problem) {
+    @Serializable
+    data class Problem(val code: String)
+}
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -89,12 +109,12 @@ class HttpProfileApi(
             }.body<MeDto>()
         }.getOrThrow()
 
-    // DELETE /v1/me is one-shot. No retry; the auth repo branches on the
-    // raw HttpResponse status. Caller wraps in its own Catching to do that.
-    override suspend fun deleteMe(): HttpResponse =
+    // One-shot: a retry after the server deleted the account would only 401.
+    override suspend fun deleteMe() {
         networkClient.authedCall("me.delete") { client ->
             client.delete("/v1/me")
         }.getOrThrow()
+    }
 
     // The code works once, so a retry after the server used it would only be refused.
     override suspend fun sendAppleAuthorization(authorizationCode: String) {

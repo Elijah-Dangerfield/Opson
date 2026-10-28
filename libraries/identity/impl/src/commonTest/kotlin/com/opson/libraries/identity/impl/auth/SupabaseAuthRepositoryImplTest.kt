@@ -8,6 +8,7 @@ import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.identity.auth.AppleSignInCredential
 import com.opson.libraries.identity.auth.AuthState
+import com.opson.libraries.identity.auth.DeleteAccountOutcome
 import com.opson.libraries.identity.auth.LinkEmailIdentityOutcome
 import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.auth.RefreshOutcome
@@ -16,8 +17,14 @@ import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.identity.impl.MeDto
 import com.opson.libraries.identity.impl.PatchMeRequest
 import com.opson.libraries.identity.impl.ProfileApi
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.HttpRequestTimeoutException
-import io.ktor.client.statement.HttpResponse
+import io.ktor.client.request.delete
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -28,6 +35,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -777,7 +785,73 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         advanceUntilIdle()
 
         val outcome = repo.deleteAccount()
-        assertIs<com.opson.libraries.identity.auth.DeleteAccountOutcome.NotSignedIn>(outcome)
+        assertIs<DeleteAccountOutcome.NotSignedIn>(outcome)
+    }
+
+    @Test
+    fun deleteAccount_success_signsOutAndClearsTheAccount() = runUnitTest {
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(
+            gateway = signedInGateway(),
+            profileApi = DeletingProfileApi(failure = null),
+            userScopedDataReset = reset,
+        )
+        advanceUntilIdle()
+
+        assertEquals(DeleteAccountOutcome.Success, repo.deleteAccount())
+
+        val state = assertIs<AuthState.Unauthenticated>(repo.current())
+        assertEquals(AuthState.Unauthenticated.Reason.SignedOut, state.reason)
+        assertEquals(listOf("user-1"), reset.clearedFor)
+    }
+
+    @Test
+    fun deleteAccount_serverWithoutTheServiceRoleKey_isNotConfigured() = runUnitTest {
+        val refusal = serverRefusal(HttpStatusCode.ServiceUnavailable, code = "delete_not_configured")
+        val repo = build(gateway = signedInGateway(), profileApi = DeletingProfileApi(failure = refusal))
+        advanceUntilIdle()
+
+        assertEquals(DeleteAccountOutcome.NotConfigured, repo.deleteAccount())
+        assertIs<AuthState.Authenticated>(repo.current(), "a refused delete keeps the account signed in")
+    }
+
+    @Test
+    fun deleteAccount_supabaseAdminFailure_isATransientUnknown_notNotConfigured() = runUnitTest {
+        // Same 503 status, different problem: the admin call failed and a
+        // retry may work. Reading it as a deploy problem misled the logs.
+        val refusal = serverRefusal(HttpStatusCode.ServiceUnavailable, code = "delete_failed")
+        val repo = build(gateway = signedInGateway(), profileApi = DeletingProfileApi(failure = refusal))
+        advanceUntilIdle()
+
+        assertIs<DeleteAccountOutcome.Unknown>(repo.deleteAccount())
+    }
+
+    @Test
+    fun deleteAccount_sessionTheServerNoLongerAccepts_isNotSignedIn() = runUnitTest {
+        val refusal = serverRefusal(HttpStatusCode.Unauthorized, code = "unauthorized")
+        val repo = build(gateway = signedInGateway(), profileApi = DeletingProfileApi(failure = refusal))
+        advanceUntilIdle()
+
+        assertEquals(DeleteAccountOutcome.NotSignedIn, repo.deleteAccount())
+    }
+
+    private fun signedInGateway() = FakeSupabaseAuthGateway(
+        initialStatus = AuthGatewayStatus.Authenticated,
+        session = claimedSession(),
+    )
+
+    /** The exception the app's `expectSuccess` client throws for this answer. */
+    private suspend fun serverRefusal(status: HttpStatusCode, code: String): Throwable {
+        val client = HttpClient(
+            MockEngine {
+                respond(
+                    content = """{"error":{"code":"$code","message":"Please try again."}}""",
+                    status = status,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        ) { expectSuccess = true }
+        return assertNotNull(runCatching { client.delete("https://api.test/v1/me") }.exceptionOrNull())
     }
 
     @Test
@@ -1006,17 +1080,26 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         override suspend fun me(): MeDto = error("ProfileApi not used by these tests")
         override suspend fun patchMe(request: PatchMeRequest): MeDto =
             error("ProfileApi not used by these tests")
-        override suspend fun deleteMe(): HttpResponse =
+        override suspend fun deleteMe() =
             error("ProfileApi not used by these tests")
         override suspend fun sendAppleAuthorization(authorizationCode: String) =
             error("ProfileApi not used by these tests")
+    }
+
+    private class DeletingProfileApi(private val failure: Throwable?) : ProfileApi {
+        override suspend fun me(): MeDto = error("unused")
+        override suspend fun patchMe(request: PatchMeRequest): MeDto = error("unused")
+        override suspend fun deleteMe() {
+            failure?.let { throw it }
+        }
+        override suspend fun sendAppleAuthorization(authorizationCode: String) = error("unused")
     }
 
     private class RecordingProfileApi(private val failSend: Boolean = false) : ProfileApi {
         val sentCodes = mutableListOf<String>()
         override suspend fun me(): MeDto = error("unused")
         override suspend fun patchMe(request: PatchMeRequest): MeDto = error("unused")
-        override suspend fun deleteMe(): HttpResponse = error("unused")
+        override suspend fun deleteMe() = error("unused")
         override suspend fun sendAppleAuthorization(authorizationCode: String) {
             sentCodes += authorizationCode
             if (failSend) throw RuntimeException("503 apple_not_configured")
