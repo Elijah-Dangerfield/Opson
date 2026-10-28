@@ -19,7 +19,8 @@ on Apple. Its finding 9 (Recent showing fewer than six) is now fixed upstream:
 
 - **Where:** `OnboardingViewModel.kt:155` (`UnitPicked` copied the unit alone) and
   `SetupSteps.kt` `BodyAnswer.heightCmOrNull`/`weightKgOrNull`, which return null
-  with nothing on screen. Routed from the journeys audit.
+  with nothing on screen. Routed from the journeys audit. Both lines are from before
+  main's units rework, which replaced the one kg/lb switch.
 - **Rule:** §10 "the error state tells the person what they can do".
 - **Failure:** type 175 and 70 in kg and cm, then pick lb and in: 175 cm became
   175 in (444 cm, so no resting energy) and 70 kg became 70 lb (31.8 kg, still in
@@ -27,15 +28,20 @@ on Apple. Its finding 9 (Recent showing fewer than six) is now fixed upstream:
   got 13 cm. In every invalid case the "About X a day at rest" line just never
   appeared, and a deficit or surplus started from no burn with nothing to say why.
 - **Fix:** `fix(onboarding): switching to lb and in converts what is typed, and a
-  field that can't be used says why`. `BodyAnswer.withUnit` converts height and
-  weight to one decimal (175 cm is 68.9 in, and back to 175). `BodyView` carries
-  `birthYearInvalid`, `heightInvalid` and `weightInvalid`, and the step draws a
-  muted line under each ("Height in inches, like 67 for 5 ft 7"), in a polite
-  live region. Tests: `OnboardingSetupStepsTest.switchingUnits_convertsWhatIsTyped_soTheWeighInIsStillTheirs`,
-  `feetAndInchesTypedAsADecimal_saysHeightIsInInches`, and `aTypoInTheDetails_isNotSaved`
-  now checks each field flags itself. Separate ft and in fields are left as a
-  product note: Settings' Resting energy takes inches too, and the two should
-  change together.
+  field that can't be used says why`, written against the one kg/lb switch and
+  re-applied in the merge of main, whose rework gave height and weight a switch
+  each (`HeightUnitPicked`, `WeightUnitPicked`), both starting in the phone region's
+  units. Now `BodyAnswer.withHeightUnit` converts through `HeightInput.inUnit` (175 cm
+  is 5 ft 9) and `withWeightUnit` converts any number typed, to a tenth (70 kg is
+  154.3 lb; main's own switch only converted a weight already in range).
+  `BodyView` carries `birthYearInvalid`, `heightInvalid` and `weightInvalid`, and
+  `HintedField` draws a muted line under the field in a polite live region, worded
+  for the unit showing: "Height in centimetres, like 170", "Height in feet and
+  inches, like 5 and 7, with inches under 12", "Weight in pounds, like 155". Tests in
+  `OnboardingSetupStepsTest`: `switchingUnits_convertsWhatIsTyped_soTheWeighInIsStillTheirs`,
+  `aHeightThatIsNotOne_saysWhatTheFieldWants_inEitherUnit` (13 inches, and 5.10
+  typed as centimetres), and `aTypoInTheDetails_isNotSaved_inEitherUnit`, which
+  checks each field flags itself in both regions.
 
 ## 2. Each Foods tab section was one lazy item holding every row (fixed)
 
@@ -72,19 +78,24 @@ on Apple. Its finding 9 (Recent showing fewer than six) is now fixed upstream:
 ## 4. Edit a copy opened a weighed food's numbers as already changed, and rounded them on save (fixed)
 
 - **Where:** `EditCopyState.kt:92` (`text.toDoubleOrNull() != before`) and `:111`
-  (`draft` saving the typed text).
+  (`draft` saving the typed text), before main reworked Edit a copy to edit the
+  whole label.
 - **Rule:** §1 "Code that reads true"; the review checklist's visibility rule that
   a number is what was logged.
-- **Failure:** each field opens at one decimal ("7.5"), but was compared with the
+- **Failure:** each field opened at one decimal ("7.5"), but was compared with the
   entry's own number (7.53). A food weighed from the catalog rarely has round
   numbers, so on open most fields were tinted with "Was 8 g" under them before
   anything was typed, and saving wrote 7.5, not 7.53. The fixtures are all whole
   numbers, which is why the tests never saw it.
 - **Fix:** `fix(foods): Edit a copy opens a weighed food's numbers unchanged, and
-  keeps them exact`. "Changed" compares with the number as the field opened it,
-  and a field left as it opened saves the entry's own number.
-  `EditCopyTest.aNumberWithMoreThanOneDecimal_opensUnchanged_andIsSavedExactly`
-  fails without the fix.
+  keeps them exact`, re-applied in the merge of main.
+  Main's rework opens each field at two decimals and compares at two decimals
+  (`tidy`), which settles the tint. The rounding on save was still there one place
+  further out: 219.667 kcal opened as "219.67" and saved as 219.67. `draft` now
+  keeps the food's own number for a shown field left as it opened, at whatever
+  Nutrition per it is typed for.
+  `EditCopyTest.aNumberWithMoreThanTwoDecimals_opensUnchanged_andIsSavedExactly`
+  fails without it.
 
 ## 5. A new Google account from the email sign-in screen skipped setup (fixed; KDoc deferred, cross-slice)
 
@@ -146,9 +157,6 @@ on Apple. Its finding 9 (Recent showing fewer than six) is now fixed upstream:
 
 ## Product notes
 
-- **Height in inches only is awkward for anyone in the US.** People think in feet
-  and inches; the hint now explains, but two fields (ft, in) on both onboarding and
-  Settings' Resting energy would remove the mistake. Fairly sure.
 - **The resting energy hints show while typing.** "17" on the way to 175 shows
   "Height in centimetres, like 170" for a keystroke. It is muted and reads as
   guidance, but showing it only once the field loses focus would be calmer.
@@ -173,9 +181,14 @@ on Apple. Its finding 9 (Recent showing fewer than six) is now fixed upstream:
   to round-trip, so it missed this. The effect on resting energy was under
   1 kcal, but the field no longer held what the person typed.
 - **Fate:** fixed in `fix(onboarding): switching units and back gives back
-  exactly what was typed`. `BodyAnswer` keeps the text each field was typed in
-  and its unit while a switch shows it converted. Switching back restores it,
-  every conversion starts from it, and the saved height and first weigh-in come
-  from it. Typing into a converted field makes the new text the typed value.
-  `switchingUnitsAndBack_givesBackExactlyWhatWasTyped_andSavesIt` (171 cm,
-  72.5 kg) failed before the fix with `170.9`.
+  exactly what was typed`, and re-applied in the merge of main to its separate
+  switches, which round the same way: `HeightInput.inUnit` goes through the nearest
+  half inch, so 172 cm became 5 ft 7.5 in and then 171 cm, and 160 lb became
+  72.6 kg and then 160.1 lb. `BodyAnswer` keeps `heightAsTyped` (the `HeightInput`
+  as typed, in its unit) and `weightAsTyped` while a switch shows a conversion.
+  Switching back restores it, every conversion starts from it, and the saved
+  height and first weigh-in come from it; the unit saved is the one showing.
+  Typing into a converted field makes the new text the typed value
+  (`editingAConvertedField_isWhatCountsFromThen`).
+  `switchingUnitsAndBack_givesBackExactlyWhatWasTyped_andSavesIt` (172 cm, 160 lb)
+  fails on main's rework alone with `171`.

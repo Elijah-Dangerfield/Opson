@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.ui.DayClosedNotice
 import com.opson.libraries.diary.ui.FoodRowsCard
 import com.opson.libraries.diary.ui.SectionLabel
 import com.opson.libraries.diary.ui.label
@@ -64,7 +65,6 @@ import opson.libraries.resources.generated.resources.adding_no_foods_yet
 import opson.libraries.resources.generated.resources.adding_no_saved_match
 import opson.libraries.resources.generated.resources.adding_not_finding
 import opson.libraries.resources.generated.resources.adding_not_finding_describe
-import opson.libraries.resources.generated.resources.adding_not_finding_photo
 import opson.libraries.resources.generated.resources.adding_not_finding_save
 import opson.libraries.resources.generated.resources.adding_scope_all
 import opson.libraries.resources.generated.resources.adding_scope_saved
@@ -104,6 +104,7 @@ import opson.libraries.resources.generated.resources.search_tab_hint_restaurant
 import opson.libraries.resources.generated.resources.search_tab_restaurant
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
+import opson.libraries.resources.generated.resources.submit_add_this_food
 import org.jetbrains.compose.resources.stringResource
 
 /** Full-screen search (design sync 4, 13.4c) in its scaffold. */
@@ -256,6 +257,7 @@ private fun MealChip(state: FoodSearchState, onAction: (SearchAction) -> Unit, o
 private fun LazyListScope.body(state: FoodSearchState, away: (SearchAction) -> Unit, onAction: (SearchAction) -> Unit) {
     when (val body = state.body) {
         SearchBody.FirstRun -> item(key = "first-run") { Caption(stringResource(Res.string.logger_first_run)) }
+        is SearchBody.DayClosed -> item(key = "closed") { DayClosedNotice(isToday = body.isToday, onReopen = { onAction(SearchAction.ReopenTapped) }) }
         SearchBody.Searching -> item(key = "searching") {
             DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_searching_cd))
         }
@@ -328,7 +330,7 @@ private fun Caption(text: String) {
     Text(text = text, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
 }
 
-/** "Not finding it?" under the results: Photograph it, Describe it, Save the name. */
+/** "Not finding it?" under the results: Describe it, Save the name. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun NotFinding(state: FoodSearchState, away: (SearchAction) -> Unit, onAction: (SearchAction) -> Unit) {
@@ -341,7 +343,6 @@ private fun NotFinding(state: FoodSearchState, away: (SearchAction) -> Unit, onA
     ) {
         Text(text = stringResource(Res.string.adding_not_finding), typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
-            if (state.canPhotograph) InlineLink(stringResource(Res.string.adding_not_finding_photo)) { away(SearchAction.PhotographTapped) }
             if (state.canDescribe) InlineLink(stringResource(Res.string.adding_not_finding_describe)) { away(SearchAction.DescribeTapped) }
             InlineLink(stringResource(Res.string.adding_not_finding_save)) { onAction(SearchAction.SaveNameTapped) }
         }
@@ -379,9 +380,9 @@ private fun NoResults(state: FoodSearchState, query: String, away: (SearchAction
             ) {
                 Text(stringResource(Res.string.logger_empty_save))
             }
-            if (state.canPhotograph) {
-                ButtonPrimary(onClick = { away(SearchAction.PhotographTapped) }, style = ButtonStyle.Tonal, icon = AppIcons.PhotoCamera, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(Res.string.adding_not_finding_photo))
+            if (state.canAddFood) {
+                ButtonPrimary(onClick = { away(SearchAction.AddFoodTapped) }, style = ButtonStyle.Tonal, icon = AppIcons.PhotoCamera, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(Res.string.submit_add_this_food))
                 }
             }
         }

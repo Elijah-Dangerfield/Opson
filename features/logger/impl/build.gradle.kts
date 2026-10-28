@@ -14,6 +14,8 @@ kotlin {
             implementation(projects.features.today)
             implementation(projects.features.trends)
             implementation(projects.features.settings)
+            // Edit a copy, from the food detail's ⋮.
+            implementation(projects.features.foods)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)

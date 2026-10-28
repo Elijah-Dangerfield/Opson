@@ -2,7 +2,6 @@ package com.opson.server.plugins
 
 import com.opson.server.domain.InstallSighting
 import com.opson.server.domain.UserInstallRepository
-import com.opson.server.http.ClientContext
 import com.opson.server.http.clientContext
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.install
@@ -48,7 +47,7 @@ val InstallSightings = createRouteScopedPlugin("InstallSightings", ::InstallSigh
         val sighting = InstallSighting(
             userId = userId,
             installId = context.installId,
-            platform = context.platform.wireName(),
+            platform = context.platform.wire,
             appVersion = context.appVersion,
             buildNumber = context.buildNumber,
         )
@@ -83,9 +82,3 @@ fun Route.recordInstallSightings(repository: UserInstallRepository, clock: Clock
 
 /** Remembered sightings before the throttle forgets them all and starts again. */
 private const val MAX_REMEMBERED = 100_000
-
-private fun ClientContext.Platform.wireName(): String = when (this) {
-    ClientContext.Platform.Android -> "android"
-    ClientContext.Platform.iOS -> "ios"
-    ClientContext.Platform.Other -> "other"
-}

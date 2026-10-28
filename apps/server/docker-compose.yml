@@ -14,8 +14,11 @@ services:
       - "5432:5432"
     volumes:
       - template_pgdata:/var/lib/postgresql/data
-      # Seed a minimal auth.users stub so the V2 FK resolves on plain Postgres.
-      - ./docker/init-auth.sql:/docker-entrypoint-initdb.d/init-auth.sql:ro
+      # The tests' auth.users stub, so the migrations' foreign keys and the
+      # support views (V22) resolve on plain Postgres. One file, so the local
+      # database can't fall behind what the tests migrate against. It runs only
+      # on a fresh volume: after a change, `docker compose ... down -v`.
+      - ./src/test/resources/init-auth.sql:/docker-entrypoint-initdb.d/init-auth.sql:ro
 
 volumes:
   template_pgdata:

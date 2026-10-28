@@ -88,6 +88,42 @@ for label parsing.
       `PhotoEstimateLimiter` on the server), and the design's Plus badge goes
       on the sheet header.
 
+## Add this food (`release.submitFood`)
+
+- [ ] Deploy a server with V25 (`food_submissions`) to dev, then prod.
+      Flyway runs it on boot; it is additive and 0.1 is unaffected.
+- [ ] `ANTHROPIC_API_KEY` is set (as for Photo estimate above). The label
+      model is `claude-fable-5-1`, which needs the organisation's API data
+      retention at 30 days (not zero data retention). If it refuses, the
+      server retries on `ANTHROPIC_PHOTO_MODEL` and logs
+      `label parse model rejected the request`; to pick another model
+      without a release:
+
+      ```bash
+      printf "Label model [claude-fable-5-1]: "; read -r LM; LM="${LM:-claude-fable-5-1}"
+      fly secrets set ANTHROPIC_LABEL_MODEL="$LM" -a opson-server-dev; unset LM
+      ```
+
+      With no key at all the form still works, typed in from the photos.
+- [ ] `ADMIN_API_TOKEN` is set on the environment, or the review routes are
+      not mounted and nothing gets approved. Review in the admin console's
+      Review tab.
+- [ ] Push `ops/grafana/food-review.json` after prod runs V25.
+- [x] `legal/privacy.md` and `legal/health-data.md` describe the pack
+      photos (seen by the submitter and the reviewer, deleted 30 days after
+      review and with the account) and that approved food data, not the
+      photos, is shared with everyone. They publish when they reach `main`.
+- [ ] App Store Connect, App Privacy: **Photos or Videos**, App Functionality,
+      **linked** to the user (the submission belongs to the account), not
+      for tracking. Play Data safety: Photos, collected, linked, not shared.
+      The meal photo estimate's "not linked, not kept" row stays as it is.
+- [ ] Try it on an iPhone and an Android phone: a scan miss, both photos,
+      a retake, the library, a denied camera, a label with a wrong figure
+      (the check and its fix), No numbers mode, a search with no results,
+      airplane mode at Add (logged, "Added to your foods", then Try again),
+      then approve it in the admin console and scan it from another account.
+- [ ] Flip `release.submitFood` on.
+
 ## Voice log (`release.voice`)
 
 No entitlement or capability: Speech and the microphone need only their
@@ -205,6 +241,16 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
       settings merge (a 0.1 phone saving settings must not erase what a 0.2
       phone added), V12 to V14, and the new routes (including
       `POST /v1/describe/photo`, which needs `ANTHROPIC_API_KEY`).
+
+## App Review information (accounts are required since 908798dd)
+
+- [ ] App Store Connect, App Review Information: set "Sign-in required" to
+      yes and paste the reviewer notes from `docs/app-store/listing.md`. The
+      0.1 notes say no sign-in is needed, which contradicts a binary that
+      opens on sign-in (guideline 2.1).
+- [ ] App Store Connect, App Privacy: Email is now collected from every new
+      account, not only Sign in with Apple ones. Play Console Data safety:
+      the same.
 
 ## Today and Day close, design sync 2 (`release.todaySummary`, `release.todaySelect`, `release.checkIn`)
 

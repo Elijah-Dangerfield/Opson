@@ -21,7 +21,6 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.util.Base64
@@ -32,7 +31,8 @@ import kotlin.time.ExperimentalTime
  * `POST /v1/describe/photo {image, note?}`: a meal photo to the same rows
  * `POST /v1/describe` returns ([DescribeResponse]). JWT required.
  *
- *  - 400 `invalid_image` (not base64, or not JPEG, PNG or WebP by its bytes),
+ *  - 400 `invalid_body` (not the JSON object above),
+ *    400 `invalid_image` (not base64, or not JPEG, PNG or WebP by its bytes),
  *    400 `invalid_note` (over [PhotoLimits.MAX_NOTE] characters),
  *    413 `image_too_large` (body or decoded image over the limits; the body
  *    size is checked before it is read, and the read itself stops at the limit),
@@ -116,9 +116,8 @@ private suspend fun ApplicationCall.readPhotoRequest(json: Json): PhotoRead {
 
     val dto = try {
         json.decodeFromString(PhotoDescribeRequest.serializer(), body.decodeToString())
-    } catch (_: SerializationException) {
-        return PhotoRead.Rejected(HttpStatusCode.BadRequest, "invalid_body", "Expected {image, note}")
     } catch (_: IllegalArgumentException) {
+        // SerializationException is an IllegalArgumentException too.
         return PhotoRead.Rejected(HttpStatusCode.BadRequest, "invalid_body", "Expected {image, note}")
     }
 

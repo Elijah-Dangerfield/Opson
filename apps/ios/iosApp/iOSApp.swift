@@ -36,9 +36,9 @@ struct iOSApp: App {
                 nativeViewFactory: nativeViewFactory
             )
             .onOpenURL { url in
-                // Forward URLs from custom-scheme links and Universal Links
-                // into the Kotlin DeepLinkBridge — App.kt collects from it
-                // and calls navController.handleDeepLink.
+                // Every opson:// link goes to the Kotlin DeepLinkBridge. App.kt
+                // hands the OAuth return to supabase-kt, a widget's + to
+                // WidgetOpens, and routes the rest through the nav graph.
                 iOSAppComponent.deepLinkBridge.emit(url: url.absoluteString)
             }
         }

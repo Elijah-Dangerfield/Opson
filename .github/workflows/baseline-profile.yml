@@ -1,6 +1,7 @@
 name: Baseline Profile
 
-# Regenerates the Baseline Profile monthly and opens a PR with the diff.
+# Regenerates the Baseline Profile and opens a PR with the diff. Monthly once
+# the journey can sign in again (see the trigger below).
 #
 # Monthly rather than per-release on purpose. The profile is a list of classes
 # and methods to compile ahead of time, and that list only drifts as the app's
@@ -12,10 +13,14 @@ name: Baseline Profile
 # half its rules means the journey broke, and that is only visible in review.
 
 on:
-  schedule:
-    # 03:17 on the 3rd of each month. Deliberately not midnight on the 1st —
-    # that is when every scheduled job on GitHub fires and runners are scarce.
-    - cron: "17 3 3 * *"
+  # TODO(review): put the monthly schedule back ("17 3 3 * *", not midnight on
+  # the 1st when every scheduled job fires) once BenchmarkJourney can sign in.
+  # Onboarding now asks for Apple or Google right after Welcome, and the
+  # journey still looks for "Skip and start logging", which no longer exists,
+  # so every run would fail at "Never reached Today" and the generator can't
+  # reach anything past sign-in. Dispatch it by hand to try a fix. A journey
+  # that signs in runs a release build, so it talks to prod (see the note on
+  # the generate step).
   workflow_dispatch:
 
 concurrency:

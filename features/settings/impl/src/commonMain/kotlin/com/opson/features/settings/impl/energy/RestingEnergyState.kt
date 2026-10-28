@@ -8,13 +8,13 @@ import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.HeightInput
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
-import com.opson.libraries.nutrition.WeightUnit
-import kotlin.math.roundToInt
 
 /**
  * Resting energy (design sync 4, 13.2d): where Burned's resting energy comes from, the details
@@ -44,25 +44,27 @@ data class RestingEnergyState(
 )
 
 /**
- * The calculation's inputs as fields: typed text, so a half-typed year is not lost. [heightUnit]
- * follows the weight unit: centimetres with kilograms, inches with pounds. [weightMissing] says
- * to log a weight, which lives in Trends rather than here.
+ * The calculation's inputs as fields: typed text, so a half-typed year is not lost. [height] is
+ * in the unit the person picked, or else [Settings.heightUnitOr]'s. [weightMissing] says to log
+ * a weight, which lives in Trends rather than here.
  */
 data class BodyDetails(
     val birthYearText: String,
-    val heightText: String,
-    val heightUnit: HeightUnit,
+    val height: HeightInput,
     val sex: BodySex?,
     val weightMissing: Boolean,
 )
 
-enum class HeightUnit { Cm, In }
-
-/** What a typed field is still in the middle of, kept by the view model between settings updates. */
-data class RestingDrafts(val own: String? = null, val birthYear: String? = null, val height: String? = null)
+/**
+ * What a typed field is still in the middle of, kept by the view model between settings updates.
+ * While a detail is being typed the fields stay up, even once nothing is missing: five feet is a
+ * whole height before the inches are typed, and the inches field must not vanish under them.
+ */
+data class RestingDrafts(val own: String? = null, val birthYear: String? = null, val height: HeightInput? = null) {
+    val editingDetails: Boolean get() = birthYear != null || height != null
+}
 
 object RestingEnergyStateBuilder {
-    private const val CM_PER_INCH = 2.54
 
     fun build(
         settings: Settings,
@@ -70,8 +72,9 @@ object RestingEnergyStateBuilder {
         policy: VisibilityPolicy,
         drafts: RestingDrafts = RestingDrafts(),
         activitySource: HealthSource? = null,
+        regionHeight: HeightUnit = HeightUnit.Cm,
     ): RestingEnergyState {
-        val heightUnit = if (settings.weightUnit == WeightUnit.Lb) HeightUnit.In else HeightUnit.Cm
+        val calculating = settings.restingSource == RestingSource.Calculate
         return RestingEnergyState(
             loaded = true,
             source = settings.restingSource,
@@ -80,11 +83,10 @@ object RestingEnergyStateBuilder {
             healthKcal = choices.healthKcal.bare(policy),
             ownText = (drafts.own ?: settings.restingOwnKcal?.toString().orEmpty())
                 .takeIf { policy.effectiveLevel(Metric.EnergyOut, Surface.Settings) == Visibility.Show },
-            details = if (settings.restingSource == RestingSource.Calculate && choices.missing.isNotEmpty()) {
+            details = if (calculating && (choices.missing.isNotEmpty() || drafts.editingDetails)) {
                 BodyDetails(
                     birthYearText = drafts.birthYear ?: settings.birthYear?.toString().orEmpty(),
-                    heightText = drafts.height ?: settings.heightCm?.let { heightText(it, heightUnit) }.orEmpty(),
-                    heightUnit = heightUnit,
+                    height = height(settings, drafts, regionHeight),
                     sex = settings.bodySex,
                     weightMissing = BodyDetail.Weight in choices.missing,
                 )
@@ -97,14 +99,9 @@ object RestingEnergyStateBuilder {
         )
     }
 
-    /** Centimetres from what was typed in [unit]; null when it is not a number. */
-    fun heightCm(text: String, unit: HeightUnit): Double? {
-        val value = text.toDoubleOrNull() ?: return null
-        return if (unit == HeightUnit.In) value * CM_PER_INCH else value
-    }
-
-    private fun heightText(cm: Double, unit: HeightUnit): String =
-        (if (unit == HeightUnit.In) cm / CM_PER_INCH else cm).roundToInt().toString()
+    /** The height fields: what is being typed, or else the stored height in the unit to show. */
+    fun height(settings: Settings, drafts: RestingDrafts, regionHeight: HeightUnit): HeightInput =
+        drafts.height ?: HeightInput.of(settings.heightCm, settings.heightUnitOr(regionHeight))
 
     private fun Int?.bare(policy: VisibilityPolicy): Display =
         this?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Settings, FormatContext(bare = true)) } ?: Display.Hidden

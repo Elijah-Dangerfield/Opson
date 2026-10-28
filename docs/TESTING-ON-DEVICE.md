@@ -28,13 +28,13 @@ HealthKit, so Apple Health connects. Release builds don't, until 0.2.
 | Voice in Describe | Yes (real mic; the simulator says unavailable) |
 | Reminders and notifications | Yes |
 | Apple Health and Expended so far | Yes |
-| Fasting (Full numbers and Sprint, after turning the timer on) | Yes |
+| Fasting (All numbers, after turning the timer on) | Yes |
 | Photo estimate | Says "not available" until `ANTHROPIC_API_KEY` is set on dev |
 | Open Food Facts products in search | Yes: pick it under search options, or see it mixed into All |
 | Today's summary card, multi-select (Copy, Move, Save as meal), swipe to delete | Yes |
 | Close the day check-in, and its switch in Reminders | Yes |
 | Progress photos row in Modes, Expended card in Trends (with a watch connected) | Yes |
-| Home screen widgets | The in-app Widgets page only; the native widget is held for 0.2 |
+| Home screen widgets | iOS: the native widget from the widget gallery, and the in-app Widgets page. Android's receiver is still held |
 | More › Testing › QA menu (debug and TestFlight only) | Fire each reminder in 5 s, open today's check-in, reset onboarding, clear caches, override config flags, copy the user id |
 | Shake the phone | The bug report dialog; on debug builds it also opens the network log |
 

@@ -746,9 +746,7 @@ data class CommandResult(val exitCode: Int, val output: String) {
  *
  * Reads the pipe on this thread *before* waiting: a child that outfills the
  * ~64KB pipe buffer blocks writing while the parent blocks in `waitFor`, and
- * the pair deadlocks. `fly deploy` prints well past that. The same trap is
- * documented at `resetGitHistory` in init_project.main.kts, which dodges it by
- * discarding output instead.
+ * the pair deadlocks. `fly deploy` prints well past that.
  */
 fun run(vararg command: String, stdin: String? = null): CommandResult = try {
     val process = ProcessBuilder(*command).redirectErrorStream(true).start()
@@ -818,8 +816,7 @@ fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")
  * Just enough JSON for the setup scripts, hand-rolled.
  *
  * A `@file:DependsOn` would make every cold run resolve Maven coordinates over
- * the network, which has been observed hanging the script runner outright — the
- * note at the top of `init_project.main.kts` is about the same hazard. These
+ * the network, which has been observed hanging the script runner outright. These
  * scripts exist to run immediately on a machine that has just been handed a
  * checkout.
  *

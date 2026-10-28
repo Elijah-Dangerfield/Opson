@@ -8,9 +8,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Ring labels (`ringThree` in the prototype) and the ring modes on offer.
- * The rule the Today rings exist to keep: the remaining ring never says 0 and
- * never goes negative, whatever it is handed.
+ * Ring labels (`ringThree` in the prototype), which the widget's ring draws.
+ * The rule a remaining ring has to keep: it never says 0 and never goes
+ * negative, whatever it is handed.
  */
 class RingValueTest {
 
@@ -124,62 +124,5 @@ class RingValueTest {
     @Test
     fun unsupportedMetric_isAProgrammingError() {
         assertFailsWith<IllegalArgumentException> { full.ringValue(Metric.Water, 750.0, Surface.Today) }
-    }
-
-    @Test
-    fun balance_signedWithATrueMinus() {
-        val withOut = policy(PresetId.Full)
-        assertEquals(RingValue("−950", "kcal"), withOut.balanceRingValue(1040.0, 1990.0, Surface.Today))
-        assertEquals(RingValue("+120", "kcal"), withOut.balanceRingValue(2110.0, 1990.0, Surface.Today))
-    }
-
-    @Test
-    fun balance_needsBothCaloriesAndEnergyOutShown() {
-        val noOut = policy(PresetId.Full, overrides = mapOf(Metric.EnergyOut to Visibility.Hide))
-        val softCalories = policy(PresetId.Full, overrides = mapOf(Metric.Calories to Visibility.Soften))
-        assertNull(noOut.balanceRingValue(1040.0, 1990.0, Surface.Today))
-        assertNull(softCalories.balanceRingValue(1040.0, 1990.0, Surface.Today))
-    }
-
-    @Test
-    fun ringModes_targetAlways() {
-        PresetId.entries.forEach { preset ->
-            assertEquals(SummaryRingMode.Target, policy(preset).availableRingModes(Surface.Today, hasEnergyOut = false).first())
-        }
-    }
-
-    @Test
-    fun ringModes_remainingOnlyWhenConfiguredShow() {
-        assertEquals(
-            listOf(SummaryRingMode.Target, SummaryRingMode.Remaining),
-            policy(PresetId.Full).availableRingModes(Surface.Today, hasEnergyOut = false),
-        )
-        // Delayed reveals remaining at 9 pm, but a ring mode that comes and goes with the clock is not offered.
-        assertEquals(
-            listOf(SummaryRingMode.Target),
-            later(now = at(22, 0)).availableRingModes(Surface.Today, hasEnergyOut = false),
-        )
-        assertEquals(listOf(SummaryRingMode.Target), policy(PresetId.NoNumbers).availableRingModes(Surface.Today, false))
-    }
-
-    @Test
-    fun ringModes_balanceNeedsEnergyOutDataAndShow() {
-        val full = policy(PresetId.Full)
-        assertEquals(
-            listOf(SummaryRingMode.Target, SummaryRingMode.Remaining, SummaryRingMode.Balance),
-            full.availableRingModes(Surface.Today, hasEnergyOut = true),
-        )
-        assertTrue(SummaryRingMode.Balance !in full.availableRingModes(Surface.Today, hasEnergyOut = false))
-        val outHidden = policy(PresetId.Full, overrides = mapOf(Metric.EnergyOut to Visibility.Soften))
-        assertTrue(SummaryRingMode.Balance !in outHidden.availableRingModes(Surface.Today, hasEnergyOut = true))
-    }
-
-    @Test
-    fun ringModes_cycleAndFallBack() {
-        val modes = listOf(SummaryRingMode.Target, SummaryRingMode.Remaining)
-        assertEquals(SummaryRingMode.Remaining, SummaryRingMode.Target.nextIn(modes))
-        assertEquals(SummaryRingMode.Target, SummaryRingMode.Remaining.nextIn(modes))
-        assertEquals(SummaryRingMode.Target, SummaryRingMode.Balance.orTargetIn(modes))
-        assertEquals(SummaryRingMode.Target, SummaryRingMode.Remaining.nextIn(listOf(SummaryRingMode.Target)))
     }
 }

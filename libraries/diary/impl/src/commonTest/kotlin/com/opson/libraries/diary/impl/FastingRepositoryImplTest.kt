@@ -97,7 +97,7 @@ class FastingRepositoryImplTest : CoroutineTest() {
             assertEquals(false, settings.state.value.fasting, "the timer is off by default")
 
             fasting.startDue()
-            diary.addItems(oct25, MealSlot.Snack, listOf(draft()), LogMethod.Search)
+            diary.addItems(oct25, MealSlot.Snack, listOf(draft()), LogMethod.Search).written()
             diary.setAteNoDetails(oct25, MealSlot.Dinner, ate = true)
             fasting.startDue()
 
@@ -147,7 +147,7 @@ class FastingRepositoryImplTest : CoroutineTest() {
     fun startDue_nothingWhenFoodWasLoggedAfterTheClose() = runUnitTest {
         clock.now = Instant.parse("2026-10-25T20:10:00Z")
         released = false // log without the fast ender doing anything
-        diary.addItems(oct25, MealSlot.Snack, listOf(draft()), LogMethod.Search)
+        diary.addItems(oct25, MealSlot.Snack, listOf(draft()), LogMethod.Search).written()
         released = true
         clock.now = Instant.parse("2026-10-25T21:30:00Z")
 
@@ -199,7 +199,7 @@ class FastingRepositoryImplTest : CoroutineTest() {
         clock.now = Instant.parse("2026-10-26T06:20:00Z")
         calendar.today = LocalDate(2026, 10, 26)
 
-        diary.addItems(LocalDate(2026, 10, 26), MealSlot.Breakfast, listOf(draft()), LogMethod.Search)
+        diary.addItems(LocalDate(2026, 10, 26), MealSlot.Breakfast, listOf(draft()), LogMethod.Search).written()
 
         assertEquals(clock.now, fasting.observeLatest().first()?.endedAt)
         assertEquals("food", events.named("fast.ended").single()["by"])
@@ -209,7 +209,7 @@ class FastingRepositoryImplTest : CoroutineTest() {
     fun loggingFoodAfterTheCloseRecordsTheFastItEnded() = runUnitTest {
         clock.now = Instant.parse("2026-10-25T20:10:00Z")
 
-        diary.addItems(oct25, MealSlot.Snack, listOf(draft()), LogMethod.Search)
+        diary.addItems(oct25, MealSlot.Snack, listOf(draft()), LogMethod.Search).written()
 
         assertEquals(Fast(oct25, close, endedAt = clock.now, goalHours = 14), fasting.observeLatest().first())
     }
@@ -219,11 +219,11 @@ class FastingRepositoryImplTest : CoroutineTest() {
         val oct24 = LocalDate(2026, 10, 24)
         clock.now = Instant.parse("2026-10-24T12:00:00Z")
         calendar.today = oct24
-        diary.addItems(oct24, MealSlot.Lunch, listOf(draft()), LogMethod.Search)
+        diary.addItems(oct24, MealSlot.Lunch, listOf(draft()), LogMethod.Search).written()
         clock.now = Instant.parse("2026-10-25T20:10:00Z")
         calendar.today = oct25
 
-        diary.copySlot(oct24, oct25, MealSlot.Lunch)
+        diary.copySlot(oct24, oct25, MealSlot.Lunch).written()
 
         assertEquals(Fast(oct25, close, endedAt = clock.now, goalHours = 14), fasting.observeLatest().first())
     }
@@ -232,7 +232,7 @@ class FastingRepositoryImplTest : CoroutineTest() {
     fun planningTomorrowDoesNotEndAFast() = runUnitTest {
         fasting.startDue()
 
-        diary.addItems(LocalDate(2026, 10, 26), MealSlot.Lunch, listOf(draft()), LogMethod.Search)
+        diary.addItems(LocalDate(2026, 10, 26), MealSlot.Lunch, listOf(draft()), LogMethod.Search).written()
 
         assertNull(fasting.observeLatest().first()?.endedAt)
     }

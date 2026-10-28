@@ -29,7 +29,9 @@ data class VersionMetadata(
  * something has to be there, and whatever is there ends up quoted verbatim in the
  * runtime failure ("Unable to resolve host
  * set-supabase-projectId-in-local-properties.supabase.co"). A value that names the
- * fix beats a value that looks like real config.
+ * fix beats a value that looks like real config. They name local.properties because
+ * that is where the dev project goes; a release build never gets this far with one
+ * ([releaseProblems]).
  */
 const val UNCONFIGURED_SUPABASE_PROJECT_ID = "set-supabase-projectId-in-local-properties"
 const val UNCONFIGURED_SUPABASE_ANON_KEY = "set-supabase-anonKey-in-local-properties"
@@ -66,7 +68,7 @@ private fun supabaseUrl(projectId: String): String =
  * in lockstep.
  */
 fun Project.loadVersionMetadata(): VersionMetadata {
-    val properties = loadVersionProperties()
+    val properties = readProperties("versions.properties")
 
     fun Properties.int(key: String, defaultValue: Int): Int =
         string(key, defaultValue.toString()).toIntOrNull() ?: defaultValue
@@ -114,7 +116,7 @@ private val QA_CHANNELS = setOf(DEFAULT_RELEASE_CHANNEL, "beta")
 
 /** The channel this build is for, resolved exactly as [loadVersionMetadata] resolves it. */
 fun Project.releaseChannel(): String =
-    resolveReleaseChannel(envOverride(RELEASE_CHANNEL_ENV), loadVersionProperties())
+    resolveReleaseChannel(envOverride(RELEASE_CHANNEL_ENV), readProperties("versions.properties"))
 
 /**
  * Whether this is a store build: the one `release.yml` and the Fastfile's `release` lane make for
@@ -128,15 +130,6 @@ fun isStoreChannel(channel: String): Boolean = channel !in QA_CHANNELS
 
 internal fun resolveReleaseChannel(envOverride: String?, properties: Properties): String =
     envOverride?.takeIf { it.isNotBlank() } ?: properties.string("releaseChannel", DEFAULT_RELEASE_CHANNEL)
-
-private fun Project.loadVersionProperties(): Properties {
-    val properties = Properties()
-    val metadataFile = rootProject.file("versions.properties")
-    if (metadataFile.exists()) {
-        FileInputStream(metadataFile).use(properties::load)
-    }
-    return properties
-}
 
 private fun Properties.string(key: String, defaultValue: String): String =
     getProperty(key)?.takeIf { it.isNotBlank() } ?: defaultValue
@@ -167,63 +160,70 @@ fun BuildConfigExtension.writeCommonMetadata(metadata: VersionMetadata) {
 }
 
 /**
- * Supabase client config: `local.properties` (`supabase.projectId` /
- * `supabase.anonKey`) → CI env (`SUPABASE_PROJECT_ID` / `SUPABASE_ANON_KEY`) →
- * a placeholder that names itself.
+ * Supabase client config, one source per environment:
  *
- * The build stays green with nothing configured, so a fresh clone compiles and
- * runs, but the placeholder cannot pass for working config: it is not a real
- * project ref, and the first auth call fails with the property name to set in
- * the message. A warning goes out at configuration time too, because the old
- * behaviour's worst part was silence — the build said nothing about Supabase at
- * all.
+ * - **Dev** (what debug builds sign in to): `local.properties`
+ *   (`supabase.projectId` / `supabase.anonKey`), then CI env
+ *   (`SUPABASE_PROJECT_ID` / `SUPABASE_ANON_KEY`), then a placeholder that names
+ *   itself, so a fresh clone still builds and the first auth call says what to set.
+ * - **Prod** (what release builds sign in to): the committed `supabase.properties`
+ *   only. No env override and no local file, so a release build cannot depend on
+ *   whose machine or shell built it. A missing value becomes the placeholder, which
+ *   [releaseProblems] refuses.
  */
-fun Project.loadSupabaseMetadata(): SupabaseMetadata {
-    val properties = Properties()
-    val localProperties = rootProject.file("local.properties")
-    if (localProperties.exists()) {
-        FileInputStream(localProperties).use(properties::load)
-    }
+fun Project.loadSupabaseMetadata(): SupabaseMetadata = supabaseMetadata(
+    local = readProperties("local.properties"),
+    committed = readProperties("supabase.properties"),
+    env = { System.getenv(it) },
+)
 
-    fun env(key: String): String? = System.getenv(key)?.takeIf { it.isNotBlank() }
-
-    val projectId = properties.stringOrNull("supabase.projectId")
-        ?: env("SUPABASE_PROJECT_ID")
-        ?: UNCONFIGURED_SUPABASE_PROJECT_ID
-    val anonKey = properties.stringOrNull("supabase.anonKey")
-        ?: env("SUPABASE_ANON_KEY")
-        ?: UNCONFIGURED_SUPABASE_ANON_KEY
-
-    if (projectId == UNCONFIGURED_SUPABASE_PROJECT_ID || anonKey == UNCONFIGURED_SUPABASE_ANON_KEY) {
-        logger.warn(
-            "Supabase is not configured — auth will fail at runtime. Set " +
-                "supabase.projectId and supabase.anonKey in local.properties " +
-                "(or SUPABASE_PROJECT_ID / SUPABASE_ANON_KEY in the environment). " +
-                "See SETUP.md."
-        )
-    }
-
-    // Prod comes from the committed supabase.properties, so a release build
-    // never depends on what a developer has in local.properties. The env vars
-    // are only there to point a one-off build at another project.
-    val committed = Properties()
-    val committedFile = rootProject.file("supabase.properties")
-    if (committedFile.exists()) {
-        FileInputStream(committedFile).use(committed::load)
-    }
-    val prodProjectId = env("SUPABASE_PROD_PROJECT_ID")
-        ?: committed.stringOrNull("supabase.prod.projectId")
-        ?: UNCONFIGURED_SUPABASE_PROJECT_ID
-    val prodAnonKey = env("SUPABASE_PROD_ANON_KEY")
-        ?: committed.stringOrNull("supabase.prod.anonKey")
-        ?: UNCONFIGURED_SUPABASE_ANON_KEY
-
+internal fun supabaseMetadata(local: Properties, committed: Properties, env: (String) -> String?): SupabaseMetadata {
+    fun envOrNull(key: String): String? = env(key)?.takeIf { it.isNotBlank() }
     return SupabaseMetadata(
-        projectId = projectId,
-        anonKey = anonKey,
-        prodProjectId = prodProjectId,
-        prodAnonKey = prodAnonKey,
+        projectId = local.stringOrNull("supabase.projectId")
+            ?: envOrNull("SUPABASE_PROJECT_ID")
+            ?: UNCONFIGURED_SUPABASE_PROJECT_ID,
+        anonKey = local.stringOrNull("supabase.anonKey")
+            ?: envOrNull("SUPABASE_ANON_KEY")
+            ?: UNCONFIGURED_SUPABASE_ANON_KEY,
+        prodProjectId = committed.stringOrNull("supabase.prod.projectId") ?: UNCONFIGURED_SUPABASE_PROJECT_ID,
+        prodAnonKey = committed.stringOrNull("supabase.prod.anonKey") ?: UNCONFIGURED_SUPABASE_ANON_KEY,
     )
+}
+
+/**
+ * Debug builds sign in to the dev project, so a missing one only matters there. Release
+ * builds read prod from `supabase.properties` and [releaseProblems] checks that instead,
+ * which is why CI release builds (no `local.properties`) may print this and still be fine.
+ */
+fun Project.warnIfDevSupabaseMissing(metadata: SupabaseMetadata) {
+    if (metadata.projectId != UNCONFIGURED_SUPABASE_PROJECT_ID && metadata.anonKey != UNCONFIGURED_SUPABASE_ANON_KEY) return
+    logger.warn(
+        "No dev Supabase project, so sign-in fails in debug builds. Set supabase.projectId and " +
+            "supabase.anonKey in local.properties (or SUPABASE_PROJECT_ID / SUPABASE_ANON_KEY in the " +
+            "environment). Release builds use supabase.properties and are not affected. See SETUP.md."
+    )
+}
+
+private val SUPABASE_PROJECT_REF = Regex("^[a-z]{20}$")
+private const val SUPABASE_PUBLISHABLE_KEY_PREFIX = "sb_publishable_"
+
+/**
+ * Why a release build made from this config would sign in somewhere it shouldn't. Empty
+ * when it's fine. 0.1.0 shipped signing in to the dev project while calling the prod
+ * server, and every request came back 401; this is the build-time half of making that
+ * fail before it reaches a phone.
+ */
+fun SupabaseMetadata.releaseProblems(): List<String> = buildList {
+    if (!SUPABASE_PROJECT_REF.matches(prodProjectId)) {
+        add("supabase.prod.projectId in supabase.properties is \"$prodProjectId\", not a Supabase project ref (20 lower-case letters).")
+    }
+    if (!prodAnonKey.startsWith(SUPABASE_PUBLISHABLE_KEY_PREFIX)) {
+        add("supabase.prod.anonKey in supabase.properties is not a publishable key ($SUPABASE_PUBLISHABLE_KEY_PREFIX...).")
+    }
+    if (prodProjectId == projectId) {
+        add("supabase.prod.projectId is the dev project ($projectId). Release builds would sign in to dev and call the prod server.")
+    }
 }
 
 fun BuildConfigExtension.writeSupabaseMetadata(metadata: SupabaseMetadata) {
@@ -260,24 +260,17 @@ data class TelemetryMetadata(
  * `GrafanaCloud.isConfigured` is false and app events stay local; no Sentry
  * DSN → `SentryRuntimeConfig.isEnabled` is false, `Sentry.init` is never
  * called, and crash reporting costs nothing at runtime. The app builds and runs
- * either way, so a fresh clone works with zero setup.
+ * either way, so a fresh clone works with zero setup. Release builds are held to
+ * more: `verifyReleaseEnvironment` fails on [releaseProblems] and prints
+ * [releaseWarnings].
  */
 fun Project.loadTelemetryMetadata(): TelemetryMetadata {
-    val properties = Properties()
-    val localProperties = rootProject.file("local.properties")
-    if (localProperties.exists()) {
-        FileInputStream(localProperties).use(properties::load)
-    }
-
-    val committed = Properties()
-    val telemetryProperties = rootProject.file("telemetry.properties")
-    if (telemetryProperties.exists()) {
-        FileInputStream(telemetryProperties).use(committed::load)
-    }
+    val local = readProperties("local.properties")
+    val committed = readProperties("telemetry.properties")
 
     fun resolve(env: String, key: String): String =
         System.getenv(env)?.takeIf { it.isNotBlank() }
-            ?: properties.stringOrNull(key)
+            ?: local.stringOrNull(key)
             ?: committed.stringOrNull(key)
             ?: (findProperty(key) as? String)?.takeIf { it.isNotBlank() }
             ?: ""
@@ -290,6 +283,39 @@ fun Project.loadTelemetryMetadata(): TelemetryMetadata {
     )
 }
 
+private val TelemetryMetadata.grafanaValues: List<String>
+    get() = listOf(grafanaOtlpBaseUrl, grafanaOtlpInstanceId, grafanaLogsWriteToken)
+
+/**
+ * Why a release build made from this config would ship with telemetry broken. No Sentry
+ * DSN means crashes go unreported. Grafana with some values but not all is a typo or a
+ * missing secret: `GrafanaCloud.isConfigured` needs all three, so it is off without a word.
+ */
+fun TelemetryMetadata.releaseProblems(): List<String> = buildList {
+    if (sentryDsn.isBlank()) {
+        add("No Sentry DSN, so this build would not report crashes. Run ./scripts/setup_sentry.main.kts and commit telemetry.properties.")
+    }
+    if (grafanaValues.any { it.isBlank() } && grafanaValues.any { it.isNotBlank() }) {
+        add(
+            "Grafana is half configured: GRAFANA_OTLP_BASE_URL, GRAFANA_OTLP_INSTANCE_ID and " +
+                "GRAFANA_LOGS_WRITE_TOKEN must all be set, or none.",
+        )
+    }
+}
+
+/**
+ * Telemetry that is off on purpose but worth saying so on every release build. Grafana app
+ * events are off until the three Grafana secrets exist; that is allowed, but not silently.
+ */
+fun TelemetryMetadata.releaseWarnings(): List<String> = buildList {
+    if (grafanaValues.all { it.isBlank() }) {
+        add(
+            "Grafana app events are off in this build: GRAFANA_OTLP_BASE_URL, GRAFANA_OTLP_INSTANCE_ID " +
+                "and GRAFANA_LOGS_WRITE_TOKEN are not set. ./scripts/setup_github_secrets.main.kts sets them.",
+        )
+    }
+}
+
 fun BuildConfigExtension.writeTelemetryMetadata(metadata: TelemetryMetadata) {
     buildConfigField("String", "GRAFANA_OTLP_BASE_URL", "\"${metadata.grafanaOtlpBaseUrl}\"")
     buildConfigField("String", "GRAFANA_OTLP_INSTANCE_ID", "\"${metadata.grafanaOtlpInstanceId}\"")
@@ -299,3 +325,12 @@ fun BuildConfigExtension.writeTelemetryMetadata(metadata: TelemetryMetadata) {
 
 private fun Properties.stringOrNull(key: String): String? =
     getProperty(key)?.takeIf { it.isNotBlank() }
+
+private fun Project.readProperties(rootFile: String): Properties {
+    val properties = Properties()
+    val file = rootProject.file(rootFile)
+    if (file.exists()) {
+        FileInputStream(file).use(properties::load)
+    }
+    return properties
+}

@@ -212,8 +212,8 @@ class OfflineFirstAppConfigRepository @Inject constructor(
 
     private inner class LazyAppConfigMap : AppConfigMap() {
         // Synchronous + non-blocking by design. A `ConfiguredValue` read can land
-        // on the main thread (e.g. `progressionConfig.levelCurve()` during
-        // composition), so this must never block: on a cold/fresh start the
+        // on the main thread (a release flag read during composition), so this
+        // must never block: on a cold/fresh start the
         // stream has not emitted yet (it is one dispatch away, not zero), and
         // `runBlocking { configStream.first() }` here deadlocks the app — the
         // main thread parks while the K/N worker pool is full of the same

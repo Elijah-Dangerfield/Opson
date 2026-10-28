@@ -1,11 +1,13 @@
 package com.opson.server.routes
 
 import com.opson.server.domain.CustomFood
+import com.opson.server.domain.CustomFoodDetails
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryChanges
 import com.opson.server.domain.DiaryRow
 import com.opson.server.domain.Exercise
 import com.opson.server.domain.Fast
+import com.opson.server.domain.FoodSize
 import com.opson.server.domain.LogEntry
 import com.opson.server.domain.LogMethod
 import com.opson.server.domain.MealFeeling
@@ -192,7 +194,14 @@ data class CustomFoodRowDto(
     val fiber: Double? = null,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean = false,
+    /** V25. A row without [sizes] is from a build that predates all three, which keeps them as stored. */
+    val servingGrams: Double? = null,
+    val sizes: List<FoodSizeDto>? = null,
+    val micros: Map<String, Double>? = null,
 )
+
+@Serializable
+data class FoodSizeDto(val label: String, val grams: Double)
 
 @Serializable
 data class SavedMealRowDto(
@@ -341,6 +350,9 @@ fun CustomFoodRowDto.toDomain(): CustomFood = CustomFood(
     nutrients = Nutrients(kcal, protein, carbs, fat, fiber),
     clientUpdatedAt = instant(clientUpdatedAtEpochMs),
     deleted = deleted,
+    details = sizes?.let { list ->
+        CustomFoodDetails(servingGrams = servingGrams, sizes = list.map { FoodSize(it.label, it.grams) }, micros = micros.orEmpty())
+    },
 )
 
 fun SavedMealRowDto.toDomain(): SavedMeal = SavedMeal(
@@ -475,6 +487,9 @@ fun CustomFood.toRowDto(): CustomFoodRowDto = CustomFoodRowDto(
     fiber = nutrients.fiber,
     clientUpdatedAtEpochMs = clientUpdatedAt.toEpochMilliseconds(),
     deleted = deleted,
+    servingGrams = details?.servingGrams,
+    sizes = details?.sizes.orEmpty().map { FoodSizeDto(it.label, it.grams) },
+    micros = details?.micros.orEmpty(),
 )
 
 fun SavedMeal.toRowDto(): SavedMealRowDto = SavedMealRowDto(

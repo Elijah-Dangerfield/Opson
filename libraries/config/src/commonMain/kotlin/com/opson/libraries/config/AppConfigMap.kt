@@ -1,7 +1,5 @@
 package com.opson.libraries.config
 
-import com.opson.libraries.core.BuildInfo
-
 /**
  * Snapshot of the merged configuration tree (defaults + remote + overrides). Implementations provide
  * the [map] data and consumers rely on the typed helpers to retrieve values safely.
@@ -29,10 +27,9 @@ abstract class AppConfigMap {
         value<Number>(value).toDouble()
 
     /**
-     * Resolves the configured value, honoring debug overrides and falling back to [ConfiguredValue.default].
+     * Resolves the configured value, falling back to [ConfiguredValue.default].
      */
     inline fun <reified T : Any> value(value: ConfiguredValue<T>): T =
-        value.debugOverride?.takeIf { BuildInfo.isDebug }
-            ?: map.getValueForPath<T>(fullPath = value.path) ?: value.default
+        map.getValueForPath<T>(fullPath = value.path) ?: value.default
 
 }
