@@ -7,7 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Guards what [BlindModeLeakTest] covers, so coverage can't shrink without a failing build:
+ * Guards what [CaloriesHiddenLeakTest] covers, so coverage can't shrink without a failing build:
  * deleting a surface, renaming its id, dropping a feature's list, a preset that quietly starts
  * showing calories, or unmarking a surface's `showsCaloriesInFull` to dodge the control.
  *
@@ -42,6 +42,13 @@ class SurfacesCoverageTest {
     fun everyEnergyOutSurfaceIsListed() {
         val missing = EnergyOutHiddenLeakTest.ENERGY_OUT_SURFACES - SURFACES.map { it.id }.toSet()
         assertTrue(missing.isEmpty(), "EnergyOutHiddenLeakTest names $missing, which no feature lists any more")
+    }
+
+    /** A renamed micros surface would otherwise drop out of MicrosHiddenLeakTest without a word. */
+    @Test
+    fun everyMicrosSurfaceIsListed() {
+        val missing = MicrosHiddenLeakTest.MICROS_SURFACES - SURFACES.map { it.id }.toSet()
+        assertTrue(missing.isEmpty(), "MicrosHiddenLeakTest names $missing, which no feature lists any more")
     }
 
     @Test

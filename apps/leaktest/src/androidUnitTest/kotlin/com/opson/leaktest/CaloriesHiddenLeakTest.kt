@@ -27,7 +27,7 @@ import kotlin.test.fail
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h4000dp")
-class BlindModeLeakTest(private val surface: LeakSurface, private val mode: LeakMode) {
+class CaloriesHiddenLeakTest(private val surface: LeakSurface, private val mode: LeakMode) {
 
     @get:Rule
     val compose = createComposeRule()

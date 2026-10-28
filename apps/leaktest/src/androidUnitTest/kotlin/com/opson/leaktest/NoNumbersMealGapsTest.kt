@@ -12,20 +12,20 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * Patterns in No numbers (Blind's successor) shows when meals happen, never how long between them.
+ * Patterns in No numbers shows when meals happen, never how long between them.
  * "Longest gap" and "about 45 min later" can feed restriction for exactly the people who pick it
  * (design v3, 5.7), so no Patterns surface may show a gap or a duration there. The Full case is the control:
  * it proves the fixture has a gap to hide and that the scan reads it.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h4000dp")
-class BlindMealGapsTest(private val surface: LeakSurface) {
+class NoNumbersMealGapsTest(private val surface: LeakSurface) {
 
     @get:Rule
     val compose = createComposeRule()
 
     @Test
-    fun blindShowsNoGapOrDuration() {
+    fun noNumbersShowsNoGapOrDuration() {
         compose.render(surface, policyFor(PresetId.NoNumbers))
         val hits = GAP.findAll(compose.segments().joinToString(" ")).map { it.value }.toList()
         if (hits.isNotEmpty()) fail("${surface.id} shows meal gaps in No numbers: $hits")
