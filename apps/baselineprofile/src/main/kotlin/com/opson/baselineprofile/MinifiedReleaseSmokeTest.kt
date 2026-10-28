@@ -64,12 +64,18 @@ class MinifiedReleaseSmokeTest {
         // persisted app state deserialized through its generated serializer, and
         // the start destination resolved: the first things R8 could have broken.
         // The same walk as the generators, sign-in included.
-        device.reachToday()
+        device.reachToday(todayTimeoutMs = MINIFIED_LAUNCH_TIMEOUT_MS)
 
         // Each tab switch and the logger resolve a @Serializable route by type.
         // If R8 renamed one, this fails with an argument error rather than a
         // missing class, which is the failure mode hardest to attribute in the wild.
         device.visitTabs()
         device.openAndCloseLogger()
+    }
+
+    private companion object {
+        // A minified release start on a CI emulator is slower than the generators'
+        // non-minified one; this test waited 30 s before it shared the journey.
+        const val MINIFIED_LAUNCH_TIMEOUT_MS = 30_000L
     }
 }

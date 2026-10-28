@@ -72,14 +72,17 @@ object BenchmarkJourney {
      */
     fun MacrobenchmarkScope.reachHome() = device.reachToday()
 
-    /** [reachHome] for a plain instrumented test, which has a device but no benchmark scope. */
-    fun UiDevice.reachToday() {
+    /**
+     * [reachHome] for a plain instrumented test, which has a device but no benchmark scope.
+     * [todayTimeoutMs] is the last wait for Today; a cold minified start needs longer.
+     */
+    fun UiDevice.reachToday(todayTimeoutMs: Long = FIRST_SCREEN_TIMEOUT_MS) {
         val anyOnboardingCta = ciAnyOf(GET_STARTED, CONTINUE_WITH_EMAIL, SETTING_UP)
         repeat(ONBOARDING_MAX_STEPS) {
             if (hasObject(todayScreen())) return
             if (hasObject(textField())) signInWithEmail() else tapMatching(anyOnboardingCta, ONBOARDING_STEP_TIMEOUT_MS)
         }
-        check(wait(Until.hasObject(todayScreen()), FIRST_SCREEN_TIMEOUT_MS) == true) {
+        check(wait(Until.hasObject(todayScreen()), todayTimeoutMs) == true) {
             "Never reached Today. " + describeScreen()
         }
     }
@@ -92,7 +95,7 @@ object BenchmarkJourney {
         fields[0].text = email
         fields[1].text = password
         tapRequired(SIGN_IN)
-        check(wait(Until.hasObject(todayScreen()), FIRST_SCREEN_TIMEOUT_MS) == true) {
+        check(wait(Until.hasObject(todayScreen()), SIGN_IN_TIMEOUT_MS) == true) {
             "Signed in, but Today never appeared. Has the benchmark account finished onboarding? " + describeScreen()
         }
     }
@@ -181,6 +184,10 @@ object BenchmarkJourney {
     fun todayScreen(): BySelector = By.desc(TODAY_DAY_MENU)
 
     const val FIRST_SCREEN_TIMEOUT_MS = 20_000L
+
+    // Sign-in is a network round trip to Supabase and then the server, on a cold
+    // emulator, before Today can draw.
+    const val SIGN_IN_TIMEOUT_MS = 30_000L
     const val SCREEN_TIMEOUT_MS = 15_000L
     const val ONBOARDING_STEP_TIMEOUT_MS = 15_000L
     const val ONBOARDING_MAX_STEPS = 8
