@@ -6,6 +6,58 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-28: A packaged food is added from its label wherever a food is added, and says when it is unverified
+
+**Decision:** "Add this food" is now "Add a packaged food", and it opens from
+five places, all behind `release.submitFood`: a barcode miss and an empty
+search (as before), a "Can't find it?" row under every search result list
+that has a query, a "Packaged food" tile on the + sheet beside Scan barcode,
+and the first card of the Foods tab's Add a food. From the Foods tab there is
+no meal, so the same screen saves the food without logging it ("Save food");
+`SubmitFoodRoute` moved to the logger's api so the Foods feature can open it,
+with an optional day and meal and an `entry` for telemetry. The server's
+`origin` stays `barcode` or `search` (whether a code was scanned), so an older
+server takes every submission; the app event carries the finer `entry`.
+
+The + sheet's meal estimate tile reads "Estimate a meal" and its screen's
+title the same ("we'll estimate what's on it"); the pack's tile and buttons
+say "Packaged food" and "Add it from the label", and the copy says the food
+goes into the person's foods and Opson's food database. No acronym is shown.
+
+A food in Opson's food database that is waiting for review is marked
+**Unverified** wherever its submitter meets it: their own copy (the custom
+food) on search rows, Recent, the Foods tab and the food detail, and the
+catalog's pending row when their own scan finds it. An approved one is
+Opson's: "From Opson's food database", and with the search options an "Opson"
+badge with the verified check. Every verified catalog food's detail gets the
+check before its source. The marks are words, so every mode shows them.
+
+To mark the person's copy, the app names it on the submission
+(`customFoodId`, V27) and keeps the statuses on the phone
+(`SubmittedFoods`): marked the moment the server takes the food, refreshed
+from a new `GET /v1/foods/submissions` on every account edge, wiped on a user
+change. A food's response carries `reviewStatus` only when it is pending or
+rejected. Both additions are optional fields, so neither an old app nor an old
+server breaks; a server without the list route leaves the marks as the phone
+recorded them. Pending foods stay their submitter's alone: search still never
+returns one.
+
+**Why:** the owner found the pack photos only behind an empty search, could
+not tell the meal estimate from cataloging a food, and wanted foods people add
+to build Opson's own database, verified or not. A label read with checks is
+the most exact food data a person can give, so it belongs wherever a food is
+added, and the difference from a plate estimate has to be in the words on the
+tile, not in the person's memory of which camera does what.
+
+**Alternatives:** showing the pending catalog row in its submitter's search
+next to their custom copy (two rows for one food, and the person cannot tell
+which to pick); logging the catalog row instead of a custom food (logging
+would wait on the network, and an offline save would have nowhere to go);
+keeping the link only on the phone (lost on a reinstall or another phone);
+a "my submissions" screen (not asked for; the mark on the food says the same
+where it matters); offering the pack from the + sheet's Photo tile with a
+choice inside (two decisions behind one ambiguous camera icon).
+
 ## 2026-10-27: Vitamin and mineral references fit the person, and "not listed" is not 0
 
 **Decision:** each vitamin and mineral's reference comes from `MicroReferences`:

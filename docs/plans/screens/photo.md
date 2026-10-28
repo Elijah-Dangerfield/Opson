@@ -25,9 +25,13 @@ and says so. Behind `release.photo`, default off.
 - Photo from the Add menu or the meal sheet (`shared.md` 0.1 scope gates). The
   logger chip is the only entry point drawn in v3.
 - Photo from search, a barcode miss or Describe. Search's "Photograph it" was
-  removed on 2026-10-27: packaged foods go through Add this food (photos of
-  the label, `submit-food.md`), which is far more accurate, and the meal
-  estimate stays on the + sheet's Photo tile alone (docs/decisions.md).
+  removed on 2026-10-27: packaged foods go through Add a packaged food (photos
+  of the label, `submit-food.md`), which is far more accurate, and the meal
+  estimate stays on the + sheet's tile alone (docs/decisions.md). Since
+  2026-10-28 that tile reads "Estimate a meal" and the screen's title the same,
+  and its first line says "we'll estimate what's on it", so it never reads as
+  the way to add a food; the pack's own tile, "Packaged food", sits beside the
+  scanner.
 
 ## Flow
 1. Logger, Photo chip (flag on, not picking for Create a meal) opens

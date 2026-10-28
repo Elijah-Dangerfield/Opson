@@ -76,22 +76,29 @@ snackbar "{food} added to {meal}" with Undo (`RecentLogEvents.undo`, run in
 the app scope so it outlives the screen), and stays. Rows logged to this meal
 since the screen opened draw ✓; tapping ✓ takes those items out again.
 
-Tapping the name opens the food detail. "Not finding it?" closes the results
+Tapping the name opens the food detail. "Can't find it?" closes the results
 with Describe it (the sheet's Describe pane, with the term) and Save the name
-(a name-only custom food, logged at once with Undo). With no results the 3.6
-empty state offers the same, and with `release.submitFood` also Add this
-food: photos of the pack's front and label, read and checked, logged as the
-person's own food and sent for review (`submit-food.md`). The meal photo
-estimate is not offered from search: it is the + sheet's Photo tile alone
+(a name-only custom food, logged at once with Undo), and with
+`release.submitFood` a row of its own, "Add it from the label": photos of the
+pack's front and label, read and checked, logged as the person's own food
+and sent to Opson's food database for review (`submit-food.md`). With no
+results the 3.6 empty state offers the same three. The meal photo estimate is
+not offered from search: it is the + sheet's Estimate a meal tile alone
 (docs/decisions.md, 2026-10-27).
+
+A food of the person's own that they sent for review reads "Unverified" in
+place of its source badge until a reviewer approves it, in every mode (it is
+a word, not a number); a catalog food they added and nobody has checked
+reads the same. An approved one is Opson's: the "Opson" badge with the
+verified check, with the search options on (2026-10-28).
 
 Kept from the speed work: the catalog's five-minute client cache answers with
 no debounce, otherwise 250 ms; the spinner only after a delay.
 
 Pick for a meal (Create a meal): + and the name toggle a pick (✓), "Add to
 this meal" pinned at the bottom hands the picks back through `MealPicks`.
-No meal chip, no Saved meals chip, no scanner or Add this food, and a miss
-offers only Save the name.
+No meal chip, no Saved meals chip, no scanner or Add it from the label, and a
+miss offers only Save the name.
 
 ## Food detail (13.4d)
 
