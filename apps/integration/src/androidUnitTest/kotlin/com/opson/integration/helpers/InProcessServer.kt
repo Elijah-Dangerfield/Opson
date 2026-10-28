@@ -115,14 +115,15 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
         barcode: String? = null,
         portionsJson: String = "[]",
         source: String = "usda_sr",
+        category: String? = null,
     ): String {
         val id = UUID.randomUUID().toString()
         sql(
             """
-            INSERT INTO foods (id, source, source_id, name, barcode, kcal_100g, protein_100g, micros, portions)
-            VALUES (?::uuid, ?, ?, ?, ?, ?, 1, '{}'::jsonb, ?::jsonb)
+            INSERT INTO foods (id, source, source_id, name, barcode, kcal_100g, protein_100g, micros, portions, category)
+            VALUES (?::uuid, ?, ?, ?, ?, ?, 1, '{}'::jsonb, ?::jsonb, ?)
             """.trimIndent(),
-            id, source, id, name, barcode, kcalPer100g, portionsJson,
+            id, source, id, name, barcode, kcalPer100g, portionsJson, category,
         )
         return id
     }
