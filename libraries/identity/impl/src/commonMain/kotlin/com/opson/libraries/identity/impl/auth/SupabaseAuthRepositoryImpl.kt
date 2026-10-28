@@ -388,7 +388,7 @@ class SupabaseAuthRepositoryImpl(
             }
         }
         if (expiry == null && userChanged) {
-            settleExpiredAccountLocked(next, alreadyDumped = dumped)
+            settleExpiredAccountLocked(previous, next, alreadyDumped = dumped)
         }
 
         state.emit(next)
@@ -404,10 +404,23 @@ class SupabaseAuthRepositoryImpl(
      * Logging out of a live session already dumped everything, so the hold is
      * just released. Any other state (still no session) keeps waiting.
      */
-    private suspend fun settleExpiredAccountLocked(next: AuthState, alreadyDumped: Boolean) {
-        val held = Catching { expiredAccounts.read() }
+    private suspend fun settleExpiredAccountLocked(previous: AuthState?, next: AuthState, alreadyDumped: Boolean) {
+        val read = Catching { expiredAccounts.read() }
             .logOnFailure { "Reading the expired-session account failed" }
-            .getOrNull() ?: return
+        if (read.isFailure) {
+            // Whose data is held is unknown, and a sign-in after a signed-out
+            // stretch may be someone else: wipe rather than let another
+            // account's outbox drain under this one's token. Not on the run's
+            // first emission (a launch with a live session), where no hold is
+            // pending and a wipe would only lose that account's own meals.
+            if (next is AuthState.Authenticated && previous is AuthState.Unauthenticated && !alreadyDumped) {
+                dumpLocked(UnreadableHeldAccount)
+                Catching { expiredAccounts.release() }
+                    .logOnFailure { "Releasing the expired-session account failed" }
+            }
+            return
+        }
+        val held = read.getOrNull() ?: return
         when {
             next is AuthState.Authenticated && next.userId == held.userId ->
                 logger.i { "${held.userId} signed back in after its session expired — keeping its local data" }
@@ -1075,6 +1088,13 @@ class SupabaseAuthRepositoryImpl(
     }
 
     private companion object {
+        /**
+         * Stands in for the departing user when the held account can't be read.
+         * The clearers wipe every row regardless of the id; the stoppers find no
+         * work under it.
+         */
+        const val UnreadableHeldAccount = "unreadable-expired-account"
+
         /** Bounded re-polls over supabase-kt's transient hydration states. */
         const val MaxResolveAttempts: Int = 5
 

@@ -217,6 +217,46 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
     }
 
     @Test
+    fun aSessionExpiry_thenASignInWhileTheHoldCantBeRead_wipesTheHeldData() = runUnitTest {
+        val cacheFactory = TestCacheFactory()
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.Authenticated,
+            session = claimedSession(userId = "user-1"),
+            onSignInWithAppleIdToken = { _, _ -> advanceToAuthenticated(claimedSession(userId = "user-2")) },
+        )
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(
+            gateway = gateway,
+            sessionRejectionBus = bus,
+            userScopedDataReset = reset,
+            expiredAccounts = ExpiredAccountStore(cacheFactory),
+        )
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+        cacheFactory.readsFail = true
+
+        repo.signInWithApple(appleCredential(authorizationCode = null))
+
+        assertEquals(1, reset.clearedFor.size, "user-1's outbox must not drain under user-2's token")
+    }
+
+    @Test
+    fun aLaunchWithALiveSession_whileTheHoldCantBeRead_keepsItsData() = runUnitTest {
+        val cacheFactory = TestCacheFactory().apply { readsFail = true }
+        val reset = RecordingUserScopedDataReset()
+        build(
+            gateway = FakeSupabaseAuthGateway(AuthGatewayStatus.Authenticated, session = claimedSession()),
+            userScopedDataReset = reset,
+            expiredAccounts = ExpiredAccountStore(cacheFactory),
+        )
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), reset.clearedFor)
+    }
+
+    @Test
     fun theHeldAccount_survivesARelaunch() = runUnitTest {
         val cacheFactory = TestCacheFactory()
         val bus = FakeSessionRejectionBus()

@@ -6,14 +6,17 @@ import com.opson.libraries.storage.CacheJsonSerializer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.io.IOException
 
 /**
  * A [CacheFactory] whose persistent caches live in memory, keyed by name, so
  * two stores built from one factory see the same file the way they would
- * across a relaunch.
+ * across a relaunch. Set [readsFail] to make every read throw, like a disk
+ * that can't be read.
  */
 internal class TestCacheFactory : CacheFactory {
     private val caches = mutableMapOf<String, Cache<*>>()
+    var readsFail = false
 
     override fun <T : Any> inMemory(defaultValue: () -> T): Cache<T> = MemoryCache(defaultValue)
 
@@ -24,10 +27,10 @@ internal class TestCacheFactory : CacheFactory {
         loadEagerly: Boolean,
     ): Cache<T> = caches.getOrPut(name) { MemoryCache { runBlocking { serializer.read(null) } } } as Cache<T>
 
-    private class MemoryCache<T : Any>(private val initial: () -> T) : Cache<T> {
+    private inner class MemoryCache<T : Any>(private val initial: () -> T) : Cache<T> {
         private val state = MutableStateFlow(initial())
         override val updates: Flow<T> = state
-        override suspend fun get(): T = state.value
+        override suspend fun get(): T = if (readsFail) throw IOException("unreadable") else state.value
         override suspend fun set(value: T) {
             state.value = value
         }
