@@ -120,10 +120,23 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
             )
         }
         // Written to the day too, so a screen reading it sees what it just logged.
-        daysState.value = daysState.value + (day to (daysState.value[day] ?: Day.empty(day)).let { d ->
-            d.copy(itemsBySlot = d.itemsBySlot + (slot to d.items(slot) + written))
-        })
+        val next = (unshown ?: daysState.value).let { days ->
+            days + (day to (days[day] ?: Day.empty(day)).let { d -> d.copy(itemsBySlot = d.itemsBySlot + (slot to d.items(slot) + written)) })
+        }
+        if (holdWrites) unshown = next else daysState.value = next
         return DayWrite.Written(written)
+    }
+
+    /**
+     * On, a write is not read back until [showWrites]: a second tap that Room's next read has not
+     * caught up with yet. The test dispatcher otherwise shows every write before the next action.
+     */
+    var holdWrites = false
+    private var unshown: Map<LocalDate, Day>? = null
+
+    fun showWrites() {
+        unshown?.let { daysState.value = it }
+        unshown = null
     }
 
     val updated = mutableListOf<LogItem>()

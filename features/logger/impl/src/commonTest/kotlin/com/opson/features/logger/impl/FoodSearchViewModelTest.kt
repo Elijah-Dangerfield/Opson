@@ -187,6 +187,27 @@ class FoodSearchViewModelTest : CoroutineTest() {
         assertEquals(Precision.Estimate, item.precision, "an amount again is an estimate")
     }
 
+    /** The second tap is queued before the day is read again, so the row has no ✓ yet to take it out. */
+    @Test
+    fun aDoubleTapOnPlusLogsTheFoodOnce() = runUnitTest {
+        val vm = vm()
+        val rice = searched(vm).first { it.key == "f:rice" }
+        diary.holdWrites = true
+
+        vm.takeAction(SearchAction.AddTapped(rice))
+        vm.takeAction(SearchAction.AddTapped(rice))
+        settle()
+        assertEquals(1, diary.added.size)
+
+        diary.showWrites()
+        settle()
+        val shown = assertIs<SearchBody.Results>(vm.state.body).rows.first { it.key == "f:rice" }
+        assertTrue(shown.added)
+        vm.takeAction(SearchAction.AddTapped(shown))
+        settle()
+        assertEquals(1, diary.removed.size, "once the day shows it, the ✓ takes it back out")
+    }
+
     @Test
     fun theCheckTakesWhatItAddedBackOut() = runUnitTest {
         val vm = vm()
@@ -263,6 +284,25 @@ class FoodSearchViewModelTest : CoroutineTest() {
         assertEquals(listOf("Arroz con pollo", "Side salad"), added.items.map { it.name })
         assertTrue(added.items.all { it.method == LogMethod.Saved })
         assertEquals(SearchEvent.Added("Rice plate", recentLogEvents.logged.single()), events.single())
+    }
+
+    @Test
+    fun aDoubleTapOnASavedMealsPlusLogsItOnce() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(SearchAction.ScopePicked(SearchScope.SavedMeals))
+        diary.holdWrites = true
+
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        settle()
+        assertEquals(1, diary.added.size)
+
+        diary.showWrites()
+        settle()
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        settle()
+        assertEquals(2, diary.added.size, "once the day shows it, the meal can be logged again on purpose")
     }
 
     @Test
@@ -510,6 +550,40 @@ class FoodSearchViewModelTest : CoroutineTest() {
         assertTrue(diary.added.isEmpty())
         assertTrue(events.none { it is SearchEvent.Added })
         assertEquals(SearchBody.DayClosed(isToday = true), vm.state.body)
+    }
+
+    /** A refused + wrote nothing, so nothing is waiting to show and the same + works after Reopen. */
+    @Test
+    fun aPlusRefusedByAClosedDay_logsOnceTheDayIsReopened() = runUnitTest {
+        val vm = vm()
+        val rice = searched(vm).first { it.key == "f:rice" }
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(SearchAction.AddTapped(rice))
+        settle()
+        vm.takeAction(SearchAction.ReopenTapped)
+        settle()
+        vm.takeAction(SearchAction.AddTapped(rice))
+        settle()
+
+        assertEquals(1, diary.added.single().items.size)
+    }
+
+    @Test
+    fun aSavedMealRefusedByAClosedDay_logsOnceTheDayIsReopened() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(SearchAction.ScopePicked(SearchScope.SavedMeals))
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        settle()
+        vm.takeAction(SearchAction.ReopenTapped)
+        settle()
+        vm.takeAction(SearchAction.SavedMealAddTapped("rice-plate"))
+        settle()
+
+        assertEquals(listOf("Arroz con pollo", "Side salad"), diary.added.single().items.map { it.name })
     }
 
     @Test

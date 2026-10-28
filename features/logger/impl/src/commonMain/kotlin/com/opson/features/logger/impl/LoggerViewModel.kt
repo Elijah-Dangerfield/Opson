@@ -117,6 +117,9 @@ class LoggerViewModel(
      */
     private var written = false
 
+    /** Recent's + stays open, so a second tap is not [written]'s; this catches one before the ✓ shows. */
+    private val unshown = UnshownLogs()
+
     private data class Model(
         val choices: LoggerChoices,
         val policy: VisibilityPolicy,
@@ -137,10 +140,16 @@ class LoggerViewModel(
     @Suppress("CyclomaticComplexMethod")
     override suspend fun handleAction(action: LoggerAction) {
         when (action) {
-            is LoggerAction.InputsArrived -> action.rebuild {
-                copy(inputs = action.inputs, choices = choices.withPickedSlot(action.inputs).withSeen(action.inputs))
+            is LoggerAction.InputsArrived -> {
+                unshown.shown(action.inputs.day)
+                action.rebuild { copy(inputs = action.inputs, choices = choices.withPickedSlot(action.inputs).withSeen(action.inputs)) }
             }
-            is LoggerAction.PolicyArrived -> action.rebuild { copy(policy = action.policy) }
+            is LoggerAction.PolicyArrived -> action.rebuild {
+                // Calories hidden while Describe is open: a weighed line moves to its household measure, as the photo's do.
+                val householdOnly = action.policy.level(Metric.Calories) == Visibility.Hide
+                val review = choices.review.copy(rows = choices.review.rows.map { DescribeRows.forPolicy(it, householdOnly) })
+                copy(policy = action.policy, choices = choices.copy(review = review))
+            }
             is LoggerAction.SlotPicked -> action.choose { copy(slot = action.slot, slotChosen = true) }
             LoggerAction.SheetExpanded -> if (model.choices.height != SheetHeight.Full) action.choose { copy(height = SheetHeight.Full) }
             LoggerAction.SearchFoodTapped -> sendEvent(LoggerEvent.OpenSearch(day, slot()))
@@ -209,6 +218,7 @@ class LoggerViewModel(
     /** Recent's +: logged at its last amount, staying open. A ✓ takes what was added since the sheet opened back out. */
     private suspend fun recentAdd(row: FoodRowUi) {
         val inputs = model.inputs ?: return
+        if (row.key in unshown) return
         val slot = slot()
         val added = FoodPicks.addedSince(inputs.day, slot, model.choices.seen)[row.key]
         if (added != null) {
@@ -216,10 +226,13 @@ class LoggerViewModel(
             return
         }
         val pick = LoggerStateBuilder.recentPicks(inputs).firstOrNull { it.key == row.key } ?: return
-        logger.log(day, slot, listOf(pick.toLogPick()))
+        // A closed day writes nothing, so nothing waits to be shown and a + after Reopen logs it.
+        logger.log(day, slot, listOf(pick.toLogPick()))?.valueOrNull()?.let { unshown.logged(row.key, it.itemIds) }
     }
 
-    private suspend fun describeTyped(action: LoggerAction, text: String, debounce: Duration = DESCRIBE_DEBOUNCE) {
+    private suspend fun describeTyped(action: LoggerAction, typed: String, debounce: Duration = DESCRIBE_DEBOUNCE) {
+        // The server refuses a longer read outright, so a long dictation would fail on every pause.
+        val text = typed.take(DESCRIBE_LIMIT)
         val parsing = text.isNotBlank()
         action.choose { copy(describeText = text, describeStatus = if (parsing) DescribeStatus.Parsing else DescribeStatus.Idle) }
         describeJob?.cancel()
@@ -283,7 +296,7 @@ class LoggerViewModel(
             }
             is DescribeReviewAction.FindResultsArrived -> {
                 val find = review.find?.takeIf { it.query.trim() == action.query } ?: return
-                action.choose { copy(review = review.copy(find = find.copy(answer = SwapAnswer(action.query, action.foods)))) }
+                action.choose { copy(review = review.copy(find = find.copy(answer = SwapAnswer(action.query, action.foods, action.offline)))) }
             }
             is DescribeReviewAction.FindPicked -> {
                 val find = review.find ?: return
@@ -311,8 +324,8 @@ class LoggerViewModel(
         if (query.isEmpty()) return
         findJob = viewModelScope.launch {
             delay(SEARCH_DEBOUNCE)
-            val foods = foodCatalog.search(query, FIND_LIMIT).getOrNull()?.foods.orEmpty()
-            takeAction(DescribeReviewAction.FindResultsArrived(query, foods))
+            val found = foodCatalog.search(query, FIND_LIMIT).getOrNull()
+            takeAction(DescribeReviewAction.FindResultsArrived(query, found?.foods.orEmpty(), offline = found?.fromCache ?: true))
         }
     }
 
@@ -564,7 +577,7 @@ class LoggerViewModel(
                     is VoiceCapture.Listening -> capture.copy(heard = heard.text)
                     else -> VoiceCapture.Transcribing(prefix, heard.text)
                 }
-                action.choose { copy(voice = next, describeText = prefix + heard.text) }
+                action.choose { copy(voice = next, describeText = (prefix + heard.text).take(DESCRIBE_LIMIT)) }
                 if (capture is VoiceCapture.Listening) armQuiet(QUIET_AFTER_SPEECH)
             }
             is Heard.Final -> transcribed(action, prefix, heard.text)
@@ -654,6 +667,9 @@ class LoggerViewModel(
 
         /** Longer than search: a parse is a heavier call, and people pause mid-sentence. */
         val DESCRIBE_DEBOUNCE = 700.milliseconds
+
+        /** The most the server reads (`DescribeParser.MAX_TEXT`); it answers a longer text with a 400. */
+        const val DESCRIBE_LIMIT = 1_000
 
         /** A pause this long after speech means the person is done. */
         val QUIET_AFTER_SPEECH = 2.seconds

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -70,6 +69,7 @@ import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
+import com.opson.libraries.ui.components.text.BasicTextField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.libraries.ui.time.DateCopy
@@ -469,7 +469,9 @@ private fun HungerCard(check: HungerCheck, onAction: (FoodDetailAction) -> Unit)
 
 /**
  * The typed amount, in an accent outline. A decimal keypad; what is typed goes to the view model
- * as is and comes back sanitized, so a stray character never shows.
+ * as is. A character the view model drops shows until typing pauses, then the field settles back
+ * on the view model's value. The library field holds keystrokes until the view model's echo
+ * catches up: fed the state directly, a fast "150" rewound to "15" while the echo was a frame behind.
  */
 @Composable
 private fun AmountField(value: String, onTyped: (String) -> Unit, modifier: Modifier) {
@@ -479,7 +481,9 @@ private fun AmountField(value: String, onTyped: (String) -> Unit, modifier: Modi
         value = value,
         onValueChange = onTyped,
         modifier = modifier.semantics { contentDescription = description },
-        textStyle = AppTheme.type.figureMedium.style(AppTheme.colors.ink.color).copy(textAlign = TextAlign.End),
+        typographyToken = AppTheme.type.figureMedium,
+        color = AppTheme.colors.ink.color,
+        textAlign = TextAlign.End,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done, autoCorrectEnabled = false),
         cursorBrush = SolidColor(AppTheme.colors.accent.color),

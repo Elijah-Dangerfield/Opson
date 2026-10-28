@@ -97,6 +97,7 @@ object PhotoEstimateStateBuilder {
                 answer == null -> null
                 else -> answer.foods.map { it.toResult(policy, bare) }
             },
+            offline = answer?.offline == true,
         )
     }
 

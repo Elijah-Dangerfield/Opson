@@ -37,8 +37,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * an estimate. Logging is [FoodLogger]'s, the same as every other way in
  * the logger.
  *
- * Nothing here runs until the sheet opens, and the sheet only opens from the
- * Photo chip, which is behind `release.photo`.
+ * Nothing here runs until the sheet opens, and only Photo on the + sheet and
+ * search's "Photograph it" open it, both behind `release.photo`.
  */
 @Inject
 @Suppress("TooManyFunctions", "LongParameterList")
@@ -93,7 +93,6 @@ class PhotoEstimateViewModel(
                 action.change { copy(rows = rows.map { PhotoRows.forPolicy(it, householdOnly) }) }
             }
             is PhotoEstimateAction.NoteTyped -> action.change { copy(note = action.text.take(NOTE_LIMIT)) }
-            // Plus gate: a paywall would stand in front of both ways to get a photo.
             PhotoEstimateAction.TakePhotoTapped -> when (val permission = permissions.current()) {
                 CameraPermission.Granted -> sendEvent(PhotoEstimateEvent.LaunchCamera)
                 CameraPermission.NotAsked -> sendEvent(PhotoEstimateEvent.RequestCameraPermission)
@@ -137,7 +136,7 @@ class PhotoEstimateViewModel(
             }
             is PhotoEstimateAction.SwapResultsArrived -> {
                 val swap = model.swap ?: return
-                if (action.query == swap.query.trim()) action.change { copy(swap = swap.copy(results = SwapAnswer(action.query, action.foods))) }
+                if (action.query == swap.query.trim()) action.change { copy(swap = swap.copy(results = SwapAnswer(action.query, action.foods, action.offline))) }
             }
             is PhotoEstimateAction.SwapPicked -> action.swapPicked(action.id)
             PhotoEstimateAction.TryAgainTapped -> model.photo?.let { action.estimate(it) } ?: action.change { copy(step = PhotoStep.Start) }
@@ -245,8 +244,8 @@ class PhotoEstimateViewModel(
         if (query.isEmpty()) return
         searchJob = viewModelScope.launch {
             delay(SEARCH_DEBOUNCE)
-            val foods = foodCatalog.search(query, SEARCH_LIMIT).getOrNull()?.foods.orEmpty()
-            takeAction(PhotoEstimateAction.SwapResultsArrived(query, foods))
+            val found = foodCatalog.search(query, SEARCH_LIMIT).getOrNull()
+            takeAction(PhotoEstimateAction.SwapResultsArrived(query, found?.foods.orEmpty(), offline = found?.fromCache ?: true))
         }
     }
 
