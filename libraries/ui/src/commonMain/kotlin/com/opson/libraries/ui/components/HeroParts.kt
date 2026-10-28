@@ -32,9 +32,9 @@ import com.opson.system.background
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /*
- * The hero-coloured cards (design v3, 2.1 to 2.8 and 4.2): the locked card on Trends' weekly
- * check, the big-day reset on Today, the fasting card and Find support. They sit inside the page
- * padding with all four corners rounded. White content; secondary text at 72 to 78%.
+ * The hero-coloured cards (design v3, 2.1 to 2.8 and 4.2): the locked weekly check and Your week
+ * on Trends, the big-day reset on Day close, the fasting card on Today and Find support. They sit
+ * inside the page padding with all four corners rounded. White content; secondary text at 72 to 78%.
  */
 
 /** A hero-coloured card: radius 22 (`AppTheme.shapes.card`), padding 20, white content. */

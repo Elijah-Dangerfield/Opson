@@ -222,3 +222,14 @@ deleted code in detekt rules and docs) were done by their owners.
 - **A dimmed Continue does not say why.** With finding 4 a screen reader now
   hears "dimmed", but onboarding gives no spoken or visible hint of what to pick
   first. A line under the button, or a hint, would help. Fairly sure.
+
+## Second review
+
+- **HeroParts' header put the big-day reset on Today (fixed).** Real. Finding
+  10's rewrite of `HeroParts.kt:34-38` said the big-day reset sits on Today,
+  but `BigDayHeroCard` is called only from `DayCloseScreen.kt:287`, and the
+  list left out Trends' "Your week" card (`TrendsScreen.kt:269`), also a
+  `HeroCard`. The comment now names the locked weekly check and Your week on
+  Trends, the big-day reset on Day close, the fasting card on Today and Find
+  support. Fix: `docs(ui): HeroParts puts the big-day reset on Day close, and
+  names Your week`. Comment only, so no test can fail without it.
