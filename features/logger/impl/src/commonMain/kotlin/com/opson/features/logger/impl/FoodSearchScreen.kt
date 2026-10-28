@@ -55,6 +55,7 @@ import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.SearchField
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.clearFocusOnScroll
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.background
@@ -165,7 +166,8 @@ internal fun FoodSearchContent(state: FoodSearchState, onAction: (SearchAction) 
         Chips(state, onAction, onOpenMenu = { focusManager.clearFocus() })
         state.options?.tabs?.let { tabs -> SearchTabs(tabs, state.options.tab, onAction) }
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            // Dragging the results puts the keyboard away, as an iOS search list does.
+            modifier = Modifier.weight(1f).fillMaxWidth().clearFocusOnScroll(),
             contentPadding = PaddingValues(
                 start = AppTheme.spacing.page,
                 end = AppTheme.spacing.page,

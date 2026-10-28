@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -64,6 +63,7 @@ import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
+import com.opson.libraries.ui.components.text.BasicTextField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
@@ -358,7 +358,8 @@ private fun AmountField(value: String, onTyped: (String) -> Unit, modifier: Modi
         value = value,
         onValueChange = onTyped,
         modifier = modifier.semantics { contentDescription = description },
-        textStyle = AppTheme.type.figureMedium.style(AppTheme.colors.ink.color),
+        typographyToken = AppTheme.type.figureMedium,
+        color = AppTheme.colors.ink.color,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done, autoCorrectEnabled = false),
         cursorBrush = SolidColor(AppTheme.colors.accent.color),
