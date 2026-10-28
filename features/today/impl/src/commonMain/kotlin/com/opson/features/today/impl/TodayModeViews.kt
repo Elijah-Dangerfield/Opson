@@ -44,6 +44,7 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.system.AppTheme
 import com.opson.system.background
+import kotlinx.datetime.LocalTime
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.modes_foods
 import opson.libraries.resources.generated.resources.modes_locked_counts
@@ -53,7 +54,8 @@ import opson.libraries.resources.generated.resources.modes_preset_no_numbers
 import opson.libraries.resources.generated.resources.modes_preset_macros_grams
 import opson.libraries.resources.generated.resources.modes_preset_macros_only
 import opson.libraries.resources.generated.resources.modes_soft_label
-import opson.libraries.resources.generated.resources.modes_timeline_done_cd
+import opson.libraries.resources.generated.resources.modes_timeline_done_around_cd
+import opson.libraries.resources.generated.resources.modes_timeline_done_at_cd
 import opson.libraries.resources.generated.resources.modes_timeline_open_cd
 import opson.libraries.resources.generated.resources.modes_timeline_title
 import opson.libraries.resources.generated.resources.modes_timeline_usual
@@ -65,7 +67,6 @@ import opson.libraries.resources.generated.resources.today_compact_meals
 import opson.libraries.resources.generated.resources.today_counts_meals_one
 import opson.libraries.resources.generated.resources.today_counts_meals_other
 import opson.libraries.resources.generated.resources.today_locked_week_title
-import opson.libraries.resources.generated.resources.today_meal_around
 import opson.libraries.resources.generated.resources.today_soft_energy
 import opson.libraries.resources.generated.resources.today_summary_nutrients
 import org.jetbrains.compose.resources.StringResource
@@ -196,15 +197,13 @@ private fun TimelineMeal(tile: MealTile, onAction: (TodayAction) -> Unit, modifi
     val status = tile.status
     val done = status !is TileStatus.Empty
     val name = stringResource(slot.label)
-    val (time, spokenTime) = when (status) {
-        is TileStatus.Logged -> status.time.clock().let { it to it }
-        is TileStatus.AteNoDetails -> stringResource(Res.string.modes_timeline_usual, status.around.clock()) to
-            stringResource(Res.string.today_meal_around, status.around.clock())
-        is TileStatus.Empty -> stringResource(Res.string.modes_timeline_usual, status.around.clock()) to
-            stringResource(Res.string.today_meal_around, status.around.clock())
+    val time = when (status) {
+        is TileStatus.Logged -> status.time.clock()
+        is TileStatus.AteNoDetails -> stringResource(Res.string.modes_timeline_usual, status.around.clock())
+        is TileStatus.Empty -> stringResource(Res.string.modes_timeline_usual, status.around.clock())
     }
-    // The description stands in for the merged texts, so it says the time too ("Around 7:00 PM", not "~").
-    val description = stringResource(if (done) Res.string.modes_timeline_done_cd else Res.string.modes_timeline_open_cd, name) + ", " + spokenTime
+    val spoken = status.spoken()
+    val description = stringResource(spoken.sentence, name, spoken.time.clock())
     Column(
         modifier = modifier
             .semantics(mergeDescendants = true) {
@@ -224,6 +223,19 @@ private fun TimelineMeal(tile: MealTile, onAction: (TodayAction) -> Unit, modifi
             textAlign = TextAlign.Center,
         )
     }
+}
+
+/**
+ * What a screen reader says for a timeline circle, which stands in for the texts it merges: the meal
+ * and when, as one sentence per status so a translator can reorder it ("Breakfast, done at 8:10 AM",
+ * not the "~" the screen shows).
+ */
+internal data class SpokenMeal(val sentence: StringResource, val time: LocalTime)
+
+internal fun TileStatus.spoken(): SpokenMeal = when (this) {
+    is TileStatus.Logged -> SpokenMeal(Res.string.modes_timeline_done_at_cd, time)
+    is TileStatus.AteNoDetails -> SpokenMeal(Res.string.modes_timeline_done_around_cd, around)
+    is TileStatus.Empty -> SpokenMeal(Res.string.modes_timeline_open_cd, around)
 }
 
 /** Done: a check on the meal's own tint. Not yet: the meal's icon in an outline. */
