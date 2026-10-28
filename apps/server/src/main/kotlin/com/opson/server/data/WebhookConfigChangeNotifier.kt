@@ -18,8 +18,8 @@ import java.time.Duration
 /**
  * Posts a one-line message to a Slack-compatible incoming webhook on every
  * config change. Fire-and-forget on the server's app scope: a slow or failing
- * webhook can never delay or break the admin write — failures are logged, not
- * propagated. When [webhookUrl] is blank the whole thing is a no-op, so
+ * webhook can never delay or break the admin write — failures, a non-2xx
+ * answer included, are logged without the URL, not propagated. When [webhookUrl] is blank the whole thing is a no-op, so
  * unconfigured deploys pay nothing.
  */
 class WebhookConfigChangeNotifier(
@@ -36,14 +36,20 @@ class WebhookConfigChangeNotifier(
     override fun changed(event: ConfigChangeEvent) {
         val url = webhookUrl?.takeIf { it.isNotBlank() } ?: return
         scope.launch(Dispatchers.IO) {
-            runCatching {
+            val status = try {
                 val request = HttpRequest.newBuilder(URI.create(url))
                     .timeout(Duration.ofSeconds(10))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(payload(event)))
                     .build()
-                client.send(request, HttpResponse.BodyHandlers.ofString())
-            }.onFailure { logger.warn("Config-change webhook failed: ${it.message}") }
+                client.send(request, HttpResponse.BodyHandlers.discarding()).statusCode()
+            } catch (e: Exception) {
+                // Not the message: URI.create quotes the URL, and a webhook URL is its own secret.
+                logger.warn("Config-change webhook failed: {}", e::class.simpleName)
+                return@launch
+            }
+            // A revoked or mistyped webhook answers 4xx, which is not an exception.
+            if (status !in 200..299) logger.warn("Config-change webhook answered HTTP {}", status)
         }
     }
 

@@ -27,14 +27,15 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     @Test
-    fun catalogAndDiaryTablesMatchTheirExposedProjections() = runTest {
+    fun everyOtherTableMatchesItsExposedProjection() = runTest {
         database.transaction {
             listOf(
                 FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable, BarcodeMissesTable,
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable,
                 CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, ExercisesTable, WaitlistTable,
                 AppleRefreshTokensTable, SubmittedFoodsTable, FoodSubmissionsTable, FoodSubmissionPhotosTable,
-                BarcodeLinkSuggestionsTable,
+                BarcodeLinkSuggestionsTable, AppConfigValuesTable, AppConfigRulesTable, AppConfigAuditTable,
+                AppConfigManifestTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
