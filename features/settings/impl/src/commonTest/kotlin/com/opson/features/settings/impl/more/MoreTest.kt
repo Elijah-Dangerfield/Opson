@@ -178,6 +178,18 @@ class MoreTest : CoroutineTest() {
         assertEquals(listOf<MoreEvent>(MoreEvent.GoToOnboarding), events)
     }
 
+    /** A day further ahead than the server takes yet stays queued however well the sync went. */
+    @Test
+    fun logOut_aSyncThatLeavesChangesQueued_asksAgain_andWipesNothingYet() = runUnitTest {
+        val auth = signedIn()
+        val vm = moreVm(auth = auth, sync = FakeDiarySync().apply { pending = 2 })
+
+        vm.confirmLogOut()
+
+        assertEquals(LogOutStep.Unsynced, vm.state.logOut)
+        assertEquals(0, auth.signOuts)
+    }
+
     @Test
     fun logOut_unreached_stayKeepsEverything() = runUnitTest {
         val auth = signedIn()

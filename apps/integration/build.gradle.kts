@@ -70,6 +70,8 @@ kotlin {
             // FindSupportEnabled (release.findSupport) and ProviderSummaryEnabled (release.providerSummary),
             // for ConfigManifestRegistryDriftTest.
             implementation(projects.features.settings)
+            // MoreViewModel, for the log out journey.
+            implementation(projects.features.settings.impl)
             // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.progressphotos)
             // The upgrade.* values, and the guard the remote-config journeys drive.

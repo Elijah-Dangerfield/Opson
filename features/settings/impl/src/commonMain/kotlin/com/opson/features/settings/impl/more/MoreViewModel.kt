@@ -158,13 +158,14 @@ class MoreViewModel(
     }
 
     /**
-     * Whether a sync reached the account. The wait is capped so a server that hangs can't hold
-     * the dialog; the sync itself runs on in the app scope.
+     * Whether a sync reached the account and left nothing behind. The wait is capped so a server
+     * that hangs can't hold the dialog; the sync itself runs on in the app scope. A sync that
+     * succeeds can still leave rows queued (a day further ahead than the server takes yet), and
+     * signing out would wipe those too.
      */
     private suspend fun reachedAccount(): Boolean {
-        // TODO(review): a sync that succeeds can still leave rows queued (days ahead the server
-        // won't take yet). Ask DiarySync how many are left once it can say (findings/settings.md).
-        return withTimeoutOrNull(LOG_OUT_SYNC_WAIT) { diarySync.syncNow() }?.isSuccess == true
+        val synced = withTimeoutOrNull(LOG_OUT_SYNC_WAIT) { diarySync.syncNow() }?.isSuccess == true
+        return synced && diarySync.pendingChanges() == 0
     }
 
     private companion object {

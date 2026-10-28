@@ -220,6 +220,13 @@ interface DiarySync {
      * pulled before the call.
      */
     suspend fun syncNow(): Result<Unit>
+
+    /**
+     * Changes still queued on this phone. A sync that succeeds can leave some (a day further
+     * ahead than the server takes yet, a page it stopped at), and anything that wipes the
+     * outbox should ask this first.
+     */
+    suspend fun pendingChanges(): Int
 }
 
 data class SyncRejection(

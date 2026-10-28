@@ -121,7 +121,12 @@ class FakeDiarySync(var result: Result<Unit> = Result.success(Unit), private val
     var syncs = 0
         private set
 
+    /** What is still queued after a sync, whatever it answered. */
+    var pending = 0
+
     override val rejections: Flow<SyncRejection> = emptyFlow()
+
+    override suspend fun pendingChanges(): Int = pending
 
     override suspend fun syncNow(): Result<Unit> {
         syncs++

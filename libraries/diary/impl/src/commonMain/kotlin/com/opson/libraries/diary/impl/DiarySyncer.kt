@@ -211,6 +211,8 @@ class DiarySyncer(
         requests.trySend(Unit)
     }
 
+    override suspend fun pendingChanges(): Int = tables.outbox.count()
+
     override suspend fun syncNow(): Result<Unit> = sync()
 
     override suspend fun sync(): Result<Unit> {
