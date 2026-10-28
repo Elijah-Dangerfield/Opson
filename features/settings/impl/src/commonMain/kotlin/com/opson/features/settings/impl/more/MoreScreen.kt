@@ -119,12 +119,7 @@ fun MoreScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
     }
-    when (val step = state.logOut) {
-        is LogOutStep.Confirming -> LogOutDialog(LogOutCopy.of(step.guest), working = false, onAction = onAction)
-        is LogOutStep.Working -> LogOutDialog(LogOutCopy.of(step.guest), working = true, onAction = onAction)
-        LogOutStep.Unsynced -> LogOutDialog(LogOutCopy.Unsynced, working = false, onAction = onAction)
-        LogOutStep.Idle -> Unit
-    }
+    LogOutCopy.of(state.logOut)?.let { LogOutDialog(it, working = state.logOut is LogOutStep.Working, onAction = onAction) }
 }
 
 private fun List<MoreRow>.label(): StringResource? = when (val first = firstOrNull()) {
@@ -283,7 +278,7 @@ private fun LinkRow(title: StringResource, icon: IconResource, showDivider: Bool
 }
 
 /** The log out dialog's words: the first ask, a guest's, or the one after the account couldn't be reached. */
-private enum class LogOutCopy(val title: StringResource, val body: StringResource, val cancel: StringResource, val confirm: StringResource) {
+internal enum class LogOutCopy(val title: StringResource, val body: StringResource, val cancel: StringResource, val confirm: StringResource) {
     SignedIn(Res.string.settings_log_out_title, Res.string.settings_log_out_body, Res.string.settings_log_out_cancel, Res.string.settings_more_log_out),
     Guest(Res.string.settings_log_out_title, Res.string.settings_log_out_body_guest, Res.string.settings_log_out_cancel, Res.string.settings_more_log_out),
     Unsynced(
@@ -295,7 +290,15 @@ private enum class LogOutCopy(val title: StringResource, val body: StringResourc
     ;
 
     companion object {
-        fun of(guest: Boolean): LogOutCopy = if (guest) Guest else SignedIn
+        /** Null while no dialog is up. */
+        fun of(step: LogOutStep): LogOutCopy? = when (step) {
+            LogOutStep.Idle -> null
+            is LogOutStep.Confirming -> of(step.guest)
+            is LogOutStep.Working -> if (step.unsynced) Unsynced else of(step.guest)
+            LogOutStep.Unsynced -> Unsynced
+        }
+
+        private fun of(guest: Boolean): LogOutCopy = if (guest) Guest else SignedIn
     }
 }
 

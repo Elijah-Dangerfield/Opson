@@ -219,6 +219,18 @@ class MoreTest : CoroutineTest() {
     }
 
     @Test
+    fun logOut_anyway_keepsSayingWhatIsLost_whileItSignsOut() = runUnitTest {
+        val auth = signedIn().apply { signOutHangs = true }
+        val vm = moreVm(auth = auth, sync = FakeDiarySync(Result.failure(IllegalStateException("offline"))))
+
+        vm.confirmLogOut()
+        vm.takeAction(MoreAction.LogOutConfirmed)
+
+        assertTrue(vm.state.logOut is LogOutStep.Working)
+        assertEquals(LogOutCopy.Unsynced, LogOutCopy.of(vm.state.logOut), "not \"Your log stays in your account\"")
+    }
+
+    @Test
     fun logOut_asAGuest_sendsNothing_sinceNoAccountCanBeReachedAgain() = runUnitTest {
         val auth = FakeAuthRepository(initial = AuthState.Authenticated(userId = "u1", isAnonymous = true, email = null))
         val sync = FakeDiarySync(Result.failure(IllegalStateException("offline")))

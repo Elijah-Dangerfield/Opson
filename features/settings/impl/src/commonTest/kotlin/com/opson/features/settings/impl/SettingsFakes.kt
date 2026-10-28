@@ -154,6 +154,9 @@ class FakeAuthRepository(
     var signOuts = 0
         private set
 
+    /** A sign-out that never finishes, like one still waiting on the network. */
+    var signOutHangs = false
+
     override suspend fun deleteAccount(): DeleteAccountOutcome {
         deletes++
         return deleteOutcome
@@ -161,6 +164,7 @@ class FakeAuthRepository(
 
     override suspend fun signOut() {
         signOuts++
+        if (signOutHangs) awaitCancellation()
         state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
     }
 

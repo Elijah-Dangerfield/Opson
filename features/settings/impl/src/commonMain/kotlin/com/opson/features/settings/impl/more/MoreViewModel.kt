@@ -135,7 +135,7 @@ class MoreViewModel(
             }
             // "Log out anyway", having been told what stays behind.
             LogOutStep.Unsynced -> {
-                action.updateState { it.copy(logOut = LogOutStep.Working(guest = false)) }
+                action.updateState { it.copy(logOut = LogOutStep.Working(guest = false, unsynced = true)) }
                 signOut(action)
             }
             LogOutStep.Idle, is LogOutStep.Working -> Unit
