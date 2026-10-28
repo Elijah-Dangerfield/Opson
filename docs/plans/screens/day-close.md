@@ -1,5 +1,15 @@
 # Day close plan
 
+> **A closed day takes nothing (2026-10-27, `docs/decisions.md`):** once
+> closed, the diary refuses every add, edit and delete for the day
+> (`DayWrite.DayClosed`) until it is reopened. Done saves the note, the feeling
+> and the check-in with the close in one write, `closeDay(day, DayReflection)`.
+> On a closed day the button reads Save and keeps it closed, Reopen this day
+> sits under it (action `ReopenTapped`, then `Close`), and the caption says
+> "This day is closed. Reopen it to add or change food." Before closing it
+> says "You can reopen it later if you need to add something." State
+> `closed`.
+
 > **Design v3 (4.1 to 4.5) changes, built:** the totals card shows the figure,
 > "Inside your range of {range}" / "Above your range today" / "Your range is
 > {range}", and protein, carbs, fat and fiber in their colours (not on a big
@@ -18,7 +28,7 @@
 > on Day close), an optional single-choice row: Steady, Busy, Tired, Good,
 > Hard (`DayFeeling`). Tapping the chosen one clears it. It prefills from
 > `Day.feeling` once, like the note, and is saved on Close the day with
-> `setDayFeeling(day, feeling)`; Back saves nothing. Stored on the day record
+> the close (`closeDay(day, DayReflection(feeling = ...))`); Back saves nothing. Stored on the day record
 > (`day_records.feeling`, synced): a meal feeling is keyed by meal, and the
 > Uncategorized row already belongs to "All food" with groups off.
 > Actions `FeelingTapped(feeling)`.
@@ -84,7 +94,8 @@ data class BigDayCard(val tomorrow: Display, val commitment: Commitment)   // Co
 | `InputsArrived(day, settings, policy)` | Rebuilds. Prefills `note` from `day.note` once. |
 | `NoteTyped(text)` | `note = text`. |
 | `CommitmentTapped` | `commitment = Committed`. Saves nothing, on purpose (`PROTOTYPE_NOTES.md`). Both buttons send it. |
-| `DoneTapped` | `DiaryRepository.setDayNote(day, note.trim().ifEmpty { null })`, then `closeDay(day)` (sets `closed_at`; the repository takes the note separately), event `Close`. |
+| `DoneTapped` | `DiaryRepository.closeDay(day, DayReflection(note, feeling, checkIn))`: the note trimmed or null, and the feeling and check-in as answered here or as stored where they were not asked. One write sets `closed_at` (keeping the first) with them. Event `Close`. |
+| `ReopenTapped` | `DiaryRepository.reopenDay(day)`, event `Close`. Only on a closed day. |
 | `BackTapped` | Event `Close` without closing the day or saving the note. |
 
 ## Events
@@ -137,7 +148,7 @@ prefix per feature); the table drops the `today_` for space.
 ## Edge cases
 - **Future day**: not reachable (the close button is hidden and the Day menu item is not built). If deep-linked, `Close` on load.
 - **Past day**: already closed by rule; Done still saves the note and stamps `closed_at`. Reveal note hidden (it promises a relock tomorrow).
-- **Already closed today**: reopening shows the same screen; Done updates the note.
+- **Already closed today**: the header check opens the same screen; Save updates the note and keeps it closed, Reopen this day opens it to food again.
 - **Delayed before 9 pm**: totals revealed here, reveal note shown. Coast: Hidden branch with the meals line.
 - **Big day and Fuel**: calories Soft, so no big-day card ever (the card only appears when calories are fully shown).
 - **Big day with `bigDayEvent = Subtle`**: card without the buttons. 0.1 has no UI to change it, so Full holds.
