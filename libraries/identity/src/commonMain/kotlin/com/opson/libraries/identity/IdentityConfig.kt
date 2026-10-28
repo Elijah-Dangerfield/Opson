@@ -1,9 +1,8 @@
 package com.opson.libraries.identity
 
 /**
- * Per-environment Supabase wiring. Default binding in
- * `:libraries:identity:impl` points at the dev project; flip via build
- * variants when prod ships.
+ * Per-environment Supabase wiring. The binding in `:libraries:identity:impl`
+ * follows `BuildInfo.isDebug`: the dev project in debug builds, prod in release.
  *
  * `supabasePublishableKey` is the project's **publishable (public)** API key
  * — designed to be exposed in client builds. It's gated by Supabase Row Level
