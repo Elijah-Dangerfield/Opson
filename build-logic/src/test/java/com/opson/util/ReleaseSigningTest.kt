@@ -5,8 +5,6 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
-import org.junit.Assume.assumeTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -17,22 +15,16 @@ class ReleaseSigningTest {
     @get:Rule
     val folder = TemporaryFolder()
 
-    @Before
-    fun noUploadKeyInTheEnvironment() {
-        // The env wins over local.properties, so a machine that exports the upload key can't run these.
-        assumeTrue(System.getenv("ANDROID_KEYSTORE_PATH").isNullOrBlank() && System.getenv("ANDROID_KEYSTORE_BASE64").isNullOrBlank())
-    }
-
     @Test
     fun notAskedFor_isNull() {
-        assertNull(project().releaseCredentials())
+        assertNull(project().releaseCredentials(noEnvironment))
     }
 
     @Test
     fun askedForWithNoKey_failsTheBuild() {
         val project = project().also { it.extensions.extraProperties["release.signing"] = "true" }
 
-        assertThrows(GradleException::class.java) { project.releaseCredentials() }
+        assertThrows(GradleException::class.java) { project.releaseCredentials(noEnvironment) }
     }
 
     @Test
@@ -48,11 +40,15 @@ class ReleaseSigningTest {
         )
         val project = project().also { it.extensions.extraProperties["release.signing"] = "true" }
 
-        val credentials = project.releaseCredentials()
+        val credentials = project.releaseCredentials(noEnvironment)
 
         assertEquals(keystore, credentials?.keystore)
         assertEquals("upload", credentials?.keyAlias)
     }
+
+    // The environment wins over local.properties, and a developer or CI machine may export
+    // any of the ANDROID_KEY* variables, so the tests never read the real one.
+    private val noEnvironment: (String) -> String? = { null }
 
     private fun project() = ProjectBuilder.builder().withProjectDir(folder.root).build()
 }
