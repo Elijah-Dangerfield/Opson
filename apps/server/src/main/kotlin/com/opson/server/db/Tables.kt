@@ -275,6 +275,11 @@ object CustomFoodsTable : SyncedTable("custom_foods") {
     val carbs = float("carbs").nullable()
     val fat = float("fat").nullable()
     val fiber = float("fiber").nullable()
+
+    /** V25: the serving's weight, the other sizes (`[{label, grams}]`) and the rest of the label. */
+    val servingGrams = float("serving_grams").nullable()
+    val sizes = jsonb("sizes").nullable()
+    val micros = jsonb("micros").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 

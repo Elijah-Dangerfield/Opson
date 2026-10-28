@@ -17,6 +17,8 @@ import com.opson.server.db.toJavaInstant
 import com.opson.server.db.toKotlinInstant
 import com.opson.server.di.ServerScope
 import com.opson.server.domain.CustomFood
+import com.opson.server.domain.CustomFoodDetails
+import com.opson.server.domain.FoodSize
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryChanges
 import com.opson.server.domain.DiaryRow
@@ -36,6 +38,8 @@ import com.opson.server.domain.SyncResult
 import com.opson.server.domain.UserId
 import com.opson.server.domain.UserSettings
 import com.opson.server.domain.WeighIn
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -265,6 +269,12 @@ class PostgresSyncRepository(
                 it[carbs] = row.nutrients.carbs?.toFloat()
                 it[fat] = row.nutrients.fat?.toFloat()
                 it[fiber] = row.nutrients.fiber?.toFloat()
+                // A 0.1 row carries no details: leaving the columns out of the update keeps what a newer build stored.
+                row.details?.let { details ->
+                    it[servingGrams] = details.servingGrams?.toFloat()
+                    it[sizes] = JSON.encodeToString(SIZES_SERIALIZER, details.sizes.map { size -> SizeJson(size.label, size.grams) })
+                    it[micros] = JSON.encodeToString(MICROS_SERIALIZER, details.micros)
+                }
                 it[clientUpdatedAt] = row.clientUpdatedAt.toJavaInstant()
                 it[deleted] = row.deleted
             }
@@ -472,6 +482,11 @@ class PostgresSyncRepository(
         ),
         clientUpdatedAt = this[CustomFoodsTable.clientUpdatedAt].toKotlinInstant(),
         deleted = this[CustomFoodsTable.deleted],
+        details = CustomFoodDetails(
+            servingGrams = this[CustomFoodsTable.servingGrams].clean(),
+            sizes = this[CustomFoodsTable.sizes]?.let { JSON.decodeFromString(SIZES_SERIALIZER, it) }.orEmpty().map { FoodSize(it.label, it.grams) },
+            micros = this[CustomFoodsTable.micros]?.let { JSON.decodeFromString(MICROS_SERIALIZER, it) }.orEmpty(),
+        ),
     )
 
     private fun ResultRow.toSavedMeal(): SavedMeal = SavedMeal(
@@ -516,6 +531,7 @@ class PostgresSyncRepository(
     private companion object {
         val JSON = Json { ignoreUnknownKeys = true }
         val MICROS_SERIALIZER = MapSerializer(String.serializer(), Double.serializer())
+        val SIZES_SERIALIZER = ListSerializer(SizeJson.serializer())
         val SLOT_FLAGS_SERIALIZER = MapSerializer(String.serializer(), Boolean.serializer())
     }
 }
@@ -526,3 +542,7 @@ class PostgresSyncRepository(
  * string gives back the value the client sent.
  */
 internal fun Float?.clean(): Double? = this?.toString()?.toDouble()
+
+/** How `custom_foods.sizes` stores one size. */
+@Serializable
+private data class SizeJson(val label: String, val grams: Double)

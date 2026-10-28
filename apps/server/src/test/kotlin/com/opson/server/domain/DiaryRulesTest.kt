@@ -147,6 +147,19 @@ class DiaryRulesTest {
     }
 
     @Test
+    fun customFoodSizesNeedANameAndAWeight() {
+        val food = CustomFood(UUID.randomUUID(), "Creamer", null, 1.0, "tbsp", Nutrients(kcal = 35.0), now, false)
+        fun with(details: CustomFoodDetails) = DiaryRules.validate(food.copy(details = details), now)
+
+        assertNull(with(CustomFoodDetails(servingGrams = 15.0, sizes = listOf(FoodSize("cup", 240.0)), micros = mapOf("sugars_g" to 5.0))))
+        assertEquals("sizes.label is required", with(CustomFoodDetails(sizes = listOf(FoodSize(" ", 15.0)))))
+        assertEquals("sizes.grams must be positive", with(CustomFoodDetails(sizes = listOf(FoodSize("tbsp", 0.0)))))
+        assertEquals("servingGrams must be a non-negative number", with(CustomFoodDetails(servingGrams = -1.0)))
+        assertEquals("sizes has too many entries", with(CustomFoodDetails(sizes = List(DiaryRules.MAX_SIZES + 1) { FoodSize("s$it", 1.0) })))
+        assertEquals("micros has an invalid key", with(CustomFoodDetails(micros = mapOf("" to 1.0))))
+    }
+
+    @Test
     fun jsonDocumentsAreSizeCapped() {
         val big = "[" + "1,".repeat(DiaryRules.MAX_JSON_CHARS) + "1]"
         assertNotNull(DiaryRules.validate(SavedMeal(UUID.randomUUID(), "Lunch", null, big, now, false), now))

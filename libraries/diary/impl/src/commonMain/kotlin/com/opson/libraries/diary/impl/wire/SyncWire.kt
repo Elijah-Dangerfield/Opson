@@ -158,7 +158,19 @@ data class CustomFoodRowDto(
     val fiber: Double? = null,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean = false,
+    /**
+     * 0.2: the serving's weight, the other serving sizes and the rest of the label. This build
+     * always sends [sizes], empty for none. A row without it is an older build's, which knows
+     * nothing of these three, so the server keeps what it has for all of them.
+     */
+    val servingGrams: Double? = null,
+    val sizes: List<FoodUnitDto>? = null,
+    val micros: Map<String, Double>? = null,
 )
+
+/** One of a custom food's serving sizes on the wire: "tbsp" is 15 g. */
+@Serializable
+data class FoodUnitDto(val label: String, val grams: Double)
 
 @Serializable
 data class SavedMealRowDto(
