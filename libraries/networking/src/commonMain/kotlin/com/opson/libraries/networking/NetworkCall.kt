@@ -22,7 +22,7 @@ private val networkCallLogger = KLog.withTag("NetworkCall")
  *
  * Consults [NetworkClient.authVerdict] first: a Blocked verdict (no session,
  * offline, an expired session) short-circuits to a typed [AuthUnready] failure
- * without touching the wire — no phantom 401s. Callers ignore it with
+ * without touching the wire, so no phantom 401s. Callers ignore it with
  * `getOrNull()`; a call that does nothing special is already correct.
  * [requirement] defaults to [AuthRequirement.Account].
  *

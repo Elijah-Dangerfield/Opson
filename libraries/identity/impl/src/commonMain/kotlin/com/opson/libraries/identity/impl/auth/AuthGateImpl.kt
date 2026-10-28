@@ -66,7 +66,7 @@ class AuthGateImpl(
         return when (val auth = authState.value) {
             // Even offline: we hold a (possibly stale) session, so the
             // request proceeds and fails at transport like any ordinary
-            // network error — never through the gate.
+            // network error, never through the gate.
             is AuthState.Authenticated -> AuthVerdict.Ready
             else -> AuthVerdict.Blocked(blockedReason(auth as? AuthState.Unauthenticated))
         }
