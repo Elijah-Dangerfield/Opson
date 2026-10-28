@@ -7,12 +7,16 @@ import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.GoalStyle
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.MicroCoverage
 import com.opson.libraries.nutrition.MicroGroup
+import com.opson.libraries.nutrition.MicroPercents
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.microReference
+import com.opson.libraries.nutrition.toMicronutrients
+import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.time.RelativeDay
@@ -75,14 +79,16 @@ sealed interface NutrientsSubtitle {
     data class WeekAverage(val range: String) : NutrientsSubtitle
 }
 
-/** GoalStyle.Of: `47 of 120 g`. */
-data class NutrientRow(val metric: Metric, val label: StringResource, val display: Display)
+/** GoalStyle.Of: `47 of 120 g`. [opensFoods]: a food gave some, so a tap lists them. */
+data class NutrientRow(val metric: Metric, val label: StringResource, val display: Display, val opensFoods: Boolean = false)
 
 data class MicroGroupRows(val group: MicroGroup, val title: StringResource, val rows: List<MicroRow>)
 
 /**
  * [display] is a percent of [reference]: `62%`, or `Some` / `Most` / `Plenty` when softened.
- * [isLimit]: the reference is a ceiling (sodium), which the copy says.
+ * [isLimit]: the reference is a ceiling (sodium), which the copy says. [coverage] is how many of
+ * the foods list it: none is [notListed], with no percent at all, and some of them says so
+ * under the reference, because the percent is then a floor. [opensFoods]: a tap lists the foods.
  */
 data class MicroRow(
     val micro: Micronutrient,
@@ -90,7 +96,11 @@ data class MicroRow(
     val reference: String,
     val isLimit: Boolean,
     val display: Display,
-)
+    val coverage: MicroCoverage = MicroCoverage(0, 0),
+    val opensFoods: Boolean = false,
+) {
+    val notListed: Boolean get() = coverage.isNone
+}
 
 /**
  * Builds [NutrientsState]. Day resolves on [Surface.Nutrients], so a Delayed
@@ -108,6 +118,7 @@ object NutrientsStateBuilder {
 
     fun build(inputs: NutrientsInputs, policy: VisibilityPolicy): NutrientsState {
         val targets = inputs.settings.targets
+        val references = inputs.settings.microReferences(inputs.today)
         val window = TrendsCalendar.weekWindow(inputs.today, inputs.settings.weekStart)
         val surface = if (inputs.range == NutrientsRange.Day) Surface.Nutrients else Surface.Week
         val values: NutrientDay?
@@ -116,7 +127,7 @@ object NutrientsStateBuilder {
         when (inputs.range) {
             NutrientsRange.Day -> {
                 val day = inputs.days.firstOrNull { it.date == inputs.day } ?: Day.empty(inputs.day)
-                values = WeekAverages.ofDay(day)
+                values = WeekAverages.ofDay(day, references)
                 base = day.formatContext(inputs.today)
                 logged = day.allItems.isNotEmpty()
             }
@@ -124,7 +135,7 @@ object NutrientsStateBuilder {
                 val byDate = inputs.days.associateBy { it.date }
                 // Today is still in progress, so it stays out of the average, as on Trends.
                 val days = window.days.filter { it < inputs.today }.map { byDate[it] ?: Day.empty(it) }
-                values = WeekAverages.of(days)
+                values = WeekAverages.of(days, references)
                 logged = days.any { it.allItems.isNotEmpty() }
                 // The week's last day, so a weekly reveal's week opens at its weekly check and not before.
                 base = FormatContext(day = window.end)
@@ -154,7 +165,7 @@ object NutrientsStateBuilder {
 
         val macros = TREND_MACROS.mapNotNull { metric ->
             val display = policy.resolve(metric, values?.of(metric), surface, base.copy(of = targets.goal(metric), goal = GoalStyle.Of))
-            if (display is Display.Hidden) null else NutrientRow(metric, metric.label, display)
+            if (display is Display.Hidden) null else NutrientRow(metric, metric.label, display, opensFoods = (values?.of(metric) ?: 0.0) > 0.0)
         }.takeIf { it.isNotEmpty() }
 
         // What the mode allows, apart from whether there is anything to show: an
@@ -170,12 +181,15 @@ object NutrientsStateBuilder {
                     group = group,
                     title = group.label,
                     rows = Micronutrient.inGroup(group).map { micro ->
+                        val percent = percents[micro]
                         MicroRow(
                             micro = micro,
                             label = micro.label,
-                            reference = policy.microReference(micro),
+                            reference = policy.microReference(micro, references),
                             isLimit = micro.isLimit,
-                            display = policy.resolve(Metric.Micros, percents[micro], surface, microContext),
+                            display = policy.resolve(Metric.Micros, percent, surface, microContext),
+                            coverage = values?.microCoverage?.get(micro) ?: MicroCoverage(0, 0),
+                            opensFoods = (percent ?: 0.0) > 0.0,
                         )
                     },
                 )

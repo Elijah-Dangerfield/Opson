@@ -21,3 +21,16 @@ data class NutrientsRoute(
 
 @Serializable
 enum class NutrientsRange { Day, WeekAverage }
+
+/**
+ * Which foods gave one nutrient (a bottom sheet over Nutrients or Today): the foods ranked, with
+ * how much each gave where the mode shows amounts. [nutrient] is `Nutrient.key` (`iron`,
+ * `protein`); [dayIso] and [range] are as on [NutrientsRoute]. The sheet itself checks the mode,
+ * so a route to it opened in a mode that hides the nutrient shows nothing of it.
+ */
+@Serializable
+data class NutrientFoodsRoute(
+    val dayIso: String,
+    val nutrient: String,
+    val range: NutrientsRange = NutrientsRange.Day,
+) : Route()

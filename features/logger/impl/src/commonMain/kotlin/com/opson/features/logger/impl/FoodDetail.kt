@@ -136,13 +136,16 @@ data class MacroTile(val metric: Metric, val amount: Display)
  */
 data class TodayWithThis(val total: Display, val bare: Display = Display.Hidden, val plusMinus: Display = Display.Hidden)
 
-/** Vitamins, then minerals, each in the table's order; a group the food has nothing in is left out. */
+/** Vitamins, then minerals, each in the table's order, every one of them once the food lists any. */
 data class AllNutrients(val open: Boolean, val groups: List<NutrientGroup>)
 
 data class NutrientGroup(val group: MicroGroup, val rows: List<NutrientRow>)
 
-/** [display] is the portion's share of the daily reference, `12%`. */
-data class NutrientRow(val micro: Micronutrient, val display: Display)
+/**
+ * [display] is the portion's share of the person's daily reference, `12%`. [notListed]: the food
+ * says nothing about this one, which is not the same as none, so the row says "Not listed".
+ */
+data class NutrientRow(val micro: Micronutrient, val display: Display, val notListed: Boolean = false)
 
 /** "Per 350 g plate · Source: USDA FoodData Central". [per] is null for grams. */
 data class SourceLine(val per: String?, val source: FoodOrigin?)
@@ -306,7 +309,7 @@ object FoodDetailStateBuilder {
             servings = servings(units, unit, choice.quantity),
             precision = choice.precision,
             energy = energy(draft, inputs),
-            nutrients = nutrients(draft, inputs.policy, choice.nutrientsOpen),
+            nutrients = nutrients(draft, inputs, choice.nutrientsOpen),
             source = sourceLine(food, unit),
             customSize = choice.customSize,
             canAdd = choice.quantity > 0.0,
@@ -409,20 +412,25 @@ object FoodDetailStateBuilder {
         )
     }
 
-    private fun nutrients(draft: LogDraft, policy: VisibilityPolicy, open: Boolean): AllNutrients? {
+    private fun nutrients(draft: LogDraft, inputs: DetailInputs, open: Boolean): AllNutrients? {
+        val policy = inputs.policy
         // Hidden unless vitamins and minerals are on in Modes and numbers.
         if (policy.level(Metric.Micros) == Visibility.Hide) return null
-        // Only what the food carries: a micronutrient it has no value for is unknown, not 0%.
         val micros = draft.micros.orEmpty().toMicronutrients()
-        val groups = MicroGroup.entries.mapNotNull { group ->
+        // A link that opens onto nothing but "Not listed" reads as broken; a food with no micro data has none.
+        if (micros.isEmpty()) return null
+        val references = inputs.settings.microReferences(inputs.today)
+        val groups = MicroGroup.entries.map { group ->
             val rows = Micronutrient.inGroup(group).mapNotNull { micro ->
-                val amount = micros[micro] ?: return@mapNotNull null
-                NutrientRow(micro, policy.resolve(Metric.Micros, micro.percentOf(amount), Surface.Logger, FormatContext(of = PERCENT)))
-            }.filter { it.display !is Display.Hidden }
-            rows.takeIf { it.isNotEmpty() }?.let { NutrientGroup(group, it) }
-        }
-        // A link that opens onto nothing reads as broken; a food with no micro data has none.
-        return groups.takeIf { it.isNotEmpty() }?.let { AllNutrients(open = open, groups = it) }
+                // A micronutrient the food has no value for is unknown, not 0%: it says so.
+                val amount = micros[micro] ?: return@mapNotNull NutrientRow(micro, Display.Hidden, notListed = true)
+                val display = policy.resolve(Metric.Micros, references.percentOf(micro, amount), Surface.Logger, FormatContext(of = PERCENT))
+                NutrientRow(micro, display).takeIf { display !is Display.Hidden }
+            }
+            NutrientGroup(group, rows)
+        }.filter { it.rows.isNotEmpty() }
+        // Every row not listed means the level hid the rest (delayed, say): nothing to open.
+        return groups.takeIf { it.any { group -> group.rows.any { row -> !row.notListed } } }?.let { AllNutrients(open = open, groups = it) }
     }
 
     private fun sourceLine(food: AmountFood, unit: AmountUnit): SourceLine {

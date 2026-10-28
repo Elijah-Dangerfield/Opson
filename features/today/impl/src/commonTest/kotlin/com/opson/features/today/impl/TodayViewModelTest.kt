@@ -11,6 +11,7 @@ import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
@@ -227,6 +228,16 @@ class TodayViewModelTest : CoroutineTest() {
         vm.takeAction(TodayAction.NutrientsTapped)
 
         assertEquals(listOf<TodayEvent>(TodayEvent.OpenNutrients(today)), events)
+    }
+
+    @Test
+    fun aNutrientOnTheCard_opensItsFoodsForThisDay() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+
+        vm.takeAction(TodayAction.KeyNutrientTapped(Micronutrient.Iron))
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenNutrientFoods(today, Micronutrient.Iron)), events)
     }
 
     @Test

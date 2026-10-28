@@ -17,6 +17,8 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Micronutrient
+import com.opson.libraries.nutrition.Nutrient
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
@@ -106,6 +108,17 @@ object TrendsFixtures {
             NutrientsRange.WeekAverage -> days.filter { it.date >= window.start && it.date <= window.end }
         }
         return NutrientsInputs(today, today, range, fromTrends, settings, shown)
+    }
+
+    /** Iron today by default: three of today's four foods list it, so the sheet has a coverage line. */
+    fun nutrientFoodsInputs(
+        nutrient: Nutrient = Nutrient.Micro(Micronutrient.Iron),
+        range: NutrientsRange = NutrientsRange.Day,
+        settings: Settings = Settings(),
+        days: List<Day> = days(),
+    ): NutrientFoodsInputs {
+        val inputs = nutrientsInputs(range, settings = settings, days = days)
+        return NutrientFoodsInputs(today, today, range, nutrient, settings, inputs.days)
     }
 
     /** With the progress photos flag on and the last set taken today, as the design draws Weight. */

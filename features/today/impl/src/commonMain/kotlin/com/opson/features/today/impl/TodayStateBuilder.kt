@@ -193,7 +193,7 @@ object TodayStateBuilder {
             stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range, macros.map { it.metric }.toSet()) else emptyList(),
             macrosPage = if (summaryOn && !empty && settings.todayMacrosPage) macrosPage(day, settings, policy, context, eaten) else null,
             // More › Today screen's Nutrients switch, which turned the card's link off, turns this page off.
-            nutrientsPage = if (!empty && listRow(inputs) { it.todayNutrientsLink }) TodayNutrientsPage.build(day, policy, context) else null,
+            nutrientsPage = if (!empty && listRow(inputs) { it.todayNutrientsLink }) TodayNutrientsPage.build(day, settings, inputs.today, policy, context) else null,
             singleGoal = range.single,
             // Only All numbers' card: outside it (Later after its reveal, too) the mode sets the layout.
             card = if (inputs.goalsAndEnergyOn && policy.preset.today == TodayLayout.Full && policy.level(Metric.Calories) == Visibility.Show) {

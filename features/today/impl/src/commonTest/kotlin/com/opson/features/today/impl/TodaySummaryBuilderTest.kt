@@ -4,8 +4,10 @@ import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.TargetStyle
@@ -140,6 +142,36 @@ class TodaySummaryBuilderTest {
         )
         assertTrue(page.rows.first().isLimit, "sodium is a limit")
         assertEquals(3, assertNotNull(state.compact).pages.size)
+    }
+
+    @Test
+    fun theLastPage_listsTheirFour_againstTheirOwnReferences() {
+        val settings = Settings(birthYear = 1990, bodySex = BodySex.Female)
+            .withTodayNutrient(Micronutrient.Sodium, false)
+            .withTodayNutrient(Micronutrient.VitaminD, true)
+            .withMicroTarget(Micronutrient.Calcium, 1200.0)
+        val page = assertNotNull(build(settings = settings).energy().nutrientsPage)
+        val rows = page.rows.associateBy { it.micro }
+        assertEquals(listOf(Micronutrient.Potassium, Micronutrient.Calcium, Micronutrient.Iron, Micronutrient.VitaminD), page.rows.map { it.micro })
+        assertEquals("1,200 mg", rows.getValue(Micronutrient.Calcium).reference)
+        assertEquals("18 mg", rows.getValue(Micronutrient.Iron).reference)
+        // Iron: 3.4 + 1.8 mg of 18.
+        assertEquals("29%", assertIs<Display.Shown>(rows.getValue(Micronutrient.Iron).display).text)
+        assertTrue(rows.getValue(Micronutrient.Iron).opensFoods)
+    }
+
+    /** Nothing logged today lists vitamin D: the row says Not listed, never 0%, and has no foods to open. */
+    @Test
+    fun aNutrientNoFoodLists_isNotListed() {
+        val page = assertNotNull(build(settings = Settings().withTodayNutrient(Micronutrient.VitaminD, false)).energy().nutrientsPage)
+        assertEquals(4, page.rows.size)
+        val withD = assertNotNull(
+            build(settings = Settings().withTodayNutrient(Micronutrient.Iron, false).withTodayNutrient(Micronutrient.VitaminD, true)).energy().nutrientsPage,
+        )
+        val vitaminD = withD.rows.single { it.micro == Micronutrient.VitaminD }
+        assertTrue(vitaminD.notListed)
+        assertEquals(Display.Hidden, vitaminD.display)
+        assertFalse(vitaminD.opensFoods)
     }
 
     @Test

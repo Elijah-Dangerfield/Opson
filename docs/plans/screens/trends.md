@@ -315,12 +315,19 @@ data class NutrientsState(
     val nothing: Boolean,                      // everything hidden
 )
 data class EnergyRow(val eaten: Display, val range: Display, val rangeStart: Float, val rangeEnd: Float)
-data class NutrientRow(val metric: Metric, val label: StringResource, val display: Display)
+data class NutrientRow(val metric: Metric, val label: StringResource, val display: Display, val opensFoods: Boolean)
 data class MicroGroupRows(val group: MicroGroup, val title: StringResource, val rows: List<MicroRow>)
-data class MicroRow(val micro: Micronutrient, val label: StringResource, val reference: String, val isLimit: Boolean, val display: Display)
+data class MicroRow(
+    val micro: Micronutrient, val label: StringResource, val reference: String, val isLimit: Boolean, val display: Display,
+    val coverage: MicroCoverage,   // "9 of 12 foods list it" under the reference when only some do
+    val opensFoods: Boolean,       // a food gave some: a tap opens which ones
+)                                  // notListed (no food lists it): "Not listed" where the percent goes, never 0%
 ```
 
 Surface `Nutrients` for This day, `Week` (day = window end) for Week average.
+Each reference is the person's own (`Settings.microReferences`, by the age and
+sex Resting energy collects, with their own numbers over it), from
+`docs/research/nutrient-targets.md`.
 
 ### Actions
 
@@ -329,6 +336,7 @@ Surface `Nutrients` for This day, `Week` (day = window end) for Week average.
 | `InputsArrived(inputs, policy)` | |
 | `RangePicked(range)` | Re-subscribes to the day or the window. |
 | `ModesTapped` | Event `OpenModes`: Modes and numbers, where the pause applies. |
+| `NutrientTapped(nutrient)` | Event `OpenFoods(nutrient, range)`: the foods sheet below. |
 | `BackTapped` | `Close`. |
 
 ### Visibility surfaces
@@ -338,6 +346,27 @@ Surface `Nutrients` for This day, `Week` (day = window end) for Week average.
 | Energy | calories | `2,058 kcal` with range and bar | soft word with bar, no range | Day: hidden until reveal; Week: open | row removed |
 | Macros | macros | `88 of 120 g` with bar | soft word with bar | as above | row removed |
 | Vitamins, minerals | micros | `78%` with bar, `of 700 µg` | `Some` / `Most` / `Plenty` | as above | off card linking to Modes |
+
+### Which foods gave it
+
+`NutrientFoodsRoute(dayIso, nutrient, range)`, a `bottomSheet<>` Trends
+registers, opened from a macro or micro row here and from a row on Today's
+nutrients page. `nutrient` is `Nutrient.key` (`iron`, `protein`); energy is
+never one. The foods are ranked by how much each gave (`contributions` in
+`:libraries:diary`), the same food logged twice is one row, a food that lists
+none or 0 is not in the list, and the top eight show with "And 3 more".
+Week amounts are per day over the days the average counts.
+
+| Mode | Shows |
+|---|---|
+| All numbers, Macros with grams | Each food's amount (`2.1 mg`, `38 g`) and share (`40%`) on a bar |
+| Macros only (macros soften) | The foods in order, no amounts or shares, "Ranked by how much each gave." |
+| A level that hides the nutrient (No numbers; micros in Macros only) | Nothing of it, food names included |
+
+Every row is the nutrient's own colour, sodium too: nothing reads as a warning
+and nothing is framed as a food to cut. When only some foods list a micro the
+sheet says "3 of 4 foods list it, so the full amount may be higher." Leak
+surfaces `nutrient-foods`, `nutrient-foods-week`, `nutrient-foods-protein`.
 
 ### Copy
 `Nutrients`; `This day` / `Week average`; `· range %1$s`; group titles; `of

@@ -19,6 +19,11 @@ import androidx.compose.ui.text.style.TextAlign
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Nutrient
+import com.opson.libraries.diary.ui.label
+import com.opson.libraries.ui.bounceClick
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import com.opson.libraries.nutrition.ui.NutrientFillBar
 import com.opson.libraries.nutrition.ui.NutrientFillBarDefaults
 import com.opson.libraries.nutrition.ui.NutrientText
@@ -50,6 +55,9 @@ import opson.libraries.resources.generated.resources.trends_back
 import opson.libraries.resources.generated.resources.trends_loading_cd
 import opson.libraries.resources.generated.resources.trends_micro_of
 import opson.libraries.resources.generated.resources.trends_micro_of_limit
+import opson.libraries.resources.generated.resources.trends_micro_coverage
+import opson.libraries.resources.generated.resources.trends_micro_not_listed
+import opson.libraries.resources.generated.resources.trends_nutrient_open_foods
 import opson.libraries.resources.generated.resources.trends_micros_caption
 import opson.libraries.resources.generated.resources.trends_micros_off_body
 import opson.libraries.resources.generated.resources.trends_micros_off_link
@@ -131,7 +139,7 @@ internal fun NutrientsContent(
                 }
                 state.macros?.forEach { row ->
                     if (!first) HorizontalDivider(color = AppTheme.colors.line)
-                    MacroRowView(row)
+                    MacroRowView(row, onOpen = { onAction(NutrientsAction.NutrientTapped(Nutrient.Macro(row.metric))) })
                     first = false
                 }
             }
@@ -146,7 +154,7 @@ internal fun NutrientsContent(
                         modifier = Modifier.padding(top = Dimension.D500, bottom = Dimension.D300),
                     )
                     val color = AppTheme.colors.of(group.group)
-                    group.rows.forEach { row -> PercentRow(row, color) }
+                    group.rows.forEach { row -> PercentRow(row, color, onOpen = { onAction(NutrientsAction.NutrientTapped(Nutrient.Micro(row.micro))) }) }
                 }
             }
             Text(
@@ -233,10 +241,10 @@ private fun EnergyRowView(row: EnergyRow) {
 }
 
 @Composable
-private fun MacroRowView(row: NutrientRow) {
+private fun MacroRowView(row: NutrientRow, onOpen: () -> Unit) {
     val color = AppTheme.colors.of(row.metric)
     Column(
-        modifier = Modifier.padding(vertical = Dimension.D500),
+        modifier = Modifier.opensFoods(row.opensFoods, onOpen).padding(vertical = Dimension.D500),
         verticalArrangement = Arrangement.spacedBy(Dimension.D400),
     ) {
         Row(
@@ -262,12 +270,16 @@ private fun MacroRowView(row: NutrientRow) {
     }
 }
 
-/** A vitamin or mineral: name over `of 700 µg`, a bar that stops at 100%, and the percent at the end. */
+/**
+ * A vitamin or mineral: name over `of 700 µg`, a bar that stops at 100%, and the percent at the
+ * end. When only some foods list it, the count goes under the reference; when none does, "Not
+ * listed" stands where the percent would, never 0%.
+ */
 @Composable
-private fun PercentRow(row: MicroRow, color: ColorResource) {
+private fun PercentRow(row: MicroRow, color: ColorResource, onOpen: () -> Unit) {
     HorizontalDivider(color = AppTheme.colors.line)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = Dimension.D400),
+        modifier = Modifier.fillMaxWidth().opensFoods(row.opensFoods, onOpen).padding(vertical = Dimension.D400),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimension.D700),
     ) {
@@ -278,6 +290,22 @@ private fun PercentRow(row: MicroRow, color: ColorResource) {
                 typography = AppTheme.type.secondary,
                 color = AppTheme.colors.muted,
             )
+            if (row.coverage.isPartial) {
+                Text(
+                    text = stringResource(Res.string.trends_micro_coverage, row.coverage.listing, row.coverage.of),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                )
+            }
+        }
+        if (row.notListed) {
+            Text(
+                text = stringResource(Res.string.trends_micro_not_listed),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+                textAlign = TextAlign.End,
+            )
+            return@Row
         }
         NutrientFillBar(
             metric = Metric.Micros,
@@ -314,6 +342,14 @@ private fun MicrosOffCard(onModes: () -> Unit) {
             trailing = { ListRowChevron() },
         )
     }
+}
+
+/** A row that lists the foods behind it when tapped, when any food gave some. */
+@Composable
+private fun Modifier.opensFoods(enabled: Boolean, onOpen: () -> Unit): Modifier {
+    if (!enabled) return this
+    val label = stringResource(Res.string.trends_nutrient_open_foods)
+    return semantics { onClick(label = label) { onOpen(); true } }.bounceClick(scaleDown = 0.98f, onClick = onOpen)
 }
 
 /** How far the bar fills for a shown or softened amount; the policy already decided either may show. */

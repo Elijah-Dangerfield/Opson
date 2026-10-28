@@ -13,6 +13,7 @@ import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.MacroLineStyle
 import com.opson.libraries.nutrition.MacroPart
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -100,8 +101,20 @@ data class MacrosPage(val eaten: Display, val rows: List<MacroTile>, val shares:
 /** The last page: a few vitamins and minerals as a percent of a typical day's, and See all. */
 data class NutrientsPage(val rows: List<KeyNutrient>)
 
-/** "Sodium, of a 2,300 mg limit, 38%". [reference] is the amount the percent is of, formatted. */
-data class KeyNutrient(val label: StringResource, val reference: String, val isLimit: Boolean, val display: Display)
+/**
+ * "Sodium, of a 2,300 mg limit, 38%". [reference] is the amount the percent is of, formatted.
+ * [notListed]: no food today lists it, so the row says so instead of a percent. [opensFoods]: a
+ * food gave some, so a tap lists them.
+ */
+data class KeyNutrient(
+    val micro: Micronutrient,
+    val label: StringResource,
+    val reference: String,
+    val isLimit: Boolean,
+    val display: Display,
+    val notListed: Boolean = false,
+    val opensFoods: Boolean = false,
+)
 
 data class MacroShare(val metric: Metric, val label: StringResource, val share: Display, val weight: Float)
 
@@ -334,6 +347,9 @@ sealed interface TodayAction {
     data object DayLabelTapped : TodayAction
     data object NutrientsTapped : TodayAction
 
+    /** A row on the card's nutrients page: which foods gave it. */
+    data class KeyNutrientTapped(val micro: Micronutrient) : TodayAction
+
     /** The summary card's "Energy ›" (design sync 4): Energy today. */
     data object EnergyTapped : TodayAction
 
@@ -432,6 +448,9 @@ sealed interface TodayEvent {
     data class OpenCalendar(val day: LocalDate) : TodayEvent
     data class OpenDayClose(val day: LocalDate) : TodayEvent
     data class OpenNutrients(val day: LocalDate) : TodayEvent
+
+    /** The foods that gave [micro] on [day]. */
+    data class OpenNutrientFoods(val day: LocalDate, val micro: Micronutrient) : TodayEvent
     data object OpenNotes : TodayEvent
     data object OpenEnergyToday : TodayEvent
     data class OpenLogger(val day: LocalDate, val slot: MealSlot?) : TodayEvent

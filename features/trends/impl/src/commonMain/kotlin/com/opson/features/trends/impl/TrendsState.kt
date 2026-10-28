@@ -336,6 +336,7 @@ object TrendsStateBuilder {
         val delayed = TREND_MACROS.filter { policy.level(it) == Visibility.Delay }
         val averages = WeekAverages.of(
             span.days.filter { it < inputs.today }.map(dayAt).filter { day -> delayed.all { opens(it, day, inputs, policy) } },
+            inputs.settings.microReferences(inputs.today),
         )
         val targets = inputs.settings.targets
         val tiles = TREND_MACROS.mapNotNull { metric ->

@@ -3,7 +3,10 @@ package com.opson.features.trends.impl
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.diary.Settings
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.MicroCoverage
 import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.PresetId
@@ -96,8 +99,43 @@ class NutrientsStateBuilderTest {
     @Test
     fun microsSoftened_areWords() {
         val state = build(overrides = mapOf(Metric.Micros to Visibility.Soften))
-        val row = assertNotNull(state.micros).first().rows.first()
+        val row = assertNotNull(state.micros).flatMap { it.rows }.single { it.micro == Micronutrient.Iron }
         assertIs<Display.Soft>(row.display)
+    }
+
+    /** Today: oats, adobo and rice list iron, the banana does not. */
+    @Test
+    fun micros_sayHowManyFoodsListThem() {
+        val rows = assertNotNull(build().micros).flatMap { it.rows }.associateBy { it.micro }
+        val iron = rows.getValue(Micronutrient.Iron)
+        assertEquals(MicroCoverage(listing = 3, of = 4), iron.coverage)
+        assertFalse(iron.notListed)
+        assertTrue(iron.opensFoods)
+    }
+
+    /** Nothing today lists vitamin D: no percent and no 0%, "Not listed" instead, and nothing to open. */
+    @Test
+    fun aMicroNoFoodLists_isNotListed_notZero() {
+        val vitaminD = assertNotNull(build().micros).flatMap { it.rows }.single { it.micro == Micronutrient.VitaminD }
+        assertTrue(vitaminD.notListed)
+        assertEquals(Display.Hidden, vitaminD.display)
+        assertFalse(vitaminD.opensFoods)
+    }
+
+    @Test
+    fun references_followTheirAgeAndSex_andTheirOwnNumber() {
+        val settings = Settings(birthYear = 1990, bodySex = BodySex.Female).withMicroTarget(Micronutrient.Zinc, 10.0)
+        val rows = assertNotNull(build(inputs = TrendsFixtures.nutrientsInputs(settings = settings)).micros).flatMap { it.rows }.associateBy { it.micro }
+        assertEquals("18 mg", rows.getValue(Micronutrient.Iron).reference)
+        assertEquals("10 mg", rows.getValue(Micronutrient.Zinc).reference)
+        // Iron 5.3 mg of 18 is 29%; zinc 3.5 mg of their own 10 is 35%.
+        assertEquals("29%", assertIs<Display.Shown>(rows.getValue(Micronutrient.Iron).display).text)
+        assertEquals("35%", assertIs<Display.Shown>(rows.getValue(Micronutrient.Zinc).display).text)
+    }
+
+    @Test
+    fun macros_withSomethingLogged_openTheirFoods() {
+        assertTrue(assertNotNull(build().macros).all { it.opensFoods })
     }
 
     @Test

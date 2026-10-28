@@ -116,6 +116,7 @@
     <string name="logger_micro_phosphorus">Phosphorus</string>
     <string name="logger_micro_selenium">Selenium</string>
     <string name="logger_micro_of_daily">%1$s of a day</string>
+    <string name="logger_micro_not_listed">Not listed</string>
     <string name="logger_amount_loading_cd">Loading this food</string>
     <string name="logger_amount_missing">This food needs a connection to open.</string>
 

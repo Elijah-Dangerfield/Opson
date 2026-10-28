@@ -132,7 +132,10 @@
     <string name="trends_micro_selenium">Selenium</string>
     <string name="trends_micro_of">of %1$s</string>
     <string name="trends_micro_of_limit">of a %1$s</string>
-    <string name="trends_micros_caption">Percent of a typical daily target. Most people land under on some and over on others, and that's fine. A week tells you more than a day does.</string>
+    <string name="trends_micros_caption">Percent of a daily reference for your age and sex, which you can change in More, Targets. Most people land under on some and over on others, and that's fine. A week tells you more than a day does. Not listed means none of the foods say how much they have.</string>
+    <string name="trends_micro_not_listed">Not listed</string>
+    <string name="trends_micro_coverage">%1$d of %2$d foods list it</string>
+    <string name="trends_nutrient_open_foods">See which foods gave it</string>
     <string name="trends_micros_off_title">Vitamins and minerals are off</string>
     <string name="trends_micros_off_body">Turn them on in Modes and numbers.</string>
     <string name="trends_micros_off_link">Modes and numbers</string>
@@ -199,4 +202,11 @@
     <string name="trends_patterns_hunger_skipped">Hungrier on days you skipped breakfast (%1$s).</string>
     <string name="trends_patterns_new_foods">New foods</string>
     <string name="trends_loading_cd">Loading</string>
+
+    <!-- Which foods gave a nutrient: the sheet over Nutrients and Today. Never framed as foods to cut. -->
+    <string name="trends_foods_ranked">Ranked by how much each gave.</string>
+    <string name="trends_foods_none">None of the foods logged list this one.</string>
+    <string name="trends_foods_more">And %1$d more</string>
+    <string name="trends_foods_coverage">%1$d of %2$d foods list it, so the full amount may be higher.</string>
+    <string name="trends_foods_close">Done</string>
 </resources>
