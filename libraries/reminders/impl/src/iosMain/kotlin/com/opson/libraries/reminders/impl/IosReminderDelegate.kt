@@ -112,15 +112,10 @@ private class ReminderCenterDelegate(
                 actions.opened(reminder, ReminderAction.LogIt)
                 withCompletionHandler()
             }
-            // The system keeps a backgrounded app running until the handler is called.
-            ReminderAction.AlreadyAte.wire -> appScope.launch {
-                actions.alreadyAte(reminder)
-                withCompletionHandler()
-            }
-            ReminderAction.Snooze.wire -> appScope.launch {
-                actions.snooze(reminder)
-                withCompletionHandler()
-            }
+            ReminderAction.AlreadyAte.wire ->
+                appScope.answerInBackground(work = { actions.alreadyAte(reminder) }, done = withCompletionHandler)
+            ReminderAction.Snooze.wire ->
+                appScope.answerInBackground(work = { actions.snooze(reminder) }, done = withCompletionHandler)
             else -> withCompletionHandler()
         }
     }

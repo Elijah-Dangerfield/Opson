@@ -69,6 +69,12 @@ data class Day(
     /** Closed by the user, or simply in the past. Either one reveals delayed numbers. */
     fun isClosed(today: LocalDate): Boolean = closedAt != null || date < today
 
+    /**
+     * Closed with Close the day: nothing can be added or changed until it is reopened
+     * ([DayWrite.DayClosed]). Unlike [isClosed], a past day nobody closed stays open to logging.
+     */
+    val closedByUser: Boolean get() = closedAt != null
+
     /** The policy context for a number on this day. */
     fun formatContext(
         today: LocalDate,

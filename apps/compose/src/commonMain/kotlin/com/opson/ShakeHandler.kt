@@ -12,9 +12,13 @@ import com.opson.libraries.navigation.ShakeDialogRoute
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+
+/** How long a shake waits for the person's name before showing the dialog without it. */
+internal const val ShakeNameWaitMillis = 500L
 
 /**
  * Owns the shake-to-report gesture: listens while the app is in the
@@ -69,14 +73,17 @@ class ShakeHandler(
     private suspend fun handleShake(event: ShakeEvent) {
         if (isShowingDialog) return
 
-        val profile = profileRepository.current()
+        // The name only flavours the copy. The first profile is a /v1/me round trip, and a resolve
+        // that throws never emits, so an unbounded wait here left shake-to-report dead for the
+        // session, the moment someone most wants to report something.
+        val userName = withTimeoutOrNull(ShakeNameWaitMillis) { profileRepository.current() }?.displayNameOrNull
 
         val context = ShakeMessageContext(
             shakeCount = shakeCount,
             intensity = event.intensity,
             isLateNight = false,
             isFirstSession = false,
-            userName = profile.displayNameOrNull,
+            userName = userName,
         )
 
         val message = shakeMessageProvider.getMessage(context)

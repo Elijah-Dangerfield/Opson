@@ -6,6 +6,7 @@ import com.opson.server.domain.CatalogSource
 import com.opson.server.domain.DescribeParser
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodDescriber
+import com.opson.server.domain.FoodSubmissionRepository
 import com.opson.server.domain.SearchCategory
 import com.opson.server.domain.SearchFilter
 import com.opson.server.domain.SearchSort
@@ -16,6 +17,7 @@ import com.opson.server.plugins.DESCRIBE_LIMIT
 import com.opson.server.plugins.FOOD_SEARCH_LIMIT
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.problem
+import com.opson.server.plugins.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.ratelimit.RateLimitName
@@ -39,9 +41,11 @@ import java.util.UUID
  *    foods into the results; without it there are none ([SearchFilter.nevo]).
  *  - `GET /v1/foods/search/options` which of those this server offers: `off`
  *    only when `FOOD_SEARCH_OFF_ENABLED` is on.
- *  - `GET /v1/foods/{id}` one food with portions and micros.
+ *  - `GET /v1/foods/{id}` one food with portions and micros. A food someone
+ *    submitted is 404 to everyone else until a reviewer approves it.
  *  - `GET /v1/foods/barcode/{code}` catalog, then the enabled outside sources
- *    in tier order ([BarcodeLookup]). 404
+ *    in tier order ([BarcodeLookup]), then the caller's own submission still
+ *    waiting for review, so a second scan finds what they just added. 404
  *    `not_found` when nobody knows the code, 503 `barcode_lookup_unavailable`
  *    when no source could be reached. Rate-limited per IP because
  *    every miss costs an outside call from the server's one IP.
@@ -51,13 +55,14 @@ import java.util.UUID
  * a search is the catalog's heaviest statement, and a description is up to
  * 20 of them.
  *
- * All require a Supabase JWT. None of them reads or writes user data, and
- * none logs a query: what someone searches for is about what they eat.
+ * All require a Supabase JWT. None of them writes user data, and none logs
+ * a query: what someone searches for is about what they eat.
  */
 fun Route.foodRoutes(
     catalog: FoodCatalogRepository,
     barcodeLookup: BarcodeLookup,
     describer: FoodDescriber,
+    submissions: FoodSubmissionRepository,
 ) {
     authenticate(SUPABASE_JWT_AUTH) {
         rateLimit(RateLimitName(FOOD_SEARCH_LIMIT)) {
@@ -115,8 +120,14 @@ fun Route.foodRoutes(
                 }
                 when (val result = barcodeLookup.lookup(code)) {
                     is BarcodeLookupResult.Found -> call.respond(result.food.toResponse())
-                    BarcodeLookupResult.NotFound ->
-                        call.respond(HttpStatusCode.NotFound, problem("not_found", "No food for that barcode"))
+                    BarcodeLookupResult.NotFound -> {
+                        val own = call.userId()?.let { submissions.pendingFoodFor(it, code) }?.let { catalog.findById(it) }
+                        if (own != null) {
+                            call.respond(own.toResponse())
+                        } else {
+                            call.respond(HttpStatusCode.NotFound, problem("not_found", "No food for that barcode"))
+                        }
+                    }
 
                     BarcodeLookupResult.Unavailable -> call.respond(
                         HttpStatusCode.ServiceUnavailable,
@@ -130,6 +141,7 @@ fun Route.foodRoutes(
             val id = call.parameters["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                 ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "id must be a UUID"))
             val food = catalog.findById(id)
+                ?.takeIf { it.source != CatalogSource.UserSubmitted || call.userId()?.let { user -> submissions.isVisible(id, user) } == true }
                 ?: return@get call.respond(HttpStatusCode.NotFound, problem("not_found", "No such food"))
             call.respond(food.toResponse())
         }

@@ -61,30 +61,24 @@ fun IconButton(
 
 object IconButton {
     enum class Size {
-        Smallest,
         Small,
         Medium,
         Large,
-        Largest,
     }
 }
 
 internal val Size.padding: Dp
     get() = when (this) {
-        Size.Smallest -> Dimension.D100
         Size.Small -> Dimension.D100
         Size.Medium -> Dimension.D100
         Size.Large -> Dimension.D200
-        Size.Largest -> Dimension.D300
     }
 
 internal val Size.iconSize: IconSize
     get() = when (this) {
-        Size.Smallest -> IconSize.Smallest
         Size.Small -> IconSize.Small
         Size.Medium -> IconSize.Medium
         Size.Large -> IconSize.Large
-        Size.Largest -> IconSize.Largest
     }
 
 private val iconButtons = listOf(

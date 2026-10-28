@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.HeaderIconButton
 import com.opson.libraries.ui.components.MenuItem
 import com.opson.libraries.ui.components.PageHeader
@@ -27,6 +28,7 @@ import opson.libraries.resources.generated.resources.photos_delete_one_body
 import opson.libraries.resources.generated.resources.photos_delete_one_title
 import opson.libraries.resources.generated.resources.photos_more
 import opson.libraries.resources.generated.resources.photos_title
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import org.jetbrains.compose.resources.stringResource
 
 /** One photo, large, its date as the title. Delete is in ⋮. */
@@ -69,7 +71,10 @@ fun PhotoScreen(
                     }
                 }
             }
-            if (photo == null) {
+            if (photo == null && state.lock == PhotoLockState.Unlocked) {
+                // Unlocked, the photo's date not read yet: never the lock panel, which would say it's locked.
+                DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
+            } else if (photo == null) {
                 LockPanel(state.lock, onUnlock = { onAction(PhotoAction.UnlockTapped) })
             } else {
                 PhotoFrame(photo.image, photo.date, photo.pose, Modifier.fillMaxWidth().aspectRatio(PORTRAIT))

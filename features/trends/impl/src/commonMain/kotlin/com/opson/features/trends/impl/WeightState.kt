@@ -9,6 +9,7 @@ import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.ui.components.ChartReadout
 import com.opson.libraries.ui.time.DateCopy
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -52,6 +53,8 @@ data class WeightUi(
     val saved: Boolean = false,
     /** The last save didn't reach the database. */
     val failed: Boolean = false,
+    /** The last save was refused: zero, or more than anyone weighs. */
+    val notAWeight: Boolean = false,
 )
 
 /**
@@ -80,6 +83,11 @@ data class WeightState(
     val saved: SavedNote? = null,
     /** The weigh-in wasn't saved: it stays in the field, with a line saying so. */
     val saveFailed: Boolean = false,
+    /**
+     * What was typed is not a weight (zero, or past the 700 kg ceiling), so Save kept nothing. Said
+     * out loud because a masked field doesn't show the typo.
+     */
+    val notAWeight: Boolean = false,
     /** `null` while the release flag is off or Modes has photos at Hide. */
     val photos: PhotosRow? = null,
 )
@@ -97,6 +105,8 @@ data class WeightChart(
     val ranges: Boolean,
     /** Why the line is missing in this range, when it is; `null` when there is a line. */
     val gap: ChartGap? = null,
+    /** One per weigh-in: its day, and at Show the trend there and the reading. */
+    val readouts: List<ChartReadout?> = emptyList(),
 )
 
 /** Why a range has no line: nothing in it, or a single weigh-in, which is not a trend yet. */
@@ -141,6 +151,7 @@ object WeightStateBuilder {
                         curve.trend.isEmpty() -> ChartGap.OneReading
                         else -> null
                     },
+                    readouts = TrendsReadouts.weight(curve, inputs.today, unit, policy, weighIns = shown),
                 )
             },
             empty = level != Visibility.Hide && inputs.weighIns.isEmpty(),
@@ -156,6 +167,7 @@ object WeightStateBuilder {
                 else -> SavedNote.OutOfView
             },
             saveFailed = ui.failed,
+            notAWeight = ui.notAWeight,
             // Modes' Progress photos row, Show or Hide; Hide removes this row (design sync 2, 8.x).
             photos = if (inputs.photosReleased && policy.settings.showsProgressPhotos) PhotosRow(inputs.photosLastTaken) else null,
         )

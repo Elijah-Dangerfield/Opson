@@ -4,12 +4,21 @@ import com.opson.features.settings.impl.FakeAuthRepository
 import com.opson.features.settings.impl.FakeDataExport
 import com.opson.features.settings.impl.FakeDiarySync
 import com.opson.features.settings.impl.FakeLinks
+import com.opson.features.settings.impl.FakeSettingsRepository
+import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
 import com.opson.features.settings.impl.findSupportFlag
+import com.opson.features.settings.impl.providerSummaryFlag
+import com.opson.libraries.diary.OnboardingAnswers
+import com.opson.libraries.core.DeviceRegion
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.identity.auth.DeleteAccountOutcome
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Visibility
 import kotlinx.coroutines.CancellationException
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_delete_done
@@ -37,9 +46,84 @@ class SupportViewModelTest : CoroutineTest() {
         findSupport: Boolean = false,
         region: String? = "US",
         val links: FakeLinks = FakeLinks(),
+        val settings: FakeSettingsRepository = FakeSettingsRepository(),
+        providerSummary: Boolean = false,
     ) {
         val export = FakeDataExport(sync, csv)
-        val vm = SupportViewModel(sync, export, auth, findSupportFlag(findSupport), DeviceRegion { region }, links)
+        val vm = SupportViewModel(
+            sync, export, auth, settings, findSupportFlag(findSupport), providerSummaryFlag(providerSummary), DeviceRegion { region }, links,
+        )
+    }
+
+    private fun settingsIn(preset: PresetId, overrides: Map<Metric, Visibility> = emptyMap()) =
+        FakeSettingsRepository(SettingsFixtures.settings(numbers = NumbersSettings(preset = preset, overrides = overrides)))
+
+    @Test
+    fun aModeThatHidesNumbers_hearsSoBeforeTheFileOpens() = runUnitTest {
+        listOf(PresetId.NoNumbers, PresetId.MacrosOnly, PresetId.MacrosWithGrams).forEach { preset ->
+            val rig = Rig(csv = Result.success(csv), settings = settingsIn(preset))
+            val events = eventsOf(rig.vm)
+
+            rig.vm.takeAction(SupportAction.ExportTapped)
+
+            assertEquals(ExportStatus.ConfirmingNumbers, rig.vm.state.export, "for $preset")
+            assertEquals(0, rig.export.calls, "nothing is fetched before the person says so, in $preset")
+            assertTrue(events.isEmpty())
+
+            rig.vm.takeAction(SupportAction.ExportConfirmed)
+
+            assertEquals("opson-export.zip", assertIs<SupportEvent.ShareExport>(events[0]).name)
+        }
+    }
+
+    @Test
+    fun notNow_makesNoFile() = runUnitTest {
+        val rig = Rig(csv = Result.success(csv), settings = settingsIn(PresetId.NoNumbers))
+        val events = eventsOf(rig.vm)
+
+        rig.vm.takeAction(SupportAction.ExportTapped)
+        rig.vm.takeAction(SupportAction.ExportNotNow)
+
+        assertEquals(ExportStatus.Idle, rig.vm.state.export)
+        assertEquals(0, rig.export.calls)
+        assertTrue(events.isEmpty())
+    }
+
+    /** All numbers with one number on Later, or softened, still has a number the file shows early. */
+    @Test
+    fun allNumbersWithOneNumberHeldBack_isWarnedToo() = runUnitTest {
+        val later = Rig(settings = settingsIn(PresetId.Full, mapOf(Metric.Calories to Visibility.Delay)))
+        later.vm.takeAction(SupportAction.ExportTapped)
+        assertEquals(ExportStatus.ConfirmingNumbers, later.vm.state.export)
+
+        val softWeight = Rig(settings = settingsIn(PresetId.Full, mapOf(Metric.Weight to Visibility.Soften)))
+        softWeight.vm.takeAction(SupportAction.ExportTapped)
+        assertEquals(ExportStatus.ConfirmingNumbers, softWeight.vm.state.export)
+    }
+
+    @Test
+    fun theProviderSummary_followsTheFlag_andComesFirstForSomeoneWithAProvider() = runUnitTest {
+        assertEquals(ProviderSummaryOffer.None, Rig(providerSummary = false).vm.state.providerSummary)
+        assertEquals(ProviderSummaryOffer.InYourData, Rig(providerSummary = true).vm.state.providerSummary)
+        val withProvider = FakeSettingsRepository(
+            SettingsFixtures.settings().copy(onboarding = OnboardingAnswers(why = listOf(OnboardingAnswers.WORKING_WITH_PROVIDER))),
+        )
+        val rig = Rig(providerSummary = true, settings = withProvider)
+        assertEquals(ProviderSummaryOffer.First, rig.vm.state.providerSummary)
+
+        val events = eventsOf(rig.vm)
+        rig.vm.takeAction(SupportAction.ProviderSummaryTapped)
+        assertEquals(listOf<SupportEvent>(SupportEvent.OpenProviderSummary), events)
+    }
+
+    @Test
+    fun withTheFlagOff_theSummaryCannotBeOpened() = runUnitTest {
+        val rig = Rig(providerSummary = false)
+        val events = eventsOf(rig.vm)
+
+        rig.vm.takeAction(SupportAction.ProviderSummaryTapped)
+
+        assertTrue(events.isEmpty())
     }
 
     @Test
@@ -85,9 +169,9 @@ class SupportViewModelTest : CoroutineTest() {
 
         assertEquals(1, rig.export.syncsBeforeFirstCall)
         val share = assertIs<SupportEvent.ShareExport>(events[0])
-        assertEquals("opson-export.csv", share.name)
+        assertEquals("opson-export.zip", share.name)
         assertContentEquals(csv, share.bytes)
-        assertEquals(SupportEvent.ShowToast(Toast(Res.string.settings_export_ready, listOf("opson-export.csv"))), events[1])
+        assertEquals(SupportEvent.ShowToast(Toast(Res.string.settings_export_ready, listOf("opson-export.zip"))), events[1])
         assertEquals(ExportStatus.Idle, rig.vm.state.export)
     }
 
@@ -118,9 +202,12 @@ class SupportViewModelTest : CoroutineTest() {
     fun aCancelledExport_isNotReportedAsOffline() = runUnitTest {
         val sync = FakeDiarySync()
         val cancelled = object : DataExport {
-            override suspend fun csv(): Result<ByteArray> = throw CancellationException("left the page")
+            override suspend fun everything(): Result<ByteArray> = throw CancellationException("left the page")
         }
-        val vm = SupportViewModel(sync, cancelled, FakeAuthRepository(), findSupportFlag(false), DeviceRegion { "US" }, FakeLinks())
+        val vm = SupportViewModel(
+            sync, cancelled, FakeAuthRepository(), FakeSettingsRepository(), findSupportFlag(false), providerSummaryFlag(false),
+            DeviceRegion { "US" }, FakeLinks(),
+        )
 
         vm.takeAction(SupportAction.ExportTapped)
 

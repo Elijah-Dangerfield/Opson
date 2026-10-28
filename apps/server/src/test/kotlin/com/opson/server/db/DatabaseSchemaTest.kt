@@ -27,13 +27,15 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     @Test
-    fun catalogAndDiaryTablesMatchTheirExposedProjections() = runTest {
+    fun everyOtherTableMatchesItsExposedProjection() = runTest {
         database.transaction {
             listOf(
                 FoodsTable, OffFoodsTable, FoodSearchEventsTable, BarcodeLookupsTable, BarcodeMissesTable,
                 LogEntriesTable, DayRecordsTable, MealFeelingsTable, WeighInsTable,
                 CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, ExercisesTable, WaitlistTable,
-                AppleRefreshTokensTable,
+                AppleRefreshTokensTable, SubmittedFoodsTable, FoodSubmissionsTable, FoodSubmissionPhotosTable,
+                BarcodeLinkSuggestionsTable, AppConfigValuesTable, AppConfigRulesTable, AppConfigAuditTable,
+                AppConfigManifestTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
@@ -164,6 +166,47 @@ class DatabaseSchemaTest : DatabaseTest() {
         assertEquals(listOf("1"), strings("SELECT count(*)::text FROM exercises WHERE user_id = '$user'"))
         database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
         assertEquals(listOf("0"), strings("SELECT count(*)::text FROM exercises WHERE user_id = '$user'"))
+    }
+
+    /**
+     * V25 is additive and safe to run twice. Deleting an account deletes its
+     * submissions and photos, and the food with them unless a reviewer
+     * approved it: an approved food is catalog data and stays.
+     */
+    @Test
+    fun foodSubmissionsMigrationIsIdempotentAndAccountDeletionKeepsOnlyApprovedFoods() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V25__food_submissions.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val user = seedAuthUser().value
+        val pendingFood = java.util.UUID.randomUUID()
+        val approvedFood = java.util.UUID.randomUUID()
+        database.blockingTransaction {
+            listOf(pendingFood to "pending", approvedFood to "approved").forEach { (food, status) ->
+                exec(
+                    "INSERT INTO foods (id, source, source_id, name, review_status) " +
+                        "VALUES ('$food', 'user_submitted', '$food', 'x', '$status')",
+                )
+                exec(
+                    "INSERT INTO food_submissions (id, user_id, food_id, status, origin, submitted) " +
+                        "VALUES (gen_random_uuid(), '$user', '$food', '$status', 'barcode', '{}'::jsonb)",
+                )
+            }
+            exec(
+                "INSERT INTO food_submission_photos (submission_id, kind, media_type, bytes) " +
+                    "SELECT id, 'front', 'image/jpeg', decode('ffd8', 'hex') FROM food_submissions WHERE user_id = '$user'",
+            )
+        }
+        assertEquals(listOf("2"), strings("SELECT count(*)::text FROM foods WHERE id IN ('$pendingFood', '$approvedFood')"))
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
+
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM food_submissions WHERE user_id = '$user'"))
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM food_submission_photos p LEFT JOIN food_submissions s ON s.id = p.submission_id WHERE s.id IS NULL"))
+        assertEquals(listOf(approvedFood.toString()), strings("SELECT id::text FROM foods WHERE id IN ('$pendingFood', '$approvedFood')"))
+        assertFailsWith<Exception> {
+            database.blockingTransaction { exec("UPDATE foods SET review_status = 'maybe' WHERE id = '$approvedFood'") }
+        }
+        database.blockingTransaction { exec("DELETE FROM foods WHERE id = '$approvedFood'") }
     }
 
     /** The limits DiaryRules checks hold in the table too. */
@@ -345,7 +388,8 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
         listOf(
             "log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "barcode_misses",
-            "profiles", "waitlist", "apple_refresh_tokens",
+            "profiles", "waitlist", "apple_refresh_tokens", "food_submissions", "food_submission_photos",
+            "barcode_link_suggestions",
         ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
@@ -410,7 +454,8 @@ class DatabaseSchemaTest : DatabaseTest() {
             "daily_active_loggers", "entries_by_method_precision", "meals_per_day_distribution", "days_closed",
             "preset_distribution", "search_daily", "top_zero_result_queries", "barcode_outcomes_daily",
             "weekly_retention_cohorts", "retention_d1_d7_d30", "barcode_hit_rate_daily", "top_missed_barcodes",
-            "barcode_misses_by_country", "waitlist_daily",
+            "barcode_misses_by_country", "waitlist_daily", "food_submissions_daily", "food_submission_queue",
+            "barcode_link_queue",
         )
         val SUPPORT_VIEWS = listOf("users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings")
     }

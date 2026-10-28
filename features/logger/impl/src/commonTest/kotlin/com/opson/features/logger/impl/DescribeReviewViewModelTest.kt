@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -96,6 +97,17 @@ class DescribeReviewViewModelTest : CoroutineTest() {
         val logged = logged(vm)
         assertEquals(listOf("2 large", "1 slice"), logged.map { it.amountLabel })
         assertTrue(logged.all { it.method == LogMethod.Describe && it.precision == Precision.Estimate })
+    }
+
+    /** The server answers more than it reads with a 400, which would read as "that didn't parse" on every pause. */
+    @Test
+    fun aDescriptionLongerThanTheServerReadsIsCutToWhatItReads() = runUnitTest {
+        val long = "2 eggs and toast, ".repeat(80)
+        val vm = described(long)
+
+        assertEquals(LoggerViewModel.DESCRIBE_LIMIT, vm.state.describe.text.length)
+        assertEquals(long.take(LoggerViewModel.DESCRIBE_LIMIT).trim(), catalog.described.single())
+        assertEquals(DescribeStatus.Parsed, vm.state.describe.status)
     }
 
     @Test
@@ -184,6 +196,32 @@ class DescribeReviewViewModelTest : CoroutineTest() {
         assertEquals(3, logged(vm).size)
     }
 
+    /** "Nothing by that name" offline would tell someone the food does not exist. */
+    @Test
+    fun findOfflineWithNothingCachedSaysItNeedsAConnection() = runUnitTest {
+        val vm = described()
+        catalog.online = false
+
+        vm.takeAction(DescribeReviewAction.FindTapped())
+        vm.takeAction(DescribeReviewAction.FindTyped("kugel"))
+        settle()
+
+        assertEquals(emptyList(), vm.state.describe.find?.results)
+        assertTrue(vm.state.describe.find?.offline == true)
+    }
+
+    @Test
+    fun findOnlineWithNothingFoundIsAMiss() = runUnitTest {
+        val vm = described()
+
+        vm.takeAction(DescribeReviewAction.FindTapped())
+        vm.takeAction(DescribeReviewAction.FindTyped("kugel"))
+        settle()
+
+        assertEquals(emptyList(), vm.state.describe.find?.results)
+        assertFalse(vm.state.describe.find?.offline == true)
+    }
+
     @Test
     fun findAddsAMissedFoodWithoutLeavingDescribe() = runUnitTest {
         val vm = described()
@@ -270,6 +308,20 @@ class DescribeReviewViewModelTest : CoroutineTest() {
         val vm = described("2 eggs")
 
         assertEquals("2 large", vm.lines.single().amount)
+        assertTrue("grams" !in vm.lines.single().units)
+    }
+
+    @Test
+    fun caloriesHiddenWhileDescribeIsOpenMovesAWeighedLineToItsMeasure() = runUnitTest {
+        catalog.describeResult = Catching.success(listOf(LoggerFixtures.parsed[0].copy(portionLabel = null)))
+        val vm = described("2 eggs")
+        assertTrue("grams" in vm.lines.single().units)
+        val weighed = vm.lines.single().amount
+
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        settle()
+
+        assertTrue(vm.lines.single().amount != weighed, "was $weighed")
         assertTrue("grams" !in vm.lines.single().units)
     }
 

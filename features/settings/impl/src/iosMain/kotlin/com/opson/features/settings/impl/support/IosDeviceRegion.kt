@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl.support
 
+import com.opson.libraries.core.DeviceRegion
 import me.tatarka.inject.annotations.Inject
 import platform.Foundation.NSLocale
 import platform.Foundation.countryCode

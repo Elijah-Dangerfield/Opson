@@ -9,7 +9,10 @@
  * What it does, all of it an upsert so re-running repairs drift:
  *  - creates the Supabase project, or adopts one that already has the name
  *  - waits for it to come up, because a fresh project is not immediately usable
- *  - turns on anonymous sign-ins (the guest flow does not work without it)
+ *  - turns anonymous sign-ins off on a project it creates (nothing creates
+ *    guests any more) and leaves an adopted project's setting alone, since
+ *    0.1 builds still make guests; `--allow-anonymous` turns them on
+ *  - turns on manual linking, which linking Apple or Google onto a guest needs
  *  - sets the site URL and the redirect allow-list to this project's custom
  *    scheme, so browser OAuth and the confirm-email link return to the app
  *  - enables Apple with your iOS bundle ID as the authorized client, which is
@@ -18,12 +21,13 @@
  *  - fills the Supabase half of `apps/server/.env`, if this project has a server
  *
  * What it does NOT do: enable Google. That needs an OAuth client from the Google
- * Cloud console, which has no API worth automating, and the app works without
- * it.
+ * Cloud console, which has no API worth automating. Android has no other way
+ * to sign in, so an Android build cannot get past onboarding without it.
  *
  * Run from the project root:
  *   ./scripts/setup_supabase.main.kts
  *   ./scripts/setup_supabase.main.kts --non-interactive
+ *   ./scripts/setup_supabase.main.kts --allow-anonymous   # a project older builds made guests on
  */
 
 import java.io.File
@@ -147,6 +151,7 @@ if (!File(root, "settings.gradle.kts").exists()) {
 }
 
 val interactive = "--non-interactive" !in args.toList()
+val allowAnonymous = "--allow-anonymous" in args.toList()
 val values = SetupValues(interactive = interactive)
 
 bold("\n━━ Supabase setup ━━")
@@ -238,10 +243,23 @@ val bundleId = File(root, "apps/ios/fastlane/Appfile").takeIf { it.exists() }?.r
         ?.substringAfter("= ")?.trim()?.removeSuffix(";")?.takeIf { it.isNotBlank() && '$' !in it }
     ?: applicationId
     ?: prompt("iOS bundle ID (for native Sign in with Apple)")
+/**
+ * Anonymous sign-ins, or null to leave them as they are. Nothing in the app
+ * creates guests any more (sign-in comes right after Welcome), so on a new
+ * project they would only let anyone holding the publishable key mint
+ * accounts. An adopted project is left alone: builds from before that change
+ * (0.1, TestFlight 702) still create a guest on first launch.
+ */
+val anonymousSignIns: Boolean? = when {
+    allowAnonymous -> true
+    createdDatabaseUrl != null -> false
+    else -> null
+}
 val authBody = jsonObject(
-    // The guest flow mints anonymous sessions during onboarding. Without this
-    // every first launch fails at the point the user has done nothing wrong.
-    "external_anonymous_users_enabled" to "true",
+    *listOfNotNull(anonymousSignIns?.let { "external_anonymous_users_enabled" to it.toString() }).toTypedArray(),
+    // Linking Apple or Google onto the signed-in user (a guest from an older
+    // build keeps their log that way) needs manual linking.
+    "security_manual_linking_enabled" to "true",
     // Confirm-email on. The app has a verify-email surface and a
     // `://auth/confirmed` redirect wired to it.
     "mailer_autoconfirm" to "false",
@@ -254,7 +272,12 @@ val authBody = jsonObject(
 )
 val authResponse = supabase("PATCH", "/projects/$ref/config/auth", token, authBody)
 if (authResponse.isSuccess) {
-    green("✓ Anonymous sign-ins on, email confirmation on, Apple authorized for $bundleId")
+    val anonymous = when (anonymousSignIns) {
+        true -> "on"
+        false -> "off"
+        null -> "left as they were"
+    }
+    green("✓ Anonymous sign-ins $anonymous, manual linking on, email confirmation on, Apple authorized for $bundleId")
     green("✓ Redirect allow-list: ${redirectUrls.joinToString(", ")}")
 } else {
     yellow("Could not update auth config (HTTP ${authResponse.code}): ${authResponse.body.take(300)}")
@@ -277,19 +300,11 @@ if (readProperty(localProperties, "sdk.dir") == null) {
         ?.let { upsertProperty(localProperties, "sdk.dir", it) }
 }
 green("✓ Wrote supabase.projectId / url / anonKey into local.properties")
-dim("  local.properties is gitignored, CI reads SUPABASE_PROJECT_ID / SUPABASE_ANON_KEY instead.")
-
-if (hasGhRepo()) {
-    val projectOk = setGhSecret("SUPABASE_PROJECT_ID", ref)
-    val keyOk = setGhSecret("SUPABASE_ANON_KEY", anonKey)
-    if (projectOk && keyOk) {
-        green("✓ Set repo secrets SUPABASE_PROJECT_ID and SUPABASE_ANON_KEY")
-    } else {
-        yellow("Could not set the repo secrets, set SUPABASE_PROJECT_ID / SUPABASE_ANON_KEY by hand.")
-    }
-} else {
-    yellow("No GitHub repo reachable via gh, set SUPABASE_PROJECT_ID / SUPABASE_ANON_KEY yourself once there is one.")
-}
+// Not a repo secret: no workflow reads one, and a release build taking its
+// project from anywhere but a committed file is what broke 0.1.0.
+dim("  Debug builds read local.properties. Release builds read prod from the committed")
+dim("  supabase.properties: if this is the prod project, set supabase.prod.projectId and")
+dim("  supabase.prod.anonKey there and commit it.")
 
 /** Reads `KEY=value` from an env file, null when absent or blank. */
 fun readEnvValue(file: File, key: String): String? =
@@ -330,10 +345,9 @@ bold("\n━━ Supabase is configured ━━")
 println("  Project:   $projectUrl")
 println("  Dashboard: https://supabase.com/dashboard/project/$ref")
 println()
-println("Next: rebuild, complete onboarding as a guest, and check")
-println("Authentication → Users for a row with is_anonymous = true.")
+println("Next: rebuild, sign in, and check Authentication → Users for your row.")
 println()
 println("Not done here: Google sign-in (needs a Google Cloud OAuth client).")
-println("The app runs without it, the button is simply not wired.")
+println("Android has no other way to sign in, so do it before an Android build (SETUP.md).")
 
 exitProcess(0)

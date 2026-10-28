@@ -44,6 +44,11 @@
     <string name="settings_log_out_body">Your log stays in your account. Sign in again to pick up where you left off.</string>
     <string name="settings_log_out_body_guest">You're using Opson as a guest. Logging out removes your log from this phone, and there's no account to sign back in to.</string>
     <string name="settings_log_out_cancel">Cancel</string>
+    <!-- The sync before logging out couldn't reach the account -->
+    <string name="settings_log_out_unsynced_title">Couldn't reach your account</string>
+    <string name="settings_log_out_unsynced_body">Anything you logged since Opson last synced is only on this phone, and logging out removes it. Stay, and try again when you're online.</string>
+    <string name="settings_log_out_stay">Stay</string>
+    <string name="settings_log_out_anyway">Log out anyway</string>
 
     <!-- Metrics, as the per-number grid names them -->
     <string name="settings_metric_calories">Calories</string>
@@ -245,6 +250,9 @@
     <string name="settings_resting_height">Height</string>
     <string name="settings_resting_cm">cm</string>
     <string name="settings_resting_in">in</string>
+    <string name="settings_resting_ft">ft</string>
+    <!-- The height unit switch: centimetres, or feet and inches. -->
+    <string name="settings_resting_ft_in">ft and in</string>
     <string name="settings_resting_sex">Sex</string>
     <string name="settings_resting_sex_female">Female</string>
     <string name="settings_resting_sex_male">Male</string>
@@ -321,7 +329,16 @@
     <string name="settings_support_opens_browser">Opens in your browser</string>
     <string name="settings_support_data_title">Your data</string>
     <string name="settings_support_data_body">Saved on this phone and synced to your account. No ad tracking.</string>
-    <string name="settings_support_export">Export everything (CSV)</string>
+    <string name="settings_support_export">Export everything</string>
+    <string name="settings_support_export_sub">Spreadsheets of every log, note and setting, in one zip</string>
+    <string name="settings_export_numbers_title">Your export has every number</string>
+    <string name="settings_export_numbers_body">It lists the calories, macros, weight and water you logged, including the ones your mode keeps out of sight. You don't have to open it yourself. You can send it on, or save it for later.</string>
+    <string name="settings_export_numbers_go">Make the file</string>
+    <string name="settings_export_numbers_not_now">Not now</string>
+    <string name="settings_support_summary">Make a summary for your provider</string>
+    <string name="settings_support_summary_sub">Pick the days and what goes in, then share a PDF</string>
+    <string name="settings_support_summary_card_title">For your provider</string>
+    <string name="settings_support_summary_card_body">You said you're working with a provider. You can make them a summary of the days you pick, and share it yourself.</string>
     <string name="settings_send_feedback">Send feedback</string>
     <string name="settings_support_delete">Delete everything</string>
     <string name="settings_support_delete_title">Delete everything?</string>
@@ -438,6 +455,60 @@
     <string name="settings_today_in_list">In the list</string>
     <string name="settings_today_water">Water</string>
     <string name="settings_today_weight">Weight on days you weigh in</string>
+    <string name="settings_today_in_header">In the header</string>
     <string name="settings_today_close_day">Close the day</string>
     <string name="settings_today_card_from_mode">In this mode the card's layout comes from the mode.</string>
+    <!-- A summary for your provider (release.providerSummary). The screen, then the document. -->
+    <string name="summary_title">A summary for your provider</string>
+    <string name="summary_intro">Pick the days and what goes in. You'll see it before you share it, and it only goes where you send it.</string>
+    <string name="summary_range">Days</string>
+    <string name="summary_range_week">Last 7 days</string>
+    <string name="summary_range_two_weeks">Last 2 weeks</string>
+    <string name="summary_range_four_weeks">Last 4 weeks</string>
+    <string name="summary_range_custom">Pick dates</string>
+    <string name="summary_range_pick">Tap the first day, then the last. Up to 90 days.</string>
+    <string name="summary_range_prev">Previous month</string>
+    <string name="summary_range_next">Next month</string>
+    <string name="summary_include">What goes in</string>
+    <string name="summary_include_meals">Meals and times</string>
+    <string name="summary_include_notes">Notes</string>
+    <string name="summary_include_hunger">Hunger</string>
+    <string name="summary_include_check_ins">Check-ins</string>
+    <string name="summary_include_weight">Weight</string>
+    <string name="summary_include_numbers">Calories, macros and water</string>
+    <string name="summary_include_hidden">Your mode keeps these out of sight</string>
+    <string name="summary_preview">Preview</string>
+    <string name="summary_preview_hidden">Some numbers you picked stay out of this preview, because your mode keeps them out of sight. They're in the PDF.</string>
+    <string name="summary_share">Share as PDF</string>
+    <string name="summary_sharing">Making the PDF…</string>
+    <string name="summary_failed">Couldn't make the PDF. Try again in a moment.</string>
+    <string name="summary_nothing_picked">Pick at least one thing to include.</string>
+    <string name="summary_warning_title">These numbers will be in the PDF</string>
+    <string name="summary_warning_body">Your mode keeps them out of sight, so the preview here won't show them. The PDF will, for whoever you share it with. You can turn this off again before you share.</string>
+    <string name="summary_warning_include">Include them</string>
+    <string name="summary_warning_leave_out">Leave them out</string>
+    <string name="summary_doc_title">Food log summary</string>
+    <string name="summary_doc_range">%1$s, %2$s</string>
+    <string name="summary_doc_made">Made in the Opson app on %1$s. It holds only what the person chose to include.</string>
+    <string name="summary_doc_included">Included: %1$s</string>
+    <string name="summary_doc_numbers_note">Numbers are as logged. A day's totals add up the foods that had that number, so a day with gaps reads low.</string>
+    <string name="summary_doc_meal_time">%1$s · %2$s</string>
+    <string name="summary_doc_ate_no_details">%1$s · ate, no details</string>
+    <string name="summary_doc_hunger">Hunger: %1$s</string>
+    <string name="summary_doc_meal_note">Note: %1$s</string>
+    <string name="summary_doc_day_note">Day note: %1$s</string>
+    <string name="summary_doc_feeling">How the day felt: %1$s</string>
+    <string name="summary_doc_pair">%1$s: %2$s</string>
+    <string name="summary_doc_moods">Mood: %1$s</string>
+    <string name="summary_doc_nothing">Nothing logged</string>
+    <string name="summary_doc_untracked">Not tracking this day</string>
+    <string name="summary_doc_weight">Weight</string>
+    <string name="summary_doc_no_weight">No weigh-ins in these days.</string>
+    <string name="summary_doc_calories">Calories %1$s</string>
+    <string name="summary_doc_protein">Protein %1$s</string>
+    <string name="summary_doc_carbs">Carbs %1$s</string>
+    <string name="summary_doc_fat">Fat %1$s</string>
+    <string name="summary_doc_fiber">Fiber %1$s</string>
+    <string name="summary_doc_water">Water %1$s</string>
+    <string name="summary_doc_footer">Food log summary from Opson</string>
 </resources>

@@ -75,6 +75,19 @@ way.
   logs, in counts. It links to the Grafana User detail board and to Sentry
   for the same id. Server side it's `/v1/admin/users`, reading the `support`
   views, so it shows no food, amount, weight or note.
+- **Review.** Foods people added from photos of a pack (`release.submitFood`),
+  pending oldest first, with approved and rejected a click away. A submission
+  opens with the front and the label photos side by side, then every field as
+  the model read it (with its confidence), as the person sent it, and as it
+  stands, and the checks the server ran on each. Correct any field and save,
+  approve (the food joins search and barcode lookup for everyone, with the
+  barcode and `verified` set) or reject with a reason (the submitter keeps
+  their own copy). Below the queue, barcodes suggested by a miss followed by
+  a search: attach one to its food or dismiss it. The photos are fetched with
+  the admin token into a blob URL that lives in the tab; nothing links to
+  them. `#review/<id>` in the address opens one submission, which is how the
+  Grafana Food review board links here. Server side it's
+  `/v1/admin/food-submissions` and `/v1/admin/barcode-links`.
 - **Waitlist.** The website waitlist for the connected environment: how many
   addresses, the newest 50 (page back with *Older*), *Export CSV*
   (`email,source,created_at`, downloaded by the browser), and *Remove*, per

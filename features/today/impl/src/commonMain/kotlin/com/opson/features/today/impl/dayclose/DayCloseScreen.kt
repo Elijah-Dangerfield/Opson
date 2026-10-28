@@ -17,13 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
+import com.opson.features.today.impl.color
 import com.opson.features.today.impl.text
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.CheckInMood
-import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.LocalCalendar
@@ -66,7 +67,6 @@ import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextArea
-import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import kotlinx.coroutines.flow.Flow
@@ -78,27 +78,10 @@ import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_checkin_energy
-import opson.libraries.resources.generated.resources.today_checkin_energy_good
-import opson.libraries.resources.generated.resources.today_checkin_energy_low
-import opson.libraries.resources.generated.resources.today_checkin_energy_ok
 import opson.libraries.resources.generated.resources.today_checkin_hunger
-import opson.libraries.resources.generated.resources.today_checkin_hunger_often
-import opson.libraries.resources.generated.resources.today_checkin_hunger_rarely
-import opson.libraries.resources.generated.resources.today_checkin_hunger_some
-import opson.libraries.resources.generated.resources.today_checkin_hunger_steady
-import opson.libraries.resources.generated.resources.today_checkin_hunger_very
 import opson.libraries.resources.generated.resources.today_checkin_mood
-import opson.libraries.resources.generated.resources.today_checkin_mood_calm
-import opson.libraries.resources.generated.resources.today_checkin_mood_happy
-import opson.libraries.resources.generated.resources.today_checkin_mood_low
-import opson.libraries.resources.generated.resources.today_checkin_mood_social
-import opson.libraries.resources.generated.resources.today_checkin_mood_stressed
-import opson.libraries.resources.generated.resources.today_checkin_mood_tired
 import opson.libraries.resources.generated.resources.today_checkin_note
 import opson.libraries.resources.generated.resources.today_checkin_sleep
-import opson.libraries.resources.generated.resources.today_checkin_sleep_good
-import opson.libraries.resources.generated.resources.today_checkin_sleep_ok
-import opson.libraries.resources.generated.resources.today_checkin_sleep_poor
 import opson.libraries.resources.generated.resources.today_checkin_title
 import opson.libraries.resources.generated.resources.today_count_value
 import opson.libraries.resources.generated.resources.today_dayclose_above
@@ -110,17 +93,13 @@ import opson.libraries.resources.generated.resources.today_dayclose_below
 import opson.libraries.resources.generated.resources.today_dayclose_below_goal
 import opson.libraries.resources.generated.resources.today_dayclose_big_day
 import opson.libraries.resources.generated.resources.today_dayclose_caption
+import opson.libraries.resources.generated.resources.today_dayclose_closed_caption
 import opson.libraries.resources.generated.resources.today_dayclose_commit_can
 import opson.libraries.resources.generated.resources.today_dayclose_commit_normal
 import opson.libraries.resources.generated.resources.today_dayclose_committed
 import opson.libraries.resources.generated.resources.today_dayclose_done
 import opson.libraries.resources.generated.resources.today_dayclose_expended
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_busy
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_good
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_hard
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_label
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_steady
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_tired
 import opson.libraries.resources.generated.resources.today_dayclose_inside
 import opson.libraries.resources.generated.resources.today_dayclose_inside_goal
 import opson.libraries.resources.generated.resources.today_dayclose_kcal
@@ -131,8 +110,10 @@ import opson.libraries.resources.generated.resources.today_dayclose_meals
 import opson.libraries.resources.generated.resources.today_dayclose_note_label
 import opson.libraries.resources.generated.resources.today_dayclose_note_label_other_day
 import opson.libraries.resources.generated.resources.today_dayclose_note_placeholder
+import opson.libraries.resources.generated.resources.today_dayclose_reopen
 import opson.libraries.resources.generated.resources.today_dayclose_revealed_body
 import opson.libraries.resources.generated.resources.today_dayclose_revealed_title
+import opson.libraries.resources.generated.resources.today_dayclose_save
 import opson.libraries.resources.generated.resources.today_dayclose_soft_label
 import opson.libraries.resources.generated.resources.today_dayclose_soft_label_other_day
 import opson.libraries.resources.generated.resources.today_dayclose_support
@@ -143,8 +124,10 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Day close for one day. Done saves the note and stamps the day closed; Back
- * leaves both alone. The commitment buttons change only what this screen says.
+ * Day close for one day. Done saves the note, the feeling and the check-in and stamps the day
+ * closed, in one write; Back leaves all of it alone. On a closed day Done saves them and keeps it
+ * closed, and Reopen opens it to food again. The commitment buttons change only what this screen
+ * says.
  */
 @Inject
 class DayCloseViewModel(
@@ -155,13 +138,13 @@ class DayCloseViewModel(
     private val calendar: LocalCalendar,
     private val health: HealthRepository,
     private val healthFlag: HealthReleaseFlag,
-    private val checkIns: DayCheckIns,
     private val checkInEnabled: CheckInEnabled,
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val burnedRepository: BurnedRepository,
 ) : SEAViewModel<DayCloseState, DayCloseEvent, DayCloseAction>(initialStateArg = DayCloseState()) {
 
     private var model = Model()
+    private var leaving = false
 
     private data class Model(
         val inputs: DayCloseInputs? = null,
@@ -218,12 +201,25 @@ class DayCloseViewModel(
             DayCloseAction.SupportTapped -> sendEvent(DayCloseEvent.OpenSupport)
             DayCloseAction.CommitmentTapped -> action.rebuild { copy(committed = true) }
             DayCloseAction.DoneTapped -> {
-                diary.setDayNote(day, model.note.trim().ifEmpty { null })
-                // Only where it was asked: a feeling picked under another mode is left as it was.
-                if (state.feeling != null && model.feeling != model.inputs?.day?.feeling) diary.setDayFeeling(day, model.feeling)
-                // Saved on Close the day only, and only where it was asked.
-                if (state.checkIn != null && model.checkIn != model.inputs?.day?.checkIn) checkIns.setCheckIn(day, model.checkIn)
-                diary.closeDay(day)
+                // Done shows while the day loads; before it is read the note field is still empty, and
+                // saving that would wipe the note already there. Once leaving, a second tap does nothing.
+                if (model.inputs == null || leaving) return
+                leaving = true
+                val stored = model.inputs?.day
+                val reflection = DayReflection(
+                    note = model.note.trim().ifEmpty { null },
+                    // Only where it was asked: a feeling picked under another mode is left as it was.
+                    feeling = if (state.feeling != null) model.feeling else stored?.feeling,
+                    checkIn = if (state.checkIn != null) model.checkIn else stored?.checkIn,
+                )
+                diary.closeDay(day, reflection)
+                sendEvent(DayCloseEvent.Close)
+            }
+            DayCloseAction.ReopenTapped -> {
+                // Save sits beside Reopen; tapped while leaving, it would close the day again.
+                if (leaving) return
+                leaving = true
+                diary.reopenDay(day)
                 sendEvent(DayCloseEvent.Close)
             }
             DayCloseAction.BackTapped -> sendEvent(DayCloseEvent.Close)
@@ -336,7 +332,7 @@ fun DayCloseScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 FlatButton(
-                    text = stringResource(Res.string.today_dayclose_done),
+                    text = stringResource(if (state.closed) Res.string.today_dayclose_save else Res.string.today_dayclose_done),
                     onClick = { onAction(DayCloseAction.DoneTapped) },
                     tone = FlatButtonTone.Accent,
                     centered = true,
@@ -344,7 +340,22 @@ fun DayCloseScreen(
                     typography = AppTheme.type.button,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text(text = stringResource(Res.string.today_dayclose_caption), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+                if (state.closed) {
+                    FlatButton(
+                        text = stringResource(Res.string.today_dayclose_reopen),
+                        onClick = { onAction(DayCloseAction.ReopenTapped) },
+                        tone = FlatButtonTone.Soft,
+                        centered = true,
+                        minHeight = FlatButtonDefaults.TallMinHeight,
+                        typography = AppTheme.type.button,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Text(
+                    text = stringResource(if (state.closed) Res.string.today_dayclose_closed_caption else Res.string.today_dayclose_caption),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                )
             }
         }
     }
@@ -434,48 +445,6 @@ private fun <T : Any> CheckInRow(title: StringResource, options: List<T>, picked
     }
 }
 
-private val DayHunger.label: StringResource
-    get() = when (this) {
-        DayHunger.Rarely -> Res.string.today_checkin_hunger_rarely
-        DayHunger.Some -> Res.string.today_checkin_hunger_some
-        DayHunger.Steady -> Res.string.today_checkin_hunger_steady
-        DayHunger.Often -> Res.string.today_checkin_hunger_often
-        DayHunger.Very -> Res.string.today_checkin_hunger_very
-    }
-
-private val Energy.label: StringResource
-    get() = when (this) {
-        Energy.Low -> Res.string.today_checkin_energy_low
-        Energy.Ok -> Res.string.today_checkin_energy_ok
-        Energy.Good -> Res.string.today_checkin_energy_good
-    }
-
-private val Sleep.label: StringResource
-    get() = when (this) {
-        Sleep.Poor -> Res.string.today_checkin_sleep_poor
-        Sleep.Ok -> Res.string.today_checkin_sleep_ok
-        Sleep.Good -> Res.string.today_checkin_sleep_good
-    }
-
-private val CheckInMood.label: StringResource
-    get() = when (this) {
-        CheckInMood.Calm -> Res.string.today_checkin_mood_calm
-        CheckInMood.Social -> Res.string.today_checkin_mood_social
-        CheckInMood.Stressed -> Res.string.today_checkin_mood_stressed
-        CheckInMood.Tired -> Res.string.today_checkin_mood_tired
-        CheckInMood.Low -> Res.string.today_checkin_mood_low
-        CheckInMood.Happy -> Res.string.today_checkin_mood_happy
-    }
-
-private val DayFeeling.label: StringResource
-    get() = when (this) {
-        DayFeeling.Steady -> Res.string.today_dayclose_feeling_steady
-        DayFeeling.Busy -> Res.string.today_dayclose_feeling_busy
-        DayFeeling.Tired -> Res.string.today_dayclose_feeling_tired
-        DayFeeling.Good -> Res.string.today_dayclose_feeling_good
-        DayFeeling.Hard -> Res.string.today_dayclose_feeling_hard
-    }
-
 @Composable
 private fun Totals(totals: DayTotals, isToday: Boolean) {
     DayTotalsCard(
@@ -503,14 +472,7 @@ private fun Totals(totals: DayTotals, isToday: Boolean) {
                 )
             }
         },
-        macros = totals.macros.map { SummaryMacro(it.metric, stringResource(it.label), it.display, it.metric.dayCloseColor()) },
+        macros = totals.macros.map { SummaryMacro(it.metric, stringResource(it.label), it.display, it.metric.color()) },
     )
 }
 
-@Composable
-private fun Metric.dayCloseColor(): ColorResource = when (this) {
-    Metric.Protein -> AppTheme.colors.nutrients.protein.content
-    Metric.Carbs -> AppTheme.colors.nutrients.carbs.content
-    Metric.Fat -> AppTheme.colors.nutrients.fat.content
-    else -> AppTheme.colors.nutrients.fiber.content
-}

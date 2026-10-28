@@ -332,21 +332,22 @@ what to set. That is on purpose, Ktor would otherwise resolve it against
 so an unconfigured project would present as offline on a device with full
 signal.
 
-Bind your own `NetworkConfig` (see `DefaultNetworkConfig`) somewhere in your
-app, typically a class that reads the URL from BuildConfig per build variant:
+The app's `NetworkConfig` is `OpsonNetworkConfig` in `apps/compose`, which
+replaces `DefaultNetworkConfig`:
 
 ```kotlin
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, replaces = [DefaultNetworkConfig::class])
 @Inject
-class AppNetworkConfig : NetworkConfig {
-    override val baseUrl = AppBuildConfig.API_BASE_URL
+class OpsonNetworkConfig : NetworkConfig {
+    override val baseUrl: String = apiBaseUrl(BuildInfo.isDebug)
 }
 ```
 
-Opson binds `OpsonNetworkConfig` in `apps/compose`: debug builds talk to
-`https://opson-server-dev.fly.dev`, release builds to
-`https://opson-server-prod.fly.dev`, keyed on `BuildInfo.isDebug`.
+`apiBaseUrl` sends debug builds to `https://opson-server-dev.fly.dev` and
+release builds to `https://opson-server-prod.fly.dev`. `SupabaseInfo` keys on
+the same `BuildInfo.isDebug`, so the session and the server always belong to
+the same environment.
 
 **Authenticated calls.** Inject `NetworkClient` and use
 `networkClient.authenticatedClient` for endpoints that need a Bearer token.
@@ -361,9 +362,9 @@ fields throw) and lenient in release (so a backend tweak can't crash users).
 
 ## Supabase auth (hour 1)
 
-The app ships with anonymous-first Supabase auth wired end to end (guest
-creation in onboarding, email/password + Apple + browser-OAuth sign-in,
-encrypted session storage, `/v1/me` profile).
+The app ships with Supabase auth and accounts required: Sign in with Apple
+(iOS), Google through the browser, and email once `SignInMethods.EMAIL` is on,
+with encrypted session storage and the `/v1/me` profile.
 
 ```sh
 ./scripts/setup_supabase.main.kts
@@ -381,12 +382,17 @@ or something failed:
 
 1. Create a Supabase project (free tier is fine). Note the project URL and
    the **publishable (anon) key** (Settings → API Keys).
-2. Client config: add to `local.properties` (or export as env vars in CI):
+2. Client config. Debug builds read the dev project from `local.properties`
+   (or `SUPABASE_PROJECT_ID` / `SUPABASE_ANON_KEY` in the environment):
    ```
    supabase.projectId=<ref>
-   supabase.url=https://<ref>.supabase.co
    supabase.anonKey=<publishable key>
    ```
+   Release builds read the prod project from the committed
+   `supabase.properties` (`supabase.prod.projectId` / `supabase.prod.anonKey`)
+   and nothing else. `SupabaseInfo` picks between them by `BuildInfo.isDebug`,
+   and `verifyReleaseEnvironment` fails a release build whose prod values are
+   missing, malformed or the dev project.
 3. Enable providers in the Supabase dashboard (Authentication → Providers).
    An account is required, so **Apple** (iOS) and **Google** (both
    platforms; Android has nothing else) must both work. **Email**
@@ -472,21 +478,20 @@ the tools you'll be debugging with later.
    curl https://<your-app>-server-dev.fly.dev/_health
    ```
    Expected: `{"ok":true}`.
-2. **Client → server round trip.** Launch the app (device or simulator),
-   complete onboarding as a guest. Expected: a new user in Supabase →
-   Authentication → Users with `is_anonymous = true`, and a row in the
+2. **Client → server round trip.** Launch the app (device or simulator) and
+   sign in with Apple or Google. Expected: a new user in Supabase →
+   Authentication → Users with `is_anonymous = false`, and a row in the
    `profiles` table.
 3. **Find your session in Loki** (if Grafana is wired). In Grafana → Explore →
    Loki, query your client logs by the app's service name and filter
-   `session_id="<id>"`, grab the id from the app's debug shake dialog or
-   logcat (`Session started`). Expected: the `app.launched` event and your
+   `session_id="<id>"`, grab the id from logcat or the Xcode console
+   (`Session started`); More › Testing › QA menu has the user id. Expected: the `app.launched` event and your
    request logs, and the SAME `session_id` on the server's request logs.
 4. **Trigger a test crash → Sentry.** Requires
    [`setup_sentry.main.kts`](#sentry-one-script) to have run and
    `telemetry.properties` to be committed, with a blank DSN the SDK never
-   initialises and this check has nothing to find. Debug builds: shake → QA
-   dialog → the test-crash affordance (or add a temporary `error()` behind a
-   button). Expected: the event in Sentry within a minute under environment
+   initialises and this check has nothing to find. Add a temporary `error()`
+   behind a button in a debug build and tap it. Expected: the event in Sentry within a minute under environment
    `dev-<platform>-debug`, tagged with `session_id` and `commit_sha`. The setup
    script already proved ingest works, so if the script passed and this does
    not, the problem is in the app build, not in Sentry.

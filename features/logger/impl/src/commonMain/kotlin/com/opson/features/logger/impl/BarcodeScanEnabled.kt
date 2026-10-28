@@ -10,8 +10,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
  * The 0.2 release flag for barcode scanning (docs/plans/0.2/README.md). Off,
- * the logger's search bar has no barcode button and nothing can open the
- * scanner, exactly as 0.1 shipped. The 0.2 release flips it remotely.
+ * the + sheet has no Scan tile, search no barcode button, and nothing can
+ * open the scanner, exactly as 0.1 shipped. The 0.2 release flips it remotely.
  */
 @Inject
 @SingleIn(AppScope::class)
@@ -20,5 +20,5 @@ class BarcodeScanEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfig
     override val name = "Barcode scan"
     override val path = "release.barcode"
     override val default = false
-    override val description = "The barcode button in the logger's search bar, and the scanner it opens"
+    override val description = "Scan on the + sheet and in search, and the scanner they open"
 }

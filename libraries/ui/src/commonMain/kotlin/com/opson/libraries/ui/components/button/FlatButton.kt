@@ -142,9 +142,6 @@ object FlatButtonDefaults {
     /** Lower and Raise. */
     val StepperMinHeight: Dp = 46.dp
 
-    /** Two buttons side by side inside a confirm box. */
-    val CompactMinHeight: Dp = 44.dp
-
     internal val IconSize: Dp = 20.dp
 }
 

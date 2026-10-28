@@ -29,8 +29,6 @@ fun <T> Catching<T>.throwIfDebug(): Catching<T> = onFailure {
     }
 }
 
-inline fun <T> Catching<T>.eitherWay(block: (Catching<T>) -> Unit) = this.also(block)
-
 fun <T> Catching<T>.ignoreValue(): Catching<Unit> = this.map { }
 
 inline fun <T> Catching<T>.mapFailure(f: (Throwable) -> Throwable): Catching<T> {

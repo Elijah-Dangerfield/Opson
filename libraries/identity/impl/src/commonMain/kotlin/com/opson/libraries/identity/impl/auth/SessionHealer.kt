@@ -46,6 +46,7 @@ class SessionHealer(
     // deferred too. Mirrors InAppMessageManagerImpl.
     authRepositoryProvider: () -> AuthRepository,
     profileRepositoryProvider: () -> ProfileRepository,
+    private val expiredAccounts: ExpiredAccountStore,
     private val appCache: AppCache,
     private val appState: AppState,
     private val appScope: AppCoroutineScope,
@@ -89,9 +90,16 @@ class SessionHealer(
     }
 
     private suspend fun healIfStranded(source: String) {
+        val current = authRepository.current()
         // Already have a session — nothing to do.
-        if (authRepository.current() is AuthState.Authenticated) {
+        if (current is AuthState.Authenticated) {
             log(source, HealAction.SKIP_HAS_SESSION)
+            return
+        }
+        // Checked before retry(): reviving a session the person just logged out
+        // of would sign them back in. Onboarding's sign-in step is next.
+        if ((current as AuthState.Unauthenticated).reason == AuthState.Unauthenticated.Reason.SignedOut) {
+            log(source, HealAction.SKIP_SIGNED_OUT)
             return
         }
 
@@ -116,21 +124,29 @@ class SessionHealer(
                 // unrecoverable); the app is routing to sign-in.
                 log(source, HealAction.SKIP_SESSION_EXPIRED)
             }
-            unauth.reason == AuthState.Unauthenticated.Reason.SignedOut -> {
-                // Deliberate sign-out: onboarding's sign-in step is next.
-                log(source, HealAction.SKIP_SIGNED_OUT)
-            }
+            // A sign-out that landed while retry() waited on the lock.
+            unauth.reason == AuthState.Unauthenticated.Reason.SignedOut -> log(source, HealAction.SKIP_SIGNED_OUT)
             else -> {
                 val stranded = cachedServerProfile()
+                val held = expiredAccount()
                 when {
                     // A server account demonstrably exists on this device but
                     // its session is gone and retry couldn't revive it (AUTH-19).
-                    stranded != null -> stopForRecovery(source, wasAnonymous = stranded.isAnonymous, id = stranded.id)
+                    stranded != null -> {
+                        holdForSignIn(ExpiredAccount(userId = stranded.id, wasAnonymous = stranded.isAnonymous))
+                        stopForRecovery(source, wasAnonymous = stranded.isAnonymous, id = stranded.id)
+                    }
                     !hasUserOnboarded() -> {
                         // Pre-onboarding: onboarding's sign-in step is where a
-                        // session comes from.
+                        // session comes from. That includes a held account whose
+                        // person already tapped "sign in again", which resets
+                        // onboarding: sending them back to the expired screen
+                        // would only make them tap it twice.
                         log(source, HealAction.SKIP_NOT_ONBOARDED)
                     }
+                    // A relaunch after a session expiry: the account's data is
+                    // still here, waiting for it to sign back in.
+                    held != null -> stopForRecovery(source, wasAnonymous = held.wasAnonymous, id = held.userId)
                     appState.isOffline.value -> {
                         // Offline looks the same as no session; the
                         // connectivity-regained edge decides again.
@@ -147,18 +163,33 @@ class SessionHealer(
     /**
      * The cached server-backed profile, if one survives locally while we're
      * session-less — proof this device had a real account whose session storage
-     * failed us. Never true for the legit heal cases: an offline onboarding
-     * surfaces [Profile.Fallback], and a fresh install has no cache at all.
+     * failed us. A fresh install has no cache at all.
      */
     private suspend fun cachedServerProfile(): Profile.Authenticated? =
         Catching { profileRepository.current() }
             .logOnFailure { "Reading profile for heal decision failed; assuming none cached" }
             .getOrNull() as? Profile.Authenticated
 
+    private suspend fun expiredAccount(): ExpiredAccount? =
+        Catching { expiredAccounts.read() }
+            .logOnFailure { "Reading the expired-session account for heal failed; assuming none" }
+            .getOrNull()
+
+    /**
+     * Hold a stranded account's data the way a mid-run expiry does. Its session
+     * died before this run saw it signed in, so the auth layer has no account to
+     * hold, and without this a different account signing in next would inherit
+     * its rows and drain its outbox.
+     */
+    private suspend fun holdForSignIn(account: ExpiredAccount) {
+        Catching { expiredAccounts.hold(account) }
+            .logOnFailure { "Holding the stranded account ${account.userId} failed" }
+    }
+
     private suspend fun stopForRecovery(source: String, wasAnonymous: Boolean, id: String?) {
         log(source, HealAction.STOP_FOR_RECOVERY)
         logger.w {
-            "Session unrecoverable: ${id?.let { "cached profile $it" } ?: "no cached profile"} " +
+            "Session unrecoverable: ${id?.let { "account $it" } ?: "no account on this device"} " +
                 "(isAnonymous=$wasAnonymous) has no session and retry could not revive it; routing to sign-in"
         }
         Catching { authRepository.markSessionUnrecoverable(wasAnonymous = wasAnonymous) }

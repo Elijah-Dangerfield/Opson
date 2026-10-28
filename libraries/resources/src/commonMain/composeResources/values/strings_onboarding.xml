@@ -15,15 +15,11 @@
     <string name="onboarding_welcome_next">Next you'll sign in, so your log is saved to your account.</string>
 
     <!--
-      The plan. 0.1 has no in-app purchase and a price with no way to buy it is an App Review
-      rejection, so Plus is "Coming later" with no price (docs/design/v3/CHANGES.md). The design
-      lists "barcode scan, recipes" under Free; barcode is hidden in 0.1 and recipes are saved meals.
+      The plan. The design lists "barcode scan, recipes" under Free; barcode is hidden in 0.1 and
+      recipes are saved meals.
     -->
     <string name="onboarding_plan_free">Free</string>
     <string name="onboarding_plan_free_includes">Logging, saved meals and every mode</string>
-    <string name="onboarding_plan_plus">Plus</string>
-    <string name="onboarding_plan_plus_later">Coming later</string>
-    <string name="onboarding_plan_plus_includes">Photo estimates and watch quick-log</string>
 
     <!-- Questions. Two and the statement since onboarding v2 (docs/plans/onboarding-v2.md). -->
     <string name="onboarding_progress">%1$d of %2$d</string>
@@ -42,12 +38,18 @@
     <string name="onboarding_why_changing_weight">Changing my weight</string>
     <string name="onboarding_why_working_with_provider">Working with a provider</string>
 
-    <string name="onboarding_q_feel">How do you feel about seeing numbers?</string>
-    <string name="onboarding_feel_love_them">I love them</string>
-    <string name="onboarding_feel_some_are_fine">Some are fine</string>
+    <!--
+      The numbers question. Opens by saying plainly that numbers don't suit everyone, so the
+      gentler answers read as ordinary choices rather than admissions. Each answer names what it
+      changes in words a person can check against themselves ("just not calories").
+    -->
+    <string name="onboarding_q_feel">How do numbers sit with you?</string>
+    <string name="onboarding_feel_intro">Not everyone does well seeing calories, or thinking about them much.</string>
+    <string name="onboarding_feel_love_them">I like seeing them</string>
+    <string name="onboarding_feel_some_are_fine">Some are fine, just not calories</string>
     <string name="onboarding_feel_rather_not">I'd rather not see them</string>
-    <string name="onboarding_feel_not_sure">Not sure yet</string>
-    <string name="onboarding_feel_footnote">This only picks a starting point. Later you can change any single number.</string>
+    <string name="onboarding_feel_not_sure">I'm not sure yet</string>
+    <string name="onboarding_feel_footnote">This only picks where you start. You can change any number later.</string>
 
     <!--
       The statement. A statement to agree with, never a question about a diagnosis.
@@ -77,28 +79,35 @@
 
     <!-- The answer that picked the starting point (ModeRecommender.reason), under the mode's line. -->
     <string name="onboarding_reason_no_answers">You skipped the questions, so you start with every number.</string>
-    <string name="onboarding_reason_loves_numbers">You said you love numbers.</string>
-    <string name="onboarding_reason_some_are_fine">You said some numbers are fine.</string>
+    <string name="onboarding_reason_loves_numbers">You said you like seeing the numbers.</string>
+    <string name="onboarding_reason_some_are_fine">You said some numbers are fine, just not calories.</string>
     <string name="onboarding_reason_rather_not">You said you'd rather not see numbers.</string>
     <string name="onboarding_reason_gentler">You asked for a gentler start.</string>
-    <string name="onboarding_reason_not_sure">You weren't sure yet, so numbers wait until the day is done.</string>
+    <string name="onboarding_reason_not_sure">You weren't sure yet, so you start without calories or amounts.</string>
 
     <!--
       Setup steps (release.onboardingSetup). Goal style names and lines are Targets' own
-      (strings_settings.xml), and so are resting energy's field labels.
+      (strings_settings.xml), and so are resting energy's field labels. Only someone whose mode
+      shows calories, and who did not say numbers have been hard, sees the goal and the resting
+      energy step; "Set this later" on either goes past both.
     -->
     <string name="onboarding_goal_title">Your daily goal</string>
     <string name="onboarding_goal_change">Change it any time under More, then Targets.</string>
     <string name="onboarding_goal_burn_note">The goal follows what you burn. Fine-tune the amount in Targets.</string>
+    <string name="onboarding_goal_based_on">Based on about %1$s burned on an ordinary day</string>
+    <string name="onboarding_goal_later">Set this later</string>
 
-    <string name="onboarding_body_title">What you burn at rest</string>
-    <string name="onboarding_body_body">Opson works it out from these. Your weight is saved as your first weigh-in.</string>
-    <string name="onboarding_body_units_metric">kg and cm</string>
-    <string name="onboarding_body_units_imperial">lb and in</string>
+    <string name="onboarding_body_title">What you burn in a day</string>
+    <string name="onboarding_body_body">Opson estimates it from these and starts your goal there. Your weight is saved as your first weigh-in.</string>
     <string name="onboarding_body_weight">Weight</string>
     <string name="onboarding_body_resting">About %1$s a day at rest</string>
     <string name="onboarding_body_activity">An ordinary day, outside workouts</string>
     <string name="onboarding_body_burned">About %1$s on an ordinary day, before workouts. Your goal starts from this.</string>
+    <string name="onboarding_body_year_hint">The year you were born, like 1990</string>
+    <string name="onboarding_body_height_hint_cm">Height in centimetres, like 170</string>
+    <string name="onboarding_body_height_hint_ft_in">Height in feet and inches, like 5 and 7, with inches under 12</string>
+    <string name="onboarding_body_weight_hint_kg">Weight in kilograms, like 70</string>
+    <string name="onboarding_body_weight_hint_lb">Weight in pounds, like 155</string>
 
     <string name="onboarding_meals_title">When do you usually eat?</string>
     <string name="onboarding_meals_body">Today shows what's next from these. Tap a time to change it.</string>
@@ -147,6 +156,5 @@
     <string name="onboarding_account_waiting_for_apple">Waiting for Apple…</string>
     <string name="onboarding_account_private">Private to you. No ad tracking.</string>
     <string name="onboarding_account_export">Export or delete it any time</string>
-    <string name="onboarding_account_coach">Needed later to share with a coach</string>
     <string name="onboarding_account_failed">That didn't go through. Please try again.</string>
 </resources>

@@ -3,6 +3,7 @@ package com.opson.features.logger.impl
 import com.opson.features.logger.ExerciseRoute
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.core.fixed
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
@@ -17,7 +18,11 @@ import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.ExerciseActivities
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -165,6 +170,72 @@ class ExerciseSheetViewModelTest : CoroutineTest() {
         assertEquals(250, saved.kcal)
     }
 
+    /** Later's energy out is held back until the reveal, so there is no number field: Other could never be saved. */
+    @Test
+    fun withEnergyOutOnLater_otherIsNotOffered_andCannotBePicked() = runUnitTest {
+        policySource.policy.value = laterEnergyOut()
+        val vm = vm()
+        settle()
+        assertFalse(vm.state.canNumber)
+        assertFalse(vm.state.offersOther)
+
+        vm.takeAction(ExerciseSheetAction.ActivityPicked(ExerciseActivities.OTHER))
+        settle()
+
+        assertNull(vm.state.activity)
+        assertEquals(ExercisePane.Pick, vm.state.pane)
+    }
+
+    @Test
+    fun withEnergyOutOnLater_aListedActivityStillSavesItsEstimate() = runUnitTest {
+        policySource.policy.value = laterEnergyOut()
+        val vm = vm()
+        settle()
+        vm.takeAction(ExerciseSheetAction.ActivityPicked("walking"))
+        settle()
+        assertTrue(vm.state.canSave)
+
+        vm.takeAction(ExerciseSheetAction.SaveTapped)
+        settle()
+
+        assertFalse(repo.added.single().kcalTyped)
+    }
+
+    /** An Other entry made before energy out went to Later still lists, and re-picks, the activity it is. */
+    @Test
+    fun withEnergyOutOnLater_anOtherEntryBeingEdited_keepsOtherInTheList() = runUnitTest {
+        policySource.policy.value = laterEnergyOut()
+        repo.entries += ExerciseEntry(
+            "e1", today, Instant.parse("2026-10-25T07:00:00Z"), ExerciseActivities.OTHER,
+            name = "Climbing", minutes = 60, kcal = 500, kcalTyped = true,
+        )
+        val vm = vm(route = ExerciseRoute(entryId = "e1"))
+        settle()
+        assertTrue(vm.state.offersOther)
+        assertTrue(vm.state.canSave)
+
+        vm.takeAction(ExerciseSheetAction.ActivityTapped)
+        vm.takeAction(ExerciseSheetAction.ActivityPicked(ExerciseActivities.OTHER))
+        settle()
+
+        assertEquals(ExerciseActivities.OTHER, vm.state.activity)
+        assertEquals(ExercisePane.Form, vm.state.pane)
+        vm.takeAction(ExerciseSheetAction.SaveTapped)
+        settle()
+        assertEquals(500, repo.updated.single().second.kcal)
+    }
+
+    @Test
+    fun withEnergyOutShowing_otherIsOffered() = runUnitTest {
+        val vm = vm()
+        settle()
+
+        assertTrue(vm.state.offersOther)
+    }
+
+    private fun laterEnergyOut() =
+        VisibilityPolicy(NumbersSettings(overrides = mapOf(Metric.EnergyOut to Visibility.Delay)), Clock.fixed(NOON), TimeZone.UTC)
+
     @Test
     fun anEdit_keepsItsSavedNumber_untilTheActivityOrLengthChanges() = runUnitTest {
         repo.entries += ExerciseEntry("e1", today, Instant.parse("2026-10-25T07:00:00Z"), "cycling", minutes = 60, kcal = 400)
@@ -249,26 +320,52 @@ class ExerciseSheetViewModelTest : CoroutineTest() {
         assertEquals(listOf<ExerciseSheetEvent>(ExerciseSheetEvent.Dismiss), events)
     }
 
+    @Test
+    fun saveOnAClosedDay_writesNothing_andSaysSo() = runUnitTest {
+        repo.closedDay = LocalDate(2026, 10, 25)
+        val vm = vm()
+        val events = events(vm)
+        settle()
+        vm.takeAction(ExerciseSheetAction.ActivityPicked("walking_brisk"))
+        vm.takeAction(ExerciseSheetAction.SaveTapped)
+        settle()
+
+        assertTrue(repo.added.isEmpty())
+        assertEquals(listOf<ExerciseSheetEvent>(ExerciseSheetEvent.DayClosed(LocalDate(2026, 10, 25))), events)
+    }
+
     private class FakeExercise : ExerciseRepository {
         val entries = mutableListOf<ExerciseEntry>()
         val added = mutableListOf<ExerciseDraft>()
         val updated = mutableListOf<Pair<String, ExerciseDraft>>()
         val deleted = mutableListOf<String>()
 
+        /** A day closed with Close the day: every write to it is refused and recorded nowhere. */
+        var closedDay: LocalDate? = null
+
         override fun observeDay(day: LocalDate): Flow<List<ExerciseEntry>> = flowOf(entries.filter { it.day == day })
         override suspend fun get(id: String): ExerciseEntry? = entries.firstOrNull { it.id == id }
-        override suspend fun add(draft: ExerciseDraft): ExerciseEntry {
+        override suspend fun add(draft: ExerciseDraft): DayWrite<ExerciseEntry> {
+            closed(draft.day)?.let { return it }
             added += draft
-            return ExerciseEntry("new", draft.day, draft.startedAt, draft.activity, draft.name, draft.minutes, draft.kcal, draft.kcalTyped, draft.notOnWatch)
+            return DayWrite.Written(
+                ExerciseEntry("new", draft.day, draft.startedAt, draft.activity, draft.name, draft.minutes, draft.kcal, draft.kcalTyped, draft.notOnWatch),
+            )
         }
 
-        override suspend fun update(id: String, draft: ExerciseDraft) {
+        override suspend fun update(id: String, draft: ExerciseDraft): DayWrite<Unit> {
+            closed(draft.day)?.let { return it }
             updated += id to draft
+            return DayWrite.Written(Unit)
         }
 
-        override suspend fun delete(id: String) {
+        override suspend fun delete(id: String): DayWrite<Unit> {
+            entries.firstOrNull { it.id == id }?.let { entry -> closed(entry.day)?.let { return it } }
             deleted += id
+            return DayWrite.Written(Unit)
         }
+
+        private fun closed(day: LocalDate): DayWrite.DayClosed? = if (day == closedDay) DayWrite.DayClosed(day) else null
     }
 
     private class FakeWeights(kg: Double?) : WeightRepository {

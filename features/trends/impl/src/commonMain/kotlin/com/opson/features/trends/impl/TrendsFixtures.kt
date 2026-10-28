@@ -42,7 +42,7 @@ private typealias Menu = Map<MealSlot, List<TrendsFixtures.Food>>
 /**
  * Realistic inputs for previews, the builder tests and `BlindModeLeakTest`,
  * shaped after the prototype's mocks: the week of Oct 19 to 25, 2026 seen on
- * Sunday the 25th at noon, Thursday left untracked, three foods new this week
+ * Sunday the 25th at noon, nothing logged on Thursday, three foods new this week
  * (chicken kabsa, poutine, rice pudding), and the prototype's `WEIGHTS` curve.
  * Meal times drift a little day to day, dinner runs later on Fridays and
  * Saturdays, and hunger is tagged on most days and checked in on most evenings, for Patterns.
@@ -78,7 +78,7 @@ object TrendsFixtures {
 
     /**
      * No watch energy unless asked for, as with `release.health` off; pass `expended()` to draw the
-     * Expended card. [notesLinked] as the app has it until the Notes list binds its link.
+     * Expended card. [notesLinked] off unless asked, as with no Notes list bound.
      */
     fun trendsInputs(
         settings: Settings = Settings(),
@@ -123,8 +123,8 @@ object TrendsFixtures {
     fun days(): List<Day> {
         val history = (HISTORY_DAYS downTo 1).map { back ->
             val date = WEEK_START.minus(back, DateTimeUnit.DAY)
-            // Every ninth day untracked, so older weeks have gaps too.
-            if (back % UNTRACKED_EVERY == 0) Day.empty(date) else day(date, HISTORY_MENUS[back % HISTORY_MENUS.size])
+            // Nothing logged every ninth day, so older weeks have gaps too.
+            if (back % EMPTY_EVERY == 0) Day.empty(date) else day(date, HISTORY_MENUS[back % HISTORY_MENUS.size])
         }
         val week = WEEK_MENUS.mapIndexed { index, menu -> day(WEEK_START.plus(index, DateTimeUnit.DAY), menu) }
         return history + week
@@ -139,7 +139,7 @@ object TrendsFixtures {
 
     private val WEEK_START = LocalDate(2026, 10, 19)
     private const val HISTORY_DAYS = 100
-    private const val UNTRACKED_EVERY = 9
+    private const val EMPTY_EVERY = 9
     private const val WEIGH_IN_DAYS = 90
     private const val START_KG = 74.6
     private const val DRIFT = 0.014
@@ -167,7 +167,7 @@ object TrendsFixtures {
     private val POUTINE = Food("poutine", "Poutine", 740.0, 20.0, 80.0, 38.0, 6.0, mapOf("sodium_mg" to 1500.0, "calcium_mg" to 300.0))
     private val RICE_PUDDING = Food("ricepud", "Rice pudding", 250.0, 6.0, 45.0, 5.0, 0.0, mapOf("calcium_mg" to 150.0))
 
-    /** Monday to Sunday. Thursday is untracked; Sunday is today, dinner not yet logged. */
+    /** Monday to Sunday. Nothing on Thursday (empty, not marked untracked); Sunday is today, dinner not yet logged. */
     private val WEEK_MENUS: List<Menu> = listOf(
         mapOf(MealSlot.Breakfast to listOf(OATS, BANANA), MealSlot.Lunch to listOf(ADOBO, RICE), MealSlot.Snack to listOf(YOGURT), MealSlot.Dinner to listOf(SALMON)),
         mapOf(MealSlot.Breakfast to listOf(YOGURT, BANANA), MealSlot.Lunch to listOf(KABSA), MealSlot.Snack to listOf(MANGO), MealSlot.Dinner to listOf(ADOBO, RICE)),

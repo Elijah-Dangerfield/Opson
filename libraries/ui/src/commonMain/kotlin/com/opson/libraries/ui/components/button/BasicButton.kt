@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -62,16 +63,19 @@ internal fun BasicButton(
     icon: IconResource? = null,
     contentPadding: PaddingValues = size.padding(hasIcon = icon != null),
     enabled: Boolean = true,
-    onDisabledTap: (() -> Unit)? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
-        val effectiveOnClick = if (enabled) onClick else onDisabledTap
+        // One node for a screen reader: the label merged in, said to be a button, and dimmed when
+        // disabled. A clickable without a role does not take one from the face inside it.
+        val semantics = Modifier.semantics(mergeDescendants = true) {
+            role = Role.Button
+            if (!enabled) disabled()
+        }
 
         val face: @Composable () -> Unit = {
             Surface(
-                modifier = Modifier.semantics { role = Role.Button },
                 radius = Radii.Button,
                 // The handoff's buttons are flat; the 3D lip is the only depth.
                 elevation = Elevation.None,
@@ -102,10 +106,10 @@ internal fun BasicButton(
                 // and stretches the button. Default behavior — no width modifier — leaves
                 // minWidth at 0, so the button still wraps content inside weighted Rows.
                 propagateMinConstraints = true,
-                modifier = modifier.minTouchTarget().thenIf(effectiveOnClick != null) {
+                modifier = modifier.minTouchTarget().then(semantics).thenIf(enabled) {
                     bounceClick(
                         mutableInteractionSource = interactionSource,
-                        onClick = effectiveOnClick!!
+                        onClick = onClick,
                     )
                 },
             ) { face() }
@@ -125,11 +129,12 @@ internal fun BasicButton(
             Box(
                 contentAlignment = Alignment.Center,
                 propagateMinConstraints = true,
-                modifier = modifier.minTouchTarget().clickable(
+                modifier = modifier.minTouchTarget().then(semantics).clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    enabled = effectiveOnClick != null,
-                    onClick = { effectiveOnClick?.invoke() },
+                    enabled = enabled,
+                    role = Role.Button,
+                    onClick = onClick,
                 ),
             ) {
                 // deep band fills the whole box (face + the reserved lip strip)

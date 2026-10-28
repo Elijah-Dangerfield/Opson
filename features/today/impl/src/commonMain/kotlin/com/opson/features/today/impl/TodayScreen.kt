@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.ui.DayClosedNotice
 import com.opson.libraries.diary.ui.FastingTodayCard
 import com.opson.libraries.diary.ui.FoodMenuButton
 import com.opson.libraries.diary.ui.FoodsLine
@@ -119,6 +121,8 @@ import opson.libraries.resources.generated.resources.today_menu_copy_yesterday
 import opson.libraries.resources.generated.resources.today_menu_edit_cards
 import opson.libraries.resources.generated.resources.today_menu_notes
 import opson.libraries.resources.generated.resources.today_menu_nutrients
+import opson.libraries.resources.generated.resources.today_menu_reopen_day
+import opson.libraries.resources.generated.resources.today_menu_reopen_this_day
 import opson.libraries.resources.generated.resources.today_menu_tracked
 import opson.libraries.resources.generated.resources.today_menu_untracked
 import opson.libraries.resources.generated.resources.today_move_row
@@ -209,6 +213,7 @@ internal fun TodayScreen(
     val compact = state.compact
     val haptics = LocalHapticFeedback.current
     val dropTargets = remember(rows) { dropTargets(rows) }
+    val rowContext = FoodRowContext.of(state)
     if (selection != null) FoodDragEffects(drag, listState, dropTargets, selection.slots)
     Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { insets ->
         Column(Modifier.fillMaxSize().padding(insets)) {
@@ -239,8 +244,9 @@ internal fun TodayScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
                 ) {
-                    items(rows, key = { it.key }) { row ->
-                        if (row == TodayRow.Burned) burned?.invoke() else TodayListItem(row, state, drag, onAction)
+                    // A slot scrolled off is reused for a row of the same kind: a meal card for a meal card.
+                    items(rows, key = { it.key }, contentType = { it::class }) { row ->
+                        if (row == TodayRow.Burned) burned?.invoke() else TodayListItem(row, state, rowContext, drag, onAction)
                     }
                 }
                 if (selection != null && drag.active) {
@@ -343,6 +349,9 @@ internal sealed interface TodayRow {
     data object Planning : TodayRow { override val key = "planning" }
     data class Summary(val summary: TodaySummary) : TodayRow { override val key = "summary" }
     data object Untracked : TodayRow { override val key = "untracked" }
+
+    /** "Today is closed. Reopen it to add more.", standing in for every + the closed day has lost. */
+    data object Closed : TodayRow { override val key = "closed" }
     data class Tiles(val tiles: List<MealTile>) : TodayRow { override val key = "tiles" }
     data class Fasting(val status: FastingStatus) : TodayRow { override val key = "fasting" }
     data class Water(val water: WaterRow) : TodayRow { override val key = "water" }
@@ -361,6 +370,7 @@ internal fun todayRows(state: TodayState, burned: Boolean = false): List<TodayRo
     // Collapsed, the card is the pinned line above the list instead.
     state.summary?.takeUnless { state.collapsed }?.let { add(TodayRow.Summary(it)) }
     if (state.untracked) add(TodayRow.Untracked)
+    if (state.closed) add(TodayRow.Closed)
     state.mealTiles?.let { add(TodayRow.Tiles(it)) }
     state.fasting?.let { add(TodayRow.Fasting(it)) }
     state.water?.let { add(TodayRow.Water(it)) }
@@ -377,7 +387,7 @@ private fun dropTargets(rows: List<TodayRow>): Map<Any, MealSlot> =
 
 @Suppress("CyclomaticComplexMethod", "LongMethod")
 @Composable
-private fun TodayListItem(row: TodayRow, state: TodayState, drag: FoodDrag, onAction: (TodayAction) -> Unit) {
+private fun TodayListItem(row: TodayRow, state: TodayState, context: FoodRowContext, drag: FoodDrag, onAction: (TodayAction) -> Unit) {
     when (row) {
         TodayRow.Loading -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.today_loading_cd))
         is TodayRow.Banner -> ModeTimerBanner(row.banner, onAction)
@@ -399,6 +409,7 @@ private fun TodayListItem(row: TodayRow, state: TodayState, drag: FoodDrag, onAc
                 modifier = Modifier.weight(1f),
             )
         }
+        TodayRow.Closed -> DayClosedNotice(isToday = state.dayLabel == RelativeDay.Today, onReopen = { onAction(TodayAction.ReopenTapped) })
         is TodayRow.Tiles -> MealTimelineCard(row.tiles, onAction)
         is TodayRow.Fasting -> FastingTodayCard(
             status = row.status,
@@ -411,13 +422,13 @@ private fun TodayListItem(row: TodayRow, state: TodayState, drag: FoodDrag, onAc
             filled = row.water.filled,
             total = row.water.total,
             showSegments = row.water.showSegments,
-            onAdd = { onAction(TodayAction.WaterPlusTapped) },
+            onAdd = if (state.closed) null else ({ onAction(TodayAction.WaterPlusTapped) }),
             addIcon = AppIcons.Add.described(stringResource(Res.string.today_water_cd)),
         )
         is TodayRow.Weight -> WeightCard(row.weight, state.dayLabel, onAction)
         // Drawn by the slot the entry point passes in; see TodayScreen.
         TodayRow.Burned -> Unit
-        is TodayRow.Meal -> Meal(row.entry, state, drag, onAction)
+        is TodayRow.Meal -> Meal(row.entry, context, drag, onAction)
     }
 }
 
@@ -476,13 +487,36 @@ private fun WeightCard(weight: WeightRow, dayLabel: RelativeDay, onAction: (Toda
     }
 }
 
+/**
+ * What a meal card and its food rows read from [TodayState], and nothing else. Equal from one state
+ * to the next unless selecting, a swipe, the ⋮ flag, the outline or the day's closing changed, so an
+ * unchanged card skips when the rest of Today moves (the fasting minute, an Undo bar, the sticky bar).
+ */
+@Immutable
+internal data class FoodRowContext(
+    /** The picked foods; null when not selecting. */
+    val selected: Set<String>?,
+    val swipe: SwipeState,
+    val selectTools: Boolean,
+    val foodMenus: Boolean,
+    val highlight: MealSlot?,
+    /** Closed with Close the day: no + on any meal. */
+    val closed: Boolean,
+) {
+    val selecting: Boolean get() = selected != null
+
+    companion object {
+        fun of(state: TodayState) = FoodRowContext(state.selection?.ids, state.swipe, state.selectTools, state.foodMenus, state.highlight, state.closed)
+    }
+}
+
 @Composable
-private fun Meal(entry: MealEntry, state: TodayState, drag: FoodDrag, onAction: (TodayAction) -> Unit) {
+private fun Meal(entry: MealEntry, context: FoodRowContext, drag: FoodDrag, onAction: (TodayAction) -> Unit) {
     val slot = entry.slot
     val sentence = stringResource(slot.sentenceName)
     val dropLabel = if (drag.target == slot) stringResource(Res.string.today_drop_to, stringResource(slot.label)) else null
     val add: @Composable RowScope.() -> Unit = {
-        if (state.selection == null) {
+        if (!context.selecting && !context.closed) {
             RoundIconButton(
                 icon = AppIcons.Add.described(stringResource(Res.string.today_add_to_cd, sentence)),
                 onClick = { onAction(TodayAction.MealPlusTapped(slot)) },
@@ -491,7 +525,7 @@ private fun Meal(entry: MealEntry, state: TodayState, drag: FoodDrag, onAction: 
         }
     }
     when (entry) {
-        is MealEntry.Full -> FullMeal(entry.card, state, drag, dropLabel, onAction)
+        is MealEntry.Full -> FullMeal(entry.card, context, drag, dropLabel, onAction)
         is MealEntry.Collapsed -> MealRowCard(
             icon = slot.icon,
             iconColor = slot.tileColors().content,
@@ -525,9 +559,9 @@ private fun Meal(entry: MealEntry, state: TodayState, drag: FoodDrag, onAction: 
 }
 
 @Composable
-private fun FullMeal(card: MealCard, state: TodayState, drag: FoodDrag, dropLabel: String?, onAction: (TodayAction) -> Unit) {
+private fun FullMeal(card: MealCard, context: FoodRowContext, drag: FoodDrag, dropLabel: String?, onAction: (TodayAction) -> Unit) {
     val sentence = stringResource(card.slot.sentenceName)
-    val selection = state.selection
+    val selecting = context.selecting
     TodayMealCard(
         icon = card.slot.icon,
         iconColor = card.slot.tileColors().content,
@@ -550,11 +584,11 @@ private fun FullMeal(card: MealCard, state: TodayState, drag: FoodDrag, dropLabe
             )
         },
         note = card.note?.forCard(),
-        highlighted = state.highlight == card.slot,
-        onHeaderClick = if (selection != null) ({ onAction(TodayAction.MealHeaderToggled(card.slot)) }) else null,
+        highlighted = context.highlight == card.slot,
+        onHeaderClick = if (selecting) ({ onAction(TodayAction.MealHeaderToggled(card.slot)) }) else null,
         headerTrailing = {
             when {
-                selection != null -> Unit
+                selecting || context.closed -> Unit
                 card.fileable -> PillAction(
                     label = stringResource(Res.string.today_move_to),
                     onClick = { onAction(TodayAction.MoveUncategorizedTapped(card.items.map { it.entryId })) },
@@ -567,7 +601,7 @@ private fun FullMeal(card: MealCard, state: TodayState, drag: FoodDrag, dropLabe
             }
         },
         dropLabel = dropLabel,
-        itemRow = { item -> FoodRow(item, sentence, state, drag, onAction) },
+        itemRow = { item -> FoodRow(item, sentence, context, drag, onAction) },
     )
 }
 
@@ -576,11 +610,11 @@ private fun FullMeal(card: MealCard, state: TodayState, drag: FoodDrag, dropLabe
  * confirmation, swipeable, or plain. Outside select mode it carries its ⋮ (`release.foodActions`).
  */
 @Composable
-private fun FoodRow(item: MealCardItem, meal: String, state: TodayState, drag: FoodDrag, onAction: (TodayAction) -> Unit) {
+private fun FoodRow(item: MealCardItem, meal: String, context: FoodRowContext, drag: FoodDrag, onAction: (TodayAction) -> Unit) {
     val id = item.key
-    val selection = state.selection
+    val selected = context.selected
     val menu: @Composable RowScope.() -> Unit = {
-        if (state.foodMenus) {
+        if (context.foodMenus) {
             FoodMenuButton(
                 description = stringResource(Res.string.today_food_menu_cd, item.name),
                 onClick = { onAction(TodayAction.ItemMenuTapped(id)) },
@@ -588,29 +622,29 @@ private fun FoodRow(item: MealCardItem, meal: String, state: TodayState, drag: F
         }
     }
     when {
-        selection != null -> SelectableFoodRow(
+        selected != null -> SelectableFoodRow(
             name = item.name,
             sub = item.sub,
             calories = item.calories,
-            selected = id in selection.ids,
+            selected = id in selected,
             onToggle = { onAction(TodayAction.FoodToggled(id)) },
-            dimmed = drag.active && id in selection.ids,
+            dimmed = drag.active && id in selected,
             moveLabel = stringResource(Res.string.today_move_row),
             onMove = { onAction(TodayAction.MoveRowRequested(id)) },
             handle = { FoodDragHandle(drag, id, onAction) },
         )
-        state.swipe.confirming == id -> RemoveConfirmRow(
+        context.swipe.confirming == id -> RemoveConfirmRow(
             question = stringResource(Res.string.today_remove_one, TodayStateBuilder.inSentence(item.name), meal),
             keepLabel = stringResource(Res.string.today_remove_keep),
             removeLabel = stringResource(Res.string.today_remove_action),
             onKeep = { onAction(TodayAction.RowRemoveKept) },
             onRemove = { onAction(TodayAction.RowRemoveConfirmed(id)) },
         )
-        state.selectTools -> SwipeFoodRow(
+        context.selectTools -> SwipeFoodRow(
             name = item.name,
             sub = item.sub,
             calories = item.calories,
-            open = state.swipe.open == id,
+            open = context.swipe.open == id,
             deleteLabel = stringResource(Res.string.today_swipe_delete),
             onClick = { onAction(TodayAction.ItemTapped(id)) },
             onOpened = { onAction(TodayAction.RowSwipedOpen(id)) },
@@ -641,6 +675,11 @@ fun ColumnScope.DayMenuItems(menu: DayMenu, onAction: (TodayAction) -> Unit) {
                     if (item.isToday) Res.string.today_menu_close_day else Res.string.today_menu_close_this_day,
                     AppIcons.CheckCircleOutline,
                     TodayAction.DayCloseMenuTapped,
+                )
+                is DayMenuItem.Reopen -> Triple(
+                    if (item.isToday) Res.string.today_menu_reopen_day else Res.string.today_menu_reopen_this_day,
+                    AppIcons.CheckCircle,
+                    TodayAction.ReopenTapped,
                 )
                 DayMenuItem.Nutrients -> Triple(Res.string.today_menu_nutrients, AppIcons.Science, TodayAction.DayNutrientsTapped)
                 DayMenuItem.Notes -> Triple(Res.string.today_menu_notes, AppIcons.EventNote, TodayAction.NotesMenuTapped)

@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
 import com.opson.features.today.impl.Toast
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -70,6 +71,9 @@ sealed interface WaterSheetAction {
 sealed interface WaterSheetEvent {
     data object OpenWaterSettings : WaterSheetEvent
     data class ShowToast(val toast: Toast) : WaterSheetEvent
+
+    /** The day is closed (Close the day, maybe on another phone): no water was added or taken off. */
+    data class DayClosed(val day: LocalDate) : WaterSheetEvent
     data object Dismiss : WaterSheetEvent
 }
 
@@ -119,8 +123,7 @@ class WaterSheetViewModel(
             }
             WaterSheetAction.AddGlassTapped -> if (!written) {
                 written = true
-                diary.addWater(day, settings().glassMl)
-                finish(Toast(Res.string.today_toast_water))
+                finish(diary.addWater(day, settings().glassMl), Toast(Res.string.today_toast_water))
             }
             is WaterSheetAction.CustomAmountTyped -> {
                 custom = NumberInput.sanitize(action.text, allowDecimal = false)
@@ -130,13 +133,11 @@ class WaterSheetViewModel(
                 if (written) return
                 val ml = WaterSheetStateBuilder.customMl(custom, settings().waterUnit) ?: return
                 written = true
-                diary.addWater(day, ml)
-                finish(Toast(Res.string.today_toast_water_added))
+                finish(diary.addWater(day, ml), Toast(Res.string.today_toast_water_added))
             }
             WaterSheetAction.RemoveGlassTapped -> if (!written) {
                 written = true
-                diary.removeWater(day, settings().glassMl)
-                finish(Toast(Res.string.today_toast_water_removed))
+                finish(diary.removeWater(day, settings().glassMl), Toast(Res.string.today_toast_water_removed))
             }
             WaterSheetAction.WaterSettingsTapped -> sendEvent(WaterSheetEvent.OpenWaterSettings)
             WaterSheetAction.CloseTapped -> sendEvent(WaterSheetEvent.Dismiss)
@@ -150,9 +151,14 @@ class WaterSheetViewModel(
         updateState { WaterSheetStateBuilder.build(d, s, custom) }
     }
 
-    private fun finish(toast: Toast) {
-        sendEvent(WaterSheetEvent.ShowToast(toast))
-        sendEvent(WaterSheetEvent.Dismiss)
+    private fun finish(write: DayWrite<Unit>, toast: Toast) {
+        when (write) {
+            is DayWrite.Written -> {
+                sendEvent(WaterSheetEvent.ShowToast(toast))
+                sendEvent(WaterSheetEvent.Dismiss)
+            }
+            is DayWrite.DayClosed -> sendEvent(WaterSheetEvent.DayClosed(write.day))
+        }
     }
 }
 

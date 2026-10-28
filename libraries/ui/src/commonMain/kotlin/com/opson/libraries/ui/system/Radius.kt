@@ -36,7 +36,6 @@ object Radii {
     val Banner get() = Radius(CornerSize(14.dp))
     val Header get() = None
     val Card get() = Radius(CornerSize(22.dp))
-    val Input get() = Radius(CornerSize(12.dp))
 }
 
 

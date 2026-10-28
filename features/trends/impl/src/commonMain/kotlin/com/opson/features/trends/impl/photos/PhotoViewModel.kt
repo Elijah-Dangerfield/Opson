@@ -1,6 +1,8 @@
 package com.opson.features.trends.impl.photos
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.core.Catching
+import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
 import com.opson.libraries.progressphotos.PhotoBytes
@@ -23,7 +25,7 @@ class PhotoViewModel(
     @Assisted private val id: String,
     private val photos: ProgressPhotoRepository,
     private val lock: PhotoLock,
-) : SEAViewModel<PhotoState, PhotoEvent, PhotoAction>(initialStateArg = PhotoState()) {
+) : SEAViewModel<PhotoState, PhotoEvent, PhotoAction>(initialStateArg = PhotoState(lock = lock.state.value)) {
 
     private var photo: ProgressPhoto? = null
     private var image: PhotoBytes? = null
@@ -48,19 +50,24 @@ class PhotoViewModel(
             PhotoAction.DeleteCancelled -> action.updateState { it.copy(confirmDelete = false) }
             PhotoAction.DeleteConfirmed -> {
                 action.updateState { it.copy(confirmDelete = false) }
-                photos.delete(id)
+                // Kept on a failed write (a full disk), so the photo stays and nothing crashes.
+                Catching { photos.delete(id) }.logOnFailure("Couldn't delete a progress photo")
             }
             PhotoAction.BackTapped -> sendEvent(PhotoEvent.Close)
         }
     }
 
+    /** Shows the photo's date and note at once, then reads the full image if unlocked and shows that. */
     private suspend fun settle(action: PhotoAction) {
+        if (lock.state.value != PhotoLockState.Unlocked) image = null
+        rebuild(action)
+        if (photo == null || image != null || lock.state.value != PhotoLockState.Unlocked) return
+        image = photos.image(id)?.let(::PhotoBytes) ?: return
+        rebuild(action)
+    }
+
+    private suspend fun rebuild(action: PhotoAction) {
         val unlocked = lock.state.value == PhotoLockState.Unlocked
-        if (!unlocked) {
-            image = null
-        } else if (image == null) {
-            image = photos.image(id)?.let(::PhotoBytes)
-        }
         val current = photo
         action.updateState { state ->
             if (!unlocked) {

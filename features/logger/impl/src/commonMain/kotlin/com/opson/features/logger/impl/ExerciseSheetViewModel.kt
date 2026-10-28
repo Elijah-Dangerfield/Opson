@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import androidx.lifecycle.viewModelScope
 import com.opson.features.logger.ExerciseRoute
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.ExerciseRules
 import com.opson.libraries.diary.LocalCalendar
@@ -96,7 +97,7 @@ class ExerciseSheetViewModel(
             }
             ExerciseSheetAction.ActivityTapped -> action.change { copy(pane = ExercisePane.Pick, query = "") }
             is ExerciseSheetAction.QueryTyped -> action.change { copy(query = action.text) }
-            is ExerciseSheetAction.ActivityPicked -> if (action.key == ExerciseActivities.OTHER || ExerciseActivities[action.key] != null) {
+            is ExerciseSheetAction.ActivityPicked -> if (offered(action.key)) {
                 action.change { copy(activity = action.key, pane = ExercisePane.Form, minutes = minutes.ifEmpty { DEFAULT_MINUTES }) }
             }
             ExerciseSheetAction.PickBackTapped -> if (form.activity == null) {
@@ -116,27 +117,36 @@ class ExerciseSheetViewModel(
         }
     }
 
+    /** A listed activity, or Other where the sheet offers it. */
+    private fun offered(key: String): Boolean = when (key) {
+        ExerciseActivities.OTHER -> inputs?.let { ExerciseSheetStateBuilder.offersOther(form, it, policy) } == true
+        else -> ExerciseActivities[key] != null
+    }
+
     private suspend fun save() {
         if (written) return
         val current = inputs ?: return
         val draft = ExerciseSheetStateBuilder.draft(form, current) ?: return
         written = true
         val id = current.entry?.id
-        if (id == null) exercise.add(draft) else exercise.update(id, draft)
-        finish(Toast(Res.string.exercise_toast_saved))
+        finish(if (id == null) exercise.add(draft) else exercise.update(id, draft), Toast(Res.string.exercise_toast_saved))
     }
 
     private suspend fun delete() {
         if (written) return
         val id = inputs?.entry?.id ?: return
         written = true
-        exercise.delete(id)
-        finish(Toast(Res.string.exercise_toast_deleted))
+        finish(exercise.delete(id), Toast(Res.string.exercise_toast_deleted))
     }
 
-    private fun finish(toast: Toast) {
-        sendEvent(ExerciseSheetEvent.ShowToast(toast))
-        sendEvent(ExerciseSheetEvent.Dismiss)
+    private fun finish(write: DayWrite<*>, toast: Toast) {
+        when (write) {
+            is DayWrite.Written -> {
+                sendEvent(ExerciseSheetEvent.ShowToast(toast))
+                sendEvent(ExerciseSheetEvent.Dismiss)
+            }
+            is DayWrite.DayClosed -> sendEvent(ExerciseSheetEvent.DayClosed(write.day))
+        }
     }
 
     private suspend fun ExerciseSheetAction.change(edit: ExerciseForm.() -> ExerciseForm) {

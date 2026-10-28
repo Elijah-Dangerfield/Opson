@@ -18,6 +18,9 @@ import com.opson.libraries.core.AuthGate
 import com.opson.libraries.core.AuthRequirement
 import com.opson.libraries.core.AuthVerdict
 import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.diary.DataExport
+import com.opson.libraries.diary.DayCheckIns
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.FastingReleaseFlag
@@ -39,6 +42,7 @@ import com.opson.libraries.diary.impl.DiaryTables
 import com.opson.libraries.diary.impl.DiaryWriter
 import com.opson.libraries.diary.impl.ExerciseRepositoryImpl
 import com.opson.libraries.diary.impl.FastingRepositoryImpl
+import com.opson.libraries.diary.impl.HttpDataExport
 import com.opson.libraries.diary.impl.HttpDiarySyncApi
 import com.opson.libraries.diary.impl.SavedMealRepositoryImpl
 import com.opson.libraries.diary.impl.SettingsRepositoryImpl
@@ -47,11 +51,15 @@ import com.opson.libraries.diary.impl.SystemLocalCalendar
 import com.opson.libraries.diary.impl.WeightRepositoryImpl
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.DefaultDispatcherProvider
+import com.opson.libraries.foods.BarcodeLinkReporter
 import com.opson.libraries.foods.BarcodeMissReporter
+import com.opson.libraries.foods.FoodLabels
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.MealPhotoEstimator
 import com.opson.libraries.foods.impl.FoodCatalogImpl
+import com.opson.libraries.foods.impl.HttpBarcodeLinkReporter
 import com.opson.libraries.foods.impl.HttpBarcodeMissReporter
+import com.opson.libraries.foods.impl.HttpFoodLabels
 import com.opson.libraries.foods.impl.HttpFoodApi
 import com.opson.libraries.foods.impl.HttpMealPhotoEstimator
 import com.opson.libraries.identity.auth.AuthRepository
@@ -64,6 +72,7 @@ import com.opson.libraries.identity.impl.profile.ProfileCache
 import com.opson.libraries.identity.impl.profile.ProfileRepositoryImpl
 import com.opson.libraries.identity.impl.profile.UserScopedProfileCacheCleaner
 import com.opson.libraries.identity.profile.ProfileRepository
+import com.opson.libraries.networking.AccessDeniedBus
 import com.opson.libraries.networking.ClientHeaders
 import com.opson.libraries.networking.ClientHeadersProvider
 import com.opson.libraries.networking.InstallIdProvider
@@ -95,6 +104,7 @@ import java.util.UUID
 /**
  * One phone: the app's real code from the repositories down — the diary and its
  * outbox, the sync engine, settings, fasting, the food catalog, photo estimates,
+ * pack labels and food submissions,
  * auth and the user-change reset, remote config, the network client and its
  * DTOs — over the app's real [AppDatabase] (in memory) and pointed at
  * [serverUrl]. Each part is built the way the app's DI graph builds it;
@@ -120,6 +130,12 @@ class TestClient(
      * an iPhone, or last month's build, is this.
      */
     device: (ClientHeaders) -> ClientHeaders = { it },
+    /**
+     * Runs on the Supabase stand-in before anything can use it, for a session that starts with
+     * an expired or foreign token, or whose refresh Supabase refuses. Later is too late: the
+     * network layer loads the token once and keeps it until a 401.
+     */
+    setUpSession: (StubSupabaseGateway) -> Unit = {},
 ) {
     // One app-lifetime scope per client. Every background collector lives here
     // so [close] can quiesce a client's work before the server stops.
@@ -129,8 +145,11 @@ class TestClient(
     val lifecycle = TestLifecycle()
 
     // ── Network ──────────────────────────────────────────────────────────────
-    val gateway = StubSupabaseGateway(signedInAs, newAccount)
+    val gateway = StubSupabaseGateway(signedInAs, newAccount).also(setUpSession)
     private val sessionRejectionBus = SessionRejectionBusImpl()
+
+    /** Where a ban's 403 lands; the app shell routes from it to the access-denied screen. */
+    val accessDenied: AccessDeniedBus = AccessDeniedBusImpl()
     private val tokenProvider = GatewayAuthTokenProvider(gateway, sessionRejectionBus)
     private val networkClient = NetworkClientImpl(
         config = object : NetworkConfig {
@@ -144,7 +163,7 @@ class TestClient(
             }
         },
         reachability = NetworkReachabilityImpl(appScope),
-        accessDeniedBus = AccessDeniedBusImpl(),
+        accessDeniedBus = accessDenied,
         sessionRejectionBus = sessionRejectionBus,
         authGate = { AlwaysReadyAuthGate },
     )
@@ -228,16 +247,21 @@ class TestClient(
     val settings: SettingsRepository = SettingsRepositoryImpl(settingsStore, sync)
     private val fastingImpl = FastingRepositoryImpl(tables, writer, settings, fastingRelease, calendar, clock)
     val fasting: FastingRepository = fastingImpl
-    val diary: DiaryRepository = DiaryRepositoryImpl(tables, writer, settings, calendar, fastEnder = fastingImpl)
+    private val diaryImpl = DiaryRepositoryImpl(tables, writer, settings, calendar, fastEnder = fastingImpl)
+    val diary: DiaryRepository = diaryImpl
+    val checkIns: DayCheckIns = diaryImpl
     val weights: WeightRepository = WeightRepositoryImpl(tables, writer)
     val customFoods: CustomFoodRepository = CustomFoodRepositoryImpl(tables, writer)
     val savedMeals: SavedMealRepository = SavedMealRepositoryImpl(tables, writer)
     val exercise: ExerciseRepository = ExerciseRepositoryImpl(tables, writer)
+    val export: DataExport = HttpDataExport(networkClient, calendar)
 
     // ── Foods ────────────────────────────────────────────────────────────────
     val foods: FoodCatalog = FoodCatalogImpl(HttpFoodApi(networkClient), database.foodCacheDao(), clock)
     val photoEstimator: MealPhotoEstimator = HttpMealPhotoEstimator(networkClient)
     val barcodeMisses: BarcodeMissReporter = HttpBarcodeMissReporter(networkClient, appScope)
+    val foodLabels: FoodLabels = HttpFoodLabels(networkClient)
+    val barcodeLinks: BarcodeLinkReporter = HttpBarcodeLinkReporter(networkClient, appScope)
 
     // ── Account ──────────────────────────────────────────────────────────────
     private val profileApi = HttpProfileApi(networkClient)
@@ -310,7 +334,7 @@ class TestClient(
         slot = slot,
         items = listOf(LogDraft(name = name, precision = Precision.Estimate, foodId = foodId, amountText = "1 bowl", grams = 300.0, kcal = kcal)),
         method = method,
-    ).single()
+    ).written().single()
 
     /** Changes waiting in the outbox. */
     suspend fun pendingChanges(): Int = tables.outbox.count()
@@ -343,4 +367,10 @@ internal fun randomUserId(): String = UUID.randomUUID().toString()
 internal object AlwaysReadyAuthGate : AuthGate {
     override fun verdict(requirement: AuthRequirement): AuthVerdict = AuthVerdict.Ready
     override suspend fun awaitVerdict(requirement: AuthRequirement): AuthVerdict = AuthVerdict.Ready
+}
+
+/** What a write to an open day wrote. A closed day here is a test that went wrong. */
+fun <T> DayWrite<T>.written(): T = when (this) {
+    is DayWrite.Written -> value
+    is DayWrite.DayClosed -> error("$day is closed")
 }

@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import androidx.compose.runtime.Immutable
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.LoggedToMeal
@@ -44,6 +45,11 @@ data class TodayState(
     val meals: List<MealEntry> = emptyList(),
     /** Close the day's button in the header. None on a planned day, an untracked one, or before anything is logged. */
     val closeDay: CloseDayButton? = null,
+    /**
+     * Closed with Close the day: it takes nothing until it is reopened, so the + buttons, select,
+     * swipe and the menu's adding items go, and a line says so with Reopen.
+     */
+    val closed: Boolean = false,
     /** The meal that just changed, outlined for a moment and scrolled to. */
     val highlight: MealSlot? = null,
     /** "Added 2 foods to dinner" with Undo, for six seconds after the logger adds (3.9). */
@@ -58,7 +64,7 @@ data class TodayState(
     val fasting: FastingStatus? = null,
     /** `release.todaySummary`: the dots, the chevron, long-press to customise, the sticky bar. */
     val summaryTools: Boolean = false,
-    /** The summary page left open, by its place in [TodaySummary.Energy.pages]. Remembered across days and restarts. */
+    /** The summary page left open, by its place in [TodaySummary.Energy.pages]. Remembered on this phone across days and restarts. */
     val summaryPage: Int = 0,
     /** The summary shrunk to one pinned line by choice. */
     val collapsed: Boolean = false,
@@ -83,8 +89,10 @@ data class TodayState(
 /** One piece of the eaten bar: a macro's share of the energy, or ([metric] null) the rest in one neutral piece. */
 data class BarPart(val metric: Metric?, val weight: Float)
 
-/** A stat on page 1 of the summary: its value is an amount through the policy, or a count. */
-/** [label] is the stat's own, but "To your goal" for [SummaryStat.ToRange] when the day's goal is one number. */
+/**
+ * A stat on page 1 of the summary: its value is an amount through the policy, or a count. [label] is
+ * the stat's own, but "To your goal" for [SummaryStat.ToRange] when the day's goal is one number.
+ */
 data class StatTile(val stat: SummaryStat, val value: StatValue, val label: StringResource = stat.label)
 
 sealed interface StatValue {
@@ -249,6 +257,7 @@ sealed interface TileStatus {
 data class WaterRow(val display: Display, val filled: Int, val total: Int, val showSegments: Boolean)
 
 /** How one meal shows, chosen by the layout and whether it has anything in it. */
+@Immutable
 sealed interface MealEntry {
     val slot: MealSlot
 
@@ -276,6 +285,7 @@ sealed interface MealEntry {
     data class NotPlanned(override val slot: MealSlot) : MealEntry
 }
 
+@Immutable
 data class MealCard(
     val slot: MealSlot,
     /** The slot's name, or "All food" when meal groups are off. */
@@ -296,14 +306,16 @@ data class MealCard(
 
 /**
  * A meal's Note as Today shows it: the hunger level and the words, either one alone. Read from the
- * "How it felt" record the Note sheet writes; null when it holds neither.
+ * meal's MealFeeling, which the Note sheet writes; null when it holds neither.
  */
+@Immutable
 data class MealNoteUi(val hunger: StringResource?, val text: String?)
 
 /** A food on a meal card. [precision] is null where only the household amount shows (No numbers). */
+@Immutable
 data class ItemRowUi(val entryId: String, val name: String, val amount: String, val precision: Precision?, val calories: Display)
 
-/** [closed]: the day is closed already, so the button opens it to look back. */
+/** [closed]: the day was closed with Close the day, so the button opens it to look back or reopen it. */
 data class CloseDayButton(val closed: Boolean)
 
 /** The ⋮ menu, grouped by what each item affects (2.11). */
@@ -311,6 +323,9 @@ data class DayMenu(val groups: List<List<DayMenuItem>>, val clearArmed: Boolean)
 
 sealed interface DayMenuItem {
     data class CloseDay(val isToday: Boolean) : DayMenuItem
+
+    /** In Close the day's place once the day is closed. */
+    data class Reopen(val isToday: Boolean) : DayMenuItem
     data object Nutrients : DayMenuItem
 
     /** Every meal's Note, newest first. */
@@ -348,6 +363,9 @@ sealed interface TodayAction {
     data class ItemMenuTapped(val entryId: String) : TodayAction
     data object WaterPlusTapped : TodayAction
     data object CloseDayButtonTapped : TodayAction
+
+    /** Reopen on the closed line or in the ⋮ menu: the day takes food again. */
+    data object ReopenTapped : TodayAction
     data object HighlightFaded : TodayAction
 
     /** The logger added food (`RecentLogEvents.latest`) while Today showed [shown]. */
@@ -441,6 +459,9 @@ sealed interface TodayEvent {
     /** The food's actions (13.3d), from its row or its ⋮. */
     data class OpenItemSheet(val day: LocalDate, val entryId: String) : TodayEvent
     data class OpenWaterSheet(val day: LocalDate) : TodayEvent
+
+    /** Something tried to add to [day], which is closed: "Today is closed. Reopen it to add more." */
+    data class OpenDayClosed(val day: LocalDate) : TodayEvent
     data object OpenTodayCards : TodayEvent
     data object OpenFasting : TodayEvent
     data object OpenWeight : TodayEvent
@@ -473,6 +494,8 @@ data class TodayInputs(
     val goalsAndEnergyOn: Boolean = false,
     /** The day's Burned, with [goalsAndEnergyOn]; null while no resting source can say. */
     val burned: Burned? = null,
+    /** The card's page and collapse as left on this phone, with [summaryOn]. */
+    val cardView: TodayCardView = TodayCardView(),
 )
 
 /**

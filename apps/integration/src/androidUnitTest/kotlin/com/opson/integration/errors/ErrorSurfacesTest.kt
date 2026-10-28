@@ -7,11 +7,18 @@ import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.TestClient
 import com.opson.integration.helpers.TestClock
 import com.opson.integration.helpers.randomUserId
+import com.opson.libraries.core.Catching
+import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.SyncRejection
+import com.opson.libraries.diary.impl.DiarySyncApi
+import com.opson.libraries.diary.impl.wire.SyncRejectionDto
+import com.opson.libraries.diary.impl.wire.SyncRequestDto
+import com.opson.libraries.diary.impl.wire.SyncResponseDto
 import com.opson.libraries.foods.PhotoEstimate
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ServerResponseException
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -24,6 +31,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.net.SocketTimeoutException
 import kotlin.random.Random
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -116,6 +124,67 @@ class ErrorSurfacesTest : IntegrationTest() {
         }
         assertEquals(emptyList(), phone.diary.observeDay(phone.today()).first().allItems, "the refused new row is rolled back")
         assertEquals(0, phone.pendingChanges(), "and not sent again forever")
+    }
+
+    /**
+     * The phone ships ahead of the server it talks to (a store release before a deploy, or a
+     * rollback): the server answers `unknown_entity` for a kind of row it has not learned yet.
+     * That is not the row being wrong, so the write stays on the phone and goes up once the server
+     * knows it.
+     */
+    @Ignore // TODO(review): DiarySyncer rolls back an unknown_entity like an invalid_row; deferred to libraries/diary/impl, see docs/review/findings/test-apps.md
+    @Test
+    fun sync_anEntityTheServerDoesNotKnowYet_keepsTheWrite() = integration {
+        val user = randomUserId()
+        val olderServer = OlderServer()
+        val phone = client(user, wrapSync = olderServer::wrap)
+        val day = phone.today()
+        val walk = phone.exercise.add(ExerciseDraft(day, phone.clock.now(), "yoga", minutes = 20, kcal = 60))
+
+        phone.syncNow().getOrThrow()
+        assertEquals(listOf(walk), phone.exercise.observeDay(day).first(), "still on the phone")
+        assertEquals(1, phone.pendingChanges(), "and still queued")
+
+        olderServer.knowsExercise = true // the deploy
+        phone.syncNow().getOrThrow()
+        assertEquals(0, phone.pendingChanges())
+        assertEquals(1L, server.countFor("exercises", user))
+    }
+
+    @Test
+    fun sync_aBusyServer_isRetried_andTheWriteGoesUpOnce() = integration {
+        val setup = phoneBehindProxy()
+        val busy = Fault.Status(
+            HttpStatusCode.ServiceUnavailable,
+            body = """{"error":{"code":"busy","message":"The server is busy. Try again in a moment."}}""",
+            headers = mapOf(HttpHeaders.RetryAfter to "1"),
+        )
+        setup.proxy.failNext("/v1/sync", busy, times = 2)
+        setup.phone.log("Tea", kcal = 2.0)
+
+        setup.phone.syncNow().getOrThrow()
+
+        assertEquals(0, setup.phone.pendingChanges())
+        assertEquals(1L, server.countFor("log_entries", setup.user))
+    }
+
+    /** A server from before exercise: it refuses those rows as an entity it does not know. */
+    private class OlderServer {
+        @Volatile
+        var knowsExercise = false
+
+        fun wrap(delegate: DiarySyncApi): DiarySyncApi = object : DiarySyncApi {
+            override suspend fun sync(request: SyncRequestDto): Catching<SyncResponseDto> {
+                if (knowsExercise) return delegate.sync(request)
+                val (unknown, known) = request.mutations.partition { it.entity == "exercise" }
+                return delegate.sync(request.copy(mutations = known, accepts = request.accepts - "exercise")).map { response ->
+                    response.copy(
+                        rejected = response.rejected + unknown.map { SyncRejectionDto(it.id, "unknown_entity", "Unknown entity 'exercise'") },
+                        changes = response.changes.copy(exercises = null),
+                    )
+                }
+            }
+        }
     }
 
     @Test

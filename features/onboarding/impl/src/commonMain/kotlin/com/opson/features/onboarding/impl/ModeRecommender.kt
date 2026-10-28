@@ -6,8 +6,7 @@ import com.opson.libraries.nutrition.Presets
 /**
  * Picks a starting mode from the setup answers. Once a port of `pickMode` in
  * `docs/design/handoff/phone-logic.js`, with design v3's default: answers that
- * say nothing give All numbers, which is also where "Skip and start logging"
- * lands, so skipping every question and skipping setup agree. Someone who agreed
+ * say nothing, every question skipped, give All numbers. Someone who agreed
  * numbers have been hard is never offered All numbers ([isOffered]).
  */
 object ModeRecommender {
@@ -87,7 +86,7 @@ object ModeRecommender {
 
 /** Which answer decided the starting point. The recommendation step says it in one line. */
 enum class RecommendationReason {
-    /** Every question skipped: All numbers, as "Skip and start logging". */
+    /** Every question skipped: All numbers. */
     NoAnswers,
     LovesNumbers,
     SomeAreFine,

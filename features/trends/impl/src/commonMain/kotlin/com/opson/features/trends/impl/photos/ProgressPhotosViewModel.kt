@@ -1,6 +1,8 @@
 package com.opson.features.trends.impl.photos
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.core.Catching
+import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
 import com.opson.libraries.progressphotos.PhotoBytes
@@ -8,9 +10,6 @@ import com.opson.libraries.progressphotos.ProgressPhoto
 import com.opson.libraries.progressphotos.ProgressPhotoRepository
 import com.opson.libraries.progressphotos.SavedComparison
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -21,10 +20,12 @@ import kotlin.time.Clock
 
 /**
  * The grid. Locks and asks for the phone's lock every time it is created,
- * which is every time the screen opens. Thumbnails are read only while
- * unlocked and dropped the moment it locks again. They are read beside the
- * page rather than inside an action, so the grid draws first and a tap
- * doesn't wait for the disk.
+ * which is every time the screen opens. A thumbnail is read when its tile
+ * comes on screen and asks for it ([ProgressPhotosAction.ThumbnailWanted]),
+ * so a year of photos costs the reads of the dozen in view. Reads happen only
+ * while unlocked, beside the page rather than inside an action (the grid draws
+ * first and a tap doesn't wait for the disk), and everything read is dropped
+ * the moment it locks again.
  */
 @Inject
 class ProgressPhotosViewModel(
@@ -38,7 +39,7 @@ class ProgressPhotosViewModel(
     private var comparisons: List<SavedComparison> = emptyList()
     private val thumbnails = mutableMapOf<String, PhotoBytes>()
     private var ui = ProgressPhotosUi()
-    private var reading: Job? = null
+    private val reading = mutableMapOf<String, Job>()
 
     private val today: LocalDate get() = clock.now().toLocalDateTime(timeZone).date
 
@@ -57,23 +58,24 @@ class ProgressPhotosViewModel(
                 comparisons = action.saved
                 thumbnails.keys.retainAll(action.photos.map { it.id }.toSet())
                 rebuild(action)
-                readThumbnails()
             }
             is ProgressPhotosAction.LockChanged -> {
                 if (action.lock != PhotoLockState.Unlocked) {
-                    reading?.cancel()
+                    reading.values.forEach { it.cancel() }
+                    reading.clear()
                     thumbnails.clear()
                     ui = ProgressPhotosUi()
                 }
                 rebuild(action)
-                readThumbnails()
             }
             ProgressPhotosAction.UnlockTapped, ProgressPhotosAction.Foregrounded -> lock.unlock()
-            is ProgressPhotosAction.ThumbnailsRead -> {
-                // A read that finished after the lock came back down is dropped.
-                if (lock.state.value != PhotoLockState.Unlocked) return
-                val ids = list.orEmpty().map { it.id }.toSet()
-                action.read.filterKeys { it in ids }.forEach { (id, bytes) -> thumbnails[id] = bytes }
+            is ProgressPhotosAction.ThumbnailWanted -> read(action.id)
+            is ProgressPhotosAction.ThumbnailRead -> {
+                reading.remove(action.id)
+                // A read that finished after the lock came back down, or for a photo deleted meanwhile, is dropped.
+                if (lock.state.value != PhotoLockState.Unlocked || action.bytes == null) return
+                if (list.orEmpty().none { it.id == action.id }) return
+                thumbnails[action.id] = action.bytes
                 rebuild(action)
             }
             is ProgressPhotosAction.TileTapped -> sendEvent(ProgressPhotosEvent.OpenPhoto(action.id))
@@ -88,23 +90,19 @@ class ProgressPhotosViewModel(
             ProgressPhotosAction.DeleteAllCancelled -> changeUi(action) { copy(confirmDeleteAll = false) }
             ProgressPhotosAction.DeleteAllConfirmed -> {
                 changeUi(action) { copy(confirmDeleteAll = false) }
-                photos.deleteAll()
+                // A failed delete (the disk) leaves the grid as it is rather than ending the page.
+                Catching { photos.deleteAll() }.logOnFailure("Couldn't delete the progress photos")
             }
             ProgressPhotosAction.BackTapped -> sendEvent(ProgressPhotosEvent.Close)
         }
     }
 
-    /** Reads the thumbnails not read yet, together, only while unlocked. */
-    private fun readThumbnails() {
-        if (lock.state.value != PhotoLockState.Unlocked) return
-        val missing = list.orEmpty().map { it.id }.filter { it !in thumbnails }
-        if (missing.isEmpty()) return
-        reading?.cancel()
-        reading = viewModelScope.launch {
-            val read = coroutineScope {
-                missing.map { id -> async { photos.thumbnail(id)?.let { id to PhotoBytes(it) } } }.awaitAll()
-            }
-            takeAction(ProgressPhotosAction.ThumbnailsRead(read.filterNotNull().toMap()))
+    /** Reads one thumbnail beside the page, once, only while unlocked. */
+    private fun read(id: String) {
+        if (lock.state.value != PhotoLockState.Unlocked || id in thumbnails || id in reading) return
+        if (list.orEmpty().none { it.id == id }) return
+        reading[id] = viewModelScope.launch {
+            takeAction(ProgressPhotosAction.ThumbnailRead(id, photos.thumbnail(id)?.let(::PhotoBytes)))
         }
     }
 
@@ -123,7 +121,11 @@ class ProgressPhotosViewModel(
 sealed interface ProgressPhotosAction {
     data class PhotosArrived(val photos: List<ProgressPhoto>, val saved: List<SavedComparison>) : ProgressPhotosAction
     data class LockChanged(val lock: PhotoLockState) : ProgressPhotosAction
-    data class ThumbnailsRead(val read: Map<String, PhotoBytes>) : ProgressPhotosAction
+    /** A tile came on screen without its image. */
+    data class ThumbnailWanted(val id: String) : ProgressPhotosAction
+
+    /** [bytes] is `null` when the file is gone or unreadable. */
+    data class ThumbnailRead(val id: String, val bytes: PhotoBytes?) : ProgressPhotosAction
     data object UnlockTapped : ProgressPhotosAction
     data object Foregrounded : ProgressPhotosAction
     data class TileTapped(val id: String) : ProgressPhotosAction

@@ -3,8 +3,10 @@ package com.opson.libraries.widgets.impl
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.opson.AppData
 import com.opson.libraries.widgets.WidgetCopy
 import com.opson.libraries.widgets.WidgetFixtures
 import com.opson.libraries.widgets.WidgetSnapshot
@@ -15,12 +17,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** What reaches the platform as the snapshot and the settings move. Not gated on `release.widgets`. */
+/** What reaches the platform as the snapshot, the settings and the signed-in user move. Not gated on `release.widgets`. */
 class WidgetRefresherTest : CoroutineTest() {
 
     private val source = FakeSnapshotSource()
     private val publisher = FakePublisher()
     private val settings = FakeSettingsRepository(Settings())
+    private val auth = FakeAuth()
+    private val appCache = FakeAppCache(AppData(hasUserOnboarded = true))
     private lateinit var appScope: AppCoroutineScope
 
     private fun refresher(): WidgetRefresher {
@@ -29,6 +33,8 @@ class WidgetRefresherTest : CoroutineTest() {
             settingsRepository = settings,
             source = source,
             publisher = publisher,
+            appCache = appCache,
+            authRepositoryProvider = { auth },
             appScope = appScope,
         )
     }
@@ -90,5 +96,68 @@ class WidgetRefresherTest : CoroutineTest() {
 
         assertEquals(0, publisher.clears)
         assertTrue(publisher.published.isEmpty())
+    }
+
+    /**
+     * Signed out, the settings store holds the defaults (All numbers) and calls them known. A
+     * No numbers widget must not turn into a calorie card for someone who chose never to see one.
+     */
+    @Test
+    fun aSignOut_clearsTheWidget_andDoesNotDrawTheDefaultSettings() = test {
+        refresher()
+        val blind = snapshot(PresetId.NoNumbers)
+        source.snapshots.emit(blind)
+
+        auth.state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
+        source.snapshots.emit(snapshot(PresetId.Full))
+
+        assertEquals(listOf(blind), publisher.published, "nothing is drawn from the defaults")
+        assertEquals(1, publisher.clears)
+    }
+
+    @Test
+    fun anExpiredSession_clearsWhatAnEarlierRunPublished() = test {
+        auth.state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SessionExpired)
+        refresher()
+        source.snapshots.emit(snapshot(PresetId.Full))
+
+        assertEquals(1, publisher.clears, "this run published nothing, but the home screen may still hold a day")
+        assertEquals(0, source.collections)
+    }
+
+    @Test
+    fun noSessionAndNotOnboarded_leavesTheWidgetAsItIs() = test {
+        // A fresh install, or a relaunch after a sign-out: the settings are only the defaults.
+        appCache.state.value = AppData(hasUserOnboarded = false)
+        auth.state.value = AuthState.Unauthenticated()
+        refresher()
+        source.snapshots.emit(snapshot(PresetId.Full))
+
+        assertEquals(0, source.collections)
+        assertEquals(0, publisher.clears)
+    }
+
+    @Test
+    fun signingInAgain_publishesOnceTheirSettingsAreKnown() = test {
+        auth.state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
+        refresher()
+        val blind = snapshot(PresetId.NoNumbers)
+        source.snapshots.emit(blind)
+        assertTrue(publisher.published.isEmpty())
+
+        auth.state.value = AuthState.Authenticated(userId = "u2", isAnonymous = false, email = null)
+
+        assertEquals(listOf(blind), publisher.published)
+    }
+
+    /** An hour-old token can't refresh offline. The stored settings are still this person's, and so is the day. */
+    @Test
+    fun aSessionThatCannotRefreshOffline_stillPublishesForSomeoneOnboarded() = test {
+        auth.state.value = AuthState.Unauthenticated()
+        refresher()
+        val blind = snapshot(PresetId.NoNumbers)
+        source.snapshots.emit(blind)
+
+        assertEquals(listOf(blind), publisher.published)
     }
 }

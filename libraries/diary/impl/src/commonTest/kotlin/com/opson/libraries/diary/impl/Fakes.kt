@@ -1,5 +1,6 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.core.logging.LogEntry
 import com.opson.libraries.core.logging.LogId
@@ -50,6 +51,12 @@ import kotlin.time.Instant
  * per DAO, a transactor that rolls every table back when its block throws, and
  * a record of any write made outside a transaction.
  */
+
+/** What a write to an open day wrote. A closed day here is a test that went wrong. */
+fun <T> DayWrite<T>.written(): T = when (this) {
+    is DayWrite.Written -> value
+    is DayWrite.DayClosed -> error("$day is closed")
+}
 
 class FakeTable<K, V> {
     val state = MutableStateFlow<Map<K, V>>(emptyMap())
@@ -114,7 +121,7 @@ class FakeDiaryDb {
     private fun snapshot() = listOf(
         entries.state.value, days.state.value, feelings.state.value, weighIns.state.value,
         customFoods.state.value, savedMeals.state.value, outbox.state.value, syncState.state.value,
-        fasts.state.value,
+        fasts.state.value, exercises.state.value,
     )
 
     @Suppress("UNCHECKED_CAST")
@@ -128,6 +135,7 @@ class FakeDiaryDb {
         outbox.state.value = s[6] as Map<String, OutboxEntity>
         syncState.state.value = s[7] as Map<Int, SyncStateEntity>
         fasts.state.value = s[8] as Map<String, FastEntity>
+        exercises.state.value = s[9] as Map<String, ExerciseEntity>
     }
 
     val entryDao = object : LogEntryDao {
@@ -341,6 +349,9 @@ class FakeDiaryDb {
             .filter { row -> row.day.let { it == null || it <= maxDay } }
             .sortedWith(compareBy<OutboxEntity> { it.createdAtEpochMs }.thenBy { it.id })
             .take(limit)
+
+        override suspend fun pageExcept(limit: Int, maxDay: String, entities: List<String>) =
+            page(Int.MAX_VALUE, maxDay).filter { it.entity !in entities }.take(limit)
 
         override suspend fun getByIds(ids: List<String>) = ids.mapNotNull { outbox.state.value[it] }
 

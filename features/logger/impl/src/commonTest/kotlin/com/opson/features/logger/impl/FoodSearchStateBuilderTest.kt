@@ -193,20 +193,20 @@ class FoodSearchStateBuilderTest {
 
         assertEquals(listOf(SearchScope.All, SearchScope.YourFoods), state.scopes)
         assertFalse(state.canScan)
-        assertFalse(state.canPhotograph)
+        assertFalse(state.canAddFood)
         assertFalse(state.canDescribe)
         assertEquals(2, state.picks?.count)
         assertEquals(2, assertIs<SearchBody.Results>(state.body).rows.count { it.added })
     }
 
     @Test
-    fun theFlagsDecideTheScannerAndThePhoto() {
+    fun theFlagsDecideTheScannerAndAddingAFood() {
         val on = LoggerFixtures.searchState(full)
         assertTrue(on.canScan)
-        assertTrue(on.canPhotograph)
+        assertTrue(on.canAddFood)
         val off = LoggerFixtures.searchState(full, flags = false)
         assertFalse(off.canScan)
-        assertFalse(off.canPhotograph)
+        assertFalse(off.canAddFood)
         assertTrue(off.canDescribe, "Describe shipped in 0.1")
     }
 

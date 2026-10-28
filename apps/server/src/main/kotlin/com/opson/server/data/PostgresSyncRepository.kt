@@ -14,7 +14,6 @@ import com.opson.server.db.UserSettingsTable
 import com.opson.server.db.jsonbMerge
 import com.opson.server.db.WeighInsTable
 import com.opson.server.db.toJavaInstant
-import com.opson.server.db.toKotlinInstant
 import com.opson.server.di.ServerScope
 import com.opson.server.domain.CustomFood
 import com.opson.server.domain.DayRecord
@@ -24,11 +23,7 @@ import com.opson.server.domain.DiaryRules
 import com.opson.server.domain.Exercise
 import com.opson.server.domain.Fast
 import com.opson.server.domain.LogEntry
-import com.opson.server.domain.LogMethod
 import com.opson.server.domain.MealFeeling
-import com.opson.server.domain.MealSlot
-import com.opson.server.domain.Nutrients
-import com.opson.server.domain.Precision
 import com.opson.server.domain.SavedMeal
 import com.opson.server.domain.SyncMutation
 import com.opson.server.domain.SyncRepository
@@ -36,6 +31,7 @@ import com.opson.server.domain.SyncResult
 import com.opson.server.domain.UserId
 import com.opson.server.domain.UserSettings
 import com.opson.server.domain.WeighIn
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -74,6 +70,10 @@ import java.util.UUID
  *     user. Older and replayed mutations change nothing and do not bump
  *     `server_seq`. The `user_id` predicate means a client that sends another
  *     user's row id cannot touch that row.
+ *     An update writes only the columns the sending client knows. A 0.1 day
+ *     record has no check-in, so its update leaves `check_in` as a 0.2 phone
+ *     stored it rather than clearing it. A column added to a synced table
+ *     later needs the same care.
  *  3. New entries that reference a catalog food bump `foods.popularity`, in id
  *     order so concurrent syncs cannot deadlock on the shared rows.
  *  4. Pull every entity past the cursor, [DiaryRules.PAGE_SIZE] per entity.
@@ -98,6 +98,9 @@ class PostgresSyncRepository(
     ): SyncResult =
         database.readCommittedTransaction {
             lockUser(userId)
+            // `accepts` shipped before check-ins did, and 0.1 never sends it. A request without
+            // it comes from a client whose day records have no check-in field to send.
+            val knowsCheckIn = pullFasts || pullExercises
 
             val entries = mutations.map { it.row }.filterIsInstance<LogEntry>()
             val knownFoods = knownFoodIds(entries.mapNotNull { it.foodId }.toSet())
@@ -116,7 +119,7 @@ class PostgresSyncRepository(
                         existingEntries += entry.id
                     }
 
-                    else -> upsertOther(userId, row)
+                    else -> upsertOther(userId, row, knowsCheckIn)
                 }
             }
             bumpPopularity(picks)
@@ -166,6 +169,9 @@ class PostgresSyncRepository(
                 (clientUpdatedAt less row.clientUpdatedAt.toJavaInstant())
         }
 
+    // TODO(review): a 0.1 edit sends `estimate` for a `label` entry (it reads label as estimate),
+    // so the 0.2 phone loses "From label". Keep the stored label for requests without `accepts`;
+    // docs/review/findings/server-data.md finding 2.
     private fun upsertEntry(userId: UserId, row: LogEntry): Boolean =
         LogEntriesTable.upsert(
             LogEntriesTable.id,
@@ -195,13 +201,14 @@ class PostgresSyncRepository(
             it[deleted] = row.deleted
         }.insertedCount > 0
 
-    private fun upsertOther(userId: UserId, row: DiaryRow) {
+    private fun upsertOther(userId: UserId, row: DiaryRow, knowsCheckIn: Boolean) {
         when (row) {
             is LogEntry -> upsertEntry(userId, row)
 
             is DayRecord -> DayRecordsTable.upsert(
                 DayRecordsTable.userId,
                 DayRecordsTable.day,
+                onUpdateExclude = if (knowsCheckIn) null else listOf(DayRecordsTable.checkIn),
                 where = { DayRecordsTable.newerThanStored(userId, row) },
             ) {
                 it[this.userId] = userId.value
@@ -252,6 +259,8 @@ class PostgresSyncRepository(
 
             is CustomFood -> CustomFoodsTable.upsert(
                 CustomFoodsTable.id,
+                // A 0.1 row carries no details. Exposed would still update the columns to null, so they are left out of the update.
+                onUpdateExclude = if (row.details == null) CustomFoodsTable.detailColumns else null,
                 where = { CustomFoodsTable.newerThanStored(userId, row) },
             ) {
                 it[id] = row.id
@@ -265,6 +274,11 @@ class PostgresSyncRepository(
                 it[carbs] = row.nutrients.carbs?.toFloat()
                 it[fat] = row.nutrients.fat?.toFloat()
                 it[fiber] = row.nutrients.fiber?.toFloat()
+                row.details?.let { details ->
+                    it[servingGrams] = details.servingGrams?.toFloat()
+                    it[sizes] = JSON.encodeToString(SIZES_SERIALIZER, details.sizes.map { size -> SizeJson(size.label, size.grams) })
+                    it[micros] = JSON.encodeToString(MICROS_SERIALIZER, details.micros)
+                }
                 it[clientUpdatedAt] = row.clientUpdatedAt.toJavaInstant()
                 it[deleted] = row.deleted
             }
@@ -396,126 +410,10 @@ class PostgresSyncRepository(
         )
     }
 
-    private fun ResultRow.toLogEntry(): LogEntry = LogEntry(
-        id = this[LogEntriesTable.id],
-        day = this[LogEntriesTable.day],
-        slot = MealSlot.fromWire(this[LogEntriesTable.slot]) ?: MealSlot.Uncategorized,
-        loggedAt = this[LogEntriesTable.loggedAt].toKotlinInstant(),
-        foodId = this[LogEntriesTable.foodId],
-        customFoodId = this[LogEntriesTable.customFoodId],
-        name = this[LogEntriesTable.name],
-        amountText = this[LogEntriesTable.amountText],
-        quantity = this[LogEntriesTable.quantity].clean(),
-        unit = this[LogEntriesTable.unit],
-        grams = this[LogEntriesTable.grams].clean(),
-        precision = Precision.fromWire(this[LogEntriesTable.precision]) ?: Precision.Estimate,
-        nutrients = Nutrients(
-            kcal = this[LogEntriesTable.kcal].clean(),
-            protein = this[LogEntriesTable.protein].clean(),
-            carbs = this[LogEntriesTable.carbs].clean(),
-            fat = this[LogEntriesTable.fat].clean(),
-            fiber = this[LogEntriesTable.fiber].clean(),
-        ),
-        micros = this[LogEntriesTable.micros]?.let { JSON.decodeFromString(MICROS_SERIALIZER, it) },
-        method = LogMethod.fromWire(this[LogEntriesTable.method]) ?: LogMethod.Search,
-        clientUpdatedAt = this[LogEntriesTable.clientUpdatedAt].toKotlinInstant(),
-        deleted = this[LogEntriesTable.deleted],
-    )
-
-    private fun ResultRow.toDayRecord(): DayRecord = DayRecord(
-        day = this[DayRecordsTable.day],
-        waterMl = this[DayRecordsTable.waterMl],
-        closedAt = this[DayRecordsTable.closedAt]?.toKotlinInstant(),
-        note = this[DayRecordsTable.note],
-        ateNoDetails = JSON.decodeFromString(SLOT_FLAGS_SERIALIZER, this[DayRecordsTable.ateNoDetails])
-            .mapNotNull { (key, value) -> MealSlot.fromWire(key)?.let { it to value } }
-            .toMap(),
-        mealGroups = this[DayRecordsTable.mealGroups],
-        untracked = this[DayRecordsTable.untracked],
-        feeling = this[DayRecordsTable.feeling],
-        checkIn = this[DayRecordsTable.checkIn],
-        clientUpdatedAt = this[DayRecordsTable.clientUpdatedAt].toKotlinInstant(),
-        deleted = this[DayRecordsTable.deleted],
-    )
-
-    private fun ResultRow.toMealFeeling(): MealFeeling = MealFeeling(
-        day = this[MealFeelingsTable.day],
-        slot = MealSlot.fromWire(this[MealFeelingsTable.slot]) ?: MealSlot.Uncategorized,
-        hunger = this[MealFeelingsTable.hunger],
-        fullness = this[MealFeelingsTable.fullness],
-        moods = this[MealFeelingsTable.moods],
-        note = this[MealFeelingsTable.note],
-        clientUpdatedAt = this[MealFeelingsTable.clientUpdatedAt].toKotlinInstant(),
-        deleted = this[MealFeelingsTable.deleted],
-    )
-
-    private fun ResultRow.toWeighIn(): WeighIn = WeighIn(
-        id = this[WeighInsTable.id],
-        measuredAt = this[WeighInsTable.measuredAt].toKotlinInstant(),
-        kg = this[WeighInsTable.kg].clean() ?: 0.0,
-        clientUpdatedAt = this[WeighInsTable.clientUpdatedAt].toKotlinInstant(),
-        deleted = this[WeighInsTable.deleted],
-    )
-
-    private fun ResultRow.toCustomFood(): CustomFood = CustomFood(
-        id = this[CustomFoodsTable.id],
-        name = this[CustomFoodsTable.name],
-        brand = this[CustomFoodsTable.brand],
-        servingAmount = this[CustomFoodsTable.servingAmount].clean() ?: 0.0,
-        servingUnit = this[CustomFoodsTable.servingUnit],
-        nutrients = Nutrients(
-            kcal = this[CustomFoodsTable.kcal].clean(),
-            protein = this[CustomFoodsTable.protein].clean(),
-            carbs = this[CustomFoodsTable.carbs].clean(),
-            fat = this[CustomFoodsTable.fat].clean(),
-            fiber = this[CustomFoodsTable.fiber].clean(),
-        ),
-        clientUpdatedAt = this[CustomFoodsTable.clientUpdatedAt].toKotlinInstant(),
-        deleted = this[CustomFoodsTable.deleted],
-    )
-
-    private fun ResultRow.toSavedMeal(): SavedMeal = SavedMeal(
-        id = this[SavedMealsTable.id],
-        name = this[SavedMealsTable.name],
-        usualSlot = this[SavedMealsTable.usualSlot]?.let { MealSlot.fromWire(it) },
-        itemsJson = this[SavedMealsTable.items],
-        clientUpdatedAt = this[SavedMealsTable.clientUpdatedAt].toKotlinInstant(),
-        deleted = this[SavedMealsTable.deleted],
-    )
-
-    private fun ResultRow.toFast(): Fast = Fast(
-        day = this[FastsTable.day],
-        startedAt = this[FastsTable.startedAt].toKotlinInstant(),
-        endedAt = this[FastsTable.endedAt]?.toKotlinInstant(),
-        goalHours = this[FastsTable.goalHours]?.toInt(),
-        clientUpdatedAt = this[FastsTable.clientUpdatedAt].toKotlinInstant(),
-        deleted = this[FastsTable.deleted],
-    )
-
-    private fun ResultRow.toExercise(): Exercise = Exercise(
-        id = this[ExercisesTable.id],
-        day = this[ExercisesTable.day],
-        startedAt = this[ExercisesTable.startedAt].toKotlinInstant(),
-        activity = this[ExercisesTable.activity],
-        name = this[ExercisesTable.name],
-        minutes = this[ExercisesTable.minutes].toInt(),
-        kcal = this[ExercisesTable.kcal],
-        kcalTyped = this[ExercisesTable.kcalTyped],
-        notOnWatch = this[ExercisesTable.notOnWatch],
-        clientUpdatedAt = this[ExercisesTable.clientUpdatedAt].toKotlinInstant(),
-        deleted = this[ExercisesTable.deleted],
-    )
-
-    private fun ResultRow.toUserSettings(): UserSettings = UserSettings(
-        settingsJson = this[UserSettingsTable.settings],
-        changedAt = this[UserSettingsTable.changedAt]?.toKotlinInstant(),
-        clientUpdatedAt = this[UserSettingsTable.clientUpdatedAt].toKotlinInstant(),
-        deleted = this[UserSettingsTable.deleted],
-    )
-
     private companion object {
         val JSON = Json { ignoreUnknownKeys = true }
         val MICROS_SERIALIZER = MapSerializer(String.serializer(), Double.serializer())
+        val SIZES_SERIALIZER = ListSerializer(SizeJson.serializer())
         val SLOT_FLAGS_SERIALIZER = MapSerializer(String.serializer(), Boolean.serializer())
     }
 }

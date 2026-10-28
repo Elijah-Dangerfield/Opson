@@ -31,7 +31,7 @@ class RestingEnergyRoute(val fromEnergyToday: Boolean = false) : Route()
 @Serializable
 class EnergyTodayRoute : Route()
 
-/** More › Today screen (design sync 4, 13.6): the summary card's preset, main number and pages, and the list's rows. */
+/** More › Today screen (design sync 4, 13.6): the summary card's preset, main number and pages, the list's rows and the header's Close the day. */
 @Serializable
 class TodayScreenSettingsRoute : Route()
 
@@ -94,6 +94,14 @@ class WidgetsRoute : Route()
  */
 @Serializable
 class FindSupportRoute : Route()
+
+/**
+ * A summary for your provider (`release.providerSummary`): pick a range and what goes in, look it
+ * over, share a PDF. One-off and made by the person; there is no link anyone else can open.
+ * Opened from Support. Check [ProviderSummaryEnabled] before linking here.
+ */
+@Serializable
+class ProviderSummaryRoute : Route()
 
 /**
  * Credits and licenses: food data, the typeface and the open-source licences in the shipped

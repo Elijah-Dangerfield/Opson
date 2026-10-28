@@ -1,0 +1,18 @@
+{
+  "id": "msg_fixture",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-fable-5-1",
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"label_found\": false, \"name\": {\"value\": \"Sparkling water\", \"confidence\": 0.8}, \"brand\": {\"value\": \"Fizz\", \"confidence\": 0.8}, \"barcode\": {\"value\": null, \"confidence\": 0}, \"serving\": {\"amount\": null, \"unit\": null, \"household\": null, \"confidence\": 0}, \"servings_per_container\": {\"value\": null, \"confidence\": 0}, \"basis\": \"unknown\", \"nutrients\": []}"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 5200,
+    "output_tokens": 900
+  }
+}

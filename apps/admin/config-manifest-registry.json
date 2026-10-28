@@ -7,12 +7,13 @@
   { "path": "telemetry.appEventsEnabled", "type": "boolean", "default": true, "description": "Kill switch for shipping app events and forwarded logs to Grafana" },
   { "path": "telemetry.klogForwardingEnabled", "type": "boolean", "default": true, "description": "Forward Warn+ KLog lines to Grafana as plain OTLP logs" },
   { "path": "telemetry.appEventsSampleRate", "type": "double", "default": 1.0, "description": "Per-session sampling rate for app events, 0.0..1.0" },
-  { "path": "release.reminders", "type": "boolean", "default": false, "description": "0.2: Reminders page, reminder notifications and the Rhythm reminder line" },
+  { "path": "release.reminders", "type": "boolean", "default": false, "description": "0.2: Reminders page, its More row, the Water reminders row and every notification" },
   { "path": "release.health", "type": "boolean", "default": false, "description": "0.2 watch and health apps: the More row, Integrations and Expended so far on Today" },
   { "path": "release.barcode", "type": "boolean", "default": false, "description": "The barcode button in the logger search bar, and the scanner it opens" },
   { "path": "release.fasting", "type": "boolean", "default": false, "description": "0.2: the Fasting page, its More row, the Today card and the timer" },
   { "path": "release.voice", "type": "boolean", "default": false, "description": "0.2: the mic in the Logger's Describe pane, speech to text on the device" },
-  { "path": "release.photo", "type": "boolean", "default": false, "description": "0.2: the Photo chip in the logger, and the photo estimate sheet it opens" },
+  { "path": "release.photo", "type": "boolean", "default": false, "description": "Not in 0.2, keep off on prod: the Photo chip in the logger, and the photo estimate sheet it opens" },
+  { "path": "release.submitFood", "type": "boolean", "default": false, "description": "Add this food on a barcode miss or an empty search: photos of the pack, read and checked, sent for review" },
   { "path": "release.widgets", "type": "boolean", "default": false, "description": "0.2: the Widgets row on More. The snapshot for the widget is written whatever this says" },
   { "path": "release.searchOptions", "type": "boolean", "default": false, "description": "0.2: the Logger's search options sheet, category tabs and source badges" },
   { "path": "release.onboardingSetup", "type": "boolean", "default": false, "description": "Onboarding: the goal, resting energy details and meal times after the starting mode" },
@@ -23,5 +24,6 @@
   { "path": "release.checkIn", "type": "boolean", "default": false, "description": "The once-a-day check-in on Close the day" },
   { "path": "release.foodActions", "type": "boolean", "default": false, "description": "A food's menu on Today: change amount, move, copy to another day, edit a copy, favorite" },
   { "path": "release.goalsAndEnergy", "type": "boolean", "default": false, "description": "Targets: one number, a set deficit and surplus; Burned, Resting energy and Energy today" },
-  { "path": "release.exercise", "type": "boolean", "default": false, "description": "Exercise logged by hand, counted in Burned; needs goalsAndEnergy" }
+  { "path": "release.exercise", "type": "boolean", "default": false, "description": "Exercise logged by hand, counted in Burned; needs goalsAndEnergy" },
+  { "path": "release.providerSummary", "type": "boolean", "default": false, "description": "Support: a PDF summary for a provider, from a range and contents the person picks" }
 ]

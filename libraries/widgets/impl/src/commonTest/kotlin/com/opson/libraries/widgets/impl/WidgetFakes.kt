@@ -1,7 +1,8 @@
 package com.opson.libraries.widgets.impl
 
+import com.opson.libraries.diary.DayWrite
+import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
@@ -11,8 +12,21 @@ import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.identity.auth.AuthRepository
+import com.opson.libraries.identity.auth.AuthState
+import com.opson.libraries.identity.auth.DeleteAccountOutcome
+import com.opson.libraries.identity.auth.LinkEmailIdentityOutcome
+import com.opson.libraries.identity.auth.LinkIdentityOutcome
+import com.opson.libraries.identity.auth.OAuthProvider
+import com.opson.libraries.identity.auth.RefreshOutcome
+import com.opson.libraries.identity.auth.ResendOutcome
+import com.opson.libraries.identity.auth.SendResetOutcome
+import com.opson.libraries.identity.auth.SignInOutcome
+import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.opson.AppCache
+import com.opson.libraries.opson.AppData
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEventBus
 import com.opson.libraries.widgets.WidgetPublisher
@@ -65,6 +79,45 @@ class FakeSettingsRepository(initial: Settings, initiallyKnown: Boolean = true) 
         transform(state.value).also { state.value = it }
 }
 
+/** Who is signed in; only [observe] is real. Starts signed in, as most tests want. */
+class FakeAuth(initial: AuthState = AuthState.Authenticated(userId = "u1", isAnonymous = false, email = null)) : AuthRepository {
+    val state = MutableStateFlow(initial)
+
+    override suspend fun current(): AuthState = state.value
+    override fun observe(): Flow<AuthState> = state
+    override suspend fun retry(): AuthState = state.value
+    override suspend fun signInWithEmail(email: String, password: String): SignInOutcome = unused()
+    override suspend fun signUpWithEmail(email: String, password: String): SignUpOutcome = unused()
+    override suspend fun refreshSession(): RefreshOutcome = unused()
+    override suspend fun resendVerificationEmail(email: String): ResendOutcome = unused()
+    override suspend fun sendPasswordResetEmail(email: String): SendResetOutcome = unused()
+    override suspend fun signOut() = unused()
+    override suspend fun deleteAccount(): DeleteAccountOutcome = unused()
+    override suspend fun linkOAuthIdentity(provider: OAuthProvider): LinkIdentityOutcome = unused()
+    override suspend fun signInWithOAuth(provider: OAuthProvider): SignInOutcome = unused()
+    override suspend fun linkEmailIdentity(email: String, password: String): LinkEmailIdentityOutcome = unused()
+
+    private fun unused(): Nothing = error("Widgets only observe auth")
+}
+
+/** The app's own record; only whether someone finished onboarding matters here. */
+class FakeAppCache(initial: AppData = AppData()) : AppCache {
+    val state = MutableStateFlow(initial)
+    override val updates: Flow<AppData> = state
+
+    override suspend fun get(): AppData = state.value
+
+    override suspend fun set(value: AppData) {
+        state.value = value
+    }
+
+    override suspend fun clear() {
+        state.value = AppData()
+    }
+
+    override suspend fun update(transform: (AppData) -> AppData): AppData = transform(state.value).also { state.value = it }
+}
+
 class FakePolicySource(initial: VisibilityPolicy) : VisibilityPolicySource {
     val state = MutableStateFlow(initial)
     override val policy: StateFlow<VisibilityPolicy> = state
@@ -78,25 +131,24 @@ class FakeDiary : DiaryRepository {
 
     override fun observeDay(date: LocalDate): Flow<Day> = days.onStart { reads++ }.map { it[date] ?: Day.empty(date) }
 
-    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) = unused()
+    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean): DayWrite<Unit> = unused()
     override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> = unused()
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = unused()
-    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> = unused()
-    override suspend fun updateItem(item: LogItem) = unused()
-    override suspend fun removeItem(id: String) = unused()
-    override suspend fun moveItem(id: String, slot: MealSlot) = unused()
-    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> = unused()
-    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> = unused()
-    override suspend fun clearDay(day: LocalDate) = unused()
-    override suspend fun addWater(day: LocalDate, ml: Int) = unused()
-    override suspend fun removeWater(day: LocalDate, ml: Int) = unused()
-    override suspend fun setWater(day: LocalDate, ml: Int) = unused()
-    override suspend fun closeDay(day: LocalDate) = unused()
+    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> = unused()
+    override suspend fun updateItem(item: LogItem): DayWrite<Unit> = unused()
+    override suspend fun removeItem(id: String): DayWrite<Unit> = unused()
+    override suspend fun moveItem(id: String, slot: MealSlot): DayWrite<Unit> = unused()
+    override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> = unused()
+    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> = unused()
+    override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = unused()
+    override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> = unused()
+    override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = unused()
+    override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = unused()
+    override suspend fun closeDay(day: LocalDate, reflection: DayReflection) = unused()
     override suspend fun reopenDay(day: LocalDate) = unused()
-    override suspend fun setDayNote(day: LocalDate, note: String?) = unused()
+    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = unused()
     override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = unused()
-    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) = unused()
-    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?) = unused()
+    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?): DayWrite<Unit> = unused()
     override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = unused()
     override fun recentFoods(limit: Int): Flow<List<LogItem>> = unused()
     override fun usualAt(slot: MealSlot, limit: Int, days: Int): Flow<List<LogItem>> = unused()

@@ -43,10 +43,14 @@ import opson.libraries.resources.generated.resources.reminders_more_row
 import opson.libraries.resources.generated.resources.settings_about_credits
 import opson.libraries.resources.generated.resources.settings_about_privacy
 import opson.libraries.resources.generated.resources.settings_about_terms
+import opson.libraries.resources.generated.resources.settings_log_out_anyway
 import opson.libraries.resources.generated.resources.settings_log_out_body
 import opson.libraries.resources.generated.resources.settings_log_out_body_guest
 import opson.libraries.resources.generated.resources.settings_log_out_cancel
+import opson.libraries.resources.generated.resources.settings_log_out_stay
 import opson.libraries.resources.generated.resources.settings_log_out_title
+import opson.libraries.resources.generated.resources.settings_log_out_unsynced_body
+import opson.libraries.resources.generated.resources.settings_log_out_unsynced_title
 import opson.libraries.resources.generated.resources.settings_modes_changes
 import opson.libraries.resources.generated.resources.settings_more_about
 import opson.libraries.resources.generated.resources.settings_more_account
@@ -115,11 +119,7 @@ fun MoreScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
     }
-    when (val step = state.logOut) {
-        is LogOutStep.Confirming -> LogOutDialog(guest = step.guest, working = false, onAction = onAction)
-        is LogOutStep.Working -> LogOutDialog(guest = step.guest, working = true, onAction = onAction)
-        LogOutStep.Idle -> Unit
-    }
+    LogOutCopy.of(state.logOut)?.let { LogOutDialog(it, working = state.logOut is LogOutStep.Working, onAction = onAction) }
 }
 
 private fun List<MoreRow>.label(): StringResource? = when (val first = firstOrNull()) {
@@ -277,10 +277,35 @@ private fun LinkRow(title: StringResource, icon: IconResource, showDivider: Bool
     )
 }
 
+/** The log out dialog's words: the first ask, a guest's, or the one after the account couldn't be reached. */
+internal enum class LogOutCopy(val title: StringResource, val body: StringResource, val cancel: StringResource, val confirm: StringResource) {
+    SignedIn(Res.string.settings_log_out_title, Res.string.settings_log_out_body, Res.string.settings_log_out_cancel, Res.string.settings_more_log_out),
+    Guest(Res.string.settings_log_out_title, Res.string.settings_log_out_body_guest, Res.string.settings_log_out_cancel, Res.string.settings_more_log_out),
+    Unsynced(
+        Res.string.settings_log_out_unsynced_title,
+        Res.string.settings_log_out_unsynced_body,
+        Res.string.settings_log_out_stay,
+        Res.string.settings_log_out_anyway,
+    ),
+    ;
+
+    companion object {
+        /** Null while no dialog is up. */
+        fun of(step: LogOutStep): LogOutCopy? = when (step) {
+            LogOutStep.Idle -> null
+            is LogOutStep.Confirming -> of(step.guest)
+            is LogOutStep.Working -> if (step.unsynced) Unsynced else of(step.guest)
+            LogOutStep.Unsynced -> Unsynced
+        }
+
+        private fun of(guest: Boolean): LogOutCopy = if (guest) Guest else SignedIn
+    }
+}
+
 /** Like Support's delete: a modal, the safe choice in the accent, and nothing closes it mid-way. */
 @Composable
-private fun LogOutDialog(guest: Boolean, working: Boolean, onAction: (MoreAction) -> Unit) {
-    Dialog(onDismissRequest = { onAction(MoreAction.LogOutCancelled) }) {
+private fun LogOutDialog(copy: LogOutCopy, working: Boolean, onAction: (MoreAction) -> Unit) {
+    Dialog(onDismissRequest = { if (!working) onAction(MoreAction.LogOutCancelled) }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -290,13 +315,13 @@ private fun LogOutDialog(guest: Boolean, working: Boolean, onAction: (MoreAction
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
             Text(
-                text = stringResource(Res.string.settings_log_out_title),
+                text = stringResource(copy.title),
                 typography = AppTheme.type.dayLabel,
                 color = AppTheme.colors.ink,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = stringResource(if (guest) Res.string.settings_log_out_body_guest else Res.string.settings_log_out_body),
+                text = stringResource(copy.body),
                 typography = AppTheme.type.body,
                 color = AppTheme.colors.inkSoft,
                 textAlign = TextAlign.Center,
@@ -306,14 +331,14 @@ private fun LogOutDialog(guest: Boolean, working: Boolean, onAction: (MoreAction
                 horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
             ) {
                 FlatButton(
-                    text = stringResource(Res.string.settings_log_out_cancel),
+                    text = stringResource(copy.cancel),
                     onClick = { onAction(MoreAction.LogOutCancelled) },
                     tone = FlatButtonTone.AccentText,
                     enabled = !working,
                     typography = AppTheme.type.button,
                 )
                 FlatButton(
-                    text = stringResource(Res.string.settings_more_log_out),
+                    text = stringResource(copy.confirm),
                     onClick = { onAction(MoreAction.LogOutConfirmed) },
                     tone = FlatButtonTone.Text,
                     enabled = !working,
@@ -359,6 +384,14 @@ private fun MoreGuestStorePreview() {
 private fun MoreLogOutPreview() {
     val state = MoreStateBuilder.build(SettingsFixtures.settings(), account = previewAccount)
         .copy(logOut = LogOutStep.Confirming(guest = false))
+    SettingsPreview { MoreScreen(state, onAction = {}) }
+}
+
+/** The sync before logging out didn't reach the account: Stay, or log out and lose what never left the phone. */
+@Preview
+@Composable
+private fun MoreLogOutUnsyncedPreview() {
+    val state = MoreStateBuilder.build(SettingsFixtures.settings(), account = previewAccount).copy(logOut = LogOutStep.Unsynced)
     SettingsPreview { MoreScreen(state, onAction = {}) }
 }
 

@@ -7,4 +7,4 @@ data class BugReportRoute(
 	val logId: String? = null,
 	val errorCode: Int? = null,
 	val contextMessage: String? = null,
-) : TrackableRoute("bugReportScreenOpens"), NavigableWhileBlocked
+) : Route(), NavigableWhileBlocked

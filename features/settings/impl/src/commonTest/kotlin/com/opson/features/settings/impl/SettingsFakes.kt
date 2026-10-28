@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl
 
 import com.opson.features.settings.FindSupportEnabled
+import com.opson.features.settings.ProviderSummaryEnabled
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.DataExport
@@ -37,6 +38,7 @@ import com.opson.libraries.reminders.NotificationPermission
 import com.opson.libraries.reminders.NotificationPermissions
 import com.opson.libraries.reminders.RemindersEnabled
 import com.opson.libraries.widgets.WidgetsEnabled
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -114,7 +116,8 @@ class FakePolicySource(initial: VisibilityPolicy) : VisibilityPolicySource {
     override val policy = MutableStateFlow(initial)
 }
 
-class FakeDiarySync(var result: Result<Unit> = Result.success(Unit)) : DiarySync {
+/** [hangs]: a sync that never answers, like a server that accepts the connection and goes quiet. */
+class FakeDiarySync(var result: Result<Unit> = Result.success(Unit), private val hangs: Boolean = false) : DiarySync {
     var syncs = 0
         private set
 
@@ -122,6 +125,7 @@ class FakeDiarySync(var result: Result<Unit> = Result.success(Unit)) : DiarySync
 
     override suspend fun syncNow(): Result<Unit> {
         syncs++
+        if (hangs) awaitCancellation()
         return result
     }
 }
@@ -133,7 +137,7 @@ class FakeDataExport(private val sync: FakeDiarySync, var result: Result<ByteArr
     var syncsBeforeFirstCall: Int? = null
         private set
 
-    override suspend fun csv(): Result<ByteArray> {
+    override suspend fun everything(): Result<ByteArray> {
         calls++
         if (syncsBeforeFirstCall == null) syncsBeforeFirstCall = sync.syncs
         return result
@@ -151,6 +155,9 @@ class FakeAuthRepository(
     var signOuts = 0
         private set
 
+    /** A sign-out that never finishes, like one still waiting on the network. */
+    var signOutHangs = false
+
     override suspend fun deleteAccount(): DeleteAccountOutcome {
         deletes++
         return deleteOutcome
@@ -158,6 +165,7 @@ class FakeAuthRepository(
 
     override suspend fun signOut() {
         signOuts++
+        if (signOutHangs) awaitCancellation()
         state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
     }
 
@@ -221,6 +229,13 @@ fun goalsAndEnergyFlag(on: Boolean = false): GoalsAndEnergyEnabled = GoalsAndEne
 fun findSupportFlag(on: Boolean = false): FindSupportEnabled = FindSupportEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("findSupport" to on))
+    },
+)
+
+/** `release.providerSummary`, on or off. */
+fun providerSummaryFlag(on: Boolean = false): ProviderSummaryEnabled = ProviderSummaryEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("providerSummary" to on))
     },
 )
 

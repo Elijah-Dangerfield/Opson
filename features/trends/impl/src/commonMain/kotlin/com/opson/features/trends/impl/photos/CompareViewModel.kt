@@ -1,6 +1,8 @@
 package com.opson.features.trends.impl.photos
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.core.Catching
+import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
 import com.opson.libraries.progressphotos.PhotoBytes
@@ -21,7 +23,7 @@ class CompareViewModel(
     @Assisted rightId: String?,
     private val photos: ProgressPhotoRepository,
     private val lock: PhotoLock,
-) : SEAViewModel<CompareState, CompareEvent, CompareAction>(initialStateArg = CompareState()) {
+) : SEAViewModel<CompareState, CompareEvent, CompareAction>(initialStateArg = CompareState(lock = lock.state.value)) {
 
     private var list: List<ProgressPhoto>? = null
     private var comparisons: List<SavedComparison> = emptyList()
@@ -58,11 +60,20 @@ class CompareViewModel(
                 }
             }
             is CompareAction.ModePicked -> change(action) { copy(mode = action.mode) }
-            is CompareAction.SliderMoved -> change(action) { copy(sliderAt = action.at.coerceIn(0f, 1f)) }
+            is CompareAction.SliderMoved -> {
+                // Every frame of a drag: move the handle, without settling the pair and rebuilding the pickers.
+                ui = ui.copy(sliderAt = action.at.coerceIn(0f, 1f))
+                action.updateState { it.copy(sliderAt = ui.sliderAt) }
+            }
             is CompareAction.NoteTyped -> {
                 val rightId = state.right?.id ?: return
-                change(action) { copy(note = action.text) }
-                photos.setNote(rightId, action.text.take(NOTE_LIMIT))
+                // The field holds only what is kept, so nothing typed past the limit looks saved.
+                val note = action.text.take(NOTE_LIMIT).let { kept ->
+                    // An emoji straddling the limit goes whole: its first half alone is a broken glyph.
+                    if (kept.lastOrNull()?.isHighSurrogate() == true) kept.dropLast(1) else kept
+                }
+                change(action) { copy(note = note) }
+                write("Couldn't save a progress photo note") { photos.setNote(rightId, note) }
             }
             CompareAction.MenuTapped -> change(action) { copy(menuOpen = true) }
             CompareAction.MenuDismissed -> change(action) { copy(menuOpen = false) }
@@ -71,30 +82,47 @@ class CompareViewModel(
                 val left = state.left ?: return
                 val right = state.right ?: return
                 // It shows under the grid; the menu now offers to remove it.
-                photos.saveComparison(left.id, right.id)
+                write("Couldn't save a photo comparison") { photos.saveComparison(left.id, right.id) }
             }
             CompareAction.RemoveComparisonTapped -> {
                 change(action) { copy(menuOpen = false) }
-                state.savedId?.let { photos.removeComparison(it) }
+                val savedId = state.savedId ?: return
+                write("Couldn't remove a photo comparison") { photos.removeComparison(savedId) }
             }
             CompareAction.BackTapped -> sendEvent(CompareEvent.Close)
         }
     }
 
-    /** Fixes the pair against the photos that exist, reads its images if unlocked, and rebuilds. */
+    /**
+     * Fixes the pair against the photos that exist and rebuilds, then reads its images if unlocked
+     * and rebuilds again: the dates and pickers show while two full photos come off the disk.
+     */
     private suspend fun settle(action: CompareAction) {
         val current = list
         if (current != null) {
             val (left, right) = CompareStateBuilder.pair(current, ui.leftId, ui.rightId)
             ui = ui.copy(leftId = left, rightId = right)
             images.keys.retainAll(setOfNotNull(left, right))
-            if (lock.state.value == PhotoLockState.Unlocked) {
-                listOfNotNull(left, right).filter { it !in images }.forEach { id ->
-                    photos.image(id)?.let { images[id] = PhotoBytes(it) }
-                }
-            }
         }
+        rebuild(action)
+        if (current == null || lock.state.value != PhotoLockState.Unlocked) return
+        val missing = listOfNotNull(ui.leftId, ui.rightId).filter { it !in images }
+        if (missing.isEmpty()) return
+        missing.forEach { id -> photos.image(id)?.let { images[id] = PhotoBytes(it) } }
+        rebuild(action)
+    }
+
+    private suspend fun rebuild(action: CompareAction) {
         action.updateState { CompareStateBuilder.build(list, comparisons, images.toMap(), lock.state.value, ui) }
+    }
+
+    /**
+     * A write to the photo index. It throws on a full disk, or on iOS when protected data is
+     * unavailable; uncaught, that ends the action loop and takes the app down with it. The page
+     * already shows what it holds, so a failure is logged and the next change tries again.
+     */
+    private suspend fun write(failure: String, block: suspend () -> Unit) {
+        Catching { block() }.logOnFailure(failure)
     }
 
     private suspend fun change(action: CompareAction, block: CompareUi.() -> CompareUi) {

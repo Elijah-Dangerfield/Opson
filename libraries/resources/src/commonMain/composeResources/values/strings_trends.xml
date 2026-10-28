@@ -43,6 +43,12 @@
     <string name="trends_weight_none">No weigh-ins yet. Tap to log one.</string>
     <string name="trends_expended">Expended</string>
     <string name="trends_expended_sub">Daily average from your watch</string>
+    <!-- A chart point's label, when a finger rests on it: what the reading beside it is. -->
+    <string name="trends_chart_daily_average">Daily average</string>
+    <string name="trends_chart_trend">Trend</string>
+    <string name="trends_chart_weigh_in">Weigh-in</string>
+    <!-- Before the day's check-in answer, Rarely to Very. -->
+    <string name="trends_chart_hunger">Hunger:</string>
     <!-- Hunger and notes: read from each meal's note. Hunger is information, never a score. -->
     <string name="trends_hunger">Hunger</string>
     <plurals name="trends_hunger_sub">
@@ -141,6 +147,7 @@
     <!-- Weight -->
     <string name="trends_weight_title">Weight</string>
     <string name="trends_weight_save_failed">That weigh-in didn't save. Try again.</string>
+    <string name="trends_weight_not_a_weight">That doesn't look like a weight, so it wasn't saved. Check the number and save again.</string>
     <string name="trends_weight_trend_label">Trend</string>
     <string name="trends_weight_now">This morning</string>
     <string name="trends_weight_range_1w">Last week</string>

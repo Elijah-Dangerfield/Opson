@@ -15,10 +15,7 @@ import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.Dimension.D1000
 import com.opson.system.Dimension.D1200
-import com.opson.system.Dimension.D1300
-import com.opson.system.Dimension.D600
 import com.opson.system.Dimension.D800
-import com.opson.system.Dimension.D850
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -67,12 +64,9 @@ fun SmallIcon(
 }
 
 enum class IconSize(val dp: Dp) {
-    Smallest(D600),
     Small(D800),
-    AppBar(D850),
     Medium(D1000),
     Large(D1200),
-    Largest(D1300),
 }
 
 @Preview

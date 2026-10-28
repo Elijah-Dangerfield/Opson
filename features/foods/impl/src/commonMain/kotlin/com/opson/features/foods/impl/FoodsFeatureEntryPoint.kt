@@ -11,6 +11,7 @@ import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.EditCopyRoute
 import com.opson.features.foods.FoodsRoute
 import com.opson.features.logger.FoodSearchRoute
+import com.opson.features.logger.LoggerRoute
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.ObserveEvents
@@ -90,7 +91,9 @@ class FoodsFeatureEntryPoint(
             AddFoodScreen(state = state, onAction = viewModel::takeAction)
         }
 
-        screen<EditCopyRoute> { backStackEntry ->
+        screen<EditCopyRoute>(
+            typeMap = mapOf(typeOf<MealSlot?>() to nullableSerializableType<MealSlot>()),
+        ) { backStackEntry ->
             val route = backStackEntry.toRoute<EditCopyRoute>()
             // "(mine)", resolved here so the view model needs no resources.
             val mine = stringResource(Res.string.foods_copy_mine)
@@ -100,6 +103,12 @@ class FoodsFeatureEntryPoint(
                 when (event) {
                     is EditCopyEvent.ShowToast -> show(event.toast)
                     EditCopyEvent.Close -> router.goBack()
+                    // The food detail it came from goes too: the copy's detail takes its place, to log it.
+                    is EditCopyEvent.OpenCopy -> router.batch {
+                        goBack()
+                        goBack()
+                        navigate(LoggerRoute(dayIso = event.dayIso, slot = event.slot, prePickFoodId = event.foodId, prePickIsCustom = true))
+                    }
                 }
             }
             EditCopyScreen(state = state, onAction = viewModel::takeAction)

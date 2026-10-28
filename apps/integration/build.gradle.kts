@@ -44,29 +44,31 @@ kotlin {
             implementation(projects.libraries.core)
 
             // ConfigManifestRegistryDriftTest instantiates the real
-            // `ConfiguredValue` classes. They are spread across two impl
-            // modules that cannot see each other — `:libraries:config:impl`
-            // owns `config.refreshThrottleMs`, `:libraries:telemetry:impl` owns
-            // the `telemetry.*` three — so an `:apps:*` module is the only
-            // place a test can hold the whole declared key set at once.
+            // `ConfiguredValue` classes. They are spread across modules that
+            // cannot see each other, several of them impls (`:libraries:config:impl`
+            // owns `config.refreshThrottleMs`, `:libraries:telemetry:impl` the
+            // `telemetry.*` three, the logger, Today and onboarding impls their
+            // release flags), so an `:apps:*` module is the only place a test
+            // can hold the whole declared key set at once.
             implementation(projects.libraries.config)
             implementation(projects.libraries.config.impl)
-            // FastingReleaseFlag (release.fasting), for the config manifest drift test.
+            // FastingReleaseFlag and CheckInEnabled, for the config manifest drift test.
             implementation(projects.libraries.diary)
             implementation(projects.libraries.telemetry.impl)
             // RemindersEnabled, for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.reminders)
-            // HealthReleaseFlag and GoalsAndEnergyEnabled, for ConfigManifestRegistryDriftTest.
+            // HealthReleaseFlag, GoalsAndEnergyEnabled and ExerciseReleaseFlag, for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.health)
-            // `release.barcode` lives next to the logger it gates.
+            // release.barcode, .photo, .voice and .searchOptions live next to the logger they gate.
             implementation(projects.features.logger.impl)
-            // release.todaySummary, release.todaySelect and release.checkIn live next to Today.
+            // release.todaySummary, release.todaySelect and release.foodActions live next to Today.
             implementation(projects.features.today.impl)
             // release.onboardingSetup lives next to onboarding.
             implementation(projects.features.onboarding.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.widgets)
-            // FindSupportEnabled (release.findSupport), for ConfigManifestRegistryDriftTest.
+            // FindSupportEnabled (release.findSupport) and ProviderSummaryEnabled (release.providerSummary),
+            // for ConfigManifestRegistryDriftTest.
             implementation(projects.features.settings)
             // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.progressphotos)
