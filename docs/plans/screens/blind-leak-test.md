@@ -211,6 +211,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-summary-equation` | today | design sync 4; Eaten − Burned = Deficit | yes |
 | new | | `today-screen-settings` | settings | design sync 4; More › Today screen and its main number sheet, no amounts | no |
 | new | | `onboarding-goal` | onboarding | `onboarding-v2.md`, `release.onboardingSetup`; goal styles and the range on a stepper | yes |
+| new | | `onboarding-goal-from-burn` | onboarding | `onboarding-v2.md`; the goal step started from an ordinary day's burn, with "Based on about … burned", energy out | yes |
 | new | | `onboarding-resting-energy` | onboarding | `onboarding-v2.md`; resting energy's details and the estimate they give, energy out | yes |
 | new | | `onboarding-meal-times` | onboarding | `onboarding-v2.md`; when meals usually happen, no amounts | no |
 

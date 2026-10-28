@@ -18,16 +18,18 @@ surplus, and meal times for No numbers or someone eating regularly.
 |---|---|---|---|
 | Welcome | everyone | nothing ("Skip and start logging" writes Full numbers) | |
 | 1 of 3: Why are you tracking? | everyone, skippable | `onboarding.why` | |
-| 2 of 3: How do you feel about seeing numbers? | everyone, skippable | `onboarding.feel` | |
+| 2 of 3: How do numbers sit with you? | everyone, skippable | `onboarding.feel` | |
 | 3 of 3: Does this sound like you? (optional) | everyone, skippable | `onboarding.hard` | |
 | Your starting point | everyone | `numbers` (the mode), unstamped | |
-| Your daily goal | the mode shows calories, so Full numbers | `targets` (style and range) | `release.onboardingSetup` |
-| What you burn at rest | a set deficit or surplus was picked | `birthYear`, `heightCm`, `bodySex`, `weightUnit`, `everydayActivity`, and a first weigh-in | also `release.goalsAndEnergy` |
+| What you burn in a day | the goal step is shown, before it | `birthYear`, `heightCm`, `heightUnit`, `bodySex`, `weightUnit`, `everydayActivity`, and a first weigh-in | also `release.goalsAndEnergy` |
+| Your daily goal | the mode shows calories (Full numbers) and numbers have not been hard | `targets` (style and range), starting from the step above | `release.onboardingSetup` |
 | When do you usually eat? | No numbers, or "Eating regularly" | `mealTimes` | `release.onboardingSetup` |
 | Save your setup | a phone that can sign in (iOS) | links the guest | |
 
-Every key is an existing top-level setting, so the shallow `||` merge on the
-server keeps them. Skip moves on and keeps whatever is there. Nothing asks
+Every key is a top-level setting, so the shallow `||` merge on the server
+keeps them. Skip moves on and keeps whatever is there; on the two goal steps
+"Set this later" takes Skip's place and goes past both, writing neither (the
+2026-10-27 entry in `docs/decisions.md`). Nothing asks
 again later. Only the steps a person saw write anything: someone in No numbers
 never gets a goal written for them.
 
@@ -36,7 +38,7 @@ never gets a goal written for them.
 | Question | What reads the answer | Verdict |
 |---|---|---|
 | Why are you tracking? | The summary card's starting stats (`SummaryStats.suggestionGoal`: changing weight, eating regularly, eating enough, performance). Two nudges in the alternatives. Now also whether meal times are asked. | **Keep.** Cheap, a soft opener, and Today uses it. Three of seven options (curious, a medical need, working with a provider) change nothing yet. |
-| How do you feel about seeing numbers? | The recommendation. It decides it in every case but one. | **Keep.** It is the question. |
+| How do numbers sit with you? | The recommendation. It decides it in every case but one. | **Keep.** It is the question. |
 | What do you want to notice? | Only the recommendation, and only when the numbers answer was skipped or "Not sure yet": "How eating feels" gave No numbers, everything else gave Later. Nothing else in the app read it. | **Cut.** One tap for almost no signal, and the numbers question already covers it. `OnboardingAnswers.notice` stays in the model, empty. |
 | Numbers or tracking have been hard for me before | Full numbers is never offered (`ModeRecommender.isOffered`), the fasting timer stays out (`Fasts`), watch activity never adds to the range (`Settings.exerciseInRange`). | **Keep**, as an optional statement. It is the most important safety input. |
 
@@ -49,17 +51,22 @@ stops showing it.
 **Needed, and asked:**
 
 - **A mode.** Everything on Today follows from it.
-- **A goal, in Full numbers only.** Today's main number is "to your range", so
-  a Full numbers user sees a goal on the first log. Every other mode keeps
-  targets in the background. The step offers the range on a stepper, and with
-  `release.goalsAndEnergy` also one number, a set deficit and a set surplus.
-  Different by day is left to Targets: it means building day groups, and until
-  someone does that it is identical to a range.
-- **Resting energy, only for a set deficit or surplus.** Both are aimed at
-  Burned. Without these details Burned is null and the goal quietly falls back
-  to the range, which is the product-notes complaint that "a set deficit never
-  knows what you burn". Weight goes in as the first weigh-in, because Burned
-  reads the latest weigh-in rather than a setting.
+- **A goal, only for someone comfortable with numbers.** Today's main number
+  is "to your range", so a Full numbers user sees a goal on the first log.
+  Every other mode keeps targets in the background, and someone who agreed
+  numbers have been hard never sees a goal number in onboarding. The step
+  offers the range on a stepper, and with `release.goalsAndEnergy` also one
+  number, a set deficit and a set surplus. Different by day is left to
+  Targets: it means building day groups, and until someone does that it is
+  identical to a range.
+- **Resting energy, before the goal** (`release.goalsAndEnergy`). The goal
+  starts from the ordinary day it gives, never under the floor, and a deficit
+  or surplus is aimed at it. Without these details Burned is null and a
+  deficit quietly falls back to the range, which is the product-notes
+  complaint that "a set deficit never knows what you burn". Weight goes in as
+  the first weigh-in, because Burned reads the latest weigh-in rather than a
+  setting. Height is centimetres or feet and inches, weight kilograms or
+  pounds, each starting in the phone region's units.
 - **Meal times, for No numbers and eating regularly.** No numbers' Today is a
   meal timeline that says "around 8:00", and the counted summary names the next
   meal and its time. Meal times are only editable in Reminders, which is behind
@@ -68,9 +75,11 @@ stops showing it.
 **Asked later, in context:**
 
 - **Units.** Only Full numbers shows a weight or water amount. Weight and water
-  units are in More. The resting energy step has its own kg/lb toggle because it
-  needs one to read the fields. A follow-up worth doing: default `weightUnit`
-  and `waterUnit` from the device region (US, Liberia, Myanmar get lb and fl oz).
+  units are in More. The resting energy step has its own height and weight
+  switches, starting in the region's units (US, Liberia, Myanmar get feet and
+  pounds), and saves what was picked. A follow-up worth doing: default
+  `weightUnit` and `waterUnit` from the region for everyone, not only those who
+  see that step.
 - **End after a set time.** A Modes feature for people who already know a mode.
 - **Health app, activity, macros, the summary card layout, reminders.** Each
   has a page that explains itself, and none changes the first log.
@@ -92,10 +101,12 @@ recommended, never in the alternatives and never in All modes. The rules are:
 | Numbers answer | Without the statement | With the statement |
 |---|---|---|
 | skipped everything | Full numbers | No numbers |
-| I love them | Full numbers | Later |
-| Some are fine | Nutrients first | Nutrients first (calories are already hidden, as the design draws) |
+| I like seeing them | Full numbers | Macros with grams |
+| Some are fine, just not calories | Macros only | Macros only (calories are already hidden, as the design draws) |
 | I'd rather not see them | No numbers | No numbers |
-| Not sure yet, or only a reason | Later | No numbers |
+| I'm not sure yet, or only a reason | Macros only | No numbers |
+
+(Updated for the four modes, 2026-10-27: Later and Nutrients first are retired.)
 
 Two gaps outside onboarding, for the owner: the statement can't be changed
 later anywhere in the app, and Modes still offers Full numbers behind the pause
@@ -112,7 +123,7 @@ account step on the phone:
 | Opson before v2 | 1 (Skip and start logging) | 11 |
 | Opson v2, flag off | 1 | 9 |
 | v2, Full numbers | 1 | 10 |
-| v2, Full numbers and a set deficit | 1 | 13, plus three typed fields |
+| v2, Full numbers with `release.goalsAndEnergy` | 1 | 11, plus three typed fields ("Set this later": 10) |
 | v2, No numbers | 1 | 10 |
 
 Compared, from memory of the apps rather than a fresh check:
@@ -128,16 +139,18 @@ Compared, from memory of the apps rather than a fresh check:
   Rise Up gets to a meal log in a few screens.
 
 Opson sits with the gentle apps on length and only asks for a body when the
-person picked a goal that needs one. That is the right trade for this audience.
+person is in Full numbers and something reads Burned. That is the right trade
+for this audience.
 
 ## Safety
 
 - **No weight-loss pressure.** No goal weight, no rate, no dates, no BMI. Range
   is the default style and the first row. "Changing my weight" never picks a
   deficit: the answer can mean gaining.
-- **No target below the floor.** The goal step starts at `Targets.Default` and
-  moves through `Targets.raise` and `Targets.lower`, so with `GOAL_FLOOR_KCAL`
-  unset nobody can start lower than the app's starting range. A deficit or
+- **No target below the floor.** The goal step starts at `Targets.Default`, or
+  at an ordinary day's burn through `Targets.withEnergy`, and moves through
+  `Targets.raise` and `Targets.lower`, so with `GOAL_FLOOR_KCAL` unset nobody
+  can start lower than the app's starting range. A deficit or
   surplus starts at what the aim already implies against an ordinary day's
   burn (resting energy plus the everyday activity asked on the same step, as
   Burned works it out with no health app), as Targets does, so it never asks
@@ -150,8 +163,10 @@ person picked a goal that needs one. That is the right trade for this audience.
   picked. It opens Find support with `release.findSupport` on, Support otherwise.
 - **Nothing that triggers.** Calorie amounts appear only in Full numbers, and
   only on the goal and resting energy steps. Someone who agreed with the
-  statement can't reach either, because Full numbers is never on offer. Both
-  steps are in the leak test and resolve every number through `VisibilityPolicy`.
+  statement can't reach either: Full numbers is never on offer, and
+  `showsGoal` checks the statement as well. Both steps, and the goal started
+  from a burn, are in the leak test and resolve every number through
+  `VisibilityPolicy`.
 - **Telemetry** carries step names only, as before. New names: `goal`,
   `resting_energy`, `meal_times`. A test checks no setup value reaches an event.
 
@@ -208,8 +223,10 @@ it.
   `onboarding-resting-energy`, `onboarding-meal-times`. They use the questions'
   layout: the same top bar (back and Skip, no progress bar, since how many
   steps follow depends on the mode), the title, choice rows, the edge card and
-  the pinned button. The goal stepper is the shared `Stepper`. They need a
-  design pass before the flag goes on.
+  the pinned button. The goal and resting energy steps put "Set this later"
+  under the button instead of Skip in the bar. The goal stepper is the shared
+  `Stepper`, and height the shared `HeightField`. They need a design pass
+  before the flag goes on; `onboarding-goal-from-burn` is a new preview id.
 - Unchanged from 0.1's own departures: no Plus row on Welcome, no coach line on
   the account step.
 
@@ -226,5 +243,7 @@ it.
    provider): keep them so people see themselves in the list, or cut them.
 5. **Changing the statement later.** Today a yes is permanent.
 6. **A `setupDone` key** for the abandoned-setup edge above.
-7. **Units from the device region**, so a US user isn't in kg.
+7. **Units from the device region** for everyone. Done for the resting energy
+   step and Resting energy's height; `weightUnit` and `waterUnit` still start
+   metric for someone who never sees that step.
 8. **Clinician review** of the statement copy and the reason lines.

@@ -245,6 +245,9 @@
     <string name="settings_resting_height">Height</string>
     <string name="settings_resting_cm">cm</string>
     <string name="settings_resting_in">in</string>
+    <string name="settings_resting_ft">ft</string>
+    <!-- The height unit switch: centimetres, or feet and inches. -->
+    <string name="settings_resting_ft_in">ft and in</string>
     <string name="settings_resting_sex">Sex</string>
     <string name="settings_resting_sex_female">Female</string>
     <string name="settings_resting_sex_male">Male</string>

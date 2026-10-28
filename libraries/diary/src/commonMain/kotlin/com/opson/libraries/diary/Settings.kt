@@ -5,6 +5,7 @@ import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
@@ -162,6 +163,12 @@ data class Settings(
     val activityInBurned: Boolean = true,
     val birthYear: Int? = null,
     val heightCm: Double? = null,
+    /**
+     * How the person types their height, centimetres or feet and inches. Null until they pick
+     * one; [heightUnitOr] says what to show until then. [heightCm] is centimetres either way.
+     */
+    @Serializable(with = HeightUnitSerializer::class)
+    val heightUnit: HeightUnit? = null,
     @Serializable(with = BodySexSerializer::class)
     val bodySex: BodySex? = null,
     /**
@@ -193,6 +200,13 @@ data class Settings(
     /** What the resting energy calculation is told: these details and [weightKg], on [today]. */
     fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile =
         BodyProfile(weightKg = weightKg, heightCm = heightCm, ageYears = birthYear?.let { today.year - it }, sex = bodySex)
+
+    /**
+     * The height unit to show: the one picked, or else feet and inches for someone who weighs in
+     * pounds (as height followed weight before it had its own unit), or else [regionDefault].
+     */
+    fun heightUnitOr(regionDefault: HeightUnit): HeightUnit =
+        heightUnit ?: if (weightUnit == WeightUnit.Lb) HeightUnit.FtIn else regionDefault
 
     fun isFavorite(foodKey: String): Boolean = foodKey in favoriteFoods
 
