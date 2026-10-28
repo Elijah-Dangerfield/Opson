@@ -712,64 +712,65 @@ keeps existing ticks.
 
 ## today (58 files)
 
-- [ ] `features/today/build.gradle.kts`
-- [ ] `features/today/impl/build.gradle.kts`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/ExerciseRange.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/SummaryStats.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayDrag.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayEnergyCard.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayEnergyCardViews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayExpendedPreviews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFastingCard.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFeatureEntryPoint.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFixtures.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayLeakSurfaces.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayModeViews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayNutrientsPage.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayPreviews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayReleaseFlags.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayScreen.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySelectViews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySheetRoutes.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayState.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayStateBuilder.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySummaryViews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayViewModel.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/burned/TodayBurned.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/burned/TodayBurnedCard.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/burned/TodayBurnedPreviews.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/calendar/Calendar.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/cards/TodayCardsSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/DayCloseScreen.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/DayCloseState.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/WhyNotCutBackSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/daynote/DayNoteSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/item/ItemSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealNoteSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealSheet.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/notes/NotesScreen.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/notes/NotesState.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/notes/TodayNotesListLink.kt`
-- [ ] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/water/WaterSheet.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/BurnedFakes.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/DayCloseTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/ExerciseRangeTodayTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/Fakes.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/HealthFakes.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/ItemSheetTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/NotesTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/SheetsTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayCardsSummaryTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayEnergyCardTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayExpendedTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayStateBuilderTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodaySummaryBuilderTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayViewModelTest.kt`
-- [ ] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/burned/TodayBurnedTest.kt`
-- [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/DayCloseRoute.kt`
-- [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/MealNoteRoute.kt`
-- [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/NotesRoute.kt`
-- [ ] `features/today/src/commonMain/kotlin/com/opson/features/today/TodayRoute.kt`
+- [x] `features/today/build.gradle.kts`
+- [x] `features/today/impl/build.gradle.kts`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/ExerciseRange.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/SummaryStats.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayCardView.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayDrag.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayEnergyCard.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayEnergyCardViews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayExpendedPreviews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFastingCard.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFeatureEntryPoint.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayFixtures.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayLeakSurfaces.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayModeViews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayNutrientsPage.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayPreviews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayReleaseFlags.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayScreen.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySelectViews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySheetRoutes.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayState.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayStateBuilder.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodaySummaryViews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayViewModel.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/burned/TodayBurned.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/burned/TodayBurnedCard.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/burned/TodayBurnedPreviews.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/calendar/Calendar.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/cards/TodayCardsSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/DayCloseScreen.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/DayCloseState.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/dayclose/WhyNotCutBackSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/daynote/DayNoteSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/item/ItemSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealNoteSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/meal/MealSheet.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/notes/NotesScreen.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/notes/NotesState.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/notes/TodayNotesListLink.kt`
+- [x] `features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/water/WaterSheet.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/BurnedFakes.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/DayCloseTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/ExerciseRangeTodayTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/Fakes.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/HealthFakes.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/ItemSheetTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/NotesTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/SheetsTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayCardsSummaryTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayEnergyCardTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayExpendedTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayStateBuilderTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodaySummaryBuilderTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/TodayViewModelTest.kt`
+- [x] `features/today/impl/src/commonTest/kotlin/com/opson/features/today/impl/burned/TodayBurnedTest.kt`
+- [x] `features/today/src/commonMain/kotlin/com/opson/features/today/DayCloseRoute.kt`
+- [x] `features/today/src/commonMain/kotlin/com/opson/features/today/MealNoteRoute.kt`
+- [x] `features/today/src/commonMain/kotlin/com/opson/features/today/NotesRoute.kt`
+- [x] `features/today/src/commonMain/kotlin/com/opson/features/today/TodayRoute.kt`
 
 ## trends (64 files)
 
