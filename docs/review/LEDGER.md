@@ -234,98 +234,99 @@ keeps existing ticks.
 - [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenIds.kt`
 - [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenResult.kt`
 
-## server-data (90 files)
+## server-data (91 files)
 
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/AnthropicEstimateProvider.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/AppConfigTargetingEngine.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/AppConfigTree.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/CatalogBarcodeLookup.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/CatalogFoodDescriber.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/ConfigValidation.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/HttpAppleSignInClient.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/HttpOpenFoodFactsClient.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/HttpSupabaseAdminClient.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/InMemoryExampleSource.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/LiveFoodSources.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/NutritionixSource.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/OpenFoodFactsSearch.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PhotoDescriber.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigAdminRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigManifestRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigSource.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppleTokenRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresBarcodeMissRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresExportRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresFoodCatalogRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresModerationRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresProfileRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresSyncRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresUserSupport.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresWaitlistRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/SearchResultCache.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/SemVer.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/WebhookConfigChangeNotifier.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/db/Database.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/db/JsonbColumn.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/db/Tables.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/db/TimeConversions.kt`
-- [ ] `apps/server/src/main/resources/db/migration/V10__food_tiers.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V11__untracked_days.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V12__off_foods.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V13__barcode_misses.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V14__fasts.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V15__search_quality.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V16__waitlist.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V17__food_category.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V18__day_check_in.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V19__rls_on_early_tables.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V1__profiles.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V20__nevo_source.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V21__precision_label.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V22__support_views.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V23__apple_refresh_tokens.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V24__exercises.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V2__fk_auth_users.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V3__player_reports.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V4__app_config.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V5__app_config_targeting.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V6__app_config_manifest.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V7__food_catalog.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V8__diary.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V9__analytics.sql`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/AnthropicEstimateProviderTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/AppConfigTargetingEngineTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/AppConfigTreeTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/CatalogBarcodeLookupTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/CatalogFoodDescriberTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/ConfigValidationTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/DescribeFixturesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/HttpAppleSignInClientTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/HttpOpenFoodFactsClientTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/HttpSupabaseAdminClientTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/NutritionixSourceTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/OpenFoodFactsCatalogTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/OpenFoodFactsSearchTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PhotoDescriberTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigAdminRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigManifestRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigSourceTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppleTokenRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresBarcodeMissRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresExportRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresFoodCatalogRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresModerationRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresProfileRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresSyncRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresUserSupportTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/SearchRelevanceTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/SearchResultCacheTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/SearchTermsTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/UsdaFoodSeedTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseSchemaTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTimeoutTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/QueryPlanTest.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/AnthropicEstimateProvider.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/AppConfigTargetingEngine.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/AppConfigTree.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/CatalogBarcodeLookup.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/CatalogFoodDescriber.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/ConfigValidation.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/HttpAppleSignInClient.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/HttpOpenFoodFactsClient.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/HttpSupabaseAdminClient.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/InMemoryExampleSource.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/LiveFoodSources.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/NutritionixSource.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/OpenFoodFactsSearch.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PhotoDescriber.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigAdminRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigManifestRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigSource.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppleTokenRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresBarcodeMissRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresExportRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresFoodCatalogRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresModerationRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresProfileRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresSyncRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresUserSupport.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresWaitlistRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/SearchResultCache.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/SemVer.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/WebhookConfigChangeNotifier.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/db/Database.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/db/JsonbColumn.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/db/Tables.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/db/TimeConversions.kt`
+- [x] `apps/server/src/main/resources/db/migration/V10__food_tiers.sql`
+- [x] `apps/server/src/main/resources/db/migration/V11__untracked_days.sql`
+- [x] `apps/server/src/main/resources/db/migration/V12__off_foods.sql`
+- [x] `apps/server/src/main/resources/db/migration/V13__barcode_misses.sql`
+- [x] `apps/server/src/main/resources/db/migration/V14__fasts.sql`
+- [x] `apps/server/src/main/resources/db/migration/V15__search_quality.sql`
+- [x] `apps/server/src/main/resources/db/migration/V16__waitlist.sql`
+- [x] `apps/server/src/main/resources/db/migration/V17__food_category.sql`
+- [x] `apps/server/src/main/resources/db/migration/V18__day_check_in.sql`
+- [x] `apps/server/src/main/resources/db/migration/V19__rls_on_early_tables.sql`
+- [x] `apps/server/src/main/resources/db/migration/V1__profiles.sql`
+- [x] `apps/server/src/main/resources/db/migration/V20__nevo_source.sql`
+- [x] `apps/server/src/main/resources/db/migration/V21__precision_label.sql`
+- [x] `apps/server/src/main/resources/db/migration/V22__support_views.sql`
+- [x] `apps/server/src/main/resources/db/migration/V23__apple_refresh_tokens.sql`
+- [x] `apps/server/src/main/resources/db/migration/V24__exercises.sql`
+- [x] `apps/server/src/main/resources/db/migration/V2__fk_auth_users.sql`
+- [x] `apps/server/src/main/resources/db/migration/V3__player_reports.sql`
+- [x] `apps/server/src/main/resources/db/migration/V4__app_config.sql`
+- [x] `apps/server/src/main/resources/db/migration/V5__app_config_targeting.sql`
+- [x] `apps/server/src/main/resources/db/migration/V6__app_config_manifest.sql`
+- [x] `apps/server/src/main/resources/db/migration/V7__food_catalog.sql`
+- [x] `apps/server/src/main/resources/db/migration/V8__diary.sql`
+- [x] `apps/server/src/main/resources/db/migration/V9__analytics.sql`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/AnthropicEstimateProviderTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/AppConfigTargetingEngineTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/AppConfigTreeTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/CatalogBarcodeLookupTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/CatalogFoodDescriberTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/ConfigValidationTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/DescribeFixturesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/HttpAppleSignInClientTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/HttpOpenFoodFactsClientTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/HttpSupabaseAdminClientTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/NutritionixSourceTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/OpenFoodFactsCatalogTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/OpenFoodFactsSearchTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PhotoDescriberTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigAdminRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigManifestRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigSourceTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppleTokenRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresBarcodeMissRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresExportRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresFoodCatalogRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresModerationRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresProfileRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresSyncRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresUserSupportTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/SearchRelevanceTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/SearchResultCacheTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/SearchTermsTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/UsdaFoodSeedTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/WebhookConfigChangeNotifierTest.kt` (new in round two)
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseSchemaTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTimeoutTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/QueryPlanTest.kt`
 
 ## server (108 files)
 
