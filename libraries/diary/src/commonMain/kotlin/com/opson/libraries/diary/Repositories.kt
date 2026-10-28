@@ -12,6 +12,10 @@ import kotlin.time.Instant
  * sync carries it to the server later. None of them needs a connection.
  *
  * Deletes are tombstones, so they sync like any other change.
+ *
+ * A day closed with Close the day ([Day.closedByUser]) is done: every write that would add to
+ * it or change what it holds answers [DayWrite.DayClosed] and writes nothing, until
+ * [reopenDay]. Marking it untracked, its meal groups, and closing or reopening it still work.
  */
 interface DiaryRepository {
     /** One date, with every slot present. A date with nothing logged is [Day.empty]. */
@@ -28,57 +32,59 @@ interface DiaryRepository {
      * Uncategorized when meal groups are off for that day. Returns what was
      * written, in order.
      */
-    suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem>
+    suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>>
 
     /** Saves an edited item. The id, day and logged time are the caller's to keep. */
-    suspend fun updateItem(item: LogItem)
+    suspend fun updateItem(item: LogItem): DayWrite<Unit>
 
-    suspend fun removeItem(id: String)
+    suspend fun removeItem(id: String): DayWrite<Unit>
 
-    suspend fun moveItem(id: String, slot: MealSlot)
+    suspend fun moveItem(id: String, slot: MealSlot): DayWrite<Unit>
 
     /**
      * Copies every item on [from] into [to], appended to what [to] already has
      * ("Copy previous day", "Copy this day to tomorrow"). New ids, method
      * [LogMethod.Copy]. Water, notes and feelings stay where they are.
      */
-    suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem>
+    suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>>
 
     /** Copies one slot's items into the same slot on [toDay] ("Copy yesterday's dinner"). */
-    suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem>
+    suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>>
 
     /**
      * Removes every item on [day] and its "ate, no details" marks, as the
      * prototype's "Clear this day". Water, the note, feelings and whether the
      * day is closed are left alone.
      */
-    suspend fun clearDay(day: LocalDate)
+    suspend fun clearDay(day: LocalDate): DayWrite<Unit>
 
     /** Adds [ml] of water to [day]. */
-    suspend fun addWater(day: LocalDate, ml: Int)
+    suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit>
 
     /** Takes [ml] off [day], never below zero. */
-    suspend fun removeWater(day: LocalDate, ml: Int)
+    suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit>
 
-    suspend fun setWater(day: LocalDate, ml: Int)
+    suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit>
 
-    suspend fun closeDay(day: LocalDate)
+    /**
+     * Close the day: saves [reflection] and stamps the day closed in one write. On a day closed
+     * already it updates the reflection and keeps the first close time.
+     */
+    suspend fun closeDay(day: LocalDate, reflection: DayReflection)
 
+    /** Opens a closed day to logging again. */
     suspend fun reopenDay(day: LocalDate)
 
     /** A blank note clears it. */
-    suspend fun setDayNote(day: LocalDate, note: String?)
+    suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit>
 
     /** Marks [day] untracked (a holiday) or tracked again. Trends shows an untracked day as a gap. */
     suspend fun setUntracked(day: LocalDate, untracked: Boolean)
 
-    /** Day close's "How did today feel?"; null clears it. */
-    suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?)
-
-    suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean)
+    suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean): DayWrite<Unit>
 
     /** Null, or an empty feeling, clears it. */
-    suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?)
+    suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?): DayWrite<Unit>
 
     /** This day's meal groups; null goes back to following [Settings.mealGroups]. */
     suspend fun setMealGroups(day: LocalDate, on: Boolean?)
@@ -110,25 +116,19 @@ interface DiaryRepository {
  * delete. Its own interface so the many `DiaryRepository` fakes stay as they are.
  */
 interface DiaryItemEditor {
-    /** Tombstones each of [ids]; one already gone is skipped. */
-    suspend fun removeItems(ids: List<String>)
+    /** Tombstones each of [ids]; one already gone is skipped. Nothing is removed when any of them is on a closed day. */
+    suspend fun removeItems(ids: List<String>): DayWrite<Unit>
 
     /** Undoes [removeItems]: each of [ids] that is a tombstone comes back as it was. */
-    suspend fun restoreItems(ids: List<String>)
+    suspend fun restoreItems(ids: List<String>): DayWrite<Unit>
 
-    suspend fun moveItems(ids: List<String>, slot: MealSlot)
+    suspend fun moveItems(ids: List<String>, slot: MealSlot): DayWrite<Unit>
 
     /**
      * Copies [ids] into [slot] on [toDay], in their order, as new items (method
      * [LogMethod.Copy]), or into Uncategorized when meal groups are off that day.
      */
-    suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): List<LogItem>
-}
-
-/** Day close's check-in (design sync 2). Its own interface so the `DiaryRepository` fakes stay as they are. */
-interface DayCheckIns {
-    /** Null, or an empty check-in, clears it. */
-    suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?)
+    suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>>
 }
 
 interface WeightRepository {

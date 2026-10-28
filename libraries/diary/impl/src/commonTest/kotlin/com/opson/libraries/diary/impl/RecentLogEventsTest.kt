@@ -33,8 +33,8 @@ class RecentLogEventsTest : CoroutineTest() {
 
     @Test
     fun undoRemovesExactlyTheItemsThatWereLogged() = runUnitTest {
-        val earlier = repo.addItems(today, MealSlot.Dinner, listOf(draft("Soup")), LogMethod.Search)
-        val added = repo.addItems(today, MealSlot.Dinner, listOf(draft("Rice"), draft("Salad")), LogMethod.Search)
+        val earlier = repo.addItems(today, MealSlot.Dinner, listOf(draft("Soup")), LogMethod.Search).written()
+        val added = repo.addItems(today, MealSlot.Dinner, listOf(draft("Rice"), draft("Salad")), LogMethod.Search).written()
         val event = LoggedToMeal(today, MealSlot.Dinner, added.map { it.id }, at)
         events.logged(event)
 

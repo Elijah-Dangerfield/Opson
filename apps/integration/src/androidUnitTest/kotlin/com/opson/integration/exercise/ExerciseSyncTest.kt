@@ -3,6 +3,7 @@ package com.opson.integration.exercise
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.randomUserId
 import com.opson.integration.helpers.rawSync
+import com.opson.integration.helpers.written
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.nutrition.ExerciseActivities
 import io.ktor.client.statement.bodyAsText
@@ -37,7 +38,7 @@ class ExerciseSyncTest : IntegrationTest() {
         val zone = TimeZone.currentSystemDefault()
         val morning = LocalDateTime(day, LocalTime(7, 30)).toInstant(zone)
 
-        val entry = phone.exercise.add(ExerciseDraft(day, morning, "running_10", minutes = 30, kcal = 291))
+        val entry = phone.exercise.add(ExerciseDraft(day, morning, "running_10", minutes = 30, kcal = 291)).written()
         phone.syncNow().getOrThrow()
         assertEquals(0, phone.pendingChanges(), "the server took it")
         assertEquals(1L, server.countFor("exercises", user))
@@ -66,7 +67,7 @@ class ExerciseSyncTest : IntegrationTest() {
         val phone = client(user)
         val day = phone.today()
         val at = LocalDateTime(day, LocalTime(18, 0)).toInstant(TimeZone.currentSystemDefault())
-        val entry = phone.exercise.add(ExerciseDraft(day, at, ExerciseActivities.OTHER, name = "Canoe polo", minutes = 60, kcal = 420, kcalTyped = true))
+        val entry = phone.exercise.add(ExerciseDraft(day, at, ExerciseActivities.OTHER, name = "Canoe polo", minutes = 60, kcal = 420, kcalTyped = true)).written()
         phone.syncNow().getOrThrow()
 
         val fresh = client(user)
@@ -81,7 +82,7 @@ class ExerciseSyncTest : IntegrationTest() {
         val phone = client(user)
         val day = phone.today()
         val at = LocalDateTime(day, LocalTime(12, 0)).toInstant(TimeZone.currentSystemDefault())
-        phone.exercise.add(ExerciseDraft(day, at, "yoga", minutes = 60, kcal = 90))
+        phone.exercise.add(ExerciseDraft(day, at, "yoga", minutes = 60, kcal = 90)).written()
         phone.syncNow().getOrThrow()
 
         val v01 = Json.parseToJsonElement(rawSync(user, """{"cursor":0,"mutations":[]}""").bodyAsText()).jsonObject

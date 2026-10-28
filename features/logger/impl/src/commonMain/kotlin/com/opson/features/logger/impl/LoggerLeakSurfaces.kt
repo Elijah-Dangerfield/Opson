@@ -18,6 +18,13 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "add-sheet-expanded", label = "Add sheet, Recent", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.sheetState(policy, height = SheetHeight.Full, added = true), onAction = {})
         },
+        // On a closed day: the closed line, a weigh-in and the fasting timer. No number in any mode.
+        LeakSurface(id = "add-sheet-closed", label = "Add sheet, day closed", showsCaloriesInFull = false) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.sheetState(policy, closed = true), onAction = {})
+        },
+        LeakSurface(id = "search-closed", label = "Food search, day closed", showsCaloriesInFull = false) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchState(policy, query = "", added = false, closed = true), onAction = {})
+        },
         // The nav + at a time with no usual meal: Uncategorized.
         LeakSurface(id = "add-sheet-uncategorized", label = "Add sheet, no usual meal", showsCaloriesInFull = false) { policy ->
             LoggerSheetContent(state = LoggerFixtures.uncategorizedState(policy), onAction = {})
@@ -51,6 +58,10 @@ object LoggerLeakSurfaces {
         // Describe's lines after fixing them: amounts stepped, a swap, an added food, one not found, and the total.
         LeakSurface(id = "logger-describe-edited", label = "Describe a meal, lines corrected", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeEditedState(policy), onAction = {})
+        },
+        // Quick add with a label typed in: the fields each mode offers, and the energy check where calories show.
+        LeakSurface(id = "logger-describe-quick-add", label = "Describe a meal, just the numbers", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.quickAddState(policy), onAction = {})
         },
         LeakSurface(id = "logger-describe-find", label = "Describe a meal, finding a food", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeFindState(policy), onAction = {})
