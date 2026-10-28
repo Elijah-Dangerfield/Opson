@@ -6,6 +6,7 @@ import com.opson.features.upgrade.MaintenanceMessage
 import com.opson.features.upgrade.MaintenanceMode
 import com.opson.features.upgrade.MinSupportedVersionCode
 import com.opson.features.logger.impl.PhotoEstimateEnabled
+import com.opson.features.logger.impl.SubmitFoodEnabled
 import com.opson.features.logger.impl.SearchOptionsEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
 import com.opson.features.onboarding.impl.OnboardingSetupEnabled
@@ -311,6 +312,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     BarcodeScanEnabled(appConfigMap),
     VoiceLogEnabled(appConfigMap),
     PhotoEstimateEnabled(appConfigMap),
+    SubmitFoodEnabled(appConfigMap),
     WidgetsEnabled(appConfigMap),
     SearchOptionsEnabled(appConfigMap),
     OnboardingSetupEnabled(appConfigMap),

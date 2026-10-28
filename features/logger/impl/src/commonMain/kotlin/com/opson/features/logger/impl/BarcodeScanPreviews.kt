@@ -55,6 +55,11 @@ private fun LoggerScanMissDarkPreview() = Scanner(LoggerFixtures.missed, dark = 
 @Composable
 private fun LoggerScanMissNamedPreview() = Scanner(LoggerFixtures.missedNamed)
 
+/** `release.submitFood` on: photograph the pack, before the name. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanMissAddFoodPreview() = Scanner(LoggerFixtures.missedAddFood)
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerScanUnavailablePreview() = Scanner(LoggerFixtures.unavailable)

@@ -30,8 +30,12 @@ data class FoodSearchState(
     val scopes: List<SearchScope> = SearchScope.entries,
     /** The barcode button in the empty field: `release.barcode` on, and not picking for a meal. */
     val canScan: Boolean = false,
-    /** "Not finding it?": Photograph it (`release.photo`) and Describe it log, so neither is offered when picking for a meal. */
-    val canPhotograph: Boolean = false,
+    /**
+     * "Add this food" on no results (`release.submitFood`): photos of the pack. It logs, so it is not
+     * offered when picking for a meal. The meal photo estimate is not offered here: it is the add
+     * sheet's alone (docs/decisions.md, 2026-10-27).
+     */
+    val canAddFood: Boolean = false,
     val canDescribe: Boolean = true,
     val body: SearchBody = SearchBody.Searching,
     /** Opened by Create a meal: + picks instead of logging, and [picks] is the footer. */
@@ -115,9 +119,9 @@ data class SearchChoices(
     val focusSearch: Boolean = true,
     val search: SearchOutcome? = null,
     val scope: SearchScope = SearchScope.All,
-    /** `release.barcode`, `release.photo` and `release.searchOptions`, read once when search opens. */
+    /** `release.barcode`, `release.submitFood` and `release.searchOptions`, read once when search opens. */
     val scanAvailable: Boolean = false,
-    val photoAvailable: Boolean = false,
+    val addFoodAvailable: Boolean = false,
     val searchOptions: Boolean = false,
     /** The category tab (`release.searchOptions`); search always opens on All. */
     val tab: SearchTab = SearchTab.All,
@@ -183,7 +187,7 @@ sealed interface SearchAction {
     data object BarcodeTapped : SearchAction
 
     // "Not finding it?"
-    data object PhotographTapped : SearchAction
+    data object AddFoodTapped : SearchAction
     data object DescribeTapped : SearchAction
     data object SaveNameTapped : SearchAction
 
@@ -203,7 +207,8 @@ sealed interface SearchAction {
 sealed interface SearchEvent {
     data class OpenFoodDetail(val ref: FoodRef, val source: PickSource, val day: LocalDate, val slot: MealSlot) : SearchEvent
     data class OpenScanner(val day: LocalDate, val slot: MealSlot) : SearchEvent
-    data class OpenPhoto(val day: LocalDate, val slot: MealSlot) : SearchEvent
+    /** "Add this food": the pack's photos, over search. */
+    data class OpenSubmitFood(val day: LocalDate, val slot: MealSlot) : SearchEvent
     data class OpenDescribe(val day: LocalDate, val slot: MealSlot, val text: String) : SearchEvent
     data class OpenSearchOptions(val openFoodFacts: Boolean) : SearchEvent
 

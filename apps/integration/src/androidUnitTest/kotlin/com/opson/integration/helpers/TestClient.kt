@@ -48,11 +48,15 @@ import com.opson.libraries.diary.impl.SystemLocalCalendar
 import com.opson.libraries.diary.impl.WeightRepositoryImpl
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.DefaultDispatcherProvider
+import com.opson.libraries.foods.BarcodeLinkReporter
 import com.opson.libraries.foods.BarcodeMissReporter
+import com.opson.libraries.foods.FoodLabels
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.MealPhotoEstimator
 import com.opson.libraries.foods.impl.FoodCatalogImpl
+import com.opson.libraries.foods.impl.HttpBarcodeLinkReporter
 import com.opson.libraries.foods.impl.HttpBarcodeMissReporter
+import com.opson.libraries.foods.impl.HttpFoodLabels
 import com.opson.libraries.foods.impl.HttpFoodApi
 import com.opson.libraries.foods.impl.HttpMealPhotoEstimator
 import com.opson.libraries.identity.auth.AuthRepository
@@ -96,6 +100,7 @@ import java.util.UUID
 /**
  * One phone: the app's real code from the repositories down — the diary and its
  * outbox, the sync engine, settings, fasting, the food catalog, photo estimates,
+ * pack labels and food submissions,
  * auth and the user-change reset, remote config, the network client and its
  * DTOs — over the app's real [AppDatabase] (in memory) and pointed at
  * [serverUrl]. Each part is built the way the app's DI graph builds it;
@@ -239,6 +244,8 @@ class TestClient(
     val foods: FoodCatalog = FoodCatalogImpl(HttpFoodApi(networkClient), database.foodCacheDao(), clock)
     val photoEstimator: MealPhotoEstimator = HttpMealPhotoEstimator(networkClient)
     val barcodeMisses: BarcodeMissReporter = HttpBarcodeMissReporter(networkClient, appScope)
+    val foodLabels: FoodLabels = HttpFoodLabels(networkClient)
+    val barcodeLinks: BarcodeLinkReporter = HttpBarcodeLinkReporter(networkClient, appScope)
 
     // ── Account ──────────────────────────────────────────────────────────────
     private val profileApi = HttpProfileApi(networkClient)

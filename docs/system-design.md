@@ -428,14 +428,24 @@ by how far their numbers can be trusted (`foods.tier`):
    server looks up unknown codes at
    `world.openfoodfacts.org/api/v2/product/{code}.json` with a descriptive
    User-Agent, maps it, and caches it in `foods` with `source = 'off'`. Data
-   is ODbL, so the Foods screen credits Open Food Facts. Later, foods people
-   submit land here too.
+   is ODbL, so the Foods screen credits Open Food Facts. Foods people add
+   from photos of a pack land here too (`source = 'user_submitted'`, V25,
+   `release.submitFood`): pending and the submitter's alone until a reviewer
+   approves them in the admin console, then `verified` and everyone's
+   (`docs/plans/screens/submit-food.md`).
 
-Tiers 1 to 3 are `verified`. A barcode miss asks the enabled outside sources
-in tier order; the first that knows the product answers.
+Tiers 1 to 3 are `verified`, and approved submissions. A barcode miss asks the
+enabled outside sources in tier order; the first that knows the product
+answers. A miss followed by a search pick is counted as a suggested barcode
+for that food, which a reviewer attaches or dismisses.
+- **Adding a food from its pack** sends two photos to Anthropic's most capable
+  model, which only transcribes; the server converts units and checks the
+  arithmetic (energy against 4/4/9, per serving against per 100, sodium), and
+  the app runs the same checks live in the form.
 - **Photo estimates** (0.2, `release.photo`, `docs/plans/screens/photo.md`)
   send the photo to Anthropic's vision model and match what it lists through
-  the Describe pipeline. Every line is an estimate the person edits before
+  the Describe pipeline. Only the + sheet's Photo tile offers it; packaged
+  foods go through their label instead. Every line is an estimate the person edits before
   anything is logged. The handoff puts it in the Plus tier; Plus has no price
   yet, so nothing gates it beyond the per-user limit.
 

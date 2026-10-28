@@ -22,6 +22,7 @@ else.
 | Targets and the numbers you choose to see | To apply your settings everywhere in the app |
 | What you search for and type to find foods | To find matching foods. Searches are kept without any link to you; typed meals are not kept |
 | Meal photos, if you use photo estimates | To list the foods in the photo. Not kept |
+| Photos of a pack and the food's details, if you add a food from its pack | To read the label, and so we can check the food before adding it to the database everyone searches. The photos are seen only by you and our reviewer and deleted 30 days after review; an approved food's details are shared with everyone, without the photos or any link to you |
 | Energy and workouts from Apple Health or Health Connect, if you connect them | To show them in the app. Read on your phone only; never sent to us |
 
 Totals, trends and patterns the app works out from these are consumer health
@@ -40,7 +41,8 @@ us, under contracts that let them use it only for that:
 
 - **Hosting and storage**: Fly.io and Supabase, which run our server and store
   your synced log.
-- **Photo analysis**: Anthropic, only for a photo estimate you ask for.
+- **Photo analysis**: Anthropic, only for a photo estimate you ask for, or a
+  pack label you ask it to read.
 - **Crash reporting**: Sentry. Crash reports are built to leave out your log,
   but a report about a failed food search can include the words searched.
 

@@ -24,8 +24,9 @@ import kotlin.time.Duration.Companion.milliseconds
 /**
  * The scanner: camera permission, one lookup per read, and what a miss
  * offers. A hit hands the food to the food detail; a miss is reported once
- * so the catalog's gaps show up on a dashboard, then offers "Save the name
- * only" first.
+ * so the catalog's gaps show up on a dashboard, then offers "Add this food"
+ * (photos of the pack, with `release.submitFood`) and "Save the name only".
+ * The miss is also held for [MissedBarcodePairing], in case search finds it.
  *
  * The camera reads the same pack many times a second, so only a read that
  * arrives while scanning, and that is a real GTIN, starts a lookup, and only
@@ -40,13 +41,15 @@ class BarcodeScanViewModel(
     private val customFoods: CustomFoodRepository,
     private val logger: FoodLogger,
     private val telemetry: BarcodeTelemetry,
+    private val pairing: MissedBarcodePairing,
+    submitFood: SubmitFoodEnabled,
 ) : SEAViewModel<BarcodeScanState, BarcodeScanEvent, BarcodeScanAction>(
     initialStateArg = BarcodeScanState(slot = route.slot),
 ) {
     private val day: LocalDate = LocalDate.parse(route.dayIso)
     private val slot: MealSlot = route.slot
     private val overSearch: Boolean = route.overSearch
-    private var model = ScanModel()
+    private var model = ScanModel(canAddFood = submitFood())
     private var slowJob: Job? = null
 
     init {
@@ -83,6 +86,7 @@ class BarcodeScanViewModel(
                 slowJob?.cancel()
                 action.rebuild { copy(lookup = Lookup.Missed(action.code), name = "") }
                 telemetry.miss(typed = lookup.typed)
+                pairing.missed(action.code)
                 viewModelScope.launch { missReporter.report(action.code) }
             }
             is BarcodeScanAction.LookupFailed -> {
@@ -92,6 +96,9 @@ class BarcodeScanViewModel(
             }
             is BarcodeScanAction.MissNameTyped -> action.rebuild { copy(name = action.text) }
             BarcodeScanAction.SaveNameTapped -> saveName()
+            BarcodeScanAction.AddFoodTapped -> (model.lookup as? Lookup.Missed)?.let { missed ->
+                if (model.canAddFood) sendEvent(BarcodeScanEvent.OpenSubmitFood(day, slot, missed.code))
+            }
             BarcodeScanAction.SearchInsteadTapped -> sendEvent(if (overSearch) BarcodeScanEvent.Close else BarcodeScanEvent.OpenSearch(day, slot))
             BarcodeScanAction.ScanAgainTapped -> action.rebuild { copy(lookup = Lookup.Idle, name = "", typed = null) }
             BarcodeScanAction.AllowCameraTapped -> sendEvent(BarcodeScanEvent.RequestPermission)

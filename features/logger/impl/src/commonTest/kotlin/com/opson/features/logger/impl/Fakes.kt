@@ -214,7 +214,18 @@ class FakeCustomFoodRepository(foods: List<CustomFood> = emptyList()) : CustomFo
     override suspend fun get(id: String): CustomFood? = foods.value.firstOrNull { it.id == id }
 
     override suspend fun create(draft: CustomFoodDraft): CustomFood {
-        val food = CustomFood(id = "made-${foods.value.size}", name = draft.name, servingAmount = draft.servingAmount, servingUnit = draft.servingUnit)
+        val food = CustomFood(
+            id = "made-${foods.value.size}",
+            name = draft.name,
+            servingAmount = draft.servingAmount,
+            servingUnit = draft.servingUnit,
+            brand = draft.brand,
+            kcal = draft.kcal,
+            protein = draft.protein,
+            carbs = draft.carbs,
+            fat = draft.fat,
+            fiber = draft.fiber,
+        )
         foods.value = foods.value + food
         return food
     }
@@ -462,6 +473,13 @@ class FakeAppState(offline: Boolean = false) : AppState {
 fun photoFlag(on: Boolean): PhotoEstimateEnabled = PhotoEstimateEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("photo" to on))
+    },
+)
+
+/** `release.submitFood` as the remote config would set it. */
+fun submitFoodFlag(on: Boolean): SubmitFoodEnabled = SubmitFoodEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("submitFood" to on))
     },
 )
 
