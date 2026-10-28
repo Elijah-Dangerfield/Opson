@@ -73,8 +73,8 @@ object WidgetSnapshotBuilder {
         val context = FormatContext(day = day.date)
         val ring = policy.ringValue(Metric.Calories, eaten, Surface.Widget, context) ?: return null
         val label = policy.resolve(Metric.Calories, eaten, Surface.Widget, context) as? Display.Shown ?: return null
-        // The day's own goal, so a "different by day" range draws as it does on Targets. A widget
-        // has no watch reading, so activity adds nothing.
+        // The day's own goal, so a "different by day" range draws as it does on Targets, and a set
+        // deficit or surplus aims at today's Burned as Today's does.
         val range = settings.targets.rangeFor(day.date, settings.numbers.preset, burnedKcal)
         val scaleMax = range.maxKcal * BAR_HEADROOM
         val bar = policy.resolve(Metric.Calories, eaten, Surface.Widget, context.copy(of = scaleMax, bare = true)) as? Display.Shown

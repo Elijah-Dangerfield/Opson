@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Copy for home screen widgets (docs/plans/screens/widgets.md): the widget
-  itself, the More row and the Widgets page. 0.2, behind release.widgets. Same
+  itself, the More row and the Widgets page. The More row and the Widgets page
+  are behind release.widgets; the widget itself is in every build. Same
   rules as strings.xml: no backslash escapes, positional %1$s arguments. No
   string here takes a number: the only number a widget shows comes from the
   visibility policy.
