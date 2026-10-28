@@ -89,9 +89,16 @@ class SessionHealer(
     }
 
     private suspend fun healIfStranded(source: String) {
+        val current = authRepository.current()
         // Already have a session — nothing to do.
-        if (authRepository.current() is AuthState.Authenticated) {
+        if (current is AuthState.Authenticated) {
             log(source, HealAction.SKIP_HAS_SESSION)
+            return
+        }
+        // Checked before retry(): reviving a session the person just logged out
+        // of would sign them back in. Onboarding's sign-in step is next.
+        if ((current as AuthState.Unauthenticated).reason == AuthState.Unauthenticated.Reason.SignedOut) {
+            log(source, HealAction.SKIP_SIGNED_OUT)
             return
         }
 
@@ -116,10 +123,8 @@ class SessionHealer(
                 // unrecoverable); the app is routing to sign-in.
                 log(source, HealAction.SKIP_SESSION_EXPIRED)
             }
-            unauth.reason == AuthState.Unauthenticated.Reason.SignedOut -> {
-                // Deliberate sign-out: onboarding's sign-in step is next.
-                log(source, HealAction.SKIP_SIGNED_OUT)
-            }
+            // A sign-out that landed while retry() waited on the lock.
+            unauth.reason == AuthState.Unauthenticated.Reason.SignedOut -> log(source, HealAction.SKIP_SIGNED_OUT)
             else -> {
                 val stranded = cachedServerProfile()
                 when {

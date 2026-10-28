@@ -223,22 +223,20 @@ class SupabaseAuthRepositoryImpl(
 
     /**
      * Settle a resolve that found no session. [AuthState.Unauthenticated.Reason.SessionExpired]
-     * is sticky within the run: a re-resolve (connectivity flip, healer retry,
+     * and [AuthState.Unauthenticated.Reason.SignedOut] are sticky within the run:
+     * a re-resolve (connectivity flip, foreground, healer retry,
      * SessionExpired-screen retry) that still finds nothing keeps the reason —
      * and its [AuthState.Unauthenticated.wasAnonymous] — instead of decaying to
-     * `None`, which would make identity self-heal read the dead session as an
-     * ordinary stranding (AUTH-19).
+     * `None`, which would make identity self-heal read a dead session as an
+     * ordinary stranding (AUTH-19), or a sign-out as a lost session.
      */
     private suspend fun settleUnauthenticatedLocked(): AuthState.Unauthenticated {
         val last = lastEmittedOrNull() as? AuthState.Unauthenticated
-        return if (last?.reason == AuthState.Unauthenticated.Reason.SessionExpired) {
-            emitUnauthenticatedLocked(
-                cause = null,
-                reason = AuthState.Unauthenticated.Reason.SessionExpired,
-                wasAnonymous = last.wasAnonymous,
-            )
-        } else {
-            emitUnauthenticatedLocked(cause = null)
+        return when (last?.reason) {
+            AuthState.Unauthenticated.Reason.SessionExpired,
+            AuthState.Unauthenticated.Reason.SignedOut,
+            -> emitUnauthenticatedLocked(cause = null, reason = last.reason, wasAnonymous = last.wasAnonymous)
+            else -> emitUnauthenticatedLocked(cause = null)
         }
     }
 

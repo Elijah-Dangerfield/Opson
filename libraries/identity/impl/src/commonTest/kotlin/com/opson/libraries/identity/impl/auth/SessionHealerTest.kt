@@ -101,6 +101,21 @@ class SessionHealerTest : CoroutineTest() {
     }
 
     @Test
+    fun skip_withoutRetrying_whenTheLastStateIsASignOut() = runUnitTest {
+        // A sign-out that couldn't reach the auth server used to leave the
+        // session behind, and retry() revived it: the person was signed back in.
+        val signedOut = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
+        val auth = FakeAuth(current = signedOut, retryResult = authed())
+        val healer = build(auth, onboarded = true)
+
+        healer.onConnectivityRegained(AppEvent.ConnectivityRegained)
+        advanceUntilIdle()
+
+        assertEquals(0, auth.retries, "a deliberate sign-out is never re-resolved")
+        assertEquals(emptyList(), auth.markedUnrecoverable)
+    }
+
+    @Test
     fun skip_whenNotOnboarded() = runUnitTest {
         val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())
         val healer = build(auth, onboarded = false)
@@ -249,8 +264,13 @@ class SessionHealerTest : CoroutineTest() {
         private val gate: CompletableDeferred<Unit>? = null,
     ) : AuthRepository {
         val markedUnrecoverable = mutableListOf<Boolean>()
+        var retries = 0
+            private set
         override suspend fun current(): AuthState = current
-        override suspend fun retry(): AuthState = retryResult
+        override suspend fun retry(): AuthState {
+            retries++
+            return retryResult
+        }
         override suspend fun markSessionUnrecoverable(wasAnonymous: Boolean) {
             markedUnrecoverable += wasAnonymous
             gate?.await()

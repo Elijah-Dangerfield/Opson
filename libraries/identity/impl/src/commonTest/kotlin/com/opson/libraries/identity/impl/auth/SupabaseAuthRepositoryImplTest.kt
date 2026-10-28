@@ -805,6 +805,34 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         )
     }
 
+    @Test
+    fun signOut_offline_staysSignedOutAcrossALaterRetry() = runUnitTest {
+        // The gateway clears the session locally even when the logout request
+        // can't reach the server (RealSupabaseAuthGatewayTest), then throws.
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.Authenticated,
+            session = claimedSession(),
+            onSignOut = {
+                replaceSession(null)
+                setStatus(AuthGatewayStatus.NotAuthenticated)
+                throw RuntimeException("Unable to resolve host")
+            },
+        )
+        val repo = build(gateway = gateway)
+        advanceUntilIdle()
+
+        repo.signOut()
+        // The next foreground / connectivity edge re-resolves.
+        val afterRetry = assertIs<AuthState.Unauthenticated>(repo.retry())
+
+        assertNull(gateway.currentSession())
+        assertEquals(
+            AuthState.Unauthenticated.Reason.SignedOut,
+            afterRetry.reason,
+            "a re-resolve must not decay a sign-out into an ordinary missing session",
+        )
+    }
+
     // ---------- signup already-registered obfuscation (AUTH-21) ----------
 
     @Test
