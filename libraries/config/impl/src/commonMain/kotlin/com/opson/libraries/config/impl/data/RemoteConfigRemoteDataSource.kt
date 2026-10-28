@@ -12,9 +12,11 @@ import com.opson.libraries.networking.NetworkClient
 import com.opson.libraries.networking.retry.RetryPolicy
 import com.opson.libraries.networking.unauthedCall
 import io.ktor.client.call.body
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.withContext
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -34,6 +36,11 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * [AuthTokenProvider.awaitReady]), so the server can resolve the user id for
  * per-user targeting + rollout bucketing. No token → no header → the server
  * targets on the install-id / client-context axes instead.
+ *
+ * A server that refuses the token (401 or 403) is asked once more without it.
+ * Today's server serves a token it can't verify anonymously, but one deployed
+ * before that answered 401, and a build signed in to the wrong Supabase project
+ * then never saw the version floor or the kill switch, the only ways to stop it.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -48,15 +55,31 @@ class RemoteConfigRemoteDataSource @Inject constructor(
 
     override suspend fun getConfig(): Catching<AppConfigMap> = withContext(dispatcherProvider.io) {
         val token = authTokenProvider.accessToken()
-        networkClient.unauthedCall(
-            description = "appConfig.fetch",
-            retry = RetryPolicy.idempotent(),
-        ) { client ->
-            client.get("/v1/app-config") {
-                if (token != null) header(HttpHeaders.Authorization, "Bearer $token")
-            }.body<String>()
+        val first = fetch(token)
+        val fetched = if (token != null && first.exceptionOrNull().isRefusedToken()) {
+            logger.w { "App config refused the session token; fetching it without one" }
+            fetch(token = null)
+        } else {
+            first
         }
+        fetched
             .flatMap { raw -> converter.decodeToMap(raw).map { BasicMapAppConfig(it) } }
             .onSuccess { logger.d { "Fetched remote app config" } }
+    }
+
+    private suspend fun fetch(token: String?): Catching<String> = networkClient.unauthedCall(
+        description = "appConfig.fetch",
+        retry = RetryPolicy.idempotent(),
+    ) { client ->
+        client.get("/v1/app-config") {
+            if (token != null) header(HttpHeaders.Authorization, "Bearer $token")
+        }.body<String>()
+    }
+
+    private fun Throwable?.isRefusedToken(): Boolean =
+        this is ClientRequestException && response.status in REFUSED
+
+    private companion object {
+        val REFUSED = setOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden)
     }
 }

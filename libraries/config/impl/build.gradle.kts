@@ -33,6 +33,7 @@ kotlin {
             implementation(projects.libraries.networking)
             implementation(projects.libraries.storage)
             implementation(projects.libraries.opson)
+            implementation(libs.ktor.client.mock)
         }
     }
 }
