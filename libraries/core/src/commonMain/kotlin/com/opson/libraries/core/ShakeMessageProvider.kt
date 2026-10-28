@@ -12,8 +12,6 @@ interface ShakeMessageProvider {
 data class ShakeMessageContext(
     val shakeCount: Int = 0,
     val intensity: ShakeIntensity = ShakeIntensity.NORMAL,
-    val isLateNight: Boolean = false,
-    val isFirstSession: Boolean = false,
     val userName: String? = null,
 )
 
@@ -90,17 +88,6 @@ class ShakeMessageProviderImpl : ShakeMessageProvider {
                 }
                 else -> {}
             }
-            
-            if (context.isLateNight) {
-                add(ShakeMessage("Late night shake.", "Can't sleep?"))
-                add(ShakeMessage("Shaking me at this hour.", "I get it."))
-                add(ShakeMessage("Midnight shake.", "Bold."))
-            }
-            
-            if (context.isFirstSession) {
-                add(ShakeMessage("First day and already shaking.", "I see how it is."))
-                add(ShakeMessage("Starting strong.", "I respect that."))
-            }
         }
     }
     
@@ -134,10 +121,6 @@ class ShakeMessageProviderImpl : ShakeMessageProvider {
                 }
                 else -> {}
             }
-            
-            if (context.isLateNight) {
-                add(ShakeMessage("Late again.", "Night owl shaker."))
-            }
         }
     }
     
@@ -163,11 +146,6 @@ class ShakeMessageProviderImpl : ShakeMessageProvider {
                 add(ShakeMessage("$name, you're persistent.", "I respect that."))
                 add(ShakeMessage("$name returns.", "Shaking."))
                 add(ShakeMessage("Classic $name.", "Shake and all."))
-            }
-            
-            if (context.isLateNight) {
-                add(ShakeMessage("Shaking at night.", "Restless?"))
-                add(ShakeMessage("Late night shake.", "This is becoming a pattern."))
             }
             
             when (context.intensity) {
@@ -212,11 +190,6 @@ class ShakeMessageProviderImpl : ShakeMessageProvider {
                 add(ShakeMessage("Ah, $name.", "The usual?"))
                 add(ShakeMessage("$name. $count shakes.", "That's dedication."))
                 add(ShakeMessage("$name.", "We both know why we're here."))
-            }
-            
-            if (context.isLateNight) {
-                add(ShakeMessage("Late night shake #$count.", "A commitment to the craft."))
-                add(ShakeMessage("Midnight shaker.", "There are worse hobbies."))
             }
             
             when (context.intensity) {

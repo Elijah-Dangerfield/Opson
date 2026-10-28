@@ -12,6 +12,9 @@ import com.opson.libraries.navigation.toRouteOrNull
 import com.opson.libraries.networking.NetworkInspector
 import com.opson.libraries.ui.components.dialog.ShakeDialog
 import me.tatarka.inject.annotations.Inject
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.bug_report_context_shake
+import org.jetbrains.compose.resources.stringResource
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
@@ -36,6 +39,7 @@ class ShakeDialogEntryPoint(
             DisposableEffect(Unit) {
                 onDispose { shakeHandler.onDialogDismissed() }
             }
+            val shakeContext = stringResource(Res.string.bug_report_context_shake)
 
             ShakeDialog(
                 state = dialogState,
@@ -45,7 +49,7 @@ class ShakeDialogEntryPoint(
                 onReportBug = {
                     router.goBack()
                     router.navigate(
-                        BugReportRoute(contextMessage = "Triggered via shake")
+                        BugReportRoute(contextMessage = shakeContext)
                     )
                 },
                 // Debug-only: reuse the shake gesture to also open the

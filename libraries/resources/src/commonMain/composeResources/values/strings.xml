@@ -41,6 +41,7 @@
     <!-- Bug report -->
     <string name="bug_report_title">Report a Bug</string>
     <string name="bug_report_captured_details">Captured details</string>
+    <string name="bug_report_context_shake">You shook your phone.</string>
     <string name="bug_report_error_code_label">Error code</string>
     <string name="bug_report_id_label">Report id</string>
     <string name="bug_report_prompt">Help us understand what went wrong. We would love to fix it!</string>

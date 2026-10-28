@@ -81,8 +81,6 @@ class ShakeHandler(
         val context = ShakeMessageContext(
             shakeCount = shakeCount,
             intensity = event.intensity,
-            isLateNight = false,
-            isFirstSession = false,
             userName = userName,
         )
 
