@@ -92,14 +92,16 @@ need changes in other slices, listed at the end; one of them is required for
 - **Rule:** §1 no dead code.
 - **Failure:** referenced only by their own previews since the logger rebuild,
   so the design sync kept sending Claude Design components the app never draws.
-- **Fix:** deleted with their previews. `NutrientRingLabel` was the last reader
-  of the nutrition ring stack, so `RingValue.kt` (`ringValue`,
-  `balanceRingValue`, `SummaryRingMode`, `availableRingModes`), its test and
-  the formatter's five `ring*` words went too; Today's Rings card draws its own.
-  The two strings only the meal chip read are gone from `strings_diary.xml`.
-  The design sync manifest is generated from the previews, so the next sync
-  picks this up with no file to change. Commits:
-  `refactor(diary-ui): drop composables nothing draws`,
+- **Fix:** deleted with their previews. With `NutrientRingLabel` gone, the
+  Balance ring (`balanceRingValue`, the formatter's `ringBalance`) and the
+  summary ring modes (`SummaryRingMode`, `availableRingModes`, `nextIn`,
+  `orTargetIn`) had no reader left and went with their tests. `ringValue` stays:
+  the home screen widget draws its ring from it (my first pass removed it too
+  and broke `:libraries:widgets`; the follow-up commit restores it). The two
+  strings only the meal chip read are gone from `strings_diary.xml`. The design
+  sync manifest is generated from the previews, so the next sync picks this up
+  with no file to change. Commits: `refactor(diary-ui): drop composables nothing draws`,
+  `refactor(nutrition): keep the ring label the widget reads`,
   `refactor(diary-ui): tidy what the deleted composables left behind`.
   The docs that still list them are another slice's, below.
 
