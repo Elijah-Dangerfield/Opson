@@ -34,7 +34,9 @@ abstract class ConfigurationExtension {
     }
 
 
-    // Most modules will get di() from the convention plugin. But if needed this is there.
+    // TODO(review): every convention plugin already calls configureKotlinInject(), so this adds
+    // the same dependencies twice. Remove the five di() calls in libraries/*, then this
+    // (docs/review/findings/build-config.md, finding 8).
     fun di() {
         project.extensions.configure(KotlinMultiplatformExtension::class.java) {
             project.configureKotlinInject()
