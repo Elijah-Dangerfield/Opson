@@ -25,6 +25,7 @@ import com.opson.libraries.diary.impl.wire.MealFeelingRowDto
 import com.opson.libraries.diary.impl.wire.WireJson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -259,9 +260,16 @@ class DiaryRepositoryImpl(
         changeDay(day) { it.copy(mealGroups = on) }
     }
 
+    // A food taken off Recent stays off until it is logged again, so the latest entry decides.
     override fun recentFoods(limit: Int): Flow<List<LogItem>> =
-        tables.entries.observeLatestFoods(RECENT_SCAN).map { rows ->
-            rows.mapNotNull { it.toDomain() }.distinctBy { it.foodKey() }.take(limit)
+        combine(
+            tables.entries.observeLatestFoods(RECENT_SCAN),
+            settingsRepository.settings.distinctUntilChangedBy { it.hiddenRecentFoods },
+        ) { rows, settings ->
+            rows.mapNotNull { it.toDomain() }
+                .distinctBy { it.foodKey() }
+                .filterNot { settings.hidesFromRecent(it.foodKey(), it.loggedAt.toEpochMilliseconds()) }
+                .take(limit)
         }
 
     override fun usualAt(slot: MealSlot, limit: Int, days: Int): Flow<List<LogItem>> = flow {

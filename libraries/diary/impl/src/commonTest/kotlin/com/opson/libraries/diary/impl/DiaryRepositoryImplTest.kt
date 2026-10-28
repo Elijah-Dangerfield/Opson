@@ -243,6 +243,21 @@ class DiaryRepositoryImplTest : CoroutineTest() {
     }
 
     @Test
+    fun aFoodTakenOffRecentStaysOffUntilItIsLoggedAgain() = runUnitTest {
+        repo.addItems(today, MealSlot.Lunch, listOf(draft("Oats").copy(foodId = "oats")), LogMethod.Search)
+        clock.now += 1.minutes
+        repo.addItems(today, MealSlot.Lunch, listOf(draft("Eggs").copy(foodId = "eggs")), LogMethod.Search)
+        clock.now += 1.minutes
+        settings.update { it.hideFromRecent("f:oats", clock.now.toEpochMilliseconds()) }
+
+        assertEquals(listOf("Eggs"), repo.recentFoods(limit = 6).first().map { it.name })
+
+        clock.now += 1.minutes
+        repo.addItems(today, MealSlot.Dinner, listOf(draft("Oats").copy(foodId = "oats")), LogMethod.Search)
+        assertEquals(listOf("Oats", "Eggs"), repo.recentFoods(limit = 6).first().map { it.name })
+    }
+
+    @Test
     fun frequentFoodsRanksAcrossEverySlotWithinTheWindow() = runUnitTest {
         repo.addItems(LocalDate(2026, 10, 20), MealSlot.Breakfast, listOf(draft("Banana")), LogMethod.Search)
         repo.addItems(LocalDate(2026, 10, 21), MealSlot.Snack, listOf(draft("Banana")), LogMethod.Search)
