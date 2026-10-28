@@ -132,7 +132,10 @@ class SessionHealer(
                 when {
                     // A server account demonstrably exists on this device but
                     // its session is gone and retry couldn't revive it (AUTH-19).
-                    stranded != null -> stopForRecovery(source, wasAnonymous = stranded.isAnonymous, id = stranded.id)
+                    stranded != null -> {
+                        holdForSignIn(ExpiredAccount(userId = stranded.id, wasAnonymous = stranded.isAnonymous))
+                        stopForRecovery(source, wasAnonymous = stranded.isAnonymous, id = stranded.id)
+                    }
                     !hasUserOnboarded() -> {
                         // Pre-onboarding: onboarding's sign-in step is where a
                         // session comes from. That includes a held account whose
@@ -171,6 +174,17 @@ class SessionHealer(
         Catching { expiredAccounts.read() }
             .logOnFailure { "Reading the expired-session account for heal failed; assuming none" }
             .getOrNull()
+
+    /**
+     * Hold a stranded account's data the way a mid-run expiry does. Its session
+     * died before this run saw it signed in, so the auth layer has no account to
+     * hold, and without this a different account signing in next would inherit
+     * its rows and drain its outbox.
+     */
+    private suspend fun holdForSignIn(account: ExpiredAccount) {
+        Catching { expiredAccounts.hold(account) }
+            .logOnFailure { "Holding the stranded account ${account.userId} failed" }
+    }
 
     private suspend fun stopForRecovery(source: String, wasAnonymous: Boolean, id: String?) {
         log(source, HealAction.STOP_FOR_RECOVERY)

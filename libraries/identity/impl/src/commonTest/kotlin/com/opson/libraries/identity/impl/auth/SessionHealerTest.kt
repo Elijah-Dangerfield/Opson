@@ -216,6 +216,21 @@ class SessionHealerTest : CoroutineTest() {
     }
 
     @Test
+    fun aStrandedAccount_isHeldForWhoeverSignsInNext() = runUnitTest {
+        // Its session died before this run saw it signed in, so the auth layer
+        // never held it. Without the hold, whoever signs in next keeps its rows.
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())
+        val healer = build(auth, profile = cachedAccount(isAnonymous = false), expiredAccounts = expiredAccounts)
+
+        healer.onColdBoot(AppEvent.ColdBoot)
+        advanceUntilIdle()
+
+        assertEquals(listOf(false), auth.markedUnrecoverable)
+        assertEquals(ExpiredAccount(userId = "u1", wasAnonymous = false), expiredAccounts.read())
+    }
+
+    @Test
     fun aRelaunchAfterASessionExpiry_sendsTheHeldAccountToSignIn_withItsGuestCopy() = runUnitTest {
         // The profile cache is gone (cleared on expiry) but the account's meals
         // are still on the device, held for it to sign back in.
