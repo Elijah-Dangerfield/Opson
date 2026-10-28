@@ -110,6 +110,24 @@ Some features are switched on over time. When they are, this is how they work.
   which reads them and returns a list of foods. We don't save the photo or keep
   a copy on our server, and it is not linked to your account. Anthropic does
   not use it to train its models.
+- **Adding a food from its pack.** When a barcode or a search finds nothing,
+  you can photograph the front of the pack and its nutrition label. Both
+  photos go through our server to [Anthropic](https://www.anthropic.com/legal/privacy),
+  which reads the label; Anthropic does not use them to train its models. You
+  check what it read and submit. The food is saved to your foods and your log
+  straight away, and a copy goes to us for review: the food's details, the
+  barcode if there is one, and the two photos, linked to your account. The
+  photos are seen only by you and the person at Opson who reviews the food,
+  and are never at a public address. We delete them 30 days after the review,
+  and straight away if you delete your account. If we approve the food, its
+  name, brand, barcode, serving and nutrition values (not the photos, and not
+  who sent it) join the food database that everyone searches, and stay there
+  after you delete your account, as any other food in the database would. If
+  you only read the label and don't submit, nothing from it is kept.
+- **Barcode suggestions.** If a barcode finds nothing and, within ten minutes,
+  you log a food you found by searching, we record that pairing (the barcode,
+  the food and when) so we can attach the barcode to the right food. It is not
+  linked to your account and holds nothing you typed.
 - **Voice logging.** Your phone's own speech recognizer turns speech into words.
   It runs on the phone where it can. Where it can't, Apple (on iPhone) or your
   phone's speech service (on Android) processes the audio. Opson never receives
@@ -146,7 +164,7 @@ you ask us to help with your account or the law requires it.
 | Supabase | Stores your synced log and your account |
 | Sentry | Crash reports and feedback |
 | Grafana Labs | App usage events and server monitoring |
-| Anthropic | Photo estimates, only when you use one |
+| Anthropic | Photo estimates and reading pack labels, only when you use them |
 | Apple | Sign in with Apple, and speech recognition when you use voice logging |
 | Google | Speech recognition and barcode reading on Android, when you use them |
 
@@ -168,6 +186,11 @@ company that takes over Opson, which would stay bound by this policy.
 - **App usage events**: up to 90 days.
 - **Search words and barcodes** recorded without your account: as long as they
   help us improve the food database. They can't be traced back to you.
+- **Photos of a pack you submit**: until 30 days after we review the food, or
+  until you delete your account if that comes first. The review record (the
+  food's details and our decision) stays with your account until you delete it.
+- **Foods we approve from submissions**: in the food database for everyone,
+  without the photos and without your account.
 
 ## Getting a copy, or deleting it
 

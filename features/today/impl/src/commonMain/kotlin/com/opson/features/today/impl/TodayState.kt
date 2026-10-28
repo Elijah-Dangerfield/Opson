@@ -44,6 +44,11 @@ data class TodayState(
     val meals: List<MealEntry> = emptyList(),
     /** Close the day's button in the header. None on a planned day, an untracked one, or before anything is logged. */
     val closeDay: CloseDayButton? = null,
+    /**
+     * Closed with Close the day: it takes nothing until it is reopened, so the + buttons, select,
+     * swipe and the menu's adding items go, and a line says so with Reopen.
+     */
+    val closed: Boolean = false,
     /** The meal that just changed, outlined for a moment and scrolled to. */
     val highlight: MealSlot? = null,
     /** "Added 2 foods to dinner" with Undo, for six seconds after the logger adds (3.9). */
@@ -303,7 +308,7 @@ data class MealNoteUi(val hunger: StringResource?, val text: String?)
 /** A food on a meal card. [precision] is null where only the household amount shows (No numbers). */
 data class ItemRowUi(val entryId: String, val name: String, val amount: String, val precision: Precision?, val calories: Display)
 
-/** [closed]: the day is closed already, so the button opens it to look back. */
+/** [closed]: the day was closed with Close the day, so the button opens it to look back or reopen it. */
 data class CloseDayButton(val closed: Boolean)
 
 /** The ⋮ menu, grouped by what each item affects (2.11). */
@@ -311,6 +316,9 @@ data class DayMenu(val groups: List<List<DayMenuItem>>, val clearArmed: Boolean)
 
 sealed interface DayMenuItem {
     data class CloseDay(val isToday: Boolean) : DayMenuItem
+
+    /** In Close the day's place once the day is closed. */
+    data class Reopen(val isToday: Boolean) : DayMenuItem
     data object Nutrients : DayMenuItem
 
     /** Every meal's Note, newest first. */
@@ -348,6 +356,9 @@ sealed interface TodayAction {
     data class ItemMenuTapped(val entryId: String) : TodayAction
     data object WaterPlusTapped : TodayAction
     data object CloseDayButtonTapped : TodayAction
+
+    /** Reopen on the closed line or in the ⋮ menu: the day takes food again. */
+    data object ReopenTapped : TodayAction
     data object HighlightFaded : TodayAction
 
     /** The logger added food (`RecentLogEvents.latest`) while Today showed [shown]. */
@@ -441,6 +452,9 @@ sealed interface TodayEvent {
     /** The food's actions (13.3d), from its row or its ⋮. */
     data class OpenItemSheet(val day: LocalDate, val entryId: String) : TodayEvent
     data class OpenWaterSheet(val day: LocalDate) : TodayEvent
+
+    /** Something tried to add to [day], which is closed: "Today is closed. Reopen it to add more." */
+    data class OpenDayClosed(val day: LocalDate) : TodayEvent
     data object OpenTodayCards : TodayEvent
     data object OpenFasting : TodayEvent
     data object OpenWeight : TodayEvent

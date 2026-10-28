@@ -88,3 +88,8 @@ private fun FavoritesTabPreview() = Search(LoggerFixtures.optionsState(full, tab
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun RestaurantHintPreview() = Search(LoggerFixtures.optionsState(full, tab = SearchTab.Restaurant, query = ""))
+
+/** Search on a day closed with Close the day: the closed line in place of the lists. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun ClosedDayPreview() = Search(LoggerFixtures.searchState(full, query = "", added = false, closed = true))

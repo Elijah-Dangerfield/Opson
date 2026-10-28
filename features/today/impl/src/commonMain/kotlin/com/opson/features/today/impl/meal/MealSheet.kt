@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
 import com.opson.features.today.impl.Toast
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MealSlot
@@ -78,6 +79,9 @@ sealed interface MealSheetEvent {
     data class OpenMealNote(val day: LocalDate, val slot: MealSlot) : MealSheetEvent
     data class OpenCreateMeal(val day: LocalDate, val slot: MealSlot) : MealSheetEvent
     data class ShowToast(val toast: Toast) : MealSheetEvent
+
+    /** The day is closed (Close the day, maybe on another phone): nothing was copied. */
+    data class DayClosed(val day: LocalDate) : MealSheetEvent
     data object Dismiss : MealSheetEvent
 }
 
@@ -130,9 +134,13 @@ class MealSheetViewModel(
             MealSheetAction.NoteTapped -> sendEvent(MealSheetEvent.OpenMealNote(day, slot))
             MealSheetAction.CopyFromDayBeforeTapped -> if (!written) {
                 written = true
-                diary.copySlot(fromDay = day.minus(DatePeriod(days = 1)), toDay = day, slot = slot)
-                sendEvent(MealSheetEvent.ShowToast(Toast(Res.string.today_toast_added_to, listOf(slot.sentenceName))))
-                sendEvent(MealSheetEvent.Dismiss)
+                when (diary.copySlot(fromDay = day.minus(DatePeriod(days = 1)), toDay = day, slot = slot)) {
+                    is DayWrite.Written -> {
+                        sendEvent(MealSheetEvent.ShowToast(Toast(Res.string.today_toast_added_to, listOf(slot.sentenceName))))
+                        sendEvent(MealSheetEvent.Dismiss)
+                    }
+                    is DayWrite.DayClosed -> sendEvent(MealSheetEvent.DayClosed(day))
+                }
             }
             MealSheetAction.SaveAsMealTapped -> sendEvent(MealSheetEvent.OpenCreateMeal(day, slot))
             MealSheetAction.CloseTapped -> sendEvent(MealSheetEvent.Dismiss)

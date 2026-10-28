@@ -27,6 +27,8 @@ const val PHOTO_ESTIMATE_LIMIT = "photo-estimate"
 const val FOOD_SEARCH_LIMIT = "food-search"
 const val DESCRIBE_LIMIT = "describe"
 const val EXPORT_LIMIT = "export"
+const val FOOD_LABEL_LIMIT = "food-label"
+const val BARCODE_LINK_LIMIT = "barcode-link"
 
 fun Application.installRateLimits() {
     install(RateLimit) {
@@ -87,6 +89,22 @@ fun Application.installRateLimits() {
 
         register(RateLimitName(DESCRIBE_LIMIT)) {
             // One description is up to 20 catalog searches (DescribeParser.MAX_PHRASES).
+            rateLimiter(limit = 30, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(FOOD_LABEL_LIMIT)) {
+            // Reading a label and submitting a food each carry two photos, and
+            // a read is a paid model call. The real limits are per user
+            // (FoodLabelLimiter, after auth); this stops a flood of 12 MB
+            // bodies before any of them is read.
+            rateLimiter(limit = 30, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(BARCODE_LINK_LIMIT)) {
+            // A link report follows a barcode miss and a search, so it can
+            // never legitimately outrun the miss route's 60/min.
             rateLimiter(limit = 30, refillPeriod = 1.minutes)
             requestKey { call -> call.clientIp() }
         }

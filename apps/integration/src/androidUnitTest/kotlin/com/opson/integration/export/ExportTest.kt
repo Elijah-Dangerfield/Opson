@@ -7,6 +7,7 @@ import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
@@ -44,13 +45,13 @@ class ExportTest : IntegrationTest() {
         phone.log("Porridge", kcal = 320.0, slot = MealSlot.Breakfast)
         phone.diary.setFeeling(day, MealSlot.Breakfast, MealFeeling(hunger = Hunger.Hungry, note = "Before the train"))
         phone.diary.addWater(day, 750)
-        phone.diary.setDayNote(day, "A steadier day")
-        phone.checkIns.setCheckIn(day, CheckIn(hunger = DayHunger.Steady, moods = setOf(CheckInMood.Calm)))
         phone.weights.addWeighIn(62.5)
         phone.exercise.add(ExerciseDraft(day, LocalDateTime(day, LocalTime(7, 30)).toInstant(zone), "yoga", minutes = 45, kcal = 120))
         phone.customFoods.create(CustomFoodDraft("Gran's flapjack", servingAmount = 1.0, servingUnit = "square", kcal = 210.0))
         phone.savedMeals.create("Packed lunch", MealSlot.Lunch, listOf(LogDraft(name = "Cheese sandwich", precision = Precision.Estimate, kcal = 380.0)))
         phone.settings.update { it.copy(numbers = NumbersSettings(preset = PresetId.NoNumbers)) }
+        // Last: a closed day takes no more writes. The note and check-in are saved with the close.
+        phone.diary.closeDay(day, DayReflection(note = "A steadier day", checkIn = CheckIn(hunger = DayHunger.Steady, moods = setOf(CheckInMood.Calm))))
         phone.syncNow().getOrThrow()
 
         val files = unzip(phone.export.everything().getOrThrow())

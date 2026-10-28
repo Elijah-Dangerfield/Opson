@@ -484,7 +484,13 @@ choices open in place; Resting energy and onboarding edit the same setting.
 **Resting energy (13.2d)**, `RestingEnergyRoute(fromEnergyToday)`. The three
 sources with what each gives now, the details the calculation needs, "Steps
 and workouts" (to Integrations) and "Add activity to Burned". Typed fields
-write only once sensible, so typing "1600" writes once. Every amount is
+write only once sensible, so typing "1600" writes once. Height is typed in
+centimetres or in feet and inches (`HeightField`, `:libraries:diary:ui`, shared
+with onboarding), stored as `heightCm` either way; the switch saves
+`heightUnit`, and until it is picked the unit is feet and inches for someone in
+pounds, else the phone's region's (`RegionUnits`: US, Liberia, Myanmar). The
+fields stay up while a detail is being typed, because five feet is already a
+height and the inches field must not vanish under it. Every amount is
 energy out on `Surface.Settings`; with it hidden, no amount shows, not even
 the person's own.
 

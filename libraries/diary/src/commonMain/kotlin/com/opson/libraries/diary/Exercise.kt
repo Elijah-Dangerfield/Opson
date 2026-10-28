@@ -61,19 +61,23 @@ object ExerciseRules {
     const val MAX_NAME = 80
 }
 
-/** Logged exercise, stored on the device and synced like the rest of the diary. */
+/**
+ * Logged exercise, stored on the device and synced like the rest of the diary. A day closed with
+ * Close the day takes no new exercise and keeps what it has: each write answers
+ * [DayWrite.DayClosed] for it.
+ */
 interface ExerciseRepository {
     /** [day]'s entries by start time. */
     fun observeDay(day: LocalDate): Flow<List<ExerciseEntry>>
 
     suspend fun get(id: String): ExerciseEntry?
 
-    suspend fun add(draft: ExerciseDraft): ExerciseEntry
+    suspend fun add(draft: ExerciseDraft): DayWrite<ExerciseEntry>
 
     /** Replaces [id] with [draft]; nothing happens when it is gone. */
-    suspend fun update(id: String, draft: ExerciseDraft)
+    suspend fun update(id: String, draft: ExerciseDraft): DayWrite<Unit>
 
-    suspend fun delete(id: String)
+    suspend fun delete(id: String): DayWrite<Unit>
 }
 
 /** A day's entries as Burned counts them. */
