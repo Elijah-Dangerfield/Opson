@@ -206,8 +206,9 @@ object LoggerFixtures {
         slot: MealSlot = MealSlot.Dinner,
         added: Boolean = false,
         exercise: Boolean = false,
+        closed: Boolean = false,
     ): LoggerState {
-        val inputs = inputs(settings = settings, date = date, firstRun = firstRun)
+        val inputs = inputs(settings = settings, date = date, firstRun = firstRun).let { if (closed) it.copy(day = it.day.closed()) else it }
         // Jasmine rice went in from Recent's + since the sheet opened: its row draws ✓.
         val logged = if (added) inputs.copy(day = inputs.day.with(item(rice, slot, date, minutesAgo = 1))) else inputs
         return LoggerStateBuilder.build(
@@ -228,6 +229,9 @@ object LoggerFixtures {
 
     /** [this] with [item] logged to its slot. */
     private fun Day.with(item: LogItem): Day = copy(itemsBySlot = itemsBySlot + (item.slot to items(item.slot) + item))
+
+    /** [this] closed with Close the day at 9 pm. */
+    private fun Day.closed(): Day = copy(closedAt = LocalDateTime(date, LocalTime(21, 0)).toInstant(TimeZone.UTC))
 
     /** 10:40 on [today]: a time this person has no regular meal at (3.1b). */
     val midMorning: LocalDateTime = LocalDateTime(today, LocalTime(10, 40))
@@ -304,8 +308,9 @@ object LoggerFixtures {
         flags: Boolean = true,
         firstRun: Boolean = false,
         settings: Settings = Settings(),
+        closed: Boolean = false,
     ): FoodSearchState {
-        val inputs = searchInputs(settings = settings, firstRun = firstRun)
+        val inputs = searchInputs(settings = settings, firstRun = firstRun).let { if (closed) it.copy(day = it.day.closed()) else it }
         val logged = if (added && !pickingForMeal) inputs.copy(day = inputs.day.with(item(rice, MealSlot.Dinner, minutesAgo = 1))) else inputs
         val choices = SearchChoices(
             slot = MealSlot.Dinner,

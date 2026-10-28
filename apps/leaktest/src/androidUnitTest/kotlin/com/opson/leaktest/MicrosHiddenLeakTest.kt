@@ -57,7 +57,7 @@ class MicrosHiddenLeakTest(private val surface: LeakSurface, private val case: M
             "today-delete-confirm", "today-drag-move", "today-exercise", "today-expended", "today-groups-off", "today-macros",
             "today-moved", "today-past", "today-select", "today-select-remove", "today-select-v4", "today-summary",
             "today-summary-equation", "today-summary-in-out", "today-summary-range-bar", "today-summary-rings",
-            "today-swipe-delete", "today-timer-ended", "today-timer-waiting", "today-weight", "food-actions",
+            "today-swipe-delete", "today-timer-ended", "today-timer-waiting", "today-weight", "food-actions", "today-closed",
         )
 
         /** Every surface that draws micros. [LeakTestControlTest] fails on one missing from here. */

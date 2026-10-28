@@ -33,6 +33,11 @@ data class LoggerState(
     val recent: List<FoodRowUi> = emptyList(),
     val describe: DescribeUi = DescribeUi(),
     val saved: SavedUi = SavedUi(),
+    /**
+     * The day was closed with Close the day: "Today is closed. Reopen it to add more." over the
+     * grid, which keeps only what is not part of the day (a weigh-in, the fasting timer).
+     */
+    val closed: Boolean = false,
 )
 
 /** How tall the add sheet is. It opens [Partial] from a + and only ever grows. */
@@ -161,6 +166,9 @@ sealed interface LoggerAction {
 
     /** Describe's Add: logs its lines. */
     data object AddToMealTapped : LoggerAction
+
+    /** Reopen on the closed line: the day takes food again and the grid comes back. */
+    data object ReopenTapped : LoggerAction
 
     data object BackTapped : LoggerAction
     data object CloseTapped : LoggerAction

@@ -3,8 +3,9 @@ package com.opson.libraries.reminders.impl
 import com.opson.libraries.config.AppConfigFlow
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.config.AppConfigRepository
+import com.opson.libraries.diary.DayWrite
+import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
@@ -84,30 +85,31 @@ class FakeDiary : DiaryRepository {
 
     override fun observeDay(date: LocalDate): Flow<Day> = days.map { it[date] ?: Day.empty(date) }
 
-    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) {
+    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean): DayWrite<Unit> {
         val current = days.value[day] ?: Day.empty(day)
+        if (current.closedByUser) return DayWrite.DayClosed(day)
         val marks = if (ate) current.ateNoDetails + slot else current.ateNoDetails - slot
         days.value = days.value + (day to current.copy(ateNoDetails = marks))
+        return DayWrite.Written(Unit)
     }
 
     override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> = unused()
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = unused()
-    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> = unused()
-    override suspend fun updateItem(item: LogItem) = unused()
-    override suspend fun removeItem(id: String) = unused()
-    override suspend fun moveItem(id: String, slot: MealSlot) = unused()
-    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> = unused()
-    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> = unused()
-    override suspend fun clearDay(day: LocalDate) = unused()
-    override suspend fun addWater(day: LocalDate, ml: Int) = unused()
-    override suspend fun removeWater(day: LocalDate, ml: Int) = unused()
-    override suspend fun setWater(day: LocalDate, ml: Int) = unused()
-    override suspend fun closeDay(day: LocalDate) = unused()
+    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> = unused()
+    override suspend fun updateItem(item: LogItem): DayWrite<Unit> = unused()
+    override suspend fun removeItem(id: String): DayWrite<Unit> = unused()
+    override suspend fun moveItem(id: String, slot: MealSlot): DayWrite<Unit> = unused()
+    override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> = unused()
+    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> = unused()
+    override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = unused()
+    override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> = unused()
+    override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = unused()
+    override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = unused()
+    override suspend fun closeDay(day: LocalDate, reflection: DayReflection) = unused()
     override suspend fun reopenDay(day: LocalDate) = unused()
-    override suspend fun setDayNote(day: LocalDate, note: String?) = unused()
+    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = unused()
     override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = unused()
-    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) = unused()
-    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?) = unused()
+    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?): DayWrite<Unit> = unused()
     override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = unused()
     override fun recentFoods(limit: Int): Flow<List<LogItem>> = unused()
     override fun usualAt(slot: MealSlot, limit: Int, days: Int): Flow<List<LogItem>> = unused()

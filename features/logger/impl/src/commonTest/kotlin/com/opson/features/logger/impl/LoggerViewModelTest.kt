@@ -665,4 +665,75 @@ class LoggerViewModelTest : CoroutineTest() {
 
         assertNull(vm.state.describe.quickAdd)
     }
+
+    // A day closed with Close the day (docs/decisions.md, 2026-10-27)
+
+    @Test
+    fun aClosedDay_saysSoOverTheGrid_keepsOnlyWhatIsNotPartOfTheDay_andLogsNothing() = runUnitTest {
+        diary.close(LoggerFixtures.today)
+        settings.state.value = Settings(fasting = true)
+        val vm = vm(route = LoggerRoute(slot = MealSlot.Dinner, start = LoggerStart.Saved), fastingOn = true)
+        val events = events(vm)
+        settle()
+
+        assertTrue(vm.state.closed)
+        assertEquals(LoggerPane.Actions, vm.state.pane, "Saved meals only adds, so the sheet opens on the closed line")
+        assertEquals(listOf(AddAction.WeighIn, AddAction.Fasting), vm.state.actions)
+        assertTrue(vm.state.recent.isEmpty())
+
+        vm.takeAction(LoggerAction.SavedMealPicked("sunday"))
+        vm.takeAction(LoggerAction.WaterTapped)
+        vm.takeAction(LoggerAction.CopyMealTapped)
+        settle()
+
+        assertTrue(diary.added.isEmpty() && diary.water.isEmpty() && diary.copied.isEmpty())
+        assertTrue(recentLogEvents.logged.isEmpty())
+        assertTrue(events.isEmpty(), "the sheet stays on the closed line rather than closing as if it had logged")
+    }
+
+    @Test
+    fun reopen_onTheClosedLine_bringsTheGridBack() = runUnitTest {
+        diary.close(LoggerFixtures.today)
+        val vm = vm()
+        settle()
+
+        vm.takeAction(LoggerAction.ReopenTapped)
+        settle()
+
+        assertEquals(listOf(LoggerFixtures.today), diary.reopened)
+        assertFalse(vm.state.closed)
+        assertTrue(AddAction.SearchFood in vm.state.actions)
+    }
+
+    @Test
+    fun aDayClosedWhileTheSheetIsOpen_refusesTheLog_andTheSheetSaysSo() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        settle()
+        assertFalse(vm.state.closed)
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(LoggerAction.SavedMealPicked("sunday"))
+        settle()
+
+        assertTrue(diary.added.isEmpty())
+        assertTrue(vm.state.closed)
+        assertTrue(LoggerEvent.Dismiss !in events)
+    }
+
+    @Test
+    fun aQuickAddOnADayClosedWhileTheSheetIsOpen_isRefused() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        settle()
+        vm.typeQuick(LoggerFixtures.proteinBar)
+
+        diary.close(LoggerFixtures.today)
+        vm.takeAction(QuickAddAction.AddTapped)
+        settle()
+
+        assertTrue(diary.added.isEmpty())
+        assertTrue(vm.state.closed)
+        assertTrue(LoggerEvent.Dismiss !in events)
+    }
 }

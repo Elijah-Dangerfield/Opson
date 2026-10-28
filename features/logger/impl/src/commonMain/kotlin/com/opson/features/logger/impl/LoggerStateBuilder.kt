@@ -61,15 +61,17 @@ object LoggerStateBuilder {
         val slot = effectiveSlot(inputs, choices.slot)
         val context = inputs.day.formatContext(inputs.today)
         val bare = inputs.day.formatContext(inputs.today, bare = true)
+        val closed = inputs.day.closedByUser
         return LoggerState(
             loading = false,
             day = RelativeDay.of(inputs.day.date, inputs.today),
             slot = slot,
             slots = if (groupsOn) MealSlot.entries else listOf(MealSlot.Uncategorized),
-            pane = choices.pane,
+            // Describe and Saved only add; what was typed waits in the choices for a Reopen.
+            pane = if (closed) LoggerPane.Actions else choices.pane,
             height = choices.height,
-            actions = actions(inputs, policy, slot, choices),
-            recent = recentRows(inputs, policy, slot, choices, bare),
+            actions = actions(inputs, policy, slot, choices).filter { !closed || it in NOT_PART_OF_THE_DAY },
+            recent = if (closed) emptyList() else recentRows(inputs, policy, slot, choices, bare),
             describe = DescribeUi(
                 text = choices.describeText,
                 status = choices.describeStatus,
@@ -90,8 +92,12 @@ object LoggerStateBuilder {
                     )
                 },
             ),
+            closed = closed,
         )
     }
+
+    /** What a closed day still offers: a weigh-in and the fasting timer are not part of its log. */
+    private val NOT_PART_OF_THE_DAY = setOf(AddAction.WeighIn, AddAction.Fasting)
 
     /** The slot a log lands in: [slot], or Uncategorized when the day has meal groups off. */
     fun effectiveSlot(inputs: LoggerInputs, slot: MealSlot): MealSlot =

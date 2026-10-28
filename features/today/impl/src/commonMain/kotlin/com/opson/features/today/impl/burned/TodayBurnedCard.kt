@@ -58,11 +58,13 @@ fun TodayBurnedSection(card: TodayBurnedCard, onAction: (TodayBurnedAction) -> U
                 modifier = Modifier.weight(1f),
             )
             NutrientText(Metric.EnergyOut, card.total, typography = AppTheme.type.cardTitle.Tabular, color = AppTheme.colors.ink, maxLines = 1)
-            RoundIconButton(
-                icon = AppIcons.Add.described(stringResource(Res.string.today_burned_add)),
-                onClick = { onAction(TodayBurnedAction.AddTapped) },
-                size = MinTouchTarget,
-            )
+            if (!card.closed) {
+                RoundIconButton(
+                    icon = AppIcons.Add.described(stringResource(Res.string.today_burned_add)),
+                    onClick = { onAction(TodayBurnedAction.AddTapped) },
+                    size = MinTouchTarget,
+                )
+            }
         }
         if (!card.known) {
             Text(text = stringResource(Res.string.today_burned_unknown), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)

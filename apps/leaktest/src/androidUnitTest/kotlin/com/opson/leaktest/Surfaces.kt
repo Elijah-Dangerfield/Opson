@@ -87,6 +87,7 @@ internal sealed interface Reveal {
 
 private val dayCloseOpens = Reveal.WholeSurface("Day close is where Later opens: Surface.DayClose is always revealed.")
 private val pastDayOpens = Reveal.WholeSurface("A past day has had its reveal.")
+private val closedDayOpens = Reveal.WholeSurface("Closing the day opens Later's numbers for it, as Day close does.")
 private val weekOpens = Reveal.WholeSurface(
     "Later opens the week view all day (Surface.Week). Today is left out of every average on it.",
 )
@@ -111,8 +112,9 @@ private val typedQuickAdd = Reveal.Only(
  * that no longer exists.
  */
 internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
-    listOf("day-close", "day-close-big-day", "day-close-check-in").forEach { put("later" to it, dayCloseOpens) }
+    listOf("day-close", "day-close-big-day", "day-close-check-in", "day-close-closed").forEach { put("later" to it, dayCloseOpens) }
     put("later" to "today-past", pastDayOpens)
+    listOf("today-closed", "food-actions-closed").forEach { put("later" to it, closedDayOpens) }
     listOf("trends", "trends-blind", "trends-coast", "nutrients-week", "patterns", "patterns-blind")
         .forEach { put("later" to it, weekOpens) }
 

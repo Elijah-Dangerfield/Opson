@@ -98,7 +98,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun acknowledgedMutationsLeaveTheOutbox() = runUnitTest {
-        val items = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice"), draft("Beans")), LogMethod.Search)
+        val items = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice"), draft("Beans")), LogMethod.Search).written()
 
         syncer.sync()
 
@@ -110,7 +110,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun theOutboxDrainsTwoHundredRowsAtATime() = runUnitTest {
-        repo.addItems(today, MealSlot.Lunch, (1..250).map { draft("Item $it") }, LogMethod.Search)
+        repo.addItems(today, MealSlot.Lunch, (1..250).map { draft("Item $it") }, LogMethod.Search).written()
 
         syncer.sync()
 
@@ -121,7 +121,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aPulledRowReplacesTheLocalRowWhenNothingIsWaiting() = runUnitTest {
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written().single()
         syncer.sync()
         val fromOtherDevice = db.entries.state.value.getValue(item.id).toRow()
             .copy(name = "Brown rice", clientUpdatedAtEpochMs = clock.now.toEpochMilliseconds() + 60_000)
@@ -134,7 +134,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aLocalChangeStillWaitingWinsOverAPulledRow() = runUnitTest {
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written().single()
         api.respond = { request ->
             // The user moves the item while the request is in flight; the
             // response then echoes the version that went up.
@@ -155,7 +155,7 @@ class DiarySyncerTest : CoroutineTest() {
     fun aRefusedNewRowIsRemovedAndReported() = runUnitTest {
         val rejections = mutableListOf<SyncRejection>()
         backgroundScope.launch { syncer.rejections.toList(rejections) }
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written().single()
         api.respond = { request -> refuseEverything(request) }
 
         syncer.sync()
@@ -167,7 +167,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aRefusedEditRollsBackToTheSyncedRow() = runUnitTest {
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written().single()
         syncer.sync()
         repo.updateItem(item.copy(name = "x".repeat(10)))
         api.respond = { request -> refuseEverything(request) }
@@ -347,7 +347,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aPageTheServerNeverResolvesStallsTheDrainWithAWarning() = runUnitTest {
-        repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search)
+        repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written()
         api.respond = { request -> ackEverything(request).copy(applied = emptyList()) }
 
         syncer.sync()
@@ -358,7 +358,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aSyncThatSpendsItsBudgetWarnsWithTheRowsLeft() = runUnitTest {
-        repo.addItems(today, MealSlot.Lunch, (1..2_100).map { draft("Item $it") }, LogMethod.Search)
+        repo.addItems(today, MealSlot.Lunch, (1..2_100).map { draft("Item $it") }, LogMethod.Search).written()
 
         syncer.sync()
 
@@ -371,7 +371,7 @@ class DiarySyncerTest : CoroutineTest() {
     fun aChangeToADayTooFarAheadWaitsUntilTheServerWillTakeIt() = runUnitTest {
         // One day past what the server takes, counted from the fake clock's 2026-10-25.
         val planned = LocalDate(2026, 10, 25).plus(SERVER_MAX_DAYS_AHEAD + 1, DateTimeUnit.DAY)
-        repo.addItems(planned, MealSlot.Lunch, listOf(draft("Planned")), LogMethod.Search)
+        repo.addItems(planned, MealSlot.Lunch, listOf(draft("Planned")), LogMethod.Search).written()
 
         syncer.sync()
 

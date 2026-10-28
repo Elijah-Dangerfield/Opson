@@ -107,6 +107,7 @@ class SurfacesCoverageTest {
                 "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
                 "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "food-actions-amount",
                 "today-notes",
+                "today-closed", "day-closed-sheet", "day-close-closed", "food-actions-closed",
             ),
             "LoggerLeakSurfaces" to listOf(
                 "add-sheet", "add-sheet-expanded", "add-sheet-uncategorized",
@@ -117,6 +118,7 @@ class SurfacesCoverageTest {
                 "food-detail", "food-detail-nutrients", "food-detail-units", "food-detail-scan", "food-detail-no-numbers",
                 "logger-photo", "logger-photo-swap", "logger-photo-start", "logger-scan-miss",
                 "exercise-sheet", "exercise-sheet-other", "exercise-sheet-pick",
+                "add-sheet-closed", "search-closed",
             ),
             "FoodsLeakSurfaces" to listOf("foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy"),
             "TrendsLeakSurfaces" to listOf(
@@ -154,6 +156,7 @@ class SurfacesCoverageTest {
             "food-detail-scan", "food-detail-nutrients", "logger-describe-edited", "logger-describe-find", "logger-describe-quick-add",
             "widget", "widgets",
             "today-burned", "today-burned-health", "exercise-sheet", "exercise-sheet-other",
+            "today-closed", "day-close-closed", "food-actions-closed",
         )
     }
 }

@@ -5,6 +5,7 @@ import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.LogEntry
 import com.opson.libraries.core.logging.LogId
 import com.opson.libraries.core.logging.LogTree
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.impl.wire.ExerciseRowDto
@@ -45,7 +46,7 @@ class ExerciseRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun add_storesTheEntryAndQueuesItForTheDay() = runUnitTest {
-        val entry = repo.add(walk)
+        val entry = repo.add(walk).written()
 
         assertEquals(listOf(entry), repo.observeDay(day).first())
         val outbox = db.outbox.rows.single()
@@ -61,7 +62,7 @@ class ExerciseRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun update_keepsTheFirstBase_andDeleteIsATombstone() = runUnitTest {
-        val entry = repo.add(walk)
+        val entry = repo.add(walk).written()
         db.outbox.clear() // synced
         val synced = db.exercises.state.value.getValue(entry.id)
 
@@ -82,7 +83,7 @@ class ExerciseRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun aStampIsAlwaysNewerThanTheLastOne_evenInTheSameMillisecond() = runUnitTest {
-        val entry = repo.add(walk)
+        val entry = repo.add(walk).written()
         val first = db.exercises.state.value.getValue(entry.id).clientUpdatedAtEpochMs
 
         repo.update(entry.id, walk.copy(minutes = 31))
@@ -92,17 +93,17 @@ class ExerciseRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun aDraftTheServerWouldRefuse_isNeverWritten() = runUnitTest {
-        assertFailsWith<IllegalArgumentException> { repo.add(walk.copy(minutes = 0)) }
-        assertFailsWith<IllegalArgumentException> { repo.add(walk.copy(kcal = 9_000)) }
-        assertFailsWith<IllegalArgumentException> { repo.add(walk.copy(activity = "underwater_basket_weaving")) }
-        assertFailsWith<IllegalArgumentException> { repo.add(walk.copy(activity = ExerciseActivities.OTHER, name = " ")) }
+        assertFailsWith<IllegalArgumentException> { repo.add(walk.copy(minutes = 0)).written() }
+        assertFailsWith<IllegalArgumentException> { repo.add(walk.copy(kcal = 9_000)).written() }
+        assertFailsWith<IllegalArgumentException> { repo.add(walk.copy(activity = "underwater_basket_weaving")).written() }
+        assertFailsWith<IllegalArgumentException> { repo.add(walk.copy(activity = ExerciseActivities.OTHER, name = " ")).written() }
         assertTrue(db.exercises.rows.isEmpty())
         assertTrue(db.outbox.rows.isEmpty())
     }
 
     @Test
     fun other_keepsItsTrimmedName() = runUnitTest {
-        val entry = repo.add(walk.copy(activity = ExerciseActivities.OTHER, name = "  Canoe polo ", kcal = 300, kcalTyped = true))
+        val entry = repo.add(walk.copy(activity = ExerciseActivities.OTHER, name = "  Canoe polo ", kcal = 300, kcalTyped = true)).written()
 
         assertEquals("Canoe polo", entry.name)
         assertTrue(entry.isOther)
@@ -110,13 +111,30 @@ class ExerciseRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun events_sayOnlyWhetherListedAndTyped() = runUnitTest {
-        val entry = repo.add(walk)
+        val entry = repo.add(walk).written()
         repo.update(entry.id, walk.copy(activity = ExerciseActivities.OTHER, name = "Canoe polo", kcalTyped = true))
         repo.delete(entry.id)
 
         assertEquals(listOf(mapOf<String, Any?>("listed" to "true", "typed" to "false")), events.named("exercise.logged"))
         assertEquals(listOf(mapOf<String, Any?>("listed" to "false", "typed" to "true")), events.named("exercise.edited"))
         assertEquals(1, events.named("exercise.deleted").size)
+    }
+
+    @Test
+    fun aClosedDayTakesNoExercise_andKeepsWhatItHas() = runUnitTest {
+        val entry = repo.add(walk).written()
+        db.days.put(day.toString(), emptyDayRecord(day.toString()).copy(closedAtEpochMs = clock.now.toEpochMilliseconds()))
+        val outboxBefore = db.outbox.rows.toList()
+        val closed = DayWrite.DayClosed(day)
+
+        assertEquals(closed, repo.add(walk.copy(minutes = 20, kcal = 65)))
+        assertEquals(closed, repo.update(entry.id, walk.copy(minutes = 45, kcal = 147)))
+        assertEquals(closed, repo.delete(entry.id))
+
+        assertEquals(listOf(entry), repo.observeDay(day).first())
+        assertEquals(outboxBefore, db.outbox.rows.toList())
+        assertEquals(1, events.named("exercise.logged").size, "a refusal is not a log")
+        assertTrue(events.named("exercise.edited").isEmpty() && events.named("exercise.deleted").isEmpty())
     }
 }
 

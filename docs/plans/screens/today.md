@@ -115,7 +115,7 @@ State gains `selection: Selection?` (ids, count, energy and macro totals as
 Good; sleep Poor, OK, Good; moods Calm, Social, Stressed, Tired, Low, Happy),
 stored as JSON on the day record (Room 9 `day_records.checkIn`, server V18
 `day_records.check_in`, both additive; the server checks length only), written
-by `DayCheckIns.setCheckIn(day, checkIn)` on Close the day, never on Back. Shown in every mode; Blind's "How did today
+with the close, `closeDay(day, DayReflection(checkIn = ...))`, on Close the day, never on Back. Shown in every mode; Blind's "How did today
 feel?" steps aside while the flag is on. A row left blank stays blank. Feeding
 Patterns is Trends' work and the Reminders switch for the card is Settings'
 (TODOs there).
@@ -333,7 +333,8 @@ Layout is `policy.preset.today`: Full, Meals, Rhythm, Explorer, and **Journal**
 | `water` | layout Full, water display `Shown`, not locked. |
 | `meals` | Full: each meal with items or ate-no-details is `Full` (compact macro line when all three macros Show, else the long form of the ones that do; items bare numbers), empty ones `Collapsed`; Uncategorized `Full` when it has items; groups off is one "All food" card. Meals and Rhythm: none. Explorer and Journal: logged meals `Compact` (Journal carries how it felt, or asks), empty ones `Collapsed`. A day ahead: `Planned` / `NotPlanned`. |
 | `Collapsed.usual` | the first meal not done; it alone gets yesterday's version (`dayBefore.items(slot)`, energy policy-resolved) or, with no yesterday, Saved meals. |
-| `closeDay` | every day but a planned one; `closed` from `Day.isClosed(today)`. |
+| `closeDay` | every day but a planned one; `closed` from `Day.closedByUser` (a past day nobody closed is open). |
+| `closed` | `Day.closedByUser`: no + anywhere, no select tools, the closed line with Reopen (`ReopenTapped`). A tap that would add sends `OpenDayClosed(day)`. See `docs/decisions.md`, 2026-10-27. |
 | `menu` | see `today-sheets.md`. |
 
 ## Actions
