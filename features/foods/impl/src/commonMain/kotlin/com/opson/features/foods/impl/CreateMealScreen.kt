@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.MacroLineStyle
@@ -154,6 +155,8 @@ private fun NameCard(state: CreateMealState, onAction: (CreateMealAction) -> Uni
             onValueChange = { onAction(CreateMealAction.NameTyped(it)) },
             label = stringResource(Res.string.foods_meal_name),
             placeholder = stringResource(Res.string.foods_meal_name_placeholder),
+            // The form's only field: nothing for Next to move to.
+            imeAction = ImeAction.Done,
         )
         Column {
             FieldLabel(stringResource(Res.string.foods_meal_usually_at))

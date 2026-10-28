@@ -15,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import com.opson.libraries.diary.ui.exerciseActivityLabel
 import com.opson.libraries.nutrition.ExerciseActivities
 import com.opson.libraries.nutrition.Metric
@@ -118,6 +119,7 @@ private fun ExerciseForm(state: ExerciseSheetState, onAction: (ExerciseSheetActi
             value = name,
             onValueChange = { onAction(ExerciseSheetAction.NameTyped(it)) },
             placeholder = stringResource(Res.string.exercise_other_name_placeholder),
+            imeAction = ImeAction.Next,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -173,6 +175,7 @@ private fun Duration(state: ExerciseSheetState, onAction: (ExerciseSheetAction) 
             label = stringResource(Res.string.exercise_duration),
             unit = stringResource(Res.string.exercise_minutes_unit),
             allowDecimal = false,
+            imeAction = if (state.canNumber) ImeAction.Next else ImeAction.Done,
             modifier = Modifier.fillMaxWidth(),
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {

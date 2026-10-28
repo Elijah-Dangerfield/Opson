@@ -24,6 +24,12 @@ import com.opson.system.typography.TypographyResource
 import com.opson.libraries.ui.PreviewContent
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * The design system's bare text field: the theme's text style, cursor and selection colours, and
+ * the shared keyboard handling (every return key closes the keyboard or moves on, and iOS number
+ * pads and multi-line fields get a Done bar; see [rememberFieldIme]). Draw the box with
+ * [decorationBox]. For the handoff's own inputs, reach for [NumberField], [TextInput] or [TextArea].
+ */
 @Composable
 fun BasicTextField(
     value: String,
@@ -54,17 +60,18 @@ fun BasicTextField(
     )
 
     val typed = rememberTypedText(value, onValueChange)
+    val ime = rememberFieldIme(keyboardActions, keyboardOptions.keyboardType, singleLine)
     CompositionLocalProvider(LocalTextSelectionColors provides textSelectionColors) {
         SelectionContainer {
             androidx.compose.foundation.text.BasicTextField(
                 value = typed.text,
                 onValueChange = typed::onType,
-                modifier = modifier,
+                modifier = modifier.then(ime.modifier),
                 enabled = enabled,
                 readOnly = readOnly,
                 textStyle = typographyToken.style(if (enabled) color else disabledColor).merge(TextStyle(textAlign = textAlign)),
                 keyboardOptions = keyboardOptions,
-                keyboardActions = keyboardActions,
+                keyboardActions = ime.actions,
                 singleLine = singleLine,
                 maxLines = maxLines,
                 minLines = minLines,

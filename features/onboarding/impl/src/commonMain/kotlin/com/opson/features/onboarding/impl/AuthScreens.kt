@@ -16,7 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -139,9 +139,10 @@ fun SignInScreen(
     onCreateAccount: () -> Unit,
     onForgotPassword: () -> Unit,
 ) {
-    val keyboardController = LocalSoftwareKeyboardController.current
+    // Dropping focus, not hiding the keyboard controller: only that closes the keyboard on iOS.
+    val focusManager = LocalFocusManager.current
     val submit = {
-        keyboardController?.hide()
+        focusManager.clearFocus()
         onAction(SignInAction.Submit)
     }
     AuthShell(onBack = onBack) {
@@ -278,9 +279,9 @@ fun ForgotPasswordScreen(
     onBack: () -> Unit,
     onBackToSignIn: () -> Unit,
 ) {
-    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     val submit = {
-        keyboardController?.hide()
+        focusManager.clearFocus()
         onAction(ForgotPasswordAction.Submit)
     }
     AuthShell(onBack = onBack) {
@@ -361,9 +362,9 @@ fun SignUpScreen(
     onBack: () -> Unit,
     onSignIn: () -> Unit,
 ) {
-    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     val submit = {
-        keyboardController?.hide()
+        focusManager.clearFocus()
         onAction(SignUpAction.Submit)
     }
     AuthShell(onBack = onBack) {
@@ -535,10 +536,7 @@ private fun EmailField(
             keyboardType = KeyboardType.Email,
             imeAction = imeAction,
         ),
-        keyboardActions = KeyboardActions(
-            onGo = { onSubmitImeAction?.invoke() },
-            onNext = { onSubmitImeAction?.invoke() },
-        ),
+        keyboardActions = submitOrMoveOn(onSubmitImeAction),
         label = { Text(stringResource(Res.string.auth_email_label)) },
         modifier = Modifier.fillMaxWidth(),
     )
@@ -566,10 +564,7 @@ private fun PasswordField(
             keyboardType = KeyboardType.Password,
             imeAction = imeAction,
         ),
-        keyboardActions = KeyboardActions(
-            onGo = { onImeAction?.invoke() },
-            onNext = { onImeAction?.invoke() },
-        ),
+        keyboardActions = submitOrMoveOn(onImeAction),
         label = { Text(label) },
         supportingText = helper?.let {
             {
@@ -583,6 +578,13 @@ private fun PasswordField(
         modifier = Modifier.fillMaxWidth(),
     )
 }
+
+/**
+ * Go or Next runs [submit] when the field has one. Without one, Next is left to its default and
+ * moves to the next field: a Next handler that does nothing would leave the keyboard stuck.
+ */
+private fun submitOrMoveOn(submit: (() -> Unit)?): KeyboardActions =
+    if (submit == null) KeyboardActions.Default else KeyboardActions(onGo = { submit() }, onNext = { submit() })
 
 /** Announced when it appears: the error arrives after the tap, away from the focused button. */
 @Composable

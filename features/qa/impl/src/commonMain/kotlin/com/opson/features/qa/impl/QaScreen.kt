@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.components.PageHeader
@@ -209,6 +210,7 @@ private fun ValueField(row: QaConfigRow, onAction: (QaAction) -> Unit) {
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (row.kind == QaConfigKind.Text) KeyboardType.Text else KeyboardType.Number,
+                imeAction = ImeAction.Done,
             ),
         )
         FlatButton(

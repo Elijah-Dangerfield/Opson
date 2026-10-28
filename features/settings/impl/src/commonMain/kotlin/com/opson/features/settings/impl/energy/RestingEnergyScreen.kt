@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.ImeAction
 import com.opson.libraries.diary.ui.HeightField
 import com.opson.libraries.diary.ui.detail
 import com.opson.libraries.diary.ui.label
@@ -233,6 +234,7 @@ private fun Details(details: BodyDetails, onAction: (RestingEnergyAction) -> Uni
             onValueChange = { onAction(RestingEnergyAction.BirthYearTyped(it)) },
             label = stringResource(Res.string.settings_resting_birth_year),
             allowDecimal = false,
+            imeAction = ImeAction.Next,
         )
         HeightField(
             input = details.height,

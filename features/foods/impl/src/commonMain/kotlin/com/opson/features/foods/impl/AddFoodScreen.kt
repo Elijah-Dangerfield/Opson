@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.nutrition.Metric
@@ -105,6 +106,8 @@ private fun AboutCard(state: AddFoodState, onAction: (AddFoodAction) -> Unit) {
                     value = state.servingAmount,
                     onValueChange = { onAction(AddFoodAction.ServingAmountTyped(it)) },
                     textAlign = TextAlign.Center,
+                    // On to the nutrition fields, when there are any to fill in.
+                    imeAction = if (state.labelOnly) ImeAction.Done else ImeAction.Next,
                     modifier = Modifier.width(64.dp).semantics { contentDescription = amountDescription },
                 )
                 state.units.forEach { unit ->
@@ -133,6 +136,7 @@ private fun NutritionCard(state: AddFoodState, onAction: (AddFoodAction) -> Unit
             Text(text = stringResource(Res.string.foods_food_fill_in), typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
         }
         // Two to a row, as v3 lays them out; an odd one out keeps its half width.
+        val last = state.fields.lastOrNull()
         state.fields.chunked(2).forEach { pair ->
             Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                 pair.forEach { field ->
@@ -141,6 +145,7 @@ private fun NutritionCard(state: AddFoodState, onAction: (AddFoodAction) -> Unit
                         onValueChange = { onAction(AddFoodAction.NutritionTyped(field.metric, it)) },
                         label = stringResource(field.metric.fieldLabel),
                         unit = stringResource(if (field.metric == Metric.Calories) Res.string.foods_unit_kcal else Res.string.foods_unit_g),
+                        imeAction = if (field == last) ImeAction.Done else ImeAction.Next,
                         modifier = Modifier.weight(1f),
                     )
                 }

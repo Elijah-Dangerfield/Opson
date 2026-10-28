@@ -45,6 +45,7 @@ import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.SearchField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextArea
+import com.opson.libraries.ui.system.clearFocusOnScroll
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.logger_add_to
@@ -438,7 +439,7 @@ private fun SwapPane(swap: PhotoStage.Swap, onAction: (PhotoEstimateAction) -> U
             modifier = Modifier.padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, top = AppTheme.spacing.row),
         )
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            modifier = Modifier.weight(1f).fillMaxWidth().clearFocusOnScroll(),
             contentPadding = PaddingValues(
                 start = AppTheme.spacing.page,
                 end = AppTheme.spacing.page,
