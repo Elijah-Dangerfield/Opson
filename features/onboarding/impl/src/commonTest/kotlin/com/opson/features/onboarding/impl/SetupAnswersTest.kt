@@ -91,6 +91,14 @@ class SetupAnswersTest {
         assertEquals(OnboardingAnswers(), SetupAnswers(statement = StatementAnswer.NotReally).toSettings())
     }
 
+    /** Support reads the stored key to offer the provider summary first; the two must agree. */
+    @Test
+    fun workingWithAProvider_isTheKeySupportReads() {
+        assertEquals(OnboardingAnswers.WORKING_WITH_PROVIDER, Why.WorkingWithProvider.key)
+        assertTrue(SetupAnswers(why = setOf(Why.WorkingWithProvider)).toSettings().workingWithProvider)
+        assertFalse(SetupAnswers(why = setOf(Why.Curious)).toSettings().workingWithProvider)
+    }
+
     @Test
     fun startingWith_setsThePreset_clearsOverridesAndThePause_andKeepsChangedAtNull() {
         val before = Settings(

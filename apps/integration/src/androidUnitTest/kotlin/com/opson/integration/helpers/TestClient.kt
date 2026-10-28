@@ -254,7 +254,7 @@ class TestClient(
     val customFoods: CustomFoodRepository = CustomFoodRepositoryImpl(tables, writer)
     val savedMeals: SavedMealRepository = SavedMealRepositoryImpl(tables, writer)
     val exercise: ExerciseRepository = ExerciseRepositoryImpl(tables, writer)
-    val dataExport: DataExport = HttpDataExport(networkClient)
+    val export: DataExport = HttpDataExport(networkClient, calendar)
 
     // ── Foods ────────────────────────────────────────────────────────────────
     val foods: FoodCatalog = FoodCatalogImpl(HttpFoodApi(networkClient), database.foodCacheDao(), clock)

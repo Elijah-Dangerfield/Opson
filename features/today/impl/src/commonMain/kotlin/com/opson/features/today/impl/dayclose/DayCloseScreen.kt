@@ -78,22 +78,10 @@ import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_checkin_energy
-import opson.libraries.resources.generated.resources.today_checkin_energy_good
-import opson.libraries.resources.generated.resources.today_checkin_energy_low
-import opson.libraries.resources.generated.resources.today_checkin_energy_ok
 import opson.libraries.resources.generated.resources.today_checkin_hunger
 import opson.libraries.resources.generated.resources.today_checkin_mood
-import opson.libraries.resources.generated.resources.today_checkin_mood_calm
-import opson.libraries.resources.generated.resources.today_checkin_mood_happy
-import opson.libraries.resources.generated.resources.today_checkin_mood_low
-import opson.libraries.resources.generated.resources.today_checkin_mood_social
-import opson.libraries.resources.generated.resources.today_checkin_mood_stressed
-import opson.libraries.resources.generated.resources.today_checkin_mood_tired
 import opson.libraries.resources.generated.resources.today_checkin_note
 import opson.libraries.resources.generated.resources.today_checkin_sleep
-import opson.libraries.resources.generated.resources.today_checkin_sleep_good
-import opson.libraries.resources.generated.resources.today_checkin_sleep_ok
-import opson.libraries.resources.generated.resources.today_checkin_sleep_poor
 import opson.libraries.resources.generated.resources.today_checkin_title
 import opson.libraries.resources.generated.resources.today_count_value
 import opson.libraries.resources.generated.resources.today_dayclose_above
@@ -111,12 +99,7 @@ import opson.libraries.resources.generated.resources.today_dayclose_commit_norma
 import opson.libraries.resources.generated.resources.today_dayclose_committed
 import opson.libraries.resources.generated.resources.today_dayclose_done
 import opson.libraries.resources.generated.resources.today_dayclose_expended
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_busy
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_good
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_hard
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_label
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_steady
-import opson.libraries.resources.generated.resources.today_dayclose_feeling_tired
 import opson.libraries.resources.generated.resources.today_dayclose_inside
 import opson.libraries.resources.generated.resources.today_dayclose_inside_goal
 import opson.libraries.resources.generated.resources.today_dayclose_kcal
@@ -461,39 +444,6 @@ private fun <T : Any> CheckInRow(title: StringResource, options: List<T>, picked
         )
     }
 }
-
-private val Energy.label: StringResource
-    get() = when (this) {
-        Energy.Low -> Res.string.today_checkin_energy_low
-        Energy.Ok -> Res.string.today_checkin_energy_ok
-        Energy.Good -> Res.string.today_checkin_energy_good
-    }
-
-private val Sleep.label: StringResource
-    get() = when (this) {
-        Sleep.Poor -> Res.string.today_checkin_sleep_poor
-        Sleep.Ok -> Res.string.today_checkin_sleep_ok
-        Sleep.Good -> Res.string.today_checkin_sleep_good
-    }
-
-private val CheckInMood.label: StringResource
-    get() = when (this) {
-        CheckInMood.Calm -> Res.string.today_checkin_mood_calm
-        CheckInMood.Social -> Res.string.today_checkin_mood_social
-        CheckInMood.Stressed -> Res.string.today_checkin_mood_stressed
-        CheckInMood.Tired -> Res.string.today_checkin_mood_tired
-        CheckInMood.Low -> Res.string.today_checkin_mood_low
-        CheckInMood.Happy -> Res.string.today_checkin_mood_happy
-    }
-
-private val DayFeeling.label: StringResource
-    get() = when (this) {
-        DayFeeling.Steady -> Res.string.today_dayclose_feeling_steady
-        DayFeeling.Busy -> Res.string.today_dayclose_feeling_busy
-        DayFeeling.Tired -> Res.string.today_dayclose_feeling_tired
-        DayFeeling.Good -> Res.string.today_dayclose_feeling_good
-        DayFeeling.Hard -> Res.string.today_dayclose_feeling_hard
-    }
 
 @Composable
 private fun Totals(totals: DayTotals, isToday: Boolean) {
