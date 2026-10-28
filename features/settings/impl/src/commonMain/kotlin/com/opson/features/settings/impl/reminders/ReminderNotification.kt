@@ -34,7 +34,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * A reminder as the system shows it (v3 `reminder-notification.png`), drawn in the app so the
- * notification's words can be previewed and scanned by `BlindModeLeakTest`. The real thing is
+ * notification's words can be previewed and scanned by `CaloriesHiddenLeakTest`. The real thing is
  * posted by the platform from the same [ReminderCopy] resources.
  */
 @Composable

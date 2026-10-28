@@ -41,7 +41,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
- * Realistic logger inputs for previews and `BlindModeLeakTest`, from design
+ * Realistic logger inputs for previews and `CaloriesHiddenLeakTest`, from design
  * v3's logger screens (3.1 to 3.10). Real calorie values on purpose: Full must
  * have something to show, or the leak test's control proves nothing. Never
  * builds a `Display`; states come from the real builders.

@@ -57,7 +57,7 @@ import kotlinx.datetime.toInstant
 import kotlin.time.Instant
 
 /**
- * Realistic Today inputs for previews and `BlindModeLeakTest`, from the
+ * Realistic Today inputs for previews and `CaloriesHiddenLeakTest`, from the
  * prototype's `MEALS`, `BIG_DINNER` and loose items. Real calorie values on
  * purpose: Full must have something to show, or the leak test's control
  * proves nothing. Never builds a `Display`; every state comes from the real

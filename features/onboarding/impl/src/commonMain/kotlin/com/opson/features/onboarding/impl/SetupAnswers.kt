@@ -20,7 +20,7 @@ enum class SetupQuestion(val number: Int, val multiSelect: Boolean, val eventNam
 
     /**
      * "Numbers or tracking have been hard for me before": a statement to agree with, never a
-     * question about a diagnosis. Agreeing keeps Full numbers off the list, and keeps fasting and
+     * question about a diagnosis. Agreeing keeps All numbers off the list, and keeps fasting and
      * exercise adjustments out of the app.
      */
     Statement(3, multiSelect = false, eventName = "statement"),

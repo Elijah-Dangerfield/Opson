@@ -27,7 +27,7 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
- * Inputs for previews and `BlindModeLeakTest`. Every page builds its state from these through
+ * Inputs for previews and `CaloriesHiddenLeakTest`. Every page builds its state from these through
  * its real state builder, so the leak test exercises the same mapping the view model runs.
  * Nothing here is a resolved number: the targets are the design's, and the policy decides what
  * shows.

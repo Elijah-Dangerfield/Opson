@@ -55,7 +55,7 @@ data class PatternsState(
     /** Hunger through the day: from the check-ins when they are on and answered, else from the meal tags. */
     val hunger: HungerCard? = null,
     val newFoods: List<String> = emptyList(),
-    /** Blind: hunger sits under New foods, below the fold (design sync 2, 5.7). */
+    /** No numbers: hunger sits under New foods, below the fold (design sync 2, 5.7). */
     val hungerLast: Boolean = false,
     /** No meal logged in the four weeks: one card says what will show up, not four rows of zeros. */
     val empty: Boolean = false,

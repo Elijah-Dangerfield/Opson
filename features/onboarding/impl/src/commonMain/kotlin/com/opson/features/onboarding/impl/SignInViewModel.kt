@@ -117,7 +117,7 @@ class SignInViewModel(
             is SignInOutcome.Success -> {
                 // Apple and Google make a new account when the ID has none, so "Sign in" is not
                 // always "I have an account". A new account has nothing to restore: it goes
-                // through setup rather than landing on Today in Full numbers.
+                // through setup rather than landing on Today in All numbers.
                 val isNew = authOutcomeClassifier.classify() == AuthOutcome.SignedUp
                 updateState { it.copy(isSubmitting = false) }
                 if (isNew) {

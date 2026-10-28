@@ -17,7 +17,7 @@ data class AddFoodState(
     /** A name is all a food needs. */
     val canSave: Boolean = false,
 ) {
-    /** Blind and the other modes that hide every number: no number fields at all (11.4). */
+    /** No numbers and any other mode that hides every number: no number fields at all (11.4). */
     val labelOnly: Boolean get() = fields.isEmpty()
 }
 

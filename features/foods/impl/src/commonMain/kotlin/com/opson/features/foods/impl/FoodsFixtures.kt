@@ -17,7 +17,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
 /**
- * Realistic Foods inputs for previews and `BlindModeLeakTest`, from design v3's Foods screens
+ * Realistic Foods inputs for previews and `CaloriesHiddenLeakTest`, from design v3's Foods screens
  * (11.1 to 11.4). Real calorie values on purpose: Full must have something to show, or the
  * leak test's control proves nothing. Never builds a `Display`; states come from the real
  * builders.

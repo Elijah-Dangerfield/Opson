@@ -271,7 +271,7 @@ private fun OftenCard(rows: List<MealFrequency>) {
     }
 }
 
-/** A bar per weekday, as tall as that weekday was hungry. No amounts, so it stays in Blind. */
+/** A bar per weekday, as tall as that weekday was hungry. No amounts, so it stays in No numbers. */
 @Composable
 private fun HungerCardView(card: HungerCard) {
     PatternsCard {

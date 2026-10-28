@@ -3,7 +3,7 @@ package com.opson.features.onboarding.impl
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 
 /**
- * Onboarding's entries in `BlindModeLeakTest.SURFACES`, ids as design v3 names
+ * Onboarding's entries in `CaloriesHiddenLeakTest.SURFACES`, ids as design v3 names
  * the screens. The questions, the recommendation and the sign-in step show no
  * nutrition number in any mode, so they ignore the policy and the test holds
  * each to showing none. The setup steps (onboarding v2) do: the goal step's

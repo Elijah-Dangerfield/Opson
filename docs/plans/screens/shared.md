@@ -10,7 +10,7 @@ commit.
 | Change | Why |
 |---|---|
 | New `:libraries:diary:ui` (compose.multiplatform), package `com.opson.libraries.diary.ui` | Today, Logger, Foods and Trends all draw meal slots, item rows and food rows. Feature impls cannot share code, so it goes in a library. Depends on `:libraries:diary`, `:libraries:nutrition:ui`, `:libraries:ui`. |
-| New `:apps:leaktest` (kotlin.multiplatform, Android library, `androidUnitTest` only) | Hosts `BlindModeLeakTest`. Only `:apps:*` may depend on `*:impl`, and keeping it out of `:apps:integration` means the leak test never needs Docker. See `blind-leak-test.md`. |
+| New `:apps:leaktest` (kotlin.multiplatform, Android library, `androidUnitTest` only) | Hosts `CaloriesHiddenLeakTest`. Only `:apps:*` may depend on `*:impl`, and keeping it out of `:apps:integration` means the leak test never needs Docker. See `blind-leak-test.md`. |
 | Shell lives in `:apps:compose` (`com.opson.shell`), not `:features:home` | The bottom bar and the root `LocalVisibilityPolicy` wrap the `NavHost`, which only `App.kt` owns. `:features:home` keeps Feedback and Bug report and loses `HomeRoute`/`HomeScreen`. Update system design section 3 row for `:features:home`. |
 | Feature api modules: `:features:today`, `:features:logger`, `:features:foods`, `:features:trends`, `:features:settings` (+ `impl`) | As system design section 3. Impls depend on other features' api modules for routes (for example today impl depends on logger, foods, trends and settings api). |
 
@@ -25,7 +25,7 @@ commit.
   in its impl `commonMain`. The ViewModel collects inputs, sends one
   `XInputsArrived(inputs)` action, and the handler calls the builder. Fixtures for
   previews and the leak test call the same builder with fake inputs. This is what
-  makes `BlindModeLeakTest` test the real mapping.
+  makes `CaloriesHiddenLeakTest` test the real mapping.
 - **Nutrition numbers in state are `Display`** (or `MacroPart` / `RingValue`, below),
   resolved in the builder with the right `Surface` and `FormatContext(day, dayClosed)`.
   Fill fractions come from `Display.fraction`. Composables never do arithmetic on

@@ -63,7 +63,7 @@ is given. *owner*: needs a decision.
 | `patterns`, `patterns--full` | `trends-previews__patterns`, `-below` | Card titles use `sheetTitle` (20 sp); v3's are card titles, the same size as Trends' "Recap". | *fixed* |
 | | | Fact rows and their values as on Trends. | *fixed* |
 | | | Hunger chips and new-food chips are large; v3 uses compact tags. | *fixed* (size); v3's tags are squarer than `PillTag`'s pill, left as the system draws it |
-| `patterns-blind` | `trends-previews__patterns-blind` | v3's Blind timing card has only "Breakfast, usually"; the app also showed "Dinner on Fri and Sat, about 45 min later" and "Longest gap". | *fixed*: owner's call, gaps can feed restriction. `ModePreset.mealGaps` is off in Blind only; `BlindMealGapsTest` in the leak suite asserts no gap or duration text in Blind Patterns, with Full as its control |
+| `patterns-blind` | `trends-previews__patterns-blind` | v3's Blind timing card has only "Breakfast, usually"; the app also showed "Dinner on Fri and Sat, about 45 min later" and "Longest gap". | *fixed*: owner's call, gaps can feed restriction. `ModePreset.mealGaps` is off in Blind only; `NoNumbersMealGapsTest` in the leak suite asserts no gap or duration text in Blind Patterns, with Full as its control |
 
 ### Nutrients
 

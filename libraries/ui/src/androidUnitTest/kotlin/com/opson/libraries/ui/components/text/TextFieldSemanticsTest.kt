@@ -28,10 +28,10 @@ import kotlin.test.assertTrue
 private const val FIELD = "field"
 
 /**
- * What the text fields put in the semantics tree, which is what `BlindModeLeakTest` reads. The
+ * What the text fields put in the semantics tree, which is what `CaloriesHiddenLeakTest` reads. The
  * leak test joins `Text`, `EditableText` and content descriptions in tree order and greps the
  * result for calorie amounts, so a field's value has to be in `EditableText` (or an Energy field
- * holding 190 would sail through Blind), and a masked value must not be.
+ * holding 190 would sail through No numbers), and a masked value must not be.
  *
  * The scan here is a cut-down copy of the leak test's, on purpose: the claim is about what that
  * scan would see.

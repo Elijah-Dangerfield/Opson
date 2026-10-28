@@ -17,7 +17,7 @@ import kotlinx.datetime.plus
 
 /**
  * The Hunger card, read from the meal notes over the page's span. Hunger has no amount, so every
- * mode gets it, Blind included; and it is information, not a score, so nothing on it is coloured
+ * mode gets it, No numbers included; and it is information, not a score, so nothing on it is coloured
  * as better or worse.
  */
 sealed interface HungerTrend {

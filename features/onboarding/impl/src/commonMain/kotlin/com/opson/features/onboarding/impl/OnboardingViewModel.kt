@@ -60,7 +60,7 @@ import me.tatarka.inject.annotations.Inject
  *      nothing asks again later.
  *   4. **Recommendation**: the mode, the answer that picked it, what you'll see
  *      and what stays out of view ([ModePreview]), the other modes and All
- *      modes. Full numbers is never offered to someone who agreed numbers have
+ *      modes. All numbers is never offered to someone who agreed numbers have
  *      been hard.
  *   5. **Setup** (`release.onboardingSetup`, [OnboardingState.setupSteps]): for
  *      someone whose mode shows calories and who did not say numbers have been
@@ -590,7 +590,7 @@ data class OnboardingState(
 
     /**
      * The goal step, for someone comfortable with numbers: the mode starts with calorie amounts
-     * on show (Full numbers), and they did not say numbers have been hard. Full numbers is never
+     * on show (All numbers), and they did not say numbers have been hard. All numbers is never
      * offered to someone who did, so the second half is a guard, not a second rule. Everyone else
      * gets no goal number in onboarding at all.
      */

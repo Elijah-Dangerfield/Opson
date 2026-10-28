@@ -16,7 +16,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 
 /**
  * The photo sheet's state as a pure function of [PhotoModel], so previews and
- * the Blind leak test run the same mapping as the app. Energy goes through
+ * the leak tests run the same mapping as the app. Energy goes through
  * [VisibilityPolicy] on [Surface.Logger], with the day's context so a delayed
  * mode holds back today as everywhere else.
  */

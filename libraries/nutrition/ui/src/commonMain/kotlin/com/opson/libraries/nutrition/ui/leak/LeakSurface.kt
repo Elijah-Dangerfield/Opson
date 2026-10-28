@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import com.opson.libraries.nutrition.VisibilityPolicy
 
 /**
- * One screen, sheet or menu that `BlindModeLeakTest` renders in every hidden
+ * One screen, sheet or menu that `CaloriesHiddenLeakTest` renders in every hidden
  * preset and scans for calorie amounts. Each feature impl lists its own in
  * `commonMain` (`TodayLeakSurfaces.all` and so on) and `:apps:leaktest` joins
  * them. The contract a surface meets is in `docs/plans/screens/blind-leak-test.md`.

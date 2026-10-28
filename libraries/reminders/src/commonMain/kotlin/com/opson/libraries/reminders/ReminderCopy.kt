@@ -38,7 +38,7 @@ data class ReminderText(
  * with no format argument, so no number, hidden or not, can reach a notification in any mode;
  * v3: "The same copy works in every mode, because it never mentions food amounts." A line that
  * ever needs a number takes a `VisibilityPolicy` and a `Display`, and `reminder-notification` in
- * `BlindModeLeakTest` is what catches one that does not.
+ * `CaloriesHiddenLeakTest` is what catches one that does not.
  */
 object ReminderCopy {
 

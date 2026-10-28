@@ -46,7 +46,7 @@ import kotlinx.datetime.minus
  * hero card each layout and level gets, the meals in each layout, water, planning, the menu and
  * the End after a set time banner, all through the real policy. What the view model
  * does with taps is [TodayViewModelTest]'s; whether a hidden number reaches the screen is
- * `BlindModeLeakTest`'s, over these same builders.
+ * `CaloriesHiddenLeakTest`'s, over these same builders.
  */
 class TodayStateBuilderTest {
 

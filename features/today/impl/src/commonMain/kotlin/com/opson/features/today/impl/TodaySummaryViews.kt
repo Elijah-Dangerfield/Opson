@@ -85,7 +85,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun Summary(summary: TodaySummary, state: TodayState, onAction: (TodayAction) -> Unit) {
     when (summary) {
         is TodaySummary.Energy -> EnergySummary(summary, state, onAction)
-        is TodaySummary.Soft -> NutrientsFirstCard(summary, state, onAction)
+        is TodaySummary.Soft -> SoftSummaryCard(summary, state, onAction)
         is TodaySummary.Focus -> FocusSummaryCard(title = stringResource(Res.string.today_focus_title), rows = summary.rows.map { it.toSummaryMacro() })
         is TodaySummary.Locked -> LaterLockedCard(summary)
         is TodaySummary.Counted -> StatementSummaryCard(

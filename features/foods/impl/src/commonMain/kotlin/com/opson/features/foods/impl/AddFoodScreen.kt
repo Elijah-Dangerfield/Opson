@@ -53,7 +53,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Add a food (design v3, 11.3): name, brand, what a serving is, then the nutrition fields the
- * mode asks for, every one optional. With none to ask (Blind, 11.4) the second card says the
+ * mode asks for, every one optional. With none to ask (No numbers, 11.4) the second card says the
  * nutrition stays out of view instead, and shows no number field at all. Save food is pinned to
  * the bottom and needs only a name. Stateless.
  *
@@ -155,7 +155,7 @@ private fun NutritionCard(state: AddFoodState, onAction: (AddFoodAction) -> Unit
     }
 }
 
-/** Blind (11.4): no number fields, since a typed number would show itself back. */
+/** No numbers (11.4): no number fields, since a typed number would show itself back. */
 @Composable
 private fun HiddenCard() {
     FormCard {

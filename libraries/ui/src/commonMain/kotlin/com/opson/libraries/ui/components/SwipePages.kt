@@ -47,7 +47,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * Pages side by side that the person swipes between, as Today's summary card (design sync 2,
  * 2.1 and 2.1b). Every page is composed and measured at once and the row is as tall as the
  * tallest, so swiping never changes the height and the list under it never jumps. The pages off
- * screen stay in the tree for anything that reads it (the Blind leak test) but are hidden from
+ * screen stay in the tree for anything that reads it (the leak tests) but are hidden from
  * screen readers; [PageIndicator] is how those move between pages.
  *
  * [page] is the one showing; [onPageChange] reports a swipe that settled on another.

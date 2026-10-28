@@ -42,7 +42,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 
 /**
- * Today's surfaces for `BlindModeLeakTest` (`docs/plans/screens/blind-leak-test.md`).
+ * Today's surfaces for `CaloriesHiddenLeakTest` (`docs/plans/screens/blind-leak-test.md`).
  * Each builds its state through the real builder from [TodayFixtures] with the policy the
  * test hands it. The layout comes from that policy too, so the test's calories-hidden presets
  * cover Macros with grams, Macros only, Later and No numbers' meal timeline with these same entries. The menu and

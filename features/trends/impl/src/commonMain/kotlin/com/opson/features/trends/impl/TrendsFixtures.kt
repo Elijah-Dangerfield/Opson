@@ -42,7 +42,7 @@ import kotlin.time.Instant
 private typealias Menu = Map<MealSlot, List<TrendsFixtures.Food>>
 
 /**
- * Realistic inputs for previews, the builder tests and `BlindModeLeakTest`,
+ * Realistic inputs for previews, the builder tests and `CaloriesHiddenLeakTest`,
  * shaped after the prototype's mocks: the week of Oct 19 to 25, 2026 seen on
  * Sunday the 25th at noon, nothing logged on Thursday, three foods new this week
  * (chicken kabsa, poutine, rice pudding), and the prototype's `WEIGHTS` curve.

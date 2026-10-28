@@ -3,7 +3,7 @@ package com.opson.libraries.nutrition
 /**
  * Every nutrition number the app can show. [key] is the prototype's name for
  * the metric and the suffix of the `metric:<key>` test tag, which
- * `BlindModeLeakTest` greps for, so it must never change.
+ * `CaloriesHiddenLeakTest` greps for, so it must never change.
  */
 enum class Metric(val key: String) {
     Calories("calories"),

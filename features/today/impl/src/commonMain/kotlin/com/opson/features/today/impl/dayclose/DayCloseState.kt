@@ -215,7 +215,7 @@ object DayCloseStateBuilder {
             },
             mealsLine = if (revealed) MealsLine(day.doneMealCount, MealSlot.meals.size) else null,
             loggedMeals = if (eatenDisplay is Display.Hidden) MealSlot.meals.filterTo(LinkedHashSet()) { day.isMealDone(it) } else null,
-            // The check-in asks every mode; with it on, Blind's single feeling steps aside.
+            // The check-in asks every mode; with it on, No numbers' single feeling steps aside.
             feeling = if (eatenDisplay is Display.Hidden && !inputs.checkInOn) FeelingChoice(DayFeeling.entries, feeling) else null,
             checkIn = if (inputs.checkInOn) checkIn ?: CheckIn() else null,
             expended = if (isToday) {

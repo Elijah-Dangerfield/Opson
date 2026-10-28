@@ -5,7 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * The fixture that would make `BlindModeLeakTest` test itself instead of the screen: a resolved
+ * The fixture that would make `CaloriesHiddenLeakTest` test itself instead of the screen: a resolved
  * value written out by hand. Path scoping (`:libraries:nutrition` and test source sets are
  * allowed) lives in `detekt.yml`, so this file covers what the rule matches in a file it is
  * pointed at.

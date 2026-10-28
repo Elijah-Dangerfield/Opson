@@ -198,7 +198,7 @@ class FoodDetailTest : CoroutineTest() {
         assertNull(state.nutrients)
         assertEquals(SourceLine(FoodOrigin.Usda, nutrientCount = null), state.source)
         assertFalse(state.canAddUnit)
-        assertFalse(build(policy(PresetId.Full)).noNumbers, "Full numbers keeps its own detail")
+        assertFalse(build(policy(PresetId.Full)).noNumbers, "All numbers keeps its own detail")
     }
 
     @Test

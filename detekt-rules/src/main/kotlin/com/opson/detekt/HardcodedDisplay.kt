@@ -16,7 +16,7 @@ import org.jetbrains.kotlin.psi.KtFile
  * seen. Constructing one anywhere else skips that decision. In a screen it is a number shown to
  * someone who chose not to see it. In a leak-test fixture it is worse, because it fails the test for the
  * wrong reason or, with a hand-built `Display.Hidden`, passes it for the wrong one: either way
- * `BlindModeLeakTest` stops testing the real builder (`docs/plans/screens/blind-leak-test.md`).
+ * `CaloriesHiddenLeakTest` stops testing the real builder (`docs/plans/screens/blind-leak-test.md`).
  * `Display.Hidden` is an object, never "constructed", and is not reported.
  *
  * Scope is set in `detekt.yml`, not here: `:libraries:nutrition` itself is excluded (it is the

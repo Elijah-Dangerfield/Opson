@@ -3,10 +3,10 @@ package com.opson.features.logger.impl
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 
 /**
- * The logger's surfaces for `BlindModeLeakTest` (`docs/plans/screens/blind-leak-test.md`).
+ * The logger's surfaces for `CaloriesHiddenLeakTest` (`docs/plans/screens/blind-leak-test.md`).
  * Each builds its state through the real builder from [LoggerFixtures], with the policy the
  * test hands it. The + sheet, search and the food detail use design sync 4's ids; the panes,
- * the scanner and the photo keep design v3's. Blind is a policy rather than a surface.
+ * the scanner and the photo keep design v3's. No numbers is a policy rather than a surface.
  */
 object LoggerLeakSurfaces {
     val all: List<LeakSurface> = listOf(

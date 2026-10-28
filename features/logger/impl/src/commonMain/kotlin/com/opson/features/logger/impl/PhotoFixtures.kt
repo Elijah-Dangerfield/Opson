@@ -12,7 +12,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 /**
  * Photo estimate as design v3 draws it (3.7): grilled chicken, olive oil and
  * steamed broccoli, about 379 kcal, with the note that told it about the oil.
- * For previews and `BlindModeLeakTest`; states come from the real builder and
+ * For previews and `CaloriesHiddenLeakTest`; states come from the real builder and
  * the real amount rules, never a hand-built `Display`.
  */
 object PhotoFixtures {

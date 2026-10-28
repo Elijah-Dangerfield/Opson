@@ -131,7 +131,7 @@ class PatternsStateBuilderTest {
         assertEquals(false, build().hungerLast)
         val blind = build(PresetId.NoNumbers)
         assertEquals(true, blind.hungerLast)
-        assertNotNull(blind.hunger, "hunger carries no amounts, so Blind keeps it")
+        assertNotNull(blind.hunger, "hunger carries no amounts, so No numbers keeps it")
     }
 
     @Test

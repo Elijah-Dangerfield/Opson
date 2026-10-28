@@ -83,7 +83,7 @@ import org.jetbrains.compose.resources.stringResource
  * bar in its own colour, then energy as a word over a neutral bar. Words and bars, no amounts.
  */
 @Composable
-internal fun NutrientsFirstCard(summary: TodaySummary.Soft, state: TodayState, onAction: (TodayAction) -> Unit) {
+internal fun SoftSummaryCard(summary: TodaySummary.Soft, state: TodayState, onAction: (TodayAction) -> Unit) {
     SummaryCard {
         Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

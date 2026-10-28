@@ -1,6 +1,6 @@
-# Blind leak test plan
+# Leak test plan
 
-`BlindModeLeakTest` renders every surface in Blind and asserts that no calorie
+`CaloriesHiddenLeakTest` renders every surface in Blind and asserts that no calorie
 amount and no "N left" reaches the screen. It is the acceptance test the
 handoff asks for and it runs in CI. This plan covers where it lives, how it is
 built, the ported `SURFACES` list, and the contract every screen meets so it
@@ -53,7 +53,7 @@ Each feature impl exports its list from `commonMain`, next to its fixtures:
 ```kotlin
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h4000dp")
-class BlindModeLeakTest(private val surface: LeakSurface, private val mode: LeakMode) {
+class CaloriesHiddenLeakTest(private val surface: LeakSurface, private val mode: LeakMode) {
     @get:Rule val compose = createComposeRule()
 
     @Test fun showsNoCalorieAmount() {
@@ -226,5 +226,5 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 an entry to its feature's list in the same PR.
 
 ## Tests about the test
-- Break it on purpose once, in the PR that lands it: render `Display.Shown("1,245 kcal")` with the calories tag in one Blind fixture and confirm `BlindModeLeakTest` fails naming that surface; remove a surface id and confirm `SurfacesCoverageTest` fails; make one Full fixture empty and confirm `LeakTestControlTest` fails. Revert all three. Note the result in the PR description.
+- Break it on purpose once, in the PR that lands it: render `Display.Shown("1,245 kcal")` with the calories tag in one Blind fixture and confirm `CaloriesHiddenLeakTest` fails naming that surface; remove a surface id and confirm `SurfacesCoverageTest` fails; make one Full fixture empty and confirm `LeakTestControlTest` fails. Revert all three. Note the result in the PR description.
 - Runtime budget: about 90 surfaces × 4 modes, No numbers again for every tag, plus the control. If the sweep passes 2 minutes, split the parameter list across two classes so Gradle can run them in parallel forks.

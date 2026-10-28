@@ -178,7 +178,7 @@ status card; `TodayCard`, `IconTile`, `PillAction` for the Today card;
 ## Visibility surfaces
 None. Fasting shows clock times and a duration, no nutrition number. It only
 exists in Full and Sprint, and the page renders nothing that the policy
-resolves. `BlindModeLeakTest` gets a `fasting` surface (no calories in Full).
+resolves. `CaloriesHiddenLeakTest` gets a `fasting` surface (no calories in Full).
 
 ## Telemetry
 `fast.started` (`plan`: `12:12` / `14:10` / `16:8`) when this device starts a

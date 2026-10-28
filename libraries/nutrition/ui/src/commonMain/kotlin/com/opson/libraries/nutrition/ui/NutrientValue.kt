@@ -29,7 +29,7 @@ import com.opson.system.AppTheme
 import com.opson.system.typography.TypographyResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/** The tag `BlindModeLeakTest` looks for. Every rendered number carries one. */
+/** The tag `CaloriesHiddenLeakTest` looks for. Every rendered number carries one. */
 fun Metric.testTag(): String = "metric:$key"
 
 /**

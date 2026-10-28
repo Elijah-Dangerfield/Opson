@@ -38,7 +38,7 @@ import kotlin.test.assertTrue
  * The Trends mapping for every visibility branch in the plan's surface table,
  * over the fixture week (Oct 19 to 25 seen on Sunday the 25th at noon,
  * nothing logged on Thursday). The window rules themselves are `TrendsCalendarTest`;
- * that nothing hidden reaches the screen is `BlindModeLeakTest`.
+ * that nothing hidden reaches the screen is `CaloriesHiddenLeakTest`.
  */
 class TrendsStateBuilderTest {
 

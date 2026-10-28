@@ -7,7 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Guards what [BlindModeLeakTest] covers, so coverage can't shrink without a failing build:
+ * Guards what [CaloriesHiddenLeakTest] covers, so coverage can't shrink without a failing build:
  * deleting a surface, renaming its id, dropping a feature's list, a preset that quietly starts
  * showing calories, or unmarking a surface's `showsCaloriesInFull` to dodge the control.
  *

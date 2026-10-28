@@ -31,9 +31,9 @@ import com.opson.system.typography.TypographyResource
  * an optional muted suffix.
  *
  * Built on foundation's `BasicTextField` on purpose. That is what exposes the
- * value as `EditableText` semantics, which `BlindModeLeakTest` reads alongside
+ * value as `EditableText` semantics, which `CaloriesHiddenLeakTest` reads alongside
  * `Text`: an Energy field holding 190 next to a `kcal` suffix scans as
- * "190 kcal" and fails the test in Blind, exactly like a printed amount would.
+ * "190 kcal" and fails the test in No numbers, exactly like a printed amount would.
  * A field drawn any other way would be invisible to it. With a password
  * transformation the semantics carry the bullets, not the value.
  *

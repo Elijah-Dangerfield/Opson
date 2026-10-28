@@ -58,7 +58,7 @@ class VoiceStateBuilderTest {
         assertTrue(VoiceStateBuilder.build(true, VoiceCapture.Idle(focusText = true))?.focusText == true)
     }
 
-    /** The voice path's lines are the Describe lines: Full shows their energy, Blind hides it. */
+    /** The voice path's lines are the Describe lines: Full shows their energy, No numbers hides it. */
     @Test
     fun linesUnderASpokenDescriptionGoThroughThePolicy() {
         val shown = VoiceFixtures.listeningOverLines(full).describe.lines

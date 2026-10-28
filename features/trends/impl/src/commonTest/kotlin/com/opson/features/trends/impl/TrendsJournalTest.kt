@@ -161,7 +161,7 @@ class TrendsJournalTest {
         assertNull(state.journal)
     }
 
-    /** Hunger is not an amount: Blind keeps it, and so does Later, weekly, before its check opens. */
+    /** Hunger is not an amount: No numbers keeps it, and so does Later, weekly, before its check opens. */
     @Test
     fun everyModeGetsHunger_evenBeforeTheWeeklyCheck() {
         val inputs = TrendsFixtures.trendsInputs()

@@ -20,7 +20,7 @@ import kotlin.test.assertTrue
 /**
  * The search options in [FoodSearchStateBuilder] (`release.searchOptions`): tabs, sorts, the
  * database filter, badges, and that with the flag off nothing of it shows. Rows still go
- * through the policy, so Blind is checked too.
+ * through the policy, so No numbers is checked too.
  */
 class SearchOptionsStateBuilderTest {
     private val full = policy(PresetId.Full)

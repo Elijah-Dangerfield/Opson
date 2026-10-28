@@ -144,7 +144,7 @@ worth fixing if the fix is small.
 - **Tests assert behaviour, not implementation**, and fail when the behaviour
   breaks (prove it once by breaking the code).
 - **No sleeps;** use virtual time, `awaitUntil` with a timeout, or fakes.
-- **The Blind leak test covers every surface,** including notifications,
+- **The leak tests cover every surface,** including notifications,
   widgets and anything new.
 
 ## 8. Platform specifics

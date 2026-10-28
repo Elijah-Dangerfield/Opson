@@ -17,7 +17,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 
 /**
  * Search's state as a pure function of what it reads and what the person has done, so previews
- * and the Blind leak test run the same mapping as the app. Every number goes through
+ * and the leak tests run the same mapping as the app. Every number goes through
  * [VisibilityPolicy] on [Surface.Logger].
  */
 object FoodSearchStateBuilder {

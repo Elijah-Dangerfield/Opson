@@ -133,7 +133,7 @@ style)` for the platform.
 **Visibility.** A notification is a surface, and it has no `Display` and no
 format argument at all: every string is a fixed resource, so no number the
 policy hides can reach it in any mode. Adding a number later means resolving
-it through `VisibilityPolicy` and keeping this test green. `BlindModeLeakTest`
+it through `VisibilityPolicy` and keeping this test green. `CaloriesHiddenLeakTest`
 lists `reminder-notification` (`showsCaloriesInFull = false`): a lookalike of
 the system notification (`ReminderNotificationCard`, also the
 `reminder-notification` design-sync preview) rendering every key in both tones

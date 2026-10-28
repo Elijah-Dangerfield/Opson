@@ -27,7 +27,7 @@ layer, the cheapest layer that can fail when it breaks.
   id rule and where the baseline lives are in
   [design-sync.md](design-sync.md), because the same renders feed the design
   sync.
-- **Blind leak test** (`:apps:leaktest`): every surface each feature lists in
+- **Leak tests** (`:apps:leaktest`): every surface each feature lists in
   `XLeakSurfaces.all`, rendered under Robolectric in every mode that does not
   show calories and scanned for a calorie amount or an "N left". Runs in the
   plain `testDebugUnitTest` sweep. A failure is a real leak: fix the screen.

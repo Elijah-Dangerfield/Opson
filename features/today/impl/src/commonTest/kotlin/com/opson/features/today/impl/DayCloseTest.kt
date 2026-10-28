@@ -422,7 +422,7 @@ class DayCloseTest : CoroutineTest() {
             assertNull(on.feeling, "$preset")
             assertNull(TodayFixtures.dayCloseState(policy).checkIn, "$preset with the flag off")
         }
-        assertNotNull(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers)).feeling, "Blind keeps its feeling with the flag off")
+        assertNotNull(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers)).feeling, "No numbers keeps its feeling with the flag off")
     }
 
     @Test

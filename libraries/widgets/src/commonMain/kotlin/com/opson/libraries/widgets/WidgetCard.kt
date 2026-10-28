@@ -47,7 +47,7 @@ enum class WidgetSize(val width: Dp, val height: Dp) {
 /**
  * A home screen widget drawn in Compose, laid out as the Glance and SwiftUI widgets lay it out
  * (design v3 `widgets.png`): Today and a + on top, then the numbers card or the meal circles.
- * For the Widgets page, design sync and `BlindModeLeakTest`. It renders the [snapshot] and nothing
+ * For the Widgets page, design sync and `CaloriesHiddenLeakTest`. It renders the [snapshot] and nothing
  * else, in the snapshot's own colours rather than the app theme, as the real widgets do.
  *
  * The amount carries `metric:calories` so the leak test sees it, as `NutrientValue` would tag it.

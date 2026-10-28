@@ -565,7 +565,7 @@ theme.
 - ViewModels: action in, state and events out, hand-rolled fakes.
 - Server: route tests with fakes, repository tests on Testcontainers, a
   full-stack sync test (push, pull, conflict, tombstone, replay).
-- **`BlindModeLeakTest`** (Robolectric composition in `androidUnitTest`): in
+- **`CaloriesHiddenLeakTest`** (Robolectric composition in `androidUnitTest`): in
   every mode that hides calories, render every surface in `SURFACES`
   (`apps/leaktest/.../Surfaces.kt`), assert no `metric:calories`,
   `metric:remaining` or `metric:energyOut` tags and no text matching

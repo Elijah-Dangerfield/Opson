@@ -16,7 +16,7 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
- * Onboarding states for previews and `BlindModeLeakTest`. Each one runs
+ * Onboarding states for previews and `CaloriesHiddenLeakTest`. Each one runs
  * through [OnboardingState.withRecommendation] and, on a setup step,
  * [OnboardingState.withViews], the code the ViewModel runs, so the
  * recommendation, the alternatives and every amount are the real ones.
@@ -34,14 +34,14 @@ object OnboardingFixtures {
         statement = StatementAnswer.Agree,
     )
 
-    /** Someone who would see Full numbers if they had not agreed numbers were hard. */
+    /** Someone who would see All numbers if they had not agreed numbers were hard. */
     val HardAnswers = SetupAnswers(
         why = setOf(Why.Performance),
         feel = NumbersFeel.LoveThem,
         statement = StatementAnswer.Agree,
     )
 
-    /** Someone who loves numbers and is training: Full numbers, so the goal step. */
+    /** Someone who loves numbers and is training: All numbers, so the goal step. */
     val NumbersAnswers = SetupAnswers(why = setOf(Why.Performance), feel = NumbersFeel.LoveThem)
 
     /**
@@ -81,7 +81,7 @@ object OnboardingFixtures {
     fun question(question: SetupQuestion, answers: SetupAnswers = SetupAnswers()): OnboardingState =
         OnboardingState(step = OnboardingStep.Question(question), answers = answers).withRecommendation()
 
-    /** No answers by default, which recommends Full numbers. */
+    /** No answers by default, which recommends All numbers. */
     fun recommendation(
         answers: SetupAnswers = SetupAnswers(),
         picked: PresetId? = null,
@@ -94,8 +94,8 @@ object OnboardingFixtures {
     ).withRecommendation()
 
     /**
-     * The goal step after [NumbersAnswers], in Full numbers. [goalsAndEnergy] adds the styles;
-     * without it the step is the range alone. [policy] is the leak test's, or Full numbers'.
+     * The goal step after [NumbersAnswers], in All numbers. [goalsAndEnergy] adds the styles;
+     * without it the step is the range alone. [policy] is the leak test's, or All numbers'.
      */
     fun goal(
         goal: GoalAnswer = GoalAnswer(),

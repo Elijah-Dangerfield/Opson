@@ -12,7 +12,7 @@ import com.opson.libraries.nutrition.Nutrient
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 
 /**
- * The Trends feature's surfaces for `BlindModeLeakTest`. Each builds its state
+ * The Trends feature's surfaces for `CaloriesHiddenLeakTest`. Each builds its state
  * through the real builder from [TrendsFixtures] and the policy the test passes,
  * and renders the page body without its scaffold so everything composes at once.
  */

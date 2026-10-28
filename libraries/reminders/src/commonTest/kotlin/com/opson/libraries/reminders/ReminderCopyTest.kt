@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 
 /**
  * The notification's words and how loud it is. That no number reaches the text is proved on the
- * rendered strings by `reminder-notification` in `BlindModeLeakTest`; here, the choices.
+ * rendered strings by `reminder-notification` in `CaloriesHiddenLeakTest`; here, the choices.
  */
 class ReminderCopyTest {
 

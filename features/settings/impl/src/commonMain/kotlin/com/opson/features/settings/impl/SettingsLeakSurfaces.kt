@@ -63,7 +63,7 @@ import com.opson.libraries.widgets.rememberWidgetCopy
 import kotlinx.datetime.LocalDate
 
 /**
- * The settings pages for `BlindModeLeakTest`. Each builds its state with the page's real
+ * The settings pages for `CaloriesHiddenLeakTest`. Each builds its state with the page's real
  * builder from [SettingsFixtures], with the numbers settings taken from the policy under test,
  * so the page and the policy always agree on the mode.
  */

@@ -10,7 +10,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.LocalDate
 
 /**
- * Integrations inputs for previews and `BlindModeLeakTest`, read at noon on Oct 25 2026 like
+ * Integrations inputs for previews and `CaloriesHiddenLeakTest`, read at noon on Oct 25 2026 like
  * the rest of the settings fixtures. Real energy on purpose (v3: 1,580 resting, 260 movement,
  * 150 workouts, 1,990 in all), so Full has amounts to show and the leak test's control means
  * something. "Some of it" picked and Sun, Oct 18 left out for a family visit, as v3 draws them.

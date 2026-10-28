@@ -19,7 +19,7 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
- * The design's day for previews, the Widgets page and `BlindModeLeakTest`: breakfast, lunch and a
+ * The design's day for previews, the Widgets page and `CaloriesHiddenLeakTest`: breakfast, lunch and a
  * snack logged, dinner still to come, 1,245 kcal against 1,900 to 2,300 (v3 `widgets.png`). Real
  * calorie values on purpose, so Full has something to show and the leak test's control means
  * something. Never builds a `Display`; the snapshot comes from [WidgetSnapshotBuilder].

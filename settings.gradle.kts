@@ -65,7 +65,7 @@ if (!serverOnly) {
     // depends on every feature and library, impls included.
     include(":apps:screenshots")
 
-    // BlindModeLeakTest: every screen rendered under Robolectric in every mode
+    // CaloriesHiddenLeakTest: every screen rendered under Robolectric in every mode
     // that hides calories, scanned for a calorie amount. Tests only; depends on
     // every feature impl, and runs in the plain testDebugUnitTest sweep.
     include(":apps:leaktest")
