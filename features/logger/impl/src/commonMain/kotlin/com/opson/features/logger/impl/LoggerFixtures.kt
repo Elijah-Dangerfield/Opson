@@ -19,6 +19,7 @@ import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.foods.FoodTier
 import com.opson.libraries.foods.NutrientProfile
@@ -220,6 +221,7 @@ object LoggerFixtures {
                 height = height,
                 scanAvailable = flags,
                 photoAvailable = flags,
+                packAvailable = flags,
                 voiceEnabled = flags,
                 fastingReleased = flags,
                 exerciseReleased = exercise,
@@ -310,8 +312,11 @@ object LoggerFixtures {
         firstRun: Boolean = false,
         settings: Settings = Settings(),
         closed: Boolean = false,
+        reviews: Map<String, ReviewStatus> = emptyMap(),
     ): FoodSearchState {
-        val inputs = searchInputs(settings = settings, firstRun = firstRun).let { if (closed) it.copy(day = it.day.closed()) else it }
+        val inputs = searchInputs(settings = settings, firstRun = firstRun)
+            .let { if (closed) it.copy(day = it.day.closed()) else it }
+            .copy(reviews = reviews)
         val logged = if (added && !pickingForMeal) inputs.copy(day = inputs.day.with(item(rice, MealSlot.Dinner, minutesAgo = 1))) else inputs
         val choices = SearchChoices(
             slot = MealSlot.Dinner,
@@ -329,6 +334,18 @@ object LoggerFixtures {
 
     fun searchEmptyState(policy: VisibilityPolicy): FoodSearchState =
         searchState(policy, query = MISSING_TERM, search = emptySearch(), added = false)
+
+    /**
+     * "granola" with the person's own granola sent to Opson's food database and not checked yet:
+     * its row reads "Unverified", and "Can't find it?" offers the pack's label under it.
+     */
+    fun searchUnverifiedState(policy: VisibilityPolicy): FoodSearchState = searchState(
+        policy,
+        query = "granola",
+        search = SearchOutcome(query = "granola", foods = emptyList(), offline = false),
+        added = false,
+        reviews = mapOf(granola.id to ReviewStatus.Pending),
+    )
 
     // More rice for 13.4c.
     val brownRice = food("brown-rice", "Brown rice, cooked", "1 cup", 195.0, 215.0, 5.0, 45.0, 1.8)
@@ -520,6 +537,14 @@ object LoggerFixtures {
 
     /** A creamer the person made, counted in tablespoons and never weighed: no grams to offer yet. */
     val creamer = CustomFood(id = "creamer", name = "Hazelnut creamer", servingAmount = 1.0, servingUnit = "tbsp", kcal = 35.0, carbs = 5.0, fat = 1.5)
+
+    /** The person's own granola, sent to Opson's food database and waiting for review. */
+    fun inReviewDetailState(policy: VisibilityPolicy): FoodDetailState {
+        val food = AmountFood.Custom(granola)
+        val choice = DetailChoice.initial(food, MealSlot.Breakfast)
+        val inputs = detailInputs(policy).copy(review = ReviewStatus.Pending)
+        return FoodDetailStateBuilder.build(food, choice, inputs, FoodRef.Custom(granola.id), PickSource.Search)
+    }
 
     fun creamerDetailState(policy: VisibilityPolicy): FoodDetailState {
         val food = AmountFood.Custom(creamer)

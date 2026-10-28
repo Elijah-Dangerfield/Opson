@@ -193,6 +193,12 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `logger-scan-miss` | logger | 0.2, barcode; a scan the catalog doesn't know | yes |
 | new | | `logger-photo-start` | logger | 0.2, `photo.md`; the note and the two ways to a photo | no |
 | new | | `submit-food-photos`, `submit-food-by-hand` | logger | 0.2, `release.submitFood`; Add this food's two photos, and the form typed in when the label could not be read | no |
+| new | | `submit-food-save-photos`, `submit-food-photo-failed` | logger | 2026-10-28, `release.submitFood`; Add a packaged food opened from the Foods tab (saved, not logged), and a picked photo that would not open | no |
+| new | | `submit-food-save-review` | logger | 2026-10-28, `release.submitFood`; the same form from the Foods tab, ending in Save food | yes |
+| new | | `search-unverified` | logger | 2026-10-28; the person's own food waiting for review reads "Unverified", and "Can't find it?" offers the pack's label | yes |
+| new | | `food-detail-in-review` | logger | 2026-10-28; the person's own food, sent to Opson's food database and waiting for review | yes |
+| new | | `foods-add-food-pack` | foods | 2026-10-28, `release.submitFood`; Add a food with "Packaged food?" first. Later shows the typed calories, as `foods-add-food` does | yes |
+| new | | `foods-unverified` | foods | 2026-10-28; a food of theirs waiting for review, "Unverified" under it | yes |
 | new | | `submit-food-review` | logger | 0.2, `release.submitFood`; the label as read, editable, with the energy check. Numbers and checks only where the mode shows calories; elsewhere a sentence says whether they add up | yes |
 | new | | `exercise-sheet` | logger | `release.exercise`; the estimate is energy out | yes |
 | new | | `exercise-sheet-other` | logger | `release.exercise`; Other's typed number, only where energy out shows | yes |

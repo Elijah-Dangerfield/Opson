@@ -93,3 +93,8 @@ private fun RestaurantHintPreview() = Search(LoggerFixtures.optionsState(full, t
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun ClosedDayPreview() = Search(LoggerFixtures.searchState(full, query = "", added = false, closed = true))
+
+/** Their own granola waiting for review, and "Can't find it?" with the pack's label under it. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun UnverifiedPreview() = Search(LoggerFixtures.searchUnverifiedState(full), dark = false)

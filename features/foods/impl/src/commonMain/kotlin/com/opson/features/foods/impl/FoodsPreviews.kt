@@ -65,6 +65,20 @@ private fun FoodsCreateMealEmptyPreview() = CreateMeal(FoodsFixtures.createMealS
 @Composable
 private fun FoodsAddFoodPreview() = AddFood(FoodsFixtures.addFoodState(full))
 
+/** release.submitFood: the pack's photos first, typing it in under them. */
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsAddFoodPackPreview() = AddFood(FoodsFixtures.addFoodState(full, canUsePack = true))
+
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsAddFoodPackDarkPreview() = AddFood(FoodsFixtures.addFoodState(full, canUsePack = true), dark = true)
+
+/** The pandesal sent to Opson's food database and not checked yet. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun FoodsUnverifiedPreview() = Foods(FoodsFixtures.foodsState(full, withRecent = false, inReview = true))
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun FoodsAddFoodDarkPreview() = AddFood(FoodsFixtures.addFoodState(full), dark = true)

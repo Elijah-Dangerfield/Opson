@@ -104,3 +104,8 @@ private fun NoNumbersLightPreview() = Detail(LoggerFixtures.noNumbersDetailState
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun ScannedPreview() = Detail(LoggerFixtures.scannedDetailState(full))
+
+/** The person's own food, sent to Opson's food database and waiting for review. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun InReviewPreview() = Detail(LoggerFixtures.inReviewDetailState(full), dark = false)

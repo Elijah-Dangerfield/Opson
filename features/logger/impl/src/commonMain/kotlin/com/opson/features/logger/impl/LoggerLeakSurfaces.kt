@@ -52,6 +52,10 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "search-empty", label = "Food search, no results", showsCaloriesInFull = false) { policy ->
             FoodSearchContent(state = LoggerFixtures.searchEmptyState(policy), onAction = {})
         },
+        // Their own food waiting for review reads "Unverified", and "Can't find it?" offers the pack's label. Words, no numbers.
+        LeakSurface(id = "search-unverified", label = "Food search, own food unverified", showsCaloriesInFull = true) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchUnverifiedState(policy), onAction = {})
+        },
         LeakSurface(id = "logger-describe", label = "Describe a meal", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeState(policy), onAction = {})
         },
@@ -103,6 +107,9 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "food-detail-no-numbers", label = "Food detail in No numbers", showsCaloriesInFull = false) { policy ->
             FoodDetailContent(state = LoggerFixtures.noNumbersDetailState(policy), onAction = {})
         },
+        LeakSurface(id = "food-detail-in-review", label = "Food detail, own food in review", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.inReviewDetailState(policy), onAction = {})
+        },
         LeakSurface(id = "food-detail-scan", label = "Food detail after a scan", showsCaloriesInFull = true) { policy ->
             FoodDetailContent(state = LoggerFixtures.scannedDetailState(policy), onAction = {})
         },
@@ -120,6 +127,16 @@ object LoggerLeakSurfaces {
         },
         LeakSurface(id = "submit-food-by-hand", label = "Add this food, typed in", showsCaloriesInFull = false) { policy ->
             SubmitFoodScreen(state = SubmitFoodFixtures.byHandState(policy), onAction = {})
+        },
+        // From the Foods tab: saved, not logged. The same form; Save food in place of Add to a meal.
+        LeakSurface(id = "submit-food-save-photos", label = "Add a packaged food from Foods, photos", showsCaloriesInFull = false) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.saveOnlyPhotosState(policy), onAction = {})
+        },
+        LeakSurface(id = "submit-food-save-review", label = "Add a packaged food from Foods, check what we read", showsCaloriesInFull = true) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.saveOnlyReviewState(policy), onAction = {})
+        },
+        LeakSurface(id = "submit-food-photo-failed", label = "Add a packaged food, a photo that would not open", showsCaloriesInFull = false) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.photoFailedState(policy), onAction = {})
         },
         LeakSurface(id = "logger-photo", label = "Photo estimate", showsCaloriesInFull = true) { policy ->
             PhotoEstimateSheetContent(state = PhotoFixtures.reviewState(policy, editing = true), onAction = {})

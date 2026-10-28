@@ -84,3 +84,16 @@ private fun SubmitFoodCameraOffPreview() = Submit(SubmitFoodFixtures.calmState(S
 @Composable
 private fun SubmitFoodSendFailedPreview() =
     Submit(SubmitFoodFixtures.calmState(SubmitStep.SendFailed(offline = true, tooMany = false), full))
+
+/** From the Foods tab: no meal, so the form ends in Save food and logs nothing. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun SubmitFoodSaveOnlyPhotosPreview() = Submit(SubmitFoodFixtures.saveOnlyPhotosState(full))
+
+@Preview(widthDp = 390, heightDp = 1600)
+@Composable
+private fun SubmitFoodSaveOnlyReviewPreview() = Submit(SubmitFoodFixtures.saveOnlyReviewState(full))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun SubmitFoodPhotoFailedPreview() = Submit(SubmitFoodFixtures.photoFailedState(full))

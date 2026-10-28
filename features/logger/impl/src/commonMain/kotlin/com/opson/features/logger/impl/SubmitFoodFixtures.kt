@@ -83,4 +83,13 @@ object SubmitFoodFixtures {
         state(reviewModel(read = null, notice = ReviewNotice.Unavailable), policy)
 
     fun calmState(step: SubmitStep, policy: VisibilityPolicy): SubmitFoodState = state(model(step, photos = 2), policy)
+
+    /** From the Foods tab's Add a food: no meal, so it says Save food and logs nothing. */
+    fun saveOnlyPhotosState(policy: VisibilityPolicy): SubmitFoodState = state(model(barcode = null).copy(slot = null), policy)
+
+    fun saveOnlyReviewState(policy: VisibilityPolicy): SubmitFoodState = state(reviewModel(barcode = null).copy(slot = null), policy)
+
+    /** The label photo picked from the library would not open: a line under the photos says so. */
+    fun photoFailedState(policy: VisibilityPolicy): SubmitFoodState =
+        state(model(photos = 1).copy(photoFailed = PackSide.Label), policy)
 }

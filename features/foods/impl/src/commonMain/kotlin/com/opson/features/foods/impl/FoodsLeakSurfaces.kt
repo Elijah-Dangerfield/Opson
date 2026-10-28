@@ -24,6 +24,14 @@ object FoodsLeakSurfaces {
         LeakSurface(id = "foods-add-food-blind", label = "Custom food, nutrition out of view", showsCaloriesInFull = false) { policy ->
             AddFoodScreen(state = FoodsFixtures.addFoodState(policy), onAction = {})
         },
+        // release.submitFood: "Packaged food?" above the form. The card is words; the form below is the same.
+        LeakSurface(id = "foods-add-food-pack", label = "Custom food, from the pack first", showsCaloriesInFull = true) { policy ->
+            AddFoodScreen(state = FoodsFixtures.addFoodState(policy, canUsePack = true), onAction = {})
+        },
+        // A food of theirs waiting for review: "Unverified" under it, which is a word, not a number.
+        LeakSurface(id = "foods-unverified", label = "Foods tab, own food unverified", showsCaloriesInFull = true) { policy ->
+            FoodsScreen(state = FoodsFixtures.foodsState(policy, inReview = true), onAction = {})
+        },
         // Design sync 4, 13.3e, from a food's ⋮ on Today (release.foodActions). The Calories field
         // and its "Was" are tagged as calories, so Full's control sees them and no other mode may.
         LeakSurface(id = "edit-a-copy", label = "Edit a copy", showsCaloriesInFull = true) { policy ->

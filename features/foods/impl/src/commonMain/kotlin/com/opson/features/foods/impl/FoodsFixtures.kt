@@ -11,6 +11,7 @@ import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.Portion
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.LocalDate
@@ -83,14 +84,20 @@ object FoodsFixtures {
         )
     }
 
-    fun foodsInputs(withRecent: Boolean = true, empty: Boolean = false): FoodsInputs = if (empty) {
+    fun foodsInputs(withRecent: Boolean = true, empty: Boolean = false, inReview: Boolean = false): FoodsInputs = if (empty) {
         FoodsInputs(customFoods = emptyList(), savedMeals = emptyList(), recent = emptyList())
     } else {
-        FoodsInputs(customFoods = listOf(pandesal), savedMeals = savedMeals, recent = if (withRecent) recent else emptyList())
+        FoodsInputs(
+            customFoods = listOf(pandesal),
+            savedMeals = savedMeals,
+            recent = if (withRecent) recent else emptyList(),
+            reviews = if (inReview) mapOf(pandesal.id to ReviewStatus.Pending) else emptyMap(),
+        )
     }
 
-    fun foodsState(policy: VisibilityPolicy, withRecent: Boolean = true, empty: Boolean = false): FoodsState =
-        FoodsStateBuilder.build(foodsInputs(withRecent, empty), policy)
+    /** [inReview]: the pandesal was sent to Opson's food database and nobody has checked it yet. */
+    fun foodsState(policy: VisibilityPolicy, withRecent: Boolean = true, empty: Boolean = false, inReview: Boolean = false): FoodsState =
+        FoodsStateBuilder.build(foodsInputs(withRecent, empty, inReview), policy)
 
     /** 11.2: "Usual breakfast" at breakfast, three foods. */
     fun mealDraft(empty: Boolean = false): MealDraft = if (empty) {
@@ -111,7 +118,8 @@ object FoodsFixtures {
         nutrition = mapOf(Metric.Calories to "120", Metric.Protein to "4", Metric.Carbs to "22", Metric.Fat to "2"),
     )
 
-    fun addFoodState(policy: VisibilityPolicy): AddFoodState = AddFoodStateBuilder.build(foodForm(), policy)
+    fun addFoodState(policy: VisibilityPolicy, canUsePack: Boolean = false): AddFoodState =
+        AddFoodStateBuilder.build(foodForm(), policy, canUsePack)
 
     /** The snack's peanut butter on Today, 2 tbsp weighed from the catalog: what 13.3e copies. */
     val peanutButter = LogItem(

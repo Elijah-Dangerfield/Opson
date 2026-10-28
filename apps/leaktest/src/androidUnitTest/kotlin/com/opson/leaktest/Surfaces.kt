@@ -121,7 +121,7 @@ internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
     listOf("trends", "trends-blind", "trends-coast").forEach { put("later-weekly" to it, lastCheckOpens) }
 
     listOf("later", "later-weekly").forEach { mode ->
-        listOf("foods-add-food", "foods-add-food-blind").forEach { put(mode to it, typedLabel) }
+        listOf("foods-add-food", "foods-add-food-blind", "foods-add-food-pack").forEach { put(mode to it, typedLabel) }
         put(mode to "logger-describe-quick-add", typedQuickAdd)
     }
 }

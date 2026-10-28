@@ -126,11 +126,14 @@ class SurfacesCoverageTest {
                 "food-detail-more", "food-detail-liquid", "food-detail-creamer", "food-detail-pounds",
                 "logger-photo", "logger-photo-swap", "logger-photo-start", "logger-scan-miss",
                 "submit-food-photos", "submit-food-review", "submit-food-by-hand",
+                "submit-food-save-photos", "submit-food-save-review", "submit-food-photo-failed",
+                "search-unverified", "food-detail-in-review",
                 "exercise-sheet", "exercise-sheet-other", "exercise-sheet-pick",
                 "add-sheet-closed", "search-closed",
             ),
             "FoodsLeakSurfaces" to listOf(
                 "foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy", "edit-a-copy-label", "edit-a-copy-sizes",
+                "foods-add-food-pack", "foods-unverified",
             ),
             "TrendsLeakSurfaces" to listOf(
                 "trends", "trends-blind", "trends-coast", "trends-settings", "nutrients", "nutrients-week",
@@ -172,6 +175,7 @@ class SurfacesCoverageTest {
             "today-burned", "today-burned-health", "exercise-sheet", "exercise-sheet-other",
             "provider-summary", "provider-summary-warning", "provider-summary-custom",
             "today-closed", "day-close-closed", "food-actions-closed",
+            "search-unverified", "food-detail-in-review", "submit-food-save-review", "foods-add-food-pack", "foods-unverified",
         )
     }
 }
