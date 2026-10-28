@@ -33,9 +33,8 @@ interface AuthTokenProvider {
     /**
      * Current Supabase access token. Doesn't wait — call [awaitReady]
      * first if the result needs to reflect a resolved session. Null means
-     * there's no session (anon sign-in disabled, offline before first
-     * auth, post-signOut). The networking layer attaches no bearer and
-     * the server 401s cleanly.
+     * there's no session (not signed in yet, or signed out). The networking
+     * layer attaches no bearer and the server 401s cleanly.
      */
     suspend fun accessToken(): String?
 

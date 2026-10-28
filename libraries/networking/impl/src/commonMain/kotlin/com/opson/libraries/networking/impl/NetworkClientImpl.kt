@@ -67,8 +67,8 @@ class NetworkClientImpl(
                     // By the time loadTokens runs, authedCall has already
                     // called [awaitAuthReady], so the gateway peek is
                     // synchronous and instant. Null means there's no
-                    // session (anon disabled, offline before first auth) —
-                    // request goes unauthed and the server 401s cleanly.
+                    // session (not signed in yet) — the request goes
+                    // unauthed and the server 401s cleanly.
                     loadTokens {
                         val token = tokenProvider.accessToken()
                             ?: return@loadTokens null
