@@ -151,6 +151,43 @@ breaks, and its fate.
 - **Logging.** Nothing in the slice logs; no `catch` or `runCatching` sits around a suspend call.
 - **unslop-code scanner.** 126 low "verbose identifier" hits, all DI factories and framework names.
 
+## Second review
+
+A second reviewer checked this branch's commits and flagged five possible regressions. Fates:
+
+1. **`Settings.kt` KDocs for `todaySummaryCollapsed` and `todaySummaryPage` now lie (026cd6f8):
+   real, deferred (cross-slice).** Nothing writes either field since the move, and the KDocs still
+   describe them as the live store. The file belongs to domain-diary-nutrition, so the exact change
+   is item 6 of the cross-slice list.
+2. **The card's page and collapse survived a user change (026cd6f8): real, fixed.** The move took
+   them out of Settings, which `SettingsStore` wipes as a `UserScopedClearer`, into a device cache
+   nothing cleared. Signing out and in as someone else on the same phone opened the card on the
+   last account's page and collapse, and because the cache was then non-null it also hid the new
+   account's own synced choice. No numbers leaked, only view state. Fixed in "fix(today): a user
+   change drops the summary card's page and collapse": `TodayCardViewStore` is now a
+   `UserScopedClearer` multibinding that clears its cache.
+   `TodayViewModelTest.aUserChange_dropsTheCardViewLeftByThePreviousAccount` fails without it
+   (expected page 0, was 1). The test fake's `clear()` now writes the default back, as the
+   DataStore cache does, so a collector sees the reset.
+3. **No numbers' circle description was glued from two strings, untested (8d5c81e1): real,
+   fixed.** It joined a localized "Breakfast, done" to a localized "Around 7:00 PM" with a
+   hard-coded ", ", so it read "Breakfast, done, Around 7:00 PM" and no translator could reorder
+   it. Fixed in "fix(today): a meal circle's spoken time is one translatable sentence": one string
+   per status in `strings_modes.xml` (`modes_timeline_done_at_cd`, `modes_timeline_done_around_cd`,
+   `modes_timeline_open_cd`, the last now with the time), chosen by a pure `TileStatus.spoken()`.
+   `TimelineMealSpokenTest` covers Logged, AteNoDetails and Empty. The old `modes_timeline_done_cd`
+   is gone.
+4. **Delete's half of the double-tap guard had no test (f01971dc): real gap, test added.** The
+   guard itself was right. "test(today): a second Delete while a food's sheet closes removes it
+   once" asserts one removal, one toast and one Dismiss; with Delete taken back out of `done()` it
+   fails (the item removed twice).
+5. **`docs/plans/screens/adding.md` edited outside the slice (07019c0b): not a regression.**
+   `docs/plans/` is in no slice's ledger, `today.md` included, so no reviewer owns it, and the
+   second reviewer confirmed the edit matches `LoggerStateBuilder.actions` (no Quick add or Ate,
+   no details; Exercise behind `release.exercise` and energy out). Reverting it would put a stale
+   plan back, which §1 counts as a bug, and splitting it out means rewriting a commit already on
+   the branch. Left as is; the logger reviewer should know `adding.md` changed here.
+
 ## Deferred cross-slice changes
 
 1. **domain-diary-nutrition:** `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsStore.kt`,
@@ -175,6 +212,14 @@ breaks, and its fate.
    (`libraries/diary/.../Settings.kt:141-143`) are now read only as the fallback for a phone that
    never set its own. Drop them, and the fallback in `TodayStateBuilder.build`, once 0.2 has been
    out long enough that every device has opened Today on it.
+
+6. **domain-diary-nutrition:** `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Settings.kt:140-143`.
+   The KDocs still call `todaySummaryCollapsed` "kept across days and restarts" and
+   `todaySummaryPage` "the page last left open", but nothing writes them since the card's view moved
+   to `TodayCardViewStore`. Replace both with: legacy, no longer written; read only as Today's
+   fallback until this phone's `TodayCardViewStore` holds a value; keep while 0.1 clients still sync
+   it. A reader who takes the old KDoc at its word could start writing them again and bring back the
+   two-phone race in finding 1. Second review, item 1.
 
 ## Product notes
 
