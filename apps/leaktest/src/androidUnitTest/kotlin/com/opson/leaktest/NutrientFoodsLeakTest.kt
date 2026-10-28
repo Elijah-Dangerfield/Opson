@@ -1,7 +1,5 @@
 package com.opson.leaktest
 
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -20,8 +18,8 @@ import kotlin.test.assertTrue
 /**
  * Which foods gave a nutrient. All numbers and Macros with grams list each food's amount and
  * share; Macros only ranks the foods with neither, and No numbers shows nothing of the nutrient.
- * In the last two, no node tagged with a metric may show a digit, and no text anywhere may read
- * as an amount or a share ("12 g", "40%"): the sheet's caption and food names carry none.
+ * In the last two, no node tagged with a metric may show or speak a digit, and no text anywhere
+ * may read as an amount or a share ("12 g", "40%"): the sheet's caption and food names carry none.
  *
  * The control renders the same sheets in All numbers and needs an amount there, so a sheet that
  * stopped drawing amounts at all cannot pass the hidden cases for the wrong reason.
@@ -65,7 +63,7 @@ class NutrientFoodsLeakTest(private val surface: LeakSurface, private val preset
 
 private fun ComposeContentTestRule.taggedDigits(): List<String> = Metric.entries.flatMap { metric ->
     onAllNodes(hasTestTag(metric.testTag()), useUnmergedTree = true).fetchSemanticsNodes()
-        .map { node -> node.config.getOrNull(SemanticsProperties.Text).orEmpty().joinToString(" ") { it.text } }
+        .map { node -> node.texts().joinToString(" ") }
         .filter { text -> text.any(Char::isDigit) }
         .map { "${metric.testTag()} showing \"$it\"" }
 }
