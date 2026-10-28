@@ -23,7 +23,8 @@ import kotlin.test.BeforeTest
  *  - a REAL Main dispatcher (the view models drive init work on
  *    `viewModelScope`; the harness talks real TCP on real threads, so a real —
  *    not virtual — dispatcher is required);
- *  - the Docker-availability skip (no Docker → skipped, not red); and
+ *  - the Docker check (no Docker → skipped locally, but failed on CI, where
+ *    a skip would pass the suite without running it); and
  *  - a fresh in-process server per test, via [integration].
  *
  * Inside [integration], use [Harness.client] to spin up real clients and the
