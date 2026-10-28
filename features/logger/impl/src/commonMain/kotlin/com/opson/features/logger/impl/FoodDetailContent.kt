@@ -348,9 +348,10 @@ private fun HungerCard(check: HungerCheck, onAction: (FoodDetailAction) -> Unit)
 
 /**
  * The typed amount, big, in an accent outline (13.4d). A decimal keypad; what is typed goes to
- * the view model as is and comes back sanitized, so a stray character never shows. The library
- * field holds keystrokes until the view model's echo catches up: fed the state directly, a
- * fast "150" rewound to "15" while the echo was a frame behind.
+ * the view model as is. A character the view model drops shows until typing pauses, then the
+ * field settles back on the view model's value. The library field holds keystrokes until the
+ * view model's echo catches up: fed the state directly, a fast "150" rewound to "15" while the
+ * echo was a frame behind.
  */
 @Composable
 private fun AmountField(value: String, onTyped: (String) -> Unit, modifier: Modifier) {
