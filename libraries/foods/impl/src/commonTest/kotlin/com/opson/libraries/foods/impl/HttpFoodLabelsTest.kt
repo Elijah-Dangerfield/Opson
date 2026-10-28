@@ -37,7 +37,8 @@ class HttpFoodLabelsTest : CoroutineTest() {
         private val http = HttpClient(MockEngine(handler)) {
             expectSuccess = true
             install(HttpTimeout) { requestTimeoutMillis = 30_000 }
-            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+            // Strict, as a debug build decodes: a response field the DTOs leave out fails here.
+            install(ContentNegotiation) { json(Json) }
         }
         override val client: HttpClient get() = http
         override val authenticatedClient: HttpClient get() = http
@@ -61,8 +62,9 @@ class HttpFoodLabelsTest : CoroutineTest() {
         val seen = mutableListOf<String>()
         val body = """
             {"parseId":"p1","model":"claude-fable-5-1","readable":true,
-             "food":{"name":"Granola bar","servingSize":40.0,"servingUnit":"g","basis":"us",
-                     "perServing":{"energy_kcal":190.0,"protein_g":4.0,"glitter_g":2.0}},
+             "food":{"name":"Granola bar","brand":null,"barcode":null,"servingSize":40.0,"servingUnit":"g","servingLabel":null,
+                     "servingsPerContainer":null,"basis":"us","perServing":{"energy_kcal":190.0,"protein_g":4.0,"glitter_g":2.0},
+                     "per100":{},"acknowledged":[]},
              "confidence":{"name":0.9},
              "checks":[{"code":"energy_macros_mismatch","fields":["energy_kcal"],"expected":234.0,"actual":270.0},{"code":"from_the_future"}]}
         """.trimIndent()
@@ -97,7 +99,11 @@ class HttpFoodLabelsTest : CoroutineTest() {
             servingUnit = ServingUnit.Gram,
             perServing = mapOf(LabelNutrient.Energy to 270.0),
         )
-        val result = labels(HttpStatusCode.Created, """{"submissionId":"s1","foodId":"f1","status":"pending"}""", seen).submit(
+        val result = labels(
+            HttpStatusCode.Created,
+            """{"submissionId":"s1","foodId":"f1","status":"pending","checks":[{"code":"energy_macros_mismatch","fields":["energy_kcal"]}]}""",
+            seen,
+        ).submit(
             FoodSubmission(
                 id = "s1",
                 parseId = "p1",

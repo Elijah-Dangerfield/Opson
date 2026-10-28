@@ -109,8 +109,14 @@ data class FoodSubmissionRequest(
     val food: LabelFactsDto,
 )
 
+/** Every field the server sends: debug builds decode strictly, so a field left out here fails the call. */
 @Serializable
-data class FoodSubmissionResponse(val submissionId: String, val foodId: String, val status: String = "pending")
+data class FoodSubmissionResponse(
+    val submissionId: String,
+    val foodId: String,
+    val status: String = "pending",
+    val checks: List<LabelCheckDto> = emptyList(),
+)
 
 @Serializable
 data class BarcodeLinkRequest(val barcode: String, val foodId: String)
