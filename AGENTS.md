@@ -322,7 +322,7 @@ Each of these cost a downstream app real time. They are cheap to avoid and expen
 
 | Purpose | Path |
 |---------|------|
-| User model | `libraries/opson/src/.../User.kt` |
+| Profile and auth state | `libraries/identity/src/.../profile/ProfileRepository.kt`, `.../auth/AuthRepository.kt` |
 | SEAViewModel | `libraries/flowroutines/src/.../SEAViewModel.kt` |
 | App DI | `apps/compose/src/.../AppComponent.kt` |
 | iOS entry | `apps/ios/iosApp/iOSApp.swift` |

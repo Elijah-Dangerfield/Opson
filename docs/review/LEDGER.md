@@ -142,53 +142,53 @@ keeps existing ticks.
 
 ## build-config (47 files)
 
-- [ ] `.release-please-manifest.json`
-- [ ] `apps/baselineprofile/build.gradle.kts`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/BenchmarkJourney.kt`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/JourneyProfileGenerator.kt`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/MinifiedReleaseSmokeTest.kt`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/StartupProfileGenerator.kt`
-- [ ] `build-logic/build.gradle.kts`
-- [ ] `build-logic/settings.gradle.kts`
-- [ ] `build-logic/src/main/java/com/opson/ext/ConfigurationExtension.kt`
-- [ ] `build-logic/src/main/java/com/opson/ext/ExtDsl.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/ApplicationConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/ComposeMultiplatformConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/FeatureConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/KotlinMultiplatformConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/AndroidConfiguration.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/ComposeMetrics.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/GitHooks.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/KotlinMultiplatform.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/ModuleBoundaries.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/ProjectExtensions.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/SharedConstants.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/Signing.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/Versioning.kt`
-- [ ] `build-logic/src/test/java/com/opson/util/QaBoundaryTest.kt`
-- [ ] `build-logic/src/test/java/com/opson/util/ReleaseChannelTest.kt`
-- [ ] `build.gradle.kts`
-- [ ] `config/detekt/detekt.yml`
-- [ ] `detekt-rules/build.gradle.kts`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/AnimatedStateReadInComposition.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/ClassNameInTelemetryAttribute.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/HardcodedDisplay.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/OpsonRuleSetProvider.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/ScrollInsideBottomSheet.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/VerifyStrings.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/AnimatedStateReadInCompositionTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/ClassNameInTelemetryAttributeTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/HardcodedDisplayTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/RuleHarness.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/ScrollInsideBottomSheetTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/VerifyStringsTest.kt`
-- [ ] `gradle.properties`
-- [ ] `gradle/libs.versions.toml`
-- [ ] `gradle/wrapper/gradle-wrapper.properties`
-- [ ] `release-please-config.json`
-- [ ] `settings.gradle.kts`
-- [ ] `telemetry.properties`
-- [ ] `versions.properties`
+- [x] `.release-please-manifest.json`
+- [x] `apps/baselineprofile/build.gradle.kts`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/BenchmarkJourney.kt`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/JourneyProfileGenerator.kt`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/MinifiedReleaseSmokeTest.kt`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/StartupProfileGenerator.kt`
+- [x] `build-logic/build.gradle.kts`
+- [x] `build-logic/settings.gradle.kts`
+- [x] `build-logic/src/main/java/com/opson/ext/ConfigurationExtension.kt`
+- [x] `build-logic/src/main/java/com/opson/ext/ExtDsl.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/ApplicationConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/ComposeMultiplatformConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/FeatureConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/KotlinMultiplatformConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/util/AndroidConfiguration.kt`
+- [x] `build-logic/src/main/java/com/opson/util/ComposeMetrics.kt`
+- [x] `build-logic/src/main/java/com/opson/util/GitHooks.kt`
+- [x] `build-logic/src/main/java/com/opson/util/KotlinMultiplatform.kt`
+- [x] `build-logic/src/main/java/com/opson/util/ModuleBoundaries.kt`
+- [x] `build-logic/src/main/java/com/opson/util/ProjectExtensions.kt`
+- [x] `build-logic/src/main/java/com/opson/util/SharedConstants.kt`
+- [x] `build-logic/src/main/java/com/opson/util/Signing.kt`
+- [x] `build-logic/src/main/java/com/opson/util/Versioning.kt`
+- [x] `build-logic/src/test/java/com/opson/util/QaBoundaryTest.kt`
+- [x] `build-logic/src/test/java/com/opson/util/ReleaseChannelTest.kt`
+- [x] `build.gradle.kts`
+- [x] `config/detekt/detekt.yml`
+- [x] `detekt-rules/build.gradle.kts`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/AnimatedStateReadInComposition.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/ClassNameInTelemetryAttribute.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/HardcodedDisplay.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/OpsonRuleSetProvider.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/ScrollInsideBottomSheet.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/VerifyStrings.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/AnimatedStateReadInCompositionTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/ClassNameInTelemetryAttributeTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/HardcodedDisplayTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/RuleHarness.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/ScrollInsideBottomSheetTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/VerifyStringsTest.kt`
+- [x] `gradle.properties`
+- [x] `gradle/libs.versions.toml`
+- [x] `gradle/wrapper/gradle-wrapper.properties`
+- [x] `release-please-config.json`
+- [x] `settings.gradle.kts`
+- [x] `telemetry.properties`
+- [x] `versions.properties`
 
 ## test-apps (47 files)
 

@@ -21,15 +21,18 @@ These come from the handoff and override anything else, including this doc.
 - **No screen formats a nutrition number.** Numbers go through
   `VisibilityPolicy` and render through `NutrientValue`. `HIDE` removes the
   label too.
-- **The Blind leak test stays green.** Blind mode on every surface shows no
-  calorie amount and no "N left".
+- **The leak test stays green.** In every mode that hides calories, no surface
+  shows a calorie amount or an "N left".
 - **The energy target can only go up** until a dietitian sets
   `GOAL_FLOOR_KCAL`. It is `null` with a `TODO(dietitian)`, on purpose.
 - **No evening "calories left" notification**, and no setting for one.
 - **A big day never lowers tomorrow.** Exercise adjustment never lowers it either.
-- **Fasting** is off by default, offered only in Full and Sprint, 12:12 /
+- **Fasting** is off by default, offered only in All numbers, 12:12 /
   14:10 / 16:8 only, no streaks, and logging food always ends a fast.
-- **No manual exercise logging.**
+- **Exercise is logged by hand only behind `release.exercise`**, and a day's
+  activity is counted once: with a health app connected, its workouts stand
+  in for hand-logged ones unless an entry says the watch didn't record it
+  (`docs/decisions.md`, 2026-10-27).
 - **Health data is user data.** Nutrition values never appear in logs, span
   attributes or Grafana panels at the user level. Dashboards read aggregate
   `analytics` views, and the per-person `support` views, which hold counts and
@@ -83,10 +86,10 @@ feature api modules never depend on each other).
 | Module | Plugin | Owns |
 |---|---|---|
 | `:libraries:nutrition` | kotlin.multiplatform | `Metric`, `Visibility`, `ModePreset`, `Presets`, `VisibilityPolicy`, `Display`, soften words, formatting, `Targets`, floor rule, exercise adjustment, EMA weight trend, unit conversion, and the screen helpers in `docs/plans/screens/shared.md` (`NutrientAmounts`, `GoalStyle`, `resolveRange`, `macroLine`, `ringValue`, `share`, ring modes, `NumbersChange`, micronutrients and scores, water glasses). Pure Kotlin, no I/O. |
-| `:libraries:nutrition:ui` | compose.multiplatform | `NutrientValue`, `NutrientText`, `NutrientBar`, `NutrientRingLabel`, `MacroLine`, `LocalVisibilityPolicy`, test tags, and `LeakSurface` for the leak test. The only Compose code that touches a `Display`. |
-| `:libraries:diary` | kotlin.multiplatform | Room entities and DAOs, repository interfaces (`DiaryRepository`, `WeightRepository`, `CustomFoodRepository`, `SavedMealRepository`, `SettingsRepository`), domain models (`LogItem`, `Day`, `MealSlot`, `Precision`, `Feel`), and `LocalCalendar` (today in the user's zone). |
+| `:libraries:nutrition:ui` | compose.multiplatform | `NutrientValue`, `NutrientText`, `NutrientBar`, `MacroLine`, `LocalVisibilityPolicy`, test tags, and `LeakSurface` for the leak test. The only Compose code that touches a `Display`. |
+| `:libraries:diary` | kotlin.multiplatform | Room entities and DAOs, repository interfaces (`DiaryRepository`, `WeightRepository`, `CustomFoodRepository`, `SavedMealRepository`, `SettingsRepository`), domain models (`LogItem`, `Day`, `MealSlot`, `Precision`, `MealFeeling`, `DayFeeling`), and `LocalCalendar` (today in the user's zone). |
 | `:libraries:diary:impl` | kotlin.multiplatform | Repository impls, the outbox, `DiarySyncer` (a `UserScopedSyncer`), the sync API client. |
-| `:libraries:diary:ui` | compose.multiplatform | What every diary screen draws the same way: meal slot icons, tile colours and labels, precision and feeling labels, `DiaryItemRow`, `FoodPickRow`, `FoodIconTile`, `FavoriteFoodTile`, `NutrientTotalColumn`, `MealCheckChip`, `NutrientTile`, `FoodRowsCard`. Strings in `strings_diary.xml`. |
+| `:libraries:diary:ui` | compose.multiplatform | What every diary screen draws the same way: meal slot icons, tile colours and labels, precision and feeling labels, `DiaryItemRow`, `FoodRowsCard`. Row icons are `ToneIcon` / `RowIcon` from `:libraries:ui`. Strings in `strings_diary.xml`. |
 | `:libraries:foods` | kotlin.multiplatform | `FoodCatalog` interface (search, barcode, detail, describe), `Food`, `Portion`, `NutrientProfile`, `FoodRef`, the amount math (`Food.toLogDraft`, `PortionAmount`, `AmountUnit`), and the `food_cache` entity and DAO (here, not in the impl, so `AppDatabase` can register them). |
 | `:libraries:foods:impl` | kotlin.multiplatform | Ktor client calls to `/v1/foods/*` over that cache of foods the user has touched, so favorites and recents work offline. |
 | `:libraries:health` | kotlin.multiplatform | `HealthRepository` (connect, disconnect, status, today's energy), `EnergyExpended`, `HealthSource`, and the `release.health` flag. Health values stay on the device: read on demand, never stored or synced (`docs/plans/screens/integrations.md`). |
@@ -115,16 +118,17 @@ executable spec. Port it exactly, with tests for every branch.
 ```kotlin
 enum class Metric(val key: String) { Calories, Remaining, EnergyOut, Protein, Carbs, Fat, Fiber, Micros, Weight, Water }
 enum class Visibility(val score: Int) { Show(3), Soften(2), Delay(1), Hide(0) }
-enum class TodayLayout { Full, Meals, Rhythm, Explorer }
-enum class RevealOn { DayClose, Week }
-enum class Surface { Today, Logger, DayClose, Week, Nutrients, Trends, Foods, Settings, Weight }
+enum class TodayLayout { Full, MealTimeline }
+enum class RevealOn { DayClose, Week }        // on NumbersSettings, for numbers set to Later
+enum class Surface { Today, Logger, DayClose, Week, Nutrients, Trends, Foods, Settings, Weight, Widget }
 
 data class ModePreset(
     val id: PresetId, val today: TodayLayout, val vis: Map<Metric, Visibility>,
-    val revealOn: RevealOn? = null, val mealCount: Boolean = false, val fastingAllowed: Boolean = false,
-    val banner: Boolean = false,                   // copy lives in the UI, keyed by id
+    val mealCount: Boolean = false, val fastingAllowed: Boolean = false,
+    val mealGaps: Boolean = true, val progressPhotos: Boolean = true,   // labels live in the UI, keyed by id
 )
-enum class PresetId(val key: String) { Full, Delayed, Blind, Nutrient, Rhythm, Explorer, Mindful, Fuel, Sprint, Coast }
+enum class PresetId(val key: String) { Full, MacrosWithGrams, MacrosOnly, NoNumbers }
+// The ten presets before these are LegacyPreset / RetiredPreset, which old settings carry and this build migrates.
 
 sealed interface Display {
     data object Hidden : Display
@@ -156,10 +160,10 @@ thousands separators done by hand so the JVM and iOS agree.
 Rules to port, each with a test:
 
 - Resolution: `overrides[m] ?: preset.vis[m]`. Picking a preset clears overrides.
-- Water is `Soften` in every preset except Full and Sprint.
+- Water is `Soften` in every preset except All numbers and Macros with grams.
 - `Delay` resolves to shown when the surface is `Week`, or `DayClose`, or the
-  day is closed, or the day is in the past, or it is after 9:00 pm local. Coast
-  (`RevealOn.Week`) only reveals on `Week`.
+  day is closed, or the day is in the past, or it is after 9:00 pm local. With
+  `NumbersSettings.revealsWeekly` (`RevealOn.Week`) it only reveals on `Week`.
 - Soften words, exactly as the prototype (calories: Early in the day / Partway
   through / Most of the way / In your range / A bigger day; macros: Building /
   Getting there / Plenty today; micros: Some / Most / Plenty; weight: Trend
@@ -559,8 +563,9 @@ theme.
 - ViewModels: action in, state and events out, hand-rolled fakes.
 - Server: route tests with fakes, repository tests on Testcontainers, a
   full-stack sync test (push, pull, conflict, tombstone, replay).
-- **`BlindModeLeakTest`** (Robolectric composition in `androidUnitTest`): set
-  Blind, render every surface in `SURFACES`, assert no `metric:calories`,
+- **`BlindModeLeakTest`** (Robolectric composition in `androidUnitTest`): in
+  every mode that hides calories, render every surface in `SURFACES`
+  (`apps/leaktest/.../Surfaces.kt`), assert no `metric:calories`,
   `metric:remaining` or `metric:energyOut` tags and no text matching
   `/\d[\d,.]*\s*(kcal|cal\b|calories)|\d[\d,]*\s*left\b/i`. It runs in CI.
   Detekt `HardcodedDisplay` keeps its fixtures honest: a `Display.Shown`,
@@ -581,16 +586,18 @@ changed and what 0.1 builds is in [`docs/design/v3/CHANGES.md`](design/v3/CHANGE
 - Today in every layout, with day navigation, calendar, day menu, meal sheet,
   water sheet, day close.
 - Logger with search, basket, amount sheet, Describe it, Saved meals,
-  Yesterday's meal, Ate no details, weigh-in.
+  Yesterday's meal, weigh-in.
 - Foods: your foods, saved meals, recent, create a meal, custom food.
 - Trends: intake, recap, nutrients, weight. Nutrients detail and Weight screens.
 - More: Modes and numbers with friction, Targets, Water, Support (helpline,
   export, delete everything).
 
-**0.2.** Barcode scanning (camera on both platforms), photo estimates,
-fasting, reminders, Health Connect and HealthKit, voice notes.
+**0.2.** Barcode scanning (camera on both platforms), fasting, reminders, Health Connect and HealthKit, voice notes, home screen
+widgets (the iOS widget extension is already in every build; Android's
+receiver is held).
 
-**Later.** Trusted-person sharing, widgets, the Plus tier.
+**Later.** Photo estimates (`release.photo` stays off in 0.2), trusted-person
+sharing, the Plus tier.
 
 Anything not in a release is hidden, not shown as "Coming soon", except where
 the handoff itself says "Coming later".
