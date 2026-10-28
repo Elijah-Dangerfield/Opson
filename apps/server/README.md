@@ -29,7 +29,7 @@ To enable the database-backed + authenticated routes, set env vars (copy
 
 2. **Supabase auth**: set `SUPABASE_URL=https://<project>.supabase.co` to mount
    the authenticated routes (`/v1/me`, `/v1/sync`, `/v1/foods/*`, `/v1/describe`,
-   `/v1/export.csv`). The server verifies the client's Supabase JWTs against the project's
+   `/v1/export.zip` and `.csv`). The server verifies the client's Supabase JWTs against the project's
    public keys (JWKS); no secret is stored server-side.
 
 Boot modes (graceful degradation is a deliberate standard):
@@ -38,7 +38,7 @@ Boot modes (graceful degradation is a deliberate standard):
 |---|---|---|
 | unset | unset | `/_health`, `/v1/example` |
 | set   | unset | + DB connected (no auth routes) |
-| set   | set   | + `/v1/me`, `/v1/sync`, `/v1/foods/*`, `/v1/describe`, `/v1/export.csv` (full) |
+| set   | set   | + `/v1/me`, `/v1/sync`, `/v1/foods/*`, `/v1/describe`, `/v1/export.zip` and `.csv` (full) |
 
 ## Layout
 
@@ -165,7 +165,8 @@ the usual `ProblemResponse`.
 | GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. 60/min per IP. |
 | POST | `/v1/foods/barcode-misses` `{id, barcode}` | The app reports a code the barcode route answered 404. 204, idempotent on `id`. Region, platform and app version come from the `X-*` headers; no user id is stored. 400 `invalid_id`, `invalid_barcode`. 60/min per IP. Feeds `barcode_misses` (V13). |
 | POST | `/v1/describe` `{text}` | Heuristic parse into items. 400 `invalid_text` (empty or > 1000 chars). |
-| GET | `/v1/export.csv` | Streams the caller's entries, weigh-ins and water. |
+| GET | `/v1/export.zip` | Streams everything the caller has as a zip: a CSV per kind of row (entries, day and meal notes, check-ins, water, weigh-ins, exercise, fasts, custom foods, saved meals), a daily summary, `settings.json` and a README (`resources/export/README.txt`). Local times follow `X-Time-Zone`, UTC without it. 10 per hour per IP, shared with the CSV. |
+| GET | `/v1/export.csv` | What 0.1 phones call: entries, weigh-ins and water as one CSV, unchanged. |
 
 ### Sync (`SyncRoutes`, `PostgresSyncRepository`)
 

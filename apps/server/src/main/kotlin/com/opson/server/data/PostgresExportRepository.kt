@@ -1,23 +1,26 @@
 package com.opson.server.data
 
+import com.opson.server.db.CustomFoodsTable
 import com.opson.server.db.Database
 import com.opson.server.db.DayRecordsTable
+import com.opson.server.db.ExercisesTable
+import com.opson.server.db.FastsTable
 import com.opson.server.db.LogEntriesTable
+import com.opson.server.db.MealFeelingsTable
+import com.opson.server.db.SavedMealsTable
+import com.opson.server.db.SyncedTable
+import com.opson.server.db.UserSettingsTable
 import com.opson.server.db.WeighInsTable
-import com.opson.server.db.toKotlinInstant
 import com.opson.server.di.ServerScope
-import com.opson.server.domain.ExportRecord
+import com.opson.server.domain.DiaryRow
 import com.opson.server.domain.ExportRepository
-import com.opson.server.domain.LogMethod
-import com.opson.server.domain.MealSlot
-import com.opson.server.domain.Nutrients
-import com.opson.server.domain.Precision
 import com.opson.server.domain.UserId
 import me.tatarka.inject.annotations.Inject
+import org.jetbrains.exposed.sql.Expression
+import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNotNull
 import org.jetbrains.exposed.sql.selectAll
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
@@ -26,7 +29,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * Postgres-backed [ExportRepository]. Each query sets a JDBC fetch size, and
  * with autocommit off (the pool default) the Postgres driver then reads the
  * rows through a cursor in chunks instead of all at once, so a long history
- * streams straight into the response.
+ * streams straight into the response. Rows go through the same mappers sync's
+ * pull uses.
  */
 @SingleIn(ServerScope::class)
 @ContributesBinding(ServerScope::class)
@@ -35,60 +39,32 @@ class PostgresExportRepository(
     private val database: Database,
 ) : ExportRepository {
 
-    override suspend fun export(userId: UserId, sink: suspend (ExportRecord) -> Unit) {
+    override suspend fun export(userId: UserId, sink: suspend (DiaryRow) -> Unit) {
         database.transaction {
-            val entries = LogEntriesTable.selectAll()
-                .where { (LogEntriesTable.userId eq userId.value) and (LogEntriesTable.deleted eq false) }
-                .orderBy(LogEntriesTable.day to SortOrder.ASC, LogEntriesTable.loggedAt to SortOrder.ASC)
-                .fetchSize(FETCH_SIZE)
-            for (row in entries) {
-                sink(
-                    ExportRecord.Entry(
-                        day = row[LogEntriesTable.day],
-                        loggedAt = row[LogEntriesTable.loggedAt].toKotlinInstant(),
-                        slot = MealSlot.fromWire(row[LogEntriesTable.slot]) ?: MealSlot.Uncategorized,
-                        name = row[LogEntriesTable.name],
-                        amountText = row[LogEntriesTable.amountText],
-                        grams = row[LogEntriesTable.grams].clean(),
-                        nutrients = Nutrients(
-                            kcal = row[LogEntriesTable.kcal].clean(),
-                            protein = row[LogEntriesTable.protein].clean(),
-                            carbs = row[LogEntriesTable.carbs].clean(),
-                            fat = row[LogEntriesTable.fat].clean(),
-                            fiber = row[LogEntriesTable.fiber].clean(),
-                        ),
-                        precision = Precision.fromWire(row[LogEntriesTable.precision]) ?: Precision.Estimate,
-                        method = LogMethod.fromWire(row[LogEntriesTable.method]) ?: LogMethod.Search,
-                    ),
-                )
-            }
-
-            val weighIns = WeighInsTable.selectAll()
-                .where { (WeighInsTable.userId eq userId.value) and (WeighInsTable.deleted eq false) }
-                .orderBy(WeighInsTable.measuredAt to SortOrder.ASC)
-                .fetchSize(FETCH_SIZE)
-            for (row in weighIns) {
-                sink(
-                    ExportRecord.Weight(
-                        measuredAt = row[WeighInsTable.measuredAt].toKotlinInstant(),
-                        kg = row[WeighInsTable.kg].clean() ?: 0.0,
-                    ),
-                )
-            }
-
-            val days = DayRecordsTable.selectAll()
-                .where {
-                    (DayRecordsTable.userId eq userId.value) and
-                        (DayRecordsTable.deleted eq false) and
-                        DayRecordsTable.waterMl.isNotNull()
-                }
-                .orderBy(DayRecordsTable.day to SortOrder.ASC)
-                .fetchSize(FETCH_SIZE)
-            for (row in days) {
-                val water = row[DayRecordsTable.waterMl] ?: continue
-                sink(ExportRecord.Water(day = row[DayRecordsTable.day], waterMl = water))
-            }
+            stream(LogEntriesTable, userId, sink, LogEntriesTable.day, LogEntriesTable.loggedAt) { it.toLogEntry() }
+            stream(WeighInsTable, userId, sink, WeighInsTable.measuredAt) { it.toWeighIn() }
+            stream(DayRecordsTable, userId, sink, DayRecordsTable.day) { it.toDayRecord() }
+            stream(MealFeelingsTable, userId, sink, MealFeelingsTable.day, MealFeelingsTable.slot) { it.toMealFeeling() }
+            stream(ExercisesTable, userId, sink, ExercisesTable.startedAt) { it.toExercise() }
+            stream(FastsTable, userId, sink, FastsTable.day) { it.toFast() }
+            stream(CustomFoodsTable, userId, sink, CustomFoodsTable.name) { it.toCustomFood() }
+            stream(SavedMealsTable, userId, sink, SavedMealsTable.name) { it.toSavedMeal() }
+            stream(UserSettingsTable, userId, sink) { it.toUserSettings() }
         }
+    }
+
+    private suspend fun stream(
+        table: SyncedTable,
+        userId: UserId,
+        sink: suspend (DiaryRow) -> Unit,
+        vararg order: Expression<*>,
+        map: (ResultRow) -> DiaryRow,
+    ) {
+        val rows = table.selectAll()
+            .where { (table.userId eq userId.value) and (table.deleted eq false) }
+            .orderBy(*order.map { it to SortOrder.ASC }.toTypedArray())
+            .fetchSize(FETCH_SIZE)
+        for (row in rows) sink(map(row))
     }
 
     private companion object {

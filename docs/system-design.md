@@ -381,7 +381,8 @@ errors in the `ProblemResponse` envelope.
 | POST | `/v1/foods/barcode-misses` | `{id, barcode}` after a 404 from the barcode route. 204, idempotent on the app's id. Region, platform and version from the `X-*` headers, GTIN computed server-side, no user id stored. |
 | POST | `/v1/describe` `{text}` | Parses "2 eggs and toast" into items: quantity + unit + food match, plus (0.2) the matched food and up to three alternatives. Heuristic, no AI: everyday words, restaurants, corrections and speech noise are handled by rules (`docs/plans/screens/describe.md`). |
 | POST | `/v1/describe/photo` `{image, note?}` | 0.2, behind `release.photo`. A base64 meal photo (JPEG, PNG or WebP by its bytes, 4 MB) and an optional note go to Anthropic's Messages API (`ANTHROPIC_API_KEY`, model `ANTHROPIC_PHOTO_MODEL`, default `claude-opus-5-5`), which lists the foods; each is matched through the same pipeline as `/v1/describe` and returned in its shape. Per user 10 per 10 minutes and 40 a day (429). 503 `photo_estimate_unavailable` with no key, 502 `photo_estimate_failed` when the model fails. The photo is never stored or logged; the log line is outcome, counts and latency. |
-| GET | `/v1/export.csv` | Every log entry, weigh-in and water day for the caller |
+| GET | `/v1/export.zip` | Everything the caller has: a CSV per kind of row, a daily summary, settings and a README. Local times in the phone's `X-Time-Zone` |
+| GET | `/v1/export.csv` | 0.1 phones: every log entry, weigh-in and water day for the caller |
 | GET/DELETE | `/v1/me` | Existing. Delete cascades through every table above. |
 
 Search ranking rule: exact name match, then prefix, then full text rank, then
