@@ -45,6 +45,7 @@ import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.submit_add
 import opson.libraries.resources.generated.resources.submit_after
+import opson.libraries.resources.generated.resources.submit_after_save
 import opson.libraries.resources.generated.resources.submit_allow_camera
 import opson.libraries.resources.generated.resources.submit_camera_body
 import opson.libraries.resources.generated.resources.submit_camera_body_ask
@@ -75,6 +76,7 @@ import opson.libraries.resources.generated.resources.submit_hidden_incomplete
 import opson.libraries.resources.generated.resources.submit_hidden_off
 import opson.libraries.resources.generated.resources.submit_hidden_title
 import opson.libraries.resources.generated.resources.submit_intro
+import opson.libraries.resources.generated.resources.submit_intro_save
 import opson.libraries.resources.generated.resources.submit_keep
 import opson.libraries.resources.generated.resources.submit_kept
 import opson.libraries.resources.generated.resources.submit_label_cd
@@ -82,6 +84,7 @@ import opson.libraries.resources.generated.resources.submit_label_hint
 import opson.libraries.resources.generated.resources.submit_label_title
 import opson.libraries.resources.generated.resources.submit_list_and
 import opson.libraries.resources.generated.resources.submit_missing
+import opson.libraries.resources.generated.resources.submit_missing_save
 import opson.libraries.resources.generated.resources.submit_more
 import opson.libraries.resources.generated.resources.submit_needed
 import opson.libraries.resources.generated.resources.submit_no_label_body
@@ -90,7 +93,9 @@ import opson.libraries.resources.generated.resources.submit_notice_by_hand
 import opson.libraries.resources.generated.resources.submit_notice_unavailable
 import opson.libraries.resources.generated.resources.submit_open_settings
 import opson.libraries.resources.generated.resources.submit_overline
+import opson.libraries.resources.generated.resources.submit_overline_foods
 import opson.libraries.resources.generated.resources.submit_per_serving
+import opson.libraries.resources.generated.resources.submit_photo_failed
 import opson.libraries.resources.generated.resources.submit_privacy
 import opson.libraries.resources.generated.resources.submit_read
 import opson.libraries.resources.generated.resources.submit_reading
@@ -99,11 +104,16 @@ import opson.libraries.resources.generated.resources.submit_retake
 import opson.libraries.resources.generated.resources.submit_retake_label
 import opson.libraries.resources.generated.resources.submit_review_body
 import opson.libraries.resources.generated.resources.submit_review_title
+import opson.libraries.resources.generated.resources.submit_save
 import opson.libraries.resources.generated.resources.submit_saving
+import opson.libraries.resources.generated.resources.submit_saving_save
 import opson.libraries.resources.generated.resources.submit_send_failed_body
+import opson.libraries.resources.generated.resources.submit_send_failed_body_save
 import opson.libraries.resources.generated.resources.submit_send_failed_offline
+import opson.libraries.resources.generated.resources.submit_send_failed_offline_save
 import opson.libraries.resources.generated.resources.submit_send_failed_title
 import opson.libraries.resources.generated.resources.submit_send_failed_too_many
+import opson.libraries.resources.generated.resources.submit_send_failed_too_many_save
 import opson.libraries.resources.generated.resources.submit_take
 import opson.libraries.resources.generated.resources.submit_title
 import opson.libraries.resources.generated.resources.submit_too_many_body
@@ -147,14 +157,15 @@ fun SubmitFoodScreen(
         ) {
             SheetHeader(
                 title = stringResource(Res.string.submit_title),
-                overline = stringResource(Res.string.submit_overline, stringResource(state.slot.sentenceName)),
+                overline = state.slot?.let { stringResource(Res.string.submit_overline, stringResource(it.sentenceName)) }
+                    ?: stringResource(Res.string.submit_overline_foods),
                 onBack = { onAction(SubmitFoodAction.BackTapped) },
             )
             when (val stage = state.stage) {
                 is SubmitStage.Photos -> PhotosBody(state, stage, onAction)
                 SubmitStage.Reading -> Waiting(state, Res.string.submit_reading, Res.string.submit_reading_body)
                 is SubmitStage.Review -> ReviewBody(state, stage.form, onAction)
-                SubmitStage.Saving -> Waiting(state, Res.string.submit_saving, null)
+                SubmitStage.Saving -> Waiting(state, if (state.slot == null) Res.string.submit_saving_save else Res.string.submit_saving, null)
                 SubmitStage.NoLabel -> Calm(
                     state, Res.string.submit_no_label_title, Res.string.submit_no_label_body,
                     primary = Res.string.submit_retake_label to SubmitFoodAction.RetakeLabelTapped,
@@ -189,11 +200,7 @@ fun SubmitFoodScreen(
                 )
                 is SubmitStage.SendFailed -> Calm(
                     state, Res.string.submit_send_failed_title,
-                    when {
-                        stage.tooMany -> Res.string.submit_send_failed_too_many
-                        stage.offline -> Res.string.submit_send_failed_offline
-                        else -> Res.string.submit_send_failed_body
-                    },
+                    sendFailedBody(stage, logged = state.slot != null),
                     primary = Res.string.submit_try_again to SubmitFoodAction.TryAgainTapped,
                     secondary = Res.string.submit_done to SubmitFoodAction.DoneTapped,
                     onAction = onAction,
@@ -205,9 +212,14 @@ fun SubmitFoodScreen(
 
 @Composable
 private fun ColumnScope.PhotosBody(state: SubmitFoodState, stage: SubmitStage.Photos, onAction: (SubmitFoodAction) -> Unit) {
-    Text(stringResource(Res.string.submit_intro), typography = AppTheme.type.body, color = AppTheme.colors.ink)
+    Text(
+        stringResource(if (state.slot == null) Res.string.submit_intro_save else Res.string.submit_intro),
+        typography = AppTheme.type.body,
+        color = AppTheme.colors.ink,
+    )
     PhotoSlot(PackSide.Front, state, onAction)
     PhotoSlot(PackSide.Label, state, onAction)
+    if (state.photoFailed != null) NoteBanner(stringResource(Res.string.submit_photo_failed))
     ButtonPrimary(
         onClick = { onAction(SubmitFoodAction.ReadTapped) },
         enabled = stage.canRead,
@@ -362,19 +374,31 @@ private fun ReviewBody(state: SubmitFoodState, form: SubmitForm, onAction: (Subm
     }
     form.numbers?.let { Numbers(it, form.checks, onAction) }
     form.hidden?.let { Hidden(it) }
+    val slot = state.slot
     ButtonPrimary(
         onClick = { onAction(SubmitFoodAction.SubmitTapped) },
         enabled = form.canSubmit,
         modifier = Modifier.fillMaxWidth(),
-    ) { Text(stringResource(Res.string.submit_add, stringResource(state.slot.sentenceName))) }
+    ) { Text(if (slot == null) stringResource(Res.string.submit_save) else stringResource(Res.string.submit_add, stringResource(slot.sentenceName))) }
     if (form.missing.isNotEmpty()) {
         Text(
-            stringResource(Res.string.submit_missing, fieldList(form.missing)),
+            stringResource(if (slot == null) Res.string.submit_missing_save else Res.string.submit_missing, fieldList(form.missing)),
             typography = AppTheme.type.secondary,
             color = AppTheme.colors.muted,
         )
     }
-    Text(stringResource(Res.string.submit_after), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+    Text(
+        stringResource(if (slot == null) Res.string.submit_after_save else Res.string.submit_after),
+        typography = AppTheme.type.secondary,
+        color = AppTheme.colors.muted,
+    )
+}
+
+/** Why the review copy did not go, said for a food that was logged or only saved. */
+private fun sendFailedBody(stage: SubmitStage.SendFailed, logged: Boolean): StringResource = when {
+    stage.tooMany -> if (logged) Res.string.submit_send_failed_too_many else Res.string.submit_send_failed_too_many_save
+    stage.offline -> if (logged) Res.string.submit_send_failed_offline else Res.string.submit_send_failed_offline_save
+    else -> if (logged) Res.string.submit_send_failed_body else Res.string.submit_send_failed_body_save
 }
 
 @Composable

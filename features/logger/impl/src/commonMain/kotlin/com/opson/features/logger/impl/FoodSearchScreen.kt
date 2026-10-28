@@ -69,6 +69,8 @@ import opson.libraries.resources.generated.resources.adding_no_foods_yet
 import opson.libraries.resources.generated.resources.adding_no_saved_match
 import opson.libraries.resources.generated.resources.adding_not_finding
 import opson.libraries.resources.generated.resources.adding_not_finding_describe
+import opson.libraries.resources.generated.resources.adding_not_finding_pack
+import opson.libraries.resources.generated.resources.adding_not_finding_pack_body
 import opson.libraries.resources.generated.resources.adding_not_finding_save
 import opson.libraries.resources.generated.resources.adding_scope_all
 import opson.libraries.resources.generated.resources.adding_scope_saved
@@ -360,7 +362,10 @@ private fun Caption(text: String) {
     Text(text = text, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
 }
 
-/** "Not finding it?" under the results: Describe it, Save the name. */
+/**
+ * "Can't find it?" under the results: Describe it, Save the name, and with `release.submitFood`
+ * the pack's label, which adds the exact food to the person's foods and Opson's food database.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun NotFinding(state: FoodSearchState, away: (SearchAction) -> Unit, onAction: (SearchAction) -> Unit) {
@@ -376,6 +381,32 @@ private fun NotFinding(state: FoodSearchState, away: (SearchAction) -> Unit, onA
             if (state.canDescribe) InlineLink(stringResource(Res.string.adding_not_finding_describe)) { away(SearchAction.DescribeTapped) }
             InlineLink(stringResource(Res.string.adding_not_finding_save)) { onAction(SearchAction.SaveNameTapped) }
         }
+        if (state.canAddFood) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            PackRow(onClick = { away(SearchAction.AddFoodTapped(underResults = true)) })
+        }
+    }
+}
+
+/** The pack's label, as a row of its own: it is the one way out here that adds an exact food. */
+@Composable
+private fun PackRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { role = Role.Button }
+            .bounceClick(scaleDown = 0.98f, onClick = onClick)
+            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        ToneIcon(icon = AppIcons.PostAdd, color = AppTheme.colors.accent, size = ToneIconSize.Small)
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text = stringResource(Res.string.adding_not_finding_pack), typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.accent)
+            Text(text = stringResource(Res.string.adding_not_finding_pack_body), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        }
+        Icon(icon = AppIcons.ChevronRight, size = IconSize.Medium, color = AppTheme.colors.muted)
     }
 }
 
@@ -411,7 +442,12 @@ private fun NoResults(state: FoodSearchState, query: String, away: (SearchAction
                 Text(stringResource(Res.string.logger_empty_save))
             }
             if (state.canAddFood) {
-                ButtonPrimary(onClick = { away(SearchAction.AddFoodTapped) }, style = ButtonStyle.Tonal, icon = AppIcons.PhotoCamera, modifier = Modifier.fillMaxWidth()) {
+                ButtonPrimary(
+                    onClick = { away(SearchAction.AddFoodTapped(underResults = false)) },
+                    style = ButtonStyle.Tonal,
+                    icon = AppIcons.PostAdd,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(stringResource(Res.string.submit_add_this_food))
                 }
             }

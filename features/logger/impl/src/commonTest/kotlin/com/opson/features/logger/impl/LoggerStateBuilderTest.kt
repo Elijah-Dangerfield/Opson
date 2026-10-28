@@ -78,14 +78,23 @@ class LoggerStateBuilderTest {
 
     @Test
     fun theGridInTheDesignsOrderWithEveryFlagOn() {
-        val choices = LoggerChoices(slot = MealSlot.Dinner, scanAvailable = true, photoAvailable = true, voiceEnabled = true, fastingReleased = true)
+        val choices = LoggerChoices(
+            slot = MealSlot.Dinner,
+            scanAvailable = true,
+            photoAvailable = true,
+            packAvailable = true,
+            voiceEnabled = true,
+            fastingReleased = true,
+        )
         val dayBefore = day(yesterday, item("Adobo", MealSlot.Dinner, day = yesterday))
 
         val actions = build(inputs(dayBefore = dayBefore, settings = Settings(fasting = true)), choices = choices).actions
 
+        // The two cameras apart: the pack's label beside the scanner, the meal estimate after it.
         assertEquals(
             listOf(
-                AddAction.SearchFood, AddAction.ScanBarcode, AddAction.Photo, AddAction.SayOrType(voice = true), AddAction.SavedMeals,
+                AddAction.SearchFood, AddAction.ScanBarcode, AddAction.PackagedFood, AddAction.Photo, AddAction.SayOrType(voice = true),
+                AddAction.SavedMeals,
                 AddAction.CopyMeal(MealSlot.Dinner), AddAction.Water, AddAction.WeighIn, AddAction.Note,
                 AddAction.Fasting,
             ),

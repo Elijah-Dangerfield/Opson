@@ -56,9 +56,11 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
         telemetry = loggerTelemetry,
         scanEnabled = scanFlag(false),
         photoEnabled = photoFlag(false),
+        submitFoodEnabled = submitFoodFlag(false),
         voice = DescribeVoice(speech, voiceFlag(voiceOn), telemetry),
         fastingRelease = fastingFlag(false),
         exerciseRelease = ExerciseRelease { false },
+        submittedFoods = FakeSubmittedFoods(),
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {

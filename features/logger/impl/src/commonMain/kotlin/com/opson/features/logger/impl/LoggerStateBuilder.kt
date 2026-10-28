@@ -31,6 +31,8 @@ data class LoggerChoices(
     val scanAvailable: Boolean = false,
     /** `release.photo`, read once when the sheet opens. */
     val photoAvailable: Boolean = false,
+    /** `release.submitFood`, read once when the sheet opens. */
+    val packAvailable: Boolean = false,
     /** `release.voice`, read once when the sheet opens. */
     val voiceEnabled: Boolean = false,
     /** `release.fasting`, read once when the sheet opens. */
@@ -110,6 +112,8 @@ object LoggerStateBuilder {
     private fun actions(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot, choices: LoggerChoices): List<AddAction> = buildList {
         add(AddAction.SearchFood)
         if (choices.scanAvailable) add(AddAction.ScanBarcode)
+        // Next to the scanner, both being ways in for a pack; the meal estimate after, so the two cameras read apart.
+        if (choices.packAvailable) add(AddAction.PackagedFood)
         if (choices.photoAvailable) add(AddAction.Photo)
         add(AddAction.SayOrType(voice = choices.voiceEnabled))
         add(AddAction.SavedMeals)
@@ -123,7 +127,7 @@ object LoggerStateBuilder {
 
     private fun recentRows(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot, choices: LoggerChoices, bare: FormatContext): List<FoodRowUi> {
         val added = FoodPicks.addedSince(inputs.day, slot, choices.seen)
-        return recentPicks(inputs).map { it.toRow(policy, bare, added = it.key in added) }
+        return recentPicks(inputs).map { it.toRow(policy, bare, added = it.key in added, reviews = inputs.reviews) }
     }
 
     private fun describedLines(review: DescribeReview, policy: VisibilityPolicy, bare: FormatContext): List<DescribedLine> {

@@ -21,6 +21,7 @@ import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.FoodCatalog
+import com.opson.libraries.foods.SubmittedFoods
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Visibility
@@ -75,9 +76,11 @@ class LoggerViewModel(
     private val telemetry: LoggerTelemetry,
     scanEnabled: BarcodeScanEnabled,
     photoEnabled: PhotoEstimateEnabled,
+    submitFoodEnabled: SubmitFoodEnabled,
     private val voice: DescribeVoice,
     fastingRelease: FastingRelease,
     exerciseRelease: ExerciseRelease,
+    private val submittedFoods: SubmittedFoods,
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
     initialStateArg = LoggerState(pane = route.openingPane, height = route.openingHeight),
 ) {
@@ -95,6 +98,7 @@ class LoggerViewModel(
             slotChosen = route.slot != null,
             scanAvailable = scanEnabled(),
             photoAvailable = photoEnabled(),
+            packAvailable = submitFoodEnabled(),
             voiceEnabled = voice.enabled(),
             fastingReleased = fastingRelease.isOn(),
             exerciseReleased = exerciseRelease.isOn(),
@@ -155,6 +159,7 @@ class LoggerViewModel(
             LoggerAction.SearchFoodTapped -> sendEvent(LoggerEvent.OpenSearch(day, slot()))
             LoggerAction.BarcodeTapped -> if (model.choices.scanAvailable) sendEvent(LoggerEvent.OpenScanner(day, slot()))
             LoggerAction.PhotoTapped -> if (model.choices.photoAvailable) sendEvent(LoggerEvent.OpenPhoto(day, slot()))
+            LoggerAction.PackagedFoodTapped -> if (model.choices.packAvailable) sendEvent(LoggerEvent.OpenPackagedFood(day, slot()))
             LoggerAction.DescribeItTapped -> {
                 action.choose { copy(pane = LoggerPane.Describe, height = SheetHeight.Full) }
                 // With voice on the tile is "Say or type it" under a mic, so the tap already asked to listen.
@@ -475,7 +480,7 @@ class LoggerViewModel(
                 now = clock.now().toLocalDateTime(zone),
                 timeZone = zone,
             )
-        }
+        }.combine(submittedFoods.reviews) { inputs, reviews -> inputs.copy(reviews = reviews) }
     }
 
     // Voice log (docs/plans/screens/voice.md). Speech only ever fills describeText;

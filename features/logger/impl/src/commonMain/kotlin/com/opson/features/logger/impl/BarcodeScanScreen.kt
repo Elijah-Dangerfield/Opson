@@ -320,7 +320,7 @@ private fun Miss(stage: ScanStage.Miss, onAction: (BarcodeScanAction) -> Unit) {
         if (stage.canAddFood) {
             ButtonPrimary(
                 onClick = { onAction(BarcodeScanAction.AddFoodTapped) },
-                icon = AppIcons.PhotoCamera,
+                icon = AppIcons.PostAdd,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(Res.string.submit_add_this_food))

@@ -96,7 +96,7 @@ object FoodSearchStateBuilder {
             FoodPicks.addedSince(inputs.day, slot, choices.seen).keys
         }
         val known = if (choices.searchOptions) inputs.known else null
-        fun rows(picks: List<FoodPick>) = picks.map { it.toRow(policy, bare, it.key in added, known) }
+        fun rows(picks: List<FoodPick>) = picks.map { it.toRow(policy, bare, it.key in added, known, inputs.reviews) }
 
         return when (val listing = listing(inputs, slot, choices)) {
             Listing.Searching -> SearchBody.Searching

@@ -24,6 +24,8 @@ import com.opson.features.logger.ExerciseRoute
 import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
+import com.opson.features.logger.SubmitEntry
+import com.opson.features.logger.SubmitFoodRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
@@ -237,6 +239,10 @@ class LoggerFeatureEntryPoint(
                     goBack()
                     navigate(PhotoEstimateRoute(event.day.toString(), event.slot))
                 }
+                is LoggerEvent.OpenPackagedFood -> router.batch {
+                    goBack()
+                    navigate(SubmitFoodRoute(event.day.toString(), event.slot, entry = SubmitEntry.AddSheet))
+                }
                 LoggerEvent.OpenWeighIn -> router.batch {
                     goBack()
                     navigate(WeightRoute())
@@ -303,7 +309,7 @@ class LoggerFeatureEntryPoint(
                 )
                 // Over search, so Back from these lands here.
                 is SearchEvent.OpenScanner -> router.navigate(BarcodeScanRoute(event.day.toString(), event.slot, overSearch = true))
-                is SearchEvent.OpenSubmitFood -> router.navigate(SubmitFoodRoute(event.day.toString(), event.slot, fromSearch = true))
+                is SearchEvent.OpenSubmitFood -> router.navigate(SubmitFoodRoute(event.day.toString(), event.slot, entry = event.entry))
                 is SearchEvent.OpenDescribe -> router.navigate(
                     LoggerRoute(slot = event.slot, dayIso = event.day.toString(), start = LoggerStart.Describe, describeText = event.text),
                 )
@@ -426,7 +432,7 @@ class LoggerFeatureEntryPoint(
                 // The pack's photos take the scanner's place, for the code that missed.
                 is BarcodeScanEvent.OpenSubmitFood -> router.batch {
                     goBack()
-                    navigate(SubmitFoodRoute(event.day.toString(), event.slot, barcode = event.code))
+                    navigate(SubmitFoodRoute(event.day.toString(), event.slot, barcode = event.code, entry = SubmitEntry.BarcodeMiss))
                 }
                 is BarcodeScanEvent.OpenSearch -> router.batch {
                     goBack()

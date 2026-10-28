@@ -8,6 +8,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -28,8 +29,9 @@ class FoodsTabTest : CoroutineTest() {
     private val customFoods = FakeCustomFoodRepository(listOf(FoodsFixtures.pandesal))
     private val savedMeals = FakeSavedMealRepository(FoodsFixtures.savedMeals)
     private val policySource = FakePolicySource()
+    private val submittedFoods = FakeSubmittedFoods()
 
-    private fun vm() = FoodsViewModel(customFoods, savedMeals, diary, policySource)
+    private fun vm() = FoodsViewModel(customFoods, savedMeals, diary, policySource, submittedFoods)
 
     private fun TestScope.events(vm: FoodsViewModel): List<FoodsEvent> {
         val events = mutableListOf<FoodsEvent>()
@@ -144,5 +146,17 @@ class FoodsTabTest : CoroutineTest() {
             events,
         )
         assertEquals(FoodsTarget.Food(FoodRef.Custom("pandesal")), vm.state.yourFoods.first().target)
+    }
+
+    @Test
+    fun aFoodOfTheirsWaitingForReviewReadsUnverifiedUntilApproved() = runUnitTest {
+        val vm = vm()
+        assertEquals(listOf(false), vm.state.yourFoods.map { it.unverified })
+
+        submittedFoods.reviews.value = mapOf(FoodsFixtures.pandesal.id to ReviewStatus.Pending)
+        assertEquals(listOf(true), vm.state.yourFoods.map { it.unverified })
+
+        submittedFoods.reviews.value = mapOf(FoodsFixtures.pandesal.id to ReviewStatus.Approved)
+        assertEquals(listOf(false), vm.state.yourFoods.map { it.unverified })
     }
 }

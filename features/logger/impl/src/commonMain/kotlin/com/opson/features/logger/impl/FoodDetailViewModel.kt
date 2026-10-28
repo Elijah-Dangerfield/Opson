@@ -21,6 +21,8 @@ import com.opson.libraries.foods.AmountUnit
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.PortionAmount
+import com.opson.libraries.foods.ReviewStatus
+import com.opson.libraries.foods.SubmittedFoods
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.foods.isMeasure
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -46,6 +48,7 @@ sealed interface FoodDetailAction {
     data class FoodArrived(val food: AmountFood, val last: LogItem?) : FoodDetailAction
     data object FoodMissing : FoodDetailAction
     data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy, val day: Day) : FoodDetailAction
+    data class ReviewArrived(val status: ReviewStatus?) : FoodDetailAction
     data class HistoryArrived(val days: List<Day>) : FoodDetailAction
 
     /** Whether the food is on the Recent row now. */
@@ -112,6 +115,7 @@ class FoodDetailViewModel(
     selectedDay: SelectedDay,
     private val clock: Clock,
     private val logger: FoodLogger,
+    private val submittedFoods: SubmittedFoods,
 ) : SEAViewModel<FoodDetailState, FoodDetailEvent, FoodDetailAction>(
     initialStateArg = FoodDetailState(slot = route.slot ?: MealSlot.Dinner),
 ) {
@@ -141,6 +145,7 @@ class FoodDetailViewModel(
         val day: Day? = null,
         val history: List<Day> = emptyList(),
         val inRecents: Boolean = false,
+        val review: ReviewStatus? = null,
     )
 
     init {
@@ -156,6 +161,12 @@ class FoodDetailViewModel(
         viewModelScope.launch {
             diary.recentFoods(limit = RECENT_SHOWN).map { recent -> recent.any { it.foodRef() == ref } }.distinctUntilChanged().collect {
                 takeAction(FoodDetailAction.RecentsArrived(it))
+            }
+        }
+        // The person's own food says whether it is still waiting for review in Opson's food database.
+        if (ref is FoodRef.Custom) {
+            viewModelScope.launch {
+                submittedFoods.reviews.map { it[ref.id] }.distinctUntilChanged().collect { takeAction(FoodDetailAction.ReviewArrived(it)) }
             }
         }
         viewModelScope.launch {
@@ -193,6 +204,7 @@ class FoodDetailViewModel(
             }
             FoodDetailAction.FoodMissing -> action.updateState { it.copy(loading = false, missing = true) }
             is FoodDetailAction.InputsArrived -> action.rebuild { copy(settings = action.settings, policy = action.policy, day = action.day) }
+            is FoodDetailAction.ReviewArrived -> action.rebuild { copy(review = action.status) }
             is FoodDetailAction.HistoryArrived -> action.rebuild { copy(history = action.days) }
             is FoodDetailAction.RecentsArrived -> action.rebuild { copy(inRecents = action.inRecents) }
             is FoodDetailAction.SlotSuggested -> action.choose { copy(slot = action.slot) }
@@ -305,6 +317,7 @@ class FoodDetailViewModel(
             day = current.day,
             history = current.history,
             inRecents = current.inRecents,
+            review = current.review,
             today = calendar.today(),
             now = clock.now().toLocalDateTime(calendar.timeZone()).time,
         )

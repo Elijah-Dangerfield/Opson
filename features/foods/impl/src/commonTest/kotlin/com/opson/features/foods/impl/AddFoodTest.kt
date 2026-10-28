@@ -19,8 +19,9 @@ import kotlin.test.assertTrue
 class AddFoodTest : CoroutineTest() {
     private val customFoods = FakeCustomFoodRepository()
     private val policySource = FakePolicySource()
+    private val submitFood = FakeSubmitFoodAvailability()
 
-    private fun vm() = AddFoodViewModel(customFoods, policySource)
+    private fun vm() = AddFoodViewModel(customFoods, policySource, submitFood)
 
     private fun TestScope.events(vm: AddFoodViewModel): List<AddFoodEvent> {
         val events = mutableListOf<AddFoodEvent>()
@@ -190,5 +191,29 @@ class AddFoodTest : CoroutineTest() {
         vm.takeAction(AddFoodAction.CloseTapped)
 
         assertEquals(listOf<AddFoodEvent>(AddFoodEvent.Close), events)
+    }
+
+    @Test
+    fun withAddingFromThePackOnThePhotosComeFirstAndOpenTheFlowThatSavesWithoutLogging() = runUnitTest {
+        submitFood.on = true
+        val vm = vm()
+        val events = events(vm)
+        assertTrue(vm.state.canUsePack)
+
+        vm.takeAction(AddFoodAction.PackTapped)
+
+        assertEquals(listOf<AddFoodEvent>(AddFoodEvent.OpenPack), events)
+        assertTrue(customFoods.foods.value.isEmpty(), "the photos save it themselves")
+    }
+
+    @Test
+    fun withAddingFromThePackOffOnlyTypingIsOffered() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        assertFalse(vm.state.canUsePack)
+
+        vm.takeAction(AddFoodAction.PackTapped)
+
+        assertTrue(events.isEmpty())
     }
 }

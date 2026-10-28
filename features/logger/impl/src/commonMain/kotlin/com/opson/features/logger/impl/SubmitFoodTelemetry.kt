@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import com.opson.features.logger.SubmitEntry
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.logEvent
 import com.opson.libraries.foods.SubmissionOrigin
@@ -24,7 +25,8 @@ enum class ReadOutcome(val wire: String) {
  * barcode, the food's name, a photo or a number: counts, sides and outcomes only.
  */
 interface SubmitFoodTelemetry {
-    fun started(origin: SubmissionOrigin)
+    /** [origin] is whether a code was scanned, as the server keeps it; [entry] is the screen it was opened from. */
+    fun started(origin: SubmissionOrigin, entry: SubmitEntry)
 
     fun photoTaken(side: PackSide, fromCamera: Boolean)
 
@@ -32,11 +34,12 @@ interface SubmitFoodTelemetry {
     fun read(outcome: ReadOutcome, checks: Int, unsure: Int)
 
     /**
-     * Logged and handed to the server. [edited] when the person changed what
-     * the model read; [kept] checks they confirmed; [sent] false when only
-     * the review copy failed.
+     * Saved (and logged, where there is a meal) and handed to the server.
+     * [edited] when the person changed what the model read; [kept] checks
+     * they confirmed; [sent] false when only the review copy failed.
      */
-    fun submitted(origin: SubmissionOrigin, edited: Boolean, kept: Int, numbersShown: Boolean, sent: Boolean)
+    @Suppress("LongParameterList")
+    fun submitted(origin: SubmissionOrigin, entry: SubmitEntry, edited: Boolean, kept: Int, numbersShown: Boolean, sent: Boolean)
 
     /** Left before submitting, at [stage]. */
     fun abandoned(stage: String)
@@ -47,8 +50,8 @@ interface SubmitFoodTelemetry {
 class AppEventsSubmitFoodTelemetry : SubmitFoodTelemetry {
     private val logger = KLog.withTag("SubmitFood")
 
-    override fun started(origin: SubmissionOrigin) {
-        logger.logEvent("food_add.started", "origin" to origin.wire)
+    override fun started(origin: SubmissionOrigin, entry: SubmitEntry) {
+        logger.logEvent("food_add.started", "origin" to origin.wire, "entry" to entry.wire)
     }
 
     override fun photoTaken(side: PackSide, fromCamera: Boolean) {
@@ -63,10 +66,12 @@ class AppEventsSubmitFoodTelemetry : SubmitFoodTelemetry {
         logger.logEvent("food_add.read", "outcome" to outcome.wire, "checks" to checks, "unsure" to unsure)
     }
 
-    override fun submitted(origin: SubmissionOrigin, edited: Boolean, kept: Int, numbersShown: Boolean, sent: Boolean) {
+    @Suppress("LongParameterList")
+    override fun submitted(origin: SubmissionOrigin, entry: SubmitEntry, edited: Boolean, kept: Int, numbersShown: Boolean, sent: Boolean) {
         logger.logEvent(
             "food_add.submitted",
             "origin" to origin.wire,
+            "entry" to entry.wire,
             "edited" to edited,
             "kept" to kept,
             "numbers_shown" to numbersShown,

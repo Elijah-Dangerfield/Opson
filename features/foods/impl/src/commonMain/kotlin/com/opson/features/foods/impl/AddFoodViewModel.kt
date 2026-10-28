@@ -1,6 +1,7 @@
 package com.opson.features.foods.impl
 
 import androidx.lifecycle.viewModelScope
+import com.opson.features.logger.SubmitFoodAvailability
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -14,13 +15,18 @@ import opson.libraries.resources.generated.resources.foods_food_saved
 /**
  * Add a food: a name, where it is from, what a serving is, and whatever nutrition the person
  * knows, asked only for the numbers their mode shows. Saved with [CustomFoodRepository]; it
- * then shows on the Foods tab and first in the logger's search.
+ * then shows on the Foods tab and first in the logger's search. With `release.submitFood` on, the
+ * pack's photos come first ([AddFoodAction.PackTapped]), and typing stays for everything else.
  */
 @Inject
 class AddFoodViewModel(
     private val customFoods: CustomFoodRepository,
     policySource: VisibilityPolicySource,
-) : SEAViewModel<AddFoodState, AddFoodEvent, AddFoodAction>(initialStateArg = AddFoodState()) {
+    submitFood: SubmitFoodAvailability,
+) : SEAViewModel<AddFoodState, AddFoodEvent, AddFoodAction>(initialStateArg = AddFoodState(canUsePack = submitFood.available())) {
+
+    /** Read once when the screen opens, like the logger's flags. */
+    private val canUsePack: Boolean = submitFood.available()
 
     private var form = FoodForm()
 
@@ -51,6 +57,7 @@ class AddFoodViewModel(
             }
             AddFoodAction.SaveTapped -> save()
             AddFoodAction.CloseTapped -> sendEvent(AddFoodEvent.Close)
+            AddFoodAction.PackTapped -> if (canUsePack && !saved) sendEvent(AddFoodEvent.OpenPack)
         }
     }
 
@@ -71,6 +78,6 @@ class AddFoodViewModel(
     private suspend fun AddFoodAction.rebuild() {
         val current = form
         val currentPolicy = policy
-        updateState { AddFoodStateBuilder.build(current, currentPolicy) }
+        updateState { AddFoodStateBuilder.build(current, currentPolicy, canUsePack) }
     }
 }

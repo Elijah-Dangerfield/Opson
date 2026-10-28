@@ -1,5 +1,6 @@
 package com.opson.features.foods.impl
 
+import com.opson.features.logger.SubmitFoodAvailability
 import com.opson.libraries.core.Catching
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -8,7 +9,9 @@ import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSearchResult
 import com.opson.libraries.foods.ParsedItem
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.SearchOptions
+import com.opson.libraries.foods.SubmittedFoods
 import kotlinx.coroutines.flow.StateFlow
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.DayWrite
@@ -228,4 +231,18 @@ class FakeSettingsRepository(initial: Settings = Settings()) : SettingsRepositor
 
     override suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): Settings =
         transform(state.value).also { state.value = it }
+}
+
+/** [SubmittedFoods] in memory: the marks a screen reads. */
+class FakeSubmittedFoods(initial: Map<String, ReviewStatus> = emptyMap()) : SubmittedFoods {
+    override val reviews = MutableStateFlow(initial)
+
+    override suspend fun sent(customFoodId: String, submissionId: String, foodId: String) {
+        reviews.value = reviews.value + (customFoodId to ReviewStatus.Pending)
+    }
+}
+
+/** The `release.submitFood` flag, fixed. */
+class FakeSubmitFoodAvailability(var on: Boolean = false) : SubmitFoodAvailability {
+    override fun available(): Boolean = on
 }

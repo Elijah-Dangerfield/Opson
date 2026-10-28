@@ -24,6 +24,8 @@ import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
+import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
@@ -31,7 +33,10 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.thenIf
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.foods_unverified
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 /** A one-off message for the snackbar. Every Foods view model's toast event carries one. */
 data class Toast(val message: StringResource, val args: List<Any> = emptyList())
@@ -98,6 +103,8 @@ internal fun FoodsRow(
     buttonContainer: ColorResource = AppTheme.colors.accentTint,
     buttonContent: ColorResource = AppTheme.colors.accent,
     showDivider: Boolean = true,
+    /** Sent to Opson's food database and not checked yet. */
+    unverified: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -117,6 +124,12 @@ internal fun FoodsRow(
                 Text(text = name, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (!sub.isNullOrBlank()) {
                     Text(text = sub, typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                if (unverified) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Icon(icon = AppIcons.Schedule, size = 12.dp, color = AppTheme.colors.muted)
+                        Text(text = stringResource(Res.string.foods_unverified), typography = AppTheme.type.captionStrong, color = AppTheme.colors.muted, maxLines = 1)
+                    }
                 }
             }
             NutrientText(

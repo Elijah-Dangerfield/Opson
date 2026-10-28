@@ -1,11 +1,14 @@
 package com.opson.features.logger.impl
 
+import com.opson.features.logger.SubmitEntry
+import com.opson.features.logger.SubmitFoodRoute
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.LabelCheckCode
 import com.opson.libraries.foods.LabelNutrient
 import com.opson.libraries.foods.LabelParse
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.SubmissionOrigin
 import com.opson.libraries.foods.SubmitResult
 import com.opson.libraries.nutrition.PresetId
@@ -31,16 +34,26 @@ class SubmitFoodViewModelTest : CoroutineTest() {
     private val permissions = FakeCameraPermissions()
     private val telemetry = RecordingSubmitFoodTelemetry()
     private val policySource = FakePolicySource()
+    private val submittedFoods = FakeSubmittedFoods()
     private val front = MealPhoto(byteArrayOf(1))
     private val label = MealPhoto(byteArrayOf(2))
 
-    private fun vm(barcode: String? = SubmitFoodFixtures.BARCODE, fromSearch: Boolean = false) = SubmitFoodViewModel(
-        route = SubmitFoodRoute(LoggerFixtures.today.toString(), MealSlot.Breakfast, barcode = barcode, fromSearch = fromSearch),
+    private fun vm(
+        barcode: String? = SubmitFoodFixtures.BARCODE,
+        entry: SubmitEntry = if (barcode != null) SubmitEntry.BarcodeMiss else SubmitEntry.EmptySearch,
+    ) = vmFor(SubmitFoodRoute(LoggerFixtures.today.toString(), MealSlot.Breakfast, barcode = barcode, entry = entry))
+
+    /** From the Foods tab's Add a food: no day, no meal, saved only. */
+    private fun saveOnly() = vmFor(SubmitFoodRoute(entry = SubmitEntry.Foods))
+
+    private fun vmFor(route: SubmitFoodRoute) = SubmitFoodViewModel(
+        route = route,
         labels = labels,
         customFoods = customFoods,
         logger = FoodLogger(diary, FakeFoodCatalog(), FakeRecentLogEvents(), RecordingTelemetry(), Clock.fixed(NOON)),
         permissions = permissions,
         telemetry = telemetry,
+        submittedFoods = submittedFoods,
         picker = FakeMealPhotoPicker(),
         policySource = policySource,
     )
@@ -76,9 +89,21 @@ class SubmitFoodViewModelTest : CoroutineTest() {
         val scanned = vm()
         settle()
         assertEquals(SubmitStage.Photos(canRead = false), scanned.state.stage)
-        vm(barcode = null, fromSearch = true)
+        vm(barcode = null)
+        vm(barcode = null, entry = SubmitEntry.SearchResults)
+        vm(barcode = null, entry = SubmitEntry.AddSheet)
+        saveOnly()
         settle()
-        assertEquals(listOf("started:barcode", "started:search"), telemetry.events)
+        assertEquals(
+            listOf(
+                "started:barcode:barcode_miss",
+                "started:search:empty_search",
+                "started:search:search_results",
+                "started:search:add_sheet",
+                "started:search:foods",
+            ),
+            telemetry.events,
+        )
     }
 
     @Test
@@ -188,7 +213,7 @@ class SubmitFoodViewModelTest : CoroutineTest() {
         assertEquals(SubmitFoodFixtures.BARCODE, scanned.form.barcode.text)
 
         labels.parse = SubmitFoodFixtures.read.copy(facts = SubmitFoodFixtures.facts.copy(barcode = null))
-        val searched = reviewing(vm(barcode = null, fromSearch = true))
+        val searched = reviewing(vm(barcode = null))
         searched.takeAction(SubmitFoodAction.FieldTyped(SubmitFoodForm.BARCODE, "4006381333931"))
         settle()
         assertEquals("4006381333931", searched.form.barcode.text)
@@ -235,7 +260,7 @@ class SubmitFoodViewModelTest : CoroutineTest() {
         assertContentEquals(label.jpeg, sent.label)
 
         assertEquals(listOf<SubmitFoodEvent>(SubmitFoodEvent.Finished("Oats & honey granola bar", MealSlot.Breakfast, sent = true)), events)
-        assertEquals("submitted:barcode:edited=false:kept=1:shown=true:sent=true", telemetry.events.last())
+        assertEquals("submitted:barcode:barcode_miss:edited=false:kept=1:shown=true:sent=true", telemetry.events.last())
     }
 
     @Test
@@ -321,5 +346,82 @@ class SubmitFoodViewModelTest : CoroutineTest() {
         assertEquals(1, labels.submitted.size)
         assertEquals(listOf<SubmitFoodEvent>(SubmitFoodEvent.DayClosed(LoggerFixtures.today, sent = true)), events)
         assertTrue(telemetry.events.last().endsWith("sent=true"))
+    }
+
+    @Test
+    fun sendingItMarksTheirOwnCopyUnverifiedAndNamesItOnTheSubmission() = runUnitTest {
+        val vm = reviewing()
+        vm.takeAction(SubmitFoodAction.SubmitTapped)
+        settle()
+
+        val custom = customFoods.foods.value.single()
+        assertEquals(custom.id, labels.submitted.single().customFoodId)
+        assertEquals(listOf(Triple(custom.id, "submission-1", "food-1")), submittedFoods.sent)
+        assertEquals(mapOf(custom.id to ReviewStatus.Pending), submittedFoods.reviews.value)
+    }
+
+    @Test
+    fun aCopyThatFailedToSendIsNotMarked() = runUnitTest {
+        labels.submit = SubmitResult.Failed(offline = false)
+        val vm = reviewing()
+        vm.takeAction(SubmitFoodAction.SubmitTapped)
+        settle()
+
+        assertTrue(submittedFoods.sent.isEmpty(), "only the person has it, so nothing is waiting for review")
+    }
+
+    @Test
+    fun theirCopyKeepsTheRestOfTheLabelPerServing() = runUnitTest {
+        val vm = reviewing()
+        vm.takeAction(SubmitFoodAction.SubmitTapped)
+        settle()
+
+        val micros = customFoods.foods.value.single().micros
+        assertEquals(SubmitFoodFixtures.facts.perServing[LabelNutrient.Sodium], micros[LabelNutrient.Sodium.wire])
+        assertTrue(LabelNutrient.Energy.wire !in micros && LabelNutrient.Protein.wire !in micros, "the main numbers have their own fields")
+    }
+
+    @Test
+    fun fromTheFoodsTabItIsSavedAndSentButLoggedNowhere() = runUnitTest {
+        val vm = saveOnly()
+        val events = events(vm)
+        reviewing(vm)
+        assertEquals(null, vm.state.slot, "no meal: the screen says Save food")
+
+        vm.takeAction(SubmitFoodAction.SubmitTapped)
+        settle()
+
+        assertEquals(1, customFoods.foods.value.size)
+        assertTrue(diary.added.isEmpty(), "there is no meal to log to")
+        assertEquals(SubmissionOrigin.Search, labels.submitted.single().origin)
+        assertEquals(listOf<SubmitFoodEvent>(SubmitFoodEvent.Finished("Oats & honey granola bar", slot = null, sent = true)), events)
+        assertEquals("submitted:search:foods:edited=false:kept=0:shown=true:sent=true", telemetry.events.last())
+    }
+
+    @Test
+    fun fromTheFoodsTabAClosedDayDoesNotMatter() = runUnitTest {
+        diary.close(LoggerFixtures.today)
+        val vm = saveOnly()
+        val events = events(vm)
+        reviewing(vm)
+        vm.takeAction(SubmitFoodAction.SubmitTapped)
+        settle()
+
+        assertIs<SubmitFoodEvent.Finished>(events.single())
+    }
+
+    @Test
+    fun aPhotoThatCouldNotBeOpenedSaysSoUntilAnotherArrives() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(SubmitFoodAction.PhotoAnswered(PackSide.Label, PhotoPickResult.Failed, fromCamera = false))
+        settle()
+        assertEquals(PackSide.Label, vm.state.photoFailed)
+        assertEquals(null, vm.state.label)
+
+        vm.takeAction(SubmitFoodAction.PhotoAnswered(PackSide.Label, PhotoPickResult.Picked(label), fromCamera = false))
+        settle()
+        assertEquals(null, vm.state.photoFailed)
+        assertEquals(label, vm.state.label)
     }
 }

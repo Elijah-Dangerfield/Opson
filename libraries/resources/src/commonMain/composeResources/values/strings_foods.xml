@@ -13,6 +13,14 @@
     <string name="foods_create_meal_sub">Group foods you eat together</string>
     <string name="foods_add_food">Add a food</string>
     <string name="foods_add_food_sub">Something search doesn't have</string>
+
+    <!-- Add a food: from the pack's photos first (release.submitFood), typing by hand after. -->
+    <string name="foods_add_pack_title">Packaged food?</string>
+    <string name="foods_add_pack_body">Photograph the front and the nutrition label. We read the label for you, and it's saved to your foods and sent to Opson's food database.</string>
+    <string name="foods_add_pack_button">Add it from the label</string>
+    <string name="foods_add_by_hand">Or type it in</string>
+    <!-- On a Your foods row: sent to Opson's food database and not checked yet. -->
+    <string name="foods_unverified">Unverified</string>
     <string name="foods_saved">Saved meals</string>
     <string name="foods_yours">Your foods</string>
     <string name="foods_yours_empty">Foods you make show up here and in search.</string>

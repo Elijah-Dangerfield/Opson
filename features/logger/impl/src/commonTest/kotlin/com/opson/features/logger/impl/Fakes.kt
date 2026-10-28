@@ -238,6 +238,9 @@ class FakeCustomFoodRepository(foods: List<CustomFood> = emptyList()) : CustomFo
             carbs = draft.carbs,
             fat = draft.fat,
             fiber = draft.fiber,
+            servingGrams = draft.servingGrams,
+            sizes = draft.sizes,
+            micros = draft.micros,
         )
         foods.value = foods.value + food
         return food

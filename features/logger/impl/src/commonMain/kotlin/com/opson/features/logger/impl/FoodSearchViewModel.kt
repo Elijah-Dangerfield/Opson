@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import androidx.lifecycle.viewModelScope
 import com.opson.features.logger.FoodSearchRoute
+import com.opson.features.logger.SubmitEntry
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
@@ -18,6 +19,7 @@ import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.SubmittedFoods
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -62,6 +64,7 @@ class FoodSearchViewModel(
     submitFoodEnabled: SubmitFoodEnabled,
     searchOptionsEnabled: SearchOptionsEnabled,
     private val optionsTelemetry: SearchOptionsTelemetry,
+    private val submittedFoods: SubmittedFoods,
 ) : SEAViewModel<FoodSearchState, SearchEvent, SearchAction>(
     initialStateArg = FoodSearchState(pickingForMeal = route.pickForMeal != null),
 ) {
@@ -145,7 +148,10 @@ class FoodSearchViewModel(
             is SearchAction.AddTapped -> if (pickForMeal != null) pick(action, action.row) else add(action.row)
             is SearchAction.SavedMealAddTapped -> addSavedMeal(action.id)
             SearchAction.BarcodeTapped -> if (model.choices.scanAvailable && pickForMeal == null) sendEvent(SearchEvent.OpenScanner(day, slot()))
-            SearchAction.AddFoodTapped -> if (model.choices.addFoodAvailable && pickForMeal == null) sendEvent(SearchEvent.OpenSubmitFood(day, slot()))
+            is SearchAction.AddFoodTapped -> if (model.choices.addFoodAvailable && pickForMeal == null) {
+                val entry = if (action.underResults) SubmitEntry.SearchResults else SubmitEntry.EmptySearch
+                sendEvent(SearchEvent.OpenSubmitFood(day, slot(), entry))
+            }
             SearchAction.DescribeTapped -> if (pickForMeal == null) sendEvent(SearchEvent.OpenDescribe(day, slot(), model.choices.query.trim()))
             SearchAction.SaveNameTapped -> saveName(action)
             SearchAction.AddPicksTapped -> pickForMeal?.let(::handBack)
@@ -333,6 +339,8 @@ class FoodSearchViewModel(
                 timeZone = zone,
             )
         }
+            // The person's foods waiting for review read "Unverified".
+            .combine(submittedFoods.reviews) { inputs, reviews -> inputs.copy(reviews = reviews) }
         // Source badges need the catalog foods the device knows; with the options off nothing more is collected.
         if (!model.choices.searchOptions) return base
         return combine(base, foodCatalog.observeRecent(limit = KNOWN_LIMIT)) { inputs, known ->

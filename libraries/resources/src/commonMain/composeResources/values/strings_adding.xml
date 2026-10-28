@@ -11,7 +11,10 @@
     <string name="adding_title">Add to %1$s</string>
     <string name="adding_action_search">Search food</string>
     <string name="adding_action_scan">Scan barcode</string>
-    <string name="adding_action_photo">Photo</string>
+    <!-- The meal photo estimate (release.photo): a plate guessed from one photo. -->
+    <string name="adding_action_photo">Estimate a meal</string>
+    <!-- Add a packaged food (release.submitFood): an exact food from its label. -->
+    <string name="adding_action_pack">Packaged food</string>
     <string name="adding_action_say">Say or type it</string>
     <string name="adding_action_describe">Describe it</string>
     <string name="adding_action_saved">Saved meals</string>
@@ -25,6 +28,8 @@
 
     <!-- A row with a + -->
     <string name="adding_your_usual">Your usual</string>
+    <!-- On a row: added to Opson's food database by this person and not checked yet. -->
+    <string name="adding_unverified">Unverified</string>
     <string name="adding_add_cd">Add %1$s</string>
     <string name="adding_added_cd">Take %1$s back out</string>
     <string name="adding_added">%1$s added to %2$s</string>
@@ -36,7 +41,9 @@
     <string name="adding_scope_all">All</string>
     <string name="adding_scope_yours">Your foods</string>
     <string name="adding_scope_saved">Saved meals</string>
-    <string name="adding_not_finding">Not finding it?</string>
+    <string name="adding_not_finding">Can't find it?</string>
+    <string name="adding_not_finding_pack">Add it from the label</string>
+    <string name="adding_not_finding_pack_body">Photograph the pack. It's saved to your foods and sent to Opson's food database.</string>
     <string name="adding_not_finding_describe">Describe it</string>
     <string name="adding_not_finding_save">Save the name</string>
     <string name="adding_no_foods_yet">Foods you make or log show up here.</string>
@@ -71,6 +78,10 @@
     <string name="adding_detail_from_usda">From USDA FoodData Central</string>
     <string name="adding_detail_from_off">From Open Food Facts</string>
     <string name="adding_detail_from_yours">Your own food</string>
+    <string name="adding_detail_from_opson">From Opson's food database</string>
+    <string name="adding_detail_unverified">Unverified. Only you see it until someone checks it against your photos.</string>
+    <string name="adding_detail_yours_in_review">Sent to Opson's food database. Unverified until someone checks it.</string>
+    <string name="adding_detail_yours_checked">Checked and added to Opson's food database.</string>
     <string name="adding_detail_remove_recent">Remove from recents</string>
     <string name="adding_detail_report">Report a problem</string>
     <string name="adding_detail_edit_copy">Edit a copy</string>

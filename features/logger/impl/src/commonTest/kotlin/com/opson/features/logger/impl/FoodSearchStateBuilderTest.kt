@@ -9,6 +9,9 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.foods.FoodTier
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -208,6 +211,34 @@ class FoodSearchStateBuilderTest {
         assertFalse(off.canScan)
         assertFalse(off.canAddFood)
         assertTrue(off.canDescribe, "Describe shipped in 0.1")
+    }
+
+    @Test
+    fun theirOwnFoodWaitingForReviewReadsUnverifiedUntilItIsApproved() {
+        val granola = LoggerFixtures.granola
+        val pending = inputs(custom = listOf(granola)).copy(reviews = mapOf(granola.id to ReviewStatus.Pending))
+        val search = SearchOutcome("granola", foods = emptyList(), offline = false)
+
+        val rows = assertIs<SearchBody.Results>(build(pending, choices = choices("granola", search)).body).rows
+        assertEquals(listOf(true), rows.map { it.unverified })
+
+        val approved = pending.copy(reviews = mapOf(granola.id to ReviewStatus.Approved))
+        assertEquals(listOf(false), assertIs<SearchBody.Results>(build(approved, choices = choices("granola", search)).body).rows.map { it.unverified })
+    }
+
+    @Test
+    fun aPendingCatalogFoodIsUnverifiedAndAnApprovedOneIsOpsonsAndVerified() {
+        val bar = LoggerFixtures.rice.copy(id = "bar", name = "Oat bar", source = FoodSource.UserSubmitted, tier = FoodTier.Community)
+        val pending = bar.copy(reviewStatus = ReviewStatus.Pending)
+        val approved = bar.copy(id = "bar-2", verified = true)
+        val asked = choices("oat bar").copy(searchOptions = true)
+        val filter = checkNotNull(FoodSearchStateBuilder.catalogFilter(inputs(), asked))
+        val withOptions = asked.copy(search = SearchOutcome("oat bar", foods = listOf(pending, approved), offline = false, filter = filter))
+
+        val rows = assertIs<SearchBody.Results>(build(choices = withOptions).body).rows
+        assertEquals(listOf(true, false), rows.map { it.unverified })
+        assertEquals(SourceBadge.Opson, rows[1].badge)
+        assertTrue(rows[1].verified)
     }
 
     @Test

@@ -62,6 +62,7 @@ import opson.libraries.resources.generated.resources.adding_action_describe
 import opson.libraries.resources.generated.resources.adding_action_exercise
 import opson.libraries.resources.generated.resources.adding_action_fasting
 import opson.libraries.resources.generated.resources.adding_action_note
+import opson.libraries.resources.generated.resources.adding_action_pack
 import opson.libraries.resources.generated.resources.adding_action_photo
 import opson.libraries.resources.generated.resources.adding_action_saved
 import opson.libraries.resources.generated.resources.adding_action_say
@@ -286,6 +287,7 @@ private fun AddAction.tile(): Tile {
     return when (this) {
         AddAction.SearchFood -> Tile(stringResource(Res.string.adding_action_search), AppIcons.Search, food, LoggerAction.SearchFoodTapped)
         AddAction.ScanBarcode -> Tile(stringResource(Res.string.adding_action_scan), AppIcons.BarcodeScanner, food, LoggerAction.BarcodeTapped)
+        AddAction.PackagedFood -> Tile(stringResource(Res.string.adding_action_pack), AppIcons.PostAdd, food, LoggerAction.PackagedFoodTapped)
         AddAction.Photo -> Tile(stringResource(Res.string.adding_action_photo), AppIcons.PhotoCamera, food, LoggerAction.PhotoTapped)
         is AddAction.SayOrType -> Tile(
             stringResource(if (voice) Res.string.adding_action_say else Res.string.adding_action_describe),

@@ -1,11 +1,15 @@
 package com.opson.features.logger.impl
 
+import com.opson.features.logger.SubmitEntry
 import com.opson.libraries.foods.BarcodeLinkReporter
 import com.opson.libraries.foods.FoodLabels
 import com.opson.libraries.foods.FoodSubmission
 import com.opson.libraries.foods.LabelParse
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.SubmissionOrigin
 import com.opson.libraries.foods.SubmitResult
+import com.opson.libraries.foods.SubmittedFoods
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /** Answers [parse] and [submit] in turn, and remembers every submission. */
 class FakeFoodLabels(
@@ -29,8 +33,8 @@ class FakeFoodLabels(
 class RecordingSubmitFoodTelemetry : SubmitFoodTelemetry {
     val events = mutableListOf<String>()
 
-    override fun started(origin: SubmissionOrigin) {
-        events += "started:${origin.wire}"
+    override fun started(origin: SubmissionOrigin, entry: SubmitEntry) {
+        events += "started:${origin.wire}:${entry.wire}"
     }
 
     override fun photoTaken(side: PackSide, fromCamera: Boolean) {
@@ -41,12 +45,23 @@ class RecordingSubmitFoodTelemetry : SubmitFoodTelemetry {
         events += "read:${outcome.wire}:$checks:$unsure"
     }
 
-    override fun submitted(origin: SubmissionOrigin, edited: Boolean, kept: Int, numbersShown: Boolean, sent: Boolean) {
-        events += "submitted:${origin.wire}:edited=$edited:kept=$kept:shown=$numbersShown:sent=$sent"
+    override fun submitted(origin: SubmissionOrigin, entry: SubmitEntry, edited: Boolean, kept: Int, numbersShown: Boolean, sent: Boolean) {
+        events += "submitted:${origin.wire}:${entry.wire}:edited=$edited:kept=$kept:shown=$numbersShown:sent=$sent"
     }
 
     override fun abandoned(stage: String) {
         events += "abandoned:$stage"
+    }
+}
+
+/** [SubmittedFoods] in memory: what [sent] was told, and the marks a screen reads. */
+class FakeSubmittedFoods(initial: Map<String, ReviewStatus> = emptyMap()) : SubmittedFoods {
+    override val reviews = MutableStateFlow(initial)
+    val sent = mutableListOf<Triple<String, String, String>>()
+
+    override suspend fun sent(customFoodId: String, submissionId: String, foodId: String) {
+        sent += Triple(customFoodId, submissionId, foodId)
+        reviews.value = reviews.value + (customFoodId to ReviewStatus.Pending)
     }
 }
 

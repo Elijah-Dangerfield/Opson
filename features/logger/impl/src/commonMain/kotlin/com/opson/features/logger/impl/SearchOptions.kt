@@ -32,6 +32,9 @@ enum class SourceBadge {
     /** RIVM's Dutch table, which asks to be cited wherever its foods show. */
     Nevo,
     YourFood,
+
+    /** Opson's own food database: a food someone added from its pack and a reviewer approved. */
+    Opson,
     ;
 
     companion object {
@@ -41,6 +44,7 @@ enum class SourceBadge {
             FoodSource.UsdaBranded -> UsdaBranded
             FoodSource.OpenFoodFacts -> OpenFoodFacts
             FoodSource.Nevo -> Nevo
+            FoodSource.UserSubmitted -> Opson
             FoodSource.Nutritionix, FoodSource.Unknown -> null
         }
     }

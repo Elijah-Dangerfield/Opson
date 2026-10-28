@@ -9,7 +9,10 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.MicroGroup
@@ -53,6 +56,7 @@ class FoodDetailTest : CoroutineTest() {
     private val diary = FakeDiaryRepository(listOf(LoggerFixtures.day()))
     private val recentLogEvents = FakeRecentLogEvents()
     private val telemetry = RecordingTelemetry()
+    private val submittedFoods = FakeSubmittedFoods()
 
     private fun vm(foodId: String = "peanut-butter", custom: Boolean = false, source: PickSource = PickSource.Search, slot: MealSlot? = MealSlot.Dinner) =
         FoodDetailViewModel(
@@ -66,6 +70,7 @@ class FoodDetailTest : CoroutineTest() {
             selectedDay = FakeSelectedDay(),
             clock = Clock.fixed(NOON),
             logger = FoodLogger(diary, catalog, recentLogEvents, telemetry, Clock.fixed(NOON)),
+            submittedFoods = submittedFoods,
         )
 
     private fun TestScope.events(vm: FoodDetailViewModel): List<FoodDetailEvent> {
@@ -330,6 +335,48 @@ class FoodDetailTest : CoroutineTest() {
         assertEquals(FoodOrigin.Usda, state.source?.source)
         // Energy, protein, carbs and fat (the source has no fiber for it), and five vitamins and minerals.
         assertEquals(9, state.source?.nutrientCount)
+    }
+
+    @Test
+    fun aVerifiedSourceSaysSoAndAnUnverifiedOneSaysItIsWaiting() {
+        fun sourceOf(food: Food): SourceLine? {
+            val amountFood = AmountFood.Catalog(food)
+            return FoodDetailStateBuilder.build(
+                amountFood,
+                DetailChoice.initial(amountFood, MealSlot.Dinner),
+                LoggerFixtures.detailInputs(policy(PresetId.Full)),
+                FoodRef.Catalog(food.id),
+                PickSource.Search,
+            ).source
+        }
+        val usda = LoggerFixtures.peanutButter.copy(verified = true)
+        assertEquals(SourceReview.Verified, sourceOf(usda)?.review)
+        assertNull(sourceOf(LoggerFixtures.peanutButter)?.review, "nobody stands behind it: no mark either way")
+
+        val added = LoggerFixtures.peanutButter.copy(source = FoodSource.UserSubmitted, reviewStatus = ReviewStatus.Pending)
+        assertEquals(FoodOrigin.Opson, sourceOf(added)?.source)
+        assertEquals(SourceReview.Unverified, sourceOf(added)?.review)
+        assertEquals(SourceReview.Verified, sourceOf(added.copy(reviewStatus = ReviewStatus.Approved, verified = true))?.review)
+    }
+
+    @Test
+    fun theirOwnFoodSaysWhereItsReviewStandsInEveryMode() = runUnitTest {
+        val vm = vm(foodId = LoggerFixtures.granola.id, custom = true)
+        runCurrent()
+        assertEquals(FoodOrigin.Yours, vm.state.source?.source)
+        assertNull(vm.state.source?.review)
+
+        submittedFoods.reviews.value = mapOf(LoggerFixtures.granola.id to ReviewStatus.Pending)
+        runCurrent()
+        assertEquals(SourceReview.YoursInReview, vm.state.source?.review)
+
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        runCurrent()
+        assertEquals(SourceReview.YoursInReview, vm.state.source?.review, "words, not numbers: No numbers says it too")
+
+        submittedFoods.reviews.value = mapOf(LoggerFixtures.granola.id to ReviewStatus.Approved)
+        runCurrent()
+        assertEquals(SourceReview.YoursChecked, vm.state.source?.review)
     }
 
     @Test

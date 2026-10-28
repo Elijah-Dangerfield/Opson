@@ -1,6 +1,7 @@
 package com.opson.features.foods.impl
 
 import com.opson.features.logger.LoggerRoute
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.LogItem
@@ -41,6 +42,8 @@ data class FoodsRowUi(
     val name: String,
     val sub: String,
     val calories: Display,
+    /** One of the person's own foods sent to Opson's food database and not checked yet. */
+    val unverified: Boolean = false,
 )
 
 sealed interface FoodsAction {
@@ -66,6 +69,8 @@ data class FoodsInputs(
     val customFoods: List<CustomFood>,
     val savedMeals: List<SavedMeal>,
     val recent: List<LogItem>,
+    /** Review status by custom food id, for the person's foods they sent to Opson's food database. */
+    val reviews: Map<String, ReviewStatus> = emptyMap(),
 )
 
 /**
@@ -97,6 +102,7 @@ object FoodsStateBuilder {
                     name = food.name,
                     sub = listOfNotNull(food.brand?.takeIf { it.isNotBlank() }, food.toDraft().amountLabel.takeIf { it.isNotEmpty() }).joinToString(SEPARATOR),
                     calories = calories(food.kcal),
+                    unverified = inputs.reviews[food.id] == ReviewStatus.Pending,
                 )
             },
             // A quick number or a name-only line has no food behind it, so there is nothing to pick again.
@@ -108,6 +114,7 @@ object FoodsStateBuilder {
                     name = item.name,
                     sub = item.amountLabel,
                     calories = calories(item.kcal),
+                    unverified = ref is FoodRef.Custom && inputs.reviews[ref.id] == ReviewStatus.Pending,
                 )
             }.distinctBy { it.key },
         )

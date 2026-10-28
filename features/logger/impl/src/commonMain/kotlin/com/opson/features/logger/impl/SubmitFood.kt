@@ -7,40 +7,29 @@ import com.opson.libraries.foods.LabelNutrient
 import com.opson.libraries.foods.LabelParse
 import com.opson.libraries.foods.ServingUnit
 import com.opson.libraries.foods.SubmitResult
-import com.opson.libraries.navigation.Route
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.MealPhoto
 import com.opson.libraries.scanner.PhotoPickResult
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.Serializable
-
-/**
- * "Add this food": photos of a pack's front and nutrition label, read by the
- * server, corrected by the person, logged as their own food at once and sent
- * for review. A barcode miss ([barcode] is the code) and a search with no
- * results ([barcode] null, [fromSearch]) open it; both are behind
- * `release.submitFood`. [dayIso] and [slot] are where it is logged.
- */
-@Serializable
-data class SubmitFoodRoute(
-    val dayIso: String,
-    val slot: MealSlot,
-    val barcode: String? = null,
-    val fromSearch: Boolean = false,
-) : Route()
 
 /** Which photo: the front (name, brand) or the nutrition label. */
 enum class PackSide { Front, Label }
 
-/** What the screen draws, built by [SubmitFoodStateBuilder]. */
+/**
+ * What "Add a packaged food" draws, built by [SubmitFoodStateBuilder]. The route is
+ * `SubmitFoodRoute` in the logger's api, so the Foods tab can open it too.
+ */
 data class SubmitFoodState(
-    val slot: MealSlot = MealSlot.Dinner,
+    /** The meal it is logged to, or null when it is only saved to the person's foods (from the Foods tab). */
+    val slot: MealSlot? = null,
     val stage: SubmitStage = SubmitStage.Photos(canRead = false),
     val front: MealPhoto? = null,
     val label: MealPhoto? = null,
     /** False where there is no camera (the iOS simulator): only the library is offered. */
     val canTakePhoto: Boolean = true,
+    /** The photo picked for this side could not be read (an iCloud photo that would not download, say). */
+    val photoFailed: PackSide? = null,
 )
 
 sealed interface SubmitStage {
@@ -166,8 +155,11 @@ sealed interface SubmitFoodEvent {
     data class LaunchLibrary(val side: PackSide) : SubmitFoodEvent
     data object RequestCameraPermission : SubmitFoodEvent
 
-    /** [name] is logged to [slot]; [sent] when the copy for review went too. The screen closes with a word about which. */
-    data class Finished(val name: String, val slot: MealSlot, val sent: Boolean) : SubmitFoodEvent
+    /**
+     * [name] is saved to the person's foods and logged to [slot], or only saved when [slot] is null;
+     * [sent] when the copy for review went too. The screen closes with a word about which.
+     */
+    data class Finished(val name: String, val slot: MealSlot?, val sent: Boolean) : SubmitFoodEvent
     data object Close : SubmitFoodEvent
 
     /**
@@ -198,7 +190,8 @@ sealed interface SubmitStep {
  * [extras] are the nutrients the label had beyond the main list, in order.
  */
 data class SubmitModel(
-    val slot: MealSlot,
+    /** Null: saved to the person's foods without logging it anywhere. */
+    val slot: MealSlot?,
     val barcodeLocked: Boolean,
     val canTakePhoto: Boolean,
     val step: SubmitStep = SubmitStep.Photos,
@@ -219,4 +212,5 @@ data class SubmitModel(
     val notice: ReviewNotice? = null,
     /** The fields the model filled, as it filled them, to tell an edit from a read. */
     val read: Map<String, String> = emptyMap(),
+    val photoFailed: PackSide? = null,
 )

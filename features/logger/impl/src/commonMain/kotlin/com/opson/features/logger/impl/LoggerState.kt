@@ -8,6 +8,7 @@ import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.ParsedItem
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.time.RelativeDay
@@ -53,7 +54,10 @@ sealed interface AddAction {
     /** `release.barcode`. */
     data object ScanBarcode : AddAction
 
-    /** `release.photo`. */
+    /** `release.submitFood`: an exact food from its pack's label, saved to the person's foods and Opson's food database. */
+    data object PackagedFood : AddAction
+
+    /** `release.photo`: a whole plate or meal estimated from one photo. */
     data object Photo : AddAction
 
     /** Describe it; "Say or type it" when [voice] (`release.voice`) is on, since only then can it hear. */
@@ -142,6 +146,7 @@ sealed interface LoggerAction {
     data object SearchFoodTapped : LoggerAction
     data object BarcodeTapped : LoggerAction
     data object PhotoTapped : LoggerAction
+    data object PackagedFoodTapped : LoggerAction
     /** Opens Describe it; with `release.voice` on it starts listening too, asking for the mic first if it must. */
     data object DescribeItTapped : LoggerAction
     data object SavedMealsTapped : LoggerAction
@@ -187,6 +192,9 @@ sealed interface LoggerEvent {
     data class OpenMealNote(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenScanner(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenPhoto(val day: LocalDate, val slot: MealSlot) : LoggerEvent
+
+    /** "Packaged food": the pack's photos, to log to [slot] on [day]. */
+    data class OpenPackagedFood(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data object OpenWeighIn : LoggerEvent
     data object OpenFasting : LoggerEvent
     data class OpenExercise(val day: LocalDate) : LoggerEvent
@@ -209,6 +217,8 @@ data class LoggerInputs(
     val customFoods: List<CustomFood> = emptyList(),
     /** The last 14 days and today (`MealSlotPicker.HISTORY_DAYS`), which the meal picker reads. */
     val recentDays: List<Day> = emptyList(),
+    /** The person's own foods sent to Opson's food database, by custom food id: Recent marks a pending one "Unverified". */
+    val reviews: Map<String, ReviewStatus> = emptyMap(),
     /** When these inputs were read, on the person's clock. */
     val now: LocalDateTime = LocalDateTime(today, LocalTime(NOON, 0)),
     val timeZone: TimeZone = TimeZone.UTC,

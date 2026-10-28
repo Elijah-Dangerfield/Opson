@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.chip.ChoiceChip
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.ToneIcon
@@ -26,7 +27,11 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextInput
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.foods_add_by_hand
 import opson.libraries.resources.generated.resources.foods_add_food
+import opson.libraries.resources.generated.resources.foods_add_pack_body
+import opson.libraries.resources.generated.resources.foods_add_pack_button
+import opson.libraries.resources.generated.resources.foods_add_pack_title
 import opson.libraries.resources.generated.resources.foods_field_calories
 import opson.libraries.resources.generated.resources.foods_field_carbs
 import opson.libraries.resources.generated.resources.foods_field_fat
@@ -57,8 +62,9 @@ import org.jetbrains.compose.resources.stringResource
  * nutrition stays out of view instead, and shows no number field at all. Save food is pinned to
  * the bottom and needs only a name. Stateless.
  *
- * v3 also draws "Scan the label instead" and "Photograph the label"; label photos are 0.2, so
- * neither is built.
+ * With [AddFoodState.canUsePack], "Packaged food?" comes first: v3's "Photograph the label", as
+ * "Add a packaged food" from the pack's photos, which saves the food without logging it. Typing it
+ * in follows, under "Or type it in".
  */
 @Composable
 fun AddFoodScreen(
@@ -74,8 +80,34 @@ fun AddFoodScreen(
         onSave = { onAction(AddFoodAction.SaveTapped) },
         modifier = modifier,
     ) {
+        if (state.canUsePack) {
+            PackCard(onAction)
+            FieldLabel(stringResource(Res.string.foods_add_by_hand))
+        }
         AboutCard(state, onAction)
         if (state.labelOnly) HiddenCard() else NutritionCard(state, onAction)
+    }
+}
+
+/** "Packaged food?": the label read from photos, the exact food saved and sent to Opson's food database. */
+@Composable
+private fun PackCard(onAction: (AddFoodAction) -> Unit) {
+    FormCard {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+            ToneIcon(icon = AppIcons.PostAdd, color = AppTheme.colors.accent, size = ToneIconSize.Small)
+            Text(
+                text = stringResource(Res.string.foods_add_pack_title),
+                typography = AppTheme.type.cardTitle,
+                color = AppTheme.colors.ink,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Text(text = stringResource(Res.string.foods_add_pack_body), typography = AppTheme.type.body, color = AppTheme.colors.muted)
+        ButtonPrimary(
+            onClick = { onAction(AddFoodAction.PackTapped) },
+            icon = AppIcons.PhotoCamera,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(stringResource(Res.string.foods_add_pack_button)) }
     }
 }
 

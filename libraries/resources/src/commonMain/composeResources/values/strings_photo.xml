@@ -13,11 +13,11 @@
 
     <!-- Header -->
     <string name="photo_overline">Photo for %1$s</string>
-    <string name="photo_title">Estimate</string>
+    <string name="photo_title">Estimate a meal</string>
     <string name="photo_thumbnail_cd">Your meal photo</string>
 
     <!-- Start -->
-    <string name="photo_start_body">Take a photo of your plate and we'll suggest what's on it. You check every line before anything is saved.</string>
+    <string name="photo_start_body">Take a photo of your plate and we'll estimate what's on it. You check every line before anything is saved.</string>
     <string name="photo_note_label">Your note</string>
     <string name="photo_note_placeholder">Anything a photo can't show, like oil, butter or how it was cooked</string>
     <string name="photo_take">Take a photo</string>

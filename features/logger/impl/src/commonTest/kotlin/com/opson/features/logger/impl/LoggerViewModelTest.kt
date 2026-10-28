@@ -7,6 +7,7 @@ import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.OnboardingAnswers
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
@@ -53,6 +54,7 @@ class LoggerViewModelTest : CoroutineTest() {
     private val selectedDay = FakeSelectedDay()
     private val recentLogEvents = FakeRecentLogEvents()
     private val appState = FakeAppState()
+    private val submittedFoods = FakeSubmittedFoods()
 
     @Suppress("LongParameterList")
     private fun vm(
@@ -60,6 +62,7 @@ class LoggerViewModelTest : CoroutineTest() {
         at: Instant = NOON,
         scanOn: Boolean = false,
         photoOn: Boolean = false,
+        packOn: Boolean = false,
         voiceOn: Boolean = false,
         fastingOn: Boolean = false,
         exerciseOn: Boolean = false,
@@ -80,9 +83,11 @@ class LoggerViewModelTest : CoroutineTest() {
         telemetry = telemetry,
         scanEnabled = scanFlag(scanOn),
         photoEnabled = photoFlag(photoOn),
+        submitFoodEnabled = submitFoodFlag(packOn),
         voice = DescribeVoice(FakeSpeechToText(), voiceFlag(voiceOn), RecordingVoiceTelemetry()),
         fastingRelease = fastingFlag(fastingOn),
         exerciseRelease = ExerciseRelease { exerciseOn },
+        submittedFoods = submittedFoods,
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {
@@ -101,12 +106,12 @@ class LoggerViewModelTest : CoroutineTest() {
     @Test
     fun theGridHoldsEveryActionThatCanRun() = runUnitTest {
         settings.state.value = Settings(fasting = true)
-        val vm = vm(scanOn = true, photoOn = true, voiceOn = true, fastingOn = true)
+        val vm = vm(scanOn = true, photoOn = true, packOn = true, voiceOn = true, fastingOn = true)
         settle()
 
         assertEquals(
             listOf(
-                AddAction.SearchFood, AddAction.ScanBarcode, AddAction.Photo, AddAction.SayOrType(voice = true), AddAction.SavedMeals,
+                AddAction.SearchFood, AddAction.ScanBarcode, AddAction.PackagedFood, AddAction.Photo, AddAction.SayOrType(voice = true), AddAction.SavedMeals,
                 AddAction.CopyMeal(MealSlot.Dinner), AddAction.Water, AddAction.WeighIn, AddAction.Note,
                 AddAction.Fasting,
             ),
@@ -120,10 +125,13 @@ class LoggerViewModelTest : CoroutineTest() {
         val events = events(vm)
         settle()
 
-        assertTrue(vm.state.actions.none { it == AddAction.ScanBarcode || it == AddAction.Photo || it == AddAction.Fasting })
+        assertTrue(
+            vm.state.actions.none { it == AddAction.ScanBarcode || it == AddAction.Photo || it == AddAction.PackagedFood || it == AddAction.Fasting },
+        )
         assertTrue(AddAction.SayOrType(voice = false) in vm.state.actions, "Describe ships without voice, and says so")
         vm.takeAction(LoggerAction.BarcodeTapped)
         vm.takeAction(LoggerAction.PhotoTapped)
+        vm.takeAction(LoggerAction.PackagedFoodTapped)
         settle()
         assertTrue(events.isEmpty())
     }
@@ -168,6 +176,42 @@ class LoggerViewModelTest : CoroutineTest() {
         settle()
 
         assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenSearch(LoggerFixtures.today, MealSlot.Dinner)), events)
+    }
+
+    @Test
+    fun packagedFoodOpensThePacksPhotosForThisMeal() = runUnitTest {
+        val vm = vm(packOn = true)
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(LoggerAction.PackagedFoodTapped)
+        settle()
+
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenPackagedFood(LoggerFixtures.today, MealSlot.Dinner)), events)
+    }
+
+    @Test
+    fun aClosedDayDoesNotOfferPackagedFood() = runUnitTest {
+        diary.close(LoggerFixtures.today)
+        val vm = vm(packOn = true)
+        settle()
+
+        assertTrue(AddAction.PackagedFood !in vm.state.actions, "it logs, and a closed day takes nothing")
+    }
+
+    @Test
+    fun aRecentFoodWaitingForReviewReadsUnverified() = runUnitTest {
+        val granola = LoggerFixtures.granola
+        submittedFoods.reviews.value = mapOf(granola.id to ReviewStatus.Pending)
+        diary.recent.value = listOf(LoggerFixtures.item(LoggerFixtures.rice, MealSlot.Breakfast).copy(foodId = null, customFoodId = granola.id, name = granola.name))
+        val vm = vm()
+        settle()
+
+        assertEquals(listOf(true), vm.state.recent.map { it.unverified })
+
+        submittedFoods.reviews.value = mapOf(granola.id to ReviewStatus.Approved)
+        settle()
+        assertEquals(listOf(false), vm.state.recent.map { it.unverified }, "approved: the mark goes")
     }
 
     @Test

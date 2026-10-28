@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import com.opson.features.logger.SubmitEntry
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
@@ -10,6 +11,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.LocalDate
@@ -31,9 +33,9 @@ data class FoodSearchState(
     /** The barcode button in the empty field: `release.barcode` on, and not picking for a meal. */
     val canScan: Boolean = false,
     /**
-     * "Add this food" on no results (`release.submitFood`): photos of the pack. It logs, so it is not
-     * offered when picking for a meal. The meal photo estimate is not offered here: it is the add
-     * sheet's alone (docs/decisions.md, 2026-10-27).
+     * "Add a packaged food" (`release.submitFood`): photos of the pack, on no results and as "Can't
+     * find it?" under any results. It logs, so it is not offered when picking for a meal. The meal
+     * photo estimate is not offered here: it is the add sheet's alone (docs/decisions.md, 2026-10-27).
      */
     val canAddFood: Boolean = false,
     val canDescribe: Boolean = true,
@@ -150,6 +152,8 @@ data class SearchInputs(
     val frequent: List<LogItem> = emptyList(),
     /** Catalog foods on the device by id, so a row from the diary can still name its source. Empty with the search options off. */
     val known: Map<String, Food> = emptyMap(),
+    /** The person's own foods sent to Opson's food database, by custom food id: a pending one reads "Unverified". */
+    val reviews: Map<String, ReviewStatus> = emptyMap(),
     /** The last 14 days and today, which the meal picker and "Usual around" read. */
     val recentDays: List<Day> = emptyList(),
     val now: LocalDateTime = LocalDateTime(today, LocalTime(NOON, 0)),
@@ -187,7 +191,8 @@ sealed interface SearchAction {
     data object BarcodeTapped : SearchAction
 
     // "Not finding it?"
-    data object AddFoodTapped : SearchAction
+    /** The pack's photos: from the empty result, or "Can't find it?" under the results ([underResults]). */
+    data class AddFoodTapped(val underResults: Boolean) : SearchAction
     data object DescribeTapped : SearchAction
     data object SaveNameTapped : SearchAction
 
@@ -207,8 +212,8 @@ sealed interface SearchAction {
 sealed interface SearchEvent {
     data class OpenFoodDetail(val ref: FoodRef, val source: PickSource, val day: LocalDate, val slot: MealSlot) : SearchEvent
     data class OpenScanner(val day: LocalDate, val slot: MealSlot) : SearchEvent
-    /** "Add this food": the pack's photos, over search. */
-    data class OpenSubmitFood(val day: LocalDate, val slot: MealSlot) : SearchEvent
+    /** "Add a packaged food": the pack's photos, over search; [entry] says from the empty result or under the results. */
+    data class OpenSubmitFood(val day: LocalDate, val slot: MealSlot, val entry: SubmitEntry) : SearchEvent
     data class OpenDescribe(val day: LocalDate, val slot: MealSlot, val text: String) : SearchEvent
     data class OpenSearchOptions(val openFoodFacts: Boolean) : SearchEvent
 

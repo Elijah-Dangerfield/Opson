@@ -53,9 +53,11 @@ class DescribeReviewViewModelTest : CoroutineTest() {
         telemetry = RecordingTelemetry(),
         scanEnabled = scanFlag(false),
         photoEnabled = photoFlag(false),
+        submitFoodEnabled = submitFoodFlag(false),
         voice = DescribeVoice(FakeSpeechToText(), voiceFlag(false), RecordingVoiceTelemetry()),
         fastingRelease = fastingFlag(false),
         exerciseRelease = ExerciseRelease { false },
+        submittedFoods = FakeSubmittedFoods(),
     )
 
     private fun TestScope.settle() {

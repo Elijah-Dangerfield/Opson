@@ -1,7 +1,8 @@
 package com.opson.features.logger.impl
 
 import androidx.lifecycle.viewModelScope
-import com.opson.libraries.diary.CustomFoodDraft
+import com.opson.features.logger.SubmitEntry
+import com.opson.features.logger.SubmitFoodRoute
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.MealSlot
@@ -10,10 +11,10 @@ import com.opson.libraries.foods.FoodLabels
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSubmission
 import com.opson.libraries.foods.LabelCheckCode
-import com.opson.libraries.foods.LabelNutrient
 import com.opson.libraries.foods.LabelParse
 import com.opson.libraries.foods.SubmissionOrigin
 import com.opson.libraries.foods.SubmitResult
+import com.opson.libraries.foods.SubmittedFoods
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.scanner.CameraPermission
@@ -28,15 +29,17 @@ import me.tatarka.inject.annotations.Inject
 import kotlin.uuid.Uuid
 
 /**
- * "Add this food": two photos, the server's reading, the person's
- * corrections, then the food logged as their own custom food at once and a
- * copy sent for review. Logging comes first and never waits on the network:
- * if the review copy cannot go, the person still has their food, and can try
- * sending it again.
+ * "Add a packaged food": two photos, the server's reading, the person's
+ * corrections, then the food saved as their own custom food at once (and
+ * logged, when the route names a meal) and a copy sent to Opson's food
+ * database for review. Saving comes first and never waits on the network: if
+ * the review copy cannot go, the person still has their food, and can try
+ * sending it again. Once the copy is in, [SubmittedFoods] marks their food
+ * unverified until a reviewer approves it.
  *
  * The submission id is made once, so trying again is the same submission on
- * the server. Nothing here runs until the screen opens, and only a barcode
- * miss or an empty search opens it, both behind `release.submitFood`.
+ * the server. Nothing here runs until the screen opens; every way in is
+ * behind `release.submitFood`.
  */
 @Inject
 @Suppress("TooManyFunctions", "LongParameterList")
@@ -47,15 +50,20 @@ class SubmitFoodViewModel(
     private val logger: FoodLogger,
     private val permissions: CameraPermissions,
     private val telemetry: SubmitFoodTelemetry,
+    private val submittedFoods: SubmittedFoods,
     picker: MealPhotoPicker,
     policySource: VisibilityPolicySource,
 ) : SEAViewModel<SubmitFoodState, SubmitFoodEvent, SubmitFoodAction>(
-    initialStateArg = SubmitFoodState(slot = route.slot, canTakePhoto = picker.canTakePhoto),
+    initialStateArg = SubmitFoodState(slot = route.slot?.takeIf { route.logs }, canTakePhoto = picker.canTakePhoto),
 ) {
-    private val day: LocalDate = LocalDate.parse(route.dayIso)
-    private val slot: MealSlot = route.slot
+    /** Where it is logged; both null from the Foods tab, which only saves it. */
+    private val day: LocalDate? = route.dayIso?.takeIf { route.logs }?.let(LocalDate::parse)
+    private val slot: MealSlot? = route.slot?.takeIf { route.logs }
     private val barcode: String? = route.barcode
-    private val origin = if (route.fromSearch || route.barcode == null) SubmissionOrigin.Search else SubmissionOrigin.Barcode
+    private val entry: SubmitEntry = route.entry
+
+    /** The server's origin says only whether a code was scanned; [entry] is the finer word, for telemetry. */
+    private val origin = if (route.barcode != null) SubmissionOrigin.Barcode else SubmissionOrigin.Search
     private val submissionId = Uuid.random().toString()
 
     private var model = SubmitModel(slot = slot, barcodeLocked = barcode != null, canTakePhoto = picker.canTakePhoto)
@@ -64,8 +72,9 @@ class SubmitFoodViewModel(
     private var pendingSide: PackSide = PackSide.Front
     private var readJob: Job? = null
 
-    /** Saved to their foods and logged once, whatever happens to the review copy after. */
+    /** Saved to their foods (and logged) once, whatever happens to the review copy after. */
     private var saved = false
+    private var customFoodId: String? = null
     private var committed: Committed? = null
 
     /** The day refused the log: closed with Close the day. */
@@ -73,7 +82,7 @@ class SubmitFoodViewModel(
     private var finished = false
 
     init {
-        telemetry.started(origin)
+        telemetry.started(origin, entry)
         viewModelScope.launch { policySource.policy.collect { takeAction(SubmitFoodAction.PolicyArrived(it)) } }
     }
 
@@ -135,13 +144,19 @@ class SubmitFoodViewModel(
     }
 
     private suspend fun photoAnswered(action: SubmitFoodAction.PhotoAnswered) {
-        val result = action.result as? PhotoPickResult.Picked ?: return
-        telemetry.photoTaken(action.side, action.fromCamera)
-        action.change {
-            when (action.side) {
-                PackSide.Front -> copy(front = result.photo, step = SubmitStep.Photos)
-                PackSide.Label -> copy(label = result.photo, step = SubmitStep.Photos)
+        when (val result = action.result) {
+            is PhotoPickResult.Picked -> {
+                telemetry.photoTaken(action.side, action.fromCamera)
+                action.change {
+                    when (action.side) {
+                        PackSide.Front -> copy(front = result.photo, step = SubmitStep.Photos, photoFailed = null)
+                        PackSide.Label -> copy(label = result.photo, step = SubmitStep.Photos, photoFailed = null)
+                    }
+                }
             }
+            // Said, not swallowed: a photo that would not load otherwise looks like a tap that did nothing.
+            PhotoPickResult.Failed -> action.change { copy(step = SubmitStep.Photos, photoFailed = action.side) }
+            PhotoPickResult.Cancelled -> Unit
         }
     }
 
@@ -189,7 +204,7 @@ class SubmitFoodViewModel(
         action.change { copy(step = SubmitStep.Saving) }
         if (!saved) {
             saved = true
-            when (val logged = logAsCustomFood()) {
+            when (val logged = saveAsCustomFood()) {
                 is DayWrite.Written -> committed = logged.value
                 is DayWrite.DayClosed -> closedDay = logged.day
                 null -> Unit
@@ -198,22 +213,15 @@ class SubmitFoodViewModel(
         send(action)
     }
 
-    /** The person's own food, logged now: the review is for everyone else. A closed day keeps the food and refuses the log. */
-    private suspend fun logAsCustomFood(): DayWrite<Committed>? {
-        val facts = SubmitFoodForm.facts(model)
-        val custom = customFoods.create(
-            CustomFoodDraft(
-                name = facts.name.orEmpty(),
-                servingAmount = facts.servingSize ?: 1.0,
-                servingUnit = facts.servingUnit?.wire ?: "serving",
-                brand = facts.brand,
-                kcal = facts.perServing[LabelNutrient.Energy],
-                protein = facts.perServing[LabelNutrient.Protein],
-                carbs = facts.perServing[LabelNutrient.Carbs],
-                fat = facts.perServing[LabelNutrient.Fat],
-                fiber = facts.perServing[LabelNutrient.Fiber],
-            ),
-        )
+    /**
+     * The person's own food, saved now: the review is for everyone else. With a meal it is logged
+     * too, and a closed day keeps the food and refuses the log. Without one there is nothing to log.
+     */
+    private suspend fun saveAsCustomFood(): DayWrite<Committed>? {
+        val custom = customFoods.create(SubmitFoodForm.customFood(model))
+        customFoodId = custom.id
+        val day = day ?: return null
+        val slot = slot ?: return null
         val ref = FoodRef.Custom(custom.id)
         return logger.log(day, slot, listOf(LogPick(key = ref.key, ref = ref, draft = custom.toDraft(), source = PickSource.Label)))
     }
@@ -232,8 +240,14 @@ class SubmitFoodViewModel(
             label = label.jpeg,
             facts = facts,
             acknowledged = acknowledged(),
+            customFoodId = customFoodId,
         )
-        viewModelScope.launch { takeAction(SubmitFoodAction.SubmitArrived(labels.submit(submission))) }
+        viewModelScope.launch {
+            val result = labels.submit(submission)
+            // Marked before the screen closes, so the food reads as unverified wherever it shows next.
+            if (result is SubmitResult.Submitted) customFoodId?.let { submittedFoods.sent(it, result.submissionId, result.foodId) }
+            takeAction(SubmitFoodAction.SubmitArrived(result))
+        }
     }
 
     /** The checks the person kept their numbers through that still fail: what review should look at first. */
@@ -269,6 +283,7 @@ class SubmitFoodViewModel(
 
     private fun reportSubmitted(sent: Boolean) = telemetry.submitted(
         origin = origin,
+        entry = entry,
         edited = SubmitFoodForm.edited(model),
         kept = acknowledged().size,
         numbersShown = SubmitFoodStateBuilder.numbersShown(policy),

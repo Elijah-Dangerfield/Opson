@@ -85,8 +85,12 @@ import opson.libraries.resources.generated.resources.adding_detail_back_cd
 import opson.libraries.resources.generated.resources.adding_detail_edit_copy
 import opson.libraries.resources.generated.resources.adding_detail_energy
 import opson.libraries.resources.generated.resources.adding_detail_from_off
+import opson.libraries.resources.generated.resources.adding_detail_from_opson
 import opson.libraries.resources.generated.resources.adding_detail_from_usda
 import opson.libraries.resources.generated.resources.adding_detail_from_yours
+import opson.libraries.resources.generated.resources.adding_detail_unverified
+import opson.libraries.resources.generated.resources.adding_detail_yours_checked
+import opson.libraries.resources.generated.resources.adding_detail_yours_in_review
 import opson.libraries.resources.generated.resources.adding_detail_label
 import opson.libraries.resources.generated.resources.adding_detail_meal
 import opson.libraries.resources.generated.resources.adding_detail_meal_cd
@@ -149,6 +153,7 @@ import opson.libraries.resources.generated.resources.logger_precision_named
 import opson.libraries.resources.generated.resources.logger_precision_weighed
 import opson.libraries.resources.generated.resources.logger_source_nevo
 import opson.libraries.resources.generated.resources.modes_hunger_question
+import opson.libraries.resources.generated.resources.search_badge_verified_cd
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -676,14 +681,29 @@ private fun TargetTotal(row: TargetRow) {
 @Composable
 private fun SourceRow(source: SourceLine, nutrients: AllNutrients?, onAction: (FoodDetailAction) -> Unit) {
     val origin = source.source?.let { stringResource(it.label) }
-    if (origin == null && nutrients == null) return
+    val review = source.review?.takeIf { it != SourceReview.Verified }
+    if (origin == null && nutrients == null && review == null) return
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            origin?.let { Text(text = it, typography = AppTheme.type.caption, color = AppTheme.colors.muted) }
+            origin?.let {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    // Someone accountable stands behind these numbers: a check, no more words.
+                    if (source.review == SourceReview.Verified) {
+                        Icon(icon = AppIcons.CheckCircle.described(stringResource(Res.string.search_badge_verified_cd)), size = 12.dp, color = AppTheme.colors.muted)
+                    }
+                    Text(text = it, typography = AppTheme.type.caption, color = AppTheme.colors.muted)
+                }
+            }
+            review?.let {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Icon(icon = if (it == SourceReview.YoursChecked) AppIcons.CheckCircle else AppIcons.Schedule, size = 12.dp, color = AppTheme.colors.muted)
+                    Text(text = stringResource(it.label), typography = AppTheme.type.caption, color = AppTheme.colors.muted)
+                }
+            }
             source.nutrientCount?.let { count ->
                 Text(text = pluralStringResource(Res.plurals.adding_detail_nutrient_count, count, count), typography = AppTheme.type.caption, color = AppTheme.colors.muted)
             }
@@ -785,7 +805,16 @@ private val FoodOrigin.label: StringResource
         FoodOrigin.Usda -> Res.string.adding_detail_from_usda
         FoodOrigin.OpenFoodFacts -> Res.string.adding_detail_from_off
         FoodOrigin.Nevo -> Res.string.logger_source_nevo
+        FoodOrigin.Opson -> Res.string.adding_detail_from_opson
         FoodOrigin.Yours -> Res.string.adding_detail_from_yours
+    }
+
+private val SourceReview.label: StringResource
+    get() = when (this) {
+        SourceReview.Verified -> Res.string.search_badge_verified_cd
+        SourceReview.Unverified -> Res.string.adding_detail_unverified
+        SourceReview.YoursInReview -> Res.string.adding_detail_yours_in_review
+        SourceReview.YoursChecked -> Res.string.adding_detail_yours_checked
     }
 
 private val MicroGroup.label: StringResource

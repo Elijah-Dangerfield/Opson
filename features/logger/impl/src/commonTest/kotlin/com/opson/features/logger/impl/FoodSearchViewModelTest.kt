@@ -1,6 +1,7 @@
 package com.opson.features.logger.impl
 
 import com.opson.features.logger.FoodSearchRoute
+import com.opson.features.logger.SubmitEntry
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.LogMethod
@@ -45,6 +46,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
     private val telemetry = RecordingTelemetry()
     private val mealPicks = FakeMealPicks()
     private val optionsTelemetry = RecordingSearchOptionsTelemetry()
+    private val submittedFoods = FakeSubmittedFoods()
 
     private fun vm(
         route: FoodSearchRoute = FoodSearchRoute(slot = MealSlot.Dinner),
@@ -68,6 +70,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
         submitFoodEnabled = submitFoodFlag(photoOn),
         searchOptionsEnabled = searchOptionsFlag(optionsOn),
         optionsTelemetry = optionsTelemetry,
+        submittedFoods = submittedFoods,
     )
 
     private fun TestScope.events(vm: FoodSearchViewModel): List<SearchEvent> {
@@ -315,13 +318,13 @@ class FoodSearchViewModelTest : CoroutineTest() {
         assertEquals(SearchBody.NoResults("kare-kare", offline = false), vm.state.body)
 
         vm.takeAction(SearchAction.DescribeTapped)
-        vm.takeAction(SearchAction.AddFoodTapped)
+        vm.takeAction(SearchAction.AddFoodTapped(underResults = false))
         settle()
 
         assertEquals(
             listOf(
                 SearchEvent.OpenDescribe(LoggerFixtures.today, MealSlot.Dinner, "kare-kare"),
-                SearchEvent.OpenSubmitFood(LoggerFixtures.today, MealSlot.Dinner),
+                SearchEvent.OpenSubmitFood(LoggerFixtures.today, MealSlot.Dinner, SubmitEntry.EmptySearch),
             ),
             events,
         )
@@ -333,7 +336,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
         val events = events(vm)
         settle()
 
-        vm.takeAction(SearchAction.AddFoodTapped)
+        vm.takeAction(SearchAction.AddFoodTapped(underResults = true))
         vm.takeAction(SearchAction.BarcodeTapped)
         settle()
 
@@ -510,6 +513,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
             submitFoodEnabled = submitFoodFlag(false),
             searchOptionsEnabled = searchOptionsFlag(false),
             optionsTelemetry = optionsTelemetry,
+            submittedFoods = submittedFoods,
         )
         val rice = searched(vm).first()
 

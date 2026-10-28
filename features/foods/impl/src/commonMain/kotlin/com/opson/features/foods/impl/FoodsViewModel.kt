@@ -6,6 +6,7 @@ import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.foods.SubmittedFoods
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.flow.combine
@@ -22,6 +23,7 @@ class FoodsViewModel(
     savedMeals: SavedMealRepository,
     diary: DiaryRepository,
     policySource: VisibilityPolicySource,
+    submittedFoods: SubmittedFoods,
 ) : SEAViewModel<FoodsState, FoodsEvent, FoodsAction>(initialStateArg = FoodsState()) {
 
     private var inputs: FoodsInputs? = null
@@ -29,7 +31,7 @@ class FoodsViewModel(
 
     init {
         viewModelScope.launch {
-            combine(customFoods.observeAll(), savedMeals.observeAll(), diary.recentFoods(limit = RECENT_LIMIT), ::FoodsInputs)
+            combine(customFoods.observeAll(), savedMeals.observeAll(), diary.recentFoods(limit = RECENT_LIMIT), submittedFoods.reviews, ::FoodsInputs)
                 .collect { takeAction(FoodsAction.InputsArrived(it)) }
         }
         viewModelScope.launch {

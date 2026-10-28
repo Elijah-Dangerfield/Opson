@@ -9,6 +9,7 @@ import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.draftFor
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.foods.initialQuantity
@@ -61,8 +62,13 @@ data class FoodRowUi(
     val added: Boolean,
     /** Where the food came from; null with the search options off, or for a source with no badge. */
     val badge: SourceBadge? = null,
-    /** Tiers 1 to 3: someone accountable stands behind the numbers. Never set for the person's own foods. */
+    /** Tiers 1 to 3, or a food someone added once a reviewer approved it. Never set for the person's own foods. */
     val verified: Boolean = false,
+    /**
+     * Added to Opson's food database by this person and not checked yet: their own copy while its
+     * review is pending, or the catalog's pending row, which only they can see. Shown in every mode.
+     */
+    val unverified: Boolean = false,
 )
 
 /** The foods a person has logged before, by food key, and the ones they keep coming back to. */
@@ -146,7 +152,13 @@ internal object FoodPicks {
      * [known] is null with the search options off, which draws no badges, except NEVO's: RIVM
      * allows its foods only with its name beside them.
      */
-    fun FoodPick.toRow(policy: VisibilityPolicy, bare: FormatContext, added: Boolean, known: Map<String, Food>? = null): FoodRowUi {
+    fun FoodPick.toRow(
+        policy: VisibilityPolicy,
+        bare: FormatContext,
+        added: Boolean,
+        known: Map<String, Food>? = null,
+        reviews: Map<String, ReviewStatus> = emptyMap(),
+    ): FoodRowUi {
         val catalogFood = if (known != null && ref is FoodRef.Catalog) food ?: known[ref.id] else null
         return FoodRowUi(
             key = key,
@@ -171,6 +183,10 @@ internal object FoodPicks {
                 else -> catalogFood?.let { SourceBadge.of(it.source) }
             },
             verified = catalogFood?.verified == true,
+            unverified = when (ref) {
+                is FoodRef.Custom -> reviews[ref.id] == ReviewStatus.Pending
+                is FoodRef.Catalog -> (food ?: catalogFood)?.unverified == true
+            },
         )
     }
 }

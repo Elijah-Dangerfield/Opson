@@ -60,3 +60,51 @@ data class ExerciseRoute(
     val entryId: String? = null,
     val dayIso: String? = null,
 ) : Route()
+
+/**
+ * Add a packaged food from photos of its pack's front and nutrition label (`release.submitFood`,
+ * `docs/plans/screens/submit-food.md`): the server reads the label, the person checks it, and the
+ * food is saved to their foods and sent to Opson's food database for review.
+ *
+ * With [dayIso] and [slot] it is also logged to that meal. Without them (from the Foods tab's Add
+ * a food) it is only saved: there is no meal to log to. [barcode] is a code the scanner read,
+ * shown and not retyped. [entry] is where the person started, for telemetry and for where the
+ * screen goes when it is done.
+ */
+@Serializable
+data class SubmitFoodRoute(
+    val dayIso: String? = null,
+    val slot: MealSlot? = null,
+    val barcode: String? = null,
+    val entry: SubmitEntry = SubmitEntry.EmptySearch,
+) : Route() {
+    /** Whether saving it also logs it to a meal. */
+    val logs: Boolean get() = dayIso != null && slot != null
+}
+
+/** Where "Add a packaged food" was opened from. */
+@Serializable
+enum class SubmitEntry(val wire: String) {
+    /** The scanner read a code nothing knew. */
+    BarcodeMiss("barcode_miss"),
+
+    /** Search found nothing. */
+    EmptySearch("empty_search"),
+
+    /** "Can't find it?" under search's results. */
+    SearchResults("search_results"),
+
+    /** The + sheet's Packaged food tile. */
+    AddSheet("add_sheet"),
+
+    /** The Foods tab's Add a food, which saves without logging. */
+    Foods("foods"),
+}
+
+/**
+ * Whether "Add a packaged food" can open (`release.submitFood`), for screens outside the logger
+ * that offer it. Read when the screen opens, like the logger's own flags.
+ */
+interface SubmitFoodAvailability {
+    fun available(): Boolean
+}

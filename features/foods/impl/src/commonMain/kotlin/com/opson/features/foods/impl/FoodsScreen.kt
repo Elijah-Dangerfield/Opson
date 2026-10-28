@@ -213,6 +213,7 @@ private fun LazyListScope.rowsCard(
                 onButton = { onAction(FoodsAction.RowTapped(row.target)) },
                 onClick = { onAction(FoodsAction.RowTapped(row.target)) },
                 showDivider = index < rows.lastIndex,
+                unverified = row.unverified,
             )
         }
     }

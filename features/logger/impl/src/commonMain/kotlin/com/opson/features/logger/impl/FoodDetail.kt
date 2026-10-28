@@ -17,6 +17,7 @@ import com.opson.libraries.foods.AmountUnit
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.PortionAmount
 import com.opson.libraries.foods.amountText
 import com.opson.libraries.foods.chipLabel
@@ -178,10 +179,26 @@ data class NutrientRow(val micro: Micronutrient, val display: Display, val notLi
 /**
  * "From USDA FoodData Central · 34 nutrients listed". [nutrientCount] is how many nutrients the
  * source gives, shown beside All nutrients only, so a mode without that link shows no count.
+ * [review] is whether anyone checked the numbers, where that is worth saying.
  */
-data class SourceLine(val source: FoodOrigin?, val nutrientCount: Int? = null)
+data class SourceLine(val source: FoodOrigin?, val nutrientCount: Int? = null, val review: SourceReview? = null)
 
-enum class FoodOrigin { Usda, OpenFoodFacts, Nevo, Yours }
+enum class FoodOrigin { Usda, OpenFoodFacts, Nevo, Opson, Yours }
+
+/** What review says about a food's numbers. */
+enum class SourceReview {
+    /** A catalog food someone accountable stands behind: USDA's, a label's, or one a reviewer approved. */
+    Verified,
+
+    /** In Opson's food database and waiting for a reviewer: only the person who added it sees it. */
+    Unverified,
+
+    /** The person's own copy of a food they sent for review, still waiting. */
+    YoursInReview,
+
+    /** The person's own copy of a food a reviewer has since approved for everyone. */
+    YoursChecked,
+}
 
 /** What has been typed into the Custom size dialog. */
 data class CustomSizeUi(val name: String = "", val grams: String = "") {
@@ -306,6 +323,8 @@ data class DetailInputs(
     val history: List<Day> = emptyList(),
     /** On the Recent row now. */
     val inRecents: Boolean = false,
+    /** Where review stands for the person's own food, when they sent it to Opson's food database. */
+    val review: ReviewStatus? = null,
 )
 
 /** The food detail's state as a pure function, like [LoggerStateBuilder]. Surface [Surface.Logger]. */
@@ -361,7 +380,7 @@ object FoodDetailStateBuilder {
                 noNumbers = true,
                 hunger = HungerCheck(choice.hunger).takeIf { inputs.settings.askTags },
                 // The source still names itself (NEVO asks to be cited wherever its foods show).
-                source = SourceLine(origin(food)),
+                source = SourceLine(origin(food), review = review(food, inputs.review)),
             )
         }
         val nutrients = nutrients(draft, inputs, choice.nutrientsOpen)
@@ -372,7 +391,7 @@ object FoodDetailStateBuilder {
             breakdown = breakdown(draft, inputs.policy),
             targets = targets(draft, inputs),
             nutrients = nutrients,
-            source = SourceLine(origin(food), nutrientCount = nutrients?.let { draft.nutrientCount() }),
+            source = SourceLine(origin(food), nutrientCount = nutrients?.let { draft.nutrientCount() }, review = review(food, inputs.review)),
             customSize = choice.customSize,
         )
     }
@@ -511,6 +530,21 @@ object FoodDetailStateBuilder {
             food.food.source.isUsda -> FoodOrigin.Usda
             food.food.source == FoodSource.OpenFoodFacts -> FoodOrigin.OpenFoodFacts
             food.food.source == FoodSource.Nevo -> FoodOrigin.Nevo
+            food.food.source == FoodSource.UserSubmitted -> FoodOrigin.Opson
+            else -> null
+        }
+    }
+
+    /** [yours] is the review of the person's own food, when they sent it to Opson's food database. */
+    private fun review(food: AmountFood, yours: ReviewStatus?): SourceReview? = when (food) {
+        is AmountFood.Custom -> when (yours) {
+            ReviewStatus.Pending -> SourceReview.YoursInReview
+            ReviewStatus.Approved -> SourceReview.YoursChecked
+            ReviewStatus.Rejected, null -> null
+        }
+        is AmountFood.Catalog -> when {
+            food.food.unverified -> SourceReview.Unverified
+            food.food.verified -> SourceReview.Verified
             else -> null
         }
     }

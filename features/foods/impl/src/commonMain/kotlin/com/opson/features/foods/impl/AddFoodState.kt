@@ -16,6 +16,11 @@ data class AddFoodState(
     val fields: List<NutritionField> = emptyList(),
     /** A name is all a food needs. */
     val canSave: Boolean = false,
+    /**
+     * "Packaged food?" first (`release.submitFood`): the pack's photos fill the food in, save it and
+     * send it to Opson's food database. Typing it in stays below.
+     */
+    val canUsePack: Boolean = false,
 ) {
     /** No numbers and any other mode that hides every number: no number fields at all (11.4). */
     val labelOnly: Boolean get() = fields.isEmpty()
@@ -52,11 +57,17 @@ sealed interface AddFoodAction {
     data class NutritionTyped(val metric: Metric, val text: String) : AddFoodAction
     data object SaveTapped : AddFoodAction
     data object CloseTapped : AddFoodAction
+
+    /** "Add it from the label": the pack's photos instead of typing. */
+    data object PackTapped : AddFoodAction
 }
 
 sealed interface AddFoodEvent {
     data class ShowToast(val toast: Toast) : AddFoodEvent
     data object Close : AddFoodEvent
+
+    /** The pack's photos, which save the food without logging it. */
+    data object OpenPack : AddFoodEvent
 }
 
 /**
@@ -70,13 +81,14 @@ object AddFoodStateBuilder {
 
     fun asked(policy: VisibilityPolicy): List<Metric> = FIELD_ORDER.filter { policy.level(it) != Visibility.Hide }
 
-    fun build(form: FoodForm, policy: VisibilityPolicy): AddFoodState = AddFoodState(
+    fun build(form: FoodForm, policy: VisibilityPolicy, canUsePack: Boolean = false): AddFoodState = AddFoodState(
         name = form.name,
         brand = form.brand,
         servingAmount = form.servingAmount,
         servingUnit = form.servingUnit,
         fields = asked(policy).map { NutritionField(it, form.nutrition[it].orEmpty()) },
         canSave = form.name.isNotBlank(),
+        canUsePack = canUsePack,
     )
 
     /**

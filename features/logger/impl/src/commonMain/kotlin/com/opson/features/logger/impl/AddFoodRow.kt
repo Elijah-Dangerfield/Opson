@@ -35,10 +35,12 @@ import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.adding_add_cd
 import opson.libraries.resources.generated.resources.adding_added_cd
+import opson.libraries.resources.generated.resources.adding_unverified
 import opson.libraries.resources.generated.resources.adding_your_usual
 import opson.libraries.resources.generated.resources.search_badge_branded
 import opson.libraries.resources.generated.resources.search_badge_nevo
 import opson.libraries.resources.generated.resources.search_badge_off
+import opson.libraries.resources.generated.resources.search_badge_opson
 import opson.libraries.resources.generated.resources.search_badge_usda
 import opson.libraries.resources.generated.resources.search_badge_verified_cd
 import opson.libraries.resources.generated.resources.search_badge_yours
@@ -68,6 +70,7 @@ internal fun AddFoodRow(row: FoodRowUi, onOpen: () -> Unit, onAdd: () -> Unit, d
             badge = row.badge?.let { stringResource(it.label) },
             badgeAccent = row.badge == SourceBadge.YourFood,
             verified = row.verified,
+            unverified = row.unverified,
             onOpen = {
                 // The detail covers search; the keyboard would sit over it.
                 focusManager.clearFocus()
@@ -96,6 +99,7 @@ internal fun AddMealRow(meal: SavedMealRowUi, onAdd: () -> Unit, divider: Boolea
             badge = null,
             badgeAccent = false,
             verified = false,
+            unverified = false,
             onOpen = null,
             onAdd = {
                 if (!meal.added) haptics.confirm()
@@ -117,6 +121,7 @@ private fun AddRow(
     badge: String?,
     badgeAccent: Boolean,
     verified: Boolean,
+    unverified: Boolean,
     onOpen: (() -> Unit)?,
     onAdd: () -> Unit,
 ) {
@@ -148,17 +153,11 @@ private fun AddRow(
         }
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             NutrientText(metric = Metric.Calories, display = calories, typography = AppTheme.type.numeric, color = AppTheme.colors.ink, maxLines = 1)
-            badge?.let {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    if (verified) {
-                        Icon(
-                            icon = AppIcons.CheckCircle.described(stringResource(Res.string.search_badge_verified_cd)),
-                            size = 12.dp,
-                            color = if (badgeAccent) AppTheme.colors.accent else AppTheme.colors.muted,
-                        )
-                    }
-                    Text(text = it, typography = AppTheme.type.captionStrong, color = if (badgeAccent) AppTheme.colors.accent else AppTheme.colors.muted, maxLines = 1)
-                }
+            // Waiting for review says so in place of the source: it is what the person needs to know about these numbers.
+            if (unverified) {
+                UnverifiedMark()
+            } else {
+                badge?.let { SourceMark(it, verified, badgeAccent) }
             }
         }
         val description = stringResource(if (added) Res.string.adding_added_cd else Res.string.adding_add_cd, name)
@@ -172,6 +171,25 @@ private fun AddRow(
     }
 }
 
+/** The source's short name, with a check when someone accountable stands behind the numbers. */
+@Composable
+private fun SourceMark(badge: String, verified: Boolean, accent: Boolean) {
+    val color = if (accent) AppTheme.colors.accent else AppTheme.colors.muted
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        if (verified) Icon(icon = AppIcons.CheckCircle.described(stringResource(Res.string.search_badge_verified_cd)), size = 12.dp, color = color)
+        Text(text = badge, typography = AppTheme.type.captionStrong, color = color, maxLines = 1)
+    }
+}
+
+/** "Unverified": a food this person added to Opson's food database that nobody has checked yet. */
+@Composable
+internal fun UnverifiedMark(modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        Icon(icon = AppIcons.Schedule, size = 12.dp, color = AppTheme.colors.muted)
+        Text(text = stringResource(Res.string.adding_unverified), typography = AppTheme.type.captionStrong, color = AppTheme.colors.muted, maxLines = 1)
+    }
+}
+
 internal val SourceBadge.label: StringResource
     get() = when (this) {
         SourceBadge.Usda -> Res.string.search_badge_usda
@@ -179,6 +197,7 @@ internal val SourceBadge.label: StringResource
         SourceBadge.OpenFoodFacts -> Res.string.search_badge_off
         SourceBadge.Nevo -> Res.string.search_badge_nevo
         SourceBadge.YourFood -> Res.string.search_badge_yours
+        SourceBadge.Opson -> Res.string.search_badge_opson
     }
 
 private val ROW_HEIGHT = 64.dp

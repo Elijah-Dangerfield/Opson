@@ -12,6 +12,8 @@ import com.opson.features.foods.EditCopyRoute
 import com.opson.features.foods.FoodsRoute
 import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
+import com.opson.features.logger.SubmitEntry
+import com.opson.features.logger.SubmitFoodRoute
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.ObserveEvents
@@ -86,6 +88,8 @@ class FoodsFeatureEntryPoint(
                 when (event) {
                     is AddFoodEvent.ShowToast -> show(event.toast)
                     AddFoodEvent.Close -> router.goBack()
+                    // Over this form, so backing out of the photos returns to typing; saving there closes both.
+                    AddFoodEvent.OpenPack -> router.navigate(SubmitFoodRoute(entry = SubmitEntry.Foods))
                 }
             }
             AddFoodScreen(state = state, onAction = viewModel::takeAction)

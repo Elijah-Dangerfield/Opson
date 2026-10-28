@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.foods.LabelCheck
 import com.opson.libraries.foods.LabelCheckCode
 import com.opson.libraries.foods.LabelChecks
@@ -133,6 +134,30 @@ object SubmitFoodForm {
         )
     }
 
+    /**
+     * The person's own copy, saved to their foods: one serving as the label states it (its weight
+     * is the serving when the serving is in grams), the main numbers, and the rest of the label per
+     * serving, keyed the way a log entry keeps its micros.
+     */
+    fun customFood(model: SubmitModel): CustomFoodDraft {
+        val facts = facts(model)
+        val main = setOf(LabelNutrient.Energy, LabelNutrient.Protein, LabelNutrient.Carbs, LabelNutrient.Fat, LabelNutrient.Fiber)
+        return CustomFoodDraft(
+            name = facts.name.orEmpty(),
+            servingAmount = facts.servingSize ?: 1.0,
+            servingUnit = facts.servingUnit?.wire ?: UNIT_SERVING,
+            brand = facts.brand,
+            kcal = facts.perServing[LabelNutrient.Energy],
+            protein = facts.perServing[LabelNutrient.Protein],
+            carbs = facts.perServing[LabelNutrient.Carbs],
+            fat = facts.perServing[LabelNutrient.Fat],
+            fiber = facts.perServing[LabelNutrient.Fiber],
+            micros = facts.perServing.filterKeys { it !in main }.mapKeys { it.key.wire },
+        )
+    }
+
+    private const val UNIT_SERVING = "serving"
+
     /** The checks on the form as it stands. */
     fun checks(model: SubmitModel): List<LabelCheck> = LabelChecks.check(facts(model))
 
@@ -211,6 +236,7 @@ object SubmitFoodStateBuilder {
         front = model.front,
         label = model.label,
         canTakePhoto = model.canTakePhoto,
+        photoFailed = model.photoFailed.takeIf { model.step == SubmitStep.Photos },
     )
 
     private fun stage(model: SubmitModel, policy: VisibilityPolicy): SubmitStage = when (val step = model.step) {
