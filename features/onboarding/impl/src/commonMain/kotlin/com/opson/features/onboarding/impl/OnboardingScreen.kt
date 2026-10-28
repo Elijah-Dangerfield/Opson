@@ -722,6 +722,7 @@ private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAc
                     onFeetTyped = { onAction(OnboardingAction.HeightFeetTyped(it)) },
                     onInchesTyped = { onAction(OnboardingAction.HeightInchesTyped(it)) },
                     enabled = !state.isFinishing,
+                    imeAction = if (view.weightShown) ImeAction.Next else ImeAction.Done,
                 )
             }
             if (view.weightShown) {

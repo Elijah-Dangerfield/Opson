@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.nutrition.HeightInput
 import com.opson.libraries.nutrition.HeightUnit
@@ -25,7 +26,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /**
  * Height, in centimetres or in feet and inches, with the switch between them. Onboarding's body
  * step and Resting energy both use it. It draws [input] as given; the caller converts and
- * validates through [HeightInput].
+ * validates through [HeightInput]. [imeAction] is the key on its last field: Next when the form
+ * goes on past height, so the keyboard walks to the field after it.
  */
 @Composable
 fun HeightField(
@@ -36,6 +38,7 @@ fun HeightField(
     onInchesTyped: (String) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    imeAction: ImeAction = ImeAction.Done,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
@@ -55,6 +58,7 @@ fun HeightField(
                 onValueChange = onCmTyped,
                 unit = stringResource(Res.string.settings_resting_cm),
                 enabled = enabled,
+                imeAction = imeAction,
             )
             HeightUnit.FtIn -> Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                 NumberField(
@@ -63,6 +67,7 @@ fun HeightField(
                     unit = stringResource(Res.string.settings_resting_ft),
                     allowDecimal = false,
                     enabled = enabled,
+                    imeAction = ImeAction.Next,
                     modifier = Modifier.weight(1f),
                 )
                 NumberField(
@@ -70,6 +75,7 @@ fun HeightField(
                     onValueChange = onInchesTyped,
                     unit = stringResource(Res.string.settings_resting_in),
                     enabled = enabled,
+                    imeAction = imeAction,
                     modifier = Modifier.weight(1f),
                 )
             }
