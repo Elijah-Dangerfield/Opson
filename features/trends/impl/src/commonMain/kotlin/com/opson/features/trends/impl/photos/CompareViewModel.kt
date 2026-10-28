@@ -68,7 +68,10 @@ class CompareViewModel(
             is CompareAction.NoteTyped -> {
                 val rightId = state.right?.id ?: return
                 // The field holds only what is kept, so nothing typed past the limit looks saved.
-                val note = action.text.take(NOTE_LIMIT)
+                val note = action.text.take(NOTE_LIMIT).let { kept ->
+                    // An emoji straddling the limit goes whole: its first half alone is a broken glyph.
+                    if (kept.lastOrNull()?.isHighSurrogate() == true) kept.dropLast(1) else kept
+                }
                 change(action) { copy(note = note) }
                 write("Couldn't save a progress photo note") { photos.setNote(rightId, note) }
             }

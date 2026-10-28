@@ -153,6 +153,17 @@ class CompareViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun anEmojiAcrossTheLimit_isLeftOutWhole_neverCutInHalf() = runUnitTest {
+        val vm = vm()
+
+        // 279 letters, then an emoji whose two UTF-16 halves straddle the 280th character.
+        vm.takeAction(CompareAction.NoteTyped("a".repeat(279) + "💪"))
+
+        assertEquals("a".repeat(279), vm.state.note, "half an emoji draws as a broken glyph and saves as one")
+        assertEquals(vm.state.note, photos.notes["oct25-front"])
+    }
+
+    @Test
     fun aWriteThatFails_leavesThePageWorking() = runUnitTest {
         val vm = vm()
         val events = events(vm)
