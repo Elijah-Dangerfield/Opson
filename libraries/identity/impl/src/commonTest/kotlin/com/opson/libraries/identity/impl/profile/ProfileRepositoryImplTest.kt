@@ -17,7 +17,7 @@ import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.identity.impl.MeDto
 import com.opson.libraries.identity.impl.PatchMeRequest
 import com.opson.libraries.identity.impl.ProfileApi
-import com.opson.libraries.identity.impl.auth.PendingGuestAccountStore
+import com.opson.libraries.identity.impl.auth.FallbackDisplayNameStore
 import com.opson.libraries.identity.profile.Profile
 import com.opson.libraries.identity.profile.ProfileEditRejection
 import com.opson.libraries.identity.profile.UpdateProfileOutcome
@@ -29,7 +29,6 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.get
-import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -176,14 +175,14 @@ class ProfileRepositoryImplTest : CoroutineTest() {
         // A user who onboarded offline has their chosen name held in the
         // pending guest-account store. The Fallback surfaces it so the app shows
         // their choice instead of a generic "You" while session-less.
-        val pendingStore = PendingGuestAccountStore(InMemoryCacheFactory)
+        val pendingStore = FallbackDisplayNameStore(InMemoryCacheFactory)
         pendingStore.set(
             com.opson.libraries.identity.auth.PendingIdentity(
                 displayName = "Foxy",
             ),
         )
         val auth = FakeAuthRepository()
-        val repo = build(auth, FakeProfileApi(), pendingGuestAccountStore = pendingStore)
+        val repo = build(auth, FakeProfileApi(), fallbackDisplayNameStore = pendingStore)
 
         auth.emit(AuthState.Unauthenticated())
         advanceUntilIdle()
@@ -408,9 +407,9 @@ class ProfileRepositoryImplTest : CoroutineTest() {
         // The offline-onboarded (Fallback, no cached account) case: an edit is
         // applied locally + queued into the owed guest-account record so it
         // shows now and syncs when a session is minted.
-        val pendingStore = PendingGuestAccountStore(InMemoryCacheFactory)
+        val pendingStore = FallbackDisplayNameStore(InMemoryCacheFactory)
         val auth = FakeAuthRepository().also { it.emit(AuthState.Unauthenticated()) }
-        val repo = build(auth, FakeProfileApi(), pendingGuestAccountStore = pendingStore)
+        val repo = build(auth, FakeProfileApi(), fallbackDisplayNameStore = pendingStore)
         advanceUntilIdle()
 
         val outcome = repo.update(displayName = "Foxy")
@@ -511,13 +510,13 @@ class ProfileRepositoryImplTest : CoroutineTest() {
         auth: FakeAuthRepository,
         api: FakeProfileApi,
         cache: ProfileCache = newProfileCache(),
-        pendingGuestAccountStore: PendingGuestAccountStore = PendingGuestAccountStore(InMemoryCacheFactory),
+        fallbackDisplayNameStore: FallbackDisplayNameStore = FallbackDisplayNameStore(InMemoryCacheFactory),
         pendingProfileEditStore: PendingProfileEditStore = PendingProfileEditStore(InMemoryCacheFactory),
     ): ProfileRepositoryImpl = ProfileRepositoryImpl(
         authRepository = auth,
         profileApi = api,
         profileCache = cache,
-        pendingGuestAccountStore = pendingGuestAccountStore,
+        fallbackDisplayNameStore = fallbackDisplayNameStore,
         pendingProfileEditStore = pendingProfileEditStore,
         appScope = AppCoroutineScope(dispatchers),
     )
@@ -597,7 +596,7 @@ class ProfileRepositoryImplTest : CoroutineTest() {
             return patchResult.getOrThrow()
         }
 
-        override suspend fun deleteMe(): HttpResponse = error("deleteMe not used by ProfileRepository")
+        override suspend fun deleteMe() = error("deleteMe not used by ProfileRepository")
 
         override suspend fun sendAppleAuthorization(authorizationCode: String) =
             error("sendAppleAuthorization not used by ProfileRepository")

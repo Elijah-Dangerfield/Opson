@@ -28,7 +28,7 @@ data class MeDto(
      * a server on an older build degrades to "returning".
      */
     val isNewAccount: Boolean = false,
-    // Defaulted: the server's MeResponse does not carry this field (yet);
-    // absent on the wire it decodes to epoch 0.
+    // The server's MeResponse sends it. Defaulted so a response without it
+    // (an older server) decodes to epoch 0 instead of failing.
     val createdAtEpochMs: Long = 0L,
 )

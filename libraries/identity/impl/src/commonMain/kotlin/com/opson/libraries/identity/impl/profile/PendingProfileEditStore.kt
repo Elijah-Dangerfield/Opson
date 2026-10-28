@@ -21,7 +21,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * (or on a terminal validation rejection — that edit can never succeed as-is).
  *
  * The never-had-an-account case does **not** use this: it rides
- * [PendingGuestAccountStore], which the Fallback profile reads its name from.
+ * [FallbackDisplayNameStore], which the Fallback profile reads its name from.
  */
 @SingleIn(AppScope::class)
 @Inject

@@ -13,7 +13,6 @@ kotlin {
             api(libs.androidx.sqlite.bundled)
             api(libs.androidx.datastore.core)
             api(libs.androidx.datastore.core.okio)
-            api(libs.androidx.datastore.preferences)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
