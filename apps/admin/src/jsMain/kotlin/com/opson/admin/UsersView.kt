@@ -38,7 +38,8 @@ internal fun UsersView(ctx: AdminCtx) {
     var results by remember { mutableStateOf<List<UserSummaryDto>?>(null) }
     var searching by remember { mutableStateOf(false) }
     var searchFailed by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf<String?>(null) }
+    var pick by remember { mutableStateOf<AccountPick?>(null) }
+    val selected = pick?.userId
     var detail by remember { mutableStateOf<UserDetailDto?>(null) }
     var detailFailed by remember { mutableStateOf(false) }
 
@@ -58,10 +59,10 @@ internal fun UsersView(ctx: AdminCtx) {
     // The most recently seen accounts, before anyone types.
     LaunchedEffect(Unit) { search("") }
 
-    LaunchedEffect(selected) {
+    LaunchedEffect(pick) {
         detail = null
         detailFailed = false
-        val id = selected ?: return@LaunchedEffect
+        val id = pick?.userId ?: return@LaunchedEffect
         Catching { detail = ctx.api.userDetail(id) }
             .onFailure {
                 detailFailed = true
@@ -92,14 +93,14 @@ internal fun UsersView(ctx: AdminCtx) {
     if (found.isNullOrEmpty()) {
         P(attrs = { classes("muted") }) { Text(userListNote(found, searchFailed)) }
     } else {
-        UserTable(found, selected) { selected = it }
+        UserTable(found, selected) { pick = pick.next(it) }
     }
 
     val shown = detail
     when {
         shown != null -> UserDetailPanel(shown, ctx.isProd)
         selected != null -> P(attrs = { classes("muted") }) {
-            Text(if (detailFailed) "Couldn't load that account. Pick it again to retry." else "Loading the account…")
+            Text(userDetailNote(detailFailed))
         }
     }
 }
@@ -110,6 +111,18 @@ internal fun userListNote(results: List<UserSummaryDto>?, searchFailed: Boolean)
     searchFailed -> "Couldn't load accounts. Search to try again."
     else -> "Loading…"
 }
+
+/** What the detail area says while the picked account loads, or after it failed to. */
+internal fun userDetailNote(detailFailed: Boolean): String =
+    if (detailFailed) "Couldn't load that account. Pick it again to retry." else "Loading the account…"
+
+/**
+ * One click on an account row. [attempt] counts the clicks, so picking the row that is already
+ * selected is still a new value and the detail load runs again: that is how a failed load retries.
+ */
+internal data class AccountPick(val userId: String, val attempt: Int)
+
+internal fun AccountPick?.next(userId: String): AccountPick = AccountPick(userId, (this?.attempt ?: 0) + 1)
 
 @Composable
 private fun UserTable(users: List<UserSummaryDto>, selected: String?, onSelect: (String) -> Unit) {
