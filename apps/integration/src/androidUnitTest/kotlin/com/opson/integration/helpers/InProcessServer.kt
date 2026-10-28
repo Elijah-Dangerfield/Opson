@@ -219,18 +219,20 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
         /**
          * Skip (JUnit `Assume`) rather than fail when Docker isn't reachable,
          * so contributors without Docker still get a green build — mirrors the
-         * server's `DatabaseTest`.
+         * server's `DatabaseTest`. Not on CI: there a skip is every journey
+         * passing without running, so a runner without Docker fails instead.
          */
         fun assumeDockerAvailable() {
-            Assume.assumeTrue(
-                "Docker is not available; skipping integration tests",
-                try {
-                    DockerClientFactory.instance().client().pingCmd().exec()
-                    true
-                } catch (_: Throwable) {
-                    false
-                },
-            )
+            val available = try {
+                DockerClientFactory.instance().client().pingCmd().exec()
+                true
+            } catch (_: Throwable) {
+                false
+            }
+            check(available || System.getenv("CI") != "true") {
+                "Docker is not available on CI, so every integration journey would skip and the job pass"
+            }
+            Assume.assumeTrue("Docker is not available; skipping integration tests", available)
         }
 
         /** A P-256 key in the `.p8` format Apple hands out, so the server signs real client secrets. */
