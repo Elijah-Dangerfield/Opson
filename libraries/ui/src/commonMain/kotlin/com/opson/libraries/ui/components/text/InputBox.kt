@@ -39,6 +39,9 @@ import com.opson.system.typography.TypographyResource
  *
  * [filter] runs on every edit before anything else sees it, so a keystroke it
  * drops never shows, even for a frame.
+ *
+ * Every return key leads out of the keyboard, and where there is none a Done bar stands in for
+ * it (see [rememberFieldIme]).
  */
 @Composable
 internal fun InputBox(
@@ -64,14 +67,15 @@ internal fun InputBox(
 ) {
     val typed = rememberTypedText(value, onValueChange)
     val ink = AppTheme.colors.ink
+    val ime = rememberFieldIme(keyboardActions, keyboardOptions.keyboardType, singleLine)
     BasicTextField(
         value = typed.text,
         onValueChange = { typed.onType(filter(it)) },
-        modifier = modifier,
+        modifier = modifier.then(ime.modifier),
         enabled = enabled,
         textStyle = typography.style(ink.color).copy(textAlign = textAlign),
         keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions,
+        keyboardActions = ime.actions,
         singleLine = singleLine,
         maxLines = if (singleLine) 1 else Int.MAX_VALUE,
         minLines = minLines,
