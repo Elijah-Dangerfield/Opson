@@ -230,6 +230,21 @@ class SessionHealerTest : CoroutineTest() {
         assertEquals(listOf(true), auth.markedUnrecoverable, "routed to sign in, even offline, with the guest copy")
     }
 
+    @Test
+    fun aRelaunchAfterTheSignInAgainTap_staysOnSignIn_withoutTheExpiredScreenAgain() = runUnitTest {
+        // The tap resets onboarding and keeps the hold; a relaunch before the
+        // person finishes signing in belongs on onboarding's sign-in step.
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        expiredAccounts.hold(ExpiredAccount(userId = "user-1", wasAnonymous = false))
+        val auth = FakeAuth(current = AuthState.Unauthenticated(), retryResult = AuthState.Unauthenticated())
+        val healer = build(auth, onboarded = false, expiredAccounts = expiredAccounts)
+
+        healer.onColdBoot(AppEvent.ColdBoot)
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), auth.markedUnrecoverable)
+    }
+
     private fun build(
         auth: AuthRepository,
         onboarded: Boolean = true,

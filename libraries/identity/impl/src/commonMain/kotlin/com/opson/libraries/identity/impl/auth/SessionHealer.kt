@@ -133,14 +133,17 @@ class SessionHealer(
                     // A server account demonstrably exists on this device but
                     // its session is gone and retry couldn't revive it (AUTH-19).
                     stranded != null -> stopForRecovery(source, wasAnonymous = stranded.isAnonymous, id = stranded.id)
+                    !hasUserOnboarded() -> {
+                        // Pre-onboarding: onboarding's sign-in step is where a
+                        // session comes from. That includes a held account whose
+                        // person already tapped "sign in again", which resets
+                        // onboarding: sending them back to the expired screen
+                        // would only make them tap it twice.
+                        log(source, HealAction.SKIP_NOT_ONBOARDED)
+                    }
                     // A relaunch after a session expiry: the account's data is
                     // still here, waiting for it to sign back in.
                     held != null -> stopForRecovery(source, wasAnonymous = held.wasAnonymous, id = held.userId)
-                    !hasUserOnboarded() -> {
-                        // Pre-onboarding: onboarding's sign-in step is where a
-                        // session comes from.
-                        log(source, HealAction.SKIP_NOT_ONBOARDED)
-                    }
                     appState.isOffline.value -> {
                         // Offline looks the same as no session; the
                         // connectivity-regained edge decides again.
