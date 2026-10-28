@@ -3,12 +3,11 @@ package com.opson.libraries.navigation
 import kotlinx.serialization.Serializable
 
 /**
- * A Route that automatically has its visits tracked when navigated to.
- * 
- * @param trackingKey Unique key used to identify this route for tracking purposes.
- *                    This should match a field name in AppData.
- *                    Example: "settingsVisits", "aboutMeScreenOpens"
+ * Nothing reads [trackingKey] any more: screen-visit counting was removed because no one
+ * read the counts.
  */
+// TODO(review): delete once FeedbackRoute (features/home) extends Route directly
+// (docs/review/findings/core-libraries.md, deferred cross-slice).
 @Serializable
 open class TrackableRoute(
     val trackingKey: String,

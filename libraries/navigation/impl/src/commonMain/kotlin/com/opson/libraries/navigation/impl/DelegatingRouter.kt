@@ -16,7 +16,6 @@ import com.opson.libraries.flowroutines.observeWithLifecycle
 import com.opson.libraries.navigation.BlockingErrorRoute
 import com.opson.libraries.navigation.NavigationOptions
 import com.opson.libraries.navigation.navigateUnlessShowing
-import com.opson.libraries.navigation.NavigationTracker
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.NavigationRecovery
 import com.opson.libraries.navigation.Router
@@ -28,7 +27,6 @@ import com.opson.libraries.navigation.switchTab
 import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.navigation.FileShareLauncher
 import com.opson.libraries.navigation.NavigableWhileBlocked
-import com.opson.libraries.navigation.TrackableRoute
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -54,7 +52,6 @@ class DelegatingRouter(
     private val appScope: AppCoroutineScope,
     private val webLinkLauncher: WebLinkLauncher,
     private val fileShareLauncher: FileShareLauncher,
-    private val navigationTracker: NavigationTracker,
 ) : Router, NavigationRecovery {
 
     private val logger = KLog.withTag("DelegatingRouter")
@@ -98,11 +95,6 @@ class DelegatingRouter(
     }
 
     override fun navigate(route: Route, options: NavigationOptions) {
-        // Track the navigation if the route is trackable
-        if (route is TrackableRoute) {
-            appScope.launch { navigationTracker.onNavigate(route) }
-        }
-        
         enqueueNavigation(
             description = "navigate to ${route.nameForLogs()}",
             route = route,
@@ -148,9 +140,6 @@ class DelegatingRouter(
             val scope = object : RouterBatch {
                 override fun navigate(route: Route, options: NavigationOptions) {
                     if (controller.shouldBlockNavigation(route)) return
-                    if (route is TrackableRoute) {
-                        appScope.launch { navigationTracker.onNavigate(route) }
-                    }
                     controller.executeNavigate(route, options)
                 }
 

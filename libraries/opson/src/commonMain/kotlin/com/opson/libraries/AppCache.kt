@@ -27,9 +27,6 @@ data class AppData(
      */
     val installId: String? = null,
 
-    // Screen visits - automatically tracked for any TrackableRoute
-    val screenVisits: Map<String, Int> = emptyMap(),
-
     // User actions
     val feedbacksGiven: Int = 0,
     val bugsReported: Int = 0,
@@ -46,19 +43,7 @@ data class AppData(
      * account on this phone starts disconnected.
      */
     val healthConnected: Boolean = false,
-) {
-    /**
-     * Get the visit count for a screen by its tracking key.
-     */
-    fun getVisitCount(trackingKey: String): Int = screenVisits[trackingKey] ?: 0
-    
-    /**
-     * Increment the visit count for a screen.
-     */
-    fun incrementVisit(trackingKey: String): AppData = copy(
-        screenVisits = screenVisits + (trackingKey to (getVisitCount(trackingKey) + 1))
-    )
-}
+)
 
 interface AppCache : Cache<AppData>
 
@@ -75,7 +60,7 @@ class AppCacheImpl(
 )
 /**
  * Reset the **account-scoped** fields back to defaults while preserving every
- * device-scoped setting (install id, screen visits, feedback counters…). Used
+ * device-scoped setting (install id, feedback counters, review prompt times). Used
  * whenever the active user changes (account switch or sign-out / delete) so
  * the next account doesn't inherit the previous one's state.
  *
@@ -85,9 +70,8 @@ class AppCacheImpl(
  * that live in [AppData]. Add any new account-scoped field here.
  */
 fun AppData.resetAccountScoped(): AppData = copy(
-    // A full sign-out → continue-as-guest is a deliberate fresh start, so the
-    // next identity is re-offered onboarding rather than inheriting the
-    // previous user's completion.
+    // A sign-out is a deliberate fresh start, so the next account is offered
+    // onboarding rather than inheriting the previous user's completion.
     hasUserOnboarded = false,
     healthConnected = false,
 )
