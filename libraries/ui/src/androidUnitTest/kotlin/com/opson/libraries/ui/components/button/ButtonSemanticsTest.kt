@@ -28,13 +28,13 @@ class ButtonSemanticsTest {
 
     @get:Rule val compose = createComposeRule()
 
-    private val button = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button) and hasText("Continue")
+    private val button = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button) and hasText(LABEL)
 
     @Test
     fun aDisabledButtonIsOneDimmedButton() {
         compose.setContent {
             AppTheme(darkTheme = false) {
-                ButtonPrimary(onClick = {}, enabled = false) { Text("Continue") }
+                ButtonPrimary(onClick = {}, enabled = false) { Text(LABEL) }
             }
         }
 
@@ -46,7 +46,7 @@ class ButtonSemanticsTest {
         var taps = 0
         compose.setContent {
             AppTheme(darkTheme = false) {
-                ButtonPrimary(onClick = { taps++ }) { Text("Continue") }
+                ButtonPrimary(onClick = { taps++ }) { Text(LABEL) }
             }
         }
 
@@ -59,11 +59,16 @@ class ButtonSemanticsTest {
         var taps = 0
         compose.setContent {
             AppTheme(darkTheme = false) {
-                ButtonPrimary(onClick = { taps++ }, deep = true) { Text("Continue") }
+                ButtonPrimary(onClick = { taps++ }, deep = true) { Text(LABEL) }
             }
         }
 
         compose.onNode(button).assertIsEnabled().performClick()
         assertEquals(1, taps)
+    }
+
+    private companion object {
+        // A constant rather than a literal in Text(): test copy, not a string for VerifyStrings.
+        const val LABEL = "Continue"
     }
 }
