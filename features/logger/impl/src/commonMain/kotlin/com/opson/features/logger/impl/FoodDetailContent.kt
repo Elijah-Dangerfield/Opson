@@ -645,7 +645,7 @@ private fun TargetLine(row: TargetRow) {
             rangeStart = 0f,
             rangeEnd = 0f,
             colors = RangeBarDefaults.summary(),
-            segments = listOf(RangeBarSegment(row.soFar, AppTheme.colors.track), RangeBarSegment(row.food, row.metric.tone())),
+            segments = listOf(RangeBarSegment(row.soFar, AppTheme.colors.muted), RangeBarSegment(row.food, row.metric.tone())),
             height = 8.dp,
         )
     }
