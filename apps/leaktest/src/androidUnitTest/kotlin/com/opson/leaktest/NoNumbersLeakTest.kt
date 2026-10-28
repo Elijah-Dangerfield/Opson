@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 import kotlin.test.fail
 
 /**
- * No numbers (design sync 4, 13.5d): "No amounts anywhere". [CaloriesHiddenLeakTest] holds every
+ * No numbers (design sync 4, 13.5d): "No amounts anywhere". [BlindModeLeakTest] holds every
  * mode to no calorie amount; this holds No numbers to no nutrition amount of any kind. On every
  * surface, no node tagged with any [Metric] may show a digit, in its text or in what a screen
  * reader says for it: not protein, not weight, not water, not a share. Water's glasses are a bar

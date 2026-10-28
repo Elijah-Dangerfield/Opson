@@ -20,7 +20,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 /**
- * Energy out where the person has hidden it themselves. [CaloriesHiddenLeakTest] runs the presets that
+ * Energy out where the person has hidden it themselves. [BlindModeLeakTest] runs the presets that
  * hide calories; this runs Full, where calories show, with only energy out turned down. The
  * surfaces that carry it must then show no `metric:energyOut` node and no "Expended" label: a
  * hidden number takes its label with it. Softened counts too, because energy out has no soft word.

@@ -11,7 +11,7 @@ android {
     testOptions.unitTests.isIncludeAndroidResources = true
 }
 
-// CaloriesHiddenLeakTest: every screen and sheet rendered under Robolectric in every mode that hides
+// BlindModeLeakTest: every screen and sheet rendered under Robolectric in every mode that hides
 // calories, scanned for a calorie amount or an "N left". The handoff's acceptance test, and the
 // plan is docs/plans/screens/blind-leak-test.md.
 //

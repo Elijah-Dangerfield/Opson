@@ -19,7 +19,7 @@ import kotlin.test.fail
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h4000dp")
-class NoNumbersMealGapsTest(private val surface: LeakSurface) {
+class BlindMealGapsTest(private val surface: LeakSurface) {
 
     @get:Rule
     val compose = createComposeRule()

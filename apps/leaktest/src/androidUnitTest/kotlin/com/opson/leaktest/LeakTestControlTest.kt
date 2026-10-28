@@ -12,7 +12,7 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertFalse
 
 /**
- * The control for [CaloriesHiddenLeakTest]: every surface marked `showsCaloriesInFull`, rendered in
+ * The control for [BlindModeLeakTest]: every surface marked `showsCaloriesInFull`, rendered in
  * Full, must show at least one calorie tag or [LEAK] match. Without it the leak test would pass
  * just as happily on a surface that renders nothing, or a scan that reads nothing. The prototype
  * runs Full beside the hidden modes for the same reason.
