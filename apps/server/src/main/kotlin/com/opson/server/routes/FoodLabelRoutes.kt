@@ -35,6 +35,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
@@ -78,6 +79,8 @@ data class FoodSubmissionRequest(
     val front: String? = null,
     val label: String? = null,
     val food: LabelFactsJson? = null,
+    /** The submitter's own copy, a custom food the app saved first. Optional; an app before 0.2.1 leaves it out. */
+    val customFoodId: String? = null,
 )
 
 @Serializable
@@ -87,6 +90,22 @@ data class FoodSubmissionResponse(
     val status: String,
     val checks: List<LabelCheckJson>,
 )
+
+/**
+ * One of the caller's own submissions, for `GET /v1/foods/submissions`. [status] is `pending`,
+ * `approved` or `rejected`; [customFoodId] is the app's own copy when it said which.
+ */
+@Serializable
+data class OwnSubmissionResponse(
+    val id: String,
+    val foodId: String,
+    val status: String,
+    val createdAt: String,
+    val customFoodId: String? = null,
+)
+
+@Serializable
+data class OwnSubmissionsResponse(val submissions: List<OwnSubmissionResponse>)
 
 @Serializable
 data class BarcodeLinkRequest(val barcode: String? = null, val foodId: String? = null)
@@ -105,6 +124,10 @@ data class BarcodeLinkRequest(val barcode: String? = null, val foodId: String? =
  *    photos, and runs the checks again. 201, or 200 for a repeat of the same
  *    id. 400 `invalid_id`, `invalid_origin`, `invalid_barcode`,
  *    `invalid_food`, `invalid_image`; 409 `id_conflict`; 413; 429.
+ *    `customFoodId` (optional) names the submitter's own copy of the food.
+ *  - `GET /v1/foods/submissions` lists the caller's own submissions, newest
+ *    first, with where review stands, so the app can mark its copy of each
+ *    food unverified until a reviewer approves it. Nobody else's.
  *  - `POST /v1/foods/barcode-links {barcode, foodId}` counts a barcode the
  *    person missed and then found by searching. 204. No account is stored.
  *
@@ -127,6 +150,13 @@ fun Route.foodLabelRoutes(
     val json = Json { ignoreUnknownKeys = true }
 
     authenticate(SUPABASE_JWT_AUTH) {
+        get("/v1/foods/submissions") {
+            val userId = call.userId()
+                ?: return@get call.respond(HttpStatusCode.Unauthorized, problem("unauthorized", "Sign in again"))
+            val mine = submissions.mine(userId, OWN_SUBMISSIONS_LIMIT)
+            call.respond(OwnSubmissionsResponse(mine.map { it.toOwnResponse() }))
+        }
+
         rateLimit(RateLimitName(FOOD_LABEL_LIMIT)) {
             post("/v1/foods/labels/parse") {
                 val started = clock.now()
@@ -216,6 +246,8 @@ fun Route.foodLabelRoutes(
                         parsed = parsed?.reading,
                         model = parsed?.model,
                         photos = photos,
+                        // A malformed id is dropped rather than refused: the food matters more than the mark.
+                        customFoodId = request.customFoodId?.let { runCatching { UUID.fromString(it) }.getOrNull() },
                     ),
                 )
                 when (outcome) {
@@ -255,6 +287,18 @@ private fun com.opson.server.domain.FoodSubmission.toResponse() = FoodSubmission
     status = status.wire,
     checks = checks.map(LabelCheckJson::of),
 )
+
+@OptIn(ExperimentalTime::class)
+private fun com.opson.server.domain.FoodSubmission.toOwnResponse() = OwnSubmissionResponse(
+    id = id.toString(),
+    foodId = foodId.toString(),
+    status = status.wire,
+    createdAt = createdAt.toString(),
+    customFoodId = customFoodId?.toString(),
+)
+
+/** More than anyone submits in weeks at the daily cap; the app only needs the recent ones to mark. */
+private const val OWN_SUBMISSIONS_LIMIT = 500
 
 private sealed interface Bounded<out T> {
     class Ok<T>(val value: T) : Bounded<T>

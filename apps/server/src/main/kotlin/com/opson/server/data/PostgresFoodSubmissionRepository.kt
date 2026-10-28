@@ -90,6 +90,7 @@ class PostgresFoodSubmissionRepository(
                     it[parsed] = submission.parsed?.let(LabelJson::reading)
                     it[submitted] = LabelJson.facts(submission.facts, submission.acknowledged)
                     it[checks] = LabelJson.checks(submission.checks)
+                    it[customFoodId] = submission.customFoodId
                 }
                 listOf(
                     Triple(PhotoKind.Front, submission.photos.front, submission.photos.frontType.mediaType),
@@ -125,6 +126,16 @@ class PostgresFoodSubmissionRepository(
                 .where { (FoodSubmissionsTable.foodId eq foodId) and (FoodSubmissionsTable.userId eq userId.value) }
                 .limit(1)
                 .any()
+    }
+
+    override suspend fun mine(userId: UserId, limit: Int): List<FoodSubmission> = database.transaction {
+        val rows = FoodSubmissionsTable.selectAll()
+            .where { FoodSubmissionsTable.userId eq userId.value }
+            .orderBy(FoodSubmissionsTable.createdAt to SortOrder.DESC)
+            .limit(limit)
+            .toList()
+        val withPhotos = photoOwners(rows.map { it[FoodSubmissionsTable.id] })
+        rows.map { it.toSubmission(it[FoodSubmissionsTable.id] in withPhotos) }
     }
 
     override suspend fun pendingFoodFor(userId: UserId, barcode: String): UUID? {
@@ -293,6 +304,7 @@ class PostgresFoodSubmissionRepository(
             reviewedBy = this[FoodSubmissionsTable.reviewedBy],
             rejectReason = this[FoodSubmissionsTable.rejectReason],
             hasPhotos = hasPhotos,
+            customFoodId = this[FoodSubmissionsTable.customFoodId],
         )
     }
 

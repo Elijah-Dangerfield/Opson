@@ -79,6 +79,11 @@ data class Food(
     val portions: List<Portion>,
     val tier: FoodTier = source.tier,
     val verified: Boolean = tier.verified,
+    /**
+     * Where review stands, for a food someone added from its pack ([CatalogSource.UserSubmitted]).
+     * Every other row is approved. Only the submitter is ever handed a pending or rejected one.
+     */
+    val reviewStatus: SubmissionStatus = SubmissionStatus.Approved,
 )
 
 /**

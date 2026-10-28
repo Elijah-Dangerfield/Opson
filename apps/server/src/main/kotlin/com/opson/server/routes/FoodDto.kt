@@ -3,6 +3,7 @@ package com.opson.server.routes
 import com.opson.server.domain.DescribedItem
 import com.opson.server.domain.Food
 import com.opson.server.domain.Nutrients
+import com.opson.server.domain.SubmissionStatus
 import kotlinx.serialization.Serializable
 
 /**
@@ -10,14 +11,20 @@ import kotlinx.serialization.Serializable
  * the API.
  *
  * `source` is one of `usda_foundation`, `usda_sr`, `usda_fndds`,
- * `usda_branded`, `nutritionix`, `off`, `nevo`. An `off` food comes from Open
+ * `usda_branded`, `nutritionix`, `off`, `nevo`, `user_submitted`. An `off` food comes from Open
  * Food Facts (ODbL), which the Foods screen credits. A `nevo` food comes from
  * RIVM's NEVO, only to an app that asks with `credits=nevo` (0.1 reads an
  * unknown source as "unknown" anyway). `micros` keys carry their unit
  * (`sodium_mg`, `vitamin_d_ug`).
  *
  * `tier` is 1 reference (USDA generic, NEVO), 2 label (USDA Branded), 3 licensed,
- * 4 community (Open Food Facts); `verified` is true for tiers 1 to 3.
+ * 4 community (Open Food Facts); `verified` is true for tiers 1 to 3, and for a
+ * `user_submitted` food once a reviewer approved it.
+ *
+ * `reviewStatus` is `pending` or `rejected` for a food someone added from its
+ * pack that no reviewer has approved; only its submitter is ever sent one.
+ * Absent for everything else, so an older app that decodes strictly never
+ * meets it on a food it could see before.
  */
 @Serializable
 data class FoodResponse(
@@ -31,6 +38,7 @@ data class FoodResponse(
     val portions: List<PortionDto> = emptyList(),
     val tier: Int,
     val verified: Boolean,
+    val reviewStatus: String? = null,
 )
 
 @Serializable
@@ -123,6 +131,7 @@ fun Food.toResponse(): FoodResponse = FoodResponse(
     portions = portions.map { PortionDto(it.label, it.grams) },
     tier = tier.wire,
     verified = verified,
+    reviewStatus = reviewStatus.takeIf { it != SubmissionStatus.Approved }?.wire,
 )
 
 fun DescribedItem.toDto(): DescribedItemDto = DescribedItemDto(

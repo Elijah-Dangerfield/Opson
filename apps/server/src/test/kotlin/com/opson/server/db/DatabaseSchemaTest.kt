@@ -209,6 +209,21 @@ class DatabaseSchemaTest : DatabaseTest() {
         database.blockingTransaction { exec("DELETE FROM foods WHERE id = '$approvedFood'") }
     }
 
+    /** V27 is additive and safe to run twice; the link to the submitter's own copy is optional. */
+    @Test
+    fun submissionCustomFoodMigrationIsIdempotentAndOptional() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V27__food_submission_custom_food.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        assertEquals(
+            listOf("uuid YES"),
+            strings(
+                "SELECT data_type || ' ' || is_nullable FROM information_schema.columns " +
+                    "WHERE table_name = 'food_submissions' AND column_name = 'custom_food_id'",
+            ),
+        )
+    }
+
     /** The limits DiaryRules checks hold in the table too. */
     @Test
     fun exercisesRefuseALengthOrANumberOutOfRange() {

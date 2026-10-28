@@ -96,6 +96,8 @@ data class NewFoodSubmission(
     val parsed: LabelReading?,
     val model: String?,
     val photos: PackPhotos,
+    /** The submitter's own copy (a custom food the app saved first), so the app can mark it while review runs. */
+    val customFoodId: UUID? = null,
 )
 
 /** The review record, for the submitter's own lookups and the admin queue. */
@@ -121,6 +123,8 @@ data class FoodSubmission(
     val reviewedBy: String?,
     val rejectReason: String?,
     val hasPhotos: Boolean,
+    /** The submitter's own copy of the food, when the app said which. */
+    val customFoodId: UUID? = null,
 ) {
     /** The food as it stands: the reviewer's version once there is one. */
     val current: LabelFacts get() = reviewed ?: submitted
@@ -167,6 +171,9 @@ interface FoodSubmissionRepository {
 
     /** Whether [userId] may see the catalog food [foodId]: approved, or their own submission. */
     suspend fun isVisible(foodId: UUID, userId: UserId): Boolean
+
+    /** [userId]'s own submissions, newest first: what the app marks as unverified or checked. */
+    suspend fun mine(userId: UserId, limit: Int): List<FoodSubmission>
 
     /** [userId]'s own pending food for any form of [barcode], so a second scan finds what they just added. */
     suspend fun pendingFoodFor(userId: UserId, barcode: String): UUID?

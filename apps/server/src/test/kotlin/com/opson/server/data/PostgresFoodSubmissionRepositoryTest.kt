@@ -68,6 +68,7 @@ class PostgresFoodSubmissionRepositoryTest : DatabaseTest() {
         barcode: String? = "012345678905",
         facts: LabelFacts = bar,
         id: UUID = UUID.randomUUID(),
+        customFoodId: UUID? = null,
     ) = NewFoodSubmission(
         id = id,
         userId = user,
@@ -79,6 +80,7 @@ class PostgresFoodSubmissionRepositoryTest : DatabaseTest() {
         parsed = LabelReading(facts, mapOf("name" to 0.9), readable = true),
         model = "claude-fable-5-1",
         photos = PackPhotos(TestImages.jpeg, ImageType.Jpeg, TestImages.png, ImageType.Png),
+        customFoodId = customFoodId,
     )
 
     @Test
@@ -102,6 +104,7 @@ class PostgresFoodSubmissionRepositoryTest : DatabaseTest() {
         assertEquals("1 bar (40 g)", food.portions.single().label)
         assertEquals(40.0, food.portions.single().grams)
         assertFalse(food.verified)
+        assertEquals(SubmissionStatus.Pending, food.reviewStatus, "the submitter's own detail says it is in review")
 
         assertTrue(repo.isVisible(created.foodId, alice))
         assertFalse(repo.isVisible(created.foodId, bob))
@@ -139,6 +142,7 @@ class PostgresFoodSubmissionRepositoryTest : DatabaseTest() {
         val found = assertNotNull(catalog.findByBarcode("012345678905"))
         assertEquals(created.foodId, found.id)
         assertTrue(found.verified, "a reviewer checked it against the photos")
+        assertEquals(SubmissionStatus.Approved, found.reviewStatus)
         assertTrue(catalog.search("granola", 10).any { it.food.id == created.foodId })
         assertEquals(ReviewOutcome.AlreadyDecided, repo.reject(created.id, "late", "other"))
     }
@@ -208,6 +212,24 @@ class PostgresFoodSubmissionRepositoryTest : DatabaseTest() {
         assertFalse(assertNotNull(repo.get(decided.id)).hasPhotos)
         assertNotNull(repo.photo(kept.id, PhotoKind.Front), "a pending submission keeps its photos")
         assertEquals(0, repo.purgeDecidedPhotos(now - 30.days))
+    }
+
+    @Test
+    fun ownSubmissionsAreTheSubmittersNewestFirstWithTheirOwnCopy() = runTest {
+        val alice = seedAuthUser()
+        val bob = seedAuthUser()
+        val customFoodId = UUID.randomUUID()
+        val older = assertIs<SubmitOutcome.Created>(repo.submit(submission(alice, customFoodId = customFoodId))).submission
+        now += 1.days
+        val newer = assertIs<SubmitOutcome.Created>(repo.submit(submission(alice, barcode = null))).submission
+        repo.submit(submission(bob, barcode = null))
+        repo.approve(older.id, null, "reviewer")
+
+        val mine = repo.mine(alice, 10)
+        assertEquals(listOf(newer.id, older.id), mine.map { it.id })
+        assertEquals(listOf(SubmissionStatus.Pending, SubmissionStatus.Approved), mine.map { it.status })
+        assertEquals(listOf(null, customFoodId), mine.map { it.customFoodId })
+        assertEquals(listOf(newer.id), repo.mine(alice, 1).map { it.id })
     }
 
     @Test

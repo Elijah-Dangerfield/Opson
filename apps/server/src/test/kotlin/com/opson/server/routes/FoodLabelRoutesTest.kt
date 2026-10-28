@@ -25,6 +25,7 @@ import com.opson.server.testing.TestJwt
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -268,6 +269,40 @@ class FoodLabelRoutesTest {
             assertEquals(HttpStatusCode.Unauthorized, client.post("/v1/foods/labels/parse").status)
             assertEquals(HttpStatusCode.Unauthorized, client.post("/v1/foods/submissions").status)
             assertEquals(HttpStatusCode.Unauthorized, client.post("/v1/foods/barcode-links").status)
+            assertEquals(HttpStatusCode.Unauthorized, client.get("/v1/foods/submissions").status)
+        }
+    }
+
+    @Test
+    fun aSubmissionKeepsTheSubmittersOwnCopyAndAMalformedOneIsDropped() = runTest {
+        withApp { client ->
+            val customFoodId = UUID.randomUUID().toString()
+            val linked = client.submit(request(barcode = null, origin = "search").copy(customFoodId = customFoodId))
+            assertEquals(HttpStatusCode.Created, linked.status)
+            val stored = submissions.submissions.getValue(UUID.fromString(linked.body<FoodSubmissionResponse>().submissionId))
+            assertEquals(customFoodId, stored.customFoodId.toString())
+
+            val malformed = client.submit(request(barcode = null, origin = "search").copy(customFoodId = "not-a-uuid"))
+            assertEquals(HttpStatusCode.Created, malformed.status, "the food matters more than the mark")
+            assertNull(submissions.submissions.getValue(UUID.fromString(malformed.body<FoodSubmissionResponse>().submissionId)).customFoodId)
+        }
+    }
+
+    @Test
+    fun ownSubmissionsListOnlyTheCallersNewestFirstWithTheirStatus() = runTest {
+        withApp { client ->
+            val customFoodId = UUID.randomUUID().toString()
+            val first = client.submit(request(origin = "barcode")).body<FoodSubmissionResponse>()
+            val second = client.submit(request(barcode = null, origin = "search").copy(customFoodId = customFoodId)).body<FoodSubmissionResponse>()
+            client.submit(request(barcode = null, origin = "search"), user = bob)
+
+            val response = client.get("/v1/foods/submissions") { header(HttpHeaders.Authorization, TestJwt.bearer(alice)) }
+            assertEquals(HttpStatusCode.OK, response.status)
+            val mine = response.body<OwnSubmissionsResponse>().submissions
+            assertEquals(listOf(second.submissionId, first.submissionId), mine.map { it.id })
+            assertEquals(listOf(second.foodId, first.foodId), mine.map { it.foodId })
+            assertEquals(listOf("pending", "pending"), mine.map { it.status })
+            assertEquals(listOf(customFoodId, null), mine.map { it.customFoodId })
         }
     }
 }

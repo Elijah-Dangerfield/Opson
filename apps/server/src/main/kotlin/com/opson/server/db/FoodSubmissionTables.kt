@@ -27,7 +27,7 @@ object SubmittedFoodsTable : Table("foods") {
     override val primaryKey = PrimaryKey(id)
 }
 
-/** People's submissions and their review. See `V25__food_submissions.sql`. */
+/** People's submissions and their review. See `V25__food_submissions.sql` and V27. */
 object FoodSubmissionsTable : Table("food_submissions") {
     val id = uuid("id")
     val userId = uuid("user_id")
@@ -45,6 +45,9 @@ object FoodSubmissionsTable : Table("food_submissions") {
     val reviewedAt = timestamp("reviewed_at").nullable()
     val reviewedBy = text("reviewed_by").nullable()
     val rejectReason = text("reject_reason").nullable()
+
+    /** The submitter's own copy, a custom food (V27). */
+    val customFoodId = uuid("custom_food_id").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 

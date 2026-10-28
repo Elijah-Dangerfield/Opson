@@ -44,6 +44,7 @@ import com.opson.server.domain.LabelFacts
 import com.opson.server.domain.NewFoodSubmission
 import com.opson.server.domain.PackPhotos
 import com.opson.server.domain.SubmissionOrigin
+import com.opson.server.domain.SubmissionStatus
 import com.opson.server.domain.SubmitOutcome
 import com.opson.server.testing.FakeFoodSubmissionRepository
 import com.opson.server.testing.TestImages
@@ -119,17 +120,20 @@ class FoodRoutesTest {
 
     @Test
     fun aPendingSubmissionIsOnlyItsSubmittersToSeeOrScan() = runTest {
-        val pending = food("granola bar", source = CatalogSource.UserSubmitted)
+        val pending = food("granola bar", source = CatalogSource.UserSubmitted).copy(reviewStatus = SubmissionStatus.Pending)
         val submissions = FakeFoodSubmissionRepository()
         pendingSubmission(submissions, pending)
         val other = UserId(UUID.fromString("99999999-9999-9999-9999-999999999999"))
         withApp(catalog = FakeFoodCatalog(listOf(pending)), submissions = submissions) { client ->
-            assertEquals(HttpStatusCode.OK, client.get("/v1/foods/${pending.id}") { auth() }.status)
+            val detail = client.get("/v1/foods/${pending.id}") { auth() }
+            assertEquals(HttpStatusCode.OK, detail.status)
+            assertEquals("pending", detail.body<FoodResponse>().reviewStatus, "the submitter is told it is not checked yet")
             assertEquals(HttpStatusCode.NotFound, client.get("/v1/foods/${pending.id}") { auth(other) }.status)
 
             val mine = client.get("/v1/foods/barcode/0012345678905") { auth() }
             assertEquals(HttpStatusCode.OK, mine.status)
             assertEquals(pending.id.toString(), mine.body<FoodResponse>().id)
+            assertEquals("pending", mine.body<FoodResponse>().reviewStatus)
             assertEquals(HttpStatusCode.NotFound, client.get("/v1/foods/barcode/012345678905") { auth(other) }.status)
         }
     }

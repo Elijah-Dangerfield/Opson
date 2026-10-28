@@ -122,6 +122,12 @@ object FoodsTable : Table("foods") {
      */
     val tier = short("tier").databaseGenerated()
     val verified = bool("verified").databaseGenerated()
+
+    /**
+     * `pending`, `approved` or `rejected` (V25). Read-only here: only [SubmittedFoodsTable]
+     * writes it, and every row the catalog loads itself takes the column's `approved` default.
+     */
+    val reviewStatus = text("review_status").databaseGenerated()
     override val primaryKey = PrimaryKey(id)
 }
 

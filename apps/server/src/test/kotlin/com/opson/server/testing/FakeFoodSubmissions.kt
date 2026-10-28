@@ -63,6 +63,7 @@ class FakeFoodSubmissionRepository : FoodSubmissionRepository {
             reviewedBy = null,
             rejectReason = null,
             hasPhotos = true,
+            customFoodId = submission.customFoodId,
         )
         submissions[submission.id] = stored
         photos[submission.id to PhotoKind.Front] = StoredPhoto(submission.photos.frontType.mediaType, submission.photos.front)
@@ -74,6 +75,9 @@ class FakeFoodSubmissionRepository : FoodSubmissionRepository {
         val submission = submissions.values.firstOrNull { it.foodId == foodId } ?: return true
         return submission.status == SubmissionStatus.Approved || submission.userId == userId
     }
+
+    override suspend fun mine(userId: UserId, limit: Int): List<FoodSubmission> =
+        submissions.values.filter { it.userId == userId }.reversed().take(limit)
 
     override suspend fun pendingFoodFor(userId: UserId, barcode: String): UUID? = submissions.values.lastOrNull {
         it.userId == userId && it.status == SubmissionStatus.Pending && it.gtin != null && it.gtin == Barcodes.gtin14(barcode)

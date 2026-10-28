@@ -23,6 +23,7 @@ import com.opson.server.domain.SearchCategory
 import com.opson.server.domain.SearchFilter
 import com.opson.server.domain.SearchSort
 import com.opson.server.domain.SearchSource
+import com.opson.server.domain.SubmissionStatus
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
@@ -283,6 +284,7 @@ class PostgresFoodCatalogRepository(
         portions = decodePortions(this[FoodsTable.portions]),
         tier = FoodTier.fromWire(this[FoodsTable.tier].toInt()),
         verified = this[FoodsTable.verified],
+        reviewStatus = SubmissionStatus.fromWire(this[FoodsTable.reviewStatus]) ?: SubmissionStatus.Approved,
     )
 
     private fun ResultSet.toFood(): Food = Food(

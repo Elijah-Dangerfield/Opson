@@ -164,7 +164,8 @@ the usual `ProblemResponse`.
 | GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. 60/min per IP. |
 | POST | `/v1/foods/barcode-misses` `{id, barcode}` | The app reports a code the barcode route answered 404. 204, idempotent on `id`. Region, platform and app version come from the `X-*` headers; no user id is stored. 400 `invalid_id`, `invalid_barcode`. 60/min per IP. Feeds `barcode_misses` (V13). |
 | POST | `/v1/foods/labels/parse` `{front, label}` | Reads a pack's two photos (base64) into a label, field by field, with the model's confidence and the checks it fails. Stores no photo. See "Foods people add" below. |
-| POST | `/v1/foods/submissions` `{id, parseId?, origin, barcode?, front, label, food}` | Stores a food someone corrected, pending review, with its photos. 201, or 200 for the same id again. |
+| POST | `/v1/foods/submissions` `{id, parseId?, origin, barcode?, front, label, food, customFoodId?}` | Stores a food someone corrected, pending review, with its photos. 201, or 200 for the same id again. `customFoodId` is the submitter's own copy (V27). |
+| GET | `/v1/foods/submissions` | The caller's own submissions, newest first: `{submissions: [{id, foodId, status, createdAt, customFoodId?}]}`. The app marks its copy of each food unverified until it is approved. |
 | POST | `/v1/foods/barcode-links` `{barcode, foodId}` | A barcode missed, then found by searching. 204. No account stored. |
 | POST | `/v1/describe` `{text}` | Heuristic parse into items. 400 `invalid_text` (empty or > 1000 chars). |
 | GET | `/v1/export.zip` | Streams everything the caller has as a zip: a CSV per kind of row (entries, day and meal notes, check-ins, water, weigh-ins, exercise, fasts, custom foods, saved meals), a daily summary, `settings.json` and a README (`resources/export/README.txt`). Local times follow `X-Time-Zone`, UTC without it. 10 per hour per IP, shared with the CSV. |
@@ -417,7 +418,12 @@ same checks as the person edits (`LabelChecks` in `:libraries:foods`).
 `food_submission_photos` (Postgres, never a URL). A pending food is the
 submitter's alone: search filters on `review_status = 'approved'`,
 `GET /v1/foods/{id}` is 404 to anyone else, and its barcode waits on the
-submission row, so only its submitter's scan finds it. Approval (admin
+submission row, so only its submitter's scan finds it. The submitter's copy
+of a food says `reviewStatus: "pending"` (or `"rejected"`); the field is left
+out for every approved food. The app saves the food to the person's foods
+first and sends that custom food's id with the submission (V27), and
+`GET /v1/foods/submissions` hands the links and statuses back, which is how
+the app marks its copy unverified on any phone. Approval (admin
 console, `/v1/admin/food-submissions`) writes the reviewer's version, sets
 the barcode and `verified`, and from then on everyone's search and scan find
 it. Photos are deleted 30 days after the decision; deleting the account
