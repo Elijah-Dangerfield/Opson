@@ -5,6 +5,8 @@ import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
+import com.opson.libraries.nutrition.MicroReferences
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
@@ -189,10 +191,52 @@ data class Settings(
     val todayWeight: Boolean = true,
     /** Close the day's button in Today's header, once a card at the end of the list. The ⋮ menu offers it either way. */
     val todayCloseDay: Boolean = true,
+
+    // Vitamins and minerals (More › Targets › Vitamins and minerals). Top-level keys, because the
+    // server merges settings one level deep, and never null, because a null is left out of the
+    // write and the merge would keep the old value: empty is the default, and reaches the server.
+    /** A reference the person set themselves, by `Micronutrient.key`, in its own unit. See [microReferences]. */
+    val microTargets: Map<String, Double> = emptyMap(),
+    /** The nutrients page on Today, as `Micronutrient.key`s in order; empty is [DEFAULT_TODAY_NUTRIENTS]. */
+    val todayNutrients: List<String> = emptyList(),
 ) {
     /** What the resting energy calculation is told: these details and [weightKg], on [today]. */
     fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile =
         BodyProfile(weightKg = weightKg, heightCm = heightCm, ageYears = birthYear?.let { today.year - it }, sex = bodySex)
+
+    /**
+     * Each vitamin and mineral's daily reference on [today]: by the age and sex Resting energy
+     * collects, with the person's own numbers over it. Age is the birth year's, as Burned reads it.
+     */
+    fun microReferences(today: LocalDate): MicroReferences =
+        MicroReferences.forPerson(bodySex, birthYear?.let { today.year - it }, ownMicroTargets)
+
+    /** [microTargets] that name a tracked micronutrient; [MicroReferences] drops any that are not sensible. */
+    val ownMicroTargets: Map<Micronutrient, Double>
+        get() = microTargets.mapNotNull { (key, amount) -> Micronutrient.fromKey(key)?.let { it to amount } }.toMap()
+
+    /** Sets [micro]'s own reference to [amount], or back to the suggested one when null. */
+    fun withMicroTarget(micro: Micronutrient, amount: Double?): Settings =
+        copy(microTargets = if (amount == null) microTargets - micro.key else microTargets + (micro.key to amount))
+
+    /** What Today's nutrients page lists, in order: the person's picks, or [DEFAULT_TODAY_NUTRIENTS]. */
+    val todayMicronutrients: List<Micronutrient>
+        get() = todayNutrients.mapNotNull(Micronutrient::fromKey).distinct().take(TODAY_NUTRIENTS_MAX)
+            .ifEmpty { DEFAULT_TODAY_NUTRIENTS }
+
+    /**
+     * Puts [micro] on Today's nutrients page, at the end, or takes it off. Adding a fifth does
+     * nothing and taking off the last one does nothing: the page has room for four and is never empty.
+     */
+    fun withTodayNutrient(micro: Micronutrient, on: Boolean): Settings {
+        val current = todayMicronutrients
+        val next = when {
+            on && micro !in current && current.size < TODAY_NUTRIENTS_MAX -> current + micro
+            !on && micro in current && current.size > 1 -> current - micro
+            else -> return this
+        }
+        return copy(todayNutrients = next.map { it.key })
+    }
 
     fun isFavorite(foodKey: String): Boolean = foodKey in favoriteFoods
 
@@ -222,6 +266,19 @@ data class Settings(
 
     /** Same settings with different numbers. `changedAt` is whatever [next] carries. */
     fun withNumbers(next: NumbersSettings): Settings = copy(numbers = next)
+
+    companion object {
+        /** How many nutrients Today's page has room for. */
+        const val TODAY_NUTRIENTS_MAX = 4
+
+        /**
+         * Fiber is on page 1 with the macros, and sugars and saturated fat are not tracked, so the
+         * page starts with the minerals most people watch: sodium as a limit, then potassium,
+         * calcium and iron.
+         */
+        val DEFAULT_TODAY_NUTRIENTS: List<Micronutrient> =
+            listOf(Micronutrient.Sodium, Micronutrient.Potassium, Micronutrient.Calcium, Micronutrient.Iron)
+    }
 }
 
 /** End after a set time switched from [from] [on] that day. */

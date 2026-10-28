@@ -5,7 +5,7 @@ package com.opson.libraries.nutrition
  * carry the unit in the key and use the server's names (`sodium_mg`,
  * `vitamin_a_rae_ug`, `folate_dfe_ug`, see `apps/server/README.md`), which are
  * not [Micronutrient.key]: vitamin A is stored as RAE and folate as DFE, and
- * the reference in the table is in those same units.
+ * the references ([MicroReferences]) are in those same units.
  */
 val Micronutrient.wireKey: String
     get() = when (this) {
@@ -48,10 +48,3 @@ fun Map<String, Double>.toMicronutrients(): Map<Micronutrient, Double> = buildMa
         if (amount.isFinite()) put(micro, (get(micro) ?: 0.0) + amount)
     }
 }
-
-/**
- * A micronutrient's daily reference, `700 µg` or `2,300 mg limit`, spelled by
- * the policy's own formatter. It is a reference, not something eaten, so it is
- * not gated by visibility; screens only show it beside a visible micro row.
- */
-fun VisibilityPolicy.microReference(micro: Micronutrient): String = formatter.microReference(micro)
