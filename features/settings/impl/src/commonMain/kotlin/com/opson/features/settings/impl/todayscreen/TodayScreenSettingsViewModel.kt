@@ -34,6 +34,7 @@ class TodayScreenSettingsViewModel(
             TodayScreenSettingsAction.MainNumberTapped -> sendEvent(TodayScreenSettingsEvent.OpenChoice(TodayScreenChoice.MainNumber))
             TodayScreenSettingsAction.CardPagesTapped -> sendEvent(TodayScreenSettingsEvent.OpenChoice(TodayScreenChoice.CardPages))
             is TodayScreenSettingsAction.Toggled -> settingsRepository.update { action.row.set(it, action.on) }
+            TodayScreenSettingsAction.NutrientsPickTapped -> sendEvent(TodayScreenSettingsEvent.OpenMicroTargets)
             TodayScreenSettingsAction.BackTapped -> sendEvent(TodayScreenSettingsEvent.Close)
         }
     }
@@ -62,6 +63,9 @@ enum class TodayScreenChoice(val wire: String) {
 
 sealed interface TodayScreenSettingsEvent {
     data class OpenChoice(val choice: TodayScreenChoice) : TodayScreenSettingsEvent
+
+    /** Vitamins and minerals, where the page's four are picked. */
+    data object OpenMicroTargets : TodayScreenSettingsEvent
     data object Close : TodayScreenSettingsEvent
 }
 
@@ -70,6 +74,7 @@ sealed interface TodayScreenSettingsAction {
     data class PresetPicked(val preset: SummaryCardPreset) : TodayScreenSettingsAction
     data object MainNumberTapped : TodayScreenSettingsAction
     data object CardPagesTapped : TodayScreenSettingsAction
+    data object NutrientsPickTapped : TodayScreenSettingsAction
     data class Toggled(val row: TodaySwitch, val on: Boolean) : TodayScreenSettingsAction
     data object BackTapped : TodayScreenSettingsAction
 }

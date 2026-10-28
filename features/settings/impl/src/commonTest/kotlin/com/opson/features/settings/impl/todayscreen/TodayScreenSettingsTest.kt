@@ -7,7 +7,10 @@ import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.PresetId
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -45,6 +48,15 @@ class TodayScreenSettingsTest : CoroutineTest() {
         listOf(PresetId.MacrosWithGrams, PresetId.MacrosOnly, PresetId.NoNumbers).forEach { preset ->
             assertFalse(TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset = preset))).cardArranged, "$preset")
         }
+    }
+
+    @Test
+    fun theNutrientsPageRow_namesItsFour_whileThePageIsOnAndMicrosShow() {
+        val settings = SettingsFixtures.settings().withTodayNutrient(Micronutrient.Sodium, false)
+        assertEquals(listOf(Micronutrient.Potassium, Micronutrient.Calcium, Micronutrient.Iron), TodayScreenSettingsStateBuilder.build(settings).nutrientsOnPage)
+        assertEquals(emptyList(), TodayScreenSettingsStateBuilder.build(settings.copy(todayNutrientsLink = false)).nutrientsOnPage)
+        val microsOff = SettingsFixtures.settings(NumbersSettings(overrides = mapOf(Metric.Micros to Visibility.Hide)))
+        assertEquals(emptyList(), TodayScreenSettingsStateBuilder.build(microsOff).nutrientsOnPage)
     }
 
     // --- view model ---

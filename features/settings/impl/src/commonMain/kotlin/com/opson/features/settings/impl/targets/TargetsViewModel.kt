@@ -101,6 +101,7 @@ class TargetsViewModel(
             }
             is TargetsAction.StylePicked -> pickStyle(action.kind)
             TargetsAction.RestingEnergyTapped -> sendEvent(TargetsEvent.OpenRestingEnergy)
+            TargetsAction.MicrosTapped -> sendEvent(TargetsEvent.OpenMicroTargets)
             TargetsAction.ActivityTapped -> if (inputs?.healthConnected == true) {
                 sendEvent(TargetsEvent.OpenIntegrations)
             } else {
@@ -329,6 +330,9 @@ class TargetsViewModel(
 sealed interface TargetsEvent {
     data class ShowToast(val toast: Toast) : TargetsEvent
     data object OpenRestingEnergy : TargetsEvent
+
+    /** Vitamins and minerals: their references and the four on Today. */
+    data object OpenMicroTargets : TargetsEvent
     data object OpenModes : TargetsEvent
     data object OpenIntegrations : TargetsEvent
     data object Close : TargetsEvent
@@ -349,6 +353,7 @@ sealed interface TargetsAction {
     /** A row in the goal style list: written at once. */
     data class StylePicked(val kind: StyleKind) : TargetsAction
     data object RestingEnergyTapped : TargetsAction
+    data object MicrosTapped : TargetsAction
 
     /** The Activity row: the health app's page when one is connected, else everyday activity's choices. */
     data object ActivityTapped : TargetsAction

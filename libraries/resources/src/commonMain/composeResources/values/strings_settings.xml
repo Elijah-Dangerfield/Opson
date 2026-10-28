@@ -11,6 +11,7 @@
     <string name="settings_back_more">‹ More</string>
     <string name="settings_back_today">‹ Today</string>
     <string name="settings_back_targets">‹ Targets</string>
+    <string name="settings_back_today_screen">‹ Today screen</string>
     <string name="settings_back_energy">‹ Energy today</string>
     <string name="settings_saved">Saved.</string>
     <string name="settings_saved_fewer">Saved. Fewer numbers from now on.</string>
@@ -440,4 +441,30 @@
     <string name="settings_today_weight">Weight on days you weigh in</string>
     <string name="settings_today_close_day">Close the day</string>
     <string name="settings_today_card_from_mode">In this mode the card's layout comes from the mode.</string>
+
+    <!-- More › Targets › Vitamins and minerals: each one's daily reference, your own, and the four on Today -->
+    <string name="settings_today_nutrients_pick">Nutrients on the page</string>
+    <string name="settings_micros_title">Vitamins and minerals</string>
+    <string name="settings_micros_row_line">Daily references, and the four on Today</string>
+    <string name="settings_micros_basis_age_sex">Suggested for your age and sex, from the Dietary Reference Intakes.</string>
+    <string name="settings_micros_basis_age">Suggested for your age. Sex isn't set, so each one is halfway between the values for women and men.</string>
+    <string name="settings_micros_basis_sex">Suggested for your sex at ages 31 to 50, since your birth year isn't set.</string>
+    <string name="settings_micros_basis_dv">These are the Daily Values from food labels, for adults in general.</string>
+    <string name="settings_micros_add_details">Add your birth year and sex</string>
+    <string name="settings_micros_add_details_line">In Resting energy</string>
+    <string name="settings_micros_caption">These are typical daily amounts for healthy people, not goals to hit. A dietitian or doctor can give you ones that fit you better. Tap one to set your own or to show it on Today.</string>
+    <string name="settings_micros_on_today">On Today</string>
+    <string name="settings_micros_own">Your own, %1$s</string>
+    <string name="settings_micros_off_title">Vitamins and minerals are off</string>
+    <string name="settings_micros_off_body">Turn them on in Modes and numbers to see and set them here.</string>
+    <string name="settings_micros_off_link">Modes and numbers</string>
+    <string name="settings_micros_suggested">Suggested: %1$s</string>
+    <string name="settings_micros_own_field">Your own daily amount</string>
+    <string name="settings_micros_use_suggested">Use the suggested amount</string>
+    <string name="settings_micros_invalid">That doesn't look like a daily amount for this one.</string>
+    <string name="settings_micros_show_today">Show on Today</string>
+    <string name="settings_micros_today_full">Today has room for four. Turn one off first.</string>
+    <string name="settings_micros_today_last">Today shows at least one.</string>
+    <string name="settings_micros_unit_mg">mg</string>
+    <string name="settings_micros_unit_ug">µg</string>
 </resources>

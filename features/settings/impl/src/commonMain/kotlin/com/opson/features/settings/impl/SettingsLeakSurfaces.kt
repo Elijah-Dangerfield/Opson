@@ -13,6 +13,9 @@ import com.opson.features.settings.impl.integrations.IntegrationsScreen
 import com.opson.features.settings.impl.integrations.LeaveOutSheetContent
 import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelStateBuilder
+import com.opson.features.settings.impl.micros.MicroTargetSheetContent
+import com.opson.features.settings.impl.micros.MicroTargetsScreen
+import com.opson.features.settings.impl.micros.MicroTargetsStateBuilder
 import com.opson.features.settings.impl.modes.EachNumberScreen
 import com.opson.features.settings.impl.modes.ModesScreen
 import com.opson.features.settings.impl.modes.ModesStateBuilder
@@ -45,6 +48,8 @@ import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.RestingChoices
+import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 import com.opson.libraries.widgets.WidgetCard
@@ -103,6 +108,15 @@ object SettingsLeakSurfaces {
                 TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(settings), onAction = {})
                 TodayScreenChoiceSheetContent(TodayScreenChoiceState.of(TodayScreenChoice.MainNumber, settings), onAction = {})
             }
+        },
+        // Vitamins and minerals: daily references, never an amount eaten, and off where the mode hides micros.
+        LeakSurface(id = "micro-targets", label = "Vitamins and minerals", showsCaloriesInFull = false) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings).copy(birthYear = 1990, bodySex = BodySex.Female)
+            MicroTargetsScreen(MicroTargetsStateBuilder.build(settings, policy, SettingsFixtures.today, goalsAndEnergy = true), onAction = {})
+        },
+        LeakSurface(id = "micro-target-sheet", label = "Vitamins and minerals, one nutrient", showsCaloriesInFull = false) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings).withMicroTarget(Micronutrient.Iron, 12.0)
+            MicroTargetSheetContent(MicroTargetsStateBuilder.sheet(settings, policy, SettingsFixtures.today, Micronutrient.Iron), onAction = {})
         },
         LeakSurface(id = "energy-today", label = "Energy today", showsCaloriesInFull = true) { policy ->
             val settings = SettingsFixtures.settings(policy.settings)

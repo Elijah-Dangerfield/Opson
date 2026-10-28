@@ -109,6 +109,8 @@ data class TargetsState(
     val exercise: ExerciseAdjustment? = null,
     /** "Burned comes from" (design sync 4), with `release.goalsAndEnergy`; null without. */
     val burned: BurnedCard? = null,
+    /** The Vitamins and minerals row: wherever the mode shows them, calories or not. */
+    val micros: Boolean = false,
 ) {
     val editingMacros: Boolean get() = macroEditor != null
 }
@@ -352,6 +354,7 @@ object TargetsStateBuilder {
             // No calorie goal, but macros on show (Macros with grams) keep their gram targets.
             return TargetsState(
                 visible = false,
+                micros = microsShown(policy),
                 macroMode = settings.macroMode,
                 macros = macros(targets, policy),
                 macroEditor = if (editingMacros) macroEditor(settings, policy, MacroGoal(targets.energyKcal, MacroGoalKind.Today), drafts, percents = false) else null,
@@ -364,6 +367,7 @@ object TargetsStateBuilder {
         val macroGoal = macroGoal(targets, style, preset, burnKcal, today)
         return TargetsState(
             visible = true,
+            micros = microsShown(policy),
             style = style,
             styles = offered.map { kind ->
                 StyleRow(
@@ -405,6 +409,8 @@ object TargetsStateBuilder {
             StyleKind.Range, StyleKind.ByDay -> true
         }
     }
+
+    private fun microsShown(policy: VisibilityPolicy): Boolean = policy.level(Metric.Micros) != Visibility.Hide
 
     /** Calories show on this page, and with them every amount and percent of the calorie goal. */
     fun percentsShown(policy: VisibilityPolicy): Boolean = policy.level(Metric.Calories) == Visibility.Show

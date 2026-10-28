@@ -95,6 +95,13 @@ class TargetsTest : CoroutineTest() {
     }
 
     @Test
+    fun theVitaminsAndMineralsRow_isWhereverMicrosShow_caloriesOrNot() {
+        assertTrue(build().micros)
+        assertTrue(TargetsStateBuilder.build(SettingsFixtures.settings(), SettingsFixtures.policy(PresetId.MacrosWithGrams)).micros)
+        assertFalse(TargetsStateBuilder.build(SettingsFixtures.settings(), SettingsFixtures.policy(PresetId.MacrosOnly)).micros)
+    }
+
+    @Test
     fun aMacroThatIsNotShowDropsOut() {
         val numbers = NumbersSettings(
             PresetId.Full,
