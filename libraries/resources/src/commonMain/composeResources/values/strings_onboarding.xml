@@ -91,16 +91,18 @@
 
     <!--
       Setup steps (release.onboardingSetup). Goal style names and lines are Targets' own
-      (strings_settings.xml), and so are resting energy's field labels.
+      (strings_settings.xml), and so are resting energy's field labels. Only someone whose mode
+      shows calories, and who did not say numbers have been hard, sees the goal and the resting
+      energy step; "Set this later" on either goes past both.
     -->
     <string name="onboarding_goal_title">Your daily goal</string>
     <string name="onboarding_goal_change">Change it any time under More, then Targets.</string>
     <string name="onboarding_goal_burn_note">The goal follows what you burn. Fine-tune the amount in Targets.</string>
+    <string name="onboarding_goal_based_on">Based on about %1$s burned on an ordinary day</string>
+    <string name="onboarding_goal_later">Set this later</string>
 
-    <string name="onboarding_body_title">What you burn at rest</string>
-    <string name="onboarding_body_body">Opson works it out from these. Your weight is saved as your first weigh-in.</string>
-    <string name="onboarding_body_units_metric">kg and cm</string>
-    <string name="onboarding_body_units_imperial">lb and in</string>
+    <string name="onboarding_body_title">What you burn in a day</string>
+    <string name="onboarding_body_body">Opson estimates it from these and starts your goal there. Your weight is saved as your first weigh-in.</string>
     <string name="onboarding_body_weight">Weight</string>
     <string name="onboarding_body_resting">About %1$s a day at rest</string>
     <string name="onboarding_body_activity">An ordinary day, outside workouts</string>

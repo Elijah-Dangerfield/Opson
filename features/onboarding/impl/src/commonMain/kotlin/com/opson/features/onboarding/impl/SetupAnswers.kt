@@ -130,6 +130,7 @@ fun Settings.startingWith(preset: PresetId, answers: SetupAnswers, setup: Starti
     heightCm = setup.heightCm ?: heightCm,
     bodySex = setup.sex ?: bodySex,
     weightUnit = setup.weightUnit ?: weightUnit,
+    heightUnit = setup.heightUnit ?: heightUnit,
     mealTimes = setup.mealTimes ?: mealTimes,
     everydayActivity = setup.everydayActivity ?: everydayActivity,
 )
