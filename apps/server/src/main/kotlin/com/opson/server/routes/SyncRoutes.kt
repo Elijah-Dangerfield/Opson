@@ -82,6 +82,8 @@ fun Route.syncRoutes(repository: SyncRepository, clock: Clock) {
                 accepted,
                 pullFasts = request.acceptsFasts,
                 pullExercises = request.acceptsExercise,
+                // `accepts` shipped before check-ins did, and 0.1 never sends it.
+                clientKnowsCheckIn = request.accepts.isNotEmpty(),
             )
             if (rejected.isNotEmpty()) {
                 logger.warn("sync user={} applied={} rejected={}", userId, result.applied.size, rejected.size)

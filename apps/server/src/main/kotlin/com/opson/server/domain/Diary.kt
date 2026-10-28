@@ -245,7 +245,8 @@ data class SyncResult(
  * write to [userId], then return rows past [cursor] capped at
  * [DiaryRules.PAGE_SIZE] per entity. Fasts come back only when [pullFasts], and exercises only
  * when [pullExercises]: entities added after 0.1 are left out for a client that did not ask for
- * them.
+ * them. Without [clientKnowsCheckIn] (a 0.1 client, whose day records have no check-in field) an
+ * update leaves the stored check-in alone instead of reading the missing key as cleared.
  *
  * Mutations arrive already validated by [DiaryRules].
  */
@@ -256,5 +257,6 @@ interface SyncRepository {
         mutations: List<SyncMutation>,
         pullFasts: Boolean = false,
         pullExercises: Boolean = false,
+        clientKnowsCheckIn: Boolean = false,
     ): SyncResult
 }

@@ -274,12 +274,12 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
         val user = seedAuthUser()
         val checkIn = """{"hunger":"steady","moods":["calm"]}"""
         val closed = DayRecord(DAY, 500, T0, null, emptyMap(), null, T0, false, checkIn = checkIn)
-        repo.sync(user, 0, listOf(mutation(closed)), pullFasts = true, pullExercises = true)
+        repo.sync(user, 0, listOf(mutation(closed)), pullFasts = true, pullExercises = true, clientKnowsCheckIn = true)
 
         // A 0.1 phone has no check-in to send and sends no `accepts`.
         repo.sync(user, 0, listOf(mutation(closed.copy(waterMl = 750, checkIn = null, clientUpdatedAt = T0 + 1.minutes))))
 
-        val stored = repo.sync(user, 0, emptyList(), pullFasts = true, pullExercises = true).changes.dayRecords.single()
+        val stored = repo.sync(user, 0, emptyList(), pullFasts = true, pullExercises = true, clientKnowsCheckIn = true).changes.dayRecords.single()
         assertEquals(750, stored.waterMl)
         assertEquals(checkIn, stored.checkIn)
     }
@@ -288,9 +288,9 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
     fun a02PhoneCanClearItsCheckIn() = runTest {
         val user = seedAuthUser()
         val closed = DayRecord(DAY, 500, T0, null, emptyMap(), null, T0, false, checkIn = """{"energy":"low"}""")
-        repo.sync(user, 0, listOf(mutation(closed)), pullFasts = true, pullExercises = true)
+        repo.sync(user, 0, listOf(mutation(closed)), pullFasts = true, pullExercises = true, clientKnowsCheckIn = true)
 
-        repo.sync(user, 0, listOf(mutation(closed.copy(checkIn = null, clientUpdatedAt = T0 + 1.minutes))), pullFasts = true, pullExercises = true)
+        repo.sync(user, 0, listOf(mutation(closed.copy(checkIn = null, clientUpdatedAt = T0 + 1.minutes))), pullFasts = true, pullExercises = true, clientKnowsCheckIn = true)
 
         assertNull(repo.sync(user, 0, emptyList()).changes.dayRecords.single().checkIn)
     }

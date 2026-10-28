@@ -82,16 +82,19 @@ class SyncRoutesTest {
         val calls = mutableListOf<Triple<UserId, Long, List<SyncMutation>>>()
         val pulledFasts = mutableListOf<Boolean>()
         val pulledExercises = mutableListOf<Boolean>()
+        val knewCheckIn = mutableListOf<Boolean>()
         override suspend fun sync(
             userId: UserId,
             cursor: Long,
             mutations: List<SyncMutation>,
             pullFasts: Boolean,
             pullExercises: Boolean,
+            clientKnowsCheckIn: Boolean,
         ): SyncResult {
             calls += Triple(userId, cursor, mutations)
             pulledFasts += pullFasts
             pulledExercises += pullExercises
+            knewCheckIn += clientKnowsCheckIn
             val fasts = if (pullFasts) listOf(FAST) else null
             val exercises = if (pullExercises) listOf(EXERCISE) else null
             return SyncResult(mutations.map { it.outboxId }, DiaryChanges(fasts = fasts, exercises = exercises), cursor = cursor + 7, hasMore = false)
@@ -240,6 +243,7 @@ class SyncRoutesTest {
             )
             assertEquals(listOf(false), repo.pulledFasts)
             assertEquals(listOf(false), repo.pulledExercises)
+            assertEquals(listOf(false), repo.knewCheckIn, "0.1's day records carry no check-in")
         }
     }
 
@@ -253,6 +257,7 @@ class SyncRoutesTest {
             assertTrue("fasts" !in changes, "fasts were not asked for")
             assertEquals(listOf(EXERCISE.toRowDto()), Json.decodeFromString<SyncResponse>(resp.bodyAsText()).changes.exercises)
             assertEquals(listOf(true), repo.pulledExercises)
+            assertEquals(listOf(true), repo.knewCheckIn, "any accepts at all is a client that knows check-ins")
         }
     }
 

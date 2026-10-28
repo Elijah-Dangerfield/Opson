@@ -95,12 +95,10 @@ class PostgresSyncRepository(
         mutations: List<SyncMutation>,
         pullFasts: Boolean,
         pullExercises: Boolean,
+        clientKnowsCheckIn: Boolean,
     ): SyncResult =
         database.readCommittedTransaction {
             lockUser(userId)
-            // `accepts` shipped before check-ins did, and 0.1 never sends it. A request without
-            // it comes from a client whose day records have no check-in field to send.
-            val knowsCheckIn = pullFasts || pullExercises
 
             val entries = mutations.map { it.row }.filterIsInstance<LogEntry>()
             val knownFoods = knownFoodIds(entries.mapNotNull { it.foodId }.toSet())
@@ -119,7 +117,7 @@ class PostgresSyncRepository(
                         existingEntries += entry.id
                     }
 
-                    else -> upsertOther(userId, row, knowsCheckIn)
+                    else -> upsertOther(userId, row, clientKnowsCheckIn)
                 }
             }
             bumpPopularity(picks)
