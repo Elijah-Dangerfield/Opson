@@ -15,8 +15,9 @@ data class ExpiredAccount(val userId: String, val wasAnonymous: Boolean)
  * Remembers, across launches, whose data the device is still holding after a
  * session expiry. An expired session is not a change of user: the person is
  * asked to sign in again, and when the same account comes back its unsynced
- * meals are still in the outbox. Only once someone else signs in, or the
- * person logs out, is the held data wiped (see `SupabaseAuthRepositoryImpl.emitLocked`).
+ * meals are still in the outbox. Only once someone else signs in is the held
+ * data wiped (see `SupabaseAuthRepositoryImpl.emitLocked`). The expired screen's
+ * sign-out leaves it, since that tap is how the person gets to sign in again.
  */
 @SingleIn(AppScope::class)
 @Inject

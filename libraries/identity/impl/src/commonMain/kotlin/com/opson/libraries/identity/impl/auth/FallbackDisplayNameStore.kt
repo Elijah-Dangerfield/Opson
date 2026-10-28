@@ -41,7 +41,7 @@ class FallbackDisplayNameStore(
         )
     }
 
-    /** Hold [identity] until a session exists to save it to. */
+    /** Hold [identity] for the Fallback to show. */
     suspend fun set(identity: PendingIdentity) {
         cache.set(
             PendingRecord(
