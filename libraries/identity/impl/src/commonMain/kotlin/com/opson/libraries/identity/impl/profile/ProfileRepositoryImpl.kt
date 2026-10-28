@@ -8,7 +8,7 @@ import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.PendingIdentity
-import com.opson.libraries.identity.impl.auth.PendingGuestAccountStore
+import com.opson.libraries.identity.impl.auth.FallbackDisplayNameStore
 import com.opson.libraries.identity.impl.MeDto
 import com.opson.libraries.identity.impl.PatchMeRequest
 import com.opson.libraries.identity.impl.ProfileApi
@@ -66,7 +66,7 @@ class ProfileRepositoryImpl(
     private val authRepository: AuthRepository,
     private val profileApi: ProfileApi,
     private val profileCache: ProfileCache,
-    private val pendingGuestAccountStore: PendingGuestAccountStore,
+    private val fallbackDisplayNameStore: FallbackDisplayNameStore,
     private val pendingProfileEditStore: PendingProfileEditStore,
     private val appScope: AppCoroutineScope,
 ) : ProfileRepository, AutoInit {
@@ -304,12 +304,12 @@ class ProfileRepositoryImpl(
 
     /**
      * Build a [Profile.Fallback], enriching it with a name chosen while
-     * session-less (held in [PendingGuestAccountStore]), so the app shows the
+     * session-less (held in [FallbackDisplayNameStore]), so the app shows the
      * user's choice instead of a generic "You". When none is held, the fields
      * stay null.
      */
     private suspend fun buildFallbackLocked(): Profile.Fallback {
-        val pending = Catching { pendingGuestAccountStore.read() }
+        val pending = Catching { fallbackDisplayNameStore.read() }
             .logOnFailure { "Reading pending identity for Fallback failed" }
             .getOrNull()
         return Profile.Fallback(
@@ -320,19 +320,19 @@ class ProfileRepositoryImpl(
 
     /**
      * Apply an offline profile edit for a session-less (Fallback) user by
-     * holding it in [PendingGuestAccountStore]. It stays on this device: the
+     * holding it in [FallbackDisplayNameStore]. It stays on this device: the
      * account made at sign-in has a name of its own. Emits an enriched
      * [Profile.Fallback] immediately so the UI reflects the change. Assumes
      * [mutex] is held.
      */
-    private suspend fun queueGuestIdentityEditLocked(
+    private suspend fun holdFallbackDisplayNameLocked(
         displayName: String?,
     ): UpdateProfileOutcome {
-        val existing = Catching { pendingGuestAccountStore.read() }.getOrNull()
+        val existing = Catching { fallbackDisplayNameStore.read() }.getOrNull()
         val merged = PendingIdentity(
             displayName = displayName?.trim()?.takeIf { it.isNotEmpty() } ?: existing?.displayName,
         )
-        Catching { pendingGuestAccountStore.set(merged) }
+        Catching { fallbackDisplayNameStore.set(merged) }
             .logOnFailure { "Queuing offline profile edit failed" }
         _state.emit(
             Profile.Fallback(
@@ -390,11 +390,9 @@ class ProfileRepositoryImpl(
                 logger.i { "update: Queued offline edit for cached account (will sync when online)" }
                 return@withLock UpdateProfileOutcome.Queued
             }
-            // True Fallback — onboarded but session-less (e.g. onboarded
-            // offline). Record the chosen identity into the owed guest-account
-            // record so it (a) surfaces on the Fallback now and (b) is applied
-            // server-side when the session is minted. Optimistic local emit.
-            return@withLock queueGuestIdentityEditLocked(
+            // True Fallback: session-less with no account cached. The name is
+            // held on this device for the Fallback only; it is never sent.
+            return@withLock holdFallbackDisplayNameLocked(
                 displayName = displayName,
             )
         }

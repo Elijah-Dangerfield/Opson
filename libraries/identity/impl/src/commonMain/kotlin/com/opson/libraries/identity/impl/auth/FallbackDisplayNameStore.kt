@@ -11,16 +11,20 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
  * Holds a display name chosen while the device had no session, so the local
- * `Profile.Fallback` can show it instead of a generic name.
+ * `Profile.Fallback` can show it instead of a generic name. It never reaches
+ * the server.
  *
  * Guest accounts were once created from this record when onboarding finished
  * offline. Nothing creates them any more (accounts are required), so all that
- * is left is the name the Fallback shows. The cache name stays as it was so an
- * update reads what an older build wrote.
+ * is left is the name the Fallback shows. The cache keeps its old name,
+ * `pending_guest_account`, so an update reads what an older build wrote.
+ *
+ * Only [set] writes it, through `ProfileRepository.update`, which no screen
+ * calls today: in production this only reads what an older build left.
  */
 @SingleIn(AppScope::class)
 @Inject
-class PendingGuestAccountStore(
+class FallbackDisplayNameStore(
     cacheFactory: CacheFactory,
 ) {
     private val cache: Cache<PendingRecord> = cacheFactory.persistent(
