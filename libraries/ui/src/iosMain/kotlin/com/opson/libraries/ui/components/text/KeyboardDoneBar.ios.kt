@@ -127,8 +127,7 @@ private object IosDoneBar {
     private fun refresh() {
         val outgoing = holder
         holder = null
-        val responder = firstResponder() ?: return
-        if (responder !is UITextInputProtocol) return
+        val responder = focusedTextInput() ?: return
         // Each input session gets a new view, so the view that held the bar being first responder
         // with no owner means its field let go of focus and the view is on its way out. Reloading
         // it would swap the closing number pad for its emptied, default traits: a letter keyboard.
@@ -150,18 +149,21 @@ private object IosDoneBar {
         class_replaceMethod(type, selector, accessoryViewImp.reinterpret(), "@@:")
     }
 
-    private fun firstResponder(): UIResponder? {
+    // The search is for the text input, not for the first first responder found: with a Compose
+    // overlay up (a sheet), the overlay's own input view also answers as first responder, and is
+    // reached before the text input view that holds the keyboard.
+    private fun focusedTextInput(): UIView? {
         UIApplication.sharedApplication.connectedScenes.forEach { scene ->
             (scene as? UIWindowScene)?.windows?.forEach { window ->
-                (window as UIWindow).findFirstResponder()?.let { return it }
+                (window as UIWindow).findFocusedTextInput()?.let { return it }
             }
         }
         return null
     }
 
-    private fun UIView.findFirstResponder(): UIView? {
-        if (isFirstResponder) return this
-        subviews.forEach { child -> (child as UIView).findFirstResponder()?.let { return it } }
+    private fun UIView.findFocusedTextInput(): UIView? {
+        if (isFirstResponder && this is UITextInputProtocol) return this
+        subviews.forEach { child -> (child as UIView).findFocusedTextInput()?.let { return it } }
         return null
     }
 
