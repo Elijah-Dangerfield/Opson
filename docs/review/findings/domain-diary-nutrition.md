@@ -202,13 +202,38 @@ renders through a tagged `NutrientText`, `NutrientBar`, `NutrientFigure`,
    without exercise…") is fixed by finding 1, so delete it. The first stays
    (deploy V24 before the flag), but its reason changes: "A server without it
    cannot store exercise, so entries stay queued on the phone until it can."
+   The same goes for `docs/plans/screens/fasting.md:207`: an older server
+   without `fast` answers `unknown_entity` and the fast stays queued until the
+   server ships, rather than "the device rolls the fast back".
 4. **Docs that list the deleted composables** (finding 5): remove
    `FavoriteFoodTile`, `NutrientTotalColumn`, `MealCheckChip` and `NutrientTile`
    from `docs/system-design.md:89` and `docs/plans/screens/shared.md:124-126`;
    remove `NutrientRingLabel` from `docs/system-design.md:86`,
    `docs/plans/screens/shared.md:111`, `docs/plans/screens/BUILDER-BRIEF.md:9`,
    `docs/practices/review-checklist.md:52` and
-   `docs/plans/screens/blind-leak-test.md:94`.
+   `docs/plans/screens/blind-leak-test.md:94`. In `docs/plans/screens/shared.md`
+   also drop `balanceRingValue` from the `ringValue` row (line 59), drop the
+   `SummaryRingMode` row (line 61), and change the `ringMode` row's type to
+   `RingMode` (line 93): all three APIs went with finding 5.
+
+## Second review
+
+A second reviewer flagged three regressions on this branch.
+
+1. **`:apps:integration` no longer compiles** (`TestClient.kt:226` builds
+   `DiarySyncer` without the new `cacheFactory`): real, deferred
+   (cross-slice). The file belongs to test-apps, and this pass may not edit
+   outside the slice. The one-line change is deferred item 1 and must land
+   with this branch, or the integration tier stays red.
+2. **`SyncRejection.code` KDoc still listed `unknown_entity`** (`Repositories.kt:221`):
+   real, fixed in "docs(diary): a sync rejection never carries unknown_entity".
+   Since finding 2, `apply()` keeps those rows queued and never reports them.
+   Comment only, so there is no test to write.
+3. **Plans and design docs contradict the code** (`release-checklist.md`,
+   `fasting.md:207`, `system-design.md`, `shared.md`, `blind-leak-test.md`,
+   `BUILDER-BRIEF.md`): real, deferred (cross-slice). Deferred items 3 and 4
+   already covered most of it; they now also name `fasting.md:207` and the
+   `balanceRingValue`, `SummaryRingMode` and `ringMode` lines in `shared.md`.
 
 ## Product notes
 
