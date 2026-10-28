@@ -522,87 +522,87 @@ keeps existing ticks.
 
 ## logger (81 files)
 
-- [ ] `features/logger/build.gradle.kts`
-- [ ] `features/logger/impl/build.gradle.kts`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AddFoodRow.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AddSheetPreview.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScan.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanPreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanScreen.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeReview.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeReviewViews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoice.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoiceViews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetPreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetState.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetail.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailCustomSize.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailPreview.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodLogger.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodPicks.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearch.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchScreen.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchStateBuilder.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LogPick.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerCommon.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFeatureEntryPoint.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerLeakSurfaces.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPanes.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerState.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerStateBuilder.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/NameOnlyPick.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimate.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimatePreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilder.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptions.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheet.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchPreview.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceLogEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoicePreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceTelemetry.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeReviewViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeRowsTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeVoiceViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/Fakes.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodDetailTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodSearchStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodSearchViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/NevoCitationTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoRowsTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/VoiceStateBuilderTest.kt`
-- [ ] `features/logger/src/commonMain/kotlin/com/opson/features/logger/LoggerRoute.kt`
+- [x] `features/logger/build.gradle.kts`
+- [x] `features/logger/impl/build.gradle.kts`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AddFoodRow.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AddSheetPreview.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScan.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanPreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanScreen.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeReview.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeReviewViews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoice.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoiceViews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetPreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetState.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetail.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailCustomSize.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailPreview.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodLogger.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodPicks.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearch.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchScreen.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchStateBuilder.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LogPick.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerCommon.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFeatureEntryPoint.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerLeakSurfaces.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPanes.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerState.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerStateBuilder.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/NameOnlyPick.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimate.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimatePreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilder.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptions.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheet.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchPreview.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceLogEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoicePreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceTelemetry.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeReviewViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeRowsTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeVoiceViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/Fakes.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodDetailTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodSearchStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodSearchViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/NevoCitationTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoRowsTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/VoiceStateBuilderTest.kt`
+- [x] `features/logger/src/commonMain/kotlin/com/opson/features/logger/LoggerRoute.kt`
 
 ## settings (103 files)
 

@@ -167,6 +167,8 @@ private fun StageBody(state: PhotoEstimateState, stage: PhotoStage, onAction: (P
             secondary = stringResource(Res.string.photo_describe_instead) to PhotoEstimateAction.DescribeInsteadTapped,
             onAction = onAction,
         )
+        // TODO(review): "Back to search" only dismisses; opened from the + sheet's Photo, that lands on
+        //  Today. Needs design copy, or a real route to search (docs/review/findings/logger.md 12).
         PhotoStage.Unavailable -> Calm(
             state,
             stringResource(Res.string.photo_unavailable_title),
