@@ -183,6 +183,13 @@ interface SettingsRepository {
      */
     val isKnown: StateFlow<Boolean>
 
+    /**
+     * [isKnown] for one user, null for nobody signed in, read from the stored record itself.
+     * [isKnown] follows auth through a collector, so for a moment after a sign-in it can still
+     * answer for whoever was there before; a caller that has just heard auth change asks this.
+     */
+    suspend fun isKnownFor(userId: String?): Boolean = isKnown.value
+
     fun observe(): Flow<Settings> = settings
 
     /**

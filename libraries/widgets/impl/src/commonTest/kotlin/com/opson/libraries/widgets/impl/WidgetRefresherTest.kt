@@ -1,6 +1,7 @@
 package com.opson.libraries.widgets.impl
 
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.identity.auth.AuthState
@@ -148,6 +149,23 @@ class WidgetRefresherTest : CoroutineTest() {
         auth.state.value = AuthState.Authenticated(userId = "u2", isAnonymous = false, email = null)
 
         assertEquals(listOf(blind), publisher.published)
+    }
+
+    /**
+     * Signed out, then in as someone new: [SettingsRepository.isKnown] still says true for the
+     * signed-out stretch when the refresher hears the sign-in, but nothing stored is the new
+     * account's yet, so nothing may be drawn from it.
+     */
+    @Test
+    fun aSignInBeforeIsKnownCatchesUp_publishesNothing() = test {
+        auth.state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
+        settings.knownFor = { it != "u2" }
+        refresher()
+        source.snapshots.emit(snapshot(PresetId.Full))
+
+        auth.state.value = AuthState.Authenticated(userId = "u2", isAnonymous = false, email = null)
+
+        assertTrue(publisher.published.isEmpty(), "the defaults are not the new account's")
     }
 
     /** An hour-old token can't refresh offline. The stored settings are still this person's, and so is the day. */

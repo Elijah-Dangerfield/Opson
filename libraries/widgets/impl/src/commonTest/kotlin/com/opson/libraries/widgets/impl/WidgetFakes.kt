@@ -75,6 +75,11 @@ class FakeSettingsRepository(initial: Settings, initiallyKnown: Boolean = true) 
     override val settings: StateFlow<Settings> = state
     override val isKnown: StateFlow<Boolean> = known
 
+    /** What [isKnownFor] answers; by default the same as [isKnown]. */
+    var knownFor: (userId: String?) -> Boolean = { known.value }
+
+    override suspend fun isKnownFor(userId: String?): Boolean = knownFor(userId)
+
     override suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): Settings =
         transform(state.value).also { state.value = it }
 }

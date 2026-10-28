@@ -92,6 +92,10 @@ class SettingsStore(
         combine(stored, activeUser.user) { record, user -> record != null && record.isKnownFor(user) }
             .stateIn(appScope, SharingStarted.Eagerly, false)
 
+    /** Whether the stored settings are [userId]'s (null: nobody signed in), read from the record so it can't lag auth. */
+    suspend fun isKnownFor(userId: String?): Boolean =
+        cache.get().isKnownFor(userId?.let(ActiveUser::SignedIn) ?: ActiveUser.SignedOut)
+
     data class UpdateResult(val settings: Settings, val queued: Boolean)
 
     suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): UpdateResult =
@@ -270,6 +274,8 @@ class SettingsRepositoryImpl(
     override val settings: StateFlow<Settings> get() = store.settings
 
     override val isKnown: StateFlow<Boolean> get() = store.isKnown
+
+    override suspend fun isKnownFor(userId: String?): Boolean = store.isKnownFor(userId)
 
     override suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): Settings {
         val result = store.update(stampNumbersChange, transform)

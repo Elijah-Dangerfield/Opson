@@ -67,7 +67,11 @@ class WidgetRefresher(
 
     init {
         appScope.launch {
-            val shows = combine(auth, settingsRepository.isKnown, onboarded, ::show).distinctUntilChanged()
+            // isKnown only says when to look again: it trails an auth change, so the answer comes
+            // from isKnownFor, asked about the user this auth state names.
+            val shows = combine(auth, settingsRepository.isKnown, onboarded) { auth, _, onboarded ->
+                show(auth, settingsRepository.isKnownFor((auth as? AuthState.Authenticated)?.userId), onboarded)
+            }.distinctUntilChanged()
             shows.collectLatest { show ->
                 when (show) {
                     Show.Snapshot -> source.observe().collect(::publish)
