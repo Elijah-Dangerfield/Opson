@@ -204,7 +204,9 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [ ] Deploy the server to prod once 0.1 is through review. It carries the
       settings merge (a 0.1 phone saving settings must not erase what a 0.2
       phone added), V12 to V14, and the new routes (including
-      `POST /v1/describe/photo`, which needs `ANTHROPIC_API_KEY`).
+      `POST /v1/describe/photo`, which needs `ANTHROPIC_API_KEY`, and
+      `GET /v1/export.zip`: against an older server, 0.2's Export everything
+      fails as offline).
 
 ## Today and Day close, design sync 2 (`release.todaySummary`, `release.todaySelect`, `release.checkIn`)
 
@@ -456,8 +458,11 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
       text. After changing dependencies, run
       `./gradlew :apps:compose:exportLibraryDefinitions` and commit
       `libraries/resources/.../files/licenses.json`.
-- [ ] Export: include notes, feelings, settings, custom foods, saved meals
-      and fasts in the CSV, or keep the policy's "email us for the rest".
+- [x] Export: Export everything shares `opson-export.zip` (`GET
+      /v1/export.zip`): entries, notes and hunger, check-ins, fasts, water,
+      weigh-ins, exercise, custom foods, saved meals, settings and a daily
+      summary, with a README. The policy says so, and still offers email for
+      the 0.1 app's CSV, which is unchanged.
 
 ### Accounts and settings at providers
 

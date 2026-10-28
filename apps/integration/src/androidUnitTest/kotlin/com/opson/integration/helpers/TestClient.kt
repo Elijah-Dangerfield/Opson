@@ -18,6 +18,8 @@ import com.opson.libraries.core.AuthGate
 import com.opson.libraries.core.AuthRequirement
 import com.opson.libraries.core.AuthVerdict
 import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.diary.DataExport
+import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.FastingReleaseFlag
@@ -39,6 +41,7 @@ import com.opson.libraries.diary.impl.DiaryTables
 import com.opson.libraries.diary.impl.DiaryWriter
 import com.opson.libraries.diary.impl.ExerciseRepositoryImpl
 import com.opson.libraries.diary.impl.FastingRepositoryImpl
+import com.opson.libraries.diary.impl.HttpDataExport
 import com.opson.libraries.diary.impl.HttpDiarySyncApi
 import com.opson.libraries.diary.impl.SavedMealRepositoryImpl
 import com.opson.libraries.diary.impl.SettingsRepositoryImpl
@@ -228,11 +231,14 @@ class TestClient(
     val settings: SettingsRepository = SettingsRepositoryImpl(settingsStore, sync)
     private val fastingImpl = FastingRepositoryImpl(tables, writer, settings, fastingRelease, calendar, clock)
     val fasting: FastingRepository = fastingImpl
-    val diary: DiaryRepository = DiaryRepositoryImpl(tables, writer, settings, calendar, fastEnder = fastingImpl)
+    private val diaryImpl = DiaryRepositoryImpl(tables, writer, settings, calendar, fastEnder = fastingImpl)
+    val diary: DiaryRepository = diaryImpl
+    val checkIns: DayCheckIns = diaryImpl
     val weights: WeightRepository = WeightRepositoryImpl(tables, writer)
     val customFoods: CustomFoodRepository = CustomFoodRepositoryImpl(tables, writer)
     val savedMeals: SavedMealRepository = SavedMealRepositoryImpl(tables, writer)
     val exercise: ExerciseRepository = ExerciseRepositoryImpl(tables, writer)
+    val export: DataExport = HttpDataExport(networkClient, calendar)
 
     // ── Foods ────────────────────────────────────────────────────────────────
     val foods: FoodCatalog = FoodCatalogImpl(HttpFoodApi(networkClient), database.foodCacheDao(), clock)

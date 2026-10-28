@@ -556,8 +556,9 @@ Tests: toggle change per preset; unit relabels sizes. `SURFACES`: `water-setting
 
 ```kotlin
 data class SupportState(
-    val export: ExportStatus,                  // Idle | Working | Failed(offline)
+    val export: ExportStatus,                  // Idle | ConfirmingNumbers | Working | Failed(offline)
     val delete: DeleteStep,                    // Idle | Confirming | Deleting | Failed(offline)
+    val providerSummary: ProviderSummaryOffer, // None | InYourData | First (release.providerSummary)
 )
 ```
 
@@ -565,7 +566,9 @@ data class SupportState(
 |---|---|
 | `HelplineTapped` | `router.openWebLink(HELPLINE_URL)`. |
 | `FindProviderTapped` | `router.openWebLink(PROVIDER_URL)`. |
-| `ExportTapped` | `DiarySync.syncNow()` first so queued rows are included, then `DataExport.csv()` (new: interface in `:libraries:diary`, `HttpDataExport` in its impl, `GET /v1/export.csv`), then event `ShareExport(bytes)`, which the entry point hands to `router.shareFile("opson-export.csv", "text/csv", bytes)`, and toast. Either call failing: `Failed`. |
+| `ExportTapped` | When the mode keeps any number the file holds short of shown (`hidesAnyOf(DataExport.METRICS)`, or settings not read yet): `ConfirmingNumbers`, the "Your export has every number" dialog, and nothing is fetched. Otherwise the export itself: `DiarySync.syncNow()` first so queued rows are included, then `DataExport.everything()` (`GET /v1/export.zip`, the phone's zone in `X-Time-Zone`), then event `ShareExport(bytes)`, which the entry point hands to `router.shareFile("opson-export.zip", "application/zip", bytes)`, and toast. Either call failing: `Failed`. |
+| `ExportConfirmed` / `ExportNotNow` | From the dialog: the export as above, or back to `Idle` with no file. |
+| `ProviderSummaryTapped` | `OpenProviderSummary` (`ProviderSummaryRoute`), only with the flag on. `First` (onboarding's "Working with a provider") puts it in its own card at the top; `InYourData` is a row beside export. |
 | `SendFeedbackTapped` | `OpenFeedback` (`FeedbackRoute`, home api). New row, the old Home screen was its only entry. |
 | `DeleteTapped` | `Confirming`: a modal dialog (v3 `support-delete.png`), so it can't be confirmed by scrolling. `Keep my data` is the accent button and `Delete` stays neutral. No red anywhere. |
 | `KeepMyDataTapped` | `Idle`. A tap outside or back does the same, except while deleting. |
@@ -596,11 +599,11 @@ feel hard right now`; `Free, confidential support from people who understand
 eating disorders.`; `National Alliance for Eating Disorders helpline`; `Find a
 provider`; `Trusted person` / `They approve turning numbers back on` / `Coming
 later`; `Dietitian, therapist or coach` / `They see what you choose to share` /
-`Coming later`; `Your data`; `Export everything (CSV)`; `Delete everything`;
+`Coming later`; `Your data`; `Export everything` (was `Export everything (CSV)`, now a zip); `Delete everything`;
 `Keep my data`; `Delete`; dialog title `Delete everything?` (v3). The v3 dialog
 body says "every log, photo and setting from this phone", which is not true
 for Opson (it syncs, 0.1 has no photos), so the dialog keeps
-`settings_support_delete_confirm` above. Toasts: `Export ready: opson-export.csv` (renamed from
+`settings_support_delete_confirm` above. Toasts: `Export ready: opson-export.zip` (0.1: opson-export.csv, renamed from
 friendly-tracking.csv); `Everything was deleted.` New: `settings_send_feedback`
 Send feedback (last row of Your data); `settings_export_offline`
 Export needs a connection. Try again when you're online.;
@@ -611,7 +614,20 @@ so nothing was deleted. Try again in a little while.
 Visibility: none. Tests: export syncs before fetching, offline paths, delete
 needs the confirm step, success resets onboarding and emits the event, failure
 deletes nothing locally, the dialog closes on Keep. Previews: `support`,
-`support-delete`. `SURFACES`: `support`, `support-delete`.
+`support-delete`, `support-export-numbers`, `support-provider-first`. `SURFACES`: the same.
+
+### What Export everything holds
+
+`opson-export.zip` from `GET /v1/export.zip` (`ExportArchiveWriter` on the
+server): a `README.txt` saying what each file holds, then `entries.csv` (day,
+local time and zone beside the UTC instant, meal, name, amount, grams, the five
+headline numbers, micros as JSON, precision, method), `day_notes.csv`,
+`meal_notes.csv` (note and hunger, with 0.1's fullness and moods),
+`check_ins.csv`, `water.csv`, `weigh_ins.csv`, `exercise.csv`, `fasts.csv`,
+`custom_foods.csv`, `saved_meals.csv` (a row per food), `daily_summary.csv`
+and `settings.json`. Every file is there with its header even when empty.
+Blank is "not recorded", never zero; text that a spreadsheet would run as a
+formula starts with `'`. 0.1 phones keep calling `export.csv`, unchanged.
 
 ---
 

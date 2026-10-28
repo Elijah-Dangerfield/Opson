@@ -25,6 +25,7 @@ import com.opson.features.settings.impl.reminders.ReminderNotifications
 import com.opson.features.settings.impl.reminders.RemindersScreen
 import com.opson.features.settings.impl.reminders.RemindersStateBuilder
 import com.opson.features.settings.impl.support.DeleteStep
+import com.opson.features.settings.impl.support.ExportStatus
 import com.opson.features.settings.impl.support.FindSupportScreen
 import com.opson.features.settings.impl.support.FindSupportStateBuilder
 import com.opson.features.settings.impl.support.SupportCountry
@@ -165,6 +166,14 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "support-delete", label = "Support, delete everything", showsCaloriesInFull = false) { _ ->
             SupportScreen(SupportState(delete = DeleteStep.Confirming), onAction = {})
+        },
+        // The warning names what the file holds, never an amount from it.
+        LeakSurface(id = "support-export-numbers", label = "Support, the export has every number", showsCaloriesInFull = false) { _ ->
+            SupportScreen(SupportState(export = ExportStatus.ConfirmingNumbers), onAction = {})
+        },
+        // release.providerSummary, first for someone working with a provider.
+        LeakSurface(id = "support-provider-first", label = "Support, a summary for your provider", showsCaloriesInFull = false) { _ ->
+            SupportScreen(SupportStateBuilder.build(findSupport = true, SupportCountry.UnitedStates, true, true), onAction = {})
         },
         // Design sync 2, release.findSupport. Phone numbers and no amounts: listed so a later
         // line that ever carries a number of the person's own is caught.

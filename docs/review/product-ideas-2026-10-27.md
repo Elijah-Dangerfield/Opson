@@ -16,7 +16,7 @@ Sizes are S, M or L.
 | 4 | Micronutrient targets by sex and age, an override per nutrient, and you pick the four on Today | M | Building |
 | 5 | Say when a nutrient % rests on partial data ("9 of 12 foods list vitamin D"), and show "not listed" instead of 0 | S/M | Building |
 | 6 | A summary the person makes for their provider: pick a range and contents, preview it, share a PDF; offered to people who said they work with a provider | M | Building |
-| 7 | An export with everything: notes, check-ins, fasts, water, weight, custom foods, meals, settings, a daily summary | S/M | Building |
+| 7 | An export with everything: notes, check-ins, fasts, water, weight, custom foods, meals, settings, a daily summary | S/M | Built: `opson-export.zip` |
 | 8 | oz, lb and ml for any food with a known weight or volume | S | Added to the food detail work |
 | 9 | Recipes with servings and a cooked weight | M/L | Later |
 | 10 | Merge "untracked" and "left out of the math" days into one state | S | Later |

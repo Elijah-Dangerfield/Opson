@@ -20,6 +20,7 @@ import com.opson.features.settings.LeaveOutDayRoute
 import com.opson.features.settings.LookAndFeelRoute
 import com.opson.features.settings.EachNumberRoute
 import com.opson.features.settings.ModesRoute
+import com.opson.features.settings.ProviderSummaryRoute
 import com.opson.features.settings.MoreRoute
 import com.opson.features.settings.PauseBeforeMoreRoute
 import com.opson.features.settings.RemindersRoute
@@ -69,7 +70,6 @@ import com.opson.features.settings.impl.reminders.RemindersAction
 import com.opson.features.settings.impl.reminders.RemindersEvent
 import com.opson.features.settings.impl.reminders.RemindersScreen
 import com.opson.features.settings.impl.reminders.RemindersViewModel
-import com.opson.features.settings.impl.support.EXPORT_MIME_TYPE
 import com.opson.features.settings.impl.support.CreditsEvent
 import com.opson.features.settings.impl.support.CreditsScreen
 import com.opson.features.settings.impl.support.CreditsViewModel
@@ -98,6 +98,7 @@ import com.opson.features.settings.impl.widgets.WidgetsViewModel
 import com.opson.features.settings.toRoute
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
+import com.opson.libraries.diary.DataExport
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.NavigationOptions
@@ -366,10 +367,11 @@ class SettingsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is SupportEvent.OpenLink -> router.openWebLink(event.url)
-                    is SupportEvent.ShareExport -> router.shareFile(event.name, EXPORT_MIME_TYPE, event.bytes)
+                    is SupportEvent.ShareExport -> router.shareFile(event.name, DataExport.MIME_TYPE, event.bytes)
                     is SupportEvent.ShowToast -> show(event.toast)
                     SupportEvent.OpenFeedback -> router.navigate(FeedbackRoute())
                     SupportEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
+                    SupportEvent.OpenProviderSummary -> router.navigate(ProviderSummaryRoute())
                     SupportEvent.OpenCredits -> router.navigate(CreditsRoute())
                     SupportEvent.GoToOnboarding -> router.navigate(
                         OnboardingRoute(),

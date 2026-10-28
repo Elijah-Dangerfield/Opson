@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl
 
 import com.opson.features.settings.FindSupportEnabled
+import com.opson.features.settings.ProviderSummaryEnabled
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.DataExport
@@ -133,7 +134,7 @@ class FakeDataExport(private val sync: FakeDiarySync, var result: Result<ByteArr
     var syncsBeforeFirstCall: Int? = null
         private set
 
-    override suspend fun csv(): Result<ByteArray> {
+    override suspend fun everything(): Result<ByteArray> {
         calls++
         if (syncsBeforeFirstCall == null) syncsBeforeFirstCall = sync.syncs
         return result
@@ -221,6 +222,13 @@ fun goalsAndEnergyFlag(on: Boolean = false): GoalsAndEnergyEnabled = GoalsAndEne
 fun findSupportFlag(on: Boolean = false): FindSupportEnabled = FindSupportEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("findSupport" to on))
+    },
+)
+
+/** `release.providerSummary`, on or off. */
+fun providerSummaryFlag(on: Boolean = false): ProviderSummaryEnabled = ProviderSummaryEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("providerSummary" to on))
     },
 )
 
