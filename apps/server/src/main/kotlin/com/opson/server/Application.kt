@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory
  *
  * Graceful degradation: with no `DATABASE_URL` the server runs in limited mode
  * (health + example); with no `SUPABASE_URL` the authenticated routes (`/v1/me`,
- * sync, foods, photo, export) aren't mounted and app config serves everyone
+ * sync, foods and barcode misses, photo, export) aren't mounted and app config serves everyone
  * anonymously. Either way it boots — so you can clone and run with zero config.
  *
  * Order matters: serialization before status pages (so error envelopes encode),
@@ -85,7 +85,9 @@ fun Application.module(config: ServerConfig) {
 
     val verification = config.supabase?.let { JwtVerification.Jwks(it.jwksUrl, it.expectedIssuer) }
     if (verification == null) {
-        logger.warn("SUPABASE_URL not set — authenticated routes (/v1/me, sync, foods, photo, export) are disabled.")
+        logger.warn(
+            "SUPABASE_URL not set — authenticated routes (/v1/me, sync, foods and barcode misses, photo, export) are disabled.",
+        )
     }
 
     logger.info("Features ({}): {}", config.observability.environment, config.featureSummary())
