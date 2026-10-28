@@ -4,6 +4,7 @@ import com.android.build.gradle.LibraryExtension
 import com.opson.ext.ConfigurationExtension
 import com.opson.util.configureAndroid
 import com.opson.util.configureComposeMetrics
+import com.opson.util.configureComposeStability
 import com.opson.util.configureKotlinInject
 import com.opson.util.configureKotlinMultiplatform
 import com.opson.util.enforceModuleBoundaries
@@ -40,6 +41,7 @@ class ComposeMultiplatformConventionPlugin : Plugin<Project> {
             configureKotlinInject()
             configureComposeTestDependencies()
             configureComposeMetrics()
+            configureComposeStability()
 
             extensions.configure<LibraryExtension> {
                 configureAndroid()

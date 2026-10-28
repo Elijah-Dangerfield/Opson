@@ -2,10 +2,6 @@ plugins {
     id("opson.compose.multiplatform")
 }
 
-moduleConfig {
-    di()
-}
-
 android {
     namespace = "com.opson.libraries.flowroutines"
 }

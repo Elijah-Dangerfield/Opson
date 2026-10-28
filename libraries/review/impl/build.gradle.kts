@@ -2,10 +2,6 @@ plugins {
     id("opson.kotlin.multiplatform")
 }
 
-moduleConfig {
-    di()
-}
-
 android {
     namespace = "com.opson.libraries.review.impl"
 }

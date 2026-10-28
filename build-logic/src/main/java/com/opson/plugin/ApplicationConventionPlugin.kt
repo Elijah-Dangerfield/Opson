@@ -6,6 +6,7 @@ import com.opson.ext.ConfigurationExtension
 import com.opson.util.SharedConstants
 import com.opson.util.configureAndroid
 import com.opson.util.configureComposeMetrics
+import com.opson.util.configureComposeStability
 import com.opson.util.configureKotlinInject
 import com.opson.util.configureKotlinMultiplatform
 import com.opson.util.configureReleaseSigning
@@ -48,6 +49,7 @@ class ApplicationConventionPlugin : Plugin<Project> {
             }
 
             configureComposeMetrics()
+            configureComposeStability()
 
             project.optInKotlinMarkers("kotlin.time.ExperimentalTime")
             project.optInKotlinMarkers("kotlin.uuid.ExperimentalUuidApi")

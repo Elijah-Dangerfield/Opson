@@ -3,7 +3,6 @@ plugins {
 }
 
 moduleConfig {
-    di()
     optIn("io.opentelemetry.kotlin.ExperimentalApi")
 }
 

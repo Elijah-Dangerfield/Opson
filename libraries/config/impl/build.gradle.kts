@@ -4,10 +4,6 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
-moduleConfig {
-    di()
-}
-
 android {
     namespace = "com.opson.libraries.config.impl"
 }
