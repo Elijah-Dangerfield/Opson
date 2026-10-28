@@ -144,6 +144,54 @@ thread, and a failed weigh-in says so. Each finding below names the place, the r
   have empty constructors.
 - **Scanner hits.** All 31 are `collectAsStateWithLifecycle` and factory parameter names.
 
+## Second review
+
+A second reviewer read the branch's nine commits for regressions they introduced, reverting each
+guard locally to see whether its test notices. Two were real; the rest held. Fates:
+
+1. **Compare's note could cut an emoji in half (e51c7fe3): real, fixed.** The field now shows
+   `text.take(280)`, so an emoji whose two UTF-16 halves straddle the 280th character was split:
+   the field drew a broken glyph and the index saved it. The split was already in what was saved
+   before; the commit put it on screen. Fixed in "fix(trends): Compare's note never cuts an emoji
+   in half at the limit": a trailing high surrogate is dropped.
+   `CompareViewModelTest.anEmojiAcrossTheLimit_isLeftOutWhole_neverCutInHalf` fails without it
+   (279 letters plus half an emoji).
+2. **Starting from the lock as it stands had no test (70cc27d5): real gap, test added.** The
+   fix was right, but both new tests pass with `initialStateArg` put back to the locked default:
+   on the unconfined test dispatcher the lock action runs before state is first read.
+   "test(trends): Compare and a single photo start unlocked when the grid already is" adds
+   `PhotoPagesFirstFrameTest`, on a `StandardTestDispatcher`, which reads the state before
+   anything runs. Both cases fail with the old default.
+3. **The lazy photo grid (cb334b81): not a regression.** The leak test renders at
+   `h4000dp`, so every item of the fixture grid, saved pairs included, is still composed and
+   scanned. Keys are unique (`photo-<id>`, `month-<year>-<n>`, `pair-<id>`). A relock drops the
+   tiles from composition, so they ask again after unlocking; a missing file answers `null` once
+   and does not loop. With the `id in reading` guard removed, `aTileAskingTwice_readsItsThumbnailOnce`
+   fails; with the cancel on lock removed, `locking_whileAThumbnailIsBeingRead_…` fails.
+4. **Caught photo writes (d055bb5c): not a regression.** Finding 2 checked only the single
+   photo's test against the old code; the Compare and grid tests fail too with their catches
+   removed (no `Close`, the action loop is dead). `Catching` rethrows cancellation. A failed
+   delete now closes the dialog and leaves the photo with no word said, which is better than the
+   crash but short of §10; see the product note.
+5. **Nutrients at midnight (2273599c): not a regression.** The claim that the policy re-emits at
+   midnight holds: `LivePolicy` bumps its tick at the next boundary, and `VisibilityPolicy` has
+   identity equality, so the `StateFlow` emits a new instance. With the old `settings.map` back,
+   `weekAverage_openOverTheMidnightThatStartsAWeek_readsTheNewWeek` fails.
+6. **The comment fixes (3cc03e11): not a regression.** Each new comment matches the code:
+   `TodayNotesListLink` binds the link, `WeekDotsCard` and `RecapCardView` both open Patterns,
+   the settings sheet holds week start and cards only, and the fixture's Thursday is
+   `Day.empty`, not `untracked`.
+7. **Weight's refusal (0ebb000e): not a regression.** The line is a resource
+   (`trends_weight_not_a_weight`), sits in the same polite live region as the save failure,
+   carries no number, and clears on the next keystroke. Its test cannot pass without the fix:
+   `notAWeight` did not exist.
+8. **The slider (5fadaa57): not a regression.** It has no test of its own, as a perf change;
+   `modeAndSlider` still covers the clamping, and the position is kept in `ui`, so the next full
+   rebuild keeps the handle where it was dragged.
+9. **Edits outside the slice (0686c486 and the rest): none.** The ledger diff touches only the
+   trends section, and the one string added is in `libraries/resources` for this slice's own
+   screen, which the brief allows. The `TODO(review)` in `PatternsScreen.kt` has its tag and reason.
+
 ## Product notes
 
 - **Charts need spoken summaries** (finding 9): today a screen reader user gets the card titles
@@ -154,5 +202,9 @@ thread, and a failed weigh-in says so. Each finding below names the place, the r
   more than, say, 15% off the trend would catch the rest. Not sure the extra step is welcome.
 - **Compare's note limit is invisible.** The field now stops at 280 characters without saying
   why; a counter in the last 40 would explain it. Fairly sure.
+- **A photo write that fails says nothing.** Since finding 2 a full disk no longer crashes, but
+  Delete closes its dialog and the photo stays, and a note or saved pair quietly isn't kept. A
+  line such as "Couldn't delete that photo. Your phone may be out of space." would say what to
+  do. Fairly sure; rare, so small.
 - **A year of photos is one long scroll.** The grid is fast now, but there is no way to jump to
   a month. A month strip or a year header would help people who take photos weekly. Not sure.
